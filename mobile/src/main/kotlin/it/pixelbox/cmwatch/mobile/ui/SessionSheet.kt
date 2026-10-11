@@ -55,6 +55,8 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -327,22 +329,14 @@ fun SessionSheet(
     var anchored by remember(s.id, feed != null) { mutableStateOf(false) }
     LaunchedEffect(chat.size, chat.lastOrNull()?.status, feed?.size, feed?.lastOrNull()) {
         if (chat.isEmpty() && feed.isNullOrEmpty()) return@LaunchedEffect
-        val count = androidx.compose.runtime.snapshotFlow { list.layoutInfo.totalItemsCount }.first { it > 0 }
-        if (!anchored) { ChatDiag.log("anchor ${s.name} n=$count"); list.scrollToItem(count - 1, Int.MAX_VALUE); anchored = true; follow = true }
+        androidx.compose.runtime.snapshotFlow { list.layoutInfo.totalItemsCount }.first { it > 0 }
+        if (!anchored) { list.scrollToEnd(); anchored = true; follow = true }
     }
     // Ogni testo nuovo o più lungo in fondo (risposta, riga dal vivo, domanda): giù fino alla fine dell'ultima voce.
     LaunchedEffect(list, anchored) {
         if (!anchored) return@LaunchedEffect
         androidx.compose.runtime.snapshotFlow { list.layoutInfo.totalItemsCount to list.canScrollForward }.collect { (n, below) ->
-            if (follow && below && n > 0 && !list.isScrollInProgress) { ChatDiag.log("follow ${s.name} n=$n"); list.scrollToItem(n - 1, Int.MAX_VALUE) }
-        }
-    }
-    // DIAGNOSTICA temporanea (vedi ChatDiag): chat ricreata, lista che salta, conversazione che sparisce.
-    val diagFeed by rememberUpdatedState(feed)
-    DisposableEffect(s.id) { ChatDiag.log("sheet+ ${s.name}"); onDispose { ChatDiag.log("sheet- ${s.name}") } }
-    LaunchedEffect(list) {
-        androidx.compose.runtime.snapshotFlow { Triple(list.firstVisibleItemIndex / 4 * 4, list.layoutInfo.totalItemsCount, diagFeed?.size) }.collect { (i, n, f) ->
-            ChatDiag.changed("list ${s.name}", "first~$i n=$n feed=$f follow=$follow anchored=$anchored")
+            if (follow && below && n > 0 && !list.isScrollInProgress) list.scrollToEnd()
         }
     }
     Column(Modifier.fly("card-${s.id}").fillMaxSize().background(CmColors.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
@@ -502,7 +496,7 @@ fun SessionSheet(
                 androidx.compose.material3.SmallFloatingActionButton(
                     onClick = {
                         follow = true
-                        listScope.launch { list.animateScrollToItem((list.layoutInfo.totalItemsCount - 1).coerceAtLeast(0), Int.MAX_VALUE) }
+                        listScope.launch { list.scrollToEnd(animate = true) }
                     },
                     containerColor = CmColors.surfaceHigh, contentColor = CmColors.actionIcon,
                 ) { Icon(Icons.Rounded.ArrowDownward, stringResource(R.string.to_latest)) }
@@ -2235,6 +2229,22 @@ private fun ActivityLine(s: Session, now: Long) {
     }
 }
 
+/**
+ * La chat fino in fondo, alla fine dell'ultima voce anche quando è più alta dello schermo: prima la voce, poi quello che
+ * ne resta sotto il bordo. Mai `scrollToItem(ultima, Int.MAX_VALUE)`: sotto le transizioni condivise della home (un
+ * LookaheadScope) la LazyColumn prende quello scostamento per 2^31 px da recuperare nella misura che si vede, il conto
+ * trabocca e per mezzo secondo compare la cima della chat (video di Franz, 10/10 22:19).
+ */
+internal suspend fun androidx.compose.foundation.lazy.LazyListState.scrollToEnd(animate: Boolean = false) {
+    val last = layoutInfo.totalItemsCount - 1
+    if (last < 0) return
+    if (animate) animateScrollToItem(last) else scrollToItem(last)
+    val info = layoutInfo
+    val item = info.visibleItemsInfo.lastOrNull()?.takeIf { it.index == last } ?: return
+    val over = (item.offset + item.size - (info.viewportEndOffset - info.afterContentPadding)).toFloat()
+    if (over > 0f) if (animate) animateScrollBy(over) else scrollBy(over)
+}
+
 @Composable
 private fun elapsed(s: Long): String = when {
     s < 60 -> stringResource(R.string.live_s, s)
@@ -2242,9 +2252,3 @@ private fun elapsed(s: Long): String = when {
     else -> stringResource(R.string.live_hm, s / 3600, (s % 3600) / 60)
 }
 
-/** DIAGNOSTICA temporanea (salti della chat della master, Franz 10/10 22:19): si toglie con la correzione. */
-internal object ChatDiag {
-    private val last = HashMap<String, String>()
-    fun changed(key: String, value: String) { if (last.put(key, value) != value) android.util.Log.i("CmChatDiag", "$key $value") }
-    fun log(msg: String) { android.util.Log.i("CmChatDiag", msg) }
-}
