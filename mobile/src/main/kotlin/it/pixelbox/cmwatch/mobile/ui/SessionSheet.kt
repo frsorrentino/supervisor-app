@@ -1358,7 +1358,9 @@ private fun FileChip(f: TranscriptFile, entry: String) {
     // un video fino a 25 MB, solo in Wi-Fi (15:24).
     val autoPreview = it.pixelbox.cmwatch.rules.MediaPreview.auto(f.mime, f.size, opener.unmetered())
     LaunchedEffect(key, autoPreview) { if (autoPreview && opener.local[key] == null && key !in opener.loading) opener.preview(key, f) }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    // Con l'anteprima la scheda prende tutta la larghezza della chat (Franz, 12/10 12:27: «anteprime con width 100%»).
+    val wide = local != null && (f.mime?.startsWith("image/") == true || it.pixelbox.cmwatch.rules.MediaPreview.isVideo(f.mime))
+    Column(if (wide) Modifier.fillMaxWidth() else Modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Surface(color = CmColors.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }) {
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (key in opener.loading) CircularProgressIndicator(Modifier.size(18.dp), color = CmColors.actionIcon, strokeWidth = 2.dp)
@@ -1383,7 +1385,7 @@ private fun FileChip(f: TranscriptFile, entry: String) {
                 }
             }
         }
-        if (local != null && f.mime?.startsWith("image/") == true) AttachmentThumb(local)
+        if (local != null && f.mime?.startsWith("image/") == true) AttachmentThumb(local, fill = true)
         if (local != null && it.pixelbox.cmwatch.rules.MediaPreview.isVideo(f.mime)) VideoPreview(local)
     }
 }
@@ -1652,12 +1654,14 @@ private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, l
  * tocco = visore a tutto schermo con lo zoom. Niente se il file non c'è più.
  */
 @Composable
-private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 240.dp, maxH: androidx.compose.ui.unit.Dp = 180.dp) {
+private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 240.dp, maxH: androidx.compose.ui.unit.Dp = 180.dp, fill: Boolean = false) {
     var full by remember { mutableStateOf(false) }
-    val bmp = remember(path) { decodeScaled(path, 720) } ?: return
+    val bmp = remember(path, fill) { decodeScaled(path, if (fill) 1080 else 720) } ?: return
+    // `fill`: a tutta larghezza, alta secondo le proporzioni e al massimo il doppio della larghezza (gli screenshot del telefono).
+    val box = if (fill) Modifier.fillMaxWidth().aspectRatio((bmp.width.toFloat() / bmp.height).coerceAtLeast(.5f)) else Modifier.widthIn(max = maxW).heightIn(max = maxH)
     androidx.compose.foundation.Image(
         bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Crop,
-        modifier = Modifier.widthIn(max = maxW).heightIn(max = maxH).clip(RoundedCornerShape(14.dp)).handCursor().clickable { full = true },
+        modifier = box.clip(RoundedCornerShape(14.dp)).handCursor().clickable { full = true },
     )
     if (full) ImageViewer(path) { full = false }
 }

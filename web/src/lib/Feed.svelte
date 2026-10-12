@@ -270,8 +270,12 @@
   .fcard { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 100%; }
   .fchip { display: flex; align-items: center; gap: 8px; background: var(--surface); border-radius: 12px; padding: 8px 12px; text-align: left; max-width: 100%; }
   .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; }
-  .fthumb img { display: block; max-width: 240px; max-height: 180px; object-fit: cover; }
-  .fvideo { display: block; max-width: min(100%, 360px); max-height: 320px; border-radius: 14px; background: #000; }
+  /* Con l'anteprima la scheda prende tutta la larghezza della chat, come nell'app (Franz, 12/10 12:27: «anteprime con width
+     100%»); un verticale è alto al massimo il doppio della larghezza. */
+  .fcard:has(> .fthumb, > .fvideo) { width: 100%; container-type: inline-size; }
+  .fcard > .fthumb { width: 100%; }
+  .fthumb img { display: block; width: 100%; height: auto; max-height: 200cqw; object-fit: cover; }
+  .fvideo { display: block; width: 100%; max-height: 200cqw; border-radius: 14px; background: #000; }
   .steps .fchip { background: rgb(255 255 255 / .06); }
   .fname { font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
   .fsize { font-size: 12.5px; color: var(--text2); white-space: nowrap; }

@@ -41,7 +41,7 @@ class VideoPreviewTest {
         }
     }
 
-    /** Il taglio per i social, 9×16: alto 320 dp invece che largo 280. */
+    /** Il taglio per i social, 9×16: a tutta larghezza come l'orizzontale (12/10), alto meno del doppio della larghezza. */
     @Test fun portraitPoster() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
             Box(Modifier.background(CmColors.bg).padding(12.dp)) { VideoPoster(frame(180, 320), 312_000, 9f / 16f) {} }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -47,7 +48,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -99,11 +99,11 @@ private fun videoMeta(path: String): VideoMeta? = runCatching {
     }
 }.getOrNull()
 
-/** La misura del riquadro nella chat: orizzontale largo 280 dp, verticale alto 320 dp. */
-private fun frameSize(ratio: Float): Pair<Dp, Dp> {
-    val r = ratio.coerceIn(0.4f, 2.5f)
-    return if (r >= 1f) 280.dp to (280f / r).dp else (320f * r).dp to 320.dp
-}
+/**
+ * Le proporzioni del riquadro nella chat, che prende tutta la larghezza (Franz, 12/10 12:27: «anteprime con width 100%»;
+ * prima orizzontale largo 280 dp, verticale alto 320): un verticale è alto al massimo il doppio della larghezza.
+ */
+private fun frameRatio(ratio: Float): Float = ratio.coerceIn(0.5f, 2.5f)
 
 private val frameShape = RoundedCornerShape(14.dp)
 
@@ -116,9 +116,8 @@ internal fun clockOf(ms: Long): String {
 /** Il riquadro fermo: il primo fotogramma (nero finché non c'è), ▶ al centro e la durata in basso a destra. */
 @Composable
 internal fun VideoPoster(poster: ImageBitmap?, durationMs: Long?, ratio: Float, onPlay: () -> Unit) {
-    val (w, h) = frameSize(ratio)
     Box(
-        Modifier.size(w, h).clip(frameShape).background(Color.Black).handCursor().clickable(onClick = onPlay),
+        Modifier.fillMaxWidth().aspectRatio(frameRatio(ratio)).clip(frameShape).background(Color.Black).handCursor().clickable(onClick = onPlay),
         contentAlignment = Alignment.Center,
     ) {
         poster?.let { Image(it, stringResource(R.string.video_preview), contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
@@ -158,8 +157,7 @@ private fun VideoPlayer(path: String, ratio: Float) {
         onDispose { lifecycle.removeObserver(pause) }
     }
     var full by remember { mutableStateOf(false) }
-    val (w, h) = frameSize(ratio)
-    PlayerFrame(player, Modifier.size(w, h).clip(frameShape), attached = !full, isFull = false) { full = true }
+    PlayerFrame(player, Modifier.fillMaxWidth().aspectRatio(frameRatio(ratio)).clip(frameShape), attached = !full, isFull = false) { full = true }
     if (full) Dialog(onDismissRequest = { full = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         PlayerFrame(player, Modifier.fillMaxSize(), attached = true, isFull = true) { full = false }
     }
