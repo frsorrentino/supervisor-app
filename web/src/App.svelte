@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as files from './lib/fileActions'
-  import { media, mediaKey } from './lib/mediaCache.svelte'
+  import { media } from './lib/mediaCache.svelte'
   import { groups, together } from './lib/shareMulti'
   import type { FileAct, Fetched } from './lib/fileActions'
   import { demoAgenda, demoEvents, demoMine, demoNight, demoSamples, demoSearch, demoState, demoTimeline, demoTranscripts } from './lib/demo'
@@ -467,9 +467,10 @@
   }
   // Un file della chat: il comando `file`, poi i byte da /api/file/<id>; il menu del file li chiede appena si apre
   // («prepare»), così apri, scarica, copia e condividi partono subito dal tocco (copia e condividi lo vogliono fresco).
+  // I file appena arrivati per due minuti, con la chiave del file della chat (`fileKey`): lo stesso percorso mandato di nuovo
+  // con un'altra misura non riprende quello vecchio.
   const fileCache = new Map<string, Promise<Fetched | null>>()
-  function getFile(name: string, path: string, quiet = false): Promise<Fetched | null> {
-    const key = `${name}\n${path}`
+  function getFile(name: string, path: string, key: string, quiet = false): Promise<Fetched | null> {
     let p = fileCache.get(key)
     if (!p) {
       p = (async () => {
@@ -487,19 +488,18 @@
     }
     return p
   }
-  async function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview') {
+  async function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview', key: string) {
     if (!tr) { if (act !== 'prepare' && act !== 'preview') say(t.fileDemo); return }
-    if (act === 'prepare') { void getFile(name, path); return }
+    if (act === 'prepare') { void getFile(name, path, key); return }
     if (act === 'preview') {
       // Immagini e video in anteprima sotto il loro file (Franz, 10/10 15:24), come sul telefono.
-      const key = mediaKey(name, path)
-      const f = media[key] ? null : await getFile(name, path, true)
+      const f = media[key] ? null : await getFile(name, path, key, true)
       if (f && !media[key]) media[key] = URL.createObjectURL(f.blob)
       return
     }
     const short = path.split('/').pop() ?? path
     say(t.fileOpening(short))
-    const f = await getFile(name, path)
+    const f = await getFile(name, path, key)
     if (!f) return
     notice = null
     try {
@@ -576,7 +576,7 @@
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = (st.sessions.find(x => x.name === name) ?? ghost(name))!}
   <Chat {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
-    onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a) => fileAction(name, p, a)} onHandoff={() => handoff(name)} onDecision={decide}
+    onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onHandoff={() => handoff(name)} onDecision={decide}
     wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, alertKey(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
     inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} />

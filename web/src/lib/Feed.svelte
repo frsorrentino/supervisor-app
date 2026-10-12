@@ -11,15 +11,15 @@
   import { t } from './t'
   import Icon from './Icon.svelte'
   import { canShare, type FileAct } from './fileActions'
-  import { autoPreview, isImage, isVideo } from './media'
+  import { autoPreview, fileKey, isImage, isVideo } from './media'
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
-  import { media, mediaKey } from './mediaCache.svelte'
+  import { media } from './mediaCache.svelte'
   import Md from './Md.svelte'
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
-  let { s, items, now, onFile = () => {}, onDecision }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview') => void; onDecision?: (text: string) => void } = $props()
+  let { s, items, now, onFile = () => {}, onDecision }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void; onDecision?: (text: string) => void } = $props()
 
   // Un file: sotto il nome i tasti apri, scarica, copia e condividi (condividi solo dove il browser lo sa fare; Franz, 07/10
   // 15:48). Il file si chiede al PC appena il puntatore ci arriva, così il tocco trova i byte pronti.
@@ -44,9 +44,9 @@
 
   // Immagini e video nascono già in anteprima, come sul telefono (Franz, 10/10 15:24): il file si chiede al PC appena la
   // card è a schermo, se `autoPreview` lo vuole; col risparmio dati del browser i video aspettano il tocco.
-  function preview(_node: HTMLElement, f: TranscriptFile) {
+  function preview(_node: HTMLElement, { f, key }: { f: TranscriptFile; key: string }) {
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
-    if (!media[mediaKey(s.name, f.path)] && autoPreview(f.mime, f.size, !saveData)) onFile(f.path, 'preview')
+    if (!media[key] && autoPreview(f.mime, f.size, !saveData)) onFile(f.path, 'preview', key)
   }
 
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
@@ -127,14 +127,16 @@
   </div>
 {/snippet}
 
-{#snippet files(fs: TranscriptFile[])}
+<!-- Ogni file con la sua voce: senza la misura è la voce a dire se è lo stesso file (fileKey). -->
+{#snippet files(fs: { f: TranscriptFile; entry: string }[])}
   <div class="files">
-    {#each fs as f}
-      {@const url = media[mediaKey(s.name, f.path)]}
-      <div class="fcard" role="group" aria-label={f.path.split('/').pop()} use:preview={f} onpointerenter={() => onFile(f.path, 'prepare')} onfocusin={() => onFile(f.path, 'prepare')}>
-        <button class="fchip" title={f.path} onclick={() => onFile(f.path, 'open')}><Icon name={fileIcon(f)} color="var(--icon)" /><span class="fname">{f.path.split('/').pop()}</span>{#if f.size != null}<span class="fsize">{size(f.size)}</span>{/if}</button>
-        <div class="acts">{#each fileActs as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a)}><Icon name={icon} /></button>{/each}</div>
-        {#if url && isImage(f.mime)}<button class="fthumb" aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open')}><img src={url} alt="" /></button>{/if}
+    {#each fs as { f, entry }}
+      {@const key = fileKey(s.name, f, entry)}
+      {@const url = media[key]}
+      <div class="fcard" role="group" aria-label={f.path.split('/').pop()} use:preview={{ f, key }} onpointerenter={() => onFile(f.path, 'prepare', key)} onfocusin={() => onFile(f.path, 'prepare', key)}>
+        <button class="fchip" title={f.path} onclick={() => onFile(f.path, 'open', key)}><Icon name={fileIcon(f)} color="var(--icon)" /><span class="fname">{f.path.split('/').pop()}</span>{#if f.size != null}<span class="fsize">{size(f.size)}</span>{/if}</button>
+        <div class="acts">{#each fileActs as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a, key)}><Icon name={icon} /></button>{/each}</div>
+        {#if url && isImage(f.mime)}<button class="fthumb" aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><img src={url} alt="" /></button>{/if}
         {#if url && isVideo(f.mime)}<!-- svelte-ignore a11y_media_has_caption --><video class="fvideo" src={url} controls preload="metadata" playsinline></video>{/if}
       </div>
     {/each}
@@ -148,7 +150,7 @@
       <Icon name={toolIcon(e)} color={e.error ? 'var(--gone)' : 'var(--text2)'} label={e.tool ?? undefined} />
       <span class="tcol"><span class:bad={e.error}>{main}</span>{#if detail}<code>{detail}</code>{/if}</span>
     </div>
-    {#if withFiles && e.files?.length}<div class="indent">{@render files(e.files)}</div>{/if}
+    {#if withFiles && e.files?.length}<div class="indent">{@render files(e.files.map(f => ({ f, entry: e.id })))}</div>{/if}
   </div>
 {/snippet}
 
@@ -157,7 +159,7 @@
   {@const failed = g.entries.filter(e => e.error).length}
   {@const cs = counts(g)}
   {@const last = g.entries[g.entries.length - 1]}
-  {@const fs = g.entries.flatMap(e => e.files ?? [])}
+  {@const fs = g.entries.flatMap(e => (e.files ?? []).map(f => ({ f, entry: e.id })))}
   <div class="steps" class:fail={failed > 0}>
     <button class="shead" aria-expanded={!!open[id]} onclick={() => (open[id] = !open[id])}>
       <span class="ssum">{[t.stepsCount(g.entries.length), cs[0] ? `${cs[0][1]} ${cs[0][0]}` : null, cs.length > 1 ? `+${cs.length - 1}` : null].filter(Boolean).join(' · ')}{#if failed}{' · '}<b class="sfail">{t.stepsFailed(failed)}</b>{/if}</span>
