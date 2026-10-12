@@ -705,6 +705,8 @@ class MainActivity : ComponentActivity() {
             }
         }
         var more by remember { mutableStateOf(false) }
+        // `more` per chat, dall'ultima pagina letta da capo o all'indietro: la chat riaperta lo ritrova (`ChatFeed.moreOnOpen`).
+        val feedMore = remember { mutableStateMapOf<String, Boolean>() }
         var olderId by remember { mutableStateOf<String?>(null) }
         var unsupported by remember { mutableStateOf(false) }
         // Da quando la lettura in volo aspetta il PC: la riga «in attesa del PC» della chat (piano prestazioni, Task 7).
@@ -728,6 +730,7 @@ class MainActivity : ComponentActivity() {
                         app.repo.forget(id)
                         if (r?.ok == true) runCatching { ContractJson.decodeTranscript(r.text) }.onSuccess { page ->
                             val cur = feedCache[name].orEmpty()
+                            if (cur.isEmpty()) feedMore[name] = page.more
                             feedCache[name] = ChatFeed.append(cur, page, if (cur.isEmpty()) ChatFeed.Page.FRESH else ChatFeed.Page.AFTER)
                         }
                     }
@@ -735,7 +738,8 @@ class MainActivity : ComponentActivity() {
             }
         }
         LaunchedEffect(chatName, transcriptOk, unsupported) {
-            entries = chatName?.let { feedCache[it] }.orEmpty(); entriesOwner = chatName; more = false
+            entries = chatName?.let { feedCache[it] }.orEmpty(); entriesOwner = chatName
+            more = ChatFeed.moreOnOpen(entries, chatName?.let { feedMore[it] })
             val name = chatName ?: return@LaunchedEffect
             if (!transcriptOk || unsupported) return@LaunchedEffect
             lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
@@ -754,7 +758,7 @@ class MainActivity : ComponentActivity() {
                             r.ok -> runCatching { ContractJson.decodeTranscript(r.text) }.onSuccess { page ->
                                 entries = ChatFeed.append(entries, page, mode)
                                 feedCache[name] = entries
-                                if (mode == ChatFeed.Page.FRESH) { more = page.more; restart = false }
+                                if (mode == ChatFeed.Page.FRESH) { more = page.more; feedMore[name] = page.more; restart = false }
                             }
                             r.text.contains("no entry") -> { restart = true; askedAt = null }
                             // Relay aggiornato ma servizio ancora vecchio: resta la chat dei messaggi mandati.
@@ -796,6 +800,7 @@ class MainActivity : ComponentActivity() {
                 if (r != null) {
                     if (r.ok) runCatching { ContractJson.decodeTranscript(r.text) }.onSuccess { page ->
                         entries = ChatFeed.append(entries, page, ChatFeed.Page.BEFORE); more = page.more
+                        chatName?.let { n -> feedMore[n] = page.more }
                     }
                     break
                 }
@@ -1343,7 +1348,10 @@ class MainActivity : ComponentActivity() {
                             pendingId?.let { id -> app.repo.resultsById.value[id] }?.let { r ->
                                 val have = feedCache[name].orEmpty()
                                 feedCache[name] = when {
-                                    r.ok -> runCatching { ContractJson.decodeTranscript(r.text) }.map { page -> ChatFeed.append(have, page, mode) }.getOrDefault(have)
+                                    r.ok -> runCatching { ContractJson.decodeTranscript(r.text) }.map { page ->
+                                        if (mode == ChatFeed.Page.FRESH) feedMore[name] = page.more
+                                        ChatFeed.append(have, page, mode)
+                                    }.getOrDefault(have)
                                     r.text.contains("no entry") -> emptyList()
                                     else -> have
                                 }

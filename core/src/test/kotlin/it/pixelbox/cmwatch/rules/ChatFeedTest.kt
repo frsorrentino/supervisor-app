@@ -210,4 +210,18 @@ class ChatFeedTest {
         assertTrue(ChatFeed.stale(listOf(s.copy(state = SessionState.GONE)), mapOf("atlas-shop" to old), emptyMap(), open = null).isEmpty())
         assertTrue(ChatFeed.stale(listOf(s.copy(outcome = null)), emptyMap(), emptyMap(), open = null).isEmpty())
     }
+
+    // Heads up del 12/10: riaperta con le voci in cache, la chat della master perdeva «Carica i messaggi precedenti» e i
+    // messaggi mandati più vecchi della prima voce si ammucchiavano in testa, senza risposta. Vale l'ultima pagina letta da
+    // capo o all'indietro; senza quel dato il tasto c'è.
+    @Test fun aReopenedChatKeepsItsOlderPages() {
+        assertTrue(ChatFeed.moreOnOpen(first.entries, known = true))
+        assertFalse(ChatFeed.moreOnOpen(first.entries, known = false))
+        assertTrue(ChatFeed.moreOnOpen(first.entries, known = null))
+        assertFalse(ChatFeed.moreOnOpen(emptyList(), known = null))
+        // Con il tasto, un messaggio mandato prima della prima voce aspetta la sua pagina.
+        val old = Sent("c0", "field-notes", "Il messaggio di ieri", sentAt = first.entries.mapNotNull { it.at }.min() - 86_400)
+        val feed = ChatFeed.merge(first.entries, listOf(old to ChatRules.Status.DONE), more = ChatFeed.moreOnOpen(first.entries, known = null))
+        assertTrue(feed.none { it is ChatFeed.Item.Mine && it.sent.id == "c0" })
+    }
 }

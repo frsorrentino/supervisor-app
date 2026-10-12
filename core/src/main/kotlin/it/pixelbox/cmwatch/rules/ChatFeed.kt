@@ -104,6 +104,14 @@ object ChatFeed {
         name: String, open: String?, owner: String?, live: List<TranscriptEntry>, cache: Map<String, List<TranscriptEntry>>,
     ): List<TranscriptEntry> = if (name == open && owner == name) live else cache[name].orEmpty()
 
+    /**
+     * Se la chat che si riapre ha voci più vecchie da caricare: lo dice l'ultima pagina letta da capo o all'indietro
+     * ([known]). Senza quel dato (voci rimaste dal processo di prima) sì, se ce ne sono: il tasto costa una pagina che
+     * risponde `more` = false. Prima la riapertura lo azzerava, e solo una lettura da capo lo riaccendeva: il tasto «Carica i
+     * messaggi precedenti» spariva e i messaggi mandati più vecchi della prima voce si ammucchiavano in testa (12/10).
+     */
+    fun moreOnOpen(cached: List<TranscriptEntry>, known: Boolean?): Boolean = known ?: cached.isNotEmpty()
+
     fun anchor(entries: List<TranscriptEntry>): String? {
         if (entries.isEmpty()) return null
         val q = entries.indexOfFirst { it.queued }
