@@ -86,7 +86,7 @@
       <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
     {/if}
     <button class="pill" bind:this={pill} disabled={!tunable} onclick={openTune}>
-      {[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}
+      <span class="lbl">{[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}</span>
       {#if tunable}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z" fill="var(--text2)" /></svg>{/if}
       {#if tunable && advice?.dot}<span class="dot" title={t.adviceDot} aria-label={t.adviceDot}></span>{/if}
     </button>
@@ -217,9 +217,12 @@
   .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); flex: none; }
   .ib:hover { background: var(--surface); }
   .back { color: var(--text); width: 36px; }
-  .pill { display: flex; align-items: center; min-width: min-content; overflow: hidden; background: var(--surface); border-radius: 999px; padding: 6px 6px 6px 12px; font-size: 13px; font-weight: 500; white-space: nowrap; flex: 0 1 auto; }
+  .pill { display: flex; align-items: center; min-width: min-content; overflow: hidden; background: var(--surface); border-radius: 999px; height: 31px; padding: 0 6px 0 12px; font-size: 13px; font-weight: 500; white-space: nowrap; flex: 0 1 auto; }
   /* Le pillole di quota e contesto, alte e larghe come quella del modello (variante A, 09/10). */
-  .mpill { display: flex; align-items: center; gap: 5px; background: var(--surface); border-radius: 999px; padding: 7px 10px 7px 8px; font-size: 13px; font-weight: 500; white-space: nowrap; flex: none; color: var(--text); }
+  .mpill { display: flex; align-items: center; gap: 5px; background: var(--surface); border-radius: 999px; height: 33px; padding: 0 10px 0 8px; font-size: 13px; font-weight: 500; white-space: nowrap; flex: none; color: var(--text); }
+  /* Il testo al centro sulle maiuscole e le cifre, non sulla riga del carattere: con Roboto a 13 px stavano 1 px sopra il
+     centro, e la barra sembrava avere più spazio sotto le pillole che sopra (Franz, 12/10 15:19). */
+  .lbl, .mpill > span { text-box: trim-both cap alphabetic; }
   .mpill:not(:disabled):hover { filter: brightness(1.2); }
   .mpill:disabled { cursor: default; }
   .mpill .stale { color: var(--wait); }
