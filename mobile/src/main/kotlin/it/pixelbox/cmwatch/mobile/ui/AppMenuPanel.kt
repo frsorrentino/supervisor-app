@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -107,6 +108,16 @@ fun PanelShell(
     androidx.compose.runtime.LaunchedEffect(shown.isIdle, shown.currentState, closing) { if (closing && shown.isIdle && !shown.currentState) onDismiss() }
     val enter = androidx.compose.animation.core.tween<Float>(200, easing = CmMotion.easing)
     val exit = androidx.compose.animation.core.tween<Float>(150, easing = CmMotion.easing)
+    // Compose misura il popup una volta sola, sulla parte visibile della finestra: aperto con la tastiera su (scrivendo alla
+    // master) prendeva l'altezza sopra la tastiera, che il popup stesso chiude, e il menu si fermava a metà e scorreva con
+    // lo spazio vuoto sotto (Franz, 12/10 22:11). Prima si chiude la tastiera, poi si apre il pannello; se la tastiera non
+    // si chiude, il pannello si apre lo stesso dopo mezzo secondo.
+    val imeBottom = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current)
+    var ready by remember { androidx.compose.runtime.mutableStateOf(imeBottom == 0) }
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (!ready) { keyboard?.hide(); kotlinx.coroutines.delay(500); ready = true } }
+    androidx.compose.runtime.LaunchedEffect(imeBottom) { if (imeBottom == 0) ready = true }
+    if (!ready) return
     Popup(onDismissRequest = close, properties = PopupProperties(focusable = true)) {
         Box(Modifier.fillMaxSize()) {
             androidx.compose.animation.AnimatedVisibility(
