@@ -32,6 +32,11 @@ export type Tone = 'neutral' | 'warn' | 'alert'
 /** Da tre quarti il contesto (e la quota) è da guardare, dal 90 % è il momento di chiudere il turno. */
 export const tone = (pct: number | null | undefined): Tone => (pct == null ? 'neutral' : pct >= 90 ? 'alert' : pct >= 75 ? 'warn' : 'neutral')
 
+/** La forma della pillola della quota, dalla più lunga, come QuotaForm nell'app: «5h 4% · 20:00», «5h 4%», «5h 4%» senza anello. */
+export type QuotaForm = 'full' | 'short' | 'tiny'
+/** Il testo della pillola: «5h» sempre, l'ora del reset solo dove ci sta (Franz, 12/10 21:25 e 21:50). */
+export const quotaLabel = (form: QuotaForm, h5: string, reset: string | null): string => (form === 'full' && reset ? `${h5} · ${reset}` : h5)
+
 /** L'ora dell'azzeramento, col giorno se non è oggi; niente se è già passata. */
 export function resetLabel(resetAt: number | null | undefined, now: number, timeZone?: string): string | null {
   if (resetAt == null || resetAt <= now) return null

@@ -1,7 +1,7 @@
 <script lang="ts">
   import CloseDialog from './CloseDialog.svelte'
   import type { CmdOp, Model, Session, State } from './contract'
-  import { modelKind, notes as notesOf, resetLabel, sameModel, shortModel, tone, wider as widerOf, type Tone } from './header'
+  import { modelKind, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
   import { MASTER } from './summary'
   import { t } from './t'
   import Badge from './Badge.svelte'
@@ -35,9 +35,20 @@
   // Contratto 1.37: il consiglio di fable-director, dentro il foglio; il puntino solo se la scelta attuale è diversa.
   const advice = $derived(adviceOf(s, st.choices, st.ts))
   // Tre pillole uguali (variante A, scelta da Franz il 09/10 alle 17:50): la quota prende la forma più lunga che ci sta,
-  // «5h 4% · 20:00», «4% · 20:00» o «4%», invece di andare a capo; come MeterPills nell'app.
+  // «5h 4% · 20:00», «5h 4%» o «5h 4%» senza anello, invece di andare a capo. Come MeterPills nell'app la riga si misura:
+  // le pillole accanto, le tre forme disegnate fuori vista, i margini della riga (padding 16 e spazi da 8; col tasto
+  // indietro 2 più 36 e spazi da 6) e il menu da 44. Con soglie fisse a 430 px il ⋮ usciva dalla riga (12/10).
   let width = $state(0)
-  const quotaForm = $derived(width === 0 || width >= 430 ? 'full' : width >= 370 ? 'short' : 'tiny')
+  let modelW = $state(0)
+  let ctxW = $state(0)
+  const formW = $state<Record<QuotaForm, number>>({ full: 0, short: 0, tiny: 0 })
+  const quotaForm = $derived.by<QuotaForm>(() => {
+    if (width === 0) return 'full'
+    const items = (onBack ? 1 : 0) + 3 + (s.context != null ? 1 : 0) + 1
+    const fixed = (onBack ? 2 + 36 : 16) + (items - 1) * (onBack ? 6 : 8) + modelW + (s.context != null ? ctxW : 0) + 44
+    return (['full', 'short'] as const).find(f => fixed + formW[f] <= width) ?? 'tiny'
+  })
+  const forms: QuotaForm[] = ['full', 'short', 'tiny']
   // Una colonna molto stretta: «62%» senza «ctx», così il menu ⋮ resta in vista.
   const compact = $derived(width > 0 && width < 300)
   const ring: Record<Tone, string> = { neutral: 'var(--b-ring)', warn: 'var(--b-warn)', alert: 'var(--b-alert)' }
@@ -85,7 +96,7 @@
     {#if wide}
       <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
     {/if}
-    <button class="pill" bind:this={pill} disabled={!tunable} onclick={openTune}>
+    <button class="pill" bind:this={pill} bind:offsetWidth={modelW} disabled={!tunable} onclick={openTune}>
       <span class="lbl">{[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}</span>
       {#if tunable}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z" fill="var(--text2)" /></svg>{/if}
       {#if tunable && advice?.dot}<span class="dot" title={t.adviceDot} aria-label={t.adviceDot}></span>{/if}
@@ -93,13 +104,20 @@
     {#if !wide}<span class="sp"></span>{/if}
     <!-- In una colonna stretta la quota lascia il posto a modello, contesto e menu (è anche nella home). -->
     {#if quota?.h5 != null && (width === 0 || width >= 300)}
-      <button class="mpill" title={reset ? t.quotaResetDesc(quota.h5, reset) : undefined} onclick={onUsage}>
-        <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="7.5" class="trk" /><circle cx="10" cy="10" r="7.5" pathLength="47.12" stroke-dasharray={arc(quota.h5)} style="stroke:{quota.stale ? 'var(--wait)' : ring[tone(quota.h5)]}" class="arc" /></svg>
-        <span class:stale={quota.stale}>{quotaForm === 'full' ? t.quota5h(quota.h5) + (reset ? ` · ${reset}` : '') : quotaForm === 'short' && reset ? `${quota.h5}% · ${reset}` : `${quota.h5}%`}</span>
+      {@const bare = quotaForm === 'tiny'}
+      <!-- Nella forma più corta l'anello lascia il posto a «5h», e il colore delle soglie passa al testo. -->
+      <button class="mpill" class:bare title={reset ? t.quotaResetDesc(quota.h5, reset) : undefined} onclick={onUsage}>
+        {#if !bare}<svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="7.5" class="trk" /><circle cx="10" cy="10" r="7.5" pathLength="47.12" stroke-dasharray={arc(quota.h5)} style="stroke:{quota.stale ? 'var(--wait)' : ring[tone(quota.h5)]}" class="arc" /></svg>{/if}
+        <span class:stale={quota.stale} style:color={bare && !quota.stale && tone(quota.h5) !== 'neutral' ? ring[tone(quota.h5)] : null}>{quotaLabel(quotaForm, t.quota5h(quota.h5), reset)}</span>
       </button>
+      <span class="ghost" aria-hidden="true">
+        {#each forms as f}
+          <span class="mpill" class:bare={f === 'tiny'} bind:offsetWidth={formW[f]}>{#if f !== 'tiny'}<svg width="16" height="16"></svg>{/if}<span>{quotaLabel(f, t.quota5h(quota.h5), reset)}</span></span>
+        {/each}
+      </span>
     {/if}
     {#if s.context != null}
-      <button class="mpill" disabled={!tunable} onclick={() => ctx?.showModal()}>
+      <button class="mpill" bind:offsetWidth={ctxW} disabled={!tunable} onclick={() => ctx?.showModal()}>
         <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="7.5" class="trk" /><circle cx="10" cy="10" r="7.5" pathLength="47.12" stroke-dasharray={arc(s.context)} style="stroke:{ring[tone(s.context)]}" class="arc" /></svg>
         <span>{compact ? `${s.context}%` : t.ctx(s.context)}</span>
       </button>
@@ -223,6 +241,9 @@
   /* Il testo al centro sulle maiuscole e le cifre, non sulla riga del carattere: con Roboto a 13 px stavano 1 px sopra il
      centro, e la barra sembrava avere più spazio sotto le pillole che sopra (Franz, 12/10 15:19). */
   .lbl, .mpill > span { text-box: trim-both cap alphabetic; }
+  .mpill.bare { padding: 0 10px; }
+  /* Le tre forme della quota fuori vista, misurate per scegliere quella che ci sta: niente spazio nella riga, niente tocco. */
+  .ghost { position: absolute; width: 0; height: 0; overflow: hidden; visibility: hidden; display: flex; }
   .mpill:not(:disabled):hover { filter: brightness(1.2); }
   .mpill:disabled { cursor: default; }
   .mpill .stale { color: var(--wait); }

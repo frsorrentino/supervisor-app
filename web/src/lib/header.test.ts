@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Session } from './contract'
-import { modelKind, notes, resetLabel, sameModel, shortModel, tone, wider } from './header'
+import { modelKind, notes, quotaLabel, resetLabel, sameModel, shortModel, tone, wider } from './header'
 
 // Gli stessi casi di ModelTextTest, TuneTest, ContextActionsTest, SessionMetersTest e SessionsTextTest in Kotlin.
 describe('modello', () => {
@@ -41,6 +41,21 @@ describe('misure', () => {
     expect(resetLabel(rome(4, 23), rome(4, 20, 43), 'Europe/Rome')).toBe('23:00')
     expect(resetLabel(rome(5, 1), rome(4, 22, 30), 'Europe/Rome')).toBe('lun 01:00')
     expect(resetLabel(rome(4, 20), rome(4, 20, 43), 'Europe/Rome')).toBeNull()
+  })
+})
+
+describe("la pillola della quota, come QuotaPill nell'app", () => {
+  it('«5h» in ogni forma (Franz, 12/10 21:25 e 21:50)', () => {
+    for (const f of ['full', 'short', 'tiny'] as const) {
+      expect(quotaLabel(f, '5h 9%', null)).toBe('5h 9%')
+      expect(quotaLabel(f, '5h 9%', '22:00').startsWith('5h 9%')).toBe(true)
+    }
+  })
+  it("l'ora del reset solo nella forma lunga", () => {
+    expect(quotaLabel('full', '5h 9%', '22:00')).toBe('5h 9% · 22:00')
+    expect(quotaLabel('full', '5h 9%', 'lun 09:00')).toBe('5h 9% · lun 09:00')
+    expect(quotaLabel('short', '5h 9%', '22:00')).toBe('5h 9%')
+    expect(quotaLabel('tiny', '5h 9%', '22:00')).toBe('5h 9%')
   })
 })
 
