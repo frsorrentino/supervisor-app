@@ -79,7 +79,7 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (menu = false)} />
 
-<header bind:clientWidth={width}>
+<header bind:clientWidth={width} class:bare={!notes.length}>
   <div class="row">
     {#if onBack}<button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
     {#if wide}
@@ -205,8 +205,11 @@
 <CloseDialog bind:this={closer} onConfirm={() => onCmd('slash', 'exit')} />
 
 <style>
-  header { border-bottom: 1px solid var(--line); padding: 4px 0 8px; background: var(--bg); }
-  .row { display: flex; align-items: center; gap: 8px; padding: 0 0 0 16px; min-height: 52px; }
+  header { border-bottom: 1px solid var(--line); padding: 2px 0 8px; background: var(--bg); }
+  /* Senza note sotto le pillole lo stesso margine di sopra, così stanno al centro della barra, come nell'app (Franz, 10/10
+     14:32; sulla web 12/10 11:11: «dovrebbe essere un po' meno alta»). */
+  header.bare { padding-bottom: 2px; }
+  .row { display: flex; align-items: center; gap: 8px; padding: 0 0 0 16px; min-height: 48px; }
   .row:has(.back) { padding-left: 2px; gap: 6px; }
   .lead { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
   h1 { font-size: 19px; font-weight: 600; white-space: nowrap; overflow: hidden; }
