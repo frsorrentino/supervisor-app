@@ -1984,8 +1984,15 @@ internal fun AdviceTag() = Text(
 /** Il testo delle pillole della testata: 13 sp, così le tre stanno su una riga di telefono (variante A, 09/10). */
 private val PillText = androidx.compose.ui.text.TextStyle(fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp), fontWeight = FontWeight.Medium, letterSpacing = androidx.compose.ui.unit.TextUnit(0.1f, androidx.compose.ui.unit.TextUnitType.Sp))
 
-/** La forma della pillola della quota, dalla più lunga: «5h 4% · 20:00», «4% · 20:00», «4%». */
+/**
+ * La forma della pillola della quota, dalla più lunga: «5h 4% · 20:00», «5h 4%», «5h 4%» senza anello. «5h» resta sempre,
+ * l'ora del reset solo dove ci sta (Franz, 12/10 21:25: «aggiungiamo 5h alla percentuale senza indicazioni»).
+ */
 internal enum class QuotaForm { FULL, SHORT, TINY }
+
+/** Il testo della pillola: `h5` è «5h 4%», `reset` l'ora in cui si azzera se la si sa. */
+internal fun quotaLabel(form: QuotaForm, h5: String, reset: String?): String =
+    if (form == QuotaForm.FULL && reset != null) "$h5 · $reset" else h5
 
 /**
  * La riga delle tre pillole (variante A, 09/10 17:50): modello, quota, contesto, poi il menu ⋮ in fondo a destra. La quota
@@ -2043,11 +2050,11 @@ private fun ContextPill(pct: Int, enabled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Il fondo comune delle pillole: stessa forma, stessa altezza della pillola del modello. */
+/** Il fondo comune delle pillole: stessa forma, stessa altezza della pillola del modello. Senza anello il testo sta al centro. */
 @Composable
-private fun MeterPill(enabled: Boolean, onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+private fun MeterPill(enabled: Boolean, onClick: () -> Unit, ring: Boolean = true, content: @Composable RowScope.() -> Unit) {
     Surface(onClick = onClick, enabled = enabled, color = CmColors.surface, shape = CircleShape) {
-        Row(Modifier.padding(start = 8.dp, end = 10.dp, top = 7.dp, bottom = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp), content = content)
+        Row(Modifier.padding(start = if (ring) 8.dp else 10.dp, end = 10.dp, top = 7.dp, bottom = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp), content = content)
     }
 }
 
@@ -2081,16 +2088,13 @@ private fun QuotaPill(pct: Int, resetAt: Long?, stale: Boolean, now: Long, form:
             .format(Instant.ofEpochSecond(r).atZone(zone))
     }
     val desc = reset?.let { stringResource(R.string.quota_reset_desc, pct, it) } ?: stringResource(R.string.quota_h5_short, pct)
-    val label = when {
-        form == QuotaForm.FULL && reset != null -> stringResource(R.string.quota_h5_short, pct) + " · " + reset
-        form == QuotaForm.FULL -> stringResource(R.string.quota_h5_short, pct)
-        form == QuotaForm.SHORT && reset != null -> "$pct% · $reset"
-        else -> "$pct%"
-    }
+    val label = quotaLabel(form, stringResource(R.string.quota_h5_short, pct), reset)
+    // Nella forma più corta l'anello lascia il posto a «5h», e il colore delle soglie passa al testo.
+    val ring = form != QuotaForm.TINY
     Box(Modifier.semantics(mergeDescendants = true) { contentDescription = desc }) {
-        MeterPill(true, onClick) {
-            MeterRing((pct / 100f).coerceIn(0f, 1f), tone)
-            Text(label, style = PillText, color = if (stale) CmColors.waiting else CmColors.text, maxLines = 1, softWrap = false)
+        MeterPill(true, onClick, ring) {
+            if (ring) MeterRing((pct / 100f).coerceIn(0f, 1f), tone)
+            Text(label, style = PillText, color = if (stale || !ring && tone != CmColors.briefRing) tone else CmColors.text, maxLines = 1, softWrap = false)
         }
     }
 }

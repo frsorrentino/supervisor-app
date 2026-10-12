@@ -51,6 +51,23 @@ class SessionSheetTest {
     @Test fun sheetHeaderQuota() = headerQuota()
     @Test fun sheetHeaderQuotaLargeFont() { paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", fontScale = 1.3f)); headerQuota() }
 
+    // Il telefono di Franz (Pixel 11 Pro XL, 448 dp, carattere a 1,3) con «Opus 5.5 · medium»: «5h» resta anche dove l'ora
+    // del reset non ci sta (Franz, 12/10 21:25); senza posto nemmeno per l'anello, la quota resta «5h 45%» da sola.
+    private fun headerQuotaPixel11(fontScale: Float, h5: Int) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(
+            screenWidth = 1344, screenHeight = 2992, xdpi = 486, ydpi = 486, density = com.android.resources.Density.XXHIGH,
+            fontScale = fontScale, locale = "it",
+        ))
+        paparazzi.snapshot {
+            val s = st.sessions.first { it.state == SessionState.IDLE }.copy(context = 36, model = Model("claude-opus-5-5"), effort = "medium")
+            val q = st.quota.getValue(s.account).copy(h5 = h5, resetH5 = st.ts + 3 * 3600, stale = false)
+            CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none, choices = st.choices, ops = st.ops, canAttach = true, accountQuota = q) }
+        }
+    }
+    @Test fun sheetHeaderQuotaPhoneWide() = headerQuotaPixel11(1f, 9)
+    @Test fun sheetHeaderQuotaPhoneNarrow() = headerQuotaPixel11(1.3f, 9)
+    @Test fun sheetHeaderQuotaPhoneNarrowTwoDigits() = headerQuotaPixel11(1.3f, 45)
+
     @Test fun sheetChat() = paparazzi.snapshot {
         val s = st.sessions.first { it.state == SessionState.IDLE }
         val t = st.ts - 3000
