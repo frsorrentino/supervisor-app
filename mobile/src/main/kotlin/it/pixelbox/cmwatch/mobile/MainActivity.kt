@@ -833,26 +833,45 @@ class MainActivity : ComponentActivity() {
         // che le aggiunge «Per te» e il Quadro in cima (`top`).
         // Contratto 1.24: i file della chat si aprono dal telefono. Scaricati restano nella cache dell'app: un'immagine
         // compare come miniatura sotto il suo chip, gli altri file vanno all'app di sistema (Franz, 02/10 10:48).
+        // Chiavi di `FileCache`: lo stesso percorso riscritto sul PC è un altro file.
         val fileLocal = remember { mutableStateMapOf<String, String>() }
         val fileLoading = remember { androidx.compose.runtime.mutableStateListOf<String>() }
-        // Il file in cache se c'è, se no chiesto al PC; poi `ready` con il file locale e il suo tipo.
+        // Il file in memoria o sul disco se c'è, se no chiesto al PC; poi `ready` con il file locale e il suo tipo. Il disco
+        // conta dal 12/10: chiusa e riaperta la conversazione, un video di 12 MB si riscaricava ogni volta.
         // `quiet`: l'anteprima che nasce da sola (10/10 09:54) non avvisa se il file non arriva.
-        val withFile: (String, it.pixelbox.cmwatch.contract.TranscriptFile, Boolean, (java.io.File, String?) -> Unit) -> Unit = { name, f, quiet, ready ->
-            val known = fileLocal[f.path]
+        val withFile: (String, String, it.pixelbox.cmwatch.contract.TranscriptFile, Boolean, (java.io.File, String?) -> Unit) -> Unit = { name, key, f, quiet, ready ->
+            val known = fileLocal[key]
             if (known != null) ready(java.io.File(known), f.mime)
-            else if (f.path !in fileLoading) {
-                fileLoading.add(f.path)
+            else if (key !in fileLoading) {
+                fileLoading.add(key)
                 scope.launch {
+                    val dir = java.io.File(cacheDir, "files")
+                    val kept = java.io.File(dir, it.pixelbox.cmwatch.rules.FileCache.name(key, f.path))
+                    val onDisk = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        kept.isFile.also { found -> if (found) kept.setLastModified(System.currentTimeMillis()) }
+                    }
+                    if (onDisk) {
+                        fileLoading.remove(key)
+                        fileLocal[key] = kept.path
+                        ready(kept, f.mime)
+                        return@launch
+                    }
                     val r = app.repo.openFile(name, f.path)
-                    fileLoading.remove(f.path)
+                    fileLoading.remove(key)
                     when (r) {
                         is it.pixelbox.cmwatch.data.Repo.Opened.Ok -> {
-                            val out = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                val dir = java.io.File(cacheDir, "files").apply { mkdirs() }
-                                java.io.File(dir, Integer.toHexString(f.path.hashCode()) + "-" + f.path.substringAfterLast('/')).apply { writeBytes(r.file.bytes) }
+                            val inUse = fileLocal.values.map { p -> java.io.File(p).name }.toSet() + kept.name
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                dir.mkdirs()
+                                // Scritto a parte e poi rinominato: un'app chiusa a metà non lascia un video troncato col nome buono.
+                                val part = java.io.File(dir, kept.name + ".part")
+                                part.writeBytes(r.file.bytes)
+                                if (!part.renameTo(kept)) { part.copyTo(kept, overwrite = true); part.delete() }
+                                val all = dir.listFiles().orEmpty().map { x -> it.pixelbox.cmwatch.rules.FileCache.Entry(x.name, x.length(), x.lastModified()) }
+                                it.pixelbox.cmwatch.rules.FileCache.evict(all, keep = inUse).forEach { x -> java.io.File(dir, x).delete() }
                             }
-                            fileLocal[f.path] = out.path
-                            ready(out, r.file.mime)
+                            fileLocal[key] = kept.path
+                            ready(kept, r.file.mime)
                         }
                         is it.pixelbox.cmwatch.data.Repo.Opened.Refused -> if (!quiet) {
                             // «too large: <byte>» in chiaro (Franz, 04/10 21:55): la misura del file e, se il PC lo dice, il limite.
@@ -869,8 +888,8 @@ class MainActivity : ComponentActivity() {
         }
         // Il tocco sul chip: un'immagine o un video si vedono sotto il chip (il video con il suo lettore, 10/10 15:24), gli altri
         // file vanno all'app di sistema.
-        val openFile: (String, it.pixelbox.cmwatch.contract.TranscriptFile) -> Unit = { name, f ->
-            withFile(name, f, false) { file, mime ->
+        val openFile: (String, String, it.pixelbox.cmwatch.contract.TranscriptFile) -> Unit = { name, key, f ->
+            withFile(name, key, f, false) { file, mime ->
                 if (mime?.startsWith("image/") != true && !it.pixelbox.cmwatch.rules.MediaPreview.isVideo(mime ?: f.mime)) viewFile(file, mime)
             }
         }
@@ -899,8 +918,8 @@ class MainActivity : ComponentActivity() {
             runCatching { saveAs.launch(pick) }.onFailure { saving = null }
         }
         // I tasti sotto il file (Franz, 07/10 16:07): apri, scarica, copia, condividi.
-        val fileAct: (String, it.pixelbox.cmwatch.contract.TranscriptFile, FileAct) -> Unit = { name, f, act ->
-            withFile(name, f, false) { file, mime ->
+        val fileAct: (String, String, it.pixelbox.cmwatch.contract.TranscriptFile, FileAct) -> Unit = { name, key, f, act ->
+            withFile(name, key, f, false) { file, mime ->
                 when (act) {
                     FileAct.OPEN -> viewFile(file, mime)
                     FileAct.DOWNLOAD -> scope.launch {
@@ -950,7 +969,7 @@ class MainActivity : ComponentActivity() {
                                 Slash.panel(r.sent, results[r.sent.id])?.let { p -> app.chatLog.markPanel(r.sent.id, p) }
                             }
                         }
-                        CompositionLocalProvider(LocalFileOpener provides FileOpener({ f -> openFile(session.name, f) }, fileLoading.toSet(), fileLocal.toMap(), { f, a -> fileAct(session.name, f, a) }, { f -> withFile(session.name, f, true) { _, _ -> } }, unmetered)) {
+                        CompositionLocalProvider(LocalFileOpener provides FileOpener({ k, f -> openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered)) {
                         SessionSheet(session, now, snap.pending, ttsMinChars, SheetActions(
                             answer = { n -> scope.launch { app.repo.answer(session.name, n) } },
                             allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },

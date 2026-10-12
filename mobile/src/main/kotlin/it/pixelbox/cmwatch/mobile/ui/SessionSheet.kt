@@ -114,12 +114,13 @@ import java.time.format.DateTimeFormatter
 enum class FileAct { OPEN, DOWNLOAD, COPY, SHARE }
 
 data class FileOpener(
-    val open: (TranscriptFile) -> Unit = {},
+    val open: (String, TranscriptFile) -> Unit = { _, _ -> },
+    /** Per chiave di `FileCache`, come `local` (chiave → file locale) e il primo argomento delle funzioni. */
     val loading: Set<String> = emptySet(),
     val local: Map<String, String> = emptyMap(),
-    val act: (TranscriptFile, FileAct) -> Unit = { _, _ -> },
+    val act: (String, TranscriptFile, FileAct) -> Unit = { _, _, _ -> },
     /** Chiede il file al PC senza aprirlo e senza avvisi se non arriva: l'anteprima che nasce da sola. */
-    val preview: (TranscriptFile) -> Unit = {},
+    val preview: (String, TranscriptFile) -> Unit = { _, _ -> },
     /** Una rete senza contatore, come il Wi-Fi: i video arrivano da soli solo lì (`MediaPreview`). */
     val unmetered: () -> Boolean = { false },
 )
@@ -1318,7 +1319,7 @@ private fun ToolLine(e: TranscriptEntry, files: Boolean = true) {
         }
         if (files) e.files?.takeIf { it.isNotEmpty() }?.let { fs ->
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(start = 28.dp)) {
-                fs.forEach { FileChip(it) }
+                fs.forEach { FileChip(it, e.id) }
             }
         }
     }
@@ -1340,7 +1341,7 @@ private fun toolIcon(k: ToolText.Kind): androidx.compose.ui.graphics.vector.Imag
 
 /** Un file prodotto da Claude: icona per tipo, nome e peso. L'anteprima e l'apertura arrivano con il trasferimento dei file. */
 @Composable
-private fun FileChip(f: TranscriptFile) {
+private fun FileChip(f: TranscriptFile, entry: String) {
     val icon = when {
         f.mime?.startsWith("image/") == true -> Icons.Rounded.Image
         f.mime == "application/pdf" -> Icons.Rounded.PictureAsPdf
@@ -1350,16 +1351,17 @@ private fun FileChip(f: TranscriptFile) {
     }
     // Contratto 1.24: il tocco chiede il file al PC; un'immagine arrivata si vede sotto il chip, a tutto schermo al tocco.
     val opener = LocalFileOpener.current
-    val local = opener.local[f.path]
+    val key = it.pixelbox.cmwatch.rules.FileCache.key(f, entry)
+    val local = opener.local[key]
     // I media nascono già in anteprima (Franz, 10/10 09:54: «vorrei che nascessero già in anteprima, senza doverle
     // cliccare»): un'immagine si chiede al PC appena il suo messaggio è a schermo, fino a 10 MB, in silenzio se non arriva;
     // un video fino a 25 MB, solo in Wi-Fi (15:24).
     val autoPreview = it.pixelbox.cmwatch.rules.MediaPreview.auto(f.mime, f.size, opener.unmetered())
-    LaunchedEffect(f.path, autoPreview) { if (autoPreview && opener.local[f.path] == null && f.path !in opener.loading) opener.preview(f) }
+    LaunchedEffect(key, autoPreview) { if (autoPreview && opener.local[key] == null && key !in opener.loading) opener.preview(key, f) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Surface(color = CmColors.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(f) }) {
+        Surface(color = CmColors.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }) {
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (f.path in opener.loading) CircularProgressIndicator(Modifier.size(18.dp), color = CmColors.actionIcon, strokeWidth = 2.dp)
+                if (key in opener.loading) CircularProgressIndicator(Modifier.size(18.dp), color = CmColors.actionIcon, strokeWidth = 2.dp)
                 else Icon(icon, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
                 // Il nome va a capo nello spazio che resta; il peso sta sempre su una riga (segnalazione 01/10 18:16: con un
                 // nome lungo il peso finiva in colonna, una lettera per riga).
@@ -1376,7 +1378,7 @@ private fun FileChip(f: TranscriptFile) {
                 Triple(FileAct.SHARE, Icons.Rounded.Share, R.string.file_share),
             )) {
                 val desc = stringResource(label)
-                IconButton(onClick = { opener.act(f, act) }, modifier = Modifier.size(40.dp).handCursor()) {
+                IconButton(onClick = { opener.act(key, f, act) }, modifier = Modifier.size(40.dp).handCursor()) {
                     Icon(icon, desc, tint = CmColors.text2, modifier = Modifier.size(20.dp))
                 }
             }
@@ -1500,9 +1502,9 @@ private fun StepsCard(g: ChatFeed.Item.Steps) {
                         color = if (last.error == true) CmColors.goneDim else CmColors.text)
                 }
             }
-            g.entries.flatMap { it.files.orEmpty() }.takeIf { it.isNotEmpty() }?.let { files ->
+            g.entries.flatMap { e -> e.files.orEmpty().map { it to e.id } }.takeIf { it.isNotEmpty() }?.let { files ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    files.forEach { FileChip(it) }
+                    files.forEach { (f, id) -> FileChip(f, id) }
                 }
             }
         }
