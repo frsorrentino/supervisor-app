@@ -14,13 +14,16 @@ object NextSteps {
     const val MAX_CHARS = 40
     private const val PREFIX = "Prossimi:"
     private const val WATCH = "Watch:"
+    private const val ESITO = "Esito:"
 
     /** Contratto 1.38: `blocking` = le voci scritte con «!» davanti, che sbloccano un lavoro fermo; il «!» si toglie. */
     data class Parsed(val text: String, val steps: List<String>, val blocking: Set<String> = emptySet())
 
     fun parse(text: String): Parsed {
         val lines = text.split('\n')
-        val idx = lines.indices.reversed().firstOrNull { i -> lines[i].isNotBlank() && !lines[i].trimStart().startsWith(WATCH) }
+        // Dopo i Prossimi possono venire la riga per l'orologio e quella dell'esito: una sessione li aveva scritti prima
+        // dell'esito, il relay li leggeva e l'app no (12/10 11:17).
+        val idx = lines.indices.reversed().firstOrNull { i -> lines[i].isNotBlank() && lines[i].trimStart().let { l -> !l.startsWith(WATCH) && !l.startsWith(ESITO) } }
             ?: return Parsed(text, emptyList())
         val line = lines[idx].trim()
         if (!line.startsWith(PREFIX)) return Parsed(text, emptyList())
@@ -28,7 +31,9 @@ object NextSteps {
         val raw = line.removePrefix(PREFIX).split('·').map { it.trim() }
             .map { (it.startsWith("!")) to it.removePrefix("!").trim() }
             .filter { (_, s) -> s.isNotEmpty() && s.length <= MAX_CHARS }.take(MAX)
-        val rest = (lines.take(idx) + lines.drop(idx + 1)).joinToString("\n").trimEnd()
+        // Tolta fra due righe vuote, una delle due se ne va con lei.
+        val before = lines.take(idx).let { b -> if (b.lastOrNull()?.isBlank() == true && lines.getOrNull(idx + 1)?.isBlank() == true) b.dropLast(1) else b }
+        val rest = (before + lines.drop(idx + 1)).joinToString("\n").trimEnd()
         return Parsed(rest, raw.map { it.second }, raw.filter { it.first }.map { it.second }.toSet())
     }
 

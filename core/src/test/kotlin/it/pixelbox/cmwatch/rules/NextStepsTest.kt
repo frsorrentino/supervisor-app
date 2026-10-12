@@ -37,6 +37,17 @@ class NextStepsTest {
         assertEquals(listOf("apri l'app", "prova"), r.steps)
     }
 
+    /**
+     * Il testo vero di social-pixelbox-it (12/10 11:17): «Esito:» dopo i Prossimi, poi «Watch:». Il relay li leggeva, l'app e la
+     * web no, e la riga restava testo invece di diventare tasti.
+     */
+    @Test fun esitoLineAfterIsSkipped() {
+        val r = NextSteps.parse("In attesa del tuo ok.\n\nProssimi: ! ok push e deploy · ripubblica post 59 su FB dopo deploy\n\nEsito: push in attesa di ok.\nWatch: attende ok deploy")
+        assertEquals("In attesa del tuo ok.\n\nEsito: push in attesa di ok.\nWatch: attende ok deploy", r.text)
+        assertEquals(listOf("ok push e deploy", "ripubblica post 59 su FB dopo deploy"), r.steps)
+        assertEquals(setOf("ok push e deploy"), r.blocking)
+    }
+
     // Franz, 04/10 20:21: il suggerito del terminale ripeteva uno dei Prossimi.
     @Test fun theFirstStepGoesInTheFieldAndTheTerminalCopyDisappears() {
         val b = NextSteps.box(listOf("Prova dal vivo", "Apri la CI", "Scrivi il piano"), "prova dal vivo.", "")
