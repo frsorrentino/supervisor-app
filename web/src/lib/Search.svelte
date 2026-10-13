@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import type { Event, SearchPage } from './contract'
   import type { Sent } from './chatRules'
   import { find, withConversations, type Hit } from './search'
@@ -24,7 +25,7 @@
     const id = setTimeout(() => onQuery(q), 700)
     return () => clearTimeout(id)
   })
-  const when = (at: number) => new Date(at * 1000).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone }).replace(',', '')
+  const when = (at: number) => new Date(at * 1000).toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone }).replace(',', '')
 </script>
 
 <div class="search">

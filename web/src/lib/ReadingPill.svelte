@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import { excerpt, nextRate } from './speechRules'
   import { cycleVoice, pause, resume, setRate, speech, stop } from './speech.svelte'
   import RateSlider from './RateSlider.svelte'
@@ -9,7 +10,7 @@
   // il campo della sessione che legge, se è in vista; altrimenti nel primo posto.
   let { onOpen, slots, here }: { onOpen?: (source: string) => void; slots: (string | null)[]; here: string | null } = $props()
   const mineHere = $derived(speech.source != null && slots.includes(speech.source) ? speech.source === here : slots[0] === here)
-  const rate = $derived(`${speech.rate.toLocaleString('it-IT', { maximumFractionDigits: 2 })}×`)
+  const rate = $derived(`${speech.rate.toLocaleString(locale, { maximumFractionDigits: 2 })}×`)
   // La velocità aperta nella barra (Franz, 07/10, approvata alle 22:06): senza tocchi per 3 s torna pillola.
   let rateOpen = $state(false)
   let draft = $state(1)
@@ -26,7 +27,7 @@
   // frase, quindi riparte dal pezzo che sta dicendo.
   let live: ReturnType<typeof setTimeout> | undefined
   function liveRate(v: number) { clearTimeout(live); live = setTimeout(() => { if (v !== speech.rate) setRate(v) }, 300) }
-  const draftLabel = $derived(`${draft.toLocaleString('it-IT', { maximumFractionDigits: 2 })}×`)
+  const draftLabel = $derived(`${draft.toLocaleString(locale, { maximumFractionDigits: 2 })}×`)
 </script>
 
 {#if speech.text && mineHere}

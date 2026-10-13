@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { locale } from './lang'
   import { CLOSED_SHOW_MS, type Phase } from './closeSplash'
   import { t } from './t'
   // Il pannello di chiusura sopra la pagina della sessione (CloseSplash.kt; Franz, 08/10 18:29, variante A): la pagina resta
   // sotto, velata. «Si sta chiudendo» con i passi veri; «è chiusa» con l'ora, «Riapri» e «Torna alla home», e dopo 3 s il
   // ritorno da solo, con la barra che si consuma. In una colonna della plancia toglie la colonna.
   let { phase, onHome, onReopen = null, column = false }: { phase: Phase; onHome: () => void; onReopen?: (() => void) | null; column?: boolean } = $props()
-  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   $effect(() => {
     if (phase.kind !== 'closed') return
     const id = setTimeout(onHome, CLOSED_SHOW_MS)

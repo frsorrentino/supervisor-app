@@ -2,6 +2,10 @@ import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
 import { canonicalUrl, loadRemote } from './lib/remoteAccess'
+import { lang } from './lib/lang'
+
+// La lingua scelta all'avvio (lang.ts) anche per il browser: lettori di schermo, traduzione, sillabazione.
+document.documentElement.lang = lang
 
 // Dai nomi di Firebase del sito al dominio, prima di disegnare la pagina (un browser già collegato lì resta lì).
 const store = { get: (k: string) => { try { return localStorage.getItem(k) } catch { return null } }, set() {}, remove() {} }

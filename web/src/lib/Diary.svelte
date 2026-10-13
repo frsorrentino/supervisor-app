@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import type { Event, Session, State } from './contract'
   import type { Ring } from './overview'
   import { lastNightReport, minutes, night, parseRecap, personalIcon, recap as recapLines, recaps, type RecapKind, type RecapView } from './diary'
@@ -26,7 +27,7 @@
     if (ref === todayIso) return t.regToday
     if (ref === yesterdayIso) return t.regYesterday
     const d = ref ? new Date(`${ref}T12:00:00Z`) : null
-    return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : (ref ?? '')
+    return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : (ref ?? '')
   }
   const todayView: RecapView = $derived({
     title: '',
@@ -36,7 +37,7 @@
   let open = $state<Record<string, boolean>>({})
   let reportOpen = $state(false)
   const tone: Record<RecapKind, string> = { waiting: 'var(--b-warn)', open: 'var(--b-ring)', closed: 'var(--text2)', other: 'var(--text2)' }
-  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone })
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone })
   // Senza la sessione viva il badge si ricava dal recap: forma dall'emoji, glifo dalla sezione.
   function badgeOf(name: string, icon: string, kind: RecapKind): Session {
     const live = st.sessions.find(s => s.name === name && s.state !== 'gone')

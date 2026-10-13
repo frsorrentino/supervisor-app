@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import type { Card, NightPage } from './night'
   import { t } from './t'
   // La pagina «Notte» (specifica docs/proposte/2026-10-07-pagina-notte.md, approvata da Franz il 07/10 alle 21:50): la
@@ -10,7 +11,7 @@
     onApprove: (task: string) => void; onSend: (session: string, text: string) => void
   } = $props()
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const hm = (s: number) => new Intl.DateTimeFormat('it-IT', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
+  const hm = (s: number) => new Intl.DateTimeFormat(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   let opened = $state<string | null>(null)
   const times = (c: Card) => (c.end == null ? t.nightSince(hm(c.start)) : `${hm(c.start)}–${hm(c.end)} · ${t.nightShort(c.durationS ?? 0)}`)
   const tone: Record<string, string> = { ok: 'var(--good)', stopped: 'var(--gone-dim)', running: 'var(--icon)', question: 'var(--advice)' }

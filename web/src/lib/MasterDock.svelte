@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import type { Snippet } from 'svelte'
   import type { Session } from './contract'
   import { hero as heroOf, type Entry } from './masterHome'
@@ -18,7 +19,7 @@
   const up = $derived(toggleUp ?? !expanded)
   const key = $derived(onToggleKey ?? onToggle)
   const h = $derived(heroOf(entries, master))
-  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   // Aperta, il modello e il contesto stanno già nella riga sotto la linguetta: qui resta l'ora. Chiusa, l'ora e il contesto,
   // che conta per l'handoff: il modello cambia di rado, e con lui la riga non stava nella larghezza (Franz, 06/10 22:27).
   const label = $derived((expanded ? [t.dockMaster, h?.at ? hm(h.at) : null] : [t.dockMaster, h?.at ? hm(h.at) : null, master.context != null ? t.ctx(master.context) : null]).filter(Boolean).join(' · '))

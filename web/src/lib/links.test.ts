@@ -24,4 +24,8 @@ describe('riga per l\'orologio', () => {
     expect(outcomeForPhone("Il watch: segna l'ora")).toBe("Il watch: segna l'ora")
     expect(outcomeForPhone('niente')).toBe('niente')
   })
+  it('in inglese «Esito:» si legge «Outcome:», anche senza riga Watch', () => {
+    expect(outcomeForPhone('Done.\n\nEsito: README rewritten', 'Outcome')).toBe('Done.\n\nOutcome: README rewritten')
+    expect(outcomeForPhone('Done.\n\nWatch: pushed', 'Outcome')).toBe('Done.\n\nOutcome: pushed')
+  })
 })

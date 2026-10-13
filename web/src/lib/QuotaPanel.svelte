@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import type { Ring } from './overview'
   import { forecast, weekProjected } from './tablet'
   import { t } from './t'
@@ -8,8 +9,8 @@
   // ritmo di adesso fino alla ripartenza (piena fino a ora, tratteggiata dopo, soglie 80 e 100), poi la settimana col
   // ritmo medio al rinnovo.
   let { ring, now, dataStale = false, timeZone }: { ring: Ring; now: number; dataStale?: boolean; timeZone?: string } = $props()
-  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone })
-  const dayTime = (at: number) => new Date(at * 1000).toLocaleString('it-IT', { weekday: 'long', hour: '2-digit', minute: '2-digit', timeZone }).replace(',', ' ')
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone })
+  const dayTime = (at: number) => new Date(at * 1000).toLocaleString(locale, { weekday: 'long', hour: '2-digit', minute: '2-digit', timeZone }).replace(',', ' ')
   const f = $derived(ring.resetAt != null && ring.pace ? forecast(ring.pace, ring.resetAt, now) : null)
   const nowPct = $derived(ring.h5 ?? f?.points[f.points.length - 1]?.[1] ?? 0)
   const week = $derived(weekProjected(ring.w7, ring.weekResetAt, now))

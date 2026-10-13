@@ -1,5 +1,10 @@
 import stateRaw from '../../../contract/state-1-question.json?raw'
 import { decodeState } from './contract'
+import { lang } from './lang'
+
+// In inglese i testi della demo sono inglesi (Franz, 13/10 21:48); le righe «Esito:» e «Prossimi:» restano: sono il formato
+// con cui le sessioni chiudono il turno, e la web app le mostra come «Outcome» e come tasti.
+const en = lang === 'en'
 
 // I dati di prova: lo stato della fixture e una conversazione breve per sessione (finché non arriva il relay locale).
 // In più la master, come nel provino della sua casa, e field-notes seguita, così «Per te» ha chi ha finito.
@@ -31,10 +36,15 @@ const t0 = demoState.ts - 600
 const said = (id: string, text: string, at: number, origin = 'pc'): TranscriptEntry => ({ id, role: 'user', text, at, origin })
 const claude = (id: string, text: string, at: number, extra: Partial<TranscriptEntry> = {}): TranscriptEntry => ({ id, role: 'assistant', text, at, ...extra })
 const tool = (id: string, tool: string, text: string, at: number, extra: Partial<TranscriptEntry> = {}): TranscriptEntry => ({ id, role: 'tool', tool, text, at, ...extra })
+const numbers = en ? 'Give me the numbers' : 'Dammi i numeri'
+const numbersIt = 'I file toccati:\n\n| file | righe |\n|---|---|\n| Repo.kt | 336 |\n| Slash.kt | 47 |\n\nI numeri\n\n| cosa | ora | a mezzogiorno |\n|---|---|---|\n| post del film (01/10) | 223 visualizzazioni, 4 repost | 121 visualizzazioni, 1 repost |\n| nuovi follower | 1 | — |\n\nDettagli in https://claude.ai/artifact/RGdmD5fx e nel file `docs/numeri.md`.\n\nEsito: README rewritten\nProssimi: apri la PR · aggiorna il changelog · tagga la v1.2'
+const numbersEn = 'The files touched:\n\n| file | lines |\n|---|---|\n| Repo.kt | 336 |\n| Slash.kt | 47 |\n\nThe numbers\n\n| what | now | at noon |\n|---|---|---|\n| film post (01/10) | 223 views, 4 reposts | 121 views, 1 repost |\n| new followers | 1 | — |\n\nDetails in https://claude.ai/artifact/RGdmD5fx and in the file `docs/numbers.md`.\n\nEsito: README rewritten\nProssimi: open the PR · update the changelog · tag v1.2'
 export const demoTranscripts: Record<string, TranscriptEntry[]> = {
   master: [
-    said('u1', 'Lancia claude-master sulla fase 2.2', demoState.ts - 660, 'phone'),
-    claude('a1', 'Lanciata claude-master sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n\nEsito: Fase 2.2 avviata su claude-master\nProssimi: distilla il confronto nella kb · prova la casa dal vivo', demoState.ts - 600),
+    said('u1', en ? 'Launch claude-master on phase 2.2' : 'Lancia claude-master sulla fase 2.2', demoState.ts - 660, 'phone'),
+    claude('a1', en
+      ? 'claude-master launched on phase 2.2. Local commits only: push and release with your ok.\n\nEsito: Phase 2.2 started on claude-master\nProssimi: distil the comparison into the kb · try the home live'
+      : 'Lanciata claude-master sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n\nEsito: Fase 2.2 avviata su claude-master\nProssimi: distilla il confronto nella kb · prova la casa dal vivo', demoState.ts - 600),
   ],
   'ledger-api': [
     said('u1', 'Prepare the deploy of 2.4 and wait for my ok', t0 - 300),
@@ -53,14 +63,14 @@ export const demoTranscripts: Record<string, TranscriptEntry[]> = {
     said('p1.0', 'Also add the attendees list', t0 + 158, 'phone'),
   ],
   'field-notes': [
-    said('u1', 'Dammi i numeri', t0, 'phone'),
-    claude('a1', 'I file toccati:\n\n| file | righe |\n|---|---|\n| Repo.kt | 336 |\n| Slash.kt | 47 |\n\nI numeri\n\n| cosa | ora | a mezzogiorno |\n|---|---|---|\n| post del film (01/10) | 223 visualizzazioni, 4 repost | 121 visualizzazioni, 1 repost |\n| nuovi follower | 1 | — |\n\nDettagli in https://claude.ai/artifact/RGdmD5fx e nel file `docs/numeri.md`.\n\nEsito: README rewritten\nProssimi: apri la PR · aggiorna il changelog · tagga la v1.2', t0 + 60, { turn: { started: t0 + 5, ended: t0 + 60, out: 288 } }),
+    said('u1', numbers, t0, 'phone'),
+    claude('a1', en ? numbersEn : numbersIt, t0 + 60, { turn: { started: t0 + 5, ended: t0 + 60, out: 288 } }),
   ],
 }
 /** I messaggi mandati da qui, col loro stato. */
 export const demoMine: [Sent, Status][] = [
   [{ id: 'c1', session: 'atlas-shop', text: 'Also add the attendees list', sentAt: t0 + 156 }, 'working'],
-  [{ id: 'c2', session: 'field-notes', text: 'Dammi i numeri', sentAt: t0 - 2 }, 'done'],
+  [{ id: 'c2', session: 'field-notes', text: numbers, sentAt: t0 - 2 }, 'done'],
 ]
 
 /** Le letture della quota delle 5 ore che l'app tiene da sé, per il ritmo (QuotaHistory): qui tre dell'account personale. */
@@ -95,7 +105,39 @@ export const demoTimeline: TimelinePage = { since: d0, sessions: [
 ] }
 
 /** La notte della demo: la fixture inventata del contratto 1.44 (il rapporto vero ha dati personali). */
-export const demoNight: import('./night').NightReport = JSON.parse(nightRaw)
+const NIGHT_EN: Record<string, string> = {
+  'vado a dormire, prosegui tu e segui le sessioni': "I'm going to sleep, carry on and follow the sessions",
+  'Pubblico la release 1.4 adesso?': 'Shall I publish release 1.4 now?',
+  'domanda: Pubblico la release 1.4 adesso?': 'question: Shall I publish release 1.4 now?',
+  'Migrazione del registro committata in locale, nessuna release': 'Ledger migration committed locally, no release',
+  'Porta a termine la migrazione del registro: committala in locale e non fare release finché non torno.': "Finish the ledger migration: commit it locally and don't release until I'm back.",
+  'Checkout rifatto, test verdi': 'Checkout redone, tests green',
+  'fermo prima del piano: la specifica non si legge.': 'stopped before the plan: the spec cannot be read.',
+  'Dati del registro dei pagamenti per la pagina mensile.': 'Payment ledger data for the monthly page.',
+  'dati fatti e verificati, 3 commit sul ramo notte/registro.': 'data done and checked, 3 commits on the night/ledger branch.',
+  'Riordino delle note di campo per cartella e data, con un indice in testa.': 'Sort the field notes by folder and date, with an index at the top.',
+  'Migrazione del registro': 'Ledger migration', 'Pagina mensile': 'Monthly page', 'Esportazione CSV': 'CSV export',
+  'Indice delle note per data': 'Index of the notes by date',
+}
+const CHECKOUT_EN = "First run of the night job on the checkout: redo the cart and the integration tests without touching production. Tonight nobody answers questions: write the choices you cannot make alone in docs/night/questions.md and stop before any step that needs them. Read the spec in docs/spec/checkout.md, redo the cart following the spec, then the tests"
+/** Il rapporto della notte in inglese: le stesse voci, i testi tradotti (i titoli «nome — prompt» compresi). */
+function nightEn(v: unknown): unknown {
+  if (typeof v === 'string') {
+    if (NIGHT_EN[v]) return NIGHT_EN[v]
+    if (v.startsWith('Prima esecuzione del lavoro notturno')) return CHECKOUT_EN
+    const dash = v.indexOf(' — ')
+    if (dash > 0) {
+      const rest = v.slice(dash + 3)
+      const tr = NIGHT_EN[rest] ?? (rest.startsWith('Prima esecuzione') ? `${CHECKOUT_EN.slice(0, 160)}…` : null)
+      if (tr) return `${v.slice(0, dash).replace(/-notte$/, '-night')} — ${tr}`
+    }
+    return v.replace(/-notte\b/g, '-night').replace(/^notte\//, 'night/')
+  }
+  if (Array.isArray(v)) return v.map(nightEn)
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, nightEn(x)]))
+  return v
+}
+export const demoNight: import('./night').NightReport = en ? nightEn(JSON.parse(nightRaw)) as import('./night').NightReport : JSON.parse(nightRaw)
 
 /** Contratto 1.46: la demo ha un'agenda inventata, con un gruppo per ognuno di chi deve muoversi (come FakeTransport). */
 export const demoAgenda: import('./contract').AgendaPage = { more: false, owner: 'franz', rows: [

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { DAY } from './durations'
+  import { locale } from './lang'
   import type { Session, TranscriptEntry, TranscriptFile } from './contract'
   import { counts, type Item } from './chatFeed'
   import type { Status } from './chatRules'
@@ -49,13 +51,13 @@
     if (!media[key] && autoPreview(f.mime, f.size, !saveData)) onFile(f.path, 'preview', key)
   }
 
-  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   const copy = (x: string) => navigator.clipboard?.writeText(x)
   const toolIcon = (e: TranscriptEntry): IconName => (e.error ? 'error' : kind(e.tool))
   const fileIcon = (f: TranscriptFile): IconName =>
     f.mime?.startsWith('image/') ? 'image' : f.mime === 'application/pdf' ? 'pdf' : f.mime?.startsWith('video/') ? 'film' : f.mime?.startsWith('audio/') ? 'audio' : 'file'
   const size = (b: number) => (b >= 1_000_000 ? `${(b / 1_000_000).toFixed(1).replace('.', ',')} MB` : b >= 1000 ? `${Math.floor(b / 1000)} KB` : `${b} B`)
-  const since = (d: number) => (d < 3600 ? `${Math.floor(d / 60)} m` : d < 86400 ? `${Math.floor(d / 3600)} h ${String(Math.floor((d % 3600) / 60)).padStart(2, '0')}` : `${Math.floor(d / 86400)} g`)
+  const since = (d: number) => (d < 3600 ? `${Math.floor(d / 60)} m` : d < 86400 ? `${Math.floor(d / 3600)} h ${String(Math.floor((d % 3600) / 60)).padStart(2, '0')}` : `${Math.floor(d / 86400)} ${DAY}`)
   function cost(e: TranscriptEntry): string | null {
     const tr = e.turn
     if (!tr) return null

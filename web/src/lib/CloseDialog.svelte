@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import type { Session } from './contract'
   import { closeStateOf } from './masterService'
   import { t } from './t'
@@ -8,7 +9,7 @@
   let dlg: HTMLDialogElement | undefined = $state()
   let s = $state<Session | null>(null)
   export function ask(session: Session) { s = session; dlg?.showModal() }
-  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   const line = $derived.by(() => {
     if (!s) return ''
     const c = closeStateOf(s)

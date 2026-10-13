@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lib/lang'
   import * as files from './lib/fileActions'
   import { media } from './lib/mediaCache.svelte'
   import { groups, together } from './lib/shareMulti'
@@ -260,7 +261,7 @@
     const x = o ? (st.sessions.find(y => y.name === o) ?? lastSeen[o]) : null
     smooth(() => {
       if (ph?.kind === 'closed' && x) {
-        justClosed = { s: { ...x, state: 'gone', question: null }, line: t.justClosedLine(new Date(ph.at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })) }
+        justClosed = { s: { ...x, state: 'gone', question: null }, line: t.justClosedLine(new Date(ph.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) }
         clearTimeout(justTimer)
         justTimer = setTimeout(() => smooth(() => { justClosed = null }), 2_500)
       }
@@ -332,7 +333,7 @@
   const nightTitle = $derived.by(() => {
     if (!nightModel) return t.menuNight
     const d = new Date(`${nightModel.day}T12:00:00Z`), b = new Date(`${nightModel.dayBefore}T12:00:00Z`)
-    return t.nightPageTitle(b.getUTCDate(), d.getUTCDate(), new Intl.DateTimeFormat('it-IT', { month: 'long', timeZone: 'UTC' }).format(d))
+    return t.nightPageTitle(b.getUTCDate(), d.getUTCDate(), new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(d))
   })
   async function loadNight() {
     if (!tr) { night = { report: demoNight, error: null, loading: false }; return }

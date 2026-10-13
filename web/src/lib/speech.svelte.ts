@@ -1,5 +1,6 @@
 import { chunks, forPhone, nextVoice, rankVoices, rateOf } from './speechRules'
 import { t } from './t'
+import { lang, locale } from './lang'
 
 // La lettura a voce, una per volta (Speech.kt): ▶ legge, lo stesso tasto sullo stesso testo la ferma. Il testo si pulisce
 // e si legge a pezzi; velocità e voce si cambiano mentre legge e la lettura riparte dal pezzo che stava dicendo.
@@ -15,7 +16,7 @@ let run = 0
 
 function italian() {
   if (typeof speechSynthesis === 'undefined') return
-  speech.voices = rankVoices(speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith('it')).map(v => v.name))
+  speech.voices = rankVoices(speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith(lang)).map(v => v.name))
 }
 if (typeof speechSynthesis !== 'undefined') { italian(); speechSynthesis.addEventListener('voiceschanged', italian) }
 
@@ -27,7 +28,7 @@ function play(from: number) {
     if (id !== run) return
     if (at >= parts.length) { speech.text = null; speech.source = null; return }
     const u = new SpeechSynthesisUtterance(parts[at])
-    u.lang = 'it-IT'
+    u.lang = locale
     u.rate = speech.rate
     // Senza una scelta la migliore italiana, non quella che sceglierebbe Chrome.
     const name = speech.voice ?? speech.voices[0]

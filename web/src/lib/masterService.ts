@@ -4,6 +4,7 @@ import type { Model, Session, State } from './contract'
 import { sameModel } from './header'
 import { parseSteps } from './nextSteps'
 import { MASTER } from './summary'
+import { locale } from './lang'
 
 /** A. Il consiglio nel foglio Modello ed effort: `dot` sulla pillola, `cost` (token di cache) solo a metà lavoro. */
 export type AdviceView = { model: string; effort: string; reason: string; dot: boolean; cost: number | null }
@@ -25,7 +26,7 @@ export function adviceSteps(a: AdviceView, choices: State['choices'], model: str
 }
 
 /** «36.000»: i token del costo del cambio, come si scrivono in italiano. */
-export const tokens = (n: number) => n.toLocaleString('it-IT')
+export const tokens = (n: number) => n.toLocaleString(locale)
 
 /** B. La nota dell'approvazione; vuota vale «ok», come il default del relay. */
 export const approveText = (note: string) => note.trim() || 'ok'

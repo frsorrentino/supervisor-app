@@ -1,4 +1,7 @@
 import type { Session, SessionState } from './contract'
+import { lang } from './lang'
+/** L'abbreviazione dei giorni: «3 g», «3 d». */
+export const DAY = lang === 'en' ? 'd' : 'g'
 
 // Porte di Order.kt (contratto): l'ordine delle sessioni, la freschezza dello stato, le durate brevi. Fra numero e unità
 // uno spazio non separabile (U+00A0): a 384 px «12 min» si spezzava fra due righe.
@@ -30,7 +33,7 @@ export const waitingPc = (hasEntries: boolean, askedAtMs: number | null, nowMs: 
   askedAtMs == null || !hasEntries || nowMs - askedAtMs <= WAITING_PC_MS ? null : Math.floor((nowMs - askedAtMs) / 1000)
 
 /** «2 m», «1 h 05», «3 g»: da `from` a `now`, epoch in secondi. */
-export function since(from: number, now: number, days = 'g'): string {
+export function since(from: number, now: number, days = DAY): string {
   const s = Math.max(0, now - from)
   if (s < 3600) return `${Math.floor(s / 60)}${NB}m`
   if (s < 86400) return `${Math.floor(s / 3600)}${NB}h${NB}${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`

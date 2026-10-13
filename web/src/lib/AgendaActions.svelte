@@ -92,7 +92,7 @@
   {@const u = url(r.ref ?? '')}
   <dialog class="tall" use:modal={() => (deepenFor = null)} onclick={backdrop}>
     <div class="head"><i class="mark {mark(r.scope)}"></i><h2>{r.title}</h2></div>
-    <p class="sub">{[r.scope, r.state, r.blocks && t.recapBlocks(r.blocks.trim()), r.until && t.agendaUntil(untilLabel(r.until))].filter(Boolean).join(' · ')}</p>
+    <p class="sub">{[t.agendaWord(r.scope), t.agendaWord(r.state), r.blocks && t.recapBlocks(t.agendaWord(r.blocks.trim())), r.until && t.agendaUntil(untilLabel(r.until))].filter(Boolean).join(' · ')}</p>
     {#if (r.ref ?? '').trim()}{#if u}<a class="ref" href={u} target="_blank" rel="noopener">{r.ref.trim()}</a>{:else}<p class="sub">{r.ref.trim()}</p>{/if}{/if}
     {#if (r.detail ?? '').trim()}
       <div class="detail"><p>{r.detail!.trim()}</p>

@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { locale } from './lang'
   import { RATE_MAX, RATE_MIN, RATE_STEP, rateFraction, snapRate } from './speechRules'
   import { t } from './t'
   // Lo slider della velocità (SpeechRate.kt, approvato da Franz il 07/10 alle 22:06): da 0,5× a 2× a passi di 0,05, il
   // segno di 1× sotto; `onDone` al rilascio, così la voce riparte una volta sola. Lo usano la barra di lettura e le Impostazioni.
   let { value, onInput = () => {}, onDone }: { value: number; onInput?: (v: number) => void; onDone: (v: number) => void } = $props()
-  const label = (r: number) => `${r.toLocaleString('it-IT', { maximumFractionDigits: 2 })}×`
+  const label = (r: number) => `${r.toLocaleString(locale, { maximumFractionDigits: 2 })}×`
   let draft = $state(0)
   $effect(() => { draft = value })
 </script>

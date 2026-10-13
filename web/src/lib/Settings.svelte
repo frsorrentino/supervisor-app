@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { DAY } from './durations'
+  import { locale } from './lang'
   import type { DevicesModel, Linked, Tone } from './devices'
   import type { PushStatus } from './push'
   import RateSlider from './RateSlider.svelte'
@@ -35,12 +37,12 @@
   function seenShort(seen: number | null) {
     if (seen == null) return t.devSeenNever
     const s = Math.max(0, now - seen)
-    return s < 120 ? t.devSeenNow : s < 3600 ? `${Math.floor(s / 60)} min` : s < 86400 ? `${Math.floor(s / 3600)} h` : `${Math.floor(s / 86400)} g`
+    return s < 120 ? t.devSeenNow : s < 3600 ? `${Math.floor(s / 60)} min` : s < 86400 ? `${Math.floor(s / 3600)} h` : `${Math.floor(s / 86400)} ${DAY}`
   }
-  const dayTime = (at: number) => new Date(at * 1000).toLocaleString('it-IT', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone }).replace(',', '')
+  const dayTime = (at: number) => new Date(at * 1000).toLocaleString(locale, { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone }).replace(',', '')
   const anyLive = $derived(devices.some(d => d.tone !== 'off'))
   const pick = $derived(devices.find(d => d.uid === selected) ?? null)
-  const rate = (r: number) => `${r.toLocaleString('it-IT', { maximumFractionDigits: 2 })}×`
+  const rate = (r: number) => `${r.toLocaleString(locale, { maximumFractionDigits: 2 })}×`
 </script>
 
 {#snippet node(kind: string, size: number, dot: string, ring: string, dashed: boolean, name: string, status: string, onClick: () => void)}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import type { CmdOp, Event, Session, State } from './contract'
   import { forYou, forYouFirst, hero as heroOf, nextKey, working, type Entry, type ForYouRow, type Scheduled } from './masterHome'
   import { parseSteps } from './nextSteps'
@@ -29,7 +30,7 @@
   const busy = $derived(working(st))
   const first = $derived(forYouFirst(fy))
   let expanded = $state<string | null>(null)
-  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   const strip = (x: string) => x.replace(/\*\*|__|`/g, '')
   const dot: Record<string, string> = { waiting: 'var(--wait)', busy: 'var(--busy)', awaiting: 'var(--busy)', idle: 'var(--idle)', gone: 'var(--stale)' }
   const FLAG = ['M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z', 'M4 22v-7']

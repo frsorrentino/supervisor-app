@@ -32,7 +32,7 @@
     postpone: t.agendaPostpone, pass_claude: t.agendaPassClaude, pass_me: t.agendaPassMe, remove: t.agendaRemove,
   }
   const sub = $derived(row.state.trim().toLowerCase() === 'sospeso' && row.until ? t.agendaUntil(untilLabel(row.until))
-    : !isOpen(row) ? [row.state.trim(), (row.ref ?? '').trim()].filter(Boolean).join(' · ') : other ? t.recapBlocks(row.blocks.trim()) : (row.ref ?? '').trim())
+    : !isOpen(row) ? [t.agendaWord(row.state.trim()), (row.ref ?? '').trim()].filter(Boolean).join(' · ') : other ? t.recapBlocks(t.agendaWord(row.blocks.trim())) : (row.ref ?? '').trim())
   const detail = $derived((row.detail ?? '').trim())
 </script>
 

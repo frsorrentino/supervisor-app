@@ -1,4 +1,5 @@
 import type { Model, Session, State } from './contract'
+import { locale } from './lang'
 
 // Le misure e i testi della testata della sessione, porte di ModelText, Tune, ContextActions, SessionMeters e SessionsText.
 
@@ -40,10 +41,10 @@ export const quotaLabel = (form: QuotaForm, h5: string, reset: string | null): s
 /** L'ora dell'azzeramento, col giorno se non è oggi; niente se è già passata. */
 export function resetLabel(resetAt: number | null | undefined, now: number, timeZone?: string): string | null {
   if (resetAt == null || resetAt <= now) return null
-  const day = (t: number) => new Date(t * 1000).toLocaleDateString('it-IT', { timeZone })
+  const day = (t: number) => new Date(t * 1000).toLocaleDateString(locale, { timeZone })
   const opts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', timeZone }
   if (day(resetAt) !== day(now)) opts.weekday = 'short'
-  return new Date(resetAt * 1000).toLocaleString('it-IT', opts).replace(',', '')
+  return new Date(resetAt * 1000).toLocaleString(locale, opts).replace(',', '')
 }
 
 /** Le righe sotto la testata: obiettivo, bassa priorità, finestra chiusa con la sessione viva. */

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
   import type { Approval, Session, State } from './contract'
@@ -75,7 +76,7 @@
   const actionKey = (a: RecapAction) => `${a.to}\n${a.send}`
   function askSend(a: RecapAction) { asking = a }
   const ag = $derived(agendaModel(agenda, null, today))
-  const hhmm = (s: number) => new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
+  const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   const model = $derived(build(st, [], st.ts, new Set()))
   let expanded = $state<string | null>(null)
   const tone: Record<Group, string> = { waiting: 'var(--b-warn)', finished: 'var(--b-good)', working: 'var(--b-ring)', still: 'var(--text2)' }
@@ -185,7 +186,7 @@
         {#if c}
           <div class="clean">
             <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
-            <span>{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b> · {c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(new Date(s.outcome.at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })) : t.cleanupFinished}{/if}</span>
+            <span>{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b> · {c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(new Date(s.outcome.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) : t.cleanupFinished}{/if}</span>
             {#if c.canClose && confirming !== s.name}
               <button class="close" onclick={(e) => { e.stopPropagation(); confirming = s.name }}>
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--b-alert)" stroke-width="2" stroke-linecap="round"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>{t.cleanupClose(s.name)}

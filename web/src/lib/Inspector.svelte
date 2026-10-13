@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from './lang'
   import type { Inspector } from './tablet'
   import { since } from './durations'
   import { shortModel } from './header'
@@ -8,7 +9,7 @@
   // tre numeri (contesto, prompt e commit di oggi), l'obiettivo e la cronologia di oggi (contratto 1.29).
   let { i, quotaH5, loading, timeZone }: { i: Inspector; quotaH5: number | null; loading: boolean; timeZone?: string } = $props()
   const s = $derived(i.session)
-  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone })
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone })
   const prio = $derived(s.low_priority?.trim().toLowerCase() === 'active' ? t.tabletPriorityActive : s.low_priority?.trim().toLowerCase() === 'offered' ? t.tabletPriorityOffered : null)
   const toneOf = (kind: string, ok?: boolean | null) => kind === 'test' && ok === false ? 'var(--b-alert)' : kind === 'test' || (kind === 'task' && ok === true) ? 'var(--b-good)' : kind === 'outcome' ? 'var(--b-label)' : 'var(--b-ring)'
 </script>

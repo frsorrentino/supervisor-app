@@ -1,5 +1,6 @@
 import { workingText } from './masterHome'
 import type { QuotaAccount, Session, State } from './contract'
+import { DAY } from './durations'
 
 // Il riepilogo unico della home, porta di Summary.kt: ogni sessione una volta, nell'ordine del bisogno (ti aspetta, ha
 // finito, al lavoro, ferme), le chiuse a parte. La master compare nella lista solo quando aspetta.
@@ -47,5 +48,5 @@ export function age(since: number, now: number): string {
   const s = Math.max(0, now - since)
   if (s < 3600) return `${Math.max(1, Math.round(s / 60))} m`
   if (s < 86400) return `${Math.round(s / 3600)} h`
-  return `${Math.round(s / 86400)} g`
+  return `${Math.round(s / 86400)} ${DAY}`
 }
