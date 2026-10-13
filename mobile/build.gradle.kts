@@ -52,6 +52,11 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true
+        // Gli screenshot di Play (StoreShotsTest): -Pstore.shots=true e -Pstore.locale=it|en.
+        unitTests.all { t ->
+            t.systemProperty("store.shots", project.findProperty("store.shots")?.toString() ?: "false")
+            t.systemProperty("store.locale", project.findProperty("store.locale")?.toString() ?: "it")
+        }
     }
 }
 
