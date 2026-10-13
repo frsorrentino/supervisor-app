@@ -22,7 +22,7 @@
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, night = null, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null }: {
     /** `selected`: le sessioni aperte, evidenziate; `withMaster`: la master nella lista come le altre (la plancia). */
     st: State; selected: string[]; onPick: (name: string) => void; withMaster?: boolean
     /** In fondo alla lista: sulla plancia i pannelli della quota (footer di SummaryList). */

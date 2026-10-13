@@ -1,6 +1,7 @@
 import stateRaw from '../../../contract/state-1-question.json?raw'
 import { decodeState } from './contract'
 import { lang } from './lang'
+import nightRaw from '../../../contract/night-report-sample.json?raw'
 
 // In inglese i testi della demo sono inglesi (Franz, 13/10 21:48); le righe «Esito:» e «Prossimi:» restano: sono il formato
 // con cui le sessioni chiudono il turno, e la web app le mostra come «Outcome» e come tasti.
@@ -13,10 +14,12 @@ export const demoState = {
   ...base,
   // Il recap di oggi con un progetto senza sessione, così «Per te» propone il suo prossimo passo.
   // La finestra delle 5 ore cominciata da due ore, così il ritmo ha letture da mostrare.
+  // Il riferimento al rapporto della notte di prova, come lo mette il relay (1.44): così la home mostra il riquadro Notte.
+  night: { ...base.night, report: (({ date, generated_at }) => ({ date, generated_at }))(JSON.parse(nightRaw) as { date: string; generated_at: number }) },
   quota: { ...base.quota, personal: { ...base.quota.personal, reset_h5: base.ts + 3 * 3600 } },
   recap: { ...base.recap, items: [...base.recap.items, { project: 'orbit-docs', done: 'API pages drafted', next: 'Review the API pages' }] },
   sessions: [
-    { id: 'm', name: 'master', account: 'personal', project: 'personali/claude-master', state: 'idle' as const, since: base.ts - 3600, context: 34, attached: true,
+    { id: 'm', name: 'master', account: 'personal', project: 'personal/control-room', state: 'idle' as const, since: base.ts - 3600, context: 34, attached: true,
       model: { id: 'claude-opus-5-5', label: 'Opus 5.5' }, effort: 'high', suggestion: 'commit the README changes and open a PR' },
     // Contesto al 64 %: la proposta «handoff, poi /clear» del contratto 1.37 si vede nella sua chat.
     ...base.sessions.map(s => (s.name === 'field-notes' ? { ...s, followed: true, context: 64, outcome: { ...s.outcome!, at: base.ts - 900 } } : s)),
@@ -24,9 +27,9 @@ export const demoState = {
 }
 
 import eventsRaw from '../../../contract/events-sample.json?raw'
-import nightRaw from '../../../contract/night-report-sample.json?raw'
 import type { Event } from './contract'
-export const demoEvents: Event[] = JSON.parse(eventsRaw)
+// Il comando della fixture porta il vecchio nome del plugin: nella demo quello di oggi.
+export const demoEvents: Event[] = JSON.parse(eventsRaw.replace(/team-supervisor launch/g, 'supervisor launch'))
 
 import type { TranscriptEntry } from './contract'
 import type { Sent, Status } from './chatRules'
@@ -41,10 +44,10 @@ const numbersIt = 'I file toccati:\n\n| file | righe |\n|---|---|\n| Repo.kt | 3
 const numbersEn = 'The files touched:\n\n| file | lines |\n|---|---|\n| Repo.kt | 336 |\n| Slash.kt | 47 |\n\nThe numbers\n\n| what | now | at noon |\n|---|---|---|\n| film post (01/10) | 223 views, 4 reposts | 121 views, 1 repost |\n| new followers | 1 | — |\n\nDetails in https://claude.ai/artifact/RGdmD5fx and in the file `docs/numbers.md`.\n\nEsito: README rewritten\nProssimi: open the PR · update the changelog · tag v1.2'
 export const demoTranscripts: Record<string, TranscriptEntry[]> = {
   master: [
-    said('u1', en ? 'Launch claude-master on phase 2.2' : 'Lancia claude-master sulla fase 2.2', demoState.ts - 660, 'phone'),
+    said('u1', en ? 'Launch payments-api on phase 2.2' : 'Lancia payments-api sulla fase 2.2', demoState.ts - 660, 'phone'),
     claude('a1', en
-      ? 'claude-master launched on phase 2.2. Local commits only: push and release with your ok.\n\nEsito: Phase 2.2 started on claude-master\nProssimi: distil the comparison into the kb · try the home live'
-      : 'Lanciata claude-master sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n\nEsito: Fase 2.2 avviata su claude-master\nProssimi: distilla il confronto nella kb · prova la casa dal vivo', demoState.ts - 600),
+      ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'
+      : 'Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n\nEsito: Fase 2.2 avviata su payments-api\nProssimi: rivedi il flusso dei rimborsi · prova il checkout dal vivo', demoState.ts - 600),
   ],
   'ledger-api': [
     said('u1', 'Prepare the deploy of 2.4 and wait for my ok', t0 - 300),
@@ -140,9 +143,9 @@ function nightEn(v: unknown): unknown {
 export const demoNight: import('./night').NightReport = en ? nightEn(JSON.parse(nightRaw)) as import('./night').NightReport : JSON.parse(nightRaw)
 
 /** Contratto 1.46: la demo ha un'agenda inventata, con un gruppo per ognuno di chi deve muoversi (come FakeTransport). */
-export const demoAgenda: import('./contract').AgendaPage = { more: false, owner: 'franz', rows: [
-  { state: 'aperto', scope: 'agenzia', blocks: 'franz', title: 'Confirm the 6 client ids with a candidate', ref: '.claude/to-decide-client-id.md', detail: 'Six ids have a likely client from the invoices.\nConfirm them one by one, then the import can run.', key: 'd1' },
-  { state: 'aperto', scope: 'personale', blocks: 'franz', title: 'Renew the domain of the docs site', ref: 'orbit-docs', key: 'd2' },
+export const demoAgenda: import('./contract').AgendaPage = { more: false, owner: 'you', rows: [
+  { state: 'aperto', scope: 'agenzia', blocks: 'you', title: 'Confirm the 6 client ids with a candidate', ref: '.claude/to-decide-client-id.md', detail: 'Six ids have a likely client from the invoices.\nConfirm them one by one, then the import can run.', key: 'd1' },
+  { state: 'aperto', scope: 'personale', blocks: 'you', title: 'Renew the domain of the docs site', ref: 'orbit-docs', key: 'd2' },
   { state: 'aperto', scope: 'personale', blocks: 'claude', title: 'Move the docs site to the new host', ref: 'orbit-docs', key: 'd3' },
   { state: 'aperto', scope: 'postazione', blocks: 'claude', title: 'Clear the orphan plugin caches', ref: 'after restarting every session', key: 'd4' },
   { state: 'sospeso', scope: 'agenzia', blocks: 'terzi', title: 'Staging of atlas-shop not reachable from the CLI', ref: '', until: '2026-10-20', key: 'd5' },
