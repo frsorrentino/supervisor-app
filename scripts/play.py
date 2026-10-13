@@ -100,6 +100,11 @@ class Client:
         return self._send(req)
 
 
+def track_path(name: str) -> str:
+    """A custom track made in the Console can have spaces, as «wear:Wear closed testing»; in the URL they are escaped."""
+    return urllib.parse.quote(name, safe=":")
+
+
 class Edit:
     """One edit: everything inside it becomes visible together at commit, or not at all."""
     def __init__(self, client: Client):
@@ -110,10 +115,10 @@ class Edit:
         return f"{API}/edits/{self.id}{tail}"
 
     def track(self, name: str) -> dict:
-        return self.c.call("GET", self.url(f"/tracks/{name}"))
+        return self.c.call("GET", self.url(f"/tracks/{track_path(name)}"))
 
     def set_track(self, name: str, releases: list) -> dict:
-        return self.c.call("PUT", self.url(f"/tracks/{name}"), body={"track": name, "releases": releases})
+        return self.c.call("PUT", self.url(f"/tracks/{track_path(name)}"), body={"track": name, "releases": releases})
 
     def commit(self):
         self.c.call("POST", self.url(":commit"))
@@ -182,11 +187,11 @@ def cmd_testers(c: Client, a):
     e = Edit(c)
     try:
         if a.group:
-            c.call("PUT", e.url(f"/testers/{a.track}"), body={"googleGroups": a.group})
+            c.call("PUT", e.url(f"/testers/{track_path(a.track)}"), body={"googleGroups": a.group})
             e.commit()
             print(f"{a.track}: Google Groups {a.group}")
         else:
-            print(json.dumps(c.call("GET", e.url(f"/testers/{a.track}")), indent=2))
+            print(json.dumps(c.call("GET", e.url(f"/testers/{track_path(a.track)}")), indent=2))
             e.abandon()
     except BaseException:
         e.abandon()

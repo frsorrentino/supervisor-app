@@ -88,6 +88,11 @@ class DryRun(unittest.TestCase):
         self.assertEqual(0, code)
         self.assertIn('/testers/alpha {"googleGroups": ["claude-master-testers@googlegroups.com"]}', out)
 
+    def test_a_custom_track_name_with_spaces_is_escaped_in_the_url(self):
+        code, out = self.run_cli("testers", "--track", "wear:Wear closed testing", "--group", "g@googlegroups.com")
+        self.assertEqual(0, code)
+        self.assertIn("/testers/wear:Wear%20closed%20testing ", out)
+
     def test_rollout_fraction_must_be_below_one(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             play.main(["--dry-run", "rollout", "--track", "production", "--fraction", "20"])
