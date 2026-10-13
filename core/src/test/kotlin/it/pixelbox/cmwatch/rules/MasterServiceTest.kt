@@ -80,11 +80,19 @@ class MasterServiceTest {
         assertEquals("fai il master handoff", ContextActions.handoffPrompt(withRec, master, tpl))
     }
 
+    /** Contratto 1.51 sulle fixture: il comando che manda il relay, null dove non ce n'è. */
+    @Test fun handoffCommandInTheFixtures() {
+        assertEquals(
+            mapOf("ledger-api" to "/fable-director:handoff --here", "atlas-shop" to "/supervisor:handoff --here", "field-notes" to null, "orbit-docs" to null),
+            st.sessions.associate { it.name to ContextActions.handoffCommand(it) },
+        )
+    }
+
     @Test fun handoffPromptAndClear() {
-        val master = field.copy(name = ContextActions.MASTER)
+        val master = field.copy(name = ContextActions.MASTER, handoff = "/fable-director:handoff --here")
         val withRec = st.copy(recurring = st.recurring.orEmpty() + Recurring("master-handoff", "Handoff", "fai il master handoff"))
         assertEquals("fai il master handoff", ContextActions.handoffPrompt(withRec, master) { "altro" })
-        assertEquals("altro", ContextActions.handoffPrompt(withRec, field) { "altro" })
+        assertEquals("altro", ContextActions.handoffPrompt(withRec, st.sessions.first { it.name == "ledger-api" }) { "altro" })
         assertEquals("altro", ContextActions.handoffPrompt(st, master) { "altro" })
         assertTrue(ContextActions.canClear(st))
         assertFalse(ContextActions.canClear(st.copy(slash = listOf("compact"))))

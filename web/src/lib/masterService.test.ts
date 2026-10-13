@@ -64,10 +64,10 @@ describe('C. contesto pieno', () => {
     expect(ctxNudge({ ...s, context: 40 }, null)).toBeNull()
   })
   it('alla master la ricorrente master-handoff, alle altre il prompt di sempre', () => {
-    const master: Session = { ...field, name: MASTER }
+    const master: Session = { ...field, name: MASTER, handoff: '/fable-director:handoff --here' }
     const withRec = { ...st, recurring: [...(st.recurring ?? []), { id: 'master-handoff', label: 'Handoff', prompt: 'fai il master handoff' }] }
     expect(handoffPrompt(withRec, master, () => 'altro')).toBe('fai il master handoff')
-    expect(handoffPrompt(withRec, field, () => 'altro')).toBe('altro')
+    expect(handoffPrompt(withRec, st.sessions.find(x => x.name === 'ledger-api')!, () => 'altro')).toBe('altro')
     expect(handoffPrompt(st, master, () => 'altro')).toBe('altro')
   })
   it('contratto 1.51: il comando di handoff della sessione, fable-director con un relay vecchio, nessuno con null', () => {
@@ -80,6 +80,10 @@ describe('C. contesto pieno', () => {
     const master: Session = { ...field, name: MASTER, handoff: null }
     const withRec = { ...st, recurring: [...(st.recurring ?? []), { id: 'master-handoff', label: 'Handoff', prompt: 'fai il master handoff' }] }
     expect(handoffPrompt(withRec, master, tpl)).toBe('fai il master handoff')
+  })
+  it('contratto 1.51 sulle fixture: il comando che manda il relay, null dove non ce n\'è', () => {
+    const by = Object.fromEntries(st.sessions.map(x => [x.name, handoffCommand(x)]))
+    expect(by).toEqual({ 'ledger-api': '/fable-director:handoff --here', 'atlas-shop': '/supervisor:handoff --here', 'field-notes': null, 'orbit-docs': null })
   })
   it('/clear solo se permesso, e a turno finito con un esito più nuovo dell\'invio', () => {
     expect(canClear(st)).toBe(true)
