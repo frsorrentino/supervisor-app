@@ -154,8 +154,8 @@ data class SheetActions(
     val askMaster: (() -> Unit)? = null,
     /** La lettura a voce da un paragrafo toccato (Franz, 02/10 00:01: «come in orologio»). */
     val speakFrom: (text: String, block: Int) -> Unit = { _, _ -> },
-    /** Contratto 1.37: «Handoff, poi /clear» (il /clear parte a turno finito, lo gestisce chi tiene lo stato). */
-    val handoff: () -> Unit = {},
+    /** Contratto 1.37: «Handoff, poi /clear» (il /clear parte a turno finito, lo gestisce chi tiene lo stato); 1.51: null senza comando. */
+    val handoff: (() -> Unit)? = {},
     /** Contratto 1.37: una decisione per la memoria della master; `project` null = vale per tutti; null = op non supportata. */
     val decision: ((text: String, project: String?) -> Unit)? = null,
 )
@@ -630,7 +630,8 @@ fun SessionSheet(
         // Contratto 1.37: oltre il 60 % di contesto, a sessione ferma, la proposta «handoff, poi /clear»; chiusa torna a 70 e 80.
         var ctxDismissed by rememberSaveable(s.name) { mutableStateOf<Int?>(null) }
         val nudge = if (home != null && homeOpen) null else it.pixelbox.cmwatch.rules.ContextActions.nudge(s, ctxDismissed)
-        if (nudge != null) ContextNudge(s.context ?: nudge, onGo = actions.handoff, onDismiss = { ctxDismissed = nudge })
+        val goHandoff = actions.handoff
+        if (nudge != null && goHandoff != null) ContextNudge(s.context ?: nudge, onGo = goHandoff, onDismiss = { ctxDismissed = nudge })
         // Il controller sta sopra la fine della conversazione, non in una fascia sua (Franz, 08/10 20:31: «elemento
         // sovrapposto, il resto mantiene i colori suoi»): qui solo il segno di dove posarlo, sopra il campo.
         // Con la home aperta il segno sta sopra la barra della master, non qui (Franz, 09/10 16:50: il controller la copriva
@@ -1817,14 +1818,15 @@ private fun ContextSheet(pct: Int, wider: it.pixelbox.cmwatch.contract.Model?, a
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.ctx_title, pct), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
             // Contratto 1.37: «Handoff, poi /clear», pieno dal 60 % (mockup approvato il 05/10 21:07); le voci spiegate sotto.
-            val handoff = { actions.handoff(); onClose() }
+            val handoff = { actions.handoff?.invoke(); onClose() }
             val two: @Composable (Int, Int) -> Unit = { title, sub ->
                 Column(Modifier.fillMaxWidth()) {
                     Text(stringResource(title))
                     Text(stringResource(sub), style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(.8f))
                 }
             }
-            if (it.pixelbox.cmwatch.rules.ContextActions.band(pct) != null) {
+            if (actions.handoff == null) Unit
+            else if (it.pixelbox.cmwatch.rules.ContextActions.band(pct) != null) {
                 Button(onClick = handoff, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { two(R.string.ctx_handoff_clear, R.string.ctx_handoff_clear_sub) }
             } else FilledTonalButton(onClick = handoff, modifier = Modifier.fillMaxWidth()) { two(R.string.ctx_handoff_clear, R.string.ctx_handoff_clear_sub) }
             FilledTonalButton(onClick = { actions.send(PhonePrimary.Target.PROMPT, "/compact"); onClose() }, modifier = Modifier.fillMaxWidth()) { two(R.string.ctx_compact, R.string.ctx_compact_sub) }

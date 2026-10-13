@@ -821,7 +821,11 @@ class MainActivity : ComponentActivity() {
                 // Variante 3 (02/10 21:11): la riga si apre sul posto; «Apri la conversazione» porta alla sessione.
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.QUESTION -> { open = row.session }
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.FINISHED -> { row.key?.let(markRead); open = row.session }
-                it.pixelbox.cmwatch.rules.MasterHome.Kind.CONTEXT -> row.session?.let { n -> sendPrompt(n, getString(R.string.ctx_handoff_prompt)) }
+                it.pixelbox.cmwatch.rules.MasterHome.Kind.CONTEXT -> row.session?.let { n ->
+                    val st0 = state ?: return@let
+                    val s0 = st0.sessions.firstOrNull { it.name == n } ?: return@let
+                    it.pixelbox.cmwatch.rules.ContextActions.handoffPrompt(st0, s0) { c -> getString(R.string.ctx_handoff_prompt, c) }?.let { p -> sendPrompt(n, p) }
+                }
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.NIGHT_REPORT -> { row.detail?.let { speech.toggle(it) }; row.key?.let(markRead) }
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.NIGHT -> nightAdding = true
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.NEXT_STEP -> {
@@ -1054,14 +1058,19 @@ class MainActivity : ComponentActivity() {
                             overview = goUsage,
                             // Proposta approvata (01/10 21:19): la master legge la sessione e risponde nella sua chat.
                             speakFrom = { t, i -> speech.speakBlocks(t, i, session.name) },
-                            handoff = {
+                            // Contratto 1.51: senza un comando di handoff il tasto non c'è.
+                            handoff = state?.takeIf { st0 -> it.pixelbox.cmwatch.rules.ContextActions.handoffPrompt(st0, session) { "" } != null }?.let { _ -> {
                                 state?.let { st0 ->
                                     val clear = it.pixelbox.cmwatch.rules.ContextActions.canClear(st0)
-                                    val fallback = getString(if (clear) R.string.ctx_handoff_clear_prompt else R.string.ctx_handoff_prompt)
-                                    sendAndLog(PhonePrimary.Target.PROMPT, it.pixelbox.cmwatch.rules.ContextActions.handoffPrompt(st0, session, fallback))
-                                    if (clear) clearAfter.edit().putLong(session.name, System.currentTimeMillis() / 1000).apply()
+                                    val prompt = it.pixelbox.cmwatch.rules.ContextActions.handoffPrompt(st0, session) { c ->
+                                        getString(if (clear) R.string.ctx_handoff_clear_prompt else R.string.ctx_handoff_prompt, c)
+                                    }
+                                    if (prompt != null) {
+                                        sendAndLog(PhonePrimary.Target.PROMPT, prompt)
+                                        if (clear) clearAfter.edit().putLong(session.name, System.currentTimeMillis() / 1000).apply()
+                                    }
                                 }
-                            },
+                            } },
                             decision = if (state?.ops?.contains("decision") == true) ({ text, project ->
                                 scope.launch {
                                     runCatching { app.repo.command(CmdOp.DECISION, null, project, text) }.onSuccess {

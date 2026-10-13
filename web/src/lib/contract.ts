@@ -15,6 +15,8 @@ export type Session = {
   next?: string | null; next_at?: number | null; color?: string | null; icon?: string | null; account_kind?: string | null
   model?: Model | null; effort?: string | null; context?: number | null; low_priority?: string | null
   goal?: Goal | null; suggestion?: string | null
+  /** Contratto 1.51: il comando slash dell'handoff; null = nessuno, assente = relay vecchio (fable-director). */
+  handoff?: string | null
   /** Contratto 1.37: assenti nello stato quando non valorizzati; la lettura mette null / false / null. */
   advice?: Advice | null; finished?: boolean; duplicate_of?: string | null
   /** Contratto 1.38: i Prossimi dell'ultimo esito, col «!» tolto; `blocking` = sblocca un lavoro fermo. */

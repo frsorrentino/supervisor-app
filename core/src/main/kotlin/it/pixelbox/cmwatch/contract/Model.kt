@@ -136,6 +136,8 @@ enum class CmdOp {
     val goal: Goal? = null,
     /** Contratto 1.23: il prompt suggerito che il terminale mostra attenuato dopo ❯; solo per una sessione ferma. */
     val suggestion: String? = null,
+    /** Contratto 1.51: il comando slash dell'handoff; null = nessuno, assente = relay vecchio, quindi fable-director. */
+    val handoff: String? = LEGACY_HANDOFF,
     /** Contratto 1.37: il consiglio di fable-director; assente quando non c'è. */
     val advice: Advice? = null,
     /** Contratto 1.37: ferma, con «Esito:» e senza «Prossimi:»; assente = false. */
@@ -404,3 +406,6 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
 data class PairAddInvite(val qr: String?, val code: String, val exp: Long)
 
 @Serializable data class TranscriptPage(val entries: List<TranscriptEntry> = emptyList(), val more: Boolean = false)
+
+/** Contratto 1.51: con un relay che non dice `handoff`, il comando di prima. */
+const val LEGACY_HANDOFF = "/fable-director:handoff --here"

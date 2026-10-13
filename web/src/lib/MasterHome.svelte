@@ -4,6 +4,7 @@
   import { parseSteps } from './nextSteps'
   import { age } from './summary'
   import { PATHS } from './badge'
+  import { handoffPrompt } from './masterService'
   import { t } from './t'
   import Options from './Options.svelte'
   import NightAgendaPicker from './NightAgendaPicker.svelte'
@@ -57,7 +58,7 @@
   function act(r: ForYouRow) {
     allSheet?.close()
     switch (r.kind) {
-      case 'context': if (r.session) onPrompt(r.session, t.ctxHandoffPrompt); break
+      case 'context': { const s = st.sessions.find(x => x.name === r.session); const p = s ? handoffPrompt(st, s, t.ctxHandoffPrompt) : null; if (r.session && p) onPrompt(r.session, p); break }
       case 'night_report': if (r.detail) onSpeak(r.detail); if (r.key) onRead(r.key); break
       case 'night': nightDir = st.projects[0]?.path ?? ''; nightText = ''; nightSheet?.showModal(); break
       case 'next_step':

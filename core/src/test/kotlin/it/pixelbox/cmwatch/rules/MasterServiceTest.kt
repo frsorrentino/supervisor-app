@@ -5,6 +5,7 @@ import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.Outcome
 import it.pixelbox.cmwatch.contract.Recurring
 import it.pixelbox.cmwatch.contract.SessionState
+import it.pixelbox.cmwatch.contract.State
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -64,12 +65,27 @@ class MasterServiceTest {
         assertNull(ContextActions.nudge(s.copy(context = 40), null))
     }
 
+    /** Contratto 1.51: il comando di handoff della sessione; fable-director con un relay vecchio, nessuno con null. */
+    @Test fun handoffCommandFromTheRelay() {
+        val tpl: (String) -> String = { "scrivi con $it" }
+        val plugin = field.copy(handoff = "/supervisor:handoff --here")
+        assertEquals("/supervisor:handoff --here", ContextActions.handoffCommand(plugin))
+        assertEquals("scrivi con /supervisor:handoff --here", ContextActions.handoffPrompt(st, plugin, tpl))
+        assertNull(ContextActions.handoffPrompt(st, field.copy(handoff = null), tpl))
+        val old = ContractJson.decodeState(ContractJson.json.encodeToString(State.serializer(), st)
+            .replace(Regex(""""handoff":(null|"[^"]*"),?"""), ""))
+        assertEquals("/fable-director:handoff --here", ContextActions.handoffCommand(old.sessions.first()))
+        val master = field.copy(name = ContextActions.MASTER, handoff = null)
+        val withRec = st.copy(recurring = st.recurring.orEmpty() + Recurring("master-handoff", "Handoff", "fai il master handoff"))
+        assertEquals("fai il master handoff", ContextActions.handoffPrompt(withRec, master, tpl))
+    }
+
     @Test fun handoffPromptAndClear() {
         val master = field.copy(name = ContextActions.MASTER)
         val withRec = st.copy(recurring = st.recurring.orEmpty() + Recurring("master-handoff", "Handoff", "fai il master handoff"))
-        assertEquals("fai il master handoff", ContextActions.handoffPrompt(withRec, master, "altro"))
-        assertEquals("altro", ContextActions.handoffPrompt(withRec, field, "altro"))
-        assertEquals("altro", ContextActions.handoffPrompt(st, master, "altro"))
+        assertEquals("fai il master handoff", ContextActions.handoffPrompt(withRec, master) { "altro" })
+        assertEquals("altro", ContextActions.handoffPrompt(withRec, field) { "altro" })
+        assertEquals("altro", ContextActions.handoffPrompt(st, master) { "altro" })
         assertTrue(ContextActions.canClear(st))
         assertFalse(ContextActions.canClear(st.copy(slash = listOf("compact"))))
         assertFalse(ContextActions.clearDue(field.copy(state = SessionState.BUSY, outcome = Outcome("x", "x", 900)), 1000))

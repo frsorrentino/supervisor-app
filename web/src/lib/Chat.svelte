@@ -23,7 +23,7 @@
   import { blockingOf, parseSteps } from './nextSteps'
   import { t } from './t'
   import { waitingPc } from './durations'
-  import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX } from './masterService'
+  import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
   let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, inject = null, onInjected = () => {}, onUsage = () => {} }: {
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
@@ -90,7 +90,8 @@
   // Contratto 1.37: la proposta del contesto pieno sopra il campo; chiusa, torna alla fascia dopo (70, 80).
   const loadDismissed = (): Record<string, number> => { try { return JSON.parse(localStorage.getItem('cm.ctx_dismissed') ?? '{}') } catch { return {} } }
   let dismissed = $state(loadDismissed())
-  const nudge = $derived(home ? null : ctxNudge(s, dismissed[s.name] ?? null))
+  // Contratto 1.51: senza un comando di handoff la proposta non serve.
+  const nudge = $derived(home || handoffPrompt(st, s, () => '') == null ? null : ctxNudge(s, dismissed[s.name] ?? null))
   function dismissNudge() {
     dismissed = { ...dismissed, [s.name]: nudge! }
     try { localStorage.setItem('cm.ctx_dismissed', JSON.stringify(dismissed)) } catch { /* resta per la sessione */ }

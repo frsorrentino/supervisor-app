@@ -35,7 +35,7 @@ export const t = {
   approveText: (title: string, what: string, where: string) => `${title}: ${what}, verso ${where}.`, approveNote: 'Nota per la sessione (facoltativa)',
   ctxHandoffClear: 'Handoff, poi /clear', ctxHandoffClearSub: 'Scrive il punto in docs, poi svuota il contesto a turno finito',
   ctxCompactSub: '/compact: riassume e tiene il filo', ctxWiderSub: 'Stesso modello, più spazio',
-  ctxHandoffClearPrompt: "Scrivi l'handoff con /fable-director:handoff --here.",
+  ctxHandoffClearPrompt: (c: string) => `Scrivi l'handoff con ${c}.`,
   ctxNudge: (p: number) => `Contesto al ${p}%`, ctxNudgeSub: 'Handoff, poi /clear', ctxNudgeGo: 'Fallo',
   decisionSave: 'Salva come decisione', decisionSub: 'La master la scrive nella sua memoria: la leggono il giro novità e le sessioni.',
   decisionFor: 'Vale per', decisionAll: 'Tutti i progetti', decisionOk: 'Salva', decisionNew: 'Salva una decisione',
@@ -203,6 +203,6 @@ export const t = {
   slashConfirmOk: 'Manda',
   ctxTitle: (p: number) => `Contesto ${p}%`, ctxHandoff: "Scrivi l'handoff e riparti pulita", ctxCompact: 'Compatta la conversazione',
   ctxWider: 'Passa alla finestra da 1M',
-  ctxHandoffPrompt: "Scrivi l'handoff con /fable-director:handoff --here, poi io mando /clear.", conversation: 'Conversazione',
+  ctxHandoffPrompt: (c: string) => `Scrivi l'handoff con ${c}, poi io mando /clear.`, conversation: 'Conversazione',
   enterSends: 'Invio manda · Maiusc+Invio a capo', back: 'Indietro',
 }

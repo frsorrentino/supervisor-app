@@ -125,7 +125,9 @@
     const s = st.sessions.find(x => x.name === name)
     if (!s) return
     const clear = canClear(st)
-    sendTo(name, handoffPrompt(st, s, clear ? t.ctxHandoffClearPrompt : t.ctxHandoffPrompt))
+    const prompt = handoffPrompt(st, s, clear ? t.ctxHandoffClearPrompt : t.ctxHandoffPrompt)
+    if (prompt == null) return
+    sendTo(name, prompt)
     if (clear) { clearAfter = { ...clearAfter, [name]: nowS() }; save('cm.clear_after', JSON.stringify(clearAfter)) }
   }
   function clearsDue(s: State) {

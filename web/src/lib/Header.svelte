@@ -5,7 +5,7 @@
   import { MASTER } from './summary'
   import { t } from './t'
   import Badge from './Badge.svelte'
-  import { adviceOf, adviceSteps, ctxBand, tokens } from './masterService'
+  import { adviceOf, adviceSteps, ctxBand, handoffPrompt, tokens } from './masterService'
 
   // La testata della sessione (SheetHeader.kt): una riga con modello · effort in una pillola, la quota delle 5 ore con l'ora
   // dell'azzeramento, il contesto ad anello e il menu ⋮; sotto obiettivo, priorità e finestra. Su desktop a sinistra anche
@@ -213,7 +213,7 @@
   {#if s.context != null}
     <h3>{t.ctxTitle(s.context)}</h3>
     <div class="col">
-      <button class:filled={ctxBand(s.context) != null} class="tonal opt" onclick={() => { onHandoff(); close(ctx) }}>{t.ctxHandoffClear}<small>{t.ctxHandoffClearSub}</small></button>
+      {#if handoffPrompt(st, s, () => '') != null}<button class:filled={ctxBand(s.context) != null} class="tonal opt" onclick={() => { onHandoff(); close(ctx) }}>{t.ctxHandoffClear}<small>{t.ctxHandoffClearSub}</small></button>{/if}
       <button class="tonal opt" onclick={() => { onPrompt('/compact'); close(ctx) }}>{t.ctxCompact}<small>{t.ctxCompactSub}</small></button>
       {#if wider}<button class="tonal opt" onclick={() => setModel(wider!)}>{t.ctxWider}<small>{t.ctxWiderSub}</small></button>{/if}
     </div>

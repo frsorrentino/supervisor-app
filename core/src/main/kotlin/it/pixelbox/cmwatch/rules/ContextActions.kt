@@ -29,9 +29,13 @@ object ContextActions {
         return b.takeIf { dismissed == null || dismissed < it }
     }
 
-    /** Alla master la sua ricorrente `master-handoff`, se c'è; alle altre il prompt di sempre. */
-    fun handoffPrompt(st: State, s: Session, fallback: String): String =
-        (if (s.name == MASTER) st.recurring?.firstOrNull { it.id == "master-handoff" }?.prompt else null) ?: fallback
+    /** Contratto 1.51: il comando di handoff della sessione (fable-director o quello del plugin), null se non ne ha. */
+    fun handoffCommand(s: Session): String? = s.handoff
+
+    /** Alla master la sua ricorrente `master-handoff`, se c'è; alle altre il prompt col loro comando; null se non ne hanno. */
+    fun handoffPrompt(st: State, s: Session, prompt: (String) -> String): String? =
+        (if (s.name == MASTER) st.recurring?.firstOrNull { it.id == "master-handoff" }?.prompt else null)
+            ?: handoffCommand(s)?.let(prompt)
 
     fun canClear(st: State): Boolean = st.slash?.contains("clear") == true
 

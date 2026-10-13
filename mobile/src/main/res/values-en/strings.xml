@@ -433,7 +433,7 @@
     <string name="quota_reset_desc">5-hour quota at %1$d%%, resets %2$s</string>
     <string name="ctx_title">Context %1$d%%</string>
     <string name="ctx_handoff">Write the handoff and restart clean</string>
-    <string name="ctx_handoff_prompt">Write the handoff with /fable-director:handoff --here, then I send /clear.</string>
+    <string name="ctx_handoff_prompt">Write the handoff with %1$s, then I send /clear.</string>
     <string name="ctx_compact">Compact the conversation</string>
     <string name="ctx_wider">Switch to the 1M window</string>
     <string name="ask_master">Ask the master to check</string>
@@ -618,7 +618,7 @@
     <string name="effort_sub_max">No limit on reasoning: uses more quota</string>
     <string name="ctx_handoff_clear">Handoff, then /clear</string>
     <string name="ctx_handoff_clear_sub">Writes where things stand in docs, then clears the context when the turn ends</string>
-    <string name="ctx_handoff_clear_prompt">Write the handoff with /fable-director:handoff --here.</string>
+    <string name="ctx_handoff_clear_prompt">Write the handoff with %1$s.</string>
     <string name="ctx_compact_sub">/compact: summarises and keeps the thread</string>
     <string name="ctx_wider_sub">Same model, more room</string>
     <string name="ctx_nudge">Context at %1$d%%</string>

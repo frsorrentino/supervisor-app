@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { decodeState, type Session, type State } from './contract'
 import { MASTER } from './summary'
 import {
-  adviceOf, adviceSteps, approveText, canClear, cleanupOf, CLEANUP_QUIET_S, closeStateOf, clearDue, ctxBand, ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt, tokens,
+  adviceOf, adviceSteps, approveText, canClear, cleanupOf, CLEANUP_QUIET_S, closeStateOf, clearDue, ctxBand, ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffCommand, handoffPrompt, tokens,
 } from './masterService'
 
 const st: State = decodeState(readFileSync(new URL('../../../contract/state-1-question.json', import.meta.url), 'utf8'))
@@ -66,9 +66,20 @@ describe('C. contesto pieno', () => {
   it('alla master la ricorrente master-handoff, alle altre il prompt di sempre', () => {
     const master: Session = { ...field, name: MASTER }
     const withRec = { ...st, recurring: [...(st.recurring ?? []), { id: 'master-handoff', label: 'Handoff', prompt: 'fai il master handoff' }] }
-    expect(handoffPrompt(withRec, master, 'altro')).toBe('fai il master handoff')
-    expect(handoffPrompt(withRec, field, 'altro')).toBe('altro')
-    expect(handoffPrompt(st, master, 'altro')).toBe('altro')
+    expect(handoffPrompt(withRec, master, () => 'altro')).toBe('fai il master handoff')
+    expect(handoffPrompt(withRec, field, () => 'altro')).toBe('altro')
+    expect(handoffPrompt(st, master, () => 'altro')).toBe('altro')
+  })
+  it('contratto 1.51: il comando di handoff della sessione, fable-director con un relay vecchio, nessuno con null', () => {
+    const tpl = (c: string) => `scrivi con ${c}`
+    expect(handoffCommand({ ...field, handoff: '/supervisor:handoff --here' })).toBe('/supervisor:handoff --here')
+    expect(handoffCommand({ ...field, handoff: undefined })).toBe('/fable-director:handoff --here')
+    expect(handoffCommand({ ...field, handoff: null })).toBeNull()
+    expect(handoffPrompt(st, { ...field, handoff: '/supervisor:handoff --here' }, tpl)).toBe('scrivi con /supervisor:handoff --here')
+    expect(handoffPrompt(st, { ...field, handoff: null }, tpl)).toBeNull()
+    const master: Session = { ...field, name: MASTER, handoff: null }
+    const withRec = { ...st, recurring: [...(st.recurring ?? []), { id: 'master-handoff', label: 'Handoff', prompt: 'fai il master handoff' }] }
+    expect(handoffPrompt(withRec, master, tpl)).toBe('fai il master handoff')
   })
   it('/clear solo se permesso, e a turno finito con un esito più nuovo dell\'invio', () => {
     expect(canClear(st)).toBe(true)

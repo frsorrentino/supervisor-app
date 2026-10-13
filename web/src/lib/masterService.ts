@@ -47,13 +47,18 @@ export function ctxNudge(s: Session, dismissed: number | null): number | null {
   return band
 }
 
-/** Alla master la sua ricorrente `master-handoff`, se c'è; alle altre il prompt di sempre. */
-export function handoffPrompt(st: State, s: Session, fallback: string): string {
+/** Contratto 1.51: il comando di handoff che la sessione ha (fable-director o quello del plugin); assente = relay vecchio. */
+export const LEGACY_HANDOFF = '/fable-director:handoff --here'
+export const handoffCommand = (s: Session): string | null => s.handoff === undefined ? LEGACY_HANDOFF : s.handoff
+
+/** Alla master la sua ricorrente `master-handoff`, se c'è; alle altre il prompt col loro comando; null se non ne hanno. */
+export function handoffPrompt(st: State, s: Session, prompt: (command: string) => string): string | null {
   if (s.name === MASTER) {
     const r = st.recurring?.find(x => x.id === 'master-handoff')
     if (r) return r.prompt
   }
-  return fallback
+  const c = handoffCommand(s)
+  return c == null ? null : prompt(c)
 }
 
 export const canClear = (st: State) => !!st.slash?.includes('clear')
