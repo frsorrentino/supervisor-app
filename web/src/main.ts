@@ -1,8 +1,14 @@
 import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
+import { canonicalUrl, loadRemote } from './lib/remoteAccess'
 
-const app = mount(App, {
+// Dai nomi di Firebase del sito al dominio, prima di disegnare la pagina (un browser già collegato lì resta lì).
+const store = { get: (k: string) => { try { return localStorage.getItem(k) } catch { return null } }, set() {}, remove() {} }
+const canonical = canonicalUrl(new URL(location.href), loadRemote(store) != null)
+if (canonical) location.replace(canonical)
+
+const app = canonical ? undefined : mount(App, {
   target: document.getElementById('app')!,
 })
 

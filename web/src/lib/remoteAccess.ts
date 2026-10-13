@@ -86,3 +86,16 @@ export function needsHomeScreen(ua: string, standalone: boolean, touchPoints: nu
   if (standalone) return false
   return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && touchPoints > 1)
 }
+
+/** L'indirizzo pubblico della web app (Franz, 13/10 12:33); i nomi di Firebase del sito rinviano qui. */
+export const CANONICAL = 'https://supervisor.francescosorrentino.com'
+const FIREBASE_HOSTS = ['supervisor-francescosorrentino.web.app', 'supervisor-francescosorrentino.firebaseapp.com']
+
+/**
+ * Dove rinviare un browser arrivato su un nome di Firebase del sito, o null. Chi è già collegato lì resta: su iPhone
+ * l'app della Home, la chiave e le notifiche sono legate all'indirizzo, e un rinvio le perderebbe.
+ */
+export function canonicalUrl(url: URL, paired: boolean): string | null {
+  if (paired || !FIREBASE_HOSTS.includes(url.hostname)) return null
+  return CANONICAL + url.pathname + url.search + url.hash
+}

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { MemoryBus } from './bus'
 import { privateFromScalar, toHex } from './crypto'
 import { parseInvite } from './pairing'
-import { deviceName, forget, loadRemote, needsHomeScreen, pairBrowser, wantsPairing } from './remoteAccess'
+import { canonicalUrl, deviceName, forget, loadRemote, needsHomeScreen, pairBrowser, wantsPairing } from './remoteAccess'
 
 const fixture = (n: string) => JSON.parse(readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8'))
 const range = (a: number, b: number) => Uint8Array.from({ length: b - a }, (_, i) => a + i)
@@ -79,5 +79,21 @@ describe('su iPhone e iPad prima la schermata Home', () => {
     expect(needsHomeScreen(ipadAsMac, false, 5)).toBe(true)
     expect(needsHomeScreen(ipadAsMac, false, 0)).toBe(false)
     expect(needsHomeScreen('Mozilla/5.0 (Linux; Android 16) Chrome/141.0.0.0 Mobile Safari/537.36', false, 5)).toBe(false)
+  })
+})
+
+describe('rinvio dagli indirizzi di Firebase al dominio', () => {
+  const to = (u: string, paired = false) => canonicalUrl(new URL(u), paired)
+  it('da .web.app e .firebaseapp.com al dominio, con percorso, query e invito', () => {
+    expect(to('https://supervisor-francescosorrentino.web.app/')).toBe('https://supervisor.francescosorrentino.com/')
+    expect(to('https://supervisor-francescosorrentino.firebaseapp.com/?demo#pair=abc')).toBe('https://supervisor.francescosorrentino.com/?demo#pair=abc')
+  })
+  it('un browser già collegato lì resta lì: la chiave è legata all\'indirizzo', () => {
+    expect(to('https://supervisor-francescosorrentino.web.app/', true)).toBeNull()
+  })
+  it('sul dominio, sul relay e sul server di sviluppo nessun rinvio', () => {
+    expect(to('https://supervisor.francescosorrentino.com/')).toBeNull()
+    expect(to('http://127.0.0.1:8765/')).toBeNull()
+    expect(to('http://localhost:5173/')).toBeNull()
   })
 })
