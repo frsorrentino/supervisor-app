@@ -8,7 +8,9 @@
   import type { AgendaPage, Cmd, CmdOp, CmdResult, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { advance, prune, status, type PendingStatus, type Sent, type Status, type Upload } from './lib/chatRules'
   import type { Sample } from './lib/quotaHistory'
-  import { LocalTransport, localAccess, newCmd } from './lib/transport'
+  import { LocalTransport, localAccess, newCmd, type Transport } from './lib/transport'
+  import { loadRemote, remoteTransport, wantsPairing } from './lib/remoteAccess'
+  import PairPage from './lib/PairPage.svelte'
   import { approveText, canClear, clearDue, handoffPrompt } from './lib/masterService'
   import { toggle } from './lib/speech.svelte'
   import Home from './lib/Home.svelte'
@@ -52,10 +54,14 @@
   const json = <T,>(k: string, d: T): T => { try { return JSON.parse(load(k) ?? '') as T } catch { return d } }
   const nowS = () => Math.round(Date.now() / 1000)
 
-  // Strada locale (contratto 1.35) sulla pagina servita dal relay; altrove, finché non c'è la strada remota, i dati di prova.
+  // Strada locale (contratto 1.35) sulla pagina servita dal relay; altrove la strada remota del browser collegato (fase 3),
+  // e senza collegamento la pagina che lo fa. Il server di sviluppo e `?demo` mostrano i dati di prova.
   const access = localAccess(new URL(location.href), { get: load, set: save })
   if (access?.clean != null) history.replaceState(null, '', access.clean)
-  const tr = access ? new LocalTransport(access.base, access.token) : null
+  const store = { get: load, set: save, remove: (k: string) => { try { localStorage.removeItem(k) } catch { /* niente */ } } }
+  const remote = access ? null : loadRemote(store)
+  const pairing = !access && wantsPairing(new URL(location.href), remote)
+  const tr: Transport | null = access ? new LocalTransport(access.base, access.token) : remote ? remoteTransport(remote, store) : null
   let st = $state<State>(demoState)
   let ready = $state(!tr)
   let down = $state(false)
@@ -575,6 +581,10 @@
 
 <svelte:window bind:innerWidth={width} />
 
+{#if pairing}
+<PairPage {store} onPaired={() => location.reload()} />
+{:else}
+
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = (st.sessions.find(x => x.name === name) ?? ghost(name))!}
   <Chat {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
@@ -698,6 +708,7 @@
 {/if}
 {#if !tr}<span class="demo mono">{t.demo}</span>{:else if !ready || down}<span class="demo mono">{ready ? t.relayDown : t.relayConnecting}</span>{/if}
 {#if notice}<div class="notice" role="status">{notice}</div>{/if}
+{/if}
 
 <!-- «Aggiungi alla notte»: lo stesso foglio di Lancia, solo progetti (LaunchSheet con night_add). -->
 <dialog bind:this={nightDlg} class="sheet" onclick={(e) => e.target === e.currentTarget && nightDlg?.close()}>

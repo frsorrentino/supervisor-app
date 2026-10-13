@@ -205,4 +205,22 @@ export const t = {
   ctxWider: 'Passa alla finestra da 1M',
   ctxHandoffPrompt: (c: string) => `Scrivi l'handoff con ${c}, poi io mando /clear.`, conversation: 'Conversazione',
   enterSends: 'Invio manda · Maiusc+Invio a capo', back: 'Indietro',
+  // Accoppiamento del browser (fase 3 del piano web).
+  pairTitle: 'Collega questo browser al PC',
+  pairHow: 'Sul PC lancia supervisor relay pair --add, o supervisor relay pair se è il primo dispositivo. Da un telefono già collegato: Dispositivi, poi Aggiungi.',
+  pairScan: 'Inquadra il QR', pairScanStop: 'Chiudi la fotocamera',
+  pairPaste: 'Oppure incolla il codice', pairPasteHint: 'La riga di supervisor relay pair --add --text',
+  pairGo: 'Collega', pairConfirm: (host: string) => `Collegare questo browser a ${host}?`,
+  pairWorking: (host: string) => `In attesa della conferma di ${host}`,
+  pairDone: (host: string) => `Collegato a ${host}`,
+  pairBad: 'Non è un codice di Supervisor.',
+  pairFail: (why: string) => ({
+    invalid: 'Codice non valido: già usato, scaduto o di un altro PC.', expired: 'Codice scaduto: generane un altro sul PC.',
+    full: 'Il PC ha già otto dispositivi: togline uno.', check: 'La conferma del PC non torna: riprova con un codice nuovo.',
+    timeout: 'Il PC non ha confermato in tempo.', key: 'La chiave del PC non si apre: riprova con un codice nuovo.',
+  } as Record<string, string>)[why] ?? `Collegamento non riuscito: ${why}`,
+  pairCamera: 'La fotocamera non si apre: incolla il codice.',
+  pairIos: 'Su iPhone e iPad aggiungi prima l\'app alla schermata Home: tocca Condividi, poi «Aggiungi alla schermata Home», e apri Supervisor da lì. L\'app sulla Home non vede i dati di Safari, quindi va collegata da lì.',
+  pairIosAnyway: 'Collega qui in Safari',
+  pairDemo: 'Guarda la demo',
 }
