@@ -135,9 +135,10 @@
       {@const url = media[key]}
       <div class="fcard" role="group" aria-label={f.path.split('/').pop()} use:preview={{ f, key }} onpointerenter={() => onFile(f.path, 'prepare', key)} onfocusin={() => onFile(f.path, 'prepare', key)}>
         <button class="fchip" title={f.path} onclick={() => onFile(f.path, 'open', key)}><Icon name={fileIcon(f)} color="var(--icon)" /><span class="fname">{f.path.split('/').pop()}</span>{#if f.size != null}<span class="fsize">{size(f.size)}</span>{/if}</button>
-        <div class="acts">{#each fileActs as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a, key)}><Icon name={icon} /></button>{/each}</div>
+        <!-- L'anteprima tra il nome e i tasti, come nell'app (Franz, 13/10 07:16). -->
         {#if url && isImage(f.mime)}<button class="fthumb" aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><img src={url} alt="" /></button>{/if}
         {#if url && isVideo(f.mime)}<!-- svelte-ignore a11y_media_has_caption --><video class="fvideo" src={url} controls preload="metadata" playsinline></video>{/if}
+        <div class="acts">{#each fileActs as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a, key)}><Icon name={icon} /></button>{/each}</div>
       </div>
     {/each}
   </div>
@@ -273,8 +274,8 @@
   .fchip { display: flex; align-items: center; gap: 8px; background: var(--surface); border-radius: 12px; padding: 8px 12px; text-align: left; max-width: 100%; }
   .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; }
   /* Con l'anteprima la scheda prende tutta la larghezza della chat, come nell'app (Franz, 12/10 12:27: «anteprime con width
-     100%»); un verticale è alto al massimo il doppio della larghezza. */
-  .fcard:has(> .fthumb, > .fvideo) { width: 100%; container-type: inline-size; }
+     100%»); un verticale è alto al massimo il doppio della larghezza. Nome, anteprima e tasti stanno a 6 px, come nell'app. */
+  .fcard:has(> .fthumb, > .fvideo) { width: 100%; container-type: inline-size; gap: 6px; }
   .fcard > .fthumb { width: 100%; }
   .fthumb img { display: block; width: 100%; height: auto; max-height: 200cqw; object-fit: cover; }
   .fvideo { display: block; width: 100%; max-height: 200cqw; border-radius: 14px; background: #000; }
