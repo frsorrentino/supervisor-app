@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { decodeState } from './contract'
+import { blankState, decodeState } from './contract'
 
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
 
@@ -42,5 +42,16 @@ describe('contratto', () => {
 
   it('rifiuta quello che non è uno stato', () => {
     expect(() => decodeState('{"x":1}')).toThrow()
+  })
+})
+
+describe('lo stato prima del primo /state del relay (supervisor, 13/10 20:48)', () => {
+  it('vuoto, mai i dati di prova: nessuna sessione, quota, recap o dispositivo', () => {
+    const s = blankState(1789210000)
+    expect(s.ts).toBe(1789210000)
+    expect(s.sessions).toEqual([])
+    expect(s.quota).toEqual({})
+    expect(s.recap.items).toEqual([])
+    expect(s.devices ?? []).toEqual([])
   })
 })

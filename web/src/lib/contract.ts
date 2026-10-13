@@ -108,3 +108,6 @@ export function decodeState(raw: string): State {
   const sessions = (s.sessions ?? []).map((x: Session) => ({ ...x, advice: x.advice ?? null, finished: x.finished ?? false, duplicate_of: x.duplicate_of ?? null }))
   return { ...s, sessions, approvals: s.approvals ?? [], quota: s.quota ?? {}, projects: s.projects ?? [], night: { queued: 0, ...s.night }, recap: { date: '', items: [], ...s.recap } }
 }
+
+/** Lo stato prima del primo /state del relay: vuoto, così i dati di prova non si mescolano mai a quelli veri. */
+export const blankState = (ts: number): State => decodeState(JSON.stringify({ v: 1, ts, host: '' }))

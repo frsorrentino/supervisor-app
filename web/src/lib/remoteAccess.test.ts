@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { MemoryBus } from './bus'
 import { privateFromScalar, toHex } from './crypto'
 import { parseInvite } from './pairing'
-import { canonicalUrl, deviceName, forget, loadRemote, needsHomeScreen, pairBrowser, wantsPairing } from './remoteAccess'
+import { canonicalUrl, deviceName, forget, loadRemote, needsHomeScreen, pairBrowser, remoteFor, wantsPairing } from './remoteAccess'
 
 const fixture = (n: string) => JSON.parse(readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8'))
 const range = (a: number, b: number) => Uint8Array.from({ length: b - a }, (_, i) => a + i)
@@ -95,5 +95,18 @@ describe('rinvio dagli indirizzi di Firebase al dominio', () => {
     expect(to('https://supervisor.francescosorrentino.com/')).toBeNull()
     expect(to('http://127.0.0.1:8765/')).toBeNull()
     expect(to('http://localhost:5173/')).toBeNull()
+  })
+})
+
+describe('?demo su un browser accoppiato (supervisor, 13/10 20:48)', () => {
+  const store = (v: string | null) => ({ get: () => v, set: () => {}, remove: () => {} })
+  const saved = JSON.stringify({ db: 'https://x.firebasedatabase.app', apiKey: 'k', host: 'penguin', uid: 'u1', key: '0'.repeat(64) })
+
+  it('con ?demo niente strada remota: solo i dati di prova, mai mescolati alle sessioni vere', () => {
+    expect(remoteFor(new URL('https://supervisor.example/?demo'), store(saved))).toBeNull()
+  })
+
+  it('senza ?demo il collegamento salvato', () => {
+    expect(remoteFor(new URL('https://supervisor.example/'), store(saved))?.uid).toBe('u1')
   })
 })

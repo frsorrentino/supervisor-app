@@ -6,10 +6,11 @@
   import { demoAgenda, demoEvents, demoMine, demoNight, demoSamples, demoSearch, demoState, demoTimeline, demoTranscripts } from './lib/demo'
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
+  import { blankState } from './lib/contract'
   import { advance, prune, status, type PendingStatus, type Sent, type Status, type Upload } from './lib/chatRules'
   import type { Sample } from './lib/quotaHistory'
   import { LocalTransport, localAccess, newCmd, type Transport } from './lib/transport'
-  import { CANONICAL, loadRemote, needsHomeScreen, remoteTransport, wantsPairing } from './lib/remoteAccess'
+  import { CANONICAL, needsHomeScreen, remoteFor, remoteTransport, wantsPairing } from './lib/remoteAccess'
   import { currentSubscription, pushStatus, subscribe, subscriptionDoc } from './lib/push'
   import PairPage from './lib/PairPage.svelte'
   import { approveText, canClear, clearDue, handoffPrompt } from './lib/masterService'
@@ -61,11 +62,11 @@
   const access = localAccess(new URL(location.href), { get: load, set: save })
   if (access?.clean != null) history.replaceState(null, '', access.clean)
   const store = { get: load, set: save, remove: (k: string) => { try { localStorage.removeItem(k) } catch { /* niente */ } } }
-  const remote = access ? null : loadRemote(store)
+  const remote = access ? null : remoteFor(new URL(location.href), store)
   const pairing = !access && wantsPairing(new URL(location.href), remote)
   const rt = !access && remote ? remoteTransport(remote, store) : null
   const tr: Transport | null = access ? new LocalTransport(access.base, access.token) : rt
-  let st = $state<State>(demoState)
+  let st = $state<State>(tr ? blankState(nowS()) : demoState)
   let ready = $state(!tr)
   let down = $state(false)
   let clock = $state(nowS())

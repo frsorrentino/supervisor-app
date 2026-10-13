@@ -27,6 +27,11 @@ function saveRemote(store: Store, c: RemoteConfig) {
 
 export const forget = (store: Store) => store.remove(KEY)
 
+/** Il collegamento da usare: nessuno con `?demo`, che mostra solo i dati di prova anche su un browser accoppiato. */
+export function remoteFor(url: URL, store: Store): RemoteConfig | null {
+  return url.searchParams.has('demo') ? null : loadRemote(store)
+}
+
 /** La pagina del relay (strada locale) e il server di sviluppo non si accoppiano; `?demo` mostra i dati di prova. */
 export function wantsPairing(url: URL, remote: RemoteConfig | null): boolean {
   if (remote) return false
