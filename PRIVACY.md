@@ -1,9 +1,9 @@
-# Privacy — Supervisor App and Supervisor Watch
+# Privacy — Supervisor for phone, Wear OS and the web
 
-_Last updated: 7 October 2026._
+_Last updated: 13 October 2026._
 
-Supervisor App (phone) and Supervisor Watch (Wear OS) are an unofficial companion for Claude Code, not
-affiliated with Anthropic. They show and steer the Claude Code sessions running on your own computer through the
+Supervisor — the phone app, the Wear OS app and the web app at <https://supervisor.francescosorrentino.com> — is an
+unofficial companion for Claude Code, not affiliated with Anthropic. They show and steer the Claude Code sessions running on your own computer through the
 supervisor plugin. They have no account of their own, no analytics, no advertising and no server run by the author.
 
 ## Where your data goes
@@ -29,9 +29,23 @@ supervisor plugin. They have no account of their own, no analytics, no advertisi
 Reading aloud uses the text-to-speech engine installed on your device. The QR code is read by the Google Play services
 code scanner: the app has no camera permission and never sees the camera image.
 
+## The web app
+
+The web app is the same idea in a browser. Its code is a static site served by Firebase Hosting from the author's
+project; like any website, the hosting keeps the usual access logs (IP address, browser, time). No session data goes
+through it: the page talks only to your own Firebase project, and a Content-Security-Policy blocks every other address.
+
+- **Pairing.** The QR code is read by the page itself from the camera, after you allow it, or pasted as text. The camera
+  image never leaves the browser.
+- **What the browser keeps.** The encryption key, the Firebase configuration and an anonymous Firebase sign-in, in the
+  storage of that site in that browser. Clearing the site's data or removing the device on your computer revokes it.
+- **Notifications.** If you turn them on, the browser gives a push subscription from its push service (Google, Apple
+  or Mozilla, depending on the browser). The web app stores it, encrypted, in your Firebase project; your computer
+  sends each notification encrypted for that subscription, so the push service sees only that a message is delivered.
+
 ## Demo mode
 
-Demo mode runs on sample data inside the app. Nothing leaves the device.
+Demo mode runs on sample data inside the app or the page. Nothing leaves the device.
 
 ## Deleting your data
 

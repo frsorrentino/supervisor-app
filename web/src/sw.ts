@@ -22,7 +22,8 @@ self.addEventListener('fetch', (e: FetchEvent) => {
   const req = e.request
   const url = new URL(req.url)
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
-  if (req.mode === 'navigate') {
+  // Solo la pagina dell'app va nella cache come '/': le altre (es. /privacy) passano dalla rete.
+  if (req.mode === 'navigate' && url.pathname === '/') {
     e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put('/', copy)); return res }).catch(async () => (await caches.match('/')) ?? Response.error()))
     return
   }
