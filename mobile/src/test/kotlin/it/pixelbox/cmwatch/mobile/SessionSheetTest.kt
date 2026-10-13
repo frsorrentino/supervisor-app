@@ -101,6 +101,37 @@ class SessionSheetTest {
         CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none, choices = st.choices, ops = st.ops, canAttach = true, feed = feed, more = true) }
     }
 
+    // Franz, 13/10 07:16: nella card di un file mandato da una sessione il nome sta sopra, l'anteprima al centro e i tasti
+    // sotto. Un PDF, che l'anteprima non ce l'ha, e un video già sul telefono, sul suo Pixel 11 Pro XL col carattere grande.
+    // Qui il primo fotogramma non si legge e resta il riquadro nero con ▶; le immagini da file Paparazzi non le decodifica.
+    @Test fun sheetFilePreview() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(
+            screenWidth = 1344, screenHeight = 2992, xdpi = 486, ydpi = 486, density = com.android.resources.Density.XXHIGH,
+            fontScale = 1.3f, locale = "it",
+        ))
+        val t = st.ts - 300
+        val pdf = TranscriptFile("/w/field-notes/docs/minutes.pdf", "application/pdf", 212_000)
+        val mp4 = TranscriptFile("/w/field-notes/out/promo.mp4", "video/mp4", 18_400_000)
+        val entries = listOf(
+            TranscriptEntry("u1.0", "user", text = "Send me the minutes and the promo", at = t, origin = "phone"),
+            TranscriptEntry("a1.0", "tool", text = "Minutes", at = t + 40, tool = "SendUserFile", files = listOf(pdf)),
+            TranscriptEntry("a2.0", "tool", text = "Promo", at = t + 45, tool = "SendUserFile", files = listOf(mp4)),
+            TranscriptEntry("a3.0", "assistant", text = "Here are the minutes and the promo.", at = t + 50, turn = TranscriptTurn(t, t + 52, 3900, 90)),
+        )
+        val opener = FileOpener(local = mapOf(
+            it.pixelbox.cmwatch.rules.FileCache.key(pdf, "a1.0") to "/w/missing/minutes.pdf",
+            it.pixelbox.cmwatch.rules.FileCache.key(mp4, "a2.0") to "/w/missing/promo.mp4",
+        ))
+        val s = st.sessions.first { it.state == SessionState.IDLE }
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                CompositionLocalProvider(LocalFileOpener provides opener) {
+                    SessionSheet(s, st.ts, emptyList(), 120, none, feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList()))
+                }
+            }
+        }
+    }
+
     // Piano prestazioni, Task 7: una lettura aspetta il PC da 15 s con la chat già piena: la riga sottile in fondo.
     @Test fun sheetChatWaitingPc() = paparazzi.snapshot {
         val t = st.ts - 120

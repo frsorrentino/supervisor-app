@@ -1371,7 +1371,11 @@ private fun FileChip(f: TranscriptFile, entry: String) {
                 f.size?.let { Text(sizeLabel(it), style = MaterialTheme.typography.labelMedium, color = CmColors.text2, softWrap = false) }
             }
         }
-        // Sotto il nome i quattro tasti, come Copia e ▶ sotto le risposte (Franz, 07/10 16:07).
+        // L'anteprima tra il nome e i tasti (Franz, 13/10 07:16: «l'anteprima del file dovrebbe stare tra nome file e tasti,
+        // con i tasti sotto e nome sopra»).
+        if (local != null && f.mime?.startsWith("image/") == true) AttachmentThumb(local, fill = true)
+        if (local != null && it.pixelbox.cmwatch.rules.MediaPreview.isVideo(f.mime)) VideoPreview(local)
+        // In fondo i quattro tasti, come Copia e ▶ sotto le risposte (Franz, 07/10 16:07).
         Row {
             for ((act, icon, label) in listOf(
                 Triple(FileAct.OPEN, Icons.AutoMirrored.Rounded.OpenInNew, R.string.file_open),
@@ -1385,8 +1389,6 @@ private fun FileChip(f: TranscriptFile, entry: String) {
                 }
             }
         }
-        if (local != null && f.mime?.startsWith("image/") == true) AttachmentThumb(local, fill = true)
-        if (local != null && it.pixelbox.cmwatch.rules.MediaPreview.isVideo(f.mime)) VideoPreview(local)
     }
 }
 
