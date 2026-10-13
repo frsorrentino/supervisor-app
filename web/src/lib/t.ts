@@ -156,7 +156,7 @@ export const t = {
   searchHint: 'Cerca nei messaggi mandati, negli esiti e nel registro', searchHintAll: 'Cerca nelle conversazioni di tutte le sessioni',
   searchNone: 'Nessun risultato', searchClosed: 'chiusa', searchMore: 'Ci sono altri risultati: aggiungi una parola per restringere.',
   secLink: 'Collegamento', secReading: 'Lettura ad alta voce', secInfo: 'Informazioni',
-  devPhone: 'Telefono', devWatch: 'Orologio', devTablet: 'Tablet', devChromebook: 'Chromebook', devOther: 'Dispositivo', devPc: 'PC',
+  devPhone: 'Telefono', devWatch: 'Orologio', devTablet: 'Tablet', devChromebook: 'Chromebook', devWeb: 'Browser', devOther: 'Dispositivo', devPc: 'PC',
   devThis: 'questo', devUpdatedNow: 'aggiornato ora', devUpdatedAgo: (m: number) => `${m} min fa`, devDetails: (n: string) => `${n}: dettagli`,
   devCount: (n: number) => `${n}\u00A0${n === 1 ? 'dispositivo' : 'dispositivi'}`, devSeenNow: 'ora', devSeenNever: 'mai', devSeenNeverLong: 'mai letto',
   devSeenAgo: (x: string) => `letto ${x} fa`, devHint: "Tocca un dispositivo per i dettagli · cifrato da un capo all'altro",
@@ -223,4 +223,11 @@ export const t = {
   pairIos: 'Su iPhone e iPad aggiungi prima l\'app alla schermata Home: tocca Condividi, poi «Aggiungi alla schermata Home», e apri Supervisor da lì. L\'app sulla Home non vede i dati di Safari, quindi va collegata da lì.',
   pairIosAnyway: 'Collega qui in Safari',
   pairDemo: 'Guarda la demo',
+  pushTitle: 'Notifiche',
+  pushSub: (s: string) => ({
+    on: 'Domande, esiti e avvisi arrivano su questo dispositivo', off: 'Domande, esiti e avvisi anche quando l\'app è chiusa',
+    relay: 'Il PC non le manda ancora: aggiorna supervisor', unsupported: 'Questo browser non le riceve',
+    home: 'Su iPhone e iPad arrivano solo all\'app aggiunta alla schermata Home', denied: 'Bloccate nelle impostazioni del browser',
+  } as Record<string, string>)[s] ?? '',
+  pushFail: 'Notifiche non attivate',
 }

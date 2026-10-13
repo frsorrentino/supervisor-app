@@ -10,4 +10,11 @@ export default defineConfig({
   plugins: [svelte()],
   define: { __APP_VERSION__: JSON.stringify(version) },
   server: { fs: { allow: ['..'] } },
+  // Il service worker si costruisce accanto alla pagina, come /sw.js alla radice (lo scope è la cartella del file).
+  build: {
+    rollupOptions: {
+      input: { index: 'index.html', sw: 'src/sw.ts' },
+      output: { entryFileNames: c => (c.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js') },
+    },
+  },
 })

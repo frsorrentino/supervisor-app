@@ -9,7 +9,8 @@
   import { advance, prune, status, type PendingStatus, type Sent, type Status, type Upload } from './lib/chatRules'
   import type { Sample } from './lib/quotaHistory'
   import { LocalTransport, localAccess, newCmd, type Transport } from './lib/transport'
-  import { loadRemote, remoteTransport, wantsPairing } from './lib/remoteAccess'
+  import { loadRemote, needsHomeScreen, remoteTransport, wantsPairing } from './lib/remoteAccess'
+  import { currentSubscription, pushStatus, subscribe, subscriptionDoc } from './lib/push'
   import PairPage from './lib/PairPage.svelte'
   import { approveText, canClear, clearDue, handoffPrompt } from './lib/masterService'
   import { toggle } from './lib/speech.svelte'
@@ -61,7 +62,8 @@
   const store = { get: load, set: save, remove: (k: string) => { try { localStorage.removeItem(k) } catch { /* niente */ } } }
   const remote = access ? null : loadRemote(store)
   const pairing = !access && wantsPairing(new URL(location.href), remote)
-  const tr: Transport | null = access ? new LocalTransport(access.base, access.token) : remote ? remoteTransport(remote, store) : null
+  const rt = !access && remote ? remoteTransport(remote, store) : null
+  const tr: Transport | null = access ? new LocalTransport(access.base, access.token) : rt
   let st = $state<State>(demoState)
   let ready = $state(!tr)
   let down = $state(false)
@@ -124,6 +126,38 @@
     setInterval(() => (clock = nowS()), 30_000)
   }
   $effect(() => { if (tr) save('cm.sent', JSON.stringify(msgs)) })
+
+  // Notifiche web push (fase 4), solo sulla strada remota: l'iscrizione si riscrive a ogni avvio, perché il browser può
+  // cambiarla; l'interruttore sta nelle Impostazioni e chiede il permesso dal tocco, come vuole Safari.
+  const pushable = 'serviceWorker' in navigator && 'PushManager' in globalThis && 'Notification' in globalThis
+  const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
+  let pushOn = $state(false)
+  let permission = $state<NotificationPermission>(pushable ? Notification.permission : 'denied')
+  if (rt && pushable) currentSubscription().then(sub => {
+    const doc = sub && subscriptionDoc(sub.toJSON())
+    pushOn = !!doc
+    if (doc) rt.savePush(doc).catch(() => {})
+  }, () => {})
+  const push = $derived(pushStatus({
+    remote: !!rt, vapid: st.push?.vapid ?? null, supported: pushable, permission, subscribed: pushOn,
+    homeFirst: needsHomeScreen(navigator.userAgent, standalone, navigator.maxTouchPoints ?? 0),
+  }))
+  async function setPush(on: boolean) {
+    if (!rt) return
+    try {
+      if (on && st.push?.vapid) {
+        const doc = await subscribe(st.push.vapid)
+        permission = Notification.permission
+        if (!doc) { say(t.pushFail); return }
+        await rt.savePush(doc)
+        pushOn = true
+      } else if (!on) {
+        await (await currentSubscription())?.unsubscribe()
+        await rt.savePush(null)
+        pushOn = false
+      }
+    } catch { say(t.pushFail) }
+  }
 
   // Contratto 1.37, «Handoff, poi /clear»: il /clear parte a turno finito, una volta sola; dopo 3 ore si lascia perdere.
   let clearAfter = $state<Record<string, number>>(tr ? json('cm.clear_after', {}) : {})
@@ -645,8 +679,8 @@
         known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('diary') }} />
     {:else if p === 'settings'}
       <Settings m={devicesOf(st.host, st, freshness(st, now), now, '', __APP_VERSION__, true, null, false, null)}
-        devices={linkedDevices(st, null, now) ?? []} now={now} channel={tr ? t.channelLocal : t.channelDemo} onRate={setRate} onVoice={setVoice}
-        details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} />
+        devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
+        details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush} />
     {:else if p === 'queue'}
       <Queue {st} now={now} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} />
     {:else}

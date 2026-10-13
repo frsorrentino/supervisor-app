@@ -117,6 +117,12 @@ export class RemoteTransport implements Transport {
     throw new TransportError(0, 'timeout')
   }
 
+  /** Fase 4 del piano web: l'iscrizione web push del browser, cifrata, in /push/<uid>; null la toglie. */
+  async savePush(doc: { endpoint: string; p256dh: string; auth: string } | null) {
+    if (doc) await this.bus.put(`push/${this.o.uid}`, await this.seal(JSON.stringify(doc)))
+    else await this.bus.del(`push/${this.o.uid}`)
+  }
+
   /** Contratto 1.48: con `parts` i pezzi da 1 MiB e per ultimo il manifesto; altrimenti il nodo unico {mime, data, name}. */
   async share(id: string, mime: string, data: Uint8Array, name?: string | null) {
     const bytes = data as Bytes

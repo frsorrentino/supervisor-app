@@ -86,6 +86,8 @@ export type State = {
   /** Contratto 1.48: `parts` = il relay accetta il file a pezzi fino a `max_parts_bytes`. */
   /** Contratto 1.50: `multi` = quanti allegati in un `report` solo, id separati da virgola. */
   share?: { max_bytes: number; any?: boolean; parts?: boolean; max_parts_bytes?: number; multi?: number } | null
+  /** Fase 4 del piano web: la chiave pubblica VAPID del relay (base64url); assente = il relay non manda web push. */
+  push?: { vapid: string } | null
   approvals?: Approval[]
 }
 

@@ -1,23 +1,26 @@
 <script lang="ts">
   import type { DevicesModel, Linked, Tone } from './devices'
+  import type { PushStatus } from './push'
   import RateSlider from './RateSlider.svelte'
   import { speech, toggle } from './speech.svelte'
   import { t } from './t'
 
   // Impostazioni (SettingsScreen dell'app, mockup A): sezioni con l'etichetta e il filo. Collegamento: lo schema dei
   // dispositivi da toccare (schema B, contratto 1.32); Lettura ad alta voce: voce e velocità; Informazioni: la versione.
-  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {} }: {
+  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {} }: {
     m: DevicesModel; devices: Linked[]; now: number; channel: string
     onRate: (r: number) => void; onVoice: (v: string | null) => void; timeZone?: string
     /** Sulla plancia: i dettagli della sessione accanto alle colonne, spenti di default; null altrove. */
     details?: boolean | null; onDetails?: (on: boolean) => void
+    /** Le notifiche web push della strada remota (fase 4); 'hidden' sulla strada locale e nella demo. */
+    push?: PushStatus; onPush?: (on: boolean) => void
   } = $props()
 
   const PC = 'pc'
   let selected = $state(PC)
   let voiceDlg: HTMLDialogElement | undefined = $state()
   const toneColor = (x: Tone) => (x === 'live' ? 'var(--b-good)' : x === 'stale' ? 'var(--wait)' : 'var(--b-track)')
-  const kindLabel = (k: string | null) => ({ phone: t.devPhone, watch: t.devWatch, tablet: t.devTablet, chromebook: t.devChromebook } as Record<string, string>)[k ?? ''] ?? t.devOther
+  const kindLabel = (k: string | null) => ({ phone: t.devPhone, watch: t.devWatch, tablet: t.devTablet, chromebook: t.devChromebook, web: t.devWeb } as Record<string, string>)[k ?? ''] ?? t.devOther
   const ICONS: Record<string, string[]> = {
     phone: ['M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z', 'M12 18h.01'],
     watch: ['M12 9v3l1.5 1.5', 'M16.51 17.35l-.35 3.83a2 2 0 0 1-2 1.82H9.83a2 2 0 0 1-2-1.82l-.35-3.83m.01-10.7.35-3.83A2 2 0 0 1 9.83 1h4.35a2 2 0 0 1 2 1.82l.35 3.83', 'M18 12a6 6 0 1 1-12 0 6 6 0 0 1 12 0'],
@@ -86,6 +89,17 @@
     </div>
     <p class="hint">{t.devHint}</p>
   </div>
+
+  {#if push !== 'hidden'}
+    <div class="sec">
+      <label class="srow">
+        <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" /></svg></span>
+        <span class="st"><b>{t.pushTitle}</b><small>{t.pushSub(push)}</small></span>
+        <input class="switch" type="checkbox" role="switch" checked={push === 'on'} disabled={push !== 'on' && push !== 'off'}
+          onchange={(e) => onPush((e.currentTarget as HTMLInputElement).checked)} />
+      </label>
+    </div>
+  {/if}
 
   {#if details != null}
     <div class="sec">
