@@ -9,7 +9,7 @@
   import { advance, prune, status, type PendingStatus, type Sent, type Status, type Upload } from './lib/chatRules'
   import type { Sample } from './lib/quotaHistory'
   import { LocalTransport, localAccess, newCmd, type Transport } from './lib/transport'
-  import { loadRemote, needsHomeScreen, remoteTransport, wantsPairing } from './lib/remoteAccess'
+  import { CANONICAL, loadRemote, needsHomeScreen, remoteTransport, wantsPairing } from './lib/remoteAccess'
   import { currentSubscription, pushStatus, subscribe, subscriptionDoc } from './lib/push'
   import PairPage from './lib/PairPage.svelte'
   import { approveText, canClear, clearDue, handoffPrompt } from './lib/masterService'
@@ -34,6 +34,7 @@
   import TodayPanel from './lib/TodayPanel.svelte'
   import Search from './lib/Search.svelte'
   import Settings from './lib/Settings.svelte'
+  import AddDevice from './lib/AddDevice.svelte'
   import Queue from './lib/Queue.svelte'
   import QuotaPanel from './lib/QuotaPanel.svelte'
   import Inspector from './lib/Inspector.svelte'
@@ -89,6 +90,7 @@
   const master = $derived(st.sessions.find(s => s.name === MASTER && s.state !== 'gone') ?? null)
   // Un comando rifiutato o senza risposta: una riga in basso per qualche secondo.
   let notice = $state<string | null>(null)
+  let addDlg: AddDevice | undefined = $state()
   let noticeTimer: ReturnType<typeof setTimeout> | undefined
   function say(text: string) { notice = text; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => (notice = null), 6000) }
 
@@ -680,7 +682,8 @@
     {:else if p === 'settings'}
       <Settings m={devicesOf(st.host, st, freshness(st, now), now, '', __APP_VERSION__, true, null, false, null)}
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
-        details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush} />
+        details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
+        onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} />
     {:else if p === 'queue'}
       <Queue {st} now={now} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} />
     {:else}
@@ -740,6 +743,7 @@
     {:else}{@render homePane()}{/if}
   </div>
 {/if}
+<AddDevice bind:this={addDlg} origin={CANONICAL} ask={() => tr ? tr.send(newCmd('pair_add', null, null)) : Promise.resolve(null)} />
 {#if !tr}<span class="demo mono">{t.demo}</span>{:else if !ready || down}<span class="demo mono">{ready ? t.relayDown : t.relayConnecting}</span>{/if}
 {#if notice}<div class="notice" role="status">{notice}</div>{/if}
 {/if}

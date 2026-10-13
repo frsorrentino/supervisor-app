@@ -207,7 +207,7 @@ export const t = {
   enterSends: 'Invio manda · Maiusc+Invio a capo', back: 'Indietro',
   // Accoppiamento del browser (fase 3 del piano web).
   pairTitle: 'Collega questo browser al PC',
-  pairHow: 'Sul PC lancia supervisor relay pair --add, o supervisor relay pair se è il primo dispositivo. Da un telefono già collegato: Dispositivi, poi Aggiungi.',
+  pairHow: 'Sul PC lancia supervisor relay pair --add, o supervisor relay pair se è il primo dispositivo. Da un telefono o da una web app già collegati: Dispositivi (nella web app Impostazioni), poi Aggiungi un dispositivo.',
   pairScan: 'Inquadra il QR', pairScanStop: 'Chiudi la fotocamera',
   pairPaste: 'Oppure incolla il codice', pairPasteHint: 'La riga di supervisor relay pair --add --text',
   pairGo: 'Collega', pairConfirm: (host: string) => `Collegare questo browser a ${host}?`,
@@ -223,6 +223,22 @@ export const t = {
   pairIos: 'Su iPhone e iPad aggiungi prima l\'app alla schermata Home: tocca Condividi, poi «Aggiungi alla schermata Home», e apri Supervisor da lì. L\'app sulla Home non vede i dati di Safari, quindi va collegata da lì.',
   pairIosAnyway: 'Collega qui in Safari',
   pairDemo: 'Guarda la demo',
+  // Aggiungere un dispositivo dalla web app (contratto 1.31, Franz 13/10 19:05), come AddDeviceSheet del telefono.
+  addDevice: 'Aggiungi un dispositivo', addDeviceSub: 'Un QR o un link per un telefono, un tablet o un altro browser',
+  addAsking: 'Chiedo un invito al PC',
+  addHow: 'Sul dispositivo nuovo apri Supervisor e inquadra questo QR, oppure mandagli il link.',
+  addHowCode: 'Il PC non ha i dati per il QR: sul dispositivo nuovo scrivi questo codice.',
+  addCode: (c: string) => `Codice ${c}`, addLeft: (x: string) => `Scade fra\u00A0${x}`,
+  addExpired: 'Invito scaduto: non va più inquadrato', addAgain: 'Nuovo invito', addDone: 'Fatto', addRetry: 'Riprova',
+  addShare: 'Condividi il link', addCopy: 'Copia il link', addCopied: 'Link copiato', addShareTitle: 'Invito a Supervisor',
+  addQr: "QR dell'invito da inquadrare col dispositivo nuovo",
+  addRefused: (kind: string, reason: string) => ({
+    busy: "Sul PC c'è già un accoppiamento aperto: aspetta che finisca, al massimo 5 minuti, e riprova.",
+    nokey: 'Il PC non ha ancora una chiave: accoppia prima un dispositivo con supervisor relay pair.',
+    full: `Il PC ha già ${reason} dispositivi accoppiati: togline uno per fare posto.`,
+    failed: `Il PC non ha aperto l'invito: ${reason}`,
+  } as Record<string, string>)[kind] ?? `Il PC ha risposto: ${reason}`,
+  addLost: 'Il PC non risponde: riprova fra poco.',
   pushTitle: 'Notifiche',
   pushSub: (s: string) => ({
     on: 'Domande, esiti e avvisi arrivano su questo dispositivo', off: 'Domande, esiti e avvisi anche quando l\'app è chiusa',

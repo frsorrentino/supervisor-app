@@ -7,13 +7,15 @@
 
   // Impostazioni (SettingsScreen dell'app, mockup A): sezioni con l'etichetta e il filo. Collegamento: lo schema dei
   // dispositivi da toccare (schema B, contratto 1.32); Lettura ad alta voce: voce e velocità; Informazioni: la versione.
-  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {} }: {
+  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null }: {
     m: DevicesModel; devices: Linked[]; now: number; channel: string
     onRate: (r: number) => void; onVoice: (v: string | null) => void; timeZone?: string
     /** Sulla plancia: i dettagli della sessione accanto alle colonne, spenti di default; null altrove. */
     details?: boolean | null; onDetails?: (on: boolean) => void
     /** Le notifiche web push della strada remota (fase 4); 'hidden' sulla strada locale e nella demo. */
     push?: PushStatus; onPush?: (on: boolean) => void
+    /** «Aggiungi un dispositivo» (pair_add, 1.31); null se il relay non lo fa o nella demo. */
+    onAdd?: (() => void) | null
   } = $props()
 
   const PC = 'pc'
@@ -89,6 +91,16 @@
     </div>
     <p class="hint">{t.devHint}</p>
   </div>
+
+  {#if onAdd}
+    <div class="sec">
+      <button class="srow" onclick={onAdd}>
+        <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg></span>
+        <span class="st"><b>{t.addDevice}</b><small>{t.addDeviceSub}</small></span>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
+      </button>
+    </div>
+  {/if}
 
   {#if push !== 'hidden'}
     <div class="sec">
