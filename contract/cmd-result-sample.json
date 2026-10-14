@@ -505,6 +505,26 @@
       "device": "phone",
       "issued": 1789211310,
       "by": "phone-pixel8"
+    },
+    {
+      "id": "6f1c2d3e-0520-4000-8000-000000000520",
+      "op": "answer",
+      "session": "ledger-api",
+      "arg": "1",
+      "question": "q-1789210500-1",
+      "device": "phone",
+      "issued": 1789211400,
+      "by": "phone-pixel8"
+    },
+    {
+      "id": "6f1c2d3e-0521-4000-8000-000000000521",
+      "op": "answer",
+      "session": "ledger-api",
+      "arg": "1",
+      "question": "q-1789210380-1",
+      "device": "phone",
+      "issued": 1789211410,
+      "by": "phone-pixel8"
     }
   ],
   "result": [
@@ -852,6 +872,18 @@
       "ok": false,
       "text": "image missing or unreadable",
       "at": 1789211311
+    },
+    {
+      "id": "6f1c2d3e-0520-4000-8000-000000000520",
+      "ok": true,
+      "text": "answered 1. yes",
+      "at": 1789211402
+    },
+    {
+      "id": "6f1c2d3e-0521-4000-8000-000000000521",
+      "ok": false,
+      "text": "ledger-api: the question changed after your answer, nothing was pressed",
+      "at": 1789211411
     }
   ]
 }
