@@ -72,7 +72,7 @@ class PhoneNotifier(private val ctx: Context) {
     /** Contratto 1.57: il controllo di un task allo stop, una riga verde o rossa che apre la sessione. */
     fun taskCheck(e: it.pixelbox.cmwatch.contract.Event) {
         val green = it.pixelbox.cmwatch.rules.AlertEvents.green(e)
-        post(("task-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (green) CH_QUIET else CH_SOUND).setSmallIcon(R.drawable.ic_notification)
+        post(("task-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (green || e.quiet) CH_QUIET else CH_SOUND).setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(e.shareTitle).setContentText(e.shareBody.lineSequence().firstOrNull { it.isNotBlank() })
             .setStyle(NotificationCompat.BigTextStyle().bigText(e.shareBody))
             .setColor(if (green) 0xFF2E7D32.toInt() else 0xFFC62828.toInt()).setColorized(false)
@@ -89,7 +89,7 @@ class PhoneNotifier(private val ctx: Context) {
             ctx.getString(R.string.quota_way_other), ctx.getString(R.string.quota_way_reset), ctx.getString(R.string.quota_way_pass),
         )
         val hhmm = { s: Long -> java.time.Instant.ofEpochSecond(s).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5) }
-        val b = NotificationCompat.Builder(ctx, CH_SOUND).setSmallIcon(R.drawable.ic_notification)
+        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else CH_SOUND).setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(e.shareTitle).setContentIntent(openSession(session)).setAutoCancel(true)
         it.pixelbox.cmwatch.rules.AlertEvents.ways(e, words, hhmm).forEachIndexed { i, w ->
             b.addAction(0, w.label, w.arg?.let { arg ->
@@ -102,6 +102,23 @@ class PhoneNotifier(private val ctx: Context) {
         }
         post(("quota-limit-$session").hashCode(), b)
     }
+
+    /** Contratto 1.61: turno finito in errore, una riga e il tasto «Continua» che manda `continue_text`. */
+    fun turnFailed(e: it.pixelbox.cmwatch.contract.Event) {
+        val session = e.ref ?: e.session ?: return
+        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else CH_SOUND).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(e.shareTitle).setContentIntent(openSession(session)).setAutoCancel(true)
+        e.continueText?.takeIf { it.isNotBlank() }?.let { text ->
+            b.addAction(0, ctx.getString(R.string.turn_continue), PendingIntent.getBroadcast(
+                ctx, ("continue-$session").hashCode(),
+                Intent(ctx, ReplyReceiver::class.java).setAction(ReplyRoute.CONTINUE).putExtra(ReplyRoute.SESSION, session).putExtra(ReplyRoute.ARG, text),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            ))
+        }
+        post(("turn-failed-$session").hashCode(), b)
+    }
+
+    fun closeTurnFailed(session: String) = nm.cancel(("turn-failed-$session").hashCode())
 
     private fun openSession(session: String?) = PendingIntent.getActivity(
         ctx, ("open-" + session).hashCode(),

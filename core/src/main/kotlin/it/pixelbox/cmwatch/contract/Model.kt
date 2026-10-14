@@ -29,6 +29,8 @@ enum class EventKind {
     @SerialName("task_check") TASK_CHECK,
     /** Contratto 1.58: quota finita; `ref` = la sessione ferma, con `reset_at`, `window`, `other_account`, `actions`. */
     @SerialName("quota_limit") QUOTA_LIMIT,
+    /** Contratto 1.61: un turno finito in errore che non è la quota; `ref` = la sessione, con `reason` e `continue_text`. */
+    @SerialName("turn_failed") TURN_FAILED,
 }
 
 @Serializable
@@ -100,6 +102,11 @@ enum class CmdOp {
     @SerialName("agenda_set") AGENDA_SET,
     /** Contratto 1.58: dopo `quota_limit`, `arg` = other_account | at_reset | pass:<sessione>. */
     @SerialName("quota_route") QUOTA_ROUTE,
+    /**
+     * Contratto 1.64: una cartella nuova in `arg` (da `state.project_parents`) col nome in `text` e la sessione lanciata lì;
+     * `prompt` il primo messaggio. Senza `confirm` il relay risponde «confirm: create <percorso>»; con `confirm` crea.
+     */
+    @SerialName("project_new") PROJECT_NEW,
 }
 
 /**
@@ -178,6 +185,8 @@ enum class CmdOp {
     @SerialName("permission_mode") val permissionMode: String? = null,
     /** Contratto 1.55: la domanda risolta al terminale negli ultimi 5 minuti. */
     val resolved: Resolved? = null,
+    /** Contratto 1.62: sessione attaccata con un tasto premuto al PC negli ultimi 2 minuti: niente suono per lei. */
+    @SerialName("at_pc") val atPc: Boolean = false,
 )
 
 /** Contratto 1.38: una voce di «Prossimi:»; `blocking` = sblocca un lavoro fermo (un ok, una scelta). */
@@ -249,6 +258,8 @@ enum class CmdOp {
     val quota: Map<String, QuotaAccount> = emptyMap(),
     val projects: List<Project> = emptyList(),
     val night: Night = Night(), val recap: Recap = Recap(),
+    /** Contratto 1.64: le cartelle madri dove `project_new` può creare un progetto; assente con un relay precedente. */
+    @SerialName("project_parents") val projectParents: List<String>? = null,
     /** Contratto 1.19: presente = il relay accetta «Condividi»; `max_bytes` vale sulla stringa cifrata `enc`. */
     val share: Share? = null,
     /** Contratto 1.12: modelli ed effort che il selettore di una sessione accetta; null con un relay precedente. */
@@ -306,6 +317,11 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val window: String? = null,
     @SerialName("other_account") val otherAccount: String? = null,
     val actions: List<String>? = null,
+    /** Contratto 1.61, `turn_failed`: il motivo in una riga (senza segreti) e il testo che fa continuare la sessione. */
+    val reason: String? = null,
+    @SerialName("continue_text") val continueText: String? = null,
+    /** Contratto 1.62: Franz è al PC su quella sessione; l'evento si mostra senza suono né vibrazione. */
+    val quiet: Boolean = false,
 ) {
     /** Titolo e corpo per notifiche e schermata di blocco (contratto 1.56). */
     val shareTitle: String get() = preview?.title ?: title
@@ -362,6 +378,18 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val question: String? = null,
+    /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s, entro 7 giorni). Assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val at: Long? = null,
+    /** Contratto 1.64, `project_new`: il secondo tocco, che crea davvero. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val confirm: Boolean? = null,
+    /** Contratto 1.64, `project_new`: il primo messaggio della sessione nuova. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val prompt: String? = null,
 )
 
 /**

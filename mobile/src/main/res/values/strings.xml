@@ -913,4 +913,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="quota_way_other">continua su %1$s</string>
     <string name="quota_way_reset">riprendi alle %1$s</string>
     <string name="quota_way_pass">passa a un\'altra sessione</string>
+    <string name="turn_continue">Continua</string>
+    <string name="send_at">Manda alle</string>
+    <string name="send_at_title">Manda a %1$s alle</string>
+    <string name="send_at_ok">Programma</string>
+    <string name="project_new">Nuovo progetto «%1$s»</string>
+    <string name="project_new_parent">Dove</string>
+    <string name="project_new_confirm">Crea la cartella %1$s e lancia la sessione?</string>
+    <string name="project_new_go">Avanti</string>
+    <string name="project_new_create">Crea %1$s</string>
 </resources>

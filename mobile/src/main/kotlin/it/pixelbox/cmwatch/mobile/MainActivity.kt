@@ -1041,6 +1041,15 @@ class MainActivity : ComponentActivity() {
                             answer = { n -> scope.launch { app.repo.answer(session.name, n) } },
                             allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },
                             send = { target, text -> sendAndLog(target, text) },
+                            // Contratto 1.63: «Manda alle…», con un relay che conosce `at` (lo dice project_new, della stessa release).
+                            sendAt = if (state?.ops?.contains("project_new") == true) ({ text, at ->
+                                scope.launch {
+                                    runCatching { app.repo.command(CmdOp.PROMPT, session.name, text, at = at) }.onSuccess { id ->
+                                        // In chat all'ora dell'invio: il turno che lo prende comincia da lì.
+                                        app.chatLog.add(Sent(id, session.name, text, at))
+                                    }
+                                }
+                            }) else null,
                             follow = { on -> scope.launch { app.repo.command(if (on) CmdOp.FOLLOW else CmdOp.UNFOLLOW, session.name, null) } },
                             reopen = { scope.launch { app.repo.command(CmdOp.REOPEN, session.name, null) } },
                             terminal = { terminal = session.name; screenId = null },
@@ -1149,6 +1158,8 @@ class MainActivity : ComponentActivity() {
                             quotaLimit = it.pixelbox.cmwatch.rules.AlertEvents.openLimit(events, session, now),
                             passTargets = it.pixelbox.cmwatch.rules.AlertEvents.passTargets(state?.sessions.orEmpty(), session.name),
                             onQuotaRoute = { arg -> scope.launch { runCatching { app.repo.command(CmdOp.QUOTA_ROUTE, session.name, arg) } } },
+                            turnFailed = it.pixelbox.cmwatch.rules.AlertEvents.openFailure(events, session, now),
+                            onContinue = { text -> scope.launch { runCatching { app.repo.prompt(session.name, text) } } },
                             more = more && session.name == chatName,
                             model = tunePicks[session.name + "/model"].let { p -> Tune.model(session, p, p?.let { results[it.cmd] }, now) },
                             effort = tunePicks[session.name + "/effort"].let { p -> Tune.effort(session, p, p?.let { results[it.cmd] }, now) },
@@ -1798,7 +1809,13 @@ class MainActivity : ComponentActivity() {
                 LaunchSheet(state, projects = allProjects ?: state.projects, onSession = { name, reopen ->
                     launching = false
                     if (reopen) scope.launch { app.repo.command(CmdOp.REOPEN, name, null) } else { open = name }
-                }) { project, first ->
+                }, onNewProject = if (state.ops?.contains("project_new") == true && !state.projectParents.isNullOrEmpty()) ({ parent, name, first, confirm ->
+                    // Contratto 1.64: un comando per tocco, e il suo esito; riuscito, si apre la sessione nata.
+                    val id = runCatching { app.repo.command(CmdOp.PROJECT_NEW, null, parent, name, confirm = confirm.takeIf { c -> c }, prompt = first.ifBlank { null }) }.getOrNull()
+                    val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                    if (r?.ok == true) { launching = false; r.session?.let { n -> open = n } }
+                    r
+                }) else null) { project, first ->
                     launching = false
                     scope.launch { app.repo.command(CmdOp.LAUNCH, null, project.path, first.ifBlank { null }) }
                 }

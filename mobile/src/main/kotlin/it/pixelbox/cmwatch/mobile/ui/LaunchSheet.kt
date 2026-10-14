@@ -17,6 +17,8 @@ import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Accounts
 import it.pixelbox.cmwatch.rules.LaunchSuggest
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.rounded.CreateNewFolder
 import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
@@ -25,7 +27,7 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
  * con quel nome e poi i progetti di tutti e due gli account in ordine `LaunchSuggest.ranked`, la parte trovata in
  * grassetto; gli account in testa sono un filtro facoltativo.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun LaunchSheet(
     state: State, action: Int = R.string.launch,
@@ -35,8 +37,20 @@ fun LaunchSheet(
     projects: List<Project> = state.projects,
     /** Sotto il titolo, prima dei progetti: nella notte le schede del Recap da spuntare (contratto 1.49). */
     top: (@Composable ColumnScope.() -> Unit)? = null,
+    /**
+     * Contratto 1.64, «Nuovo progetto»: la cartella madre, il nome, il primo messaggio e la conferma; torna il risultato del
+     * PC, null senza risposta. Null = il relay non lo sa fare (nessuna `project_parents`).
+     */
+    onNewProject: (suspend (parent: String, name: String, first: String, confirm: Boolean) -> it.pixelbox.cmwatch.contract.CmdResult?)? = null,
     onLaunch: (project: Project, firstMessage: String) -> Unit,
 ) {
+    val parents = state.projectParents.orEmpty()
+    var making by rememberSaveable { mutableStateOf(false) }
+    var parent by rememberSaveable { mutableStateOf(parents.firstOrNull()) }
+    var confirmPath by rememberSaveable { mutableStateOf<String?>(null) }
+    var refusal by rememberSaveable { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val accounts = remember(state, projects) {
         (state.quota.keys + projects.map { it.account }).distinct()
             .sortedWith(compareBy<String> { a -> !(state.quota[a]?.let { Accounts.isPersonalQuota(a, it) } ?: Accounts.personal(a, null)) }.thenBy { it })
@@ -66,10 +80,31 @@ fun LaunchSheet(
         // Una lista sotto il campo, non una tendina: dentro il foglio, con la tastiera aperta, la tendina finiva fuori
         // schermo e sembrava che la ricerca non trovasse nulla.
         OutlinedTextField(
-            typed, { typed = it; chosen = null }, label = { Text(stringResource(R.string.launch_project)) }, singleLine = true,
+            typed, { typed = it; chosen = null; making = false; confirmPath = null }, label = { Text(stringResource(R.string.launch_project)) }, singleLine = true,
             shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth(),
         )
-        if (chosen == null) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        // Contratto 1.64: un nome che non è un progetto diventa un progetto nuovo, in una delle cartelle madri del PC.
+        val newName = typed.trim()
+        if (onNewProject != null && parents.isNotEmpty() && chosen == null && !making && it.pixelbox.cmwatch.rules.NewProject.validName(newName) &&
+            projects.none { p -> p.name.equals(newName, ignoreCase = true) }
+        ) Row(
+            Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).handCursor().clickable { making = true; confirmPath = null; refusal = null }.padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.CreateNewFolder, null, tint = CmColors.actionIcon)
+            Text(stringResource(R.string.project_new, newName), style = MaterialTheme.typography.bodyLarge, color = CmColors.actionIcon, modifier = Modifier.weight(1f))
+        }
+        if (making) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.project_new_parent), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                parents.forEach { p ->
+                    FilterChip(selected = parent == p, onClick = { parent = p; confirmPath = null }, label = { Text(p.trimEnd('/').substringAfterLast('/').ifEmpty { p }) })
+                }
+            }
+            confirmPath?.let { Text(stringResource(R.string.project_new_confirm, it), style = MaterialTheme.typography.bodyMedium, color = CmColors.text) }
+            refusal?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.gone) }
+        }
+        if (chosen == null && !making) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             if (typed.isBlank() && found.isNotEmpty()) Text(stringResource(R.string.launch_recent), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
             sessions.forEach { s ->
                 val closed = s.state == it.pixelbox.cmwatch.contract.SessionState.GONE
@@ -97,7 +132,28 @@ fun LaunchSheet(
             }
         }
         OutlinedTextField(first, { first = it }, label = { Text(stringResource(R.string.launch_first)) }, minLines = 3, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth())
-        Button(
+        if (making) Button(
+            // Primo tocco: il PC dice il percorso e non crea niente; secondo tocco, con la conferma, crea e lancia.
+            onClick = {
+                val p = parent ?: return@Button
+                val create = onNewProject ?: return@Button
+                busy = true; refusal = null
+                scope.launch {
+                    val r = create(p, newName, first.trim(), confirmPath != null)
+                    busy = false
+                    val path = r?.let { res -> it.pixelbox.cmwatch.rules.NewProject.confirmPath(res.text) }
+                    when {
+                        r == null -> refusal = null
+                        path != null -> confirmPath = path
+                        !r.ok -> { refusal = r.text; confirmPath = null }
+                    }
+                }
+            },
+            enabled = parent != null && !busy,
+            colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+        ) { Text(stringResource(if (confirmPath == null) R.string.project_new_go else R.string.project_new_create, newName)) }
+        else Button(
             onClick = { chosen?.let { onLaunch(it, first.trim()) } }, enabled = chosen != null,
             colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
             modifier = Modifier.fillMaxWidth().height(56.dp),

@@ -17,6 +17,8 @@ export type Goal = { text: string; since: number; met?: boolean | null }
 export type Session = {
   /** Contratto 1.54 e 1.55. */
   permission_mode?: string | null; resolved?: Resolved | null
+  /** Contratto 1.62: attaccata e con un tasto premuto al PC negli ultimi 2 minuti. */
+  at_pc?: boolean
   id: string; name: string; account: string; project: string; state: SessionState; since: number
   turn_started?: number | null; tool?: string | null; link?: string; tool_note?: string | null
   attached?: boolean; followed?: boolean; question?: Question | null; outcome?: Outcome | null
@@ -60,12 +62,14 @@ export type AgendaRow = {
 export type AgendaPage = { rows: AgendaRow[]; more: boolean; owner?: string | null }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
-export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit'
+export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed'
 export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null
   /** Contratto 1.56: titolo e corpo senza segreti. */
   preview?: { title: string; body?: string } | null
   /** Contratto 1.58, `quota_limit`. */
-  reset_at?: number | null; window?: string | null; other_account?: string | null; actions?: string[] | null }
+  reset_at?: number | null; window?: string | null; other_account?: string | null; actions?: string[] | null
+  /** Contratto 1.61 (`turn_failed`) e 1.62 (`quiet`: senza suono, Franz è al PC). */
+  reason?: string | null; continue_text?: string | null; quiet?: boolean }
 
 // Trascrizione (contratto 1.22): `in` comprende la cache; `queued` = scritta a turno in corso e non ancora presa; `cut` = accorciata dal PC.
 export type TranscriptTurn = { started?: number | null; ended?: number | null; in?: number | null; out?: number | null }
@@ -101,6 +105,8 @@ export type TimelinePage = { since: number; sessions: TimelineSession[]; more?: 
 
 export type State = {
   v: number; ts: number; host: string
+  /** Contratto 1.64: le cartelle madri per un progetto nuovo. */
+  project_parents?: string[] | null
   /** 1.43: epoch s della pubblicazione (decimali ammessi); assente con un relay precedente. */
   published_at?: number | null
   sessions: Session[]; quota: Record<string, QuotaAccount>
@@ -118,11 +124,13 @@ export type State = {
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
-  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route'
+  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */
   question?: string
+  /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */
+  at?: number; confirm?: boolean; prompt?: string
   /** Contratto 1.47, `agenda_set`: done | snooze | remove | pass, il giorno di uno snooze, a chi passa. */
   action?: string; until?: string; blocks?: string
 }

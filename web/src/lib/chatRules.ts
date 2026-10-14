@@ -35,6 +35,8 @@ export function status(m: Sent, pending: PendingStatus | null, result: CmdResult
   if (upload?.type === 'going') return 'uploading'
   if (m.doneAt != null) return 'done'
   if (m.startedAt != null) return 'working'
+  // Contratto 1.63: il relay lo tiene per l'ora scelta; resta programmato finché un turno non lo prende.
+  if (result?.ok && result.text.startsWith('scheduled for ')) return 'scheduled'
   // Nessuna risposta in 20 s: spesso il messaggio è arrivato lo stesso.
   if (pending === 'failed' && result == null) return 'uncertain'
   if (result == null && pending === 'queued') return 'offline'
@@ -83,3 +85,11 @@ export const nightDir = (state: State, s: Session): string | null =>
   state.projects.find(p => p.path === s.project || p.path.endsWith('/' + s.project))?.path ?? null
 
 export const prune = (list: Sent[], now: number): Sent[] => list.filter(m => m.sentAt >= now - KEEP_S)
+
+/** Contratto 1.63, «Manda alle…»: l'epoch dell'ora scelta («HH:MM»), oggi o domani se è già passata. */
+export function sendAtEpoch(hhmm: string, now: Date): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  const d = new Date(now); d.setHours(h, m, 0, 0)
+  if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1)
+  return Math.round(d.getTime() / 1000)
+}

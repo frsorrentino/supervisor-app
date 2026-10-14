@@ -43,6 +43,17 @@ object AlertEvents {
         events.filter { it.kind == EventKind.QUOTA_LIMIT && it.ref == s.name }.maxByOrNull { it.ts }
             ?.takeIf { e -> (e.resetAt ?: (e.ts + 5 * 3600)) > nowS && (s.turnStarted ?: 0) <= e.ts && s.state != SessionState.GONE }
 
+    /**
+     * Contratto 1.61: il turno fallito ancora da riprendere per una sessione, l'ultimo, finché la sessione non riparte dopo
+     * l'evento e per al massimo 6 ore. Il tasto «Continua» manda `continue_text` come prompt.
+     */
+    fun openFailure(events: List<Event>, s: Session, nowS: Long): Event? =
+        events.filter { it.kind == EventKind.TURN_FAILED && it.ref == s.name && !it.continueText.isNullOrBlank() }.maxByOrNull { it.ts }
+            ?.takeIf { e -> nowS - e.ts < 6 * 3600 && (s.turnStarted ?: 0) <= e.ts && s.state != SessionState.GONE && s.state != SessionState.BUSY }
+
+    /** Contratto 1.62: senza suono né vibrazione, perché Franz è al PC su quella sessione. Senza il campo si suona (fail open). */
+    fun quiet(e: Event?, s: Session?): Boolean = e?.quiet == true || s?.atPc == true
+
     const val OTHER_ACCOUNT = "other_account"
     const val AT_RESET = "at_reset"
     const val PASS = "pass"

@@ -146,6 +146,8 @@ data class SheetActions(
     /** Avviso quota (piano 30/09, Task 3): il testo scritto parte alla ripartenza della finestra, o va nella notte. */
     /** Vero se il testo è partito (o programmato): solo allora la bozza si svuota (revisione finale 01/10, I5). */
     val sendAtReset: (String) -> Boolean = { false }, val sendTonight: (String) -> Boolean = { false },
+    /** Contratto 1.63, «Manda alle…»: il testo e l'ora (epoch s); null = il relay non lo sa fare. */
+    val sendAt: ((String, Long) -> Unit)? = null,
     /** Tocco sulla riga dell'avviso: la Panoramica, casa dei dati della quota. */
     val overview: () -> Unit = {},
     /** Contratto 1.25: un comando slash consentito, senza «/», con i suoi argomenti o null. */
@@ -188,6 +190,8 @@ fun SessionSheet(
     quotaLimit: it.pixelbox.cmwatch.contract.Event? = null,
     passTargets: List<String> = emptyList(),
     onQuotaRoute: (String) -> Unit = {},
+    /** Contratto 1.61: il turno finito in errore ancora da riprendere, e «Continua» con il suo testo. */
+    turnFailed: it.pixelbox.cmwatch.contract.Event? = null, onContinue: (String) -> Unit = {},
     /** L'orologio della riga d'attesa, in ms. */
     clockMs: () -> Long = System::currentTimeMillis,
     /** La finestra di 5 ore dell'account della sessione sta finendo (`QuotaWarning`); null = nessun avviso. */
@@ -481,6 +485,7 @@ fun SessionSheet(
                     }
                 }
                 quotaLimit?.let { e -> item(key = "quota-" + e.key) { QuotaLimitCard(e, passTargets, onQuotaRoute) } }
+                turnFailed?.let { e -> item(key = "failed-" + e.key) { TurnFailedCard(e, onContinue) } }
                 // Contratto 1.55: risolta al PC, resta qualche minuto invece di sparire.
                 if (s.question == null) s.resolved?.let { r ->
                     item(key = "resolved-" + r.id) {
@@ -675,7 +680,7 @@ fun SessionSheet(
  * L'immagine scelta resta in attesa sopra il campo, con la sua anteprima e la ×, e parte con Invia insieme al testo
  * (Franz, 30/09 22:03: prima partiva subito).
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun Composer(
     s: Session, draftState: androidx.compose.runtime.State<String>, onDraft: (String) -> Unit, ops: List<String>?, canAttach: Boolean, actions: SheetActions, onSent: () -> Unit,
@@ -733,6 +738,24 @@ private fun Composer(
                     SmallAction(Icons.Rounded.Close, stringResource(R.string.remove_image)) { images = images - uri }
                 }
             }
+        }
+        // Contratto 1.63: la scelta dell'ora di «Manda alle…»; un'ora passata vale domani.
+        var pickTime by remember { mutableStateOf(false) }
+        if (pickTime) actions.sendAt?.let { sendAt ->
+            val tp = androidx.compose.material3.rememberTimePickerState(initialHour = (java.time.LocalTime.now().hour + 1) % 24, initialMinute = 0, is24Hour = true)
+            AlertDialog(
+                onDismissRequest = { pickTime = false }, containerColor = CmColors.surface,
+                title = { Text(stringResource(R.string.send_at_title, s.name)) },
+                text = { androidx.compose.material3.TimePicker(tp) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        pickTime = false
+                        sendAt(draft.trim(), it.pixelbox.cmwatch.rules.SendAt.epoch(java.time.LocalTime.of(tp.hour, tp.minute), java.time.ZonedDateTime.now()))
+                        onSent()
+                    }) { Text(stringResource(R.string.send_at_ok), color = CmColors.actionIcon) }
+                },
+                dismissButton = { TextButton(onClick = { pickTime = false }) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
+            )
         }
         val send = {
             // Contratto 1.25: un testo che comincia con un comando consentito parte come comando, senza domanda aperta.
@@ -852,6 +875,11 @@ private fun Composer(
                 // quindi 8 dp sopra, sotto e a destra.
                 val endPad = with(density) { ((lineH.toDp() - 40.dp) / 2).coerceAtLeast(6.dp) }
                 val size = Modifier.padding(end = if (lineH > 0) endPad else 8.dp).size(40.dp).handCursor()
+                // Contratto 1.63: «Manda alle…» accanto a Invia, con un testo nel campo e senza allegati.
+                val sendAt = actions.sendAt
+                if (sendAt != null && draft.isNotBlank() && images.isEmpty() && (mode == PhonePrimary.Composer.SEND || mode == PhonePrimary.Composer.SEND_TONAL)) {
+                    IconButton(onClick = { pickTime = true }, modifier = Modifier.size(40.dp).handCursor()) { Icon(Icons.Rounded.Schedule, stringResource(R.string.send_at), tint = CmColors.text2) }
+                }
                 when (mode) {
                     PhonePrimary.Composer.SEND -> FilledIconButton(onClick = send, colors = filled, modifier = size) {
                         Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
@@ -1273,7 +1301,7 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            StatusMark(status, m.scheduledFor)
+            StatusMark(status, m.scheduledFor ?: m.sentAt.takeIf { status == ChatRules.Status.SCHEDULED })
             // Un programmato dice solo quando parte: l'ora in cui è stato scritto accanto confondeva (provini 01/10).
             if (status != ChatRules.Status.SCHEDULED) Text(hhmm(m.sentAt), style = MaterialTheme.typography.labelMedium, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))
             SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(m.text)) }
@@ -1917,6 +1945,19 @@ private fun QuotaLimitCard(e: it.pixelbox.cmwatch.contract.Event, passTargets: L
             }
             if (picking) passTargets.forEach { name ->
                 OptionButton(name, filled = false, onClick = { onRoute(it.pixelbox.cmwatch.rules.AlertEvents.passArg(name)) }, onLongClick = null)
+            }
+        }
+    }
+}
+
+/** Contratto 1.61: il turno finito in errore, una riga e «Continua», che manda alla sessione il testo del relay. */
+@Composable
+private fun TurnFailedCard(e: it.pixelbox.cmwatch.contract.Event, onContinue: (String) -> Unit) {
+    Surface(color = CmColors.surfaceHigh, shape = MaterialTheme.shapes.extraLarge, border = BorderStroke(2.dp, CmColors.waiting)) {
+        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(e.title, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+            e.continueText?.takeIf { it.isNotBlank() }?.let { text ->
+                OptionButton(stringResource(R.string.turn_continue), filled = true, onClick = { onContinue(text) }, onLongClick = null)
             }
         }
     }

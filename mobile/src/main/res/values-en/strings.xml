@@ -896,4 +896,13 @@ It starts at your last message to the master.</string>
     <string name="quota_way_other">continue on %1$s</string>
     <string name="quota_way_reset">resume at %1$s</string>
     <string name="quota_way_pass">pass to another session</string>
+    <string name="turn_continue">Continue</string>
+    <string name="send_at">Send at</string>
+    <string name="send_at_title">Send to %1$s at</string>
+    <string name="send_at_ok">Schedule</string>
+    <string name="project_new">New project «%1$s»</string>
+    <string name="project_new_parent">Where</string>
+    <string name="project_new_confirm">Create the folder %1$s and launch the session?</string>
+    <string name="project_new_go">Next</string>
+    <string name="project_new_create">Create %1$s</string>
 </resources>

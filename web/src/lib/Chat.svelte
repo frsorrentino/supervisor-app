@@ -17,7 +17,7 @@
   import type { Alert } from './elsewhere'
   import QuestionCard from './QuestionCard.svelte'
   import { CHAT_ARG, optionText } from './questionRules'
-  import { openLimit, passArg, passTargets, ways } from './alertEvents'
+  import { openFailure, openLimit, passArg, passTargets, ways } from './alertEvents'
   import { append, box as boxOf, inDraft } from './composer'
   import Composer from './Composer.svelte'
   import PromptBox from './PromptBox.svelte'
@@ -25,7 +25,7 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, inject = null, onInjected = () => {}, onUsage = () => {} }: {
+  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, inject = null, onInjected = () => {}, onUsage = () => {} }: {
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
     onCmd: (op: CmdOp, arg?: string, text?: string) => void; wide: boolean; slots: (string | null)[]
@@ -41,6 +41,8 @@
     waitingSince?: number | null
     /** La copia a schermo è più vecchia dell'ultima attività e la prima lettura non è arrivata (Franz, 14/10 18:39). */
     updating?: boolean
+    /** Contratto 1.63, «Manda alle…». */
+    onSendAt?: ((text: string, at: number) => void) | null
     /** Un testo da mettere nel campo, sotto quello che c'è («Parlane con la master» del Recap, 09/10); `n` cambia a ogni richiesta. */
     inject?: { text: string; n: number } | null; onInjected?: () => void
     /** La pillola della quota in testata porta a Utilizzo (09/10). */
@@ -72,6 +74,8 @@
   const hhmm = (sec: number) => new Date(sec * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   const limitWays = $derived(limit ? ways(limit, { otherAccount: t.quotaWayOther, atReset: t.quotaWayReset, pass: t.quotaWayPass }, hhmm) : [])
   let picking = $state(false)
+  // Contratto 1.61: il turno finito in errore ancora da riprendere.
+  const failure = $derived(openFailure(events, s, st.ts))
   // I consigli dell'ultima risposta di Claude, se dopo non c'è altro che passaggi.
   const last = $derived.by(() => { const it = [...items].reverse().find(i => i.type !== 'tool' && i.type !== 'steps'); return it?.type === 'claude' ? it.entry : null })
   const lastParsed = $derived(last ? parseSteps(last.text ?? '') : null)
@@ -200,6 +204,10 @@
         {/if}
       </div>
     {/if}
+    {#if failure?.continue_text}
+      <!-- Contratto 1.61: una riga e «Continua», che manda alla sessione il testo del relay. -->
+      <div class="qlimit fail"><p>{failure.title}</p><button class="qway filled" onclick={() => onSend(failure.continue_text!)}>{t.turnContinue}</button></div>
+    {/if}
     {#if !s.question && s.resolved}
       <!-- Contratto 1.55: risolta al PC, resta qualche minuto invece di sparire. -->
       <p class="resolved">✓ {t.resolvedAtTerminal} · {optionText(s.resolved.text)}</p>
@@ -234,7 +242,7 @@
     onAnswerText={(arg) => onCmd('answer', arg)} onSlash={(c, a) => onCmd('slash', c, a ?? undefined)} onStop={() => onCmd('interrupt')}
     onReopen={() => onCmd('reopen')} {onAttach}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
-    onDecision={canDecide ? () => openDecision('') : null} />
+    onDecision={canDecide ? () => openDecision('') : null} {onSendAt} />
 </section>
 
 <dialog bind:this={decisionDlg} class="sheet" onclick={(e) => e.target === e.currentTarget && decisionDlg?.close()}>
@@ -289,6 +297,7 @@
   .lines { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
   .qlimit { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; padding: 16px; border-radius: 24px; border: 2px solid var(--gone); background: var(--high); max-width: 760px; }
   .qlimit p { margin: 0 0 4px; }
+  .qlimit.fail { border-color: var(--wait); }
   .qway { min-height: 44px; padding: 10px 18px; border-radius: 22px; background: var(--surface); color: var(--text); font-size: 16px; font-weight: 500; text-align: left; }
   .qway.filled { background: var(--primary); color: var(--on-primary); }
   .resolved { margin: 4px 4px 8px; font-size: 14px; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

@@ -4,17 +4,27 @@
   import { mode as modeOf, slashConfirm, slashParse, slashSuggest } from './composer'
   import { textArg } from './questionRules'
   import { t } from './t'
+  import { sendAtEpoch } from './chatRules'
   import Icon from './Icon.svelte'
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
-  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onDecision = null }: {
+  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onDecision = null, onSendAt = null }: {
     st: State; s: Session; draft: string; field: string | null; toMaster: boolean
     onSend: (text: string) => void; onAnswerText: (arg: string) => void; onSlash: (cmd: string, args: string | null) => void
     onStop: () => void; onReopen: () => void; onAttach: (files: File[], text: string) => void; onRecurring: (() => void) | null
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
     onDecision?: (() => void) | null
+    /** Contratto 1.63, «Manda alle…»: il testo e l'ora (epoch s); null = il relay non lo sa fare. */
+    onSendAt?: ((text: string, at: number) => void) | null
   } = $props()
+  let picking = $state(false)
+  let when = $state(`${String((new Date().getHours() + 1) % 24).padStart(2, '0')}:00`)
+  function scheduleSend() {
+    if (!onSendAt || !draft.trim() || !when) return
+    onSendAt(draft.trim(), sendAtEpoch(when, new Date()))
+    draft = ''; picking = false
+  }
 
   const MAX_FILES = 5
   let files = $state<{ file: File; url: string | null }[]>([])
@@ -123,6 +133,21 @@
       <input bind:this={any} type="file" multiple hidden onchange={picked} />
       <textarea bind:this={area} rows="1" class:sug={!!inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
       {#if inField && !draft.trim()}<button type="button" class="use" onclick={() => { draft = field ?? ''; area?.focus() }}>{t.use}</button>{/if}
+      {#if onSendAt && draft.trim() && !files.length && (md === 'send' || md === 'send_tonal')}
+        <!-- Contratto 1.63: «Manda alle…» accanto a Invia. -->
+        <span class="atwrap">
+          <button type="button" class="round" aria-label={t.sendAt} title={t.sendAt} onclick={() => (picking = !picking)}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+          </button>
+          {#if picking}
+            <span class="atpop">
+              <b>{t.sendAtTitle(s.name)}</b>
+              <input type="time" bind:value={when} onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); scheduleSend() } }} />
+              <button type="button" class="atok" onclick={scheduleSend}>{t.sendAtOk}</button>
+            </span>
+          {/if}
+        </span>
+      {/if}
       {#if md === 'stop'}
         <button type="button" class="round filled" aria-label={t.stop} title={t.stop} onclick={onStop}><svg viewBox="0 0 24 24" width="20" height="20"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" /></svg></button>
       {:else}
@@ -183,6 +208,10 @@
   .sugrow:hover { background: var(--surface); }
   .use { color: var(--icon); padding: 8px 10px; font-weight: 500; border-radius: 16px; }
   .use:hover { background: var(--surface); }
+  .atwrap { position: relative; display: flex; }
+  .atpop { position: absolute; bottom: 48px; right: 0; z-index: 20; display: flex; flex-direction: column; gap: 8px; padding: 14px; width: 220px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); }
+  .atpop input { font: inherit; padding: 8px 10px; border-radius: 10px; background: var(--low); color: var(--text); border: 1px solid var(--line); }
+  .atok { padding: 8px 14px; border-radius: 20px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
   .round { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--surface); color: var(--text2); }
   .round.filled { background: var(--primary); color: var(--on-primary); }
   .round.tonal { background: var(--high); color: var(--icon); }

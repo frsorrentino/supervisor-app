@@ -475,6 +475,29 @@
       res = { ...res, [m.id]: r }
     } catch { pend = { ...pend, [m.id]: 'failed' } }
   }
+  // Contratto 1.64: un tocco = un comando; riuscito, si apre la sessione nata.
+  async function newProject(parent: string, name: string, first: string, confirm: boolean): Promise<CmdResult | null> {
+    if (!tr) return null
+    const c = { ...newCmd('project_new', null, parent, name), ...(confirm ? { confirm: true } : {}), ...(first ? { prompt: first } : {}) }
+    try {
+      const r = await tr.send(c)
+      if (r.ok) { openPage(null); if (r.session) pick(r.session) }
+      return r
+    } catch { say(`✗ ${t.noAnswer}`); return null }
+  }
+  // Contratto 1.63, «Manda alle…»: il relay tiene il prompt per quell'ora; in chat sta all'ora dell'invio, così il turno che
+  // lo prende comincia da lì.
+  async function sendAtTo(name: string, text: string, at: number) {
+    const m: Sent = { id: crypto.randomUUID(), session: name, text, sentAt: at }
+    msgs = [...msgs, m]
+    if (!tr) return
+    pend = { ...pend, [m.id]: 'sending' }
+    try {
+      const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, at })
+      res = { ...res, [m.id]: r }
+      if (!r.ok) say(`✗ ${r.text}`)
+    } catch { pend = { ...pend, [m.id]: 'failed' } }
+  }
   // Allegati: un messaggio per file, il testo con l'ultimo; ogni file va prima in /share/<id>, poi `report` con quell'id.
   // Contratto 1.50 (Franz, 10/10 16:52): se il relay lo sa fare, un messaggio solo per gruppo, col testo nel primo.
   async function attach(name: string, files: File[], text: string) {
@@ -670,6 +693,7 @@
   {@const s = (st.sessions.find(x => x.name === name) ?? ghost(name))!}
   <Chat {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
+    onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onHandoff={() => handoff(name)} onDecision={decide}
     wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, alertKey(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
@@ -711,7 +735,8 @@
   <Page title={pageTitle[p]} onBack={() => openPage(null)}>
     {#if p === 'launch'}
       <Launch {st} onSession={(n, reopen) => { if (reopen) cmd(n)('reopen'); else { openPage(null); pick(n) } }}
-        onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }} />
+        onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }}
+        onNewProject={st.ops?.includes('project_new') && st.project_parents?.length ? newProject : null} />
     {:else if p === 'diary'}
       <Diary {st} {events} rings={overview.rings} now={now} onAdd={() => nightDlg?.showModal()} onRemove={(id) => cmd('')('night_remove', id)}
         onQuadro={() => openPage('overview')} onSession={(n) => { openPage(null); pick(n) }} />

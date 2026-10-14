@@ -39,7 +39,7 @@ self.addEventListener('push', (e: PushEvent) => {
   let p: Payload = null
   try { p = e.data?.json() ?? null } catch { p = { body: e.data?.text() ?? '' } }
   const n = notificationOf(p)
-  e.waitUntil(self.registration.showNotification(n.title, { body: n.body, tag: n.tag, icon: '/icon-192.png', badge: '/icon-192.png', data: { url: n.url } }))
+  e.waitUntil(self.registration.showNotification(n.title, { body: n.body, tag: n.tag, silent: n.silent, icon: '/icon-192.png', badge: '/icon-192.png', data: { url: n.url } }))
 })
 
 self.addEventListener('notificationclick', (e: NotificationEvent) => {

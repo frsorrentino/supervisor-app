@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CmdResult, Outcome, Session, State } from './contract'
-import { advance, CLAIM_S, due, KEEP_S, nightDir, prune, reason, status, type Sent, type Upload } from './chatRules'
+import { advance, CLAIM_S, due, KEEP_S, nightDir, prune, reason, status, type Sent, type Upload, sendAtEpoch } from './chatRules'
 
 // Gli stessi casi di ChatRulesTest in Kotlin.
 const t = 1_000_000
@@ -15,6 +15,11 @@ describe('ChatRules', () => {
   it('timeout is uncertain not failed', () => expect(status(m, 'failed', null, s('idle'))).toBe('uncertain'))
   it('delivered when idle', () => expect(status(m, null, ok, s('idle'))).toBe('delivered'))
   it('queued behind a running turn', () => expect(status(m, null, ok, s('busy', t - 600))).toBe('queued'))
+  it('scheduled by the PC until its turn (1.63)', () => {
+    const r = { ...ok, text: 'scheduled for 17:00: atlas-shop gets it then (at its first stop after, if it is working)' }
+    expect(status(m, null, r, s('idle'))).toBe('scheduled')
+    expect(status({ ...m, startedAt: t + 5 }, null, r, s('busy', t + 5))).toBe('working')
+  })
   it('queued when the PC says so (relay 0.8.18, fixture …0002)', () => {
     const q = { ...ok, text: 'queued: atlas-shop is working, it reads it when the turn ends' }
     expect(status(m, null, q, s('busy', t))).toBe('queued')
@@ -115,5 +120,13 @@ describe('ChatRules', () => {
     const ledger = { ...s('idle'), name: 'ledger-api', project: 'work/clients/ledger-api', account: 'work' }
     expect(nightDir(st, ledger)).toBe('/home/demo/workspaces/work/clients/ledger-api')
     expect(nightDir(st, { ...ledger, project: 'work/other' })).toBeNull()
+  })
+})
+
+describe('manda alle (contratto 1.63)', () => {
+  it('oggi, o domani se l\'ora è passata', () => {
+    const now = new Date(2026, 9, 14, 21, 30)
+    expect(sendAtEpoch('22:15', now)).toBe(new Date(2026, 9, 14, 22, 15).getTime() / 1000)
+    expect(sendAtEpoch('08:00', now)).toBe(new Date(2026, 9, 15, 8, 0).getTime() / 1000)
   })
 })

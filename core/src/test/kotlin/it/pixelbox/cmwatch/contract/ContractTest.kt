@@ -147,7 +147,8 @@ class ContractTest {
         // Contratto 1.50: due report con due id, uno riuscito e uno con il secondo allegato mancante.
         // Contratto 1.52: due answer con `question`, uno sulla domanda aperta e uno sulla precedente, rifiutato.
         // Contratto 1.58 (relay 0.8.20): tre quota_route, due riusciti e «pass» a una sessione non viva, e un prompt doppione rifiutato.
-        assertEquals(63, results.size); assertEquals(21, results.count { !it.ok })
+        // Contratti 1.63 e 1.64 (relay 0.8.21): un prompt con `at`, project_new col primo tocco rifiutato e la conferma riuscita.
+        assertEquals(66, results.size); assertEquals(22, results.count { !it.ok })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)
         val sets = cmds.filter { it.op == CmdOp.AGENDA_SET }
         assertEquals(8, sets.size); assertTrue(sets.all { it.session == null && !it.arg.isNullOrBlank() && it.action != null })

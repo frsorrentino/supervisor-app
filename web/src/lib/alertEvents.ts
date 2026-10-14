@@ -29,3 +29,10 @@ export function openLimit(events: Event[], s: Session, nowS: number): Event | nu
   if (!e) return null
   return (e.reset_at ?? e.ts + 5 * 3600) > nowS && (s.turn_started ?? 0) <= e.ts && s.state !== 'gone' ? e : null
 }
+
+/** Contratto 1.61: il turno fallito ancora da riprendere, l'ultimo, finché la sessione non riparte e per al massimo 6 ore. */
+export function openFailure(events: Event[], s: Session, nowS: number): Event | null {
+  const e = events.filter(x => x.kind === 'turn_failed' && x.ref === s.name && x.continue_text?.trim()).sort((a, b) => b.ts - a.ts)[0]
+  if (!e) return null
+  return nowS - e.ts < 6 * 3600 && (s.turn_started ?? 0) <= e.ts && s.state !== 'gone' && s.state !== 'busy' ? e : null
+}

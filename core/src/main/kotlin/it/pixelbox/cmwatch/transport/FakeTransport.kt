@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.transport
 
+import it.pixelbox.cmwatch.rules.NewProject
 import it.pixelbox.cmwatch.contract.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -208,7 +209,11 @@ class FakeTransport(
                     }
                 }
             }
-            CmdOp.PROMPT -> if (ses == null) ko("no session ${cmd.session}") else {
+            // Contratto 1.63: con `at` il prompt aspetta nella coda della sessione; nella demo non parte.
+            CmdOp.PROMPT -> if (ses == null) ko("no session ${cmd.session}") else if (cmd.at != null) {
+                val hm = java.time.Instant.ofEpochSecond(cmd.at).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5)
+                ok("scheduled for $hm: ${ses.name} gets it then (at its first stop after, if it is working)")
+            } else {
                 replace(ses.copy(state = SessionState.BUSY, question = null, turnStarted = now(), tool = "Bash", toolNote = cmd.text ?: ses.toolNote)); ok("delivered")
             }
             CmdOp.LAUNCH -> s.projects.firstOrNull { it.path == cmd.arg }?.let { p ->
@@ -332,6 +337,16 @@ class FakeTransport(
             // Contratti 1.46 e 1.47: la demo ha un'agenda inventata, un gruppo per ognuno di chi deve muoversi, e la cambia
             // con `agenda_set` come il relay (key nuova a ogni modifica, «agenda row changed» con una key vecchia).
             CmdOp.AGENDA -> ok(ContractJson.json.encodeToString(AgendaPage.serializer(), AgendaPage(demoAgenda, owner = "franz")))
+            // Contratto 1.64: la cartella si crea al secondo tocco, con `confirm`; nella demo nasce solo il risultato.
+            CmdOp.PROJECT_NEW -> {
+                val name = cmd.text.orEmpty()
+                val path = cmd.arg.orEmpty().trimEnd('/') + "/" + name
+                when {
+                    !NewProject.validName(name) -> ko("bad project name: $name (letters, digits, . _ -, at most 64)")
+                    cmd.confirm != true -> ko("confirm: create $path")
+                    else -> CmdResult(cmd.id, true, "created $path and launched it (personal)", now(), session = name)
+                }
+            }
             // Contratto 1.58: le tre strade dopo una quota finita, con i testi del relay.
             CmdOp.QUOTA_ROUTE -> {
                 val name = cmd.session.orEmpty()

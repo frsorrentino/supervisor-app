@@ -194,7 +194,7 @@
       {#each it.sent.attachments ?? [] as a}<span class="att"><Icon name="file" size={16} />{a}</span>{/each}
       {#if it.sent.text}{@render bubble(it.sent.text, false)}{/if}
       <div class="mrow">
-        <span class="mark" style="color:{tone}"><Icon name={ic} size={16} color={tone} />{it.status === 'scheduled' && it.sent.scheduledFor ? t.chatStatus.scheduled(hm(it.sent.scheduledFor)) : t.chatStatus[it.status]('')}</span>
+        <span class="mark" style="color:{tone}"><Icon name={ic} size={16} color={tone} />{it.status === 'scheduled' ? t.chatStatus.scheduled(hm(it.sent.scheduledFor ?? it.sent.sentAt)) : t.chatStatus[it.status]('')}</span>
         {#if it.status !== 'scheduled'}<span class="time">{hm(it.sent.sentAt)}</span>{/if}
         <button class="sm" aria-label={t.copy} title={t.copy} onclick={() => copy(it.sent.text)}><Icon name="copy" /></button>
       </div>

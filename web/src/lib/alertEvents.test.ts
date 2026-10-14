@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Event, Session } from './contract'
-import { green, openLimit, passArg, passTargets, ways } from './alertEvents'
+import { green, openFailure, openLimit, passArg, passTargets, ways } from './alertEvents'
 
 // Contratti 1.57 e 1.58, con i testi della specifica di supervisor del 14/10 (le fixture arrivano con la 0.8.20).
 const limit: Event = {
@@ -27,5 +27,14 @@ describe('eventi con tasti', () => {
     expect(openLimit([limit], s('atlas-shop'), 2000)).toBe(limit)
     expect(openLimit([limit], s('atlas-shop'), 5000)).toBeNull()
     expect(openLimit([limit], s('atlas-shop', 'busy', 1200), 2000)).toBeNull()
+  })
+})
+
+describe('turno fallito (contratto 1.61)', () => {
+  const f: Event = { key: 'k', kind: 'turn_failed', session: 'atlas-shop', ts: 1000, title: '⚠ atlas-shop: turn failed — 529', ref: 'atlas-shop', reason: '529', continue_text: 'carry on from where you stopped' }
+  it('«Continua» finché la sessione non riparte', () => {
+    expect(openFailure([f], s('atlas-shop', 'idle', 900), 1060)).toBe(f)
+    expect(openFailure([f], s('atlas-shop', 'idle', 1100), 1160)).toBeNull()
+    expect(openFailure([f], s('atlas-shop', 'idle', 900), 1000 + 7 * 3600)).toBeNull()
   })
 })

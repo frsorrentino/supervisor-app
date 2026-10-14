@@ -39,6 +39,13 @@ class ChatRulesTest {
         assertEquals(Status.DELIVERED, ChatRules.status(m, null, q, s(SessionState.IDLE)))
     }
 
+    // Contratto 1.63: «scheduled for HH:MM: …» resta programmato finché il turno che lo prende non comincia.
+    @Test fun scheduledByThePc() {
+        val r = CmdResult("c1", true, "scheduled for 17:00: atlas-shop gets it then (at its first stop after, if it is working)", t + 1)
+        assertEquals(Status.SCHEDULED, ChatRules.status(m, null, r, s(SessionState.IDLE)))
+        assertEquals(Status.WORKING, ChatRules.status(m.copy(startedAt = t + 5), null, r, s(SessionState.BUSY, turn = t + 5)))
+    }
+
     @Test fun workingWhenItsTurnStarts() {
         val a = ChatRules.advance(m, s(SessionState.BUSY, turn = t + 3), now = t + 5)
         assertEquals(t + 3, a.startedAt)

@@ -159,7 +159,8 @@ class Notifier(private val ctx: Context) {
         val hist = history[s.name].orEmpty()
         hist.forEach { style.addMessage(it.question, it.at * 1000, them).addMessage(it.answer, it.at * 1000 + 1, me) }
         style.addMessage(text, q.askedAt * 1000, them)
-        val b = base(plan).setLargeIcon(badge(s)).setStyle(style).setCategory(NotificationCompat.CATEGORY_MESSAGE)
+        // Contratto 1.62: Franz è al PC su quella sessione, la notifica arriva senza suono né vibrazione.
+        val b = base(plan).setSilent(s.atPc).setLargeIcon(badge(s)).setStyle(style).setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setContentText(text)
             .setContentIntent(open("cmwatch://question/${s.name}", id(s.name)))
             .setDeleteIntent(broadcast(ReplyReceiver.ACTION_SEEN, s.name, id(s.name) * 10 + 8) { putExtra(ReplyReceiver.QUESTION_ID, q.id) })
@@ -214,7 +215,7 @@ class Notifier(private val ctx: Context) {
 
     fun outcome(s: Session) {
         val plan = NotificationPlan.outcome(s, labels)
-        val b = base(plan).setLargeIcon(badge(s)).setContentText(plan.messages.first()).setStyle(NotificationCompat.BigTextStyle().bigText(plan.bigText))
+        val b = base(plan).setSilent(s.atPc).setLargeIcon(badge(s)).setContentText(plan.messages.first()).setStyle(NotificationCompat.BigTextStyle().bigText(plan.bigText))
             .setContentIntent(open("cmwatch://outcome/${s.name}", id(s.name)))
             .addAction(readIcon(s.name), readLabel(s.name), PendingIntent.getForegroundService(ctx, id(s.name) * 10 + 3, SpeakService.lastIntent(ctx, s.name, plan.bigText, from = s.name), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             .addAction(NotificationCompat.Action.Builder(R.drawable.ic_edit, labels.write, broadcast(ReplyReceiver.ACTION_REPLY, s.name, id(s.name) * 10 + 7, mutable = true))

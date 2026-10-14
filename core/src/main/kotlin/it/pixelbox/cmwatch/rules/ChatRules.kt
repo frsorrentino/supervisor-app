@@ -69,6 +69,8 @@ object ChatRules {
         upload == Upload.Going -> Status.UPLOADING
         m.doneAt != null -> Status.DONE
         m.startedAt != null -> Status.WORKING
+        // Contratto 1.63: il relay lo tiene per l'ora scelta; resta programmato finché un turno non lo prende.
+        result?.ok == true && SendAt.scheduled(result.text) -> Status.SCHEDULED
         // Nessuna risposta in 20 s: spesso il messaggio è arrivato lo stesso (dal vivo 30/09 23:00). «In attesa del PC».
         pending == PendingStatus.FAILED && result == null -> Status.UNCERTAIN
         result == null && pending == PendingStatus.QUEUED -> Status.OFFLINE

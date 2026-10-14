@@ -216,13 +216,15 @@ class Repo(
         voice: Boolean? = null, via: String? = null, confirmations: Int? = null,
         /** Contratto 1.47, `agenda_set`: azione, giorno di uno snooze, a chi passa. */
         action: String? = null, until: String? = null, blocks: String? = null,
+        /** Contratto 1.63: `prompt` da consegnare a quest'ora. Contratto 1.64: `project_new`, conferma e primo messaggio. */
+        at: Long? = null, confirm: Boolean? = null, prompt: String? = null,
     ): String {
         // Contratto 1.52: la risposta vale per la domanda aperta adesso, anche se parte dalla coda dopo minuti.
         val question = if (op == CmdOp.ANSWER || op == CmdOp.ALLOW_ALL)
             _snapshot.value.state?.sessions?.firstOrNull { it.name == session }?.question?.id else null
         val cmd = Cmd(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
-            action = action, until = until, blocks = blocks, question = question,
+            action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt,
         )
         question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {

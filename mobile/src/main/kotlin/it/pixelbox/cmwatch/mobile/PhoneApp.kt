@@ -167,7 +167,9 @@ class PhoneApp : Application() {
         val watchPaired = PairingRecord.fromJson(s.pairingJson)?.watchName != null
         for (a in Wake.plan(prev, cur)) when (a) {
             is Wake.Action.Notify -> if (!foreground()) {
-                val mode = PhoneAlert.mode(a.kind, watchPaired, watchPaired && watch.reachable())
+                // Contratto 1.62: Franz è al PC su quella sessione, la notifica arriva senza suono.
+                val mode = if (cur.sessions.firstOrNull { it.name == a.session }?.atPc == true) PhoneAlert.Mode.SILENT
+                    else PhoneAlert.mode(a.kind, watchPaired, watchPaired && watch.reachable())
                 when (a.kind) {
                     Wake.NotifyKind.QUESTION -> cur.sessions.firstOrNull { it.name == a.session }?.let { notifier.question(it, mode) }
                     Wake.NotifyKind.OUTCOME -> cur.sessions.firstOrNull { it.name == a.session }?.let { notifier.outcome(it, mode) }
