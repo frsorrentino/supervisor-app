@@ -29,6 +29,8 @@ interface Transport {
     val events: Flow<List<Event>>
     /** Un GET (sveglia FCM). */
     suspend fun fetchState(): State
+    /** Contratti 1.57 e 1.58: un evento per chiave, quando la push porta solo `kind` e `key`; null se non c'è. */
+    suspend fun fetchEvent(key: String): Event? = null
     /**
      * Scrive /cmd/<id> e attende /result/<id>; TransportException.Timeout dopo RESULT_TIMEOUT_MS. `onWritten` scatta
      * appena il comando è sul canale, prima del risultato: la chat lo mostra come «inviato al PC» (30/09 22:13).
@@ -58,6 +60,8 @@ interface Transport {
         fun resultTimeoutMs(op: CmdOp): Long = when (op) {
             CmdOp.SLASH -> SLASH_RESULT_TIMEOUT_MS
             CmdOp.FILE -> FILE_RESULT_TIMEOUT_MS
+            // Contratto 1.58: il passaggio di consegne lo scrive la sessione, poi il relay lancia o passa.
+            CmdOp.QUOTA_ROUTE -> FILE_RESULT_TIMEOUT_MS
             else -> RESULT_TIMEOUT_MS
         }
     }

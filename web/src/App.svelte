@@ -51,6 +51,7 @@
   import { closeSplash, type Leaving } from './lib/closeSplash'
   import { build, MASTER } from './lib/summary'
   import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
+  import { refusalText } from './lib/questionRules'
   import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
 
   const load = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
@@ -198,7 +199,8 @@
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     try {
       const r = await tr.send(c)
-      if (!r.ok) say(`✗ ${r.text}`)
+      // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
+      if (!r.ok) say(`✗ ${refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)}`)
       return r
     } catch {
       say(`✗ ${t.noAnswer}`)

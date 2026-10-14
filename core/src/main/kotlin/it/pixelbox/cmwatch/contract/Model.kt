@@ -25,6 +25,10 @@ enum class EventKind {
     @SerialName("restart_failed") RESTART_FAILED,
     /** Contratto 1.45: lo stato del PC è rimasto fermo (codice vecchio, push ferme, lock occupato); `session`, `account` e `ref` null. */
     @SerialName("relay_stale") RELAY_STALE,
+    /** Contratto 1.57: il controllo di un task rieseguito quando la sua sessione si ferma; `ref` = id del task. */
+    @SerialName("task_check") TASK_CHECK,
+    /** Contratto 1.58: quota finita; `ref` = la sessione ferma, con `reset_at`, `window`, `other_account`, `actions`. */
+    @SerialName("quota_limit") QUOTA_LIMIT,
 }
 
 @Serializable
@@ -94,16 +98,40 @@ enum class CmdOp {
      * (con `blocks`); riuscita, il testo è `{"row": …}` con la key nuova; «agenda row changed» = ricaricare.
      */
     @SerialName("agenda_set") AGENDA_SET,
+    /** Contratto 1.58: dopo `quota_limit`, `arg` = other_account | at_reset | pass:<sessione>. */
+    @SerialName("quota_route") QUOTA_ROUTE,
 }
 
-@Serializable data class Option(val n: Int, val label: String)
+/**
+ * Contratto 1.53: `description` = la riga che spiega l'opzione, sotto il tasto; `recommended` = l'opzione che Claude ha
+ * marcato «(Recommended)», col segno già tolto dall'etichetta.
+ */
+@Serializable data class Option(val n: Int, val label: String, val description: String? = null, val recommended: Boolean = false)
 
 @Serializable data class Question(
     val id: String, val kind: QuestionKind, val text: String, val options: List<Option>,
     val tier: Tier, @SerialName("asked_at") val askedAt: Long,
-)
+    /** Contratto 1.56: il testo senza segreti, per le notifiche; presente solo quando è diverso da `text`. */
+    val preview: String? = null,
+) {
+    /** Il testo per una notifica o la schermata di blocco (contratto 1.56). */
+    val shareable: String get() = preview ?: text
+}
 
-@Serializable data class Outcome(val short: String, val full: String, val at: Long)
+/** Contratto 1.55: una domanda uscita dallo stato senza risposta da un dispositivo; resta 5 minuti. */
+@Serializable data class Resolved(val id: String, val text: String, val at: Long, val by: String = "terminal")
+
+@Serializable data class Outcome(
+    val short: String, val full: String, val at: Long,
+    /** Contratto 1.60: short e full senza segreti, solo quando il relay ha nascosto qualcosa. */
+    val preview: OutcomePreview? = null,
+) {
+    /** I testi per notifiche e schermata di blocco. */
+    val shareShort: String get() = preview?.short ?: short
+    val shareFull: String get() = preview?.full ?: full
+}
+
+@Serializable data class OutcomePreview(val short: String, val full: String)
 
 @Serializable data class Session(
     val id: String, val name: String, val account: String, val project: String,
@@ -146,6 +174,10 @@ enum class CmdOp {
     @SerialName("duplicate_of") val duplicateOf: String? = null,
     /** Contratto 1.38: i Prossimi dell'ultimo esito, col «!» tolto; assente = nessun tasto. */
     @SerialName("next_steps") val nextSteps: List<NextStep>? = null,
+    /** Contratto 1.54: default | acceptEdits | plan | bypassPermissions, o un nome nuovo da mostrare così; null = non si sa. */
+    @SerialName("permission_mode") val permissionMode: String? = null,
+    /** Contratto 1.55: la domanda risolta al terminale negli ultimi 5 minuti. */
+    val resolved: Resolved? = null,
 )
 
 /** Contratto 1.38: una voce di «Prossimi:»; `blocking` = sblocca un lavoro fermo (un ok, una scelta). */
@@ -267,7 +299,20 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
 @Serializable data class Event(
     val key: String, val kind: EventKind, val session: String? = null, val account: String? = null,
     val ts: Long, val title: String, val body: String = "", val ref: String? = null,
-)
+    /** Contratto 1.56: titolo e corpo senza segreti, solo quando il relay ha nascosto qualcosa. */
+    val preview: EventPreview? = null,
+    /** Contratto 1.58, `quota_limit`: epoch del reset o null, "5h" | "week", l'altro account, le strade in ordine. */
+    @SerialName("reset_at") val resetAt: Long? = null,
+    val window: String? = null,
+    @SerialName("other_account") val otherAccount: String? = null,
+    val actions: List<String>? = null,
+) {
+    /** Titolo e corpo per notifiche e schermata di blocco (contratto 1.56). */
+    val shareTitle: String get() = preview?.title ?: title
+    val shareBody: String get() = preview?.body ?: body
+}
+
+@Serializable data class EventPreview(val title: String, val body: String = "")
 
 @Serializable data class Cmd(
     val id: String, val op: CmdOp, val session: String? = null, val arg: String? = null,

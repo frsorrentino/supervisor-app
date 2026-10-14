@@ -50,7 +50,7 @@ class PhoneNotifier(private val ctx: Context) {
         val q = s.question ?: return
         val plan = NotificationPlan.question(s, labels, emptyList())
         val b = NotificationCompat.Builder(ctx, channel(mode)).setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(plan.title).setContentText(q.text).setStyle(NotificationCompat.BigTextStyle().bigText(q.text))
+            .setContentTitle(plan.title).setContentText(q.shareable).setStyle(NotificationCompat.BigTextStyle().bigText(q.shareable))
             .setSubText(plan.subText).setContentIntent(open(openCode(s.name, queue = true), queue = true)).setOnlyAlertOnce(true)
         q.options.take(3).forEach { o ->
             b.addAction(0, it.pixelbox.cmwatch.rules.QuestionRules.optionLabel(o), broadcast(ReplyRoute.OPTION, s.name, o.n, id(s.name) * 10 + o.n))
@@ -65,9 +65,51 @@ class PhoneNotifier(private val ctx: Context) {
     fun outcome(s: Session, mode: PhoneAlert.Mode) {
         val o = s.outcome ?: return
         post(id(s.name), NotificationCompat.Builder(ctx, channel(mode)).setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(s.name).setContentText(o.short).setStyle(NotificationCompat.BigTextStyle().bigText(o.full))
+            .setContentTitle(s.name).setContentText(o.shareShort).setStyle(NotificationCompat.BigTextStyle().bigText(o.shareFull))
             .setSubText(s.account).setContentIntent(open(openCode(s.name, queue = false))).setAutoCancel(true))
     }
+
+    /** Contratto 1.57: il controllo di un task allo stop, una riga verde o rossa che apre la sessione. */
+    fun taskCheck(e: it.pixelbox.cmwatch.contract.Event) {
+        val green = it.pixelbox.cmwatch.rules.AlertEvents.green(e)
+        post(("task-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (green) CH_QUIET else CH_SOUND).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(e.shareTitle).setContentText(e.shareBody.lineSequence().firstOrNull { it.isNotBlank() })
+            .setStyle(NotificationCompat.BigTextStyle().bigText(e.shareBody))
+            .setColor(if (green) 0xFF2E7D32.toInt() else 0xFFC62828.toInt()).setColorized(false)
+            .setContentIntent(openSession(e.session)).setAutoCancel(true))
+    }
+
+    /**
+     * Contratto 1.58: quota finita. «Continua sull'altro account» e «riprendi al reset» sono tasti della notifica; «passa a
+     * un'altra sessione» apre la sessione, dove si sceglie a chi.
+     */
+    fun quotaLimit(e: it.pixelbox.cmwatch.contract.Event) {
+        val session = e.ref ?: e.session ?: return
+        val words = it.pixelbox.cmwatch.rules.AlertEvents.Words(
+            ctx.getString(R.string.quota_way_other), ctx.getString(R.string.quota_way_reset), ctx.getString(R.string.quota_way_pass),
+        )
+        val hhmm = { s: Long -> java.time.Instant.ofEpochSecond(s).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5) }
+        val b = NotificationCompat.Builder(ctx, CH_SOUND).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(e.shareTitle).setContentIntent(openSession(session)).setAutoCancel(true)
+        it.pixelbox.cmwatch.rules.AlertEvents.ways(e, words, hhmm).forEachIndexed { i, w ->
+            b.addAction(0, w.label, w.arg?.let { arg ->
+                PendingIntent.getBroadcast(
+                    ctx, ("quota-$session-$i").hashCode(),
+                    Intent(ctx, ReplyReceiver::class.java).setAction(ReplyRoute.QUOTA).putExtra(ReplyRoute.SESSION, session).putExtra(ReplyRoute.ARG, arg),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            } ?: openSession(session))
+        }
+        post(("quota-limit-$session").hashCode(), b)
+    }
+
+    private fun openSession(session: String?) = PendingIntent.getActivity(
+        ctx, ("open-" + session).hashCode(),
+        Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra(MainActivity.EXTRA_SESSION, session),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    fun closeQuotaLimit(session: String) = nm.cancel(("quota-limit-$session").hashCode())
 
     fun quota(account: String, title: String) {
         post(("quota-$account").hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(R.drawable.ic_notification)

@@ -183,7 +183,7 @@ open class CmTileService : TileService() {
         onClick = clickable(launch("cmwatch://question/${s.name}"), id = "q"),
         label = { sessionLabel(s) },
         time = { small(Durations.since(s.question?.askedAt ?: s.since, now), AMBER.argb) },
-        title = { text(s.question!!.text.layoutString, typography = Typography.TITLE_MEDIUM, color = colorScheme.onSurface, maxLines = 3) },
+        title = { text(s.question!!.shareable.layoutString, typography = Typography.TITLE_MEDIUM, color = colorScheme.onSurface, maxLines = 3) },
         shape = cardShape(),
         colors = cardColors(),
     )

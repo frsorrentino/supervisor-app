@@ -151,7 +151,7 @@ class Notifier(private val ctx: Context) {
     fun question(s: Session) {
         val q = s.question ?: return
         val plan = NotificationPlan.question(s, labels, history[s.name].orEmpty())
-        val text = QuestionRules.shownText(q.text, labels.noQuestionText)
+        val text = QuestionRules.shownText(q.shareable, labels.noQuestionText)
         lastQuestion[s.name] = q.id to text
         val me = Person.Builder().setName(ctx.getString(R.string.notif_me)).setKey("me").build()
         val them = person(plan.person ?: s.name, s, SessionState.WAITING)

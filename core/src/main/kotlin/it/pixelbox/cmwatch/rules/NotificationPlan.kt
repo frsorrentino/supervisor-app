@@ -65,7 +65,7 @@ object NotificationPlan {
             // Niente emoji nel titolo né nelle righe (Franz, 16/09 16:30: «? e x un po' grossolani»): lo stato lo dice
             // l'icona grande, il fumetto ambra.
             session = s.name, title = s.name, person = "${dot(s)} ${s.name}",
-            messages = history.map { "${it.question} → ${it.answer}" } + QuestionRules.shownText(q.text, l.noQuestionText), bigText = null,
+            messages = history.map { "${it.question} → ${it.answer}" } + QuestionRules.shownText(q.shareable, l.noQuestionText), bigText = null,
             actions = actions, choices = if (high) emptyList() else q.options.map { optionLabel(it.n, it.label) },
             freeForm = !high, channel = CH_QUESTIONS, whenS = q.askedAt, chronometer = true, subText = s.account,
             autoCancel = false, timeoutMs = null, progress = null, accent = SessionState.WAITING,
@@ -85,9 +85,9 @@ object NotificationPlan {
     fun outcome(s: Session, l: Labels): Plan {
         val o = s.outcome ?: error("no outcome")
         return Plan(
-            session = s.name, title = s.name, person = null, messages = listOf(o.short),
+            session = s.name, title = s.name, person = null, messages = listOf(o.shareShort),
             // La riga «Prossimi:» sono tasti nell'app, non testo da leggere nella notifica (contratto 1.38: ora c'è nell'esito).
-            bigText = NextSteps.parse(o.full).text,
+            bigText = NextSteps.parse(o.shareFull).text,
             actions = listOf(Act.Read, Act.Write, Act.Open), choices = emptyList(), freeForm = true, channel = CH_OUTCOMES,
             whenS = o.at, chronometer = false, subText = s.account, autoCancel = true, timeoutMs = 12 * 3600_000L,
             progress = null, accent = SessionState.IDLE,

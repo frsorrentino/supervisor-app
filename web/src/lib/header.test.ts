@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Session } from './contract'
-import { modelKind, notes, quotaLabel, resetLabel, sameModel, shortModel, tone, wider } from './header'
+import { modelKind, notes, permissionLabel, quotaLabel, resetLabel, sameModel, shortModel, tone, wider } from './header'
 
 // Gli stessi casi di ModelTextTest, TuneTest, ContextActionsTest, SessionMetersTest e SessionsTextTest in Kotlin.
 describe('modello', () => {
@@ -66,5 +66,14 @@ describe('righe sotto la testata', () => {
     expect(notes(s({ goal: { text: ' Test verdi ', since: 0 }, low_priority: 'active' }), t)).toEqual(['Obiettivo: Test verdi', 'bassa priorità'])
     expect(notes(s({ low_priority: 'offered', attached: false }), t)).toEqual(['bassa priorità proposta', 'senza finestra'])
     expect(notes(s({ goal: { text: '  ', since: 0 }, low_priority: 'off', attached: false, state: 'gone' }), t)).toEqual([])
+  })
+})
+
+describe('modalità dei permessi (contratto 1.54)', () => {
+  const w = { plan: 'piano', acceptEdits: 'modifiche auto', bypass: 'senza permessi' }
+  it('accanto al modello, niente per default', () => {
+    expect(permissionLabel(null, w)).toBeNull(); expect(permissionLabel('default', w)).toBeNull()
+    expect(permissionLabel('plan', w)).toBe('piano'); expect(permissionLabel('bypassPermissions', w)).toBe('senza permessi')
+    expect(permissionLabel('dontAsk', w)).toBe('dontAsk')
   })
 })

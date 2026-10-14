@@ -40,4 +40,19 @@ object ModelText {
             else -> Family.OTHER
         }
     }
+
+    /** Le parole delle modalità dei permessi conosciute (contratto 1.54). */
+    data class Modes(val plan: String, val acceptEdits: String, val bypass: String)
+
+    /**
+     * Contratto 1.54: la modalità dei permessi accanto al modello, «Opus 5 · medium · plan». Niente per `default` o se non si
+     * sa; un nome nuovo si mostra così com'è.
+     */
+    fun permission(mode: String?, words: Modes): String? = when (mode) {
+        null, "", "default" -> null
+        "plan" -> words.plan
+        "acceptEdits" -> words.acceptEdits
+        "bypassPermissions" -> words.bypass
+        else -> mode
+    }
 }

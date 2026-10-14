@@ -15,6 +15,12 @@ describe('ChatRules', () => {
   it('timeout is uncertain not failed', () => expect(status(m, 'failed', null, s('idle'))).toBe('uncertain'))
   it('delivered when idle', () => expect(status(m, null, ok, s('idle'))).toBe('delivered'))
   it('queued behind a running turn', () => expect(status(m, null, ok, s('busy', t - 600))).toBe('queued'))
+  it('queued when the PC says so (relay 0.8.18, fixture …0002)', () => {
+    const q = { ...ok, text: 'queued: atlas-shop is working, it reads it when the turn ends' }
+    expect(status(m, null, q, s('busy', t))).toBe('queued')
+    expect(status(m, null, q, s('waiting'))).toBe('queued')
+    expect(status(m, null, q, s('idle'))).toBe('delivered')
+  })
 
   it('working when its turn starts', () => {
     const a = advance(m, s('busy', t + 3), t + 5)

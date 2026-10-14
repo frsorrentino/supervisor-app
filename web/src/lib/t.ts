@@ -93,7 +93,7 @@ const it = {
   summaryTitle: 'Master', summaryOpen: (n: number) => `${n}\u00A0${n === 1 ? 'aperta' : 'aperte'}`, search: 'Cerca', menu: 'Menu',
   updatedNow: 'aggiornato ora', updatedAgo: (m: number) => `aggiornato ${m}\u00A0min fa`, menuPc: 'PC',
   staleBanner: (m: number) => `PC fermo da ${m}\u00A0min: lo stato mostrato è vecchio`,
-  updatedSlow: (s: number) => `PC lento di ${s}\u00A0s`, chatWaitingPc: (s: number) => `in attesa del PC da ${s}\u00A0s`, chatUpdating: 'aggiorno la conversazione',
+  updatedSlow: (s: number) => `PC lento di ${s}\u00A0s`, chatWaitingPc: (s: number) => `in attesa del PC da ${s}\u00A0s`, chatUpdating: 'aggiorno la conversazione', optionRecommended: 'consigliata', modes: { plan: 'piano', acceptEdits: 'modifiche auto', bypass: 'senza permessi' }, answerAlreadyResolved: (n: string) => `${n}: al PC la domanda era già stata risolta, nessun tasto premuto`, resolvedAtTerminal: 'risolta al terminale', quotaWayOther: (a: string) => `continua su ${a}`, quotaWayReset: (t: string) => `riprendi alle ${t}`, quotaWayPass: "passa a un'altra sessione",
   menuConnected: (host: string, upd: string) => `Collegato a ${host} · ${upd}`, quotaLineStale: 'non aggiornata',
   badgePersonal: 'account personale', badgeWork: 'account di lavoro',
   // La pagina Notte (specifica del 07/10, approvata alle 21:50).
@@ -337,7 +337,7 @@ const en: typeof it = {
   summaryTitle: 'Master', summaryOpen: (n: number) => `${n} open`, search: 'Search', menu: 'Menu',
   updatedNow: 'updated now', updatedAgo: (m: number) => `updated ${m} min ago`, menuPc: 'PC',
   staleBanner: (m: number) => `PC stopped ${m} min ago: what you see is old`,
-  updatedSlow: (s: number) => `PC ${s} s behind`, chatWaitingPc: (s: number) => `waiting for the PC for ${s} s`, chatUpdating: 'updating the conversation',
+  updatedSlow: (s: number) => `PC ${s} s behind`, chatWaitingPc: (s: number) => `waiting for the PC for ${s} s`, chatUpdating: 'updating the conversation', optionRecommended: 'recommended', modes: { plan: 'plan', acceptEdits: 'auto-edit', bypass: 'no prompts' }, answerAlreadyResolved: (n: string) => `${n}: the question was already resolved at the PC, nothing was pressed`, resolvedAtTerminal: 'resolved at the terminal', quotaWayOther: (a: string) => `continue on ${a}`, quotaWayReset: (t: string) => `resume at ${t}`, quotaWayPass: 'pass to another session',
   menuConnected: (host: string, upd: string) => `Connected to ${host} · ${upd}`, quotaLineStale: 'not updated',
   badgePersonal: 'personal account', badgeWork: 'work account',
   menuNight: 'Night', menuNightSub: "Tonight's jobs and sessions",

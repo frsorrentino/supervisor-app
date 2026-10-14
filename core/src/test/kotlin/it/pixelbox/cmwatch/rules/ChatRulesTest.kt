@@ -3,6 +3,8 @@ package it.pixelbox.cmwatch.rules
 import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.data.PendingStatus
 import it.pixelbox.cmwatch.rules.ChatRules.Status
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -25,6 +27,17 @@ class ChatRulesTest {
 
     @Test fun queuedBehindARunningTurn() =
         assertEquals(Status.QUEUED, ChatRules.status(m, null, ok, s(SessionState.BUSY, turn = t - 600)))
+
+    // Relay 0.8.18: «queued: atlas-shop is working, it reads it when the turn ends» (fixture …0002) dice «in coda» subito,
+    // anche se il turno è partito da poco; a sessione ferma resta consegnato.
+    @Test fun queuedWhenThePcSaysSo() {
+        val root = kotlinx.serialization.json.Json.parseToJsonElement(it.pixelbox.cmwatch.Fixtures.cmdResult).jsonObject
+        val q = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+            .single { it.id == "6f1c2d3e-0002-4000-8000-000000000002" }
+        assertEquals(Status.QUEUED, ChatRules.status(m, null, q, s(SessionState.BUSY, turn = t)))
+        assertEquals(Status.QUEUED, ChatRules.status(m, null, q, s(SessionState.WAITING)))
+        assertEquals(Status.DELIVERED, ChatRules.status(m, null, q, s(SessionState.IDLE)))
+    }
 
     @Test fun workingWhenItsTurnStarts() {
         val a = ChatRules.advance(m, s(SessionState.BUSY, turn = t + 3), now = t + 5)

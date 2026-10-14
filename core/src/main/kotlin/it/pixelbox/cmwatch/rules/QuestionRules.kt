@@ -19,9 +19,20 @@ object QuestionRules {
     /** Più corta di così un'opzione sta in un tasto diviso in parti uguali (Franz, 03/10 15:18: tasti sproporzionati). */
     const val INLINE_CHARS = 14
 
-    /** Due o tre opzioni brevi su una riga, in parti uguali; altrimenti una sotto l'altra. */
+    /** Due o tre opzioni brevi su una riga, in parti uguali; altrimenti una sotto l'altra. Con una spiegazione mai in riga. */
     fun inline(options: List<Option>): Boolean =
-        options.size in 2..3 && options.all { optionText(it.label).length <= INLINE_CHARS }
+        options.size in 2..3 && options.all { optionText(it.label).length <= INLINE_CHARS && !it.recommended && it.description.isNullOrBlank() }
+
+    /**
+     * Contratto 1.53: la riga sotto il tasto, «consigliata · spiegazione», o null. Franz: sul telefono una riga e i tasti,
+     * mai paragrafi; la spiegazione è la description che Claude ha scritto per l'opzione.
+     */
+    fun optionNote(o: Option, recommendedWord: String): String? =
+        listOfNotNull(recommendedWord.takeIf { o.recommended }, o.description?.let(::optionText)?.takeIf { it.isNotEmpty() })
+            .joinToString(" · ").ifEmpty { null }
+
+    /** Il tasto pieno: l'opzione consigliata (1.53), altrimenti la prima. */
+    fun primaryIndex(options: List<Option>): Int = options.indexOfFirst { it.recommended }.takeIf { it >= 0 } ?: 0
 
     /** L'etichetta senza il riquadro: la stessa per tasto, notifica e voce. */
     /**
@@ -45,4 +56,17 @@ object QuestionRules {
 
     /** Un solo bottone pieno per schermata: la prima opzione. */
     fun isPrimary(index: Int) = index == 0
+
+    /** Contratto 1.52: il rifiuto di una risposta arrivata dopo una domanda nuova (testo inglese del relay). */
+    const val QUESTION_CHANGED = ": the question changed after your answer, nothing was pressed"
+
+    /**
+     * Contratto 1.55: se la domanda a cui l'utente ha risposto ([answered], l'id di `question` nel comando) è quella risolta al
+     * terminale, il rifiuto lo dice ([alreadyResolved] con il nome della sessione); altrimenti il testo del relay.
+     */
+    fun refusalText(r: it.pixelbox.cmwatch.contract.CmdResult, answered: String?, sessions: List<it.pixelbox.cmwatch.contract.Session>, alreadyResolved: String): String {
+        if (r.ok || answered == null || !r.text.endsWith(QUESTION_CHANGED)) return r.text
+        val name = r.text.removeSuffix(QUESTION_CHANGED)
+        return if (sessions.any { it.name == name && it.resolved?.id == answered }) alreadyResolved.format(name) else r.text
+    }
 }

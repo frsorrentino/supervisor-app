@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Question } from './contract'
-  import { inline as isInline, needsLongPress, optionLabel } from './questionRules'
+  import { inline as isInline, needsLongPress, optionLabel, optionNote, primaryIndex } from './questionRules'
   import { t } from './t'
   // Le opzioni di una domanda, uguali dovunque (QuestionOptions dell'app): la prima piena se è l'azione della schermata,
   // brevi su una riga in parti uguali, lunghe una sotto l'altra; col rischio alto risponde solo la pressione lunga, e il
@@ -8,6 +8,8 @@
   let { q, onAnswer, firstFilled = true, tonal = 'var(--surface)' }: { q: Question; onAnswer: (n: number) => void; firstFilled?: boolean; tonal?: string } = $props()
   const long = $derived(needsLongPress(q.tier))
   const row = $derived(isInline(q.options))
+  // Contratto 1.53: piena l'opzione consigliata, e sotto ogni tasto la riga che la spiega.
+  const primary = $derived(primaryIndex(q.options))
   let hint = $state(false)
   let held: ReturnType<typeof setTimeout> | null = null
   let fired = false
@@ -27,9 +29,10 @@
 {#if long}<p class="warn" class:hint>{hint ? t.questionHold : t.questionHighRisk}</p>{/if}
 <div class="opts" class:row>
   {#each q.options as o, i}
-    <button class="opt" class:filled={i === 0 && firstFilled} class:long style="--tonal:{tonal}"
+    {@const note = optionNote(o, t.optionRecommended)}
+    <button class="opt" class:filled={i === primary && firstFilled} class:long style="--tonal:{tonal}"
       onpointerdown={(e) => down(o.n, e)} onpointerup={up} onpointerleave={up} onpointercancel={up} onclick={(e) => click(o.n, e)}
-      oncontextmenu={(e) => long && e.preventDefault()}>{optionLabel(o)}</button>
+      oncontextmenu={(e) => long && e.preventDefault()}>{optionLabel(o)}{#if note}<small>{note}</small>{/if}</button>
   {/each}
 </div>
 
@@ -44,6 +47,8 @@
   .row .opt:last-child { border-radius: 6px 22px 22px 6px; }
   .row .opt:only-child { border-radius: 22px; }
   .opt.filled { background: var(--primary); color: var(--on-primary); }
+  .opt small { display: block; font-size: 13px; font-weight: 400; color: var(--text2); }
+  .opt.filled small { color: inherit; opacity: .8; }
   .opt:hover { filter: brightness(1.12); }
   /* La pressione lunga si vede: il tasto si riempie mentre lo tieni. */
   .opt.long:active { background-image: linear-gradient(90deg, rgb(255 255 255 / .18) 0 0); background-size: 0 100%; background-repeat: no-repeat; animation: hold 600ms linear forwards; }

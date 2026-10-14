@@ -21,6 +21,7 @@ class FakeTransport(
 
     override val state: Flow<State> get() = current
     override val events: Flow<List<Event>> = MutableStateFlow(eventList)
+    override suspend fun fetchEvent(key: String): Event? = eventList.firstOrNull { it.key == key }
     /** Le chiavi degli eventi della Demo: fuori dalla Demo si tolgono da Room. */
     val eventKeys: Set<String> get() = eventList.map { it.key }.toSet()
 
@@ -331,6 +332,20 @@ class FakeTransport(
             // Contratti 1.46 e 1.47: la demo ha un'agenda inventata, un gruppo per ognuno di chi deve muoversi, e la cambia
             // con `agenda_set` come il relay (key nuova a ogni modifica, «agenda row changed» con una key vecchia).
             CmdOp.AGENDA -> ok(ContractJson.json.encodeToString(AgendaPage.serializer(), AgendaPage(demoAgenda, owner = "franz")))
+            // Contratto 1.58: le tre strade dopo una quota finita, con i testi del relay.
+            CmdOp.QUOTA_ROUTE -> {
+                val name = cmd.session.orEmpty()
+                val arg = cmd.arg.orEmpty()
+                when {
+                    current.value.sessions.none { it.name == name } -> ko("$name is not running")
+                    arg == "other_account" -> CmdResult(cmd.id, true, "$name-2 continues on work from the handoff", now(), session = "$name-2")
+                    arg == "at_reset" -> ok("$name resumes by itself at 18:00, when the quota resets")
+                    arg.startsWith("pass:") -> arg.removePrefix("pass:").let { to ->
+                        if (current.value.sessions.none { it.name == to }) ko("$to is not running") else ok("passed to $to with the handoff")
+                    }
+                    else -> ko("quota_route $arg: expected other_account, at_reset or pass:<session>")
+                }
+            }
             CmdOp.AGENDA_SET -> {
                 val i = demoAgenda.indexOfFirst { it.key == cmd.arg }
                 if (i < 0) ko("agenda row changed") else {

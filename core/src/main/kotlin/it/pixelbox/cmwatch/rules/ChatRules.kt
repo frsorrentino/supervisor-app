@@ -60,6 +60,9 @@ object ChatRules {
     /** Oltre questo tempo dall'invio un turno nuovo non è più di quel messaggio (revisione 30/09). */
     const val CLAIM_S = 1_800L
 
+    /** Il risultato di un `prompt` arrivato mentre la sessione lavora (relay 0.8.18). */
+    const val QUEUED_PREFIX = "queued:"
+
     fun status(m: Sent, pending: PendingStatus?, result: CmdResult?, s: Session?, upload: Upload? = null): Status = when {
         m.failed != null || upload is Upload.Failed || result?.ok == false -> Status.FAILED
         waiting(m) -> Status.SCHEDULED
@@ -72,6 +75,8 @@ object ChatRules {
         result == null && pending == PendingStatus.SENT -> Status.SENT
         result == null && pending != null -> Status.SENDING
         s?.state == SessionState.BUSY && (s.turnStarted ?: Long.MAX_VALUE) < m.sentAt - SKEW_S -> Status.QUEUED
+        // Relay 0.8.18: a una sessione che lavora o aspetta una risposta il PC dice «queued: …», il messaggio aspetta la fine del turno.
+        result?.text?.startsWith(QUEUED_PREFIX) == true && (s?.state == SessionState.BUSY || s?.state == SessionState.WAITING) -> Status.QUEUED
         else -> Status.DELIVERED
     }
 

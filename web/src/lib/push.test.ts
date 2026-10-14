@@ -50,3 +50,11 @@ describe('notifiche web push: i dati', () => {
     expect(bus.deleted).toContain('push/webUid')
   })
 })
+
+describe('push senza segreti (contratto 1.56)', () => {
+  it('la notifica usa preview quando c\'è', () => {
+    const n = notificationOf({ title: '✓ x', body: 'token ghp_abc', preview: { title: '✓ x', body: 'token •••' }, key: 'k' })
+    expect(n.body).toBe('token •••')
+    expect(notificationOf({ title: 't', body: 'b' }).body).toBe('b')
+  })
+})

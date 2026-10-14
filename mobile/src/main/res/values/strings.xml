@@ -904,4 +904,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="live_key_actions">Azioni</string>
     <string name="live_key_repeat">Ripeti</string>
     <string name="live_key_skip">Salta</string>
+    <string name="option_recommended">consigliata</string>
+    <string name="mode_plan">piano</string>
+    <string name="mode_accept_edits">modifiche auto</string>
+    <string name="mode_bypass">senza permessi</string>
+    <string name="answer_already_resolved">%1$s: al PC la domanda era già stata risolta, nessun tasto premuto</string>
+    <string name="question_resolved_terminal">✓ risolta al terminale · %1$s</string>
+    <string name="quota_way_other">continua su %1$s</string>
+    <string name="quota_way_reset">riprendi alle %1$s</string>
+    <string name="quota_way_pass">passa a un\'altra sessione</string>
 </resources>

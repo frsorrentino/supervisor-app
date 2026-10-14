@@ -3,6 +3,7 @@ package it.pixelbox.cmwatch.rules
 import it.pixelbox.cmwatch.Fixtures
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.Option
+import it.pixelbox.cmwatch.contract.Question
 import it.pixelbox.cmwatch.contract.QuestionKind
 import it.pixelbox.cmwatch.contract.Tier
 import org.junit.Assert.*
@@ -55,5 +56,36 @@ class QuestionRulesTest {
 
     @Test fun aRealTextStays() {
         for (t in listOf("Deploy now?", "Procedo con il push?", "1 o 2?")) assertEquals(t, t, QuestionRules.shownText(t, "x"))
+    }
+
+    // Contratto 1.53: la spiegazione dell'opzione è una riga sotto il tasto, con «consigliata» davanti all'opzione marcata;
+    // l'opzione consigliata è il tasto pieno, e con una spiegazione le opzioni stanno una sotto l'altra.
+    @Test fun explainedOptions() {
+        val json = """{"id":"q-1-1","kind":"ask","text":"Deploy now?","tier":"low","asked_at":1,"options":[
+            {"n":1,"label":"Yes","description":"Ship it to production now.","recommended":true},{"n":2,"label":"No"}]}"""
+        val q = ContractJson.json.decodeFromString(Question.serializer(), json)
+        assertEquals("consigliata · Ship it to production now.", QuestionRules.optionNote(q.options[0], "consigliata"))
+        assertNull(QuestionRules.optionNote(q.options[1], "consigliata"))
+        assertEquals(0, QuestionRules.primaryIndex(q.options))
+        assertEquals(1, QuestionRules.primaryIndex(listOf(Option(1, "a"), Option(2, "b", recommended = true))))
+        assertEquals(0, QuestionRules.primaryIndex(listOf(Option(1, "a"), Option(2, "b"))))
+        assertFalse(QuestionRules.inline(q.options))
+        assertTrue(QuestionRules.inline(listOf(Option(1, "Yes"), Option(2, "No"))))
+        // Una spiegazione su più righe resta una riga.
+        assertEquals("first", QuestionRules.optionNote(Option(1, "a", description = "first\nsecond"), "consigliata"))
+    }
+
+    // Contratto 1.55: la risposta rifiutata perché al PC la domanda era già stata risolta lo dice in chiaro.
+    @Test fun refusalOfAQuestionResolvedAtTheTerminal() {
+        val st = ContractJson.decodeState(Fixtures.stateQuestion)
+        val ledger = st.sessions.single { it.name == "ledger-api" }
+        val solved = ledger.copy(question = null, resolved = it.pixelbox.cmwatch.contract.Resolved("q-1789210500-1", "Deploy now?", 1789210600))
+        val r = it.pixelbox.cmwatch.contract.CmdResult("c", false, "ledger-api: the question changed after your answer, nothing was pressed", 1)
+        val word = "%s: al PC era già stata risolta, nessun tasto premuto"
+        assertEquals("ledger-api: al PC era già stata risolta, nessun tasto premuto", QuestionRules.refusalText(r, "q-1789210500-1", listOf(solved), word))
+        assertEquals(r.text, QuestionRules.refusalText(r, "q-1789210380-1", listOf(solved), word))
+        assertEquals(r.text, QuestionRules.refusalText(r, null, listOf(solved), word))
+        val other = it.pixelbox.cmwatch.contract.CmdResult("c", false, "ledger-api has no open question", 1)
+        assertEquals(other.text, QuestionRules.refusalText(other, "q-1789210500-1", listOf(solved), word))
     }
 }

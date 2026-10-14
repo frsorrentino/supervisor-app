@@ -280,4 +280,5 @@
     <string name="say_thinking">sta pensando</string>
     <string name="say_recap_minute">1 minuto</string>
     <string name="say_recap_minutes">%1$d minuti</string>
+    <string name="option_recommended">consigliata</string>
 </resources>

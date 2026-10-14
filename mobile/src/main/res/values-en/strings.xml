@@ -887,4 +887,13 @@ It starts at your last message to the master.</string>
     <string name="live_key_actions">Actions</string>
     <string name="live_key_repeat">Repeat</string>
     <string name="live_key_skip">Skip</string>
+    <string name="option_recommended">recommended</string>
+    <string name="mode_plan">plan</string>
+    <string name="mode_accept_edits">auto-edit</string>
+    <string name="mode_bypass">no prompts</string>
+    <string name="answer_already_resolved">%1$s: the question was already resolved at the PC, nothing was pressed</string>
+    <string name="question_resolved_terminal">✓ resolved at the terminal · %1$s</string>
+    <string name="quota_way_other">continue on %1$s</string>
+    <string name="quota_way_reset">resume at %1$s</string>
+    <string name="quota_way_pass">pass to another session</string>
 </resources>

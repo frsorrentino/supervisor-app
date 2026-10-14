@@ -36,4 +36,16 @@ class ModelTextTest {
         assertTrue(ModelText.millionWindow(Model("claude-opus-5[1m]", null)))
         assertFalse(ModelText.millionWindow(Model("claude-opus-5", null)))
     }
+
+    // Contratto 1.54: la modalità dei permessi accanto al modello; niente per default o se non si sa.
+    @Test fun permissionModeNextToTheModel() {
+        val w = ModelText.Modes("piano", "modifiche auto", "senza permessi")
+        assertNull(ModelText.permission(null, w)); assertNull(ModelText.permission("default", w))
+        assertEquals("piano", ModelText.permission("plan", w))
+        assertEquals("modifiche auto", ModelText.permission("acceptEdits", w))
+        assertEquals("senza permessi", ModelText.permission("bypassPermissions", w))
+        assertEquals("dontAsk", ModelText.permission("dontAsk", w))
+        val json = """{"id":"x","name":"x","account":"a","project":"p","state":"idle","since":1,"permission_mode":"plan"}"""
+        assertEquals("plan", it.pixelbox.cmwatch.contract.ContractJson.json.decodeFromString(it.pixelbox.cmwatch.contract.Session.serializer(), json).permissionMode)
+    }
 }

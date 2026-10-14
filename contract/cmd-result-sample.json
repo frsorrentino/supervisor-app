@@ -537,7 +537,7 @@
     {
       "id": "6f1c2d3e-0002-4000-8000-000000000002",
       "ok": true,
-      "text": "delivered",
+      "text": "queued: atlas-shop is working, it reads it when the turn ends",
       "at": 1789210891
     },
     {
@@ -659,7 +659,7 @@
     {
       "id": "6f1c2d3e-0132-4000-8000-000000000132",
       "ok": true,
-      "text": "delivered",
+      "text": "queued: atlas-shop is working, it reads it when the turn ends",
       "at": 1789210781
     },
     {
@@ -719,7 +719,7 @@
     {
       "id": "6f1c2d3e-0360-4000-8000-000000000360",
       "ok": true,
-      "text": "delivered",
+      "text": "queued: atlas-shop is working, it reads it when the turn ends",
       "at": 1789210961
     },
     {

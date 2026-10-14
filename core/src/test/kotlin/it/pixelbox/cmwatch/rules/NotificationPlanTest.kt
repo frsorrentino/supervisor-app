@@ -27,6 +27,22 @@ class NotificationPlanTest {
         assertFalse(p.autoCancel)
     }
 
+    // Contratto 1.56: sulla schermata di blocco va il testo senza segreti; quello intero resta per l'app aperta.
+    @Test fun aQuestionWithASecretShowsItsPreview() {
+        val q = ledger.question!!.copy(text = "Use token ghp_abc123 to deploy?", preview = "Use token ••• to deploy?")
+        val p = NotificationPlan.question(ledger.copy(question = q), l, history = emptyList())
+        assertEquals("Use token ••• to deploy?", p.messages.last())
+        assertEquals("Deploy ready, waiting for the client's ok. Deploy now?", ledger.question!!.shareable)
+    }
+
+    // Contratto 1.60: anche l'esito ha il suo testo senza segreti.
+    @Test fun anOutcomeWithASecretShowsItsPreview() {
+        val o = it.pixelbox.cmwatch.contract.Outcome("key sk-123 saved", "Esito: key sk-123 saved", 10, it.pixelbox.cmwatch.contract.OutcomePreview("key ••• saved", "Esito: key ••• saved"))
+        val p = NotificationPlan.outcome(ledger.copy(outcome = o), l)
+        assertEquals(listOf("key ••• saved"), p.messages)
+        assertFalse(p.bigText.orEmpty().contains("sk-123"))
+    }
+
     @Test fun questionHighHasOnlyOpen() {
         val high = ledger.copy(question = ledger.question!!.copy(tier = Tier.HIGH))
         val p = NotificationPlan.question(high, l, emptyList())

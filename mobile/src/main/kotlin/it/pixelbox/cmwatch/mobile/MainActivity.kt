@@ -70,6 +70,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -145,7 +146,16 @@ class MainActivity : ComponentActivity() {
                                 Main(s.demoMode, s.ttsMinChars, s.host, s.pairingJson, ::scan)
                             }
                             it.pixelbox.cmwatch.mobile.ui.ReadingOverlayHost(readingOverlay)
-                            RefusalBanner(app.repo.userResults, androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomCenter))
+                            // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
+                            val resolvedWord = androidx.compose.ui.res.stringResource(R.string.answer_already_resolved)
+                            val refusals = remember(resolvedWord) {
+                                app.repo.userResults.map { r ->
+                                    r.copy(text = it.pixelbox.cmwatch.rules.QuestionRules.refusalText(
+                                        r, app.repo.answeredQuestion(r.id), app.repo.snapshot.value.state?.sessions.orEmpty(), resolvedWord,
+                                    ))
+                                }
+                            }
+                            RefusalBanner(refusals, androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomCenter))
                         }
                     }
                     else -> NotPairedScreen(onPair = ::scan, onPaste = { paste = true }, onDemo = { app.setDemo(true) })
@@ -1119,6 +1129,9 @@ class MainActivity : ComponentActivity() {
                             loadingFeed = transcriptOk && !unsupported && ChatFeed.loading(pageEntries, answered = session.name in feedCache),
                             waitingSince = readSince.takeIf { session.name == chatName },
                             updating = session.name == chatName && session.state != it.pixelbox.cmwatch.contract.SessionState.GONE && freshFor != chatName && ChatFeed.behind(session, bgReads[session.name]),
+                            quotaLimit = it.pixelbox.cmwatch.rules.AlertEvents.openLimit(events, session, now),
+                            passTargets = it.pixelbox.cmwatch.rules.AlertEvents.passTargets(state?.sessions.orEmpty(), session.name),
+                            onQuotaRoute = { arg -> scope.launch { runCatching { app.repo.command(CmdOp.QUOTA_ROUTE, session.name, arg) } } },
                             more = more && session.name == chatName,
                             model = tunePicks[session.name + "/model"].let { p -> Tune.model(session, p, p?.let { results[it.cmd] }, now) },
                             effort = tunePicks[session.name + "/effort"].let { p -> Tune.effort(session, p, p?.let { results[it.cmd] }, now) },

@@ -24,10 +24,11 @@ export class TransportError extends Error {
 const RESULT_TIMEOUT_MS = 20_000
 /** Un comando slash che apre un pannello ci mette più di 20 s, come sull'app Android. */
 const SLASH_RESULT_TIMEOUT_MS = 60_000
-/** Un file della chat: il relay lo prepara tutto, anche copiandolo da un altro host, prima di rispondere (10/10). */
+/** Un file della chat: il relay lo prepara tutto, anche copiandolo da un altro host, prima di rispondere (10/10). Anche
+ * `quota_route` (1.58): la sessione scrive il passaggio di consegne prima del lancio. */
 const FILE_RESULT_TIMEOUT_MS = 180_000
 export const resultTimeoutMs = (op: CmdOp) =>
-  op === 'slash' ? SLASH_RESULT_TIMEOUT_MS : op === 'file' ? FILE_RESULT_TIMEOUT_MS : RESULT_TIMEOUT_MS
+  op === 'slash' ? SLASH_RESULT_TIMEOUT_MS : op === 'file' || op === 'quota_route' ? FILE_RESULT_TIMEOUT_MS : RESULT_TIMEOUT_MS
 
 export class LocalTransport implements Transport {
   constructor(

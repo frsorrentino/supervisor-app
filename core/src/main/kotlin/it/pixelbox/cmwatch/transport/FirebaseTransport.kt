@@ -136,6 +136,13 @@ class FirebaseTransport(
         return ContractJson.decodeState(open(Json.parseToJsonElement(body))).also { markSeenLater() }
     }
 
+    override suspend fun fetchEvent(key: String): Event? {
+        k()
+        val body = rtdb.get("events/$key") ?: return null
+        val e = Json.parseToJsonElement(body)
+        return if (isBlob(e)) runCatching { ContractJson.json.decodeFromString(Event.serializer(), open(e)) }.getOrNull() else null
+    }
+
     /** Busta come /cmd, in chiaro {mime, data}; il limite vale sulla stringa `enc` (contratto 1.19). Nulla si scrive oltre il limite. */
     override suspend fun share(id: String, mime: String, data: ByteArray, maxBytes: Int, name: String?, partsMax: Long?) {
         // Contratto 1.48: con i pezzi, 1 MiB per volta e per ultimo il manifesto; il relay li ricompone e controlla lo sha256.

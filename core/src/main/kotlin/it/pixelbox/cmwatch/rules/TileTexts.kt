@@ -75,7 +75,7 @@ object TileTexts {
         // Contratto 1.5: la description del comando vince sul comando grezzo, ma solo con uno strumento in corso.
         val grezzo = s.tool?.trim()?.takeIf { it.isNotEmpty() }
         val tool = if (tools != null) ToolText.describe(s.toolNote, s.tool, tools) else grezzo?.let { s.toolNote?.trim()?.takeIf { n -> n.isNotEmpty() } ?: it }
-        val esito = s.outcome?.short?.let { plain(it) }?.takeIf { it.isNotEmpty() }
+        val esito = s.outcome?.shareShort?.let { plain(it) }?.takeIf { it.isNotEmpty() }
         // Contratto 1.2: `next_at` dice di che giorno è il «prossimo». Senza data non si sa, e un piano di tre giorni
         // prima sulla tile è peggio che niente: vale solo se è recente e non più vecchio dell'ultimo esito.
         val prossimo = prossimo(s, now)
@@ -107,7 +107,7 @@ object TileTexts {
         // cosa sta lavorando, che è più fresco di un esito o di un prossimo passo.
         if (busy && goal != null) SessionsText.goalLine(s, goal)?.let { return it }
         if (!busy || s.tool.isNullOrBlank()) return null
-        return prossimo(s, now) ?: s.outcome?.short?.let { plain(it) }?.takeIf { it.isNotEmpty() }
+        return prossimo(s, now) ?: s.outcome?.shareShort?.let { plain(it) }?.takeIf { it.isNotEmpty() }
     }
 
     /** Una riga della card della tile, contata per difetto: metà delle due righe di `TILE_MAX`. */
@@ -338,14 +338,14 @@ object TileTexts {
         if (freshness is Freshness.Stale) return Glance("", null, staleLine(freshness, l.stale), Button.SESSIONS, Accent.STALE, "cmwatch://sessions")
         val counts = counts(state)
         state.sessions.firstOrNull { it.question != null && it.question.id !in seen }?.let {
-            return Glance(counts, it.name, it.question!!.text, Button.REPLY, Accent.QUESTION, "cmwatch://question/${it.name}")
+            return Glance(counts, it.name, it.question!!.shareable, Button.REPLY, Accent.QUESTION, "cmwatch://question/${it.name}")
         }
         val s = state.sessions.firstOrNull { it.followed && it.state != SessionState.GONE }
             ?: state.sessions.filter { it.state != SessionState.GONE }.maxByOrNull { maxOf(it.since, it.turnStarted ?: 0, it.outcome?.at ?: 0) }
             ?: return Glance(counts, null, l.none, Button.SESSIONS, Accent.IDLE, "cmwatch://sessions")
         val busy = s.state == SessionState.BUSY || s.state == SessionState.AWAITING
         val age = Durations.since(if (busy) s.turnStarted ?: s.since else s.since, now)
-        val body = if (busy) "▶ ${s.tool ?: l.works} · $age" else s.outcome?.short ?: "✓ · $age"
+        val body = if (busy) "▶ ${s.tool ?: l.works} · $age" else s.outcome?.shareShort ?: "✓ · $age"
         return Glance(counts, s.name, body, Button.SESSIONS, if (busy) Accent.BUSY else Accent.IDLE, "cmwatch://session/${s.name}")
     }
 
@@ -364,7 +364,7 @@ object TileTexts {
 
     /** La sessione ferma con la domanda intera; senza domande la seguita, altrimenti la più recente. */
     fun line(state: State, now: Long): String? {
-        state.sessions.firstOrNull { it.question != null }?.let { return "❓ ${it.name} · ${it.question!!.text}" }
+        state.sessions.firstOrNull { it.question != null }?.let { return "❓ ${it.name} · ${it.question!!.shareable}" }
         val s = state.sessions.firstOrNull { it.followed && it.state != SessionState.GONE }
             ?: state.sessions.filter { it.state != SessionState.GONE }.maxByOrNull { maxOf(it.since, it.turnStarted ?: 0, it.outcome?.at ?: 0) }
             ?: return null

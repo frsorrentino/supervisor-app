@@ -57,3 +57,9 @@ export function notes(s: Session, t: { goal: string; lowPriority: string; lowPri
     !s.attached && s.state !== 'gone' ? t.noWindow : null,
   ].filter((x): x is string => x != null)
 }
+
+/** Contratto 1.54: la modalità dei permessi accanto al modello; niente per default o se non si sa, un nome nuovo così com'è. */
+export function permissionLabel(mode: string | null | undefined, w: { plan: string; acceptEdits: string; bypass: string }): string | null {
+  if (!mode || mode === 'default') return null
+  return mode === 'plan' ? w.plan : mode === 'acceptEdits' ? w.acceptEdits : mode === 'bypassPermissions' ? w.bypass : mode
+}

@@ -24,6 +24,12 @@ class PhoneMessagingService : FirebaseMessagingService() {
         when (message.data["kind"]) {
             "recap" -> app.notifier.diary(getString(R.string.notif_diary))
             "night_report" -> app.notifier.diary(getString(R.string.notif_night))
+            // Contratti 1.57 e 1.58: la push porta solo la chiave, l'evento si legge da /events.
+            "task_check", "quota_limit" -> message.data["key"]?.let { key ->
+                runBlocking { withTimeoutOrNull(8_000) { app.repo.event(key) } }?.let { e ->
+                    if (e.kind == it.pixelbox.cmwatch.contract.EventKind.TASK_CHECK) app.notifier.taskCheck(e) else app.notifier.quotaLimit(e)
+                }
+            }
         }
     }
 }

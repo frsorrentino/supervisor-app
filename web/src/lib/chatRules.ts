@@ -41,6 +41,8 @@ export function status(m: Sent, pending: PendingStatus | null, result: CmdResult
   if (result == null && pending === 'sent') return 'sent'
   if (result == null && pending != null) return 'sending'
   if (s?.state === 'busy' && (s.turn_started ?? Number.MAX_SAFE_INTEGER) < m.sentAt - SKEW_S) return 'queued'
+  // Relay 0.8.18: a una sessione che lavora o aspetta una risposta il PC dice «queued: …».
+  if (result?.text?.startsWith('queued:') && (s?.state === 'busy' || s?.state === 'waiting')) return 'queued'
   return 'delivered'
 }
 

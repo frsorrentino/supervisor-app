@@ -2,13 +2,21 @@
 // I test leggono le fixture di ../contract, come quelli Kotlin.
 
 export type SessionState = 'waiting' | 'busy' | 'idle' | 'awaiting' | 'gone'
-export type Option = { n: number; label: string }
-export type Question = { id: string; kind: 'permission' | 'ask' | 'plan'; text: string; options: Option[]; tier: 'low' | 'medium' | 'high'; asked_at: number }
-export type Outcome = { short: string; full: string; at: number }
+/** Contratto 1.53: la riga che spiega l'opzione e l'opzione consigliata. */
+export type Option = { n: number; label: string; description?: string | null; recommended?: boolean }
+export type Question = { id: string; kind: 'permission' | 'ask' | 'plan'; text: string; options: Option[]; tier: 'low' | 'medium' | 'high'; asked_at: number
+  /** Contratto 1.56: il testo senza segreti, solo quando diverso da `text`. */
+  preview?: string | null }
+/** Contratto 1.55: una domanda risolta al terminale, nello stato per 5 minuti. */
+export type Resolved = { id: string; text: string; at: number; by: string }
+/** Contratto 1.60: `preview` = short e full senza segreti, solo quando il relay ha nascosto qualcosa. */
+export type Outcome = { short: string; full: string; at: number; preview?: { short: string; full: string } | null }
 export type Model = { id: string; label?: string | null }
 export type Goal = { text: string; since: number; met?: boolean | null }
 
 export type Session = {
+  /** Contratto 1.54 e 1.55. */
+  permission_mode?: string | null; resolved?: Resolved | null
   id: string; name: string; account: string; project: string; state: SessionState; since: number
   turn_started?: number | null; tool?: string | null; link?: string; tool_note?: string | null
   attached?: boolean; followed?: boolean; question?: Question | null; outcome?: Outcome | null
@@ -52,8 +60,12 @@ export type AgendaRow = {
 export type AgendaPage = { rows: AgendaRow[]; more: boolean; owner?: string | null }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
-export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale'
-export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null }
+export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit'
+export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null
+  /** Contratto 1.56: titolo e corpo senza segreti. */
+  preview?: { title: string; body?: string } | null
+  /** Contratto 1.58, `quota_limit`. */
+  reset_at?: number | null; window?: string | null; other_account?: string | null; actions?: string[] | null }
 
 // Trascrizione (contratto 1.22): `in` comprende la cache; `queued` = scritta a turno in corso e non ancora presa; `cut` = accorciata dal PC.
 export type TranscriptTurn = { started?: number | null; ended?: number | null; in?: number | null; out?: number | null }
@@ -93,7 +105,7 @@ export type State = {
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
-  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set'
+  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route'
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */

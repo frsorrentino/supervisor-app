@@ -16,7 +16,8 @@
   import ElsewherePill from './ElsewherePill.svelte'
   import type { Alert } from './elsewhere'
   import QuestionCard from './QuestionCard.svelte'
-  import { CHAT_ARG } from './questionRules'
+  import { CHAT_ARG, optionText } from './questionRules'
+  import { openLimit, passArg, passTargets, ways } from './alertEvents'
   import { append, box as boxOf, inDraft } from './composer'
   import Composer from './Composer.svelte'
   import PromptBox from './PromptBox.svelte'
@@ -66,6 +67,11 @@
     return () => clearInterval(id)
   })
   const waitS = $derived(waitingPc(entries.length > 0, waitingSince, waitNow))
+  // Contratto 1.58: la quota finita ancora da decidere per questa sessione.
+  const limit = $derived(openLimit(events, s, st.ts))
+  const hhmm = (sec: number) => new Date(sec * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  const limitWays = $derived(limit ? ways(limit, { otherAccount: t.quotaWayOther, atReset: t.quotaWayReset, pass: t.quotaWayPass }, hhmm) : [])
+  let picking = $state(false)
   // I consigli dell'ultima risposta di Claude, se dopo non c'è altro che passaggi.
   const last = $derived.by(() => { const it = [...items].reverse().find(i => i.type !== 'tool' && i.type !== 'steps'); return it?.type === 'claude' ? it.entry : null })
   const lastParsed = $derived(last ? parseSteps(last.text ?? '') : null)
@@ -182,6 +188,22 @@
     {#if s.question}
       <QuestionCard q={s.question} source={s.name} onAnswer={(n) => onCmd('answer', String(n))} onChat={() => onCmd('answer', CHAT_ARG)} onAllowAll={() => onCmd('allow_all')} />
     {/if}
+    {#if limit}
+      <!-- Contratto 1.58: quota finita, una riga e i tasti delle strade proposte dal relay. -->
+      <div class="qlimit">
+        <p>{limit.title}</p>
+        {#each limitWays as w, i}
+          <button class="qway" class:filled={i === 0} onclick={() => (w.arg ? onCmd('quota_route', w.arg) : (picking = !picking))}>{w.label}</button>
+        {/each}
+        {#if picking}
+          {#each passTargets(st.sessions, s.name) as n}<button class="qway" onclick={() => onCmd('quota_route', passArg(n))}>{n}</button>{/each}
+        {/if}
+      </div>
+    {/if}
+    {#if !s.question && s.resolved}
+      <!-- Contratto 1.55: risolta al PC, resta qualche minuto invece di sparire. -->
+      <p class="resolved">✓ {t.resolvedAtTerminal} · {optionText(s.resolved.text)}</p>
+    {/if}
     {/if}
     {#if !atEnd && !home}
       <div class="toend"><button aria-label={t.toLatest} title={t.toLatest} onclick={() => { if (!list) return; atEnd = true; auto = true; list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' }) }}>
@@ -265,6 +287,11 @@
   .toend button:hover { filter: brightness(1.15); }
   .chat.master .toend button { background: var(--master-highest); }
   .lines { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .qlimit { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; padding: 16px; border-radius: 24px; border: 2px solid var(--gone); background: var(--high); max-width: 760px; }
+  .qlimit p { margin: 0 0 4px; }
+  .qway { min-height: 44px; padding: 10px 18px; border-radius: 22px; background: var(--surface); color: var(--text); font-size: 16px; font-weight: 500; text-align: left; }
+  .qway.filled { background: var(--primary); color: var(--on-primary); }
+  .resolved { margin: 4px 4px 8px; font-size: 14px; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .waitpc { margin: 0; text-align: center; font-size: 12.5px; color: var(--text2); }
   .nudge { display: flex; align-items: center; gap: 12px; margin: 0 12px 8px; padding: 10px 6px 10px 14px; border-radius: 20px; background: var(--high); }
   .nudge .nt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; line-height: 1.3; color: var(--text2); }

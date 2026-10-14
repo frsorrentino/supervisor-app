@@ -184,6 +184,10 @@ fun SessionSheet(
     waitingSince: Long? = null,
     /** La copia della chat è più vecchia dell'ultima attività e la prima lettura non è ancora arrivata (Franz, 14/10 18:39). */
     updating: Boolean = false,
+    /** Contratto 1.58: la quota finita ancora da decidere, a chi si può passare, e la strada scelta (`arg` di quota_route). */
+    quotaLimit: it.pixelbox.cmwatch.contract.Event? = null,
+    passTargets: List<String> = emptyList(),
+    onQuotaRoute: (String) -> Unit = {},
     /** L'orologio della riga d'attesa, in ms. */
     clockMs: () -> Long = System::currentTimeMillis,
     /** La finestra di 5 ore dell'account della sessione sta finendo (`QuotaWarning`); null = nessun avviso. */
@@ -474,6 +478,17 @@ fun SessionSheet(
                 s.question?.let { q ->
                     item(key = "q-" + q.id) {
                         QuestionCard(q, primary == PhonePrimary.Button.OPTION, holdHint, onHold = { holdHint = true }, actions)
+                    }
+                }
+                quotaLimit?.let { e -> item(key = "quota-" + e.key) { QuotaLimitCard(e, passTargets, onQuotaRoute) } }
+                // Contratto 1.55: risolta al PC, resta qualche minuto invece di sparire.
+                if (s.question == null) s.resolved?.let { r ->
+                    item(key = "resolved-" + r.id) {
+                        Text(
+                            stringResource(R.string.question_resolved_terminal, it.pixelbox.cmwatch.rules.QuestionRules.optionText(r.text)),
+                            style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                        )
                     }
                 }
                 // Solo i comandi dell'utente: le letture delle schermate non diventano righe «non consegnato».
@@ -1739,7 +1754,9 @@ private fun SheetHeader(
             // (Franz, 30/09 23:01: «disordinata», «lavora 5 h potrebbe essere rimosso»).
             // Modello ed effort in una pillola sola, «Opus 5.5 · medium», che apre un foglio con le due scelte (osservazioni del 03/10:
             // troppi comandi in testa).
-            val tune = listOfNotNull(ModelText.short(model) ?: stringResource(R.string.model_title), effort).joinToString(" · ")
+            // Contratto 1.54: la modalità dei permessi in coda, se non è quella normale.
+            val modes = ModelText.Modes(stringResource(R.string.mode_plan), stringResource(R.string.mode_accept_edits), stringResource(R.string.mode_bypass))
+            val tune = listOfNotNull(ModelText.short(model) ?: stringResource(R.string.model_title), effort, ModelText.permission(s.permissionMode, modes)).joinToString(" · ")
             // Sul tablet il nome e lo stato a sinistra, nel posto che resta; le pillole a destra (mockup della plancia).
             if (lead != null) Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { lead() }
             // Tre pillole uguali (variante A, scelta da Franz il 09/10 alle 17:50): modello, quota delle 5 ore con l'ora in cui si
@@ -1858,9 +1875,12 @@ internal fun QuestionOptions(
     )
     // Righe B (Franz, 03/10 15:18: tasti sproporzionati): 44 dp; due o tre opzioni brevi in parti uguali su una riga.
     val inline = QuestionRules.inline(q.options)
+    // Contratto 1.53: piena l'opzione consigliata, e sotto ogni tasto la riga che la spiega.
+    val primary = QuestionRules.primaryIndex(q.options)
+    val recommended = stringResource(R.string.option_recommended)
     val button: @Composable (Int, it.pixelbox.cmwatch.contract.Option, Modifier, androidx.compose.ui.graphics.Shape) -> Unit = { i, o, m, shape ->
         OptionButton(
-            QuestionRules.optionLabel(o), filled = i == 0 && firstFilled,
+            QuestionRules.optionLabel(o), filled = i == primary && firstFilled, note = QuestionRules.optionNote(o, recommended),
             onClick = { if (long) onHold() else onAnswer(o.n) },
             onLongClick = if (long) ({ onAnswer(o.n) }) else null,
             modifier = m, shape = shape, center = inline, tonal = tonal,
@@ -1876,6 +1896,32 @@ internal fun QuestionOptions(
     } else q.options.forEachIndexed { i, o -> button(i, o, Modifier.fillMaxWidth(), CircleShape) }
 }
 
+/**
+ * Contratto 1.58: quota finita. Una riga e i tasti delle strade che il relay propone; «passa a un'altra sessione» apre la
+ * lista delle sessioni vive, un tasto per ognuna.
+ */
+@Composable
+private fun QuotaLimitCard(e: it.pixelbox.cmwatch.contract.Event, passTargets: List<String>, onRoute: (String) -> Unit) {
+    val words = it.pixelbox.cmwatch.rules.AlertEvents.Words(
+        stringResource(R.string.quota_way_other), stringResource(R.string.quota_way_reset), stringResource(R.string.quota_way_pass),
+    )
+    val ways = it.pixelbox.cmwatch.rules.AlertEvents.ways(e, words) { s ->
+        java.time.Instant.ofEpochSecond(s).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5)
+    }
+    var picking by remember(e.key) { mutableStateOf(false) }
+    Surface(color = CmColors.surfaceHigh, shape = MaterialTheme.shapes.extraLarge, border = BorderStroke(2.dp, CmColors.gone)) {
+        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(e.title, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+            ways.forEachIndexed { i, w ->
+                OptionButton(w.label, filled = i == 0, onClick = { w.arg?.let(onRoute) ?: run { picking = !picking } }, onLongClick = null)
+            }
+            if (picking) passTargets.forEach { name ->
+                OptionButton(name, filled = false, onClick = { onRoute(it.pixelbox.cmwatch.rules.AlertEvents.passArg(name)) }, onLongClick = null)
+            }
+        }
+    }
+}
+
 /** Un'opzione della domanda: piena la prima, tonali le altre; con il rischio alto risponde solo la pressione lunga. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -1883,6 +1929,8 @@ private fun OptionButton(
     label: String, filled: Boolean, onClick: () -> Unit, onLongClick: (() -> Unit)?,
     modifier: Modifier = Modifier.fillMaxWidth(), shape: androidx.compose.ui.graphics.Shape = CircleShape, center: Boolean = false,
     tonal: androidx.compose.ui.graphics.Color = CmColors.surface,
+    /** Contratto 1.53: «consigliata · spiegazione», una riga sotto l'etichetta. */
+    note: String? = null,
 ) {
     Surface(
         color = if (filled) CmColors.primary else tonal, contentColor = if (filled) CmColors.onPrimary else CmColors.text,
@@ -1890,7 +1938,10 @@ private fun OptionButton(
         modifier = modifier.heightIn(min = 44.dp).clip(shape).handCursor().combinedClickable(onClick = onClick, onLongClick = onLongClick),
     ) {
         Box(Modifier.padding(horizontal = 18.dp, vertical = 10.dp), contentAlignment = if (center) Alignment.Center else Alignment.CenterStart) {
-            Text(label, style = MaterialTheme.typography.labelLarge.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize), maxLines = if (center) 1 else Int.MAX_VALUE, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+            Column {
+                Text(label, style = MaterialTheme.typography.labelLarge.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize), maxLines = if (center) 1 else Int.MAX_VALUE, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                if (note != null) Text(note, style = MaterialTheme.typography.bodySmall, color = if (filled) CmColors.onPrimary.copy(alpha = 0.8f) else CmColors.text2)
+            }
         }
     }
 }

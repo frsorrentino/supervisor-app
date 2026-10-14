@@ -190,6 +190,11 @@ class Repo(
         _quotaSamples.value = store.loadQuotaSamples(now() - SAMPLES_KEEP_S)
     }
 
+    /** Contratti 1.57 e 1.58: l'evento di una push, letto per chiave e tenuto con gli altri. */
+    suspend fun event(key: String): Event? = runCatching { transport.fetchEvent(key) }.getOrNull()?.also { e ->
+        if (_events.value.none { it.key == e.key }) _events.value = (_events.value + e).sortedByDescending { it.ts }
+    }
+
     /** Un GET (sveglia FCM). Vero se lo stato è arrivato. */
     suspend fun refresh(): Boolean = runCatching { accept(transport.fetchState()) }.isSuccess
 
@@ -216,6 +221,7 @@ class Repo(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question,
         )
+        question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {
             // Le letture delle schermate non entrano nella coda dei comandi dell'utente (revisione 30/09).
             if (op in PASSIVE) throw TransportException.Network("offline")
@@ -351,6 +357,10 @@ class Repo(
             }))
         }
     }
+
+    /** Contratto 1.55: la domanda a cui rispondeva un comando, per spiegarne il rifiuto. */
+    private val _answered = java.util.concurrent.ConcurrentHashMap<String, String>()
+    fun answeredQuestion(cmdId: String): String? = _answered[cmdId]
 
     /** Riprova un comando «non consegnato» con lo stesso uuid. */
     suspend fun retry(id: String) {

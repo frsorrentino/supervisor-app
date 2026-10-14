@@ -1,7 +1,7 @@
 <script lang="ts">
   import CloseDialog from './CloseDialog.svelte'
   import type { CmdOp, Model, Session, State } from './contract'
-  import { modelKind, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
+  import { modelKind, notes as notesOf, permissionLabel, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
   import { MASTER } from './summary'
   import { t } from './t'
   import Badge from './Badge.svelte'
@@ -97,7 +97,7 @@
       <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
     {/if}
     <button class="pill" bind:this={pill} bind:offsetWidth={modelW} disabled={!tunable} onclick={openTune}>
-      <span class="lbl">{[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}</span>
+      <span class="lbl">{[shortModel(model) ?? t.modelTitle, effort, permissionLabel(s.permission_mode, t.modes)].filter(Boolean).join(' · ')}</span>
       {#if tunable}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z" fill="var(--text2)" /></svg>{/if}
       {#if tunable && advice?.dot}<span class="dot" title={t.adviceDot} aria-label={t.adviceDot}></span>{/if}
     </button>

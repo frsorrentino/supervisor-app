@@ -120,10 +120,12 @@ fun QuestionScreen(
             }
             q.options.forEachIndexed { i, opt ->
                 item {
-                    val primary = QuestionRules.isPrimary(i)
+                    // Contratto 1.53: piena l'opzione consigliata, con la sua riga di spiegazione.
+                    val primary = i == QuestionRules.primaryIndex(q.options)
                     val long = QuestionRules.needsLongPress(q.tier)
                     WideButton(
                         QuestionRules.optionLabel(opt),
+                        note = QuestionRules.optionNote(opt, stringResource(R.string.option_recommended)),
                         onClick = { if (long) holdHint = true else onAnswer(opt.n) },
                         onLongClick = if (long) ({ onAnswer(opt.n) }) else null,
                         primary = primary, enabled = enabled && pending == null,

@@ -21,7 +21,7 @@ object ComplicationTexts {
     fun long(state: State?, fresh: Boolean, staleLabel: String, maxGist: Int = 30, seen: Set<String> = emptySet()): String {
         state ?: return "—"
         if (!fresh) return staleLabel
-        state.sessions.firstOrNull { it.question != null && it.question.id !in seen }?.let { return "❓ ${it.name} · ${gist(it.question!!.text, maxGist)}" }
+        state.sessions.firstOrNull { it.question != null && it.question.id !in seen }?.let { return "❓ ${it.name} · ${gist(it.question!!.shareable, maxGist)}" }
         val busy = state.sessions.count { it.state == SessionState.BUSY || it.state == SessionState.AWAITING }
         val idle = state.sessions.count { it.state == SessionState.IDLE }
         return "▶ $busy · ✓ $idle"

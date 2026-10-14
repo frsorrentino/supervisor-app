@@ -21,10 +21,10 @@ object NotificationTexts {
     fun question(s: Session, l: Labels): Note {
         val q = s.question ?: return Note("❓ ${s.name}", "", listOf(l.open), CHANNEL_QUESTIONS)
         val actions = q.options.take(2).map { QuestionRules.optionLabel(it) } + l.open
-        return Note("❓ ${s.name}", q.text, actions, CHANNEL_QUESTIONS)
+        return Note("❓ ${s.name}", q.shareable, actions, CHANNEL_QUESTIONS)
     }
 
-    fun outcome(s: Session, l: Labels): Note = Note("✓ ${s.name}", s.outcome?.short ?: "", listOf(l.open), CHANNEL_OUTCOMES)
+    fun outcome(s: Session, l: Labels): Note = Note("✓ ${s.name}", s.outcome?.shareShort ?: "", listOf(l.open), CHANNEL_OUTCOMES)
 
     fun gone(name: String, l: Labels): Note = Note("✗ $name", "", listOf(l.open), CHANNEL_GONE)
 

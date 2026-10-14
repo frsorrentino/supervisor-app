@@ -35,6 +35,8 @@ fun WideButton(
     border: BorderStroke? = null,
     /** Icona accanto alla parola, come nelle liste di Messages e nei moduli di Maps (proposta 39, fase 1). */
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    /** Contratto 1.53: la riga che spiega un'opzione, sotto la parola. */
+    note: String? = null,
 ) {
     val m = modifier.fillMaxWidth().heightIn(min = 56.dp)
     // Sul primario il suo blu notte; sugli altri pieni chiari (ambra) nero, sui pieni scuri (rosso) bianco.
@@ -48,7 +50,10 @@ fun WideButton(
             onClick = onClick, onLongClick = onLongClick, enabled = enabled, modifier = m, transformation = transformation,
             colors = ButtonDefaults.buttonColors(containerColor = fill, contentColor = onFill), border = border,
         ) {
-            if (icon == null) Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (note != null) androidx.compose.foundation.layout.Column {
+                Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(note, style = androidx.wear.compose.material3.MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            } else if (icon == null) Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis)
             else androidx.compose.foundation.layout.Row(
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -62,7 +67,10 @@ fun WideButton(
             onClick = onClick, onLongClick = onLongClick, enabled = enabled, modifier = m, transformation = transformation,
             colors = ButtonDefaults.filledTonalButtonColors(containerColor = CmColors.surface, contentColor = CmColors.text), border = border,
         ) {
-            if (icon == null) Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (note != null) androidx.compose.foundation.layout.Column {
+                Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(note, style = androidx.wear.compose.material3.MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            } else if (icon == null) Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis)
             else androidx.compose.foundation.layout.Row(
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
