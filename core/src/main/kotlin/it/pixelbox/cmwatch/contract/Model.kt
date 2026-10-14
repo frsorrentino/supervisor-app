@@ -310,6 +310,13 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val blocks: String? = null,
+    /**
+     * Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui l'utente ha risposto, fissato al tocco e salvato nella
+     * coda offline. Il relay non preme tasti se la domanda aperta è un'altra. Assente, non scritto.
+     */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val question: String? = null,
 )
 
 /**

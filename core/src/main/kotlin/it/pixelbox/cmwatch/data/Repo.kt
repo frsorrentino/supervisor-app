@@ -209,9 +209,12 @@ class Repo(
         /** Contratto 1.47, `agenda_set`: azione, giorno di uno snooze, a chi passa. */
         action: String? = null, until: String? = null, blocks: String? = null,
     ): String {
+        // Contratto 1.52: la risposta vale per la domanda aperta adesso, anche se parte dalla coda dopo minuti.
+        val question = if (op == CmdOp.ANSWER || op == CmdOp.ALLOW_ALL)
+            _snapshot.value.state?.sessions?.firstOrNull { it.name == session }?.question?.id else null
         val cmd = Cmd(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
-            action = action, until = until, blocks = blocks,
+            action = action, until = until, blocks = blocks, question = question,
         )
         if (!online()) {
             // Le letture delle schermate non entrano nella coda dei comandi dell'utente (revisione 30/09).

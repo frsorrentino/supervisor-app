@@ -258,6 +258,23 @@ class RepoTest {
         assertEquals(PendingStatus.FAILED, repo.snapshot.value.pending.single().status)
     }
 
+    /**
+     * Contratto 1.52 (Franz, 14/10 17:01): una risposta vale solo per la sua domanda. `answer` e `allow_all` portano l'id
+     * della domanda aperta quando l'utente tocca, salvato nel comando in coda: all'invio non si rilegge lo stato nuovo.
+     */
+    @Test fun anAnswerCarriesItsQuestionEvenFromTheOfflineQueue() = runTest {
+        val rec = Recording(fake())
+        val repo = Repo(MemoryStore(), rec, bg(), { clock }, { online }, "test", freshnessTickMs = 0); repo.start(); idle()
+        val asked = repo.snapshot.value.state!!.sessions.single { it.name == "ledger-api" }.question!!.id
+        online = false
+        repo.answer("ledger-api", 1)
+        repo.command(CmdOp.ALLOW_ALL, "ledger-api", null)
+        repo.prompt("atlas-shop", "x")
+        assertEquals(listOf(asked, asked, null), repo.snapshot.value.pending.map { it.cmd.question })
+        online = true; repo.flushQueue(); idle()
+        assertEquals(listOf(asked, asked, null), rec.cmds.map { it.question })
+    }
+
     @Test fun offlineQueuesAtMostTenAndDropsAfterTenMinutes() = runTest {
         online = false
         val store = MemoryStore()

@@ -145,7 +145,8 @@ class ContractTest {
         // Contratto 1.47: otto agenda_set, quattro riusciti, la key vecchia rifiutata e tre rifiuti di validazione.
         // Contratto 1.48: due report a pezzi, uno riuscito e uno «bad parts». Contratto 1.49: un night_add alla master riuscito.
         // Contratto 1.50: due report con due id, uno riuscito e uno con il secondo allegato mancante.
-        assertEquals(57, results.size); assertEquals(18, results.count { !it.ok })
+        // Contratto 1.52: due answer con `question`, uno sulla domanda aperta e uno sulla precedente, rifiutato.
+        assertEquals(59, results.size); assertEquals(19, results.count { !it.ok })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)
         val sets = cmds.filter { it.op == CmdOp.AGENDA_SET }
         assertEquals(8, sets.size); assertTrue(sets.all { it.session == null && !it.arg.isNullOrBlank() && it.action != null })
@@ -241,6 +242,26 @@ class ContractTest {
         assertFalse(ContractJson.encode(cmds[0]).contains("\"text\""))
         val state = ContractJson.decodeState(Fixtures.stateQuestion)
         assertEquals(1789210700L, state.projects.single { it.name == "atlas-shop" }.lastUsed)
+    }
+
+    /**
+     * Contratto 1.52 (14/10): `answer` porta `question`, l'id della domanda a cui l'utente ha risposto. Con l'id della
+     * domanda aperta il tasto si preme; con quello di una domanda precedente il relay rifiuta senza premere niente.
+     */
+    @Test fun anAnswerIsOnlyForItsQuestion() {
+        val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
+        val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
+        val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+        val open = ContractJson.decodeState(Fixtures.stateQuestion).sessions.single { it.name == "ledger-api" }.question!!.id
+        val withId = cmds.filter { it.question != null }
+        assertEquals(2, withId.size)
+        val (right, old) = withId.partition { it.question == open }
+        assertTrue(results.single { it.id == right.single().id }.ok)
+        val r = results.single { it.id == old.single().id }
+        assertFalse(r.ok); assertEquals("ledger-api: the question changed after your answer, nothing was pressed", r.text)
+        assertTrue(ContractJson.encode(right.single()).contains("\"question\":\"$open\""))
+        // Senza `question` il cmd si scrive come prima: un relay vecchio non vede campi nuovi.
+        assertFalse(ContractJson.encode(cmds[0]).contains("\"question\""))
     }
 
     @Test fun lastAsksForTheWholeReply() {

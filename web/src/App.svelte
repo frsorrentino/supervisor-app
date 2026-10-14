@@ -567,7 +567,7 @@
       const l: Leaving = { name, sentAt: nowS(), delivered: false }
       leaving = l
       run(newCmd(op, name, arg, text)).then(r => { if (r && leaving?.name === name && leaving.sentAt === l.sentAt) leaving = { ...l, delivered: true } })
-    } else run(newCmd(op, name || null, arg, text))
+    } else run(newCmd(op, name || null, arg, text, st.sessions.find(x => x.name === name)?.question?.id))
   }
   // La conversazione di quello che è a schermo, la master sempre (vive nella home), alla cadenza del telefono e una lettura
   // alla volta per la pagina (piano prestazioni, Task 5: 888 letture all'ora il 07/10). Il passo dei 5 s fa partire le

@@ -102,6 +102,16 @@ describe('accesso locale', () => {
     expect(resultTimeoutMs('prompt')).toBe(20_000)
   })
 
+  it('answer e allow_all portano la domanda a cui si risponde (1.52), come la fixture; gli altri no', () => {
+    const sample = JSON.parse(raw('cmd-result-sample.json'))
+    const fx = sample.cmd.find((c: Cmd) => c.question === 'q-1789210500-1')
+    const mine = newCmd('answer', fx.session, fx.arg, undefined, fx.question)
+    expect({ op: mine.op, arg: mine.arg, question: mine.question }).toEqual({ op: fx.op, arg: fx.arg, question: fx.question })
+    expect(newCmd('allow_all', 'x', null, undefined, 'q-1-1').question).toBe('q-1-1')
+    expect('question' in newCmd('answer', 'x', '1')).toBe(false)
+    expect('question' in newCmd('prompt', 'x', 'hi', undefined, 'q-1-1')).toBe(false)
+  })
+
   it('i comandi che parlano alla sessione portano device "web" (1.36), come il prompt della fixture', () => {
     const sample = JSON.parse(raw('cmd-result-sample.json'))
     const web = sample.cmd.find((c: Cmd) => c.device === 'web')

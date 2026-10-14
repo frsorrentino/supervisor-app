@@ -110,10 +110,14 @@ export function localAccess(url: URL, store: Store): { base: string; token: stri
 // Contratto 1.37: anche approve e decision dicono da dove arrivano.
 const DEVICE_OPS = new Set<CmdOp>(['prompt', 'resume', 'launch', 'report', 'approve', 'decision'])
 
-/** Un comando nuovo dalla web app: `by` = "web" come mette il relay di default. */
-export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string): Cmd {
+/**
+ * Un comando nuovo dalla web app: `by` = "web" come mette il relay di default. `question` (contratto 1.52): per `answer` e
+ * `allow_all`, l'id della domanda aperta al tocco; il relay non preme tasti se nel frattempo ne è arrivata un'altra.
+ */
+export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string): Cmd {
   const c: Cmd = { id: crypto.randomUUID(), op, session, arg: arg ?? null, issued: Math.round(Date.now() / 1000), by: 'web' }
   if (text !== undefined) c.text = text
+  if (question !== undefined && (op === 'answer' || op === 'allow_all')) c.question = question
   // Contratto 1.36: il relay scrive «via web app» e la trascrizione dà origin "web".
   if (DEVICE_OPS.has(op)) c.device = 'web'
   return c
