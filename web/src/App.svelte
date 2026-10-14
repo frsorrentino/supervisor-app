@@ -7,7 +7,7 @@
   import { demoAgenda, demoEvents, demoMine, demoNight, demoSamples, demoSearch, demoState, demoTimeline, demoTranscripts } from './lib/demo'
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
-  import { blankState } from './lib/contract'
+  import { blankState, withTail } from './lib/contract'
   import { advance, prune, status, type PendingStatus, type Sent, type Status, type Upload } from './lib/chatRules'
   import type { Sample } from './lib/quotaHistory'
   import { LocalTransport, localAccess, newCmd, type Transport } from './lib/transport'
@@ -210,6 +210,16 @@
 
   // La conversazione delle sessioni a schermo: la prima volta le ultime 50 voci, poi solo quelle venute dopo.
   const loadingT = new Set<string>()
+  /** Contratto 1.59: le ultime voci da /tail, senza passare dal relay. Vero se c'erano. */
+  async function loadTail(name: string): Promise<boolean> {
+    const s = st.sessions.find(x => x.name === name)
+    if (!tr?.fetchTail || !s) return false
+    const tail = await tr.fetchTail(s.id).catch(() => null)
+    if (!tail?.entries.length) return false
+    transcripts = { ...transcripts, [name]: withTail(untrack(() => transcripts[name]) ?? [], tail) }
+    return true
+  }
+
   /** Vero quando la lettura è arrivata, anche senza voci nuove. */
   async function loadTranscript(name: string): Promise<boolean> {
     if (!tr || loadingT.has(name)) return false
@@ -598,7 +608,7 @@
       const sig = activity(s), at = Date.now()
       bgReads[n] = { sig, atMs: at, done: false }
       bgBusy++
-      loadTranscript(n).then(ok => { bgReads[n] = { sig: ok ? sig : '', atMs: at, done: ok } }).finally(() => { bgBusy-- })
+      loadTail(n).then(ok => ok || loadTranscript(n)).then(ok => { bgReads[n] = { sig: ok ? sig : '', atMs: at, done: ok } }).finally(() => { bgBusy-- })
     }
   }
   if (tr) { setInterval(bgTick, 1_000); document.addEventListener('visibilitychange', bgTick) }
@@ -621,7 +631,9 @@
         reads.set(n, { at: now, answered: false, key })
         waitSince[n] ??= Date.now()
         const sig = activity(s), at = Date.now()
-        loadTranscript(n).then(ok => { if (ok) { fresh[n] = true; bgReads[n] = { sig, atMs: at, done: true } } })
+        // Contratto 1.59: la prima lettura di una chat appena aperta parte da /tail, poi le voci dopo l'ultima.
+        ;(last ? Promise.resolve(false) : loadTail(n)).then(t => { if (t) fresh[n] = true; return loadTranscript(n) })
+          .then(ok => { if (ok) { fresh[n] = true; bgReads[n] = { sig, atMs: at, done: true } } })
           .finally(() => { const r = reads.get(n); if (r) r.answered = true; delete waitSince[n]; readTick++ })
         return
       }

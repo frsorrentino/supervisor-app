@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { blankState, decodeState } from './contract'
+import { blankState, decodeState, tailKey, withTail } from './contract'
 
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
 
@@ -53,5 +53,16 @@ describe('lo stato prima del primo /state del relay (supervisor, 13/10 20:48)', 
     expect(s.quota).toEqual({})
     expect(s.recap.items).toEqual([])
     expect(s.devices ?? []).toEqual([])
+  })
+})
+
+describe('chat da /tail (contratto 1.59)', () => {
+  const e = (id: string) => ({ id, role: 'assistant', text: id, at: 1 })
+  const tail = { session: 'atlas-shop', id: 's1', at: 100, entries: [e('b'), e('c'), e('d')], more: true }
+  it('si aggancia alla copia o la sostituisce', () => {
+    expect(withTail([e('a'), e('b')], tail).map(x => x.id)).toEqual(['a', 'b', 'c', 'd'])
+    expect(withTail([e('x')], tail).map(x => x.id)).toEqual(['b', 'c', 'd'])
+    expect(withTail([e('x')], { ...tail, entries: [] }).map(x => x.id)).toEqual(['x'])
+    expect(tailKey('abc.def#g$h[i]j/k')).toBe('abc_def_g_h_i_j_k')
   })
 })

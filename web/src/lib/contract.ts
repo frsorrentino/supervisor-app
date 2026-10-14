@@ -76,6 +76,19 @@ export type TranscriptEntry = {
   origin?: string | null; queued?: boolean
 }
 export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean }
+/** Contratto 1.59: `/tail/<id>`, le ultime voci di una sessione viva, riscritte dal relay al massimo ogni 10 s. */
+export type Tail = { session: string; id: string; tx?: string; at: number; entries: TranscriptEntry[]; more?: boolean }
+/** La chiave del nodo: l'id della sessione con . # $ [ ] / cambiati in _. */
+export const tailKey = (sessionId: string) => sessionId.replace(/[.#$[\]/]/g, '_')
+/** Le voci del tail sulla copia: agganciate in coda se la prima c'è già, altrimenti al posto della copia troppo vecchia. */
+export function withTail(old: TranscriptEntry[], tail: Tail): TranscriptEntry[] {
+  const first = tail.entries[0]?.id
+  if (!first) return old
+  if (!old.some(e => e.id === first)) return tail.entries
+  const byId = new Map(tail.entries.map(e => [e.id, e]))
+  const seen = new Set(old.map(e => e.id))
+  return [...old.map(e => byId.get(e.id) ?? e), ...tail.entries.filter(e => !seen.has(e.id))]
+}
 
 // Ricerca (contratto 1.27): `match` = [inizio, fine] dentro `snippet`.
 export type SearchHit = { session: string; live: boolean; project?: string | null; entry?: string | null; role?: string | null; at?: number | null; snippet: string; match?: number[] }

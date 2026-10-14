@@ -230,4 +230,16 @@ class ChatFeedTest {
         val feed = ChatFeed.merge(first.entries, listOf(old to ChatRules.Status.DONE), more = ChatFeed.moreOnOpen(first.entries, known = null))
         assertTrue(feed.none { it is ChatFeed.Item.Mine && it.sent.id == "c0" })
     }
+
+    // Contratto 1.59: la chat si apre da /tail. Con la copia che si aggancia la storia vecchia resta; staccata, il tail la sostituisce.
+    @Test fun aChatOpensFromItsTail() {
+        val e = { id: String -> TranscriptEntry(id, "assistant", id, at = 1) }
+        val tail = Tail("atlas-shop", "s1", 100, listOf(e("b"), e("c"), e("d")), more = true)
+        assertEquals(listOf("a", "b", "c", "d") to null, ChatFeed.withTail(listOf(e("a"), e("b")), tail).let { (l, m) -> l.map { it.id } to m })
+        assertEquals(listOf("b", "c", "d") to true, ChatFeed.withTail(listOf(e("x")), tail).let { (l, m) -> l.map { it.id } to m })
+        assertEquals(listOf("x") to null, ChatFeed.withTail(listOf(e("x")), tail.copy(entries = emptyList())).let { (l, m) -> l.map { it.id } to m })
+        assertEquals("abc_def_g_h_i_j_k", Tail.key("abc.def#g\$h[i]j/k"))
+        val json = """{"session":"atlas-shop","id":"s1","tx":"t","at":100,"entries":[{"id":"b","role":"assistant","text":"hi","at":1}],"more":false}"""
+        assertEquals("hi", ContractJson.json.decodeFromString(Tail.serializer(), json).entries.single().text)
+    }
 }

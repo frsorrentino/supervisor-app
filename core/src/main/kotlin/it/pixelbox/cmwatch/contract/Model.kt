@@ -459,5 +459,19 @@ data class PairAddInvite(val qr: String?, val code: String, val exp: Long)
 
 @Serializable data class TranscriptPage(val entries: List<TranscriptEntry> = emptyList(), val more: Boolean = false)
 
+/**
+ * Contratto 1.59: `/tail/<id>`, le ultime voci di una sessione viva che il relay riscrive quando la trascrizione cambia (al
+ * massimo ogni 10 s): la chat si apre da qui, senza il testo vecchio, poi chiede le voci dopo l'ultima come prima.
+ */
+@Serializable data class Tail(
+    val session: String, val id: String, val at: Long, val entries: List<TranscriptEntry> = emptyList(), val more: Boolean = false,
+    val tx: String? = null,
+) {
+    companion object {
+        /** La chiave del nodo: l'id della sessione con . # $ [ ] / cambiati in _. */
+        fun key(sessionId: String): String = sessionId.replace(Regex("[.#$\\[\\]/]"), "_")
+    }
+}
+
 /** Contratto 1.51: con un relay che non dice `handoff`, il comando di prima. */
 const val LEGACY_HANDOFF = "/fable-director:handoff --here"

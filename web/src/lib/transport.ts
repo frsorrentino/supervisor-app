@@ -1,7 +1,7 @@
 // Il trasporto della web app, come l'interfaccia `Transport` dell'app Android. Strada locale (contratto 1.35): il relay
 // serve la pagina e l'API su 127.0.0.1, JSON in chiaro con il token Bearer; le GET accettano anche `?t=`.
 
-import { decodeState, type Cmd, type CmdOp, type CmdResult, type Event, type State } from './contract'
+import { decodeState, type Cmd, type CmdOp, type CmdResult, type Event, type State, type Tail } from './contract'
 import { toB64 } from './crypto'
 
 export type FileBlob = { data: Uint8Array; mime: string; name: string | null }
@@ -15,6 +15,8 @@ export interface Transport {
   send(cmd: Cmd): Promise<CmdResult>
   share(id: string, mime: string, data: Uint8Array, name?: string | null): Promise<void>
   fetchFile(id: string): Promise<FileBlob | null>
+  /** Contratto 1.59: le ultime voci da /tail; solo il trasporto remoto, il relay locale non lo serve. */
+  fetchTail?(sessionId: string): Promise<Tail | null>
 }
 
 export class TransportError extends Error {

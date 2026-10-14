@@ -2,7 +2,7 @@
 // come FirebaseTransport.kt del core Android. Dalla web app si usa quando la pagina non è quella servita dal relay.
 
 import type { Bus, SseEvent } from './bus'
-import { decodeState, type Cmd, type CmdResult, type Event, type State } from './contract'
+import { decodeState, tailKey, type Cmd, type CmdResult, type Event, type State, type Tail } from './contract'
 import { fromB64, openBlob, openBlobBytes, sealBlob, sealBytes, toB64, toHex } from './crypto'
 import { resultTimeoutMs, TransportError, type FileBlob, type Transport } from './transport'
 
@@ -93,6 +93,13 @@ export class RemoteTransport implements Transport {
   }
 
   /** Gli ultimi 200 del bus, come il telefono; qui solo quelli dopo `since`, dal più recente. */
+  /** Contratto 1.59: le ultime voci di una sessione viva, dal bus senza passare dal relay; null se il nodo non c'è. */
+  async fetchTail(sessionId: string): Promise<Tail | null> {
+    const doc = await this.bus.get(`tail/${tailKey(sessionId)}`).catch(() => null)
+    if (!isBlob(doc)) return null
+    try { return JSON.parse(await this.open(doc)) as Tail } catch { return null }
+  }
+
   async fetchEvents(since = 0): Promise<Event[]> {
     const all = await this.bus.get('events', { orderBy: '"$key"', limitToLast: '200' }) as Record<string, unknown> | null
     const out: Event[] = []

@@ -114,6 +114,16 @@ object ChatFeed {
     /** La copia in cache è più vecchia dell'ultima attività: aprendo la chat si dice che si sta aggiornando. */
     fun behind(s: it.pixelbox.cmwatch.contract.Session, read: Read?): Boolean = read?.done != true || read.sig != activity(s)
 
+    /**
+     * Contratto 1.59: le voci di /tail sulla copia che c'è. Se la prima voce del tail è già nella copia, le nuove vanno in coda
+     * e la storia più vecchia resta; altrimenti la copia è troppo vecchia e il tail la sostituisce. `more` solo se sostituisce.
+     */
+    fun withTail(old: List<TranscriptEntry>, tail: it.pixelbox.cmwatch.contract.Tail): Pair<List<TranscriptEntry>, Boolean?> {
+        val first = tail.entries.firstOrNull()?.id ?: return old to null
+        val page = TranscriptPage(tail.entries, tail.more)
+        return if (old.any { it.id == first }) append(old, page, Page.AFTER) to null else tail.entries to tail.more
+    }
+
     const val BG_GAP_MS = 12_000L
     /** Letture in sottofondo insieme, anche al ritorno in primo piano. */
     const val BG_PARALLEL = 2

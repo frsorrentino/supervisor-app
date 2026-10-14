@@ -31,6 +31,8 @@ interface Transport {
     suspend fun fetchState(): State
     /** Contratti 1.57 e 1.58: un evento per chiave, quando la push porta solo `kind` e `key`; null se non c'è. */
     suspend fun fetchEvent(key: String): Event? = null
+    /** Contratto 1.59: le ultime voci di una sessione viva; null se il nodo non c'è (relay precedente o sessione finita). */
+    suspend fun fetchTail(sessionId: String): it.pixelbox.cmwatch.contract.Tail? = null
     /**
      * Scrive /cmd/<id> e attende /result/<id>; TransportException.Timeout dopo RESULT_TIMEOUT_MS. `onWritten` scatta
      * appena il comando è sul canale, prima del risultato: la chat lo mostra come «inviato al PC» (30/09 22:13).

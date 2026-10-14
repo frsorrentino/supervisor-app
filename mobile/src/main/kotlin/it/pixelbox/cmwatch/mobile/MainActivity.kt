@@ -740,6 +740,14 @@ class MainActivity : ComponentActivity() {
                 val sig = ChatFeed.activity(s)
                 val t = System.currentTimeMillis()
                 bgReads[name] = ChatFeed.Read(sig, t)
+                // Contratto 1.59: prima /tail, una lettura dal bus senza passare dal relay; il comando solo se il nodo non c'è.
+                app.repo.tail(s.id)?.takeIf { it.entries.isNotEmpty() }?.let { tail ->
+                    val (list, more) = ChatFeed.withTail(feedCache[name].orEmpty(), tail)
+                    more?.let { feedMore[name] = it }
+                    feedCache[name] = list
+                    bgReads[name] = ChatFeed.Read(sig, t, done = true)
+                    return
+                }
                 val have = feedCache[name].orEmpty()
                 val id = runCatching { app.repo.command(CmdOp.TRANSCRIPT, name, ChatFeed.arg(if (have.isEmpty()) null else ChatFeed.anchor(have))) }.getOrNull()
                 val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
@@ -777,6 +785,13 @@ class MainActivity : ComponentActivity() {
                 var restart = false
                 var prev = app.repo.snapshot.value.state?.sessions?.firstOrNull { it.name == name }
                 var askedSig: String? = null
+                // Contratto 1.59: la chat si apre dalle ultime voci di /tail, senza il testo vecchio; poi le voci dopo l'ultima.
+                prev?.let { s -> app.repo.tail(s.id) }?.takeIf { it.entries.isNotEmpty() }?.let { tail ->
+                    val (list, m) = ChatFeed.withTail(entries, tail)
+                    entries = list; feedCache[name] = list
+                    m?.let { more = it; feedMore[name] = it }
+                    freshFor = name
+                }
                 readSince = null
                 while (true) {
                     val cur = app.repo.snapshot.value.state?.sessions?.firstOrNull { it.name == name }

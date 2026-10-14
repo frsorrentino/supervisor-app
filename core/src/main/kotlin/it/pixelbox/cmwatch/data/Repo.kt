@@ -190,6 +190,9 @@ class Repo(
         _quotaSamples.value = store.loadQuotaSamples(now() - SAMPLES_KEEP_S)
     }
 
+    /** Contratto 1.59: le ultime voci di una sessione da /tail, senza passare dal relay; null se non ci sono. */
+    suspend fun tail(sessionId: String): Tail? = runCatching { transport.fetchTail(sessionId) }.getOrNull()
+
     /** Contratti 1.57 e 1.58: l'evento di una push, letto per chiave e tenuto con gli altri. */
     suspend fun event(key: String): Event? = runCatching { transport.fetchEvent(key) }.getOrNull()?.also { e ->
         if (_events.value.none { it.key == e.key }) _events.value = (_events.value + e).sortedByDescending { it.ts }

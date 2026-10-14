@@ -136,6 +136,13 @@ class FirebaseTransport(
         return ContractJson.decodeState(open(Json.parseToJsonElement(body))).also { markSeenLater() }
     }
 
+    override suspend fun fetchTail(sessionId: String): it.pixelbox.cmwatch.contract.Tail? {
+        k()
+        val body = rtdb.get("tail/" + it.pixelbox.cmwatch.contract.Tail.key(sessionId)) ?: return null
+        val e = Json.parseToJsonElement(body)
+        return if (isBlob(e)) runCatching { ContractJson.json.decodeFromString(it.pixelbox.cmwatch.contract.Tail.serializer(), open(e)) }.getOrNull() else null
+    }
+
     override suspend fun fetchEvent(key: String): Event? {
         k()
         val body = rtdb.get("events/$key") ?: return null
