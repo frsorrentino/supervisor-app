@@ -14,7 +14,7 @@ class NotificationTextsTest {
     @Test fun question() {
         val n = NotificationTexts.question(s.sessions[0], labels)
         assertEquals("❓ ledger-api", n.title)
-        assertEquals("Deploy ready, waiting for the client's ok. Deploy now?", n.body)
+        assertEquals("Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now?", n.body)
         assertEquals(listOf("1 · yes", "2 · no", "Apri"), n.actions)
         assertEquals(NotificationTexts.CHANNEL_QUESTIONS, n.channel)
     }

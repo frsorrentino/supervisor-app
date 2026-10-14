@@ -27,7 +27,7 @@ class LiveDeskTest {
     private val lang = LiveDesk.Lang(LiveFeedTest.IT, WORDS, ZoneId.of("Europe/Rome"))
     private val t0 = 1_789_220_000_000L
 
-    private val ledgerQ = "ledger api chiede: Deploy ready, waiting for the client's ok. Deploy now? Uno: yes. Due: no."
+    private val ledgerQ = "ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now? Uno: yes. Due: no."
     private val atlasO = "atlas shop ha finito: Migrations 008-011 applied, tests green. Azioni: uno. ok to deploy on staging. due. review the test seeds."
     private val okText = "Richiesta di ok: Release 2.4 of atlas-shop, tag v2.4 and push to origin main, su production (shop.example.com). Serve la doppia conferma."
 

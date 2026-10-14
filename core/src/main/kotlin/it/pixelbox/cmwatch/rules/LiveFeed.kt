@@ -236,7 +236,7 @@ object LiveFeed {
     private fun questionText(s: Session, l: Labels): String {
         val q = s.question ?: return ""
         val options = q.options.map { l.option.format(number(it.n, l).replaceFirstChar { c -> c.titlecase() }, bare(QuestionRules.optionText(it.label), l)) }
-        val full = (listOf(l.question.format(SpeakableName.of(s.name), line(q.text, l))) + options).joinToString(" ")
+        val full = (listOf(l.question.format(SpeakableName.of(s.name), line(q.shareable, l))) + options).joinToString(" ")
         if (full.length <= QUESTION_MAX) return full
         val head = full.substring(0, QUESTION_MAX)
         val end = FINE_FRASE.findAll(head).lastOrNull()?.range?.last

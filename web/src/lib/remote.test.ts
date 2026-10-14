@@ -57,7 +57,8 @@ describe('strada remota: eventi', () => {
     const nodes: Record<string, unknown> = { broken: { v: 1, enc: 'AAAA' } }
     for (const e of sample) nodes[e.key] = await env(JSON.stringify(e))
     const bus = new MemoryBus({ events: nodes })
-    const since = sample[Math.floor(sample.length / 2)].ts
+    // La mediana dei ts: la fixture non è in ordine (1.58 aggiunge eventi in fondo con ts più vecchi).
+    const since = [...sample].sort((a, b) => a.ts - b.ts)[Math.floor(sample.length / 2)].ts
     const got = await transport(bus).fetchEvents(since)
     expect(got.length).toBe(sample.filter(e => e.ts > since).length)
     expect(got.every(e => e.ts > since)).toBe(true)

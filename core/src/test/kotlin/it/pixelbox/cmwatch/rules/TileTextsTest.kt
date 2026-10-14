@@ -20,7 +20,7 @@ class TileTextsTest {
     }
 
     @Test fun lineIsTheStuckSessionWithTheWholeQuestion() =
-        assertEquals("❓ ledger-api · Deploy ready, waiting for the client's ok. Deploy now?", TileTexts.line(q, now))
+        assertEquals("❓ ledger-api · Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now?", TileTexts.line(q, now))
 
     @Test fun lineWithoutQuestionsIsTheFollowedOrMostRecent() {
         assertEquals("✓ atlas-shop · 6 m", TileTexts.line(idle, 1789214000L + 6 * 60))

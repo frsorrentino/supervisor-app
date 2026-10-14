@@ -92,8 +92,7 @@ class ContractTest {
 
     @Test fun eventsDecodeOnePerKind() {
         val ev = ContractJson.decodeEvents(Fixtures.events)
-        // Manca «resumed»; task_check e quota_limit (1.57, 1.58) chiesti a supervisor il 14/10, non ancora nelle fixture.
-        assertEquals(EventKind.entries.size - 3, ev.map { it.kind }.toSet().size)
+        assertEquals(EventKind.entries.size - 1, ev.map { it.kind }.toSet().size) // manca «resumed» nella fixture
         assertEquals("q-1789210500-1", ev.first { it.kind == EventKind.QUESTION }.ref)
         assertNull(ev.first { it.kind == EventKind.QUOTA }.session)
     }
@@ -126,8 +125,7 @@ class ContractTest {
         val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
         val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
         val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
-        // Manca «unfollow»; quota_route (1.58) chiesta a supervisor il 14/10, non ancora nelle fixture.
-        assertEquals(CmdOp.entries.size - 2, cmds.map { it.op }.toSet().size)
+        assertEquals(CmdOp.entries.size - 1, cmds.map { it.op }.toSet().size) // manca «unfollow» nella fixture
         // Contratto 1.12: due risultati in più, «model» riuscito ed «effort» rifiutato su una sessione occupata.
         // Contratto 1.13: uno in più, il launch con il primo messaggio. Contratto 1.17: night_add e night_remove.
         // Contratto 1.19: tre report, uno rifiutato. Contratto 1.21: due interrupt, «stopped» e «nothing to stop».
@@ -148,7 +146,8 @@ class ContractTest {
         // Contratto 1.48: due report a pezzi, uno riuscito e uno «bad parts». Contratto 1.49: un night_add alla master riuscito.
         // Contratto 1.50: due report con due id, uno riuscito e uno con il secondo allegato mancante.
         // Contratto 1.52: due answer con `question`, uno sulla domanda aperta e uno sulla precedente, rifiutato.
-        assertEquals(59, results.size); assertEquals(19, results.count { !it.ok })
+        // Contratto 1.58 (relay 0.8.20): tre quota_route, due riusciti e «pass» a una sessione non viva, e un prompt doppione rifiutato.
+        assertEquals(63, results.size); assertEquals(21, results.count { !it.ok })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)
         val sets = cmds.filter { it.op == CmdOp.AGENDA_SET }
         assertEquals(8, sets.size); assertTrue(sets.all { it.session == null && !it.arg.isNullOrBlank() && it.action != null })

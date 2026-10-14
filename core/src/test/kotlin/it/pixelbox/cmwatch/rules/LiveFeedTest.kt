@@ -34,7 +34,7 @@ class LiveFeedTest {
         assertEquals(1, n.level)
         assertEquals(Kind.QUESTION, n.kind)
         assertEquals("q-1789210500-1", n.questionId)
-        assertEquals("ledger api chiede: Deploy ready, waiting for the client's ok. Deploy now? Uno: yes. Due: no.", n.text)
+        assertEquals("ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now? Uno: yes. Due: no.", n.text)
     }
 
     @Test fun anApprovalIsLevelOneAndAsksForTheDoubleConfirm() {
@@ -225,7 +225,7 @@ class LiveFeedTest {
 
     @Test fun aLongQuestionReadsTheStartThenPointsToTheWatch() {
         val long = (1..12).joinToString(" ") { "Sentence number $it explains one more detail of the change." }
-        val cur = q.copy(sessions = q.sessions.map { s -> if (s.name == "ledger-api") s.copy(question = s.question!!.copy(text = long)) else s })
+        val cur = q.copy(sessions = q.sessions.map { s -> if (s.name == "ledger-api") s.copy(question = s.question!!.copy(text = long, preview = null)) else s })
         val text = plan(Feed(), idle, cur).byKey("s:ledger-api").text
         assertTrue(text, text.startsWith("ledger api chiede: Sentence number 1 "))
         assertTrue(text, text.endsWith(". Continua sul watch."))
@@ -250,7 +250,7 @@ class LiveFeedTest {
         // field-notes è ferma ma non seguita, orbit-docs è chiusa
         assertEquals(
             listOf(
-                "ledger api chiede: Deploy ready, waiting for the client's ok. Deploy now? Uno: yes. Due: no.",
+                "ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now? Uno: yes. Due: no.",
                 "Richiesta di ok: Release 2.4 of atlas-shop, tag v2.4 and push to origin main, su production (shop.example.com). Serve la doppia conferma.",
             ),
             LiveFeed.round(q, IT),
@@ -310,7 +310,7 @@ class LiveFeedTest {
 
     @Test fun statusWaitingAndQuotaPhrases() {
         val ledger = q.sessions.single { it.name == "ledger-api" }
-        assertEquals("ledger api chiede: Deploy ready, waiting for the client's ok. Deploy now? Uno: yes. Due: no.", LiveFeed.status(ledger, IT))
+        assertEquals("ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now? Uno: yes. Due: no.", LiveFeed.status(ledger, IT))
         assertEquals("field notes ha finito: README rewritten.", LiveFeed.status(q.sessions.single { it.name == "field-notes" }, IT))
         assertEquals("orbit docs si è chiusa.", LiveFeed.status(q.sessions.single { it.name == "orbit-docs" }, IT))
         val busy = idle.sessions.single().copy(state = SessionState.BUSY)

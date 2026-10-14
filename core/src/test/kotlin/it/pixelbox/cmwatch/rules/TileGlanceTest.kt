@@ -17,7 +17,7 @@ class TileGlanceTest {
         val g = TileTexts.glance(q, Freshness.Fresh, 1789210800, l)
         assertEquals("1 ❓ · 1 ▶ · 1 ✓ · 1 ✗", g.counts)
         assertEquals("ledger-api", g.name)
-        assertEquals("Deploy ready, waiting for the client's ok. Deploy now?", g.body)
+        assertEquals("Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now?", g.body)
         assertEquals(TileTexts.Button.REPLY, g.button); assertEquals(TileTexts.Accent.QUESTION, g.accent)
         assertEquals("cmwatch://question/ledger-api", g.target)
     }

@@ -387,7 +387,7 @@ class TileBodyTest {
 
     @Test fun lEsitoSullaTileEPulito() {
         val idle = q.sessions.first { it.state == SessionState.IDLE }
-        val s = idle.copy(outcome = idle.outcome!!.copy(short = "- [Googlebook](https://x.y/z) presentato"), next = null)
+        val s = idle.copy(outcome = idle.outcome!!.copy(short = "- [Googlebook](https://x.y/z) presentato", preview = null), next = null)
         assertEquals("Googlebook presentato", TileTexts.activity(s, busy = false, running = "turno in corso", idle = "a riposo"))
     }
 
