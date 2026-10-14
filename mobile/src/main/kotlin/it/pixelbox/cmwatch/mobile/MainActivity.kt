@@ -712,33 +712,49 @@ class MainActivity : ComponentActivity() {
         // Da quando la lettura in volo aspetta il PC: la riga «in attesa del PC» della chat (piano prestazioni, Task 7).
         var readSince by remember { mutableStateOf<Long?>(null) }
         val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-        // Le sessioni che non sono a schermo si rileggono da sole quando finiscono un turno (Franz, 10/10 09:47: «così alla
-        // loro apertura si vede la risposta già caricata»): una lettura per esito nuovo, una alla volta, nella cache delle chat.
-        // La sessione aperta resta del lettore qui sotto; una risposta che arriva dopo si unisce senza doppioni.
+        // Le sessioni che non sono a schermo si rileggono da sole (Franz, 10/10 09:47: «così alla loro apertura si vede la
+        // risposta già caricata»; 14/10 18:39: «vedo per qualche secondo il testo vecchio»): a ogni attività nuova, anche
+        // durante il turno, al massimo una lettura ogni 12 s per sessione, due alla volta; al ritorno in primo piano partono
+        // subito quelle con novità. La sessione aperta resta del lettore qui sotto; una risposta che arriva dopo si unisce
+        // senza doppioni.
         val shownChat by rememberUpdatedState(chatName)
+        // Le colonne del tablet hanno il loro lettore.
+        val readCols by rememberUpdatedState(if (columnsOn) tabletCols else emptyList())
+        val bgReads = remember { mutableStateMapOf<String, ChatFeed.Read>() }
+        // La chat aperta che ha già avuto la sua prima lettura: fino ad allora una copia vecchia dice che si aggiorna.
+        var freshFor by remember { mutableStateOf<String?>(null) }
         LaunchedEffect(transcriptOk, unsupported) {
             if (!transcriptOk || unsupported) return@LaunchedEffect
-            val asked = mutableMapOf<String, Long>()
+            suspend fun readOne(s: it.pixelbox.cmwatch.contract.Session) {
+                val name = s.name
+                val sig = ChatFeed.activity(s)
+                val t = System.currentTimeMillis()
+                bgReads[name] = ChatFeed.Read(sig, t)
+                val have = feedCache[name].orEmpty()
+                val id = runCatching { app.repo.command(CmdOp.TRANSCRIPT, name, ChatFeed.arg(if (have.isEmpty()) null else ChatFeed.anchor(have))) }.getOrNull()
+                val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+                id?.let { app.repo.forget(it) }
+                val page = r?.takeIf { it.ok }?.let { runCatching { ContractJson.decodeTranscript(it.text) }.getOrNull() }
+                if (page == null) { bgReads[name] = ChatFeed.Read("", t); return }
+                val cur = feedCache[name].orEmpty()
+                if (cur.isEmpty()) feedMore[name] = page.more
+                feedCache[name] = ChatFeed.append(cur, page, if (cur.isEmpty()) ChatFeed.Page.FRESH else ChatFeed.Page.AFTER)
+                bgReads[name] = ChatFeed.Read(sig, t, done = true)
+            }
             lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-                app.repo.snapshot.collect { snap ->
-                    val st = snap.state ?: return@collect
-                    for ((name, at) in ChatFeed.stale(st.sessions, feedCache, asked, shownChat)) {
-                        asked[name] = at
-                        val have = feedCache[name].orEmpty()
-                        val id = runCatching { app.repo.command(CmdOp.TRANSCRIPT, name, ChatFeed.arg(if (have.isEmpty()) null else ChatFeed.anchor(have))) }.getOrNull() ?: continue
-                        val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
-                        app.repo.forget(id)
-                        if (r?.ok == true) runCatching { ContractJson.decodeTranscript(r.text) }.onSuccess { page ->
-                            val cur = feedCache[name].orEmpty()
-                            if (cur.isEmpty()) feedMore[name] = page.more
-                            feedCache[name] = ChatFeed.append(cur, page, if (cur.isEmpty()) ChatFeed.Page.FRESH else ChatFeed.Page.AFTER)
-                        }
+                while (true) {
+                    val sessions = app.repo.snapshot.value.state?.sessions.orEmpty()
+                    val due = ChatFeed.due(sessions, bgReads, shownChat, System.currentTimeMillis()).filter { it !in readCols }.take(ChatFeed.BG_PARALLEL)
+                    if (due.isEmpty()) { delay(1_000); continue }
+                    kotlinx.coroutines.coroutineScope {
+                        due.mapNotNull { n -> sessions.firstOrNull { it.name == n } }.forEach { s -> launch { readOne(s) } }
                     }
                 }
             }
         }
         LaunchedEffect(chatName, transcriptOk, unsupported) {
             entries = chatName?.let { feedCache[it] }.orEmpty(); entriesOwner = chatName
+            freshFor = null
             more = ChatFeed.moreOnOpen(entries, chatName?.let { feedMore[it] })
             val name = chatName ?: return@LaunchedEffect
             if (!transcriptOk || unsupported) return@LaunchedEffect
@@ -750,6 +766,7 @@ class MainActivity : ComponentActivity() {
                 // pagina nuova non arriva (Franz, 10/10 08:18: la conversazione spariva e tornava dal fondo mentre rileggeva).
                 var restart = false
                 var prev = app.repo.snapshot.value.state?.sessions?.firstOrNull { it.name == name }
+                var askedSig: String? = null
                 readSince = null
                 while (true) {
                     val cur = app.repo.snapshot.value.state?.sessions?.firstOrNull { it.name == name }
@@ -758,6 +775,8 @@ class MainActivity : ComponentActivity() {
                             r.ok -> runCatching { ContractJson.decodeTranscript(r.text) }.onSuccess { page ->
                                 entries = ChatFeed.append(entries, page, mode)
                                 feedCache[name] = entries
+                                freshFor = name
+                                askedSig?.let { sig -> bgReads[name] = ChatFeed.Read(sig, askedAt ?: 0L, done = true) }
                                 if (mode == ChatFeed.Page.FRESH) { more = page.more; feedMore[name] = page.more; restart = false }
                             }
                             r.text.contains("no entry") -> { restart = true; askedAt = null }
@@ -776,6 +795,7 @@ class MainActivity : ComponentActivity() {
                     // Letture diradate: ogni lettura costa al relay 5-8 s (dal vivo 30/09 23:00).
                     if (moved || PhoneTerminal.shouldAskChat(cur, askedAt, answered, t)) {
                         askedAt = t
+                        askedSig = cur?.let(ChatFeed::activity)
                         mode = if (entries.isEmpty() || restart) ChatFeed.Page.FRESH else ChatFeed.Page.AFTER
                         // Una lettura persa non resta fra i comandi in sospeso (revisione 30/09).
                         pendingId?.let { app.repo.forget(it) }
@@ -1098,6 +1118,7 @@ class MainActivity : ComponentActivity() {
                             feed = if (transcriptOk && !unsupported && pageEntries.isNotEmpty()) ChatFeed.merge(pageEntries, rows.map { it.sent to it.status }, more) else null,
                             loadingFeed = transcriptOk && !unsupported && ChatFeed.loading(pageEntries, answered = session.name in feedCache),
                             waitingSince = readSince.takeIf { session.name == chatName },
+                            updating = session.name == chatName && session.state != it.pixelbox.cmwatch.contract.SessionState.GONE && freshFor != chatName && ChatFeed.behind(session, bgReads[session.name]),
                             more = more && session.name == chatName,
                             model = tunePicks[session.name + "/model"].let { p -> Tune.model(session, p, p?.let { results[it.cmd] }, now) },
                             effort = tunePicks[session.name + "/effort"].let { p -> Tune.effort(session, p, p?.let { results[it.cmd] }, now) },

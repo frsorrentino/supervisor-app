@@ -182,6 +182,8 @@ fun SessionSheet(
     loadingFeed: Boolean = false,
     /** Da quando (ms) una lettura della conversazione aspetta il PC; null se nessuna è in volo (piano prestazioni, Task 7). */
     waitingSince: Long? = null,
+    /** La copia della chat è più vecchia dell'ultima attività e la prima lettura non è ancora arrivata (Franz, 14/10 18:39). */
+    updating: Boolean = false,
     /** L'orologio della riga d'attesa, in ms. */
     clockMs: () -> Long = System::currentTimeMillis,
     /** La finestra di 5 ore dell'account della sessione sta finendo (`QuotaWarning`); null = nessun avviso. */
@@ -431,11 +433,14 @@ fun SessionSheet(
                         }
                         }
                     }
-                    // A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC.
-                    ChatFeed.waitingPc(true, waitingSince, waitClock.value)?.let { secs ->
+                    // A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC, o che la copia
+                    // a schermo è più vecchia dell'ultima attività e si sta aggiornando.
+                    val waitSecs = ChatFeed.waitingPc(true, waitingSince, waitClock.value)
+                    if (waitSecs != null || updating) {
                         item(key = "waiting-pc") {
                             Text(
-                                stringResource(R.string.chat_waiting_pc, secs), style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
+                                if (waitSecs != null) stringResource(R.string.chat_waiting_pc, waitSecs) else stringResource(R.string.chat_updating),
+                                style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
                                 modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             )
                         }

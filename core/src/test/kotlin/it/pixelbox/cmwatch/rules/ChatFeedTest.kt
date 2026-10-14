@@ -194,21 +194,27 @@ class ChatFeedTest {
         assertNull(ChatFeed.waitingPc(false, 0, 50_000))
     }
 
-    // Franz, 10/10 09:47: «si potrebbe far aggiornare le sessioni anche quando non sono aperte così alla loro apertura si vede
-    // la risposta già caricata?». Si rilegge in sottofondo chi ha un esito più nuovo dell'ultima voce letta, una volta per
-    // esito; mai la sessione aperta, che si legge da sé, né una chiusa.
+    // Franz, 10/10 09:47 e 14/10 18:39: «quando cambio una chat vedo per qualche secondo il testo vecchio». Si rilegge in
+    // sottofondo chi non è mai stato letto o ha attività nuova (anche durante il turno), al massimo ogni 12 s; mai la
+    // sessione aperta, che si legge da sé, né una chiusa.
     @Test fun sessionsToReadAgainInTheBackground() {
         val st = ContractJson.decodeState(Fixtures.stateIdle)
-        val s = st.sessions.first().copy(name = "atlas-shop", state = SessionState.IDLE, outcome = Outcome("done", "Esito: done", 200))
-        val old = listOf(TranscriptEntry("a1", "assistant", "x", at = 100))
-        val fresh = listOf(TranscriptEntry("a2", "assistant", "y", at = 250))
-        assertEquals(listOf("atlas-shop" to 200L), ChatFeed.stale(listOf(s), mapOf("atlas-shop" to old), emptyMap(), open = null))
-        assertEquals(listOf("atlas-shop" to 200L), ChatFeed.stale(listOf(s), emptyMap(), emptyMap(), open = null))
-        assertTrue(ChatFeed.stale(listOf(s), mapOf("atlas-shop" to fresh), emptyMap(), open = null).isEmpty())
-        assertTrue(ChatFeed.stale(listOf(s), mapOf("atlas-shop" to old), mapOf("atlas-shop" to 200L), open = null).isEmpty())
-        assertTrue(ChatFeed.stale(listOf(s), mapOf("atlas-shop" to old), emptyMap(), open = "atlas-shop").isEmpty())
-        assertTrue(ChatFeed.stale(listOf(s.copy(state = SessionState.GONE)), mapOf("atlas-shop" to old), emptyMap(), open = null).isEmpty())
-        assertTrue(ChatFeed.stale(listOf(s.copy(outcome = null)), emptyMap(), emptyMap(), open = null).isEmpty())
+        val s = st.sessions.first().copy(name = "atlas-shop", state = SessionState.BUSY, tool = "Bash", outcome = null)
+        val read = ChatFeed.Read(ChatFeed.activity(s), 1_000, done = true)
+        assertEquals(listOf("atlas-shop"), ChatFeed.due(listOf(s), emptyMap(), open = null, nowMs = 1_000))
+        assertTrue(ChatFeed.due(listOf(s), mapOf("atlas-shop" to read), open = null, nowMs = 60_000).isEmpty())
+        val next = s.copy(tool = "Edit")
+        assertTrue(ChatFeed.due(listOf(next), mapOf("atlas-shop" to read), open = null, nowMs = 12_999).isEmpty())
+        assertEquals(listOf("atlas-shop"), ChatFeed.due(listOf(next), mapOf("atlas-shop" to read), open = null, nowMs = 13_000))
+        val ended = s.copy(state = SessionState.IDLE, tool = null, outcome = Outcome("done", "Esito: done", 200))
+        assertEquals(listOf("atlas-shop"), ChatFeed.due(listOf(ended), mapOf("atlas-shop" to read), open = null, nowMs = 13_000))
+        assertTrue(ChatFeed.due(listOf(next), emptyMap(), open = "atlas-shop", nowMs = 13_000).isEmpty())
+        assertTrue(ChatFeed.due(listOf(next.copy(state = SessionState.GONE)), emptyMap(), open = null, nowMs = 13_000).isEmpty())
+        // Aprendo la chat: la copia è attuale solo se l'ultima lettura è arrivata e nessuna attività è venuta dopo.
+        assertFalse(ChatFeed.behind(s, read))
+        assertTrue(ChatFeed.behind(next, read))
+        assertTrue(ChatFeed.behind(s, read.copy(done = false)))
+        assertTrue(ChatFeed.behind(s, null))
     }
 
     // Heads up del 12/10: riaperta con le voci in cache, la chat della master perdeva «Carica i messaggi precedenti» e i

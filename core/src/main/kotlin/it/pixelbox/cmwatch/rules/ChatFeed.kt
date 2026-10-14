@@ -87,18 +87,36 @@ object ChatFeed {
      * quelle della sessione di prima e la pagina nuova le mostrava per un attimo.
      */
     /**
-     * Le sessioni da rileggere in sottofondo (Franz, 10/10 09:47: «così alla loro apertura si vede la risposta già
-     * caricata»): un esito più nuovo dell'ultima voce letta e dell'ultima lettura chiesta (`asked`, per nome), né chiusa né
-     * aperta a schermo, che si legge da sé. Coppie nome ed epoch dell'esito, nell'ordine dello stato.
+     * L'ultima lettura in sottofondo di una sessione: la firma della sua attività quando è partita ([activity]), l'ora e se è
+     * arrivata. Una lettura fallita si segna con firma vuota, così si riprova dopo la pausa.
      */
-    fun stale(
-        sessions: List<it.pixelbox.cmwatch.contract.Session>, cache: Map<String, List<TranscriptEntry>>, asked: Map<String, Long>, open: String?,
-    ): List<Pair<String, Long>> = sessions.mapNotNull { s ->
-        val at = s.outcome?.at ?: return@mapNotNull null
-        if (s.state == it.pixelbox.cmwatch.contract.SessionState.GONE || s.name == open) return@mapNotNull null
-        val newest = maxOf(cache[s.name].orEmpty().maxOfOrNull { e -> e.at ?: 0L } ?: 0L, asked[s.name] ?: 0L)
-        if (at > newest) s.name to at else null
-    }
+    data class Read(val sig: String, val atMs: Long, val done: Boolean = false)
+
+    /**
+     * La firma dell'attività di una sessione: cambia con un turno nuovo, ogni strumento, una domanda e un esito. Franz, 14/10
+     * 18:39: «quando cambio una chat vedo per qualche secondo il testo vecchio»; la rilettura del 10/10 guardava solo l'esito.
+     */
+    fun activity(s: it.pixelbox.cmwatch.contract.Session): String =
+        "${s.state}|${s.turnStarted}|${s.tool}|${s.toolNote}|${s.question?.id}|${s.outcome?.at}"
+
+    /**
+     * Le sessioni da rileggere in sottofondo, nell'ordine dello stato: mai letta, o attività nuova dall'ultima lettura e
+     * almeno [BG_GAP_MS] da quella; né chiusa né aperta a schermo, che si legge da sé.
+     */
+    fun due(
+        sessions: List<it.pixelbox.cmwatch.contract.Session>, reads: Map<String, Read>, open: String?, nowMs: Long,
+    ): List<String> = sessions.filter { s ->
+        if (s.state == it.pixelbox.cmwatch.contract.SessionState.GONE || s.name == open) return@filter false
+        val r = reads[s.name] ?: return@filter true
+        r.sig != activity(s) && nowMs - r.atMs >= BG_GAP_MS
+    }.map { it.name }
+
+    /** La copia in cache è più vecchia dell'ultima attività: aprendo la chat si dice che si sta aggiornando. */
+    fun behind(s: it.pixelbox.cmwatch.contract.Session, read: Read?): Boolean = read?.done != true || read.sig != activity(s)
+
+    const val BG_GAP_MS = 12_000L
+    /** Letture in sottofondo insieme, anche al ritorno in primo piano. */
+    const val BG_PARALLEL = 2
 
     fun pageEntries(
         name: String, open: String?, owner: String?, live: List<TranscriptEntry>, cache: Map<String, List<TranscriptEntry>>,

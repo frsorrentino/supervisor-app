@@ -24,7 +24,7 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, inject = null, onInjected = () => {}, onUsage = () => {} }: {
+  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, inject = null, onInjected = () => {}, onUsage = () => {} }: {
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
     onCmd: (op: CmdOp, arg?: string, text?: string) => void; wide: boolean; slots: (string | null)[]
@@ -38,6 +38,8 @@
     elsewhere?: Alert | null; onElsewhere?: () => void; onElsewhereDismiss?: () => void
     /** Da quando (ms) una lettura della conversazione aspetta il PC; null se nessuna è in volo (piano prestazioni, Task 7). */
     waitingSince?: number | null
+    /** La copia a schermo è più vecchia dell'ultima attività e la prima lettura non è arrivata (Franz, 14/10 18:39). */
+    updating?: boolean
     /** Un testo da mettere nel campo, sotto quello che c'è («Parlane con la master» del Recap, 09/10); `n` cambia a ogni richiesta. */
     inject?: { text: string; n: number } | null; onInjected?: () => void
     /** La pillola della quota in testata porta a Utilizzo (09/10). */
@@ -176,7 +178,7 @@
     {:else}
     {#key s.name}<Feed {s} {items} now={st.ts} {onFile} onDecision={canDecide ? openDecision : undefined} />{/key}
     <!-- A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC. -->
-    {#if waitS != null}<p class="waitpc">{t.chatWaitingPc(waitS)}</p>{/if}
+    {#if waitS != null}<p class="waitpc">{t.chatWaitingPc(waitS)}</p>{:else if updating && entries.length}<p class="waitpc">{t.chatUpdating}</p>{/if}
     {#if s.question}
       <QuestionCard q={s.question} source={s.name} onAnswer={(n) => onCmd('answer', String(n))} onChat={() => onCmd('answer', CHAT_ARG)} onAllowAll={() => onCmd('allow_all')} />
     {/if}

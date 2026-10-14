@@ -51,7 +51,7 @@
   import { closeSplash, type Leaving } from './lib/closeSplash'
   import { build, MASTER } from './lib/summary'
   import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
-  import { shouldRead, type LastRead } from './lib/readPlan'
+  import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
 
   const load = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
   const save = (k: string, v: string) => { try { localStorage.setItem(k, v) } catch { /* resta per la sessione */ } }
@@ -208,8 +208,9 @@
 
   // La conversazione delle sessioni a schermo: la prima volta le ultime 50 voci, poi solo quelle venute dopo.
   const loadingT = new Set<string>()
-  async function loadTranscript(name: string) {
-    if (!tr || loadingT.has(name)) return
+  /** Vero quando la lettura è arrivata, anche senza voci nuove. */
+  async function loadTranscript(name: string): Promise<boolean> {
+    if (!tr || loadingT.has(name)) return false
     loadingT.add(name)
     try {
       const have = untrack(() => transcripts[name])
@@ -217,12 +218,13 @@
       const r = await tr.send(newCmd('transcript', name, last ? `200:after=${last}` : '50'))
       if (!r.ok) {
         if (last && r.text.startsWith('no entry')) transcripts = { ...transcripts, [name]: [] }
-        return
+        return false
       }
       const p: TranscriptPage = JSON.parse(r.text)
-      if (last && !p.entries.length) return
+      if (last && !p.entries.length) return true
       transcripts = { ...transcripts, [name]: last ? [...(have ?? []), ...p.entries] : p.entries }
-    } catch { /* al prossimo stato */ } finally { loadingT.delete(name) }
+      return true
+    } catch { return false /* al prossimo stato */ } finally { loadingT.delete(name) }
   }
 
   // Da 840 px la plancia con le colonne, come il tablet; sotto, una colonna sola come il telefono.
@@ -577,11 +579,36 @@
   let waitSince = $state<Record<string, number>>({})
   let readTick = $state(0)
   if (tr) setInterval(() => readTick++, 5_000)
+  // Le chat che non sono a schermo si rileggono in sottofondo (Franz, 14/10 18:39: «vedo per qualche secondo il testo
+  // vecchio»): a ogni attività nuova, al massimo ogni 12 s per sessione, due alla volta; con la pagina nascosta niente, al
+  // ritorno partono subito quelle con novità. `fresh`: le chat a schermo che hanno avuto la loro lettura da quando sono
+  // aperte; fino ad allora una copia più vecchia dell'ultima attività dice che si aggiorna.
+  let bgReads = $state<Record<string, BgRead>>({})
+  let fresh = $state<Record<string, boolean>>({})
+  let bgBusy = 0
+  let shownBefore = new Set<string>()
+  function bgTick() {
+    if (!tr || document.hidden) return
+    for (const n of due(st.sessions, bgReads, [MASTER, ...slots], Date.now())) {
+      if (bgBusy >= BG_PARALLEL) return
+      const s = st.sessions.find(x => x.name === n)
+      if (!s || loadingT.has(n)) continue
+      const sig = activity(s), at = Date.now()
+      bgReads[n] = { sig, atMs: at, done: false }
+      bgBusy++
+      loadTranscript(n).then(ok => { bgReads[n] = { sig: ok ? sig : '', atMs: at, done: ok } }).finally(() => { bgBusy-- })
+    }
+  }
+  if (tr) { setInterval(bgTick, 1_000); document.addEventListener('visibilitychange', bgTick) }
   $effect(() => {
     void st.ts; void readTick
     const names = [...new Set([MASTER, ...slots])]
     untrack(() => {
-      if (loadingT.size) return
+      // Una chat appena aperta si legge subito, senza aspettare la cadenza della volta prima.
+      for (const n of names) if (n && !shownBefore.has(n)) { reads.delete(n); delete fresh[n] }
+      shownBefore = new Set(names.filter((n): n is string => !!n))
+      // Una lettura in sottofondo in volo non ferma quelle a schermo.
+      if (names.some(n => n && loadingT.has(n))) return
       const now = nowS()
       for (const n of names) {
         const s = n ? st.sessions.find(x => x.name === n) : undefined
@@ -591,7 +618,9 @@
         if (!shouldRead(s, last, !!last && last.key !== key, now)) continue
         reads.set(n, { at: now, answered: false, key })
         waitSince[n] ??= Date.now()
-        loadTranscript(n).finally(() => { const r = reads.get(n); if (r) r.answered = true; delete waitSince[n]; readTick++ })
+        const sig = activity(s), at = Date.now()
+        loadTranscript(n).then(ok => { if (ok) { fresh[n] = true; bgReads[n] = { sig, atMs: at, done: true } } })
+          .finally(() => { const r = reads.get(n); if (r) r.answered = true; delete waitSince[n]; readTick++ })
         return
       }
     })
@@ -626,6 +655,7 @@
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = (st.sessions.find(x => x.name === name) ?? ghost(name))!}
   <Chat {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
+    updating={s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onHandoff={() => handoff(name)} onDecision={decide}
     wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, alertKey(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
