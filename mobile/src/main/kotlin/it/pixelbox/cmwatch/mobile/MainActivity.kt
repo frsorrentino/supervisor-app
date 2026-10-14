@@ -985,6 +985,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // «Fai controllare alla master»: dal menu ⋮ della sessione e dal menu contestuale della card.
+        val askMasterAbout: (String, String) -> Unit = { masterName, about ->
+            scope.launch {
+                val text = getString(R.string.ask_master_prompt, about)
+                runCatching { app.repo.prompt(masterName, text) }.getOrNull()?.let { id ->
+                    app.chatLog.add(Sent(id, masterName, text, System.currentTimeMillis() / 1000))
+                    android.widget.Toast.makeText(this@MainActivity, getString(R.string.ask_master_done), android.widget.Toast.LENGTH_SHORT).show()
+                    // La risposta arriva nella chat della master: ci si va subito (Franz, 03/10 15:25: «non funziona»,
+                    // la master rispondeva ma la risposta restava fuori vista).
+                    open = masterName
+                }
+            }
+        }
         val sessionPage: @Composable (it.pixelbox.cmwatch.contract.Session, List<it.pixelbox.cmwatch.contract.TranscriptEntry>, (@Composable ColumnScope.((String) -> Unit, (String) -> Unit) -> Unit)?, Boolean, (@Composable () -> Unit)?, (@Composable () -> Unit)?, Boolean, (@Composable () -> Unit)?, (@Composable RowScope.() -> Unit)?) -> Unit = { session, pageEntries, home, header, dock, bar, homeOpen, appBar, lead ->
                         val nightDir = state?.takeIf { it.night.items != null }?.let { st -> ChatRules.nightDir(st, session) }
                         val quotaWarn = state?.let { st -> it.pixelbox.cmwatch.rules.QuotaWarning.of(st, session, samples[session.account].orEmpty(), now) }
@@ -1123,18 +1136,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }) else null,
-                            askMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.takeIf { m -> m.name != session.name }?.let { m -> {
-                                scope.launch {
-                                    val text = getString(R.string.ask_master_prompt, session.name)
-                                    runCatching { app.repo.prompt(m.name, text) }.getOrNull()?.let { id ->
-                                        app.chatLog.add(Sent(id, m.name, text, System.currentTimeMillis() / 1000))
-                                        android.widget.Toast.makeText(this@MainActivity, getString(R.string.ask_master_done), android.widget.Toast.LENGTH_SHORT).show()
-                                        // La risposta arriva nella chat della master: ci si va subito (Franz, 03/10 15:25: «non funziona»,
-                                        // la master rispondeva ma la risposta restava fuori vista).
-                                        open = m.name
-                                    }
-                                }
-                            } },
+                            askMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.takeIf { m -> m.name != session.name }?.let { m -> { askMasterAbout(m.name, session.name) } },
                         ), chat = rows, quota = quotaWarn, accountQuota = state?.quota?.get(session.account), canTonight = nightDir != null,
                             // Niente frasi rapide (Franz, 01/10 23:34: «via» fisso, generico e fuori luogo): i consigli in più
                             // li scriverà la sessione stessa a fine turno.
@@ -1292,6 +1294,8 @@ class MainActivity : ComponentActivity() {
                     } },
                     canExit = state?.ops?.contains("slash") == true && state.slash?.contains("exit") == true,
                     onClose = { n -> scope.launch { runCatching { app.repo.command(CmdOp.SLASH, n, "exit", null) } } },
+                    onFollow = { n, f -> scope.launch { runCatching { app.repo.command(if (f) CmdOp.FOLLOW else CmdOp.UNFOLLOW, n, null) } } },
+                    onAskMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.let { m -> { n: String -> if (n != m.name) askMasterAbout(m.name, n) } },
                     now = now,
                     nightDate = nightRef?.date?.takeIf { showNightBox }?.let { d -> runCatching { java.time.LocalDate.parse(d) }.getOrNull() },
                     nightPage = boxPage, onNight = { nightOpen = true },

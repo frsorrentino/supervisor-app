@@ -3,6 +3,7 @@ package it.pixelbox.cmwatch.mobile.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,9 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.SupervisorAccount
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -78,6 +82,8 @@ fun SummaryList(
     approvals: List<it.pixelbox.cmwatch.contract.Approval> = emptyList(), onApprove: (task: String, note: String) -> Unit = { _, _ -> },
     /** Contratto 1.37: «Chiudi» per le sessioni finite o doppie senza finestra; `canExit` = il PC accetta /exit. */
     canExit: Boolean = false, onClose: (String) -> Unit = {},
+    /** Il menu contestuale della card (pressione lunga, Franz 14/10 20:58): segui, fai controllare alla master. */
+    onFollow: (String, Boolean) -> Unit = { _, _ -> }, onAskMaster: ((String) -> Unit)? = null,
     now: Long = System.currentTimeMillis() / 1000,
     /** Il riquadro Notte (mockup approvato l'08/10 alle 12:57): il giorno del rapporto, e la pagina quando è arrivata. */
     nightDate: java.time.LocalDate? = null, nightPage: it.pixelbox.cmwatch.rules.NightPage.Page? = null, onNight: () -> Unit = {},
@@ -199,6 +205,7 @@ fun SummaryList(
                         r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
                         onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
                         firstFilled = approvals.isEmpty(), canExit = canExit, onClose = { onClose(s.name) }, now = now,
+                        onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                     )
                 }
             }
@@ -299,12 +306,13 @@ private fun details(s: Session): List<String> = listOfNotNull(
  * quadrato dell'account, glifo dello stato), nome, contesto e quota delle 5 ore; sotto l'ultimo esito o la domanda su due righe e la
  * barretta del contesto. Aperta: il testo intero, i dettagli, le opzioni o i consigli e la conversazione.
  */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun SummaryCard(
     r: Summary.Row, open: Boolean, onToggle: () -> Unit,
     onAnswer: (Int) -> Unit, onStep: (String) -> Unit, onOpen: () -> Unit,
     firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, now: Long = System.currentTimeMillis() / 1000,
+    onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -314,6 +322,10 @@ private fun SummaryCard(
         onDispose { onScreen?.let { m -> val n = (m[s.name] ?: 1) - 1; if (n <= 0) m.remove(s.name) else m[s.name] = n } }
     }
     var closeAsk by rememberSaveable(s.name) { mutableStateOf(false) }
+    // Il menu contestuale della sessione sulla card (Franz, 14/10 20:58: «il menu contestuale di una sessione non lo vedo»):
+    // pressione lunga o tasto destro; «Chiudi» chiede conferma nella card, come la chiusura del riordino.
+    var menu by remember { mutableStateOf(false) }
+    var menuClose by rememberSaveable(s.name) { mutableStateOf(false) }
     // Il tasto di un passo toccato resta segnato «mandato» finché la sessione non cambia esito (Franz, 06/10 12:32).
     var sentSteps by rememberSaveable(s.name, s.outcome?.at) { mutableStateOf(listOf<String>()) }
     val waiting = r.group == Summary.Group.WAITING
@@ -326,7 +338,8 @@ private fun SummaryCard(
         // La chat si restringe verso la sua card durante il gesto indietro.
         Modifier.fly("card-${s.id}").fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(fill).smoothSize()
             // Franz, 03/10 17:05: il tocco sulla card porta dritto alla sessione; il tasto ▼ la apre sul posto.
-            .handCursor().clickable(onClick = onOpen).handCursor().padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 12.dp),
+            .handCursor().combinedClickable(onClick = onOpen, onLongClick = { menu = true }).contextClick { menu = true }
+            .padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -409,6 +422,35 @@ private fun SummaryCard(
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
                 ) { Text(stringResource(R.string.cleanup_close, s.name)) }
             }
+        }
+        if (menuClose) androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))
+            androidx.compose.material3.TextButton(onClick = { menuClose = false }) { Text(stringResource(R.string.close_keep), color = CmColors.actionIcon) }
+            androidx.compose.material3.Button(
+                onClick = { menuClose = false; onClose() },
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
+            ) { Text(stringResource(R.string.cleanup_close, s.name)) }
+        }
+        if (menu) MenuPanel(
+            onDismiss = { menu = false },
+            entries = listOfNotNull(
+                MenuEntry(
+                    if (s.followed) Icons.Rounded.NotificationsOff else Icons.Rounded.NotificationsActive,
+                    stringResource(if (s.followed) R.string.unfollow else R.string.follow),
+                    stringResource(if (s.followed) R.string.unfollow_sub else R.string.follow_sub),
+                ) { onFollow(!s.followed) },
+                onAskMaster?.let { ask -> MenuEntry(Icons.Rounded.SupervisorAccount, stringResource(R.string.ask_master), stringResource(R.string.ask_master_sub), onClick = ask) },
+            ),
+            footer = if (canExit && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE)
+                MenuEntry(Icons.Rounded.PowerSettingsNew, stringResource(R.string.menu_exit), stringResource(R.string.menu_exit_sub), destructive = true) { menuClose = true } else null,
+        ) {
+            SessionBadge(s, 20.dp)
+            Text(
+                s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = CmColors.text,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
+            )
         }
         s.context?.let { pct ->
             val bar = when (it.pixelbox.cmwatch.rules.SessionMeters.contextTone(pct)) {

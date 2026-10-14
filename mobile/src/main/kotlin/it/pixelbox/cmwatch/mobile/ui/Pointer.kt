@@ -5,6 +5,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.platform.LocalContext
 
 /**
@@ -20,4 +22,17 @@ fun Modifier.grabCursor(): Modifier = systemCursor(android.view.PointerIcon.TYPE
 private fun Modifier.systemCursor(type: Int): Modifier = composed {
     val ctx = LocalContext.current
     pointerHoverIcon(remember(type) { PointerIcon(android.view.PointerIcon.getSystemIcon(ctx, type)) })
+}
+
+/** Il tasto destro del mouse (tablet e Chromebook): apre il menu contestuale come la pressione lunga (Franz, 14/10 20:58). */
+fun Modifier.contextClick(onContext: () -> Unit): Modifier = pointerInput(onContext) {
+    awaitPointerEventScope {
+        while (true) {
+            val e = awaitPointerEvent()
+            if (e.type == androidx.compose.ui.input.pointer.PointerEventType.Press && e.buttons.isSecondaryPressed) {
+                e.changes.forEach { it.consume() }
+                onContext()
+            }
+        }
+    }
 }

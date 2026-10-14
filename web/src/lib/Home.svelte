@@ -5,7 +5,7 @@
   import type { Approval, Session, State } from './contract'
   import { cleanupOf } from './masterService'
   import { since } from './durations'
-  import { build, type Group, type Row } from './summary'
+  import { build, MASTER, type Group, type Row } from './summary'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
   import { blockingOf, parseSteps } from './nextSteps'
@@ -22,7 +22,7 @@
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null }: {
     /** `selected`: le sessioni aperte, evidenziate; `withMaster`: la master nella lista come le altre (la plancia). */
     st: State; selected: string[]; onPick: (name: string) => void; withMaster?: boolean
     /** In fondo alla lista: sulla plancia i pannelli della quota (footer di SummaryList). */
@@ -30,6 +30,8 @@
     onAnswer: (session: string, n: number) => void; onStep: (session: string, text: string) => void
     /** Contratto 1.37: l'ok a un compito (`approve`) e «Chiudi» per una sessione finita o doppione (/exit). */
     onApprove?: (task: string, note: string) => void; onClose?: (name: string) => void
+    /** Il menu contestuale della card (Franz, 14/10 20:58): segui, fai controllare alla master, come il ⋮ della sessione. */
+    onSessionCmd?: (name: string, op: 'follow' | 'unfollow' | 'prompt', arg?: string) => void
     /** Il riquadro Notte (mockup approvato l'08/10 alle 12:57): `undefined` = nascosto, null = rapporto in arrivo. */
     night?: NightPage | null | undefined; nightTitle?: string; onNight?: () => void
     /** «Utilizzo»: i pannelli della quota in una sezione richiudibile. */
@@ -89,6 +91,27 @@
   let note = $state('')
   let approveDlg: HTMLDialogElement | undefined = $state()
   let confirming = $state<string | null>(null)
+  // Il menu contestuale della sessione sulla card (Franz, 14/10 20:58: «il menu contestuale di una sessione non lo vedo»):
+  // tasto destro, o pressione lunga sul telefono; le voci del ⋮ della sessione, «Chiudi» con la conferma nella card.
+  let ctx = $state<string | null>(null)
+  // Il pannello sta sopra tutto (anche sopra il riquadro della master), vicino al punto toccato e dentro lo schermo.
+  let at = $state({ x: 0, y: 0 })
+  const MENU_W = 360, MENU_H = 290
+  function openCtx(name: string, x: number, y: number) {
+    at = { x: Math.max(8, Math.min(x, innerWidth - Math.min(MENU_W, innerWidth - 24) - 8)), y: Math.max(8, Math.min(y, innerHeight - MENU_H - 8)) }
+    ctx = name
+  }
+  let held: ReturnType<typeof setTimeout> | null = null
+  let longFired = false
+  const HOLD_MS = 500
+  function holdStart(name: string, e: PointerEvent) {
+    if (e.pointerType === 'mouse') return
+    longFired = false
+    const x = e.clientX, y = e.clientY
+    held = setTimeout(() => { longFired = true; openCtx(name, x, y) }, HOLD_MS)
+  }
+  function holdEnd() { if (held) clearTimeout(held); held = null }
+  const hasMaster = $derived(st.sessions.some(x => x.name === MASTER && x.state !== 'gone'))
   // Il tasto di un passo toccato resta segnato «mandato» finché la sessione non cambia esito (Franz, 06/10 12:32): la card
   // risponde subito, poi la sessione al lavoro la aggiorna.
   let sentSteps = $state(new Set<string>())
@@ -101,6 +124,8 @@
     return { body: shown.replace(/\*\*|__|`/g, '').trim(), steps: r.group === 'waiting' ? [] : parsed.steps, blocking: blockingOf(r.session, parsed.blocking) }
   }
 </script>
+
+<svelte:window onkeydown={(e) => e.key === 'Escape' && ctx && (ctx = null)} />
 
 {#snippet sec(key: string, title: string, summary: string | null = null)}
   <button class="sec" aria-expanded={open[key]} onclick={() => toggleSec(key)}>
@@ -161,7 +186,31 @@
       {@const open = expanded === s.name}
       {@const c = cleanupOf(s, canExit, st.ts)}
       <div class="card" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)} animate:flip={{ duration: 250 }}
-        role="button" tabindex="0" onclick={() => onPick(s.name)} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}>
+        role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
+        oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
+        {#if ctx === s.name}
+          <button class="scrim" aria-label={t.closeWord} onclick={(e) => { e.stopPropagation(); ctx = null }}></button>
+          <div class="cmenu" role="menu" tabindex="-1" style="left:{at.x}px; top:{at.y}px" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') ctx = null; e.stopPropagation() }}>
+            <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
+            <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, s.followed ? 'unfollow' : 'follow'); ctx = null }}>
+              <svg viewBox="0 0 24 24" width="22" height="22"><path d={s.followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
+              <span><span class="mt">{s.followed ? t.unfollow : t.follow}</span><span class="ms">{s.followed ? t.unfollowSub : t.followSub}</span></span>
+            </button>
+            {#if s.name !== MASTER && hasMaster}
+              <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, 'prompt', t.askMasterPrompt(s.name)); ctx = null }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
+                <span><span class="mt">{t.askMaster}</span><span class="ms">{t.askMasterSub}</span></span>
+              </button>
+            {/if}
+            {#if canExit && s.state !== 'gone'}
+              <hr />
+              <button class="mi danger" role="menuitem" onclick={() => { ctx = null; confirming = s.name }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
+                <span><span class="mt">{t.menuExit}</span><span class="ms">{t.menuExitSub}</span></span>
+              </button>
+            {/if}
+          </div>
+        {/if}
         <div class="top">
           <Badge {s} size={24} />
           <span class="name">{s.name}</span>
@@ -201,6 +250,13 @@
               <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
             </div>
           {/if}
+        {/if}
+        {#if confirming === s.name && !c?.canClose}
+          <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
+            <span>{t.closeInline}</span>
+            <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
+            <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
+          </div>
         {/if}
         {#if s.context != null}
           <div class="track"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div>
@@ -288,7 +344,18 @@
   .jcol { display: flex; flex-direction: column; min-width: 0; }
   .jcol b { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; }
   .jcol small { font-size: 14px; color: var(--text2); white-space: nowrap; overflow: hidden; }
-  .card { background: var(--low); border-radius: 20px; padding: 8px 10px 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background .15s, box-shadow .15s; outline: none; }
+  .scrim { position: fixed; inset: 0; z-index: 60; cursor: default; background: transparent; }
+  .cmenu { position: fixed; z-index: 61; width: min(360px, calc(100vw - 24px)); background: var(--surface); border-radius: 20px; padding: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); cursor: default; }
+  .cmenu .ph { display: flex; gap: 10px; align-items: center; padding: 8px 12px 10px; }
+  .cmenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+  .mi { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 12px; border-radius: 14px; text-align: left; color: var(--text); }
+  .mi:hover { background: var(--high); }
+  .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .mi > span { display: flex; flex-direction: column; gap: 2px; }
+  .mt { font-size: 15.5px; }
+  .ms { font-size: 13px; color: var(--text2); }
+  .mi.danger svg { stroke: var(--b-alert); }
+  .card { position: relative; -webkit-touch-callout: none; background: var(--low); border-radius: 20px; padding: 8px 10px 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background .15s, box-shadow .15s; outline: none; }
   .card.waiting { background: color-mix(in srgb, var(--low) 94%, var(--b-warn)); }
   .card:hover, .card:focus-visible { box-shadow: inset 0 0 0 1px var(--line); }
   .card.on { box-shadow: inset 0 0 0 1.5px var(--b-ring); }
