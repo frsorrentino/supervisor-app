@@ -92,7 +92,8 @@ class ContractTest {
 
     @Test fun eventsDecodeOnePerKind() {
         val ev = ContractJson.decodeEvents(Fixtures.events)
-        assertEquals(EventKind.entries.size - 1, ev.map { it.kind }.toSet().size) // manca «resumed» nella fixture
+        // Manca «resumed»; week_unused e week_pace (1.67) non sono nelle fixture del relay 0.8.23.
+        assertEquals(EventKind.entries.size - 3, ev.map { it.kind }.toSet().size)
         assertEquals("q-1789210500-1", ev.first { it.kind == EventKind.QUESTION }.ref)
         assertNull(ev.first { it.kind == EventKind.QUOTA }.session)
     }

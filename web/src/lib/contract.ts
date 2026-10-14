@@ -8,6 +8,8 @@ export type Question = { id: string; kind: 'permission' | 'ask' | 'plan'; text: 
   /** Contratto 1.56: il testo senza segreti, solo quando diverso da `text`. */
   preview?: string | null }
 /** Contratto 1.55: una domanda risolta al terminale, nello stato per 5 minuti. */
+/** Contratto 1.66: question | turn_failed | quota_limit | task_red. */
+export type Attention = { kind: string; session?: string | null; ref?: string | null; title: string; since: number }
 export type Resolved = { id: string; text: string; at: number; by: string }
 /** Contratto 1.60: `preview` = short e full senza segreti, solo quando il relay ha nascosto qualcosa. */
 export type Outcome = { short: string; full: string; at: number; preview?: { short: string; full: string } | null }
@@ -62,7 +64,7 @@ export type AgendaRow = {
 export type AgendaPage = { rows: AgendaRow[]; more: boolean; owner?: string | null }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
-export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed'
+export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace'
 export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null
   /** Contratto 1.56: titolo e corpo senza segreti. */
   preview?: { title: string; body?: string } | null
@@ -107,6 +109,8 @@ export type State = {
   v: number; ts: number; host: string
   /** Contratto 1.64: le cartelle madri per un progetto nuovo. */
   project_parents?: string[] | null
+  /** Contratto 1.66: quello che serve a Franz, dalla voce più vecchia; assente quando non c'è niente. */
+  attention?: Attention[] | null
   /** 1.43: epoch s della pubblicazione (decimali ammessi); assente con un relay precedente. */
   published_at?: number | null
   sessions: Session[]; quota: Record<string, QuotaAccount>
@@ -131,6 +135,8 @@ export type Cmd = {
   question?: string
   /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */
   at?: number; confirm?: boolean; prompt?: string
+  /** Contratto 1.65: a una sessione chiusa, che il relay riapre e poi le consegna. */
+  reopen?: boolean
   /** Contratto 1.47, `agenda_set`: done | snooze | remove | pass, il giorno di uno snooze, a chi passa. */
   action?: string; until?: string; blocks?: string
 }

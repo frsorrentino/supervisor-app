@@ -16,12 +16,14 @@ export function button(s: Session, draft: string): Button {
 }
 /** Risposta libera se la domanda c'è ancora, altrimenti prompt; null se non si può mandare. */
 export function target(s: Session, draft: string): Target | null {
-  if (s.state === 'gone' || !draft.trim()) return null
+  if (!draft.trim()) return null
+  // Contratto 1.65: a una sessione chiusa si scrive lo stesso; il relay la riapre e consegna.
+  if (s.state === 'gone') return 'prompt'
   return s.question ? 'answer_text' : 'prompt'
 }
 /** Come in Claude Code: Stop mentre la sessione lavora col campo vuoto, se il relay sa fermare; scrivendo torna Invia. */
 export function mode(s: Session, draft: string, ops: string[] | null | undefined): Mode {
-  if (s.state === 'gone') return 'reopen'
+  if (s.state === 'gone') return draft.trim() ? 'send' : 'reopen'
   if (draft.trim()) return button(s, draft) === 'option' ? 'send_tonal' : 'send'
   if ((s.state === 'busy' || s.state === 'awaiting') && ops?.includes('interrupt')) return 'stop'
   return 'none'

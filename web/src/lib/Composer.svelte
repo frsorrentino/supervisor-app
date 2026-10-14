@@ -5,11 +5,13 @@
   import { textArg } from './questionRules'
   import { t } from './t'
   import { sendAtEpoch } from './chatRules'
+  import { parseMention, suggestMention } from './mention'
+  import Badge from './Badge.svelte'
   import Icon from './Icon.svelte'
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
-  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onDecision = null, onSendAt = null }: {
+  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onDecision = null, onSendAt = null, onSendTo = null }: {
     st: State; s: Session; draft: string; field: string | null; toMaster: boolean
     onSend: (text: string) => void; onAnswerText: (arg: string) => void; onSlash: (cmd: string, args: string | null) => void
     onStop: () => void; onReopen: () => void; onAttach: (files: File[], text: string) => void; onRecurring: (() => void) | null
@@ -17,6 +19,8 @@
     onDecision?: (() => void) | null
     /** Contratto 1.63, «Manda alle…»: il testo e l'ora (epoch s); null = il relay non lo sa fare. */
     onSendAt?: ((text: string, at: number) => void) | null
+    /** «@nome» nella chat della master: il messaggio a quella sessione (Franz, 14/10 21:55). */
+    onSendTo?: ((name: string, text: string) => void) | null
   } = $props()
   let picking = $state(false)
   let when = $state(`${String((new Date().getHours() + 1) % 24).padStart(2, '0')}:00`)
@@ -30,6 +34,7 @@
   let files = $state<{ file: File; url: string | null }[]>([])
   const md = $derived(files.length && modeOf(s, draft, st.ops) !== 'reopen' ? (s.question?.options.length ? 'send_tonal' : 'send') : modeOf(s, draft, st.ops))
   const hints = $derived(s.question ? [] : slashSuggest(draft, st.slash))
+  const mentions = $derived(toMaster && onSendTo ? suggestMention(draft, st.sessions, s.name) : [])
   const canFiles = $derived(!!st.share?.any)
   let confirm = $state<{ cmd: string; args: string | null } | null>(null)
   let confirmDlg: HTMLDialogElement | undefined = $state()
@@ -63,6 +68,9 @@
   function send() {
     const text = draft.trim()
     // Un testo che comincia con un comando consentito parte come comando (contratto 1.25); clear ed exit chiedono prima.
+    // «@nome testo» dalla master va a quella sessione, come prompt.
+    const to = toMaster && onSendTo && !files.length ? parseMention(draft, st.sessions, s.name) : null
+    if (to) { onSendTo!(to[0], to[1]); draft = ''; return }
     const cmd = !files.length && !s.question ? slashParse(draft, st.slash) : null
     // /exit passa dalla stessa domanda di ogni chiusura, col nome e lo stato (Franz, 06/10 12:25).
     if (cmd?.cmd === 'exit') { exitArgs = cmd.args; closer?.ask(s); return }
@@ -89,9 +97,6 @@
   const placeholder = $derived(inField ?? (s.question ? t.answerFree : toMaster ? t.masterPlaceholder : t.writeTo(s.name)))
 </script>
 
-{#if md === 'reopen'}
-  <div class="bar"><button class="reopen" onclick={onReopen}>{t.reopen}</button></div>
-{:else}
   <div class="bar" bind:clientWidth={barW}>
     {#if files.length}
       <div class="thumbs">
@@ -102,6 +107,9 @@
           </div>
         {/each}
       </div>
+    {/if}
+    {#if mentions.length}
+      <div class="chips">{#each mentions as m (m.name)}<button class="chip" onclick={() => { draft = `@${m.name} `; area?.focus() }}><Badge s={m} size={16} />@{m.name}{#if m.tool_note ?? m.tool} · {m.tool_note ?? m.tool}{/if}</button>{/each}</div>
     {/if}
     {#if hints.length}
       <div class="chips">{#each hints as c}<button class="chip" onclick={() => { draft = `/${c} `; area?.focus() }}>/{c}</button>{/each}</div>
@@ -148,7 +156,10 @@
           {/if}
         </span>
       {/if}
-      {#if md === 'stop'}
+      {#if md === 'reopen'}
+        <!-- Contratto 1.65: anche una chiusa ha il campo; a campo vuoto «Riapri», scrivendo Invia la riapre e consegna. -->
+        <button type="button" class="reopen small" onclick={onReopen}>{t.reopen}</button>
+      {:else if md === 'stop'}
         <button type="button" class="round filled" aria-label={t.stop} title={t.stop} onclick={onStop}><svg viewBox="0 0 24 24" width="20" height="20"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" /></svg></button>
       {:else}
         <button type="submit" class="round" class:filled={md === 'send'} class:tonal={md === 'send_tonal'} disabled={md === 'none'} aria-label={t.send}>
@@ -158,7 +169,6 @@
     </form>
     {#if !narrow}<div class="keys mono">{t.enterSends}</div>{/if}
   </div>
-{/if}
 
 <CloseDialog bind:this={closer} onConfirm={() => { onSlash('exit', exitArgs); draft = '' }} />
 <dialog bind:this={confirmDlg} onclose={() => (confirm = null)}>
@@ -175,6 +185,7 @@
 <style>
   .bar { padding: 8px 12px 4px; display: flex; flex-direction: column; gap: 8px; }
   .reopen { height: 56px; border-radius: 28px; background: var(--primary); color: var(--on-primary); font-weight: 500; font-size: 15px; margin-bottom: 8px; }
+  .reopen.small { height: 40px; padding: 0 18px; border-radius: 20px; margin: 0 4px 0 0; flex: none; }
   .thumbs, .chips { display: flex; gap: 8px; overflow-x: auto; }
   .thumb { position: relative; flex: none; }
   .thumb img { width: 72px; height: 72px; object-fit: cover; border-radius: 14px; display: block; }

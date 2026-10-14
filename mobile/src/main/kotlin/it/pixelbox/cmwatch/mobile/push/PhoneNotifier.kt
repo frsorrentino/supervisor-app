@@ -118,6 +118,13 @@ class PhoneNotifier(private val ctx: Context) {
         post(("turn-failed-$session").hashCode(), b)
     }
 
+    /** Contratto 1.67: la settimana di un account, una riga senza tasti e senza suono, che apre l'utilizzo. */
+    fun week(e: it.pixelbox.cmwatch.contract.Event) {
+        post(("week-" + e.account + "-" + e.kind).hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(e.shareTitle).setContentText(e.shareBody.lineSequence().firstOrNull { it.isNotBlank() })
+            .setContentIntent(open(("week-" + e.account).hashCode())).setAutoCancel(true))
+    }
+
     fun closeTurnFailed(session: String) = nm.cancel(("turn-failed-$session").hashCode())
 
     private fun openSession(session: String?) = PendingIntent.getActivity(

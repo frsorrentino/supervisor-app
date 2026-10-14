@@ -10,7 +10,8 @@ const ops = ['prompt', 'interrupt']
 describe('tasto e destinazione', () => {
   it('campo vuoto niente tasto, tranne chiusa', () => { expect(button(s('idle'), '  ')).toBe('none'); expect(button(s('gone'), '')).toBe('reopen') })
   it('testo = invia', () => expect(button(s('idle'), 'vai')).toBe('send'))
-  it('una chiusa non manda mai', () => { expect(button(s('gone'), 'vai')).toBe('reopen'); expect(target(s('gone'), 'vai')).toBeNull() })
+  // Contratto 1.65: a una chiusa si scrive; il prompt parte con reopen e il relay la riapre.
+  it('una chiusa riceve il prompt scritto', () => { expect(button(s('gone'), 'vai')).toBe('reopen'); expect(target(s('gone'), 'vai')).toBe('prompt'); expect(target(s('gone'), ' ')).toBeNull() })
   it('risposta solo finché la domanda c\'è', () => { expect(target(s('waiting', q), 'B')).toBe('answer_text'); expect(target(s('idle'), 'B')).toBe('prompt') })
   it('la prima opzione è il tasto pieno', () => expect(button(s('waiting', q), 'anche testo')).toBe('option'))
   it('domanda senza opzioni: invia', () => expect(button(s('waiting', { ...q, options: [] }), 'B')).toBe('send'))
@@ -18,7 +19,7 @@ describe('tasto e destinazione', () => {
   it('scrivendo torna Invia', () => expect(mode(s('busy'), 'and also', ops)).toBe('send'))
   it('niente Stop senza il relay', () => { expect(mode(s('busy'), '', null)).toBe('none'); expect(mode(s('busy'), '', ['prompt'])).toBe('none') })
   it('Invia tonale con la prima opzione piena', () => expect(mode(s('waiting', q), 'B', ops)).toBe('send_tonal'))
-  it('chiusa: Riapri', () => expect(mode(s('gone'), 'text', ops)).toBe('reopen'))
+  it('chiusa: Riapri a campo vuoto, Invia scrivendo (1.65)', () => { expect(mode(s('gone'), '', ops)).toBe('reopen'); expect(mode(s('gone'), 'text', ops)).toBe('send') })
   it('ferma col campo vuoto: niente', () => expect(mode(s('idle'), ' ', ops)).toBe('none'))
   it('suggerimento solo da ferma col campo vuoto', () => {
     const idle = { ...s('idle'), suggestion: 'pubblicato, controlla' }

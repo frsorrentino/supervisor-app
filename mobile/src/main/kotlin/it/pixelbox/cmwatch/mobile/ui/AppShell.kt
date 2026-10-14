@@ -258,6 +258,8 @@ fun PageHeader(
     page: String?, sessions: List<Session>, openCount: Int, now: Long, onPick: (String?) -> Unit, onClosed: () -> Unit,
     menu: MenuActions, quota: (@Composable () -> Unit)? = null, showQuota: Boolean = false,
     menuStartOpen: Boolean = false, sessionMenuStartOpen: Boolean = false,
+    /** Contratto 1.66: quante cose servono a Franz (`state.attention`), e il tocco che porta alla prima. */
+    attention: Int = 0, onAttention: () -> Unit = {},
 ) {
     Column(Modifier.fillMaxWidth().background(CmColors.bg)) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -271,6 +273,15 @@ fun PageHeader(
                     Text(
                         pluralStringResource(R.plurals.summary_open, openCount, openCount), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
                         maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.padding(bottom = 2.dp),
+                    )
+                }
+                if (attention > 0) androidx.compose.material3.Surface(
+                    onClick = onAttention, shape = androidx.compose.foundation.shape.CircleShape, color = CmColors.waiting.copy(alpha = 0.18f),
+                    contentColor = CmColors.waiting, modifier = Modifier.handCursor(),
+                ) {
+                    Text(
+                        pluralStringResource(R.plurals.attention_count, attention, attention), style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     )
                 }
                 // La lente solo nella home: la ricerca è di tutte le sessioni, e in una sessione la testa ha già abbastanza comandi.

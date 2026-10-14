@@ -470,8 +470,11 @@
     msgs = [...msgs, m]
     if (!tr) return
     pend = { ...pend, [m.id]: 'sending' }
+    // Contratto 1.65: a una sessione chiusa il relay la riapre e poi consegna.
+    const closed = st.sessions.find(x => x.name === name)?.state === 'gone'
+    if (closed) say(t.reopening(name))
     try {
-      const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id })
+      const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}) })
       res = { ...res, [m.id]: r }
     } catch { pend = { ...pend, [m.id]: 'failed' } }
   }
@@ -694,6 +697,7 @@
   <Chat {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
+    onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
     onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onHandoff={() => handoff(name)} onDecision={decide}
     wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, alertKey(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
@@ -706,7 +710,7 @@
     {#snippet menu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
     {#snippet quick()}{@render masterQuick()}{/snippet}
     {#snippet list()}
-      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} />
+      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.[0]?.session; if (n) { openPage(null); pick(n) } }} />
       <div class="list"><Home {st} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
         onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} onRecapAction={(a) => sendTo(a.to, a.send)} agenda={agenda.page} onRecapPage={() => openPage('recap')} {canWrite} onTalk={talk} onEdit={editAgenda}

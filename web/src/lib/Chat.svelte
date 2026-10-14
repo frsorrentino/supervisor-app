@@ -25,7 +25,7 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, inject = null, onInjected = () => {}, onUsage = () => {} }: {
+  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {} }: {
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
     onCmd: (op: CmdOp, arg?: string, text?: string) => void; wide: boolean; slots: (string | null)[]
@@ -43,6 +43,8 @@
     updating?: boolean
     /** Contratto 1.63, «Manda alle…». */
     onSendAt?: ((text: string, at: number) => void) | null
+    /** «@nome» nella chat della master. */
+    onSendTo?: ((name: string, text: string) => void) | null
     /** Un testo da mettere nel campo, sotto quello che c'è («Parlane con la master» del Recap, 09/10); `n` cambia a ogni richiesta. */
     inject?: { text: string; n: number } | null; onInjected?: () => void
     /** La pillola della quota in testata porta a Utilizzo (09/10). */
@@ -242,7 +244,7 @@
     onAnswerText={(arg) => onCmd('answer', arg)} onSlash={(c, a) => onCmd('slash', c, a ?? undefined)} onStop={() => onCmd('interrupt')}
     onReopen={() => onCmd('reopen')} {onAttach}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
-    onDecision={canDecide ? () => openDecision('') : null} {onSendAt} />
+    onDecision={canDecide ? () => openDecision('') : null} {onSendAt} {onSendTo} />
 </section>
 
 <dialog bind:this={decisionDlg} class="sheet" onclick={(e) => e.target === e.currentTarget && decisionDlg?.close()}>

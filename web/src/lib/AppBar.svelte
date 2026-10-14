@@ -13,7 +13,9 @@
   // La testata della home (PageHeader dell'app): «Master · N aperte», la lente e il menu ≡; sotto, la quota in una riga
   // (QuotaLine): per ogni account la sua forma, una barra fina delle 5 ore e la percentuale; ambra da 75 %, rossa da 90 %.
   // `menuOnly`: solo il tasto ≡ col suo pannello, nella testata della master a tutto schermo (Franz, 08/10 18:15).
-  let { st, now, openCount, onPage, menuOnly = false }: { st: State; now: number; openCount: number; onPage: (p: Page) => void; menuOnly?: boolean } = $props()
+  let { st, now, openCount, onPage, menuOnly = false, onAttention = () => {} }: { st: State; now: number; openCount: number; onPage: (p: Page) => void; menuOnly?: boolean
+    /** Contratto 1.66: il tocco sul contatore «N per te» porta alla prima voce. */
+    onAttention?: () => void } = $props()
   let menu = $state(false)
   // Il pannello scende dal tasto ≡, non dal bordo dello schermo: sulla plancia con la home a sinistra resta accanto al tasto.
   let panelRight = $state(12)
@@ -44,6 +46,7 @@
 <header>
   <div class="bar">
     <span class="title"><b>{t.summaryTitle}</b><span class="open">{t.summaryOpen(openCount)}</span></span>
+    {#if st.attention?.length}<button class="attn" onclick={onAttention}>{t.attentionCount(st.attention.length)}</button>{/if}
     <button class="ib" aria-label={t.search} title={t.search} onclick={() => onPage('search')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
     </button>
@@ -132,4 +135,5 @@
   hr { border: 0; height: 1px; background: var(--line); margin: 4px 0; }
   .foot { display: flex; align-items: center; gap: 20px; width: 100%; padding: 14px 28px; font-size: 16px; color: var(--text2); }
   @media (prefers-reduced-motion: reduce) { .panel, .scrim { animation: none; } }
+  .attn { flex: none; padding: 6px 12px; border-radius: 16px; background: color-mix(in srgb, var(--wait) 18%, transparent); color: var(--wait); font-size: 14px; font-weight: 500; }
 </style>

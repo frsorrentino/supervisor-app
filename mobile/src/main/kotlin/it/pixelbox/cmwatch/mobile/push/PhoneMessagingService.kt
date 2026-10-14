@@ -25,13 +25,14 @@ class PhoneMessagingService : FirebaseMessagingService() {
             "recap" -> app.notifier.diary(getString(R.string.notif_diary))
             "night_report" -> app.notifier.diary(getString(R.string.notif_night))
             // Contratti 1.57 e 1.58: la push porta solo la chiave, l'evento si legge da /events.
-            "task_check", "quota_limit", "turn_failed" -> message.data["key"]?.let { key ->
+            "task_check", "quota_limit", "turn_failed", "week_unused", "week_pace" -> message.data["key"]?.let { key ->
                 runBlocking { withTimeoutOrNull(8_000) { app.repo.event(key) } }?.let { e ->
                     // Contratto 1.62: con Franz al PC la push dice data.quiet = "1"; l'evento lo dice anche lui.
                     val ev = if (message.data["quiet"] == "1") e.copy(quiet = true) else e
                     when (ev.kind) {
                         it.pixelbox.cmwatch.contract.EventKind.TASK_CHECK -> app.notifier.taskCheck(ev)
                         it.pixelbox.cmwatch.contract.EventKind.TURN_FAILED -> app.notifier.turnFailed(ev)
+                        it.pixelbox.cmwatch.contract.EventKind.WEEK_UNUSED, it.pixelbox.cmwatch.contract.EventKind.WEEK_PACE -> app.notifier.week(ev)
                         else -> app.notifier.quotaLimit(ev)
                     }
                 }

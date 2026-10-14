@@ -20,7 +20,9 @@ object PhonePrimary {
 
     /** Risposta libera se la domanda c'è ancora, altrimenti prompt; null se non si può mandare. */
     fun target(s: Session, draft: String): Target? = when {
-        s.state == SessionState.GONE || draft.isBlank() -> null
+        draft.isBlank() -> null
+        // Contratto 1.65: a una sessione chiusa si scrive lo stesso; il relay la riapre e consegna.
+        s.state == SessionState.GONE -> Target.PROMPT
         s.question != null -> Target.ANSWER_TEXT
         else -> Target.PROMPT
     }
@@ -33,7 +35,7 @@ object PhonePrimary {
     enum class Composer { SEND, SEND_TONAL, STOP, REOPEN, NONE }
 
     fun composer(s: Session, draft: String, ops: List<String>?): Composer = when {
-        s.state == SessionState.GONE -> Composer.REOPEN
+        s.state == SessionState.GONE && draft.isBlank() -> Composer.REOPEN
         draft.isNotBlank() -> if (button(s, draft) == Button.OPTION) Composer.SEND_TONAL else Composer.SEND
         (s.state == SessionState.BUSY || s.state == SessionState.AWAITING) && ops?.contains("interrupt") == true -> Composer.STOP
         else -> Composer.NONE

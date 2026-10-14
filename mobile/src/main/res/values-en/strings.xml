@@ -905,4 +905,10 @@ It starts at your last message to the master.</string>
     <string name="project_new_confirm">Create the folder %1$s and launch the session?</string>
     <string name="project_new_go">Next</string>
     <string name="project_new_create">Create %1$s</string>
+    <string name="reopening">Reopening %1$s</string>
+    <plurals name="attention_count">
+        <item quantity="one">%d for you</item>
+        <item quantity="other">%d for you</item>
+    </plurals>
+    <string name="mention_sent">Sent to %1$s</string>
 </resources>

@@ -31,6 +31,8 @@ enum class EventKind {
     @SerialName("quota_limit") QUOTA_LIMIT,
     /** Contratto 1.61: un turno finito in errore che non è la quota; `ref` = la sessione, con `reason` e `continue_text`. */
     @SerialName("turn_failed") TURN_FAILED,
+    /** Contratto 1.67: quota settimanale ancora libera vicino al reset, e il ritmo che la finisce prima; una riga, senza tasti. */
+    @SerialName("week_unused") WEEK_UNUSED, @SerialName("week_pace") WEEK_PACE,
 }
 
 @Serializable
@@ -124,6 +126,12 @@ enum class CmdOp {
     /** Il testo per una notifica o la schermata di blocco (contratto 1.56). */
     val shareable: String get() = preview ?: text
 }
+
+/**
+ * Contratto 1.66, «serve te»: `kind` question (ref = id della domanda, title = anteprima senza segreti), turn_failed e
+ * quota_limit (ref = la sessione), task_red (ref = id del task).
+ */
+@Serializable data class Attention(val kind: String, val session: String? = null, val ref: String? = null, val title: String = "", val since: Long = 0)
 
 /** Contratto 1.55: una domanda uscita dallo stato senza risposta da un dispositivo; resta 5 minuti. */
 @Serializable data class Resolved(val id: String, val text: String, val at: Long, val by: String = "terminal")
@@ -260,6 +268,8 @@ enum class CmdOp {
     val night: Night = Night(), val recap: Recap = Recap(),
     /** Contratto 1.64: le cartelle madri dove `project_new` può creare un progetto; assente con un relay precedente. */
     @SerialName("project_parents") val projectParents: List<String>? = null,
+    /** Contratto 1.66: quello che serve a Franz, dalla voce più vecchia; assente quando non c'è niente. */
+    val attention: List<Attention>? = null,
     /** Contratto 1.19: presente = il relay accetta «Condividi»; `max_bytes` vale sulla stringa cifrata `enc`. */
     val share: Share? = null,
     /** Contratto 1.12: modelli ed effort che il selettore di una sessione accetta; null con un relay precedente. */
@@ -390,6 +400,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val prompt: String? = null,
+    /** Contratto 1.65: `prompt` a una sessione chiusa, che il relay riapre e poi le consegna. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val reopen: Boolean? = null,
 )
 
 /**

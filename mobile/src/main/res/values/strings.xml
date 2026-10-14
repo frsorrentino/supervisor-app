@@ -922,4 +922,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="project_new_confirm">Crea la cartella %1$s e lancia la sessione?</string>
     <string name="project_new_go">Avanti</string>
     <string name="project_new_create">Crea %1$s</string>
+    <string name="reopening">Riapro %1$s</string>
+    <plurals name="attention_count">
+        <item quantity="one">%d per te</item>
+        <item quantity="other">%d per te</item>
+    </plurals>
+    <string name="mention_sent">Mandato a %1$s</string>
 </resources>

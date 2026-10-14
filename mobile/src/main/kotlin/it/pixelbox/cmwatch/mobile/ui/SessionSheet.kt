@@ -148,6 +148,8 @@ data class SheetActions(
     val sendAtReset: (String) -> Boolean = { false }, val sendTonight: (String) -> Boolean = { false },
     /** Contratto 1.63, «Manda alle…»: il testo e l'ora (epoch s); null = il relay non lo sa fare. */
     val sendAt: ((String, Long) -> Unit)? = null,
+    /** «@nome» nella chat della master: le sessioni da proporre e l'invio a quella scelta (Franz, 14/10 21:55). */
+    val sessions: List<Session> = emptyList(), val sendToSession: ((String, String) -> Unit)? = null,
     /** Tocco sulla riga dell'avviso: la Panoramica, casa dei dati della quota. */
     val overview: () -> Unit = {},
     /** Contratto 1.25: un comando slash consentito, senza «/», con i suoi argomenti o null. */
@@ -709,13 +711,7 @@ private fun Composer(
     // Il campo della master sta sul fondo della master, velato di celeste e piatto (Celeste velato, Franz 06/10 21:23).
     val bar = Modifier.fillMaxWidth().background(if (toMaster) MasterHigh else CmColors.bg)
         .imePadding().padding(horizontal = 12.dp, vertical = 10.dp)
-    if (mode == PhonePrimary.Composer.REOPEN) {
-        Button(
-            onClick = actions.reopen, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
-            modifier = bar.height(56.dp),
-        ) { Text(stringResource(R.string.reopen)) }
-        return
-    }
+    // Contratto 1.65: anche una sessione chiusa ha il campo; scrivendo, Invia la riapre e le consegna il messaggio.
     Column(bar, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         quota?.let { w ->
             val can = draft.isNotBlank() && s.question == null && images.isEmpty()
@@ -760,7 +756,11 @@ private fun Composer(
         val send = {
             // Contratto 1.25: un testo che comincia con un comando consentito parte come comando, senza domanda aperta.
             val cmd = it.pixelbox.cmwatch.rules.Slash.parse(draft, slash)?.takeIf { images.isEmpty() && s.question == null }
+            // «@nome testo» dalla master va a quella sessione, come prompt.
+            val mention = if (toMaster && images.isEmpty()) it.pixelbox.cmwatch.rules.Mention.parse(draft, actions.sessions, s.name) else null
+            val toSession = actions.sendToSession
             when {
+                mention != null && toSession != null -> { toSession(mention.first, mention.second); onSent() }
                 cmd != null && it.pixelbox.cmwatch.rules.Slash.confirm(cmd.cmd) -> confirm = cmd
                 cmd != null -> { actions.slash(cmd.cmd, cmd.args); onSent() }
                 else -> {
@@ -772,6 +772,17 @@ private fun Composer(
                     images = emptyList()
                     onSent()
                 }
+            }
+        }
+        // Scrivendo «@» nella chat della master: le sessioni vive, con stato e attività; il tocco mette «@nome » nel campo.
+        val mentionHints = if (toMaster && actions.sendToSession != null) it.pixelbox.cmwatch.rules.Mention.suggest(draft, actions.sessions, s.name) else emptyList()
+        if (mentionHints.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            mentionHints.forEach { m ->
+                AssistChip(
+                    onClick = { onDraft("@${m.name} ") },
+                    leadingIcon = { SessionBadge(m, 16.dp) },
+                    label = { Text(listOfNotNull("@" + m.name, m.toolNote ?: m.tool).joinToString(" · "), maxLines = 1) },
+                )
             }
         }
         // Scrivendo «/»: i comandi consentiti che cominciano così; il tocco li mette nel campo, pronti per gli argomenti.
@@ -887,6 +898,10 @@ private fun Composer(
                     PhonePrimary.Composer.SEND_TONAL -> FilledTonalIconButton(onClick = send, modifier = size) {
                         Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
                     }
+                    PhonePrimary.Composer.REOPEN -> Button(
+                        onClick = actions.reopen, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                        modifier = Modifier.padding(end = if (lineH > 0) endPad else 8.dp).height(40.dp).handCursor(),
+                    ) { Text(stringResource(R.string.reopen)) }
                     PhonePrimary.Composer.STOP -> FilledIconButton(onClick = actions.interrupt, colors = filled, modifier = size) {
                         Icon(Icons.Rounded.Stop, stringResource(R.string.stop))
                     }

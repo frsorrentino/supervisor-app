@@ -18,7 +18,8 @@ class PhonePrimaryTest {
 
     @Test fun closedSessionNeverSends() {
         assertEquals(PhonePrimary.Button.REOPEN, PhonePrimary.button(s(SessionState.GONE), "vai"))
-        assertNull(PhonePrimary.target(s(SessionState.GONE), "vai"))
+        // Contratto 1.65: a una chiusa si scrive; il prompt parte con reopen e il relay la riapre.
+        assertEquals(PhonePrimary.Target.PROMPT, PhonePrimary.target(s(SessionState.GONE), "vai"))
     }
 
     @Test fun textGoesToAnswerOnlyWhileQuestionExists() {
@@ -49,8 +50,11 @@ class PhonePrimaryTest {
     @Test fun sendIsTonalWhenTheFirstOptionIsFilled() =
         assertEquals(PhonePrimary.Composer.SEND_TONAL, PhonePrimary.composer(s(SessionState.WAITING, q), "B", ops))
 
-    @Test fun closedSessionReopensFromTheBar() =
-        assertEquals(PhonePrimary.Composer.REOPEN, PhonePrimary.composer(s(SessionState.GONE), "text", ops))
+    // Contratto 1.65: a campo vuoto «Riapri», scrivendo Invia, che riapre e consegna.
+    @Test fun closedSessionReopensFromTheBar() {
+        assertEquals(PhonePrimary.Composer.SEND, PhonePrimary.composer(s(SessionState.GONE), "text", ops))
+        assertEquals(PhonePrimary.Composer.REOPEN, PhonePrimary.composer(s(SessionState.GONE), "", ops))
+    }
 
     @Test fun idleWithEmptyFieldHasNothingToDo() =
         assertEquals(PhonePrimary.Composer.NONE, PhonePrimary.composer(s(SessionState.IDLE), " ", ops))

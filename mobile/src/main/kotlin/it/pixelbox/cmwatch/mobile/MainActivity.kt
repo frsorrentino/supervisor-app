@@ -1011,7 +1011,14 @@ class MainActivity : ComponentActivity() {
                         fun sendAndLog(target: PhonePrimary.Target, text: String) = scope.launch {
                             val sentAt = System.currentTimeMillis() / 1000
                             val id = runCatching {
-                                if (target == PhonePrimary.Target.ANSWER_TEXT) app.repo.answerText(session.name, text) else app.repo.prompt(session.name, text)
+                                when {
+                                    target == PhonePrimary.Target.ANSWER_TEXT -> app.repo.answerText(session.name, text)
+                                    // Contratto 1.65: a una sessione chiusa il relay la riapre e poi consegna.
+                                    session.state == it.pixelbox.cmwatch.contract.SessionState.GONE -> app.repo.command(CmdOp.PROMPT, session.name, text, reopen = true).also {
+                                        android.widget.Toast.makeText(this@MainActivity, getString(R.string.reopening, session.name), android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                    else -> app.repo.prompt(session.name, text)
+                                }
                             }.getOrElse {
                                 // Coda senza rete piena: il messaggio non si finge partito (revisione 30/09).
                                 android.widget.Toast.makeText(this@MainActivity, getString(R.string.queue_full), android.widget.Toast.LENGTH_LONG).show()
@@ -1041,6 +1048,16 @@ class MainActivity : ComponentActivity() {
                             answer = { n -> scope.launch { app.repo.answer(session.name, n) } },
                             allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },
                             send = { target, text -> sendAndLog(target, text) },
+                            // «@nome» dalla chat della master: il messaggio va a quella sessione e ci si resta.
+                            sessions = state?.sessions.orEmpty(),
+                            sendToSession = if (session.name == it.pixelbox.cmwatch.rules.ContextActions.MASTER) ({ n, text ->
+                                scope.launch {
+                                    runCatching { app.repo.prompt(n, text) }.onSuccess { id ->
+                                        app.chatLog.add(Sent(id, n, text, System.currentTimeMillis() / 1000))
+                                        android.widget.Toast.makeText(this@MainActivity, getString(R.string.mention_sent, n), android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }) else null,
                             // Contratto 1.63: «Manda alle…», con un relay che conosce `at` (lo dice project_new, della stessa release).
                             sendAt = if (state?.ops?.contains("project_new") == true) ({ text, at ->
                                 scope.launch {
@@ -1235,6 +1252,10 @@ class MainActivity : ComponentActivity() {
             PageHeader(
                 page, state?.let { st -> PhoneBoard.sections(st).flatMap { sec -> sec.sessions } }.orEmpty(), summary?.open ?: 0, now,
                 onPick = { n -> open = n; if (n == null) tab = StartRoute.Tab.OVERVIEW }, onClosed = { closedOpen = true }, menu = menuActions,
+                // Contratto 1.66: il tocco porta alla prima voce; una domanda, un turno fallito o una quota finita stanno nella
+                // sua sessione, un task rosso nella sessione che lo lavora.
+                attention = state?.attention?.size ?: 0,
+                onAttention = { state?.attention?.firstOrNull()?.session?.let { n -> if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.toggle(tabletCols.filter { c -> c != n }, n)) else open = n } },
                 quota = state?.let { st -> {
                     val rings = remember(st, events, samples, now, snap.freshness) {
                         PhoneOverview.build(st, events, samples, now, java.time.ZoneId.systemDefault(), stale = snap.freshness is Freshness.Stale).rings
