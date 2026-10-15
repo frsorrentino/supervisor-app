@@ -20,6 +20,7 @@
   import AgendaActions from './AgendaActions.svelte'
   import AgendaItem from './AgendaItem.svelte'
   import RecapSend from './RecapSend.svelte'
+  import { readable } from './slashText'
   import { forYou, type ForYouRow, type Scheduled } from './masterHome'
   import { count as outsideCount, groups as outsideGroups, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
@@ -185,7 +186,7 @@
             {#if night.counts.stopped}<span style:color="var(--gone-dim)">{t.nightStopped(night.counts.stopped)}</span>{/if}
             {#if night.counts.asking}<span style:color="var(--advice)">{t.nightAsking(night.counts.asking)}</span>{/if}
           </span>
-          <span class="nrow"><small>{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, night.needs[0].text) : ''}</small><span class="open">{t.homeNightOpen}</span></span>
+          <span class="nrow"><small>{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, readable(night.needs[0].text, t.slashPhrases)) : ''}</small><span class="open">{t.homeNightOpen}</span></span>
         {:else}<small>{t.nightLoading}</small>{/if}
       </button>
     {/if}

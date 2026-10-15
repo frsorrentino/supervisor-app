@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { readable, readableWaiting } from './slashText'
   import { locale } from './lang'
   import type { Card, NightPage } from './night'
   import { t } from './t'
@@ -51,7 +52,7 @@
       {#each model.needs as n, i}
         <div class="need">
           <span class="ni" style:color={n.kind === 'question' ? 'var(--advice)' : 'var(--wait)'}>{n.kind === 'question' ? '?' : '!'}</span>
-          <span class="nt"><b>{n.session}</b><small>{n.text}</small></span>
+          <span class="nt"><b>{n.session}</b><small>{readable(n.text, t.slashPhrases)}</small></span>
           <span class="na">
             {#if n.kind === 'question'}
               {#each n.options as o, k}<button class="nb" class:filled={i === 0 && k === 0} onclick={() => onAnswer(n.session, o.n)}>{o.n} · {o.label}</button>{/each}
@@ -98,7 +99,7 @@
         <div class="proj">
           <div class="ph"><b>{p.name}</b><small>{p.total ? t.nightParts(p.done, p.total) : t.nightNoParts}</small></div>
           {#if p.parts.length}<div class="segs">{#each p.parts as st}<i class={st}></i>{/each}</div>{/if}
-          {#if p.waiting.length}<small>{t.nightWaiting}: {p.waiting.join(' · ')}</small>{/if}
+          {#if p.waiting.length}<small>{t.nightWaiting}: {p.waiting.map(w => readableWaiting(w, t.slashPhrases)).join(' · ')}</small>{/if}
           {#if p.next}<small>{t.nightNext}: {p.next}</small>{/if}
         </div>
       {/each}
