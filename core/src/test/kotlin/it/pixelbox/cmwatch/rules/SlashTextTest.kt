@@ -10,9 +10,9 @@ class SlashTextTest {
     private fun r(t: String) = SlashText.readable(t) { p[it] ?: it }
 
     @Test fun aKnownCommandBecomesAPhraseWithTheCommandInBrackets() {
-        assertEquals("svuotare il contesto (/clear)", r("/clear"))
-        assertEquals("compattare la conversazione (/compact)", r(" /compact "))
-        assertEquals("riprendere la conversazione (/resume abc)", r("/resume abc"))
+        assertEquals("svuotare il contesto (/${SlashText.JOIN}clear)", r("/clear"))
+        assertEquals("compattare la conversazione (/${SlashText.JOIN}compact)", r(" /compact "))
+        assertEquals("riprendere la conversazione (/${SlashText.JOIN}resume abc)", r("/resume abc"))
     }
 
     @Test fun theRestStaysAsItIs() {
@@ -22,7 +22,7 @@ class SlashTextTest {
     }
 
     @Test fun theWaitingLinesOfTheReport() {
-        assertEquals("!: svuotare il contesto (/clear)", SlashText.readableWaiting("!: /clear") { p[it] ?: it })
+        assertEquals("!: svuotare il contesto (/${SlashText.JOIN}clear)", SlashText.readableWaiting("!: /clear") { p[it] ?: it })
         assertEquals("domanda: Pubblico?", SlashText.readableWaiting("domanda: Pubblico?") { p[it] ?: it })
     }
 }
