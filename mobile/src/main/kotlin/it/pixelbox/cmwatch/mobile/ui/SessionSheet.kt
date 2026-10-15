@@ -2089,9 +2089,10 @@ private fun TunePill(label: String, enabled: Boolean, dot: Boolean = false, mode
             modifier = Modifier.clip(CircleShape).combinedClickable(enabled = enabled || glyph != it.pixelbox.cmwatch.rules.PermissionModes.Glyph.NONE,
                 onClick = { if (enabled) onClick() }, onLongClick = { if (glyph != it.pixelbox.cmwatch.rules.PermissionModes.Glyph.NONE) card = true }),
         ) {
-            Row(Modifier.padding(start = 12.dp, end = if (enabled) 6.dp else 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.padding(start = 12.dp, end = if (enabled) 6.dp else 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(label, style = PillText, color = CmColors.text, maxLines = 1, softWrap = false)
-                PermissionGlyph(glyph, 14.dp)
+                // Lo spazio solo col segno: senza, la pillola resta larga come prima e la quota tiene l'ora del reset.
+                if (glyph != it.pixelbox.cmwatch.rules.PermissionModes.Glyph.NONE) { Spacer(Modifier.width(4.dp)); PermissionGlyph(glyph, 14.dp) }
                 if (enabled) Icon(Icons.Rounded.ArrowDropDown, null, tint = CmColors.text2, modifier = Modifier.size(18.dp))
             }
         }
