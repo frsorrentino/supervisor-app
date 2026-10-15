@@ -53,6 +53,7 @@
   import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
   import { refusalText } from './lib/questionRules'
   import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
+  import { of as swipeOf, stable as swipeStable, step as swipeStep, type Pages } from './lib/swipePages'
 
   const load = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
   const save = (k: string, v: string) => { try { localStorage.setItem(k, v) } catch { /* resta per la sessione */ } }
@@ -461,6 +462,43 @@
   const openQueue = () => openPage('queue')
   // Il tocco su una scheda della home: sulla plancia apre e chiude la sua colonna (Franz, 05/10 11:09), sul telefono apre.
   function card(name: string) { if (name !== MASTER && wide) setCols(toggleCol(cols, name)); else pick(name) }
+  // Telefono: si scorre di lato fra la home e le sessioni, come nell'app (HorizontalPager con SwipePages; 15/10 20:24: «non
+  // funziona lo scroll tra sessioni?»). Mentre una sessione è aperta l'ordine delle pagine resta quello di prima, le nuove in
+  // fondo; si rifà tornando alla home. Si disegnano solo la pagina a schermo e le due accanto.
+  let swipeOrder: Pages = []
+  $effect.pre(() => { if (open == null) swipeOrder = [] })
+  const pages = $derived.by(() => { const p = open == null ? swipeOf(live, null) : swipeStable(swipeOrder, swipeOf(live, open)); swipeOrder = p; return p })
+  let strip: HTMLElement | undefined = $state()
+  let stripAt = $state(0)
+  let settledAt: number | null = null
+  let settleTimer: ReturnType<typeof setTimeout> | undefined
+  const stripTo = (i: number, near: boolean) => strip?.scrollTo({ left: i * strip.clientWidth, behavior: near ? 'smooth' : 'instant' })
+  function settle() {
+    if (!strip) return
+    const i = Math.round(strip.scrollLeft / Math.max(1, strip.clientWidth))
+    const go = swipeStep(settledAt, i, false, pages, open)
+    settledAt = i
+    if (go.type === 'open') open = go.name
+    else if (go.type === 'scrollTo') stripTo(go.page, Math.abs(go.page - i) === 1)
+  }
+  function swiped() {
+    if (!strip) return
+    stripAt = strip.scrollLeft / Math.max(1, strip.clientWidth)
+    clearTimeout(settleTimer)
+    settleTimer = setTimeout(settle, 140)
+  }
+  // La striscia appena comparsa sta sulla sessione aperta, senza scorrere; poi segue le aperture da fuori (avviso, coda).
+  const mountStrip = (el: HTMLElement) => {
+    strip = el
+    const i = Math.max(0, pages.indexOf(open))
+    el.scrollLeft = i * el.clientWidth
+    stripAt = i; settledAt = i
+    return () => { strip = undefined; settledAt = null; clearTimeout(settleTimer) }
+  }
+  $effect(() => {
+    void pages; void open
+    untrack(() => { if (strip && settledAt != null) { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 140) } })
+  })
   const slots = $derived<(string | null)[]>(wide ? [masterOpen ? MASTER : null, ...cols] : [session ? session.name : masterOpen ? MASTER : null])
 
   let masterDraft = $state('')
@@ -815,8 +853,19 @@
   <div class="phone">
     {#if page}{@render pageView(page)}{:else if session}
       {@const phase = splashOf(session.name)}
-      <div class="cbody" style:view-transition-name="page-fly">{@render chatOf(session.name, false)}
-        {#if phase}<CloseSplash {phase} onHome={splashHome} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(session.name)('reopen'); splashHome() } : null} />{/if}
+      <div class="strip" {@attach mountStrip} onscroll={swiped}>
+        {#each pages as p, i (p ?? '')}
+          <div class="pg">
+            {#if i >= Math.floor(stripAt) - 1 && i <= Math.ceil(stripAt) + 1}
+              {#if p == null}{@render homePane()}
+              {:else if p === session.name}
+                <div class="cbody" style:view-transition-name="page-fly">{@render chatOf(session.name, false)}
+                  {#if phase}<CloseSplash {phase} onHome={splashHome} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(session.name)('reopen'); splashHome() } : null} />{/if}
+                </div>
+              {:else}<div class="cbody">{@render chatOf(p, false)}</div>{/if}
+            {/if}
+          </div>
+        {/each}
       </div>
     {:else}{@render homePane()}{/if}
   </div>
@@ -837,6 +886,9 @@
   .mquick { padding: 0 0 4px; }
   .phone { height: 100%; display: flex; flex-direction: column; max-width: 760px; margin: 0 auto; }
   .list { flex: 1; min-height: 0; }
+  .strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .strip::-webkit-scrollbar { display: none; }
+  .pg { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; }
   .reading:empty { display: none; }
   .reading { padding: 8px 0; }
   .column { height: 100%; display: flex; flex-direction: column; }

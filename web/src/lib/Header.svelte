@@ -41,13 +41,17 @@
   // le pillole accanto, le tre forme disegnate fuori vista, i margini della riga (padding 16 e spazi da 8; col tasto
   // indietro 2 più 36 e spazi da 6) e il menu da 44. Con soglie fisse a 430 px il ⋮ usciva dalla riga (12/10).
   let width = $state(0)
+  // Sul telefono il tasto indietro e il nome in una riga sopra le pillole, come la barra in alto dell'app col nome della
+  // sessione (15/10: si leggeva solo in «Scrivi a …»; nella riga delle pillole a 500 px restava «atlas-»).
+  const top = $derived(!wide && !!onBack)
+  const inRow = $derived(!!onBack && !top)
   let modelW = $state(0)
   let ctxW = $state(0)
   const formW = $state<Record<QuotaForm, number>>({ full: 0, short: 0, tiny: 0 })
   const quotaForm = $derived.by<QuotaForm>(() => {
     if (width === 0) return 'full'
-    const items = (onBack ? 1 : 0) + 3 + (s.context != null ? 1 : 0) + 1
-    const fixed = (onBack ? 2 + 36 : 16) + (items - 1) * (onBack ? 6 : 8) + modelW + (s.context != null ? ctxW : 0) + 44
+    const items = (inRow ? 1 : 0) + 3 + (s.context != null ? 1 : 0) + 1
+    const fixed = (inRow ? 2 + 36 : 16) + (items - 1) * (inRow ? 6 : 8) + modelW + (s.context != null ? ctxW : 0) + 44
     return (['full', 'short'] as const).find(f => fixed + formW[f] <= width) ?? 'tiny'
   })
   const forms: QuotaForm[] = ['full', 'short', 'tiny']
@@ -102,8 +106,14 @@
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (menu = false)} />
 
 <header bind:clientWidth={width} class:bare={!notes.length}>
+  {#if top}
+    <div class="row top">
+      <button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+      <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
+    </div>
+  {/if}
   <div class="row">
-    {#if onBack}<button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
+    {#if inRow}<button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
     {#if wide}
       <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
     {/if}
@@ -256,6 +266,8 @@
   .row { display: flex; align-items: center; gap: 8px; padding: 0 0 0 16px; min-height: 48px; }
   .row:has(.back) { padding-left: 2px; gap: 6px; }
   .lead { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+  .row.top { padding-left: 2px; gap: 6px; min-height: 44px; }
+  .row.top .lead { gap: 10px; }
   h1 { font-size: 19px; font-weight: 600; white-space: nowrap; overflow: hidden; }
   .sp { flex: 1; }
   .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); flex: none; }
