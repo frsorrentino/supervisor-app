@@ -103,4 +103,34 @@ describe('il PC finto della demo (FakeTransport)', () => {
     const a = await d.send(c), b = await d.send(c)
     expect(b).toBe(a)
   })
+  // La prova della master (15/10 21:56): dopo ogni passaggio i conti seguono lo stato vero.
+  const counts = (d: DemoTransport) => {
+    const st = d.state
+    const live = new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name))
+    const p = nightPage(d.world.night, 'Europe/Rome', { live, pending: new Set(st.approvals.map(a => a.task)), asking: new Set(st.sessions.filter(s => s.question).map(s => s.name)) })
+    return {
+      banner: forMaster(st).map(a => a.session).sort(),
+      home: build(st, [], NOW, new Set()).rows.filter(r => r.group === 'waiting').map(r => r.session.name).sort(),
+      queue: queueOf(st).map(i => i.session).sort(),
+      night: p.needs.map(n => `${n.kind}:${n.session}`).sort(),
+      open: build(st, [], NOW, new Set()).open,
+    }
+  }
+  it('i conti seguono risposte, chiusure e riaperture', async () => {
+    const d = tr()
+    let c = counts(d)
+    expect(c).toEqual({ banner: ['blog', 'payments-api', 'storefront'], home: ['blog', 'payments-api', 'storefront'], queue: ['blog', 'payments-api', 'storefront'], night: ['question:payments-api', 'unblock:blog'], open: 3 })
+    await d.send(newCmd('answer', 'payments-api', '2', undefined, d.state.sessions.find(s => s.name === 'payments-api')!.question!.id))
+    c = counts(d)
+    expect(c).toEqual({ banner: ['blog', 'storefront'], home: ['blog', 'storefront'], queue: ['blog', 'storefront'], night: ['unblock:blog'], open: 3 })
+    await d.send(newCmd('slash', 'blog', 'exit'))
+    c = counts(d)
+    expect(c).toEqual({ banner: ['storefront'], home: ['storefront'], queue: ['storefront'], night: [], open: 2 })
+    await d.send(newCmd('reopen', 'blog'))
+    c = counts(d)
+    expect(c).toEqual({ banner: ['storefront'], home: ['storefront'], queue: ['storefront'], night: ['unblock:blog'], open: 3 })
+    await d.send(newCmd('prompt', 'storefront', 'code 4411'))
+    c = counts(d)
+    expect(c).toEqual({ banner: [], home: [], queue: [], night: ['unblock:blog'], open: 3 })
+  })
 })

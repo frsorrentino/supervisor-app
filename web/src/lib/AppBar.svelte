@@ -96,9 +96,9 @@
          (Franz, 15/10 21:48: «voce che rimanda all'app»). -->
     <button class="mi" role="menuitem" aria-expanded={liveNote} onclick={() => (liveNote = !liveNote)}>
       <span class="mic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" /></svg></span>
-      <span class="mt"><b>{t.liveMenu}</b><small>{liveNote ? t.liveOnlyApp : t.liveMenuSub}</small></span>
+      <span class="mt"><b>{t.liveMenu}</b><small class:wrap={liveNote}>{liveNote ? t.liveOnlyApp : t.liveMenuSub}</small></span>
     </button>
-    {#if liveNote}<a class="mi applink" href="https://github.com/frsorrentino/supervisor-app" target="_blank" rel="noopener"><span class="mic"></span><span class="mt"><b>{t.liveAppLink} ↗</b></span></a>{/if}
+    {#if liveNote}<a class="mi applink" href="https://github.com/frsorrentino/supervisor-app" target="_blank" rel="noopener"><span class="mic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg></span><span class="mt"><b>{t.liveAppLink}</b></span></a>{/if}
     <hr />
     <button class="foot" role="menuitem" onclick={() => go('settings')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -142,6 +142,7 @@
   .mt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .mt b { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
   .mt small { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; }
+  .mt small.wrap { white-space: normal; line-height: 1.35; }
   hr { border: 0; height: 1px; background: var(--line); margin: 4px 0; }
   .foot { display: flex; align-items: center; gap: 20px; width: 100%; padding: 14px 28px; font-size: 16px; color: var(--text2); }
   @media (prefers-reduced-motion: reduce) { .panel, .scrim { animation: none; } }

@@ -39,7 +39,7 @@ const ymd = (t: number, timeZone: string) => new Intl.DateTimeFormat('en-CA', { 
 const hm = (t: number, timeZone: string) => new Intl.DateTimeFormat(locale, { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(t * 1000))
 
 /** `now`: sessioni vive e approvazioni in attesa adesso; «Da fare per te» tiene solo quello ancora vero (Franz, 08/10 14:20). */
-export function page(r: NightReport, timeZone: string, now?: { live: Set<string>; pending: Set<string> }): NightPage {
+export function page(r: NightReport, timeZone: string, now?: { live: Set<string>; pending: Set<string>; asking?: Set<string> }): NightPage {
   const start = r.window.start
   const end = Math.max(r.window.end, start + 60)
   const span = end - start
@@ -72,7 +72,9 @@ export function page(r: NightReport, timeZone: string, now?: { live: Set<string>
     ...(r.attention?.approvals ?? []).map(a => ({ kind: 'approval' as const, session: (a.project ?? '').split('/').pop() ?? '', text: a.title, options: [], task: a.task })),
     ...(r.attention?.unblock ?? []).map(u => ({ kind: 'unblock' as const, session: u.session, text: u.text, options: [] })),
   ]
-    .filter(n => !now || (n.kind === 'approval' ? !!n.task && now.pending.has(n.task) : now.live.has(n.session)))
+    // Una domanda della notte conta solo se la sessione ha ancora una domanda aperta (15/10: risposto «no», la card della
+    // Notte la proponeva ancora).
+    .filter(n => !now || (n.kind === 'approval' ? !!n.task && now.pending.has(n.task) : now.live.has(n.session) && (n.kind !== 'question' || !now.asking || now.asking.has(n.session))))
   const day = ymd(end, timeZone)
   const before = new Date(`${day}T12:00:00Z`); before.setUTCDate(before.getUTCDate() - 1)
   const counts: Counts = { done: 0, running: 0, stopped: 0, asking: 0 }

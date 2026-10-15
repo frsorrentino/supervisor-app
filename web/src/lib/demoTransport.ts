@@ -133,7 +133,11 @@ export class DemoTransport implements Transport {
         case 'slash': {
           if (!ses) return ko(`no session ${cmd.session}`)
           // /exit chiude davvero, così il pannello di chiusura arriva in fondo; /clear svuota la conversazione di prova.
-          if (cmd.arg === 'exit') this.replace({ ...ses, state: 'gone', since: t, question: null, needs_you: null, turn_blocking: null })
+          if (cmd.arg === 'exit') {
+            this.replace({ ...ses, state: 'gone', since: t, question: null, needs_you: null, turn_blocking: null })
+            // Chiusa, non aspetta più nessuno: il relay la toglie da `attention` (15/10: il banner la contava ancora).
+            this.set({ ...this.st, attention: (this.st.attention ?? []).filter(a => a.session !== ses.name) })
+          }
           if (cmd.arg === 'clear') { this.world.transcripts[ses.name] = []; this.replace({ ...ses, context: 0 }) }
           return ok(`sent /${cmd.arg} to ${cmd.session}`)
         }

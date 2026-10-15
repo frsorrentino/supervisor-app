@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MemoryBus, type SseEvent } from './bus'
 import { fromHex, openBlob, sealBlob } from './crypto'
@@ -39,13 +39,14 @@ describe('strada remota: stato', () => {
     const stop = transport(bus, { backoffMs: [1] }).subscribe(s => got.push(s.host), () => got.push('down'))
     expect(bus.streams[0].path).toBe('state')
     bus.streams[0].on({ event: 'put', data: JSON.stringify({ path: '/', data: await env(raw('state-1-question.json')) }) })
-    await new Promise(r => setTimeout(r, 5))
-    expect(got).toEqual([fixture('state-1-question.json').host])
+    // Si aspetta la condizione, non un tempo fisso: sotto carico la decifrazione supera i 5 ms (15/10, falliva nel giro intero).
+    await vi.waitFor(() => expect(got).toEqual([fixture('state-1-question.json').host]))
     bus.streams[0].on({ event: 'auth_revoked', data: 'credential is no longer valid' })
-    await new Promise(r => setTimeout(r, 10))
-    expect(bus.streams[0].open).toBe(false)
-    expect(bus.streams.length).toBe(2)
-    expect(got).toContain('down')
+    await vi.waitFor(() => {
+      expect(bus.streams[0].open).toBe(false)
+      expect(bus.streams.length).toBe(2)
+      expect(got).toContain('down')
+    })
     stop()
     expect(bus.streams[1].open).toBe(false)
   })
