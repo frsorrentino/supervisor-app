@@ -626,7 +626,9 @@
   let bgBusy = 0
   let shownBefore = new Set<string>()
   function bgTick() {
-    if (!tr || document.hidden) return
+    // Senza /tail (il relay locale) ogni rilettura in sottofondo è un `transcript` che fa lavorare il PC: 1.378 il 15/10 entro
+    // le 11:30, circa 6 s ciascuno (Franz, 11:40). Lì si legge solo la chat aperta, come prima del 14/10.
+    if (!tr || document.hidden || !tr.fetchTail) return
     for (const n of due(st.sessions, bgReads, [MASTER, ...slots], Date.now())) {
       if (bgBusy >= BG_PARALLEL) return
       const s = st.sessions.find(x => x.name === n)
