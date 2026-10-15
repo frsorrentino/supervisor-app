@@ -234,7 +234,7 @@ const it = {
   pairCamera: 'La fotocamera non si apre: incolla il codice.',
   pairIos: 'Su iPhone e iPad aggiungi prima l\'app alla schermata Home: tocca Condividi, poi «Aggiungi alla schermata Home», e apri Supervisor da lì. L\'app sulla Home non vede i dati di Safari, quindi va collegata da lì.',
   pairIosAnyway: 'Collega qui in Safari',
-  pairDemo: 'Guarda la demo',
+  pairDemo: 'Guarda la demo', tryDemo: 'Prova la demo',
   // Aggiungere un dispositivo dalla web app (contratto 1.31, Franz 13/10 19:05), come AddDeviceSheet del telefono.
   addDevice: 'Aggiungi un dispositivo', addDeviceSub: 'Un QR o un link per un telefono, un tablet o un altro browser',
   addAsking: 'Chiedo un invito al PC',
@@ -486,7 +486,7 @@ const en: typeof it = {
   pairCamera: 'The camera does not open: paste the code.',
   pairIos: 'On iPhone and iPad first add the app to the Home Screen: tap Share, then «Add to Home Screen», and open Supervisor from there. The Home Screen app does not see the data of Safari, so it must be connected from there.',
   pairIosAnyway: 'Connect here in Safari',
-  pairDemo: 'See the demo',
+  pairDemo: 'See the demo', tryDemo: 'Try the demo',
   addDevice: 'Add a device', addDeviceSub: 'A QR or a link for a phone, a tablet or another browser',
   addAsking: 'Asking the PC for an invitation',
   addHow: 'On the new device open Supervisor and scan this QR, or send it the link.',

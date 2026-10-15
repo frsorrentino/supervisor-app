@@ -1,4 +1,7 @@
 <script lang="ts">
+  import InAppBar from './InAppBar.svelte'
+  import { inApp } from './inApp'
+  const inside = !!inApp(navigator.userAgent)
   import { onDestroy } from 'svelte'
   import { parseInvite, PairError, type Invite } from './pairing'
   import { browserDeps, deviceName, needsHomeScreen, pairBrowser } from './remoteAccess'
@@ -99,6 +102,7 @@
   }
 </script>
 
+<InAppBar />
 <main class="pair">
   <img src="/icon.svg" alt="" width="64" height="64" />
   <h1>{t.pairTitle}</h1>
@@ -113,12 +117,16 @@
     {#if !busy}<button class="filled" onclick={pair}>{t.pairGo}</button>{/if}
   {:else}
     <p>{t.pairHow}</p>
+    <!-- Chi arriva da un link (15/10: il post su X apre questa pagina dentro X) cerca la demo: un tasto vero, non un link in
+         fondo sotto la barra dell'app; dentro il browser di un'app è il tasto pieno, inquadrare un QR lì non serve. -->
+    {#if inside}<a class="filled btn" href="?demo">{t.tryDemo}</a>{/if}
     {#if scanning}
       <!-- svelte-ignore a11y_media_has_caption -->
       <video bind:this={video} playsinline muted></video>
       <button class="tonal" onclick={stopScan}>{t.pairScanStop}</button>
     {:else}
-      <button class="filled" onclick={startScan}>{t.pairScan}</button>
+      <button class={inside ? 'tonal' : 'filled'} onclick={startScan}>{t.pairScan}</button>
+      {#if !inside}<a class="tonal btn" href="?demo">{t.tryDemo}</a>{/if}
     {/if}
     <label class="paste">
       <span>{t.pairPaste}</span>
@@ -128,11 +136,10 @@
   {/if}
 
   {#if error}<p class="err" role="alert">{error}</p>{/if}
-  {#if !done}<a class="demo" href="?demo">{t.pairDemo}</a>{/if}
 </main>
 
 <style>
-  .pair { min-height: 100dvh; max-width: 480px; margin: 0 auto; padding: max(32px, env(safe-area-inset-top)) 24px 32px;
+  .pair { min-height: var(--vvh, 100dvh); max-width: 480px; margin: 0 auto; padding: max(32px, env(safe-area-inset-top)) 24px 32px;
     display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
   img { align-self: center; border-radius: 16px; }
   h1 { font-size: 24px; font-weight: 400; text-align: center; }
@@ -148,5 +155,6 @@
   .paste span { color: var(--text2); font-size: 14px; }
   textarea { background: var(--low); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px;
     font-family: var(--mono); font-size: 16px; resize: vertical; }
-  .demo { align-self: center; color: var(--text2); font-size: 14px; margin-top: auto; }
+  .btn { min-height: 48px; border-radius: 24px; font-size: 16px; display: grid; place-items: center; text-decoration: none; }
+  a.filled { color: var(--on-primary); }
 </style>

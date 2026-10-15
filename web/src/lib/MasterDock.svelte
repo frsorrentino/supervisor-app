@@ -26,6 +26,16 @@
   // Il badge di stato solo quando la master ti aspetta o è chiusa; altrimenti la scintilla di Claude, che gira mentre lavora.
   // Il cerchio rosso era l'elemento più saturo della schermata e nel Material 3 il rosso è il ruolo «errore» (22:27).
   const attention = $derived(master.state === 'waiting' || master.state === 'gone')
+  // Trascinare la barra oltre 40 px (MasterDock.kt): in su espande, in giù riduce; il tocco resta, il gesto lo affianca.
+  let y0: number | null = null
+  let dragged = false
+  function down(e: PointerEvent) { y0 = e.clientY; dragged = false }
+  function release(e: PointerEvent) {
+    if (y0 == null) return
+    const dy = e.clientY - y0
+    y0 = null
+    if ((dy < -40 && !expanded) || (dy > 40 && expanded)) { dragged = true; onToggle() }
+  }
 </script>
 
 {#snippet toggleKey()}
@@ -34,7 +44,8 @@
   </button>
 {/snippet}
 
-<div class="dock" class:expanded class:screen role="button" tabindex="0" aria-expanded={expanded} onclick={onToggle} onkeydown={(e) => e.key === 'Enter' && onToggle()}>
+<div class="dock" class:expanded class:screen role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
+  onpointerdown={down} onpointerup={release} onpointercancel={() => (y0 = null)}>
   <!-- La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42). -->
   {@render toggleKey()}
   {#if onClose}
@@ -58,7 +69,7 @@
 <style>
   /* La master è la superficie più alta dell'app, velata del celeste d'accento, piatta come il resto (Celeste velato, Franz
      06/10 21:23). Aperta resta una linguetta col verso di quando è chiusa, angoli tondi in alto (08:48). */
-  .dock { display: flex; align-items: center; gap: 12px; padding: 10px 12px 8px 8px; border-radius: 26px 26px 0 0; cursor: pointer; outline: none; background: var(--master-highest); }
+  .dock { touch-action: none; display: flex; align-items: center; gap: 12px; padding: 10px 12px 8px 8px; border-radius: 26px 26px 0 0; cursor: pointer; outline: none; background: var(--master-highest); }
   /* Il filtro dell'hover farebbe da contenitore al pannello del menu ≡, che è fisso: a tutto schermo niente filtro. */
   .dock.screen { border-radius: 0; padding: 10px 4px 8px 8px; }
   .dock.screen:hover, .dock.screen:focus-visible { filter: none; }

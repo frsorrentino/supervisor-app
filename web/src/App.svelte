@@ -5,7 +5,7 @@
   import { groups, together } from './lib/shareMulti'
   import type { FileAct, Fetched } from './lib/fileActions'
   import { DemoTransport } from './lib/demoTransport'
-  import { chromeIntent, inApp } from './lib/inApp'
+  import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { blankState, withTail } from './lib/contract'
@@ -570,8 +570,6 @@
     else if (!wide && open) smooth(() => { open = null })
     else if (masterOpen) smooth(() => { masterOpen = false })
   })
-  const inside = inApp(navigator.userAgent)
-  let insideClosed = $state((() => { try { return sessionStorage.getItem('cm.inapp') === '1' } catch { return false } })())
   let masterDraft = $state('')
   async function sendTo(name: string, text: string) {
     // Senza trasporto il messaggio resta «inviato al PC».
@@ -932,15 +930,7 @@
   </Desk>
 {:else}
   <div class="phone">
-    {#if inside && !insideClosed}
-      <!-- Dentro il browser di un'app (X, Telegram, Instagram): una barra che porta fuori, chiudibile (Franz, 15/10 21:09). -->
-      <div class="inapp" role="status">
-        {#if inside.ios}<span class="iat"><b>{t.inAppWhere(inside.app)}</b><small>{t.inAppIos1} {t.inAppIos2}</small></span>
-        {:else}<span class="iat"><b>{t.inAppWhere(inside.app)}</b></span><a class="iago" href={chromeIntent(new URL(location.href))}>{t.inAppChrome}</a>{/if}
-        <button class="iax" aria-label={t.closeWord} onclick={() => { insideClosed = true; try { sessionStorage.setItem('cm.inapp', '1') } catch { /* per questa visita */ } }}>
-          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
-      </div>
-    {/if}
+    <InAppBar />
     {#if page}{@render pageView(page)}{:else}
       {@const phase = session ? splashOf(session.name) : null}
       <div class="strip" {@attach mountStrip} onscroll={swiped}>
@@ -979,11 +969,6 @@
   .list { flex: 1; min-height: 0; }
   .strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
   .strip::-webkit-scrollbar { display: none; }
-  .inapp { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
-  .iat { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
-  .iat small { color: var(--text2); font-size: 13px; }
-  .iago { flex: none; padding: 8px 14px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 500; text-decoration: none; }
-  .iax { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .demobar { flex: none; padding: 6px 16px; background: color-mix(in srgb, var(--wait) 22%, var(--bg)); color: var(--wait); font-size: 13px; font-weight: 500; }
   .pg { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; }
   .reading:empty { display: none; }
