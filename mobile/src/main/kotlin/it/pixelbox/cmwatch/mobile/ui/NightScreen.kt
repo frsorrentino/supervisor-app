@@ -154,7 +154,7 @@ private fun NeedRow(n: NightPage.Need, first: Boolean, onAnswer: (String, Int) -
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(n.session, style = MaterialTheme.typography.titleMedium, color = CmColors.text)
-            Text(n.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            Text(readableSlash(n.text), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
         }
         when (n.kind) {
             NightPage.NeedKind.QUESTION -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -165,6 +165,27 @@ private fun NeedRow(n: NightPage.Need, first: Boolean, onAnswer: (String, Int) -
         }
     }
 }
+
+/** «/clear» come frase col comando fra parentesi (SlashText), nella lingua dell'app. */
+@Composable
+internal fun readableSlash(text: String): String {
+    val phrases = slashPhrases()
+    return it.pixelbox.cmwatch.rules.SlashText.readable(text) { phrases[it] ?: it }
+}
+
+@Composable
+private fun readableSlashWaiting(line: String): String {
+    val phrases = slashPhrases()
+    return it.pixelbox.cmwatch.rules.SlashText.readableWaiting(line) { phrases[it] ?: it }
+}
+
+@Composable
+private fun slashPhrases(): Map<String, String> = mapOf(
+    "clear" to stringResource(R.string.slash_phrase_clear), "compact" to stringResource(R.string.slash_phrase_compact),
+    "login" to stringResource(R.string.slash_phrase_login), "resume" to stringResource(R.string.slash_phrase_resume),
+    "exit" to stringResource(R.string.slash_phrase_exit), "context" to stringResource(R.string.slash_phrase_context),
+    "cost" to stringResource(R.string.slash_phrase_cost),
+)
 
 @Composable
 private fun NeedButton(label: String, filled: Boolean, onClick: () -> Unit) {
@@ -241,7 +262,7 @@ private fun ProjectRow(p: NightPage.Project) {
                 Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(3.dp)).background(when (st) { "done" -> CmColors.briefGood; "doing" -> CmColors.actionIcon; else -> CmColors.surfaceHigh }))
             }
         }
-        if (p.waiting.isNotEmpty()) Text(stringResource(R.string.night_waiting, p.waiting.joinToString(" · ")), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+        if (p.waiting.isNotEmpty()) Text(stringResource(R.string.night_waiting, p.waiting.map { w -> readableSlashWaiting(w) }.joinToString(" · ")), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
         p.next?.let { Text(stringResource(R.string.night_next, it), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
     }
 }

@@ -767,7 +767,7 @@ private fun NightHomeCard(date: java.time.LocalDate, page: it.pixelbox.cmwatch.r
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val need = page?.needs?.firstOrNull()
             Text(
-                need?.let { pluralStringResource(R.plurals.home_night_needs, page.needs.size, page.needs.size, it.session, it.text) }.orEmpty(),
+                need?.let { pluralStringResource(R.plurals.home_night_needs, page.needs.size, page.needs.size, it.session, readableSlash(it.text)) }.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f),
             )
             androidx.compose.material3.Button(onClick = onOpen) { Text(stringResource(R.string.home_night_open)) }
