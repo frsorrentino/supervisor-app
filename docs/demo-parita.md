@@ -76,7 +76,7 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | impostazioni | Dettagli della sessione a destra (solo tablet) | Interruttore solo sulla plancia | ok |
 | impostazioni | Privacy: l'informativa sul sito | Link alla stessa informativa | ok |
 | impostazioni | Versione | Versione della web app | ok |
-| menu | Modalità live nel menu ≡: notiziario in cuffia, comandi dal watch, «Recap della live» | Voce «Modalità live» nel menu ≡ che dice che c'è solo nell'app Android: serve un servizio del telefono e l'orologio, che la web non pilota (scelta di Franz, 15/10 21:48) | ok |
+| menu | Modalità live nel menu ≡: notiziario in cuffia, comandi dal watch, «Recap della live» | Voce «Modalità live» nel menu ≡ con la nota «c'è solo nell'app Android: il notiziario in cuffia e i comandi dal watch» e il link alla pagina dell'app; la live vera resta nell'app (servizio del telefono e orologio) | differenza approvata da Franz («Live: voce che rimanda all'app», 15/10 21:50) |
 | testata | Riga fissa: ←, nome con ▾ («Vai a»), ≡; sotto modello, quota, contesto, ⋮ | Sul telefono due righe come l'app; nella plancia nome nella testata della colonna | ok |
 | testata | Note: obiettivo, bassa priorità, senza finestra | Uguale | ok |
 | pillola-modello | «Modello · effort» col segno dei permessi; puntino del consiglio | Uguale | ok |

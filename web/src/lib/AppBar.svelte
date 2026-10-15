@@ -98,6 +98,7 @@
       <span class="mic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" /></svg></span>
       <span class="mt"><b>{t.liveMenu}</b><small>{liveNote ? t.liveOnlyApp : t.liveMenuSub}</small></span>
     </button>
+    {#if liveNote}<a class="mi applink" href="https://github.com/frsorrentino/supervisor-app" target="_blank" rel="noopener"><span class="mic"></span><span class="mt"><b>{t.liveAppLink} ↗</b></span></a>{/if}
     <hr />
     <button class="foot" role="menuitem" onclick={() => go('settings')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -107,6 +108,8 @@
 {/if}
 
 <style>
+  .applink { text-decoration: none; color: var(--icon); }
+  .applink b { color: var(--icon); }
   .stalebar { margin: 0; padding: 6px 20px; background: var(--brief-warn, #5a4300); color: var(--brief-warn-ink, #ffd77a); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; }
   header { padding: 4px 8px 6px; }
   .bar { display: flex; align-items: center; min-height: 56px; }
