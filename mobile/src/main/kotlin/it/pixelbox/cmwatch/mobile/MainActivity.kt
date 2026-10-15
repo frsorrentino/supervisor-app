@@ -1906,12 +1906,13 @@ class MainActivity : ComponentActivity() {
             .onFailure { android.widget.Toast.makeText(this, getString(R.string.file_no_app), android.widget.Toast.LENGTH_LONG).show() }
     }
 
-    /** «Copia»: il testo dei file di testo, degli altri il file stesso (si incolla nelle app che lo sanno leggere). */
+    /** «Copia»: il testo dei file di testo, l'immagine delle immagini; sugli altri il tasto non c'è (FileActions.canCopy). */
     private fun copyFile(file: java.io.File, name: String, mime: String?) {
         val cm = getSystemService(android.content.ClipboardManager::class.java)
         val clip = when (it.pixelbox.cmwatch.rules.FileActions.copyKind(mime)) {
             it.pixelbox.cmwatch.rules.FileActions.CopyKind.TEXT -> android.content.ClipData.newPlainText(name, file.readText())
-            it.pixelbox.cmwatch.rules.FileActions.CopyKind.FILE -> android.content.ClipData.newUri(contentResolver, name, fileUri(file))
+            it.pixelbox.cmwatch.rules.FileActions.CopyKind.IMAGE -> android.content.ClipData.newUri(contentResolver, name, fileUri(file))
+            it.pixelbox.cmwatch.rules.FileActions.CopyKind.NONE -> return
         }
         cm.setPrimaryClip(clip)
         // Da Android 13 il sistema mostra già la sua conferma della copia.

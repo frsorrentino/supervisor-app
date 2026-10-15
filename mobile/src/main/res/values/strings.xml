@@ -944,4 +944,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
         <item quantity="other">%d ti aspettano</item>
     </plurals>
     <string name="mention_sent">Mandato a %1$s</string>
+    <!-- Comandi leggibili nello sblocco della notte (Franz, 15/10 22:05). -->
+    <string name="slash_phrase_clear">svuotare il contesto</string>
+    <string name="slash_phrase_compact">compattare la conversazione</string>
+    <string name="slash_phrase_login">rifare il login</string>
+    <string name="slash_phrase_resume">riprendere la conversazione</string>
+    <string name="slash_phrase_exit">chiudere la sessione</string>
+    <string name="slash_phrase_context">vedere il contesto</string>
+    <string name="slash_phrase_cost">vedere il costo</string>
+    <string name="show_preview">Mostra anteprima</string>
 </resources>

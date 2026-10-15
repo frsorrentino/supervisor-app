@@ -71,9 +71,18 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.Choices
 import it.pixelbox.cmwatch.contract.Recurring
 import it.pixelbox.cmwatch.rules.NextSteps
@@ -1422,12 +1431,13 @@ private fun FileChip(f: TranscriptFile, entry: String) {
     // I media nascono già in anteprima (Franz, 10/10 09:54: «vorrei che nascessero già in anteprima, senza doverle
     // cliccare»): un'immagine si chiede al PC appena il suo messaggio è a schermo, fino a 10 MB, in silenzio se non arriva;
     // un video fino a 25 MB, solo in Wi-Fi (15:24).
-    val autoPreview = it.pixelbox.cmwatch.rules.MediaPreview.auto(f.mime, f.size, opener.unmetered())
+    // Dal 15/10 22:20 anche i PDF (prima pagina) e i testi (prime righe); gli altri hanno la scheda larga (MediaPreview).
+    val kind = it.pixelbox.cmwatch.rules.MediaPreview.kind(f.mime, f.path)
+    val autoPreview = it.pixelbox.cmwatch.rules.MediaPreview.auto(f.mime, f.size, opener.unmetered(), f.path)
     LaunchedEffect(key, autoPreview) { if (autoPreview && opener.local[key] == null && key !in opener.loading) opener.preview(key, f) }
-    // Con l'anteprima la scheda prende tutta la larghezza della chat (Franz, 12/10 12:27: «anteprime con width 100%»).
-    val wide = local != null && (f.mime?.startsWith("image/") == true || it.pixelbox.cmwatch.rules.MediaPreview.isVideo(f.mime))
-    Column(if (wide) Modifier.fillMaxWidth() else Modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Surface(color = CmColors.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }) {
+    // Ogni allegato a tutta larghezza della chat (Franz, 12/10 12:27 per immagini e video, 15/10 22:20 per tutti).
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Surface(color = CmColors.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }, modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (key in opener.loading) CircularProgressIndicator(Modifier.size(18.dp), color = CmColors.actionIcon, strokeWidth = 2.dp)
                 else Icon(icon, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
@@ -1439,16 +1449,24 @@ private fun FileChip(f: TranscriptFile, entry: String) {
         }
         // L'anteprima tra il nome e i tasti (Franz, 13/10 07:16: «l'anteprima del file dovrebbe stare tra nome file e tasti,
         // con i tasti sotto e nome sopra»).
-        if (local != null && f.mime?.startsWith("image/") == true) AttachmentThumb(local, fill = true)
-        if (local != null && it.pixelbox.cmwatch.rules.MediaPreview.isVideo(f.mime)) VideoPreview(local)
+        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.IMAGE) AttachmentThumb(local, fill = true)
+        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.VIDEO) VideoPreview(local)
+        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.PDF) PdfFirstPage(local) { opener.open(key, f) }
+        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.TEXT) TextFirstLines(local) { opener.open(key, f) }
+        // Oltre i limiti, o su una rete a contatore, l'anteprima aspetta il tocco.
+        if (local == null && key !in opener.loading && !autoPreview && it.pixelbox.cmwatch.rules.MediaPreview.canPreview(f.mime, f.path)) {
+            androidx.compose.material3.FilledTonalButton(onClick = { opener.preview(key, f) }) { Text(stringResource(R.string.show_preview)) }
+        }
         // In fondo i quattro tasti, come Copia e ▶ sotto le risposte (Franz, 07/10 16:07).
+        // «Copia» solo dove copia il contenuto: testo e immagini (Franz, 15/10 22:19).
+        val copyable = it.pixelbox.cmwatch.rules.FileActions.canCopy(f.mime)
         Row {
             for ((act, icon, label) in listOf(
                 Triple(FileAct.OPEN, Icons.AutoMirrored.Rounded.OpenInNew, R.string.file_open),
                 Triple(FileAct.DOWNLOAD, Icons.Rounded.Download, R.string.file_download),
-                Triple(FileAct.COPY, Icons.Rounded.ContentCopy, R.string.file_copy),
+                Triple(FileAct.COPY, Icons.Rounded.ContentCopy, R.string.file_copy).takeIf { copyable },
                 Triple(FileAct.SHARE, Icons.Rounded.Share, R.string.file_share),
-            )) {
+            ).filterNotNull()) {
                 val desc = stringResource(label)
                 IconButton(onClick = { opener.act(key, f, act) }, modifier = Modifier.size(40.dp).handCursor()) {
                     Icon(icon, desc, tint = CmColors.text2, modifier = Modifier.size(20.dp))
@@ -1734,6 +1752,48 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
     if (full) ImageViewer(path) { full = false }
 }
 
+/** La prima pagina di un PDF a tutta larghezza (PdfRenderer); un PDF che non si apre lascia solo la scheda. */
+@Composable
+private fun PdfFirstPage(path: String, onClick: () -> Unit) {
+    val page = remember(path) {
+        runCatching {
+            android.os.ParcelFileDescriptor.open(java.io.File(path), android.os.ParcelFileDescriptor.MODE_READ_ONLY).use { fd ->
+                android.graphics.pdf.PdfRenderer(fd).use { r ->
+                    r.openPage(0).use { p ->
+                        val w = 1080
+                        val h = (w.toFloat() * p.height / p.width).toInt().coerceAtMost(w * 2)
+                        val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+                        bmp.eraseColor(android.graphics.Color.WHITE)
+                        p.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        bmp.asImageBitmap()
+                    }
+                }
+            }
+        }.getOrNull()
+    } ?: return
+    androidx.compose.foundation.Image(
+        page, null, contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter,
+        modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).clip(MaterialTheme.shapes.large).handCursor().clickable(onClick = onClick),
+    )
+}
+
+/** Le prime righe di un file di testo in un riquadro; un testo più lungo sfuma in fondo. */
+@Composable
+private fun TextFirstLines(path: String, onClick: () -> Unit) {
+    val (lines, more) = remember(path) {
+        runCatching { it.pixelbox.cmwatch.rules.MediaPreview.firstLines(java.io.File(path).bufferedReader().use { r -> String(CharArray(16_000).let { b -> b.copyOf(r.read(b).coerceAtLeast(0)) }) }) }
+            .getOrNull() ?: ("" to false)
+    }
+    if (lines.isEmpty()) return
+    Box(
+        Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(CmColors.surfaceLow).border(1.dp, CmColors.line, MaterialTheme.shapes.large)
+            .handCursor().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Text(lines, style = MonoSmall.copy(color = CmColors.text, fontSize = 13.sp, lineHeight = 19.sp))
+        if (more) Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(0.7f to androidx.compose.ui.graphics.Color.Transparent, 1f to CmColors.surfaceLow)))
+    }
+}
+
 /** Decodifica un file immagine riducendolo fino a stare entro `max` pixel sul lato lungo. */
 private fun decodeScaled(path: String, max: Int): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
     val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -1743,21 +1803,66 @@ private fun decodeScaled(path: String, max: Int): androidx.compose.ui.graphics.I
     android.graphics.BitmapFactory.decodeFile(path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
 }.getOrNull()
 
-/** L'immagine a tutto schermo su fondo nero, con zoom e trascinamento; × per chiudere. */
+/**
+ * L'immagine a tutto schermo su fondo nero; × per chiudere. Il gesto si legge sulla scatola, fuori dallo strato ingrandito
+ * (Franz, 15/10 22:25: ingrandita si muoveva a un quarto della velocità del dito): lo spostamento segue il dito 1:1, lo zoom
+ * resta attorno alle dita, i bordi tengono l'immagine, il doppio tocco ingrandisce o torna a 1x, al rilascio scivola con
+ * l'inerzia. Il calcolo sta in ZoomPan, con i test. Decodifica fino a 3072 px per lato (prima 2048).
+ */
 @Composable
 private fun ImageViewer(path: String, onClose: () -> Unit) {
-    val bmp = remember(path) { decodeScaled(path, 2048) } ?: return
-    var scale by remember { mutableStateOf(1f) }
-    var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
-    val zoom = androidx.compose.foundation.gestures.rememberTransformableState { z, pan, _ ->
-        scale = (scale * z).coerceIn(1f, 6f); offset += pan
-    }
+    val bmp = remember(path) { decodeScaled(path, 3072) } ?: return
+    var view by remember { mutableStateOf(it.pixelbox.cmwatch.rules.ZoomPan.View()) }
+    var box by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    val scope = rememberCoroutineScope()
+    val glide = remember { androidx.compose.animation.core.Animatable(androidx.compose.ui.geometry.Offset.Zero, androidx.compose.ui.geometry.Offset.VectorConverter) }
+    val decay = androidx.compose.animation.splineBasedDecay<androidx.compose.ui.geometry.Offset>(androidx.compose.ui.platform.LocalDensity.current)
+    fun fitted(): Pair<Float, Float> = it.pixelbox.cmwatch.rules.ZoomPan.fit(bmp.width.toFloat(), bmp.height.toFloat(), box.width.toFloat(), box.height.toFloat())
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(Modifier.fillMaxSize().background(CmColors.bg)) {
+        Box(
+            Modifier.fillMaxSize().background(CmColors.bg).onSizeChanged { box = it }
+                .pointerInput(bmp) {
+                    detectTapGestures(onDoubleTap = { p ->
+                        scope.launch { glide.stop() }
+                        val (cw, ch) = fitted()
+                        view = it.pixelbox.cmwatch.rules.ZoomPan.doubleTap(view, p.x, p.y, cw, ch, box.width.toFloat(), box.height.toFloat())
+                    })
+                }
+                .pointerInput(bmp) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        scope.launch { glide.stop() }
+                        val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                        do {
+                            val e = awaitPointerEvent()
+                            val zoom = e.calculateZoom()
+                            val pan = e.calculatePan()
+                            // A 1x un dito solo non sposta niente: lascia passare lo scorrimento e il tocco.
+                            if (zoom != 1f || (view.scale > 1f && pan != androidx.compose.ui.geometry.Offset.Zero)) {
+                                val c = e.calculateCentroid(useCurrent = false)
+                                val (cw, ch) = fitted()
+                                view = it.pixelbox.cmwatch.rules.ZoomPan.step(view, zoom, pan.x, pan.y, c.x, c.y, cw, ch, box.width.toFloat(), box.height.toFloat())
+                                e.changes.forEach { ch -> if (ch.positionChanged()) ch.consume() }
+                            }
+                            e.changes.firstOrNull()?.let { tracker.addPointerInputChange(it) }
+                        } while (e.changes.any { it.pressed })
+                        if (view.scale > 1f) {
+                            val v = tracker.calculateVelocity()
+                            val from = view
+                            scope.launch {
+                                glide.snapTo(androidx.compose.ui.geometry.Offset.Zero)
+                                glide.animateDecay(androidx.compose.ui.geometry.Offset(v.x, v.y), decay) {
+                                    val (cw, ch) = fitted()
+                                    view = it.pixelbox.cmwatch.rules.ZoomPan.clamp(from.copy(x = from.x + value.x, y = from.y + value.y), cw, ch, box.width.toFloat(), box.height.toFloat())
+                                }
+                            }
+                        }
+                    }
+                },
+        ) {
             androidx.compose.foundation.Image(
                 bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale; translationX = offset.x; translationY = offset.y }
-                    .transformable(zoom),
+                modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = view.scale; scaleY = view.scale; translationX = view.x; translationY = view.y },
             )
             IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {
                 Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = CmColors.text)

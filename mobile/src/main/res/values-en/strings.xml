@@ -927,4 +927,12 @@ It starts at your last message to the master.</string>
         <item quantity="other">%d are waiting for you</item>
     </plurals>
     <string name="mention_sent">Sent to %1$s</string>
+    <string name="slash_phrase_clear">clear the context</string>
+    <string name="slash_phrase_compact">compact the conversation</string>
+    <string name="slash_phrase_login">log in again</string>
+    <string name="slash_phrase_resume">resume the conversation</string>
+    <string name="slash_phrase_exit">close the session</string>
+    <string name="slash_phrase_context">see the context</string>
+    <string name="slash_phrase_cost">see the cost</string>
+    <string name="show_preview">Show preview</string>
 </resources>
