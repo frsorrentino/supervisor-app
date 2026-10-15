@@ -351,10 +351,14 @@ private fun SummaryCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SessionBadge(s, 24.dp)
-            Text(
-                s.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
-                color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
-            )
+            // Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2).
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    s.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                    color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
+                )
+                PermissionGlyph(it.pixelbox.cmwatch.rules.PermissionModes.homeGlyph(s), 14.dp)
+            }
             if (s.duplicateOf != null) Tag(stringResource(R.string.cleanup_dup_tag), CmColors.briefWarn)
             // «ctx 17%»: il contesto occupato, non un avanzamento del lavoro (osservazioni del 03/10).
             s.context?.let { Text(stringResource(R.string.ctx_short, it), style = MonoSmall) }

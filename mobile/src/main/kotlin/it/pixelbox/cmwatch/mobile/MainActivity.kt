@@ -1112,6 +1112,10 @@ class MainActivity : ComponentActivity() {
                                     tunePicks[session.name + "/effort"] = Tune.Pick(id, System.currentTimeMillis() / 1000, effort = v, was = was)
                                 }
                             } },
+                            // Contratto 1.69: la modalità dei permessi, solo con un relay che sa cambiarla.
+                            setPermission = if (it.pixelbox.cmwatch.rules.PermissionModes.canChange(state, session)) ({ v ->
+                                scope.launch { runCatching { app.repo.command(CmdOp.PERMISSION_MODE, session.name, v) } }
+                            }) else null,
                             interrupt = { scope.launch { app.repo.command(CmdOp.INTERRUPT, session.name, null) } },
                             // Contratto 1.25: il comando resta nella chat come un messaggio, con l'esito del PC.
                             slash = { c, a -> val at = System.currentTimeMillis() / 1000

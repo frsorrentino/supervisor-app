@@ -58,6 +58,8 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
 fun TunePanel(
     choices: Choices, model: String?, effort: String?, advice: MasterService.AdviceView?,
     onModel: (String) -> Unit, onEffort: (String) -> Unit, onDismiss: () -> Unit,
+    /** Contratto 1.69: il gruppo Permessi, solo se il relay sa cambiarla (null = no). */
+    session: it.pixelbox.cmwatch.contract.Session? = null, onPermission: ((String) -> Unit)? = null,
 ) = PanelShell(
     onDismiss,
     header = { Text(stringResource(R.string.tune_head), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f)) },
@@ -79,6 +81,10 @@ fun TunePanel(
             listOfNotNull(e, effortSub(e)).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 6.dp),
         )
+    }
+    if (session != null && onPermission != null) {
+        SectionLabel(stringResource(R.string.perm_title))
+        PermissionGroup(session) { close(); onPermission(it) }
     }
 }
 

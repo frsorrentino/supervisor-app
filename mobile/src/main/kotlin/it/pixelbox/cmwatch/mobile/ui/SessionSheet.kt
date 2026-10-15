@@ -137,6 +137,8 @@ data class SheetActions(
     val chat: () -> Unit = {},
     /** Contratto 1.12: modello ed effort di questa sola sessione. */
     val setModel: (id: String) -> Unit = {}, val setEffort: (level: String) -> Unit = {},
+    /** Contratto 1.69: il cambio della modalità dei permessi; null = il relay non lo sa fare. */
+    val setPermission: ((mode: String) -> Unit)? = null,
     /** Contratto 1.21: il tasto Stop. */
     val interrupt: () -> Unit = {},
     /** Un'immagine dalla galleria, con il testo scritto accanto (contratto 1.19, come «Condividi»). */
@@ -1797,16 +1799,15 @@ private fun SheetHeader(
             // (Franz, 30/09 23:01: «disordinata», «lavora 5 h potrebbe essere rimosso»).
             // Modello ed effort in una pillola sola, «Opus 5.5 · medium», che apre un foglio con le due scelte (osservazioni del 03/10:
             // troppi comandi in testa).
-            // Contratto 1.54: la modalità dei permessi in coda, se non è quella normale.
-            val modes = ModelText.Modes(stringResource(R.string.mode_plan), stringResource(R.string.mode_accept_edits), stringResource(R.string.mode_bypass))
-            val tune = listOfNotNull(ModelText.short(model) ?: stringResource(R.string.model_title), effort, ModelText.permission(s.permissionMode, modes)).joinToString(" · ")
+            // Contratto 1.54: la modalità dei permessi in coda col segno del terminale (mockup del 14/10), se non è quella normale.
+            val tune = listOfNotNull(ModelText.short(model) ?: stringResource(R.string.model_title), effort).joinToString(" · ")
             // Sul tablet il nome e lo stato a sinistra, nel posto che resta; le pillole a destra (mockup della plancia).
             if (lead != null) Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { lead() }
             // Tre pillole uguali (variante A, scelta da Franz il 09/10 alle 17:50): modello, quota delle 5 ore con l'ora in cui si
             // azzera, contesto; ognuna si tocca. Se la riga non ci sta la quota si accorcia (`MeterPills`).
             MeterPills(
                 fill = lead == null,
-                tune = { TunePill(tune, tunable, dot = tunable && advice?.dot == true) { picker = "tune" } },
+                tune = { TunePill(tune, tunable, dot = tunable && advice?.dot == true, mode = s.permissionMode) { picker = "tune" } },
                 quota = quota?.h5?.let { pct -> { form -> QuotaPill(pct, quota.resetH5, quota.stale, now, form, onClick = actions.overview) } },
                 context = s.context?.let { pct -> { ContextPill(pct, enabled = tunable) { ctxSheet = true } } },
             ) {
@@ -1852,7 +1853,7 @@ private fun SheetHeader(
     if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) })
     if (ctxSheet) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false } }
     // Il pannello Modello ed effort, dalla pillola (bozza approvata da Franz il 07/10 alle 00:06).
-    if (picker != null && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort) { picker = null }
+    if (picker != null && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = null }, session = s, onPermission = actions.setPermission)
 }
 
 /** La proposta del contesto pieno sopra il campo (contratto 1.37): «Contesto al 64%», «Fallo», ×. */
@@ -2077,16 +2078,28 @@ fun Speakable(text: String, speak: Boolean, onSpeak: (String) -> Unit) {
 
 /** Una pillola compatta e toccabile per il modello (contratto 1.12); la freccia solo se si può cambiare. */
 @Composable
-private fun TunePill(label: String, enabled: Boolean, dot: Boolean = false, onClick: () -> Unit) {
+@OptIn(ExperimentalFoundationApi::class)
+private fun TunePill(label: String, enabled: Boolean, dot: Boolean = false, mode: String? = null, onClick: () -> Unit) {
+    val glyph = it.pixelbox.cmwatch.rules.PermissionModes.glyph(mode)
+    var card by remember { mutableStateOf(false) }
     Box {
-        Surface(onClick = onClick, enabled = enabled, color = CmColors.surface, shape = CircleShape) {
-            Row(Modifier.padding(start = 12.dp, end = if (enabled) 6.dp else 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        // Tenendo premuta la pillola, la scheda della modalità dei permessi (mockup del 14/10, schermata 1).
+        Surface(
+            color = CmColors.surface, shape = CircleShape,
+            modifier = Modifier.clip(CircleShape).combinedClickable(enabled = enabled || glyph != it.pixelbox.cmwatch.rules.PermissionModes.Glyph.NONE,
+                onClick = { if (enabled) onClick() }, onLongClick = { if (glyph != it.pixelbox.cmwatch.rules.PermissionModes.Glyph.NONE) card = true }),
+        ) {
+            Row(Modifier.padding(start = 12.dp, end = if (enabled) 6.dp else 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(label, style = PillText, color = CmColors.text, maxLines = 1, softWrap = false)
+                PermissionGlyph(glyph, 14.dp)
                 if (enabled) Icon(Icons.Rounded.ArrowDropDown, null, tint = CmColors.text2, modifier = Modifier.size(18.dp))
             }
         }
         // Contratto 1.37: c'è un consiglio diverso dalla scelta di adesso (mockup approvato il 05/10 21:07).
         if (dot) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(CmColors.bg, CircleShape).padding(2.dp).background(CmColors.advice, CircleShape))
+        if (card) androidx.compose.ui.window.Popup(onDismissRequest = { card = false }, offset = androidx.compose.ui.unit.IntOffset(0, 120)) {
+            Box(Modifier.width(320.dp)) { PermissionCard(mode) }
+        }
     }
 }
 

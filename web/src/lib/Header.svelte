@@ -1,10 +1,12 @@
 <script lang="ts">
   import CloseDialog from './CloseDialog.svelte'
   import type { CmdOp, Model, Session, State } from './contract'
-  import { modelKind, notes as notesOf, permissionLabel, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
+  import { modelKind, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
   import { MASTER } from './summary'
   import { t } from './t'
   import Badge from './Badge.svelte'
+  import PermGlyph from './PermGlyph.svelte'
+  import { canChange, choices as permChoices, glyph, needsConfirm } from './permissionModes'
   import { adviceOf, adviceSteps, ctxBand, handoffPrompt, tokens } from './masterService'
 
   // La testata della sessione (SheetHeader.kt): una riga con modello · effort in una pillola, la quota delle 5 ore con l'ora
@@ -61,6 +63,15 @@
   function close(d?: HTMLDialogElement) { d?.close() }
   function setModel(m: Model) { picked.model = m; onCmd('model', m.id); close(tune); close(ctx) }
   function setEffort(e: string) { picked.effort = e; onCmd('effort', e); close(tune) }
+  // Contratto 1.69: più autonomia chiede un secondo tocco; toglierne parte subito.
+  let armed = $state<string | null>(null)
+  const permName = (m: string | null | undefined) => t.perm.names[m || 'default'] ?? m ?? ''
+  const permTitle = $derived(`${permName(s.permission_mode)} · ${t.perm.subs[s.permission_mode || 'default'] ?? t.perm.unknown}`)
+  function setPermission(m: string) {
+    if (m === (s.permission_mode || 'default')) return
+    if (needsConfirm(s.permission_mode, m) && armed !== m) { armed = m; return }
+    armed = null; onCmd('permission_mode', m); close(tune)
+  }
   // Il pannello scende dalla pillola: sul telefono largo quanto lo schermo meno 12 px per lato, più largo 380 px sotto la
   // pillola, dentro la finestra (come il menu dell'app, AppBar).
   let pill: HTMLButtonElement | undefined = $state()
@@ -97,7 +108,9 @@
       <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
     {/if}
     <button class="pill" bind:this={pill} bind:offsetWidth={modelW} disabled={!tunable} onclick={openTune}>
-      <span class="lbl">{[shortModel(model) ?? t.modelTitle, effort, permissionLabel(s.permission_mode, t.modes)].filter(Boolean).join(' · ')}</span>
+      <span class="lbl">{[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}</span>
+      <!-- Il segno della modalità dei permessi (mockup del 14/10); il nome e la spiegazione passandoci sopra. -->
+      {#if glyph(s.permission_mode) !== 'none'}<span class="pm" title={permTitle}><PermGlyph g={glyph(s.permission_mode)} /></span>{/if}
       {#if tunable}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z" fill="var(--text2)" /></svg>{/if}
       {#if tunable && advice?.dot}<span class="dot" title={t.adviceDot} aria-label={t.adviceDot}></span>{/if}
     </button>
@@ -206,6 +219,19 @@
       {/each}
     </div>
     {#if effort}<p class="ed">{[effort, t.effortSub[effort]].filter(Boolean).join(' · ')}</p>{/if}
+    {#if canChange(st, s)}
+      <p class="grp">{t.perm.title}</p>
+      <div class="perms" role="radiogroup" aria-label={t.perm.title}>
+        {#each permChoices(s) as m}
+          {@const on = m === (s.permission_mode || 'default')}
+          <button class:on class:armed={armed === m} role="radio" aria-checked={on} title={t.perm.subs[m]} onclick={() => setPermission(m)}>
+            <PermGlyph g={glyph(m)} /><span>{permName(m)}</span>
+          </button>
+        {/each}
+      </div>
+      {#if armed}<p class="pconf">{t.perm.confirm(permName(armed))}</p>{/if}
+      <p class="ed">{t.perm.note}</p>
+    {/if}
   </div>
 </dialog>
 
@@ -298,6 +324,14 @@
   .opt { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
   .opt small { font-size: 12.5px; font-weight: 400; opacity: .8; margin-top: 2px; }
   .pill:disabled { padding-right: 12px; cursor: default; }
+  .pm { display: inline-flex; margin-left: 4px; }
+  /* Il gruppo Permessi (mockup del 14/10): tre per riga, la scelta piena, il tocco che chiede conferma col bordo ambra. */
+  .perms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 4px 20px 0; }
+  .perms button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 6px; border-radius: 12px; background: var(--high); font-size: 13px; text-align: center; border: 2px solid transparent; }
+  .perms button.on { background: var(--primary); color: var(--on-primary); }
+  .perms button.armed { border-color: var(--b-warn); }
+  .perms button:not(.on):hover { filter: brightness(1.2); }
+  .pconf { margin: 10px 20px 0; font-size: 14px; color: var(--b-warn); }
   .pill:not(:disabled):hover { filter: brightness(1.2); }
   .trk, .arc { fill: none; stroke-width: 3; }
   .trk { stroke: var(--b-track); }

@@ -23,6 +23,8 @@ export type Session = {
   at_pc?: boolean
   /** Contratto 1.68: `supervisor needs-you` e il turno finito con una voce bloccante, finché la sessione è ferma. */
   needs_you?: { reason: string; at: number } | null; turn_blocking?: { text: string; at: number } | null
+  /** Contratto 1.69: la sessione può arrivare a bypassPermissions. */
+  permission_bypass?: boolean
   id: string; name: string; account: string; project: string; state: SessionState; since: number
   turn_started?: number | null; tool?: string | null; link?: string; tool_note?: string | null
   attached?: boolean; followed?: boolean; question?: Question | null; outcome?: Outcome | null
@@ -133,6 +135,8 @@ export type State = {
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
+  /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
+  | 'permission_mode'
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */

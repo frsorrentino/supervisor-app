@@ -1,6 +1,8 @@
 <script lang="ts">
   import { locale } from './lang'
   import { forMaster } from './strongAlert'
+  import PermGlyph from './PermGlyph.svelte'
+  import { homeGlyph } from './permissionModes'
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
   import type { Approval, Session, State } from './contract'
@@ -223,7 +225,8 @@
         {/if}
         <div class="top">
           <Badge {s} size={24} />
-          <span class="name">{s.name}</span>
+          <!-- Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2). -->
+          <span class="nm"><span class="name">{s.name}</span><PermGlyph g={homeGlyph(s)} /></span>
           {#if s.duplicate_of}<span class="dup">{t.cleanupDupTag.toUpperCase()}</span>{/if}
           {#if s.context != null}<span class="mono">{t.ctx(s.context)}</span>{/if}
           {#if r.quota?.h5 != null}<span class="mono" class:stale={r.quota.stale}>{t.quota5h(r.quota.h5)}</span>{/if}
@@ -373,6 +376,8 @@
   .card:hover, .card:focus-visible { box-shadow: inset 0 0 0 1px var(--line); }
   .card.on { box-shadow: inset 0 0 0 1.5px var(--b-ring); }
   .top { display: flex; align-items: center; gap: 10px; }
+  .nm { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+  .nm .name { flex: 0 1 auto; }
   .name { flex: 1; min-width: 0; font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; }
   .stale { color: var(--wait); }
   .chev { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
