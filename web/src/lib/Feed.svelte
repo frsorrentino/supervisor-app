@@ -13,10 +13,10 @@
   import { t } from './t'
   import Icon from './Icon.svelte'
   import { canCopy, canShare, type FileAct } from './fileActions'
-  import { autoPreview, fileKey, isImage, isVideo } from './media'
+  import { autoPreview, canPreview, fileKey, isImage, isVideo, previewKind } from './media'
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
-  import { media } from './mediaCache.svelte'
+  import { failed, media, texts } from './mediaCache.svelte'
   import Md from './Md.svelte'
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
@@ -48,7 +48,7 @@
   // card è a schermo, se `autoPreview` lo vuole; col risparmio dati del browser i video aspettano il tocco.
   function preview(_node: HTMLElement, { f, key }: { f: TranscriptFile; key: string }) {
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
-    if (!media[key] && autoPreview(f.mime, f.size, !saveData)) onFile(f.path, 'preview', key)
+    if (!media[key] && !texts[key] && autoPreview(f.mime, f.size, !saveData, f.path)) onFile(f.path, 'preview', key)
   }
 
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
@@ -135,10 +135,16 @@
     {#each fs as { f, entry }}
       {@const key = fileKey(s.name, f, entry)}
       {@const url = media[key]}
+      {@const kind = previewKind(f.mime, f.path)}
       <div class="fcard" role="group" aria-label={f.path.split('/').pop()} use:preview={{ f, key }} onpointerenter={() => onFile(f.path, 'prepare', key)} onfocusin={() => onFile(f.path, 'prepare', key)}>
         <button class="fchip" title={f.path} onclick={() => onFile(f.path, 'open', key)}><Icon name={fileIcon(f)} color="var(--icon)" /><span class="fname">{f.path.split('/').pop()}</span>{#if f.size != null}<span class="fsize">{size(f.size)}</span>{/if}</button>
         <!-- L'anteprima tra il nome e i tasti, come nell'app (Franz, 13/10 07:16). -->
-        {#if url && isImage(f.mime)}<button class="fthumb" aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><img src={url} alt="" /></button>{/if}
+        {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><img src={url} alt="" /></button>{/if}
+        {#if texts[key]}<button class="ftext" class:cut={texts[key].more} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><pre>{texts[key].lines}</pre></button>{/if}
+        {#if !url && !texts[key] && !failed[key] && canPreview(f.mime, f.path) && !autoPreview(f.mime, f.size, !((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true), f.path)}
+          <!-- Oltre i limiti, o col risparmio dati, l'anteprima aspetta il tocco. -->
+          <button class="fshow" onclick={() => onFile(f.path, 'preview', key)}>{t.showPreview}</button>
+        {/if}
         {#if url && isVideo(f.mime)}<!-- svelte-ignore a11y_media_has_caption --><video class="fvideo" src={url} controls preload="metadata" playsinline></video>{/if}
         <div class="acts">{#each fileActs.filter(([a]) => a !== 'copy' || canCopy(f.mime ?? '')) as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a, key)}><Icon name={icon} /></button>{/each}</div>
       </div>
@@ -271,9 +277,18 @@
   .bad { color: var(--gone-dim); }
   code { font: 12.5px/1.4 var(--mono); color: var(--stale); white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .indent { padding-left: 28px; }
-  .files { display: flex; flex-wrap: wrap; gap: 8px; }
-  .fcard { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 100%; }
-  .fchip { display: flex; align-items: center; gap: 8px; background: var(--surface); border-radius: 12px; padding: 8px 12px; text-align: left; max-width: 100%; }
+  /* Ogni allegato a tutta larghezza, con la sua anteprima (Franz, 15/10 22:20). */
+  .files { display: flex; flex-direction: column; gap: 10px; }
+  .fcard { display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; container-type: inline-size; }
+  .fchip { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 12px; padding: 12px 14px; text-align: left; width: 100%; }
+  .fchip .fname { flex: 1; min-width: 0; }
+  .fthumb.pdf { background: #fff; }
+  .fthumb.pdf img { object-fit: contain; object-position: top; max-height: 120cqw; }
+  .ftext { position: relative; display: block; width: 100%; text-align: left; background: var(--low); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; overflow: hidden; }
+  .ftext pre { margin: 0; font: 13px/1.5 var(--mono); color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  /* Un testo più lungo delle righe mostrate sfuma in fondo, senza puntini. */
+  .ftext.cut pre { mask-image: linear-gradient(#000 70%, transparent); -webkit-mask-image: linear-gradient(#000 70%, transparent); }
+  .fshow { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--icon); font-size: 14px; font-weight: 500; }
   .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; }
   /* Con l'anteprima la scheda prende tutta la larghezza della chat, come nell'app (Franz, 12/10 12:27: «anteprime con width
      100%»); un verticale è alto al massimo il doppio della larghezza. Nome, anteprima e tasti stanno a 6 px, come nell'app. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { autoPreview, fileKey, isVideo } from './media'
+import { autoPreview, canPreview, fileKey, firstLines, isVideo, previewKind } from './media'
 
 describe('la chiave di un file della chat, come FileCache.key nell\'app', () => {
   const video = { path: '/home/franz/bozza.mp4', mime: 'video/mp4', size: 11_402 }
@@ -35,9 +35,33 @@ describe('anteprime che arrivano da sole, come sul telefono', () => {
     expect(autoPreview('video/mp4', 7_211_071, false)).toBe(false)
     expect(autoPreview('video/mp4', null)).toBe(false)
   })
-  it('gli altri file aspettano il tocco', () => {
-    expect(autoPreview('application/pdf', 1_000)).toBe(false)
+  // Franz, 15/10 22:20: «ogni file allegato mostri già l'anteprima».
+  it('PDF fino a 10 MB e testi fino a 1 MB, non col risparmio dati', () => {
+    expect(autoPreview('application/pdf', 212_000)).toBe(true)
+    expect(autoPreview('application/pdf', 10_000_001)).toBe(false)
+    expect(autoPreview('application/pdf', 212_000, false)).toBe(false)
+    expect(autoPreview('text/markdown', 4_000)).toBe(true)
+    expect(autoPreview(null, 4_000, true, '/w/notes/README.md')).toBe(true)
+    expect(autoPreview('text/plain', 1_000_001)).toBe(false)
+    expect(autoPreview('text/plain', 4_000, false)).toBe(false)
+  })
+  it('gli altri file hanno la scheda larga, senza scaricare', () => {
+    expect(autoPreview('application/zip', 1_000)).toBe(false)
     expect(autoPreview(undefined, 1_000)).toBe(false)
+    expect(previewKind('application/zip', 'a.zip')).toBe('other')
+    expect(canPreview('application/zip')).toBe(false)
     expect(isVideo('video/webm')).toBe(true)
+  })
+  it('il tipo di anteprima', () => {
+    expect(previewKind('image/png')).toBe('image')
+    expect(previewKind('image/svg+xml')).toBe('text')
+    expect(previewKind('application/pdf')).toBe('pdf')
+    expect(previewKind('application/octet-stream', '/w/x/notes.md')).toBe('text')
+    expect(previewKind('application/json')).toBe('text')
+    expect(previewKind('video/mp4')).toBe('video')
+  })
+  it('le prime righe di un testo', () => {
+    expect(firstLines('a\r\nb\n\n', 12)).toEqual({ lines: 'a\nb', more: false })
+    expect(firstLines(Array.from({ length: 20 }, (_, i) => String(i)).join('\n'), 12)).toEqual({ lines: Array.from({ length: 12 }, (_, i) => String(i)).join('\n'), more: true })
   })
 })

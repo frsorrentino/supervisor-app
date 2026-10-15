@@ -7,6 +7,7 @@ import { NIGHT_TARGET } from './recapAgenda'
 // comandi cambiano lo stato come li cambierebbe il PC, con i testi del relay, di successo e di rifiuto. Niente rete.
 const MODES = new Set(['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'])
 const VALID_NAME = /^[A-Za-z0-9._-]{1,64}$/
+const DEMO_FILES: Record<string, string> = { 'checkout-before.png': 'image/png', 'checkout-tests.pdf': 'application/pdf', 'edge-caching.md': 'text/markdown', 'bench-data.zip': 'application/zip' }
 
 export class DemoTransport implements Transport {
   readonly world: World
@@ -40,8 +41,16 @@ export class DemoTransport implements Transport {
     if (max && data.length > max) throw new Error(`file too large: ${data.length} bytes, at most ${max}`)
     this.shared.add(id)
   }
-  // La demo non ha file del PC da servire.
-  async fetchFile(): Promise<FileBlob | null> { return null }
+  // I file della demo (Franz, 15/10 22:20): veri, serviti dal sito in /demo-files, così anteprime, apri, scarica e condividi
+  // funzionano come col PC. `file` li prepara, `/api/file/<id>` li dà.
+  private files = new Map<string, string>()
+  async fetchFile(id: string): Promise<FileBlob | null> {
+    const name = this.files.get(id)
+    if (!name) return null
+    const r = await fetch(`/demo-files/${name}`).catch(() => null)
+    if (!r?.ok) return null
+    return { data: new Uint8Array(await r.arrayBuffer()), mime: DEMO_FILES[name], name }
+  }
 
   /** Le voci di prova di una conversazione, come le darebbe `transcript`. */
   private transcript(name: string, arg: string | null | undefined): CmdResult['text'] | null {
@@ -129,7 +138,12 @@ export class DemoTransport implements Transport {
         // Contratto 1.12: la demo non cambia modello né effort, lo dice come farebbe il relay con una sessione occupata.
         case 'model': case 'effort': return ko(`${cmd.session}: not available in demo`)
         case 'transcript': { const x = ses ? this.transcript(ses.name, cmd.arg) : null; return x == null ? ko(`${cmd.session}: no transcript`) : ok(x) }
-        case 'file': return ko('missing or unreadable')
+        case 'file': {
+          const name = (cmd.arg ?? '').split('/').pop() ?? ''
+          if (!ses || !DEMO_FILES[name]) return ko('missing or unreadable')
+          this.files.set(cmd.id, name)
+          return ok(`ready: ${name}`)
+        }
         case 'slash': {
           if (!ses) return ko(`no session ${cmd.session}`)
           // /exit chiude davvero, così il pannello di chiusura arriva in fondo; /clear svuota la conversazione di prova.

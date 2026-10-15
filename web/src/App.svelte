@@ -1,7 +1,9 @@
 <script lang="ts">
   import { locale } from './lib/lang'
   import * as files from './lib/fileActions'
-  import { media } from './lib/mediaCache.svelte'
+  import { failed, media, texts } from './lib/mediaCache.svelte'
+  import { firstLines, previewKind } from './lib/media'
+  import { firstPage } from './lib/pdfPreview'
   import { groups, together } from './lib/shareMulti'
   import type { FileAct, Fetched } from './lib/fileActions'
   import { DemoTransport } from './lib/demoTransport'
@@ -682,13 +684,18 @@
     return p
   }
   async function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview', key: string) {
-    // Nella demo nessun file del PC: lo dice, invece del «missing or unreadable» del relay.
-    if (!tr || demo) { if (act !== 'prepare' && act !== 'preview') say(t.fileDemo); return }
+    if (!tr) return
     if (act === 'prepare') { void getFile(name, path, key); return }
     if (act === 'preview') {
-      // Immagini e video in anteprima sotto il loro file (Franz, 10/10 15:24), come sul telefono.
-      const f = media[key] ? null : await getFile(name, path, key, true)
-      if (f && !media[key]) media[key] = URL.createObjectURL(f.blob)
+      // Ogni allegato in anteprima sotto il suo nome (Franz, 10/10 15:24 per immagini e video, 15/10 22:20 per tutti): i PDF
+      // con la prima pagina, i testi con le prime righe.
+      if (media[key] || texts[key] || failed[key]) return
+      const f = await getFile(name, path, key, true)
+      if (!f || media[key] || texts[key]) return
+      const kind = previewKind(f.mime, path)
+      if (kind === 'pdf') { const png = await firstPage(f.blob); if (png) media[key] = URL.createObjectURL(png); else failed[key] = true }
+      else if (kind === 'text') texts[key] = firstLines(await f.blob.text())
+      else media[key] = URL.createObjectURL(f.blob)
       return
     }
     const short = path.split('/').pop() ?? path
