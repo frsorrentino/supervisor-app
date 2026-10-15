@@ -4,7 +4,7 @@
   import { media } from './lib/mediaCache.svelte'
   import { groups, together } from './lib/shareMulti'
   import type { FileAct, Fetched } from './lib/fileActions'
-  import { demoAgenda, demoEvents, demoMine, demoNight, demoSamples, demoSearch, demoState, demoTimeline, demoTranscripts } from './lib/demo'
+  import { DemoTransport } from './lib/demoTransport'
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { blankState, withTail } from './lib/contract'
@@ -49,7 +49,8 @@
   import ReadingPill from './lib/ReadingPill.svelte'
   import CloseSplash from './lib/CloseSplash.svelte'
   import { closeSplash, type Leaving } from './lib/closeSplash'
-  import { build, MASTER } from './lib/summary'
+  import { build, finishedKey, MASTER } from './lib/summary'
+  import { nextKey, type ForYouRow } from './lib/masterHome'
   import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
   import { refusalText } from './lib/questionRules'
   import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
@@ -68,26 +69,29 @@
   const remote = access ? null : remoteFor(new URL(location.href), store)
   const pairing = !access && wantsPairing(new URL(location.href), remote)
   const rt = !access && remote ? remoteTransport(remote, store) : null
-  const tr: Transport | null = access ? new LocalTransport(access.base, access.token) : rt
-  let st = $state<State>(tr ? blankState(nowS()) : demoState)
-  let ready = $state(!tr)
+  // Senza relay e senza collegamento la demo: un PC finto che risponde come quello vero (FakeTransport dell'app).
+  const demo = !access && !rt && !pairing ? new DemoTransport() : null
+  const tr: Transport | null = access ? new LocalTransport(access.base, access.token) : rt ?? demo
+  let st = $state<State>(demo ? demo.state : blankState(nowS()))
+  let ready = $state(!!demo)
   let down = $state(false)
   let clock = $state(nowS())
   // L'ora delle età e dei conti: quella vera con il relay, quella della fixture nella demo.
-  const now = $derived(tr ? clock : st.ts)
-  let events = $state<Event[]>(tr ? [] : demoEvents)
-  let transcripts = $state<Record<string, TranscriptEntry[]>>(tr ? {} : structuredClone(demoTranscripts))
+  const now = $derived(clock)
+  let events = $state<Event[]>(demo ? demo.world.events : [])
+  // Nella demo le conversazioni ci sono già, anche per le pagine accanto della striscia.
+  let transcripts = $state<Record<string, TranscriptEntry[]>>(demo ? structuredClone(demo.world.transcripts) : {})
   // I messaggi mandati da qui: lo stato di ognuno viene dal comando (in volo, risposta del PC) e dalla sessione (turno).
-  let msgs = $state<Sent[]>(tr ? prune(json<Sent[]>('cm.sent', []), nowS()) : demoMine.map(([m]) => m))
+  let msgs = $state<Sent[]>(demo ? demo.world.mine.map(([m]) => m) : tr ? prune(json<Sent[]>('cm.sent', []), nowS()) : [])
   let pend = $state<Record<string, PendingStatus>>({})
   let res = $state<Record<string, CmdResult>>({})
   let uploads = $state<Record<string, Upload>>({})
-  const demoStatus = new Map(demoMine.map(([m, x]) => [m.id, x]))
-  const mine = $derived<[Sent, Status][]>(msgs.map(m => [m, tr
-    ? status(m, pend[m.id] ?? null, res[m.id] ?? null, st.sessions.find(x => x.name === m.session) ?? null, uploads[m.id] ?? null)
-    : demoStatus.get(m.id) ?? 'sent']))
+  // Nella demo i messaggi di prova hanno lo stato scritto; quelli mandati adesso seguono le regole, come col relay.
+  const demoStatus = new Map(demo?.world.mine.map(([m, x]) => [m.id, x]) ?? [])
+  const mine = $derived<[Sent, Status][]>(msgs.map(m => [m, demoStatus.get(m.id)
+    ?? status(m, pend[m.id] ?? null, res[m.id] ?? null, st.sessions.find(x => x.name === m.session) ?? null, uploads[m.id] ?? null)]))
   // Le letture della quota delle 5 ore, per il ritmo: le tiene la web app, come QuotaHistory sul telefono.
-  let samples = $state<Record<string, Sample[]>>(tr ? json('cm.samples', {}) : demoSamples)
+  let samples = $state<Record<string, Sample[]>>(demo ? demo.world.samples : json('cm.samples', {}))
   // Quello che si è letto o avviato (turni finiti, resoconto, prossimi passi) e i messaggi mandati da qui, per «Per te».
   let read = $state(new Set<string>())
   const sent = $derived(mine.map(([m]) => m))
@@ -108,7 +112,7 @@
       next[acct] = list
     }
     samples = next
-    save('cm.samples', JSON.stringify(next))
+    if (!demo) save('cm.samples', JSON.stringify(next))
   }
 
   async function refreshEvents() {
@@ -131,7 +135,7 @@
     }, () => { down = true })
     setInterval(() => (clock = nowS()), 30_000)
   }
-  $effect(() => { if (tr) save('cm.sent', JSON.stringify(msgs)) })
+  $effect(() => { if (tr && !demo) save('cm.sent', JSON.stringify(msgs)) })
 
   // Notifiche web push (fase 4), solo sulla strada remota: l'iscrizione si riscrive a ogni avvio, perché il browser può
   // cambiarla; l'interruttore sta nelle Impostazioni e chiede il permesso dal tocco, come vuole Safari.
@@ -166,7 +170,7 @@
   }
 
   // Contratto 1.37, «Handoff, poi /clear»: il /clear parte a turno finito, una volta sola; dopo 3 ore si lascia perdere.
-  let clearAfter = $state<Record<string, number>>(tr ? json('cm.clear_after', {}) : {})
+  let clearAfter = $state<Record<string, number>>(tr && !demo ? json('cm.clear_after', {}) : {})
   function handoff(name: string) {
     const s = st.sessions.find(x => x.name === name)
     if (!s) return
@@ -174,7 +178,7 @@
     const prompt = handoffPrompt(st, s, clear ? t.ctxHandoffClearPrompt : t.ctxHandoffPrompt)
     if (prompt == null) return
     sendTo(name, prompt)
-    if (clear) { clearAfter = { ...clearAfter, [name]: nowS() }; save('cm.clear_after', JSON.stringify(clearAfter)) }
+    if (clear) { clearAfter = { ...clearAfter, [name]: nowS() }; if (!demo) save('cm.clear_after', JSON.stringify(clearAfter)) }
   }
   function clearsDue(s: State) {
     const next = { ...clearAfter }
@@ -184,7 +188,7 @@
       if (due) run(newCmd('slash', name, 'clear'))
       if (due || nowS() - sentAt > 3 * 3600) { delete next[name]; changed = true }
     }
-    if (changed) { clearAfter = next; save('cm.clear_after', JSON.stringify(next)) }
+    if (changed) { clearAfter = next; if (!demo) save('cm.clear_after', JSON.stringify(next)) }
   }
   async function approve(task: string, note: string) {
     const r = await run(newCmd('approve', null, task, approveText(note)))
@@ -221,6 +225,17 @@
     return true
   }
 
+  // Contratto 1.22: «Carica i messaggi precedenti» in cima alla chat, finché il relay dice che ce ne sono.
+  let olderOf = $state<Record<string, boolean>>({})
+  async function loadOlder(name: string) {
+    const first = transcripts[name]?.[0]?.id
+    if (!tr || !first) return
+    const r = await run(newCmd('transcript', name, `50:before=${first}`))
+    if (!r?.ok) return
+    const p: TranscriptPage = JSON.parse(r.text)
+    transcripts = { ...transcripts, [name]: [...p.entries, ...(transcripts[name] ?? [])] }
+    olderOf = { ...olderOf, [name]: !!p.more }
+  }
   /** Vero quando la lettura è arrivata, anche senza voci nuove. */
   async function loadTranscript(name: string): Promise<boolean> {
     if (!tr || loadingT.has(name)) return false
@@ -234,6 +249,7 @@
         return false
       }
       const p: TranscriptPage = JSON.parse(r.text)
+      if (!last) olderOf = { ...olderOf, [name]: !!p.more }
       if (last && !p.entries.length) return true
       transcripts = { ...transcripts, [name]: last ? [...(have ?? []), ...p.entries] : p.entries }
       return true
@@ -245,7 +261,7 @@
   const wide = $derived(isWide(width))
   // `#nome` apre quella sessione (link diretto, e i provini).
   const linked = decodeURIComponent(location.hash.slice(1))
-  const known = (n: string) => !!tr || st.sessions.some(s => s.name === n && s.state !== 'gone')
+  const known = (n: string) => (!!tr && !demo) || st.sessions.some(s => s.name === n && s.state !== 'gone')
 
   // La master vive nella home: ridotta è la barra in fondo, espansa occupa la home (mai una colonna o una pagina a parte).
   let masterOpen = $state(linked === MASTER)
@@ -331,6 +347,9 @@
   // Aprire una sessione (da «Per te», da una ricerca, dal controller della lettura): la master si espande nella home,
   // le altre entrano in colonna sulla plancia o diventano la pagina sul telefono.
   function pick(name: string) {
+    // Aprire una sessione la toglie da «Hanno finito», come nell'app.
+    const o = st.sessions.find(x => x.name === name)?.outcome
+    if (o && !read.has(finishedKey(name, o.at))) read = new Set([...read, finishedKey(name, o.at)])
     if (name === MASTER) smooth(() => { masterOpen = true; open = null })
     else if (wide) setCols(add(cols, name))
     else smooth(() => { open = name })
@@ -351,7 +370,7 @@
     return t.nightPageTitle(b.getUTCDate(), d.getUTCDate(), new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(d))
   })
   async function loadNight() {
-    if (!tr) { night = { report: demoNight, error: null, loading: false }; return }
+    if (!tr) return
     night = { ...night, loading: true, error: null }
     try {
       const r = await tr.send(newCmd('night', null, null))
@@ -375,9 +394,9 @@
   const actions = $derived(recapActions(st, t.recapResume, false))
   const recapDay = $derived(/^\d{4}-\d{2}-\d{2}$/.test(st.recap.date) ? `${st.recap.date.slice(8, 10)}/${st.recap.date.slice(5, 7)}` : '')
   let agenda = $state<{ page: AgendaPage | null; error: string | null; loading: boolean }>({ page: null, error: null, loading: false })
-  const canAgenda = $derived(!tr || !!st.ops?.includes('agenda'))
+  const canAgenda = $derived(!!st.ops?.includes('agenda'))
   async function loadAgenda() {
-    if (!tr) { agenda = { page: demoAgenda, error: null, loading: false }; return }
+    if (!tr) return
     agenda = { ...agenda, loading: true, error: null }
     try {
       const r = await tr.send(newCmd('agenda', null, null))
@@ -389,7 +408,7 @@
   $effect(() => { if (page === 'recap' && canAgenda) untrack(() => loadAgenda()) })
   // Le Azioni sulle schede (piano del 09/10). «Parlane con la master»: la scheda citata nel campo della master, sotto quello
   // che c'era già, e la sua conversazione aperta. Le scritture (Fatto, Rimanda, Rimuovi, Passa) con l'op del contratto 1.47.
-  const canWrite = $derived(!tr || !!st.ops?.includes('agenda_set'))
+  const canWrite = $derived(!!st.ops?.includes('agenda_set'))
   // Il cruscotto della plancia (variante B): senza colonne né pagine, Recap e Utilizzo stanno a destra e non nella home.
   const deskDashboard = $derived(wide && !cols.length && !page)
   let masterInject = $state<{ text: string; n: number } | null>(null)
@@ -402,12 +421,7 @@
   async function editAgenda(e: import('./lib/recapAgenda').Edit) {
     const c = setCmd(e, agenda.page?.owner ?? null)
     if (!c) return
-    if (!tr) {
-      const st2 = { done: 'fatto', snooze: 'sospeso', remove: 'scartato' } as Record<string, string>
-      const rows = (agenda.page?.rows ?? []).map(r => r.key !== c.key ? r : { ...r, state: st2[c.action] ?? r.state, until: c.until ?? r.until, blocks: c.blocks ?? r.blocks, key: crypto.randomUUID().slice(0, 12) })
-      agenda = { ...agenda, page: { ...(agenda.page ?? { more: false }), rows } }
-      return
-    }
+    if (!tr) return
     try {
       const cmd = { ...newCmd('agenda_set', null, c.key), action: c.action, ...(c.until ? { until: c.until } : {}), ...(c.blocks ? { blocks: c.blocks } : {}) }
       const r = await tr.send(cmd)
@@ -417,10 +431,10 @@
   }
   // Contratto 1.49 (Franz, 09/10 21:27, scelta A): le schede del Recap stanotte, alla master, un lavoro per scheda col testo
   // di «Fallo»; dal menu Azioni o spuntate nel foglio «Aggiungi alla notte». Un avviso solo, alla fine; nella demo solo quello.
-  const canNight = $derived(!tr || !!st.night?.master)
+  const canNight = $derived(!!st.night?.master)
   async function queueNight(prompts: string[]) {
     if (!prompts.length) return
-    if (!tr) { say(t.nightAgendaAdded(prompts.length)); return }
+    if (!tr) return
     let ok = 0
     for (const p of prompts) {
       try {
@@ -482,10 +496,13 @@
     const go = swipeStep(settledAt, i, false, pages, open)
     settledAt = i
     if (go.type === 'open') open = go.name
-    else if (go.type === 'scrollTo') stripTo(go.page, Math.abs(go.page - i) === 1)
+    // Il riallineamento salta senza animazione: l'apertura da fuori ha già la transizione della pagina, e uno scorrimento
+    // animato dentro la transizione si fermava a metà (15/10).
+    else if (go.type === 'scrollTo') stripTo(go.page, false)
   }
   function swiped() {
     if (!strip) return
+    fingerAt = Date.now()
     stripAt = strip.scrollLeft / Math.max(1, strip.clientWidth)
     clearTimeout(settleTimer)
     settleTimer = setTimeout(settle, 140)
@@ -498,12 +515,48 @@
     stripAt = i; settledAt = i
     return () => { strip = undefined; settledAt = null; clearTimeout(settleTimer) }
   }
+  // Un'apertura da fuori (card, avviso, coda, «Vai a») sposta la striscia subito, dentro la transizione; mai mentre il dito scorre.
+  let fingerAt = 0
   $effect(() => {
     void pages; void open
-    untrack(() => { if (strip && settledAt != null) { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 140) } })
+    untrack(() => { if (strip && settledAt != null && Date.now() - fingerAt > 200) { clearTimeout(settleTimer); settle() } })
   })
   const slots = $derived<(string | null)[]>(wide ? [masterOpen ? MASTER : null, ...cols] : [session ? session.name : masterOpen ? MASTER : null])
 
+  // «Fuori dalle sessioni»: un messaggio con l'ora nel futuro è programmato (contratto 1.63).
+  const scheduled = $derived(sent.map(m => (m.sentAt > now ? { ...m, sentAt: now, scheduledFor: m.sentAt } : m)))
+  // Il tasto delle righe di servizio, come nell'app (MasterHome.Row): handoff, ascolta, aggiungi alla notte, avvia, vedi.
+  function service(r: ForYouRow) {
+    switch (r.kind) {
+      case 'context': if (r.session) handoff(r.session); break
+      case 'night_report': if (r.detail) toggle(r.detail); if (r.key) read = new Set([...read, r.key]); break
+      case 'night': nightDlg?.showModal(); break
+      case 'next_step':
+        read = new Set([...read, nextKey(r.title, r.detail ?? '')])
+        if (r.project) cmd(r.title)('launch', r.project, r.detail ?? undefined)
+        break
+      default: if (r.session) pick(r.session)
+    }
+  }
+  // Il gesto Indietro del telefono (PredictiveBackHandler dell'app): una pagina, una sessione o la master aperta sono un
+  // passo nella cronologia del browser, così Indietro torna alla home invece di uscire dalla web app.
+  const depth = $derived((page ? 1 : 0) + (!wide && open ? 1 : 0) + (masterOpen ? 1 : 0))
+  let pushed = 0
+  let skipPop = false
+  $effect(() => {
+    const d = depth
+    untrack(() => {
+      while (pushed < d) history.pushState({ cm: ++pushed }, '')
+      if (pushed > d) { skipPop = true; history.go(d - pushed); pushed = d }
+    })
+  })
+  addEventListener('popstate', () => {
+    if (skipPop) { skipPop = false; return }
+    pushed = Math.max(0, pushed - 1)
+    if (page) openPage(null)
+    else if (!wide && open) smooth(() => { open = null })
+    else if (masterOpen) smooth(() => { masterOpen = false })
+  })
   let masterDraft = $state('')
   async function sendTo(name: string, text: string) {
     // Senza trasporto il messaggio resta «inviato al PC».
@@ -616,7 +669,8 @@
     return p
   }
   async function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview', key: string) {
-    if (!tr) { if (act !== 'prepare' && act !== 'preview') say(t.fileDemo); return }
+    // Nella demo nessun file del PC: lo dice, invece del «missing or unreadable» del relay.
+    if (!tr || demo) { if (act !== 'prepare' && act !== 'preview') say(t.fileDemo); return }
     if (act === 'prepare') { void getFile(name, path, key); return }
     if (act === 'preview') {
       // Immagini e video in anteprima sotto il loro file (Franz, 10/10 15:24), come sul telefono.
@@ -710,11 +764,10 @@
   })
   // La ricerca (1.27) e la cronologia di oggi per i dettagli della prima colonna (1.29).
   async function search(q: string) {
-    if (!tr) { searchPage = demoSearch(q); return }
     const r = await run(newCmd('search', null, q))
     if (r?.ok) searchPage = JSON.parse(r.text)
   }
-  let timeline = $state<TimelinePage | null>(tr ? null : demoTimeline)
+  let timeline = $state<TimelinePage | null>(null)
   // Al massimo una al minuto per la stessa sessione, subito per una sessione nuova (piano prestazioni, Task 5).
   let timelineAsked = { name: '', at: 0 }
   $effect(() => {
@@ -738,14 +791,17 @@
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = (st.sessions.find(x => x.name === name) ?? ghost(name))!}
   <Chat {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
-    updating={s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
+    updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
     onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onHandoff={() => handoff(name)} onDecision={decide}
     wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, alertKey(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
-    inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} />
+    inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} onOlder={olderOf[name] ? () => loadOlder(name) : null}
+    onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu} />
 {/snippet}
+
+{#snippet appMenu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
 
 {#snippet homePane()}
   <HomePane {master} entries={transcripts[MASTER] ?? []} open={masterOpen} onToggle={(o) => smooth(() => { masterOpen = o; masterHalf = o && wide })} onSpeak={(x) => toggle(x, MASTER)}
@@ -758,7 +814,13 @@
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
         onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} onRecapAction={(a) => sendTo(a.to, a.send)} agenda={agenda.page} onRecapPage={() => openPage('recap')} {canWrite} onTalk={talk} onEdit={editAgenda}
         showRecap={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
-        onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) pick(n) }} /></div>
+        onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) pick(n) }}
+        {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} /></div>
+      {#if !master && ready}
+        <!-- Senza master (MasterHome.kt): una card con «Riapri», invece della barra che non c'è. -->
+        <div class="nomaster"><span><b>{t.masterAbsent}</b><small>{t.masterAbsentDetail}</small></span>
+          {#if st.ops?.includes('reopen')}<button onclick={() => cmd(MASTER)('reopen')}>{t.reopen}</button>{/if}</div>
+      {/if}
       <div class="reading"><ReadingPill {slots} here={null} onOpen={pick} /></div>
     {/snippet}
     {#snippet chat()}{@render chatOf(MASTER, true)}{/snippet}
@@ -802,7 +864,7 @@
       <Settings m={devicesOf(st.host, st, freshness(st, now), now, '', __APP_VERSION__, true, null, false, null)}
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
-        onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} />
+        onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo} />
     {:else if p === 'queue'}
       <Queue {st} now={now} skip={queueSkip} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} />
     {:else}
@@ -854,27 +916,29 @@
   </Desk>
 {:else}
   <div class="phone">
-    {#if page}{@render pageView(page)}{:else if session}
-      {@const phase = splashOf(session.name)}
+    {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
+    {#if page}{@render pageView(page)}{:else}
+      {@const phase = session ? splashOf(session.name) : null}
       <div class="strip" {@attach mountStrip} onscroll={swiped}>
         {#each pages as p, i (p ?? '')}
           <div class="pg">
             {#if i >= Math.floor(stripAt) - 1 && i <= Math.ceil(stripAt) + 1}
               {#if p == null}{@render homePane()}
-              {:else if p === session.name}
-                <div class="cbody" style:view-transition-name="page-fly">{@render chatOf(session.name, false)}
-                  {#if phase}<CloseSplash {phase} onHome={splashHome} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(session.name)('reopen'); splashHome() } : null} />{/if}
+              {:else if session && p === session.name}
+                {@const sn = session.name}
+                <div class="cbody" style:view-transition-name="page-fly">{@render chatOf(sn, false)}
+                  {#if phase}<CloseSplash {phase} onHome={splashHome} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(sn)('reopen'); splashHome() } : null} />{/if}
                 </div>
               {:else}<div class="cbody">{@render chatOf(p, false)}</div>{/if}
             {/if}
           </div>
         {/each}
       </div>
-    {:else}{@render homePane()}{/if}
+    {/if}
   </div>
 {/if}
 <AddDevice bind:this={addDlg} origin={CANONICAL} ask={() => tr ? tr.send(newCmd('pair_add', null, null)) : Promise.resolve(null)} />
-{#if !tr}<span class="demo mono">{t.demo}</span>{:else if !ready || down}<span class="demo mono">{ready ? t.relayDown : t.relayConnecting}</span>{/if}
+{#if !demo && (!ready || down)}<span class="demo mono">{ready ? t.relayDown : t.relayConnecting}</span>{/if}
 {#if notice}<div class="notice" role="status">{notice}</div>{/if}
 {/if}
 
@@ -891,8 +955,13 @@
   .list { flex: 1; min-height: 0; }
   .strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
   .strip::-webkit-scrollbar { display: none; }
+  .demobar { flex: none; padding: 6px 16px; background: color-mix(in srgb, var(--wait) 22%, var(--bg)); color: var(--wait); font-size: 13px; font-weight: 500; }
   .pg { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; }
   .reading:empty { display: none; }
+  .nomaster { display: flex; align-items: center; gap: 12px; margin: 8px 16px; padding: 14px 16px; border-radius: 20px; background: var(--low); }
+  .nomaster span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .nomaster small { color: var(--text2); font-size: 14px; }
+  .nomaster button { height: 44px; padding: 0 20px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
   .reading { padding: 8px 0; }
   .column { height: 100%; display: flex; flex-direction: column; }
   .dash { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 0 16px 0 14px; text-align: left; place-items: stretch; color: var(--text); }
