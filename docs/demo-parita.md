@@ -66,7 +66,7 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | coda | Dall'avviso di una chat: le sessioni che l'avviso conta | «2 sessioni ti aspettano» apre «1 di 2» | ok |
 | registro | Stanotte (coda, Togli, Aggiungi), giorni, quota | Uguale; «Togli» toglie il lavoro dalla coda della demo | ok |
 | notte | Pagina Notte: finestra, conteggi, «Da fare per te», «Cosa è successo», progetti, Aggiorna | Uguale; la domanda è quella aperta adesso | ok |
-| notte | Righe «Da fare per te» con le opzioni, Approva, sblocco | «1 · yes», «2 · no», «Manda /clear» | ok |
+| notte | Righe «Da fare per te» con le opzioni, Approva, sblocco | «1 · yes», «2 · no», sblocco leggibile «svuotare il contesto (/clear)» col tasto «Manda /clear» (Franz, 15/10 22:05) | ok |
 | impostazioni | Collegamento: schema dei dispositivi, dettagli al tocco | Schema con PC e dispositivi della demo | ok |
 | impostazioni | Aggiungi un dispositivo | Foglio con la risposta del relay della demo | ok |
 | impostazioni | Voce, Velocità di lettura | Uguale | ok |
@@ -97,7 +97,8 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | chat | Messaggi da altrove con l'origine (dal PC, dal telefono, dalla web app) | Uguale | ok |
 | chat | Risposta di Claude con tabelle, link, riga Esito, costo del turno, Copia, ▶, segnalibro, ora | Uguale (tabelle dei numeri su blog) | ok |
 | passaggi | Gruppo di passaggi con puntini, fallito in rosso, apri/chiudi | Uguale (storefront: 1 fallito) | ok |
-| file | Chip file con peso, anteprima immagini, Apri, Scarica, Copia, Condividi | Uguale; nella demo dice che i file del PC non ci sono | ok |
+| file | Ogni allegato a tutta larghezza con l'anteprima: immagini, video, PDF (prima pagina), testo e codice (prime righe), gli altri con una scheda larga | Uguale. Arrivano da sole: immagini fino a 10 MB, PDF fino a 10 MB, testi fino a 1 MB, video fino a 25 MB solo senza contatore; oltre, o col risparmio dati, «Mostra anteprima». Nella demo file veri: checkout-before.png, checkout-tests.pdf, edge-caching.md, bench-data.zip (Franz, 15/10 22:20) | ok |
+| file | Apri, Scarica, Condividi; «Copia» solo dove copia il contenuto (testo e immagini), mai un percorso | Uguale (Franz, 15/10 22:19); nella demo i file si aprono, si scaricano e si condividono davvero | ok |
 | file | Immagine a tutto schermo con zoom | L'immagine si apre in una scheda del browser, che ingrandisce | ok |
 | file | Video con poster e controlli | Lettore del browser con i controlli | ok |
 | domanda | Card domanda col bordo del rischio, ▶, opzioni, la prima piena | Uguale | ok |
@@ -136,4 +137,4 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | affidabilità | Nessun errore in console oltre il ResizeObserver | Nessun errore dopo i giri di prova; la transizione a pagina nascosta non lascia più promesse rifiutate | ok |
 | affidabilità | Nessun tasto morto | Giro su ogni tasto di home, sessioni, pagine e plancia: tutti cambiano qualcosa | ok |
 
-Bundle pubblicato su https://supervisor.francescosorrentino.com il 15/10/2026 alle 22:16: `index-CUzsMw67.js`.
+Bundle pubblicato su https://supervisor.francescosorrentino.com il 15/10/2026 alle 22:44: `index-COQhgBZS.js`.
