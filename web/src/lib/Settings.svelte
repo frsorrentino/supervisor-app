@@ -1,4 +1,10 @@
 <script lang="ts">
+  import { LANG_KEY } from './lang'
+  // L'informativa, la stessa dell'app (privacy_url).
+  const PRIVACY = 'https://github.com/frsorrentino/supervisor-app/blob/master/PRIVACY.md'
+  let chosenLang = $state((() => { try { return localStorage.getItem(LANG_KEY) ?? '' } catch { return '' } })())
+  // La lingua vale da subito: la pagina si ricarica, come l'app che ricrea l'attività.
+  function setLang(v: string) { chosenLang = v; try { if (v) localStorage.setItem(LANG_KEY, v); else localStorage.removeItem(LANG_KEY) } catch { /* resta questa */ } location.reload() }
   import { DAY } from './durations'
   import { locale } from './lang'
   import type { DevicesModel, Linked, Tone } from './devices'
@@ -9,7 +15,9 @@
 
   // Impostazioni (SettingsScreen dell'app, mockup A): sezioni con l'etichetta e il filo. Collegamento: lo schema dei
   // dispositivi da toccare (schema B, contratto 1.32); Lettura ad alta voce: voce e velocità; Informazioni: la versione.
-  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null }: {
+  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, demo = false }: {
+    /** La demo (Modalità demo dell'app): l'interruttore porta dentro e fuori dai dati di prova. */
+    demo?: boolean
     m: DevicesModel; devices: Linked[]; now: number; channel: string
     onRate: (r: number) => void; onVoice: (v: string | null) => void; timeZone?: string
     /** Sulla plancia: i dettagli della sessione accanto alle colonne, spenti di default; null altrove. */
@@ -141,8 +149,29 @@
     <div class="rates"><RateSlider value={speech.rate} onDone={onRate} /></div>
   </div>
 
+  <div class="gh"><span>{t.secApp.toUpperCase()}</span><i></i></div>
+  <div class="sec">
+    <label class="srow">
+      <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" /></svg></span>
+      <span class="st"><b>{t.language}</b><small>{chosenLang === 'it' ? t.languageIt : chosenLang === 'en' ? t.languageEn : t.languageSystem}</small></span>
+      <select class="pick" value={chosenLang} onchange={(e) => setLang((e.currentTarget as HTMLSelectElement).value)}>
+        <option value="">{t.languageSystem}</option><option value="it">{t.languageIt}</option><option value="en">{t.languageEn}</option>
+      </select>
+    </label>
+    <label class="srow">
+      <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z" /></svg></span>
+      <span class="st"><b>{t.demoMode}</b><small>{t.demoModeSub}</small></span>
+      <input class="switch" type="checkbox" role="switch" checked={demo} onchange={(e) => location.assign((e.currentTarget as HTMLInputElement).checked ? '/?demo' : '/')} />
+    </label>
+  </div>
+
   <div class="gh"><span>{t.secInfo.toUpperCase()}</span><i></i></div>
   <div class="sec">
+    <a class="srow" href={PRIVACY} target="_blank" rel="noopener">
+      <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg></span>
+      <span class="st"><b>{t.privacy}</b><small>{t.privacySub}</small></span>
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
+    </a>
     <div class="srow plain">
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg></span>
       <span class="st"><b>{t.versionTitle}</b><small>{t.webVersion(__APP_VERSION__)}</small></span>
@@ -164,6 +193,8 @@
 </dialog>
 
 <style>
+  .pick { background: var(--high); color: var(--text); border: 0; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px; }
+  a.srow { color: inherit; text-decoration: none; }
   .settings { display: flex; flex-direction: column; gap: 14px; padding: 0 16px 24px; max-width: 760px; }
   .gh { display: flex; align-items: center; gap: 10px; margin: 6px 8px 0; font: 12px var(--mono); letter-spacing: .06em; color: var(--text2); }
   .gh i { flex: 1; height: 1px; background: color-mix(in srgb, var(--text2) 25%, transparent); }

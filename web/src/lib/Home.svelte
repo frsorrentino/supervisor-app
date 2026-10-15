@@ -20,12 +20,21 @@
   import AgendaActions from './AgendaActions.svelte'
   import AgendaItem from './AgendaItem.svelte'
   import RecapSend from './RecapSend.svelte'
+  import { forYou, type ForYouRow, type Scheduled } from './masterHome'
+  import { count as outsideCount, groups as outsideGroups, tonight as tonightOf, type Category } from './outside'
+  import type { Event } from './contract'
 
   // La home del telefono (SummaryList.kt): ogni sessione una card nei gruppi del bisogno; il tocco apre la sessione, ▼ la
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {} }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
+    /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
+    events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
+    /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
+    onReopen?: ((name: string) => void) | null
+    /** L'ultima notte in fondo alla scheda Stanotte, dal rapporto. */
+    lastNight?: NightPage | null
     /** `selected`: le sessioni aperte, evidenziate; `withMaster`: la master nella lista come le altre (la plancia). */
     st: State; selected: string[]; onPick: (name: string) => void; withMaster?: boolean
     /** In fondo alla lista: sulla plancia i pannelli della quota (footer di SummaryList). */
@@ -86,7 +95,28 @@
   function askSend(a: RecapAction) { asking = a }
   const ag = $derived(agendaModel(agenda, null, today))
   const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
-  const model = $derived(build(st, [], st.ts, new Set()))
+  // Come la home dell'app: chi ha finito resta finché non lo apri o non gli scrivi (Summary.kt con sent e read).
+  const model = $derived(build(st, sent, now, read))
+  const outside = $derived(outsideGroups(forYou(st, events, sent, now, { read, limit: Infinity }).rows.filter(r => r.kind !== 'question' && r.kind !== 'finished'), model.closed))
+  const tonightCard = $derived(tonightOf(st.night, now))
+  let closedDlg: HTMLDialogElement | undefined = $state()
+  const catLabel = (c: Category) => ({ fix: t.catFix, scheduled: t.catScheduled, resume: t.catResume, night: t.catNight, closed: t.catClosed })[c]
+  const CAT_ICON: Record<Category, string> = {
+    fix: 'M12 4l9 16H3zM12 10v4M12 17v.5', scheduled: 'M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', resume: 'M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4',
+    night: 'M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11z', closed: 'M4 5h16v4H4zM5 9h14v10H5zM10 13h4',
+  }
+  function serviceText(r: ForYouRow): { title: string; detail: string | null; action: string } {
+    const first = (x?: string | null) => x?.split('\n').find(l => l.trim()) ?? null
+    switch (r.kind) {
+      case 'context': return { title: t.fyContext(r.title, r.number ?? 0), detail: t.fyContextDetail, action: t.fyHandoff }
+      case 'night_report': return { title: r.title, detail: first(r.detail), action: t.listen }
+      case 'night': return { title: (r.number ?? 0) > 0 ? t.fyNightQueued(r.number!) : t.fyNightEmptyShort, detail: t.fyNightDetail, action: t.fyAdd }
+      // Il nome del progetto basta: «prossimo passo» lo dice già l'etichetta della categoria.
+      case 'next_step': return { title: r.title, detail: r.detail ?? null, action: t.fyStart }
+      case 'scheduled': return { title: t.fyScheduled(r.number ?? 1), detail: r.at ? t.fyScheduledDetail(hhmm(r.at)) : null, action: t.fySee }
+      default: return { title: r.title, detail: r.detail ?? null, action: t.fySee }
+    }
+  }
   let expanded = $state<string | null>(null)
   const tone: Record<Group, string> = { waiting: 'var(--b-warn)', finished: 'var(--b-good)', working: 'var(--b-ring)', still: 'var(--text2)' }
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
@@ -312,25 +342,82 @@
         <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
     {/if}
   {/if}
-  {#if model.closed.length}
-    {@render sec('other', t.homeOther, t.closedCat(model.closed.length))}
+  {#if outside.length}
+    {@render sec('other', t.homeOther, outside.map(g => outsideCount(g)).join(' · '))}
   {/if}
-  {#if model.closed.length && open.other}
+  {#if outside.length && open.other}
     <div class="outside">
       <div class="oh"><h3>{t.outsideTitle}</h3><i></i></div>
       <div class="osub">{t.outsideSub}</div>
     </div>
-    <h2 class="gh cat" style="--t:var(--text2)">
-      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 5h16v4H4zM5 9h14v10H5zM10 13h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg>
-      <span>{t.closedCat(model.closed.length).toUpperCase()}</span>
-    </h2>
-    <button class="closed">
-      <span>{model.closed.slice(0, 3).map(s => s.name).join(', ')}{model.closed.length > 3 ? ` ${t.closedMore(model.closed.length - 3)}` : ''}</span>
-      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
-    </button>
+    {#each outside as g (g.category)}
+      <h2 class="gh cat" style="--t:{g.category === 'fix' ? 'var(--wait)' : 'var(--text2)'}">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d={CAT_ICON[g.category]} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <span>{(g.category === 'night' ? catLabel(g.category) : t.catCount(catLabel(g.category), outsideCount(g))).toUpperCase()}</span>
+        {#if g.category === 'resume'}<small class="note">{t.catResumeNote}</small>{/if}
+      </h2>
+      {#if g.category === 'closed'}
+        <button class="closed" onclick={() => closedDlg?.showModal()}>
+          <span>{g.closed.slice(0, 3).map(s => s.name).join(', ')}{g.closed.length > 3 ? ` ${t.closedMore(g.closed.length - 3)}` : ''}</span>
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+        </button>
+      {:else}
+        <div class="ocard">
+          {#each g.rows as r, i}
+            {#if i > 0}<i class="oline"></i>{/if}
+            {#if r.kind === 'night'}
+              <!-- La scheda Stanotte (mockup approvato l'08/10 alle 20:43): i lavori, quello in corso per primo, poi l'ultima notte. -->
+              <div class="orow tonight">
+                <div class="otop">
+                  <span class="otext"><b>{tonightCard.items.length ? t.tonightTitle(tonightCard.items.length) : t.fyNightEmptyShort}</b>
+                    <small>{tonightCard.items.length ? t.tonightSub(tonightCard.running, tonightCard.queued) : t.tonightEmptySub}</small></span>
+                  <button class="obtn" onclick={() => onService(r)}>{t.fyAdd}</button>
+                </div>
+                {#each tonightCard.items as it, k (it.id)}
+                  <i class="oline"></i>
+                  <div class="tjob">
+                    <span class="tn" class:run={it.runningMin != null}>{#if it.runningMin != null}<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>{:else}{k + 1}{/if}</span>
+                    <span class="otext"><b>{it.name}</b><small class="two">{it.prompt}</small></span>
+                    <span class="ttag" class:run={it.runningMin != null}>{it.runningMin != null ? t.tonightRunning(it.runningMin) : t.tonightQueued}</span>
+                  </div>
+                {/each}
+                {#if lastNight}
+                  <i class="oline"></i>
+                  <div class="tlast">
+                    <small>{t.tonightLast(Number(lastNight.dayBefore.slice(8)), Number(lastNight.day.slice(8)))}</small>
+                    {#if lastNight.counts.done}<small style:color="var(--good)">{t.nightDone(lastNight.counts.done)}</small>{/if}
+                    {#if lastNight.counts.stopped}<small style:color="var(--gone-dim)">{t.nightStopped(lastNight.counts.stopped)}</small>{/if}
+                    <span class="sp"></span>
+                    <button class="olink" onclick={onNight}>{t.tonightReport}</button>
+                  </div>
+                {/if}
+              </div>
+            {:else}
+              {@const x = serviceText(r)}
+              <div class="orow">
+                <div class="otop">
+                  {#if r.kind === 'next_step'}<span class="oini">{r.title.slice(0, 1).toUpperCase()}</span>{/if}
+                  <span class="otext"><b>{x.title}</b>{#if x.detail}<small class="two">{x.detail}</small>{/if}</span>
+                  <button class="obtn" onclick={() => onService(r)}>{x.action}</button>
+                </div>
+              </div>
+            {/if}
+          {/each}
+        </div>
+      {/if}
+    {/each}
   {/if}
   {#if footer}<div class="footer">{@render footer()}</div>{/if}
 </section>
+
+<!-- «Chiuse · N» (ClosedSheet dell'app): una riga per sessione chiusa, «Riapri» la riapre e chiude il foglio. -->
+<dialog bind:this={closedDlg} class="sheet" onclick={(e) => e.target === e.currentTarget && closedDlg?.close()}>
+  <h2 class="sh">{t.closedCat(model.closed.length)}</h2>
+  {#each model.closed as c (c.name)}
+    <div class="crow"><Badge s={c} size={24} /><b>{c.name}</b>
+      {#if onReopen}<button class="obtn" onclick={() => { closedDlg?.close(); onReopen(c.name) }}>{t.reopen}</button>{/if}</div>
+  {/each}
+</dialog>
 
 <dialog bind:this={approveDlg} class="alert" onclick={(e) => e.target === e.currentTarget && approveDlg?.close()}>
   {#if pending}
@@ -440,6 +527,32 @@
   .cat { margin-top: 6px; }
   .closed { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 20px; background: var(--low); color: var(--text2); text-align: left; }
   .closed span { flex: 1; }
+  .gh .note { font: 400 11.5px/1 var(--sans, inherit); letter-spacing: 0; text-transform: none; color: var(--stale); }
+  .ocard { border-radius: 20px; background: var(--low); display: flex; flex-direction: column; }
+  .oline { display: block; height: 1px; margin: 0 14px; background: var(--line); }
+  .orow { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .otop { display: flex; align-items: flex-start; gap: 12px; }
+  .otext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
+  .otext b { font-size: 16px; font-weight: 600; color: var(--text); }
+  .otext small { font-size: 14px; color: var(--text2); }
+  .two { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .oini { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--icon); font-weight: 600; flex: none; }
+  .obtn { flex: none; padding: 9px 16px; border-radius: 999px; background: var(--surface); color: var(--primary); font-size: 14px; font-weight: 500; }
+  .tonight .otop { align-items: flex-start; }
+  .tjob { display: flex; align-items: flex-start; gap: 12px; }
+  .tn { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 500; flex: none; }
+  .tn.run { background: var(--busy); color: var(--bg); }
+  .ttag { flex: none; font: 500 11px/1 var(--mono); padding: 4px 7px; border-radius: 6px; background: var(--surface); color: var(--text2); }
+  .ttag.run { color: var(--busy); background: color-mix(in srgb, var(--busy) 14%, transparent); }
+  .tlast { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text2); }
+  .tlast .sp { flex: 1; }
+  .olink { padding: 6px; border-radius: 8px; color: var(--icon); font-size: 14px; font-weight: 500; }
+  dialog.sheet { margin: auto auto 0; border: 0; color: var(--text); background: var(--surface); padding: 20px 0 16px; width: min(600px, 100vw); max-height: 80vh; border-radius: 28px 28px 0 0; }
+  dialog.sheet::backdrop { background: rgb(0 0 0 / .55); }
+  .sh { font-size: 20px; font-weight: 600; padding: 0 20px 8px; }
+  .crow { display: flex; align-items: center; gap: 12px; padding: 10px 20px; }
+  .crow b { flex: 1; font-weight: 500; }
+  .crow .obtn { background: var(--high); }
   .act { display: inline-flex; align-items: baseline; gap: 8px; border-radius: 999px; padding: 10px 16px; background: var(--low); color: var(--text); font-size: 15px; text-align: left; }
   .act:hover { filter: brightness(1.15); }
   .act small { font-size: 12.5px; color: var(--text2); }

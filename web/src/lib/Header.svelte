@@ -5,6 +5,7 @@
   import { MASTER } from './summary'
   import { t } from './t'
   import Badge from './Badge.svelte'
+  import SessionsMenu from './SessionsMenu.svelte'
   import PermGlyph from './PermGlyph.svelte'
   import { canChange, choices as permChoices, glyph, needsConfirm } from './permissionModes'
   import { adviceOf, adviceSteps, ctxBand, handoffPrompt, tokens } from './masterService'
@@ -12,7 +13,9 @@
   // La testata della sessione (SheetHeader.kt): una riga con modello · effort in una pillola, la quota delle 5 ore con l'ora
   // dell'azzeramento, il contesto ad anello e il menu ⋮; sotto obiettivo, priorità e finestra. Su desktop a sinistra anche
   // badge e nome, come la plancia del tablet.
-  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {} }: {
+  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null }: {
+    /** Sul telefono il menu delle sessioni («Vai a») sul nome e il ≡ dell'app, come la testata della sessione nell'app. */
+    onGo?: ((name: string | null) => void) | null; onReopen?: ((name: string) => void) | null; appMenu?: import('svelte').Snippet | null
     /** `wide`: badge e nome a sinistra (la testata unica del desktop); in una colonna della plancia li ha la colonna. */
     st: State; s: Session; wide: boolean; onBack?: () => void
     onCmd: (op: CmdOp, arg?: string) => void; onPrompt: (text: string) => void
@@ -61,6 +64,10 @@
   const arc = (pct: number) => `${Math.max(0, Math.min(100, pct)) * 0.4712} 100`
 
   let menu = $state(false)
+  // La scheda dei permessi a pressione lunga sulla pillola (PermissionUi dell'app): segno, nome e spiegazione.
+  let permTip = $state(false)
+  let held = false
+  let holdTimer: ReturnType<typeof setTimeout> | undefined
   let tune: HTMLDialogElement | undefined = $state()
   let ctx: HTMLDialogElement | undefined = $state()
   let closer: CloseDialog | undefined = $state()
@@ -109,7 +116,8 @@
   {#if top}
     <div class="row top">
       <button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
-      <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
+      {#if onGo}<SessionsMenu {st} {s} now={st.ts} {onGo} {onReopen} />{:else}<span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>{/if}
+      {#if appMenu}{@render appMenu()}{/if}
     </div>
   {/if}
   <div class="row">
@@ -117,13 +125,20 @@
     {#if wide}
       <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
     {/if}
-    <button class="pill" bind:this={pill} bind:offsetWidth={modelW} disabled={!tunable} onclick={openTune}>
+    <button class="pill" bind:this={pill} bind:offsetWidth={modelW} disabled={!tunable} onclick={() => { if (held) { held = false; return } openTune() }}
+      oncontextmenu={(e) => { if (glyph(s.permission_mode) !== 'none') { e.preventDefault(); permTip = true } }}
+      onpointerdown={(e) => { if (e.pointerType !== 'mouse' && glyph(s.permission_mode) !== 'none') holdTimer = setTimeout(() => { held = true; permTip = true }, 500) }}
+      onpointerup={() => clearTimeout(holdTimer)} onpointerleave={() => clearTimeout(holdTimer)}>
       <span class="lbl">{[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}</span>
       <!-- Il segno della modalità dei permessi (mockup del 14/10); il nome e la spiegazione passandoci sopra. -->
       {#if glyph(s.permission_mode) !== 'none'}<span class="pm" title={permTitle}><PermGlyph g={glyph(s.permission_mode)} /></span>{/if}
       {#if tunable}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z" fill="var(--text2)" /></svg>{/if}
       {#if tunable && advice?.dot}<span class="dot" title={t.adviceDot} aria-label={t.adviceDot}></span>{/if}
     </button>
+    {#if permTip}
+      <button class="tipscrim" aria-label={t.closeWord} onclick={() => (permTip = false)}></button>
+      <div class="permtip" role="tooltip"><PermGlyph g={glyph(s.permission_mode)} /><span><b>{permName(s.permission_mode)}</b><small>{t.perm.subs[s.permission_mode || 'default'] ?? t.perm.unknown}</small></span></div>
+    {/if}
     {#if !wide}<span class="sp"></span>{/if}
     <!-- In una colonna stretta la quota lascia il posto a modello, contesto e menu (è anche nella home). -->
     {#if quota?.h5 != null && (width === 0 || width >= 300)}
@@ -286,6 +301,11 @@
   .mpill:disabled { cursor: default; }
   .mpill .stale { color: var(--wait); }
   .pill { position: relative; }
+  .tipscrim { position: fixed; inset: 0; z-index: 30; background: transparent; }
+  .row { position: relative; }
+  .permtip { position: absolute; left: 12px; top: 42px; z-index: 31; width: min(320px, calc(100vw - 24px)); display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: var(--high); box-shadow: 0 8px 28px rgb(0 0 0 / .5); }
+  .permtip span { display: flex; flex-direction: column; gap: 4px; }
+  .permtip small { color: var(--text2); font-size: 13.5px; line-height: 1.4; }
   .pill svg { flex: none; }
   /* Il puntino del consiglio, in alto a destra della pillola (mockup 1.37). */
   .dot { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--advice); border: 2px solid var(--bg); }

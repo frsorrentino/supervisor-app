@@ -28,7 +28,7 @@
     if (i != null) go(i)
   }
   function key(e: KeyboardEvent) {
-    if ((e.target as HTMLElement)?.closest('input, textarea')) return
+    if (e.target instanceof Element && e.target.closest('input, textarea')) return
     if (e.key === 'ArrowRight') go(Math.min(list.length - 1, current + 1))
     if (e.key === 'ArrowLeft') go(Math.max(0, current - 1))
   }

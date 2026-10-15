@@ -18,3 +18,11 @@ describe('SessionsMenu', () => {
   it('una sessione al lavoro con una domanda aspetta', () => expect(of([s('b', 'busy', true)]).groups.map(g => g[0])).toEqual(['waiting']))
   it('l\'ordine dentro un gruppo resta', () => expect(of([s('b'), s('a')]).groups[0][1].map(x => x.name)).toEqual(['b', 'a']))
 })
+
+describe('SessionsMenu e le ferme per Franz (contratto 1.68)', () => {
+  it('una ferma sta con chi ti aspetta, come nella home', () => {
+    const base = { id: 'x', account: 'a', project: 'p', since: 0 }
+    const m = of([{ ...base, name: 'busy', state: 'busy', needs_you: { reason: 'login', at: 1 } }, { ...base, name: 'idle', state: 'idle', turn_blocking: { text: 'ok', at: 2 } }, { ...base, name: 'w', state: 'busy' }] as Session[])
+    expect(m.groups.map(([g, l]) => [g, l.map(s => s.name)])).toEqual([['waiting', ['busy', 'idle']], ['working', ['w']]])
+  })
+})

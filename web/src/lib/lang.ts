@@ -9,9 +9,13 @@ export function pickLang(search: string, languages: readonly string[]): Lang {
   return languages[0]?.toLowerCase().startsWith('it') ? 'it' : 'en'
 }
 
+/** La lingua scelta nelle Impostazioni (come «Lingua» dell'app); senza scelta quella del browser. */
+export const LANG_KEY = 'cm.lang'
+const chosen = (): string | null => { try { return localStorage.getItem(LANG_KEY) } catch { return null } }
+
 export const lang: Lang = typeof location === 'undefined' || typeof navigator === 'undefined'
   ? 'it'
-  : pickLang(location.search, navigator.languages?.length ? navigator.languages : [navigator.language ?? ''])
+  : pickLang(location.search, [chosen() ?? '', ...(navigator.languages?.length ? navigator.languages : [navigator.language ?? ''])].filter(Boolean))
 
 /** Le date e i numeri: 24 ore anche in inglese, come l'app. */
 export const locale = lang === 'it' ? 'it-IT' : 'en-GB'
