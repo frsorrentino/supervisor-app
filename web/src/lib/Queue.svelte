@@ -9,11 +9,13 @@
 
   // «Ti aspettano» (QueueScreen dell'app): le domande aperte di tutte le sessioni in fila, dalla più vecchia, una per
   // pagina; dopo una risposta si passa alla successiva. Si scorre di lato (trascinando o con le frecce e i tasti ← →).
-  let { st, now, onAnswer, onSession }: {
+  let { st, now, onAnswer, onSession, skip = null }: {
+    /** Aperta dall'avviso di una chat: la sessione di quella chat non è in fila, come nel conto dell'avviso. */
+    skip?: string | null
     st: State; now: number; onAnswer: (session: string, arg: string, op?: 'answer' | 'allow_all') => void; onSession: (name: string) => void
   } = $props()
 
-  const list = $derived(queueOf(st))
+  const list = $derived(queueOf(st).filter(x => x.session !== skip))
   let strip: HTMLElement | undefined = $state()
   let current = $state(0)
   const go = (i: number) => strip?.children[i]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
@@ -41,11 +43,21 @@
     <div class="strip" bind:this={strip} onscroll={onScroll}>
       {#each list as it (it.questionId)}
         {@const s = st.sessions.find(x => x.name === it.session)}
-        {#if s?.question}
+        {#if s?.question && it.kind === 'question'}
           <div class="page">
             <button class="who" onclick={() => onSession(s.name)}><Badge {s} size={26} /><b>{s.name}</b><span>{t.queueAge(since(s.question.asked_at, now))}</span></button>
             <QuestionCard q={s.question} source={s.name} onAnswer={(n) => answered(s.name, it.questionId, String(n))}
               onChat={() => answered(s.name, it.questionId, CHAT_ARG)} onAllowAll={() => answered(s.name, it.questionId, '', 'allow_all')} />
+          </div>
+        {:else if s}
+          <!-- Contratto 1.68: ferma per Franz (un login, un ok, una scelta di quota): il motivo, e la chat dove si risponde. -->
+          <div class="page">
+            <button class="who" onclick={() => onSession(s.name)}><Badge {s} size={26} /><b>{s.name}</b><span>{t.queueAge(since(it.askedAt, now))}</span></button>
+            <div class="stop">
+              <span class="sh">{t.queueStopHead}</span>
+              <p>{it.text}</p>
+              <button class="go" onclick={() => onSession(s.name)}>{t.queueStopOpen}</button>
+            </div>
           </div>
         {/if}
       {/each}
@@ -66,6 +78,10 @@
   .who { display: flex; align-items: center; gap: 10px; padding: 6px 0; text-align: left; border-radius: 8px; }
   .who b { flex: 1; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
   .who span { font-size: 14px; color: var(--text2); font-weight: 500; }
+  .stop { background: var(--surface); border-radius: 24px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .sh { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--advice); }
+  .stop p { margin: 0; font-size: 16px; line-height: 1.45; color: var(--text); }
+  .go { align-self: flex-start; height: 44px; padding: 0 22px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 500; }
   .nav { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px; font-size: 14px; font-weight: 500; color: var(--text2); }
   .arrow { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .arrow:not(:disabled):hover { background: var(--surface); }

@@ -439,7 +439,7 @@
   // già a destra, nel cruscotto.
   let usageFocus = $state(0)
   function goUsage() { smooth(() => { page = null; open = null; masterOpen = false }); usageFocus += 1 }
-  const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p }) }
+  const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p; if (p !== 'queue') queueSkip = null }) }
   if (asked === 'overview') queueMicrotask(goUsage)
   // La quota per account, come la Panoramica; i campioni del ritmo arrivano col trasporto.
   const overview = $derived(overviewOf(st, events, samples, now, undefined, down))
@@ -454,12 +454,15 @@
     if (!a || !wide) return a
     return (a.type === 'waiting' ? a.sessions.every(n => cols.includes(n)) : cols.includes(a.session)) ? null : a
   }
-  function openAlert(a: Alert) {
+  // Dall'avviso di una chat la coda mostra le sessioni che l'avviso conta, senza quella aperta: «2 sessioni ti aspettano»
+  // apre «1 di 2» (15/10: diceva «1 di 1»). Dal menu tutte.
+  let queueSkip = $state<string | null>(null)
+  function openAlert(a: Alert, from: string | null = null) {
     if (a.type === 'finished') { seenAlerts = new Set([...seenAlerts, alertKey(a)]); pick(a.session) }
     else if (a.sessions.length === 1) pick(a.sessions[0])
-    else openQueue()
+    else openQueue(from)
   }
-  const openQueue = () => openPage('queue')
+  const openQueue = (from: string | null = null) => { queueSkip = from; openPage('queue') }
   // Il tocco su una scheda della home: sulla plancia apre e chiude la sua colonna (Franz, 05/10 11:09), sul telefono apre.
   function card(name: string) { if (name !== MASTER && wide) setCols(toggleCol(cols, name)); else pick(name) }
   // Telefono: si scorre di lato fra la home e le sessioni, come nell'app (HorizontalPager con SwipePages; 15/10 20:24: «non
@@ -739,7 +742,7 @@
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
     onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onHandoff={() => handoff(name)} onDecision={decide}
-    wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a) }}
+    wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, alertKey(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
     inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} />
 {/snippet}
@@ -801,7 +804,7 @@
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
         onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} />
     {:else if p === 'queue'}
-      <Queue {st} now={now} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} />
+      <Queue {st} now={now} skip={queueSkip} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} />
     {:else}
       <p class="soon">{t.soon}</p>
     {/if}

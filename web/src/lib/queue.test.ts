@@ -43,4 +43,20 @@ describe('AttentionQueue', () => {
     expect(page(items(after), target)).toBe(0)
     expect(page(items(after), 'gone')).toBeNull()
   })
+  // Contratto 1.68: chi è ferma per Franz conta come una domanda, anche nella coda (15/10: il banner diceva 2, la coda 1).
+  it('le ferme per Franz stanno in coda con le domande, dalla più vecchia', () => {
+    const st = three()
+    st.sessions[3] = { ...st.sessions[3], turn_blocking: { text: 'ok alla pubblicazione', at: 150 } }
+    const l = items(st)
+    expect(l.map(i => i.session)).toEqual(['b', 'd', 'c', 'a'])
+    expect(l[1].kind).toBe('stop')
+    expect(l[1].text).toBe('ok alla pubblicazione')
+    expect(l[0].kind).toBe('question')
+  })
+  it('una ferma con la domanda conta una volta, come domanda; una chiusa non conta', () => {
+    const st = three()
+    st.sessions[0] = { ...st.sessions[0], needs_you: { reason: 'login', at: 50 } }
+    st.sessions[3] = { ...st.sessions[3], state: 'gone', needs_you: { reason: 'login', at: 50 } }
+    expect(items(st).map(i => [i.session, i.kind])).toEqual([['b', 'question'], ['c', 'question'], ['a', 'question']])
+  })
 })
