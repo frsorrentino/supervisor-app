@@ -16,7 +16,29 @@ class FakeTransport(
     private val load: (String) -> String,
     private val now: () -> Long = { System.currentTimeMillis() / 1000 },
 ) : Transport {
-    private val current = MutableStateFlow(rebase(ContractJson.decodeState(load("state-1-question"))))
+    private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))))
+
+    /**
+     * Contratto 1.68 nella demo (Franz, 15/10 dalla web app): atlas-shop ferma per te con un login, field-notes con un ok
+     * alla fine del turno; tutte e due in `attention`, così si vedono le card in cima, il banner della master e l'avviso.
+     */
+    private fun stopped(s: State): State {
+        val t = s.ts
+        val login = NeedsYou("Log in to the payment sandbox and send me the code", t - 420)
+        val ok = TurnBlocking("ok to publish the docs site", t - 240)
+        val sessions = s.sessions.map {
+            when (it.name) {
+                "atlas-shop" -> it.copy(needsYou = login)
+                "field-notes" -> it.copy(turnBlocking = ok)
+                else -> it
+            }
+        }
+        val extra = listOf(
+            Attention("needs_you", "atlas-shop", "atlas-shop", login.reason, login.at),
+            Attention("turn_blocking", "field-notes", "field-notes", ok.text, ok.at),
+        )
+        return s.copy(sessions = sessions, attention = (s.attention.orEmpty() + extra).sortedBy { it.since })
+    }
     private val eventList = demoEvents(ContractJson.decodeEvents(load("events-sample")), ContractJson.decodeState(load("state-1-question")))
     private val results = HashMap<String, CmdResult>()
 
@@ -338,6 +360,13 @@ class FakeTransport(
             // con `agenda_set` come il relay (key nuova a ogni modifica, «agenda row changed» con una key vecchia).
             CmdOp.AGENDA -> ok(ContractJson.json.encodeToString(AgendaPage.serializer(), AgendaPage(demoAgenda, owner = "franz")))
             // Contratto 1.64: la cartella si crea al secondo tocco, con `confirm`; nella demo nasce solo il risultato.
+            // Contratto 1.69: i testi del relay; nella demo la modalità cambia subito nello stato.
+            CmdOp.PERMISSION_MODE -> when {
+                ses == null || ses.state == SessionState.GONE -> ko("no session ${cmd.session}")
+                cmd.arg !in setOf("default", "acceptEdits", "plan", "auto", "bypassPermissions") -> ko("unknown permission mode: ${cmd.arg}")
+                cmd.arg == "bypassPermissions" && !ses.permissionBypass -> ko("${ses.name}: bypassPermissions is not in this session's Shift+Tab cycle, left on ${ses.permissionMode ?: "default"}")
+                else -> { replace(ses.copy(permissionMode = cmd.arg)); ok("${ses.name}: permissions now ${cmd.arg}") }
+            }
             CmdOp.PROJECT_NEW -> {
                 val name = cmd.text.orEmpty()
                 val path = cmd.arg.orEmpty().trimEnd('/') + "/" + name

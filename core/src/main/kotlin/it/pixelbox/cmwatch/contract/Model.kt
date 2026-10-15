@@ -114,6 +114,11 @@ enum class CmdOp {
      * `prompt` il primo messaggio. Senza `confirm` il relay risponde «confirm: create <percorso>»; con `confirm` crea.
      */
     @SerialName("project_new") PROJECT_NEW,
+    /**
+     * Contratto 1.69: `arg` = default | acceptEdits | plan | auto | bypassPermissions; il relay preme Shift+Tab finché il piè
+     * di pagina la mostra. Ok «<sessione>: permissions now <modalità>».
+     */
+    @SerialName("permission_mode") PERMISSION_MODE,
 }
 
 /**
@@ -205,6 +210,8 @@ enum class CmdOp {
     @SerialName("needs_you") val needsYou: NeedsYou? = null,
     /** Contratto 1.68: il turno è finito con una voce bloccante («!» nei Prossimi o un elenco «Da te»), finché è ferma. */
     @SerialName("turn_blocking") val turnBlocking: TurnBlocking? = null,
+    /** Contratto 1.69: la sessione può arrivare a bypassPermissions (partita col permesso, o già lì); assente = no. */
+    @SerialName("permission_bypass") val permissionBypass: Boolean = false,
 )
 
 @Serializable data class NeedsYou(val reason: String, val at: Long = 0)

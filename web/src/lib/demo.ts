@@ -10,6 +10,8 @@ const en = lang === 'en'
 // I dati di prova: lo stato della fixture e una conversazione breve per sessione (finché non arriva il relay locale).
 // In più la master, come nel provino della sua casa, e field-notes seguita, così «Per te» ha chi ha finito.
 const base = decodeState(stateRaw)
+const stopLogin = { reason: en ? 'Log in to the payment sandbox and send me the code' : 'Fai il login nella sandbox dei pagamenti e mandami il codice', at: base.ts - 420 }
+const stopOk = { text: en ? 'ok to publish the docs site' : 'ok alla pubblicazione del sito della documentazione', at: base.ts - 240 }
 export const demoState = {
   ...base,
   // Il recap di oggi con un progetto senza sessione, così «Per te» propone il suo prossimo passo.
@@ -22,8 +24,14 @@ export const demoState = {
     { id: 'm', name: 'master', account: 'personal', project: 'personal/control-room', state: 'idle' as const, since: base.ts - 3600, context: 34, attached: true,
       model: { id: 'claude-opus-5-5', label: 'Opus 5.5' }, effort: 'high', suggestion: 'commit the README changes and open a PR' },
     // Contesto al 64 %: la proposta «handoff, poi /clear» del contratto 1.37 si vede nella sua chat.
-    ...base.sessions.map(s => (s.name === 'field-notes' ? { ...s, followed: true, context: 64, outcome: { ...s.outcome!, at: base.ts - 900 } } : s)),
+    ...base.sessions.map(s => (s.name === 'field-notes' ? { ...s, followed: true, context: 64, outcome: { ...s.outcome!, at: base.ts - 900 }, turn_blocking: stopOk }
+      : s.name === 'atlas-shop' ? { ...s, needs_you: stopLogin } : s)),
   ],
+  // Contratto 1.68 (Franz, 15/10 dalla web app): una ferma per un login, una per un ok a fine turno, in «Serve te» con la domanda.
+  attention: [...(base.attention ?? []),
+    { kind: 'needs_you', session: 'atlas-shop', ref: 'atlas-shop', title: stopLogin.reason, since: stopLogin.at },
+    { kind: 'turn_blocking', session: 'field-notes', ref: 'field-notes', title: stopOk.text, since: stopOk.at },
+  ].sort((a, b) => a.since - b.since),
 }
 
 import eventsRaw from '../../../contract/events-sample.json?raw'

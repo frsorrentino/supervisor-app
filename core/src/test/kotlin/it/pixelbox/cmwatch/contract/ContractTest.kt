@@ -141,7 +141,7 @@ class ContractTest {
         val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
         val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
         val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
-        assertEquals(CmdOp.entries.size - 1, cmds.map { it.op }.toSet().size) // manca «unfollow» nella fixture
+        assertEquals(CmdOp.entries.size - 2, cmds.map { it.op }.toSet().size) // mancano «unfollow» e «permission_mode» (1.69, fixture in arrivo)
         // Contratto 1.12: due risultati in più, «model» riuscito ed «effort» rifiutato su una sessione occupata.
         // Contratto 1.13: uno in più, il launch con il primo messaggio. Contratto 1.17: night_add e night_remove.
         // Contratto 1.19: tre report, uno rifiutato. Contratto 1.21: due interrupt, «stopped» e «nothing to stop».
