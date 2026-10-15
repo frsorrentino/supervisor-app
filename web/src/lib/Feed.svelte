@@ -12,7 +12,7 @@
   import type { IconName } from './icons'
   import { t } from './t'
   import Icon from './Icon.svelte'
-  import { canShare, type FileAct } from './fileActions'
+  import { canCopy, canShare, type FileAct } from './fileActions'
   import { autoPreview, fileKey, isImage, isVideo } from './media'
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
@@ -140,7 +140,7 @@
         <!-- L'anteprima tra il nome e i tasti, come nell'app (Franz, 13/10 07:16). -->
         {#if url && isImage(f.mime)}<button class="fthumb" aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><img src={url} alt="" /></button>{/if}
         {#if url && isVideo(f.mime)}<!-- svelte-ignore a11y_media_has_caption --><video class="fvideo" src={url} controls preload="metadata" playsinline></video>{/if}
-        <div class="acts">{#each fileActs as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a, key)}><Icon name={icon} /></button>{/each}</div>
+        <div class="acts">{#each fileActs.filter(([a]) => a !== 'copy' || canCopy(f.mime ?? '')) as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a, key)}><Icon name={icon} /></button>{/each}</div>
       </div>
     {/each}
   </div>

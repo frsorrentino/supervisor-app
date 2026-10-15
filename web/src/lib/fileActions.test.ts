@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { copyKind, inlineSafe } from './fileActions'
+import { canCopy, copyKind, inlineSafe } from './fileActions'
 
 describe('azioni sul file', () => {
   it('copia il testo dei file di testo', () => {
@@ -8,8 +8,9 @@ describe('azioni sul file', () => {
   it("copia l'immagine delle immagini raster", () => {
     for (const m of ['image/png', 'image/jpeg', 'image/webp']) expect(copyKind(m)).toBe('image')
   })
-  it('degli altri copia il percorso', () => {
-    for (const m of ['application/pdf', 'application/zip', 'video/mp4', 'application/octet-stream']) expect(copyKind(m)).toBe('path')
+  it('sugli altri «Copia» non c\'è (Franz, 15/10 22:19)', () => {
+    for (const m of ['application/pdf', 'application/zip', 'video/mp4', 'application/octet-stream']) { expect(copyKind(m)).toBeNull(); expect(canCopy(m)).toBe(false) }
+    expect(canCopy('text/plain')).toBe(true); expect(canCopy('image/png')).toBe(true)
   })
   it('HTML, SVG e XML non si aprono nella pagina: leggerebbero il token', () => {
     for (const m of ['text/html', 'image/svg+xml', 'application/xml', 'application/xhtml+xml']) expect(inlineSafe(m)).toBe(false)

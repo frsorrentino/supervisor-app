@@ -699,7 +699,7 @@
     try {
       if (act === 'open') files.open(f)
       else if (act === 'download') files.download(f)
-      else if (act === 'copy') say(t.fileCopied(await files.copy(f, path)))
+      else if (act === 'copy') { const k = await files.copy(f); if (k) say(t.fileCopied(k)) }
       else await files.share(f, path)
     } catch (e) {
       // Copia e condividi vogliono un tocco recente: se il file è arrivato tardi, al secondo tocco è già pronto.

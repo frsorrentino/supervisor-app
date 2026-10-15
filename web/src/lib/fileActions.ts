@@ -4,13 +4,15 @@ export type Fetched = { blob: Blob; name: string; mime: string }
 
 const base = (mime: string) => mime.split(';')[0].trim().toLowerCase()
 
-// Gli appunti del browser prendono solo testo e PNG: il testo e le immagini si copiano, degli altri file il percorso.
-export function copyKind(mime: string): 'text' | 'image' | 'path' {
+// Gli appunti prendono solo testo e immagini: «Copia» c'è solo lì; sugli altri file (PDF, archivi, video) non c'è e restano
+// Condividi e Scarica (Franz, 15/10 22:19: «Nascondi Copia dove non copia il file»). Stessa regola di FileActions.kt.
+export function copyKind(mime: string): 'text' | 'image' | null {
   const m = base(mime)
   if (m.startsWith('text/') || /\/(json|xml|javascript|x-sh|x-yaml|yaml|toml)$|\+(xml|json)$/.test(m)) return 'text'
   if (m.startsWith('image/')) return 'image'
-  return 'path'
+  return null
 }
+export const canCopy = (mime: string) => copyKind(mime) != null
 
 // HTML, SVG e XML aperti dalla stessa origine della pagina leggerebbero il token: si scaricano invece di aprirsi.
 export const inlineSafe = (mime: string) => !/html|svg|xml/.test(base(mime))
@@ -38,11 +40,10 @@ async function png(blob: Blob): Promise<Blob> {
 }
 
 /** Copia il file negli appunti; dice che cosa ha copiato. */
-export async function copy(f: Fetched, path: string): Promise<'text' | 'image' | 'path'> {
+export async function copy(f: Fetched): Promise<'text' | 'image' | null> {
   const k = copyKind(f.mime)
   if (k === 'text') await navigator.clipboard.writeText(await f.blob.text())
   else if (k === 'image') await navigator.clipboard.write([new ClipboardItem({ 'image/png': png(f.blob) })])
-  else await navigator.clipboard.writeText(path)
   return k
 }
 
