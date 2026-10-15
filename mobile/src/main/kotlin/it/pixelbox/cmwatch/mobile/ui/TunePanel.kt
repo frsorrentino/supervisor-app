@@ -57,9 +57,10 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
 @Composable
 fun TunePanel(
     choices: Choices, model: String?, effort: String?, advice: MasterService.AdviceView?,
-    onModel: (String) -> Unit, onEffort: (String) -> Unit, onDismiss: () -> Unit,
+    onModel: (String) -> Unit, onEffort: (String) -> Unit,
     /** Contratto 1.69: il gruppo Permessi, solo se il relay sa cambiarla (null = no). */
     session: it.pixelbox.cmwatch.contract.Session? = null, onPermission: ((String) -> Unit)? = null,
+    onDismiss: () -> Unit,
 ) = PanelShell(
     onDismiss,
     header = { Text(stringResource(R.string.tune_head), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f)) },
