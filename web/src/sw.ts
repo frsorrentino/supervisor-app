@@ -39,7 +39,9 @@ self.addEventListener('push', (e: PushEvent) => {
   let p: Payload = null
   try { p = e.data?.json() ?? null } catch { p = { body: e.data?.text() ?? '' } }
   const n = notificationOf(p)
-  e.waitUntil(self.registration.showNotification(n.title, { body: n.body, tag: n.tag, silent: n.silent, icon: '/icon-192.png', badge: '/icon-192.png', data: { url: n.url } }))
+  // Contratto 1.68: un'interruzione resta finché non la tocchi e vibra come telefono e orologio (dove il browser lo fa).
+  const strong = n.strong && !n.silent ? { requireInteraction: true, renotify: true, vibrate: [220, 120, 220] } : {}
+  e.waitUntil(self.registration.showNotification(n.title, { body: n.body, tag: n.tag, silent: n.silent, icon: '/icon-192.png', badge: '/icon-192.png', data: { url: n.url }, ...strong } as NotificationOptions))
 })
 
 self.addEventListener('notificationclick', (e: NotificationEvent) => {

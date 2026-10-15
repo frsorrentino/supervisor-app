@@ -1308,6 +1308,13 @@ class MainActivity : ComponentActivity() {
             val list: @Composable () -> Unit = {
                 SummaryList(
                     summary,
+                    // Contratto 1.68: il banner con le voci di «Serve te» delle altre sessioni; il tocco porta alla prima.
+                    attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }.orEmpty(),
+                    onAttention = {
+                        state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }?.firstNotNullOfOrNull { a -> a.session }?.let { n ->
+                            if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.toggle(tabletCols.filter { c -> c != n }, n)) else open = n
+                        }
+                    },
                     // Aprire una sessione che ha finito la toglie da «Ha finito», come in «Per te».
                     onOpen = { n ->
                         summary.rows.firstOrNull { r -> r.session.name == n && r.key != null }?.key?.let(markRead)

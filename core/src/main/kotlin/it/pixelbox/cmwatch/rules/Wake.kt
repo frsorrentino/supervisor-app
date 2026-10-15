@@ -5,7 +5,8 @@ import it.pixelbox.cmwatch.contract.State
 
 /** Cosa fare quando arriva un nuovo /state (sveglia FCM o stream): notifiche solo per ciò che è cambiato, poi tile e complication. */
 object Wake {
-    enum class NotifyKind { QUESTION, OUTCOME, GONE, QUOTA }
+    /** STOPPED: contratto 1.68, la sessione è ferma per Franz (needs_you o turno bloccante). */
+    enum class NotifyKind { QUESTION, OUTCOME, GONE, QUOTA, STOPPED }
 
     sealed class Action {
         data class Notify(val kind: NotifyKind, val session: String?) : Action()
@@ -22,6 +23,8 @@ object Wake {
             val p = before[s.name]
             s.question?.let { q -> if (p?.question?.id != q.id) out += Action.Notify(NotifyKind.QUESTION, s.name) }
             s.outcome?.let { o -> if (s.followed && p?.outcome?.at != o.at) out += Action.Notify(NotifyKind.OUTCOME, s.name) }
+            // 1.68: quando compare o cambia; all'avvio (nessuno stato prima) no, ci sono i promemoria del relay.
+            StrongAlert.stop(s)?.let { st -> if (p != null && StrongAlert.stop(p) != st) out += Action.Notify(NotifyKind.STOPPED, s.name) }
             if (s.state == SessionState.GONE && p != null && p.state != SessionState.GONE) out += Action.Notify(NotifyKind.GONE, s.name)
         }
         // Risposta data altrove (Franz, 14/09 22:10): la domanda non c'è più, e la notifica non deve restare aperta.

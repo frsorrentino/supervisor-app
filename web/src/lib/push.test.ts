@@ -37,8 +37,12 @@ describe('notifiche web push: i dati', () => {
 
   it('il contenuto della push diventa titolo, testo e la sessione da aprire; uno sconosciuto ha un titolo comunque', () => {
     expect(notificationOf({ kind: 'question', title: '❓ ledger-api', body: 'Deploy now?', session: 'ledger-api', key: 'k1' }))
-      .toEqual({ title: '❓ ledger-api', body: 'Deploy now?', tag: 'k1', url: '/#ledger-api', silent: false })
-    expect(notificationOf(null)).toEqual({ title: 'Supervisor', body: '', tag: 'supervisor', url: '/', silent: false })
+      .toEqual({ title: '❓ ledger-api', body: 'Deploy now?', tag: 'k1', url: '/#ledger-api', silent: false, strong: true })
+    expect(notificationOf(null)).toEqual({ title: 'Supervisor', body: '', tag: 'supervisor', url: '/', silent: false, strong: false })
+    // Contratto 1.68: ferma per te e promemoria con l'avviso forte, un esito no.
+    expect(notificationOf({ kind: 'needs_you', title: '✋ kb' }).strong).toBe(true)
+    expect(notificationOf({ kind: 'attention_reminder', title: '⏰' }).strong).toBe(true)
+    expect(notificationOf({ kind: 'outcome', title: '✓ kb' }).strong).toBe(false)
   })
 
   it('il trasporto remoto scrive l\'iscrizione cifrata in /push/<uid> e la toglie', async () => {

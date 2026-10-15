@@ -209,13 +209,23 @@ class CmApp : Application() {
                 Wake.NotifyKind.OUTCOME -> cur.sessions.firstOrNull { it.name == a.session }?.let { notifier.outcome(it); notified = true }
                 Wake.NotifyKind.GONE -> a.session?.let { notifier.gone(it, prev?.sessions?.firstOrNull { p -> p.name == it }?.account); notified = true }
                 Wake.NotifyKind.QUOTA -> a.session?.let { acc -> cur.quota[acc]?.let { notifier.quota(acc, it); notified = true } }
+                Wake.NotifyKind.STOPPED -> cur.sessions.firstOrNull { it.name == a.session }?.let { notifier.stopped(it); notified = true }
             }
             // Anche con l'app in primo piano: una domanda chiusa altrove non deve restare nell'elenco delle notifiche.
             is Wake.Action.CloseQuestion -> notifier.closeQuestion(a.session)
             Wake.Action.RefreshTile -> runCatching { CmTileService.requestUpdate(this) }
             Wake.Action.RefreshComplications -> runCatching { CmComplicationService.requestUpdate(this) }
         }
+        // Contratto 1.68: l'avviso resta finché la voce è in state.attention.
+        for (a in it.pixelbox.cmwatch.rules.StrongAlert.closed(prev, cur)) notifier.closeAttention(a)
         if (notified) notifier.summary(cur)
+    }
+
+    /** Contratti 1.58, 1.61 e 1.68: un evento della push con l'avviso forte; un promemoria solo se la voce aspetta ancora. */
+    fun alert(e: it.pixelbox.cmwatch.contract.Event) {
+        if (foreground()) return
+        if (e.kind == it.pixelbox.cmwatch.contract.EventKind.ATTENTION_REMINDER && !it.pixelbox.cmwatch.rules.StrongAlert.open(lastState, e)) return
+        notifier.alert(e)
     }
 
     fun subscribeTopic() {

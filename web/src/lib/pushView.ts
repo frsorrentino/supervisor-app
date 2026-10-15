@@ -10,9 +10,13 @@ export type Payload = {
 } | null
 
 /** Quello che il service worker mostra: il tocco apre la sessione (`/#<nome>`, come i link della web app). */
-export function notificationOf(p: Payload): { title: string; body: string; tag: string; url: string; silent: boolean } {
+/** Contratto 1.68: le interruzioni con l'avviso forte (copia di STRONG in strongAlert.ts, il service worker sta da solo). */
+const STRONG = ['question', 'needs_you', 'turn_blocking', 'turn_failed', 'quota_limit', 'attention_reminder']
+
+export function notificationOf(p: Payload): { title: string; body: string; tag: string; url: string; silent: boolean; strong: boolean } {
   return {
     silent: p?.quiet === true || p?.quiet === '1',
+    strong: STRONG.includes(p?.kind ?? ''),
     title: p?.preview?.title || p?.title || 'Supervisor',
     body: p?.preview?.body ?? p?.body ?? '',
     tag: p?.key || 'supervisor',

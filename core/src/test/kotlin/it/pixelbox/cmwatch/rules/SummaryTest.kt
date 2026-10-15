@@ -78,4 +78,17 @@ class SummaryTest {
         val m = build(st(s("b", SessionState.BUSY).copy(question = q("1", at(14)))))
         assertEquals(listOf(Group.WAITING), m.rows.map { it.group })
     }
+
+    // Contratto 1.68: chi è ferma per Franz sta in cima con le domande, col motivo, dalla più vecchia; una volta sola.
+    @Test fun sessionsStoppedForFranzJoinTheQuestionsAtTheTop() {
+        val m = build(st(
+            s("busy", SessionState.BUSY),
+            s("asks", SessionState.WAITING).copy(question = q("1", at(14))),
+            s("login").copy(needsYou = NeedsYou("login su win", at(13))),
+            s("deploy").copy(turnBlocking = TurnBlocking("ok al deploy", at(14, 30)), outcome = done(at(14, 30)), followed = true),
+        ))
+        assertEquals(listOf("login", "asks", "deploy", "busy"), m.rows.map { it.session.name })
+        assertEquals(listOf(Group.WAITING, Group.WAITING, Group.WAITING, Group.WORKING), m.rows.map { it.group })
+        assertEquals(listOf("login su win", "Pubblico?", "ok al deploy"), m.rows.take(3).map { it.text })
+    }
 }

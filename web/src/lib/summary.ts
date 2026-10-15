@@ -1,6 +1,7 @@
 import { workingText } from './masterHome'
 import type { QuotaAccount, Session, State } from './contract'
 import { DAY } from './durations'
+import { stop } from './strongAlert'
 
 // Il riepilogo unico della home, porta di Summary.kt: ogni sessione una volta, nell'ordine del bisogno (ti aspetta, ha
 // finito, al lavoro, ferme), le chiuse a parte. La master compare nella lista solo quando aspetta.
@@ -18,8 +19,12 @@ export function build(state: State, sent: Sent[], now: number, read: Set<string>
   const live = state.sessions.filter(s => s.state !== 'gone')
   const master = live.find(s => s.name === MASTER) ?? null
   const others = live.filter(s => s.name !== MASTER)
-  const waiting: Row[] = live.filter(s => s.question).sort((a, b) => a.question!.asked_at - b.question!.asked_at)
-    .map(s => ({ group: 'waiting', session: s, text: s.question!.text, at: s.question!.asked_at }))
+  // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
+  const waiting: Row[] = live.flatMap((s): Row[] => {
+    if (s.question) return [{ group: 'waiting', session: s, text: s.question.text, at: s.question.asked_at }]
+    const x = stop(s)
+    return x ? [{ group: 'waiting', session: s, text: x.text, at: x.at }] : []
+  }).sort((a, b) => a.at! - b.at!)
   const asking = new Set(waiting.map(r => r.session.name))
   // Chi ha finito resta finché non lo apri o non gli scrivi, per 12 ore; solo le seguite o quelle a cui hai scritto.
   const finished: Row[] = others.filter(s => s.state === 'idle' && s.outcome && !asking.has(s.name))

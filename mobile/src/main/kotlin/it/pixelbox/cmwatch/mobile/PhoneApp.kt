@@ -174,12 +174,28 @@ class PhoneApp : Application() {
                     Wake.NotifyKind.QUESTION -> cur.sessions.firstOrNull { it.name == a.session }?.let { notifier.question(it, mode) }
                     Wake.NotifyKind.OUTCOME -> cur.sessions.firstOrNull { it.name == a.session }?.let { notifier.outcome(it, mode) }
                     Wake.NotifyKind.QUOTA -> a.session?.let { acc -> cur.quota[acc]?.h5?.let { notifier.quota(acc, getString(R.string.notif_quota, acc, it)) } }
+                    Wake.NotifyKind.STOPPED -> cur.sessions.firstOrNull { it.name == a.session }?.let { notifier.stopped(it, mode) }
                     Wake.NotifyKind.GONE -> Unit
                 }
             }
             is Wake.Action.CloseQuestion -> notifier.closeQuestion(a.session)
             else -> Unit
         }
+        // Contratto 1.68: l'avviso resta finché la voce è in state.attention.
+        for (a in it.pixelbox.cmwatch.rules.StrongAlert.closed(prev, cur)) notifier.closeAttention(a)
+    }
+
+    /** L'ultimo stato letto, per sapere se un promemoria vale ancora (contratto 1.68). */
+    fun lastState(): State? = lastState
+
+    /**
+     * Suono o silenzio per un evento che arriva con la push (1.58, 1.61, 1.68): come per le domande, l'orologio avvisa per
+     * primo e con Franz al PC su quella sessione non suona niente.
+     */
+    suspend fun alertMode(session: String?): PhoneAlert.Mode {
+        if (lastState?.sessions?.firstOrNull { it.name == session }?.atPc == true) return PhoneAlert.Mode.SILENT
+        val watchPaired = PairingRecord.fromJson(prefs.current().pairingJson)?.watchName != null
+        return PhoneAlert.mode(Wake.NotifyKind.STOPPED, watchPaired, watchPaired && watch.reachable())
     }
 
     /** Stesso topic dell'orologio, solo accoppiati e fuori dalla Demo. */

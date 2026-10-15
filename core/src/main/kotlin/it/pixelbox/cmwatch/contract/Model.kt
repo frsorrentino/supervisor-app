@@ -33,6 +33,11 @@ enum class EventKind {
     @SerialName("turn_failed") TURN_FAILED,
     /** Contratto 1.67: quota settimanale ancora libera vicino al reset, e il ritmo che la finisce prima; una riga, senza tasti. */
     @SerialName("week_unused") WEEK_UNUSED, @SerialName("week_pace") WEEK_PACE,
+    /**
+     * Contratto 1.68: la sessione è ferma per Franz. `needs_you` (body = il motivo) e `turn_blocking` (body = la voce
+     * bloccante), `ref` = la sessione; `attention_reminder` dopo 10 e 30 minuti, `ref` = il ref della voce, con `attention_kind`.
+     */
+    @SerialName("needs_you") NEEDS_YOU, @SerialName("turn_blocking") TURN_BLOCKING, @SerialName("attention_reminder") ATTENTION_REMINDER,
 }
 
 @Serializable
@@ -129,7 +134,8 @@ enum class CmdOp {
 
 /**
  * Contratto 1.66, «serve te»: `kind` question (ref = id della domanda, title = anteprima senza segreti), turn_failed e
- * quota_limit (ref = la sessione), task_red (ref = id del task).
+ * quota_limit (ref = la sessione), task_red (ref = id del task). Contratto 1.68: needs_you e turn_blocking (ref = la
+ * sessione, title = il motivo o la voce).
  */
 @Serializable data class Attention(val kind: String, val session: String? = null, val ref: String? = null, val title: String = "", val since: Long = 0)
 
@@ -195,7 +201,15 @@ enum class CmdOp {
     val resolved: Resolved? = null,
     /** Contratto 1.62: sessione attaccata con un tasto premuto al PC negli ultimi 2 minuti: niente suono per lei. */
     @SerialName("at_pc") val atPc: Boolean = false,
+    /** Contratto 1.68: `supervisor needs-you "<motivo>"`, finché la sessione non riceve il prompt dopo. */
+    @SerialName("needs_you") val needsYou: NeedsYou? = null,
+    /** Contratto 1.68: il turno è finito con una voce bloccante («!» nei Prossimi o un elenco «Da te»), finché è ferma. */
+    @SerialName("turn_blocking") val turnBlocking: TurnBlocking? = null,
 )
+
+@Serializable data class NeedsYou(val reason: String, val at: Long = 0)
+
+@Serializable data class TurnBlocking(val text: String, val at: Long = 0)
 
 /** Contratto 1.38: una voce di «Prossimi:»; `blocking` = sblocca un lavoro fermo (un ok, una scelta). */
 @Serializable data class NextStep(val text: String, val blocking: Boolean = false)
@@ -332,6 +346,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @SerialName("continue_text") val continueText: String? = null,
     /** Contratto 1.62: Franz è al PC su quella sessione; l'evento si mostra senza suono né vibrazione. */
     val quiet: Boolean = false,
+    /** Contratto 1.68, `attention_reminder`: il kind della voce di `state.attention` che aspetta ancora. */
+    @SerialName("attention_kind") val attentionKind: String? = null,
 ) {
     /** Titolo e corpo per notifiche e schermata di blocco (contratto 1.56). */
     val shareTitle: String get() = preview?.title ?: title

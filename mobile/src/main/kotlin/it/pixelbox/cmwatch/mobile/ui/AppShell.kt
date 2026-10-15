@@ -221,7 +221,7 @@ private fun SessionMenu(
 private fun SessionMenuRow(s: Session, group: it.pixelbox.cmwatch.rules.Summary.Group, now: Long, current: Boolean, onClick: () -> Unit) {
     val since: (Long) -> String = { t -> it.pixelbox.cmwatch.contract.Durations.since(t, now) }
     val status = when (group) {
-        it.pixelbox.cmwatch.rules.Summary.Group.WAITING -> stringResource(R.string.menu_row_waiting, since(s.question?.askedAt ?: s.since))
+        it.pixelbox.cmwatch.rules.Summary.Group.WAITING -> stringResource(R.string.menu_row_waiting, since(s.question?.askedAt ?: it.pixelbox.cmwatch.rules.StrongAlert.stop(s)?.at ?: s.since))
         it.pixelbox.cmwatch.rules.Summary.Group.WORKING -> stringResource(R.string.menu_row_working, since(s.turnStarted ?: s.since))
         else -> stringResource(R.string.menu_row_still, since(s.since))
     }

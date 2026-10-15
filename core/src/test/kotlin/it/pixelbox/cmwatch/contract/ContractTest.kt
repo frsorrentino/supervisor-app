@@ -92,10 +92,25 @@ class ContractTest {
 
     @Test fun eventsDecodeOnePerKind() {
         val ev = ContractJson.decodeEvents(Fixtures.events)
-        // Manca «resumed»; week_unused e week_pace (1.67) non sono nelle fixture del relay 0.8.23.
-        assertEquals(EventKind.entries.size - 3, ev.map { it.kind }.toSet().size)
+        // Manca «resumed»; week_unused e week_pace (1.67), needs_you, turn_blocking e attention_reminder (1.68) non sono
+        // nelle fixture del relay 0.8.24.
+        assertEquals(EventKind.entries.size - 6, ev.map { it.kind }.toSet().size)
         assertEquals("q-1789210500-1", ev.first { it.kind == EventKind.QUESTION }.ref)
         assertNull(ev.first { it.kind == EventKind.QUOTA }.session)
+    }
+
+    // Contratto 1.68: ferma per Franz e promemoria, come li scrive il relay 0.8.24 (test R52 del relay).
+    @Test fun needsYouTurnBlockingAndReminder() {
+        val st = ContractJson.decodeState(Fixtures.stateIdle)
+        val raw = Fixtures.stateIdle.replaceFirst("\"state\": \"idle\"", "\"state\": \"idle\", \"needs_you\": {\"reason\": \"login su win\", \"at\": 1789210100}, \"turn_blocking\": {\"text\": \"ok al deploy\", \"at\": 1789210000}")
+        assertNotEquals(Fixtures.stateIdle, raw)
+        val s = ContractJson.decodeState(raw).sessions.first { it.needsYou != null }
+        assertEquals(NeedsYou("login su win", 1789210100), s.needsYou)
+        assertEquals(TurnBlocking("ok al deploy", 1789210000), s.turnBlocking)
+        assertTrue(st.sessions.all { it.needsYou == null && it.turnBlocking == null })
+        val e = ContractJson.decodeEvents("""[{"key": "e-1", "kind": "attention_reminder", "session": "pix-docs", "account": null, "ts": 1789210700,
+            "title": "⏰ still waiting for you (10 min): login su win", "body": "", "ref": "pix-docs", "attention_kind": "needs_you"}]""").single()
+        assertEquals(EventKind.ATTENTION_REMINDER, e.kind); assertEquals("needs_you", e.attentionKind)
     }
 
     // Contratto 1.45 (08/10): lo stato del PC fermo, segnalato dal guardiano del relay; session, account e ref null.

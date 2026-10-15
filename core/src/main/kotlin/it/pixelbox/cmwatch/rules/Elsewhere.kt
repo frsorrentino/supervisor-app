@@ -23,7 +23,8 @@ object Elsewhere {
 
     fun alert(state: State, current: String, now: Long, mine: Set<String>, seen: Set<String>): Alert? {
         val others = state.sessions.filter { it.name != current && it.state != SessionState.GONE }
-        val waiting = others.filter { it.question != null }.sortedBy { it.question!!.askedAt }.map { it.name }
+        // Contratto 1.68: chi è ferma per Franz conta come una domanda.
+        val waiting = others.mapNotNull { s -> (s.question?.askedAt ?: StrongAlert.stop(s)?.at)?.let { s.name to it } }.sortedBy { it.second }.map { it.first }
         if (waiting.isNotEmpty()) return Waiting(waiting)
         return others.filter { it.state == SessionState.IDLE && (it.followed || it.name in mine) }
             .mapNotNull { s -> s.outcome?.takeIf { now - it.at <= FRESH_S }?.let { Finished(s.name, it.at) } }

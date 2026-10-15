@@ -56,6 +56,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -125,6 +127,8 @@ fun SummaryList(
     onSpeak: ((String) -> Unit)? = null,
     /** Dove la lista era arrivata (primo elemento e scarto), tenuto da chi la ospita: ricreata, riparte da lì (09/10 17:23). */
     scrollMemo: IntArray? = null,
+    /** Contratto 1.68: il banner della casa della master, le voci di «Serve te» delle altre sessioni; il tocco porta alla prima. */
+    attention: List<it.pixelbox.cmwatch.contract.Attention> = emptyList(), onAttention: () -> Unit = {},
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura.
@@ -182,6 +186,9 @@ fun SummaryList(
         Modifier.fillMaxSize(), state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp + readingRoom()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (attention.isNotEmpty()) item(key = "attention-banner") {
+            Box(moving()) { AttentionBanner(attention) { sessionsOpen = true; save("sessions", true); onAttention() } }
+        }
         if (nightDate != null) {
             item(key = "sec-night") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_night), null, nightOpen) { nightOpen = !nightOpen; save("night", nightOpen) } } }
             if (nightOpen) item(key = "night-box") { Box(moving()) { NightHomeCard(nightDate, nightPage, onNight) } }
@@ -769,3 +776,26 @@ private fun NightCount(text: String, tone: Color) = Text(
     text, style = MaterialTheme.typography.labelLarge, color = tone,
     modifier = Modifier.clip(CircleShape).background(CmColors.surfaceHigh).padding(horizontal = 12.dp, vertical = 6.dp),
 )
+
+/**
+ * Contratto 1.68 (Franz, 14/10 22:45): in cima alla casa della master quante cose aspettano Franz nelle altre sessioni, coi
+ * nomi; il tocco porta alla prima. Ambra come le card che aspettano.
+ */
+@Composable
+private fun AttentionBanner(items: List<it.pixelbox.cmwatch.contract.Attention>, onClick: () -> Unit) {
+    val names = items.mapNotNull { it.session }.distinct().joinToString(", ")
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.briefWarn).handCursor().clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            pluralStringResource(R.plurals.attention_banner, items.size, items.size), style = MaterialTheme.typography.titleSmall,
+            color = CmColors.briefWarnInk, fontWeight = FontWeight.SemiBold, maxLines = 1,
+        )
+        if (names.isNotEmpty()) Text(
+            names, style = MaterialTheme.typography.bodyMedium, color = CmColors.briefWarnInk, maxLines = 1,
+            overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+        )
+    }
+}

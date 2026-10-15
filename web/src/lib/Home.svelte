@@ -1,5 +1,6 @@
 <script lang="ts">
   import { locale } from './lang'
+  import { forMaster } from './strongAlert'
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
   import type { Approval, Session, State } from './contract'
@@ -22,7 +23,7 @@
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {} }: {
     /** `selected`: le sessioni aperte, evidenziate; `withMaster`: la master nella lista come le altre (la plancia). */
     st: State; selected: string[]; onPick: (name: string) => void; withMaster?: boolean
     /** In fondo alla lista: sulla plancia i pannelli della quota (footer di SummaryList). */
@@ -51,7 +52,11 @@
     usageFocus?: number; onUsageFocused?: () => void
     /** ▶ sul dettaglio di «Approfondisci» (09/10 16:31). */
     onSpeak?: ((text: string) => void) | null
+    /** Contratto 1.68: il tocco sul banner di «Serve te» porta alla prima voce. */
+    onAttention?: () => void
   } = $props()
+  // Contratto 1.68: in cima alla casa della master quante cose aspettano Franz nelle altre sessioni, coi nomi.
+  const waitingYou = $derived(forMaster(st))
   let acts: AgendaActions | undefined = $state()
   const today = todayIso()
   let usageEl: HTMLElement | undefined = $state()
@@ -153,7 +158,12 @@
       </button>
     {/if}
   {/if}
-  {@render sec('sessions', t.homeSessions, String(model.rows.length))}
+  {#if waitingYou.length}
+  <button class="attn-banner" onclick={() => { if (!open.sessions) toggleSec('sessions'); onAttention() }}>
+    <b>{t.attentionBanner(waitingYou.length)}</b><span>{[...new Set(waitingYou.map(a => a.session).filter(Boolean))].join(', ')}</span>
+  </button>
+{/if}
+{@render sec('sessions', t.homeSessions, String(model.rows.length))}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
@@ -355,6 +365,9 @@
   .mt { font-size: 15.5px; }
   .ms { font-size: 13px; color: var(--text2); }
   .mi.danger svg { stroke: var(--b-alert); }
+  .attn-banner { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 10px 14px; border-radius: 16px; background: var(--b-warn); color: var(--b-warn-ink, #1d1300); font-size: 15px; cursor: pointer; }
+  .attn-banner b { flex: none; font-weight: 600; }
+  .attn-banner span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card { position: relative; -webkit-touch-callout: none; background: var(--low); border-radius: 20px; padding: 8px 10px 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background .15s, box-shadow .15s; outline: none; }
   .card.waiting { background: color-mix(in srgb, var(--low) 94%, var(--b-warn)); }
   .card:hover, .card:focus-visible { box-shadow: inset 0 0 0 1px var(--line); }

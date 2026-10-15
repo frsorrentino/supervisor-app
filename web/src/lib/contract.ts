@@ -21,6 +21,8 @@ export type Session = {
   permission_mode?: string | null; resolved?: Resolved | null
   /** Contratto 1.62: attaccata e con un tasto premuto al PC negli ultimi 2 minuti. */
   at_pc?: boolean
+  /** Contratto 1.68: `supervisor needs-you` e il turno finito con una voce bloccante, finché la sessione è ferma. */
+  needs_you?: { reason: string; at: number } | null; turn_blocking?: { text: string; at: number } | null
   id: string; name: string; account: string; project: string; state: SessionState; since: number
   turn_started?: number | null; tool?: string | null; link?: string; tool_note?: string | null
   attached?: boolean; followed?: boolean; question?: Question | null; outcome?: Outcome | null
@@ -64,14 +66,16 @@ export type AgendaRow = {
 export type AgendaPage = { rows: AgendaRow[]; more: boolean; owner?: string | null }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
-export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace'
+export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder'
 export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null
   /** Contratto 1.56: titolo e corpo senza segreti. */
   preview?: { title: string; body?: string } | null
   /** Contratto 1.58, `quota_limit`. */
   reset_at?: number | null; window?: string | null; other_account?: string | null; actions?: string[] | null
   /** Contratto 1.61 (`turn_failed`) e 1.62 (`quiet`: senza suono, Franz è al PC). */
-  reason?: string | null; continue_text?: string | null; quiet?: boolean }
+  reason?: string | null; continue_text?: string | null; quiet?: boolean
+  /** Contratto 1.68, `attention_reminder`: il kind della voce che aspetta ancora. */
+  attention_kind?: string | null }
 
 // Trascrizione (contratto 1.22): `in` comprende la cache; `queued` = scritta a turno in corso e non ancora presa; `cut` = accorciata dal PC.
 export type TranscriptTurn = { started?: number | null; ended?: number | null; in?: number | null; out?: number | null }

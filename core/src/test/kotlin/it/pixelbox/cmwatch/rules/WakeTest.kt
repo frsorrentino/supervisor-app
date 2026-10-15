@@ -2,8 +2,11 @@ package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.Fixtures
 import it.pixelbox.cmwatch.contract.ContractJson
+import it.pixelbox.cmwatch.contract.NeedsYou
 import it.pixelbox.cmwatch.contract.QuotaAccount
+import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.contract.SessionState
+import it.pixelbox.cmwatch.contract.TurnBlocking
 import it.pixelbox.cmwatch.rules.Wake.Action
 import it.pixelbox.cmwatch.rules.Wake.NotifyKind
 import org.junit.Assert.*
@@ -57,5 +60,21 @@ class WakeTest {
         val hot = idle.copy(quota = idle.quota + ("personale" to QuotaAccount(h5 = 96, w7 = 38, resetW7 = 1L)))
         assertTrue(Wake.plan(idle, hot).contains(Action.Notify(NotifyKind.QUOTA, "personale")))
         assertTrue(Wake.plan(hot, hot).none { it is Action.Notify })
+    }
+
+    // Contratto 1.68: ferma per Franz (needs_you o turno bloccante), un avviso quando compare o cambia.
+    @Test fun aSessionStoppedForFranzNotifiesOnce() {
+        val name = idle.sessions.first().name
+        fun with(f: (Session) -> Session) =
+            idle.copy(sessions = idle.sessions.map { if (it.name == name) f(it) else it })
+        val asked = with { it.copy(needsYou = NeedsYou("login su win", 100)) }
+        assertTrue(Wake.plan(idle, asked).contains(Action.Notify(NotifyKind.STOPPED, name)))
+        assertTrue(Wake.plan(asked, asked).none { it is Action.Notify })
+        val again = with { it.copy(needsYou = NeedsYou("il codice", 200)) }
+        assertTrue(Wake.plan(asked, again).contains(Action.Notify(NotifyKind.STOPPED, name)))
+        val blocking = with { it.copy(turnBlocking = TurnBlocking("ok al deploy", 300)) }
+        assertTrue(Wake.plan(idle, blocking).contains(Action.Notify(NotifyKind.STOPPED, name)))
+        // All'avvio dell'app non si risuona per chi era già ferma: ci pensano i promemoria del relay.
+        assertTrue(Wake.plan(null, asked).none { it == Action.Notify(NotifyKind.STOPPED, name) })
     }
 }

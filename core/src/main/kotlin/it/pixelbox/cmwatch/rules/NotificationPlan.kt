@@ -11,7 +11,9 @@ import it.pixelbox.cmwatch.contract.Tier
  * senza Android. Testabile: titolo, righe della conversazione, azioni per tier, chip, cronometro, canale, gruppo.
  */
 object NotificationPlan {
-    const val CH_QUESTIONS = "domande"
+    /** Contratto 1.68: il canale dell'avviso forte, con la vibrazione di StrongAlert; prima era «domande». */
+    const val CH_QUESTIONS = "serve_te"
+    const val CH_QUESTIONS_OLD = "domande"
     const val CH_OUTCOMES = "esiti"
     const val CH_GONE = "sparite"
     const val CH_QUOTA = "quota"

@@ -25,9 +25,13 @@ object Summary {
         val master = live.firstOrNull { it.name == ContextActions.MASTER }
         val others = live.filter { it.name != ContextActions.MASTER }
         val forYou = MasterHome.forYou(state, events, sent, now, zone, read, limit = Int.MAX_VALUE).rows
-        val waiting = live.filter { it.question != null }.sortedBy { it.question!!.askedAt }
-            .map { Row(Group.WAITING, it, it.question!!.text, it.question!!.askedAt) }
-        val finished = forYou.filter { it.kind == MasterHome.Kind.FINISHED }
+        // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
+        val waiting = live.mapNotNull { s ->
+            s.question?.let { Row(Group.WAITING, s, it.text, it.askedAt) }
+                ?: StrongAlert.stop(s)?.let { Row(Group.WAITING, s, it.text, it.at) }
+        }.sortedBy { it.at }
+        val stopped = waiting.map { it.session.name }.toSet()
+        val finished = forYou.filter { it.kind == MasterHome.Kind.FINISHED && it.session !in stopped }
             .mapNotNull { r -> others.firstOrNull { it.name == r.session }?.let { Row(Group.FINISHED, it, r.detail, r.at, r.key) } }
         val asking = waiting.map { it.session.name }.toSet()
         val working = MasterHome.working(state).filter { it.session.name !in asking }

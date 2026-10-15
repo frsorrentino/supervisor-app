@@ -1,5 +1,9 @@
 package it.pixelbox.cmwatch.wear.push
 
+import it.pixelbox.cmwatch.contract.Attention
+import it.pixelbox.cmwatch.contract.Event
+import it.pixelbox.cmwatch.contract.EventKind
+import it.pixelbox.cmwatch.rules.StrongAlert
 import it.pixelbox.cmwatch.rules.SpeechText
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -82,7 +86,10 @@ class Notifier(private val ctx: Context) {
             setSound(null, null)
             if (pattern != null) { enableVibration(true); vibrationPattern = pattern } else enableVibration(false)
         }
-        nm.createNotificationChannel(ch(NotificationPlan.CH_QUESTIONS, R.string.channel_questions, NotificationManager.IMPORTANCE_HIGH, longArrayOf(0, 60, 80, 60)))
+        // Contratto 1.68: un avviso forte uguale al telefono (StrongAlert.VIBRATION); la vibrazione di un canale non si
+        // cambia dopo la creazione, quindi canale nuovo e via il vecchio.
+        nm.deleteNotificationChannel(NotificationPlan.CH_QUESTIONS_OLD)
+        nm.createNotificationChannel(ch(NotificationPlan.CH_QUESTIONS, R.string.channel_questions, NotificationManager.IMPORTANCE_HIGH, StrongAlert.VIBRATION))
         nm.createNotificationChannel(ch(NotificationPlan.CH_OUTCOMES, R.string.channel_outcomes, NotificationManager.IMPORTANCE_DEFAULT, longArrayOf(0, 40)))
         nm.createNotificationChannel(ch(NotificationPlan.CH_GONE, R.string.channel_gone, NotificationManager.IMPORTANCE_DEFAULT, longArrayOf(0, 200)))
         nm.createNotificationChannel(ch(NotificationPlan.CH_QUOTA, R.string.channel_quota, NotificationManager.IMPORTANCE_LOW, null))
@@ -248,6 +255,39 @@ class Notifier(private val ctx: Context) {
     }
 
     fun cancel(session: String) = NotificationManagerCompat.from(ctx).cancel(id(session))
+
+    /** Contratto 1.68: la sessione è ferma per Franz, il motivo in una riga con l'avviso forte; il tocco la apre. */
+    fun stopped(s: Session) {
+        val stop = StrongAlert.stop(s) ?: return
+        post(("stop-" + s.name).hashCode(), simple(s.name, NotificationPlan.CH_QUESTIONS, stop.text, SessionState.WAITING)
+            .setLargeIcon(badge(s)).setStyle(NotificationCompat.BigTextStyle().bigText(stop.text)).setOnlyAlertOnce(false).setSilent(s.atPc))
+    }
+
+    /**
+     * Contratti 1.58, 1.61 e 1.68 al polso: quota finita, turno fallito e promemoria, una riga con l'avviso forte che apre la
+     * sessione. I tasti restano sul telefono.
+     */
+    fun alert(e: Event) {
+        val session = e.ref ?: e.session ?: return
+        val tag = if (e.kind == EventKind.ATTENTION_REMINDER) "reminder-" else e.kind.name + "-"
+        val text = e.reason ?: e.shareBody.lineSequence().firstOrNull { it.isNotBlank() }
+        post((tag + session).hashCode(), NotificationCompat.Builder(ctx, NotificationPlan.CH_QUESTIONS)
+            .setSmallIcon(R.drawable.ic_app_mono).setColor(0xFF4C7DFF.toInt()).setContentTitle(e.shareTitle).setContentText(text)
+            .setLargeIcon(Glyphs.state(ctx, SessionState.WAITING)).setLocalOnly(true).setGroup(NotificationPlan.GROUP).setSound(null)
+            .setSilent(e.quiet).setAutoCancel(true).setContentIntent(open("cmwatch://session/$session", (tag + session).hashCode())))
+    }
+
+    /** Contratto 1.68: la voce è uscita da `state.attention`: via la sua notifica e il suo promemoria. */
+    fun closeAttention(a: Attention) {
+        val ref = a.ref ?: return
+        val nm = NotificationManagerCompat.from(ctx)
+        nm.cancel(("reminder-$ref").hashCode())
+        when (a.kind) {
+            "needs_you", "turn_blocking" -> nm.cancel(("stop-$ref").hashCode())
+            "turn_failed" -> nm.cancel((EventKind.TURN_FAILED.name + "-" + ref).hashCode())
+            "quota_limit" -> nm.cancel((EventKind.QUOTA_LIMIT.name + "-" + ref).hashCode())
+        }
+    }
 
     /**
      * La domanda è stata risposta altrove: si chiude la sua notifica, ma solo se è ancora quella della domanda. Una

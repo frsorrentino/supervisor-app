@@ -13,6 +13,7 @@ import it.pixelbox.cmwatch.mobile.MainActivity
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.NotificationPlan
 import it.pixelbox.cmwatch.rules.PhoneAlert
+import it.pixelbox.cmwatch.rules.StrongAlert
 
 /** Le notifiche del telefono (design 29/09): due canali, suono o silenzio secondo PhoneAlert. */
 class PhoneNotifier(private val ctx: Context) {
@@ -22,9 +23,15 @@ class PhoneNotifier(private val ctx: Context) {
         val m = ctx.getSystemService(NotificationManager::class.java)
         m.createNotificationChannel(NotificationChannel(CH_SOUND, ctx.getString(R.string.channel_questions), NotificationManager.IMPORTANCE_HIGH))
         m.createNotificationChannel(NotificationChannel(CH_QUIET, ctx.getString(R.string.channel_quiet), NotificationManager.IMPORTANCE_LOW))
+        // Contratto 1.68: l'avviso forte, la stessa vibrazione dell'orologio (StrongAlert.VIBRATION) e il suono di sistema.
+        m.createNotificationChannel(NotificationChannel(CH_STRONG, ctx.getString(R.string.channel_strong), NotificationManager.IMPORTANCE_HIGH).apply {
+            enableVibration(true); vibrationPattern = StrongAlert.VIBRATION
+        })
     }
 
     private fun channel(mode: PhoneAlert.Mode) = if (mode == PhoneAlert.Mode.SOUND) CH_SOUND else CH_QUIET
+    /** 1.68: le interruzioni (domanda, ferma per te, turno fallito, quota finita, promemoria) sul canale forte. */
+    private fun strong(mode: PhoneAlert.Mode) = if (mode == PhoneAlert.Mode.SOUND) CH_STRONG else CH_QUIET
     private fun id(session: String) = session.hashCode()
 
     private val labels get() = NotificationPlan.Labels(
@@ -49,7 +56,7 @@ class PhoneNotifier(private val ctx: Context) {
     fun question(s: Session, mode: PhoneAlert.Mode) {
         val q = s.question ?: return
         val plan = NotificationPlan.question(s, labels, emptyList())
-        val b = NotificationCompat.Builder(ctx, channel(mode)).setSmallIcon(R.drawable.ic_notification)
+        val b = NotificationCompat.Builder(ctx, strong(mode)).setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(plan.title).setContentText(q.shareable).setStyle(NotificationCompat.BigTextStyle().bigText(q.shareable))
             .setSubText(plan.subText).setContentIntent(open(openCode(s.name, queue = true), queue = true)).setOnlyAlertOnce(true)
         q.options.take(3).forEach { o ->
@@ -83,13 +90,13 @@ class PhoneNotifier(private val ctx: Context) {
      * Contratto 1.58: quota finita. «Continua sull'altro account» e «riprendi al reset» sono tasti della notifica; «passa a
      * un'altra sessione» apre la sessione, dove si sceglie a chi.
      */
-    fun quotaLimit(e: it.pixelbox.cmwatch.contract.Event) {
+    fun quotaLimit(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
         val session = e.ref ?: e.session ?: return
         val words = it.pixelbox.cmwatch.rules.AlertEvents.Words(
             ctx.getString(R.string.quota_way_other), ctx.getString(R.string.quota_way_reset), ctx.getString(R.string.quota_way_pass),
         )
         val hhmm = { s: Long -> java.time.Instant.ofEpochSecond(s).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5) }
-        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else CH_SOUND).setSmallIcon(R.drawable.ic_notification)
+        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(e.shareTitle).setContentIntent(openSession(session)).setAutoCancel(true)
         it.pixelbox.cmwatch.rules.AlertEvents.ways(e, words, hhmm).forEachIndexed { i, w ->
             b.addAction(0, w.label, w.arg?.let { arg ->
@@ -104,9 +111,9 @@ class PhoneNotifier(private val ctx: Context) {
     }
 
     /** Contratto 1.61: turno finito in errore, una riga e il tasto «Continua» che manda `continue_text`. */
-    fun turnFailed(e: it.pixelbox.cmwatch.contract.Event) {
+    fun turnFailed(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
         val session = e.ref ?: e.session ?: return
-        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else CH_SOUND).setSmallIcon(R.drawable.ic_notification)
+        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(e.shareTitle).setContentIntent(openSession(session)).setAutoCancel(true)
         e.continueText?.takeIf { it.isNotBlank() }?.let { text ->
             b.addAction(0, ctx.getString(R.string.turn_continue), PendingIntent.getBroadcast(
@@ -123,6 +130,31 @@ class PhoneNotifier(private val ctx: Context) {
         post(("week-" + e.account + "-" + e.kind).hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(e.shareTitle).setContentText(e.shareBody.lineSequence().firstOrNull { it.isNotBlank() })
             .setContentIntent(open(("week-" + e.account).hashCode())).setAutoCancel(true))
+    }
+
+    /** Contratto 1.68: la sessione è ferma per Franz (needs_you o turno bloccante): il motivo in una riga, il tocco la apre. */
+    fun stopped(s: Session, mode: PhoneAlert.Mode) {
+        val stop = StrongAlert.stop(s) ?: return
+        post(("stop-" + s.name).hashCode(), NotificationCompat.Builder(ctx, strong(mode)).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(s.name).setContentText(stop.text).setStyle(NotificationCompat.BigTextStyle().bigText(stop.text))
+            .setSubText(s.account).setWhen(stop.at * 1000).setContentIntent(openSession(s.name)).setOnlyAlertOnce(false))
+    }
+
+    /** Contratto 1.68: il promemoria del relay a 10 e 30 minuti, lo stesso avviso forte in una riga. */
+    fun reminder(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
+        post(("reminder-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(e.shareTitle).setContentIntent(openSession(e.session)).setAutoCancel(true))
+    }
+
+    /** Contratto 1.68: la voce è uscita da `state.attention`, la sua notifica e il suo promemoria si chiudono. */
+    fun closeAttention(a: it.pixelbox.cmwatch.contract.Attention) {
+        val ref = a.ref ?: return
+        nm.cancel(("reminder-$ref").hashCode())
+        when (a.kind) {
+            "needs_you", "turn_blocking" -> nm.cancel(("stop-$ref").hashCode())
+            "turn_failed" -> closeTurnFailed(ref)
+            "quota_limit" -> closeQuotaLimit(ref)
+        }
     }
 
     fun closeTurnFailed(session: String) = nm.cancel(("turn-failed-$session").hashCode())
@@ -159,6 +191,7 @@ class PhoneNotifier(private val ctx: Context) {
     companion object {
         const val CH_SOUND = "phone_questions"
         const val CH_QUIET = "phone_quiet"
+        const val CH_STRONG = "phone_strong"
 
         /** Il codice del tocco: la domanda (apre la coda) e l'esito della stessa sessione hanno PendingIntent distinti. */
         fun openCode(session: String, queue: Boolean): Int = session.hashCode() * 2 + if (queue) 1 else 0
