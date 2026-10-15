@@ -26,6 +26,7 @@
   const rings = $derived(shown(Object.entries(st.quota)))
   const tone = (pct: number, stale: boolean) => (stale ? 'var(--text2)' : pct >= 90 ? 'var(--b-alert)' : pct >= 75 ? 'var(--b-warn)' : 'var(--b-ring)')
   function go(p: Page) { menu = false; onPage(p) }
+  let liveNote = $state(false)
   const entries: { page: Page; title: string; sub: string; accent?: boolean; d: string[] }[] = [
     { page: 'launch', title: t.menuLaunch, sub: t.menuLaunchSub, accent: true, d: ['M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z', 'm12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z', 'M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0', 'M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5'] },
     { page: 'diary', title: t.menuRegister, sub: t.menuRegisterSub, d: ['M12 7v14', 'M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z'] },
@@ -91,6 +92,12 @@
         <span class="mt"><b>{e.title}</b><small>{e.sub}</small></span>
       </button>
     {/each}
+    <!-- La Modalità live dell'app (AppMenuPanel.kt) vive di un servizio Android e dell'orologio: qui la voce dice dove si trova
+         (Franz, 15/10 21:48: «voce che rimanda all'app»). -->
+    <button class="mi" role="menuitem" aria-expanded={liveNote} onclick={() => (liveNote = !liveNote)}>
+      <span class="mic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" /></svg></span>
+      <span class="mt"><b>{t.liveMenu}</b><small>{liveNote ? t.liveOnlyApp : t.liveMenuSub}</small></span>
+    </button>
     <hr />
     <button class="foot" role="menuitem" onclick={() => go('settings')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
