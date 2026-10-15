@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.NightPage
+import it.pixelbox.cmwatch.rules.uniqueKeys
 import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.ZoneId
@@ -82,13 +83,17 @@ fun NightScreen(
                 if (needsOpen) page.needs.forEachIndexed { i, n -> item(key = "need$i") { NeedRow(n, first = i == 0, onAnswer, onApprove, onSend) } }
             }
             item(key = "items") { Section(stringResource(R.string.night_items_title, page.cards.size), stringResource(R.string.night_items_expl), itemsOpen) { itemsOpen = !itemsOpen } }
-            if (itemsOpen) items(page.cards, key = { "c" + it.id }) { c ->
+            // Chiavi mai ripetute: una chiave doppia chiude l'app (15/10 23:41, due sessioni con lo stesso nome).
+            val cardKeys = uniqueKeys(page.cards) { "c" + it.id }
+            if (itemsOpen) items(page.cards.size, key = { cardKeys[it] }) { i ->
+                val c = page.cards[i]
                 val times = if (c.end == null) stringResource(R.string.night_since, t(c.start)) else "${t(c.start)}–${t(c.end!!)} · ${shortDuration(c.durationS ?: 0)}"
                 CardRow(c, open = open == c.id, times = times, t = ::t, onToggle = { open = if (open == c.id) null else c.id }, onChat = onChat)
             }
             if (page.projects.isNotEmpty()) {
                 item(key = "projects") { Section(stringResource(R.string.night_projects_title, page.projects.size), stringResource(R.string.night_projects_expl), projectsOpen) { projectsOpen = !projectsOpen } }
-                if (projectsOpen) items(page.projects, key = { "p" + it.name }) { p -> ProjectRow(p) }
+                val projectKeys = uniqueKeys(page.projects) { "p" + it.name }
+                if (projectsOpen) items(page.projects.size, key = { projectKeys[it] }) { i -> ProjectRow(page.projects[i]) }
             }
         }
     }

@@ -65,6 +65,7 @@ import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.MasterHome
 import it.pixelbox.cmwatch.rules.OutsideSessions
+import it.pixelbox.cmwatch.rules.uniqueKeys
 import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.Summary
@@ -204,7 +205,10 @@ fun SummaryList(
         }
         if (sessionsOpen) model.rows.groupBy { it.group }.forEach { (group, rows) ->
             item(key = "h-${group.name}") { Box(moving()) { GroupHeader(pluralStringResource(groupLabel(group), rows.size, rows.size), groupTone(group)) } }
-            items(rows, key = { "s-" + it.session.name }) { r ->
+            // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
+            val keys = uniqueKeys(rows) { "s-" + it.session.id }
+            items(rows.size, key = { keys[it] }) { i ->
+                val r = rows[i]
                 val s = r.session
                 val id = group.name + ":" + s.name
                 Box(moving()) {
