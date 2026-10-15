@@ -223,4 +223,12 @@ class FakeTransportTest {
         val one = ContractJson.decodeTimeline(tr.send(Cmd("t2", CmdOp.TIMELINE, all.sessions[0].session, "6h", clock, "test")).text)
         assertEquals(listOf(all.sessions[0].session), one.sessions.map { it.session })
     }
+
+    // 15/10: con i testi della demo (DemoText) le ferme 1.68 cercavano «atlas-shop» e «field-notes», già rinominate.
+    @Test fun theStopsAppearWithTheDemoNamesToo() = runTest {
+        val st = FakeTransport(load = { DemoText.dress(Fixtures.read("$it.json")) }, now = { clock }).state.first()
+        assertEquals("Log in to the payment sandbox and send me the code", st.sessions.first { it.name == "storefront" }.needsYou?.reason)
+        assertEquals("ok to publish the post", st.sessions.first { it.name == "blog" }.turnBlocking?.text)
+        assertEquals(setOf("storefront", "blog", "payments-api"), st.attention.orEmpty().mapNotNull { it.session }.toSet())
+    }
 }

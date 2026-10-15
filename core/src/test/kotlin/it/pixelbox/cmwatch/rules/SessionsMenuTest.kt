@@ -25,4 +25,14 @@ class SessionsMenuTest {
 
     @Test fun theOrderInsideAGroupIsKept() =
         assertEquals(listOf("b", "a"), SessionsMenu.of(listOf(s("b"), s("a"))).groups.single().second.map { it.name })
+
+    // Contratto 1.68 (15/10): una sessione ferma per Franz, anche al lavoro, sta con chi ti aspetta come nella home.
+    @Test fun aSessionStoppedForFranzWaits() {
+        val m = SessionsMenu.of(listOf(
+            s("busy", SessionState.BUSY).copy(needsYou = NeedsYou("login", 1)),
+            s("idle").copy(turnBlocking = TurnBlocking("ok", 2)),
+            s("w", SessionState.BUSY),
+        ))
+        assertEquals(listOf(Group.WAITING to listOf("busy", "idle"), Group.WORKING to listOf("w")), m.groups.map { (g, l) -> g to l.map { it.name } })
+    }
 }

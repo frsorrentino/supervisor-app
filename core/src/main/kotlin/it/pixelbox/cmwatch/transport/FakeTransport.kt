@@ -21,21 +21,25 @@ class FakeTransport(
     /**
      * Contratto 1.68 nella demo (Franz, 15/10 dalla web app): atlas-shop ferma per te con un login, field-notes con un ok
      * alla fine del turno; tutte e due in `attention`, così si vedono le card in cima, il banner della master e l'avviso.
+     * Per posizione nella fixture, non per nome: con DemoText i nomi sono già storefront e blog (15/10, le ferme non
+     * comparivano nella demo dell'app).
      */
     private fun stopped(s: State): State {
         val t = s.ts
+        val shop = s.sessions.getOrNull(1)?.name ?: return s
+        val blog = s.sessions.getOrNull(2)?.name ?: return s
         val login = NeedsYou("Log in to the payment sandbox and send me the code", t - 420)
-        val ok = TurnBlocking("ok to publish the docs site", t - 240)
+        val ok = TurnBlocking("ok to publish the post", t - 240)
         val sessions = s.sessions.map {
             when (it.name) {
-                "atlas-shop" -> it.copy(needsYou = login)
-                "field-notes" -> it.copy(turnBlocking = ok)
+                shop -> it.copy(needsYou = login)
+                blog -> it.copy(turnBlocking = ok)
                 else -> it
             }
         }
         val extra = listOf(
-            Attention("needs_you", "atlas-shop", "atlas-shop", login.reason, login.at),
-            Attention("turn_blocking", "field-notes", "field-notes", ok.text, ok.at),
+            Attention("needs_you", shop, shop, login.reason, login.at),
+            Attention("turn_blocking", blog, blog, ok.text, ok.at),
         )
         return s.copy(sessions = sessions, attention = (s.attention.orEmpty() + extra).sortedBy { it.since })
     }

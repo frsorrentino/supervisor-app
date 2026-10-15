@@ -15,7 +15,8 @@ object SessionsMenu {
         val live = sessions.filter { it.state != SessionState.GONE && it.name != ContextActions.MASTER }
         val group: (Session) -> Summary.Group = { s ->
             when {
-                s.question != null -> Summary.Group.WAITING
+                // Contratto 1.68: chi è ferma per Franz sta con chi ti aspetta, come nella home e nel banner (15/10).
+                s.question != null || StrongAlert.stop(s) != null -> Summary.Group.WAITING
                 s.state == SessionState.BUSY || s.state == SessionState.AWAITING -> Summary.Group.WORKING
                 else -> Summary.Group.STILL
             }
