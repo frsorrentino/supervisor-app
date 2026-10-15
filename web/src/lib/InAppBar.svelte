@@ -6,13 +6,21 @@
   // Android apre la stessa pagina in Chrome, su iPhone dice come aprirla in Safari.
   const inside = inApp(navigator.userAgent)
   let closed = $state((() => { try { return sessionStorage.getItem('cm.inapp') === '1' } catch { return false } })())
+  // Il browser di X non passa i link intent:// al sistema («Nessuna app può eseguire questa azione», Franz 15/10 21:36):
+  // dentro X solo le istruzioni; nelle altre app il tasto, e se dopo un secondo la pagina è ancora qui, le istruzioni.
+  let explain = $state(inside?.app === 'X')
+  function toChrome() {
+    location.href = chromeIntent(new URL(location.href))
+    setTimeout(() => { if (!document.hidden) explain = true }, 1200)
+  }
   function close() { closed = true; try { sessionStorage.setItem('cm.inapp', '1') } catch { /* per questa visita */ } }
 </script>
 
 {#if inside && !closed}
   <div class="inapp" role="status">
     {#if inside.ios}<span class="iat"><b>{t.inAppWhere(inside.app)}</b><small>{t.inAppIos1} {t.inAppIos2}</small></span>
-    {:else}<span class="iat"><b>{t.inAppWhere(inside.app)}</b></span><a class="iago" href={chromeIntent(new URL(location.href))}>{t.inAppChrome}</a>{/if}
+    {:else if explain}<span class="iat"><b>{t.inAppWhere(inside.app)}</b><small>{t.inAppAndroid}</small></span>
+    {:else}<span class="iat"><b>{t.inAppWhere(inside.app)}</b></span><button class="iago" onclick={toChrome}>{t.inAppChrome}</button>{/if}
     <button class="iax" aria-label={t.closeWord} onclick={close}>
       <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
   </div>

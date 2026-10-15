@@ -131,7 +131,7 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | master-metà | Master a tre misure sulla plancia: barra, metà, tutto | Uguale | ok |
 | chiusura-colonna | Colonna di una sessione chiusa resta sotto il pannello, poi si toglie | Uguale | ok |
 | link | Il link porta all'app o alla demo (NotPairedScreen: «Prova la demo») | Il link pubblicato su X apre la pagina di collegamento: «Prova la demo» è un tasto sotto «Inquadra il QR», pieno dentro il browser di un'app (prima era un link piccolo in fondo, sotto la barra di X) | ok |
-| link | Aperta dentro il browser di un'app (X, Telegram, Instagram, LinkedIn, Facebook) | La pagina si misura sull'area visibile vera (visualViewport); una barra chiudibile «Apri in Chrome» (intent:// su Android, due righe di istruzioni su iPhone). Provato sul Pixel: il link del post aperto dall'app X mostrava la pagina vecchia con la barra di X sopra «Guarda la demo» | ok |
+| link | Aperta dentro il browser di un'app (X, Telegram, Instagram, LinkedIn, Facebook) | La pagina si misura sull'area visibile vera (visualViewport); una barra chiudibile: dentro X su Android dice di toccare ⋮ accanto all'indirizzo e aprire nel browser (il browser di X rifiuta i link intent://: «Nessuna app può eseguire questa azione», Franz 21:36); nelle altre app «Apri in Chrome» con le stesse istruzioni se la pagina resta lì; su iPhone due righe per Safari. Provato sul Pixel dall'app X | ok |
 | affidabilità | Nessun errore in console oltre il ResizeObserver | Nessun errore dopo i giri di prova; la transizione a pagina nascosta non lascia più promesse rifiutate | ok |
 | affidabilità | Nessun tasto morto | Giro su ogni tasto di home, sessioni, pagine e plancia: tutti cambiano qualcosa | ok |
 
