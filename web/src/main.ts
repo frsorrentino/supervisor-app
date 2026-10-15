@@ -3,7 +3,6 @@ import './app.css'
 import App from './App.svelte'
 import { canonicalUrl, loadRemote } from './lib/remoteAccess'
 import { lang } from './lib/lang'
-import { inApp } from './lib/inApp'
 
 // L'altezza dell'area visibile davvero (visualViewport): la usa #app in app.css. Nei browser interni delle app (X,
 // Telegram, Instagram) la barra in basso non è tolta da 100vh né sempre da 100dvh.
@@ -12,11 +11,6 @@ const fit = () => document.documentElement.style.setProperty('--vvh', `${Math.ro
 fit()
 vv?.addEventListener('resize', fit)
 addEventListener('resize', fit)
-
-// Dentro il browser di X su Android il pannello del post (riga dell'indirizzo e scheda) copre in basso circa 247 dp, fisso,
-// sopra la pagina (Pixel, 15/10 21:40): quello spazio resta libero, così campo e barra della master si vedono.
-const x = inApp(navigator.userAgent)
-if (x?.app === 'X' && x.android) document.documentElement.style.setProperty('--inapp-bottom', '248px')
 
 // La lingua scelta all'avvio (lang.ts) anche per il browser: lettori di schermo, traduzione, sillabazione.
 document.documentElement.lang = lang
