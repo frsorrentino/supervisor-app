@@ -4,6 +4,14 @@ import App from './App.svelte'
 import { canonicalUrl, loadRemote } from './lib/remoteAccess'
 import { lang } from './lib/lang'
 
+// L'altezza dell'area visibile davvero (visualViewport): la usa #app in app.css. Nei browser interni delle app (X,
+// Telegram, Instagram) la barra in basso non è tolta da 100vh né sempre da 100dvh.
+const vv = window.visualViewport
+const fit = () => document.documentElement.style.setProperty('--vvh', `${Math.round(vv ? vv.height * vv.scale : innerHeight)}px`)
+fit()
+vv?.addEventListener('resize', fit)
+addEventListener('resize', fit)
+
 // La lingua scelta all'avvio (lang.ts) anche per il browser: lettori di schermo, traduzione, sillabazione.
 document.documentElement.lang = lang
 

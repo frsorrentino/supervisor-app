@@ -5,6 +5,7 @@
   import { groups, together } from './lib/shareMulti'
   import type { FileAct, Fetched } from './lib/fileActions'
   import { DemoTransport } from './lib/demoTransport'
+  import { chromeIntent, inApp } from './lib/inApp'
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { blankState, withTail } from './lib/contract'
@@ -341,7 +342,12 @@
   const headRow = (n: string) => rowOf[n] ?? (heldCols.includes(n) && rowSeen[n] ? { ...rowSeen[n], session: ghost(n) ?? rowSeen[n].session } : null)
 
   // Il cambio con la transizione del browser, quando c'è (Chrome): niente ridisegni continui.
-  const smooth = (go: () => void) => { if (document.startViewTransition) document.startViewTransition(go); else go() }
+  // Con la pagina nascosta niente transizione: il browser la interrompe e la promessa rifiutata finiva in console (15/10).
+  const smooth = (go: () => void) => {
+    if (!document.startViewTransition || document.hidden) { go(); return }
+    const vt = document.startViewTransition(go)
+    for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
+  }
   function setCols(c: string[]) { smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }) }
   function setShares(s: number[]) { shares = s; save('cm.shares', sharesPref(s)) }
   // Aprire una sessione (da «Per te», da una ricerca, dal controller della lettura): la master si espande nella home,
@@ -477,6 +483,13 @@
     else openQueue(from)
   }
   const openQueue = (from: string | null = null) => { queueSkip = from; openPage('queue') }
+  // Il tocco su «N per te» e sul banner (MainActivity, Tablet.toggle): sulla plancia la sessione che aspetta va in fondo alle
+  // colonne, anche se c'era già, e il campo prende il fuoco; sul telefono si apre.
+  function attend(n: string) {
+    if (n === MASTER || !wide) { pick(n); return }
+    setCols(toggleCol(cols.filter(c => c !== n), n))
+    setTimeout(() => focusColumn(n), 400)
+  }
   // Il tocco su una scheda della home: sulla plancia apre e chiude la sua colonna (Franz, 05/10 11:09), sul telefono apre.
   function card(name: string) { if (name !== MASTER && wide) setCols(toggleCol(cols, name)); else pick(name) }
   // Telefono: si scorre di lato fra la home e le sessioni, come nell'app (HorizontalPager con SwipePages; 15/10 20:24: «non
@@ -557,6 +570,8 @@
     else if (!wide && open) smooth(() => { open = null })
     else if (masterOpen) smooth(() => { masterOpen = false })
   })
+  const inside = inApp(navigator.userAgent)
+  let insideClosed = $state((() => { try { return sessionStorage.getItem('cm.inapp') === '1' } catch { return false } })())
   let masterDraft = $state('')
   async function sendTo(name: string, text: string) {
     // Senza trasporto il messaggio resta «inviato al PC».
@@ -809,12 +824,13 @@
     {#snippet menu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
     {#snippet quick()}{@render masterQuick()}{/snippet}
     {#snippet list()}
-      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.[0]?.session; if (n) { openPage(null); pick(n) } }} />
+      {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
+      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.[0]?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home {st} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
         onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} onRecapAction={(a) => sendTo(a.to, a.send)} agenda={agenda.page} onRecapPage={() => openPage('recap')} {canWrite} onTalk={talk} onEdit={editAgenda}
         showRecap={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
-        onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) pick(n) }}
+        onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} /></div>
       {#if !master && ready}
         <!-- Senza master (MasterHome.kt): una card con «Riapri», invece della barra che non c'è. -->
@@ -916,7 +932,15 @@
   </Desk>
 {:else}
   <div class="phone">
-    {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
+    {#if inside && !insideClosed}
+      <!-- Dentro il browser di un'app (X, Telegram, Instagram): una barra che porta fuori, chiudibile (Franz, 15/10 21:09). -->
+      <div class="inapp" role="status">
+        {#if inside.ios}<span class="iat"><b>{t.inAppWhere(inside.app)}</b><small>{t.inAppIos1} {t.inAppIos2}</small></span>
+        {:else}<span class="iat"><b>{t.inAppWhere(inside.app)}</b></span><a class="iago" href={chromeIntent(new URL(location.href))}>{t.inAppChrome}</a>{/if}
+        <button class="iax" aria-label={t.closeWord} onclick={() => { insideClosed = true; try { sessionStorage.setItem('cm.inapp', '1') } catch { /* per questa visita */ } }}>
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+      </div>
+    {/if}
     {#if page}{@render pageView(page)}{:else}
       {@const phase = session ? splashOf(session.name) : null}
       <div class="strip" {@attach mountStrip} onscroll={swiped}>
@@ -955,6 +979,11 @@
   .list { flex: 1; min-height: 0; }
   .strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
   .strip::-webkit-scrollbar { display: none; }
+  .inapp { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .iat { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+  .iat small { color: var(--text2); font-size: 13px; }
+  .iago { flex: none; padding: 8px 14px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 500; text-decoration: none; }
+  .iax { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .demobar { flex: none; padding: 6px 16px; background: color-mix(in srgb, var(--wait) 22%, var(--bg)); color: var(--wait); font-size: 13px; font-weight: 500; }
   .pg { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; }
   .reading:empty { display: none; }

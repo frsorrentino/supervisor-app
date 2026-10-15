@@ -40,6 +40,7 @@ const DRESS: [string, string][] = [
   ['Pick up the pricing page', 'Pick up the pricing page redesign for the App Store listing'],
   ['Deploy ready', 'Refund endpoint ready'],
   ['Deploy 2.4 to production now', 'Deploy 2.8.0 to production now'],
+  ['Update the changelog for 2.4 and check the migration notes', 'Update the changelog for 2.8.0 and check the release notes'],
   ...NAMES(),
   ['crostini-demo', 'dev-laptop'],
   // La quota di lavoro della fixture è «stale» e senza finestra di 5 ore: nel video sembrava un errore (17/09 02:30).

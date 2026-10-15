@@ -17,7 +17,10 @@
 /* Niente barre di scorrimento, come nell'app Android (Franz, 05/10 20:47): si scorre con dita, rotella e touchpad. */
 * { box-sizing: border-box; margin: 0; scrollbar-width: none; }
 *::-webkit-scrollbar { display: none; }
-html, body, #app { height: 100%; }
+/* L'altezza vera dell'area visibile (15/10, Franz dal link su X): dentro il browser di un'app la barra in basso copre parte
+   della finestra, e 100% o 100vh mettevano il campo sotto la barra. Prima dvh, poi l'altezza di visualViewport da main.ts. */
+html, body { height: 100%; }
+#app { height: 100%; height: 100dvh; height: var(--vvh, 100dvh); }
 /* Installata su iPhone e iPad la pagina va fin sotto la tacca e la barra in basso: i bordi sicuri restano liberi. */
 #app { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 /* Con la barra del titolo nostra (Window Controls Overlay) sul telefono stretto il contenuto comincia sotto; sulla scrivania la
