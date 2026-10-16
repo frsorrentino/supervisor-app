@@ -8,12 +8,13 @@
   import type { Scheduled } from './masterHome'
   import type { FileAct } from './fileActions'
   import type { TranscriptEntry } from './contract'
-  import type { StepDiff } from './contract'
+  import type { ChangesView, StepDiff } from './contract'
   import type { Load } from './diff'
   import { merge, group } from './chatFeed'
   import type { Sent, Status } from './chatRules'
   import { toggle } from './speech.svelte'
   import Feed from './Feed.svelte'
+  import Changes from './Changes.svelte'
   import ReadingPill from './ReadingPill.svelte'
   import ElsewherePill from './ElsewherePill.svelte'
   import type { Alert } from './elsewhere'
@@ -27,7 +28,7 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null }: {
+  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
     onCmd: (op: CmdOp, arg?: string, text?: string) => void; wide: boolean; slots: (string | null)[]
@@ -57,6 +58,8 @@
     onGo?: ((name: string | null) => void) | null; onReopen?: ((name: string) => void) | null; appMenu?: import('svelte').Snippet | null
     /** Contratto 1.72: «Mostra tutto» sotto un passaggio, l'op `diff` con l'id della voce; null = il relay non la conosce. */
     onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null
+    /** Contratto 1.72: la vista «Modifiche», op `changes` con `file` = il percorso relativo o null; null = il relay non la conosce. */
+    onChanges?: ((file: string | null) => Promise<Load<ChangesView>>) | null
     events: Event[]; sent: Scheduled[]; read: Set<string>; onRead: (key: string) => void; onPromptTo: (session: string, text: string) => void
   } = $props()
   // Franz, 06/10 08:46: la master si apre sulla conversazione; la sua casa resta a un tocco («Casa»).
@@ -67,7 +70,9 @@
   // Una bozza per sessione (DraftStore dell'app): cambiando sessione la bozza resta dov'era.
   const drafts: Record<string, string> = {}
   let shown = s.name
-  $effect.pre(() => { const name = s.name; if (name !== shown) { drafts[shown] = draft; draft = drafts[name] ?? ''; shown = name } })
+  // Contratto 1.72: la vista «Modifiche» aperta sopra la sessione; cambiando sessione si chiude.
+  let changesOpen = $state(false)
+  $effect.pre(() => { const name = s.name; if (name !== shown) { drafts[shown] = draft; draft = drafts[name] ?? ''; shown = name; changesOpen = false } })
   let list: HTMLElement | undefined = $state()
   const items = $derived(group(merge(entries, mine)))
   // La riga «in attesa del PC»: l'orologio gira solo con una lettura in volo.
@@ -187,7 +192,7 @@
 <section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name}
   ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); dragging = true } }} ondragleave={(e) => { if (e.currentTarget === e.target) dragging = false }} ondrop={onDrop}>
   {#if dragging}<div class="dropzone">{t.dropHere}</div>{/if}
-  <Header {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} />
+  <Header {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} onChanges={onChanges ? () => (changesOpen = true) : null} />
   {#if elsewhere}<ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} />{/if}
   {#if s.name === MASTER && conversation}<button class="tohome" onclick={() => (conversation = false)}>{t.home}</button>{/if}
 
@@ -256,6 +261,10 @@
     onReopen={() => onCmd('reopen')} {onAttach}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
     onDecision={canDecide ? () => openDecision('') : null} {onSendAt} {onSendTo} />
+  {#if changesOpen && onChanges}
+    <!-- Contratto 1.72: sopra la sessione; sulla plancia resta nella sua colonna. -->
+    <div class="chgwrap"><Changes {s} load={onChanges} onClose={() => (changesOpen = false)} /></div>
+  {/if}
 </section>
 
 <dialog bind:this={decisionDlg} class="sheet" onclick={(e) => e.target === e.currentTarget && decisionDlg?.close()}>
@@ -276,6 +285,7 @@
 </dialog>
 
 <style>
+  .chgwrap { position: absolute; inset: 0; z-index: 16; }
   .older { display: block; width: 100%; padding: 10px; color: var(--icon); font-size: 14px; font-weight: 500; border-radius: 12px; }
   .emptychat { text-align: center; color: var(--text2); font-size: 14px; padding: 32px 16px; }
   /* La master aperta, piatta e velata di celeste come la sua linguetta: la chat su un solo tono più scuro, testata e campo sul

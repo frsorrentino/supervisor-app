@@ -7,13 +7,15 @@
   import Badge from './Badge.svelte'
   import SessionsMenu from './SessionsMenu.svelte'
   import PermGlyph from './PermGlyph.svelte'
+  import Icon from './Icon.svelte'
+  import { counts, MINUS, pill as changesOf } from './diff'
   import { canChange, choices as permChoices, glyph, needsConfirm } from './permissionModes'
   import { adviceOf, adviceSteps, ctxBand, handoffPrompt, tokens } from './masterService'
 
   // La testata della sessione (SheetHeader.kt): una riga con modello · effort in una pillola, la quota delle 5 ore con l'ora
   // dell'azzeramento, il contesto ad anello e il menu ⋮; sotto obiettivo, priorità e finestra. Su desktop a sinistra anche
   // badge e nome, come la plancia del tablet.
-  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null }: {
+  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null }: {
     /** Sul telefono il menu delle sessioni («Vai a») sul nome e il ≡ dell'app, come la testata della sessione nell'app. */
     onGo?: ((name: string | null) => void) | null; onReopen?: ((name: string) => void) | null; appMenu?: import('svelte').Snippet | null
     /** `wide`: badge e nome a sinistra (la testata unica del desktop); in una colonna della plancia li ha la colonna. */
@@ -23,6 +25,8 @@
     onHandoff: () => void
     /** Il tocco sulla pillola della quota porta a Utilizzo (variante A, 09/10). */
     onUsage?: () => void
+    /** Contratto 1.72: il tocco sulla pillola delle modifiche apre la vista «Modifiche»; null = il relay non ha l'op. */
+    onChanges?: (() => void) | null
   } = $props()
 
   // La scelta resta in vista finché il PC non la conferma (Tune.model): qui finché si resta sulla sessione.
@@ -35,6 +39,8 @@
   const quota = $derived(st.quota[s.account])
   const reset = $derived(resetLabel(quota?.reset_h5, st.ts))
   const notes = $derived(notesOf(s, t.notes))
+  // Contratto 1.72: la pillola delle modifiche, solo con `changes`; anche su una sessione chiusa (la cartella c'è ancora).
+  const changes = $derived(changesOf(s))
   const wider = $derived(widerOf({ ...s, model }, st.choices))
   const canExit = $derived(!!st.slash?.includes('exit') && s.state !== 'gone')
   // Contratto 1.37: il consiglio di fable-director, dentro il foglio; il puntino solo se la scelta attuale è diversa.
@@ -112,7 +118,7 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (menu = false)} />
 
-<header bind:clientWidth={width} class:bare={!notes.length}>
+<header bind:clientWidth={width} class:bare={!notes.length && !changes}>
   {#if top}
     <div class="row top">
       <button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
@@ -195,6 +201,15 @@
       {/if}
     </span>
   </div>
+  <!-- Contratto 1.72: in una riga sua, sotto le pillole: nella riga delle pillole sul telefono non ci sta. -->
+  {#if changes}
+    <div class="chrow">
+      <button class="cpill" disabled={!onChanges} title={t.changesOpen} aria-label={`${t.changesOpen}: ${t.changesFiles(changes.files)} · ${counts(changes.added, changes.removed)}`} onclick={() => onChanges?.()}>
+        <Icon name="diff" size={16} color="var(--icon)" />
+        <span>{t.changesFiles(changes.files)} · <b class="plus">+{changes.added}</b> <b class="minus">{MINUS}{changes.removed}</b></span>
+      </button>
+    </div>
+  {/if}
   {#each notes as n}<div class="note">{n}</div>{/each}
 </header>
 
@@ -369,6 +384,13 @@
   .trk { stroke: var(--b-track); }
   .arc { stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
   .note { padding: 0 16px; font-size: 12px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; }
+  .chrow { display: flex; padding: 4px 0 6px 16px; }
+  .cpill { display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--text); }
+  .cpill:not(:disabled):hover { filter: brightness(1.2); }
+  .cpill:disabled { cursor: default; }
+  .cpill b { font-weight: 500; }
+  .plus { color: var(--b-good); }
+  .minus { color: var(--b-alert); }
   .anchor { position: relative; }
   .scrim { position: fixed; inset: 0; z-index: 9; cursor: default; }
   /* Il menu a pannello dell'app (AppMenuPanel): 380 px su desktop, voci con la spiegazione sotto. */
