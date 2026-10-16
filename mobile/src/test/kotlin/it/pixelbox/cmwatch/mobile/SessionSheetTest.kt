@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import org.junit.Test
 import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.ui.*
+import it.pixelbox.cmwatch.rules.DiffRules
 import java.io.File
 
 class SessionSheetTest {
@@ -80,6 +81,40 @@ class SessionSheetTest {
             ChatRow(it.pixelbox.cmwatch.rules.Sent("6", s.name, "And the release notes", t + 350), it.pixelbox.cmwatch.rules.ChatRules.Status.FAILED),
         )
         CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none, chat = rows, choices = st.choices, ops = st.ops, canAttach = true) }
+    }
+
+    // Contratto 1.72: i passaggi di modifica con la riga chiusa del diff, da solo e in un gruppo (in fondo, come i file).
+    @Test fun sheetStepDiff() = paparazzi.snapshot {
+        val s = st.sessions.first { it.state == SessionState.IDLE }
+        val t = st.ts - 600
+        val v = ContractJson.decodeChanges(File("../contract/changes-sample.json").readText())
+        val edit = StepDiff("/home/dev/storefront/src/checkout/totals.ts", "edit", 2, 1, v.files[0].hunks)
+        val create = StepDiff("/home/dev/storefront/tests/checkout/totals.test.ts", "create", 5, 0, v.files[1].hunks)
+        val entries = listOf(
+            TranscriptEntry("u1.0", "user", text = "Make the gift card lower the total", at = t, origin = "phone"),
+            TranscriptEntry("a1.0", "tool", text = edit.path, at = t + 20, tool = "Edit", diff = edit),
+            TranscriptEntry("a1.1", "assistant", text = "Now the test.", at = t + 30),
+            TranscriptEntry("a2.0", "tool", text = "src/checkout/totals.ts", at = t + 40, tool = "Read"),
+            TranscriptEntry("a2.1", "tool", text = create.path, at = t + 50, tool = "Write", diff = create),
+        )
+        CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none, feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList())) }
+    }
+
+    // Contratto 1.72: la pillola «4 file · +8 −2» sotto le pillole della testata, solo con `changes`.
+    @Test fun sheetChangesPill() = paparazzi.snapshot {
+        val s = st.sessions.first { it.state == SessionState.IDLE }.copy(changes = ChangesCount(4, 8, 2, st.ts))
+        CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none.copy(changes = { DiffRules.Load.Failed(DiffRules.Why.DOWN) }), choices = st.choices, ops = st.ops) }
+    }
+    // Caso 4: una sessione chiusa con modifiche tiene la pillola, che si tocca.
+    @Test fun sheetChangesPillClosed() = paparazzi.snapshot {
+        val s = st.sessions.first().copy(state = SessionState.GONE, question = null, changes = ChangesCount(4, 8, 2, st.ts))
+        CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none.copy(changes = { DiffRules.Load.Failed(DiffRules.Why.DOWN) })) }
+    }
+    // La vista aperta sopra la sessione, dalla pillola.
+    @Test fun sheetChangesOpen() = paparazzi.snapshot {
+        val v = ContractJson.decodeChanges(File("../contract/changes-sample.json").readText())
+        val s = st.sessions.first { it.changes != null }
+        CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none.copy(changes = { DiffRules.Load.Ok(v) }), changesShown = DiffRules.Load.Ok(v)) }
     }
 
     // La conversazione vera (contratto 1.22), come la pagina della fixture, con un messaggio del telefono agganciato.

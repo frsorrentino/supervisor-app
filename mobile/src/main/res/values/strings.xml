@@ -952,5 +952,41 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="slash_phrase_exit">chiudere la sessione</string>
     <string name="slash_phrase_context">vedere il contesto</string>
     <string name="slash_phrase_cost">vedere il costo</string>
+    <!-- Contratto 1.72: il diff dal telefono (specifica del 15/10). -->
+    <string name="diff_show_all">Mostra tutto</string>
+    <string name="diff_beyond">Oltre le 5000 righe il diff resta sul PC</string>
+    <string name="diff_more_chars">+%1$d caratteri</string>
+    <string name="diff_open">Apri il diff di %1$s</string>
+    <string name="diff_close">Chiudi il diff di %1$s</string>
+    <string name="diff_loading">Chiedo il passaggio intero al PC</string>
+    <string name="diff_git">git non ha risposto in 5 secondi</string>
+    <string name="diff_down">PC non raggiungibile</string>
+    <string name="diff_hidden_binary">File binario: arrivano solo nome e conteggi</string>
+    <string name="diff_hidden_secret">Nome sensibile: il contenuto resta sul PC</string>
+    <string name="diff_hidden_big">Oltre 1 MB: il contenuto resta sul PC</string>
+    <string name="diff_hidden_renamed">Rinominato, nessuna riga cambiata</string>
+    <string name="diff_hidden_empty">Nessuna riga da mostrare</string>
+    <string name="changes_title">Modifiche</string>
+    <plurals name="changes_files">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d file</item>
+    </plurals>
+    <string name="changes_open">Apri le modifiche</string>
+    <string name="changes_label_new">nuovo</string>
+    <string name="changes_label_deleted">eliminato</string>
+    <string name="changes_label_renamed">rinominato</string>
+    <string name="changes_label_binary">binario</string>
+    <string name="changes_base">Rispetto all\'ultimo commit %1$s</string>
+    <string name="changes_no_commits">Repo senza commit: tutti i file risultano nuovi</string>
+    <string name="changes_outside_git">Cartella fuori da git: le modifiche fatte da Claude in questa conversazione</string>
+    <string name="changes_none">Nessuna modifica rispetto all\'ultimo commit</string>
+    <string name="changes_none_transcript">Claude non ha ancora modificato file in questa conversazione</string>
+    <plurals name="changes_more_files">
+        <item quantity="one">Un altro file non è in elenco: la vista si ferma a 50 file e 2000 righe</item>
+        <item quantity="other">Altri %d file non sono in elenco: la vista si ferma a 50 file e 2000 righe</item>
+    </plurals>
+    <string name="changes_loading">Leggo le modifiche dal PC</string>
+    <string name="changes_file_loading">Leggo il file dal PC</string>
+    <string name="changes_file_gone">Questo file non ha più modifiche: tocca Aggiorna</string>
     <string name="show_preview">Mostra anteprima</string>
 </resources>

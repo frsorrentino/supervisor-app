@@ -101,6 +101,8 @@ import it.pixelbox.cmwatch.contract.TranscriptTurn
 import it.pixelbox.cmwatch.rules.ChatFeed
 import it.pixelbox.cmwatch.rules.ChatNews
 import it.pixelbox.cmwatch.rules.ChatRules
+import it.pixelbox.cmwatch.contract.ChangesView
+import it.pixelbox.cmwatch.rules.DiffRules
 import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.PhonePrimary
 import it.pixelbox.cmwatch.rules.QuestionRules
@@ -173,6 +175,8 @@ data class SheetActions(
     val handoff: (() -> Unit)? = {},
     /** Contratto 1.37: una decisione per la memoria della master; `project` null = vale per tutti; null = op non supportata. */
     val decision: ((text: String, project: String?) -> Unit)? = null,
+    /** Contratto 1.72: la vista «Modifiche», op `changes` con `file` = il percorso relativo o null; null = il relay non la conosce. */
+    val changes: (suspend (file: String?) -> DiffRules.Load<ChangesView>)? = null,
 )
 
 /** Un messaggio della chat con il suo stato e, se non è stato consegnato, il motivo (`ChatRules.status`/`reason`). */
@@ -251,6 +255,8 @@ fun SessionSheet(
     draftState: androidx.compose.runtime.MutableState<String>? = null,
     /** Obiettivo e bassa priorità in testata; il tablet con l'ispettore li mostra lì e in testata non si ripetono. */
     notesInHeader: Boolean = true,
+    /** Negli snapshot: la vista «Modifiche» già aperta con questa risposta (contratto 1.72). */
+    changesShown: DiffRules.Load<ChangesView>? = null,
 ) {
     // L'orologio dell'attesa del PC gira solo con una lettura in volo, e si legge solo dentro la lista: il tic di ogni
     // secondo non ricompone la scheda (la digitazione lenta del 05/10 veniva da letture in cima).
@@ -263,6 +269,8 @@ fun SessionSheet(
     val draftHolder = draftState ?: ownDraft
     var draft by draftHolder
     var holdHint by rememberSaveable(s.question?.id) { mutableStateOf(false) }
+    // Contratto 1.72: la vista «Modifiche» aperta; resta aperta dopo una rotazione.
+    var changesOpen by rememberSaveable(s.name) { mutableStateOf(changesShown != null) }
     // Il box «Prossimi» e il campo (Franz, 04/10 20:21): il primo consiglio dell'ultima risposta fa da suggerimento nel
     // campo vuoto, gli altri restano nel box anche scrivendo; il suggerito del terminale entra solo se è diverso.
     val idle = s.state == SessionState.IDLE && s.question == null
@@ -363,6 +371,8 @@ fun SessionSheet(
             if (follow && below && n > 0 && !list.isScrollInProgress) list.scrollToEnd()
         }
     }
+    // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fly("card-${s.id}").fillMaxSize().background(CmColors.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
         // A tutto schermo la master ha una testata sola, la sua (Franz, 08/10 18:15): quella della home rientra mentre il pannello sale.
         if (home == null) appBar?.invoke()
@@ -389,6 +399,7 @@ fun SessionSheet(
                 SheetHeader(
                     s, now, choices, canTune, actions, showTerminal = feed == null, model = model, effort = effort, bg = if (home != null) MasterHigh else CmColors.bg,
                     canExit = slash?.contains("exit") == true && s.state != SessionState.GONE, quota = accountQuota, lead = headerLead, notesInHeader = notesInHeader,
+                    onChanges = if (actions.changes != null) ({ changesOpen = true }) else null,
                 )
             }
             elsewhere?.let { ElsewherePill(it, onElsewhere, onElsewhereDismiss) }
@@ -685,6 +696,12 @@ fun SessionSheet(
             onRecurring = if (recurringRows.isEmpty()) null else ({ boxes.recurring(!boxes.recurringOpen) }), recurringOpen = boxes.recurringOpen,
             onDecisionNew = if (home != null && decide != null) ({ decisionDraft = "" }) else null,
         )
+    }
+    // Contratto 1.72: la vista «Modifiche» sopra la sessione: sul telefono ne prende la pagina, sul tablet la colonna.
+    val loadChanges = actions.changes
+    if (changesOpen && loadChanges != null) ChangesPanel(
+        s, loadChanges, onClose = { changesOpen = false }, modifier = Modifier.fillMaxSize(), start = changesShown,
+    )
     }
 }
 
@@ -1397,6 +1414,8 @@ private fun ToolLine(e: TranscriptEntry, files: Boolean = true) {
                 fs.forEach { FileChip(it, e.id) }
             }
         }
+        // Contratto 1.72: la riga chiusa del diff sotto il passaggio; in un gruppo le righe stanno in fondo, come i file.
+        if (files) e.diff?.let { d -> Box(Modifier.padding(start = 28.dp)) { StepDiffRow(e.id, d) } }
     }
 }
 
@@ -1595,6 +1614,8 @@ private fun StepsCard(g: ChatFeed.Item.Steps) {
                     files.forEach { (f, id) -> FileChip(f, id) }
                 }
             }
+            // Contratto 1.72: le righe chiuse dei diff del gruppo, sempre in vista come i file.
+            g.entries.forEach { e -> e.diff?.let { d -> StepDiffRow(e.id, d) } }
         }
     }
 }
@@ -1729,7 +1750,7 @@ private fun StatusMark(st: ChatRules.Status, scheduledFor: Long? = null) {
 }
 
 /** Le letture che le schermate fanno da sole: non sono comandi dell'utente e non diventano righe «non consegnato». */
-private val PASSIVE_OPS = setOf(it.pixelbox.cmwatch.contract.CmdOp.SCREEN, it.pixelbox.cmwatch.contract.CmdOp.LAST, it.pixelbox.cmwatch.contract.CmdOp.TRANSCRIPT, it.pixelbox.cmwatch.contract.CmdOp.FILE)
+private val PASSIVE_OPS = setOf(it.pixelbox.cmwatch.contract.CmdOp.SCREEN, it.pixelbox.cmwatch.contract.CmdOp.LAST, it.pixelbox.cmwatch.contract.CmdOp.TRANSCRIPT, it.pixelbox.cmwatch.contract.CmdOp.FILE, it.pixelbox.cmwatch.contract.CmdOp.CHANGES, it.pixelbox.cmwatch.contract.CmdOp.DIFF)
 
 @Composable
 private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) =
@@ -1890,6 +1911,8 @@ private fun SheetHeader(
     quota: it.pixelbox.cmwatch.contract.QuotaAccount? = null,
     lead: (@Composable RowScope.() -> Unit)? = null,
     notesInHeader: Boolean = true,
+    /** Contratto 1.72: il tocco sulla pillola delle modifiche; null = il relay non ha l'op `changes`. */
+    onChanges: (() -> Unit)? = null,
 ) {
     var picker by remember { mutableStateOf<String?>(null) }   // "tune": il foglio di modello ed effort
     var menu by remember { mutableStateOf(false) }
@@ -1945,6 +1968,9 @@ private fun SheetHeader(
             }
             }
         }
+        // Contratto 1.72: «4 file · +8 −2» in una riga sua sotto le pillole: nella riga delle pillole sul telefono non ci sta.
+        // Anche su una sessione chiusa: la cartella c'è ancora e la vista funziona.
+        DiffRules.pill(s)?.let { c -> ChangesPill(c, onChanges, Modifier.padding(start = if (lead != null) 16.dp else 12.dp, top = 6.dp)) }
         val notes = listOfNotNull(
             SessionsText.goalLine(s, stringResource(R.string.goal)).takeIf { notesInHeader },
             SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered)).takeIf { notesInHeader },
@@ -1952,7 +1978,7 @@ private fun SheetHeader(
         )
         notes.forEach { Text(it, style = MaterialTheme.typography.labelMedium, color = CmColors.briefLabel, modifier = Modifier.padding(horizontal = 16.dp)) }
         // Senza note sotto le pillole lo stesso margine di sopra, così stanno al centro della barra (Franz, 10/10 14:32: «riduci barra»).
-        Spacer(Modifier.height(if (notes.isEmpty()) 2.dp else 8.dp))
+        Spacer(Modifier.height(if (notes.isEmpty() && s.changes == null) 2.dp else 8.dp))
         HorizontalDivider(color = CmColors.line)
     }
     if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) })

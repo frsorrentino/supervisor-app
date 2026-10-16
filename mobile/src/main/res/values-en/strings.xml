@@ -934,5 +934,41 @@ It starts at your last message to the master.</string>
     <string name="slash_phrase_exit">close the session</string>
     <string name="slash_phrase_context">see the context</string>
     <string name="slash_phrase_cost">see the cost</string>
+    <!-- Contract 1.72: the diff from the phone. -->
+    <string name="diff_show_all">Show all</string>
+    <string name="diff_beyond">Past 5000 lines the diff stays on the PC</string>
+    <string name="diff_more_chars">+%1$d characters</string>
+    <string name="diff_open">Open the diff of %1$s</string>
+    <string name="diff_close">Close the diff of %1$s</string>
+    <string name="diff_loading">Asking the PC for the whole step</string>
+    <string name="diff_git">git did not answer in 5 seconds</string>
+    <string name="diff_down">PC not reachable</string>
+    <string name="diff_hidden_binary">Binary file: only the name and the counts arrive</string>
+    <string name="diff_hidden_secret">Sensitive name: the content stays on the PC</string>
+    <string name="diff_hidden_big">Over 1 MB: the content stays on the PC</string>
+    <string name="diff_hidden_renamed">Renamed, no lines changed</string>
+    <string name="diff_hidden_empty">No lines to show</string>
+    <string name="changes_title">Changes</string>
+    <plurals name="changes_files">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <string name="changes_open">Open the changes</string>
+    <string name="changes_label_new">new</string>
+    <string name="changes_label_deleted">deleted</string>
+    <string name="changes_label_renamed">renamed</string>
+    <string name="changes_label_binary">binary</string>
+    <string name="changes_base">Against the last commit %1$s</string>
+    <string name="changes_no_commits">Repository without commits: every file shows as new</string>
+    <string name="changes_outside_git">Folder outside git: the changes Claude made in this conversation</string>
+    <string name="changes_none">No changes since the last commit</string>
+    <string name="changes_none_transcript">Claude has not changed any file in this conversation yet</string>
+    <plurals name="changes_more_files">
+        <item quantity="one">One more file is not listed: the view stops at 50 files and 2000 lines</item>
+        <item quantity="other">%d more files are not listed: the view stops at 50 files and 2000 lines</item>
+    </plurals>
+    <string name="changes_loading">Reading the changes from the PC</string>
+    <string name="changes_file_loading">Reading the file from the PC</string>
+    <string name="changes_file_gone">This file has no changes any more: tap Refresh</string>
     <string name="show_preview">Show preview</string>
 </resources>

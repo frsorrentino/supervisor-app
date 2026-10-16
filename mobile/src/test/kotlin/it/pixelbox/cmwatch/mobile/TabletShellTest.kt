@@ -15,6 +15,7 @@ import com.android.resources.ScreenOrientation
 import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.ui.*
 import it.pixelbox.cmwatch.rules.ChatFeed
+import it.pixelbox.cmwatch.rules.DiffRules
 import it.pixelbox.cmwatch.rules.DayBars
 import it.pixelbox.cmwatch.rules.PhoneOverview
 import it.pixelbox.cmwatch.rules.QuotaHistory
@@ -108,7 +109,7 @@ class TabletShellTest {
 
     /** La vista unica (Franz, 04/10 16:36): la home del telefono di lato, le colonne, i dettagli se accesi. */
     @Composable
-    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false) = CmPhoneTheme(still = true) {
+    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false) = CmPhoneTheme(still = true) {
         val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
         val rows = Tablet.groups(summary).flatMap { it.second }
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
@@ -125,9 +126,11 @@ class TabletShellTest {
             column = { name, drag ->
                 val r = rows.first { it.session.name == name }
                 SessionSheet(
-                    r.session, ts, emptyList(), 120, none, ops = st.ops, canAttach = true, header = true, choices = st.choices,
+                    r.session, ts, emptyList(), 120, if (changes) none.copy(changes = { DiffRules.Load.Failed(DiffRules.Why.DOWN) }) else none,
+                    ops = st.ops, canAttach = true, header = true, choices = st.choices,
                     feed = if (name == selected.name) feed else shortFeed(name),
                     appBar = { TabletColumnHeader(r, ts, onClose = {}, drag = drag) },
+                    changesShown = if (changes && name == selected.name) DiffRules.Load.Ok(ContractJson.decodeChanges(File("../contract/changes-sample.json").readText())) else null,
                 )
             },
             // Variante B (Franz, 09/10 16:17): senza colonne il cruscotto, Recap e Utilizzo larghi.
@@ -160,6 +163,8 @@ class TabletShellTest {
 
     // Nessuna colonna ancora: l'invito a toccare una sessione nella home.
     @Test fun tabletDeskEmpty() = paparazzi.snapshot { desk(emptyList(), emptyList()) }
+    // Contratto 1.72: la vista «Modifiche» si apre nella colonna della sessione; la home e l'altra colonna restano.
+    @Test fun tabletDeskChanges() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(6, 6), changes = true) }
 
     // La barra del titolo nostra sul Pixel Tablet in finestra (Franz, 05/10 11:21): schede delle colonne, quota a destra, i
     // tasti di sistema lasciati liberi (qui 140 dp a destra, come quelli di Android).

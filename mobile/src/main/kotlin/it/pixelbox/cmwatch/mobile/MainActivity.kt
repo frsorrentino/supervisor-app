@@ -64,6 +64,8 @@ import it.pixelbox.cmwatch.rules.TerminalLive
 import it.pixelbox.cmwatch.rules.StartRoute
 import it.pixelbox.cmwatch.contract.Freshness
 import it.pixelbox.cmwatch.rules.PhonePrimary
+import it.pixelbox.cmwatch.data.Repo
+import it.pixelbox.cmwatch.rules.DiffRules
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -998,6 +1000,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // Contratto 1.72: «Mostra tutto» chiede il passaggio intero con l'op `diff`, una lettura a richiesta fuori dalla coda:
+        // senza risposta il PC non è raggiungibile. Senza l'op nello stato il tasto non c'è.
+        val readDiff: (String) -> DiffOpener = { name ->
+            DiffOpener(full = if (state?.ops?.contains("diff") == true) ({ id ->
+                val d = app.repo.deliver(CmdOp.DIFF, name, id, java.util.UUID.randomUUID().toString())
+                DiffRules.read((d as? Repo.Delivery.Done)?.result, ContractJson::decodeDiff)
+            }) else null)
+        }
+        val readChanges: (String) -> (suspend (String?) -> DiffRules.Load<it.pixelbox.cmwatch.contract.ChangesView>)? = { name ->
+            if (state?.ops?.contains("changes") == true) ({ file ->
+                val d = app.repo.deliver(CmdOp.CHANGES, name, file?.let(DiffRules::fileArg), java.util.UUID.randomUUID().toString())
+                DiffRules.read((d as? Repo.Delivery.Done)?.result, ContractJson::decodeChanges)
+            }) else null
+        }
         val sessionPage: @Composable (it.pixelbox.cmwatch.contract.Session, List<it.pixelbox.cmwatch.contract.TranscriptEntry>, (@Composable ColumnScope.((String) -> Unit, (String) -> Unit) -> Unit)?, Boolean, (@Composable () -> Unit)?, (@Composable () -> Unit)?, Boolean, (@Composable () -> Unit)?, (@Composable RowScope.() -> Unit)?) -> Unit = { session, pageEntries, home, header, dock, bar, homeOpen, appBar, lead ->
                         val nightDir = state?.takeIf { it.night.items != null }?.let { st -> ChatRules.nightDir(st, session) }
                         val quotaWarn = state?.let { st -> it.pixelbox.cmwatch.rules.QuotaWarning.of(st, session, samples[session.account].orEmpty(), now) }
@@ -1043,7 +1059,7 @@ class MainActivity : ComponentActivity() {
                                 Slash.panel(r.sent, results[r.sent.id])?.let { p -> app.chatLog.markPanel(r.sent.id, p) }
                             }
                         }
-                        CompositionLocalProvider(LocalFileOpener provides FileOpener({ k, f -> openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered)) {
+                        CompositionLocalProvider(LocalFileOpener provides FileOpener({ k, f -> openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered), LocalDiffOpener provides readDiff(session.name)) {
                         SessionSheet(session, now, snap.pending, ttsMinChars, SheetActions(
                             answer = { n -> scope.launch { app.repo.answer(session.name, n) } },
                             allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },
@@ -1167,6 +1183,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }) else null,
                             askMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.takeIf { m -> m.name != session.name }?.let { m -> { askMasterAbout(m.name, session.name) } },
+                            changes = readChanges(session.name),
                         ), chat = rows, quota = quotaWarn, accountQuota = state?.quota?.get(session.account), canTonight = nightDir != null,
                             // Niente frasi rapide (Franz, 01/10 23:34: «via» fisso, generico e fuori luogo): i consigli in più
                             // li scriverà la sessione stessa a fine turno.
