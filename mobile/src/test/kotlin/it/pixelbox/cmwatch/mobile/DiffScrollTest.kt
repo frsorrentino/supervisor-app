@@ -16,8 +16,14 @@ import androidx.compose.ui.unit.dp
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import app.cash.paparazzi.SnapshotHandler
+import it.pixelbox.cmwatch.contract.ChangedFile
+import it.pixelbox.cmwatch.contract.ChangesTotals
+import it.pixelbox.cmwatch.contract.ChangesView
 import it.pixelbox.cmwatch.contract.Hunk
+import it.pixelbox.cmwatch.contract.Session
+import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.contract.StepDiff
+import it.pixelbox.cmwatch.mobile.ui.ChangesPanel
 import it.pixelbox.cmwatch.mobile.ui.DiffOpener
 import it.pixelbox.cmwatch.mobile.ui.LocalDiffOpener
 import it.pixelbox.cmwatch.mobile.ui.StepDiffRow
@@ -58,6 +64,18 @@ class DiffScrollTest {
         }
         paparazzi.gif(view, end = 2000, fps = 60)
         assertEquals("il passaggio intero chiesto al PC", 1, asked)
+    }
+
+    // Due file con lo stesso percorso (il relay non li manda, ma il 15/10 una chiave doppia ha chiuso l'app a ogni apertura):
+    // la vista si disegna lo stesso.
+    @Test fun twoFilesWithTheSamePathDoNotCrash() {
+        val f = ChangedFile("src/a.ts", "modified", 1, 1, 10, listOf(Hunk(1, 1, 1, 1, listOf("-a", "+b"))))
+        val v = ChangesView("git", "/w", "a1b2c3d", listOf(f, f), ChangesTotals(2, 2, 2))
+        val s = Session("s1", "storefront", "personal", "storefront", SessionState.IDLE, 0)
+        val view = ComposeView(paparazzi.context).apply {
+            setContent { ChangesPanel(s, load = { DiffRules.Load.Ok(v) }, onClose = {}, start = DiffRules.Load.Ok(v)) }
+        }
+        paparazzi.gif(view, end = 200, fps = 30)
     }
 
     // Fotogrammi buttati, come in ChatScrollTest.

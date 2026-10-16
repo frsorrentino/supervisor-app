@@ -50,6 +50,7 @@ import it.pixelbox.cmwatch.contract.Hunk
 import it.pixelbox.cmwatch.contract.StepDiff
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.DiffRules
+import it.pixelbox.cmwatch.rules.uniqueKeys
 import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /*
@@ -306,7 +307,9 @@ private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Loa
         if (v.files.isEmpty()) item(key = "none") {
             DiffNote(stringResource(if (src == DiffRules.Source.TRANSCRIPT) R.string.changes_none_transcript else R.string.changes_none))
         }
-        items(v.files, key = { it.path }) { f -> FileChange(f, load, asked, startOpen[f.path], read) }
+        // Chiavi mai ripetute, anche con due file dallo stesso percorso: una chiave doppia chiude l'app (15/10 23:41).
+        val keys = uniqueKeys(v.files) { it.path }
+        items(v.files.size, key = { keys[it] }) { i -> val f = v.files[i]; FileChange(f, load, asked, startOpen[f.path], read) }
         DiffRules.hiddenFiles(v).takeIf { it > 0 }?.let { n ->
             item(key = "more") { DiffNote(pluralStringResource(R.plurals.changes_more_files, n, n)) }
         }

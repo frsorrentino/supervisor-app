@@ -50,7 +50,8 @@
       {@const src = source(v)}
       <p class="src" class:outside={src === 'transcript'}>{src === 'transcript' ? t.changesOutsideGit : src === 'no_commits' ? t.changesNoCommits : t.changesBase(v.base ?? '')}</p>
       {#if !v.files.length}<p class="note">{src === 'transcript' ? t.changesNoneTranscript : t.changesNone}</p>{/if}
-      {#each v.files as f (f.path)}
+      <!-- Chiave con la posizione: due file dallo stesso percorso non rompono l'elenco (la chiave doppia del 15/10). -->
+      {#each v.files as f, i (`${i}:${f.path}`)}
         {@const why = hidden(f)}
         {@const l = label(f.status)}
         <div class="file">
