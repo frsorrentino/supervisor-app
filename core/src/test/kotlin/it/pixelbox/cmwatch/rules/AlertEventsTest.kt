@@ -36,7 +36,7 @@ class AlertEventsTest {
     }
 
     @Test fun theLimitStaysUntilTheResetOrANewTurn() {
-        val idle = atlas.copy(state = SessionState.IDLE, turnStarted = 900)
+        val idle = atlas.copy(state = SessionState.IDLE, turnStarted = 900, outcome = null)
         assertEquals(limit, AlertEvents.openLimit(listOf(limit), idle, 2000))
         assertNull(AlertEvents.openLimit(listOf(limit), idle, 5000))
         assertNull(AlertEvents.openLimit(listOf(limit), idle.copy(state = SessionState.BUSY, turnStarted = 1200), 2000))

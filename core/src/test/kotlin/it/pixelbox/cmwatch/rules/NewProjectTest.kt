@@ -48,7 +48,7 @@ class NewProjectTest {
         val ev = ContractJson.decodeEvents(Fixtures.events)
         val f = ev.single { it.kind == EventKind.TURN_FAILED }
         assertEquals("carry on from where you stopped", f.continueText); assertEquals("api_error: 529 overloaded_error", f.reason)
-        val atlas = st.sessions.single { it.name == "atlas-shop" }.copy(state = SessionState.IDLE, turnStarted = f.ts - 100)
+        val atlas = st.sessions.single { it.name == "atlas-shop" }.copy(state = SessionState.IDLE, turnStarted = f.ts - 100, outcome = null)
         assertEquals(f, AlertEvents.openFailure(ev, atlas, f.ts + 60))
         assertNull(AlertEvents.openFailure(ev, atlas.copy(turnStarted = f.ts + 10), f.ts + 60))
         assertNull(AlertEvents.openFailure(ev, atlas, f.ts + 7 * 3600))
