@@ -126,4 +126,14 @@ class DiffRulesTest {
         assertEquals(DiffRules.Source.NO_COMMITS, DiffRules.source(view.copy(base = null)))
         assertEquals(DiffRules.Source.TRANSCRIPT, DiffRules.source(view.copy(source = "transcript", repo = null, base = null)))
     }
+
+    // Revisione finale (16/10): `file=` solo per un file tagliato; con le righe già complete niente lettura, quindi niente
+    // «PC non raggiungibile» sotto un diff intero a PC spento.
+    @Test fun onlyACutFileIsAskedAgain() {
+        assertFalse(DiffRules.askFile(totals))
+        assertTrue(DiffRules.askFile(totals.copy(cut = true)))
+        assertTrue(DiffRules.askFile(totals.copy(hunks = emptyList(), cut = true)))
+        assertFalse(DiffRules.askFile(view.files[2]))
+        assertFalse(DiffRules.askFile(view.files[3]))
+    }
 }

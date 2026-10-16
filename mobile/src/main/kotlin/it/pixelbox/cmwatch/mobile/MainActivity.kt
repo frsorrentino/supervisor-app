@@ -1059,7 +1059,7 @@ class MainActivity : ComponentActivity() {
                                 Slash.panel(r.sent, results[r.sent.id])?.let { p -> app.chatLog.markPanel(r.sent.id, p) }
                             }
                         }
-                        CompositionLocalProvider(LocalFileOpener provides FileOpener({ k, f -> openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered), LocalDiffOpener provides readDiff(session.name)) {
+                        CompositionLocalProvider(LocalFileOpener provides FileOpener({ k, f -> openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
                         SessionSheet(session, now, snap.pending, ttsMinChars, SheetActions(
                             answer = { n -> scope.launch { app.repo.answer(session.name, n) } },
                             allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },

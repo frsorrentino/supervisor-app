@@ -115,6 +115,9 @@ object DiffRules {
         else -> Source.GIT
     }
 
+    /** Revisione finale (16/10): un file aperto si chiede al PC con `file=` solo se l'elenco l'ha tagliato; altrimenti le righe ci sono già. */
+    fun askFile(f: ChangedFile): Boolean = f.cut
+
     /** L'argomento di `changes` per un file solo. */
     fun fileArg(path: String): String = "file=$path"
 

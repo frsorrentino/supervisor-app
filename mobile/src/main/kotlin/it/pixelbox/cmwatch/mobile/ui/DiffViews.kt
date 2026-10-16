@@ -58,8 +58,15 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
  * (core), le stesse della web (diff.ts). Surface, IconButton e TextButton sono quelli del package, con la mano del mouse.
  */
 
-/** «Mostra tutto»: l'op `diff` con l'id della voce; null = il relay non la conosce. La fornisce MainActivity, come i file. */
-data class DiffOpener(val full: (suspend (entryId: String) -> DiffRules.Load<StepDiff>)? = null)
+/**
+ * «Mostra tutto»: l'op `diff` con l'id della voce; null = il relay non la conosce. La fornisce MainActivity, come i file.
+ * `got`: i passaggi interi già arrivati, per id, fuori dalla LazyColumn della chat: un passaggio che esce di vista e torna non
+ * si richiede al PC (revisione finale, 16/10).
+ */
+data class DiffOpener(
+    val full: (suspend (entryId: String) -> DiffRules.Load<StepDiff>)? = null,
+    val got: MutableMap<String, StepDiff> = mutableMapOf(),
+)
 val LocalDiffOpener = compositionLocalOf { DiffOpener() }
 
 /** Il carattere del diff: larghezza fissa, ogni riga alta 18 sp senza margini del carattere, uguale per numeri e testo. */
@@ -164,14 +171,14 @@ internal fun DiffLine(
 /**
  * Sotto un passaggio di modifica: la riga chiusa; il tocco apre il diff; con `cut` l'ultima riga è «Mostra tutto», che chiede
  * il passaggio intero (op `diff`, fino a 5000 righe). Aperto e «Mostra tutto» restano dopo una rotazione; il passaggio intero
- * si richiede da solo (DiffRules.shown). `startOpen`: negli snapshot.
+ * si richiede da solo (DiffRules.shown). `startOpen` e `startAll`: nei test.
  */
 @Composable
-internal fun StepDiffRow(entryId: String, d: StepDiff, startOpen: Boolean = false) {
+internal fun StepDiffRow(entryId: String, d: StepDiff, startOpen: Boolean = false, startAll: Boolean = false) {
     val opener = LocalDiffOpener.current
     var open by rememberSaveable(entryId) { mutableStateOf(startOpen) }
-    var wantAll by rememberSaveable(entryId) { mutableStateOf(false) }
-    var full by remember(entryId) { mutableStateOf<DiffRules.Load<StepDiff>?>(null) }
+    var wantAll by rememberSaveable(entryId) { mutableStateOf(startAll) }
+    var full by remember(entryId) { mutableStateOf<DiffRules.Load<StepDiff>?>(opener.got[entryId]?.let { DiffRules.Load.Ok(it) }) }
     var busy by remember(entryId) { mutableStateOf(false) }
     val failed = full as? DiffRules.Load.Failed
     val shown = DiffRules.shown(d, (full as? DiffRules.Load.Ok)?.value, wantAll, busy || failed != null)
@@ -179,7 +186,9 @@ internal fun StepDiffRow(entryId: String, d: StepDiff, startOpen: Boolean = fals
         val fetch = opener.full
         if (!shown.ask || fetch == null) return@LaunchedEffect
         busy = true
-        full = fetch(entryId)
+        val r = fetch(entryId)
+        if (r is DiffRules.Load.Ok) opener.got[entryId] = r.value
+        full = r
         busy = false
     }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -281,6 +290,9 @@ internal fun ChangesPanel(
 
 @Composable
 private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Load<ChangesView>, asked: Int, startOpen: Map<String, DiffRules.Load<ChangesView>>) {
+    // Revisione finale (16/10): i file letti con `file=` restano qui, fuori dalla LazyColumn: un file che esce di vista e torna
+    // non si richiede al PC. Aggiorna (asked) ricomincia da capo.
+    val read = remember(asked) { mutableMapOf<String, DiffRules.Load<ChangesView>>() }
     val src = DiffRules.source(v)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item(key = "source") {
@@ -294,7 +306,7 @@ private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Loa
         if (v.files.isEmpty()) item(key = "none") {
             DiffNote(stringResource(if (src == DiffRules.Source.TRANSCRIPT) R.string.changes_none_transcript else R.string.changes_none))
         }
-        items(v.files, key = { it.path }) { f -> FileChange(f, load, asked, startOpen[f.path]) }
+        items(v.files, key = { it.path }) { f -> FileChange(f, load, asked, startOpen[f.path], read) }
         DiffRules.hiddenFiles(v).takeIf { it > 0 }?.let { n ->
             item(key = "more") { DiffNote(pluralStringResource(R.plurals.changes_more_files, n, n)) }
         }
@@ -303,15 +315,18 @@ private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Loa
 
 /** Un file della vista: la riga chiusa; aperto, le righe dell'elenco subito e intanto il file intero con `file=`. */
 @Composable
-private fun FileChange(f: ChangedFile, load: suspend (String?) -> DiffRules.Load<ChangesView>, asked: Int, start: DiffRules.Load<ChangesView>?) {
+private fun FileChange(f: ChangedFile, load: suspend (String?) -> DiffRules.Load<ChangesView>, asked: Int, start: DiffRules.Load<ChangesView>?, read: MutableMap<String, DiffRules.Load<ChangesView>>) {
     var open by rememberSaveable(f.path) { mutableStateOf(start != null) }
     var retry by remember(f.path) { mutableIntStateOf(0) }
-    var alone by remember(f.path) { mutableStateOf(start) }
+    var alone by remember(f.path, asked) { mutableStateOf(start ?: read[f.path]) }
     val hidden = DiffRules.hidden(f)
     LaunchedEffect(f.path, open, retry, asked) {
-        if (!open || hidden != null || (start != null && retry == 0)) return@LaunchedEffect
+        // Revisione finale (16/10): `file=` solo per un file tagliato, e una volta sola finché la lettura riesce.
+        if (!open || !DiffRules.askFile(f) || alone is DiffRules.Load.Ok) return@LaunchedEffect
         alone = null
-        alone = load(f.path)
+        val r = load(f.path)
+        alone = r
+        if (r is DiffRules.Load.Ok) read[f.path] = r
     }
     val label = when (DiffRules.label(f.status)) {
         DiffRules.Label.NEW -> stringResource(R.string.changes_label_new)
@@ -324,6 +339,7 @@ private fun FileChange(f: ChangedFile, load: suspend (String?) -> DiffRules.Load
         DiffLine(DiffRules.name(f.path), f.added, f.removed, open, onClick = { open = !open }, folder = DiffRules.folder(f.path), label = label, counts = DiffRules.showCounts(f))
         if (open) {
             if (hidden != null) DiffNote(hiddenText(hidden))
+            else if (!DiffRules.askFile(f)) DiffBox(f.hunks)
             else when (val a = alone) {
                 null -> { if (f.hunks.isNotEmpty()) DiffBox(f.hunks); DiffNote(stringResource(R.string.changes_file_loading)) }
                 is DiffRules.Load.Failed -> { if (f.hunks.isNotEmpty()) DiffBox(f.hunks); DiffFailed(a) { retry++ } }
