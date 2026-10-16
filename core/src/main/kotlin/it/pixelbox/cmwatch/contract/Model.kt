@@ -362,6 +362,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val quiet: Boolean = false,
     /** Contratto 1.68, `attention_reminder`: il kind della voce di `state.attention` che aspetta ancora. */
     @SerialName("attention_kind") val attentionKind: String? = null,
+    /** Relay 0.8.30: il `turn_failed` chiuso, riscritto senza `continue_text` e con l'ora della chiusura. */
+    @SerialName("settled_at") val settledAt: Long? = null,
 ) {
     /** Titolo e corpo per notifiche e schermata di blocco (contratto 1.56). */
     val shareTitle: String get() = preview?.title ?: title

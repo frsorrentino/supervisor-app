@@ -79,7 +79,9 @@ export type Event = { key: string; kind: EventKind; session?: string | null; acc
   /** Contratto 1.61 (`turn_failed`) e 1.62 (`quiet`: senza suono, Franz è al PC). */
   reason?: string | null; continue_text?: string | null; quiet?: boolean
   /** Contratto 1.68, `attention_reminder`: il kind della voce che aspetta ancora. */
-  attention_kind?: string | null }
+  attention_kind?: string | null
+  /** Relay 0.8.30: il `turn_failed` chiuso, riscritto senza `continue_text` e con l'ora della chiusura. */
+  settled_at?: number | null }
 
 // Trascrizione (contratto 1.22): `in` comprende la cache; `queued` = scritta a turno in corso e non ancora presa; `cut` = accorciata dal PC.
 export type TranscriptTurn = { started?: number | null; ended?: number | null; in?: number | null; out?: number | null }

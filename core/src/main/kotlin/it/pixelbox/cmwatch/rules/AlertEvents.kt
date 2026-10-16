@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.rules
 
+import it.pixelbox.cmwatch.contract.Attention
 import it.pixelbox.cmwatch.contract.Event
 import it.pixelbox.cmwatch.contract.EventKind
 import it.pixelbox.cmwatch.contract.Session
@@ -36,20 +37,29 @@ object AlertEvents {
         sessions.filter { it.state != SessionState.GONE && it.name != stopped }.map { it.name }
 
     /**
-     * Il `quota_limit` ancora da decidere per una sessione: l'ultimo, finché la quota non si azzera (5 ore senza `reset_at`)
-     * e finché la sessione non ha ripreso a lavorare dopo l'evento.
+     * Chiuso dopo l'evento (16/10: turn_started è null a turno finito, e da solo riapriva la riga): un turno partito, un
+     * esito arrivato, la voce uscita da `state.attention` (passata solo quando lo stato c'è), `settled_at` del relay 0.8.30.
      */
-    fun openLimit(events: List<Event>, s: Session, nowS: Long): Event? =
-        events.filter { it.kind == EventKind.QUOTA_LIMIT && it.ref == s.name }.maxByOrNull { it.ts }
-            ?.takeIf { e -> (e.resetAt ?: (e.ts + 5 * 3600)) > nowS && (s.turnStarted ?: 0) <= e.ts && s.state != SessionState.GONE }
+    private fun closed(e: Event, s: Session, attention: List<Attention>?): Boolean =
+        e.settledAt != null || (s.turnStarted ?: 0) > e.ts || (s.outcome?.at ?: 0) > e.ts ||
+            attention != null && attention.none { it.kind == (if (e.kind == EventKind.QUOTA_LIMIT) "quota_limit" else "turn_failed") && it.ref == s.name }
 
     /**
-     * Contratto 1.61: il turno fallito ancora da riprendere per una sessione, l'ultimo, finché la sessione non riparte dopo
-     * l'evento e per al massimo 6 ore. Il tasto «Continua» manda `continue_text` come prompt.
+     * Il `quota_limit` ancora da decidere per una sessione: l'ultimo, finché la quota non si azzera (5 ore senza `reset_at`)
+     * e finché non è chiuso. `attention` = `state.attention.orEmpty()`, null senza stato.
      */
-    fun openFailure(events: List<Event>, s: Session, nowS: Long): Event? =
-        events.filter { it.kind == EventKind.TURN_FAILED && it.ref == s.name && !it.continueText.isNullOrBlank() }.maxByOrNull { it.ts }
-            ?.takeIf { e -> nowS - e.ts < 6 * 3600 && (s.turnStarted ?: 0) <= e.ts && s.state != SessionState.GONE && s.state != SessionState.BUSY }
+    fun openLimit(events: List<Event>, s: Session, nowS: Long, attention: List<Attention>? = null): Event? =
+        events.filter { it.kind == EventKind.QUOTA_LIMIT && it.ref == s.name }.maxByOrNull { it.ts }
+            ?.takeIf { e -> (e.resetAt ?: (e.ts + 5 * 3600)) > nowS && !closed(e, s, attention) && s.state != SessionState.GONE }
+
+    /**
+     * Contratto 1.61: il turno fallito ancora da riprendere per una sessione, l'ultimo, finché non è chiuso e per al massimo
+     * 6 ore. Il tasto «Continua» manda `continue_text` come prompt; l'ultimo evento senza testo è già chiuso.
+     */
+    fun openFailure(events: List<Event>, s: Session, nowS: Long, attention: List<Attention>? = null): Event? =
+        events.filter { it.kind == EventKind.TURN_FAILED && it.ref == s.name }.maxByOrNull { it.ts }
+            ?.takeIf { e -> !e.continueText.isNullOrBlank() && nowS - e.ts < 6 * 3600 && !closed(e, s, attention) &&
+                s.state != SessionState.GONE && s.state != SessionState.BUSY }
 
     /** Contratto 1.62: senza suono né vibrazione, perché Franz è al PC su quella sessione. Senza il campo si suona (fail open). */
     fun quiet(e: Event?, s: Session?): Boolean = e?.quiet == true || s?.atPc == true

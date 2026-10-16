@@ -38,3 +38,31 @@ describe('turno fallito (contratto 1.61)', () => {
     expect(openFailure([f], s('atlas-shop', 'idle', 900), 1000 + 7 * 3600)).toBeNull()
   })
 })
+
+// 16/10 (Franz alle 16:03, «va corretto ora»): «master: turno fallito» con Continua tornava sotto risposte riuscite, perché a
+// turno finito turn_started è null. Si chiude anche con un esito dopo l'evento, senza la voce in attention, con settled_at.
+describe('turno fallito chiuso', () => {
+  const f: Event = { key: 'k', kind: 'turn_failed', session: 'atlas-shop', ts: 1000, title: '⚠ atlas-shop: turn failed — 529', ref: 'atlas-shop', reason: '529', continue_text: 'carry on' }
+  const done = (at: number): Session => ({ ...s('atlas-shop', 'idle', null), outcome: { short: 'ok', full: 'ok', at } })
+  const voice = [{ kind: 'turn_failed', session: 'atlas-shop', ref: 'atlas-shop', title: '⚠', since: 1000 }]
+  it('turno fallito chiuso da un esito dopo l\'evento', () => {
+    expect(openFailure([f], done(900), 1060)).toBe(f)
+    expect(openFailure([f], done(1100), 1160)).toBeNull()
+  })
+  it('turno fallito chiuso quando attention non ha più la voce', () => {
+    expect(openFailure([f], s('atlas-shop', 'idle', null), 1060, voice)).toBe(f)
+    expect(openFailure([f], s('atlas-shop', 'idle', null), 1060, [])).toBeNull()
+    expect(openFailure([f], s('atlas-shop', 'idle', null), 1060, [{ ...voice[0], ref: 'ledger-api' }])).toBeNull()
+  })
+  it('turno fallito chiuso con settled_at o senza continue_text', () => {
+    expect(openFailure([{ ...f, settled_at: 1100 }], s('atlas-shop', 'idle', null), 1160)).toBeNull()
+    expect(openFailure([{ ...f, continue_text: null }], s('atlas-shop', 'idle', null), 1160)).toBeNull()
+  })
+  it('quota finita chiusa allo stesso modo', () => {
+    expect(openLimit([limit], done(900), 2000)).toBe(limit)
+    expect(openLimit([limit], done(1100), 2000)).toBeNull()
+    expect(openLimit([limit], s('atlas-shop', 'idle', null), 2000, [{ ...voice[0], kind: 'quota_limit' }])).toBe(limit)
+    expect(openLimit([limit], s('atlas-shop', 'idle', null), 2000, voice)).toBeNull()
+    expect(openLimit([{ ...limit, settled_at: 1500 }], s('atlas-shop', 'idle', null), 2000)).toBeNull()
+  })
+})

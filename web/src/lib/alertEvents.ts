@@ -1,4 +1,4 @@
-import type { Event, Session } from './contract'
+import type { Attention, Event, Session } from './contract'
 
 // Gli eventi che chiedono una riga o un tasto, porta di AlertEvents.kt. Contratto 1.57: il controllo di un task allo stop,
 // verde o rosso. Contratto 1.58: quota finita, con le strade che il relay propone.
@@ -23,16 +23,25 @@ export function ways(e: Event, w: Words, hhmm: (s: number) => string): Way[] {
 export const passArg = (session: string) => `pass:${session}`
 export const passTargets = (sessions: Session[], stopped: string) => sessions.filter(s => s.state !== 'gone' && s.name !== stopped).map(s => s.name)
 
-/** Il quota_limit ancora da decidere: l'ultimo, fino al reset (5 ore senza `reset_at`) e finché la sessione non riprende. */
-export function openLimit(events: Event[], s: Session, nowS: number): Event | null {
-  const e = events.filter(x => x.kind === 'quota_limit' && x.ref === s.name).sort((a, b) => b.ts - a.ts)[0]
-  if (!e) return null
-  return (e.reset_at ?? e.ts + 5 * 3600) > nowS && (s.turn_started ?? 0) <= e.ts && s.state !== 'gone' ? e : null
+/**
+ * Chiuso dopo l'evento (16/10: turn_started è null a turno finito, e da solo riapriva la riga): un turno partito, un esito
+ * arrivato, la voce uscita da `state.attention` (passata solo quando lo stato c'è), `settled_at` del relay 0.8.30.
+ */
+function closed(e: Event, s: Session, attention?: Attention[] | null): boolean {
+  if (e.settled_at != null || (s.turn_started ?? 0) > e.ts || (s.outcome?.at ?? 0) > e.ts) return true
+  return attention !== undefined && !(attention ?? []).some(a => a.kind === e.kind && a.ref === s.name)
 }
 
-/** Contratto 1.61: il turno fallito ancora da riprendere, l'ultimo, finché la sessione non riparte e per al massimo 6 ore. */
-export function openFailure(events: Event[], s: Session, nowS: number): Event | null {
-  const e = events.filter(x => x.kind === 'turn_failed' && x.ref === s.name && x.continue_text?.trim()).sort((a, b) => b.ts - a.ts)[0]
+/** Il quota_limit ancora da decidere: l'ultimo, fino al reset (5 ore senza `reset_at`) e finché non è chiuso. */
+export function openLimit(events: Event[], s: Session, nowS: number, attention?: Attention[] | null): Event | null {
+  const e = events.filter(x => x.kind === 'quota_limit' && x.ref === s.name).sort((a, b) => b.ts - a.ts)[0]
   if (!e) return null
-  return nowS - e.ts < 6 * 3600 && (s.turn_started ?? 0) <= e.ts && s.state !== 'gone' && s.state !== 'busy' ? e : null
+  return (e.reset_at ?? e.ts + 5 * 3600) > nowS && !closed(e, s, attention) && s.state !== 'gone' ? e : null
+}
+
+/** Contratto 1.61: il turno fallito ancora da riprendere, l'ultimo, finché non è chiuso e per al massimo 6 ore. */
+export function openFailure(events: Event[], s: Session, nowS: number, attention?: Attention[] | null): Event | null {
+  const e = events.filter(x => x.kind === 'turn_failed' && x.ref === s.name).sort((a, b) => b.ts - a.ts)[0]
+  if (!e?.continue_text?.trim()) return null
+  return nowS - e.ts < 6 * 3600 && !closed(e, s, attention) && s.state !== 'gone' && s.state !== 'busy' ? e : null
 }
