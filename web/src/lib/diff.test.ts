@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeChanges, decodeState, type ChangedFile, type StepDiff } from './contract'
-import { alone, counts, fileArg, folder, gutter, hidden, hiddenFiles, label, MAX_LINE_CHARS, name, pill, read, rows, secret, showCounts, shown, source, stepLine } from './diff'
+import { alone, askFile, counts, fileArg, folder, gutter, hidden, hiddenFiles, label, MAX_LINE_CHARS, name, pill, read, rows, secret, showCounts, shown, source, stepLine } from './diff'
 
 // Gli stessi casi di DiffRulesTest in Kotlin (contratto 1.72, il diff dal telefono).
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
@@ -110,5 +110,13 @@ describe('tagli, pillola e letture', () => {
   })
   it('da dove vengono le modifiche', () => {
     expect([source(view), source({ ...view, base: null }), source({ ...view, source: 'transcript', repo: null, base: null })]).toEqual(['git', 'no_commits', 'transcript'])
+  })
+})
+
+// Revisione finale (16/10): `file=` solo per un file tagliato (gli stessi casi di DiffRulesTest.onlyACutFileIsAskedAgain).
+describe('quando un file aperto si chiede al PC', () => {
+  it('solo se è tagliato', () => {
+    expect([askFile(totals), askFile({ ...totals, cut: true }), askFile({ ...totals, hunks: [], cut: true }), askFile(view.files[2]), askFile(view.files[3])])
+      .toEqual([false, true, true, false, false])
   })
 })

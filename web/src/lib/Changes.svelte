@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import type { ChangedFile, ChangesView, Session } from './contract'
-  import { alone, folder, hidden, hiddenFiles, label, name, showCounts, source, type Load } from './diff'
+  import { alone, askFile, folder, hidden, hiddenFiles, label, name, showCounts, source, type Load } from './diff'
   import DiffBox from './DiffBox.svelte'
   import DiffLine from './DiffLine.svelte'
   import Page from './Page.svelte'
@@ -20,11 +20,13 @@
     got = await load(null)
     loading = false
     one = {}
-    for (const [p, on] of Object.entries(open)) if (on) void readFile(p)
+    // Si rilegge con `file=` solo un file aperto che l'elenco nuovo ha ancora tagliato.
+    const files = got.ok ? got.value.files : []
+    for (const [p, on] of Object.entries(open)) { const f = files.find(x => x.path === p); if (on && f && askFile(f)) void readFile(p) }
   }
   function toggle(f: ChangedFile) {
     open[f.path] = !open[f.path]
-    if (open[f.path] && hidden(f) == null) void readFile(f.path)
+    if (open[f.path] && askFile(f)) void readFile(f.path)
   }
   onMount(() => { void refresh() })
   const fail = (x: { why: string; text: string }) => (x.why === 'git' ? t.diffGit : x.why === 'down' ? t.diffDown : x.text)
@@ -56,6 +58,7 @@
             label={l ? t.changesLabels[l] : null} open={!!open[f.path]} onToggle={() => toggle(f)} />
           {#if open[f.path]}
             {#if why}<p class="note">{t.diffHidden[why]}</p>
+            {:else if !askFile(f)}<DiffBox hunks={f.hunks} />
             {:else}
               {@const a = one[f.path]}
               {#if a == null}

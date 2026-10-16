@@ -74,6 +74,8 @@ export const gutter = (rs: Row[]) => String(rs.reduce((m, r) => Math.max(m, r.ol
 export const hiddenFiles = (v: ChangesView) => Math.max(0, v.totals.files - v.files.length)
 export type Source = 'git' | 'no_commits' | 'transcript'
 export const source = (v: ChangesView): Source => (v.source === 'transcript' ? 'transcript' : v.base == null ? 'no_commits' : 'git')
+/** Revisione finale (16/10): un file aperto si chiede al PC con `file=` solo se l'elenco l'ha tagliato; altrimenti le righe ci sono già. */
+export const askFile = (f: ChangedFile) => f.cut
 /** L'argomento di `changes` per un file solo. */
 export const fileArg = (path: string) => `file=${path}`
 /** Il file nella risposta di `changes file=`: per percorso, o l'unico; null = non ha più modifiche. */
