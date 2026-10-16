@@ -1,4 +1,5 @@
-import type { Cmd, CmdResult, Event, Session, State, TranscriptEntry } from './contract'
+import changesRaw from '../../../contract/changes-sample.json?raw'
+import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
 import { demoSearch, world, type World } from './demo'
 import { NIGHT_TARGET } from './recapAgenda'
@@ -247,6 +248,24 @@ export class DemoTransport implements Transport {
           if (arg === 'at_reset') return ok(`${name} resumes by itself at 18:00, when the quota resets`)
           if (arg.startsWith('pass:')) { const to = arg.slice(5); return s.sessions.some(x => x.name === to) ? ok(`passed to ${to} with the handoff`) : ko(`${to} is not running`) }
           return ko(`quota_route ${arg}: expected other_account, at_reset or pass:<session>`)
+        }
+        // Contratto 1.72 (FakeTransport): la sessione con `changes` nello stato (storefront) ha le modifiche della fixture del
+        // contratto, le altre sono pulite; `file=` dà quel file solo, coi suoi conteggi.
+        case 'changes': {
+          if (!ses) return ko(`no session ${cmd.session}`)
+          const all: ChangesView = ses.changes ? { ...decodeChanges(changesRaw), at: t }
+            : { source: 'git', repo: `/home/demo/workspaces/${ses.project}`, base: 'f00ba47', files: [], totals: { files: 0, added: 0, removed: 0 }, cut: false, at: t }
+          const file = cmd.arg?.startsWith('file=') ? cmd.arg.slice(5) : null
+          if (file == null) return ok(JSON.stringify(all))
+          const fs = all.files.filter(f => f.path === file)
+          return ok(JSON.stringify({ ...all, files: fs, cut: false, totals: { files: fs.length, added: fs.reduce((n, f) => n + f.added, 0), removed: fs.reduce((n, f) => n + f.removed, 0) } }))
+        }
+        // Contratto 1.72: il passaggio intero di una voce; quello tagliato di blog ha la sua versione lunga nel mondo della demo.
+        case 'diff': {
+          const e = (this.world.transcripts[cmd.session ?? ''] ?? []).find(x => x.id === cmd.arg)
+          if (!e) return ko(`no entry ${cmd.arg} in the transcript`)
+          const d = this.world.fullDiffs[`${cmd.session}/${e.id}`] ?? e.diff
+          return d ? ok(JSON.stringify(d)) : ko(`no diff for ${cmd.arg}`)
         }
         case 'screen': return ses ? ok(['⏺ Reading the checklist', 'Read(RELEASE.md)', 'Edit app/admin.py', 'Read app/seed.py'].join('\n')) : ko(`no session ${cmd.session}`)
         default: return ko(`${cmd.op}: not available in demo`)

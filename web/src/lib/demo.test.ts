@@ -8,6 +8,9 @@ import { forMaster } from './strongAlert'
 import { page as nightPage, showHomeNight } from './night'
 import { newCmd } from './transport'
 import type { State } from './contract'
+import changesRaw from '../../../contract/changes-sample.json?raw'
+import { decodeChanges, decodeDiff } from './contract'
+import { ask } from './changes'
 
 // La demo rispecchia l'app (Franz, 15/10 20:36: «deve essere affidabile e rispecchiare al 100% l'app»): i nomi e i testi
 // della demo Android, i conti che tornano fra home, banner, avviso e coda, e un PC finto che risponde come FakeTransport.
@@ -25,6 +28,7 @@ describe('i dati della demo', () => {
     expect(w.state.ts).toBe(NOW)
     expect(w.events.every(e => e.ts <= NOW)).toBe(true)
     for (const s of w.state.sessions) { expect(s.since).toBeLessThanOrEqual(NOW); if (s.question) expect(s.question.asked_at).toBeLessThanOrEqual(NOW) }
+    for (const s of w.state.sessions) if (s.changes) expect(s.changes.at).toBeLessThanOrEqual(NOW)
     expect(NOW - w.night.generated_at).toBeLessThan(86400)
     expect(w.state.night.report?.date).toBe(w.night.date)
     expect(showHomeNight(w.state.night.report, null)).toBe(true)
@@ -132,5 +136,39 @@ describe('il PC finto della demo (FakeTransport)', () => {
     await d.send(newCmd('prompt', 'storefront', 'code 4411'))
     c = counts(d)
     expect(c).toEqual({ banner: [], home: [], queue: [], night: ['unblock:blog'], open: 3 })
+  })
+})
+
+describe('il diff dal telefono nella demo (contratto 1.72)', () => {
+  const tr = () => new DemoTransport(() => NOW + 60)
+  it('storefront ha la pillola e i diff veri della fixture nei passaggi', () => {
+    expect(w.state.sessions.filter(s => s.changes).map(s => [s.name, s.changes])).toEqual([['storefront', { files: 4, added: 8, removed: 2, at: NOW - 120 }]])
+    const steps = w.transcripts.storefront.filter(e => e.diff)
+    expect(steps.map(e => [e.tool, e.diff!.path, e.diff!.kind, e.diff!.added, e.diff!.removed])).toEqual([
+      ['Edit', '/home/dev/storefront/src/checkout/totals.ts', 'edit', 2, 1], ['Write', '/home/dev/storefront/tests/checkout/totals.test.ts', 'create', 5, 0]])
+    expect(steps.map(e => e.diff!.hunks)).toEqual(decodeChanges(changesRaw).files.slice(0, 2).map(f => f.hunks))
+  })
+  it('la vista: la fixture per storefront, un file solo con file=, niente per le altre', async () => {
+    const d = tr()
+    const all = decodeChanges((await d.send(newCmd('changes', 'storefront', null))).text)
+    expect([all.files.map(f => f.status), all.at]).toEqual([['modified', 'added', 'modified', 'binary'], NOW + 60])
+    const one = decodeChanges((await d.send(newCmd('changes', 'storefront', 'file=tests/checkout/totals.test.ts'))).text)
+    expect([one.files.map(f => f.path), one.totals]).toEqual([['tests/checkout/totals.test.ts'], { files: 1, added: 5, removed: 0 }])
+    expect(decodeChanges((await d.send(newCmd('changes', 'blog', null))).text).files).toEqual([])
+    expect(await d.send(newCmd('changes', 'nope', null))).toMatchObject({ ok: false, text: 'no session nope' })
+  })
+  it('«Mostra tutto» sul CSV di blog: 261 righe, tagliate a 200 nel passaggio', async () => {
+    const d = tr()
+    const step = d.world.transcripts.blog.find(e => e.diff?.cut)!
+    expect([step.id, step.diff!.hunks[0].lines.length]).toEqual(['w1', 200])
+    const full = decodeDiff((await d.send(newCmd('diff', 'blog', step.id))).text)
+    expect([full.cut, full.hunks[0].lines.length, full.added, full.hunks[0].lines.at(-1)]).toEqual([false, 261, 261, '+cart,65,523,39'])
+    expect(await d.send(newCmd('diff', 'blog', 'nope'))).toMatchObject({ ok: false, text: 'no entry nope in the transcript' })
+    const edit = d.world.transcripts.storefront.find(e => e.tool === 'Edit')!
+    expect(decodeDiff((await d.send(newCmd('diff', 'storefront', edit.id))).text)).toEqual(edit.diff)
+  })
+  it('la lettura della vista passa dal PC finto come dal relay', async () => {
+    const r = await ask(tr(), newCmd('changes', 'storefront', null), decodeChanges)
+    expect(r.ok && r.value.totals).toEqual({ files: 4, added: 8, removed: 2 })
   })
 })

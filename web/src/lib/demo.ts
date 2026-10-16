@@ -1,8 +1,9 @@
 import stateRaw from '../../../contract/state-1-question.json?raw'
+import changesRaw from '../../../contract/changes-sample.json?raw'
 import eventsRaw from '../../../contract/events-sample.json?raw'
 import nightRaw from '../../../contract/night-report-sample.json?raw'
-import { decodeState } from './contract'
-import type { AgendaPage, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry } from './contract'
+import { decodeChanges, decodeState } from './contract'
+import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
 import type { NightReport } from './night'
@@ -60,6 +61,8 @@ const isoDay = (t: number) => new Intl.DateTimeFormat('en-CA', { year: 'numeric'
 export type World = {
   state: State; events: Event[]; transcripts: Record<string, TranscriptEntry[]>; mine: [Sent, Status][]; samples: Record<string, Sample[]>
   night: NightReport; agenda: AgendaPage; timeline: TimelinePage
+  /** Contratto 1.72: il passaggio intero che l'op `diff` dà per «Mostra tutto», per «sessione/id della voce». */
+  fullDiffs: Record<string, StepDiff>
 }
 
 /** Il mondo della demo all'istante `now` (epoch s). */
@@ -75,7 +78,9 @@ export function world(now: number): World {
     ...base.sessions.map((s): Session => {
       const x: Session = { ...s, since: s.since + d, turn_started: sh(s.turn_started), question: s.question ? { ...s.question, asked_at: s.question.asked_at + d } : s.question,
         outcome: s.outcome ? { ...s.outcome, at: s.outcome.at + d } : s.outcome, goal: s.goal ? { ...s.goal, since: s.goal.since + d } : s.goal,
-        advice: s.advice ? { ...s.advice, at: s.advice.at + d } : s.advice }
+        advice: s.advice ? { ...s.advice, at: s.advice.at + d } : s.advice,
+        // Contratto 1.72: i conteggi della pillola sono di due minuti fa (nella fixture `at` non segue `ts`).
+        changes: s.changes ? { ...s.changes, at: now - 120 } : s.changes }
       // Contratto 1.68 nella demo (FakeTransport.stopped): storefront ferma per te con un login, blog con un ok alla fine del
       // turno. Blog è seguita e al 64 % di contesto: si vedono «ha finito» e la proposta «handoff, poi /clear».
       if (x.name === 'storefront') return { ...x, needs_you: stopLogin }
@@ -122,6 +127,15 @@ export function world(now: number): World {
   const table = en
     ? 'The files touched:\n\n| file | lines |\n|---|---|\n| edge-caching.md | 336 |\n| bench.csv | 47 |\n\nThe numbers\n\n| what | now | at noon |\n|---|---|---|\n| post on edge caching | 223 views, 4 reposts | 121 views, 1 repost |\n| new followers | 1 | — |\n\nEsito: numbers of the post on edge caching collected\nProssimi: publish the post · share it on X'
     : 'I file toccati:\n\n| file | righe |\n|---|---|\n| edge-caching.md | 336 |\n| bench.csv | 47 |\n\nI numeri\n\n| cosa | ora | a mezzogiorno |\n|---|---|---|\n| post sull\'edge caching | 223 visualizzazioni, 4 repost | 121 visualizzazioni, 1 repost |\n| nuovi follower | 1 | — |\n\nEsito: numeri del post sull\'edge caching raccolti\nProssimi: pubblica il post · condividilo su X'
+  // Contratto 1.72: i diff veri della fixture del contratto (changes-sample.json) nei passaggi di storefront, e su blog un CSV
+  // lungo, tagliato a 200 righe come fa il PC, per «Mostra tutto».
+  const sample = decodeChanges(changesRaw)
+  const stepOf = (f: ChangedFile, kind: string): StepDiff => ({ path: `${sample.repo}/${f.path}`, kind, added: f.added, removed: f.removed, hunks: f.hunks, cut: false })
+  const benchPages = ['home', 'product', 'category', 'cart']
+  const bench = ['page,run,before_ms,after_ms', ...Array.from({ length: 260 }, (_, i) => `${benchPages[i % 4]},${Math.floor(i / 4) + 1},${380 + ((i * 37) % 160)},${34 + ((i * 11) % 12)}`)]
+  const benchHunk = (n: number) => ({ old_start: 0, old_lines: 0, new_start: 1, new_lines: bench.length, lines: bench.slice(0, n).map(l => `+${l}`) })
+  const benchStep: StepDiff = { path: '/w/blog/bench/results.csv', kind: 'create', added: bench.length, removed: 0, hunks: [benchHunk(200)], cut: true }
+  const fullDiffs: Record<string, StepDiff> = { 'blog/w1': { ...benchStep, hunks: [benchHunk(bench.length)], cut: false } }
   const transcripts: Record<string, TranscriptEntry[]> = {
     master: [
       said('u1', en ? 'Launch payments-api on phase 2.2' : 'Lancia payments-api sulla fase 2.2', now - 660, 'phone'),
@@ -144,10 +158,13 @@ export function world(now: number): World {
       tool('a6.0', 'Write', 'docs/checkout-before.png', t0 + 152, { files: [{ path: '/w/storefront/docs/checkout-before.png', mime: 'image/png', size: 35_449 }] }),
       tool('a7.0', 'SendUserFile', 'Checkout test report', t0 + 155, { files: [{ path: '/w/storefront/docs/checkout-tests.pdf', mime: 'application/pdf', size: 1_872 }] }),
       said('p1.0', 'Also run the gift card flow on staging', t0 + 158, 'phone'),
+      tool('a8.0', 'Edit', '/home/dev/storefront/src/checkout/totals.ts', t0 + 160, { diff: stepOf(sample.files[0], 'edit') }),
+      tool('a8.1', 'Write', '/home/dev/storefront/tests/checkout/totals.test.ts', t0 + 170, { diff: stepOf(sample.files[1], 'create') }),
     ],
     blog: [
       tool('a0', 'Write', 'posts/edge-caching.md', t0 - 120, { files: [{ path: '/w/blog/posts/edge-caching.md', mime: 'text/markdown', size: 547 }, { path: '/w/blog/bench/bench-data.zip', mime: 'application/zip', size: 166 }] }),
       said('u1', numbers, t0, 'phone'),
+      tool('w1', 'Write', 'bench/results.csv', t0 + 20, { diff: benchStep }),
       claude('a1', table, t0 + 60, { turn: { started: t0 + 5, ended: t0 + 60, out: 288 } }),
     ],
   }
@@ -202,7 +219,7 @@ export function world(now: number): World {
       { at: d0 + 6000, kind: 'test', text: 'checkout tests', ok: true }] },
   ] }
 
-  return { state, events, transcripts, mine, samples, night, agenda, timeline }
+  return { state, events, transcripts, mine, samples, night, agenda, timeline, fullDiffs }
 }
 
 /**
