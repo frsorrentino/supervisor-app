@@ -54,11 +54,18 @@ describe('anteprime che arrivano da sole, come sul telefono', () => {
   })
   it('il tipo di anteprima', () => {
     expect(previewKind('image/png')).toBe('image')
-    expect(previewKind('image/svg+xml')).toBe('text')
+    // Franz, 16/10 11:18: HTML e SVG si vedono come pagina, in un riquadro isolato; XML resta testo.
+    expect(['text/html', 'image/svg+xml', 'application/xhtml+xml', 'text/html; charset=utf-8'].map(m => previewKind(m))).toEqual(['page', 'page', 'page', 'page'])
+    expect(previewKind('application/octet-stream', '/w/site/index.html')).toBe('page')
+    expect(previewKind('application/xml')).toBe('text')
     expect(previewKind('application/pdf')).toBe('pdf')
     expect(previewKind('application/octet-stream', '/w/x/notes.md')).toBe('text')
     expect(previewKind('application/json')).toBe('text')
     expect(previewKind('video/mp4')).toBe('video')
+  })
+  it('una pagina arriva da sola come un testo: fino a 1 MB e senza risparmio dati', () => {
+    expect([autoPreview('text/html', 2000), autoPreview('text/html', 2_000_000), autoPreview('image/svg+xml', 2000, false)]).toEqual([true, false, false])
+    expect(canPreview('text/html')).toBe(true)
   })
   it('le prime righe di un testo', () => {
     expect(firstLines('a\r\nb\n\n', 12)).toEqual({ lines: 'a\nb', more: false })

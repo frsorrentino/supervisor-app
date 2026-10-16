@@ -162,7 +162,7 @@ export function world(now: number): World {
       tool('a8.1', 'Write', '/home/dev/storefront/tests/checkout/totals.test.ts', t0 + 170, { diff: stepOf(sample.files[1], 'create') }),
     ],
     blog: [
-      tool('a0', 'Write', 'posts/edge-caching.md', t0 - 120, { files: [{ path: '/w/blog/posts/edge-caching.md', mime: 'text/markdown', size: 547 }, { path: '/w/blog/bench/bench-data.zip', mime: 'application/zip', size: 166 }] }),
+      tool('a0', 'Write', 'posts/edge-caching.md', t0 - 120, { files: [{ path: '/w/blog/posts/edge-caching.md', mime: 'text/markdown', size: 547 }, { path: '/w/blog/bench/bench-data.zip', mime: 'application/zip', size: 166 }, { path: '/w/blog/posts/edge-caching-preview.html', mime: 'text/html', size: 868 }] }),
       said('u1', numbers, t0, 'phone'),
       tool('w1', 'Write', 'bench/results.csv', t0 + 20, { diff: benchStep }),
       claude('a1', table, t0 + 60, { turn: { started: t0 + 5, ended: t0 + 60, out: 288 } }),

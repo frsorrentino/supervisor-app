@@ -72,6 +72,19 @@ Publishing a product purges its page and the category, nothing else.
 | product | 520 ms | 41 ms |
 """)
 
+# L'anteprima del post come pagina HTML (Franz, 16/10 11:18: si vede renderizzata, in un riquadro sandbox).
+HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Edge caching, three ways</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:24px;color:#1b1b1f;background:#fafafa}h1{font-size:24px;margin:0 0 8px}
+p{margin:0 0 12px;color:#44474e}table{border-collapse:collapse}td,th{padding:6px 14px;border-bottom:1px solid #ddd;text-align:left}
+.after{color:#18803f;font-weight:600}</style></head>
+<body><h1>Edge caching, three ways</h1><p>Most pages on the shop change once a day, but we rendered them on every request.</p>
+<table><tr><th>page</th><th>before</th><th>after</th></tr><tr><td>home</td><td>410 ms</td><td class="after">38 ms</td></tr>
+<tr><td>product</td><td>520 ms</td><td class="after">41 ms</td></tr></table>
+<p id="js"></p><script>document.getElementById('js').textContent = 'Rendered ' + new Date().getFullYear()</script></body></html>
+"""
+open(os.path.join(OUT, 'edge-caching-preview.html'), 'w').write(HTML)
+
 # I dati del benchmark: uno zip, che resta una scheda larga senza anteprima.
 buf = io.BytesIO()
 with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:

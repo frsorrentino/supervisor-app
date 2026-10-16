@@ -1,7 +1,7 @@
 <script lang="ts">
   import { locale } from './lib/lang'
   import * as files from './lib/fileActions'
-  import { failed, media, texts } from './lib/mediaCache.svelte'
+  import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
   import { groups, together } from './lib/shareMulti'
@@ -697,6 +697,8 @@
       const kind = previewKind(f.mime, path)
       if (kind === 'pdf') { const png = await firstPage(f.blob); if (png) media[key] = URL.createObjectURL(png); else failed[key] = true }
       else if (kind === 'text') texts[key] = firstLines(await f.blob.text())
+      // Franz, 16/10 11:18: HTML e SVG come pagina nel riquadro sandbox; le prime righe restano per «Codice».
+      else if (kind === 'page') { const text = await f.blob.text(); pageSources[key] = { mime: f.mime, text }; texts[key] = firstLines(text) }
       else media[key] = URL.createObjectURL(f.blob)
       return
     }

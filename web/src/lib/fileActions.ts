@@ -14,8 +14,16 @@ export function copyKind(mime: string): 'text' | 'image' | null {
 }
 export const canCopy = (mime: string) => copyKind(mime) != null
 
-// HTML, SVG e XML aperti dalla stessa origine della pagina leggerebbero il token: si scaricano invece di aprirsi.
+// HTML, SVG e XML aperti dalla stessa origine della pagina leggerebbero il token: «Apri» li scarica invece di aprirli.
 export const inlineSafe = (mime: string) => !/html|svg|xml/.test(base(mime))
+
+// Franz, 16/10 11:18: le anteprime HTML e SVG si vedono come pagina, in un iframe con srcdoc e questo sandbox. Senza
+// allow-same-origin l'origine è opaca: la pagina non legge il token, i cookie o lo storage dell'app; senza
+// allow-top-navigation e allow-popups non porta via l'app e non apre finestre. Gli script girano lì dentro.
+export const PAGE_SANDBOX = 'allow-scripts'
+
+/** Il documento del riquadro: l'HTML com'è, un SVG dentro una pagina senza margini. */
+export const pageDoc = (mime: string, text: string) => (base(mime) === 'image/svg+xml' ? `<!doctype html><body style="margin:0">${text}` : text)
 
 export function download(f: Fetched) {
   const url = URL.createObjectURL(f.blob)

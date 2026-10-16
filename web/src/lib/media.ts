@@ -23,12 +23,15 @@ export const PDF_AUTO_MAX = 10_000_000
 export const TEXT_AUTO_MAX = 1_000_000
 /** Le righe di un testo nell'anteprima. */
 export const TEXT_LINES = 12
-export type PreviewKind = 'image' | 'video' | 'pdf' | 'text' | 'other'
+// 'page': HTML e SVG disegnati come pagina in un riquadro sandbox (Franz, 16/10 11:18); XML resta testo.
+export type PreviewKind = 'image' | 'video' | 'pdf' | 'page' | 'text' | 'other'
 
 const TEXT_EXT = /\.(md|markdown|txt|log|csv|tsv|json|ya?ml|toml|ini|sh|py|ts|js|mjs|kt|kts|java|go|rs|rb|svelte|css|scss|sql|xml|env)$/i
 export function previewKind(mime: string | null | undefined, path = ''): PreviewKind {
   const m = (mime ?? '').split(';')[0].trim().toLowerCase()
-  if (m.startsWith('image/') && m !== 'image/svg+xml') return 'image'
+  if (m === 'text/html' || m === 'application/xhtml+xml' || m === 'image/svg+xml') return 'page'
+  if ((!m || m === 'application/octet-stream') && /\.(html?|xhtml|svg)$/i.test(path)) return 'page'
+  if (m.startsWith('image/')) return 'image'
   if (m.startsWith('video/')) return 'video'
   if (m === 'application/pdf' || (!m && /\.pdf$/i.test(path))) return 'pdf'
   if (m.startsWith('text/') || /\/(json|xml|javascript|x-sh|x-yaml|yaml|toml)$|\+(xml|json)$/.test(m)) return 'text'
@@ -41,7 +44,7 @@ export function autoPreview(mime: string | null | undefined, size: number | null
     case 'image': return (size ?? 0) <= IMAGE_AUTO_MAX
     case 'video': return unmetered && size != null && size <= VIDEO_AUTO_MAX
     case 'pdf': return unmetered && (size ?? 0) <= PDF_AUTO_MAX
-    case 'text': return unmetered && (size ?? 0) <= TEXT_AUTO_MAX
+    case 'text': case 'page': return unmetered && (size ?? 0) <= TEXT_AUTO_MAX
     default: return false
   }
 }

@@ -8,7 +8,7 @@ import { NIGHT_TARGET } from './recapAgenda'
 // comandi cambiano lo stato come li cambierebbe il PC, con i testi del relay, di successo e di rifiuto. Niente rete.
 const MODES = new Set(['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'])
 const VALID_NAME = /^[A-Za-z0-9._-]{1,64}$/
-const DEMO_FILES: Record<string, string> = { 'checkout-before.png': 'image/png', 'checkout-tests.pdf': 'application/pdf', 'edge-caching.md': 'text/markdown', 'bench-data.zip': 'application/zip' }
+const DEMO_FILES: Record<string, string> = { 'checkout-before.png': 'image/png', 'checkout-tests.pdf': 'application/pdf', 'edge-caching.md': 'text/markdown', 'bench-data.zip': 'application/zip', 'edge-caching-preview.html': 'text/html' }
 
 export class DemoTransport implements Transport {
   readonly world: World

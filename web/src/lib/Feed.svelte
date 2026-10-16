@@ -14,11 +14,13 @@
   import type { IconName } from './icons'
   import { t } from './t'
   import Icon from './Icon.svelte'
-  import { canCopy, canShare, type FileAct } from './fileActions'
+  import { canCopy, canShare, pageDoc, PAGE_SANDBOX, type FileAct } from './fileActions'
   import { autoPreview, canPreview, fileKey, isImage, isVideo, previewKind } from './media'
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
-  import { failed, media, texts } from './mediaCache.svelte'
+  import { failed, media, pages, texts } from './mediaCache.svelte'
+  // Le pagine mostrate come sorgente col tasto «Codice», per chiave.
+  let code = $state<Record<string, boolean>>({})
   import Md from './Md.svelte'
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
@@ -144,7 +146,11 @@
         <button class="fchip" title={f.path} onclick={() => onFile(f.path, 'open', key)}><Icon name={fileIcon(f)} color="var(--icon)" /><span class="fname">{f.path.split('/').pop()}</span>{#if f.size != null}<span class="fsize">{size(f.size)}</span>{/if}</button>
         <!-- L'anteprima tra il nome e i tasti, come nell'app (Franz, 13/10 07:16). -->
         {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><img src={url} alt="" /></button>{/if}
-        {#if texts[key]}<button class="ftext" class:cut={texts[key].more} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><pre>{texts[key].lines}</pre></button>{/if}
+        {#if pages[key] && !code[key]}
+          <!-- Franz, 16/10 11:18: HTML e SVG come pagina, in un riquadro isolato (PAGE_SANDBOX: origine opaca, niente token). -->
+          <iframe class="fpage" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>
+        {:else if texts[key]}<button class="ftext" class:cut={texts[key].more} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><pre>{texts[key].lines}</pre></button>{/if}
+        {#if pages[key]}<button class="fshow" aria-pressed={!!code[key]} onclick={() => (code[key] = !code[key])}>{code[key] ? t.filePage : t.fileCode}</button>{/if}
         {#if !url && !texts[key] && !failed[key] && canPreview(f.mime, f.path) && !autoPreview(f.mime, f.size, !((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true), f.path)}
           <!-- Oltre i limiti, o col risparmio dati, l'anteprima aspetta il tocco. -->
           <button class="fshow" onclick={() => onFile(f.path, 'preview', key)}>{t.showPreview}</button>
@@ -295,6 +301,7 @@
   .ftext pre { margin: 0; font: 13px/1.5 var(--mono); color: var(--text); white-space: pre-wrap; word-break: break-word; }
   /* Un testo più lungo delle righe mostrate sfuma in fondo, senza puntini. */
   .ftext.cut pre { mask-image: linear-gradient(#000 70%, transparent); -webkit-mask-image: linear-gradient(#000 70%, transparent); }
+  .fpage { display: block; width: 100%; height: 360px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
   .fshow { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--icon); font-size: 14px; font-weight: 500; }
   .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; }
   /* Con l'anteprima la scheda prende tutta la larghezza della chat, come nell'app (Franz, 12/10 12:27: «anteprime con width
