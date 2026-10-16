@@ -15,7 +15,8 @@ const D: Status = 'delivered'
 
 describe('ChatFeed', () => {
   it('parses the fixture page', () => {
-    expect(first.entries).toHaveLength(18)
+    // Contratto 1.72: in fondo alla pagina la voce Edit a8.0 col suo diff.
+    expect(first.entries).toHaveLength(19)
     expect(first.more ?? false).toBe(false)
     expect(first.entries.find(e => e.id === 'a6.0')!.files![0].mime).toBe('image/png')
     expect(first.entries.find(e => e.id === 'a4.0')!.turn!.out).toBe(130)
@@ -39,7 +40,7 @@ describe('ChatFeed', () => {
     expect(merge([e], [[sent('c9', 'run the tests', 99), D]])[0].type).toBe('mine')
   })
   it('unmatched sent goes by time', () => {
-    const feed = merge(first.entries, [[sent('c2', 'one more thing', 1789207400), 'sending']])
+    const feed = merge(first.entries, [[sent('c2', 'one more thing', 1789207420), 'sending']])
     const last = feed[feed.length - 1] as Extract<Item, { type: 'mine' }>
     expect(last.type).toBe('mine')
     expect(last.entry).toBeNull()
@@ -49,7 +50,9 @@ describe('ChatFeed', () => {
     const feed = merge(first.entries, [])
     expect(feed[0].type).toBe('user')
     expect(feed.find(i => i.type === 'tool' && i.entry.id === 'a3.0')).toBeDefined()
-    expect(feed[feed.length - 1].type).toBe('claude')
+    expect(feed.find(i => i.type === 'claude' && i.entry.id === 'a5.0')).toBeDefined()
+    // Contratto 1.72: la pagina finisce col passaggio di modifica a8.0.
+    expect(feed[feed.length - 1]).toMatchObject({ type: 'tool', entry: { id: 'a8.0' } })
   })
   it('after page appends without duplicates', () => {
     expect(append(first.entries.slice(0, 5), after, 'after').map(e => e.id)).toEqual(first.entries.map(e => e.id))

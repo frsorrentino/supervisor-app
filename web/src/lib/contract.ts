@@ -25,6 +25,8 @@ export type Session = {
   needs_you?: { reason: string; at: number } | null; turn_blocking?: { text: string; at: number } | null
   /** Contratto 1.69: la sessione può arrivare a bypassPermissions. */
   permission_bypass?: boolean
+  /** Contratto 1.72: i conteggi delle modifiche della cartella; null fuori da git, senza modifiche o con git fermo. */
+  changes?: ChangesCount | null
   id: string; name: string; account: string; project: string; state: SessionState; since: number
   turn_started?: number | null; tool?: string | null; link?: string; tool_note?: string | null
   attached?: boolean; followed?: boolean; question?: Question | null; outcome?: Outcome | null
@@ -86,8 +88,40 @@ export type TranscriptEntry = {
   id: string; role: string; text?: string | null; at?: number | null; tool?: string | null; note?: string | null
   error?: boolean | null; cut?: boolean; turn?: TranscriptTurn | null; files?: TranscriptFile[] | null
   origin?: string | null; queued?: boolean
+  /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */
+  diff?: StepDiff | null
 }
 export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean }
+// Contratto 1.72, il diff dal telefono: un pezzo come in `git diff -U3`, le righe che cominciano per «-», «+» o spazio.
+export type Hunk = { old_start: number; old_lines: number; new_start: number; new_lines: number; lines: string[] }
+/** Il diff di un passaggio di modifica; `kind` edit | create | overwrite; `cut` = oltre 200 righe, il resto con l'op `diff`. */
+export type StepDiff = { path: string; kind: string; added: number; removed: number; hunks: Hunk[]; cut: boolean }
+/** I conteggi delle modifiche della cartella, per la pillola della testata. */
+export type ChangesCount = { files: number; added: number; removed: number; at: number }
+/** Un file della vista «Modifiche»: `path` relativo alla radice, `status` modified | added | deleted | renamed | binary. */
+export type ChangedFile = { path: string; status: string; added: number; removed: number; size: number | null; hunks: Hunk[]; cut: boolean }
+/** Il risultato dell'op `changes`: `source` git | transcript, `base` null in un repo senza commit, `cut` oltre 50 file o 2000 righe. */
+export type ChangesView = { source: string; repo: string | null; base: string | null; files: ChangedFile[]; totals: { files: number; added: number; removed: number }; cut: boolean; at: number }
+
+/** Il `text` dell'op `changes`, coi valori di default dove mancano. */
+export function decodeChanges(raw: string): ChangesView {
+  const v = JSON.parse(raw)
+  if (typeof v?.source !== 'string' || !Array.isArray(v?.files)) throw new Error('not a changes view')
+  return {
+    source: v.source, repo: v.repo ?? null, base: v.base ?? null, cut: !!v.cut, at: v.at ?? 0,
+    totals: { files: v.totals?.files ?? 0, added: v.totals?.added ?? 0, removed: v.totals?.removed ?? 0 },
+    files: v.files.map((f: Partial<ChangedFile> & { path: string; status: string }) => ({
+      path: f.path, status: f.status, added: f.added ?? 0, removed: f.removed ?? 0, size: f.size ?? null, hunks: f.hunks ?? [], cut: !!f.cut,
+    })),
+  }
+}
+
+/** Il `text` dell'op `diff`: un passaggio intero, nella forma di `diff`. */
+export function decodeDiff(raw: string): StepDiff {
+  const d = JSON.parse(raw)
+  if (typeof d?.path !== 'string') throw new Error('not a diff')
+  return { path: d.path, kind: d.kind ?? 'edit', added: d.added ?? 0, removed: d.removed ?? 0, hunks: d.hunks ?? [], cut: !!d.cut }
+}
 /** Contratto 1.59: `/tail/<id>`, le ultime voci di una sessione viva, riscritte dal relay al massimo ogni 10 s. */
 export type Tail = { session: string; id: string; tx?: string; at: number; entries: TranscriptEntry[]; more?: boolean }
 /** La chiave del nodo: l'id della sessione con . # $ [ ] / cambiati in _. */
@@ -137,6 +171,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
   | 'permission_mode'
+  /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */
+  | 'changes' | 'diff'
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */

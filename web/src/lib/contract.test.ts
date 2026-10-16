@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { blankState, decodeState, tailKey, withTail } from './contract'
+import { blankState, decodeChanges, decodeDiff, decodeState, tailKey, withTail, type TranscriptEntry } from './contract'
 
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
 
@@ -64,5 +64,44 @@ describe('chat da /tail (contratto 1.59)', () => {
     expect(withTail([e('x')], tail).map(x => x.id)).toEqual(['b', 'c', 'd'])
     expect(withTail([e('x')], { ...tail, entries: [] }).map(x => x.id)).toEqual(['x'])
     expect(tailKey('abc.def#g$h[i]j/k')).toBe('abc_def_g_h_i_j_k')
+  })
+})
+
+describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractTest)', () => {
+  const hunk = { old_start: 12, old_lines: 3, new_start: 12, new_lines: 4, lines: [
+    ' export function total(cart: Cart) {', '-  return cart.items.reduce((s, i) => s + i.price, 0)',
+    '+  const sub = cart.items.reduce((s, i) => s + i.price * i.qty, 0)', '+  return sub - (cart.giftCard?.amount ?? 0)', ' }'] }
+  it('legge la vista «Modifiche» della fixture', () => {
+    const v = decodeChanges(fixture('changes-sample.json'))
+    expect([v.source, v.repo, v.base, v.cut, v.at]).toEqual(['git', '/home/dev/storefront', 'a1b2c3d', false, 1792100000])
+    expect(v.files.map(f => [f.path, f.status, f.added, f.removed, f.size, f.cut])).toEqual([
+      ['src/checkout/totals.ts', 'modified', 2, 1, 2140, false], ['tests/checkout/totals.test.ts', 'added', 5, 0, 212, false],
+      ['.env.local', 'modified', 1, 1, 88, false], ['assets/logo.png', 'binary', 0, 0, 48213, false]])
+    expect(v.files[0].hunks).toEqual([hunk])
+    expect(v.files[1].hunks[0].lines).toHaveLength(5)
+    expect([v.files[2].hunks, v.files[3].hunks]).toEqual([[], []])
+    expect(v.totals).toEqual({ files: 4, added: 8, removed: 2 })
+  })
+  it('in /state i conteggi solo dove ci sono modifiche, e le due op', () => {
+    const s = decodeState(fixture('state-1-question.json'))
+    expect(s.sessions.filter(x => x.changes).map(x => [x.name, x.changes])).toEqual([['atlas-shop', { files: 4, added: 8, removed: 2, at: 1792100000 }]])
+    for (const n of ['state-1-question.json', 'state-2-idle.json']) expect(decodeState(fixture(n)).ops).toEqual(expect.arrayContaining(['changes', 'diff']))
+  })
+  it('ogni voce della trascrizione ha la chiave diff, e la voce Edit porta il suo', () => {
+    const root = JSON.parse(fixture('cmd-result-sample.json'))
+    const ids = new Set(root.cmd.filter((c: { op: string }) => c.op === 'transcript').map((c: { id: string }) => c.id))
+    const pages = root.result.filter((r: { id: string; ok: boolean }) => ids.has(r.id) && r.ok).map((r: { text: string }) => JSON.parse(r.text))
+    const tail = JSON.parse(fixture('local-api.json')).exchanges.filter((x: { name: string }) => x.name === 'tail').map((x: { response: { body: unknown } }) => x.response.body)
+    const all: TranscriptEntry[] = [...pages, ...tail].flatMap((p: { entries: TranscriptEntry[] }) => p.entries)
+    expect(all.length).toBeGreaterThan(0)
+    expect(all.every(e => 'diff' in e)).toBe(true)
+    const withDiff = [...new Map(all.filter(e => e.diff).map(e => [e.id, e])).values()]
+    expect(withDiff.map(e => e.tool)).toEqual(['Edit'])
+    expect(withDiff[0].diff).toEqual({ path: '/home/dev/storefront/src/checkout/totals.ts', kind: 'edit', added: 2, removed: 1, hunks: [hunk], cut: false })
+  })
+  it('il passaggio intero di `diff`; quello che non è un diff o una vista si rifiuta', () => {
+    expect(decodeDiff(JSON.stringify({ path: '/w/a.ts', kind: 'create', added: 1, removed: 0, hunks: [], cut: false })).kind).toBe('create')
+    expect(() => decodeDiff('{"x":1}')).toThrow()
+    expect(() => decodeChanges('{"x":1}')).toThrow()
   })
 })
