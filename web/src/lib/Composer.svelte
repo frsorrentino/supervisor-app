@@ -8,6 +8,9 @@
   import { parseMention, suggestMention } from './mention'
   import Badge from './Badge.svelte'
   import Icon from './Icon.svelte'
+  import { onDestroy } from 'svelte'
+  import { lang } from './lang'
+  import { dictate, dictLang, speechCtor, type Dictation, type DictError } from './dictation'
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
@@ -65,7 +68,23 @@
     if (list.length && addFiles(list)) e.preventDefault()
   }
   function drop(i: number) { const f = files[i]; if (f.url) URL.revokeObjectURL(f.url); files = files.filter((_, j) => j !== i) }
+  // Il microfono (Franz, 16/10 23:09): detta nel campo, mai invio da solo; senza API nel browser il tasto non c'è.
+  const Speech = speechCtor()
+  let dictation = $state<Dictation | null>(null)
+  let micErr = $state<DictError | null>(null)
+  function mic() {
+    if (dictation) { dictation.stop(); return }
+    if (!Speech) return
+    micErr = null
+    dictation = dictate(Speech, dictLang(lang), draft, {
+      text: (v) => { draft = v },
+      end: (err) => { dictation = null; micErr = err },
+    })
+    area?.focus()
+  }
+  onDestroy(() => dictation?.cancel())
   function send() {
+    dictation?.cancel()
     const text = draft.trim()
     // Un testo che comincia con un comando consentito parte come comando (contratto 1.25); clear ed exit chiedono prima.
     // «@nome testo» dalla master va a quella sessione, come prompt.
@@ -140,6 +159,11 @@
       <input bind:this={camera} type="file" accept="image/*" capture="environment" hidden onchange={picked} />
       <input bind:this={any} type="file" multiple hidden onchange={picked} />
       <textarea bind:this={area} rows="1" class:sug={!!inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
+      {#if Speech && md !== 'reopen'}
+        <button type="button" class="round mic" class:on={!!dictation} aria-label={t.micStart} aria-pressed={!!dictation} title={dictation ? t.micStop : t.micStart} onclick={mic}>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+        </button>
+      {/if}
       {#if inField && !draft.trim()}<button type="button" class="use" onclick={() => { draft = field ?? ''; area?.focus() }}>{t.use}</button>{/if}
       {#if onSendAt && draft.trim() && !files.length && (md === 'send' || md === 'send_tonal')}
         <!-- Contratto 1.63: «Manda alle…» accanto a Invia. -->
@@ -167,6 +191,7 @@
         </button>
       {/if}
     </form>
+    {#if micErr}<div class="micerr" role="status">{micErr === 'denied' ? t.micDenied : micErr === 'no_speech' ? t.micNoSpeech : t.micFailed}</div>{/if}
     {#if !narrow}<div class="keys mono">{t.enterSends}</div>{/if}
   </div>
 
@@ -227,6 +252,10 @@
   .round.filled { background: var(--primary); color: var(--on-primary); }
   .round.tonal { background: var(--high); color: var(--icon); }
   .round:disabled { cursor: default; }
+  .round.mic { background: none; color: var(--icon); }
+  .round.mic:hover { background: var(--surface); }
+  .round.mic.on { background: var(--primary); color: var(--on-primary); }
+  .micerr { padding: 0 22px; font-size: 13px; color: var(--text2); }
   .keys { padding: 0 22px 6px; }
   @media (max-width: 760px) { .keys { display: none; } .bar { padding-bottom: 12px; } }
   dialog { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 22px; width: min(400px, 92vw); border-radius: 28px; }

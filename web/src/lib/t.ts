@@ -229,6 +229,8 @@ const it = {
   ctxWider: 'Passa alla finestra da 1M',
   ctxHandoffPrompt: (c: string) => `Scrivi l'handoff con ${c}, poi io mando /clear.`, conversation: 'Conversazione',
   enterSends: 'Invio manda · Maiusc+Invio a capo', back: 'Indietro',
+  micStart: 'Detta', micStop: 'Ferma la dettatura', micDenied: 'Microfono non consentito: permettilo nelle impostazioni del browser',
+  micNoSpeech: 'Non ho sentito niente', micFailed: 'Dettatura non riuscita',
   // Accoppiamento del browser (fase 3 del piano web).
   pairTitle: 'Collega questo browser al PC',
   pairHow: 'Sul PC lancia supervisor relay pair --add, o supervisor relay pair se è il primo dispositivo. Da un telefono o da una web app già collegati: Dispositivi (nella web app Impostazioni), poi Aggiungi un dispositivo.',
@@ -494,6 +496,8 @@ const en: typeof it = {
   ctxWider: 'Switch to the 1M window',
   ctxHandoffPrompt: (c: string) => `Write the handoff with ${c}, then I send /clear.`, conversation: 'Conversation',
   enterSends: 'Enter sends · Shift+Enter new line', back: 'Back',
+  micStart: 'Dictate', micStop: 'Stop dictation', micDenied: 'Microphone not allowed: allow it in the browser settings',
+  micNoSpeech: 'I heard nothing', micFailed: 'Dictation failed',
   pairTitle: 'Connect this browser to the PC',
   pairHow: 'On the PC run supervisor relay pair --add, or supervisor relay pair if it is the first device. From a phone or web app already connected: Devices (Settings in the web app), then Add a device.',
   pairScan: 'Scan the QR', pairScanStop: 'Close the camera',

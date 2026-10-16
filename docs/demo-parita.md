@@ -119,6 +119,7 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | campo | Invio manda, Maiusc+Invio a capo | Uguale | ok |
 | campo | Suggerimenti «/» e conferma di /clear | «/» propone /compact, /clear, /exit, /context, /cost; /exit apre il dialogo di chiusura | ok |
 | campo | «@nome» nella chat della master | «@» propone @payments-api, @storefront con l'attività, @blog | ok |
+| campo | Microfono: l'app Android non ha il tasto, si detta col microfono della tastiera (Franz, 16/10 23:09) | Tasto microfono nel campo, web e demo: dettatura del browser in it-IT o en-US, testo intermedio nel campo dopo quello scritto, si ferma col secondo tocco o a fine parlato, mai invio da solo; senza API (Firefox) niente tasto; permesso negato o errore in una riga sotto il campo. Provato nella demo con una SpeechRecognition finta (testo, tasto acceso, stop, permesso negato) | ok |
 | allegati | «+»: Foto dalla galleria, Scatta una foto, File; nella master Azioni ricorrenti e Salva una decisione | Uguale | ok |
 | allegati | Anteprime in attesa con ×, fino a 5 | Uguale | ok |
 | manda-alle | «Manda alle» con l'ora; «parte alle HH:MM» | Uguale; la demo risponde «scheduled for» | ok |
@@ -140,4 +141,4 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | affidabilità | Nessun errore in console oltre il ResizeObserver | Nessun errore dopo i giri di prova; la transizione a pagina nascosta non lascia più promesse rifiutate | ok |
 | affidabilità | Nessun tasto morto | Giro su ogni tasto di home, sessioni, pagine e plancia: tutti cambiano qualcosa | ok |
 
-Bundle pubblicato su https://supervisor.francescosorrentino.com il 16/10/2026 alle 16:20: `index-BxFsedEr.js`.
+Bundle pubblicato su https://supervisor.francescosorrentino.com il 16/10/2026 alle 23:40: `index-CY5Crk5p.js`.
