@@ -6,6 +6,7 @@
   import { firstPage } from './lib/pdfPreview'
   import { groups, together } from './lib/shareMulti'
   import type { FileAct, Fetched } from './lib/fileActions'
+  import { FileStore } from './lib/fileStore'
   import { DemoTransport } from './lib/demoTransport'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
@@ -663,61 +664,53 @@
     } catch { pend = { ...pend, [m.id]: 'failed' } }
   }
   // Un file della chat: il comando `file`, poi i byte da /api/file/<id>; il menu del file li chiede appena si apre
-  // («prepare»), così apri, scarica, copia e condividi partono subito dal tocco (copia e condividi lo vogliono fresco).
-  // I file appena arrivati per due minuti, con la chiave del file della chat (`fileKey`): lo stesso percorso mandato di nuovo
-  // con un'altra misura non riprende quello vecchio.
-  const fileCache = new Map<string, Promise<Fetched | null>>()
-  function getFile(name: string, path: string, key: string, quiet = false): Promise<Fetched | null> {
-    let p = fileCache.get(key)
-    if (!p) {
-      p = (async () => {
-        if (!tr) return null
-        const c = newCmd('file', name, path)
-        // L'anteprima che nasce da sola non avvisa se il file non arriva.
-        const r = quiet ? await tr.send(c).catch(() => null) : await run(c)
-        if (!r?.ok) return null
-        const f = await tr.fetchFile(c.id).catch(() => null)
-        if (!f) { if (!quiet) say(`✗ ${t.noAnswer}`); return null }
-        return { blob: new Blob([f.data as Uint8Array<ArrayBuffer>], { type: f.mime }), name: f.name ?? path.split('/').pop() ?? 'file', mime: f.mime }
-      })()
-      fileCache.set(key, p)
-      p.then(v => { if (!v) fileCache.delete(key); else setTimeout(() => fileCache.delete(key), 120_000) })
-    }
-    return p
+  // («prepare») e l'anteprima appena la card è a schermo. Restano pronti finché la chat è a schermo (`FileStore`), con la
+  // chiave del file della chat (`fileKey`): lo stesso percorso mandato di nuovo con un'altra misura non riprende quello vecchio.
+  const fileStore = new FileStore()
+  $effect(() => { fileStore.keep([MASTER, ...(open ? [open] : [])]) })
+  const loadFile = (name: string, path: string, quiet: boolean) => async (): Promise<Fetched | null> => {
+    if (!tr) return null
+    const c = newCmd('file', name, path)
+    // L'anteprima che nasce da sola non avvisa se il file non arriva.
+    const r = quiet ? await tr.send(c).catch(() => null) : await run(c)
+    if (!r?.ok) return null
+    const f = await tr.fetchFile(c.id).catch(() => null)
+    if (!f) { if (!quiet) say(`✗ ${t.noAnswer}`); return null }
+    return { blob: new Blob([f.data as Uint8Array<ArrayBuffer>], { type: f.mime }), name: f.name ?? path.split('/').pop() ?? 'file', mime: f.mime }
   }
-  async function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview', key: string) {
+  const getFile = (name: string, path: string, key: string, quiet = false) => fileStore.get(key, loadFile(name, path, quiet))
+  function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview', key: string) {
     if (!tr) return
-    if (act === 'prepare') { void getFile(name, path, key); return }
-    if (act === 'preview') {
-      // Ogni allegato in anteprima sotto il suo nome (Franz, 10/10 15:24 per immagini e video, 15/10 22:20 per tutti): i PDF
-      // con la prima pagina, i testi con le prime righe.
-      if (media[key] || texts[key] || failed[key]) return
-      const f = await getFile(name, path, key, true)
-      if (!f || media[key] || texts[key]) return
-      const kind = previewKind(f.mime, path)
-      if (kind === 'pdf') { const png = await firstPage(f.blob); if (png) media[key] = URL.createObjectURL(png); else failed[key] = true }
-      else if (kind === 'text') texts[key] = firstLines(await f.blob.text())
-      // Franz, 16/10 11:18: HTML e SVG come pagina nel riquadro sandbox; le prime righe restano per «Codice».
-      else if (kind === 'page') { const text = await f.blob.text(); pageSources[key] = { mime: f.mime, text }; texts[key] = firstLines(text) }
-      else media[key] = URL.createObjectURL(f.blob)
-      return
-    }
-    const short = path.split('/').pop() ?? path
-    say(t.fileOpening(short))
-    const f = await getFile(name, path, key)
-    if (!f) return
-    notice = null
-    try {
+    if (act === 'prepare') { void getFile(name, path, key, true); return }
+    if (act === 'preview') { void preview(name, path, key); return }
+    // Niente await prima dell'azione quando il file è pronto: condividi e copia vogliono il tocco ancora vivo.
+    if (!fileStore.peek(key)) say(t.fileOpening(path.split('/').pop() ?? path))
+    const done = fileStore.tap(key, loadFile(name, path, false), f => {
+      notice = null
       if (act === 'open') files.open(f)
       else if (act === 'download') files.download(f)
-      else if (act === 'copy') { const k = await files.copy(f); if (k) say(t.fileCopied(k)) }
-      else await files.share(f, path)
-    } catch (e) {
-      // Copia e condividi vogliono un tocco recente: se il file è arrivato tardi, al secondo tocco è già pronto.
+      else if (act === 'copy') return files.copy(f).then(k => { if (k) say(t.fileCopied(k)) })
+      else return files.share(f, path)
+    })
+    Promise.resolve(done).catch(e => {
+      // Se il file è arrivato dopo il tocco, il tocco è scaduto: al secondo è già pronto e parte subito.
       const n = (e as Error)?.name
       if (n === 'NotAllowedError') say(t.fileTapAgain)
       else if (n !== 'AbortError') say(`✗ ${act === 'share' ? t.fileShareFailed : t.fileCopyFailed}`)
-    }
+    })
+  }
+  async function preview(name: string, path: string, key: string) {
+    // Ogni allegato in anteprima sotto il suo nome (Franz, 10/10 15:24 per immagini e video, 15/10 22:20 per tutti): i PDF
+    // con la prima pagina, i testi con le prime righe.
+    if (media[key] || texts[key] || failed[key]) return
+    const f = await getFile(name, path, key, true)
+    if (!f || media[key] || texts[key]) return
+    const kind = previewKind(f.mime, path)
+    if (kind === 'pdf') { const png = await firstPage(f.blob); if (png) media[key] = URL.createObjectURL(png); else failed[key] = true }
+    else if (kind === 'text') texts[key] = firstLines(await f.blob.text())
+    // Franz, 16/10 11:18: HTML e SVG come pagina nel riquadro sandbox; le prime righe restano per «Codice».
+    else if (kind === 'page') { const text = await f.blob.text(); pageSources[key] = { mime: f.mime, text }; texts[key] = firstLines(text) }
+    else media[key] = URL.createObjectURL(f.blob)
   }
   // «Chiedi alla master» arriva come `prompt` della sessione: va alla master, come messaggio nella sua chat.
   const cmd = (name: string) => (op: CmdOp, arg?: string, text?: string) => {
