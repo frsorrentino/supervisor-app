@@ -1,6 +1,9 @@
+import { zip } from './zip'
+
 // Le quattro azioni su un file della conversazione (Franz, 07/10 15:32): apri, scarica, copia, condividi.
 export type FileAct = 'open' | 'download' | 'copy' | 'share'
-export type Fetched = { blob: Blob; name: string; mime: string }
+// `text`: il contenuto dei file di testo, letto quando il file arriva, perché «Copia» lo scriva senza await (Safari).
+export type Fetched = { blob: Blob; name: string; mime: string; text?: string }
 
 const base = (mime: string) => mime.split(';')[0].trim().toLowerCase()
 
@@ -50,7 +53,8 @@ async function png(blob: Blob): Promise<Blob> {
 /** Copia il file negli appunti; dice che cosa ha copiato. */
 export async function copy(f: Fetched): Promise<'text' | 'image' | null> {
   const k = copyKind(f.mime)
-  if (k === 'text') await navigator.clipboard.writeText(await f.blob.text())
+  // Col testo già letto writeText parte nello stesso giro del tocco.
+  if (k === 'text') await navigator.clipboard.writeText(f.text ?? (await f.blob.text()))
   else if (k === 'image') await navigator.clipboard.write([new ClipboardItem({ 'image/png': png(f.blob) })])
   return k
 }
@@ -62,4 +66,17 @@ export async function share(f: Fetched, path: string) {
   const file = new File([f.blob], f.name, { type: f.mime })
   if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: f.name })
   else await navigator.share({ title: f.name, text: path })
+}
+
+/** «Condividi tutti» (Franz, 16/10 16:01): un solo foglio con tutti i file; dove i file non si condividono, i nomi. */
+export async function shareAll(fs: Fetched[]) {
+  const all = fs.map(f => new File([f.blob], f.name, { type: f.mime }))
+  if (navigator.canShare?.({ files: all })) await navigator.share({ files: all })
+  else await navigator.share({ text: fs.map(f => f.name).join('\n') })
+}
+
+/** «Salva tutti»: un solo zip, perché i browser bloccano più download di fila. */
+export async function saveAll(fs: Fetched[], name: string) {
+  const data = zip(await Promise.all(fs.map(async f => ({ name: f.name, data: new Uint8Array(await f.blob.arrayBuffer()) }))))
+  download({ blob: new Blob([data], { type: 'application/zip' }), name, mime: 'application/zip' })
 }

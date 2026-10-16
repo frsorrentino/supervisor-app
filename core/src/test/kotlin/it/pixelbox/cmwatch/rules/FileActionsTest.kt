@@ -35,4 +35,14 @@ class FileActionsTest {
         assertEquals("<h1>Hi</h1>", FileActions.pageDoc("text/html", "<h1>Hi</h1>"))
         assertEquals("<!doctype html><body style=\"margin:0\"><svg/>", FileActions.pageDoc("image/svg+xml", "<svg/>"))
     }
+
+    // Franz, 16/10 16:01: due o più file di seguito si salvano e si condividono insieme, in un solo foglio.
+    @Test fun twoOrMoreFilesShareInOneSheet() {
+        assertFalse(FileActions.grouped(1))
+        assertTrue(FileActions.grouped(2))
+        assertEquals("image/png", FileActions.groupType(listOf("image/png", "image/png")))
+        assertEquals("image/*", FileActions.groupType(listOf("image/png", "image/jpeg; q=1")))
+        assertEquals("*/*", FileActions.groupType(listOf("image/png", "application/pdf")))
+        assertEquals("*/*", FileActions.groupType(listOf("image/png", null)))
+    }
 }

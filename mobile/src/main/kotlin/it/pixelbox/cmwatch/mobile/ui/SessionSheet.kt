@@ -135,6 +135,8 @@ data class FileOpener(
     val preview: (String, TranscriptFile) -> Unit = { _, _ -> },
     /** Una rete senza contatore, come il Wi-Fi: i video arrivano da soli solo lì (`MediaPreview`). */
     val unmetered: () -> Boolean = { false },
+    /** «Salva tutti» (DOWNLOAD) e «Condividi tutti» (SHARE) sui file di un gruppo, chiave e file (Franz, 16/10 16:01). */
+    val actAll: (List<Pair<String, TranscriptFile>>, FileAct) -> Unit = { _, _ -> },
 )
 val LocalFileOpener = compositionLocalOf { FileOpener() }
 
@@ -1411,6 +1413,7 @@ private fun ToolLine(e: TranscriptEntry, files: Boolean = true) {
             }
         }
         if (files) e.files?.takeIf { it.isNotEmpty() }?.let { fs ->
+            Box(Modifier.padding(start = 28.dp)) { FilesGroup(fs.map { it to e.id }) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(start = 28.dp)) {
                 fs.forEach { FileChip(it, e.id) }
             }
@@ -1432,6 +1435,33 @@ private fun toolIcon(k: ToolText.Kind): androidx.compose.ui.graphics.vector.Imag
     ToolText.Kind.PLAN -> Icons.Rounded.Checklist
     // Il pezzo di puzzle per gli strumenti senza tipo (MCP, plugin): la chiave inglese non diceva niente (segnalazione 01/10 18:06).
     ToolText.Kind.OTHER -> Icons.Rounded.Extension
+}
+
+/**
+ * Due o più file di seguito (Franz, 16/10 16:01: «serve raggruppare i file per salvarli o condividerli quando sono più di uno
+ * di seguito»): «N file» con «Salva tutti» e «Condividi tutti»; le card dei singoli file restano sotto. Come la web.
+ */
+@Composable
+private fun FilesGroup(files: List<Pair<TranscriptFile, String>>) {
+    if (!it.pixelbox.cmwatch.rules.FileActions.grouped(files.size)) return
+    val opener = LocalFileOpener.current
+    val all = files.map { (f, entry) -> it.pixelbox.cmwatch.rules.FileCache.key(f, entry) to f }
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.weight(1f).heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.AutoMirrored.Rounded.InsertDriveFile, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
+            Text(pluralStringResource(R.plurals.files_group, files.size, files.size), style = MaterialTheme.typography.labelLarge, color = CmColors.text, softWrap = false)
+        }
+        for ((act, icon, label) in listOf(
+            Triple(FileAct.DOWNLOAD, Icons.Rounded.Download, R.string.files_save_all),
+            Triple(FileAct.SHARE, Icons.Rounded.Share, R.string.files_share_all),
+        )) {
+            androidx.compose.material3.FilledTonalButton(onClick = { opener.actAll(all, act) }, modifier = Modifier.handCursor()) {
+                Icon(icon, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(label), softWrap = false)
+            }
+        }
+    }
 }
 
 /** Un file prodotto da Claude: icona per tipo, nome e peso. L'anteprima e l'apertura arrivano con il trasferimento dei file. */
@@ -1617,6 +1647,7 @@ private fun StepsCard(g: ChatFeed.Item.Steps) {
                 }
             }
             g.entries.flatMap { e -> e.files.orEmpty().map { it to e.id } }.takeIf { it.isNotEmpty() }?.let { files ->
+                FilesGroup(files)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     files.forEach { (f, id) -> FileChip(f, id) }
                 }

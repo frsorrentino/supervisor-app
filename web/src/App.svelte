@@ -7,6 +7,7 @@
   import { groups, together } from './lib/shareMulti'
   import type { FileAct, Fetched } from './lib/fileActions'
   import { FileStore } from './lib/fileStore'
+  import { zipName } from './lib/zip'
   import { DemoTransport } from './lib/demoTransport'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
@@ -676,7 +677,9 @@
     if (!r?.ok) return null
     const f = await tr.fetchFile(c.id).catch(() => null)
     if (!f) { if (!quiet) say(`✗ ${t.noAnswer}`); return null }
-    return { blob: new Blob([f.data as Uint8Array<ArrayBuffer>], { type: f.mime }), name: f.name ?? path.split('/').pop() ?? 'file', mime: f.mime }
+    const blob = new Blob([f.data as Uint8Array<ArrayBuffer>], { type: f.mime })
+    // Il testo letto subito: «Copia» lo scrive negli appunti senza await (Safari).
+    return { blob, name: f.name ?? path.split('/').pop() ?? 'file', mime: f.mime, text: files.copyKind(f.mime) === 'text' ? await blob.text() : undefined }
   }
   const getFile = (name: string, path: string, key: string, quiet = false) => fileStore.get(key, loadFile(name, path, quiet))
   function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview', key: string) {
@@ -697,6 +700,22 @@
       const n = (e as Error)?.name
       if (n === 'NotAllowedError') say(t.fileTapAgain)
       else if (n !== 'AbortError') say(`✗ ${act === 'share' ? t.fileShareFailed : t.fileCopyFailed}`)
+    })
+  }
+  // Due o più file di seguito (Franz, 16/10 16:01): «Salva tutti» in uno zip, «Condividi tutti» in un solo foglio; come per
+  // il singolo file, con tutti pronti la condivisione parte senza await.
+  function filesAction(name: string, list: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') {
+    if (!tr) return
+    if (act === 'prepare') { for (const { path, key } of list) void getFile(name, path, key, true); return }
+    if (!list.every(({ key }) => fileStore.peek(key))) say(t.fileOpening(t.filesGroup(list.length)))
+    const done = fileStore.tapAll(list.map(({ path, key }) => ({ key, load: loadFile(name, path, false) })), fs => {
+      notice = null
+      return act === 'share' ? files.shareAll(fs) : files.saveAll(fs, zipName(name, new Date()))
+    })
+    Promise.resolve(done).catch(e => {
+      const n = (e as Error)?.name
+      if (n === 'NotAllowedError') say(t.fileTapAgain)
+      else if (n !== 'AbortError') say(`✗ ${t.fileShareFailed}`)
     })
   }
   async function preview(name: string, path: string, key: string) {
@@ -811,7 +830,7 @@
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
-    onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onHandoff={() => handoff(name)} onDecision={decide}
+    onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onFiles={(fs, a) => filesAction(name, fs, a)} onHandoff={() => handoff(name)} onDecision={decide}
     wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, alertKey(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
     inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} onOlder={olderOf[name] ? () => loadOlder(name) : null}

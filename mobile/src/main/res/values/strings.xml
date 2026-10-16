@@ -105,6 +105,17 @@
     <string name="file_download">Scarica</string>
     <string name="file_copy">Copia</string>
     <string name="file_share">Condividi</string>
+    <!-- Due o più file di seguito (Franz, 16/10 16:01): la riga del gruppo. -->
+    <string name="files_save_all">Salva tutti</string>
+    <string name="files_share_all">Condividi tutti</string>
+    <plurals name="files_group">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d file</item>
+    </plurals>
+    <plurals name="files_saved_all">
+        <item quantity="one">%d file salvato in Download</item>
+        <item quantity="other">%d file salvati in Download</item>
+    </plurals>
     <string name="file_saved">%1$s salvato in Download</string>
     <string name="file_saved_to">%1$s salvato</string>
     <string name="to_latest">Torna all\'ultimo messaggio</string>

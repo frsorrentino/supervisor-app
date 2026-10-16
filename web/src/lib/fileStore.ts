@@ -37,6 +37,16 @@ export class FileStore {
     return this.get(key, load).then(f => (f ? run(f) : null))
   }
 
+  /** Come `tap` per più file (Condividi tutti): con tutti pronti parte subito, se no dopo l'ultimo; i file che non arrivano restano fuori. */
+  tapAll<T>(items: { key: string; load: () => Promise<Fetched | null> }[], run: (fs: Fetched[]) => T): T | Promise<T | null> {
+    const ready = items.map(i => this.ready.get(i.key))
+    if (ready.every(f => f)) return run(ready as Fetched[])
+    return Promise.all(items.map(i => this.get(i.key, i.load))).then(fs => {
+      const ok = fs.filter((f): f is Fetched => !!f)
+      return ok.length ? run(ok) : null
+    })
+  }
+
   /** Tiene solo i file delle chat a schermo. */
   keep(sessions: Iterable<string>) {
     const live = new Set(sessions)

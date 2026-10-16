@@ -47,3 +47,25 @@ describe('file della chat', () => {
     expect(await store.get(key('master'), async () => file)).toBe(file)
   })
 })
+
+// Franz, 16/10 16:01: due o più file di seguito si condividono in un solo foglio.
+describe('Condividi tutti', () => {
+  it('con tutti i file pronti il foglio parte senza await, con tutti i file', async () => {
+    const store = new FileStore()
+    const other: Fetched = { ...file, name: 'due.txt' }
+    await store.get(key('master'), async () => file)
+    await store.get('master\ndue', async () => other)
+    const share = vi.fn()
+    store.tapAll([{ key: key('master'), load: async () => null }, { key: 'master\ndue', load: async () => null }], share)
+    expect(share).toHaveBeenCalledWith([file, other])
+  })
+  it('se ne manca uno li chiede, e quelli che non arrivano restano fuori', async () => {
+    const store = new FileStore()
+    await store.get(key('master'), async () => file)
+    const share = vi.fn()
+    const p = store.tapAll([{ key: key('master'), load: async () => null }, { key: 'master\nperso', load: async () => null }], share)
+    expect(share).not.toHaveBeenCalled()
+    await p
+    expect(share).toHaveBeenCalledWith([file])
+  })
+})

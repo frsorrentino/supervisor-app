@@ -103,6 +103,7 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | file | Apri, Scarica, Condividi; «Copia» solo dove copia il contenuto (testo e immagini), mai un percorso | Uguale (Franz, 15/10 22:19); nella demo i file si aprono, si scaricano e si condividono davvero | ok |
 | file | Immagine a tutto schermo con zoom | L'immagine si apre in una scheda del browser, che ingrandisce | ok |
 | file | Video con poster e controlli | Lettore del browser con i controlli | ok |
+| file | Due o più file di seguito: riga «N file» con «Salva tutti» e «Condividi tutti», le card sotto (Franz, 16/10 16:01); su Android Salva tutti mette i file in Download, Condividi tutti apre un solo foglio (ACTION_SEND_MULTIPLE) | In storefront «2 file» sopra checkout-before.png e il report PDF, nel blog «3 file»; Salva tutti scarica uno zip unico (`storefront-2026-10-16.zip`, provato), Condividi tutti un solo foglio del browser | ok |
 | domanda | Card domanda col bordo del rischio, ▶, opzioni, la prima piena | Uguale | ok |
 | domanda | Rischio alto: pressione lunga per confermare | Stessa card (QuestionCard, tier high); la domanda della demo è a rischio medio, come nella fixture dell'app | ok |
 | domanda | Parliamone, Consenti tutto | Uguale | ok |
@@ -139,4 +140,4 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | affidabilità | Nessun errore in console oltre il ResizeObserver | Nessun errore dopo i giri di prova; la transizione a pagina nascosta non lascia più promesse rifiutate | ok |
 | affidabilità | Nessun tasto morto | Giro su ogni tasto di home, sessioni, pagine e plancia: tutti cambiano qualcosa | ok |
 
-Bundle pubblicato su https://supervisor.francescosorrentino.com il 16/10/2026 alle 13:41: `index-DOmuEex2.js`.
+Bundle pubblicato su https://supervisor.francescosorrentino.com il 16/10/2026 alle 16:20: `index-BxFsedEr.js`.

@@ -28,7 +28,7 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
+  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
     onCmd: (op: CmdOp, arg?: string, text?: string) => void; wide: boolean; slots: (string | null)[]
@@ -36,6 +36,7 @@
     onAttach: (files: File[], text: string) => void
     /** Un file della conversazione (contratto 1.24): il PC lo manda e si apre in una scheda. */
     onFile: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void
+    onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void
     /** Contratto 1.37: «Handoff, poi /clear» (prompt e /clear a turno finito, li gestisce App) e «Salva come decisione». */
     onHandoff: () => void; onDecision: (text: string, project: string | null) => void
     /** L'avviso delle altre sessioni sotto la barra (Elsewhere). */
@@ -202,7 +203,7 @@
         {onAnswer} onSession={onPick} onSpeak={(x) => toggle(x, s.name)} {events} {sent} {read} {onRead} onPrompt={onPromptTo} {onCmd} />
     {:else}
     {#if onOlder}<button class="older" onclick={() => { atEnd = false; onOlder() }}>{t.loadOlder}</button>{/if}
-    {#key s.name}<Feed {s} {items} now={st.ts} {onFile} onDecision={canDecide ? openDecision : undefined} {onDiff} />{/key}
+    {#key s.name}<Feed {s} {items} now={st.ts} {onFile} {onFiles} onDecision={canDecide ? openDecision : undefined} {onDiff} />{/key}
     <!-- A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC. -->
     <!-- Senza messaggi, esito, domanda e lavoro in corso una riga, invece di una pagina che sembra rotta (SessionSheet). -->
     {#if !items.length && !s.outcome && !s.question && s.state !== 'busy' && s.state !== 'awaiting' && waitingSince == null}<p class="emptychat">{t.chatEmpty}</p>{/if}

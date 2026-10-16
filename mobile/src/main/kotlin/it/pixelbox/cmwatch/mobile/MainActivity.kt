@@ -987,6 +987,24 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // Due o più file di seguito (Franz, 16/10 16:01): «Salva tutti» li mette in Download uno per uno, «Condividi tutti» in un
+        // solo foglio (ACTION_SEND_MULTIPLE). Prima ogni file in memoria o sul disco, chiesto al PC se manca; quelli in arrivo si
+        // aspettano; quelli che non arrivano restano fuori (l'avviso lo dà withFile).
+        val fileActAll: (String, List<Pair<String, it.pixelbox.cmwatch.contract.TranscriptFile>>, FileAct) -> Unit = { name, all, act ->
+            scope.launch {
+                for ((key, f) in all) if (fileLocal[key] == null && key !in fileLoading) withFile(name, key, f, false) { _, _ -> }
+                for ((key, _) in all) androidx.compose.runtime.snapshotFlow { fileLocal[key] != null || key !in fileLoading }.first { it }
+                val got = all.mapNotNull { (key, f) -> fileLocal[key]?.let { java.io.File(it) to f } }
+                if (got.isEmpty()) return@launch
+                when (act) {
+                    FileAct.SHARE -> shareFiles(got.map { it.first }, it.pixelbox.cmwatch.rules.FileActions.groupType(got.map { it.second.mime }))
+                    else -> {
+                        val saved = got.count { (file, f) -> saveToDownloads(file, f.path.substringAfterLast('/'), f.mime) != null }
+                        if (saved > 0) android.widget.Toast.makeText(this@MainActivity, resources.getQuantityString(R.plurals.files_saved_all, saved, saved), android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
         // «Fai controllare alla master»: dal menu ⋮ della sessione e dal menu contestuale della card.
         val askMasterAbout: (String, String) -> Unit = { masterName, about ->
             scope.launch {
@@ -1059,7 +1077,7 @@ class MainActivity : ComponentActivity() {
                                 Slash.panel(r.sent, results[r.sent.id])?.let { p -> app.chatLog.markPanel(r.sent.id, p) }
                             }
                         }
-                        CompositionLocalProvider(LocalFileOpener provides FileOpener({ k, f -> openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
+                        CompositionLocalProvider(LocalFileOpener provides FileOpener({ k, f -> openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered, actAll = { all, a -> fileActAll(session.name, all, a) }), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
                         SessionSheet(session, now, snap.pending, ttsMinChars, SheetActions(
                             answer = { n -> scope.launch { app.repo.answer(session.name, n) } },
                             allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },
@@ -1940,6 +1958,14 @@ class MainActivity : ComponentActivity() {
         val uri = fileUri(file)
         val send = Intent(Intent.ACTION_SEND).setType(mime ?: "*/*").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         send.clipData = android.content.ClipData.newRawUri(null, uri)
+        startActivity(Intent.createChooser(send, null))
+    }
+
+    /** «Condividi tutti»: il foglio di sistema con tutti i file del gruppo. */
+    private fun shareFiles(files: List<java.io.File>, type: String) {
+        val uris = files.map { fileUri(it) }
+        val send = Intent(Intent.ACTION_SEND_MULTIPLE).setType(type).putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        send.clipData = android.content.ClipData.newRawUri(null, uris[0]).apply { uris.drop(1).forEach { addItem(android.content.ClipData.Item(it)) } }
         startActivity(Intent.createChooser(send, null))
     }
 

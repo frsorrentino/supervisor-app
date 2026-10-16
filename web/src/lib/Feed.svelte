@@ -25,7 +25,7 @@
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
-  let { s, items, now, onFile = () => {}, onDecision, onDiff = null }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void; onDecision?: (text: string) => void
+  let { s, items, now, onFile = () => {}, onFiles = () => {}, onDecision, onDiff = null }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void; onDecision?: (text: string) => void
     /** Contratto 1.72: «Mostra tutto» sotto un passaggio, l'op `diff`; null = il relay non la conosce. */
     onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null } = $props()
 
@@ -138,6 +138,15 @@
 <!-- Ogni file con la sua voce: senza la misura è la voce a dire se è lo stesso file (fileKey). -->
 {#snippet files(fs: { f: TranscriptFile; entry: string }[])}
   <div class="files">
+    <!-- Due o più file di seguito (Franz, 16/10 16:01): una riga di gruppo per salvarli o condividerli insieme; le card restano sotto. -->
+    {#if fs.length > 1}
+      {@const all = fs.map(({ f, entry }) => ({ path: f.path, key: fileKey(s.name, f, entry) }))}
+      <div class="fgroup" role="group" aria-label={t.filesGroup(fs.length)} onpointerenter={() => onFiles(all, 'prepare')} onfocusin={() => onFiles(all, 'prepare')}>
+        <Icon name="file" color="var(--icon)" /><span class="fgname">{t.filesGroup(fs.length)}</span>
+        <button class="fgbtn" onclick={() => onFiles(all, 'save')}><Icon name="download" size={18} />{t.saveAll}</button>
+        {#if canShare()}<button class="fgbtn" onclick={() => onFiles(all, 'share')}><Icon name="share" size={18} />{t.shareAll}</button>{/if}
+      </div>
+    {/if}
     {#each fs as { f, entry }}
       {@const key = fileKey(s.name, f, entry)}
       {@const url = media[key]}
@@ -295,6 +304,11 @@
   .fcard { display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; container-type: inline-size; }
   .fchip { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 12px; padding: 12px 14px; text-align: left; width: 100%; }
   .fchip .fname { flex: 1; min-width: 0; }
+  /* La riga del gruppo: il conto a sinistra, i due tasti tonali a destra; su un telefono stretto i tasti vanno sotto insieme. */
+  .fgroup { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 4px 0; }
+  .fgname { flex: 1 0 auto; font-weight: 500; }
+  .fgbtn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; background: var(--high); color: var(--text); font-weight: 500; font-size: 14px; white-space: nowrap; }
+  .fgbtn:hover { filter: brightness(1.12); }
   .fthumb.pdf { background: #fff; }
   .fthumb.pdf img { object-fit: contain; object-position: top; max-height: 120cqw; }
   .ftext { position: relative; display: block; width: 100%; text-align: left; background: var(--low); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; overflow: hidden; }
