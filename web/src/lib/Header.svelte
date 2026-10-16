@@ -8,7 +8,7 @@
   import SessionsMenu from './SessionsMenu.svelte'
   import PermGlyph from './PermGlyph.svelte'
   import Icon from './Icon.svelte'
-  import { counts, MINUS, pill as changesOf } from './diff'
+  import { counts, inMenu, menuLine, MINUS, pill as changesOf } from './diff'
   import { canChange, choices as permChoices, glyph, needsConfirm } from './permissionModes'
   import { adviceOf, adviceSteps, ctxBand, handoffPrompt, tokens } from './masterService'
 
@@ -41,6 +41,9 @@
   const notes = $derived(notesOf(s, t.notes))
   // Contratto 1.72: la pillola delle modifiche, solo con `changes`; anche su una sessione chiusa (la cartella c'è ancora).
   const changes = $derived(changesOf(s))
+  // Sul telefono la pillola è la prima voce del menu ⋮, col puntino sul ⋮: la testata resta su una riga (Franz, 16/10 13:08).
+  let viewport = $state(typeof window === 'undefined' ? 1280 : window.innerWidth)
+  const changesMenu = $derived(!!changes && inMenu(viewport))
   const wider = $derived(widerOf({ ...s, model }, st.choices))
   const canExit = $derived(!!st.slash?.includes('exit') && s.state !== 'gone')
   // Contratto 1.37: il consiglio di fable-director, dentro il foglio; il puntino solo se la scelta attuale è diversa.
@@ -116,9 +119,9 @@
   const backdrop = (e: MouseEvent) => { if (e.target === e.currentTarget) (e.currentTarget as HTMLDialogElement).close() }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (menu = false)} />
+<svelte:window bind:innerWidth={viewport} onkeydown={(e) => e.key === 'Escape' && (menu = false)} />
 
-<header bind:clientWidth={width} class:bare={!notes.length && !changes}>
+<header bind:clientWidth={width} class:bare={!notes.length && (!changes || changesMenu)}>
   {#if top}
     <div class="row top">
       <button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
@@ -169,11 +172,18 @@
     <span class="anchor">
       <button class="ib" aria-label={t.more} aria-expanded={menu} onclick={() => (menu = !menu)}>
         <svg viewBox="0 0 24 24" width="22" height="22"><g fill="var(--text2)"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></g></svg>
+        {#if changesMenu}<span class="mdot" aria-hidden="true"></span>{/if}
       </button>
       {#if menu}
         <button class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
         <div class="panel" role="menu">
           <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
+          {#if changesMenu && changes}
+            <button class="mi" role="menuitem" disabled={!onChanges} onclick={() => { menu = false; onChanges?.() }}>
+              <Icon name="diff" size={22} color="var(--icon)" />
+              <span><span class="mt">{menuLine(t.changesTitle, t.changesFiles(changes.files), changes)}</span><span class="ms">{t.changesOpen}</span></span>
+            </button>
+          {/if}
           <button class="mi" role="menuitem" onclick={() => { picked.followed = !followed; onCmd(followed ? 'unfollow' : 'follow'); menu = false }}>
             <svg viewBox="0 0 24 24" width="22" height="22"><path d={followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
             <span><span class="mt">{followed ? t.unfollow : t.follow}</span><span class="ms">{followed ? t.unfollowSub : t.followSub}</span></span>
@@ -202,7 +212,7 @@
     </span>
   </div>
   <!-- Contratto 1.72: in una riga sua, sotto le pillole: nella riga delle pillole sul telefono non ci sta. -->
-  {#if changes}
+  {#if changes && !changesMenu}
     <div class="chrow">
       <button class="cpill" disabled={!onChanges} title={t.changesOpen} aria-label={`${t.changesOpen}: ${t.changesFiles(changes.files)} · ${counts(changes.added, changes.removed)}`} onclick={() => onChanges?.()}>
         <Icon name="diff" size={16} color="var(--icon)" />
@@ -385,6 +395,7 @@
   .arc { stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
   .note { padding: 0 16px; font-size: 12px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; }
   .chrow { display: flex; padding: 4px 0 6px 16px; }
+  .mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--icon); border: 2px solid var(--bg); }
   .cpill { display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--text); }
   .cpill:not(:disabled):hover { filter: brightness(1.2); }
   .cpill:disabled { cursor: default; }

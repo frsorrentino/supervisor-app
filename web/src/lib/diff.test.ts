@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeChanges, decodeState, type ChangedFile, type StepDiff } from './contract'
-import { alone, askFile, counts, fileArg, folder, gutter, hidden, hiddenFiles, label, MAX_LINE_CHARS, name, pill, read, rows, secret, showCounts, shown, source, stepLine } from './diff'
+import { alone, askFile, counts, fileArg, folder, gutter, hidden, hiddenFiles, inMenu, label, MAX_LINE_CHARS, menuLine, name, pill, read, rows, secret, showCounts, shown, source, stepLine } from './diff'
 
 // Gli stessi casi di DiffRulesTest in Kotlin (contratto 1.72, il diff dal telefono).
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
@@ -118,5 +118,15 @@ describe('quando un file aperto si chiede al PC', () => {
   it('solo se è tagliato', () => {
     expect([askFile(totals), askFile({ ...totals, cut: true }), askFile({ ...totals, hunks: [], cut: true }), askFile(view.files[2]), askFile(view.files[3])])
       .toEqual([false, true, true, false, false])
+  })
+})
+
+// Franz, 16/10 13:08: «l'header su 2 righe non va bene, da mobile spostare diff in menu». Come DiffRulesTest.
+describe('Modifiche nel menu', () => {
+  it('sotto 600 px la pillola diventa la prima voce del menu ⋮; sopra resta in testata', () => {
+    expect([411, 599, 600, 1280].map(inMenu)).toEqual([true, true, false, false])
+  })
+  it('la voce dice file e righe, come la pillola', () => {
+    expect(menuLine('Modifiche', '22 file', { files: 22, added: 2440, removed: 9, at: 0 })).toBe('Modifiche · 22 file +2440 \u22129')
   })
 })

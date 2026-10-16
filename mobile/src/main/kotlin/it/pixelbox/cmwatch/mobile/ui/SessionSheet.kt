@@ -103,6 +103,7 @@ import it.pixelbox.cmwatch.rules.ChatNews
 import it.pixelbox.cmwatch.rules.ChatRules
 import it.pixelbox.cmwatch.contract.ChangesView
 import it.pixelbox.cmwatch.rules.DiffRules
+import androidx.compose.ui.res.pluralStringResource
 import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.PhonePrimary
 import it.pixelbox.cmwatch.rules.QuestionRules
@@ -1927,6 +1928,9 @@ private fun SheetHeader(
     val tunable = canTune && choices != null && s.state != SessionState.GONE
     // Contratto 1.37: il consiglio di fable-director, dentro il foglio; il puntino solo se la scelta attuale è diversa.
     val advice = it.pixelbox.cmwatch.rules.MasterService.advice(s, choices, now)
+    // Sul telefono la pillola è la prima voce del menu ⋮, col puntino sul ⋮: la testata resta su una riga (Franz, 16/10 13:08).
+    val changes = DiffRules.pill(s)
+    val changesMenu = changes != null && DiffRules.inMenu(androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp)
     Column(Modifier.fillMaxWidth().background(bg)) {
         Row(Modifier.fillMaxWidth().padding(start = if (lead != null) 16.dp else 12.dp, end = 0.dp, top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // Una riga sola: modello, quota, contesto e menu. Lo stato e il tempo vanno nella riga dal vivo in fondo alla chat
@@ -1947,10 +1951,18 @@ private fun SheetHeader(
             ) {
             Box {
                 IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = CmColors.text2) }
+                if (changesMenu) Box(Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 7.dp).size(10.dp).background(bg, CircleShape).padding(2.dp).background(CmColors.actionIcon, CircleShape))
                 // Il menu della sessione come quello dell'app (Franz, 03/10 15:26): pannello, voci spiegate.
                 if (menu) MenuPanel(
                     onDismiss = { menu = false },
                     entries = listOfNotNull(
+                        changes?.takeIf { changesMenu }?.let { c ->
+                            MenuEntry(
+                                Icons.Rounded.Difference,
+                                DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c),
+                                stringResource(R.string.changes_open),
+                            ) { onChanges?.invoke() }
+                        },
                         MenuEntry(
                             if (s.followed) Icons.Rounded.NotificationsOff else Icons.Rounded.NotificationsActive,
                             stringResource(if (s.followed) R.string.unfollow else R.string.follow),
@@ -1976,7 +1988,7 @@ private fun SheetHeader(
         }
         // Contratto 1.72: «4 file · +8 −2» in una riga sua sotto le pillole: nella riga delle pillole sul telefono non ci sta.
         // Anche su una sessione chiusa: la cartella c'è ancora e la vista funziona.
-        DiffRules.pill(s)?.let { c -> ChangesPill(c, onChanges, Modifier.padding(start = if (lead != null) 16.dp else 12.dp, top = 6.dp)) }
+        changes?.takeIf { !changesMenu }?.let { c -> ChangesPill(c, onChanges, Modifier.padding(start = if (lead != null) 16.dp else 12.dp, top = 6.dp)) }
         val notes = listOfNotNull(
             SessionsText.goalLine(s, stringResource(R.string.goal)).takeIf { notesInHeader },
             SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered)).takeIf { notesInHeader },
@@ -1984,7 +1996,7 @@ private fun SheetHeader(
         )
         notes.forEach { Text(it, style = MaterialTheme.typography.labelMedium, color = CmColors.briefLabel, modifier = Modifier.padding(horizontal = 16.dp)) }
         // Senza note sotto le pillole lo stesso margine di sopra, così stanno al centro della barra (Franz, 10/10 14:32: «riduci barra»).
-        Spacer(Modifier.height(if (notes.isEmpty() && s.changes == null) 2.dp else 8.dp))
+        Spacer(Modifier.height(if (notes.isEmpty() && (changes == null || changesMenu)) 2.dp else 8.dp))
         HorizontalDivider(color = CmColors.line)
     }
     if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) })

@@ -100,12 +100,13 @@ class SessionSheetTest {
         CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none, feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList())) }
     }
 
-    // Contratto 1.72: la pillola «4 file · +8 −2» sotto le pillole della testata, solo con `changes`.
+    // Contratto 1.72, sul telefono (Franz, 16/10 13:08): niente pillola sotto la testata, il puntino sul ⋮ e «Modifiche · 4 file
+    // +8 −2» prima voce del menu. Sul tablet la pillola resta.
     @Test fun sheetChangesPill() = paparazzi.snapshot {
         val s = st.sessions.first { it.state == SessionState.IDLE }.copy(changes = ChangesCount(4, 8, 2, st.ts))
         CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none.copy(changes = { DiffRules.Load.Failed(DiffRules.Why.DOWN) }), choices = st.choices, ops = st.ops) }
     }
-    // Caso 4: una sessione chiusa con modifiche tiene la pillola, che si tocca.
+    // Caso 4: una sessione chiusa con modifiche tiene la voce del menu e il puntino.
     @Test fun sheetChangesPillClosed() = paparazzi.snapshot {
         val s = st.sessions.first().copy(state = SessionState.GONE, question = null, changes = ChangesCount(4, 8, 2, st.ts))
         CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none.copy(changes = { DiffRules.Load.Failed(DiffRules.Why.DOWN) })) }

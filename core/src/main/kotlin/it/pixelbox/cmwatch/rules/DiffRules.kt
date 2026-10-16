@@ -36,6 +36,12 @@ object DiffRules {
     /** La pillola della testata: i conteggi, anche per una sessione chiusa (la cartella c'è ancora); null = niente pillola. */
     fun pill(s: Session): ChangesCount? = s.changes
 
+    /** Franz, 16/10 13:08: sotto 600 dp la pillola esce dalla testata e diventa la prima voce del menu ⋮, col puntino sul ⋮. */
+    fun inMenu(widthDp: Int): Boolean = widthDp < 600
+
+    /** La voce del menu: «Modifiche · 22 file +2440 −9». */
+    fun menuLine(title: String, files: String, c: ChangesCount): String = "$title · $files ${counts(c.added, c.removed)}"
+
     enum class Label { NEW, DELETED, RENAMED, BINARY }
 
     /** «nuovo», «eliminato», «rinominato» o «binario»; un file solo modificato, o uno stato che l'app non conosce, nessuna. */

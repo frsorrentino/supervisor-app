@@ -25,6 +25,9 @@ export function folder(path: string): string | null {
 export const stepLine = (d: StepDiff) => `${name(d.path)} · ${counts(d.added, d.removed)}`
 /** La pillola della testata: anche per una sessione chiusa, la cartella c'è ancora; null = niente pillola. */
 export const pill = (s: Session): ChangesCount | null => s.changes ?? null
+// Franz, 16/10 13:08: sul telefono la pillola esce dalla testata e diventa la prima voce del menu ⋮ (DiffRules.inMenu).
+export const inMenu = (viewport: number) => viewport < 600
+export const menuLine = (title: string, files: string, c: ChangesCount) => `${title} · ${files} ${counts(c.added, c.removed)}`
 
 export type Label = 'new' | 'deleted' | 'renamed' | 'binary'
 const LABELS: Record<string, Label> = { added: 'new', deleted: 'deleted', renamed: 'renamed', binary: 'binary' }
