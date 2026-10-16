@@ -181,6 +181,11 @@ const it = {
   privacy: 'Privacy', privacySub: "L'informativa, sul sito",
   chatEmpty: 'Conversazione nuova: ancora nessun messaggio. Scrivi qui sotto per cominciare.', menuGoto: 'Vai a', menuRowWaiting: (x: string) => `domanda · ${x}`, menuRowWorking: (x: string) => `al lavoro · ${x}`, menuRowStill: (x: string) => `ferma da ${x}`, menuHomeSub: 'La home: sessioni e chat della master',
   loadOlder: 'Carica i messaggi precedenti', masterAbsent: 'La master non è aperta', masterAbsentDetail: 'Riaprila per scriverle da qui.',
+  // Contratto 1.72: il diff dal telefono.
+  diffShowAll: 'Mostra tutto', diffBeyond: 'Oltre le 5000 righe il diff resta sul PC', diffMore: (n: number) => `+${n} caratteri`,
+  diffOpen: (f: string) => `Apri il diff di ${f}`, diffClose: (f: string) => `Chiudi il diff di ${f}`, diffLoading: 'Chiedo il passaggio intero al PC',
+  diffGit: 'git non ha risposto in 5 secondi', diffDown: 'PC non raggiungibile', diffRetry: 'Riprova',
+  diffHidden: { binary: 'File binario: arrivano solo nome e conteggi', secret: 'Nome sensibile: il contenuto resta sul PC', big: 'Oltre 1 MB: il contenuto resta sul PC', renamed: 'Rinominato, nessuna riga cambiata', empty: 'Nessuna riga da mostrare' } as Record<string, string>,
   queuePrev: 'Domanda precedente', queueNext: 'Domanda successiva',
   tabletQuotaLabel: 'Quota 5h', tabletWeekLabel: 'Settimana', tabletNowPct: (p: number) => `ora\u00A0${p}%`,
   tabletForecast: (p: number, hm: string) => `Al ritmo di adesso arrivi al\u00A0${p}% quando riparte, alle\u00A0${hm}`,
@@ -434,6 +439,11 @@ const en: typeof it = {
   privacy: 'Privacy', privacySub: 'The policy, on the website',
   chatEmpty: 'New conversation: no messages yet. Write below to start.', menuGoto: 'Go to', menuRowWaiting: (x: string) => `question · ${x}`, menuRowWorking: (x: string) => `working · ${x}`, menuRowStill: (x: string) => `idle for ${x}`, menuHomeSub: "Home: sessions and the master's chat",
   loadOlder: 'Load earlier messages', masterAbsent: 'The master is not open', masterAbsentDetail: 'Reopen it to write to it from here.',
+  // Contract 1.72: the diff from the phone.
+  diffShowAll: 'Show all', diffBeyond: 'Past 5000 lines the diff stays on the PC', diffMore: (n: number) => `+${n} characters`,
+  diffOpen: (f: string) => `Open the diff of ${f}`, diffClose: (f: string) => `Close the diff of ${f}`, diffLoading: 'Asking the PC for the whole step',
+  diffGit: 'git did not answer in 5 seconds', diffDown: 'PC not reachable', diffRetry: 'Retry',
+  diffHidden: { binary: 'Binary file: only the name and the counts arrive', secret: 'Sensitive name: the content stays on the PC', big: 'Over 1 MB: the content stays on the PC', renamed: 'Renamed, no lines changed', empty: 'No lines to show' } as Record<string, string>,
   queuePrev: 'Previous question', queueNext: 'Next question',
   tabletQuotaLabel: '5h quota', tabletWeekLabel: 'Week', tabletNowPct: (p: number) => `now ${p}%`,
   tabletForecast: (p: number, hm: string) => `At this pace you reach ${p}% when it resets, at ${hm}`,

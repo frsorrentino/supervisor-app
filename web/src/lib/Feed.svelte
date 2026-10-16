@@ -1,7 +1,9 @@
 <script lang="ts">
   import { DAY } from './durations'
   import { locale } from './lang'
-  import type { Session, TranscriptEntry, TranscriptFile } from './contract'
+  import type { Session, StepDiff, TranscriptEntry, TranscriptFile } from './contract'
+  import type { Load } from './diff'
+  import StepDiffRow from './StepDiffRow.svelte'
   import { counts, type Item } from './chatFeed'
   import type { Status } from './chatRules'
   import { blocks, cards, compact, type Table } from './markdown'
@@ -21,7 +23,9 @@
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
-  let { s, items, now, onFile = () => {}, onDecision }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void; onDecision?: (text: string) => void } = $props()
+  let { s, items, now, onFile = () => {}, onDecision, onDiff = null }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void; onDecision?: (text: string) => void
+    /** Contratto 1.72: «Mostra tutto» sotto un passaggio, l'op `diff`; null = il relay non la conosce. */
+    onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null } = $props()
 
   // Un file: sotto il nome i tasti apri, scarica, copia e condividi (condividi solo dove il browser lo sa fare; Franz, 07/10
   // 15:48). Il file si chiede al PC appena il puntatore ci arriva, così il tocco trova i byte pronti.
@@ -160,6 +164,8 @@
       <span class="tcol"><span class:bad={e.error}>{main}</span>{#if detail}<code>{detail}</code>{/if}</span>
     </div>
     {#if withFiles && e.files?.length}<div class="indent">{@render files(e.files.map(f => ({ f, entry: e.id })))}</div>{/if}
+    <!-- Contratto 1.72: la riga chiusa del diff sotto il passaggio; in un gruppo le righe stanno in fondo, come i file. -->
+    {#if withFiles && e.diff}<div class="indent"><StepDiffRow id={e.id} diff={e.diff} {onDiff} /></div>{/if}
   </div>
 {/snippet}
 
@@ -182,6 +188,7 @@
       <div class="slast"><Icon name={toolIcon(last)} size={16} color={last.error ? 'var(--gone)' : 'var(--text2)'} /><span class:bad={last.error}>{main}</span></div>
     {/if}
     {#if fs.length}{@render files(fs)}{/if}
+    {#each g.entries as e (e.id)}{#if e.diff}<StepDiffRow id={e.id} diff={e.diff} {onDiff} />{/if}{/each}
   </div>
 {/snippet}
 
