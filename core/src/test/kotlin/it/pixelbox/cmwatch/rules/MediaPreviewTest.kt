@@ -35,7 +35,11 @@ class MediaPreviewTest {
 
     @Test fun theKindOfPreview() {
         assertEquals(MediaPreview.Kind.IMAGE, MediaPreview.kind("image/png"))
-        assertEquals(MediaPreview.Kind.TEXT, MediaPreview.kind("image/svg+xml"))
+        // Franz, 16/10 11:18: HTML e SVG si vedono come pagina in una WebView isolata; XML resta testo.
+        listOf("text/html", "image/svg+xml", "application/xhtml+xml", "text/html; charset=utf-8").forEach { assertEquals(it, MediaPreview.Kind.PAGE, MediaPreview.kind(it)) }
+        assertEquals(MediaPreview.Kind.PAGE, MediaPreview.kind("application/octet-stream", "/w/site/index.html"))
+        assertEquals(MediaPreview.Kind.TEXT, MediaPreview.kind("application/xml"))
+        assertTrue(MediaPreview.auto("text/html", 2_000, unmetered = true)); assertFalse(MediaPreview.auto("text/html", 2_000_000, unmetered = true))
         assertEquals(MediaPreview.Kind.PDF, MediaPreview.kind("application/pdf"))
         assertEquals(MediaPreview.Kind.TEXT, MediaPreview.kind("application/octet-stream", "/w/x/notes.md"))
         assertEquals(MediaPreview.Kind.OTHER, MediaPreview.kind("application/zip", "a.zip"))

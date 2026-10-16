@@ -25,4 +25,14 @@ class FileActionsTest {
         assertTrue(FileActions.canCopy("text/plain"))
         assertTrue(FileActions.canCopy("image/png"))
     }
+
+    // Franz, 16/10 11:18: le anteprime HTML come pagina, in una WebView separata: JavaScript sì, nessuna interfaccia JS, niente
+    // file e content, niente cookie, niente navigazione e niente finestre. Lo stesso riquadro della web (PAGE_SANDBOX).
+    @Test fun aPageIsShownInAnIsolatedView() {
+        val p = FileActions.PAGE_VIEW
+        assertTrue(p.javaScript)
+        assertFalse(p.jsInterfaces || p.fileAccess || p.contentAccess || p.cookies || p.navigation || p.windows || p.domStorage)
+        assertEquals("<h1>Hi</h1>", FileActions.pageDoc("text/html", "<h1>Hi</h1>"))
+        assertEquals("<!doctype html><body style=\"margin:0\"><svg/>", FileActions.pageDoc("image/svg+xml", "<svg/>"))
+    }
 }

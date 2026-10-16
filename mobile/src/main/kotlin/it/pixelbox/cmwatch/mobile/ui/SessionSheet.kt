@@ -1472,6 +1472,12 @@ private fun FileChip(f: TranscriptFile, entry: String) {
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.VIDEO) VideoPreview(local)
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.PDF) PdfFirstPage(local) { opener.open(key, f) }
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.TEXT) TextFirstLines(local) { opener.open(key, f) }
+        // Franz, 16/10 11:18: HTML e SVG come pagina (PagePreview, WebView isolata); «Codice» mostra il sorgente come prima.
+        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.PAGE) {
+            var code by rememberSaveable(key) { mutableStateOf(false) }
+            if (code) TextFirstLines(local) { opener.open(key, f) } else PagePreview(local, f.mime)
+            androidx.compose.material3.FilledTonalButton(onClick = { code = !code }) { Text(stringResource(if (code) R.string.file_page else R.string.file_code)) }
+        }
         // Oltre i limiti, o su una rete a contatore, l'anteprima aspetta il tocco.
         if (local == null && key !in opener.loading && !autoPreview && it.pixelbox.cmwatch.rules.MediaPreview.canPreview(f.mime, f.path)) {
             androidx.compose.material3.FilledTonalButton(onClick = { opener.preview(key, f) }) { Text(stringResource(R.string.show_preview)) }

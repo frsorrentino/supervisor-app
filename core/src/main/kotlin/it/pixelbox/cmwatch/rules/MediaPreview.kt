@@ -16,15 +16,19 @@ object MediaPreview {
     /** Le righe di un testo nell'anteprima. */
     const val TEXT_LINES = 12
 
-    enum class Kind { IMAGE, VIDEO, PDF, TEXT, OTHER }
+    /** PAGE: HTML e SVG disegnati come pagina in una WebView isolata (Franz, 16/10 11:18); XML resta testo. */
+    enum class Kind { IMAGE, VIDEO, PDF, PAGE, TEXT, OTHER }
 
     private val TEXTUAL = Regex("""/(json|xml|javascript|x-sh|x-yaml|yaml|toml)$|\+(xml|json)$""")
+    private val PAGE_EXT = Regex("""\.(html?|xhtml|svg)$""", RegexOption.IGNORE_CASE)
     private val TEXT_EXT = Regex("""\.(md|markdown|txt|log|csv|tsv|json|ya?ml|toml|ini|sh|py|ts|js|mjs|kt|kts|java|go|rs|rb|svelte|css|scss|sql|xml|env)$""", RegexOption.IGNORE_CASE)
 
     fun kind(mime: String?, path: String = ""): Kind {
         val m = mime?.substringBefore(';')?.trim()?.lowercase().orEmpty()
         return when {
-            m.startsWith("image/") && m != "image/svg+xml" -> Kind.IMAGE
+            m == "text/html" || m == "application/xhtml+xml" || m == "image/svg+xml" -> Kind.PAGE
+            (m.isEmpty() || m == "application/octet-stream") && PAGE_EXT.containsMatchIn(path) -> Kind.PAGE
+            m.startsWith("image/") -> Kind.IMAGE
             m.startsWith("video/") -> Kind.VIDEO
             m == "application/pdf" || (m.isEmpty() && path.endsWith(".pdf", ignoreCase = true)) -> Kind.PDF
             m.startsWith("text/") || TEXTUAL.containsMatchIn(m) -> Kind.TEXT
@@ -37,7 +41,7 @@ object MediaPreview {
         Kind.IMAGE -> (size ?: 0L) <= IMAGE_AUTO_MAX
         Kind.VIDEO -> unmetered && size != null && size <= VIDEO_AUTO_MAX
         Kind.PDF -> unmetered && (size ?: 0L) <= PDF_AUTO_MAX
-        Kind.TEXT -> unmetered && (size ?: 0L) <= TEXT_AUTO_MAX
+        Kind.TEXT, Kind.PAGE -> unmetered && (size ?: 0L) <= TEXT_AUTO_MAX
         Kind.OTHER -> false
     }
 

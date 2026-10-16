@@ -970,5 +970,7 @@ It starts at your last message to the master.</string>
     <string name="changes_loading">Reading the changes from the PC</string>
     <string name="changes_file_loading">Reading the file from the PC</string>
     <string name="changes_file_gone">This file has no changes any more: tap Refresh</string>
+    <string name="file_code">Code</string>
+    <string name="file_page">Page</string>
     <string name="show_preview">Show preview</string>
 </resources>

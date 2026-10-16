@@ -988,5 +988,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="changes_loading">Leggo le modifiche dal PC</string>
     <string name="changes_file_loading">Leggo il file dal PC</string>
     <string name="changes_file_gone">Questo file non ha più modifiche: tocca Aggiorna</string>
+    <string name="file_code">Codice</string>
+    <string name="file_page">Pagina</string>
     <string name="show_preview">Mostra anteprima</string>
 </resources>
