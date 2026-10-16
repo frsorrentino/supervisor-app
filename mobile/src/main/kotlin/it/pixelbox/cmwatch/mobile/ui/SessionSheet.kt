@@ -1446,19 +1446,23 @@ private fun FilesGroup(files: List<Pair<TranscriptFile, String>>) {
     if (!it.pixelbox.cmwatch.rules.FileActions.grouped(files.size)) return
     val opener = LocalFileOpener.current
     val all = files.map { (f, entry) -> it.pixelbox.cmwatch.rules.FileCache.key(f, entry) to f }
-    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.weight(1f).heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Il conto a sinistra e i tasti a destra, come nella web.
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.AutoMirrored.Rounded.InsertDriveFile, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
             Text(pluralStringResource(R.plurals.files_group, files.size, files.size), style = MaterialTheme.typography.labelLarge, color = CmColors.text, softWrap = false)
         }
-        for ((act, icon, label) in listOf(
-            Triple(FileAct.DOWNLOAD, Icons.Rounded.Download, R.string.files_save_all),
-            Triple(FileAct.SHARE, Icons.Rounded.Share, R.string.files_share_all),
-        )) {
-            androidx.compose.material3.FilledTonalButton(onClick = { opener.actAll(all, act) }, modifier = Modifier.handCursor()) {
-                Icon(icon, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(label), softWrap = false)
+        // I due tasti in un solo pezzo: su uno schermo stretto vanno sotto insieme, mai uno per riga.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((act, icon, label) in listOf(
+                Triple(FileAct.DOWNLOAD, Icons.Rounded.Download, R.string.files_save_all),
+                Triple(FileAct.SHARE, Icons.Rounded.Share, R.string.files_share_all),
+            )) {
+                androidx.compose.material3.FilledTonalButton(onClick = { opener.actAll(all, act) }, modifier = Modifier.handCursor()) {
+                    Icon(icon, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(label), softWrap = false)
+                }
             }
         }
     }
