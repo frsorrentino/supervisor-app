@@ -38,10 +38,8 @@ object FileActions {
     /** Il tasto «Copia» c'è solo dove copia davvero il contenuto. */
     fun canCopy(mime: String?): Boolean = copyKind(mime) != CopyKind.NONE
 
-    /**
-     * «Condividi tutti» (Franz, 16/10 16:01): il tipo dell'ACTION_SEND_MULTIPLE. Lo stesso tipo se è uno solo, la famiglia
-     * («image/*») se cambia solo il sottotipo, altrimenti qualunque file.
-     */
+    // «Condividi tutti» (Franz, 16/10 16:01): il tipo dell'ACTION_SEND_MULTIPLE. Lo stesso tipo se è uno solo, la famiglia
+    // («image/*») se cambia solo il sottotipo, altrimenti qualunque file.
     fun groupType(mimes: List<String?>): String {
         val ms = mimes.map { it?.substringBefore(';')?.trim()?.lowercase()?.takeIf { m -> '/' in m } ?: return "*/*" }.distinct()
         if (ms.size == 1) return ms[0]
