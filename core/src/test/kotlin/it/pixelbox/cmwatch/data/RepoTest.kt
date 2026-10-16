@@ -217,6 +217,21 @@ class RepoTest {
         assertTrue(repo.resultsById.value.containsKey(page))
     }
 
+    // Contratto 1.72: la vista «Modifiche» e «Mostra tutto» sono letture: niente vibrazione né conferma, mai in coda senza rete
+    // (senza rete la vista dice «PC non raggiungibile»).
+    @Test fun leLettureDelleModificheNonSonoAzioniDellUtente() = runTest {
+        val repo = Repo(MemoryStore(), fake(), bg(), { clock }, { online }, "test", freshnessTickMs = 0); repo.start(); idle()
+        val got = mutableListOf<String>(); bg().launch { repo.userResults.collect { got += it.id } }; idle()
+        val changes = repo.command(CmdOp.CHANGES, "atlas-shop", null)
+        val diff = repo.command(CmdOp.DIFF, "atlas-shop", "a1.0"); idle()
+        assertTrue(got.isEmpty())
+        assertTrue(repo.resultsById.value.containsKey(changes)); assertTrue(repo.resultsById.value.containsKey(diff))
+        online = false
+        try { repo.command(CmdOp.CHANGES, "atlas-shop", null); fail("expected Network") } catch (e: TransportException.Network) { }
+        assertTrue(repo.snapshot.value.pending.isEmpty())
+        online = true
+    }
+
     // Segui e non seguire si vedono subito (Franz, 16/09 01:58): la campanella e il bordo non aspettano il PC, altrimenti
     // dopo la pressione lunga non cambia niente sullo schermo. Se il comando fallisce, il prossimo stato rimette a posto.
     @Test fun seguireSiVedeSubito() = runTest {
