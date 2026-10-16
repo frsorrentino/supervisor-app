@@ -139,4 +139,4 @@ home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePa
 | affidabilità | Nessun errore in console oltre il ResizeObserver | Nessun errore dopo i giri di prova; la transizione a pagina nascosta non lascia più promesse rifiutate | ok |
 | affidabilità | Nessun tasto morto | Giro su ogni tasto di home, sessioni, pagine e plancia: tutti cambiano qualcosa | ok |
 
-Bundle pubblicato su https://supervisor.francescosorrentino.com il 16/10/2026 alle 11:59: `index-D5FXqbdC.js`.
+Bundle pubblicato su https://supervisor.francescosorrentino.com il 16/10/2026 alle 13:41: `index-DOmuEex2.js`.
