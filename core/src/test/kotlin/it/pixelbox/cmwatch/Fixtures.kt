@@ -10,4 +10,6 @@ object Fixtures {
     val stateStale get() = read("state-3-stale.json")
     val events get() = read("events-sample.json")
     val cmdResult get() = read("cmd-result-sample.json")
+    /** Contratto 1.72: il risultato dell'op `changes`. */
+    val changes get() = read("changes-sample.json")
 }

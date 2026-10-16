@@ -119,6 +119,11 @@ enum class CmdOp {
      * di pagina la mostra. Ok «<sessione>: permissions now <modalità>».
      */
     @SerialName("permission_mode") PERMISSION_MODE,
+    /**
+     * Contratto 1.72: la vista «Modifiche», `arg` null (tutta la cartella rispetto a HEAD) o "file=<percorso relativo>"; il
+     * testo è un `ChangesView`. `diff`: il passaggio intero di una voce, `arg` = il suo id; il testo è uno `StepDiff`.
+     */
+    @SerialName("changes") CHANGES, @SerialName("diff") DIFF,
 }
 
 /**
@@ -212,6 +217,8 @@ enum class CmdOp {
     @SerialName("turn_blocking") val turnBlocking: TurnBlocking? = null,
     /** Contratto 1.69: la sessione può arrivare a bypassPermissions (partita col permesso, o già lì); assente = no. */
     @SerialName("permission_bypass") val permissionBypass: Boolean = false,
+    /** Contratto 1.72: i conteggi delle modifiche della cartella; null fuori da git, senza modifiche o con git fermo. */
+    val changes: ChangesCount? = null,
 )
 
 @Serializable data class NeedsYou(val reason: String, val at: Long = 0)
@@ -456,12 +463,58 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val origin: String? = null,
     /** Scritto a turno in corso e non ancora preso da Claude: «in coda». Poi la stessa voce (stesso id) diventa false. */
     val queued: Boolean = false,
+    /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */
+    val diff: StepDiff? = null,
 )
 
 /** `in` comprende la cache letta e scritta; per il costo del turno conta di più `out`. */
 @Serializable data class TranscriptTurn(val started: Long? = null, val ended: Long? = null, @SerialName("in") val input: Long? = null, val out: Long? = null)
 
 @Serializable data class TranscriptFile(val path: String, val mime: String? = null, val size: Long? = null)
+
+/**
+ * Contratto 1.72: un pezzo di diff come in `git diff -U3`. `lines` cominciano per «-» (tolta), «+» (aggiunta) o spazio
+ * (contesto); `old_start` e `new_start` sono le prime righe del pezzo nelle due versioni.
+ */
+@Serializable data class Hunk(
+    @SerialName("old_start") val oldStart: Int, @SerialName("old_lines") val oldLines: Int,
+    @SerialName("new_start") val newStart: Int, @SerialName("new_lines") val newLines: Int,
+    val lines: List<String> = emptyList(),
+)
+
+/**
+ * Contratto 1.72: il diff di un passaggio di modifica. `path` assoluto come in `tool`; `kind` edit | create | overwrite (una
+ * stringa: un valore nuovo del relay non rompe la lettura); `added` e `removed` contano tutto il passaggio anche quando
+ * `hunks` è tagliato; `cut` = oltre 200 righe, il resto con l'op `diff`.
+ */
+@Serializable data class StepDiff(
+    val path: String, val kind: String = "edit", val added: Int = 0, val removed: Int = 0,
+    val hunks: List<Hunk> = emptyList(), val cut: Boolean = false,
+)
+
+/** Contratto 1.72: i conteggi delle modifiche della cartella rispetto all'ultimo commit, per la pillola della testata. */
+@Serializable data class ChangesCount(val files: Int, val added: Int, val removed: Int, val at: Long = 0)
+
+/**
+ * Contratto 1.72: un file della vista «Modifiche». `path` relativo alla radice del repo; `status` modified | added | deleted |
+ * renamed | binary (stringa, come `kind`); `size` in byte. Binari, file oltre 1 MB e nomi sensibili arrivano senza `hunks`.
+ */
+@Serializable data class ChangedFile(
+    val path: String, val status: String, val added: Int = 0, val removed: Int = 0, val size: Long? = null,
+    val hunks: List<Hunk> = emptyList(), val cut: Boolean = false,
+)
+
+@Serializable data class ChangesTotals(val files: Int = 0, val added: Int = 0, val removed: Int = 0)
+
+/**
+ * Contratto 1.72: il risultato dell'op `changes`. `source` git | transcript (cartella fuori da git: i passaggi di Claude in
+ * questa conversazione); `repo` la radice o null; `base` l'hash corto di HEAD o null (repo senza commit); `cut` = oltre 50
+ * file o 2000 righe, e `totals` conta anche i file rimasti fuori.
+ */
+@Serializable data class ChangesView(
+    val source: String, val repo: String? = null, val base: String? = null, val files: List<ChangedFile> = emptyList(),
+    val totals: ChangesTotals = ChangesTotals(), val cut: Boolean = false, val at: Long = 0,
+)
 
 /** Contratto 1.26: il risultato di `projects`, dal più recente (`last_used` null in fondo); `more` oltre i 60 KB. */
 /**

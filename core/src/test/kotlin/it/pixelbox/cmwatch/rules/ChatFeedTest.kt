@@ -15,7 +15,8 @@ class ChatFeedTest {
     private val after = ContractJson.decodeTranscript(results[20].text)
 
     @Test fun parsesTheFixturePage() {
-        assertEquals(18, first.entries.size)
+        // Contratto 1.72: in fondo alla pagina la voce Edit a8.0 col suo diff.
+        assertEquals(19, first.entries.size)
         assertFalse(first.more)
         assertEquals("image/png", first.entries.first { it.id == "a6.0" }.files!!.single().mime)
         assertEquals(130L, first.entries.first { it.id == "a4.0" }.turn!!.out)
@@ -45,7 +46,7 @@ class ChatFeedTest {
     }
 
     @Test fun unmatchedSentGoesByTime() {
-        val sent = Sent("c2", "field-notes", "one more thing", sentAt = 1789207400)
+        val sent = Sent("c2", "field-notes", "one more thing", sentAt = 1789207420)
         val feed = ChatFeed.merge(first.entries, listOf(sent to ChatRules.Status.SENDING))
         val last = feed.last() as ChatFeed.Item.Mine
         assertNull(last.entry)
@@ -56,7 +57,9 @@ class ChatFeedTest {
         val feed = ChatFeed.merge(first.entries, emptyList())
         assertTrue(feed.first() is ChatFeed.Item.User)
         assertTrue(feed.first { (it as? ChatFeed.Item.Tool)?.entry?.id == "a3.0" } is ChatFeed.Item.Tool)
-        assertTrue(feed.last() is ChatFeed.Item.Claude)
+        assertTrue(feed.any { (it as? ChatFeed.Item.Claude)?.entry?.id == "a5.0" })
+        // Contratto 1.72: la pagina finisce col passaggio di modifica a8.0.
+        assertEquals("a8.0", (feed.last() as ChatFeed.Item.Tool).entry.id)
     }
 
     @Test fun afterPageAppendsWithoutDuplicates() {

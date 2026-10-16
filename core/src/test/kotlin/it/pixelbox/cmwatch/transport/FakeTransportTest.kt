@@ -231,4 +231,21 @@ class FakeTransportTest {
         assertEquals("ok to publish the post", st.sessions.first { it.name == "blog" }.turnBlocking?.text)
         assertEquals(setOf("storefront", "blog", "payments-api"), st.attention.orEmpty().mapNotNull { it.session }.toSet())
     }
+
+    /** Contratto 1.72: la pillola sulla sessione della fixture ad adesso; `changes` dalla fixture, un file solo con `file=`. */
+    @Test fun changesFromTheContractSample() = runTest {
+        val tr = t()
+        val shop = tr.state.first().sessions.single { it.changes != null }
+        assertEquals("atlas-shop", shop.name); assertEquals(ChangesCount(4, 8, 2, clock), shop.changes)
+        val all = ContractJson.decodeChanges(tr.send(Cmd("c1", CmdOp.CHANGES, "atlas-shop", null, clock, "test")).text)
+        assertEquals(listOf("src/checkout/totals.ts", "tests/checkout/totals.test.ts", ".env.local", "assets/logo.png"), all.files.map { it.path })
+        assertEquals(clock, all.at); assertEquals(ChangesTotals(4, 8, 2), all.totals)
+        val one = ContractJson.decodeChanges(tr.send(Cmd("c2", CmdOp.CHANGES, "atlas-shop", "file=src/checkout/totals.ts", clock, "test")).text)
+        assertEquals(listOf("src/checkout/totals.ts"), one.files.map { it.path }); assertEquals(ChangesTotals(1, 2, 1), one.totals)
+        assertTrue(ContractJson.decodeChanges(tr.send(Cmd("c3", CmdOp.CHANGES, "ledger-api", null, clock, "test")).text).files.isEmpty())
+        assertEquals("no session nope", tr.send(Cmd("c4", CmdOp.CHANGES, "nope", null, clock, "test")).text)
+        // La demo dell'app non ha la trascrizione (1.22): «Mostra tutto» risponde come il relay a una voce che non c'è.
+        val diff = tr.send(Cmd("c5", CmdOp.DIFF, "atlas-shop", "a1.0", clock, "test"))
+        assertFalse(diff.ok); assertEquals("no entry a1.0 in the transcript", diff.text)
+    }
 }

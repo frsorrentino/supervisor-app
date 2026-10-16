@@ -146,7 +146,9 @@ class FakeTransport(
         return s.copy(ts = s.ts + d, sessions = s.sessions.map { ses ->
             ses.copy(since = ses.since + d, turnStarted = sh(ses.turnStarted),
                 question = ses.question?.let { it.copy(askedAt = it.askedAt + d) },
-                outcome = ses.outcome?.let { it.copy(at = it.at + d) })
+                outcome = ses.outcome?.let { it.copy(at = it.at + d) },
+                // Contratto 1.72: i conteggi della pillola sono di adesso (nella fixture `at` non segue `ts`).
+                changes = ses.changes?.copy(at = s.ts + d))
         },
             // Demo per i video (16/09 16:05): la finestra delle 5 ore è in corso da tre ore, così il ritmo ha una linea e una
             // proiezione; la settimana e l'ultimo uso dei progetti seguono lo stesso spostamento delle sessioni.
@@ -363,6 +365,19 @@ class FakeTransport(
             // Contratti 1.46 e 1.47: la demo ha un'agenda inventata, un gruppo per ognuno di chi deve muoversi, e la cambia
             // con `agenda_set` come il relay (key nuova a ogni modifica, «agenda row changed» con una key vecchia).
             CmdOp.AGENDA -> ok(ContractJson.json.encodeToString(AgendaPage.serializer(), AgendaPage(demoAgenda, owner = "franz")))
+            // Contratto 1.72: le modifiche della cartella. La sessione con `changes` nello stato (storefront nella demo) ha quelle
+            // della fixture del contratto, le altre sono pulite; `file=` dà quel file solo, coi suoi conteggi.
+            CmdOp.CHANGES -> if (ses == null) ko("no session ${cmd.session}") else {
+                val all = if (ses.changes != null) ContractJson.decodeChanges(load("changes-sample")).copy(at = now())
+                    else ChangesView("git", "/home/demo/workspaces/${ses.project}", "f00ba47", at = now())
+                val file = cmd.arg?.takeIf { it.startsWith("file=") }?.removePrefix("file=")
+                val v = if (file == null) all else all.files.filter { it.path == file }.let { fs ->
+                    all.copy(files = fs, totals = ChangesTotals(fs.size, fs.sumOf { it.added }, fs.sumOf { it.removed }), cut = false)
+                }
+                ok(ContractJson.json.encodeToString(ChangesView.serializer(), v))
+            }
+            // Contratto 1.72: la demo dell'app non ha la trascrizione (1.22), quindi nessun passaggio da dare intero.
+            CmdOp.DIFF -> ko("no entry ${cmd.arg} in the transcript")
             // Contratto 1.64: la cartella si crea al secondo tocco, con `confirm`; nella demo nasce solo il risultato.
             // Contratto 1.69: i testi del relay; nella demo la modalità cambia subito nello stato.
             CmdOp.PERMISSION_MODE -> when {
