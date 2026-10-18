@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { newCmd } from './transport'
 import type { Cmd, Session, StudioPage } from './contract'
 import { backStep, chip, scopeFor, stripScope, studioModel, studioResult, RECENT_S } from './studio'
@@ -98,5 +99,32 @@ describe('fix della revisione finale', () => {
     expect(r.error).toBe(off)
     expect(r.page?.cases).toHaveLength(4)
     expect(studioResult({ id: 'x', ok: true, text: JSON.stringify(page), at: 0 }, off).error).toBe(null)
+  })
+})
+
+describe('contratto 1.73: le fixture del relay', () => {
+  const root = JSON.parse(readFileSync(new URL('../../../contract/cmd-result-sample.json', import.meta.url), 'utf8'))
+  const res = (n: string) => root.result.find((r: { id: string }) => r.id.endsWith(n))
+  it('studio riuscito: pratiche nella forma di sessions[].project, scadenze future, una cartella condivisa una volta nel recap', () => {
+    const r = studioResult(res('0740'), 'off')
+    expect(r.error).toBe(null)
+    const p = r.page!
+    expect(p.cases.every(c => c.id && c.name && c.project && !c.project.startsWith('/'))).toBe(true)
+    expect(p.deadlines.every(d => /^\d{4}-\d{2}-\d{2}$/.test(d.date) && d.days_left >= 0)).toBe(true)
+    const m = studioModel(p, [], 0, d => ({ label: chip('Prepara', d.summary), send: d.summary }))
+    expect(new Set(m.recap.map(o => `${o.project}\n${o.at}`)).size).toBe(m.recap.length)
+  })
+  it('calendario spento: ok con le pratiche, nessuna scadenza, la riga in italiano', () => {
+    const r = studioResult(res('0741'), 'Calendario spento')
+    expect(r.error).toBe('Calendario spento')
+    expect(r.page!.cases.length).toBeGreaterThan(0)
+    expect(r.page!.deadlines).toEqual([])
+  })
+  it('studio in fondo alle ops dei tre stati', () => {
+    for (const n of ['state-1-question.json', 'state-2-idle.json', 'state-3-stale.json'])
+      expect(JSON.parse(readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')).ops.at(-1)).toBe('studio')
+  })
+  it('il blocco [studio] dopo il prefisso del dispositivo si toglie lo stesso', () => {
+    expect(stripScope('(via web app)\n[studio]\nPratiche:\n- A → ~/a\n[/studio]\n\nChe cosa scade?')).toBe('(via web app)\nChe cosa scade?')
   })
 })
