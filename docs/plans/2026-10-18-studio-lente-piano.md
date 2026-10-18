@@ -68,7 +68,8 @@ com'è sulla home, con il campo della master che manda con lo scope. Nessuna ses
   prima, `due` = nel periodo di avviso; anche quelle senza pratica (`case` = ""). `outcomes`: per ogni cartella delle
   pratiche, gli ultimi 3 esiti delle sue sessioni (anche chiuse), il più nuovo prima, una volta sola per cartella.
   `error`: il testo di `cm-calendar` se il feed non risponde (le scadenze allora dalla copia in cache o vuote).
-  Calendario spento: `ok: false`, «calendar off».
+  Calendario spento o irraggiungibile: `ok: true` con `cases` pieno, `deadlines` vuoto ed `error` = «calendar off» o il
+  testo dell'errore (addendum del 18/10 dopo la revisione finale: la pagina mostra le pratiche anche senza scadenze).
 - `prompt` accetta `scope: "studio"`: il relay antepone al testo
 
 ```text
