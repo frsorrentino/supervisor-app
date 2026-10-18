@@ -3,7 +3,7 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import eventsRaw from '../../../contract/events-sample.json?raw'
 import nightRaw from '../../../contract/night-report-sample.json?raw'
 import { decodeChanges, decodeState } from './contract'
-import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry } from './contract'
+import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, StudioPage, TimelinePage, TranscriptEntry } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
 import type { NightReport } from './night'
@@ -61,6 +61,8 @@ const isoDay = (t: number) => new Intl.DateTimeFormat('en-CA', { year: 'numeric'
 export type World = {
   state: State; events: Event[]; transcripts: Record<string, TranscriptEntry[]>; mine: [Sent, Status][]; samples: Record<string, Sample[]>
   night: NightReport; agenda: AgendaPage; timeline: TimelinePage
+  /** Contratto 1.7x: la pagina Studio inventata, pratiche sulle cartelle delle sessioni della demo. */
+  studio: StudioPage
   /** Contratto 1.72: il passaggio intero che l'op `diff` dà per «Mostra tutto», per «sessione/id della voce». */
   fullDiffs: Record<string, StepDiff>
 }
@@ -90,6 +92,8 @@ export function world(now: number): World {
   ]
   const state: State = {
     ...base, ts: now, published_at: now, sessions,
+    // La pagina Studio (contratto 1.7x) finché le fixture del relay non hanno l'op.
+    ops: base.ops?.includes('studio') ? base.ops : [...(base.ops ?? []), 'studio'],
     quota: Object.fromEntries(Object.entries(base.quota).map(([k, q]) => [k, { ...q, reset_h5: q.h5 != null && q.reset_h5 != null ? now + WINDOW_LEFT_S : sh(q.reset_h5), reset_w7: sh(q.reset_w7) }])),
     projects: base.projects.map(p => ({ ...p, last_used: sh(p.last_used) })),
     approvals: base.approvals.map(a => ({ ...a, requested_at: a.requested_at + d })),
@@ -210,6 +214,23 @@ export function world(now: number): World {
     { state: 'fatto', scope: 'postazione', blocks: 'nessuno', title: en ? 'Backups of the workstation every night' : 'Backup della postazione ogni notte', ref: 'crontab', key: 'd7' },
   ] }
 
+  // La pagina Studio (spec del 18/10): tre pratiche sulle cartelle di storefront, blog e pricing-page, una scadenza in avviso.
+  const dir = (n: string) => state.sessions.find(x => x.name === n)?.project ?? n
+  const studio: StudioPage = { error: '',
+    cases: [
+      { id: 'c1', name: en ? 'Storefront: supplier contract' : 'Storefront: contratto fornitore', project: dir('storefront') },
+      { id: 'c2', name: en ? 'Blog: image licences' : 'Blog: licenze delle immagini', project: dir('blog') },
+      { id: 'c3', name: en ? 'Pricing: VAT check' : 'Prezzi: verifica IVA', project: dir('pricing-page') },
+    ],
+    deadlines: [
+      { uid: 's1', summary: en ? 'Sign the supplier contract' : 'Firma del contratto fornitore', date: isoDay(now + 2 * 86400), days_left: 2, due: true, case: 'c1' },
+      { uid: 's2', summary: en ? 'Renew the image licences' : 'Rinnovo delle licenze delle immagini', date: isoDay(now + 20 * 86400), days_left: 20, due: false, case: 'c2' },
+    ],
+    outcomes: [
+      { project: dir('storefront'), session: 'storefront', at: now - 3600, short: en ? 'Contract draft checked, two clauses to discuss' : 'Bozza del contratto controllata, due clausole da discutere' },
+      { project: dir('pricing-page'), session: 'pricing-page', at: now - 3 * 86400, short: en ? 'VAT rates aligned' : 'Aliquote IVA allineate' },
+    ] }
+
   // La cronologia di oggi (contratto 1.29) per i dettagli della plancia.
   const d0 = now - 5 * 3600
   const timeline: TimelinePage = { since: d0, sessions: [
@@ -219,7 +240,7 @@ export function world(now: number): World {
       { at: d0 + 6000, kind: 'test', text: 'checkout tests', ok: true }] },
   ] }
 
-  return { state, events, transcripts, mine, samples, night, agenda, timeline, fullDiffs }
+  return { state, events, transcripts, mine, samples, night, agenda, timeline, fullDiffs, studio }
 }
 
 /**

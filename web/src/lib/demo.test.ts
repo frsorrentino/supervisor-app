@@ -172,3 +172,17 @@ describe('il diff dal telefono nella demo (contratto 1.72)', () => {
     expect(r.ok && r.value.totals).toEqual({ files: 4, added: 8, removed: 2 })
   })
 })
+
+describe('la pagina Studio nella demo', () => {
+  it('la demo risponde a studio con pratiche sulle cartelle delle sue sessioni e una scadenza in avviso', async () => {
+    const d = new DemoTransport(() => NOW + 60)
+    expect(d.state.ops).toContain('studio')
+    const r = await d.send(newCmd('studio', null))
+    const p = JSON.parse(r.text)
+    expect(r.ok).toBe(true)
+    expect(p.cases.length).toBeGreaterThan(2)
+    expect(p.deadlines.some((x: { due: boolean }) => x.due)).toBe(true)
+    const projects = new Set(d.state.sessions.map(s => s.project))
+    expect(p.cases.some((c: { project: string }) => projects.has(c.project))).toBe(true)
+  })
+})

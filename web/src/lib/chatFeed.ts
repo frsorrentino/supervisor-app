@@ -1,6 +1,7 @@
 import type { TranscriptEntry, TranscriptPage } from './contract'
 import { SKEW_S, waiting, type Sent, type Status } from './chatRules'
 import { short } from './toolText'
+import { stripScope } from './studio'
 
 // La chat della scheda con la conversazione vera, porta di ChatFeed.kt: le voci di `transcript` più i messaggi mandati
 // da qui, che prendono il posto della loro voce e portano il loro stato.
@@ -93,7 +94,8 @@ export function merge(entries: TranscriptEntry[], sent: [Sent, Status][], more =
         const st: Status = hit[1] === 'uncertain' || hit[1] === 'sent' || hit[1] === 'sending' ? 'delivered' : hit[1]
         return { type: 'mine', sent: hit[0], status: st, entry: e }
       }
-      return { type: 'user', entry: e }
+      // Il blocco `[studio]` che il relay antepone (contratto 1.7x) non si legge: resta il messaggio.
+      return { type: 'user', entry: e.text ? { ...e, text: stripScope(e.text) } : e }
     }
     return e.role === 'tool' ? { type: 'tool', entry: e } : { type: 'claude', entry: e }
   })
