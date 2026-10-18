@@ -30,6 +30,9 @@
   import { t } from './lib/t'
   import HomePane from './lib/HomePane.svelte'
   import RecapPage from './lib/RecapPage.svelte'
+  import StudioPage from './lib/StudioPage.svelte'
+  import { chip, studioModel, type CaseView, type StudioStep } from './lib/studio'
+  import type { StudioPage as StudioPageData } from './lib/contract'
   import { recapActions } from './lib/recapActions'
   import { NIGHT_TARGET, night as nightCards, setCmd, todayIso } from './lib/recapAgenda'
   import NightAgendaPicker from './lib/NightAgendaPicker.svelte'
@@ -369,7 +372,7 @@
   // Le pagine del menu: sul telefono al posto della home, sulla plancia al posto delle colonne.
   // `?page=diary` apre una pagina (link diretto, e i provini).
   const asked = new URLSearchParams(location.search).get('page')
-  let page = $state<PageName | null>(asked && ['launch', 'diary', 'night', 'recap', 'search', 'settings', 'queue'].includes(asked) ? (asked as PageName) : null)
+  let page = $state<PageName | null>(asked && ['launch', 'diary', 'night', 'recap', 'search', 'settings', 'queue', 'studio'].includes(asked) ? (asked as PageName) : null)
   // La pagina Notte (specifica del 07/10, approvata alle 21:50): il rapporto si chiede al PC con l'op `night` (contratto 1.44)
   // quando la pagina si apre e col tasto aggiorna; nella demo è la fixture inventata.
   let night = $state<{ report: NightReport | null; error: string | null; loading: boolean }>({ report: null, error: null, loading: false })
@@ -418,6 +421,27 @@
   }
   $effect(() => { void st.recap.date; if (canAgenda) untrack(() => loadAgenda()) })
   $effect(() => { if (page === 'recap' && canAgenda) untrack(() => loadAgenda()) })
+  // La pagina Studio (spec del 18/10): pratiche, scadenze ed esiti con l'op `studio`, chiesti all'apertura della pagina.
+  let studio = $state<{ page: StudioPageData | null; error: string | null; loading: boolean }>({ page: null, error: null, loading: false })
+  const canStudio = $derived(!!st.ops?.includes('studio'))
+  async function loadStudio() {
+    if (!tr) return
+    studio = { ...studio, loading: true, error: null }
+    try {
+      const r = await tr.send(newCmd('studio', null, null))
+      if (r.ok) { const p: StudioPageData = JSON.parse(r.text); studio = { page: p, error: p.error || null, loading: false } }
+      else studio = { page: studio.page, error: r.text.startsWith('calendar off') ? t.studioOff : r.text, loading: false }
+    } catch { studio = { ...studio, error: t.noAnswer, loading: false } }
+  }
+  $effect(() => { if (page === 'studio' && canStudio) untrack(() => loadStudio()) })
+  const studioView = $derived(studio.page ? studioModel(studio.page, st.sessions, now, (d, n) => ({ label: chip(t.studioPrepare, d.summary),
+    send: t.studioPrepareSend(d.summary, `${d.date.slice(8, 10)}/${d.date.slice(5, 7)}`, n) })) : null)
+  // «Lancia» su una pratica senza sessione: il progetto con la stessa cartella; se il PC non lo elenca, lo chiede alla master.
+  function launchCase(c: CaseView) {
+    const pr = st.projects.find(x => x.path.endsWith(`/${c.project}`))
+    if (pr) cmd(pr.name)('launch', pr.path)
+    else { sendTo(MASTER, t.studioLaunchAsk(c.name, c.project), 'studio'); smooth(() => { masterOpen = true }) }
+  }
   // Le Azioni sulle schede (piano del 09/10). «Parlane con la master»: la scheda citata nel campo della master, sotto quello
   // che c'era già, e la sua conversazione aperta. Le scritture (Fatto, Rimanda, Rimuovi, Passa) con l'op del contratto 1.47.
   const canWrite = $derived(!!st.ops?.includes('agenda_set'))
@@ -459,7 +483,7 @@
   }
   setContext('agendaNight', { get can() { return canNight }, get rows() { return nightCards(agenda.page, todayIso()) }, queue: queueNight })
   $effect(() => { if (canNight && canAgenda && !agenda.page && !agenda.loading) untrack(() => loadAgenda()) })
-  const pageTitle: Record<PageName, string> = $derived({ recap: t.homeRecap, launch: t.menuLaunch, diary: t.menuRegister, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle })
+  const pageTitle: Record<PageName, string> = $derived({ recap: t.homeRecap, launch: t.menuLaunch, diary: t.menuRegister, night: nightTitle, studio: t.studioTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -577,7 +601,7 @@
     else if (masterOpen) smooth(() => { masterOpen = false })
   })
   let masterDraft = $state('')
-  async function sendTo(name: string, text: string) {
+  async function sendTo(name: string, text: string, scope?: 'studio') {
     // Senza trasporto il messaggio resta «inviato al PC».
     const m: Sent = { id: crypto.randomUUID(), session: name, text, sentAt: nowS() }
     msgs = [...msgs, m]
@@ -587,7 +611,8 @@
     const closed = st.sessions.find(x => x.name === name)?.state === 'gone'
     if (closed) say(t.reopening(name))
     try {
-      const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}) })
+      // La pagina Studio (contratto 1.7x): lo scope solo se il relay lo conosce; altrimenti il prompt parte lo stesso.
+      const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}), ...(scope && st.ops?.includes('studio') ? { scope } : {}) })
       res = { ...res, [m.id]: r }
     } catch { pend = { ...pend, [m.id]: 'failed' } }
   }
@@ -845,7 +870,8 @@
   <HomePane {master} entries={transcripts[MASTER] ?? []} open={masterOpen} onToggle={(o) => smooth(() => { masterOpen = o; masterHalf = o && wide })} onSpeak={(x) => toggle(x, MASTER)}
     halfStops={wide} half={masterHalf} onHalf={(h) => (masterHalf = h)}>
     {#snippet menu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
-    {#snippet quick()}{@render masterQuick()}{/snippet}
+    <!-- Sulla plancia la pagina Studio sta a destra e usa questo dock: con la pagina aperta manda con lo scope. -->
+    {#snippet quick()}{@render masterQuick(page === 'studio' ? 'studio' : undefined)}{/snippet}
     {#snippet list()}
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.[0]?.session; if (n) { openPage(null); attend(n) } }} />
@@ -866,13 +892,13 @@
   </HomePane>
 {/snippet}
 
-{#snippet masterQuick()}
+{#snippet masterQuick(scope?: 'studio')}
   {@const m = st.sessions.find(x => x.name === MASTER)}
   {#if m}
     <!-- Il campo della master da chiusa (Franz, 06/10 10:45-10:54): lo stesso della conversazione, + compreso; mandare apre
          la conversazione. -->
     <div class="mquick">
-      <Composer {st} s={m} bind:draft={masterDraft} field={null} toMaster onSend={(x) => { sendTo(MASTER, x); smooth(() => { masterOpen = true }) }}
+      <Composer {st} s={m} bind:draft={masterDraft} field={null} toMaster onSend={(x) => { sendTo(MASTER, x, scope); smooth(() => { masterOpen = true }) }}
         onAnswerText={(arg) => cmd(MASTER)('answer', arg)} onSlash={(c, a) => { cmd(MASTER)('slash', c, a ?? undefined); smooth(() => { masterOpen = true }) }}
         onStop={() => cmd(MASTER)('interrupt')} onReopen={() => cmd(MASTER)('reopen')}
         onAttach={(fs, x) => { attach(MASTER, fs, x); smooth(() => { masterOpen = true }) }} onRecurring={null} />
@@ -881,7 +907,7 @@
 {/snippet}
 
 {#snippet pageView(p: PageName)}
-  <Page title={pageTitle[p]} onBack={() => openPage(null)}>
+  <Page title={pageTitle[p]} onBack={() => openPage(null)} fill={p === 'studio'}>
     {#if p === 'launch'}
       <Launch {st} onSession={(n, reopen) => { if (reopen) cmd(n)('reopen'); else { openPage(null); pick(n) } }}
         onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }}
@@ -904,6 +930,18 @@
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
         onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo} />
+    {:else if p === 'studio'}
+      {@const studioBody = { model: studioView, error: studio.error, loading: studio.loading, old: !canStudio, onSpeak: (x: string) => toggle(x), onLaunch: launchCase,
+        onStep: (x: StudioStep) => { sendTo(MASTER, x.send, 'studio'); smooth(() => { masterOpen = true }) }, onSession: (n: string) => { openPage(null); pick(n) } }}
+      <!-- Studio: sul telefono lo stesso dock della master della home, che manda con lo scope [studio] (spec del 18/10); sulla
+           plancia il dock è quello della home, a sinistra, e due dock della stessa master si aprirebbero insieme. -->
+      {#if wide}<StudioPage {...studioBody} />{:else}
+      <HomePane {master} entries={transcripts[MASTER] ?? []} open={masterOpen} onToggle={(o) => smooth(() => { masterOpen = o; masterHalf = o && wide })} onSpeak={(x) => toggle(x, MASTER)}
+        halfStops={wide} half={masterHalf} onHalf={(h) => (masterHalf = h)}>
+        {#snippet quick()}{@render masterQuick('studio')}{/snippet}
+        {#snippet list()}<div class="list"><StudioPage {...studioBody} /></div>{/snippet}
+        {#snippet chat()}{@render chatOf(MASTER, true)}{/snippet}
+      </HomePane>{/if}
     {:else if p === 'queue'}
       <Queue {st} now={now} skip={queueSkip} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} />
     {:else}
