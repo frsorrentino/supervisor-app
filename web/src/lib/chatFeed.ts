@@ -94,7 +94,7 @@ export function merge(entries: TranscriptEntry[], sent: [Sent, Status][], more =
         const st: Status = hit[1] === 'uncertain' || hit[1] === 'sent' || hit[1] === 'sending' ? 'delivered' : hit[1]
         return { type: 'mine', sent: hit[0], status: st, entry: e }
       }
-      // Il blocco `[studio]` che il relay antepone (contratto 1.7x) non si legge: resta il messaggio.
+      // Il blocco `[studio]` che il relay antepone (contratto 1.73) non si legge: resta il messaggio.
       return { type: 'user', entry: e.text ? { ...e, text: stripScope(e.text) } : e }
     }
     return e.role === 'tool' ? { type: 'tool', entry: e } : { type: 'claude', entry: e }
