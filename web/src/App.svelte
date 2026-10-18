@@ -31,7 +31,7 @@
   import HomePane from './lib/HomePane.svelte'
   import RecapPage from './lib/RecapPage.svelte'
   import StudioPage from './lib/StudioPage.svelte'
-  import { chip, studioModel, type CaseView, type StudioStep } from './lib/studio'
+  import { backStep, chip, scopeFor, studioModel, studioResult, type CaseView, type StudioStep } from './lib/studio'
   import type { StudioPage as StudioPageData } from './lib/contract'
   import { recapActions } from './lib/recapActions'
   import { NIGHT_TARGET, night as nightCards, setCmd, todayIso } from './lib/recapAgenda'
@@ -428,9 +428,7 @@
     if (!tr) return
     studio = { ...studio, loading: true, error: null }
     try {
-      const r = await tr.send(newCmd('studio', null, null))
-      if (r.ok) { const p: StudioPageData = JSON.parse(r.text); studio = { page: p, error: p.error || null, loading: false } }
-      else studio = { page: studio.page, error: r.text.startsWith('calendar off') ? t.studioOff : r.text, loading: false }
+      studio = { ...studioResult(await tr.send(newCmd('studio', null, null)), t.studioOff), loading: false }
     } catch { studio = { ...studio, error: t.noAnswer, loading: false } }
   }
   $effect(() => { if (page === 'studio' && canStudio) untrack(() => loadStudio()) })
@@ -489,7 +487,8 @@
   // già a destra, nel cruscotto.
   let usageFocus = $state(0)
   function goUsage() { smooth(() => { page = null; open = null; masterOpen = false }); usageFocus += 1 }
-  const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p; if (p !== 'queue') queueSkip = null }) }
+  // Sul telefono la Studio si apre col dock ridotto: aperto coprirebbe le quattro sezioni.
+  const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p; if (p !== 'queue') queueSkip = null; if (p === 'studio' && !wide) masterOpen = false }) }
   if (asked === 'overview') queueMicrotask(goUsage)
   // La quota per account, come la Panoramica; i campioni del ritmo arrivano col trasporto.
   const overview = $derived(overviewOf(st, events, samples, now, undefined, down))
@@ -596,9 +595,10 @@
   addEventListener('popstate', () => {
     if (skipPop) { skipPop = false; return }
     pushed = Math.max(0, pushed - 1)
-    if (page) openPage(null)
-    else if (!wide && open) smooth(() => { open = null })
-    else if (masterOpen) smooth(() => { masterOpen = false })
+    const step = backStep(page, masterOpen, wide, open)
+    if (step === 'page') openPage(null)
+    else if (step === 'session') smooth(() => { open = null })
+    else if (step === 'master') smooth(() => { masterOpen = false })
   })
   let masterDraft = $state('')
   async function sendTo(name: string, text: string, scope?: 'studio') {
@@ -609,10 +609,11 @@
     pend = { ...pend, [m.id]: 'sending' }
     // Contratto 1.65: a una sessione chiusa il relay la riapre e poi consegna.
     const closed = st.sessions.find(x => x.name === name)?.state === 'gone'
+    const sc = scopeFor(name, page, scope)
     if (closed) say(t.reopening(name))
     try {
       // La pagina Studio (contratto 1.7x): lo scope solo se il relay lo conosce; altrimenti il prompt parte lo stesso.
-      const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}), ...(scope && st.ops?.includes('studio') ? { scope } : {}) })
+      const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}), ...(sc && st.ops?.includes('studio') ? { scope: sc } : {}) })
       res = { ...res, [m.id]: r }
     } catch { pend = { ...pend, [m.id]: 'failed' } }
   }
@@ -931,7 +932,7 @@
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
         onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo} />
     {:else if p === 'studio'}
-      {@const studioBody = { model: studioView, error: studio.error, loading: studio.loading, old: !canStudio, onSpeak: (x: string) => toggle(x), onLaunch: launchCase,
+      {@const studioBody = { model: studioView, error: studio.error, loading: studio.loading, old: ready && !canStudio, onSpeak: (x: string) => toggle(x), onLaunch: launchCase,
         onStep: (x: StudioStep) => { sendTo(MASTER, x.send, 'studio'); smooth(() => { masterOpen = true }) }, onSession: (n: string) => { openPage(null); pick(n) } }}
       <!-- Studio: sul telefono lo stesso dock della master della home, che manda con lo scope [studio] (spec del 18/10); sulla
            plancia il dock è quello della home, a sinistra, e due dock della stessa master si aprirebbero insieme. -->

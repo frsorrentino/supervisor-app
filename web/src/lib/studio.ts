@@ -1,6 +1,6 @@
 // La pagina Studio (spec del 18/10, approvata da Franz): le pratiche dello scadenziario come lente sulla master, con lo
 // stesso dock della home. Il relay dà pratiche, scadenze ed esiti con l'op `studio`; qui le quattro sezioni.
-import type { Session, StudioDeadline, StudioOutcome, StudioPage } from './contract'
+import type { CmdResult, Session, StudioDeadline, StudioOutcome, StudioPage } from './contract'
 import { MAX } from './nextSteps'
 
 export type CaseView = { id: string; name: string; project: string; next: StudioDeadline | null; session: Session | null; last: StudioOutcome | null; open: boolean }
@@ -50,4 +50,27 @@ export function studioModel(page: StudioPage, sessions: Session[], now: number, 
     return true
   }).map(o => ({ ...o, names: page.cases.filter(c => c.project === o.project).map(c => c.name) }))
   return { deadlines, open, rest: views.filter(v => !v.open), steps, recap }
+}
+
+/** Con la pagina Studio aperta ogni messaggio alla master porta lo scope, anche quelli scritti nella conversazione. */
+export const scopeFor = (name: string, page: string | null, scope?: 'studio'): 'studio' | undefined =>
+  scope ?? (name === 'master' && page === 'studio' ? 'studio' : undefined)
+
+/**
+ * Che cosa chiude il gesto Indietro. Sul telefono la Studio ha il dock della master dentro: aperto, si riduce prima quello,
+ * come sulla home; sulla plancia il dock è della home e Indietro chiude la pagina.
+ */
+export function backStep(page: string | null, masterOpen: boolean, wide: boolean, open: string | null): 'master' | 'page' | 'session' | null {
+  if (page === 'studio' && masterOpen && !wide) return 'master'
+  if (page) return 'page'
+  if (!wide && open) return 'session'
+  return masterOpen ? 'master' : null
+}
+
+/** Il risultato dell'op `studio`: un rifiuto toglie i dati vecchi; «calendar off» si dice in italiano, anche con le pratiche. */
+export function studioResult(r: CmdResult, off: string): { page: StudioPage | null; error: string | null } {
+  const say = (e: string) => (e.startsWith('calendar off') ? off : e)
+  if (!r.ok) return { page: null, error: say(r.text) }
+  const page: StudioPage = JSON.parse(r.text)
+  return { page, error: page.error ? say(page.error) : null }
 }

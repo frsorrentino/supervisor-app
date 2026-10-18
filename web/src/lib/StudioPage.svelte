@@ -35,10 +35,10 @@
 
 <div class="studio">
   {#if old}<p class="note">{t.studioOld}</p>{/if}
-  {#if error}<p class="note">{error}</p>{:else if !model && loading}<p class="note">{t.recapLoading}</p>{/if}
+  {#if error}<p class="note">{error}</p>{:else if !model && loading}<p class="note">{t.studioLoading}</p>{/if}
   {#if model}
     <h2 class="gh" style="--t:var(--b-warn)"><span>{t.studioDeadlines.toUpperCase()}</span><i></i></h2>
-    {#each model.deadlines as d (d.uid)}
+    {#each model.deadlines as d (`${d.uid}\n${d.date}`)}
       <div class="dl" class:due={d.due}><b>{dm(d.date)}</b><span>{t.studioWhen(d.days_left)} · {d.summary}{d.caseName ? ` · ${d.caseName}` : ''}</span></div>
     {:else}<p class="note">{t.studioNone}</p>{/each}
 
@@ -54,7 +54,7 @@
 
     {#if model.steps.length}
       <h2 class="gh" style="--t:var(--icon)"><span>{t.studioNext.toUpperCase()}</span><i></i></h2>
-      <div class="chips">{#each model.steps as s (s.send)}<button class="act" onclick={() => onStep(s)}>{s.label}</button>{/each}</div>
+      <div class="chips">{#each model.steps as s, i (i)}<button class="act" onclick={() => onStep(s)}>{s.label}</button>{/each}</div>
     {/if}
 
     {#if model.recap.length}

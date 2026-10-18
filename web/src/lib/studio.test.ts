@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { newCmd } from './transport'
 import type { Cmd, Session, StudioPage } from './contract'
-import { chip, stripScope, studioModel, RECENT_S } from './studio'
+import { backStep, chip, scopeFor, stripScope, studioModel, studioResult, RECENT_S } from './studio'
 
 describe('studio: comando', () => {
   it('lo scope viaggia sul prompt', () => {
@@ -71,5 +71,32 @@ describe('stripScope', () => {
     expect(stripScope('[studio]\nPratiche: x → y\n[/studio]\n\nChe cosa scade?')).toBe('Che cosa scade?')
     expect(stripScope('Che cosa scade?')).toBe('Che cosa scade?')
     expect(stripScope('[studio] senza chiusura')).toBe('[studio] senza chiusura')
+  })
+})
+
+describe('fix della revisione finale', () => {
+  it('con la pagina Studio aperta ogni messaggio alla master porta lo scope, non solo il primo', () => {
+    expect(scopeFor('master', 'studio')).toBe('studio')
+    expect(scopeFor('master', null)).toBe(undefined)
+    expect(scopeFor('blog', 'studio')).toBe(undefined)
+    expect(scopeFor('master', null, 'studio')).toBe('studio')
+  })
+  it('Indietro sul telefono riduce prima il dock aperto della Studio, poi chiude la pagina', () => {
+    expect(backStep('studio', true, false, null)).toBe('master')
+    expect(backStep('studio', false, false, null)).toBe('page')
+    expect(backStep('studio', true, true, null)).toBe('page')
+    expect(backStep('recap', true, false, null)).toBe('page')
+    expect(backStep(null, false, false, 'blog')).toBe('session')
+    expect(backStep(null, true, false, null)).toBe('master')
+    expect(backStep(null, false, false, null)).toBe(null)
+  })
+  it('un rifiuto del relay toglie i dati vecchi; calendario spento con le pratiche le tiene', () => {
+    const off = 'Calendario spento'
+    expect(studioResult({ id: 'x', ok: false, text: 'calendar off', at: 0 }, off)).toEqual({ page: null, error: off })
+    expect(studioResult({ id: 'x', ok: false, text: 'boom', at: 0 }, off)).toEqual({ page: null, error: 'boom' })
+    const r = studioResult({ id: 'x', ok: true, text: JSON.stringify({ ...page, deadlines: [], error: 'calendar off' }), at: 0 }, off)
+    expect(r.error).toBe(off)
+    expect(r.page?.cases).toHaveLength(4)
+    expect(studioResult({ id: 'x', ok: true, text: JSON.stringify(page), at: 0 }, off).error).toBe(null)
   })
 })
