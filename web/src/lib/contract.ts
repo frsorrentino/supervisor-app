@@ -168,6 +168,13 @@ export type State = {
   approvals?: Approval[]
 }
 
+/** Contratto 1.7x, op `studio`: le pratiche di `calendar.cases`, le scadenze dei prossimi 60 giorni (`due` = in avviso),
+ *  gli ultimi esiti per cartella; `project` nella forma di `sessions[].project`; `error` = il calendario non risponde. */
+export type StudioCase = { id: string; name: string; project: string }
+export type StudioDeadline = { uid: string; summary: string; date: string; days_left: number; due: boolean; case: string }
+export type StudioOutcome = { project: string; session: string; at: number; short: string }
+export type StudioPage = { cases: StudioCase[]; deadlines: StudioDeadline[]; outcomes: StudioOutcome[]; error: string }
+
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
@@ -175,6 +182,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */
   | 'changes' | 'diff'
+  /** Contratto 1.7x: la pagina Studio, a richiesta (pratiche, scadenze, esiti per cartella). */
+  | 'studio'
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */
@@ -185,6 +194,8 @@ export type Cmd = {
   reopen?: boolean
   /** Contratto 1.47, `agenda_set`: done | snooze | remove | pass, il giorno di uno snooze, a chi passa. */
   action?: string; until?: string; blocks?: string
+  /** Contratto 1.7x, `prompt`: il relay antepone il blocco `[studio]…[/studio]` col contesto delle pratiche. */
+  scope?: 'studio'
 }
 export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null }
 
