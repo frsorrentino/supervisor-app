@@ -61,7 +61,7 @@ const isoDay = (t: number) => new Intl.DateTimeFormat('en-CA', { year: 'numeric'
 export type World = {
   state: State; events: Event[]; transcripts: Record<string, TranscriptEntry[]>; mine: [Sent, Status][]; samples: Record<string, Sample[]>
   night: NightReport; agenda: AgendaPage; timeline: TimelinePage
-  /** Contratto 1.7x: la pagina Studio inventata, pratiche sulle cartelle delle sessioni della demo. */
+  /** Contratto 1.73: la pagina Studio inventata, pratiche sulle cartelle delle sessioni della demo. */
   studio: StudioPage
   /** Contratto 1.72: il passaggio intero che l'op `diff` dà per «Mostra tutto», per «sessione/id della voce». */
   fullDiffs: Record<string, StepDiff>
@@ -92,7 +92,7 @@ export function world(now: number): World {
   ]
   const state: State = {
     ...base, ts: now, published_at: now, sessions,
-    // La pagina Studio (contratto 1.7x) finché le fixture del relay non hanno l'op.
+    // La pagina Studio (contratto 1.73) finché le fixture del relay non hanno l'op.
     ops: base.ops?.includes('studio') ? base.ops : [...(base.ops ?? []), 'studio'],
     quota: Object.fromEntries(Object.entries(base.quota).map(([k, q]) => [k, { ...q, reset_h5: q.h5 != null && q.reset_h5 != null ? now + WINDOW_LEFT_S : sh(q.reset_h5), reset_w7: sh(q.reset_w7) }])),
     projects: base.projects.map(p => ({ ...p, last_used: sh(p.last_used) })),

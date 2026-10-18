@@ -612,7 +612,7 @@
     const sc = scopeFor(name, page, scope)
     if (closed) say(t.reopening(name))
     try {
-      // La pagina Studio (contratto 1.7x): lo scope solo se il relay lo conosce; altrimenti il prompt parte lo stesso.
+      // La pagina Studio (contratto 1.73): lo scope solo se il relay lo conosce; altrimenti il prompt parte lo stesso.
       const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}), ...(sc && st.ops?.includes('studio') ? { scope: sc } : {}) })
       res = { ...res, [m.id]: r }
     } catch { pend = { ...pend, [m.id]: 'failed' } }

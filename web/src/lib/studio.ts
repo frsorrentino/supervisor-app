@@ -19,11 +19,8 @@ export function chip(prefix: string, title: string, max = 40): string {
   return (space > prefix.length ? cut.slice(0, space) : full.slice(0, max)).trimEnd()
 }
 
-/** Il blocco `[studio]…[/studio]` che il relay antepone al prompt non si mostra in chat. */
-export function stripScope(text: string): string {
-  const m = /^\[studio\]\n[\s\S]*?\n\[\/studio\]\n+/.exec(text)
-  return m ? text.slice(m[0].length) : text
-}
+/** Il blocco `[studio]…[/studio]` che il relay mette dopo il prefisso del dispositivo (contratto 1.73) non si mostra in chat. */
+export const stripScope = (text: string): string => text.replace(/(^|\n)\[studio\]\n[\s\S]*?\n\[\/studio\]\n+/, '$1')
 
 /**
  * Le quattro sezioni. Più pratiche possono stare nella stessa cartella: la sessione accesa lì vale per tutte, l'esito
