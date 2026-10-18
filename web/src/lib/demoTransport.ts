@@ -207,7 +207,6 @@ export class DemoTransport implements Transport {
         case 'decision': return cmd.text?.trim() ? ok('decision sent to the master') : ko('empty decision')
         case 'night': return ok(JSON.stringify(this.world.night))
         case 'agenda': return ok(JSON.stringify(this.world.agenda))
-        case 'studio': return ok(JSON.stringify(this.world.studio))
         case 'agenda_set': {
           const rows = this.world.agenda.rows
           const i = rows.findIndex(x => x.key === cmd.arg)

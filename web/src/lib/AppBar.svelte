@@ -1,5 +1,5 @@
 <script module lang="ts">
-  export type Page = 'launch' | 'diary' | 'night' | 'recap' | 'overview' | 'search' | 'settings' | 'queue' | 'studio'
+  export type Page = 'launch' | 'diary' | 'night' | 'recap' | 'overview' | 'search' | 'settings' | 'queue'
 </script>
 
 <script lang="ts">
@@ -32,7 +32,6 @@
     { page: 'diary', title: t.menuRegister, sub: t.menuRegisterSub, d: ['M12 7v14', 'M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z'] },
     { page: 'night', title: t.menuNight, sub: t.menuNightSub, d: ['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z'] },
     { page: 'recap', title: t.menuRecap, sub: t.menuRecapSub, d: ['M13 5h8', 'M13 12h8', 'M13 19h8', 'm3 17 2 2 4-4', 'M3 4h6v6H3z'] },
-    { page: 'studio', title: t.menuStudio, sub: t.menuStudioSub, d: ['M4 7h16v13H4z', 'M9 7V4h6v3', 'M4 12h16'] },
     { page: 'overview', title: t.menuQuadro, sub: t.menuQuadroSub, d: ['M3 3h7v9H3z', 'M14 3h7v5h-7z', 'M14 12h7v9h-7z', 'M3 16h7v5H3z'] },
     { page: 'search', title: t.menuSearch, sub: t.menuSearchSub, d: ['m21 21-4.34-4.34', 'M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0'] },
   ]

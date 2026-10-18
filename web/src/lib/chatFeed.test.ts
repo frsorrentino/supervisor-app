@@ -142,11 +142,3 @@ describe('ChatFeed', () => {
     expect(pageEntries('C', 'C', 'A', a, cache)).toEqual([])
   })
 })
-
-describe('merge: Studio', () => {
-  it('una voce Studio da un altro dispositivo si legge senza il blocco del relay', () => {
-    const e = { role: 'user', text: '[studio]\nPratiche: x → y\n[/studio]\n\nChe cosa scade?', at: 100, origin: 'phone' }
-    const items = merge([e as TranscriptEntry], [])
-    expect(items[0]).toMatchObject({ type: 'user', entry: { text: 'Che cosa scade?' } })
-  })
-})

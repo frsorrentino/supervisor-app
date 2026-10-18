@@ -3,8 +3,7 @@
   import { t } from './t'
   // Una pagina del menu (Registro, Utilizzo e limiti, Cerca, Impostazioni, Lancia): ← e il titolo, sotto il contenuto che
   // scorre. Sul telefono prende lo schermo, sulla plancia il posto delle colonne, come il Registro sul tablet.
-  // `fill`: il contenuto prende tutta l'altezza e scorre da sé, come la home col dock della master (pagina Studio).
-  let { title, onBack, children, actions = null, fill = false }: { title: string; onBack: () => void; children: Snippet; actions?: Snippet | null; fill?: boolean } = $props()
+  let { title, onBack, children, actions = null }: { title: string; onBack: () => void; children: Snippet; actions?: Snippet | null } = $props()
 </script>
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && !document.querySelector('dialog[open]') && onBack()} />
@@ -17,7 +16,7 @@
     <h1>{title}</h1>
     {#if actions}<span class="sp"></span>{@render actions()}{/if}
   </header>
-  <div class="body" class:fill>{@render children()}</div>
+  <div class="body">{@render children()}</div>
 </section>
 
 <style>
@@ -28,5 +27,4 @@
   .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; }
   .ib:hover { background: var(--surface); }
   .body { flex: 1; min-height: 0; overflow-y: auto; }
-  .body.fill { overflow: hidden; display: flex; flex-direction: column; }
 </style>
