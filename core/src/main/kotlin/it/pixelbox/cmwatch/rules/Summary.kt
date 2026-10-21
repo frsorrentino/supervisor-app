@@ -10,7 +10,8 @@ import java.time.ZoneId
 /**
  * Il riepilogo unico (design 03/10, approvato da Franz): Sessioni e casa della master fuse. Ogni sessione una volta,
  * nell'ordine del bisogno: ti aspetta, ha finito, al lavoro, ferme; le chiuse a parte; le righe di servizio in fondo.
- * La master è la cornice (in basso, vicino al campo) e compare nella lista solo quando aspetta.
+ * La master è la cornice (in basso, vicino al campo) e non compare mai nella lista, neanche quando chiede o è ferma per
+ * Franz (segnalazione del 21/10 21:15): quello che chiede sta nella sua barra e nel campo di scrittura.
  */
 object Summary {
     enum class Group { WAITING, FINISHED, WORKING, STILL }
@@ -26,7 +27,7 @@ object Summary {
         val others = live.filter { it.name != ContextActions.MASTER }
         val forYou = MasterHome.forYou(state, events, sent, now, zone, read, limit = Int.MAX_VALUE).rows
         // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
-        val waiting = live.mapNotNull { s ->
+        val waiting = others.mapNotNull { s ->
             s.question?.let { Row(Group.WAITING, s, it.text, it.askedAt) }
                 ?: StrongAlert.stop(s)?.let { Row(Group.WAITING, s, it.text, it.at) }
         }.sortedBy { it.at }

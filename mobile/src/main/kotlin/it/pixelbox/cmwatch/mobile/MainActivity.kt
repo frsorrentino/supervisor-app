@@ -1313,9 +1313,10 @@ class MainActivity : ComponentActivity() {
                 page, state?.let { st -> PhoneBoard.sections(st).flatMap { sec -> sec.sessions } }.orEmpty(), summary?.open ?: 0, now,
                 onPick = { n -> open = n; if (n == null) tab = StartRoute.Tab.OVERVIEW }, onClosed = { closedOpen = true }, menu = menuActions,
                 // Contratto 1.66: il tocco porta alla prima voce; una domanda, un turno fallito o una quota finita stanno nella
-                // sua sessione, un task rosso nella sessione che lo lavora.
-                attention = state?.attention?.size ?: 0,
-                onAttention = { state?.attention?.firstOrNull()?.session?.let { n -> if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.toggle(tabletCols.filter { c -> c != n }, n)) else open = n } },
+                // sua sessione, un task rosso nella sessione che lo lavora. Le voci della master non si contano, come nel
+                // banner (Franz, 21/10 21:15): quello che chiede sta nella sua barra e nel campo di scrittura.
+                attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }?.size ?: 0,
+                onAttention = { state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }?.firstOrNull()?.session?.let { n -> if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.toggle(tabletCols.filter { c -> c != n }, n)) else open = n } },
                 quota = state?.let { st -> {
                     val rings = remember(st, events, samples, now, snap.freshness) {
                         PhoneOverview.build(st, events, samples, now, java.time.ZoneId.systemDefault(), stale = snap.freshness is Freshness.Stale).rings

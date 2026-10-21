@@ -258,7 +258,7 @@ fun PageHeader(
     page: String?, sessions: List<Session>, openCount: Int, now: Long, onPick: (String?) -> Unit, onClosed: () -> Unit,
     menu: MenuActions, quota: (@Composable () -> Unit)? = null, showQuota: Boolean = false,
     menuStartOpen: Boolean = false, sessionMenuStartOpen: Boolean = false,
-    /** Contratto 1.66: quante cose servono a Franz (`state.attention`), e il tocco che porta alla prima. */
+    /** Contratto 1.66: quante cose servono a Franz (`state.attention` senza le voci della master), e il tocco che porta alla prima. */
     attention: Int = 0, onAttention: () -> Unit = {},
 ) {
     Column(Modifier.fillMaxWidth().background(CmColors.bg)) {

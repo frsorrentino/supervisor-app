@@ -43,9 +43,16 @@ class SummaryTest {
         assertEquals(listOf(Group.FINISHED), m.rows.map { it.group })
     }
 
-    @Test fun theMasterOnlyAppearsWhenItAsks() {
+    // Franz, 21/10 21:15: la master non sta mai fra le sessioni, neanche quando chiede o è ferma per lui; quello che chiede
+    // sta nella sua barra e nel campo di scrittura.
+    @Test fun theMasterIsNeverListed() {
         assertTrue(build(st(s("master", SessionState.BUSY))).rows.isEmpty())
-        assertEquals(listOf("master"), build(st(s("master", SessionState.WAITING).copy(question = q("1", at(14))))).rows.map { it.session.name })
+        assertTrue(build(st(s("master", SessionState.WAITING).copy(question = q("1", at(14))))).rows.isEmpty())
+        assertTrue(build(st(s("master").copy(turnBlocking = TurnBlocking("ok al push", at(14))))).rows.isEmpty())
+        assertTrue(build(st(s("master").copy(outcome = done(at(14, 50)), followed = true))).rows.isEmpty())
+        val m = build(st(s("master", SessionState.WAITING).copy(question = q("1", at(14))), s("a", SessionState.WAITING).copy(question = q("2", at(14, 5)))))
+        assertEquals(listOf("a"), m.rows.map { it.session.name })
+        assertEquals("master", m.master?.name)
     }
 
     @Test fun closedAreOneRow() {

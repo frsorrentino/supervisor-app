@@ -9,6 +9,7 @@
   import { t } from './t'
   import { resetLabel } from './header'
   import { shown } from './quotaLine'
+  import { forMaster } from './strongAlert'
 
   // La testata della home (PageHeader dell'app): «Master · N aperte», la lente e il menu ≡; sotto, la quota in una riga
   // (QuotaLine): per ogni account la sua forma, una barra fina delle 5 ore e la percentuale; ambra da 75 %, rossa da 90 %.
@@ -17,6 +18,8 @@
     /** Contratto 1.66: il tocco sul contatore «N per te» porta alla prima voce. */
     onAttention?: () => void } = $props()
   let menu = $state(false)
+  // «N per te» senza le voci della master, come il banner (Franz, 21/10 21:15): quello che chiede sta nella sua barra.
+  const attention = $derived(forMaster(st).length)
   // Il pannello scende dal tasto ≡, non dal bordo dello schermo: sulla plancia con la home a sinistra resta accanto al tasto.
   let panelRight = $state(12)
   function openMenu(e: MouseEvent) { panelRight = Math.max(12, innerWidth - (e.currentTarget as HTMLElement).getBoundingClientRect().right); menu = true }
@@ -47,7 +50,7 @@
 <header>
   <div class="bar">
     <span class="title"><b>{t.summaryTitle}</b><span class="open">{t.summaryOpen(openCount)}</span></span>
-    {#if st.attention?.length}<button class="attn" onclick={onAttention}>{t.attentionCount(st.attention.length)}</button>{/if}
+    {#if attention}<button class="attn" onclick={onAttention}>{t.attentionCount(attention)}</button>{/if}
     <button class="ib" aria-label={t.search} title={t.search} onclick={() => onPage('search')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
     </button>

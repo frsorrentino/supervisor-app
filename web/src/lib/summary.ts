@@ -4,7 +4,8 @@ import { DAY } from './durations'
 import { stop } from './strongAlert'
 
 // Il riepilogo unico della home, porta di Summary.kt: ogni sessione una volta, nell'ordine del bisogno (ti aspetta, ha
-// finito, al lavoro, ferme), le chiuse a parte. La master compare nella lista solo quando aspetta.
+// finito, al lavoro, ferme), le chiuse a parte. La master non compare mai nella lista, neanche quando chiede o è ferma per
+// Franz (21/10 21:15): quello che chiede sta nella sua barra e nel campo di scrittura.
 export const MASTER = 'master'
 export const FINISHED_S = 12 * 3600
 export type Group = 'waiting' | 'finished' | 'working' | 'still'
@@ -20,7 +21,7 @@ export function build(state: State, sent: Sent[], now: number, read: Set<string>
   const master = live.find(s => s.name === MASTER) ?? null
   const others = live.filter(s => s.name !== MASTER)
   // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
-  const waiting: Row[] = live.flatMap((s): Row[] => {
+  const waiting: Row[] = others.flatMap((s): Row[] => {
     if (s.question) return [{ group: 'waiting', session: s, text: s.question.text, at: s.question.asked_at }]
     const x = stop(s)
     return x ? [{ group: 'waiting', session: s, text: x.text, at: x.at }] : []
