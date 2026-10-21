@@ -34,6 +34,15 @@ class SummaryListTest {
     @Test fun summaryClosed() = paparazzi.snapshot { page(st) }
     @Test fun summaryOpen() = paparazzi.snapshot { page(st, open = "WAITING:ledger-api") }
 
+    // P6 (21/10): in cima alla home la card «Aggiornamento disponibile · Installa» per una release nuova su GitHub.
+    @Test fun summaryWithUpdate() = paparazzi.snapshot {
+        val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("impegni-2026-10-22", "Notte 22/10", st.ts - 2 * 3600 - 300, true, "https://example.com/mobile-release.apk", 68813846, null, "")
+        val u = it.pixelbox.cmwatch.mobile.update.AppUpdater.Ui(phase = it.pixelbox.cmwatch.mobile.update.AppUpdater.Phase.Available(r))
+        CmPhoneTheme(still = true) {
+            Column(Modifier.background(CmColors.bg)) { SummaryList(model(st), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, update = u) }
+        }
+    }
+
     // Attenzione n. 5 del piano: con dieci sessioni ferme «Ferme» resta una riga breve ciascuna, «Chiuse» una riga sola.
     @Test fun summaryMany() = paparazzi.snapshot {
         val idle = st.sessions.first { it.state == SessionState.IDLE }

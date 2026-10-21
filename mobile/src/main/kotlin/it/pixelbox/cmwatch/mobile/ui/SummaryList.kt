@@ -37,6 +37,7 @@ import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.SupervisorAccount
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -69,6 +70,8 @@ import it.pixelbox.cmwatch.rules.uniqueKeys
 import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.Summary
+import it.pixelbox.cmwatch.rules.AppUpdate
+import it.pixelbox.cmwatch.mobile.update.AppUpdater
 import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
@@ -130,6 +133,8 @@ fun SummaryList(
     scrollMemo: IntArray? = null,
     /** Contratto 1.68: il banner della casa della master, le voci di «Serve te» delle altre sessioni; il tocco porta alla prima. */
     attention: List<it.pixelbox.cmwatch.contract.Attention> = emptyList(), onAttention: () -> Unit = {},
+    /** P6 (21/10): la card dell'aggiornamento in cima quando una release nuova è pronta; null o senza release = niente. */
+    update: AppUpdater.Ui? = null, onInstallUpdate: (AppUpdate.Release) -> Unit = {}, onDismissUpdate: (String) -> Unit = {},
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura.
@@ -187,6 +192,7 @@ fun SummaryList(
         Modifier.fillMaxSize(), state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp + readingRoom()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }
         if (attention.isNotEmpty()) item(key = "attention-banner") {
             Box(moving()) { AttentionBanner(attention) { sessionsOpen = true; save("sessions", true); onAttention() } }
         }
@@ -806,5 +812,61 @@ private fun AttentionBanner(items: List<it.pixelbox.cmwatch.contract.Attention>,
             names, style = MaterialTheme.typography.bodyMedium, color = CmColors.briefWarnInk, maxLines = 1,
             overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
         )
+    }
+}
+
+/**
+ * L'aggiornamento dentro l'app (P6, approvata da Franz il 21/10 alle 23:58): in cima alla home la release nuova di GitHub
+ * con «Installa» (scarica, verifica col digest, apre l'installer di Android) e «Non ora». Mentre scarica, la barra; se
+ * Android vuole prima il permesso di installare app, lo dice; se non va, il perché e «Riprova».
+ */
+@Composable
+private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Release) -> Unit, onDismiss: (String) -> Unit) {
+    val p = u.phase
+    val r = p.release ?: return
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Rounded.SystemUpdate, null, tint = CmColors.briefGood, modifier = Modifier.size(24.dp))
+            Text(
+                stringResource(R.string.update_available), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = CmColors.text, modifier = Modifier.weight(1f),
+            )
+        }
+        Text(
+            stringResource(R.string.update_sub, r.name, AppUpdate.sizeLabel(r.size), it.pixelbox.cmwatch.contract.Durations.since(r.publishedAt, now)),
+            style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+        )
+        when (p) {
+            is AppUpdater.Phase.Downloading -> {
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { p.percent / 100f }, modifier = Modifier.fillMaxWidth(), color = CmColors.briefGood, trackColor = CmColors.briefTrack,
+                )
+                Text(stringResource(R.string.update_downloading, p.percent), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            }
+            is AppUpdater.Phase.Ready -> Text(
+                stringResource(if (u.needsPermission) R.string.update_allow else R.string.update_ready),
+                style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+            )
+            is AppUpdater.Phase.Failed -> Text(
+                stringResource(R.string.update_failed, stringResource(when (p.reason) {
+                    AppUpdater.Reason.NO_DIGEST -> R.string.update_fail_no_digest
+                    AppUpdater.Reason.BAD_DIGEST -> R.string.update_fail_bad_digest
+                    AppUpdater.Reason.NETWORK -> R.string.update_fail_network
+                    AppUpdater.Reason.HTTP -> R.string.update_fail_http
+                })),
+                style = MaterialTheme.typography.bodyMedium, color = CmColors.gone,
+            )
+            else -> {}
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (p !is AppUpdater.Phase.Downloading) androidx.compose.material3.Button(
+                onClick = { onInstall(r) },
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+            ) { Text(stringResource(if (p is AppUpdater.Phase.Failed) R.string.update_retry else R.string.update_install)) }
+            androidx.compose.material3.TextButton(onClick = { onDismiss(r.tag) }) { Text(stringResource(R.string.update_not_now), color = CmColors.text2) }
+        }
     }
 }

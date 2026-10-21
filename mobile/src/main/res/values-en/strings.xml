@@ -298,6 +298,26 @@
     <string name="privacy_sub">The policy, on the website</string>
     <string name="version_title">Version</string>
     <string name="version_value">%1$s · phone and watch</string>
+    <!-- In-app update (P6, 21/10): the card at the top of the home and the row in Settings. -->
+    <string name="update_available">Update available</string>
+    <string name="update_sub">%1$s · %2$s · published %3$s ago</string>
+    <string name="update_install">Install</string>
+    <string name="update_retry">Retry</string>
+    <string name="update_not_now">Not now</string>
+    <string name="update_downloading">Downloading and verifying · %1$d %%</string>
+    <string name="update_ready">Downloaded and verified against the GitHub digest: tap Install</string>
+    <string name="update_allow">Allow Supervisor to install apps in the screen that opens, then come back here</string>
+    <string name="update_failed">Not downloaded: %1$s</string>
+    <string name="update_fail_no_digest">the release has no APK digest</string>
+    <string name="update_fail_bad_digest">the file does not match the release digest</string>
+    <string name="update_fail_network">network unreachable</string>
+    <string name="update_fail_http">GitHub answered with an error</string>
+    <string name="updates_title">Updates</string>
+    <string name="updates_checking">Checking the releases on GitHub</string>
+    <string name="updates_none">Nothing new · checked at %1$s</string>
+    <string name="updates_available">Available: %1$s · at the top of the home</string>
+    <string name="updates_error">GitHub unreachable: %1$s · tap to retry</string>
+    <string name="updates_never">Tap to check the releases on GitHub</string>
     <string name="speech_rate_short">%1$s×</string>
     <string name="speech_rate_change">Reading speed %1$s: tap to change it</string>
     <string name="quota_line_stale">not updated</string>

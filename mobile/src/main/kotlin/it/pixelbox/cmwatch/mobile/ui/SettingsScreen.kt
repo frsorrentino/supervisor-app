@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.AddLink
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -67,6 +68,8 @@ fun SettingsScreen(
     tabletDetails: Boolean? = null, onTabletDetails: (Boolean) -> Unit = {},
     /** Contratto 1.32: i dispositivi veri per lo schema B; null con un relay precedente (resta lo schema di prima). */
     linked: List<SettingsDevices.Linked>? = null,
+    /** P6 (21/10): la riga «Aggiornamenti» con l'esito dell'ultimo controllo; il tocco controlla ora. Null = niente riga. */
+    updateStatus: String? = null, onCheckUpdate: (() -> Unit)? = null,
 ) {
     var choosing by remember { mutableStateOf(false) }
     var choosingVoice by remember { mutableStateOf(false) }
@@ -140,6 +143,7 @@ fun SettingsScreen(
             SectionCard {
                 SettingsRow(Icons.Rounded.PrivacyTip, stringResource(R.string.privacy), stringResource(R.string.privacy_sub), onPrivacy)
                 SettingsRow(Icons.Rounded.Info, stringResource(R.string.version_title), stringResource(R.string.version_value, version), onClick = null)
+                updateStatus?.let { SettingsRow(Icons.Rounded.SystemUpdate, stringResource(R.string.updates_title), it, onCheckUpdate) }
             }
         }
     }

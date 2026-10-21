@@ -290,6 +290,7 @@ class MainActivity : ComponentActivity() {
         }
         LaunchedEffect(queueAsked) { if (queueAsked) { queueOpen = true; searchOpen = false; settingsOpen = false; terminal = null; queueAsked = false } }
         var now by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
+        val updateUi by app.updater.ui.collectAsStateWithLifecycle()
         LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() / 1000 } }
         val state = snap.state
 
@@ -406,6 +407,7 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.PageIn { SettingsScreen(
                 host = host, phoneName = app.phoneName, watchName = r?.watchName, watchPending = r?.watchPending == true, demo = demo,
                 version = version,
+                updateStatus = updateStatus(updateUi), onCheckUpdate = { app.updater.check(manual = true) },
                 devices = it.pixelbox.cmwatch.rules.SettingsDevices.build(
                     host, state, snap.freshness, now, app.phoneName, version, notificationsOn, r?.watchName, r?.watchPending == true, watchNear,
                 ),
@@ -1369,6 +1371,7 @@ class MainActivity : ComponentActivity() {
             val list: @Composable () -> Unit = {
                 SummaryList(
                     summary,
+                    update = updateUi, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
                     // Contratto 1.68: il banner con le voci di «Serve te» delle altre sessioni; il tocco porta alla prima.
                     attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }.orEmpty(),
                     onAttention = {
@@ -2128,8 +2131,22 @@ class MainActivity : ComponentActivity() {
         outState.putString(KEY_LAUNCH, launchId)
     }
 
+    /** La riga «Aggiornamenti» in Impostazioni (P6, 21/10): cosa ha dato l'ultimo controllo delle release su GitHub. */
+    private fun updateStatus(u: it.pixelbox.cmwatch.mobile.update.AppUpdater.Ui): String {
+        val release = u.phase.release
+        val checked = u.checkedAt
+        return when {
+            u.checking -> getString(R.string.updates_checking)
+            u.error != null -> getString(R.string.updates_error, u.error)
+            release != null -> getString(R.string.updates_available, release.name)
+            checked != null -> getString(R.string.updates_none, java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(checked).atZone(java.time.ZoneId.systemDefault())))
+            else -> getString(R.string.updates_never)
+        }
+    }
+
     override fun onStart() {
         super.onStart()
+        app.updater.checkIfDue()
         val away = stoppedAt?.let { System.currentTimeMillis() - it }
         stoppedAt = null
         if (away != null && StartRoute.resetOnReturn(away)) launchId = java.util.UUID.randomUUID().toString()
@@ -2143,6 +2160,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         app.scope.launch { app.pairing.completePending() }
+        app.updater.resumed()
     }
 
     override fun onDestroy() {

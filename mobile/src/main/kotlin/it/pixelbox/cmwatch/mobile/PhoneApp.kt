@@ -58,6 +58,8 @@ class PhoneApp : Application() {
     lateinit var repo: Repo
     lateinit var notifier: PhoneNotifier
     private val watch by lazy { WatchPresence(this) }
+    /** P6 (21/10): l'aggiornamento dentro l'app, dalle release di GitHub. */
+    val updater by lazy { it.pixelbox.cmwatch.mobile.update.AppUpdater(this, scope) }
     @Volatile private var lastState: State? = null
     @Volatile private var foreground = false
     @Volatile private var liveOn = false

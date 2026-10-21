@@ -301,6 +301,26 @@
     <string name="privacy_sub">L\'informativa, sul sito</string>
     <string name="version_title">Versione</string>
     <string name="version_value">%1$s · telefono e orologio</string>
+    <!-- L'aggiornamento dentro l'app (P6, approvata da Franz il 21/10 alle 23:58): la card in cima alla home e la riga in Impostazioni. -->
+    <string name="update_available">Aggiornamento disponibile</string>
+    <string name="update_sub">%1$s · %2$s · pubblicata da %3$s</string>
+    <string name="update_install">Installa</string>
+    <string name="update_retry">Riprova</string>
+    <string name="update_not_now">Non ora</string>
+    <string name="update_downloading">Scarico e verifico · %1$d %%</string>
+    <string name="update_ready">Scaricata e verificata col digest di GitHub: tocca Installa</string>
+    <string name="update_allow">Consenti a Supervisor di installare app nella schermata che si apre, poi torna qui</string>
+    <string name="update_failed">Non scaricata: %1$s</string>
+    <string name="update_fail_no_digest">la release non ha il digest dell\'APK</string>
+    <string name="update_fail_bad_digest">il file non corrisponde al digest della release</string>
+    <string name="update_fail_network">rete non raggiungibile</string>
+    <string name="update_fail_http">GitHub ha risposto con un errore</string>
+    <string name="updates_title">Aggiornamenti</string>
+    <string name="updates_checking">Controllo le release su GitHub</string>
+    <string name="updates_none">Nessuna novità · controllato alle %1$s</string>
+    <string name="updates_available">Disponibile: %1$s · in cima alla home</string>
+    <string name="updates_error">GitHub non raggiungibile: %1$s · tocca per riprovare</string>
+    <string name="updates_never">Tocca per controllare le release su GitHub</string>
     <string name="speech_rate_short">%1$s×</string>
     <string name="speech_rate_change">Velocità di lettura %1$s: tocca per cambiarla</string>
     <string name="quota_line_stale">non aggiornata</string>
