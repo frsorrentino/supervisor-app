@@ -51,6 +51,14 @@ export type Approval = { task: string; title: string; what: string; where: strin
 export type QuotaAccount = { h5?: number | null; w7?: number | null; reset_w7?: number | null; reset_h5?: number | null; stale?: boolean; kind?: string | null }
 export type Device = { uid: string; name: string; kind?: string | null; seen?: number | null }
 export type Recurring = { id: string; label: string; prompt: string; param?: boolean }
+/** Contratto 1.75: un host remoto confermato, dall'ultima lettura del poller; con `up` false i numeri sono null e `error` dice perché.
+ *  `cpu` fra 0 e 1, RAM e disco in byte (il disco della radice delle sessioni), `sessions` = i nomi delle sessioni vive lì. */
+export type HostStatus = {
+  name: string; up: boolean; at: number | null; error: string | null; cpu: number | null
+  ram_used: number | null; ram_total: number | null; disk_free: number | null; disk_total: number | null; sessions: string[]
+}
+/** Contratto 1.75: una pubblicazione di oggi, la più nuova prima; `url` null per un remoto non GitHub. */
+export type Published = { at: number; kind: 'release' | 'push' | 'deploy' | string; project: string; text: string; url: string | null }
 
 export type Project = { path: string; name: string; account: string; last_used?: number | null }
 export type NightItem = { id: string; dir: string; name: string; prompt: string; added: number; started?: number | null }
@@ -166,6 +174,8 @@ export type State = {
   /** Fase 4 del piano web: la chiave pubblica VAPID del relay (base64url); assente = il relay non manda web push. */
   push?: { vapid: string } | null
   approvals?: Approval[]
+  /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
+  hosts_status: HostStatus[]; published_today: Published[]
 }
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen'
@@ -193,7 +203,7 @@ export function decodeState(raw: string): State {
   const s = JSON.parse(raw)
   if (typeof s?.v !== 'number' || typeof s?.ts !== 'number' || typeof s?.host !== 'string') throw new Error('not a state')
   const sessions = (s.sessions ?? []).map((x: Session) => ({ ...x, advice: x.advice ?? null, finished: x.finished ?? false, duplicate_of: x.duplicate_of ?? null }))
-  return { ...s, sessions, approvals: s.approvals ?? [], quota: s.quota ?? {}, projects: s.projects ?? [], night: { queued: 0, ...s.night }, recap: { date: '', items: [], ...s.recap } }
+  return { ...s, sessions, approvals: s.approvals ?? [], quota: s.quota ?? {}, projects: s.projects ?? [], hosts_status: s.hosts_status ?? [], published_today: s.published_today ?? [], night: { queued: 0, ...s.night }, recap: { date: '', items: [], ...s.recap } }
 }
 
 /** Lo stato prima del primo /state del relay: vuoto, così i dati di prova non si mescolano mai a quelli veri. */

@@ -13,6 +13,17 @@ describe('contratto', () => {
     }
   })
 
+  it('porta host e pubblicazioni di oggi della 1.75, vuoti con un relay precedente', () => {
+    const idle = decodeState(fixture('state-2-idle.json'))
+    expect(idle.hosts_status).toEqual([expect.objectContaining({ name: 'win', up: true, cpu: 0.42, ram_total: 17063350272, sessions: [] })])
+    expect(idle.published_today.map(p => p.kind)).toEqual(['deploy', 'release', 'push'])
+    const q = decodeState(fixture('state-1-question.json'))
+    expect([q.hosts_status, q.published_today]).toEqual([[], []])
+    const stale = decodeState(fixture('state-3-stale.json'))
+    expect(stale.hosts_status[0]).toMatchObject({ up: false, error: 'ssh: timeout', cpu: null, disk_free: null })
+    expect(blankState(1).hosts_status).toEqual([]); expect(blankState(1).published_today).toEqual([])
+  })
+
   it('porta i ricorrenti della 1.33 e i dispositivi della 1.32', () => {
     const s = decodeState(fixture('state-2-idle.json'))
     expect(s.recurring?.map(r => r.id)).toEqual(['x-posts', 'release-changelog', 'plugin-rivals'])
