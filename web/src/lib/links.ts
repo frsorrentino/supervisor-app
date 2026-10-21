@@ -1,7 +1,7 @@
 // Testi della chat: i link toccabili e la riga per l'orologio, porte di Links.kt e OutcomeLine.kt.
 
 const URL = /https?:\/\/[^\s<>"«»[\]{}]+/g
-const TRAILING = ".,;:!?'’\"»)"
+const TRAILING = ".,;:!?'’\"»)*"
 
 /** I link `http(s)://` come [inizio, fine); la punteggiatura in coda resta fuori, una ) chiusa da una ( interna no. */
 export function findLinks(text: string): [number, number][] {
