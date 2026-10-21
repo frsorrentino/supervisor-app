@@ -23,7 +23,7 @@ resta vera, ma si può scrivere «neither Google nor Pixelfarm» / «né Google 
 | Icona | 512×512 PNG | `icon-512.png` | in Console dal 13/10 |
 | Grafica in primo piano | 1024×500 | `feature-graphic-1024x500.png` | in Console dal 13/10 |
 | Screenshot telefono | 2-8, lato lungo ≤ 2× il corto | `screenshot/phone-store/{en,it}/s1…s4` (1080×2160) | in Console (en) |
-| Screenshot tablet 7" e 10" | facoltativi; 16:9 o 9:16, lati 320-3840 px (7") e 1080-7680 px (10") | `screenshot/tablet-store/{en,it}/t1…t3` (2880×1620, 16:9) | **nuovi, da caricare** |
+| Screenshot tablet 7" e 10" | facoltativi; 16:9 o 9:16, lati 320-3840 px (7") e 1080-7680 px (10") | `screenshot/tablet-store/{en,it}/t1…t3` (2880×1620, 16:9) | in Console in bozza (en-US, 21/10) |
 | Screenshot orologio | almeno 1, quadrati, ≥ 384 px | `screenshot/watch-store/*` (456×456) | in Console dal 13/10 |
 
 ### Screenshot tablet (nuovi, 21/10)

@@ -28,11 +28,14 @@ account personali prima della produzione: da verificare sul tipo di account di P
    in `dichiarazioni-bozza.md` §7. È in ritardo: senza, Play blocca i prossimi aggiornamenti.
 3. **Informativa privacy** — scegli se nominare Pixelfarm in `PRIVACY.md` (proposta in `dichiarazioni-bozza.md` §1) e se
    l'indirizzo resta su supervisor.francescosorrentino.com. Dimmi «ok privacy» e la aggiorno e la pubblico.
-4. **Screenshot tablet** — guarda `screenshot/tablet-store/en/` (vedi `grafica.md`, nota sul token finto). Con il tuo ok
-   li carico nella scheda principale (7" e 10"); la scheda si salva in bozza, senza inviare.
-5. **Release di test interno** — l'AAB 0.3 (versionCode 31 telefono, 32 orologio) viene dalla CI del ramo
-   `notte/play-pixelfarm`. Stato in `docs/notte/2026-10-21-play-pixelfarm.md`. Il test interno non ha tester: aggiungili
-   tu se lo vuoi usare, io non tocco gli elenchi.
+4. **Screenshot tablet** — caricati il 21/10 nella scheda en-US (7" e 10", tre ciascuno, `screenshot/tablet-store/en/`)
+   con «Salva come bozza»: non inviati. Guardali in Scheda dello Store › Asset per tablet; se il token finto della domanda
+   di esempio non ti piace (vedi `grafica.md`), li tolgo o li rifaccio con un altro testo. Nella libreria asset resta
+   anche una prova a 16:10 non usata.
+5. **Release di test interno** — in bozza dal 21/10: «0.3 (31)» nel canale Test interni (telefoni e tablet) e «0.3
+   (32)» in Test interni › Solo Wear OS, AAB della CI 39522668423 del ramo `notte/play-pixelfarm`, note in en-US e it-IT.
+   Non avviate. I canali interni non hanno tester: aggiungili tu se li vuoi usare, poi «Avanti» e avvio; io non tocco
+   gli elenchi.
 6. **Trasferimento** — quando hai l'ID transazione di Pixelfarm (la ricevuta della quota di registrazione dell'account
    sviluppatore Pixelfarm, in Google Payments): Play Console personale › Impostazioni › Trasferimento app, scegli
    Supervisor, account di destinazione e ID transazione; poi accetti dall'account Pixelfarm.
