@@ -797,6 +797,17 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="night_kind_job">Lavoro della coda</string>
     <string name="home_sec_night">Notte</string>
     <string name="home_sec_sessions">Sessioni</string>
+    <!-- Contratto 1.76 (P2, P4): la sezione «Impegni» in cima alla home, sopra le sessioni. -->
+    <string name="home_sec_commitments">Impegni</string>
+    <string name="commit_approved_at">approvato alle %1$s</string>
+    <string name="commit_awaiting">aspetta il tuo ok</string>
+    <string name="commit_idle">fermo da %1$s</string>
+    <string name="commit_your_turn">tocca a te</string>
+    <string name="commit_turn">tocca a %1$s</string>
+    <string name="commit_paused">in pausa: %1$s</string>
+    <string name="commit_stalled">fermo</string>
+    <string name="commit_next">Prossimo</string>
+    <string name="commit_check_red">ultimo controllo rosso</string>
     <string name="home_sec_usage">Utilizzo</string>
     <!-- La sezione Recap (mockup approvato l'08/10, Franz 20:41). -->
     <string name="home_sec_recap">Recap</string>

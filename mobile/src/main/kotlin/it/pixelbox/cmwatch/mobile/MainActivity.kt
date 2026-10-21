@@ -1372,6 +1372,7 @@ class MainActivity : ComponentActivity() {
                 SummaryList(
                     summary,
                     update = updateUi, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
+                    commitments = state?.let { st -> it.pixelbox.cmwatch.rules.Commitments.rows(st, now) }.orEmpty(),
                     // Contratto 1.68: il banner con le voci di «Serve te» delle altre sessioni; il tocco porta alla prima.
                     attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }.orEmpty(),
                     onAttention = {

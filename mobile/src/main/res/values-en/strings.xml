@@ -788,6 +788,17 @@ It starts at your last message to the master.</string>
     <string name="night_kind_job">Queued job</string>
     <string name="home_sec_night">Night</string>
     <string name="home_sec_sessions">Sessions</string>
+    <!-- Contract 1.76 (P2, P4): the «Commitments» section at the top of the home, above the sessions. -->
+    <string name="home_sec_commitments">Commitments</string>
+    <string name="commit_approved_at">approved at %1$s</string>
+    <string name="commit_awaiting">waits for your ok</string>
+    <string name="commit_idle">idle for %1$s</string>
+    <string name="commit_your_turn">your turn</string>
+    <string name="commit_turn">%1$s\'s turn</string>
+    <string name="commit_paused">paused: %1$s</string>
+    <string name="commit_stalled">stalled</string>
+    <string name="commit_next">Next</string>
+    <string name="commit_check_red">last check red</string>
     <string name="home_sec_usage">Usage</string>
     <string name="home_sec_recap">Recap</string>
     <string name="recap_actions">Actions · %1$d</string>

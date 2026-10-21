@@ -8,6 +8,7 @@
   import type { Approval, Session, State } from './contract'
   import { cleanupOf } from './masterService'
   import { since } from './durations'
+  import { rows as commitmentRows } from './commitments'
   import { build, MASTER, type Group, type Row } from './summary'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
@@ -84,7 +85,7 @@
   })
   // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate, anche alla prossima apertura.
   const SEC = 'home-sections'
-  let open = $state<Record<string, boolean>>((() => { try { return { night: true, sessions: true, usage: false, other: false, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { night: true, sessions: true, usage: false, other: false } } })())
+  let open = $state<Record<string, boolean>>((() => { try { return { night: true, sessions: true, commitments: true, usage: false, other: false, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { night: true, sessions: true, commitments: true, usage: false, other: false } } })())
   function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
   // La sezione Recap: le Azioni come tasti; il tocco apre «Mandare questa azione?» e «Manda» la fa partire.
   // Solo i «prossimo» del recap del giorno (Franz, 09/10 17:21): i «Prossimi:» delle sessioni stanno sulle loro schede.
@@ -123,7 +124,9 @@
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
   // Contratto 1.37: «Da approvare» prima di «Ti aspetta»; con un'approvazione le opzioni delle domande restano tonali,
   // così sulla schermata c'è un solo bottone pieno.
-  const approvals = $derived(st.approvals ?? [])
+  const commitments = $derived(commitmentRows(st, now))
+  // Un ok già sulla riga del suo impegno (1.76) non si ripete in «Da approvare»: una sola attesa, un solo tasto.
+  const approvals = $derived((st.approvals ?? []).filter(a => !commitments.some(r => r.yourTurn && r.approval?.task === a.task)))
   const canExit = $derived(!!st.slash?.includes('exit'))
   let pending = $state<Approval | null>(null)
   let note = $state('')
@@ -196,6 +199,24 @@
   <button class="attn-banner" onclick={() => { if (!open.sessions) toggleSec('sessions'); onAttention() }}>
     <b>{t.attentionBanner(waitingYou.length)}</b><span>{[...new Set(waitingYou.map(a => a.session).filter(Boolean))].join(', ')}</span>
   </button>
+{/if}
+{#if commitments.length}
+  {@render sec('commitments', t.homeCommitments, String(commitments.length))}
+  {#if open.commitments}
+    {#each commitments as r (r.c.task)}
+      <div class="card appr cmt" class:warn={r.tone === 'warn'} class:alert={r.tone === 'alert'}>
+        <div class="top">
+          <span class="name">{r.c.title}</span>
+          {#if r.c.stalled && !r.c.paused}<span class="prod stalled">{t.commitStalled.toUpperCase()}</span>{/if}
+        </div>
+        <div class="line tone">{[r.c.approved && r.c.approved_at ? t.commitApprovedAt(hhmm(r.c.approved_at)) : r.c.state === 'awaiting_ok' ? t.commitAwaiting : null, r.c.paused ? t.commitPaused(r.c.paused.reason) : t.commitIdle(since(now - r.idle, now))].filter(Boolean).join(' · ')}</div>
+        <div class="line">{r.yourTurn ? t.commitYourTurn : t.commitTurn(r.turn ?? r.c.session ?? '?')}</div>
+        {#if r.c.next}<div class="line dim">{t.commitNext}: {r.c.next}</div>{/if}
+        {#if r.c.check?.outcome === 'red'}<div class="line red">{t.commitCheckRed}</div>{/if}
+        {#if r.yourTurn && r.approval}<button class="approve" onclick={() => askApprove(r.approval!)}>{t.approve}</button>{/if}
+      </div>
+    {/each}
+  {/if}
 {/if}
 {@render sec('sessions', t.homeSessions, String(model.rows.length))}
   {#if justClosed}
@@ -478,6 +499,13 @@
   .details { font-size: 12.5px; color: var(--text2); }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .appr { cursor: default; padding: 12px 14px 14px; gap: 8px; }
+  /* Contratto 1.76: gli impegni del registro, ambra da 2 ore ferme, rosso da 8. */
+  .cmt .line { font-size: 14px; }
+  .cmt .tone, .cmt .dim { color: var(--text2); }
+  .cmt.warn .tone { color: var(--b-warn, #FFB020); }
+  .cmt.alert .tone, .cmt .red { color: var(--gone, #FF453A); }
+  .cmt .red { font-size: 13px; }
+  .stalled { color: var(--b-warn-ink, #1d1300); background: var(--b-warn, #FFB020); }
   .prod, .dup { font: 600 11px/1.4 var(--mono); letter-spacing: .08em; border-radius: 999px; padding: 3px 10px; flex: none; }
   .prod { color: var(--prod); background: color-mix(in srgb, var(--prod) 16%, transparent); }
   .dup { color: var(--b-warn); background: color-mix(in srgb, var(--b-warn) 14%, transparent); }

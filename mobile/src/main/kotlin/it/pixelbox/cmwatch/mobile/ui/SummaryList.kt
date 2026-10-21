@@ -71,6 +71,7 @@ import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.Summary
 import it.pixelbox.cmwatch.rules.AppUpdate
+import it.pixelbox.cmwatch.rules.Commitments
 import it.pixelbox.cmwatch.mobile.update.AppUpdater
 import it.pixelbox.cmwatch.ui.tokens.CmColors
 
@@ -96,7 +97,7 @@ fun SummaryList(
     /** «Utilizzo»: le schede della quota, nella sua sezione richiudibile. */
     usage: (@Composable () -> Unit)? = null,
     /** Le sezioni aperte la prima volta, prima che tu le apra o chiuda. */
-    startOpen: Set<String> = setOf("night", "sessions"),
+    startOpen: Set<String> = setOf("night", "sessions", "commitments"),
     /**
      * La sessione appena chiusa dal pannello di chiusura, con la riga «chiusa alle …» (Franz, 08/10 18:59, volo al contrario):
      * la sua card in cima alle sessioni è dove la pagina atterra tornando alla home; poi si richiude da sola.
@@ -135,6 +136,8 @@ fun SummaryList(
     attention: List<it.pixelbox.cmwatch.contract.Attention> = emptyList(), onAttention: () -> Unit = {},
     /** P6 (21/10): la card dell'aggiornamento in cima quando una release nuova è pronta; null o senza release = niente. */
     update: AppUpdater.Ui? = null, onInstallUpdate: (AppUpdate.Release) -> Unit = {}, onDismissUpdate: (String) -> Unit = {},
+    /** Contratto 1.76 (P2, P4): gli impegni del registro sopra le sessioni; «Approva» quando tocca a Franz e c'è l'ok collegato. */
+    commitments: List<Commitments.Row> = emptyList(),
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura.
@@ -145,6 +148,7 @@ fun SummaryList(
     var usageOpen by remember { section("usage") }
     var otherOpen by remember { section("other") }
     var nightOpen by remember { section("night") }
+    var commitmentsOpen by remember { section("commitments") }
     var recapOpen by remember { section("recap") }
     val acts = remember { AgendaActions() }
     // Le voci della card aperta (variante A del 10/10): le stesse del menu Azioni, «Stanotte» con un relay 1.49.
@@ -200,14 +204,20 @@ fun SummaryList(
             item(key = "sec-night") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_night), null, nightOpen) { nightOpen = !nightOpen; save("night", nightOpen) } } }
             if (nightOpen) item(key = "night-box") { Box(moving()) { NightHomeCard(nightDate, nightPage, onNight) } }
         }
+        if (commitments.isNotEmpty()) {
+            item(key = "sec-commitments") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_commitments), commitments.size.toString().takeIf { !commitmentsOpen }, commitmentsOpen) { commitmentsOpen = !commitmentsOpen; save("commitments", commitmentsOpen) } } }
+            if (commitmentsOpen) items(commitments, key = { "c-" + it.c.task }) { r -> Box(moving()) { CommitmentCard(r, now, onApprove) } }
+        }
         item(key = "sec-sessions") {
             Box(moving()) { HomeSection(stringResource(R.string.home_sec_sessions), model.rows.size.toString().takeIf { !sessionsOpen }, sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
         }
         justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
         // Contratto 1.37: «Da approvare» prima di «Ti aspetta» (mockup approvato il 05/10 21:07).
-        if (sessionsOpen && approvals.isNotEmpty()) {
-            item(key = "h-approvals") { Box(moving()) { GroupHeader(stringResource(R.string.approvals_group) + " · " + approvals.size, CmColors.advice) } }
-            items(approvals, key = { "a-" + it.task }) { a -> Box(moving()) { ApprovalCard(a, now, onApprove) } }
+        // Un ok già sulla riga del suo impegno (1.76) non si ripete in «Da approvare»: una sola attesa, un solo tasto.
+        val loose = approvals.filter { a -> commitments.none { it.yourTurn && it.approval?.task == a.task } }
+        if (sessionsOpen && loose.isNotEmpty()) {
+            item(key = "h-approvals") { Box(moving()) { GroupHeader(stringResource(R.string.approvals_group) + " · " + loose.size, CmColors.advice) } }
+            items(loose, key = { "a-" + it.task }) { a -> Box(moving()) { ApprovalCard(a, now, onApprove) } }
         }
         if (sessionsOpen) model.rows.groupBy { it.group }.forEach { (group, rows) ->
             item(key = "h-${group.name}") { Box(moving()) { GroupHeader(pluralStringResource(groupLabel(group), rows.size, rows.size), groupTone(group)) } }
@@ -870,3 +880,56 @@ private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Releas
         }
     }
 }
+
+/**
+ * Un impegno del registro (contratto 1.76, P2 e P4): titolo, «approvato alle 12:01 · fermo da 9 h» (ambra da 2 ore, rosso da
+ * 8), a chi tocca e il prossimo passo; «Approva» quando tocca a Franz e c'è l'ok collegato (lo stesso `approve` di «Da
+ * approvare»: dopo l'ok il relay risveglia la sessione).
+ */
+@Composable
+private fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, String) -> Unit) {
+    val c = r.c
+    var ask by rememberSaveable(c.task) { mutableStateOf(false) }
+    var note by rememberSaveable(c.task) { mutableStateOf("") }
+    val toneColor = when (r.tone) { Commitments.Tone.ALERT -> CmColors.gone; Commitments.Tone.WARN -> CmColors.waiting; Commitments.Tone.NORMAL -> CmColors.text2 }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Rounded.Verified, null, tint = if (c.paused != null) CmColors.text2 else CmColors.advice, modifier = Modifier.size(22.dp))
+            Text(c.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f))
+            if (c.stalled && c.paused == null) Tag(stringResource(R.string.commit_stalled), toneColor)
+        }
+        val approvedAt = c.approvedAt
+        val when_ = if (c.approved && approvedAt != null) stringResource(R.string.commit_approved_at, hhmmOf(approvedAt)) else if (c.state == "awaiting_ok") stringResource(R.string.commit_awaiting) else null
+        val idle = c.paused?.let { stringResource(R.string.commit_paused, it.reason) } ?: stringResource(R.string.commit_idle, it.pixelbox.cmwatch.contract.Durations.since(now - r.idle, now))
+        Text(listOfNotNull(when_, idle).joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = toneColor)
+        Text(
+            if (r.yourTurn) stringResource(R.string.commit_your_turn) else stringResource(R.string.commit_turn, r.turn ?: c.session ?: "?"),
+            style = MaterialTheme.typography.bodyMedium, color = CmColors.text,
+        )
+        c.next?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.commit_next) + ": " + it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
+        if (c.check?.outcome == "red") Text(stringResource(R.string.commit_check_red), style = MaterialTheme.typography.bodySmall, color = CmColors.gone)
+        val a = r.approval
+        if (r.yourTurn && a != null) androidx.compose.material3.Button(
+            onClick = { ask = true }, modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+        ) { Text(stringResource(R.string.approve)) }
+        if (ask && a != null) androidx.compose.material3.AlertDialog(
+            onDismissRequest = { ask = false }, containerColor = CmColors.surface,
+            title = { Text(if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_title, a.title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.approve_text, a.title, a.what.orEmpty(), a.where.orEmpty()))
+                    androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
+                }
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { ask = false; onApprove(a.task, note) }) { Text(stringResource(R.string.approve), color = CmColors.actionIcon) } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { ask = false }) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
+        )
+    }
+}
+
+private fun hhmmOf(epoch: Long): String =
+    java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(epoch).atZone(java.time.ZoneId.systemDefault()))

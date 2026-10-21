@@ -34,6 +34,19 @@ class SummaryListTest {
     @Test fun summaryClosed() = paparazzi.snapshot { page(st) }
     @Test fun summaryOpen() = paparazzi.snapshot { page(st, open = "WAITING:ledger-api") }
 
+    // Contratto 1.76 (P2, P4): «Impegni» sopra le sessioni, con l'età, a chi tocca e «Approva» quando tocca a Franz.
+    @Test fun summaryWithCommitments() = paparazzi.snapshot {
+        val idle = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())
+        val night = ContractJson.decodeNightReport(File("../contract/night-report-sample.json").readText())
+        val ok = it.pixelbox.cmwatch.contract.Approval("ledger-release-14", "Release 1.4 di ledger-api", "tag v1.4 e push", "github.com/example/ledger-api", requestedAt = idle.ts - 600)
+        val st2 = idle.copy(commitments = night.commitments.take(1) + idle.commitments!!, approvals = listOf(ok))
+        CmPhoneTheme(still = true) {
+            Column(Modifier.background(CmColors.bg)) {
+                SummaryList(model(st2), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st2.ts, approvals = st2.approvals, commitments = it.pixelbox.cmwatch.rules.Commitments.rows(st2, st2.ts))
+            }
+        }
+    }
+
     // P6 (21/10): in cima alla home la card «Aggiornamento disponibile · Installa» per una release nuova su GitHub.
     @Test fun summaryWithUpdate() = paparazzi.snapshot {
         val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("impegni-2026-10-22", "Notte 22/10", st.ts - 2 * 3600 - 300, true, "https://example.com/mobile-release.apk", 68813846, null, "")
