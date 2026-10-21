@@ -493,8 +493,8 @@
     <string name="voice_default">Phone default</string>
     <string name="voice_try">Try</string>
     <string name="voice_change">Change voice, now: %1$s</string>
-    <string name="bilingual_voice">Read Italian passages with the Italian voice</string>
-    <string name="bilingual_voice_sub">Whole sentences and quotes; technical terms stay in the chosen voice</string>
+    <string name="bilingual_voice">Italian passages</string>
+    <string name="bilingual_voice_sub">Read with the Italian voice; technical terms stay in the chosen voice</string>
     <string name="voice_sample">Hi Franz, this is the voice that will read the replies.</string>
     <string name="speech_rate_bubble_normal">normal %1$s</string>
     <string name="speech_rate">Reading speed</string>

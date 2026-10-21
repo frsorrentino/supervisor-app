@@ -501,8 +501,8 @@
     <string name="voice_default">Predefinita del telefono</string>
     <string name="voice_try">Prova</string>
     <string name="voice_change">Cambia voce, ora: %1$s</string>
-    <string name="bilingual_voice">Leggi le parti in inglese con la voce inglese</string>
-    <string name="bilingual_voice_sub">Le frasi intere e le citazioni; i termini tecnici restano nella voce scelta</string>
+    <string name="bilingual_voice">Parti in inglese</string>
+    <string name="bilingual_voice_sub">Lette con la voce inglese; i termini tecnici restano nella voce scelta</string>
     <string name="voice_sample">Ciao Franz, questa è la voce che leggerà le risposte.</string>
     <string name="speech_rate_bubble_normal">normale %1$s</string>
     <string name="speech_rate">Velocità di lettura</string>
