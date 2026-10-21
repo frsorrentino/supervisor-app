@@ -37,7 +37,8 @@ describe('impegni', () => {
     expect(r.map(x => x.turn)).toEqual(['ledger-api', 'atlas-shop'])
     expect(r.some(x => x.yourTurn)).toBe(false)
     expect(r.every(x => x.approval === null)).toBe(true)
-    const later = rows(idle, idle.ts + 5 * 3600)
+    // Cinque ore dopo la pubblicazione (published_at, non ts).
+    const later = rows(idle, (idle.published_at ?? idle.ts) + 5 * 3600)
     expect(later.map(x => x.idle)).toEqual([13800 + 18000, 600 + 18000])
     expect(later.map(x => x.tone)).toEqual(['alert', 'warn'])
     expect(later[0].age).toBe(13800 + 18000)

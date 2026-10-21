@@ -27,11 +27,13 @@ class TimelineTextTest {
     @Test fun groupedByDayNewestFirst() {
         val g = TimelineText.groups(ev, zone)
         assertEquals(listOf("12 set"), g.map { it.day })
-        assertEquals(15, g[0].rows.size)   // 1.61-1.62: in più il turno fallito e l'esito quiet; 1.18: in più la ripresa della quota; 1.40: il riavvio fallito; 1.45: lo stato fermo; 1.57-1.58: due task_check, quota_limit e un esito con preview; diario e notte restano fuori
+        assertEquals(16, g[0].rows.size)   // 1.76: in più l'impegno fermo (task_stalled)   // 1.61-1.62: in più il turno fallito e l'esito quiet; 1.18: in più la ripresa della quota; 1.40: il riavvio fallito; 1.45: lo stato fermo; 1.57-1.58: due task_check, quota_limit e un esito con preview; diario e notte restano fuori
         // 1.18: la ripresa della quota è la più recente; del corpo su più righe resta la prima (una riga sul polso).
         assertEquals("14:10 · ✓ quota personal back · reset 13:10", g[0].rows[0])
         assertEquals("13:01 · 1 yes · ledger-api · answered from watch-pixel5", g[0].rows[1])
-        assertEquals("12:55 · ❓ ledger-api · Deploy ready, waiting for the client's ok. Deploy now?", g[0].rows[2])
+        // 1.76: l'impegno fermo delle 12:59 sta fra le due; la domanda delle 12:55 resta com'era.
+        assertTrue(g[0].rows.any { it.startsWith("12:59 · ⏸ 1 commitment stalled") })
+        assertTrue(g[0].rows.contains("12:55 · ❓ ledger-api · Deploy ready, waiting for the client's ok. Deploy now?"))
         assertTrue(g.flatMap { it.rows }.none { '\n' in it })
     }
 

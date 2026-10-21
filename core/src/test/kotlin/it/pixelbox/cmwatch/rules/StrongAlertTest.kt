@@ -14,7 +14,8 @@ class StrongAlertTest {
 
     @Test fun theFiveInterruptionsAndTheReminderAreStrong() {
         val strong = EventKind.entries.filter { StrongAlert.strong(it) }.toSet()
-        assertEquals(setOf(EventKind.QUESTION, EventKind.NEEDS_YOU, EventKind.TURN_BLOCKING, EventKind.TURN_FAILED, EventKind.QUOTA_LIMIT, EventKind.ATTENTION_REMINDER), strong)
+        // Contratto 1.76: anche gli impegni fermi (task_stalled).
+        assertEquals(setOf(EventKind.QUESTION, EventKind.NEEDS_YOU, EventKind.TURN_BLOCKING, EventKind.TURN_FAILED, EventKind.QUOTA_LIMIT, EventKind.ATTENTION_REMINDER, EventKind.TASK_STALLED), strong)
     }
 
     @Test fun needsYouComesBeforeTheBlockingStep() {

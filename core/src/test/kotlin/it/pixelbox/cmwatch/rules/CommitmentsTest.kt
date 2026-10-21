@@ -5,6 +5,7 @@ import it.pixelbox.cmwatch.contract.Approval
 import it.pixelbox.cmwatch.contract.Commitment
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.EventKind
+import it.pixelbox.cmwatch.contract.publishedTs
 import it.pixelbox.cmwatch.rules.Commitments.Tone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -42,8 +43,8 @@ class CommitmentsTest {
         assertEquals(listOf(Tone.WARN, Tone.NORMAL), rows.map { it.tone })
         assertEquals(listOf("ledger-api", "atlas-shop"), rows.map { it.turn })
         assertTrue(rows.none { it.yourTurn }); assertTrue(rows.none { it.approval != null })
-        // Cinque ore dopo la pubblicazione, senza uno stato nuovo: l'attesa cresce da sola e i colori con lei.
-        val later = Commitments.rows(idle, idle.ts + 5 * 3600)
+        // Cinque ore dopo la pubblicazione (published_at, non ts), senza uno stato nuovo: l'attesa cresce da sola e i colori con lei.
+        val later = Commitments.rows(idle, idle.publishedTs + 5 * 3600)
         assertEquals(listOf(13800L + 18000, 600L + 18000), later.map { it.idle })
         assertEquals(listOf(Tone.ALERT, Tone.WARN), later.map { it.tone })
         assertEquals(13800L + 18000, later[0].age)
