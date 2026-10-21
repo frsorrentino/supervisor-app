@@ -12,19 +12,19 @@ class LinksTest {
     }
 
     @Test fun trailingPunctuationStaysOut() {
-        assertEquals(listOf("https://a.it/x"), found("vedi https://a.it/x."))
-        assertEquals(listOf("https://a.it/x"), found("(https://a.it/x)"))
-        assertEquals(listOf("https://a.it/x"), found("«https://a.it/x»,"))
-        assertEquals(listOf("https://a.it/x"), found("[link](https://a.it/x)"))
+        assertEquals(listOf("https://example.com/x"), found("vedi https://example.com/x."))
+        assertEquals(listOf("https://example.com/x"), found("(https://example.com/x)"))
+        assertEquals(listOf("https://example.com/x"), found("«https://example.com/x»,"))
+        assertEquals(listOf("https://example.com/x"), found("[link](https://example.com/x)"))
     }
 
     @Test fun keepsBalancedParenthesesAndQueries() {
         assertEquals(listOf("https://it.wikipedia.org/wiki/Roma_(città)"), found("https://it.wikipedia.org/wiki/Roma_(città) qui"))
-        assertEquals(listOf("http://a.it/p?q=1&r=2#s"), found("http://a.it/p?q=1&r=2#s"))
+        assertEquals(listOf("http://example.com/p?q=1&r=2#s"), found("http://example.com/p?q=1&r=2#s"))
     }
 
     @Test fun severalOrNone() {
-        assertEquals(2, Links.find("https://a.it e https://b.it").size)
+        assertEquals(2, Links.find("https://example.com e https://example.org").size)
         assertEquals(0, Links.find("nessun link, solo claude.ai senza schema").size)
     }
 }

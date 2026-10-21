@@ -6,14 +6,14 @@ const found = (t: string) => findLinks(t).map(([a, b]) => t.slice(a, b))
 describe('link', () => {
   it('trova il link', () => expect(found('Mockup: https://claude.ai/artifact/RGdmD5fxUWUBLSbwWBBsCz')).toEqual(['https://claude.ai/artifact/RGdmD5fxUWUBLSbwWBBsCz']))
   it('la punteggiatura in coda resta fuori', () => {
-    for (const t of ['vedi https://a.it/x.', '(https://a.it/x)', '«https://a.it/x»,', '[link](https://a.it/x)']) expect(found(t)).toEqual(['https://a.it/x'])
+    for (const t of ['vedi https://example.com/x.', '(https://example.com/x)', '«https://example.com/x»,', '[link](https://example.com/x)']) expect(found(t)).toEqual(['https://example.com/x'])
   })
   it('parentesi interne e query restano', () => {
     expect(found('https://it.wikipedia.org/wiki/Roma_(città) qui')).toEqual(['https://it.wikipedia.org/wiki/Roma_(città)'])
-    expect(found('http://a.it/p?q=1&r=2#s')).toEqual(['http://a.it/p?q=1&r=2#s'])
+    expect(found('http://example.com/p?q=1&r=2#s')).toEqual(['http://example.com/p?q=1&r=2#s'])
   })
   it('più link, e niente senza schema', () => {
-    expect(findLinks('https://a.it e https://b.it')).toHaveLength(2)
+    expect(findLinks('https://example.com e https://example.org')).toHaveLength(2)
     expect(findLinks('nessun link, solo claude.ai senza schema')).toHaveLength(0)
   })
 })
