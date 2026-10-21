@@ -19,12 +19,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- «Apri sul telefono» dall'orologio -->
+            <!-- «Apri sul telefono» dall'orologio, l'invito cmwatch://pair?q= e cmwatch://session/<nome> da notifiche e Telegram -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="cmwatch" android:host="pair" />
+                <data android:scheme="cmwatch" android:host="session" />
             </intent-filter>
         </activity>
 

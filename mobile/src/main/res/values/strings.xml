@@ -55,6 +55,7 @@
     <string name="follow">Segui</string>
     <string name="unfollow">Non seguire</string>
     <string name="open_in_claude">Apri in Claude</string>
+    <string name="open_in_supervisor">Apri in supervisor</string>
     <string name="allow_all">Consenti tutto</string>
     <string name="read_aloud">Leggi ad alta voce</string>
     <string name="not_delivered">Non consegnato</string>

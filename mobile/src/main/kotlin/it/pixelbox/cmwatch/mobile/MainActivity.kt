@@ -1123,6 +1123,9 @@ class MainActivity : ComponentActivity() {
                             reopen = { scope.launch { app.repo.command(CmdOp.REOPEN, session.name, null) } },
                             terminal = { terminal = session.name; screenId = null },
                             openInClaude = { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(session.link))) },
+                            // Il tasto «Apri in supervisor» di un messaggio (Franz, 21/10 19:04): sul tablet in colonna, sul telefono come pagina;
+                            // la master a casa sua (`OpenRoute`).
+                            openSession = { n -> if (wide && !StartRoute.masterAtHome(n)) saveCols(it.pixelbox.cmwatch.rules.Tablet.add(tabletCols, n)) else open = n },
                             speak = { t -> speech.toggle(t, session.name) },
                             // Un comando perso si riprova con lo stesso id; uno rifiutato dal PC si rimanda come nuovo.
                             retry = { id ->
@@ -2107,10 +2110,12 @@ class MainActivity : ComponentActivity() {
         route(intent)
     }
 
-    /** Notifica con domanda → la coda; widget → la scheda della sessione o la Panoramica. */
+    /** Notifica con domanda → la coda; widget o `cmwatch://session/<nome>` → la scheda della sessione o la Panoramica. */
     private fun route(intent: Intent) {
         // Un invito di accoppiamento (cmwatch://pair?q=…); senza `q` è «Apri sul telefono» dall'orologio e apre l'app e basta.
         intent.data?.toString()?.let { uri -> it.pixelbox.cmwatch.pairing.PairLink.line(uri) }?.let { line -> pairInvite = line }
+        // `cmwatch://session/<nome>` da una notifica o da Telegram (Franz, 21/10 19:04): la chat di quella sessione, master compresa.
+        intent.data?.toString()?.let(it.pixelbox.cmwatch.rules.SessionLinks::deepLink)?.let { n -> sessionAsked = n }
         if (intent.getBooleanExtra(EXTRA_QUEUE, false)) queueAsked = true
         intent.getStringExtra(EXTRA_SESSION)?.let { sessionAsked = it }
         if (intent.getBooleanExtra(EXTRA_OVERVIEW, false)) sessionAsked = ""

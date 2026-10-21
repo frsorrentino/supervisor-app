@@ -55,6 +55,7 @@
     <string name="follow">Follow</string>
     <string name="unfollow">Unfollow</string>
     <string name="open_in_claude">Open in Claude</string>
+    <string name="open_in_supervisor">Open in supervisor</string>
     <string name="allow_all">Allow all</string>
     <string name="read_aloud">Read aloud</string>
     <string name="not_delivered">Not delivered</string>

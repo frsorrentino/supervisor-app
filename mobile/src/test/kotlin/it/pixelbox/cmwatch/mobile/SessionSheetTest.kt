@@ -137,6 +137,19 @@ class SessionSheetTest {
         CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none, choices = st.choices, ops = st.ops, canAttach = true, feed = feed, more = true) }
     }
 
+    // Franz, 21/10 19:04: il link `claude.ai/code/session_…` di una sessione nota diventa il tasto «Apri in supervisor» col nome
+    // sotto; la riga «• **Link:**» che lo portava sparisce; il link di una sessione sconosciuta resta un link.
+    @Test fun sheetSessionLink() = paparazzi.snapshot {
+        val t = st.ts - 600
+        val entries = listOf(
+            TranscriptEntry("u1.0", "user", text = "Lancia atlas-shop sulla fase 2", at = t, origin = "phone"),
+            TranscriptEntry("a1.0", "assistant", text = "Lanciata atlas-shop sulla fase 2. Solo commit locali: push e release con il tuo ok.\n• **Link:** https://claude.ai/code/session_018CKZ1Pum1Qs7DX5hbRLQ6X\n• Vecchia: https://claude.ai/code/session_sconosciuta\n\nEsito: sessione atlas-shop aperta.", at = t + 40, turn = TranscriptTurn(t, t + 45, 4020, 130)),
+        )
+        val feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList())
+        val s = st.sessions.first { it.state == SessionState.IDLE }
+        CmPhoneTheme(still = true) { SessionSheet(s, st.ts, emptyList(), 120, none.copy(sessions = st.sessions), choices = st.choices, ops = st.ops, feed = feed) }
+    }
+
     // Franz, 13/10 07:16: nella card di un file mandato da una sessione il nome sta sopra, l'anteprima al centro e i tasti
     // sotto. Un PDF, che l'anteprima non ce l'ha, e un video già sul telefono, sul suo Pixel 11 Pro XL col carattere grande.
     // Qui il primo fotogramma non si legge e resta il riquadro nero con ▶; le immagini da file Paparazzi non le decodifica.

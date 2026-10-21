@@ -174,6 +174,8 @@ data class SheetActions(
     val askMaster: (() -> Unit)? = null,
     /** La lettura a voce da un paragrafo toccato (Franz, 02/10 00:01: «come in orologio»). */
     val speakFrom: (text: String, block: Int) -> Unit = { _, _ -> },
+    /** Il tasto «Apri in supervisor» sotto un messaggio col link di una sessione nota (Franz, 21/10 19:04). */
+    val openSession: (String) -> Unit = {},
     /** Contratto 1.37: «Handoff, poi /clear» (il /clear parte a turno finito, lo gestisce chi tiene lo stato); 1.51: null senza comando. */
     val handoff: (() -> Unit)? = {},
     /** Contratto 1.37: una decisione per la memoria della master; `project` null = vale per tutti; null = op non supportata. */
@@ -456,12 +458,12 @@ fun SessionSheet(
                             is ChatFeed.Item.Mine -> Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 MineBubble(it.sent, if (it.entry?.queued == true && it.status != ChatRules.Status.FAILED) ChatRules.Status.QUEUED else it.status, reasons[it.sent.id], actions, onEdit = { t -> draft = t }, onResend = { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
                                 // Il pannello che un comando slash ha aperto sul PC (/cost) risponde sotto il comando.
-                                it.sent.panel?.let { p -> ClaudeBubble(p, it.sent.sentAt, ttsMinChars, actions.speak) }
+                                it.sent.panel?.let { p -> ClaudeBubble(p, it.sent.sentAt, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
                             }
                             is ChatFeed.Item.User -> UserBubble(it.entry, onResend = { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
                             is ChatFeed.Item.Claude -> ClaudeBubble(
                                 it.entry.text.orEmpty(), it.entry.at, ttsMinChars, actions.speak, cut = it.entry.cut, turn = it.entry.turn,
-                                onSpeakFrom = actions.speakFrom, onDecision = decide,
+                                onSpeakFrom = actions.speakFrom, onDecision = decide, sessions = actions.sessions, onOpenSession = actions.openSession,
                             )
                             is ChatFeed.Item.Tool -> ToolLine(it.entry)
                             is ChatFeed.Item.Steps -> StepsCard(it)
@@ -500,7 +502,7 @@ fun SessionSheet(
                     }
                     // L'esito di un turno partito dal PC, che nessun messaggio del telefono ha agganciato.
                     s.outcome?.takeIf { o -> chat.none { it.sent.outcomeFull == o.full } }?.let { o ->
-                        item(key = "outcome") { ClaudeBubble(o.full, o.at, ttsMinChars, actions.speak) }
+                        item(key = "outcome") { ClaudeBubble(o.full, o.at, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
                     }
                 }
                 // Che cosa sta facendo, come la riga dell'app nativa: asterisco, tempo del turno, strumento o pensiero.
@@ -1321,8 +1323,8 @@ private fun hhmm(epoch: Long) = HHMM.format(Instant.ofEpochSecond(epoch).atZone(
 private fun ChatTurn(row: ChatRow, ttsMinChars: Int, actions: SheetActions, onEdit: (String) -> Unit, onResend: (String) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         MineBubble(row.sent, row.status, row.reason, actions, onEdit, onResend)
-        row.sent.outcomeFull?.let { ClaudeBubble(it, row.sent.doneAt, ttsMinChars, actions.speak) }
-        row.sent.panel?.let { ClaudeBubble(it, row.sent.sentAt, ttsMinChars, actions.speak) }
+        row.sent.outcomeFull?.let { ClaudeBubble(it, row.sent.doneAt, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
+        row.sent.panel?.let { ClaudeBubble(it, row.sent.sentAt, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
     }
 }
 
@@ -1684,9 +1686,13 @@ private fun ClaudeBubble(
     onSpeakFrom: (String, Int) -> Unit = { _, _ -> },
     /** Contratto 1.37: «Salva come decisione» con il testo della risposta; null = op non supportata. */
     onDecision: ((String) -> Unit)? = null,
+    /** Le sessioni dello stato: il link di una di loro nel testo diventa il tasto «Apri in supervisor» (Franz, 21/10 19:04). */
+    sessions: List<Session> = emptyList(), onOpenSession: (String) -> Unit = {},
 ) {
     val parsed = it.pixelbox.cmwatch.rules.NextSteps.parse(raw)
     val text = parsed.text
+    // A schermo il testo senza i link delle sessioni note, che diventano tasti; Copia e la voce tengono il testo intero.
+    val stripped = remember(text, sessions) { it.pixelbox.cmwatch.rules.SessionLinks.strip(text, sessions) }
     val clip = LocalClipboardManager.current
     // Claude a tutta larghezza, senza fumetto, come nell'app nativa (Franz, 30/09 22:17: «non limitiamo nei balloon»).
     // Nella chat della master, con la «voce», una barra lilla a sinistra.
@@ -1716,7 +1722,7 @@ private fun ClaudeBubble(
                 // Fuori dalla lettura il testo si seleziona a pezzi con la pressione lunga (Franz, 02/10 20:31); durante la lettura
                 // il tocco sui paragrafi resta per ripartire da lì.
                 } else SelectionContainer {
-                    val shown = it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(text, stringResource(R.string.outcome_label))
+                    val shown = it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(stripped.text, stringResource(R.string.outcome_label))
                     val blocks = remember(shown) { it.pixelbox.cmwatch.rules.MarkdownTable.blocks(shown) }
                     if (blocks.none { b -> b is it.pixelbox.cmwatch.rules.MarkdownTable.Table }) Text(linked(shown), style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
                     // Le tabelle (Franz, 02/10 21:11): griglia se stretta, una scheda per riga se larga.
@@ -1729,6 +1735,8 @@ private fun ClaudeBubble(
                         }
                     }
                 }
+                // Un tasto per sessione linkata, nell'ordine in cui compare; la pressione lunga apre il link com'era.
+                stripped.buttons.forEach { b -> SessionButton(b, onOpen = { onOpenSession(b.session) }) }
                 // Variante C: «Prossimi» e i consigli in colonna; tocco = nel campo, pressione lunga = invio.
                 if (withSteps && parsed.steps.isNotEmpty()) Column(Modifier.padding(top = 2.dp)) {
                     Text(stringResource(R.string.next_steps), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
@@ -1763,6 +1771,19 @@ private fun ClaudeBubble(
             at?.let { Text(hhmm(it), style = MaterialTheme.typography.labelMedium, color = CmColors.text2, modifier = Modifier.padding(start = 4.dp)) }
         }
     }
+}
+
+/**
+ * «Apri in supervisor» col nome della sessione sotto, al posto del link `claude.ai/code/session_…` del testo (Franz, 21/10
+ * 19:04): il tocco apre la sua chat qui; la pressione lunga apre il link com'era, nel browser o nell'app Claude.
+ */
+@Composable
+private fun SessionButton(b: it.pixelbox.cmwatch.rules.SessionLinks.Button, onOpen: () -> Unit) {
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    OptionButton(
+        stringResource(R.string.open_in_supervisor), filled = false, onClick = onOpen, onLongClick = { runCatching { uri.openUri(b.url) } },
+        modifier = Modifier.wrapContentWidth(), shape = MaterialTheme.shapes.large, tonal = CmColors.surfaceHigh, note = b.session,
+    )
 }
 
 /**
