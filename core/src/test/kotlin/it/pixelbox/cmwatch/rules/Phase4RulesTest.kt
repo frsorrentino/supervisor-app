@@ -31,8 +31,8 @@ class TimelineTextTest {
         // 1.18: la ripresa della quota è la più recente; del corpo su più righe resta la prima (una riga sul polso).
         assertEquals("14:10 · ✓ quota personal back · reset 13:10", g[0].rows[0])
         assertEquals("13:01 · 1 yes · ledger-api · answered from watch-pixel5", g[0].rows[1])
-        // 1.76: l'impegno fermo delle 12:59 sta fra le due; la domanda delle 12:55 resta com'era.
-        assertTrue(g[0].rows.any { it.startsWith("12:59 · ⏸ 1 commitment stalled") })
+        // 1.76: l'impegno fermo delle 09:59 (ts 1789199990) è una riga in più; la domanda delle 12:55 resta com'era.
+        assertTrue(g[0].rows.any { it.startsWith("09:59 · ⏸ 1 commitment stalled for more than 2 h with no step · ledger-api · - ledger-migrations-011") })
         assertTrue(g[0].rows.contains("12:55 · ❓ ledger-api · Deploy ready, waiting for the client's ok. Deploy now?"))
         assertTrue(g.flatMap { it.rows }.none { '\n' in it })
     }
