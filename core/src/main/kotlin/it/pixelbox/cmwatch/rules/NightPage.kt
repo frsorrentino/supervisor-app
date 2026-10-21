@@ -14,15 +14,18 @@ import java.time.format.DateTimeFormatter
  * scrive ogni schermata con le sue risorse. Gli stessi casi sono in web/src/lib/night.test.ts.
  */
 object NightPage {
-    /** Gli stessi significati di Telegram: ✓ ok, ✗ fermo o fallito, ▶ in corso, ❓ domanda aperta. */
-    enum class Icon { OK, STOPPED, RUNNING, QUESTION }
+    /**
+     * Gli stessi significati di Telegram: ✓ ok, ✗ fermo o fallito, ▶ in corso, ❓ domanda aperta; ◐ in parte per l'esito
+     * `unknown` del rapporto v2, come nel Gantt (master per Franz, 21/10 13:02).
+     */
+    enum class Icon { OK, STOPPED, RUNNING, QUESTION, PARTIAL }
     enum class NeedKind { QUESTION, APPROVAL, UNBLOCK }
 
     /** Una barra più corta di così non si vedrebbe: un lavoro di un minuto resta un punto. */
     const val MIN_BAR = 0.012
 
     /** Quante voci per esito, per le pillole in testa (Franz, 08/10 12:30: «non capisco cosa è da fare o fatto»). */
-    data class Counts(val done: Int, val running: Int, val stopped: Int, val asking: Int)
+    data class Counts(val done: Int, val running: Int, val stopped: Int, val asking: Int, val partial: Int = 0)
     data class Page(
         val day: LocalDate, val dayBefore: LocalDate, val start: Long, val end: Long, val windowS: Int,
         val fromLastMessage: Boolean, val needs: List<Need>, val cards: List<Card>, val axis: List<Tick>, val projects: List<Project>, val counts: Counts = Counts(0, 0, 0, 0),
@@ -62,6 +65,7 @@ object NightPage {
                     i.kind == NightEntry.Kind.SESSION && i.id in asking -> Icon.QUESTION
                     i.outcome == "ok" -> Icon.OK
                     i.outcome == "running" -> Icon.RUNNING
+                    i.outcome == "unknown" -> Icon.PARTIAL
                     else -> Icon.STOPPED
                 },
                 title = if (queue) shortTitle(rest) else i.title,
@@ -100,6 +104,7 @@ object NightPage {
             counts = Counts(
                 done = cards.count { it.icon == Icon.OK }, running = cards.count { it.icon == Icon.RUNNING },
                 stopped = cards.count { it.icon == Icon.STOPPED }, asking = cards.count { it.icon == Icon.QUESTION },
+                partial = cards.count { it.icon == Icon.PARTIAL },
             ),
         )
     }

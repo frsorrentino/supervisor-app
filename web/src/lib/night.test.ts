@@ -13,7 +13,7 @@ describe('pagina Notte', () => {
     expect(p.needs).toHaveLength(3)
   })
   it('in testa i conteggi per esito, a parole (Franz, 08/10 12:30)', () => {
-    expect(p.counts).toEqual({ done: 2, running: 2, stopped: 2, asking: 1 })
+    expect(p.counts).toEqual({ done: 2, running: 2, stopped: 1, asking: 1, partial: 1 })
   })
   it('il riquadro in home resta finché quella notte non si apre', () => {
     const ref = { date: '2026-10-07', generated_at: 1791346889 }
@@ -30,7 +30,7 @@ describe('pagina Notte', () => {
   it('una card per voce, nell\'ordine del file', () =>
     expect(p.cards.map(c => c.id)).toEqual(['master', 'atlas-shop', 'ledger-api', 'win-orbit-docs', 'a1b2c3d4', 'e5f6a7b8', 'c9d0e1f2']))
   it('l\'icona dice l\'esito come Telegram', () =>
-    expect(p.cards.map(c => c.icon)).toEqual(['running', 'ok', 'question', 'stopped', 'stopped', 'ok', 'running']))
+    expect(p.cards.map(c => c.icon)).toEqual(['running', 'ok', 'question', 'partial', 'stopped', 'ok', 'running']))
   it('una voce in corso non ha fine e arriva in fondo all\'asse', () => {
     const m = p.cards[0]
     expect(m.end).toBeNull(); expect(m.durationS).toBeNull(); expect(m.from).toBeCloseTo(0); expect(m.to).toBeCloseTo(1)

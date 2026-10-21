@@ -161,6 +161,7 @@ private fun CountChips(c: NightPage.Counts) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (c.done > 0) CountChip(pluralStringResource(R.plurals.night_c_done, c.done, c.done), CmColors.briefGood)
         if (c.running > 0) CountChip(pluralStringResource(R.plurals.night_c_running, c.running, c.running), CmColors.actionIcon)
+        if (c.partial > 0) CountChip(pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), CmColors.briefWarn)
         if (c.stopped > 0) CountChip(pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), CmColors.goneDim)
         if (c.asking > 0) CountChip(pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), CmColors.advice)
     }
@@ -245,6 +246,7 @@ private fun iconColor(i: NightPage.Icon): Color = when (i) {
     NightPage.Icon.STOPPED -> CmColors.goneDim
     NightPage.Icon.RUNNING -> CmColors.actionIcon
     NightPage.Icon.QUESTION -> CmColors.advice
+    NightPage.Icon.PARTIAL -> CmColors.briefWarn
 }
 
 /**
@@ -265,6 +267,7 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
                 stringResource(when (c.icon) {
                     NightPage.Icon.OK -> R.string.night_st_ok; NightPage.Icon.RUNNING -> R.string.night_st_running
                     NightPage.Icon.STOPPED -> R.string.night_st_stopped; NightPage.Icon.QUESTION -> R.string.night_st_asking
+                    NightPage.Icon.PARTIAL -> R.string.night_w_partial
                 }),
                 style = MaterialTheme.typography.labelLarge, color = tone,
                 modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = .16f)).padding(horizontal = 10.dp, vertical = 4.dp),

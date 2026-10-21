@@ -183,6 +183,7 @@
           <span class="nchips">
             {#if night.counts.done}<span style:color="var(--good)">{t.nightDone(night.counts.done)}</span>{/if}
             {#if night.counts.running}<span style:color="var(--icon)">{t.nightRunningN(night.counts.running)}</span>{/if}
+            {#if night.counts.partial}<span style:color="var(--b-warn)">{t.nightPartial(night.counts.partial)}</span>{/if}
             {#if night.counts.stopped}<span style:color="var(--gone-dim)">{t.nightStopped(night.counts.stopped)}</span>{/if}
             {#if night.counts.asking}<span style:color="var(--advice)">{t.nightAsking(night.counts.asking)}</span>{/if}
           </span>

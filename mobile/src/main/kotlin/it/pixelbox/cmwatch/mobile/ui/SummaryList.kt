@@ -764,6 +764,7 @@ private fun NightHomeCard(date: java.time.LocalDate, page: it.pixelbox.cmwatch.r
                 val c = page.counts
                 if (c.done > 0) NightCount(pluralStringResource(R.plurals.night_c_done, c.done, c.done), CmColors.briefGood)
                 if (c.running > 0) NightCount(pluralStringResource(R.plurals.night_c_running, c.running, c.running), CmColors.actionIcon)
+                if (c.partial > 0) NightCount(pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), CmColors.briefWarn)
                 if (c.stopped > 0) NightCount(pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), CmColors.goneDim)
                 if (c.asking > 0) NightCount(pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), CmColors.advice)
             }

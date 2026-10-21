@@ -28,7 +28,7 @@ class NightPageTest {
     }
 
     @Test fun countsByOutcomeForTheChips() {
-        assertEquals(NightPage.Counts(done = 2, running = 2, stopped = 2, asking = 1), page.counts)
+        assertEquals(NightPage.Counts(done = 2, running = 2, stopped = 1, asking = 1, partial = 1), page.counts)
     }
 
     @Test fun theNightIsNamedByItsTwoDays() {
@@ -43,7 +43,7 @@ class NightPageTest {
 
     @Test fun theIconSaysTheOutcomeLikeTelegram() {
         assertEquals(
-            listOf(NightPage.Icon.RUNNING, NightPage.Icon.OK, NightPage.Icon.QUESTION, NightPage.Icon.STOPPED, NightPage.Icon.STOPPED, NightPage.Icon.OK, NightPage.Icon.RUNNING),
+            listOf(NightPage.Icon.RUNNING, NightPage.Icon.OK, NightPage.Icon.QUESTION, NightPage.Icon.PARTIAL, NightPage.Icon.STOPPED, NightPage.Icon.OK, NightPage.Icon.RUNNING),
             page.cards.map { it.icon },
         )
     }

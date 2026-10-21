@@ -15,7 +15,7 @@
   const hm = (s: number) => new Intl.DateTimeFormat(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   let opened = $state<string | null>(null)
   const times = (c: Card) => (c.end == null ? t.nightSince(hm(c.start)) : `${hm(c.start)}–${hm(c.end)} · ${t.nightShort(c.durationS ?? 0)}`)
-  const tone: Record<string, string> = { ok: 'var(--good)', stopped: 'var(--gone-dim)', running: 'var(--icon)', question: 'var(--advice)' }
+  const tone: Record<string, string> = { ok: 'var(--good)', stopped: 'var(--gone-dim)', running: 'var(--icon)', question: 'var(--advice)', partial: 'var(--b-warn)' }
   // Sezioni richiudibili (Franz, 08/10 12:30): «Progetti» parte chiusa.
   let needsOpen = $state(true)
   let itemsOpen = $state(true)
@@ -30,6 +30,7 @@
         <div class="chips">
           {#if model.counts.done}<span style:color="var(--good)">{t.nightDone(model.counts.done)}</span>{/if}
           {#if model.counts.running}<span style:color="var(--icon)">{t.nightRunningN(model.counts.running)}</span>{/if}
+          {#if model.counts.partial}<span style:color="var(--b-warn)">{t.nightPartial(model.counts.partial)}</span>{/if}
           {#if model.counts.stopped}<span style:color="var(--gone-dim)">{t.nightStopped(model.counts.stopped)}</span>{/if}
           {#if model.counts.asking}<span style:color="var(--advice)">{t.nightAsking(model.counts.asking)}</span>{/if}
         </div>

@@ -18,7 +18,8 @@ export type NightReport = {
 }
 
 /** Gli stessi significati di Telegram: ✓ ok, ✗ fermo o fallito, ▶ in corso, ❓ domanda aperta. */
-export type Icon = 'ok' | 'stopped' | 'running' | 'question'
+/** `partial`: esito `unknown` del rapporto v2, «in parte» come nel Gantt (master per Franz, 21/10 13:02). */
+export type Icon = 'ok' | 'stopped' | 'running' | 'question' | 'partial'
 export const MIN_BAR = 0.012
 export type Step = { at: number; kind: string; text: string; ok: boolean | null }
 export type Card = {
@@ -28,7 +29,7 @@ export type Card = {
 export type Need = { kind: 'question' | 'approval' | 'unblock'; session: string; text: string; options: Option[]; task?: string }
 export type Project = { name: string; done: number; total: number; parts: string[]; waiting: string[]; next: string | null }
 /** Quante voci per esito, per le pillole in testa (Franz, 08/10 12:30: «non capisco cosa è da fare o fatto»). */
-export type Counts = { done: number; running: number; stopped: number; asking: number }
+export type Counts = { done: number; running: number; stopped: number; asking: number; partial: number }
 export type NightPage = {
   counts: Counts
   day: string; dayBefore: string; start: number; end: number; windowS: number; fromLastMessage: boolean
@@ -56,7 +57,7 @@ export function page(r: NightReport, timeZone: string, now?: { live: Set<string>
     const until = (i.end ?? end) + 60
     return {
       id: i.id,
-      icon: i.kind === 'session' && asking.has(i.id) ? 'question' : i.outcome === 'ok' ? 'ok' : i.outcome === 'running' ? 'running' : 'stopped',
+      icon: i.kind === 'session' && asking.has(i.id) ? 'question' : i.outcome === 'ok' ? 'ok' : i.outcome === 'running' ? 'running' : i.outcome === 'unknown' ? 'partial' : 'stopped',
       title: queue ? shortTitle(rest) : i.title, folder, queue, start: i.start, end: i.end ?? null,
       durationS: i.end != null ? Math.max(0, i.end - i.start) : null, detail: i.detail ?? null, from, to,
       chat: i.kind === 'session' && i.live ? i.id : null,
@@ -77,8 +78,8 @@ export function page(r: NightReport, timeZone: string, now?: { live: Set<string>
     .filter(n => !now || (n.kind === 'approval' ? !!n.task && now.pending.has(n.task) : now.live.has(n.session) && (n.kind !== 'question' || !now.asking || now.asking.has(n.session))))
   const day = ymd(end, timeZone)
   const before = new Date(`${day}T12:00:00Z`); before.setUTCDate(before.getUTCDate() - 1)
-  const counts: Counts = { done: 0, running: 0, stopped: 0, asking: 0 }
-  for (const c of cards) counts[c.icon === 'ok' ? 'done' : c.icon === 'running' ? 'running' : c.icon === 'question' ? 'asking' : 'stopped']++
+  const counts: Counts = { done: 0, running: 0, stopped: 0, asking: 0, partial: 0 }
+  for (const c of cards) counts[c.icon === 'ok' ? 'done' : c.icon === 'running' ? 'running' : c.icon === 'question' ? 'asking' : c.icon === 'partial' ? 'partial' : 'stopped']++
   return {
     counts, day, dayBefore: before.toISOString().slice(0, 10), start, end, windowS: end - start,
     fromLastMessage: r.window.start_source === 'last_message', needs, cards, axis,
