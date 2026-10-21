@@ -28,7 +28,7 @@ class NightPageTest {
     }
 
     @Test fun countsByOutcomeForTheChips() {
-        assertEquals(NightPage.Counts(done = 2, running = 2, stopped = 1, asking = 1), page.counts)
+        assertEquals(NightPage.Counts(done = 2, running = 2, stopped = 2, asking = 1), page.counts)
     }
 
     @Test fun theNightIsNamedByItsTwoDays() {
@@ -39,11 +39,11 @@ class NightPageTest {
     }
 
     @Test fun oneCardPerItemInTheFileOrder() =
-        assertEquals(listOf("master", "ledger-api", "atlas-shop", "a1b2c3d4", "e5f6a7b8", "c9d0e1f2"), page.cards.map { it.id })
+        assertEquals(listOf("master", "atlas-shop", "ledger-api", "win-orbit-docs", "a1b2c3d4", "e5f6a7b8", "c9d0e1f2"), page.cards.map { it.id })
 
     @Test fun theIconSaysTheOutcomeLikeTelegram() {
         assertEquals(
-            listOf(NightPage.Icon.RUNNING, NightPage.Icon.QUESTION, NightPage.Icon.OK, NightPage.Icon.STOPPED, NightPage.Icon.OK, NightPage.Icon.RUNNING),
+            listOf(NightPage.Icon.RUNNING, NightPage.Icon.OK, NightPage.Icon.QUESTION, NightPage.Icon.STOPPED, NightPage.Icon.STOPPED, NightPage.Icon.OK, NightPage.Icon.RUNNING),
             page.cards.map { it.icon },
         )
     }
@@ -55,36 +55,36 @@ class NightPageTest {
     }
 
     @Test fun aClosedItemSitsOnTheAxisWithItsDuration() {
-        val atlas = page.cards[2]
+        val atlas = page.cards[1]
         assertEquals(64 * 60, atlas.durationS)
         assertEquals(3.0 / 123, atlas.from, 1e-6)
         assertEquals(67.0 / 123, atlas.to, 1e-6)
     }
 
     @Test fun aOneMinuteJobStillShowsAsADot() {
-        val job = page.cards[3]
+        val job = page.cards[4]
         assertTrue(job.to - job.from >= NightPage.MIN_BAR - 1e-9)
     }
 
     @Test fun queueTitlesLoseTheFolderAndTheCutEnding() {
-        val job = page.cards[3]
+        val job = page.cards[4]
         assertTrue(job.queue)
         assertEquals("Prima esecuzione del lavoro notturno sul checkout", job.title)
         assertEquals("atlas-shop-notte", job.folder)
         assertFalse(job.title.contains('…'))
-        assertEquals("Dati del registro dei pagamenti per la pagina mensile", page.cards[4].title)
+        assertEquals("Dati del registro dei pagamenti per la pagina mensile", page.cards[5].title)
     }
 
     @Test fun sessionsKeepTheirNameAndOpenTheChatOnlyWhenLive() {
-        assertEquals("ledger-api", page.cards[1].title); assertNull(page.cards[1].folder)
-        assertEquals("ledger-api", page.cards[1].chat)
-        assertNull(page.cards[2].chat)   // chiusa: la conversazione arriva con la richiesta 2 al relay
-        assertNull(page.cards[3].chat)
+        assertEquals("ledger-api", page.cards[2].title); assertNull(page.cards[2].folder)
+        assertEquals("ledger-api", page.cards[2].chat)
+        assertNull(page.cards[1].chat)   // chiusa: la conversazione arriva con la richiesta 2 al relay
+        assertNull(page.cards[4].chat)
     }
 
     // Senza il passo uguale all'esito, che la card mostra già sopra (Franz, 08/10 19:55: «inutile la ripetizione»).
     @Test fun theStepsAreTheProjectEventsInsideTheItem() =
-        assertEquals(listOf("commit", "test"), page.cards[1].steps.map { it.kind })
+        assertEquals(listOf("commit", "test"), page.cards[2].steps.map { it.kind })
 
     @Test fun axisTicksOnTheFullAndHalfHours() =
         assertEquals(listOf("01:00", "01:30", "02:00", "02:30"), page.axis.map { it.label })

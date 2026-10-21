@@ -166,7 +166,9 @@ class ContractTest {
         // Contratto 1.58 (relay 0.8.20): tre quota_route, due riusciti e «pass» a una sessione non viva, e un prompt doppione rifiutato.
         // Contratti 1.63 e 1.64 (relay 0.8.21): un prompt con `at`, project_new col primo tocco rifiutato e la conferma riuscita.
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
-        assertEquals(68, results.size); assertEquals(23, results.count { !it.ok })
+        // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
+        // Contratto 1.74: due nights, con due notti e vuoto.
+        assertEquals(73, results.size); assertEquals(23, results.count { !it.ok })
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)
@@ -436,7 +438,7 @@ class ContractTest {
     // Contratto 1.36: la web app manda `device` "web".
     @Test fun webPromptCarriesItsDevice() {
         val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
-        val cmd = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }.single { it.op == CmdOp.PROMPT && it.device == "web" }
+        val cmd = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }.first { it.op == CmdOp.PROMPT && it.device == "web" }   // dalla 1.73 c'è anche il prompt della pagina Studio
         assertEquals("web", cmd.device); assertEquals("web", cmd.by)
     }
 

@@ -4,9 +4,14 @@ import it.pixelbox.cmwatch.Fixtures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import org.junit.Test
 
-/** Il rapporto della notte (schema team-supervisor/night-report v1, op `night` del contratto 1.44): la fixture è inventata. */
+/**
+ * Il rapporto della notte (schema team-supervisor/night-report, op `night` del contratto 1.44; v2 dal contratto 1.74): la
+ * fixture è inventata.
+ */
 class NightReportTest {
     private val r = ContractJson.decodeNightReport(Fixtures.read("night-report-sample.json"))
 
@@ -17,11 +22,11 @@ class NightReportTest {
     }
 
     @Test fun theTimelineInTheFileOrder() {
-        assertEquals(listOf("master", "ledger-api", "atlas-shop", "a1b2c3d4", "e5f6a7b8", "c9d0e1f2"), r.timeline.map { it.id })
+        assertEquals(listOf("master", "atlas-shop", "ledger-api", "win-orbit-docs", "a1b2c3d4", "e5f6a7b8", "c9d0e1f2"), r.timeline.map { it.id })
         val master = r.timeline[0]
         assertEquals(NightEntry.Kind.SESSION, master.kind); assertNull(master.end); assertEquals("running", master.outcome); assertTrue(master.live)
-        assertEquals(6, r.timeline[1].counts?.commits)
-        val job = r.timeline[3]
+        assertEquals(6, r.timeline[2].counts?.commits)
+        val job = r.timeline[4]
         assertEquals(NightEntry.Kind.NIGHT_JOB, job.kind); assertEquals("stopped", job.outcome); assertNull(job.counts)
     }
 
@@ -43,6 +48,37 @@ class NightReportTest {
         val more = Fixtures.read("night-report-sample.json").replace("\"kind\": \"session\"", "\"kind\": \"session\", \"extra\": 1")
             .replaceFirst("\"kind\": \"night_job\"", "\"kind\": \"robot\"")
         val x = ContractJson.decodeNightReport(more)
-        assertEquals(NightEntry.Kind.OTHER, x.timeline[3].kind)
+        assertEquals(NightEntry.Kind.OTHER, x.timeline[4].kind)
+    }
+
+    @Test fun theV2FieldsForTheGantt() {
+        assertEquals(2, r.v); assertEquals("3 progetti: 1 in parte, 2 fermi", r.title); assertEquals("now", r.window.endSource)
+        val ledger = r.projects[0]
+        assertEquals(listOf(1791326160L to 1791326700L, 1791327000L to 1791327360L), ledger.spans.map { it.start to it.end })
+        val goal = ledger.goals.single()
+        assertEquals("done", goal.state); assertEquals(1791332820L, goal.doneAt); assertEquals(3, goal.points.size)
+        assertEquals(listOf("commit", "fine"), ledger.milestones.map { it.kind })
+        assertEquals("stopped", ledger.where?.state); assertEquals(3, ledger.where?.needsYou?.size)
+        val orbit = r.projects[2]
+        assertEquals("win", orbit.spans[0].host); assertEquals("partial", orbit.where?.state)
+        assertEquals(listOf("sposta il sito della documentazione sul nuovo host, senza cambiare il dominio."), orbit.where?.missing)
+        assertEquals("assigned", orbit.goals.single().source); assertNull(orbit.goals.single().doneAt)
+    }
+
+    @Test fun aV1ReportReadsWithEmptyGanttFields() {
+        val v1 = ContractJson.decodeNightReport("""{"v": 1, "date": "2026-10-07", "projects": [{"name": "x"}]}""")
+        assertNull(v1.title); assertTrue(v1.projects[0].spans.isEmpty()); assertNull(v1.projects[0].where)
+    }
+
+    /** Contratto 1.74: l'op `nights`, i rapporti salvati dal più recente; `title` null per i v1. */
+    @Test fun theSavedNights() {
+        val root = kotlinx.serialization.json.Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
+        val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+        val cmd = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
+        assertEquals(CmdOp.NIGHTS, cmd.single { it.id.endsWith("0750") }.op)
+        val two = ContractJson.decodeNights(results.single { it.id.endsWith("0750") }.text).nights
+        assertEquals(listOf("2026-10-08", "2026-10-07"), two.map { it.date })
+        assertEquals(listOf(2, 1), two.map { it.v }); assertNull(two[1].title)
+        assertTrue(ContractJson.decodeNights(results.single { it.id.endsWith("0751") }.text).nights.isEmpty())
     }
 }

@@ -362,6 +362,12 @@ class FakeTransport(
             CmdOp.DECISION -> if (cmd.text.isNullOrBlank()) ko("empty decision") else ok("decision sent to the master")
             // Contratto 1.44: la demo legge la fixture inventata del rapporto della notte.
             CmdOp.NIGHT -> runCatching { load("night-report-sample") }.map { ok(it) }.getOrElse { ko("no night report yet") }
+            // Contratto 1.74: la demo ha una notte sola, quella della fixture.
+            CmdOp.NIGHTS -> runCatching { ContractJson.decodeNightReport(load("night-report-sample")) }
+                .map { r -> ok(ContractJson.json.encodeToString(NightList.serializer(), NightList(listOf(NightIndex(r.date, r.title, r.generatedAt, r.v))))) }
+                .getOrElse { ok("""{"nights": []}""") }
+            // Contratto 1.73: la pagina Studio sta nella PWA Studio, non in questa app.
+            CmdOp.STUDIO -> ko("unknown op studio")
             // Contratti 1.46 e 1.47: la demo ha un'agenda inventata, un gruppo per ognuno di chi deve muoversi, e la cambia
             // con `agenda_set` come il relay (key nuova a ogni modifica, «agenda row changed» con una key vecchia).
             CmdOp.AGENDA -> ok(ContractJson.json.encodeToString(AgendaPage.serializer(), AgendaPage(demoAgenda, owner = "franz")))

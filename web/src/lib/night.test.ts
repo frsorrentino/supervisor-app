@@ -13,7 +13,7 @@ describe('pagina Notte', () => {
     expect(p.needs).toHaveLength(3)
   })
   it('in testa i conteggi per esito, a parole (Franz, 08/10 12:30)', () => {
-    expect(p.counts).toEqual({ done: 2, running: 2, stopped: 1, asking: 1 })
+    expect(p.counts).toEqual({ done: 2, running: 2, stopped: 2, asking: 1 })
   })
   it('il riquadro in home resta finché quella notte non si apre', () => {
     const ref = { date: '2026-10-07', generated_at: 1791346889 }
@@ -28,30 +28,30 @@ describe('pagina Notte', () => {
     expect(p.windowS).toBe(2 * 3600 + 3 * 60)
   })
   it('una card per voce, nell\'ordine del file', () =>
-    expect(p.cards.map(c => c.id)).toEqual(['master', 'ledger-api', 'atlas-shop', 'a1b2c3d4', 'e5f6a7b8', 'c9d0e1f2']))
+    expect(p.cards.map(c => c.id)).toEqual(['master', 'atlas-shop', 'ledger-api', 'win-orbit-docs', 'a1b2c3d4', 'e5f6a7b8', 'c9d0e1f2']))
   it('l\'icona dice l\'esito come Telegram', () =>
-    expect(p.cards.map(c => c.icon)).toEqual(['running', 'question', 'ok', 'stopped', 'ok', 'running']))
+    expect(p.cards.map(c => c.icon)).toEqual(['running', 'ok', 'question', 'stopped', 'stopped', 'ok', 'running']))
   it('una voce in corso non ha fine e arriva in fondo all\'asse', () => {
     const m = p.cards[0]
     expect(m.end).toBeNull(); expect(m.durationS).toBeNull(); expect(m.from).toBeCloseTo(0); expect(m.to).toBeCloseTo(1)
   })
   it('una voce chiusa sta sull\'asse con la sua durata', () => {
-    const a = p.cards[2]
+    const a = p.cards[1]
     expect(a.durationS).toBe(64 * 60); expect(a.from).toBeCloseTo(3 / 123, 6); expect(a.to).toBeCloseTo(67 / 123, 6)
   })
-  it('un lavoro di un minuto resta un punto', () => expect(p.cards[3].to - p.cards[3].from).toBeGreaterThanOrEqual(MIN_BAR - 1e-9))
+  it('un lavoro di un minuto resta un punto', () => expect(p.cards[4].to - p.cards[4].from).toBeGreaterThanOrEqual(MIN_BAR - 1e-9))
   it('i titoli della coda senza cartella e senza la fine tagliata', () => {
-    const j = p.cards[3]
+    const j = p.cards[4]
     expect(j.queue).toBe(true); expect(j.title).toBe('Prima esecuzione del lavoro notturno sul checkout'); expect(j.folder).toBe('atlas-shop-notte')
     expect(j.title).not.toContain('…')
-    expect(p.cards[4].title).toBe('Dati del registro dei pagamenti per la pagina mensile')
+    expect(p.cards[5].title).toBe('Dati del registro dei pagamenti per la pagina mensile')
   })
   it('le sessioni tengono il nome e aprono la chat solo se vive', () => {
-    expect(p.cards[1].title).toBe('ledger-api'); expect(p.cards[1].folder).toBeNull(); expect(p.cards[1].chat).toBe('ledger-api')
-    expect(p.cards[2].chat).toBeNull(); expect(p.cards[3].chat).toBeNull()
+    expect(p.cards[2].title).toBe('ledger-api'); expect(p.cards[2].folder).toBeNull(); expect(p.cards[2].chat).toBe('ledger-api')
+    expect(p.cards[1].chat).toBeNull(); expect(p.cards[4].chat).toBeNull()
   })
   // Senza il passo uguale all'esito, che la card mostra già sopra (Franz, 08/10 19:55: «inutile la ripetizione»).
-  it('i passi sono gli eventi del progetto dentro la voce, senza quello uguale all\'esito', () => expect(p.cards[1].steps.map(s => s.kind)).toEqual(['commit', 'test']))
+  it('i passi sono gli eventi del progetto dentro la voce, senza quello uguale all\'esito', () => expect(p.cards[2].steps.map(s => s.kind)).toEqual(['commit', 'test']))
   it('l\'asse sulle ore piene e mezze', () => expect(p.axis.map(t => t.label)).toEqual(['01:00', '01:30', '02:00', '02:30']))
   it('quello che serve a Franz viene prima, con la domanda', () => {
     expect(p.needs.map(n => n.kind)).toEqual(['question', 'approval', 'unblock']); expect(p.needs[2].session).toBe('field-notes')

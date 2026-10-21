@@ -124,6 +124,10 @@ enum class CmdOp {
      * testo è un `ChangesView`. `diff`: il passaggio intero di una voce, `arg` = il suo id; il testo è uno `StepDiff`.
      */
     @SerialName("changes") CHANGES, @SerialName("diff") DIFF,
+    /** Contratto 1.73: la pagina Studio, che sta nella PWA Studio personale (Franz, 19/10): l'app non la manda, ma la legge nelle fixture. */
+    @SerialName("studio") STUDIO,
+    /** Contratto 1.74: l'elenco dei rapporti della notte, `{nights: [{date, title, generated_at, v}]}`; `session` e `arg` null. */
+    @SerialName("nights") NIGHTS,
 }
 
 /**

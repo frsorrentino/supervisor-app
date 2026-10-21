@@ -17,6 +17,8 @@ import kotlinx.serialization.encoding.Encoder
     val schema: String = "", val v: Int = 1,
     @SerialName("generated_at") val generatedAt: Long = 0,
     val date: String = "",
+    /** Rapporto v2 (contratto 1.74): «9 progetti: 8 fatti, 1 in parte»; null nei v1. */
+    val title: String? = null,
     val window: NightWindow = NightWindow(),
     val attention: NightAttention = NightAttention(),
     val timeline: List<NightEntry> = emptyList(),
@@ -26,6 +28,8 @@ import kotlinx.serialization.encoding.Encoder
 @Serializable data class NightWindow(
     val start: Long = 0, val end: Long = 0,
     @SerialName("start_source") val startSource: String? = null,
+    /** v2: `morning_message` (il primo messaggio del mattino) o `now` (rapporto fatto prima della fine). */
+    @SerialName("end_source") val endSource: String? = null,
     @SerialName("last_message") val lastMessage: NightMessage? = null,
 )
 
@@ -69,7 +73,38 @@ import kotlinx.serialization.encoding.Encoder
     @SerialName("parts_total") val partsTotal: Int = 0,
     @SerialName("waiting_on") val waitingOn: List<String> = emptyList(),
     val next: String? = null, val events: List<NightEvent> = emptyList(),
+    /** v2 (contratto 1.74): gli intervalli di lavoro delle sessioni del progetto, per il Gantt. */
+    val spans: List<NightSpan> = emptyList(),
+    val goals: List<NightGoal> = emptyList(),
+    /** v2: commit, push, release, fine; la forma degli `events`. */
+    val milestones: List<NightEvent> = emptyList(),
+    val where: NightWhere? = null,
 )
+
+@Serializable data class NightSpan(val session: String = "", val host: String? = null, val start: Long = 0, val end: Long = 0)
+
+/**
+ * v2: un obiettivo della notte (una proposta, o il messaggio che ha assegnato il lavoro). `state`: done, running, partial,
+ * stopped, todo. I punti prendono stato e ora del loro obiettivo: l'ora del singolo punto il relay non la conosce.
+ */
+@Serializable data class NightGoal(
+    val title: String = "", val file: String? = null, val at: Long = 0, val points: List<NightPoint> = emptyList(),
+    val host: String? = null, val source: String? = null, val session: String? = null,
+    val state: String = "", @SerialName("done_at") val doneAt: Long? = null,
+)
+
+@Serializable data class NightPoint(val title: String = "", val state: String = "", @SerialName("done_at") val doneAt: Long? = null)
+
+/** v2: dove è arrivato il progetto. `state`: done, partial, stopped, running, unknown. */
+@Serializable data class NightWhere(
+    val state: String = "", val text: String? = null, val missing: List<String> = emptyList(),
+    @SerialName("needs_you") val needsYou: List<String> = emptyList(),
+)
+
+/** Contratto 1.74: una voce dell'op `nights`, la più recente per prima; `title` null per i rapporti v1. */
+@Serializable data class NightIndex(val date: String = "", val title: String? = null, @SerialName("generated_at") val generatedAt: Long = 0, val v: Int = 1)
+
+@Serializable data class NightList(val nights: List<NightIndex> = emptyList())
 
 @Serializable data class NightPart(val title: String = "", val state: String = "")
 
