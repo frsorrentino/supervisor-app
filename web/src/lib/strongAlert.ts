@@ -7,7 +7,7 @@ import { MASTER } from './summary'
 /** Lo stesso disegno di vibrazione di telefono e orologio. */
 export const VIBRATION = [220, 120, 220]
 
-export const STRONG = new Set(['question', 'needs_you', 'turn_blocking', 'turn_failed', 'quota_limit', 'attention_reminder'])
+export const STRONG = new Set(['question', 'needs_you', 'turn_blocking', 'turn_failed', 'quota_limit', 'attention_reminder', 'task_stalled'])
 
 /** Perché la sessione è ferma per Franz: needs_you prima della voce bloccante; null se non lo è. */
 export function stop(s: Session): { text: string; at: number } | null {

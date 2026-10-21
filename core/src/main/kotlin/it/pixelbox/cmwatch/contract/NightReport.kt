@@ -19,6 +19,8 @@ import kotlinx.serialization.encoding.Encoder
     val date: String = "",
     /** Rapporto v2 (contratto 1.74): «9 progetti: 8 fatti, 1 in parte»; null nei v1. */
     val title: String? = null,
+    /** Contratto 1.76: gli impegni del registro al momento del rapporto, le stesse voci di `/state.commitments`. */
+    val commitments: List<Commitment> = emptyList(),
     val window: NightWindow = NightWindow(),
     val attention: NightAttention = NightAttention(),
     val timeline: List<NightEntry> = emptyList(),

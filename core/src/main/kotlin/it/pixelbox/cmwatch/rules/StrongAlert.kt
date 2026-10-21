@@ -18,7 +18,7 @@ object StrongAlert {
 
     private val STRONG = setOf(
         EventKind.QUESTION, EventKind.NEEDS_YOU, EventKind.TURN_BLOCKING, EventKind.TURN_FAILED, EventKind.QUOTA_LIMIT,
-        EventKind.ATTENTION_REMINDER,
+        EventKind.ATTENTION_REMINDER, EventKind.TASK_STALLED,
     )
 
     fun strong(kind: EventKind): Boolean = kind in STRONG

@@ -38,6 +38,8 @@ class PhoneMessagingService : FirebaseMessagingService() {
                         // Contratto 1.68: il promemoria suona solo se la voce aspetta ancora.
                         it.pixelbox.cmwatch.contract.EventKind.ATTENTION_REMINDER ->
                             if (it.pixelbox.cmwatch.rules.StrongAlert.open(app.lastState(), ev)) app.notifier.reminder(ev, mode)
+                        // Contratto 1.76: impegni fermi da ore, un avviso forte col riepilogo del registro.
+                        it.pixelbox.cmwatch.contract.EventKind.TASK_STALLED -> app.notifier.stalled(ev, mode)
                         else -> app.notifier.quotaLimit(ev, mode)
                     }
                 }

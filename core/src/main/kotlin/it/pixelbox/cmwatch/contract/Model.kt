@@ -38,6 +38,8 @@ enum class EventKind {
      * bloccante), `ref` = la sessione; `attention_reminder` dopo 10 e 30 minuti, `ref` = il ref della voce, con `attention_kind`.
      */
     @SerialName("needs_you") NEEDS_YOU, @SerialName("turn_blocking") TURN_BLOCKING, @SerialName("attention_reminder") ATTENTION_REMINDER,
+    /** Contratto 1.76: impegni fermi da più di `tasks.stall_hours` senza un passo; `ref` = il primo compito, `session` = a chi tocca, una riga per compito nel body. */
+    @SerialName("task_stalled") TASK_STALLED,
 }
 
 @Serializable
@@ -245,6 +247,26 @@ enum class CmdOp {
     @SerialName("requested_at") val requestedAt: Long = 0,
 )
 
+/**
+ * Contratto 1.76: una voce della vista «Impegni» del registro (`supervisor task impegni`): un compito con un ok registrato o
+ * un piano approvato, o in attesa di un ok. `waits` = chi aspetta chi (`person` = Franz: un `awaiting_ok` aspetta la persona,
+ * gli altri la loro sessione); `age_s` e `idle_s` sono calcolati alla pubblicazione; `stalled` = approvato, non in pausa e
+ * fermo da più di `tasks.stall_hours`; `check` = l'ultimo controllo registrato; `paused` da `task pause`.
+ */
+@Serializable data class Commitment(
+    val task: String, val title: String, val project: String? = null, val session: String? = null,
+    val state: String = "", val lane: String? = null, val plan: String? = null,
+    val approved: Boolean = false, @SerialName("approved_at") val approvedAt: Long? = null, @SerialName("approved_by") val approvedBy: String? = null,
+    @SerialName("age_s") val ageS: Long = 0, @SerialName("last_step") val lastStep: CommitmentStep? = null, @SerialName("idle_s") val idleS: Long = 0,
+    val next: String? = null, val waits: CommitmentWaits? = null,
+    val expected: String? = null, @SerialName("outcome_kind") val outcomeKind: String? = null,
+    val check: CommitmentCheck? = null, val paused: CommitmentPause? = null, val stalled: Boolean = false,
+)
+@Serializable data class CommitmentStep(val at: Long = 0, val kind: String = "", val text: String = "")
+@Serializable data class CommitmentWaits(val who: String = "", val on: String = "")
+@Serializable data class CommitmentCheck(val outcome: String = "", val at: Long = 0)
+@Serializable data class CommitmentPause(val reason: String = "", val at: Long = 0, val by: String? = null)
+
 /** Contratto 1.16: testo dell'obiettivo (/goal), da quando, e se è soddisfatto quando il PC lo sa dire. */
 @Serializable data class Goal(val text: String, val since: Long, val met: Boolean? = null)
 
@@ -316,6 +338,8 @@ enum class CmdOp {
     val recurring: List<Recurring>? = null,
     /** Contratto 1.37: i compiti che aspettano l'ok, dal più vecchio; vuota con un relay precedente. */
     val approvals: List<Approval> = emptyList(),
+    /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
+    val commitments: List<Commitment>? = null,
 )
 
 /** Contratto 1.43: da quando lo stato vale per il PC, cioè la pubblicazione; `ts` con un relay precedente. */

@@ -47,6 +47,16 @@ export type NextStep = { text: string; blocking: boolean }
 export type Advice = { model: string; effort: string; reason: string; switch_cost_tokens: number; at: number; source: string; when: 'now' | 'next_task'; differs: boolean }
 /** Contratto 1.37: un compito che aspetta l'ok; `deploy` = esce in produzione. */
 export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number }
+/** Contratto 1.76: una voce della vista «Impegni» del registro; `waits` = chi aspetta chi (`person` = l'utente). */
+export type Commitment = {
+  task: string; title: string; project?: string | null; session?: string | null
+  state: 'proposed' | 'assigned' | 'running' | 'awaiting_ok' | 'approved' | string; lane?: string | null; plan?: string | null
+  approved: boolean; approved_at?: number | null; approved_by?: string | null
+  age_s: number; last_step?: { at: number; kind: string; text: string } | null; idle_s: number
+  next?: string | null; waits?: { who: string; on: string } | null
+  expected?: string | null; outcome_kind?: string | null
+  check?: { outcome: string; at: number } | null; paused?: { reason: string; at: number; by?: string | null } | null; stalled: boolean
+}
 
 export type QuotaAccount = { h5?: number | null; w7?: number | null; reset_w7?: number | null; reset_h5?: number | null; stale?: boolean; kind?: string | null }
 export type Device = { uid: string; name: string; kind?: string | null; seen?: number | null }
@@ -78,7 +88,7 @@ export type AgendaRow = {
 export type AgendaPage = { rows: AgendaRow[]; more: boolean; owner?: string | null }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
-export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder'
+export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder' | 'task_stalled'
 export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null
   /** Contratto 1.56: titolo e corpo senza segreti. */
   preview?: { title: string; body?: string } | null
@@ -174,6 +184,8 @@ export type State = {
   /** Fase 4 del piano web: la chiave pubblica VAPID del relay (base64url); assente = il relay non manda web push. */
   push?: { vapid: string } | null
   approvals?: Approval[]
+  /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
+  commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
   hosts_status: HostStatus[]; published_today: Published[]
 }

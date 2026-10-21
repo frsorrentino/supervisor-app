@@ -146,6 +146,13 @@ class PhoneNotifier(private val ctx: Context) {
             .setContentTitle(e.shareTitle).setContentIntent(openSession(e.session)).setAutoCancel(true))
     }
 
+    /** Contratto 1.76: impegni fermi da più di due ore senza un passo; l'avviso forte con una riga per compito. */
+    fun stalled(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
+        post(("stalled-" + (e.ref ?: e.key)).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(e.shareTitle).setContentText(e.body).setStyle(NotificationCompat.BigTextStyle().bigText(e.body))
+            .setContentIntent(openSession(e.session)).setAutoCancel(true))
+    }
+
     /** Contratto 1.68: la voce è uscita da `state.attention`, la sua notifica e il suo promemoria si chiudono. */
     fun closeAttention(a: it.pixelbox.cmwatch.contract.Attention) {
         val ref = a.ref ?: return
