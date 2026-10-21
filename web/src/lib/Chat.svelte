@@ -203,7 +203,7 @@
         {onAnswer} onSession={onPick} onSpeak={(x) => toggle(x, s.name)} {events} {sent} {read} {onRead} onPrompt={onPromptTo} {onCmd} />
     {:else}
     {#if onOlder}<button class="older" onclick={() => { atEnd = false; onOlder() }}>{t.loadOlder}</button>{/if}
-    {#key s.name}<Feed {s} {items} now={st.ts} {onFile} {onFiles} onDecision={canDecide ? openDecision : undefined} {onDiff} />{/key}
+    {#key s.name}<Feed {s} {items} now={st.ts} {onFile} {onFiles} onDecision={canDecide ? openDecision : undefined} {onDiff} sessions={st.sessions} onSession={onPick} />{/key}
     <!-- A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC. -->
     <!-- Senza messaggi, esito, domanda e lavoro in corso una riga, invece di una pagina che sembra rotta (SessionSheet). -->
     {#if !items.length && !s.outcome && !s.question && s.state !== 'busy' && s.state !== 'awaiting' && waitingSince == null}<p class="emptychat">{t.chatEmpty}</p>{/if}

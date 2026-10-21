@@ -58,6 +58,7 @@
   import ReadingPill from './lib/ReadingPill.svelte'
   import CloseSplash from './lib/CloseSplash.svelte'
   import { closeSplash, type Leaving } from './lib/closeSplash'
+  import { askedSession } from './lib/sessionLinks'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
   import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
@@ -268,8 +269,8 @@
   // Da 840 px la plancia con le colonne, come il tablet; sotto, una colonna sola come il telefono.
   let width = $state(window.innerWidth)
   const wide = $derived(isWide(width))
-  // `#nome` apre quella sessione (link diretto, e i provini).
-  const linked = decodeURIComponent(location.hash.slice(1))
+  // `?s=nome` (notifiche e Telegram, Franz 21/10 19:04) o `#nome` apre quella sessione (link diretto, e i provini).
+  const linked = askedSession(location.search, location.hash)
   const known = (n: string) => (!!tr && !demo) || st.sessions.some(s => s.name === n && s.state !== 'gone')
 
   // La master vive nella home: ridotta è la barra in fondo, espansa occupa la home (mai una colonna o una pagina a parte).

@@ -144,8 +144,8 @@ export function world(now: number): World {
     master: [
       said('u1', en ? 'Launch payments-api on phase 2.2' : 'Lancia payments-api sulla fase 2.2', now - 660, 'phone'),
       claude('a1', en
-        ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'
-        : 'Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n\nEsito: Fase 2.2 avviata su payments-api\nProssimi: rivedi il flusso dei rimborsi · prova il checkout dal vivo', now - 600),
+        ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'
+        : 'Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Fase 2.2 avviata su payments-api\nProssimi: rivedi il flusso dei rimborsi · prova il checkout dal vivo', now - 600),
     ],
     'payments-api': [
       said('u1', 'Prepare the 2.8.0 deploy of the refund endpoint and wait for my ok', t0 - 300),

@@ -89,6 +89,11 @@ the watch sends: answers, prompts, launches, reopenings. Every document is encry
 end with AES-256-GCM; the key is agreed at pairing over X25519 and lives in the Keystore of
 the phone and of the watch. Firebase sees blobs, never your prompts or your project names.
 
+**Links into the app.** `cmwatch://session/<name>` opens the chat of that session on the phone
+(`master` included), for notifications and Telegram; on the web the same is `?s=<name>`. In a
+chat, a `https://claude.ai/code/session_…` link of a session the relay knows becomes the button
+«Open in supervisor»; a long press (right click on the web) keeps the original link.
+
 ## Requirements
 
 - **PC**: Linux or macOS, always on and awake (the relay covers «sessions closed», not
