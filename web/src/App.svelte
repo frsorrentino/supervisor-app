@@ -26,6 +26,8 @@
   import Home from './lib/Home.svelte'
   import Chat from './lib/Chat.svelte'
   import Desk from './lib/Desk.svelte'
+  import Dash from './lib/Dash.svelte'
+  import { dashColumns } from './lib/dash'
   import ColumnHead from './lib/ColumnHead.svelte'
   import { t } from './lib/t'
   import HomePane from './lib/HomePane.svelte'
@@ -423,6 +425,8 @@
   const canWrite = $derived(!!st.ops?.includes('agenda_set'))
   // Il cruscotto della plancia (variante B): senza colonne né pagine, Recap e Utilizzo stanno a destra e non nella home.
   const deskDashboard = $derived(wide && !cols.length && !page)
+  // Il cruscotto a tre colonne (21/10) ha sempre il riquadro della notte: il rapporto si chiede appena c'è.
+  $effect(() => { if (deskDashboard && st.night?.report && !night.report && !night.loading && !night.error) untrack(() => loadNight()) })
   let masterInject = $state<{ text: string; n: number } | null>(null)
   function talk(text: string) {
     masterInject = { text, n: (masterInject?.n ?? 0) + 1 }
@@ -850,7 +854,7 @@
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.[0]?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home {st} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
+        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
         onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} onRecapAction={(a) => sendTo(a.to, a.send)} agenda={agenda.page} onRecapPage={() => openPage('recap')} {canWrite} onTalk={talk} onEdit={editAgenda}
         showRecap={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}
@@ -925,6 +929,11 @@
   {#if s}<ColumnTab {s} r={rowOf[name]} {now} onGrab={grab} onFocus={() => focusColumn(name)} onClose={() => setCols(cols.filter(c => c !== name))} />{/if}
 {/snippet}
 
+{#snippet recapYou()}<RecapPage part="you" {actions} day={recapDay} agenda={agenda.page} loading={agenda.loading}
+  error={canAgenda ? agenda.error : t.recapAgendaOld} onSend={(a) => sendTo(a.to, a.send)} {canWrite} onTalk={talk} onEdit={editAgenda} onSpeak={(x) => toggle(x)} />{/snippet}
+{#snippet recapClaude()}<RecapPage part="claude" {actions} day={recapDay} agenda={agenda.page} loading={agenda.loading}
+  error={null} onSend={(a) => sendTo(a.to, a.send)} {canWrite} onTalk={talk} onEdit={editAgenda} onSpeak={(x) => toggle(x)} />{/snippet}
+
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
 
 {#if wide}
@@ -942,15 +951,11 @@
         </div>
       </div>
     {/snippet}
-    <!-- Senza colonne il cruscotto (variante B, approvata da Franz il 09/10 alle 16:17): Recap e Utilizzo larghi. -->
+    <!-- Senza colonne il cruscotto a tre colonne (Franz, 21/10 13:02): cosa serve da te, il lavoro, numeri e strumenti. -->
     {#snippet empty()}
-      <div class="dash">
-        <section class="dcol"><h3 class="dt"><span>{t.homeRecap.toUpperCase()}</span><i></i></h3>
-          <div class="dscroll"><RecapPage {actions} day={recapDay} agenda={agenda.page} loading={agenda.loading}
-            error={canAgenda ? agenda.error : t.recapAgendaOld} onSend={(a) => sendTo(a.to, a.send)} {canWrite} onTalk={talk} onEdit={editAgenda} onSpeak={(x) => toggle(x)} /></div></section>
-        <section class="dcol"><h3 class="dt"><span>{t.homeUsage.toUpperCase()}</span><i></i></h3>
-          <div class="dscroll usage">{@render quotaPanels()}</div></section>
-      </div>
+      <Dash {st} {now} cols={dashColumns(width)} night={nightModel} {nightTitle} nightLoading={night.loading} onNight={() => openPage('night')}
+        {recapYou} {recapClaude} quota={quotaPanels} onPick={card} onTalk={talk}
+        onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />
     {/snippet}
   </Desk>
 {:else}
@@ -1003,13 +1008,6 @@
   .nomaster button { height: 44px; padding: 0 20px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
   .reading { padding: 8px 0; }
   .column { height: 100%; display: flex; flex-direction: column; }
-  .dash { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 0 16px 0 14px; text-align: left; place-items: stretch; color: var(--text); }
-  @media (max-width: 1240px) { .dash { grid-template-columns: 1fr; grid-template-rows: 3fr 2fr; } }
-  .dcol { min-height: 0; display: flex; flex-direction: column; }
-  .dt { display: flex; align-items: center; gap: 8px; margin: 14px 4px 8px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); }
-  .dt i { flex: 1; height: 1px; background: var(--line); }
-  .dscroll { flex: 1; min-height: 0; overflow-y: auto; }
-  .dscroll.usage { display: flex; flex-direction: column; gap: 12px; padding-bottom: 16px; }
   .cbody { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
   .soon { color: var(--text2); padding: 24px; }
   .sheet { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 0 0; width: min(600px, 100vw); max-height: 90vh; border-radius: 28px; }

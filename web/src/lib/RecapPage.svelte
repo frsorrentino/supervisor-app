@@ -8,13 +8,18 @@
   import RecapSend from './RecapSend.svelte'
   // La pagina Recap (tavola 2 del mockup approvato l'08/10): dal menu ≡ o da «Tutto il recap». Filtri per ambito in cima;
   // le Azioni; poi chi deve muoversi; in fondo, richiuso, fatto e sospeso. `agenda` null = in arrivo.
-  let { actions, day, agenda, error, loading, onSend, canWrite = false, onTalk = () => {}, onEdit = () => {}, today = todayIso(), onSpeak = null }: {
+  let { actions, day, agenda, error, loading, onSend, canWrite = false, onTalk = () => {}, onEdit = () => {}, today = todayIso(), onSpeak = null, part = 'all' }: {
     actions: RecapAction[]; day: string; agenda: AgendaPage | null; error: string | null; loading: boolean; onSend: (a: RecapAction) => void
     /** Le Azioni sulle schede (piano del 09/10): scritture con l'op del contratto 1.47, «Parlane» apre la master. */
     canWrite?: boolean; onTalk?: (text: string) => void; onEdit?: (e: Edit) => void; today?: string
     /** ▶ sul dettaglio di «Approfondisci» (09/10 16:31). */
     onSpeak?: ((text: string) => void) | null
+    /** Il cruscotto a tre colonne (21/10): `you` = filtri, Azioni, «Aspetta te», «Fermo su altro» e il resto; `claude` = solo
+     *  «Può farlo Claude», nella colonna del lavoro. */
+    part?: 'all' | 'you' | 'claude'
   } = $props()
+  const mine = $derived(part !== 'claude')
+  const claudes = $derived(part !== 'you')
   let acts: AgendaActions | undefined = $state()
   let scope = $state<string | null>(null)
   let restOpen = $state(false)
@@ -26,11 +31,11 @@
 </script>
 
 <div class="recap">
-  <div class="filt">
+  {#if mine}<div class="filt">
     <button class:on={scope === null} onclick={() => (scope = null)}>{t.recapFilterAll}</button>
     {#each SCOPES as sc}<button class:on={scope === sc} onclick={() => (scope = sc)}>{scopeLabel[sc]}</button>{/each}
-  </div>
-  {#if actions.length}
+  </div>{/if}
+  {#if mine && actions.length}
     <h2 class="gh" style="--t:var(--text)"><span>{t.recapActions(actions.length).toUpperCase()}</span><i></i></h2>
     <div class="chips">
       {#each actions as a (key(a))}
@@ -39,27 +44,27 @@
       {/each}
     </div>
   {/if}
-  {#if error}<p class="note">{error}</p>{:else if !agenda && loading}<p class="note">{t.recapLoading}</p>{/if}
-  {#if m.you.length}
+  {#if !mine}{:else if error}<p class="note">{error}</p>{:else if !agenda && loading}<p class="note">{t.recapLoading}</p>{/if}
+  {#if mine && m.you.length}
     <h2 class="gh" style="--t:var(--b-warn)"><span>{t.recapYou(m.you.length).toUpperCase()}</span><i></i></h2>
     {#each m.you as r}<AgendaItem row={r} onOpen={() => acts?.deepen(r)} onItem={(i) => acts?.pickOf(r, i)} {canWrite} {today} />{/each}
   {/if}
-  {#if m.claude.length}
+  {#if claudes && m.claude.length}
     <h2 class="gh" style="--t:var(--icon)"><span>{t.recapClaude(m.claude.length).toUpperCase()}</span><i></i></h2>
     {#each m.claude as r}<AgendaItem row={r} onOpen={() => acts?.deepen(r)} onItem={(i) => acts?.pickOf(r, i)} {canWrite} {today} />{/each}
   {/if}
-  {#if m.other.length}
+  {#if mine && m.other.length}
     <h2 class="gh" style="--t:var(--text2)"><span>{t.recapOther(m.other.length).toUpperCase()}</span><i></i></h2>
     {#each m.other as r}<AgendaItem row={r} other onOpen={() => acts?.deepen(r)} onItem={(i) => acts?.pickOf(r, i)} {canWrite} {today} />{/each}
   {/if}
-  {#if m.rest.length}
+  {#if mine && m.rest.length}
     <button class="fold" aria-expanded={restOpen} onclick={() => (restOpen = !restOpen)}>
       <span>{t.recapRest(m.rest.length)}</span>
       <svg viewBox="0 0 24 24" width="20" height="20"><path d={restOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
     </button>
     {#if restOpen}{#each m.rest as r}<AgendaItem row={r} onOpen={() => acts?.deepen(r)} onItem={(i) => acts?.pickOf(r, i)} {canWrite} {today} />{/each}{/if}
   {/if}
-  {#if agenda && !actions.length && !m.you.length && !m.claude.length && !m.other.length && !m.rest.length}<p class="note">{t.recapEmpty}</p>{/if}
+  {#if mine && agenda && !actions.length && !m.you.length && !m.other.length && !m.rest.length && (part === 'you' || !m.claude.length)}<p class="note">{t.recapEmpty}</p>{/if}
 </div>
 
 <AgendaActions bind:this={acts} {canWrite} {today} {onSend} {onTalk} {onEdit} {onSpeak} />
