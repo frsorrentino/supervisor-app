@@ -378,6 +378,8 @@ class FakeTransport(
             }
             // Contratto 1.72: la demo dell'app non ha la trascrizione (1.22), quindi nessun passaggio da dare intero.
             CmdOp.DIFF -> ko("no entry ${cmd.arg} in the transcript")
+            // Contratto 1.73: la PWA Studio sta fuori da questa app, che non la manda mai.
+            CmdOp.STUDIO -> ko("studio is not in this app")
             // Contratto 1.64: la cartella si crea al secondo tocco, con `confirm`; nella demo nasce solo il risultato.
             // Contratto 1.69: i testi del relay; nella demo la modalità cambia subito nello stato.
             CmdOp.PERMISSION_MODE -> when {
