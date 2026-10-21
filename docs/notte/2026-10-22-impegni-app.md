@@ -36,7 +36,7 @@ Il contratto 1.76 (sezione «Impegni» e «Approva che risveglia») lo definisce
 - Run normale (unit core e mobile, Paparazzi, APK debug e release): [39686925850](https://github.com/frsorrentino/supervisor-app/actions/runs/39686925850), verde.
 - `feature/tablet` in fast-forward a c35f65b4 (push `notte/link-sessioni:feature/tablet`), ramo `notte/link-sessioni` su origin.
 - Pre-release `impegni-2026-10-22` (pre-release, non latest) con `mobile-release.apk` della run 39686925850, firmata (CN=Francesco Sorrentino), digest GitHub uguale allo sha256 locale `67e74732…`: https://github.com/frsorrentino/supervisor-app/releases/tag/impegni-2026-10-22 · APK diretto: https://github.com/frsorrentino/supervisor-app/releases/download/impegni-2026-10-22/mobile-release.apk . Il controllo del compito verifica che il telefono abbia un `lastUpdateTime` successivo alla pubblicazione: l'installazione la fa la master via ADB (`./scripts/install-watch.sh phone IP:PORTA impegni-2026-10-22`).
-- Quando arriva il contratto 1.76 con P2 e P4: nuova run, asset dello stesso tag sostituito o tag nuovo (decide la master), e il telefono lo propone da solo con P6.
+- Installata sul telefono dalla master con lo script alle 00:48:13 del 22/10 (digest verificato). Quando arriva il contratto 1.76 con P2 e P4: nuova run e tag nuovo `impegni-2026-10-22-b` (il controllo del compito è su quel tag); sarà la prova vera di P6: il telefono deve mostrare da solo «Aggiornamento disponibile» e installare da lì.
 
 ## Cosa provare sul telefono
 
