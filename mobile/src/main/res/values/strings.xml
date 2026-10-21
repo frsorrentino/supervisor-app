@@ -1002,4 +1002,41 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="file_code">Codice</string>
     <string name="file_page">Pagina</string>
     <string name="show_preview">Mostra anteprima</string>
+    <!-- Gantt della notte (bozze A e B approvate da Franz il 21/10 alle 10:29) -->
+    <string name="night_view_projects">Progetti</string>
+    <string name="night_view_goals">Obiettivi</string>
+    <string name="night_gantt_title">Obiettivi della notte · %1$d</string>
+    <string name="night_gantt_expl">Una riga per progetto: quando ha lavorato, cosa ha pubblicato, dove è arrivato rispetto all\'obiettivo.</string>
+    <string name="night_where_title">Dove è arrivato ogni progetto</string>
+    <string name="night_points">%1$d di %2$d</string>
+    <string name="night_no_goal">nessun obiettivo</string>
+    <string name="night_legend_work">al lavoro</string>
+    <string name="night_legend_pub">pubblicato</string>
+    <string name="night_legend_now">ora, %1$s</string>
+    <string name="night_legend_end">fine, %1$s</string>
+    <string name="night_w_done">✓ arrivato</string>
+    <string name="night_w_running">▶ in corso</string>
+    <string name="night_w_partial">◐ in parte</string>
+    <string name="night_w_stopped">✗ fermo</string>
+    <string name="night_w_unknown">○ senza esito</string>
+    <string name="night_w_needs_you">, ◐ serve te</string>
+    <plurals name="night_wc_done"><item quantity="one">✓ %1$d arrivato</item><item quantity="other">✓ %1$d arrivati</item></plurals>
+    <plurals name="night_wc_running"><item quantity="one">▶ %1$d in corso</item><item quantity="other">▶ %1$d in corso</item></plurals>
+    <plurals name="night_wc_partial"><item quantity="one">◐ %1$d in parte</item><item quantity="other">◐ %1$d in parte</item></plurals>
+    <plurals name="night_wc_stopped"><item quantity="one">✗ %1$d fermo</item><item quantity="other">✗ %1$d fermi</item></plurals>
+    <plurals name="night_wc_unknown"><item quantity="one">○ %1$d senza esito</item><item quantity="other">○ %1$d senza esito</item></plurals>
+    <string name="night_goals_reached">Obiettivi raggiunti</string>
+    <string name="night_goals_of">su %1$d</string>
+    <plurals name="night_gt_done"><item quantity="one">✓ %1$d fatto</item><item quantity="other">✓ %1$d fatti</item></plurals>
+    <plurals name="night_gt_running"><item quantity="one">▶ %1$d in corso</item><item quantity="other">▶ %1$d in corso</item></plurals>
+    <plurals name="night_gt_partial"><item quantity="one">◐ %1$d in parte</item><item quantity="other">◐ %1$d in parte</item></plurals>
+    <plurals name="night_gt_todo"><item quantity="one">○ %1$d non fatto</item><item quantity="other">○ %1$d non fatti</item></plurals>
+    <plurals name="night_gt_stopped"><item quantity="one">✗ %1$d fermo</item><item quantity="other">✗ %1$d fermi</item></plurals>
+    <string name="night_g_done">fatto</string>
+    <string name="night_g_running">in corso</string>
+    <string name="night_g_partial">in parte</string>
+    <string name="night_g_stopped">fermo</string>
+    <string name="night_g_todo">non fatto</string>
+    <string name="night_earlier_title">Notti precedenti · %1$d</string>
+    <string name="night_old_report">Rapporto senza riepilogo</string>
 </resources>

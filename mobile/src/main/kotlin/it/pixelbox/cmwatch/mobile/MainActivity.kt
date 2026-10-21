@@ -570,13 +570,23 @@ class MainActivity : ComponentActivity() {
             var nightId by remember { mutableStateOf<String?>(null) }
             var nightReport by remember { mutableStateOf<it.pixelbox.cmwatch.contract.NightReport?>(null) }
             val nightResult = nightId?.let { results[it] }
+            // Contratto 1.74: la notte scelta fra le precedenti (null = l'ultima) e l'elenco dall'op `nights`.
+            var nightDate by remember { mutableStateOf<String?>(null) }
+            var nightsId by remember { mutableStateOf<String?>(null) }
+            val nights = nightsId?.let { results[it] }?.takeIf { it.ok }?.let { r -> runCatching { ContractJson.decodeNights(r.text).nights }.getOrNull() }.orEmpty()
             val askNight: () -> Unit = {
                 scope.launch {
                     nightId?.let { app.repo.forget(it) }
-                    nightId = runCatching { app.repo.command(CmdOp.NIGHT, null, null) }.getOrNull()
+                    nightId = runCatching { app.repo.command(CmdOp.NIGHT, null, nightDate) }.getOrNull()
+                    if (state?.ops?.contains("nights") == true) {
+                        nightsId?.let { app.repo.forget(it) }
+                        nightsId = runCatching { app.repo.command(CmdOp.NIGHTS, null, null) }.getOrNull()
+                    }
                 }
             }
             LaunchedEffect(Unit) { askNight() }
+            // Lo switch «Progetti» / «Obiettivi»: all'inizio «Progetti», poi l'ultima scelta.
+            var nightByGoal by remember { mutableStateOf(homePrefs.getBoolean("night_by_goal", false)) }
             LaunchedEffect(nightResult) {
                 nightResult?.takeIf { it.ok }?.let { r -> runCatching { ContractJson.decodeNightReport(r.text) }.getOrNull()?.let { nightReport = it } }
             }
@@ -595,6 +605,14 @@ class MainActivity : ComponentActivity() {
                 },
                 error = nightError, loading = nightId != null && nightResult == null,
                 onBack = { nightOpen = false }, onRefresh = askNight,
+                gantt = remember(nightReport) {
+                    nightReport?.takeIf { r -> it.pixelbox.cmwatch.rules.NightGantt.has(r) }?.let { r ->
+                        it.pixelbox.cmwatch.mobile.ui.GanttViews(it.pixelbox.cmwatch.rules.NightGantt.projects(r, zone), it.pixelbox.cmwatch.rules.NightGantt.goals(r, zone))
+                    }
+                },
+                byGoal = nightByGoal, onByGoal = { g -> nightByGoal = g; homePrefs.edit().putBoolean("night_by_goal", g).apply() },
+                earlier = nights.filter { n -> n.date != nightReport?.date },
+                onNight = { d -> nightDate = d; askNight() },
                 onChat = { n ->
                     nightOpen = false; tab = StartRoute.Tab.OVERVIEW
                     if (n == it.pixelbox.cmwatch.rules.ContextActions.MASTER) { open = null; masterChat = true } else open = n

@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.contract.NightIndex
+import it.pixelbox.cmwatch.rules.NightGantt
 import it.pixelbox.cmwatch.rules.NightPage
 import it.pixelbox.cmwatch.rules.uniqueKeys
 import it.pixelbox.cmwatch.ui.tokens.CmColors
@@ -46,6 +48,8 @@ fun NightScreen(
     page: NightPage.Page?, error: String?, loading: Boolean, onBack: () -> Unit, onRefresh: () -> Unit,
     onChat: (String) -> Unit, onAnswer: (String, Int) -> Unit, onApprove: (String) -> Unit, onSend: (String, String) -> Unit,
     zone: ZoneId = ZoneId.systemDefault(), opened: String? = null,
+    gantt: GanttViews? = null, byGoal: Boolean = false, onByGoal: (Boolean) -> Unit = {},
+    earlier: List<NightIndex> = emptyList(), onNight: (String) -> Unit = {},
 ) {
     val hm = remember(zone) { DateTimeFormatter.ofPattern("HH:mm").withZone(zone) }
     fun t(s: Long) = hm.format(Instant.ofEpochSecond(s))
@@ -66,7 +70,8 @@ fun NightScreen(
         }
         // Sezioni richiudibili (Franz, 08/10 12:30): «Progetti» parte chiusa, le altre aperte.
         var needsOpen by rememberSaveable { mutableStateOf(true) }
-        var itemsOpen by rememberSaveable { mutableStateOf(true) }
+        // Col Gantt le schede restano chiuse: il riepilogo è il Gantt (Franz, 21/10).
+        var itemsOpen by rememberSaveable { mutableStateOf(gantt == null) }
         var projectsOpen by rememberSaveable { mutableStateOf(false) }
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item(key = "window") {
@@ -75,7 +80,23 @@ fun NightScreen(
                         stringResource(if (page.fromLastMessage) R.string.night_window else R.string.night_window_plain, t(page.start), t(page.end), longDuration(page.windowS)),
                         style = MaterialTheme.typography.bodyLarge, color = CmColors.text2,
                     )
-                    CountChips(page.counts)
+                    if (gantt != null) WhereChips(gantt.projects.counts) else CountChips(page.counts)
+                }
+            }
+            if (gantt != null) {
+                item(key = "switch") { GanttSwitch(byGoal, onByGoal, Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) }
+                if (!byGoal) {
+                    item(key = "a-head") { Heading(stringResource(R.string.night_gantt_title, gantt.projects.rows.size), stringResource(R.string.night_gantt_expl)) }
+                    item(key = "a-gantt") { ProjectsGantt(gantt.projects, zone) }
+                    item(key = "a-where") { Heading(stringResource(R.string.night_where_title), null) }
+                    val whereKeys = uniqueKeys(gantt.projects.rows) { "w" + it.name }
+                    items(gantt.projects.rows.size, key = { whereKeys[it] }) { i -> WhereRow(gantt.projects.rows[i]) }
+                } else {
+                    item(key = "b-totals") { GoalTotals(gantt.goals.totals) }
+                    item(key = "b-ticks") { GoalTicks(gantt.goals.axis) }
+                    val groupKeys = uniqueKeys(gantt.goals.groups) { "g" + it.name }
+                    items(gantt.goals.groups.size, key = { groupKeys[it] }) { i -> GoalGroupCard(gantt.goals.groups[i], gantt.goals.axis, zone) }
+                    item(key = "b-legend") { GoalLegend(gantt.goals.axis, zone) }
                 }
             }
             if (page.needs.isNotEmpty()) {
@@ -90,12 +111,34 @@ fun NightScreen(
                 val times = if (c.end == null) stringResource(R.string.night_since, t(c.start)) else "${t(c.start)}–${t(c.end!!)} · ${shortDuration(c.durationS ?: 0)}"
                 CardRow(c, open = open == c.id, times = times, t = ::t, onToggle = { open = if (open == c.id) null else c.id }, onChat = onChat)
             }
-            if (page.projects.isNotEmpty()) {
+            if (gantt == null && page.projects.isNotEmpty()) {
                 item(key = "projects") { Section(stringResource(R.string.night_projects_title, page.projects.size), stringResource(R.string.night_projects_expl), projectsOpen) { projectsOpen = !projectsOpen } }
                 val projectKeys = uniqueKeys(page.projects) { "p" + it.name }
                 if (projectsOpen) items(page.projects.size, key = { projectKeys[it] }) { i -> ProjectRow(page.projects[i]) }
             }
+            // Le notti precedenti (op `nights`, contratto 1.74): al tocco il loro rapporto prende il posto di questo.
+            if (earlier.isNotEmpty()) {
+                item(key = "earlier") { Heading(stringResource(R.string.night_earlier_title, earlier.size), null) }
+                items(earlier.size, key = { "n" + earlier[it].date }) { i ->
+                    val n = earlier[i]
+                    val d = runCatching { java.time.LocalDate.parse(n.date) }.getOrNull()
+                    val title = d?.let { stringResource(R.string.night_title, it.minusDays(1).dayOfMonth, it.dayOfMonth, it.month.getDisplayName(TextStyle.FULL_STANDALONE, locale)) } ?: n.date
+                    NightIndexRow(n, title) { onNight(n.date) }
+                }
+            }
         }
+    }
+}
+
+/** Le due viste del Gantt: per progetto (A) e per obiettivo (B), dallo stesso rapporto v2. */
+data class GanttViews(val projects: NightGantt.Projects, val goals: NightGantt.Goals)
+
+/** Titolo di sezione fisso, come nelle bozze del Gantt: maiuscolo e spaziato, con una riga facoltativa sotto. */
+@Composable
+private fun Heading(title: String, explain: String?) {
+    Column(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title.uppercase(), style = MonoSmall.copy(color = CmColors.text2, letterSpacing = 1.8.sp))
+        explain?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
     }
 }
 

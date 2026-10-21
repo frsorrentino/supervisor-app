@@ -984,4 +984,41 @@ It starts at your last message to the master.</string>
     <string name="file_code">Code</string>
     <string name="file_page">Page</string>
     <string name="show_preview">Show preview</string>
+    <!-- Night Gantt (sketches A and B approved by Franz on 21/10 at 10:29) -->
+    <string name="night_view_projects">Projects</string>
+    <string name="night_view_goals">Goals</string>
+    <string name="night_gantt_title">Goals of the night · %1$d</string>
+    <string name="night_gantt_expl">One row per project: when it worked, what it published, how far it got toward its goal.</string>
+    <string name="night_where_title">Where each project got</string>
+    <string name="night_points">%1$d of %2$d</string>
+    <string name="night_no_goal">no goal</string>
+    <string name="night_legend_work">working</string>
+    <string name="night_legend_pub">published</string>
+    <string name="night_legend_now">now, %1$s</string>
+    <string name="night_legend_end">end, %1$s</string>
+    <string name="night_w_done">✓ done</string>
+    <string name="night_w_running">▶ running</string>
+    <string name="night_w_partial">◐ partly</string>
+    <string name="night_w_stopped">✗ stopped</string>
+    <string name="night_w_unknown">○ no outcome</string>
+    <string name="night_w_needs_you">, ◐ needs you</string>
+    <plurals name="night_wc_done"><item quantity="one">✓ %1$d done</item><item quantity="other">✓ %1$d done</item></plurals>
+    <plurals name="night_wc_running"><item quantity="one">▶ %1$d running</item><item quantity="other">▶ %1$d running</item></plurals>
+    <plurals name="night_wc_partial"><item quantity="one">◐ %1$d partly</item><item quantity="other">◐ %1$d partly</item></plurals>
+    <plurals name="night_wc_stopped"><item quantity="one">✗ %1$d stopped</item><item quantity="other">✗ %1$d stopped</item></plurals>
+    <plurals name="night_wc_unknown"><item quantity="one">○ %1$d no outcome</item><item quantity="other">○ %1$d no outcome</item></plurals>
+    <string name="night_goals_reached">Goals reached</string>
+    <string name="night_goals_of">of %1$d</string>
+    <plurals name="night_gt_done"><item quantity="one">✓ %1$d done</item><item quantity="other">✓ %1$d done</item></plurals>
+    <plurals name="night_gt_running"><item quantity="one">▶ %1$d running</item><item quantity="other">▶ %1$d running</item></plurals>
+    <plurals name="night_gt_partial"><item quantity="one">◐ %1$d partly</item><item quantity="other">◐ %1$d partly</item></plurals>
+    <plurals name="night_gt_todo"><item quantity="one">○ %1$d not done</item><item quantity="other">○ %1$d not done</item></plurals>
+    <plurals name="night_gt_stopped"><item quantity="one">✗ %1$d stopped</item><item quantity="other">✗ %1$d stopped</item></plurals>
+    <string name="night_g_done">done</string>
+    <string name="night_g_running">running</string>
+    <string name="night_g_partial">partly</string>
+    <string name="night_g_stopped">stopped</string>
+    <string name="night_g_todo">not done</string>
+    <string name="night_earlier_title">Earlier nights · %1$d</string>
+    <string name="night_old_report">Report without a summary</string>
 </resources>
