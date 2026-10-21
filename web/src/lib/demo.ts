@@ -1,4 +1,5 @@
 import stateRaw from '../../../contract/state-1-question.json?raw'
+import idleRaw from '../../../contract/state-2-idle.json?raw'
 import changesRaw from '../../../contract/changes-sample.json?raw'
 import eventsRaw from '../../../contract/events-sample.json?raw'
 import nightRaw from '../../../contract/night-report-sample.json?raw'
@@ -90,6 +91,9 @@ export function world(now: number): World {
   ]
   const state: State = {
     ...base, ts: now, published_at: now, sessions,
+    // Contratto 1.75: win acceso e le tre pubblicazioni di state-2-idle, spostate su adesso come il resto.
+    ...(() => { const idle = decodeState(dress(idleRaw)), di = now - idle.ts
+      return { hosts_status: idle.hosts_status.map(h => ({ ...h, at: now - 40 })), published_today: idle.published_today.map(x => ({ ...x, at: x.at + di })) } })(),
     quota: Object.fromEntries(Object.entries(base.quota).map(([k, q]) => [k, { ...q, reset_h5: q.h5 != null && q.reset_h5 != null ? now + WINDOW_LEFT_S : sh(q.reset_h5), reset_w7: sh(q.reset_w7) }])),
     projects: base.projects.map(p => ({ ...p, last_used: sh(p.last_used) })),
     approvals: base.approvals.map(a => ({ ...a, requested_at: a.requested_at + d })),

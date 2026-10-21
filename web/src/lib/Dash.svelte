@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import type { Project, State } from './contract'
-  import { recentProjects, sessionsByState, waitingFor } from './dash'
+  import { hostNumbers, publishedRows, recentProjects, sessionsByState, waitingFor } from './dash'
   import { since } from './durations'
   import type { NightPage } from './night'
   import { readable } from './slashText'
@@ -9,7 +9,7 @@
 
   // Il cruscotto della plancia senza sessioni aperte, a tre colonne (Franz, 21/10 13:02): cosa serve da te, il lavoro, numeri
   // e strumenti. Riusa i riquadri che esistono (Recap, notte, quota, ricorrenti); stato di win e pubblicazioni di oggi
-  // aspettano il contratto: finché il relay non li manda, i loro riquadri lo dicono, senza dati finti.
+  // dal contratto 1.75 (su Firebase, con /state entro 8 KB, al massimo 5 pubblicazioni; la web locale ne vede fino a 30).
   let { st, now, cols, night, nightTitle, nightLoading, onNight, recapYou, recapClaude, quota, onPick, onTalk, onLaunch }: {
     st: State; now: number; cols: 1 | 2 | 3
     night: NightPage | null; nightTitle: string; nightLoading: boolean; onNight: () => void
@@ -21,6 +21,8 @@
   const by = $derived(sessionsByState(st.sessions))
   const recent = $derived(recentProjects(st))
   const recurring = $derived(st.recurring ?? [])
+  const hosts = $derived(st.hosts_status ?? [])
+  const published = $derived(publishedRows(st.published_today))
   let chosen = $state<Project | null>(null)
   const hhmm = (s: number) => new Date(s * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 </script>
@@ -86,11 +88,27 @@
     <div class="quota">{@render quota()}</div>
     <div class="box">
       <h4>{t.dashWin}</h4>
-      <small class="sub">{t.dashWinSoon}</small>
+      {#each hosts as h (h.name)}
+        <div class="host">
+          <span class="txt">
+            <b><span class="dot" class:up={h.up}></span>{h.name}</b>
+            <small>{h.up ? hostNumbers(h) : t.dashHostDown(h.error ?? '')}</small>
+            {#if h.sessions.length}
+              <span class="chips">{#each h.sessions as n (n)}<button class="chip" onclick={() => onPick(n)}>{n}</button>{/each}</span>
+            {:else if h.up}<small>{t.dashHostNoSessions}</small>{/if}
+          </span>
+          {#if h.at}<small class="ago">{now - h.at < 60 ? t.dashHostNow : t.dashHostRead(since(h.at, now))}</small>{/if}
+        </div>
+      {:else}<small class="sub">{t.dashWinNone}</small>{/each}
     </div>
     <div class="box">
       <h4>{t.dashPublished}</h4>
-      <small class="sub">{t.dashPublishedSoon}</small>
+      {#each published as p, i (i)}
+        <svelte:element this={p.url ? 'a' : 'div'} class="row" href={p.url ?? undefined} target={p.url ? '_blank' : undefined} rel={p.url ? 'noopener' : undefined}>
+          <span class="txt"><b>{t.dashPubKind[p.kind] ?? p.kind} · {p.name}</b><small>{p.text}</small></span>
+          <small class="ago">{hhmm(p.at)}</small>
+        </svelte:element>
+      {:else}<small class="sub">{t.dashPublishedNone}</small>{/each}
     </div>
     {#if recurring.length || recent.length}
       <div class="box">
@@ -134,6 +152,12 @@
   .txt b { font-size: 15px; font-weight: 500; }
   .txt small { color: var(--text2); font-size: 13.5px; line-height: 1.35; }
   .ago { color: var(--text2); font: 12px var(--mono); white-space: nowrap; }
+  .host { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .host:first-of-type { border-top: 0; }
+  .host .chips { margin-top: 4px; }
+  .dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--gone-dim); vertical-align: middle; }
+  .dot.up { background: var(--good); }
+  a.row { text-decoration: none; }
   .counts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 15px; }
   .nightbox { gap: 10px; }
   .nightbox b { font-size: 17px; font-weight: 500; }
