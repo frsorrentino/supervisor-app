@@ -205,6 +205,7 @@
     <string name="settings_threshold_label">Soglia</string>
     <string name="settings_threshold_value">%1$d caratteri</string>
     <string name="settings_voice_label">Voce</string>
+    <string name="settings_bilingual">Inglese con voce inglese</string>
     <string name="settings_voice_default_value">predefinita</string>
     <string name="settings_voice_value">%1$d di %2$d</string>
     <string name="settings_section_haptics">Vibrazioni</string>

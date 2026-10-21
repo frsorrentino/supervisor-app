@@ -130,6 +130,7 @@ fun SettingsScreen(settings: Settings, onChange: (Settings) -> Unit, onRepair: (
                     Icons.Rounded.RecordVoiceOver, spec, onClick = { onVoice(VoiceRules.next(voices, settings.ttsVoice)) }, enabled = voices.isNotEmpty(),
                 )
             }
+            item { Toggle(stringResource(R.string.settings_bilingual), settings.ttsBilingual, spec) { onChange(settings.copy(ttsBilingual = it)) } }
 
             item { Header(stringResource(R.string.settings_section_haptics), spec) }
             item { Toggle(stringResource(R.string.settings_haptic_question_short), settings.hapticQuestion, spec) { onChange(settings.copy(hapticQuestion = it)) } }

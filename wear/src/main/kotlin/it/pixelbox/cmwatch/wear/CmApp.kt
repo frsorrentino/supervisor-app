@@ -124,6 +124,7 @@ class CmApp : Application() {
             }
         }
         scope.launch { prefs.flow.map { it.ttsVoice }.distinctUntilChanged().collect { speaker.setVoice(it) } }
+        scope.launch { prefs.flow.map { it.ttsBilingual }.distinctUntilChanged().collect { speaker.bilingual = it } }
         subscribeTopic()
     }
 

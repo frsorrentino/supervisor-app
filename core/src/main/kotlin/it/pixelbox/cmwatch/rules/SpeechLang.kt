@@ -1,5 +1,7 @@
 package it.pixelbox.cmwatch.rules
 
+import java.util.Locale
+
 /**
  * Voce bilingue (Franz, 21/10 00:57: «si può fare in modo che venga riconosciuta la parte inglese e la voce legga con
  * l'accento corretto?»). Un testo da leggere si divide in pezzi con la loro lingua: si decide per frase, e dentro la
@@ -12,8 +14,9 @@ package it.pixelbox.cmwatch.rules
  * nella lingua di base (prova sugli handoff del repo, 21/10: con le desinenze passavano all'inglese).
  */
 object SpeechLang {
-    enum class Lang {
-        IT, EN;
+    /** `locale`: quella da dare al motore vocale per un pezzo in questa lingua. */
+    enum class Lang(val locale: Locale) {
+        IT(Locale.ITALY), EN(Locale.US);
 
         companion object {
             /** La lingua della voce di base (`Locale.language`); un'altra lingua legge tutto con la sua voce, come prima. */

@@ -4,6 +4,7 @@ import android.util.Log
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import it.pixelbox.cmwatch.rules.SpeechLang
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
@@ -19,6 +20,9 @@ class Speaker(ctx: Context) {
     @Volatile private var lastId: String? = null
     private var batch = 0
     private var voiceName: String? = null
+    /** Le parti in inglese con la voce inglese (impostazioni, accesa di default); serve anche la voce inglese nel motore. */
+    @Volatile var bilingual = true
+    private var english = false
     private val _voices = MutableStateFlow<List<String>>(emptyList())
     /** Voci italiane del motore, prima quelle installate sul polso e poi quelle di rete: si provano dalle impostazioni. */
     val voices: StateFlow<List<String>> = _voices
@@ -36,6 +40,7 @@ class Speaker(ctx: Context) {
             if (ready) {
                 if (tts.isLanguageAvailable(Locale.ITALIAN) >= TextToSpeech.LANG_AVAILABLE) tts.language = Locale.ITALIAN
                 _voices.value = italian()
+                english = runCatching { tts.isLanguageAvailable(SpeechLang.Lang.EN.locale) >= TextToSpeech.LANG_AVAILABLE }.getOrDefault(false)
                 Log.i("cmwatch-tts", "voci italiane: ${_voices.value}")
                 applyVoice()
                 val p = pending; pending = null; p?.invoke()
@@ -60,17 +65,28 @@ class Speaker(ctx: Context) {
     fun speakBlocks(blocks: List<List<String>>, from: Int) =
         enqueue(blocks.withIndex().drop(from).flatMap { (i, pezzi) -> pezzi.map { i to it } })
 
-    /** Primo pezzo in `QUEUE_FLUSH` (interrompe quello che stava leggendo), gli altri in coda. */
+    /**
+     * Primo pezzo in `QUEUE_FLUSH` (interrompe quello che stava leggendo), gli altri in coda. Con la voce bilingue ogni
+     * pezzo si divide per lingua (`SpeechLang`) e la frase inglese si dice con la voce inglese: il motore prende la lingua
+     * al momento di `speak`, poi si torna alla voce scelta.
+     */
     private fun enqueue(items: List<Pair<Int?, String>>) {
         if (items.isEmpty()) return
         _speaking.value = true
         if (!ready) { pending = { enqueue(items) }; return }
         val b = ++batch
-        items.forEachIndexed { i, (blocco, p) ->
+        val pezzi = items.flatMap { (blocco, p) ->
+            if (bilingual && english) SpeechLang.split(p, SpeechLang.Lang.IT).map { Triple(blocco, it.text, it.lang) }
+            else listOf(Triple(blocco, p, SpeechLang.Lang.IT))
+        }
+        var lang = SpeechLang.Lang.IT
+        pezzi.forEachIndexed { i, (blocco, p, l) ->
+            if (l != lang) { lang = l; if (l == SpeechLang.Lang.IT) applyVoice() else tts.language = l.locale }
             val id = "cm-$b-$i" + (blocco?.let { "-b$it" } ?: "")
-            if (i == items.lastIndex) lastId = id
+            if (i == pezzi.lastIndex) lastId = id
             tts.speak(p, if (i == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, null, id)
         }
+        if (lang != SpeechLang.Lang.IT) applyVoice()
     }
 
     private fun finished() { _speaking.value = false; _block.value = null }

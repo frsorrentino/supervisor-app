@@ -8,6 +8,7 @@ import it.pixelbox.cmwatch.rules.AnswerText
 import it.pixelbox.cmwatch.rules.AppLanguage
 import it.pixelbox.cmwatch.rules.NextSteps
 import it.pixelbox.cmwatch.rules.OutcomeLine
+import it.pixelbox.cmwatch.rules.SpeechLang
 import it.pixelbox.cmwatch.rules.SpeechRate
 import it.pixelbox.cmwatch.rules.SpeechText
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,13 +42,18 @@ class Speech(ctx: Context) {
     private val _rate = MutableStateFlow(SpeechRate.of(if (prefs.contains("rate")) prefs.getFloat("rate", SpeechRate.NORMAL) else null))
     /** La velocità scelta nelle impostazioni (Franz, 02/10 15:49), in multipli di quella del motore. */
     val rate: StateFlow<Float> = _rate
+    private val _bilingual = MutableStateFlow(prefs.getBoolean("bilingual", true))
+    /** Le parti nell'altra lingua con la sua voce (Franz, 21/10 00:57), accesa di default: `SpeechLang`. */
+    val bilingual: StateFlow<Boolean> = _bilingual
     private val _paused = MutableStateFlow(false)
     /** In pausa (Franz, 07/10, barra approvata alle 22:06): la lettura resta aperta e riparte dal pezzo fermato. */
     val paused: StateFlow<Boolean> = _paused
     private var current: String? = null
     @Volatile private var prefix = "-"
-    /** I pezzi della lettura in corso (paragrafo, testo) e quello che il motore sta dicendo, per ripartire da lì. */
-    private var items: List<Pair<Int, String>> = emptyList()
+    /** I pezzi della lettura in corso (paragrafo, testo, lingua) e quello che il motore sta dicendo, per ripartire da lì. */
+    private var items: List<Item> = emptyList()
+    /** La lingua dell'app per la voce; null = una lingua che `SpeechLang` non conosce, letta tutta con la sua voce. */
+    private var base: SpeechLang.Lang? = null
     @Volatile private var chunk = 0
     /** Ogni partenza ha il suo prefisso: lo stop tardivo dei pezzi vecchi non spegne la lettura ripartita. */
     private var generation = 0
@@ -93,7 +99,14 @@ class Speech(ctx: Context) {
         current = text
         _speaking.value = text
         val code = app.getString(R.string.tts_code)
-        items = blocksOf(text).withIndex().drop(from).flatMap { (i, b) -> SpeechText.chunks(SpeechText.forBlock(b.kind, b.text, code), PHONE_CHUNK).map { i to it } }
+        val base = base
+        // L'altra lingua si legge con la sua voce solo se il motore la ha; senza, tutto con la voce di base e niente errori.
+        val bilingual = base != null && _bilingual.value && SpeechLang.Lang.entries.all { runCatching { tts.isLanguageAvailable(it.locale) >= TextToSpeech.LANG_AVAILABLE }.getOrDefault(false) }
+        items = blocksOf(text).withIndex().drop(from).flatMap { (i, b) ->
+            val t = SpeechText.forBlock(b.kind, b.text, code)
+            if (base == null) SpeechText.chunks(t, PHONE_CHUNK).map { Item(i, it, null) }
+            else SpeechLang.chunks(t, base, bilingual, PHONE_CHUNK).map { Item(i, it.text, it.lang.takeIf { l -> l != base }) }
+        }
         if (items.isEmpty()) { finished(); return }
         startAt(0)
     }
@@ -104,10 +117,14 @@ class Speech(ctx: Context) {
         generation++
         prefix = "cm-" + current.hashCode() + "-" + generation + "-"
         chunk = k0
+        // Il motore prende lingua e voce al momento di `speak`: si cambiano prima di ogni pezzo che cambia lingua.
+        var lang: SpeechLang.Lang? = items.getOrNull(k0)?.foreign
+        if (lang != null) tts.language = lang.locale
         items.withIndex().drop(k0).forEach { (k, item) ->
-            val (i, p) = item
-            tts.speak(p, if (k == k0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, null, prefix + "b" + i + "-" + k + if (k == items.lastIndex) "-end" else "")
+            if (item.foreign != lang) { lang = item.foreign; lang?.let { tts.language = it.locale } ?: useLanguageAndVoice() }
+            tts.speak(item.text, if (k == k0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, null, prefix + "b" + item.block + "-" + k + if (k == items.lastIndex) "-end" else "")
         }
+        if (lang != null) useLanguageAndVoice()
     }
 
     /** I paragrafi di un testo, gli stessi che la chat mostra durante la lettura. */
@@ -191,8 +208,16 @@ class Speech(ctx: Context) {
 
     /** La lingua dell'app e poi la voce scelta: la lingua rimette la predefinita, così anche il ritorno a quella vale subito. */
     private fun useLanguageAndVoice() {
-        tts.language = AppLanguage.voiceLocale(AppLanguage.fromTags(locales.applicationLocales.toLanguageTags()), Locale.getDefault())
+        val locale = AppLanguage.voiceLocale(AppLanguage.fromTags(locales.applicationLocales.toLanguageTags()), Locale.getDefault())
+        base = SpeechLang.Lang.of(locale.language)
+        tts.language = locale
         applyVoice()
+    }
+
+    /** La voce bilingue accesa o spenta, ricordata; vale dalla prossima lettura. */
+    fun setBilingual(on: Boolean) {
+        _bilingual.value = on
+        prefs.edit().putBoolean("bilingual", on).apply()
     }
 
     private fun finished() { _speaking.value = null; _block.value = null; _source.value = null; _paused.value = false }
@@ -208,6 +233,9 @@ class Speech(ctx: Context) {
             .sortedWith(compareBy({ it.isNetworkConnectionRequired }, { it.name }))
             .map { it.name }
     }.getOrDefault(emptyList())
+
+    /** Un pezzo da dire: il paragrafo, il testo e la lingua se non è quella di base (null = la voce scelta). */
+    private class Item(val block: Int, val text: String, val foreign: SpeechLang.Lang?)
 
     /** Gli id dei pezzi: prefisso, «b» col paragrafo, il numero del pezzo e «-end» sull'ultimo. */
     private companion object {

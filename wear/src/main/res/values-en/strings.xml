@@ -201,6 +201,7 @@
     <string name="settings_threshold_label">Threshold</string>
     <string name="settings_threshold_value">%1$d characters</string>
     <string name="settings_voice_label">Voice</string>
+    <string name="settings_bilingual">Italian with Italian voice</string>
     <string name="settings_voice_default_value">default</string>
     <string name="settings_voice_value">%1$d of %2$d</string>
     <string name="settings_section_haptics">Vibration</string>

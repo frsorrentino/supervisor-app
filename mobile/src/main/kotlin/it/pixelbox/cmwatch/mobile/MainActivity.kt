@@ -419,6 +419,7 @@ class MainActivity : ComponentActivity() {
                 voices = speech.voices.collectAsStateWithLifecycle().value, voice = speech.voice.collectAsStateWithLifecycle().value,
                 onVoice = speech::setVoice, onTryVoice = { speech.toggle(getString(R.string.voice_sample)) },
                 rate = speech.rate.collectAsStateWithLifecycle().value, onRate = speech::setRate,
+                bilingual = speech.bilingual.collectAsStateWithLifecycle().value, onBilingual = speech::setBilingual,
                 liveRecap = liveRecap, onLiveRecap = { m -> liveRecap = m; getSharedPreferences("live", MODE_PRIVATE).edit().putInt("recap_min", m).apply() },
                 onAddDevice = if (!demo && state?.ops?.contains("pair_add") == true) askInvite else null,
                 tabletDetails = tabletDetails.takeIf { wide },

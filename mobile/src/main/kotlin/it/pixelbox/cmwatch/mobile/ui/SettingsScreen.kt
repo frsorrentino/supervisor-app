@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -54,6 +55,8 @@ fun SettingsScreen(
     voices: List<String> = emptyList(), voice: String? = null, onVoice: (String?) -> Unit = {}, onTryVoice: () -> Unit = {},
     /** La velocità della voce (Franz, 02/10 15:49: «un po' troppo rapida»), da 0,5× a 2× (slider del 07/10). */
     rate: Float = SpeechRate.NORMAL, onRate: (Float) -> Unit = {},
+    /** Le parti nell'altra lingua con la sua voce (Franz, 21/10 00:57), accesa di default. */
+    bilingual: Boolean = true, onBilingual: (Boolean) -> Unit = {},
     /** Ogni quanti minuti la live fa il recap delle sessioni (Franz, 08/10 20:15), 0 = spento; il tocco passa al valore dopo. */
     liveRecap: Int = it.pixelbox.cmwatch.rules.LiveDesk.RECAP_DEFAULT_MIN, onLiveRecap: (Int) -> Unit = {},
     /** Lo stato dei dispositivi per lo schema; senza, quello che si sa dall'abbinamento. */
@@ -119,6 +122,9 @@ fun SettingsScreen(
                     draft, onChange = { draft = it }, onDone = { onRate(draft) },
                     modifier = Modifier.fillMaxWidth().padding(start = 64.dp, end = 16.dp, bottom = 14.dp),
                 )
+                SettingsRow(Icons.Rounded.Translate, stringResource(R.string.bilingual_voice), stringResource(R.string.bilingual_voice_sub), onClick = { onBilingual(!bilingual) }) {
+                    Switch(checked = bilingual, onCheckedChange = onBilingual, colors = cmSwitchColors())
+                }
                 SettingsRow(
                     Icons.Rounded.Headphones, stringResource(R.string.live_recap_setting), stringResource(R.string.live_recap_setting_sub),
                     onClick = { onLiveRecap(it.pixelbox.cmwatch.rules.LiveDesk.nextRecap(liveRecap)) },

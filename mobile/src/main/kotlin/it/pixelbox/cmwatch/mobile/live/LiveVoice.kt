@@ -9,6 +9,7 @@ import android.media.ToneGenerator
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import it.pixelbox.cmwatch.rules.AppLanguage
+import it.pixelbox.cmwatch.rules.SpeechLang
 import it.pixelbox.cmwatch.rules.SpeechRate
 import it.pixelbox.cmwatch.rules.SpeechText
 import it.pixelbox.cmwatch.rules.VoiceGate
@@ -42,6 +43,11 @@ class LiveVoice(ctx: Context, private val onIdle: () -> Unit, private val onFocu
     /** Ogni Hush cambia generazione: i callback dei pezzi interrotti non contano. */
     @Volatile private var generation = 0
     @Volatile private var pending = 0
+    /** La lingua e la voce di base, per tornarci dopo un pezzo nell'altra lingua; `bilingual` = accesa e il motore ha tutte e due. */
+    @Volatile private var base: SpeechLang.Lang? = null
+    @Volatile private var baseLocale: Locale = Locale.getDefault()
+    @Volatile private var baseVoice: android.speech.tts.Voice? = null
+    @Volatile private var bilingual = false
     private val tone = runCatching { ToneGenerator(AudioManager.STREAM_MUSIC, 60) }.getOrNull()
     private val tts = TextToSpeech(app) { status ->
         if (status == TextToSpeech.SUCCESS) {
@@ -75,10 +81,15 @@ class LiveVoice(ctx: Context, private val onIdle: () -> Unit, private val onFocu
         tts.setAudioAttributes(attrs)
         // La lingua dell'app, come il tasto ▶ (`Speech`).
         val tags = app.getSystemService(android.app.LocaleManager::class.java).applicationLocales.toLanguageTags()
-        tts.language = AppLanguage.voiceLocale(AppLanguage.fromTags(tags), Locale.getDefault())
+        baseLocale = AppLanguage.voiceLocale(AppLanguage.fromTags(tags), Locale.getDefault())
+        base = SpeechLang.Lang.of(baseLocale.language)
+        tts.language = baseLocale
         val prefs = app.getSharedPreferences("speech", Context.MODE_PRIVATE)
-        // La voce e la velocità scelte nelle impostazioni del tasto ▶ valgono anche qui.
-        prefs.getString("voice", null)?.let { n -> runCatching { tts.voices }.getOrNull()?.firstOrNull { it.name == n }?.let { tts.voice = it } }
+        // La voce, la velocità e la voce bilingue scelte nelle impostazioni del tasto ▶ valgono anche qui.
+        baseVoice = prefs.getString("voice", null)?.let { n -> runCatching { tts.voices }.getOrNull()?.firstOrNull { it.name == n } }
+        baseVoice?.let { tts.voice = it }
+        bilingual = base != null && prefs.getBoolean("bilingual", true) &&
+            SpeechLang.Lang.entries.all { runCatching { tts.isLanguageAvailable(it.locale) >= TextToSpeech.LANG_AVAILABLE }.getOrDefault(false) }
         tts.setSpeechRate(SpeechRate.of(if (prefs.contains("rate")) prefs.getFloat("rate", SpeechRate.NORMAL) else null))
     }
 
@@ -94,9 +105,16 @@ class LiveVoice(ctx: Context, private val onIdle: () -> Unit, private val onFocu
         }
         if (pending == 0 && audio.requestAudioFocus(focus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) { onFocus(false); return }
         val g = generation
-        val parts = SpeechText.chunks(text)
+        val b = base
+        val parts = if (b == null) SpeechText.chunks(text).map { SpeechLang.Piece(it, SpeechLang.Lang.IT) } else SpeechLang.chunks(text, b, bilingual)
         pending += parts.size
-        parts.forEachIndexed { i, p -> tts.speak(p, TextToSpeech.QUEUE_ADD, null, "live-$g-${System.nanoTime()}-$i") }
+        parts.forEachIndexed { i, p ->
+            // Il motore prende la lingua al momento di `speak`: un pezzo nell'altra lingua la cambia e poi si torna alla base.
+            val foreign = b != null && p.lang != b
+            if (foreign) tts.language = p.lang.locale
+            tts.speak(p.text, TextToSpeech.QUEUE_ADD, null, "live-$g-${System.nanoTime()}-$i")
+            if (foreign) { tts.language = baseLocale; baseVoice?.let { tts.voice = it } }
+        }
     }
 
     @Synchronized fun hush() {
