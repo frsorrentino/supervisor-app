@@ -31,7 +31,16 @@ import java.time.ZoneId
  * il carattere grande, e una finestra da 1000 dp senza ispettore. Solo i dati demo della fixture: il repo è pubblico.
  */
 class TabletShellTest {
-    @get:Rule val paparazzi = Paparazzi(deviceConfig = TABLET, theme = "android:Theme.Material.NoActionBar")
+    /**
+     * Con `-Pstore.shots=true` (e `-Pstore.locale=en`) le stesse schermate diventano gli screenshot tablet di Play, intere
+     * in build/store-shots/tablet-<lingua>/ (21/10, la scheda non ne aveva); senza, i golden di sempre. Play vuole 16:9 per
+     * i tablet da 7 e da 10 pollici: 2880x1620 invece di 2880x1800.
+     */
+    private val storeLocale = System.getProperty("store.locale") ?: "it"
+    @get:Rule val paparazzi = if (System.getProperty("store.shots") == "true") Paparazzi(
+        deviceConfig = TABLET.copy(screenHeight = 1620, locale = storeLocale), theme = "android:Theme.Material.NoActionBar",
+        snapshotHandler = FullSize(File("build/store-shots/tablet-$storeLocale")), useDeviceResolution = true,
+    ) else Paparazzi(deviceConfig = TABLET, theme = "android:Theme.Material.NoActionBar")
 
     private val base = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
     private val ts = base.ts

@@ -21,6 +21,24 @@ import java.io.File
 import java.time.ZoneId
 
 /**
+ * Le immagini intere. java.awt non è sul classpath di compilazione dei test Android, ma c'è a runtime: il gestore dei
+ * fotogrammi è un proxy e ImageIO si chiama per riflessione.
+ */
+internal class FullSize(private val dir: File) : SnapshotHandler {
+    override fun newFrameHandler(snapshot: Snapshot, frameCount: Int, fps: Int): SnapshotHandler.FrameHandler =
+        java.lang.reflect.Proxy.newProxyInstance(javaClass.classLoader, arrayOf(SnapshotHandler.FrameHandler::class.java)) { _, m, args ->
+            if (m.name == "handle") {
+                dir.mkdirs()
+                val rendered = Class.forName("java.awt.image.RenderedImage")
+                Class.forName("javax.imageio.ImageIO").getMethod("write", rendered, String::class.java, File::class.java)
+                    .invoke(null, args[0], "PNG", File(dir, "${snapshot.testName.methodName}.png"))
+            }
+            null
+        } as SnapshotHandler.FrameHandler
+    override fun close() {}
+}
+
+/**
  * Gli screenshot del telefono per Google Play (Franz via master, 13/10 14:52): le schermate intere della demo, a 1080x2160
  * (Play vuole il lato lungo al massimo il doppio del corto). Solo dati inventati delle fixture, mai quelli di Franz.
  * Paparazzi riduce le immagini a 1000 px, quindi un gestore suo le scrive intere in build/store-shots/<lingua>/.
@@ -30,23 +48,6 @@ class StoreShotsTest {
     private val locale = System.getProperty("store.locale") ?: "it"
     private val on = System.getProperty("store.shots") == "true"
 
-    /**
-     * Le immagini intere. java.awt non è sul classpath di compilazione dei test Android, ma c'è a runtime: il gestore dei
-     * fotogrammi è un proxy e ImageIO si chiama per riflessione.
-     */
-    private class FullSize(private val dir: File) : SnapshotHandler {
-        override fun newFrameHandler(snapshot: Snapshot, frameCount: Int, fps: Int): SnapshotHandler.FrameHandler =
-            java.lang.reflect.Proxy.newProxyInstance(javaClass.classLoader, arrayOf(SnapshotHandler.FrameHandler::class.java)) { _, m, args ->
-                if (m.name == "handle") {
-                    dir.mkdirs()
-                    val rendered = Class.forName("java.awt.image.RenderedImage")
-                    Class.forName("javax.imageio.ImageIO").getMethod("write", rendered, String::class.java, File::class.java)
-                        .invoke(null, args[0], "PNG", File(dir, "${snapshot.testName.methodName}.png"))
-                }
-                null
-            } as SnapshotHandler.FrameHandler
-        override fun close() {}
-    }
 
     @get:Rule val paparazzi = Paparazzi(
         deviceConfig = DeviceConfig.PIXEL_5.copy(screenHeight = 2160, locale = locale),
