@@ -18,7 +18,8 @@ class NotificationPlanTest {
         val p = NotificationPlan.question(ledger, l, history = emptyList())
         // Niente emoji nel titolo (Franz, 16/09 16:30: «? e x un po' grossolani»): lo stato lo dice l'icona grande.
         assertEquals("ledger-api", p.title)
-        assertEquals("🔴 ledger-api", p.person)
+        // Franz, 22/10 13:36: niente emoji nelle notifiche, nemmeno il pallino dell'account davanti al nome.
+        assertEquals("ledger-api", p.person)
         assertEquals("Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now?", p.messages.last())
         assertEquals(listOf(Act.Option(1, "1 yes"), Act.Option(2, "2 no"), Act.Reply, Act.Open), p.actions)
         assertEquals(listOf("1 yes", "2 no"), p.choices)
@@ -79,7 +80,7 @@ class NotificationPlanTest {
         assertEquals(listOf("Sessione chiusa. Per riaprirla tocca Riprendi."), detta.messages)
         assertEquals("Sessione chiusa. Per riaprirla tocca Riprendi.", detta.bigText)
         val q = NotificationPlan.quota("personale", QuotaAccount(h5 = 95, w7 = 40, resetW7 = 1789610400), l)
-        assertEquals("⚠ 95 % personale", q.title); assertEquals(95, q.progress); assertEquals(NotificationPlan.CH_QUOTA, q.channel)
+        assertEquals("95 % personale", q.title); assertEquals(95, q.progress); assertEquals(NotificationPlan.CH_QUOTA, q.channel)
     }
 
     @Test fun groupSummaryOneLinePerSession() {

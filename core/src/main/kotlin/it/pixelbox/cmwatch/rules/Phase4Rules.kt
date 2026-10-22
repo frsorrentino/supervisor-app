@@ -27,9 +27,9 @@ object TimelineText {
 
     fun row(e: Event, zone: ZoneId): String {
         val time = DateTimeFormatter.ofPattern("HH:mm").format(Instant.ofEpochSecond(e.ts).atZone(zone))
-        val parts = mutableListOf(time, e.title)
-        if (e.session != null && !e.title.contains(e.session)) parts += e.session
-        e.body.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() }?.let { parts += it }
+        val parts = mutableListOf(time, e.shareTitle)
+        if (e.session != null && !e.shareTitle.contains(e.session)) parts += e.session
+        e.shareBody.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() }?.let { parts += it }
         return parts.joinToString(" · ")
     }
 

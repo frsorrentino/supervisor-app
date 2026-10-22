@@ -23,6 +23,18 @@ class AlertEventsTest {
         val e = Event("k", EventKind.TASK_CHECK, "atlas-shop", null, 1, "✓ t-1: check green", "title", "t-1")
         assertTrue(AlertEvents.green(e))
         assertFalse(AlertEvents.green(e.copy(title = "✗ t-1: check red")))
+        // Contratto 1.78: l'esito sta in `ok` e il titolo non porta più il segno; `ok` vince sul titolo.
+        assertTrue(AlertEvents.green(e.copy(title = "t-1: check green", ok = true)))
+        assertFalse(AlertEvents.green(e.copy(title = "t-1: check red", ok = false)))
+        assertFalse(AlertEvents.green(e.copy(ok = false)))
+    }
+
+    // Franz, 22/10 13:36: niente emoji nelle notifiche: titolo e corpo da mostrare passano dal filtro, il titolo grezzo resta.
+    @Test fun theTitleAndBodyToShowCarryNoSymbols() {
+        assertEquals("atlas-shop: limite 5h finito, reset alle 18:00", limit.shareTitle)
+        assertEquals("⛔ atlas-shop: limite 5h finito, reset alle 18:00", limit.title)
+        val e = limit.copy(body = "🚀 deploy fatto", preview = it.pixelbox.cmwatch.contract.EventPreview("✓ x", "token ••• 🎉"))
+        assertEquals("x", e.shareTitle); assertEquals("token •••", e.shareBody)
     }
 
     @Test fun quotaLimitOffersTheRelaysWays() {

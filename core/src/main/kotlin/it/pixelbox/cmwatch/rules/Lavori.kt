@@ -145,7 +145,7 @@ object Lavori {
         // Contratto 1.78: l'esito sta in `ok`; con un relay precedente lo dice il ✓ in testa al titolo.
         return events.filter { it.kind == EventKind.TASK_CHECK && (it.ok ?: it.title.startsWith("✓")) && !it.ref.isNullOrBlank() }
             .groupBy { it.ref!! }.values.map { es -> es.maxBy { it.ts } }
-            .map { e -> Done(e.ref!!, e.body.lineSequence().firstOrNull()?.trim().orEmpty().ifEmpty { e.ref!! }, e.session, e.ts, null) }
+            .map { e -> Done(e.ref!!, e.shareBody.lineSequence().firstOrNull()?.trim().orEmpty().ifEmpty { e.ref!! }, e.session, e.ts, null) }
             .groupBy { Instant.ofEpochSecond(it.at).atZone(zone).toLocalDate() }
             .filterKeys { !it.isBefore(first) && !it.isAfter(today) }
             .map { (d, rows) -> DoneDay(d, rows.sortedByDescending { it.at }) }

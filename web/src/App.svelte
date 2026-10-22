@@ -13,6 +13,7 @@
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { blankState, decodeChanges, decodeDiff, withTail } from './lib/contract'
+  import { cleanEvent } from './lib/alertEvents'
   import { ask } from './lib/changes'
   import { fileArg } from './lib/diff'
   import { advance, prune, status, type PendingStatus, type Sent, type Status, type Upload } from './lib/chatRules'
@@ -86,7 +87,7 @@
   let clock = $state(nowS())
   // L'ora delle età e dei conti: quella vera con il relay, quella della fixture nella demo.
   const now = $derived(clock)
-  let events = $state<Event[]>(demo ? demo.world.events : [])
+  let events = $state<Event[]>(demo ? demo.world.events.map(cleanEvent) : [])
   // Nella demo le conversazioni ci sono già, anche per le pagine accanto della striscia.
   let transcripts = $state<Record<string, TranscriptEntry[]>>(demo ? structuredClone(demo.world.transcripts) : {})
   // I messaggi mandati da qui: lo stato di ognuno viene dal comando (in volo, risposta del PC) e dalla sessione (turno).
@@ -126,7 +127,8 @@
   async function refreshEvents() {
     if (!tr) return
     try {
-      const fresh = await tr.fetchEvents(events[0]?.ts ?? 0)
+      // Niente emoji nell'app (Franz, 22/10): gli eventi si puliscono qui, una volta, per tutte le pagine.
+      const fresh = (await tr.fetchEvents(events[0]?.ts ?? 0)).map(cleanEvent)
       if (!fresh.length) return
       const keys = new Set(fresh.map(e => e.key))
       events = [...fresh, ...events.filter(e => !keys.has(e.key))].sort((a, b) => b.ts - a.ts).slice(0, 300)

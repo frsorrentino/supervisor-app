@@ -36,8 +36,9 @@ describe('notifiche web push: i dati', () => {
   })
 
   it('il contenuto della push diventa titolo, testo e la sessione da aprire; uno sconosciuto ha un titolo comunque', () => {
-    expect(notificationOf({ kind: 'question', title: '❓ ledger-api', body: 'Deploy now?', session: 'ledger-api', key: 'k1' }))
-      .toEqual({ title: '❓ ledger-api', body: 'Deploy now?', tag: 'k1', url: '/#ledger-api', silent: false, strong: true })
+    // Franz, 22/10 13:36: niente emoji nelle notifiche: titolo e corpo passano dal filtro, anche da un relay vecchio.
+    expect(notificationOf({ kind: 'question', title: '❓ ledger-api', body: 'Deploy now? 🚀', session: 'ledger-api', key: 'k1' }))
+      .toEqual({ title: 'ledger-api', body: 'Deploy now?', tag: 'k1', url: '/#ledger-api', silent: false, strong: true })
     expect(notificationOf(null)).toEqual({ title: 'Supervisor', body: '', tag: 'supervisor', url: '/', silent: false, strong: false })
     // Contratto 1.68: ferma per te e promemoria con l'avviso forte, un esito no.
     expect(notificationOf({ kind: 'needs_you', title: '✋ kb' }).strong).toBe(true)
@@ -58,7 +59,7 @@ describe('notifiche web push: i dati', () => {
 describe('push senza segreti (contratto 1.56)', () => {
   it('la notifica usa preview quando c\'è', () => {
     const n = notificationOf({ title: '✓ x', body: 'token ghp_abc', preview: { title: '✓ x', body: 'token •••' }, key: 'k' })
-    expect(n.body).toBe('token •••')
+    expect(n.body).toBe('token •••'); expect(n.title).toBe('x')
     expect(notificationOf({ title: 't', body: 'b' }).body).toBe('b')
     // Contratto 1.62: con Franz al PC la push arriva senza suono.
     expect(notificationOf({ title: 't', quiet: '1' }).silent).toBe(true)

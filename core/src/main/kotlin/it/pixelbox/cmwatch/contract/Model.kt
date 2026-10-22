@@ -397,9 +397,9 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     /** Relay 0.8.30: il `turn_failed` chiuso, riscritto senza `continue_text` e con l'ora della chiusura. */
     @SerialName("settled_at") val settledAt: Long? = null,
 ) {
-    /** Titolo e corpo per notifiche e schermata di blocco (contratto 1.56). */
-    val shareTitle: String get() = preview?.title ?: title
-    val shareBody: String get() = preview?.body ?: body
+    /** Titolo e corpo per notifiche e schermata di blocco (contratto 1.56), senza emoji né simboli di stato (Franz, 22/10). */
+    val shareTitle: String get() = it.pixelbox.cmwatch.rules.Emoji.strip(preview?.title ?: title)
+    val shareBody: String get() = it.pixelbox.cmwatch.rules.Emoji.strip(preview?.body ?: body)
 }
 
 @Serializable data class EventPreview(val title: String, val body: String = "")

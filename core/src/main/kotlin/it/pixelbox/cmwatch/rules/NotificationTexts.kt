@@ -17,16 +17,16 @@ object NotificationTexts {
     data class Labels(val open: String, val reply: String, val resetWeek: String, val window5h: String)
     data class Note(val title: String, val body: String, val actions: List<String>, val channel: String)
 
-    /** «❓ nome» + testo intero; azioni: le prime due opzioni + Apri. */
+    /** Il nome + testo intero; azioni: le prime due opzioni + Apri. Niente simboli nel titolo (Franz, 22/10): lo stato lo dice l'icona. */
     fun question(s: Session, l: Labels): Note {
-        val q = s.question ?: return Note("❓ ${s.name}", "", listOf(l.open), CHANNEL_QUESTIONS)
+        val q = s.question ?: return Note(s.name, "", listOf(l.open), CHANNEL_QUESTIONS)
         val actions = q.options.take(2).map { QuestionRules.optionLabel(it) } + l.open
-        return Note("❓ ${s.name}", q.shareable, actions, CHANNEL_QUESTIONS)
+        return Note(s.name, Emoji.strip(q.shareable), actions, CHANNEL_QUESTIONS)
     }
 
-    fun outcome(s: Session, l: Labels): Note = Note("✓ ${s.name}", s.outcome?.shareShort ?: "", listOf(l.open), CHANNEL_OUTCOMES)
+    fun outcome(s: Session, l: Labels): Note = Note(s.name, Emoji.strip(s.outcome?.shareShort ?: ""), listOf(l.open), CHANNEL_OUTCOMES)
 
-    fun gone(name: String, l: Labels): Note = Note("✗ $name", "", listOf(l.open), CHANNEL_GONE)
+    fun gone(name: String, l: Labels): Note = Note(name, "", listOf(l.open), CHANNEL_GONE)
 
     fun quota(account: String, q: QuotaAccount, l: Labels, zone: ZoneId, locale: Locale = Locale.ITALIAN, threshold: Int = 95): Note {
         val h5 = q.h5 ?: 0; val w7 = q.w7 ?: 0
@@ -35,6 +35,6 @@ object NotificationTexts {
         val body = if (weekly && q.resetW7 != null) {
             "${l.resetWeek} " + DateTimeFormatter.ofPattern("EEE HH:mm", locale).format(Instant.ofEpochSecond(q.resetW7).atZone(zone))
         } else l.window5h
-        return Note("⚠ $pct % $account", body, listOf(l.open), CHANNEL_QUOTA)
+        return Note("$pct % $account", body, listOf(l.open), CHANNEL_QUOTA)
     }
 }

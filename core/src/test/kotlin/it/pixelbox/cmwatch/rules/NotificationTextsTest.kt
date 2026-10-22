@@ -7,13 +7,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.ZoneId
 
+// Franz, 22/10 13:36: niente emoji nelle notifiche: i titoli sono il nome o la percentuale, lo stato lo dice l'icona.
 class NotificationTextsTest {
     private val s = ContractJson.decodeState(Fixtures.stateQuestion)
     private val labels = NotificationTexts.Labels(open = "Apri", reply = "Rispondi", resetWeek = "reset settimana", window5h = "finestra 5 h")
 
     @Test fun question() {
         val n = NotificationTexts.question(s.sessions[0], labels)
-        assertEquals("❓ ledger-api", n.title)
+        assertEquals("ledger-api", n.title)
         assertEquals("Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now?", n.body)
         assertEquals(listOf("1 · yes", "2 · no", "Apri"), n.actions)
         assertEquals(NotificationTexts.CHANNEL_QUESTIONS, n.channel)
@@ -26,19 +27,19 @@ class NotificationTextsTest {
 
     @Test fun outcome() {
         val n = NotificationTexts.outcome(s.sessions[1], labels)
-        assertEquals("✓ atlas-shop", n.title); assertEquals("Migrations 008-011 applied, tests green", n.body)
+        assertEquals("atlas-shop", n.title); assertEquals("Migrations 008-011 applied, tests green", n.body)
         assertEquals(NotificationTexts.CHANNEL_OUTCOMES, n.channel)
     }
 
     @Test fun gone() {
         val n = NotificationTexts.gone("orbit-docs", labels)
-        assertEquals("✗ orbit-docs", n.title); assertEquals("", n.body); assertEquals(NotificationTexts.CHANNEL_GONE, n.channel)
+        assertEquals("orbit-docs", n.title); assertEquals("", n.body); assertEquals(NotificationTexts.CHANNEL_GONE, n.channel)
     }
 
     @Test fun quota() {
         val n = NotificationTexts.quota("personale", QuotaAccount(h5 = 95, w7 = 40, resetW7 = 1789610400), labels, ZoneId.of("Europe/Rome"))
-        assertEquals("⚠ 95 % personale", n.title); assertEquals("finestra 5 h", n.body)
+        assertEquals("95 % personale", n.title); assertEquals("finestra 5 h", n.body)
         val week = NotificationTexts.quota("agenzia", QuotaAccount(h5 = 10, w7 = 97, resetW7 = 1789610400), labels, ZoneId.of("Europe/Rome"))
-        assertEquals("⚠ 97 % agenzia", week.title); assertEquals("reset settimana gio 04:00", week.body)
+        assertEquals("97 % agenzia", week.title); assertEquals("reset settimana gio 04:00", week.body)
     }
 }

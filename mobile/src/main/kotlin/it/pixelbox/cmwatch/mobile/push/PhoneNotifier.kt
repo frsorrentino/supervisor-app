@@ -8,14 +8,17 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.RemoteInput
+import it.pixelbox.cmwatch.contract.EventKind
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.MainActivity
 import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.rules.Emoji
+import it.pixelbox.cmwatch.rules.NotificationIcon
 import it.pixelbox.cmwatch.rules.NotificationPlan
 import it.pixelbox.cmwatch.rules.PhoneAlert
 import it.pixelbox.cmwatch.rules.StrongAlert
 
-/** Le notifiche del telefono (design 29/09): due canali, suono o silenzio secondo PhoneAlert. */
+/** Le notifiche del telefono (design 29/09): due canali, suono o silenzio secondo PhoneAlert. Testi senza emoji (Franz, 22/10). */
 class PhoneNotifier(private val ctx: Context) {
     private val nm = NotificationManagerCompat.from(ctx)
 
@@ -33,6 +36,22 @@ class PhoneNotifier(private val ctx: Context) {
     /** 1.68: le interruzioni (domanda, ferma per te, turno fallito, quota finita, promemoria) sul canale forte. */
     private fun strong(mode: PhoneAlert.Mode) = if (mode == PhoneAlert.Mode.SOUND) CH_STRONG else CH_QUIET
     private fun id(session: String) = session.hashCode()
+
+    /** L'icona piccola per tipo di avviso (Franz, 22/10): Lucide a tratto, bianche, come quelle del widget. */
+    private fun icon(kind: EventKind, ok: Boolean? = null): Int = when (NotificationIcon.of(kind, ok)) {
+        NotificationIcon.Icon.QUESTION -> R.drawable.ic_notification
+        NotificationIcon.Icon.DONE -> R.drawable.ic_w_outcome
+        NotificationIcon.Icon.CHECK -> R.drawable.ic_n_check
+        NotificationIcon.Icon.CROSS -> R.drawable.ic_n_x
+        NotificationIcon.Icon.BLOCK -> R.drawable.ic_n_ban
+        NotificationIcon.Icon.WARN -> R.drawable.ic_n_alert
+        NotificationIcon.Icon.WEEK -> R.drawable.ic_w_week
+        NotificationIcon.Icon.HAND -> R.drawable.ic_w_waiting
+        NotificationIcon.Icon.BELL -> R.drawable.ic_n_bell
+        NotificationIcon.Icon.CLOCK -> R.drawable.ic_w_turn
+        NotificationIcon.Icon.NIGHT -> R.drawable.ic_w_night
+        NotificationIcon.Icon.APP -> R.drawable.ic_launcher_mono
+    }
 
     private val labels get() = NotificationPlan.Labels(
         open = "", reply = ctx.getString(R.string.answer_free), retry = ctx.getString(R.string.retry), read = ctx.getString(R.string.read_aloud),
@@ -56,8 +75,8 @@ class PhoneNotifier(private val ctx: Context) {
     fun question(s: Session, mode: PhoneAlert.Mode) {
         val q = s.question ?: return
         val plan = NotificationPlan.question(s, labels, emptyList())
-        val b = NotificationCompat.Builder(ctx, strong(mode)).setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(plan.title).setContentText(q.shareable).setStyle(NotificationCompat.BigTextStyle().bigText(q.shareable))
+        val b = NotificationCompat.Builder(ctx, strong(mode)).setSmallIcon(icon(EventKind.QUESTION))
+            .setContentTitle(plan.title).setContentText(Emoji.strip(q.shareable)).setStyle(NotificationCompat.BigTextStyle().bigText(Emoji.strip(q.shareable)))
             .setSubText(plan.subText).setContentIntent(open(openCode(s.name, queue = true), queue = true)).setOnlyAlertOnce(true)
         q.options.take(3).forEach { o ->
             b.addAction(0, it.pixelbox.cmwatch.rules.QuestionRules.optionLabel(o), broadcast(ReplyRoute.OPTION, s.name, o.n, id(s.name) * 10 + o.n))
@@ -71,15 +90,15 @@ class PhoneNotifier(private val ctx: Context) {
 
     fun outcome(s: Session, mode: PhoneAlert.Mode) {
         val o = s.outcome ?: return
-        post(id(s.name), NotificationCompat.Builder(ctx, channel(mode)).setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(s.name).setContentText(o.shareShort).setStyle(NotificationCompat.BigTextStyle().bigText(o.shareFull))
+        post(id(s.name), NotificationCompat.Builder(ctx, channel(mode)).setSmallIcon(icon(EventKind.OUTCOME))
+            .setContentTitle(s.name).setContentText(Emoji.strip(o.shareShort)).setStyle(NotificationCompat.BigTextStyle().bigText(Emoji.strip(o.shareFull)))
             .setSubText(s.account).setContentIntent(open(openCode(s.name, queue = false))).setAutoCancel(true))
     }
 
     /** Contratto 1.57: il controllo di un task allo stop, una riga verde o rossa che apre la sessione. */
     fun taskCheck(e: it.pixelbox.cmwatch.contract.Event) {
         val green = it.pixelbox.cmwatch.rules.AlertEvents.green(e)
-        post(("task-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (green || e.quiet) CH_QUIET else CH_SOUND).setSmallIcon(R.drawable.ic_notification)
+        post(("task-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (green || e.quiet) CH_QUIET else CH_SOUND).setSmallIcon(icon(e.kind, green))
             .setContentTitle(e.shareTitle).setContentText(e.shareBody.lineSequence().firstOrNull { it.isNotBlank() })
             .setStyle(NotificationCompat.BigTextStyle().bigText(e.shareBody))
             .setColor(if (green) 0xFF2E7D32.toInt() else 0xFFC62828.toInt()).setColorized(false)
@@ -96,7 +115,7 @@ class PhoneNotifier(private val ctx: Context) {
             ctx.getString(R.string.quota_way_other), ctx.getString(R.string.quota_way_reset), ctx.getString(R.string.quota_way_pass),
         )
         val hhmm = { s: Long -> java.time.Instant.ofEpochSecond(s).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5) }
-        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(R.drawable.ic_notification)
+        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(icon(e.kind))
             .setContentTitle(e.shareTitle).setContentIntent(openSession(session)).setAutoCancel(true)
         it.pixelbox.cmwatch.rules.AlertEvents.ways(e, words, hhmm).forEachIndexed { i, w ->
             b.addAction(0, w.label, w.arg?.let { arg ->
@@ -113,7 +132,7 @@ class PhoneNotifier(private val ctx: Context) {
     /** Contratto 1.61: turno finito in errore, una riga e il tasto «Continua» che manda `continue_text`. */
     fun turnFailed(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
         val session = e.ref ?: e.session ?: return
-        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(R.drawable.ic_notification)
+        val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(icon(e.kind))
             .setContentTitle(e.shareTitle).setContentIntent(openSession(session)).setAutoCancel(true)
         e.continueText?.takeIf { it.isNotBlank() }?.let { text ->
             b.addAction(0, ctx.getString(R.string.turn_continue), PendingIntent.getBroadcast(
@@ -127,7 +146,7 @@ class PhoneNotifier(private val ctx: Context) {
 
     /** Contratto 1.67: la settimana di un account, una riga senza tasti e senza suono, che apre l'utilizzo. */
     fun week(e: it.pixelbox.cmwatch.contract.Event) {
-        post(("week-" + e.account + "-" + e.kind).hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(R.drawable.ic_notification)
+        post(("week-" + e.account + "-" + e.kind).hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(icon(e.kind))
             .setContentTitle(e.shareTitle).setContentText(e.shareBody.lineSequence().firstOrNull { it.isNotBlank() })
             .setContentIntent(open(("week-" + e.account).hashCode())).setAutoCancel(true))
     }
@@ -135,21 +154,21 @@ class PhoneNotifier(private val ctx: Context) {
     /** Contratto 1.68: la sessione è ferma per Franz (needs_you o turno bloccante): il motivo in una riga, il tocco la apre. */
     fun stopped(s: Session, mode: PhoneAlert.Mode) {
         val stop = StrongAlert.stop(s) ?: return
-        post(("stop-" + s.name).hashCode(), NotificationCompat.Builder(ctx, strong(mode)).setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(s.name).setContentText(stop.text).setStyle(NotificationCompat.BigTextStyle().bigText(stop.text))
+        post(("stop-" + s.name).hashCode(), NotificationCompat.Builder(ctx, strong(mode)).setSmallIcon(icon(EventKind.NEEDS_YOU))
+            .setContentTitle(s.name).setContentText(Emoji.strip(stop.text)).setStyle(NotificationCompat.BigTextStyle().bigText(Emoji.strip(stop.text)))
             .setSubText(s.account).setWhen(stop.at * 1000).setContentIntent(openSession(s.name)).setOnlyAlertOnce(false))
     }
 
     /** Contratto 1.68: il promemoria del relay a 10 e 30 minuti, lo stesso avviso forte in una riga. */
     fun reminder(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
-        post(("reminder-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(R.drawable.ic_notification)
+        post(("reminder-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(icon(e.kind))
             .setContentTitle(e.shareTitle).setContentIntent(openSession(e.session)).setAutoCancel(true))
     }
 
     /** Contratto 1.76: impegni fermi da più di due ore senza un passo; l'avviso forte con una riga per compito. */
     fun stalled(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
-        post(("stalled-" + (e.ref ?: e.key)).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(e.shareTitle).setContentText(e.body).setStyle(NotificationCompat.BigTextStyle().bigText(e.body))
+        post(("stalled-" + (e.ref ?: e.key)).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(icon(e.kind))
+            .setContentTitle(e.shareTitle).setContentText(e.shareBody).setStyle(NotificationCompat.BigTextStyle().bigText(e.shareBody))
             .setContentIntent(openSession(e.session)).setAutoCancel(true))
     }
 
@@ -175,7 +194,7 @@ class PhoneNotifier(private val ctx: Context) {
     fun closeQuotaLimit(session: String) = nm.cancel(("quota-limit-$session").hashCode())
 
     fun quota(account: String, title: String) {
-        post(("quota-$account").hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(R.drawable.ic_notification)
+        post(("quota-$account").hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(icon(EventKind.QUOTA))
             .setContentTitle(title).setContentIntent(open(account.hashCode())).setAutoCancel(true))
     }
 
@@ -184,12 +203,12 @@ class PhoneNotifier(private val ctx: Context) {
         if (!ctx.getSystemService(android.app.NotificationManager::class.java).areNotificationsEnabled()) return
         val prefs = kotlinx.coroutines.runBlocking { (ctx.applicationContext as it.pixelbox.cmwatch.mobile.PhoneApp).prefs.current() }
         if (prefs.demoMode || !prefs.paired) return
-        post(title.hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(R.drawable.ic_notification)
+        post(title.hashCode(), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(icon(EventKind.NIGHT_REPORT))
             .setContentTitle(title).setContentIntent(open(title.hashCode())).setAutoCancel(true))
     }
 
     fun waitingNetwork(session: String) {
-        post(id(session), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(R.drawable.ic_notification)
+        post(id(session), NotificationCompat.Builder(ctx, CH_QUIET).setSmallIcon(icon(EventKind.LAUNCHED))
             .setContentTitle(session).setContentText(ctx.getString(R.string.waiting_network)).setOnlyAlertOnce(true))
     }
 

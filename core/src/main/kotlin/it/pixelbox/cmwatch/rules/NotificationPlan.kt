@@ -52,8 +52,6 @@ object NotificationPlan {
 
     data class Summary(val title: String, val rows: List<String>)
 
-    /** 🟢 personale, 🔴 lavoro: dal contratto 1.8 lo dice il tipo dell'account, non il nome. */
-    private fun dot(s: Session) = if (Accounts.isPersonal(s)) "🟢" else "🔴"
     private fun optionLabel(n: Int, label: String) = "$n ${QuestionRules.optionText(label)}"
 
     fun question(s: Session, l: Labels, history: List<Qa>): Plan {
@@ -66,7 +64,8 @@ object NotificationPlan {
         return Plan(
             // Niente emoji nel titolo né nelle righe (Franz, 16/09 16:30: «? e x un po' grossolani»): lo stato lo dice
             // l'icona grande, il fumetto ambra.
-            session = s.name, title = s.name, person = "${dot(s)} ${s.name}",
+            // Niente pallino dell'account davanti al nome (Franz, 22/10: niente emoji nelle notifiche); il colore sta nell'icona.
+            session = s.name, title = s.name, person = s.name,
             messages = history.map { "${it.question} → ${it.answer}" } + QuestionRules.shownText(q.shareable, l.noQuestionText), bigText = null,
             actions = actions, choices = if (high) emptyList() else q.options.map { optionLabel(it.n, it.label) },
             freeForm = !high, channel = CH_QUESTIONS, whenS = q.askedAt, chronometer = true, subText = s.account,
@@ -106,7 +105,7 @@ object NotificationPlan {
     fun quota(account: String, q: QuotaAccount, l: Labels, threshold: Int = 95): Plan {
         val pct = maxOf(q.h5 ?: 0, q.w7 ?: 0)
         return Plan(
-            session = null, title = "⚠ $pct % $account", person = null, messages = emptyList(), bigText = null,
+            session = null, title = "$pct % $account", person = null, messages = emptyList(), bigText = null,
             actions = listOf(Act.Open), choices = emptyList(), freeForm = false, channel = CH_QUOTA,
             whenS = null, chronometer = false, subText = null, autoCancel = true, timeoutMs = null, progress = pct, accent = null,
         )

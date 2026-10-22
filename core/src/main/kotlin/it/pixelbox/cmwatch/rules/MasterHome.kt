@@ -75,7 +75,7 @@ object MasterHome {
                 .forEach { s -> add(Row(Kind.CONTEXT, s.name, session = s.name, number = s.context)) }
             if (local.hour < MORNING_END) events.filter { it.kind == EventKind.NIGHT_REPORT }.maxByOrNull { it.ts }
                 ?.takeIf { e -> Instant.ofEpochSecond(e.ts).atZone(zone).toLocalDate() == today && e.key !in read }
-                ?.let { e -> add(Row(Kind.NIGHT_REPORT, e.title, e.body, key = e.key)) }
+                ?.let { e -> add(Row(Kind.NIGHT_REPORT, e.shareTitle, e.shareBody, key = e.key)) }
             if (local.hour >= EVENING && state.night.items != null) add(Row(Kind.NIGHT, number = state.night.queued))
             // Il recap di oggi o di ieri: quello delle 20 serve anche la mattina dopo.
             val recapDay = runCatching { LocalDate.parse(state.recap.date) }.getOrNull()

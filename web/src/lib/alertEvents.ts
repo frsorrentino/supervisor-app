@@ -1,11 +1,24 @@
 import type { Attention, Event, Session } from './contract'
+import { stripEmoji } from './emoji'
 
 // Gli eventi che chiedono una riga o un tasto, porta di AlertEvents.kt. Contratto 1.57: il controllo di un task allo stop,
 // verde o rosso. Contratto 1.58: quota finita, con le strade che il relay propone.
 
 const title = (e: Event) => e.preview?.title ?? e.title
-/** 1.57: «✓ <task>: check green» o «✗ <task>: check red». */
-export const green = (e: Event) => title(e).trimStart().startsWith('✓')
+/** 1.78: l'esito sta in `ok`; con un relay precedente lo dice il «✓» in testa al titolo grezzo (1.57). */
+export const green = (e: Event) => e.ok ?? title(e).trimStart().startsWith('✓')
+
+/**
+ * Un evento come l'app lo tiene (Franz, 22/10: niente emoji): titolo, corpo e anteprima senza simboli; su un `task_check`
+ * di un relay prima dell'1.78 l'esito letto dal «✓» del titolo finisce in `ok`, perché il titolo pulito non lo dice più.
+ */
+export function cleanEvent(e: Event): Event {
+  const ok = e.kind === 'task_check' ? green(e) : e.ok
+  return {
+    ...e, ok, title: stripEmoji(e.title), body: e.body === undefined ? undefined : stripEmoji(e.body),
+    preview: e.preview ? { title: stripEmoji(e.preview.title), body: e.preview.body === undefined ? undefined : stripEmoji(e.preview.body) } : e.preview,
+  }
+}
 
 export type Words = { otherAccount: (a: string) => string; atReset: (t: string) => string; pass: string }
 /** Una strada: la parola del tasto e l'`arg` di `quota_route`; null per «pass», dove la sessione la sceglie l'utente. */

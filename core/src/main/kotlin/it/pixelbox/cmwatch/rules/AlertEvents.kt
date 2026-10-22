@@ -11,8 +11,8 @@ import it.pixelbox.cmwatch.contract.SessionState
  * controllo di un task allo stop, verde o rosso. Contratto 1.58: quota finita, con le strade che il relay propone.
  */
 object AlertEvents {
-    /** 1.57: «✓ <task>: check green» o «✗ <task>: check red». */
-    fun green(e: Event): Boolean = e.shareTitle.trimStart().startsWith("✓")
+    /** 1.78: l'esito sta in `ok`; con un relay precedente lo dice il «✓» in testa al titolo grezzo (1.57). */
+    fun green(e: Event): Boolean = e.ok ?: (e.preview?.title ?: e.title).trimStart().startsWith("✓")
 
     /** Le parole dei tasti: «continua su %s», «riprendi alle %s», «passa a un'altra sessione». */
     data class Words(val otherAccount: String, val atReset: String, val pass: String)

@@ -1,5 +1,6 @@
 // Quello che il service worker mostra di una push: sta da solo perché sw.ts non divida codice con l'app (un service
-// worker classico non può importare moduli).
+// worker classico non può importare moduli); emoji.ts è puro e piccolo, il bundler lo include.
+import { stripEmoji } from './emoji'
 
 export type Payload = {
   kind?: string; title?: string; body?: string; session?: string | null; key?: string
@@ -14,11 +15,12 @@ export type Payload = {
 const STRONG = ['question', 'needs_you', 'turn_blocking', 'turn_failed', 'quota_limit', 'attention_reminder']
 
 export function notificationOf(p: Payload): { title: string; body: string; tag: string; url: string; silent: boolean; strong: boolean } {
+  // Niente emoji nelle notifiche (Franz, 22/10): titolo e corpo passano dal filtro, anche da un relay prima dell'1.78.
   return {
     silent: p?.quiet === true || p?.quiet === '1',
     strong: STRONG.includes(p?.kind ?? ''),
-    title: p?.preview?.title || p?.title || 'Supervisor',
-    body: p?.preview?.body ?? p?.body ?? '',
+    title: stripEmoji(p?.preview?.title || p?.title || '') || 'Supervisor',
+    body: stripEmoji(p?.preview?.body ?? p?.body ?? ''),
     tag: p?.key || 'supervisor',
     url: p?.session ? `/#${encodeURIComponent(p.session)}` : '/',
   }

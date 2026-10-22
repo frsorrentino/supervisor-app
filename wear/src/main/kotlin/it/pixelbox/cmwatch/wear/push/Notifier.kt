@@ -193,7 +193,7 @@ class Notifier(private val ctx: Context) {
     fun sent(session: String, n: Int?, label: String?, cmdId: String) {
         pendingBySession[cmdId] = session
         lastQuestion[session]?.let { (_, text) -> if (n != null && label != null) remember(session, text, "$n $label") }
-        val line = if (n != null && label != null) NotificationPlan.sentLine(n, label, labels) else "✓ ${labels.sent}"
+        val line = if (n != null && label != null) NotificationPlan.sentLine(n, label, labels) else labels.sent
         post(id(session), simple(session, NotificationPlan.CH_QUESTIONS, line, SessionState.BUSY))
     }
 
