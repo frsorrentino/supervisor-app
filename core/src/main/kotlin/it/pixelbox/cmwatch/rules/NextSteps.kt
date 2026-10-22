@@ -69,6 +69,13 @@ object NextSteps {
         return Split(kept - old.toSet(), old)
     }
 
+    /**
+     * Tab sul web e un tocco sul suggerimento sul telefono (Franz, 22/10 13:32): col campo vuoto il suggerimento visibile
+     * diventa testo vero, pronto per l'invio, come nel terminale; con un testo già scritto, o senza suggerimento, null e
+     * niente cambia.
+     */
+    fun acceptSuggestion(draft: String, field: String?): String? = field?.takeIf { it.isNotBlank() && draft.isBlank() }
+
     /** Il testo con cui un'azione si ricorda come tolta: lo stesso confronto dei doppioni. */
     fun key(text: String): String = norm(text)
 

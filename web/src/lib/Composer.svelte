@@ -1,7 +1,7 @@
 <script lang="ts">
   import CloseDialog from './CloseDialog.svelte'
   import type { Session, State } from './contract'
-  import { mode as modeOf, slashConfirm, slashParse, slashSuggest } from './composer'
+  import { acceptSuggestion, mode as modeOf, slashConfirm, slashParse, slashSuggest } from './composer'
   import { textArg } from './questionRules'
   import { t } from './t'
   import { sendAtEpoch } from './chatRules'
@@ -101,9 +101,18 @@
     else onSend(text)
     draft = ''
   }
-  // Invio manda, Maiusc+Invio va a capo, come sul tablet con la tastiera fisica.
+  // Invio manda, Maiusc+Invio va a capo, come sul tablet con la tastiera fisica. Tab con un suggerimento visibile e il campo
+  // vuoto lo mette nel campo come testo, pronto per l'invio, e il fuoco resta qui (Franz, 22/10 13:32: come nel terminale).
   function key(e: KeyboardEvent) {
-    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return
+    if (e.isComposing) return
+    if (e.key === 'Tab' && !e.shiftKey) {
+      const text = acceptSuggestion(draft, field)
+      if (text === null) return
+      e.preventDefault()
+      draft = text
+      return
+    }
+    if (e.key !== 'Enter' || e.shiftKey) return
     e.preventDefault()
     if (md === 'send' || md === 'send_tonal') send()
   }

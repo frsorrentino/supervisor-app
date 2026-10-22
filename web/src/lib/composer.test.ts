@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CmdResult, Question, Session } from './contract'
-import { append, box, button, mode, slashConfirm, slashPanel, slashParse, slashSuggest, suggestion, target } from './composer'
+import { acceptSuggestion, append, box, button, mode, slashConfirm, slashPanel, slashParse, slashSuggest, suggestion, target } from './composer'
 
 // Gli stessi casi di PhonePrimaryTest, NextStepsTest (box e append) e SlashTest in Kotlin.
 const q: Question = { id: 'q1', kind: 'ask', text: 'Quale?', options: [{ n: 1, label: 'A' }], tier: 'medium', asked_at: 0 }
@@ -42,6 +42,14 @@ describe('box Prossimi', () => {
   })
   it('una riga nel campo esce dal box e quella del campo torna', () =>
     expect(box(['Prova dal vivo', 'Apri la CI', 'Scrivi il piano'], null, 'Fai il merge e poi apri la CI')).toEqual({ field: null, rows: ['Prova dal vivo', 'Scrivi il piano'] }))
+  // Franz, 22/10 13:32: Tab con un suggerimento visibile lo mette nel campo, pronto per l'invio; scrivendo, Tab non fa nulla.
+  it('Tab accetta il suggerimento solo col campo vuoto', () => {
+    expect(acceptSuggestion('', 'Committa')).toBe('Committa')
+    expect(acceptSuggestion('  ', 'Committa')).toBe('Committa')
+    expect(acceptSuggestion('scrivo altro', 'Committa')).toBeNull()
+    expect(acceptSuggestion('', null)).toBeNull()
+    expect(acceptSuggestion('', '  ')).toBeNull()
+  })
   it('una riga toccata si accoda con «e poi»', () => {
     expect(append('', 'Prova dal vivo')).toBe('Prova dal vivo')
     expect(append('Fai il merge.', 'Prova dal vivo')).toBe('Fai il merge e poi prova dal vivo')

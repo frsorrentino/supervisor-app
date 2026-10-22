@@ -49,6 +49,13 @@ export function box(steps: string[], terminal: string | null | undefined, draft:
   const field = draft.trim() ? null : all[0]
   return { field, rows: all.filter(x => x !== field && !inDraft(draft, x)).slice(0, max) }
 }
+/**
+ * Tab con un suggerimento visibile (Franz, 22/10 13:32): col campo vuoto il suggerimento diventa testo vero, pronto per
+ * l'invio, come nel terminale; con un testo già scritto, o senza suggerimento, null e Tab non fa nulla di suo.
+ */
+export const acceptSuggestion = (draft: string, field: string | null | undefined): string | null =>
+  field?.trim() && !draft.trim() ? field : null
+
 /** Una riga toccata col campo già scritto si accoda: «fai X e poi prova dal vivo»; minuscola tranne le sigle. */
 export function append(draft: string, step: string, then = 'e poi'): string {
   const head = draft.trimEnd().replace(/[.,;:]+$/, '').trimEnd()

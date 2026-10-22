@@ -52,6 +52,8 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.transformable
@@ -870,6 +872,12 @@ private fun Composer(
         LaunchedEffect(fieldState) {
             androidx.compose.runtime.snapshotFlow { fieldState.text.toString() }.collect { t -> if (t != currentDraft) onDraft(t) }
         }
+        // Un tocco sul suggerimento attenuato lo mette nel campo come testo, pronto per l'invio (Franz, 22/10 13:32: come il
+        // Tab nel terminale). Il segnaposto sta sotto il campo e non riceve tocchi: una superficie trasparente sui suoi
+        // confini, solo col campo vuoto, fa da tasto; «Usa» resta.
+        var sugBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+        var boxOrigin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+        Box(Modifier.fillMaxWidth().onGloballyPositioned { boxOrigin = it.boundsInRoot().topLeft }) {
         OutlinedTextField(
             state = fieldState, lineLimits = androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
             modifier = Modifier.fillMaxWidth().onSizeChanged { if (lineH == 0 || it.height < lineH) lineH = it.height; fieldW = it.width }
@@ -894,7 +902,7 @@ private fun Composer(
                     true
                 },
             placeholder = {
-                if (inField != null) Text(inField, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = CmColors.stale, maxLines = 5)
+                if (inField != null) Text(inField, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = CmColors.stale, maxLines = 5, modifier = Modifier.onGloballyPositioned { sugBounds = it.boundsInRoot() })
                 // Il destinatario esplicito, «Scrivi a fable-director» (osservazioni del 03/10).
                 else Text(when { s.question != null -> stringResource(R.string.answer_free); toMaster -> stringResource(R.string.master_placeholder); else -> stringResource(if (it.pixelbox.cmwatch.rules.Preposition.ad(s.name)) R.string.write_to_ad else R.string.write_to, s.name) }, maxLines = 2)
             },
@@ -944,6 +952,15 @@ private fun Composer(
                 }
             } },
         )
+        val accept = NextSteps.acceptSuggestion(draft, inField)
+        if (accept != null) sugBounds?.let { r ->
+            Box(
+                Modifier.offset { androidx.compose.ui.unit.IntOffset((r.left - boxOrigin.x).toInt(), (r.top - boxOrigin.y).toInt()) }
+                    .size(with(density) { r.width.toDp() }, with(density) { r.height.toDp() })
+                    .handCursor().clickable(interactionSource = null, indication = null) { onDraft(accept); runCatching { focusReq.requestFocus() } },
+            )
+        }
+        }
     }
 }
 

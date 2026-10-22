@@ -94,4 +94,13 @@ class NextStepsTest {
         // Con una sola risposta prima nessuna è vecchia.
         assertEquals(emptyList<String>(), NextSteps.split(rows, earlier.take(1), emptySet()).old)
     }
+
+    // Franz, 22/10 13:32: Tab sul web e un tocco sul telefono mettono il suggerimento nel campo, pronto per l'invio.
+    @Test fun tabOrATapAcceptsTheFieldSuggestionOnlyWithAnEmptyField() {
+        assertEquals("Committa", NextSteps.acceptSuggestion("", "Committa"))
+        assertEquals("Committa", NextSteps.acceptSuggestion("  ", "Committa"))
+        assertEquals(null, NextSteps.acceptSuggestion("scrivo altro", "Committa"))
+        assertEquals(null, NextSteps.acceptSuggestion("", null))
+        assertEquals(null, NextSteps.acceptSuggestion("", "  "))
+    }
 }
