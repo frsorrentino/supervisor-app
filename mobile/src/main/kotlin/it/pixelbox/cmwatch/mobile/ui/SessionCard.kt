@@ -41,13 +41,6 @@ fun stateColor(s: SessionState): Color = when (s) {
     SessionState.GONE -> CmColors.goneDim
 }
 
-fun stateGlyph(s: SessionState): String = when (s) {
-    SessionState.WAITING -> "❓"
-    SessionState.BUSY, SessionState.AWAITING -> "▶"
-    SessionState.IDLE -> "✓"
-    SessionState.GONE -> "✗"
-}
-
 @Composable
 fun stateLabel(s: SessionState): String = stringResource(when (s) {
     SessionState.WAITING -> R.string.state_waiting

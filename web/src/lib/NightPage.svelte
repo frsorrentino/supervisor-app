@@ -3,6 +3,7 @@
   import { locale } from './lang'
   import type { Card, NightPage } from './night'
   import { t } from './t'
+  import Icon from './Icon.svelte'
   // La pagina «Notte» (specifica docs/proposte/2026-10-07-pagina-notte.md, approvata da Franz il 07/10 alle 21:50): la
   // finestra della notte, quello che serve a te, una card per lavoro o sessione che si apre al tocco, i progetti.
   // Un solo tasto pieno: il primo di «Serve a te».
@@ -16,6 +17,8 @@
   let opened = $state<string | null>(null)
   const times = (c: Card) => (c.end == null ? t.nightSince(hm(c.start)) : `${hm(c.start)}–${hm(c.end)} · ${t.nightShort(c.durationS ?? 0)}`)
   const tone: Record<string, string> = { ok: 'var(--good)', stopped: 'var(--gone-dim)', running: 'var(--icon)', question: 'var(--advice)', partial: 'var(--b-warn)' }
+  // L'icona di stato al posto del glifo nel testo (Franz, 22/10: niente emoji nell'app).
+  const stateIcon: Record<string, 'check' | 'x' | 'play' | 'question' | 'half'> = { ok: 'check', stopped: 'x', running: 'play', question: 'question', partial: 'half' }
   // Sezioni richiudibili (Franz, 08/10 12:30): «Progetti» parte chiusa.
   let needsOpen = $state(true)
   let itemsOpen = $state(true)
@@ -28,11 +31,11 @@
       <div class="wt">
         <p>{t.nightWindow(hm(model.start), hm(model.end), model.windowS)}{#if model.fromLastMessage}<br />{t.nightFromLast}{/if}</p>
         <div class="chips">
-          {#if model.counts.done}<span style:color="var(--good)">{t.nightDone(model.counts.done)}</span>{/if}
-          {#if model.counts.running}<span style:color="var(--icon)">{t.nightRunningN(model.counts.running)}</span>{/if}
-          {#if model.counts.partial}<span style:color="var(--b-warn)">{t.nightPartial(model.counts.partial)}</span>{/if}
-          {#if model.counts.stopped}<span style:color="var(--gone-dim)">{t.nightStopped(model.counts.stopped)}</span>{/if}
-          {#if model.counts.asking}<span style:color="var(--advice)">{t.nightAsking(model.counts.asking)}</span>{/if}
+          {#if model.counts.done}<span style:color="var(--good)"><Icon name="check" size={14} />{t.nightDone(model.counts.done)}</span>{/if}
+          {#if model.counts.running}<span style:color="var(--icon)"><Icon name="play" size={14} />{t.nightRunningN(model.counts.running)}</span>{/if}
+          {#if model.counts.partial}<span style:color="var(--b-warn)"><Icon name="half" size={14} />{t.nightPartial(model.counts.partial)}</span>{/if}
+          {#if model.counts.stopped}<span style:color="var(--gone-dim)"><Icon name="x" size={14} />{t.nightStopped(model.counts.stopped)}</span>{/if}
+          {#if model.counts.asking}<span style:color="var(--advice)"><Icon name="question" size={14} />{t.nightAsking(model.counts.asking)}</span>{/if}
         </div>
       </div>
       <button class="ib" aria-label={t.nightRefresh} title={t.nightRefresh} disabled={loading} onclick={onRefresh}>
@@ -73,7 +76,7 @@
     {#each model.cards as c (c.id)}
       {@const open = opened === c.id}
       <button class="card" aria-expanded={open} onclick={() => (opened = open ? null : c.id)}>
-        <span class="hd"><b class="tt">{c.title}</b><i class="st" style:color={tone[c.icon]}>{t.nightState[c.icon]}</i></span>
+        <span class="hd"><b class="tt">{c.title}</b><i class="st" style:color={tone[c.icon]}><Icon name={stateIcon[c.icon] ?? 'circle'} size={13} />{t.nightState[c.icon]}</i></span>
         <small>{c.queue ? t.nightKindJob : t.nightKindSession} · {times(c)}</small>
         {#if c.folder}<small>{c.folder}</small>{/if}
         {#if c.detail}<span class="out">{c.detail}</span>{/if}
@@ -118,7 +121,7 @@
   .win { display: flex; align-items: flex-start; gap: 8px; padding: 0 4px 0 8px; color: var(--text2); font-size: 15px; }
   .wt { flex: 1; display: flex; flex-direction: column; gap: 12px; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chips span { padding: 6px 12px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
+  .chips span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
   .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; margin-top: -10px; }
   .ib:hover { background: var(--surface); }
   .sec { display: flex; flex-direction: column; gap: 4px; margin: 14px 0 2px; padding: 0 8px; text-align: left; }
@@ -137,7 +140,7 @@
   .card:hover { filter: brightness(1.06); }
   .hd { display: flex; align-items: center; gap: 8px; }
   .tt { flex: 1; font-size: 17px; font-weight: 500; overflow-wrap: anywhere; }
-  .st { font-style: normal; font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, currentColor 16%, transparent); white-space: nowrap; }
+  .st { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-weight: 600; font-size: 13px; padding: 4px 10px 4px 8px; border-radius: 999px; background: color-mix(in srgb, currentColor 16%, transparent); white-space: nowrap; }
   .card small { color: var(--text2); font-size: 14px; }
   .out { font-size: 15.5px; line-height: 1.45; }
   .steps { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 6px; font-size: 15px; }

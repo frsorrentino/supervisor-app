@@ -520,9 +520,9 @@ fun SessionSheet(
                 // Contratto 1.55: risolta al PC, resta qualche minuto invece di sparire.
                 if (s.question == null) s.resolved?.let { r ->
                     item(key = "resolved-" + r.id) {
-                        Text(
-                            stringResource(R.string.question_resolved_terminal, it.pixelbox.cmwatch.rules.QuestionRules.optionText(r.text)),
-                            style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 2,
+                        MarkedText(
+                            StateIcons.done, stringResource(R.string.question_resolved_terminal, it.pixelbox.cmwatch.rules.QuestionRules.optionText(r.text)),
+                            CmColors.text2, MaterialTheme.typography.bodyMedium, maxLines = 2,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                         )
                     }

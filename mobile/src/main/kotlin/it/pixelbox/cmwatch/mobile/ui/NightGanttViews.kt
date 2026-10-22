@@ -43,7 +43,7 @@ import java.time.ZoneId
 
 /*
  * Il Gantt della pagina «Notte» (bozze A e B approvate da Franz il 21/10 alle 10:29, docs/proposte/2026-10-21-notte-gantt.md):
- * colori e testi delle bozze. Uno stato non si legge solo dal colore: ha la sua icona (✓ ▶ ◐ ✗) e la sua luminosità, e
+ * colori e testi delle bozze. Uno stato non si legge solo dal colore: ha la sua icona (StateIcons) e la sua luminosità, e
  * nella vista B anche il tratto (pieno, a righe, tratteggiato).
  */
 
@@ -96,7 +96,7 @@ fun GanttSwitch(byGoal: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier
     }
 }
 
-/** «✓ 7 arrivati · ▶ 1 in corso · ◐ 1 in parte · ✗ 1 fermo»: dove sono arrivati i progetti, solo gli stati presenti. */
+/** «7 arrivati · 1 in corso · 1 in parte · 1 fermo» con l'icona di stato davanti: dove sono arrivati i progetti, solo gli stati presenti. */
 @Composable
 fun WhereChips(counts: Map<Where, Int>) {
     @OptIn(ExperimentalLayoutApi::class)
@@ -111,7 +111,7 @@ fun WhereChips(counts: Map<Where, Int>) {
                 Where.STOPPED -> pluralStringResource(R.plurals.night_wc_stopped, n, n)
                 Where.UNKNOWN -> pluralStringResource(R.plurals.night_wc_unknown, n, n)
             }
-            Text(text, style = MaterialTheme.typography.labelLarge, color = t.ink, modifier = Modifier.clip(CircleShape).background(t.chipBg).padding(horizontal = 14.dp, vertical = 8.dp))
+            MarkedText(StateIcons.of(w), text, t.ink, MaterialTheme.typography.labelLarge, modifier = Modifier.clip(CircleShape).background(t.chipBg).padding(start = 12.dp, end = 14.dp, top = 8.dp, bottom = 8.dp))
         }
     }
 }
@@ -208,14 +208,14 @@ fun WhereRow(r: NightGantt.ProjectRow) {
             Text(r.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = CmColors.text)
             r.line?.let { Text(readableSlash(it), fontSize = 13.sp, lineHeight = 18.sp, color = Color(0xFFC4C9D0)) }
         }
-        StateChip(whereLabel(r.where) + if (r.needsYou && r.where != Where.STOPPED) stringResource(R.string.night_w_needs_you) else "", t)
+        StateChip(StateIcons.of(r.where), whereLabel(r.where) + if (r.needsYou && r.where != Where.STOPPED) stringResource(R.string.night_w_needs_you) else "", t)
     }
 }
 
 @Composable
-private fun StateChip(text: String, t: Tone) = Text(
-    text, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = t.ink, maxLines = 1,
-    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(t.chipBg).padding(horizontal = 10.dp, vertical = 4.dp),
+private fun StateChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, t: Tone) = MarkedText(
+    icon, text, t.ink, androidx.compose.ui.text.TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1, size = 12.dp,
+    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(t.chipBg).padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
 )
 
 /** In testa alla vista B: i punti fatti sul totale e una barra divisa per stato. */
@@ -233,11 +233,12 @@ fun GoalTotals(t: NightGantt.Totals) {
         }
         @OptIn(ExperimentalLayoutApi::class)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (t.done > 0) Text(pluralStringResource(R.plurals.night_gt_done, t.done, t.done), fontSize = 12.sp, color = dimText)
-            if (t.running > 0) Text(pluralStringResource(R.plurals.night_gt_running, t.running, t.running), fontSize = 12.sp, color = dimText)
-            if (t.partial > 0) Text(pluralStringResource(R.plurals.night_gt_partial, t.partial, t.partial), fontSize = 12.sp, color = dimText)
-            if (t.todo > 0) Text(pluralStringResource(R.plurals.night_gt_todo, t.todo, t.todo), fontSize = 12.sp, color = dimText)
-            if (t.stopped > 0) Text(pluralStringResource(R.plurals.night_gt_stopped, t.stopped, t.stopped), fontSize = 12.sp, color = dimText)
+            val small = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+            if (t.done > 0) MarkedText(StateIcons.done, pluralStringResource(R.plurals.night_gt_done, t.done, t.done), dimText, small, size = 12.dp)
+            if (t.running > 0) MarkedText(StateIcons.running, pluralStringResource(R.plurals.night_gt_running, t.running, t.running), dimText, small, size = 12.dp)
+            if (t.partial > 0) MarkedText(StateIcons.partial, pluralStringResource(R.plurals.night_gt_partial, t.partial, t.partial), dimText, small, size = 12.dp)
+            if (t.todo > 0) MarkedText(StateIcons.todo, pluralStringResource(R.plurals.night_gt_todo, t.todo, t.todo), dimText, small, size = 12.dp)
+            if (t.stopped > 0) MarkedText(StateIcons.stopped, pluralStringResource(R.plurals.night_gt_stopped, t.stopped, t.stopped), dimText, small, size = 12.dp)
         }
     }
 }
@@ -260,7 +261,7 @@ fun GoalGroupCard(g: NightGantt.Group, a: NightGantt.Axis, zone: ZoneId) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(ganttCard).padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 8.dp)) {
         Row(Modifier.fillMaxWidth().heightIn(min = 30.dp).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(g.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = CmColors.text, modifier = Modifier.weight(1f))
-            StateChip(whereLabel(g.where) + if (g.needsYou && g.where != Where.STOPPED) stringResource(R.string.night_w_needs_you) else "", t)
+            StateChip(StateIcons.of(g.where), whereLabel(g.where) + if (g.needsYou && g.where != Where.STOPPED) stringResource(R.string.night_w_needs_you) else "", t)
         }
         if (g.goals.isEmpty()) g.line?.let { Text(readableSlash(it), fontSize = 13.sp, color = Color(0xFFC4C9D0), modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) }
         g.goals.forEach { goal ->
@@ -283,15 +284,13 @@ fun GoalGroupCard(g: NightGantt.Group, a: NightGantt.Axis, zone: ZoneId) {
             // I punti dell'obiettivo, dentro il suo segmento: hanno lo stato dell'obiettivo, non un'ora loro.
             goal.points.forEach { p ->
                 Row(Modifier.fillMaxWidth().padding(start = 10.dp, top = 1.dp, bottom = 1.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(pointMark(goal.state), fontSize = 12.sp, color = dimText)
+                    StateMark(StateIcons.of(goal.state), dimText, 12.dp)
                     Text(p, fontSize = 12.sp, color = dimText)
                 }
             }
         }
     }
 }
-
-private fun pointMark(s: GoalState) = when (s) { GoalState.DONE -> "✓"; GoalState.RUNNING -> "▶"; GoalState.STOPPED -> "✗"; GoalState.PARTIAL -> "◐"; GoalState.TODO -> "○" }
 
 private fun DrawScope.goalBar(s: GoalState, x: Float, w: Float) {
     val h = 10.dp.toPx(); val y = (size.height - h) / 2; val r = CornerRadius(h / 2)

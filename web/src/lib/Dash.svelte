@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
+  import Icon from './Icon.svelte'
   import type { Project, State } from './contract'
   import { hostNumbers, publishedRows, recentProjects, sessionsByState, waitingFor } from './dash'
   import { since } from './durations'
@@ -67,8 +68,8 @@
     <div class="box">
       <h4>{t.dashSessions}</h4>
       <p class="counts">
-        <span style:color="var(--icon)">{t.dashBusy(by.busy)}</span>
-        <span style:color="var(--wait)">{t.dashWaitingN(by.waiting)}</span>
+        <span style:color="var(--icon)"><Icon name="play" size={15} />{t.dashBusy(by.busy)}</span>
+        <span style:color="var(--wait)"><Icon name="question" size={15} />{t.dashWaitingN(by.waiting)}</span>
         <span>{t.dashIdle(by.idle)}</span>
       </p>
       {#if by.closed.length}
@@ -159,11 +160,12 @@
   .dot.up { background: var(--good); }
   a.row { text-decoration: none; }
   .counts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 15px; }
+  .counts span { display: inline-flex; align-items: center; gap: 4px; }
   .nightbox { gap: 10px; }
   .nightbox b { font-size: 17px; font-weight: 500; }
   .nightbox small { color: var(--text2); font-size: 14px; }
   .nchips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .nchips span { padding: 6px 12px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
+  .nchips span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 14px; color: var(--text2); }
   .chip.on { background: var(--high); color: var(--text); border-color: transparent; }

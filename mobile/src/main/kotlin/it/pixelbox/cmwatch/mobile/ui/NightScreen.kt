@@ -154,23 +154,23 @@ private fun Section(title: String, explain: String, open: Boolean, onToggle: () 
     }
 }
 
-/** «✓ 5 finiti · ▶ 1 in corso · ✗ 1 fermi»: solo gli esiti presenti. */
+/** «5 finiti · 1 in corso · 1 fermi» con l'icona di stato davanti: solo gli esiti presenti. */
 @Composable
 private fun CountChips(c: NightPage.Counts) {
     @OptIn(ExperimentalLayoutApi::class)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (c.done > 0) CountChip(pluralStringResource(R.plurals.night_c_done, c.done, c.done), CmColors.briefGood)
-        if (c.running > 0) CountChip(pluralStringResource(R.plurals.night_c_running, c.running, c.running), CmColors.actionIcon)
-        if (c.partial > 0) CountChip(pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), CmColors.briefWarn)
-        if (c.stopped > 0) CountChip(pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), CmColors.goneDim)
-        if (c.asking > 0) CountChip(pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), CmColors.advice)
+        if (c.done > 0) CountChip(StateIcons.done, pluralStringResource(R.plurals.night_c_done, c.done, c.done), CmColors.briefGood)
+        if (c.running > 0) CountChip(StateIcons.running, pluralStringResource(R.plurals.night_c_running, c.running, c.running), CmColors.actionIcon)
+        if (c.partial > 0) CountChip(StateIcons.partial, pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), CmColors.briefWarn)
+        if (c.stopped > 0) CountChip(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), CmColors.goneDim)
+        if (c.asking > 0) CountChip(StateIcons.question, pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), CmColors.advice)
     }
 }
 
 @Composable
-private fun CountChip(text: String, tone: Color) = Text(
-    text, style = MaterialTheme.typography.labelLarge, color = tone,
-    modifier = Modifier.clip(CircleShape).background(CmColors.surfaceHigh).padding(horizontal = 12.dp, vertical = 6.dp),
+private fun CountChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, tone: Color) = MarkedText(
+    icon, text, tone, MaterialTheme.typography.labelLarge,
+    modifier = Modifier.clip(CircleShape).background(CmColors.surfaceHigh).padding(start = 10.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
 )
 
 /** «2 ore e 3 minuti»: la durata della finestra. */
@@ -263,14 +263,15 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(c.title, style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.weight(1f))
-            Text(
+            MarkedText(
+                StateIcons.of(c.icon),
                 stringResource(when (c.icon) {
                     NightPage.Icon.OK -> R.string.night_st_ok; NightPage.Icon.RUNNING -> R.string.night_st_running
                     NightPage.Icon.STOPPED -> R.string.night_st_stopped; NightPage.Icon.QUESTION -> R.string.night_st_asking
                     NightPage.Icon.PARTIAL -> R.string.night_w_partial
                 }),
-                style = MaterialTheme.typography.labelLarge, color = tone,
-                modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = .16f)).padding(horizontal = 10.dp, vertical = 4.dp),
+                tone, MaterialTheme.typography.labelLarge,
+                modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = .16f)).padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
             )
         }
         Text(stringResource(if (c.queue) R.string.night_kind_job else R.string.night_kind_session) + " · " + times, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)

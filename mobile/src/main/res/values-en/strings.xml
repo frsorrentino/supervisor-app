@@ -766,20 +766,20 @@ It starts at your last message to the master.</string>
     <string name="night_no_parts">no parts</string>
     <string name="night_waiting">Waiting on: %1$s</string>
     <string name="night_next">Action: %1$s</string>
-    <plurals name="night_c_done"><item quantity="one">✓ %1$d done</item><item quantity="other">✓ %1$d done</item></plurals>
-    <plurals name="night_c_running"><item quantity="one">▶ %1$d running</item><item quantity="other">▶ %1$d running</item></plurals>
-    <plurals name="night_c_stopped"><item quantity="one">✗ %1$d stopped</item><item quantity="other">✗ %1$d stopped</item></plurals>
-    <plurals name="night_c_asking"><item quantity="one">❓ %1$d asking</item><item quantity="other">❓ %1$d asking</item></plurals>
+    <plurals name="night_c_done"><item quantity="one">%1$d done</item><item quantity="other">%1$d done</item></plurals>
+    <plurals name="night_c_running"><item quantity="one">%1$d running</item><item quantity="other">%1$d running</item></plurals>
+    <plurals name="night_c_stopped"><item quantity="one">%1$d stopped</item><item quantity="other">%1$d stopped</item></plurals>
+    <plurals name="night_c_asking"><item quantity="one">%1$d asking</item><item quantity="other">%1$d asking</item></plurals>
     <string name="night_needs_title">For you to do · %1$d</string>
     <string name="night_needs_expl">Things waiting for an action of yours.</string>
     <string name="night_items_title">What happened · %1$d</string>
     <string name="night_items_expl">One card per session or queued job, from the first one started. Tap for the steps and the conversation.</string>
     <string name="night_projects_title">Projects · %1$d</string>
     <string name="night_projects_expl">parts done out of the total</string>
-    <string name="night_st_ok">✓ done</string>
-    <string name="night_st_running">▶ running</string>
-    <string name="night_st_stopped">✗ stopped</string>
-    <string name="night_st_asking">❓ question</string>
+    <string name="night_st_ok">done</string>
+    <string name="night_st_running">running</string>
+    <string name="night_st_stopped">stopped</string>
+    <string name="night_st_asking">question</string>
     <string name="night_kind_session">Session</string>
     <string name="night_kind_job">Queued job</string>
     <string name="home_sec_night">Night</string>
@@ -932,7 +932,7 @@ It starts at your last message to the master.</string>
     <string name="perm_confirm">More autonomy: tap «%1$s» again to confirm.</string>
     <string name="perm_note">«No prompts» is there only if the session started that way. Taking autonomy away asks nothing.</string>
     <string name="answer_already_resolved">%1$s: the question was already resolved at the PC, nothing was pressed</string>
-    <string name="question_resolved_terminal">✓ resolved at the terminal · %1$s</string>
+    <string name="question_resolved_terminal">resolved at the terminal · %1$s</string>
     <string name="quota_way_other">continue on %1$s</string>
     <string name="quota_way_reset">resume at %1$s</string>
     <string name="quota_way_pass">pass to another session</string>
@@ -1013,24 +1013,24 @@ It starts at your last message to the master.</string>
     <string name="night_legend_pub">published</string>
     <string name="night_legend_now">now, %1$s</string>
     <string name="night_legend_end">end, %1$s</string>
-    <string name="night_w_done">✓ done</string>
-    <string name="night_w_running">▶ running</string>
-    <string name="night_w_partial">◐ partly</string>
-    <string name="night_w_stopped">✗ stopped</string>
-    <string name="night_w_unknown">○ no outcome</string>
-    <string name="night_w_needs_you">, ◐ needs you</string>
-    <plurals name="night_wc_done"><item quantity="one">✓ %1$d done</item><item quantity="other">✓ %1$d done</item></plurals>
-    <plurals name="night_wc_running"><item quantity="one">▶ %1$d running</item><item quantity="other">▶ %1$d running</item></plurals>
-    <plurals name="night_wc_partial"><item quantity="one">◐ %1$d partly</item><item quantity="other">◐ %1$d partly</item></plurals>
-    <plurals name="night_wc_stopped"><item quantity="one">✗ %1$d stopped</item><item quantity="other">✗ %1$d stopped</item></plurals>
-    <plurals name="night_wc_unknown"><item quantity="one">○ %1$d no outcome</item><item quantity="other">○ %1$d no outcome</item></plurals>
+    <string name="night_w_done">done</string>
+    <string name="night_w_running">running</string>
+    <string name="night_w_partial">partly</string>
+    <string name="night_w_stopped">stopped</string>
+    <string name="night_w_unknown">no outcome</string>
+    <string name="night_w_needs_you">, needs you</string>
+    <plurals name="night_wc_done"><item quantity="one">%1$d done</item><item quantity="other">%1$d done</item></plurals>
+    <plurals name="night_wc_running"><item quantity="one">%1$d running</item><item quantity="other">%1$d running</item></plurals>
+    <plurals name="night_wc_partial"><item quantity="one">%1$d partly</item><item quantity="other">%1$d partly</item></plurals>
+    <plurals name="night_wc_stopped"><item quantity="one">%1$d stopped</item><item quantity="other">%1$d stopped</item></plurals>
+    <plurals name="night_wc_unknown"><item quantity="one">%1$d no outcome</item><item quantity="other">%1$d no outcome</item></plurals>
     <string name="night_goals_reached">Goals reached</string>
     <string name="night_goals_of">of %1$d</string>
-    <plurals name="night_gt_done"><item quantity="one">✓ %1$d done</item><item quantity="other">✓ %1$d done</item></plurals>
-    <plurals name="night_gt_running"><item quantity="one">▶ %1$d running</item><item quantity="other">▶ %1$d running</item></plurals>
-    <plurals name="night_gt_partial"><item quantity="one">◐ %1$d partly</item><item quantity="other">◐ %1$d partly</item></plurals>
-    <plurals name="night_gt_todo"><item quantity="one">○ %1$d not done</item><item quantity="other">○ %1$d not done</item></plurals>
-    <plurals name="night_gt_stopped"><item quantity="one">✗ %1$d stopped</item><item quantity="other">✗ %1$d stopped</item></plurals>
+    <plurals name="night_gt_done"><item quantity="one">%1$d done</item><item quantity="other">%1$d done</item></plurals>
+    <plurals name="night_gt_running"><item quantity="one">%1$d running</item><item quantity="other">%1$d running</item></plurals>
+    <plurals name="night_gt_partial"><item quantity="one">%1$d partly</item><item quantity="other">%1$d partly</item></plurals>
+    <plurals name="night_gt_todo"><item quantity="one">%1$d not done</item><item quantity="other">%1$d not done</item></plurals>
+    <plurals name="night_gt_stopped"><item quantity="one">%1$d stopped</item><item quantity="other">%1$d stopped</item></plurals>
     <string name="night_g_done">done</string>
     <string name="night_g_running">running</string>
     <string name="night_g_partial">partly</string>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { locale } from './lang'
+  import Icon from './Icon.svelte'
   import { forMaster } from './strongAlert'
   import PermGlyph from './PermGlyph.svelte'
   import { homeGlyph } from './permissionModes'
@@ -181,11 +182,11 @@
         {#if night}
           <small>{t.homeNightWindow(hhmm(night.start), hhmm(night.end), night.cards.length)}</small>
           <span class="nchips">
-            {#if night.counts.done}<span style:color="var(--good)">{t.nightDone(night.counts.done)}</span>{/if}
-            {#if night.counts.running}<span style:color="var(--icon)">{t.nightRunningN(night.counts.running)}</span>{/if}
-            {#if night.counts.partial}<span style:color="var(--b-warn)">{t.nightPartial(night.counts.partial)}</span>{/if}
-            {#if night.counts.stopped}<span style:color="var(--gone-dim)">{t.nightStopped(night.counts.stopped)}</span>{/if}
-            {#if night.counts.asking}<span style:color="var(--advice)">{t.nightAsking(night.counts.asking)}</span>{/if}
+            {#if night.counts.done}<span style:color="var(--good)"><Icon name="check" size={14} />{t.nightDone(night.counts.done)}</span>{/if}
+            {#if night.counts.running}<span style:color="var(--icon)"><Icon name="play" size={14} />{t.nightRunningN(night.counts.running)}</span>{/if}
+            {#if night.counts.partial}<span style:color="var(--b-warn)"><Icon name="half" size={14} />{t.nightPartial(night.counts.partial)}</span>{/if}
+            {#if night.counts.stopped}<span style:color="var(--gone-dim)"><Icon name="x" size={14} />{t.nightStopped(night.counts.stopped)}</span>{/if}
+            {#if night.counts.asking}<span style:color="var(--advice)"><Icon name="question" size={14} />{t.nightAsking(night.counts.asking)}</span>{/if}
           </span>
           <span class="nrow"><small>{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, readable(night.needs[0].text, t.slashPhrases)) : ''}</small><span class="open">{t.homeNightOpen}</span></span>
         {:else}<small>{t.nightLoading}</small>{/if}
@@ -508,7 +509,7 @@
   .nightbox b { font-size: 17px; font-weight: 500; }
   .nightbox small { color: var(--text2); font-size: 14px; }
   .nchips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .nchips span { padding: 6px 12px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
+  .nchips span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
   .nrow { display: flex; align-items: center; gap: 12px; }
   .nrow small { flex: 1; }
   .open { padding: 10px 18px; border-radius: 22px; background: var(--primary); color: var(--on-primary); font-weight: 500; }

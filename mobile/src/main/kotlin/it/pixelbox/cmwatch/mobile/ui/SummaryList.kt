@@ -548,8 +548,8 @@ private fun TonightBlock(
             line()
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.tonight_last, p.dayBefore.dayOfMonth, p.day.dayOfMonth), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-                if (p.counts.done > 0) Text(pluralStringResource(R.plurals.night_c_done, p.counts.done, p.counts.done), style = MaterialTheme.typography.bodyMedium, color = CmColors.briefGood)
-                if (p.counts.stopped > 0) Text(pluralStringResource(R.plurals.night_c_stopped, p.counts.stopped, p.counts.stopped), style = MaterialTheme.typography.bodyMedium, color = CmColors.gone)
+                if (p.counts.done > 0) MarkedText(StateIcons.done, pluralStringResource(R.plurals.night_c_done, p.counts.done, p.counts.done), CmColors.briefGood, MaterialTheme.typography.bodyMedium)
+                if (p.counts.stopped > 0) MarkedText(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, p.counts.stopped, p.counts.stopped), CmColors.gone, MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.weight(1f))
                 Text(stringResource(R.string.tonight_report), style = MaterialTheme.typography.labelLarge, color = CmColors.actionIcon, modifier = Modifier.clip(RoundedCornerShape(8.dp)).handCursor().clickable(onClick = onNight).padding(6.dp))
             }
@@ -718,11 +718,11 @@ private fun NightHomeCard(date: java.time.LocalDate, page: it.pixelbox.cmwatch.r
             @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val c = page.counts
-                if (c.done > 0) NightCount(pluralStringResource(R.plurals.night_c_done, c.done, c.done), CmColors.briefGood)
-                if (c.running > 0) NightCount(pluralStringResource(R.plurals.night_c_running, c.running, c.running), CmColors.actionIcon)
-                if (c.partial > 0) NightCount(pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), CmColors.briefWarn)
-                if (c.stopped > 0) NightCount(pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), CmColors.goneDim)
-                if (c.asking > 0) NightCount(pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), CmColors.advice)
+                if (c.done > 0) NightCount(StateIcons.done, pluralStringResource(R.plurals.night_c_done, c.done, c.done), CmColors.briefGood)
+                if (c.running > 0) NightCount(StateIcons.running, pluralStringResource(R.plurals.night_c_running, c.running, c.running), CmColors.actionIcon)
+                if (c.partial > 0) NightCount(StateIcons.partial, pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), CmColors.briefWarn)
+                if (c.stopped > 0) NightCount(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), CmColors.goneDim)
+                if (c.asking > 0) NightCount(StateIcons.question, pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), CmColors.advice)
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -737,9 +737,9 @@ private fun NightHomeCard(date: java.time.LocalDate, page: it.pixelbox.cmwatch.r
 }
 
 @Composable
-private fun NightCount(text: String, tone: Color) = Text(
-    text, style = MaterialTheme.typography.labelLarge, color = tone,
-    modifier = Modifier.clip(CircleShape).background(CmColors.surfaceHigh).padding(horizontal = 12.dp, vertical = 6.dp),
+private fun NightCount(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, tone: Color) = MarkedText(
+    icon, text, tone, MaterialTheme.typography.labelLarge,
+    modifier = Modifier.clip(CircleShape).background(CmColors.surfaceHigh).padding(start = 10.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
 )
 
 /**
