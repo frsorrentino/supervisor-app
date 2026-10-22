@@ -689,16 +689,15 @@ internal fun StepChip(text: String, blocking: Boolean, sent: Boolean = false, on
 
 /** Un'etichetta piccola nel colore dato, «DOPPIONE» o «PRODUZIONE». */
 @Composable
-private fun Tag(text: String, tone: Color) = Text(
+internal fun Tag(text: String, tone: Color) = Text(
     text.uppercase(), style = MonoSmall.copy(color = tone, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
     modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = 0.15f)).padding(horizontal = 10.dp, vertical = 3.dp),
 )
 
 /** Contratto 1.37: un compito che aspetta l'ok — cosa esce, dove, da quanto — con «Approva» e la conferma. */
 @Composable
-private fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, onApprove: (String, String) -> Unit) {
+internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, onApprove: (String, String) -> Unit) {
     var ask by rememberSaveable(a.task) { mutableStateOf(false) }
-    var note by rememberSaveable(a.task) { mutableStateOf("") }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -723,23 +722,12 @@ private fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, on
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
         ) { Text(stringResource(R.string.approve)) }
     }
-    if (ask) androidx.compose.material3.AlertDialog(
-        onDismissRequest = { ask = false }, containerColor = CmColors.surface,
-        title = { Text(if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_title, a.title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(R.string.approve_text, a.title, a.what.orEmpty(), a.where.orEmpty()))
-                androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
-            }
-        },
-        confirmButton = { androidx.compose.material3.TextButton(onClick = { ask = false; onApprove(a.task, note) }) { Text(stringResource(R.string.approve), color = CmColors.actionIcon) } },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = { ask = false }) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
-    )
+    if (ask) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
 }
 
 /** Titolo di sezione della home: si apre e si chiude al tocco; chiusa, a destra un riassunto se c'è. */
 @Composable
-private fun HomeSection(title: String, summary: String?, open: Boolean, onToggle: () -> Unit) {
+internal fun HomeSection(title: String, summary: String?, open: Boolean, onToggle: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().handCursor().clickable(onClick = onToggle).padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -887,10 +875,9 @@ private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Releas
  * approvare»: dopo l'ok il relay risveglia la sessione).
  */
 @Composable
-private fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, String) -> Unit) {
+internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, String) -> Unit) {
     val c = r.c
     var ask by rememberSaveable(c.task) { mutableStateOf(false) }
-    var note by rememberSaveable(c.task) { mutableStateOf("") }
     val toneColor = when (r.tone) { Commitments.Tone.ALERT -> CmColors.gone; Commitments.Tone.WARN -> CmColors.waiting; Commitments.Tone.NORMAL -> CmColors.text2 }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
@@ -916,20 +903,27 @@ private fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, St
             onClick = { ask = true }, modifier = Modifier.fillMaxWidth(),
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
         ) { Text(stringResource(R.string.approve)) }
-        if (ask && a != null) androidx.compose.material3.AlertDialog(
-            onDismissRequest = { ask = false }, containerColor = CmColors.surface,
-            title = { Text(if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_title, a.title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.approve_text, a.title, a.what.orEmpty(), a.where.orEmpty()))
-                    androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
-                }
-            },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { ask = false; onApprove(a.task, note) }) { Text(stringResource(R.string.approve), color = CmColors.actionIcon) } },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { ask = false }) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
-        )
+        if (ask && a != null) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
     }
 }
 
-private fun hhmmOf(epoch: Long): String =
+/** La conferma dell'ok (contratto 1.37), la stessa in home e nella pagina Lavori: cosa, dove, una nota facoltativa. */
+@Composable
+internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, onConfirm: (note: String) -> Unit, onDismiss: () -> Unit) {
+    var note by rememberSaveable(a.task) { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss, containerColor = CmColors.surface,
+        title = { Text(if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_title, a.title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.approve_text, a.title, a.what.orEmpty(), a.where.orEmpty()))
+                androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { onConfirm(note) }) { Text(stringResource(R.string.approve), color = CmColors.actionIcon) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
+    )
+}
+
+internal fun hhmmOf(epoch: Long): String =
     java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(epoch).atZone(java.time.ZoneId.systemDefault()))

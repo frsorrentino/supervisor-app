@@ -107,7 +107,7 @@ fun DiaryScreen(
 
 /** Stanotte: una riga con «Aggiungi» tonale (il bottone pieno in fondo non c'è più), poi i lavori in coda. */
 @Composable
-private fun Tonight(state: State, onAdd: () -> Unit, onRemove: (String) -> Unit) {
+internal fun Tonight(state: State, onAdd: () -> Unit, onRemove: (String) -> Unit) {
     val items = state.night.items
     RegCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -267,14 +267,14 @@ private fun RecapEntry(
 
 /** Il blocco del Registro: fondo basso, angoli ampi, come nel mockup. */
 @Composable
-private fun RegCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) =
+internal fun RegCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) =
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).smoothSize().then(modifier).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp), content = content,
     )
 
 @Composable
-private fun RegLabel(text: String) = Text(text.uppercase(), style = MonoSmall.copy(color = CmColors.briefLabel, letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp)))
+internal fun RegLabel(text: String) = Text(text.uppercase(), style = MonoSmall.copy(color = CmColors.briefLabel, letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp)))
 
 private val HM = DateTimeFormatter.ofPattern("HH:mm")
 private fun hhmm(epoch: Long) = HM.format(java.time.Instant.ofEpochSecond(epoch).atZone(java.time.ZoneId.systemDefault()))

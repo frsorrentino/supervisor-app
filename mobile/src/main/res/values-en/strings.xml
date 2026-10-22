@@ -1053,4 +1053,50 @@ It starts at your last message to the master.</string>
     <string name="night_g_todo">not done</string>
     <string name="night_earlier_title">Earlier nights · %1$d</string>
     <string name="night_old_report">Report without a summary</string>
+
+    <!-- The single «Lavori» page (mockup approved by Franz on 22/10): Register, Recap and Commitments in one page. -->
+    <string name="lavori_title">Work</string>
+    <string name="menu_lavori">Work</string>
+    <string name="menu_lavori_sub">For you, in progress, tonight, done</string>
+    <string name="lavori_for_you_n">%1$d for you</string>
+    <string name="lavori_foryou">For you</string>
+    <string name="lavori_foryou_expl">Only what waits for you: an ok to give or something to do outside the chat. Every row has its button.</string>
+    <string name="lavori_ok">Ok to give</string>
+    <string name="lavori_outside">To do outside the chat</string>
+    <string name="lavori_claude">Claude can do it</string>
+    <string name="lavori_more">%1$d more</string>
+    <string name="lavori_less">Less</string>
+    <string name="lavori_start">Start</string>
+    <string name="lavori_asks">%1$s asks, at %2$s</string>
+    <string name="lavori_asks_who">%1$s asks</string>
+    <string name="lavori_waits_ok">waits for your ok in the registry</string>
+    <string name="lavori_unblocks">unblocks %1$s</string>
+    <string name="lavori_nothing">Nothing waits for you</string>
+    <string name="lavori_progress">In progress</string>
+    <string name="lavori_progress_expl">One task per row: what, who, since when, the next step. The bar is the time from the ok to now.</string>
+    <string name="lavori_nothing_progress">Nothing in progress</string>
+    <string name="lavori_axis_today">today</string>
+    <string name="lavori_key">solid bar = working · dashes = paused · white line = now</string>
+    <string name="lavori_state_active">▶ working</string>
+    <string name="lavori_state_paused">⏸ paused</string>
+    <string name="lavori_state_others">blocked by others</string>
+    <string name="lavori_ok_at">ok at %1$s</string>
+    <string name="lavori_ok_on">ok on %1$s at %2$s</string>
+    <string name="lavori_paused_reason">paused: %1$s</string>
+    <string name="lavori_next">next: %1$s</string>
+    <string name="lavori_blocks">blocked by %1$s</string>
+    <string name="lavori_paused_n">%1$d more paused</string>
+    <string name="lavori_others_n">%1$d blocked by others</string>
+    <string name="lavori_tonight">Tonight</string>
+    <string name="lavori_tonight_expl">The queue for tonight. It lives only here.</string>
+    <string name="lavori_last_night">The night of %1$s</string>
+    <string name="lavori_done">Done</string>
+    <string name="lavori_done_expl">Per day, with the proof next to it. Today open, the days before closed.</string>
+    <string name="lavori_today">Today %1$s · %2$d</string>
+    <string name="lavori_yesterday">Yesterday %1$s · %2$d</string>
+    <string name="lavori_day">%1$s · %2$d</string>
+    <string name="lavori_proof_check">check green</string>
+    <string name="lavori_done_empty">Nothing closed in the last seven days</string>
+    <string name="lavori_quota_note">The quota is not here: it stays in «Usage and limits».</string>
+    <string name="lavori_old_relay">Update supervisor on the PC to see the registry\'s commitments</string>
 </resources>
