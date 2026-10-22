@@ -65,8 +65,6 @@
     <string name="terminal_empty">Tap Refresh to read the session\'s screen</string>
     <string name="launch_project">Project</string>
     <string name="launch_first">First message</string>
-    <string name="diary_title">Diary of %1$s</string>
-    <string name="diary_next">Action: %1$s</string>
     <string name="night_queued">Queued for tonight: %1$d</string>
     <string name="night_running">Running: %1$s</string>
     <string name="night_empty">Nothing queued for tonight</string>
@@ -87,7 +85,6 @@
     <string name="night_remove">Remove</string>
     <string name="night_started">started</string>
     <string name="night_update_pc">Update supervisor on the computer to manage the queue from here</string>
-    <string name="diary_previous">Previous days</string>
     <string name="file_refused">The PC did not send the file: %1$s</string>
     <string name="file_refused_large">The file is %1$s: too big to transfer from the PC</string>
     <string name="file_refused_large_max">The file is %1$s: the transfer from the PC goes up to %2$s</string>
@@ -214,7 +211,6 @@
     <string name="menu_launch">Launch a session</string>
     <string name="menu_launch_sub">A project, with the first message</string>
     <string name="menu_register">Register</string>
-    <string name="menu_register_sub">Tonight, the days, the night queue</string>
     <string name="menu_quadro">Usage and limits</string>
     <string name="menu_quadro_sub">5-hour windows and week, pace</string>
     <string name="menu_search">Search the conversations</string>
@@ -801,7 +797,6 @@ It starts at your last message to the master.</string>
     <string name="commit_check_red">last check red</string>
     <string name="home_sec_usage">Usage</string>
     <string name="home_sec_recap">Recap</string>
-    <string name="recap_actions">Actions · %1$d</string>
     <string name="recap_from_recap">recap %1$s</string>
     <string name="recap_send_title">Send this action?</string>
     <string name="recap_send_from_recap">From the %1$s recap of %2$s</string>
@@ -810,22 +805,13 @@ It starts at your last message to the master.</string>
     <string name="recap_send_to_master">Goes to the %1$s: the project has no open session</string>
     <string name="recap_send_to_master_agenda">Goes to the %1$s, which starts it</string>
     <string name="recap_send">Send</string>
-    <string name="recap_resume">Resume the %1$s project: %2$s</string>
     <string name="recap_send_from_agenda">From the agenda, work Claude can do</string>
     <string name="recap_you">Waiting for you · %1$d</string>
     <string name="recap_claude">Claude can do it · %1$d</string>
-    <string name="recap_other">Stuck on others · %1$d</string>
-    <string name="recap_rest">Done and on hold · %1$d</string>
-    <string name="recap_all">The whole recap</string>
     <string name="recap_do">Do it</string>
     <string name="recap_do_text">Do this agenda work: %1$s%2$s</string>
     <string name="recap_do_ref"> (%1$s)</string>
     <string name="recap_blocks">blocked by: %1$s</string>
-    <string name="recap_filter_all">All</string>
-    <string name="recap_scope_agency">Agency</string>
-    <string name="recap_scope_personal">Personal</string>
-    <string name="recap_scope_desk">Workstation</string>
-    <string name="recap_empty">Nothing to do or decide.</string>
     <string name="recap_agenda_old">Update supervisor on the PC to see the agenda rows.</string>
     <string name="recap_agenda_none">There is no agenda file on the PC.</string>
     <string name="agenda_actions">Actions</string>
@@ -873,7 +859,6 @@ It starts at your last message to the master.</string>
     <plurals name="night_agenda_queue"><item quantity="one">Queue for tonight · %d</item><item quantity="other">Queue for tonight · %d</item></plurals>
     <plurals name="night_agenda_added"><item quantity="one">Queued for tonight</item><item quantity="other">%d queued for tonight</item></plurals>
     <string name="menu_recap">Recap</string>
-    <string name="menu_recap_sub">Actions, what waits for you, what Claude can do</string>
     <string name="home_sec_other">Other</string>
     <string name="home_night_window">From %1$s to %2$s: %3$d sessions and jobs</string>
     <string name="home_night_open">Open</string>

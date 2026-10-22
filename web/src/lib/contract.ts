@@ -99,7 +99,9 @@ export type Event = { key: string; kind: EventKind; session?: string | null; acc
   /** Contratto 1.68, `attention_reminder`: il kind della voce che aspetta ancora. */
   attention_kind?: string | null
   /** Relay 0.8.30: il `turn_failed` chiuso, riscritto senza `continue_text` e con l'ora della chiusura. */
-  settled_at?: number | null }
+  settled_at?: number | null
+  /** Contratto 1.78: sui `task_check` l'esito (true = verde), perché il titolo non porta più ✓ o ✗; null altrove e con un relay precedente. */
+  ok?: boolean | null }
 
 // Trascrizione (contratto 1.22): `in` comprende la cache; `queued` = scritta a turno in corso e non ancora presa; `cut` = accorciata dal PC.
 export type TranscriptTurn = { started?: number | null; ended?: number | null; in?: number | null; out?: number | null }
@@ -110,8 +112,6 @@ export type TranscriptEntry = {
   origin?: string | null; queued?: boolean
   /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */
   diff?: StepDiff | null
-  /** Contratto 1.78: sui `task_check` l'esito (true = verde), perché il titolo non porta più ✓ o ✗; null altrove e con un relay precedente. */
-  ok?: boolean | null
 }
 export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean }
 // Contratto 1.72, il diff dal telefono: un pezzo come in `git diff -U3`, le righe che cominciano per «-», «+» o spazio.

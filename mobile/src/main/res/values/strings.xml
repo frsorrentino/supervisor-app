@@ -65,8 +65,6 @@
     <string name="terminal_empty">Tocca Aggiorna per leggere lo schermo della sessione</string>
     <string name="launch_project">Progetto</string>
     <string name="launch_first">Primo messaggio</string>
-    <string name="diary_title">Diario del %1$s</string>
-    <string name="diary_next">Azione: %1$s</string>
     <string name="night_queued">Stanotte in coda: %1$d</string>
     <string name="night_running">In corso: %1$s</string>
     <string name="night_empty">Nessun lavoro in coda per stanotte</string>
@@ -89,7 +87,6 @@
     <string name="night_remove">Togli</string>
     <string name="night_started">partito</string>
     <string name="night_update_pc">Aggiorna supervisor sul PC per gestire la coda da qui</string>
-    <string name="diary_previous">Giorni precedenti</string>
     <string name="file_refused">Il PC non manda il file: %1$s</string>
     <string name="file_refused_large">Il file è di %1$s: troppo grande per il trasferimento dal PC</string>
     <string name="file_refused_large_max">Il file è di %1$s: il trasferimento dal PC arriva a %2$s</string>
@@ -217,7 +214,6 @@
     <string name="menu_launch">Lancia una sessione</string>
     <string name="menu_launch_sub">Un progetto, con il primo messaggio</string>
     <string name="menu_register">Registro</string>
-    <string name="menu_register_sub">Stanotte, i giorni, la coda della notte</string>
     <string name="menu_quadro">Utilizzo e limiti</string>
     <string name="menu_quadro_sub">Finestre di 5 ore e settimana, ritmo</string>
     <string name="menu_search">Cerca nelle conversazioni</string>
@@ -811,7 +807,6 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_sec_usage">Utilizzo</string>
     <!-- La sezione Recap (mockup approvato l'08/10, Franz 20:41). -->
     <string name="home_sec_recap">Recap</string>
-    <string name="recap_actions">Azioni · %1$d</string>
     <string name="recap_from_recap">recap %1$s</string>
     <string name="recap_send_title">Mandare questa azione?</string>
     <string name="recap_send_from_recap">Dal recap del %1$s di %2$s</string>
@@ -820,22 +815,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="recap_send_to_master">Va alla %1$s: il progetto non ha una sessione aperta</string>
     <string name="recap_send_to_master_agenda">Va alla %1$s, che lo fa partire</string>
     <string name="recap_send">Manda</string>
-    <string name="recap_resume">Riprendi il progetto %1$s: %2$s</string>
     <string name="recap_send_from_agenda">Dall\'agenda, un lavoro che può fare Claude</string>
     <string name="recap_you">Aspetta te · %1$d</string>
     <string name="recap_claude">Può farlo Claude · %1$d</string>
-    <string name="recap_other">Fermo su altro · %1$d</string>
-    <string name="recap_rest">Fatto e sospeso · %1$d</string>
-    <string name="recap_all">Tutto il recap</string>
     <string name="recap_do">Fallo</string>
     <string name="recap_do_text">Fai questo lavoro dell\'agenda: %1$s%2$s</string>
     <string name="recap_do_ref"> (%1$s)</string>
     <string name="recap_blocks">blocca: %1$s</string>
-    <string name="recap_filter_all">Tutto</string>
-    <string name="recap_scope_agency">Agenzia</string>
-    <string name="recap_scope_personal">Personale</string>
-    <string name="recap_scope_desk">Postazione</string>
-    <string name="recap_empty">Niente da fare né da decidere.</string>
     <string name="recap_agenda_old">Per le righe dell\'agenda aggiorna supervisor sul PC.</string>
     <string name="recap_agenda_none">Sul PC non c\'è il file dell\'agenda.</string>
     <!-- Le Azioni sulle schede del Recap (piano approvato da Franz il 09/10). -->
@@ -885,7 +871,6 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <plurals name="night_agenda_queue"><item quantity="one">Metti stanotte · %d</item><item quantity="other">Metti stanotte · %d</item></plurals>
     <plurals name="night_agenda_added"><item quantity="one">Messa nella notte</item><item quantity="other">%d messe nella notte</item></plurals>
     <string name="menu_recap">Recap</string>
-    <string name="menu_recap_sub">Azioni, cosa aspetta te, cosa può fare Claude</string>
     <string name="home_sec_other">Altro</string>
     <string name="home_night_window">Dalle %1$s alle %2$s: %3$d tra sessioni e lavori</string>
     <string name="home_night_open">Apri</string>
