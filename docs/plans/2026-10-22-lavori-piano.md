@@ -76,17 +76,17 @@ Regole:
 - `inProgress.active` = righe di `Commitments.rows` non in pausa e non `yourTurn`; `paused` = in pausa (anche quelle che aspettano la persona: restano visibili qui, richiuse); `others` = `RecapAgenda.of(...).other` (terzi) senza barre.
 - `done`: eventi `TASK_CHECK` con `title` che inizia con «✓», una riga per `ref` (l'ultima per `ts`), raggruppati per giorno locale, oggi primo, al massimo `days` giorni; `title` = prima riga di `body`.
 
-- [ ] **Passo 1: i test** (`LavoriTest.kt`): `theFixturesGiveTheFourBlocks` (state-2-idle + agenda …0386 + night-report commitments + un `Approval("ledger-release-14", …)`: ok = 1, outside = le righe `you` dell'agenda, claude = le righe `claude`, active = atlas-seo-pages e ledger-migrations-011, done = `atlas-release-2-4` con proof null), `anOkIsNeverListedTwice`, `aPauseWithoutPersonStaysInProgress` (state-3-stale), `aPauseThatWaitsThePersonIsForYou` (copy con `waits = CommitmentWaits("orbit-docs", "person")`), `aBarOlderThanTheAxisStartsAtTheEdge` (approvedAt = axis.start − 86400 → from = 0.0), `aPausedBarIsSolidThenDashed`, `doneKeepsTheLastCheckOfATask` (events-sample + un secondo task_check verde di ledger-migrations-011 più tardi), `oldRelayHasNoRows` (commitments = null, agenda = null → gruppi vuoti, done dagli eventi).
-- [ ] **Passo 2:** eseguire su win `.\gradlew.bat :core:test --tests "*LavoriTest*"` (RAM ≥ 6 GB, poi `--stop`): rosso per classe mancante.
-- [ ] **Passo 3:** `Lavori.kt` come sopra.
-- [ ] **Passo 4:** test verdi; `git commit -m "feat(core): Lavori — the four blocks of the single page (Per te, In corso with bars, Fatto from task_check) from the 1.76 state, the agenda and the events"`.
+- [x] **Passo 1: i test** (`LavoriTest.kt`): `theFixturesGiveTheFourBlocks` (state-2-idle + agenda …0386 + night-report commitments + un `Approval("ledger-release-14", …)`: ok = 1, outside = le righe `you` dell'agenda, claude = le righe `claude`, active = atlas-seo-pages e ledger-migrations-011, done = `atlas-release-2-4` con proof null), `anOkIsNeverListedTwice`, `aPauseWithoutPersonStaysInProgress` (state-3-stale), `aPauseThatWaitsThePersonIsForYou` (copy con `waits = CommitmentWaits("orbit-docs", "person")`), `aBarOlderThanTheAxisStartsAtTheEdge` (approvedAt = axis.start − 86400 → from = 0.0), `aPausedBarIsSolidThenDashed`, `doneKeepsTheLastCheckOfATask` (events-sample + un secondo task_check verde di ledger-migrations-011 più tardi), `oldRelayHasNoRows` (commitments = null, agenda = null → gruppi vuoti, done dagli eventi).
+- [x] **Passo 2:** eseguire su win `.\gradlew.bat :core:test --tests "*LavoriTest*"` (RAM ≥ 6 GB, poi `--stop`): rosso per classe mancante.
+- [x] **Passo 3:** `Lavori.kt` come sopra.
+- [x] **Passo 4:** test verdi; `git commit -m "feat(core): Lavori — the four blocks of the single page (Per te, In corso with bars, Fatto from task_check) from the 1.76 state, the agenda and the events"`.
 
 ### Task 3: la porta TypeScript
 
 **File:** crea `web/src/lib/lavori.ts`, `web/src/lib/lavori.test.ts`.
 
-- [ ] Stessi tipi e funzioni di Task 2 (`forYou`, `axis`, `bars`, `inProgress`, `done`), stessi otto casi di test sulle stesse fixture (`commitments.test.ts` e `recapAgenda.test.ts` mostrano come caricarle). `npx vitest run src/lib/lavori.test.ts` su win.
-- [ ] Commit `test: lavori.ts mirrors LavoriTest`.
+- [x] Stessi tipi e funzioni di Task 2 (`forYou`, `axis`, `bars`, `inProgress`, `done`), stessi otto casi di test sulle stesse fixture (`commitments.test.ts` e `recapAgenda.test.ts` mostrano come caricarle). `npx vitest run src/lib/lavori.test.ts` su win.
+- [x] Commit `test: lavori.ts mirrors LavoriTest`.
 
 ### Task 4: `LavoriScreen` su Android
 
@@ -108,28 +108,28 @@ Struttura (`LazyColumn`, chiavi `sec-foryou`, `fy-<kind>-<id>`, `sec-progress`, 
 
 Stringhe nuove: `menu_lavori` «Lavori», `menu_lavori_sub` «Per te, in corso, stanotte, fatto», `lavori_title`, `lavori_foryou`, `lavori_foryou_expl`, `lavori_ok`, `lavori_outside`, `lavori_claude`, `lavori_more` «Altre %1$d», `lavori_start` «Avvia», `lavori_progress`, `lavori_progress_expl`, `lavori_axis_today` «oggi», `lavori_key`, `lavori_paused_n`, `lavori_others_n`, `lavori_tonight_expl`, `lavori_last_night` «La notte del %1$s», `lavori_done`, `lavori_done_expl`, `lavori_today` «Oggi %1$s · %2$d», `lavori_proof_check` «controllo verde», `lavori_quota_note`, `lavori_old_relay`. Via: `menu_register*`, `menu_recap*`, `home_sec_recap`, `home_sec_commitments` (Task 7).
 
-- [ ] **Passo 1:** `LavoriScreenTest` con Paparazzi: `lavoriFull` (state-2-idle + agenda + eventi + un ok), `lavoriEmptyOldRelay`, `lavoriTablet` (topBar = false, 840 dp). Goldens registrati in CI (`gh workflow run build-android.yml --ref lavori/pagina-unica -f record=true`, artefatto `paparazzi-snapshots`), poi committati.
-- [ ] **Passo 2:** la schermata; compilazione su win (`:mobile:compileReleaseKotlin`) o in CI.
-- [ ] **Passo 3:** commit `feat(phone): the single «Lavori» page — Per te with a button per row, In corso with the seven-day bars, Stanotte, Fatto per day`.
+- [x] **Passo 1:** `LavoriScreenTest` con Paparazzi: `lavoriFull` (state-2-idle + agenda + eventi + un ok), `lavoriEmptyOldRelay`, `lavoriTablet` (topBar = false, 840 dp). Goldens registrati in CI (`gh workflow run build-android.yml --ref lavori/pagina-unica -f record=true`, artefatto `paparazzi-snapshots`), poi committati.
+- [x] **Passo 2:** la schermata; compilazione su win (`:mobile:compileReleaseKotlin`) o in CI.
+- [x] **Passo 3:** commit `feat(phone): the single «Lavori» page — Per te with a button per row, In corso with the seven-day bars, Stanotte, Fatto per day`.
 
 ### Task 5: il cablaggio Android (rotte, menu, home, tablet)
 
 **File:** `core/.../rules/StartRoute.kt` (`Tab.DIARY` → `Tab.LAVORI`), `mobile/.../MainActivity.kt` (le 21 occorrenze di `Tab.DIARY`; `diaryPage()` monta `LavoriScreen`; `recapPage` e `RecapScreen` via; `onRegister`/`onRecap` → la pagina Lavori; `onDoneForPerson` manda alla master `CmdOp.PROMPT` «Fatto: <motivo>. Riprendi <task>»), `AppMenuPanel.kt` (voce «Lavori» al posto di Registro e Recap; Notte con il sottotitolo «Il rapporto di stanotte e le notti prima»), `SummaryList.kt` (via `sec-commitments`, `sec-recap` e «Da approvare»: una sezione `sec-lavori` con `Lavori.forYou(...).ok + outside.take(2)` e la riga «Tutti i lavori · in corso N · stanotte …» → `onLavori`), `TabletShell.kt` (le colonne del cruscotto che montavano `RecapScreen(part = you/claude)` montano `LavoriScreen(topBar = false)` in due colonne come il mockup tablet), `SearchScreen.kt` (etichetta `menu_lavori`), `SummaryListTest.kt` e `TabletShellTest.kt` (goldens).
 
-- [ ] Rinomina, cablaggio, goldens in CI, commit `feat(phone): Lavori replaces Registro, Recap and the home's Impegni section — menu, home section, tablet columns`.
+- [x] Rinomina, cablaggio, goldens in CI, commit `feat(phone): Lavori replaces Registro, Recap and the home's Impegni section — menu, home section, tablet columns`.
 
 ### Task 6: la web app
 
 **File:** crea `web/src/lib/Lavori.svelte`; modifica `App.svelte` (page `'lavori'`; `'diary'` e `'recap'` nel link `?p=` aprono `'lavori'`; `loadAgenda` anche per `'lavori'`; le snippet `recapYou`/`recapClaude` del cruscotto diventano `lavoriLeft`/`lavoriRight`), `AppBar.svelte` (tipo `Page`, voce di menu), `Home.svelte` (sezioni `commitments`, `recap` e «Da approvare» → `lavori`), `Desk.svelte`/`tablet.ts` (colonne), `t.ts` (it ed en, gli stessi nomi di Task 4 in camelCase), `Search.svelte` (`t.menuLavori`).
 
-- [ ] `Lavori.svelte` con `lavori.ts`; `npm run build` e `npx vitest run` su win; svelte-check non deve aggiungere errori ai 5 noti.
-- [ ] Commit `feat(web): the single «Lavori» page and its place in menu, home and desk`.
+- [x] `Lavori.svelte` con `lavori.ts`; `npm run build` e `npx vitest run` su win; svelte-check non deve aggiungere errori ai 5 noti.
+- [x] Commit `feat(web): the single «Lavori» page and its place in menu, home and desk`.
 
 ### Task 7: via Registro e Recap
 
 **File:** elimina `mobile/.../ui/DiaryScreen.kt`, `RecapSection.kt` solo la parte `RecapScreen` (restano `AgendaRowCard`, `RecapActionChip`, `RecapSendSheet`), `DiaryScreenTest.kt`, `RecapScreenTest.kt` e i loro goldens, `core/.../rules/PhoneDiary.kt` se non più usato, `web/src/lib/Diary.svelte`, `RecapPage.svelte`, `diary.ts`, `diary.test.ts`; le stringhe `reg_*`, `diary_*`, `recap_filter_*`/`recap_scope_*` se orfane (`grep -rn R.string.<nome>` prima di togliere).
 
-- [ ] Compilazione, test, commit `refactor: Registro and Recap pages removed, Lavori carries them`.
+- [x] Compilazione, test, commit `refactor: Registro and Recap pages removed, Lavori carries them`.
 
 ### Task 8: CI, pre-release, telefono, resoconto
 
@@ -142,4 +142,4 @@ Stringhe nuove: `menu_lavori` «Lavori», `menu_lavori_sub` «Per te, in corso, 
 
 **File:** `core/.../contract/Model.kt` (`DonePage`, `DoneRow`, `DoneProof`, `DoneDayRef`; `CmdOp.DONE`), `ContractJson.kt` (`decodeDone`), `Lavori.kt` (`done(page: DonePage, …)` accanto a quella dagli eventi, con la prova e i giorni), `lavori.ts`, `LavoriScreen.kt` e `Lavori.svelte` (la prova come link, i giorni richiusi che si aprono con un'altra chiamata), `web/src/lib/contract.ts`; test su `cmd-result-sample.json`.
 
-- [ ] Fixture copiate (Task 1), tipi, regola, UI, test; pre-release `lavori-2026-10-22-b`.
+- [x] Fixture copiate (Task 1), tipi, regola, UI, test; pre-release `lavori-2026-10-22-b`.
