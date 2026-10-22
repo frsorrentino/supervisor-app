@@ -38,6 +38,15 @@ class CommitmentsTest {
         assertEquals(listOf("ledger-release-14", "notes-gantt-apk"), night.commitments.map { it.task })
     }
 
+    // Contratto 1.79: il titolo breve `short` (1-28 caratteri, una riga, mai «…»), esplicito dal registro o ricavato dal titolo.
+    @Test fun theFixturesCarryTheShortTitleOf179() {
+        assertEquals(listOf("Migrations 008-011", "SEO pages of atlas-shop"), idle.commitments!!.map { it.short })
+        assertEquals("Publish the orbit docs site", stale.commitments!!.single().short)
+        assertEquals(listOf("Release 1.4 di ledger-api", "APK del Gantt sul telefono"), night.commitments.map { it.short })
+        assertTrue((idle.commitments!! + stale.commitments!! + night.commitments).all { it.short!!.length in 1..28 && '\n' !in it.short!! && '…' !in it.short!! })
+        assertNull(Commitment(task = "x", title = "y").short)
+    }
+
     @Test fun rowsKeepTheRelayOrderWithTheAgeOfNow() {
         val rows = Commitments.rows(idle, idle.ts)
         assertEquals(listOf("ledger-migrations-011", "atlas-seo-pages"), rows.map { it.c.task })

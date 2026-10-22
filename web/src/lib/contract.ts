@@ -49,7 +49,8 @@ export type Advice = { model: string; effort: string; reason: string; switch_cos
 export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number }
 /** Contratto 1.76: una voce della vista «Impegni» del registro; `waits` = chi aspetta chi (`person` = l'utente). */
 export type Commitment = {
-  task: string; title: string; project?: string | null; session?: string | null
+  /** Contratto 1.79: `short` = il titolo breve, 1-28 caratteri su una riga, mai «…»; assente con un relay precedente. */
+  task: string; title: string; short?: string | null; project?: string | null; session?: string | null
   state: 'proposed' | 'assigned' | 'running' | 'awaiting_ok' | 'approved' | string; lane?: string | null; plan?: string | null
   approved: boolean; approved_at?: number | null; approved_by?: string | null
   age_s: number; last_step?: { at: number; kind: string; text: string } | null; idle_s: number
@@ -78,7 +79,7 @@ export type NightReportRef = { date: string; generated_at: number }
 export type Night = { queued: number; running?: string | null; items?: NightItem[] | null; report?: NightReportRef | null; master?: boolean }
 /** Contratto 1.46: una riga dell'agenda, tutta testo libero; le righe nell'ordine del file, `more` = tagliate sopra i 60 KB. */
 export type AgendaRow = {
-  state: string; scope: string; blocks: string; title: string; ref: string
+  state: string; scope: string; blocks: string; title: string; short?: string | null; ref: string
   /** Contratto 1.47: il dettaglio con gli a capo (null = non scritto) e `AAAA-MM-GG` fino a cui è sospesa. */
   detail?: string | null; until?: string | null
   /** Contratto 1.47: la chiave della riga, scelta dal relay; cambia a ogni modifica. */
@@ -88,7 +89,7 @@ export type AgendaRow = {
 export type AgendaPage = { rows: AgendaRow[]; more: boolean; owner?: string | null }
 /** Contratto 1.77, op `done`: i compiti chiusi in un giorno con la prova (`kind` ∈ release|commit|file|check) e i giorni prima col conteggio. */
 export type DoneProof = { kind: string; value: string; url?: string | null }
-export type DoneRow = { task: string; title: string; project?: string | null; session?: string | null; at: number; outcome: 'green' | 'cancelled' | 'failed' | string; proof?: DoneProof | null }
+export type DoneRow = { task: string; title: string; short?: string | null; project?: string | null; session?: string | null; at: number; outcome: 'green' | 'cancelled' | 'failed' | string; proof?: DoneProof | null }
 export type DonePage = { date: string; rows: DoneRow[]; days: { date: string; n: number }[]; more: boolean }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }

@@ -190,6 +190,9 @@ class ContractTest {
         // Contratto 1.47: dettaglio con a capo veri e data di ritorno sulla sospesa, null altrove.
         assertEquals("2026-10-12", agendaPage.rows[2].until); assertTrue(agendaPage.rows[2].detail!!.contains('\n')); assertNull(agendaPage.rows[0].detail)
         assertEquals("orbit-docs", agendaPage.rows[1].ref); assertEquals("", agendaPage.rows[2].ref)
+        // Contratto 1.79: il titolo breve delle righe dell'agenda e della riga che risponde ad agenda_set.
+        assertEquals(listOf("Confirm the 6 client ids", "Move the docs site", "Staging of atlas-shop", "Backups of the workstation", "A second dashboard"), agendaPage.rows.map { it.short })
+        assertEquals("Confirm the 6 client ids", done.short)
         assertEquals("no agenda file", results.first { it.id == agenda[1].id }.let { assertFalse(it.ok); it.text })
         assertTrue("agenda" in ContractJson.decodeState(Fixtures.stateIdle).ops.orEmpty())
         val night = cmds.first { it.op == CmdOp.NIGHT }
@@ -412,6 +415,8 @@ class ContractTest {
         val ok = results.first { it.id.endsWith("0760") }; val page = ContractJson.decodeDone(ok.text)
         assertEquals("release", page.rows[0].proof!!.kind); assertEquals("v2.3", page.rows[0].proof!!.value); assertEquals("check", page.rows[3].proof!!.kind); assertNull(page.rows[3].proof!!.url)
         assertEquals(false, page.more); assertEquals("personal/atlas-shop", page.rows[0].project)
+        // Contratto 1.79: il titolo breve anche sulle righe chiuse.
+        assertTrue(page.rows.all { !it.short.isNullOrBlank() && it.short!!.length <= 28 })
         assertEquals("no task registry", results.first { it.id.endsWith("0761") }.text); assertEquals("ieri: not a date YYYY-MM-DD", results.first { it.id.endsWith("0762") }.text)
         assertTrue(results.filter { it.id.endsWith("0761") || it.id.endsWith("0762") }.none { it.ok })
     }

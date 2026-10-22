@@ -263,6 +263,8 @@ enum class CmdOp {
     val next: String? = null, val waits: CommitmentWaits? = null,
     val expected: String? = null, @SerialName("outcome_kind") val outcomeKind: String? = null,
     val check: CommitmentCheck? = null, val paused: CommitmentPause? = null, val stalled: Boolean = false,
+    /** Contratto 1.79: il titolo breve, 1-28 caratteri su una riga, mai «…»; `task.short` del registro o ricavato dal titolo; null con un relay precedente. In coda per non spostare i parametri. */
+    val short: String? = null,
 )
 @Serializable data class CommitmentStep(val at: Long = 0, val kind: String = "", val text: String = "")
 @Serializable data class CommitmentWaits(val who: String = "", val on: String = "")
@@ -563,6 +565,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val until: String? = null,
     /** Contratto 1.47: la chiave della riga, scelta dal relay; cambia a ogni modifica. "" con un relay 1.46. */
     val key: String = "",
+    /** Contratto 1.79: il titolo breve (colonna 8 dell'agenda o ricavato dal titolo); null con un relay precedente. In coda per non spostare i parametri. */
+    val short: String? = null,
 )
 /** Contratto 1.46: le righe nell'ordine del file; `more` = tagliate sopra i 60 KB. */
 @Serializable data class AgendaPage(
@@ -579,6 +583,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
 @Serializable data class DoneRow(
     val task: String, val title: String = "", val project: String? = null, val session: String? = null,
     val at: Long = 0, val outcome: String = "green", val proof: DoneProof? = null,
+    /** Contratto 1.79: il titolo breve, come in `Commitment`; in coda per non spostare i parametri. */
+    val short: String? = null,
 )
 /** Un giorno prima con almeno un compito chiuso, col conteggio: l'app lo apre con un'altra chiamata. */
 @Serializable data class DoneDayRef(val date: String, val n: Int = 0)

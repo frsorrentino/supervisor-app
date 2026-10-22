@@ -19,6 +19,9 @@ describe('impegni', () => {
     expect(led.waits).toEqual({ who: 'person', on: 'ledger-api' })
     expect(led.check).toEqual({ outcome: 'red', at: 1789199760 })
     expect(decodeState(fixture('state-1-question.json')).commitments).toEqual([])
+    // Contratto 1.79: il titolo breve `short` (1-28 caratteri, una riga, mai «…»).
+    expect(idle.commitments!.map(c => c.short)).toEqual(['Migrations 008-011', 'SEO pages of atlas-shop'])
+    expect(night.commitments.map(c => c.short)).toEqual(['Release 1.4 di ledger-api', 'APK del Gantt sul telefono'])
     const paused = stale.commitments![0]
     expect(paused.paused).toEqual({ reason: "after the client's review", at: 1789100000, by: 'master' })
     expect(paused.expected).toBeNull()
