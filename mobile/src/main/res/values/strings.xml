@@ -1076,20 +1076,22 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_unblocks">sblocca %1$s</string>
     <string name="lavori_nothing">Niente che aspetti te</string>
     <string name="lavori_progress">In corso</string>
-    <string name="lavori_progress_expl">Un compito per riga: cosa, chi, da quando, il prossimo passo. La barra è il tempo dall\'ok a adesso.</string>
     <string name="lavori_nothing_progress">Niente in corso</string>
     <string name="lavori_axis_today">oggi</string>
-    <string name="lavori_key">barra piena = al lavoro · tratteggio = in pausa · riga bianca = adesso</string>
-    <string name="lavori_state_active">al lavoro</string>
-    <string name="lavori_state_paused">in pausa</string>
-    <string name="lavori_state_others">fermo su altri</string>
     <string name="lavori_ok_at">ok alle %1$s</string>
     <string name="lavori_ok_on">ok il %1$s alle %2$s</string>
-    <string name="lavori_paused_reason">in pausa: %1$s</string>
-    <string name="lavori_next">prossimo: %1$s</string>
-    <string name="lavori_blocks">fermo su %1$s</string>
-    <string name="lavori_paused_n">Altri %1$d in pausa</string>
-    <string name="lavori_others_n">%1$d fermi su altri</string>
+    <!-- In corso per chi deve muoversi (mockup della master approvato da Franz il 22/10 alle 21:16). -->
+    <string name="lavori_working">Al lavoro</string>
+    <string name="lavori_waits_you">Aspetta te</string>
+    <string name="lavori_others">Fermi su altri</string>
+    <string name="lavori_n_tasks">%1$d compiti</string>
+    <string name="lavori_since_at">dalle %1$s</string>
+    <string name="lavori_since_on">dal %1$s</string>
+    <string name="lavori_until">fino al %1$s</string>
+    <string name="lavori_view_list">Elenco</string>
+    <string name="lavori_view_time">Tempo</string>
+    <string name="lavori_agenda_no_date">dall\'agenda, senza data</string>
+    <string name="lavori_time_key">piena = al lavoro · tratteggio = in pausa o in coda · riga bianca = adesso</string>
     <string name="lavori_tonight">Stanotte</string>
     <string name="lavori_tonight_expl">La coda per stanotte. Sta solo qui.</string>
     <string name="lavori_last_night">La notte del %1$s</string>

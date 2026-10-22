@@ -89,7 +89,7 @@
   const lavoriLine = $derived.by(() => {
     const ip = lavoriProgress(st, agenda, now, zone, today)
     const doneToday = lavoriDone(events, zone, today).find(d => d.date === today)?.rows.length ?? 0
-    return t.lavoriHomeLine(ip.active.length + ip.paused.length + ip.others.length, st.night.queued, doneToday)
+    return t.lavoriHomeLine(ip.total, st.night.queued, doneToday)
   })
   function fySub(r: LavoriRow): string | null {
     if (r.kind === 'ok') return r.who && r.at ? t.lavoriAsks(r.who, hhmm(r.at)) : r.who ? t.lavoriAsksWho(r.who) : t.lavoriWaitsOk

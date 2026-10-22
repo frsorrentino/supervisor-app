@@ -26,6 +26,9 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.HourglassEmpty
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Button
@@ -34,6 +37,9 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.TextUnit
@@ -80,6 +86,9 @@ enum class LavoriPart { ALL, LEFT, RIGHT }
 
 enum class LavoriHeader { BAR, NONE, DESK }
 
+/** La vista di «In corso» (mockup 22/10 21:16): l'elenco per chi deve muoversi, o il tempo dei sette giorni. */
+enum class LavoriView { LIST, TIME }
+
 /**
  * La pagina unica «Lavori» (mockup approvato da Franz il 22/10, `docs/mockup/2026-10-22-lavori/`): al posto di Registro,
  * Recap e della sezione Impegni della home. Quattro blocchi per domanda: Per te (ognuno col suo tasto), In corso (un
@@ -97,8 +106,10 @@ fun LavoriScreen(
     today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault(),
     /** Contratto 1.77: le pagine dell'op `done` già caricate, per data; con almeno una il blocco Fatto non guarda più gli eventi. `onLoadDay` carica un giorno richiuso. */
     donePages: Map<String, DonePage> = emptyMap(), onLoadDay: (String) -> Unit = {},
-    /** Solo per i provini: le pieghe già aperte (`outside`, `claude`, `paused`, `others`, `day:<data>`). */
+    /** Solo per i provini: le pieghe già aperte (`outside`, `claude`, `day:<data>`). */
     startOpen: Set<String> = emptySet(),
+    /** La vista di «In corso» all'apertura; dal vivo vale l'ultima scelta (preferenze `lavori`), per i provini questa. */
+    startView: LavoriView? = null,
 ) {
     val fy = remember(state, agenda, now, today) { Lavori.forYou(state, agenda, now, today) }
     val ip = remember(state, agenda, now, zone, today) { Lavori.inProgress(state, agenda, now, zone, today) }
@@ -109,6 +120,10 @@ fun LavoriScreen(
     val right = part != LavoriPart.LEFT
     val oldRelay = state.commitments == null
     val hasOk = fy.ok.any { it.approval != null }
+    // Elenco | Tempo: la scelta resta (preferenze «lavori»); nei provini non c'è un contesto vero, si legge con cautela.
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { runCatching { ctx.getSharedPreferences("lavori", android.content.Context.MODE_PRIVATE) }.getOrNull() }
+    var timeView by rememberSaveable { mutableStateOf(startView?.let { it == LavoriView.TIME } ?: runCatching { prefs?.getBoolean("time", false) }.getOrNull() ?: false) }
 
     LazyColumn(Modifier.fillMaxSize().background(CmColors.bg), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp)) {
         item("head") {
@@ -152,21 +167,30 @@ fun LavoriScreen(
             }
         }
         if (right) {
-            // ---- In corso ----
-            val n = ip.active.size + ip.paused.size + ip.others.size
-            item("sec-progress") { HomeSection(stringResource(R.string.lavori_progress) + " · " + n, null, true) {} }
-            item("expl-progress") { Expl(stringResource(R.string.lavori_progress_expl)) }
-            if (oldRelay) item("progress-old") { Expl(stringResource(R.string.lavori_old_relay), CmColors.text) }
-            else if (n == 0) item("progress-empty") { Expl(stringResource(R.string.lavori_nothing_progress), CmColors.text) }
-            if (ip.active.isNotEmpty() || ip.paused.isNotEmpty()) item("axis") { AxisRow(ip.axis) }
-            ip.active.forEach { w -> item("wk-${w.row!!.c.task}") { WorkCard(w, ip.axis, today, zone) } }
-            if (ip.paused.isNotEmpty()) {
-                item("fold-paused") { Fold(stringResource(R.string.lavori_paused_n, ip.paused.size) + ": " + ip.paused.joinToString(", ") { it.row!!.c.title }, "paused" in open) { toggle("paused") } }
-                if ("paused" in open) ip.paused.forEach { w -> item("wk-${w.row!!.c.task}") { WorkCard(w, ip.axis, today, zone) } }
+            // ---- In corso: tre gruppi per chi deve muoversi (mockup della master approvato il 22/10 alle 21:16) ----
+            item("sec-progress") {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) { HomeSection(stringResource(R.string.lavori_progress) + " · " + ip.total, null, true) {} }
+                    ViewSwitch(timeView) { v -> timeView = v; runCatching { prefs?.edit()?.putBoolean("time", v)?.apply() } }
+                }
             }
-            if (ip.others.isNotEmpty()) {
-                item("fold-others") { Fold(stringResource(R.string.lavori_others_n, ip.others.size) + ": " + ip.others.joinToString(", ") { it.agenda!!.title }, "others" in open) { toggle("others") } }
-                if ("others" in open) ip.others.forEachIndexed { i, w -> item("ot-$i-${w.agenda!!.key}") { WorkCard(w, ip.axis, today, zone) } }
+            if (oldRelay) item("progress-old") { Expl(stringResource(R.string.lavori_old_relay), CmColors.text) }
+            else if (ip.total == 0) item("progress-empty") { Expl(stringResource(R.string.lavori_nothing_progress), CmColors.text) }
+            val groups = listOf(
+                Triple(ip.working, R.string.lavori_working, CmColors.busy), Triple(ip.you, R.string.lavori_waits_you, CmColors.waiting), Triple(ip.others, R.string.lavori_others, CmColors.text2),
+            )
+            if (!timeView) groups.forEach { (lines, label, tone) ->
+                if (lines.isEmpty()) return@forEach
+                item("grp-$label") { GroupHeader(stringResource(label) + " · " + lines.sumOf { it.n }, tone) }
+                lines.forEachIndexed { i, l -> item("ln-$label-$i-${lineKey(l)}") { WorkLine(l, today, zone) } }
+            } else {
+                if (ip.working.isNotEmpty() || ip.you.isNotEmpty()) item("axis") { AxisRow(ip.axis, labelWidth = GANTT_LABEL) }
+                groups.forEach { (lines, label, tone) ->
+                    if (lines.isEmpty()) return@forEach
+                    item("tgrp-$label") { GroupHeader(stringResource(label) + " · " + lines.sumOf { it.n }, tone) }
+                    lines.forEachIndexed { i, l -> item("tl-$label-$i-${lineKey(l)}") { GanttRow(l, ip.axis) } }
+                }
+                if (ip.total > 0) item("time-key") { Text(stringResource(R.string.lavori_time_key), style = MonoSmall.copy(fontSize = 11.sp), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 8.dp)) }
             }
         }
         if (left) {
@@ -264,17 +288,104 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
     if (ask && a != null) ApproveDialog(a, onConfirm = { n -> ask = false; onClick(n) }, onDismiss = { ask = false })
 }
 
-/** I sette giorni dell'asse, poi «oggi». */
+/** La larghezza dell'etichetta nella vista Tempo (mockup: 120 px su 412). */
+private val GANTT_LABEL = 120.dp
+
+/** I sette giorni dell'asse, poi «oggi»; una volta sola in testa alla vista Tempo, dopo lo spazio dell'etichetta. */
 @Composable
-private fun AxisRow(axis: Lavori.Axis) {
-    Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-        axis.days.forEach { (label, _) -> Text(label, style = MonoSmall.copy(fontSize = 11.sp), modifier = Modifier.weight(1f)) }
-        Text(stringResource(R.string.lavori_axis_today), style = MonoSmall.copy(fontSize = 11.sp, color = CmColors.text))
+private fun AxisRow(axis: Lavori.Axis, labelWidth: androidx.compose.ui.unit.Dp = 0.dp) {
+    Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (labelWidth > 0.dp) Spacer(Modifier.width(labelWidth))
+        Row(Modifier.weight(1f)) {
+            axis.days.forEach { (label, _) -> Text(label, style = MonoSmall.copy(fontSize = 11.sp), modifier = Modifier.weight(1f)) }
+            Text(stringResource(R.string.lavori_axis_today), style = MonoSmall.copy(fontSize = 11.sp, color = CmColors.text))
+        }
     }
-    Text(stringResource(R.string.lavori_key), style = MonoSmall.copy(fontSize = 11.sp), modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 8.dp))
 }
 
-/** La barra dei sette giorni: pista, tratti pieni (al lavoro) o tratteggiati (in pausa), la riga di adesso. */
+/** Elenco | Tempo nella testata di «In corso»: il segmented button di Material 3, la scelta resta. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ViewSwitch(time: Boolean, onChange: (Boolean) -> Unit) {
+    val colors = SegmentedButtonDefaults.colors(
+        activeContainerColor = CmColors.surfaceHigh, activeContentColor = CmColors.text, activeBorderColor = CmColors.line,
+        inactiveContainerColor = CmColors.bg, inactiveContentColor = CmColors.text2, inactiveBorderColor = CmColors.line,
+    )
+    SingleChoiceSegmentedButtonRow(Modifier.height(36.dp)) {
+        listOf(R.string.lavori_view_list, R.string.lavori_view_time).forEachIndexed { i, label ->
+            SegmentedButton(
+                selected = time == (i == 1), onClick = { onChange(i == 1) },
+                shape = SegmentedButtonDefaults.itemShape(i, 2), colors = colors, modifier = Modifier.handCursor(),
+            ) { Text(stringResource(label), style = MaterialTheme.typography.labelLarge) }
+        }
+    }
+}
+
+/** Una chiave stabile per una riga di «In corso»: il compito, o la chiave dell'agenda. */
+private fun lineKey(l: Lavori.Line): String = l.works.first().row?.c?.task ?: l.agenda?.key.orEmpty()
+
+/** «dalle 20:50» oggi, «dal 18/10» prima. */
+@Composable
+private fun since(at: Long, today: LocalDate, zone: ZoneId): String {
+    val d = Instant.ofEpochSecond(at).atZone(zone).toLocalDate()
+    return if (d == today) stringResource(R.string.lavori_since_at, hhmm(at, zone)) else stringResource(R.string.lavori_since_on, dayMonth(d))
+}
+
+/**
+ * Una riga di «In corso» (mockup 22/10): l'icona del gruppo in un cerchio, il titolo breve su una riga, la riga sotto con la
+ * cosa da sapere (per chi aspetta te cosa serve da Franz, per chi lavora sessione e ok, per i fermi su altri il rimando),
+ * a destra da quando o fino a quando; «N compiti» per le righe raggruppate. Mai «…»: il titolo breve sta per costruzione,
+ * la riga sotto si taglia a due righe.
+ */
+@Composable
+private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
+    val (icon, tint) = when (l.who) {
+        Lavori.Who.WORKING -> Icons.Rounded.PlayArrow to CmColors.busy
+        Lavori.Who.YOU -> Icons.Rounded.Person to CmColors.waiting
+        Lavori.Who.OTHERS -> Icons.Rounded.HourglassEmpty to CmColors.text2
+    }
+    val a = l.agenda
+    val meta = when (l.who) {
+        Lavori.Who.OTHERS -> a?.ref?.takeIf { it.isNotBlank() } ?: a?.detail?.lineSequence()?.firstOrNull { it.isNotBlank() }?.trim()
+        Lavori.Who.YOU -> l.reason ?: l.next ?: l.session
+        Lavori.Who.WORKING -> listOfNotNull(
+            l.session,
+            l.reason ?: l.approvedAt?.let { at -> val d = Instant.ofEpochSecond(at).atZone(zone).toLocalDate(); if (d == today) stringResource(R.string.lavori_ok_at, hhmm(at, zone)) else stringResource(R.string.lavori_ok_on, dayMonth(d), hhmm(at, zone)) },
+        ).joinToString(" · ").ifBlank { null }
+    }
+    val right = when (l.who) {
+        Lavori.Who.OTHERS -> a?.until?.let { runCatching { LocalDate.parse(it) }.getOrNull() }?.let { stringResource(R.string.lavori_until, dayMonth(it)) }
+        else -> l.since?.let { since(it, today, zone) }
+    }
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(32.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(l.short, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                if (l.n > 1) Tag(stringResource(R.string.lavori_n_tasks, l.n), tint)
+            }
+            meta?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+        }
+        right?.let { Text(it, style = MonoSmall.copy(fontSize = 12.sp), color = CmColors.text2) }
+    }
+}
+
+/** Una riga della vista Tempo: l'etichetta breve (con «(N)» se raggruppata) e la barra dei sette giorni; una riga dell'agenda lo dice, senza barra. */
+@Composable
+private fun GanttRow(l: Lavori.Line, axis: Lavori.Axis) {
+    Row(Modifier.fillMaxWidth().height(40.dp).padding(start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(if (l.n > 1) "${l.short} (${l.n})" else l.short, style = MaterialTheme.typography.bodyMedium, color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.width(GANTT_LABEL))
+        if (l.bars.isNotEmpty()) Box(Modifier.weight(1f)) { LavoriBar(l.bars, axis.now) }
+        else Text(stringResource(R.string.lavori_agenda_no_date), style = MonoSmall.copy(fontSize = 11.sp), modifier = Modifier.weight(1f))
+    }
+}
+
+/** La barra dei sette giorni: pista, tratti pieni (al lavoro) o tratteggiati (in pausa o in coda), la riga di adesso. */
 @Composable
 private fun LavoriBar(bars: List<Lavori.Bar>, now: Double) {
     val solid = CmColors.busy; val dashed = CmColors.text2.copy(alpha = 0.7f); val track = CmColors.briefTrack; val line = CmColors.text
@@ -288,35 +399,6 @@ private fun LavoriBar(bars: List<Lavori.Bar>, now: Double) {
         }
         val nx = (now * w).toFloat().coerceIn(1f, w - 1f)
         drawRect(line, Offset(nx - 1f, 0f), Size(2f, size.height))
-    }
-}
-
-/** Una riga di «In corso»: titolo, chi · da quando · prossimo passo, lo stato e la barra; una riga dell'agenda ferma su terzi senza barra. */
-@Composable
-private fun WorkCard(w: Lavori.Work, axis: Lavori.Axis, today: LocalDate, zone: ZoneId) {
-    val c = w.row?.c; val a = w.agenda
-    val title = c?.title ?: a?.title.orEmpty()
-    val (tag, tone) = when {
-        c?.paused != null -> stringResource(R.string.lavori_state_paused) to CmColors.text2
-        c != null -> stringResource(R.string.lavori_state_active) to CmColors.busy
-        else -> stringResource(R.string.lavori_state_others) to CmColors.text2
-    }
-    val meta = if (c != null) listOfNotNull(
-        c.session,
-        c.approvedAt?.let { at -> val d = Instant.ofEpochSecond(at).atZone(zone).toLocalDate(); if (d == today) stringResource(R.string.lavori_ok_at, hhmm(at, zone)) else stringResource(R.string.lavori_ok_on, dayMonth(d), hhmm(at, zone)) },
-        c.paused?.let { stringResource(R.string.lavori_paused_reason, it.reason) } ?: c.next?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.lavori_next, it) },
-    ).joinToString(" · ") else listOfNotNull(a?.ref?.takeIf { it.isNotBlank() }, a?.blocks?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.lavori_blocks, it) }).joinToString(" · ")
-    Column(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f))
-            Tag(tag, tone)
-        }
-        val metaColor = when (w.row?.tone) { it.pixelbox.cmwatch.rules.Commitments.Tone.ALERT -> CmColors.gone; it.pixelbox.cmwatch.rules.Commitments.Tone.WARN -> CmColors.waiting; else -> CmColors.text2 }
-        if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.bodyMedium, color = metaColor)
-        if (w.bars.isNotEmpty()) LavoriBar(w.bars, axis.now)
     }
 }
 

@@ -18,6 +18,7 @@ export const ICON = {
   check: ['M20 6 9 17l-5-5'],
   // Le icone di stato al posto dei glifi ✓ ▶ ◐ ✗ ❓ ○ (Franz, 22/10: niente emoji nell'app): «half» è un cerchio diviso a metà.
   play: ['m6 3 14 9-14 9V3z'],
+  user: ['M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2', 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8'],
   x: ['M18 6 6 18', 'm6 6 12 12'],
   question: ['M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3', 'M12 17h.01'],
   half: ['M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0', 'M12 2v20', 'M12 7a5 5 0 0 1 0 10'],

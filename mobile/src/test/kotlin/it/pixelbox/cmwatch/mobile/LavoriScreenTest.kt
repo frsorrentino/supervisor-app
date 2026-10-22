@@ -6,6 +6,9 @@ import app.cash.paparazzi.Paparazzi
 import it.pixelbox.cmwatch.contract.AgendaPage
 import it.pixelbox.cmwatch.contract.AgendaRow
 import it.pixelbox.cmwatch.contract.Approval
+import it.pixelbox.cmwatch.contract.Commitment
+import it.pixelbox.cmwatch.contract.CommitmentPause
+import it.pixelbox.cmwatch.contract.CommitmentWaits
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.DoneDayRef
 import it.pixelbox.cmwatch.contract.DonePage
@@ -17,6 +20,7 @@ import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.mobile.ui.LavoriHeader
 import it.pixelbox.cmwatch.mobile.ui.LavoriPart
 import it.pixelbox.cmwatch.mobile.ui.LavoriScreen
+import it.pixelbox.cmwatch.mobile.ui.LavoriView
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -56,12 +60,45 @@ class LavoriScreenTest {
         days = listOf(DoneDayRef("2026-02-09", 3), DoneDayRef("2026-02-07", 1)),
     )
 
-    @Composable private fun page(state: State, agenda: AgendaPage?, part: LavoriPart = LavoriPart.ALL, header: LavoriHeader = LavoriHeader.BAR, open: Set<String> = emptySet(), pages: Map<String, DonePage> = emptyMap()) = CmPhoneTheme(still = true) {
-        LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, idle.ts, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, header = header, part = part, today = today, zone = zone, donePages = pages, startOpen = open)
+    @Composable private fun page(
+        state: State, agenda: AgendaPage?, part: LavoriPart = LavoriPart.ALL, header: LavoriHeader = LavoriHeader.BAR, open: Set<String> = emptySet(),
+        pages: Map<String, DonePage> = emptyMap(), view: LavoriView = LavoriView.LIST, now: Long = idle.ts, day: java.time.LocalDate = today,
+    ) = CmPhoneTheme(still = true) {
+        LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, now, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, header = header, part = part, today = day, zone = zone, donePages = pages, startOpen = open, startView = view)
     }
 
+    /** Il caso reale della sera del 22/10 (mockup «In corso leggibile»): 2 al lavoro, 7 che aspettano Franz con Albo Chiaro ×5, 2 fermi su terzi, titoli lunghi. */
+    private val eveningNow = 1792700400L
+    private val evening: State by lazy {
+        fun c(task: String, title: String, session: String, waitsOn: String, paused: CommitmentPause? = null, approvedAt: Long? = null, next: String? = null, short: String? = null) =
+            Commitment(task, title, session = session, state = if (paused != null) "assigned" else "running", approved = true, approvedAt = approvedAt, ageS = 3600, idleS = 600,
+                next = next, waits = CommitmentWaits(if (waitsOn == "person") session else "person", waitsOn), paused = paused, short = short)
+        val albo = CommitmentPause("Albo Chiaro sospeso dal 18/10 a stato pulito: aspetta da Franz la casella Aruba albo@, l'utente con password e le chiavi Gemini e OCR", 1792274400, "master")
+        idle.copy(ts = eveningNow, approvals = emptyList(), commitments = listOf(
+            c("niente-emoji-22-10", "supervisor-app: niente emoji nell'app e nelle notifiche, solo icone vettoriali (SVG, vector drawable, Font Awesome)", "supervisor-app", "supervisor-app", approvedAt = eveningNow - 5400, short = "Niente emoji nell'app"),
+            c("tab-suggerimento-22-10", "supervisor-app: con un suggerimento visibile nella casella di testo, Tab (web) lo copia nel campo come testo pronto per l'invio", "supervisor-app", "supervisor-app",
+                paused = CommitmentPause("in coda dopo niente-emoji-22-10", eveningNow - 5300, "master"), approvedAt = eveningNow - 5400),
+            c("albo-fase1-20261017", "Albo Chiaro fase 1 (task 1-8): repository e CI, verifiche, database, lettore automatico orario sul server", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 1"),
+            c("albo-fase2-20261017", "Albo Chiaro fase 2 (task 9-15): testo, OCR, pulizia dei dati personali, IA Gemini con controlli", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 2"),
+            c("albo-fase3-20261017", "Albo Chiaro fase 3 (task 16-19): appalti da ANAC, Amministrazione Trasparente e determine", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 3"),
+            c("albo-provincia-20261017", "Albo Chiaro: albo della Provincia di Crotone come secondo ente (colonna ente, lettore per ente)", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro: Provincia"),
+            c("albo-regione-20261017", "Albo Chiaro: provvedimenti della Regione Calabria che nominano Crotone (filtro sull'oggetto prima di PDF e IA)", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro: Regione"),
+            c("lavori-gerarchia-22-10", "supervisor-app: la sezione In corso di Lavori è un muro di testo: gruppi per chi deve muoversi, titolo breve, Elenco e Tempo", "supervisor-app", "person", next = "l'ok a: il mockup della master", short = "Lavori: In corso leggibile"),
+            c("phone-fix-0310-sera", "App telefono: menu che si chiudono, volo card→sessione al tocco, «Avvia» solo senza sessione, quota 5h su card e testata", "claude-master-phone", "person",
+                paused = CommitmentPause("compito del 03/10 dell'app quando si chiamava claude-master-phone; il controllo non gira più (exit 127): da confermare con Franz se è superato e va cancellato", 1792622164, "master"), approvedAt = 1791050000, short = "App telefono del 03/10"),
+        ))
+    }
+    private val eveningAgenda = AgendaPage(listOf(
+        AgendaRow("aperto", "postazione", "terzi", "Attesa revisione Chrome Web Store per chrome-bridge 1.12.0 con move_tab", "chrome-bridge 1.12.0 con move_tab", key = "a1", short = "Revisione Chrome Web Store"),
+        AgendaRow("aperto", "personale", "terzi", "chrome-bridge, issue #2: risposta di jeet-dhandha sul tab che non si muove", "", detail = "risposta di jeet-dhandha\nseconda riga", until = "2026-10-25", key = "a2"),
+    ), owner = "franz")
+    private val eveningDay: java.time.LocalDate = Instant.ofEpochSecond(eveningNow).atZone(zone).toLocalDate()
+
     @Test fun lavoriFull() = paparazzi.snapshot { page(st, agenda) }
-    @Test fun lavoriProgressAndDone() = paparazzi.snapshot { page(st, agenda, part = LavoriPart.RIGHT, header = LavoriHeader.DESK, open = setOf("paused", "others")) }
+    @Test fun lavoriProgressAndDone() = paparazzi.snapshot { page(st, agenda, part = LavoriPart.RIGHT, header = LavoriHeader.DESK) }
+    // Mockup «In corso leggibile» (22/10 21:16) col caso reale: la vista Elenco e la vista Tempo.
+    @Test fun lavoriProgressList() = paparazzi.snapshot { page(evening, eveningAgenda, part = LavoriPart.RIGHT, header = LavoriHeader.NONE, now = eveningNow, day = eveningDay) }
+    @Test fun lavoriProgressTime() = paparazzi.snapshot { page(evening, eveningAgenda, part = LavoriPart.RIGHT, header = LavoriHeader.NONE, view = LavoriView.TIME, now = eveningNow, day = eveningDay) }
     // Contratto 1.77: il blocco Fatto dall'op `done`, con la prova, gli esiti e i giorni prima richiusi col conteggio.
     @Test fun lavoriDoneFromTheOp() = paparazzi.snapshot { page(st, agenda, part = LavoriPart.RIGHT, header = LavoriHeader.NONE, pages = mapOf(donePage.date to donePage)) }
     @Test fun lavoriOldRelay() = paparazzi.snapshot { page(idle.copy(commitments = null, approvals = emptyList(), night = Night()), null) }

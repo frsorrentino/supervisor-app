@@ -5,10 +5,11 @@
   // «Utilizzo e limiti». Un solo bottone pieno: «Approva» (o «Aggiungi» quando non c'è un ok da dare).
   import { locale } from './lang'
   import type { AgendaPage, Approval, Commitment, DonePage, Event, State } from './contract'
-  import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Work } from './lavori'
+  import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Line } from './lavori'
   import { doIt, mark, type Edit } from './recapAgenda'
   import type { RecapAction } from './recapActions'
   import { t } from './t'
+  import Icon from './Icon.svelte'
 
   let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {} }: {
     st: State; agenda?: AgendaPage | null; events?: Event[]; now: number; timeZone?: string | null
@@ -32,7 +33,7 @@
   const left = $derived(part !== 'right')
   const right = $derived(part !== 'left')
   const oldRelay = $derived(st.commitments == null)
-  const progressN = $derived(ip.active.length + ip.paused.length + ip.others.length)
+  const progressN = $derived(ip.total)
   let open = $state<Record<string, boolean>>({})
   const toggle = (k: string) => { open = { ...open, [k]: !open[k] } }
   const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
@@ -47,17 +48,25 @@
     if (r.commitment) return r.who ? t.lavoriUnblocks(r.who) : null
     return [r.who, r.agenda?.scope].filter(x => x && x.trim()).join(' · ') || null
   }
-  function meta(w: Work): string {
-    const c = w.row?.c
-    if (c) {
-      const okAt = c.approved_at ? (ymd(c.approved_at, zone) === day ? t.lavoriOkAt(hhmm(c.approved_at)) : t.lavoriOkOn(dm(ymd(c.approved_at, zone)), hhmm(c.approved_at))) : null
-      const last = c.paused ? t.lavoriPausedReason(c.paused.reason) : c.next?.trim() ? t.lavoriNext(c.next) : null
-      return [c.session, okAt, last].filter(Boolean).join(' · ')
-    }
-    const a = w.agenda!
-    return [a.ref?.trim() || null, a.blocks?.trim() ? t.lavoriBlocks(a.blocks) : null].filter(Boolean).join(' · ')
+  // In corso per chi deve muoversi (mockup 22/10 21:16): la riga sotto dice la cosa da sapere, a destra da quando o fino a quando.
+  function lineMeta(l: Line): string | null {
+    if (l.who === 'others') { const a = l.agenda!; return a.ref?.trim() || a.detail?.split('\n').find(x => x.trim())?.trim() || null }
+    if (l.who === 'you') return l.reason ?? l.next ?? l.session
+    const okAt = l.approvedAt ? (ymd(l.approvedAt, zone) === day ? t.lavoriOkAt(hhmm(l.approvedAt)) : t.lavoriOkOn(dm(ymd(l.approvedAt, zone)), hhmm(l.approvedAt))) : null
+    return [l.session, l.reason ?? okAt].filter(Boolean).join(' · ') || null
   }
-  const toneOf = (w: Work) => (w.row?.tone === 'alert' ? 'var(--gone)' : w.row?.tone === 'warn' ? 'var(--b-warn)' : 'var(--text2)')
+  function lineRight(l: Line): string | null {
+    if (l.who === 'others') { const u = l.agenda?.until; return u && /^\d{4}-\d{2}-\d{2}$/.test(u) ? t.lavoriUntil(dm(u)) : null }
+    if (l.since == null) return null
+    return ymd(l.since, zone) === day ? t.lavoriSinceAt(hhmm(l.since)) : t.lavoriSinceOn(dm(ymd(l.since, zone)))
+  }
+  const toneOf = (who: Line['who']) => (who === 'working' ? 'var(--busy)' : who === 'you' ? 'var(--wait)' : 'var(--text2)')
+  const groups = $derived<[Line[], string, string][]>([[ip.working, t.lavoriWorking, 'var(--busy)'], [ip.you, t.lavoriWaitsYou, 'var(--wait)'], [ip.others, t.lavoriOthers, 'var(--text2)']])
+  const count = (lines: Line[]) => lines.reduce((n, l) => n + l.n, 0)
+  // Elenco | Tempo: la scelta resta nel browser.
+  let timeView = $state(false)
+  try { timeView = localStorage.getItem('lavori.view') === 'time' } catch { /* senza memoria */ }
+  function setView(time: boolean) { timeView = time; try { localStorage.setItem('lavori.view', time ? 'time' : 'list') } catch { /* senza memoria */ } }
   let pending = $state<Approval | null>(null)
   let note = $state('')
   let dlg: HTMLDialogElement | undefined = $state()
@@ -81,17 +90,19 @@
   </div>
 {/snippet}
 
-{#snippet work(w: Work)}
-  {@const c = w.row?.c}
-  <div class="card">
-    <div class="top"><b>{c?.title ?? w.agenda?.title}</b><span class="tag" style:color={c?.paused ? 'var(--text2)' : c ? 'var(--busy)' : 'var(--text2)'}>{c?.paused ? t.lavoriStatePaused : c ? t.lavoriStateActive : t.lavoriStateOthers}</span></div>
-    {#if meta(w)}<div class="meta" style:color={toneOf(w)}>{meta(w)}</div>{/if}
-    {#if w.bars.length}
-      <div class="track">
-        {#each w.bars as b}<i class:dashed={b.dashed} style:left="{b.from * 100}%" style:width="{(b.to - b.from) * 100}%"></i>{/each}
-        <i class="now" style:left="{ip.axis.now * 100}%"></i>
-      </div>
-    {/if}
+{#snippet line(l: Line)}
+  {@const tone = toneOf(l.who)}
+  <div class="wl">
+    <span class="ic" style="--t:{tone}"><Icon name={l.who === 'working' ? 'play' : l.who === 'you' ? 'user' : 'hourglass'} size={16} color={tone} /></span>
+    <span class="t"><span class="tt"><b>{l.short}</b>{#if l.n > 1}<span class="tag" style:color={tone}>{t.lavoriNTasks(l.n)}</span>{/if}</span>{#if lineMeta(l)}<small>{lineMeta(l)}</small>{/if}</span>
+    {#if lineRight(l)}<span class="when">{lineRight(l)}</span>{/if}
+  </div>
+{/snippet}
+{#snippet gantt(l: Line)}
+  <div class="grow"><span class="lbl">{l.n > 1 ? `${l.short} (${l.n})` : l.short}</span>
+    {#if l.bars.length}
+      <div class="track">{#each l.bars as b}<i class:dashed={b.dashed} style:left="{b.from * 100}%" style:width="{(b.to - b.from) * 100}%"></i>{/each}<i class="now" style:left="{ip.axis.now * 100}%"></i></div>
+    {:else}<span class="nodate">{t.lavoriAgendaNoDate}</span>{/if}
   </div>
 {/snippet}
 
@@ -124,22 +135,30 @@
   {/if}
 
   {#if right}
-    <h3 class="sec"><span>{t.lavoriProgress.toUpperCase()} · {progressN}</span><i></i></h3>
-    <p class="expl">{t.lavoriProgressExpl}</p>
+    <h3 class="sec"><span>{t.lavoriProgress.toUpperCase()} · {progressN}</span><i></i>
+      <span class="seg" role="group" aria-label={t.lavoriProgress}>
+        <button class:on={!timeView} aria-pressed={!timeView} onclick={() => setView(false)}>{t.lavoriViewList}</button>
+        <button class:on={timeView} aria-pressed={timeView} onclick={() => setView(true)}>{t.lavoriViewTime}</button>
+      </span>
+    </h3>
     {#if oldRelay}<p class="expl bright">{t.lavoriOldRelay}</p>
     {:else if !progressN}<p class="expl bright">{t.lavoriNothingProgress}</p>{/if}
-    {#if ip.active.length || ip.paused.length}
-      <div class="axis">{#each ip.axis.days as [label]}<span>{label}</span>{/each}<b>{t.lavoriAxisToday}</b></div>
-      <p class="key">{t.lavoriKey}</p>
-    {/if}
-    {#each ip.active as w (w.row!.c.task)}{@render work(w)}{/each}
-    {#if ip.paused.length}
-      {@render fold(`${t.lavoriPausedN(ip.paused.length)}: ${ip.paused.map(w => w.row!.c.title).join(', ')}`, !!open.paused, () => toggle('paused'))}
-      {#if open.paused}{#each ip.paused as w (w.row!.c.task)}{@render work(w)}{/each}{/if}
-    {/if}
-    {#if ip.others.length}
-      {@render fold(`${t.lavoriOthersN(ip.others.length)}: ${ip.others.map(w => w.agenda!.title).join(', ')}`, !!open.others, () => toggle('others'))}
-      {#if open.others}{#each ip.others as w, i (`ot-${i}`)}{@render work(w)}{/each}{/if}
+    {#if !timeView}
+      {#each groups as [lines, label, tone] (label)}
+        {#if lines.length}
+          <h4 class="gh" style="--t:{tone}"><span>{label.toUpperCase()} · {count(lines)}</span><i></i></h4>
+          {#each lines as l, i (`${l.who}-${i}`)}{@render line(l)}{/each}
+        {/if}
+      {/each}
+    {:else}
+      {#if ip.working.length || ip.you.length}<div class="axis gantt"><span class="lbl"></span><span class="days">{#each ip.axis.days as [label]}<span>{label}</span>{/each}<b>{t.lavoriAxisToday}</b></span></div>{/if}
+      {#each groups as [lines, label, tone] (label)}
+        {#if lines.length}
+          <h4 class="gh" style="--t:{tone}"><span>{label.toUpperCase()} · {count(lines)}</span><i></i></h4>
+          {#each lines as l, i (`${l.who}-${i}`)}{@render gantt(l)}{/each}
+        {/if}
+      {/each}
+      {#if progressN}<p class="key">{t.lavoriTimeKey}</p>{/if}
     {/if}
   {/if}
 
@@ -220,9 +239,18 @@
   .fold { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 6px; color: var(--text2); font-size: 14px; text-align: left; border-radius: 12px; } .fold span { flex: 1; }
   .axis { display: flex; padding: 2px 18px; font: 11px var(--mono); color: var(--b-axis, #8B929C); } .axis span { flex: 1; } .axis b { font-weight: 400; color: var(--text); }
   .key { margin: 0 6px 6px; font: 11px/1.4 var(--mono); color: var(--b-axis, #8B929C); }
-  .card { display: flex; flex-direction: column; gap: 4px; padding: 14px; } .card .top { display: flex; align-items: center; gap: 10px; } .card .top b { flex: 1; font-weight: 600; font-size: 15px; }
-  .tag { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: color-mix(in srgb, currentColor 15%, transparent); white-space: nowrap; }
-  .meta { font-size: 14px; }
+  .card { display: flex; flex-direction: column; gap: 4px; padding: 14px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; letter-spacing: 0; }
+  .seg button { height: 32px; padding: 0 14px; color: var(--text2); font: 500 13px/1 var(--sans, inherit); } .seg button + button { border-left: 1px solid var(--line); } .seg button.on { background: color-mix(in srgb, var(--icon) 16%, transparent); color: var(--text); }
+  .wl { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; background: var(--low); border-radius: 16px; }
+  .ic { flex: none; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--t) 18%, transparent); display: flex; align-items: center; justify-content: center; }
+  .wl .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .tt { display: flex; align-items: center; gap: 8px; min-width: 0; } .tt b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; }
+  .wl small { color: var(--text2); font-size: 13px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .when { flex: none; font: 12px/1 var(--mono); color: var(--text2); white-space: nowrap; }
+  .tag { font: 600 11px var(--mono); letter-spacing: .06em; border-radius: 999px; padding: 4px 8px; background: color-mix(in srgb, currentColor 15%, transparent); white-space: nowrap; }
+  .axis.gantt { padding: 2px 6px; gap: 8px; } .axis.gantt .lbl, .grow .lbl { width: 120px; flex: none; } .axis .days { flex: 1; display: flex; } .axis .days span { flex: 1; }
+  .grow { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px; } .grow .lbl { font-size: 13.5px; white-space: nowrap; overflow: hidden; } .grow .track { flex: 1; margin: 0; }
+  .nodate { flex: 1; font: 11px/16px var(--mono); color: var(--b-axis, #8B929C); }
   .track { position: relative; height: 8px; border-radius: 4px; background: var(--b-track); margin: 10px 0 2px; }
   .track i { position: absolute; top: 0; height: 8px; border-radius: 4px; background: var(--busy); }
   .track i.dashed { background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--text2) 70%, transparent) 0 6px, transparent 6px 10px); }
