@@ -573,6 +573,17 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
 /** Contratto 1.47: l'esito di `agenda_set`, la riga aggiornata con la key nuova. */
 @Serializable data class AgendaSetResult(val row: AgendaRow)
 
+/** Contratto 1.77, op `done`: la prova di un compito chiuso (`kind` ∈ release|commit|file|check), con il link quando c'è. */
+@Serializable data class DoneProof(val kind: String = "", val value: String = "", val url: String? = null)
+/** Un compito chiuso in un giorno; `outcome` ∈ green|cancelled|failed; `project` come `sessions[].project`. */
+@Serializable data class DoneRow(
+    val task: String, val title: String = "", val project: String? = null, val session: String? = null,
+    val at: Long = 0, val outcome: String = "green", val proof: DoneProof? = null,
+)
+/** Un giorno prima con almeno un compito chiuso, col conteggio: l'app lo apre con un'altra chiamata. */
+@Serializable data class DoneDayRef(val date: String, val n: Int = 0)
+@Serializable data class DonePage(val date: String = "", val rows: List<DoneRow> = emptyList(), val days: List<DoneDayRef> = emptyList(), val more: Boolean = false)
+
 @Serializable data class ProjectsPage(val projects: List<Project> = emptyList(), val more: Boolean = false)
 
 /**

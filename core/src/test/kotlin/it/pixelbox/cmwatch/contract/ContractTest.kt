@@ -406,6 +406,16 @@ class ContractTest {
     }
 
     // Contratto 1.19 (29/09, richiesta R5): «Condividi» verso una sessione. `share` nello stato dice che il relay lo supporta.
+    /** Contratto 1.77: `done` riuscito, senza registro, con una data sbagliata. */
+    @Test fun doneResultsOfTheFixture() {
+        val results = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+        val ok = results.first { it.id.endsWith("0760") }; val page = ContractJson.decodeDone(ok.text)
+        assertEquals("release", page.rows[0].proof!!.kind); assertEquals("v2.3", page.rows[0].proof!!.value); assertEquals("check", page.rows[3].proof!!.kind); assertNull(page.rows[3].proof!!.url)
+        assertEquals(false, page.more); assertEquals("personal/atlas-shop", page.rows[0].project)
+        assertEquals("no task registry", results.first { it.id.endsWith("0761") }.text); assertEquals("ieri: not a date YYYY-MM-DD", results.first { it.id.endsWith("0762") }.text)
+        assertTrue(results.filter { it.id.endsWith("0761") || it.id.endsWith("0762") }.none { it.ok })
+    }
+
     @Test fun reportAndShareSignal() {
         assertEquals(10_000_000, ContractJson.decodeState(Fixtures.stateIdle).share!!.maxBytes)
         val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject

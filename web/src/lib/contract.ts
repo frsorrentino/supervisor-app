@@ -86,6 +86,10 @@ export type AgendaRow = {
 }
 /** `owner` (contratto 1.47): il valore di `blocks` che indica l'utente. */
 export type AgendaPage = { rows: AgendaRow[]; more: boolean; owner?: string | null }
+/** Contratto 1.77, op `done`: i compiti chiusi in un giorno con la prova (`kind` ∈ release|commit|file|check) e i giorni prima col conteggio. */
+export type DoneProof = { kind: string; value: string; url?: string | null }
+export type DoneRow = { task: string; title: string; project?: string | null; session?: string | null; at: number; outcome: 'green' | 'cancelled' | 'failed' | string; proof?: DoneProof | null }
+export type DonePage = { date: string; rows: DoneRow[]; days: { date: string; n: number }[]; more: boolean }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
 export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder' | 'task_stalled'
@@ -192,7 +196,7 @@ export type State = {
   hosts_status: HostStatus[]; published_today: Published[]
 }
 
-export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen'
+export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */

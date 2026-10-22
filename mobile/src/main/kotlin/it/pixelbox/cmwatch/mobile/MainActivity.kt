@@ -874,12 +874,22 @@ class MainActivity : ComponentActivity() {
         val doneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = { c ->
             it.pixelbox.cmwatch.rules.ContextActions.master(state)?.name?.let { m -> sendPrompt(m, getString(R.string.lavori_done_prompt, c.paused?.reason.orEmpty(), c.task)) }
         }
+        // Contratto 1.77: il blocco Fatto dall'op `done`, una pagina per giorno; oggi quando si apre Lavori, un giorno prima al tocco.
+        var donePages by remember { mutableStateOf(mapOf<String, it.pixelbox.cmwatch.contract.DonePage>()) }
+        var doneId by remember { mutableStateOf<String?>(null) }
+        val canDone = state?.ops?.contains("done") == true
+        val askDone: (String?) -> Unit = { day -> scope.launch { doneId?.let { app.repo.forget(it) }; doneId = runCatching { app.repo.command(CmdOp.DONE, null, day) }.getOrNull() } }
+        val doneResult = doneId?.let { results[it] }
+        LaunchedEffect(doneResult) {
+            doneResult?.takeIf { it.ok }?.let { r -> runCatching { ContractJson.decodeDone(r.text) }.getOrNull()?.let { pg -> donePages = donePages + (pg.date to pg) } }
+        }
+        LaunchedEffect(tab, canDone) { if (tab == StartRoute.Tab.LAVORI && canDone) askDone(null) }
         val lavoriZone = java.time.ZoneId.systemDefault()
         val lavoriToday = java.time.LocalDate.now(lavoriZone)
         val lavoriForYou = remember(state, agenda, now) { state?.takeIf { it.commitments != null || agenda != null }?.let { st -> it.pixelbox.cmwatch.rules.Lavori.forYou(st, agenda, now, lavoriToday) } }
-        val lavoriLine = remember(state, agenda, now, events) { state?.let { st ->
+        val lavoriLine = remember(state, agenda, now, events, donePages) { state?.let { st ->
             val ip = it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday)
-            val doneToday = it.pixelbox.cmwatch.rules.Lavori.done(events, lavoriZone, lavoriToday).firstOrNull { d -> d.date == lavoriToday }?.rows?.size ?: 0
+            val doneToday = donePages[lavoriToday.toString()]?.rows?.size ?: it.pixelbox.cmwatch.rules.Lavori.done(events, lavoriZone, lavoriToday).firstOrNull { d -> d.date == lavoriToday }?.rows?.size ?: 0
             getString(R.string.lavori_home_line, ip.active.size + ip.paused.size + ip.others.size, st.night.queued, doneToday)
         } }
         val forYouAction: (it.pixelbox.cmwatch.rules.MasterHome.Row) -> Unit = { row ->
@@ -1461,6 +1471,7 @@ class MainActivity : ComponentActivity() {
                     // Una riga di Lavori apre la sessione del progetto, se è viva.
                     onSession = { n -> if (st.sessions.any { s -> s.name == n && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE }) { open = n; tab = StartRoute.Tab.OVERVIEW } },
                     header = header, today = lavoriToday, zone = lavoriZone,
+                    donePages = donePages, onLoadDay = { d -> askDone(d) },
                 )
             }
         }

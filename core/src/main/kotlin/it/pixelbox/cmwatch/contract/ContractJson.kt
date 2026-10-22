@@ -20,6 +20,8 @@ object ContractJson {
     fun decodeNights(raw: String): NightList = json.decodeFromString(NightList.serializer(), raw)
     fun decodeAgenda(raw: String): AgendaPage = json.decodeFromString(AgendaPage.serializer(), raw)
     fun decodeAgendaSet(raw: String): AgendaSetResult = json.decodeFromString(AgendaSetResult.serializer(), raw)
+    /** Contratto 1.77: il `text` di un `done` riuscito. */
+    fun decodeDone(raw: String): DonePage = json.decodeFromString(DonePage.serializer(), raw)
     fun decodeProjects(raw: String): ProjectsPage = json.decodeFromString(ProjectsPage.serializer(), raw)
     fun decodeSearch(raw: String): SearchPage = json.decodeFromString(SearchPage.serializer(), raw)
     fun decodeTimeline(raw: String): TimelinePage = json.decodeFromString(TimelinePage.serializer(), raw)

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type AgendaPage, type Approval, type Commitment, type Event } from './contract'
-import { MIN_BAR, axis, bars, done, forYou, inProgress, midnight } from './lavori'
+import { MIN_BAR, axis, bars, done, doneFromPages, forYou, inProgress, midnight } from './lavori'
+import type { DonePage } from './contract'
 
 // Gli stessi casi di LavoriTest in Kotlin: la pagina unica «Lavori» (mockup approvato il 22/10).
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
@@ -100,6 +101,22 @@ describe('lavori', () => {
     expect(day.rows[0].title).toBe('Migrations 008-011 on staging')
     expect(done(events, zone, '2026-09-19')).toEqual([])
     expect(done(events, zone, '2026-09-13').length).toBe(1)
+  })
+
+  it("l'op done porta la prova e i giorni prima", () => {
+    const page: DonePage = JSON.parse(root.result.find((r: { id: string }) => r.id.endsWith('0760')).text)
+    expect([page.date, page.rows.length, page.days]).toEqual(['2026-02-10', 4, [{ date: '2026-02-09', n: 3 }, { date: '2026-02-07', n: 1 }]])
+    const days = doneFromPages({ [page.date]: page }, zone)
+    expect(days.map(d => [d.date, d.n, d.rows.length])).toEqual([['2026-02-10', 4, 4], ['2026-02-09', 3, 0], ['2026-02-07', 1, 0]])
+    const rows = days[0].rows
+    expect(rows.map(r => r.task)).toEqual(['atlas-release-2-3', 'ledger-migrations-010', 'notes-night-report', 'orbit-docs-lint'])
+    expect(rows.map(r => r.proof)).toEqual(['release v2.3', 'commit 9f8e7d6', 'docs/notte/2026-02-10-field-notes.md', 'npm run lint'])
+    expect([rows[0].url, rows[2].url]).toEqual(['https://github.com/example/atlas-shop/releases/tag/v2.3', null])
+    expect(rows.map(r => r.outcome)).toEqual(['green', 'green', 'cancelled', 'failed'])
+    expect([rows[0].title, rows[0].session, rows[2].session, rows[0].at]).toEqual(['Release 2.3 of atlas-shop', 'atlas-shop', null, 1789211400])
+    const older = { ...page, date: '2026-02-09', rows: page.rows.slice(0, 3), days: [] }
+    const merged = doneFromPages({ [page.date]: page, [older.date]: older }, zone)
+    expect(merged.map(d => d.n)).toEqual([4, 3, 1]); expect(merged[1].rows.length).toBe(3)
   })
 
   it('con un relay vecchio niente righe', () => {

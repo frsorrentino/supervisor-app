@@ -7,6 +7,7 @@ import it.pixelbox.cmwatch.contract.CommitmentWaits
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.Event
 import it.pixelbox.cmwatch.contract.EventKind
+import it.pixelbox.cmwatch.contract.DonePage
 import it.pixelbox.cmwatch.rules.Lavori.Bar
 import it.pixelbox.cmwatch.rules.Lavori.Kind
 import kotlinx.serialization.json.Json
@@ -121,6 +122,28 @@ class LavoriTest {
         // Fuori dai sette giorni non si vede; un giorno dopo l'evento è ancora dentro.
         assertTrue(Lavori.done(events, zone, eventDay.plusDays(7)).isEmpty())
         assertEquals(1, Lavori.done(events, zone, eventDay.plusDays(1)).size)
+    }
+
+    /** Contratto 1.77: l'op `done` porta la prova e i giorni prima; i giorni senza righe sono richiusi col conteggio. */
+    @Test fun theDoneOpGivesTheProofAndTheDaysBefore() {
+        val raw = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject.getValue("result").jsonArray
+            .first { it.jsonObject.getValue("id").jsonPrimitive.content.endsWith("0760") }
+            .jsonObject.getValue("text").jsonPrimitive.content
+        val page: DonePage = ContractJson.decodeDone(raw)
+        assertEquals("2026-02-10", page.date); assertEquals(4, page.rows.size); assertEquals(listOf("2026-02-09" to 3, "2026-02-07" to 1), page.days.map { it.date to it.n })
+        val days = Lavori.doneFromPages(mapOf(page.date to page), zone)
+        assertEquals(listOf("2026-02-10", "2026-02-09", "2026-02-07"), days.map { it.date.toString() })
+        assertEquals(listOf(4, 3, 1), days.map { it.n }); assertEquals(listOf(4, 0, 0), days.map { it.rows.size })
+        val rows = days[0].rows
+        assertEquals(listOf("atlas-release-2-3", "ledger-migrations-010", "notes-night-report", "orbit-docs-lint"), rows.map { it.task })
+        assertEquals(listOf("release v2.3", "commit 9f8e7d6", "docs/notte/2026-02-10-field-notes.md", "npm run lint"), rows.map { it.proof })
+        assertEquals("https://github.com/example/atlas-shop/releases/tag/v2.3", rows[0].url); assertNull(rows[2].url)
+        assertEquals(listOf("green", "green", "cancelled", "failed"), rows.map { it.outcome })
+        assertEquals("Release 2.3 of atlas-shop", rows[0].title); assertEquals("atlas-shop", rows[0].session); assertNull(rows[2].session); assertEquals(1789211400L, rows[0].at)
+        // Un giorno prima caricato dopo si unisce; il più recente resta primo.
+        val older = page.copy(date = "2026-02-09", rows = page.rows.take(3), days = emptyList())
+        val merged = Lavori.doneFromPages(mapOf(page.date to page, older.date to older), zone)
+        assertEquals(listOf(4, 3, 1), merged.map { it.n }); assertEquals(3, merged[1].rows.size)
     }
 
     @Test fun oldRelayHasNoRows() {

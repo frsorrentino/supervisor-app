@@ -3,7 +3,7 @@
 // riga con la barra dei sette giorni), «Stanotte» (la coda, dallo stato) e «Fatto» (per giorno, con la prova). Fonti:
 // `state.commitments` e `state.approvals` (1.76), l'agenda (op `agenda`), gli eventi `task_check` (1.57); la prova e i
 // giorni prima arrivano con l'op `done` del contratto 1.77.
-import type { AgendaPage, AgendaRow, Approval, Commitment, Event, State } from './contract'
+import type { AgendaPage, AgendaRow, Approval, Commitment, DonePage, Event, State } from './contract'
 import { PERSON, rows as commitmentRows, type Row } from './commitments'
 import { agendaModel } from './recapAgenda'
 
@@ -91,9 +91,27 @@ export function inProgress(st: State, agenda: AgendaPage | null | undefined, now
   return { active, paused, others, axis: ax }
 }
 
-/** Un compito chiuso; `proof` = null finché non c'è la 1.77 (la UI scrive «controllo verde»). */
-export type Done = { task: string; title: string; session: string | null; at: number; proof: string | null }
-export type DoneDay = { date: string; rows: Done[] }
+/** Un compito chiuso; `proof` = la prova in una riga («release v2.3», «commit 9f8e7d6», il file, il comando), null dagli eventi; `url` col link; `outcome` ∈ green|cancelled|failed. */
+export type Done = { task: string; title: string; session: string | null; at: number; proof: string | null; url?: string | null; outcome?: string }
+/** `n` = quanti chiusi quel giorno; `rows` vuote con `n` > 0 = un giorno prima richiuso, da caricare con `done` di quel giorno. */
+export type DoneDay = { date: string; rows: Done[]; n: number }
+
+/** Contratto 1.77: i giorni dalle pagine dell'op `done` già caricate (una per data), più i giorni prima elencati col solo conteggio; dal più recente. */
+export function doneFromPages(pages: Record<string, DonePage>, _zone: string): DoneDay[] {
+  const loaded = new Map<string, DoneDay>()
+  for (const pg of Object.values(pages)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(pg.date)) continue
+    const rows: Done[] = pg.rows.map(r => {
+      const pr = r.proof
+      const label = pr ? (pr.kind === 'file' || pr.kind === 'check' || !pr.kind ? pr.value : `${pr.kind} ${pr.value}`).trim() || null : null
+      return { task: r.task, title: r.title || r.task, session: r.session ?? null, at: r.at, proof: label, url: pr?.url ?? null, outcome: r.outcome || 'green' }
+    })
+    loaded.set(pg.date, { date: pg.date, rows, n: rows.length })
+  }
+  const refs = new Map<string, number>()
+  for (const pg of Object.values(pages)) for (const ref of pg.days ?? []) if (!loaded.has(ref.date)) refs.set(ref.date, Math.max(refs.get(ref.date) ?? 0, ref.n))
+  return [...loaded.values(), ...[...refs].map(([date, n]) => ({ date, rows: [], n }))].sort((a, b) => (a.date < b.date ? 1 : -1))
+}
 
 /** I `task_check` verdi degli ultimi `days` giorni, uno per compito (l'ultimo), per giorno dal più recente; `title` = la prima riga del corpo. */
 export function done(events: Event[], zone: string, today: string, days = 7): DoneDay[] {
@@ -112,5 +130,5 @@ export function done(events: Event[], zone: string, today: string, days = 7): Do
     const title = (e.body ?? '').split('\n')[0].trim() || e.ref!
     byDay.set(d, [...(byDay.get(d) ?? []), { task: e.ref!, title, session: e.session ?? null, at: e.ts, proof: null }])
   }
-  return [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([date, rs]) => ({ date, rows: rs.sort((a, b) => b.at - a.at) }))
+  return [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([date, rs]) => ({ date, rows: rs.sort((a, b) => b.at - a.at), n: rs.length }))
 }

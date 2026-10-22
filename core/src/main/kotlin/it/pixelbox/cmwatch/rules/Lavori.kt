@@ -4,6 +4,7 @@ import it.pixelbox.cmwatch.contract.AgendaPage
 import it.pixelbox.cmwatch.contract.AgendaRow
 import it.pixelbox.cmwatch.contract.Approval
 import it.pixelbox.cmwatch.contract.Commitment
+import it.pixelbox.cmwatch.contract.DonePage
 import it.pixelbox.cmwatch.contract.Event
 import it.pixelbox.cmwatch.contract.EventKind
 import it.pixelbox.cmwatch.contract.State
@@ -110,10 +111,33 @@ object Lavori {
         return InProgress(active, paused, others, ax)
     }
 
-    /** Un compito chiuso: `proof` = null finché non c'è la 1.77 (la UI scrive «controllo verde»). */
-    data class Done(val task: String, val title: String, val session: String?, val at: Long, val proof: String?)
+    /**
+     * Un compito chiuso: `proof` = la prova in una riga («release v2.3», «commit 9f8e7d6», il file, il comando del
+     * controllo), null dagli eventi (la UI scrive «controllo verde»); `url` quando la prova ha un link; `outcome` ∈
+     * green|cancelled|failed.
+     */
+    data class Done(val task: String, val title: String, val session: String?, val at: Long, val proof: String?, val url: String? = null, val outcome: String = "green")
 
-    data class DoneDay(val date: LocalDate, val rows: List<Done>)
+    /** `n` = quanti chiusi quel giorno; `rows` vuote con `n` > 0 = un giorno prima richiuso, da caricare con `done` di quel giorno. */
+    data class DoneDay(val date: LocalDate, val rows: List<Done>, val n: Int = rows.size)
+
+    /**
+     * Contratto 1.77: i giorni dalle pagine dell'op `done` già caricate (una per data), più i giorni prima che la pagina di
+     * ogni data elenca col solo conteggio; dal più recente. Con le pagine l'app non guarda più gli eventi.
+     */
+    fun doneFromPages(pages: Map<String, DonePage>, zone: ZoneId): List<DoneDay> {
+        val loaded = pages.values.mapNotNull { pg ->
+            val d = runCatching { LocalDate.parse(pg.date) }.getOrNull() ?: return@mapNotNull null
+            d to DoneDay(d, pg.rows.map { r ->
+                val pr = r.proof
+                val label = pr?.let { if (it.kind == "file" || it.kind == "check" || it.kind.isBlank()) it.value else "${it.kind} ${it.value}" }?.takeIf { it.isNotBlank() }
+                Done(r.task, r.title.ifBlank { r.task }, r.session, r.at, label, pr?.url, r.outcome.ifBlank { "green" })
+            })
+        }.toMap()
+        val refs = pages.values.flatMap { it.days }.mapNotNull { ref -> runCatching { LocalDate.parse(ref.date) }.getOrNull()?.let { it to ref.n } }
+            .filter { (d, _) -> d !in loaded }.groupBy({ it.first }, { it.second }).mapValues { (_, ns) -> ns.max() }
+        return (loaded.values + refs.map { (d, n) -> DoneDay(d, emptyList(), n) }).sortedByDescending { it.date }
+    }
 
     /** I `task_check` verdi (`ok`, o ✓ nel titolo con un relay prima della 1.78) degli ultimi `days` giorni, uno per compito (l'ultimo), per giorno dal più recente; `title` = la prima riga del corpo. */
     fun done(events: List<Event>, zone: ZoneId, today: LocalDate, days: Int = 7): List<DoneDay> {

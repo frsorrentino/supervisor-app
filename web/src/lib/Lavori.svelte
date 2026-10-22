@@ -4,13 +4,13 @@
   // con la barra dei sette giorni), Stanotte (la coda, solo qui), Fatto (per giorno, con la prova). La quota resta in
   // «Utilizzo e limiti». Un solo bottone pieno: «Approva» (o «Aggiungi» quando non c'è un ok da dare).
   import { locale } from './lang'
-  import type { AgendaPage, Approval, Commitment, Event, State } from './contract'
-  import { done as doneOf, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Work } from './lavori'
+  import type { AgendaPage, Approval, Commitment, DonePage, Event, State } from './contract'
+  import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Work } from './lavori'
   import { doIt, mark, type Edit } from './recapAgenda'
   import type { RecapAction } from './recapActions'
   import { t } from './t'
 
-  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {} }: {
+  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {} }: {
     st: State; agenda?: AgendaPage | null; events?: Event[]; now: number; timeZone?: string | null
     /** bar = ← e titolo; none = la testata la dà chi ospita; desk = nel cruscotto, il titolo come le sezioni. */
     header?: 'bar' | 'none' | 'desk'
@@ -20,13 +20,15 @@
     onBack?: () => void; onApprove?: (task: string, note: string) => void; onAgendaEdit?: (e: Edit) => void
     onStart?: (a: RecapAction) => void; onDoneForPerson?: (c: Commitment) => void
     onAddNight?: () => void; onRemoveNight?: (id: string) => void; onNight?: () => void; onSession?: (name: string) => void
+    /** Contratto 1.77: le pagine dell'op `done` già caricate, per data; `onLoadDay` carica un giorno richiuso. */
+    donePages?: Record<string, DonePage>; onLoadDay?: (date: string) => void
   } = $props()
 
   const zone = $derived(timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)
   const day = $derived(today ?? ymd(now, zone))
   const fy = $derived(forYouOf(st, agenda, now, day))
   const ip = $derived(inProgressOf(st, agenda, now, zone, day))
-  const dn = $derived(doneOf(events, zone, day))
+  const dn = $derived(Object.keys(donePages).length ? doneFromPages(donePages, zone) : doneOf(events, zone, day))
   const left = $derived(part !== 'right')
   const right = $derived(part !== 'left')
   const oldRelay = $derived(st.commitments == null)
@@ -168,16 +170,18 @@
     {#each dn as d (d.date)}
       {@const isToday = d.date === day}
       {@const shown = isToday || !!open[`day:${d.date}`]}
-      <button class="day" disabled={isToday} onclick={() => toggle(`day:${d.date}`)}>
-        <span>{(isToday ? t.lavoriToday(dm(d.date), d.rows.length) : d.date === yesterday ? t.lavoriYesterday(dm(d.date), d.rows.length) : t.lavoriDay(weekday(d.date), d.rows.length)).toUpperCase()}</span><i></i>
+      <button class="day" disabled={isToday} onclick={() => { toggle(`day:${d.date}`); if (!d.rows.length && d.n > 0) onLoadDay(d.date) }}>
+        <span>{(isToday ? t.lavoriToday(dm(d.date), d.n) : d.date === yesterday ? t.lavoriYesterday(dm(d.date), d.n) : t.lavoriDay(weekday(d.date), d.n)).toUpperCase()}</span><i></i>
         {#if !isToday}<svg viewBox="0 0 24 24" width="18" height="18"><path d={shown ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" /></svg>{/if}
       </button>
       {#if shown}
         {#each d.rows as x (x.task)}
           <div class="done">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linecap="round" /></svg>
+            {#if x.outcome === 'failed'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--gone)" stroke-width="2.4" stroke-linecap="round" /></svg>
+            {:else if x.outcome === 'cancelled'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" /></svg>
+            {:else}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linecap="round" /></svg>{/if}
             <span class="tm">{hhmm(x.at)}</span>
-            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}<span class="proof">{x.proof ?? t.lavoriProofCheck}</span></small></span>
+            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? t.lavoriProofCheck}</a>{:else}<span class="proof">{x.proof ?? t.lavoriProofCheck}</span>{/if}</small></span>
           </div>
         {/each}
       {/if}

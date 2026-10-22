@@ -7,6 +7,10 @@ import it.pixelbox.cmwatch.contract.AgendaPage
 import it.pixelbox.cmwatch.contract.AgendaRow
 import it.pixelbox.cmwatch.contract.Approval
 import it.pixelbox.cmwatch.contract.ContractJson
+import it.pixelbox.cmwatch.contract.DoneDayRef
+import it.pixelbox.cmwatch.contract.DonePage
+import it.pixelbox.cmwatch.contract.DoneProof
+import it.pixelbox.cmwatch.contract.DoneRow
 import it.pixelbox.cmwatch.contract.Night
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
@@ -40,11 +44,25 @@ class LavoriScreenTest {
         AgendaRow("fatto", "postazione", "nessuno", "Backups of the workstation every night", "crontab"),
     ), owner = "franz")
 
-    @Composable private fun page(state: State, agenda: AgendaPage?, part: LavoriPart = LavoriPart.ALL, header: LavoriHeader = LavoriHeader.BAR, open: Set<String> = emptySet()) = CmPhoneTheme(still = true) {
-        LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, idle.ts, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, header = header, part = part, today = today, zone = zone, startOpen = open)
+    /** La pagina …0760 di `cmd-result-sample.json` (contratto 1.77), scritta a mano: il modulo del telefono non ha kotlinx-json nei test. */
+    private val donePage = DonePage(
+        "2026-02-10",
+        rows = listOf(
+            DoneRow("atlas-release-2-3", "Release 2.3 of atlas-shop", "personal/atlas-shop", "atlas-shop", 1789211400, "green", DoneProof("release", "v2.3", "https://github.com/example/atlas-shop/releases/tag/v2.3")),
+            DoneRow("ledger-migrations-010", "Migrations 008-010 on staging", "work/clients/ledger-api", "ledger-api", 1789209000, "green", DoneProof("commit", "9f8e7d6", "https://github.com/example/ledger-api/commit/9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e")),
+            DoneRow("notes-night-report", "Night report of field-notes", "personal/field-notes", null, 1789205000, "cancelled", DoneProof("file", "docs/notte/2026-02-10-field-notes.md", null)),
+            DoneRow("orbit-docs-lint", "Lint of the orbit docs", "work/own/orbit-docs", "orbit-docs", 1789201000, "failed", DoneProof("check", "npm run lint", null)),
+        ),
+        days = listOf(DoneDayRef("2026-02-09", 3), DoneDayRef("2026-02-07", 1)),
+    )
+
+    @Composable private fun page(state: State, agenda: AgendaPage?, part: LavoriPart = LavoriPart.ALL, header: LavoriHeader = LavoriHeader.BAR, open: Set<String> = emptySet(), pages: Map<String, DonePage> = emptyMap()) = CmPhoneTheme(still = true) {
+        LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, idle.ts, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, header = header, part = part, today = today, zone = zone, donePages = pages, startOpen = open)
     }
 
     @Test fun lavoriFull() = paparazzi.snapshot { page(st, agenda) }
     @Test fun lavoriProgressAndDone() = paparazzi.snapshot { page(st, agenda, part = LavoriPart.RIGHT, header = LavoriHeader.DESK, open = setOf("paused", "others")) }
+    // Contratto 1.77: il blocco Fatto dall'op `done`, con la prova, gli esiti e i giorni prima richiusi col conteggio.
+    @Test fun lavoriDoneFromTheOp() = paparazzi.snapshot { page(st, agenda, part = LavoriPart.RIGHT, header = LavoriHeader.NONE, pages = mapOf(donePage.date to donePage)) }
     @Test fun lavoriOldRelay() = paparazzi.snapshot { page(idle.copy(commitments = null, approvals = emptyList(), night = Night()), null) }
 }

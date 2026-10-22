@@ -11,7 +11,7 @@
   import { DemoTransport } from './lib/demoTransport'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
-  import type { AgendaPage, Cmd, CmdOp, CmdResult, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
+  import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { blankState, decodeChanges, decodeDiff, withTail } from './lib/contract'
   import { ask } from './lib/changes'
   import { fileArg } from './lib/diff'
@@ -419,6 +419,14 @@
   }
   $effect(() => { void st.recap.date; if (canAgenda) untrack(() => loadAgenda()) })
   $effect(() => { if (page === 'lavori' && canAgenda) untrack(() => loadAgenda()) })
+  // Contratto 1.77: il blocco Fatto dall'op `done`, una pagina per giorno; oggi quando si apre Lavori, un giorno prima al tocco.
+  let donePages = $state<Record<string, DonePage>>({})
+  const canDone = $derived(!!st.ops?.includes('done'))
+  async function loadDone(date: string | null) {
+    if (!tr) return
+    try { const r = await tr.send(newCmd('done', null, date)); if (r.ok) { const pg = JSON.parse(r.text) as DonePage; donePages = { ...donePages, [pg.date]: pg } } } catch { /* resta quello che c'è */ }
+  }
+  $effect(() => { if ((page === 'lavori' || deskDashboard) && canDone) untrack(() => loadDone(null)) })
   // Le Azioni sulle schede (piano del 09/10). «Parlane con la master»: la scheda citata nel campo della master, sotto quello
   // che c'era già, e la sua conversazione aperta. Le scritture (Fatto, Rimanda, Rimuovi, Passa) con l'op del contratto 1.47.
   const canWrite = $derived(!!st.ops?.includes('agenda_set'))
@@ -893,7 +901,7 @@
         onNewProject={st.ops?.includes('project_new') && st.project_parents?.length ? newProject : null} />
     {:else if p === 'lavori'}
       <Lavori {st} agenda={agenda.page} {events} {now} header="none" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
-        onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} />
+        onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} {donePages} onLoadDay={loadDone} />
     {:else if p === 'night'}
       <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={loadNight}
         onChat={(n) => { openPage(null); pick(n) }} onAnswer={(n, x) => cmd(n)('answer', String(x))}
@@ -928,9 +936,9 @@
 {/snippet}
 
 {#snippet lavoriLeft()}<Lavori {st} agenda={agenda.page} {events} {now} header="desk" part="left" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
-  onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} />{/snippet}
+  onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 {#snippet lavoriRight()}<Lavori {st} agenda={agenda.page} {events} {now} header="none" part="right" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
-  onNight={() => openPage('night')} onSession={(n) => pick(n)} />{/snippet}
+  onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
 

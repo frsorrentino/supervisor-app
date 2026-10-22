@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Pause
@@ -51,6 +53,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.AgendaPage
 import it.pixelbox.cmwatch.contract.AgendaRow
 import it.pixelbox.cmwatch.contract.Commitment
+import it.pixelbox.cmwatch.contract.DonePage
 import it.pixelbox.cmwatch.contract.Event
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.R
@@ -91,12 +95,14 @@ fun LavoriScreen(
     /** BAR = ← e titolo; NONE = la testata la dà la shell del telefono; DESK = nel cruscotto del tablet, il titolo come le sezioni. */
     header: LavoriHeader = LavoriHeader.BAR, part: LavoriPart = LavoriPart.ALL,
     today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault(),
+    /** Contratto 1.77: le pagine dell'op `done` già caricate, per data; con almeno una il blocco Fatto non guarda più gli eventi. `onLoadDay` carica un giorno richiuso. */
+    donePages: Map<String, DonePage> = emptyMap(), onLoadDay: (String) -> Unit = {},
     /** Solo per i provini: le pieghe già aperte (`outside`, `claude`, `paused`, `others`, `day:<data>`). */
     startOpen: Set<String> = emptySet(),
 ) {
     val fy = remember(state, agenda, now, today) { Lavori.forYou(state, agenda, now, today) }
     val ip = remember(state, agenda, now, zone, today) { Lavori.inProgress(state, agenda, now, zone, today) }
-    val dn = remember(events, zone, today) { Lavori.done(events, zone, today) }
+    val dn = remember(events, donePages, zone, today) { if (donePages.isNotEmpty()) Lavori.doneFromPages(donePages, zone) else Lavori.done(events, zone, today) }
     var open by rememberSaveable { mutableStateOf(startOpen) }
     fun toggle(k: String) { open = if (k in open) open - k else open + k }
     val left = part != LavoriPart.RIGHT
@@ -186,11 +192,12 @@ fun LavoriScreen(
                 val shown = isToday || key in open
                 item("dh-${day.date}") {
                     val label = when {
-                        isToday -> stringResource(R.string.lavori_today, dayMonth(day.date), day.rows.size)
-                        day.date == today.minusDays(1) -> stringResource(R.string.lavori_yesterday, dayMonth(day.date), day.rows.size)
-                        else -> stringResource(R.string.lavori_day, weekdayDayMonth(day.date), day.rows.size)
+                        isToday -> stringResource(R.string.lavori_today, dayMonth(day.date), day.n)
+                        day.date == today.minusDays(1) -> stringResource(R.string.lavori_yesterday, dayMonth(day.date), day.n)
+                        else -> stringResource(R.string.lavori_day, weekdayDayMonth(day.date), day.n)
                     }
-                    DayHeader(label, shown, if (isToday) null else ({ toggle(key) }))
+                    // Un giorno richiuso con il solo conteggio (1.77) si carica al tocco con `done` di quel giorno.
+                    DayHeader(label, shown, if (isToday) null else ({ toggle(key); if (day.rows.isEmpty() && day.n > 0) onLoadDay(day.date.toString()) }))
                 }
                 if (shown) day.rows.forEach { d -> item("dn-${day.date}-${d.task}") { DoneRow(d, zone, onSession) } }
             }
@@ -333,13 +340,22 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
         Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(18.dp)).background(CmColors.surfaceLow).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(Icons.Rounded.Check, null, tint = CmColors.briefGoodInk, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+        when (d.outcome) {
+            "failed" -> Icon(Icons.Rounded.Close, null, tint = CmColors.gone, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+            "cancelled" -> Icon(Icons.Rounded.Remove, null, tint = CmColors.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+            else -> Icon(Icons.Rounded.Check, null, tint = CmColors.briefGoodInk, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+        }
         Text(hhmm(d.at, zone), style = MonoSmall.copy(fontSize = 12.sp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(d.title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 d.session?.let { s -> Text(s, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { onSession(s) }) }
-                Text((if (d.session != null) "· " else "") + (d.proof ?: stringResource(R.string.lavori_proof_check)), style = MaterialTheme.typography.bodySmall, color = CmColors.actionIcon)
+                val uri = LocalUriHandler.current
+                val url = d.url
+                Text(
+                    (if (d.session != null) "· " else "") + (d.proof ?: stringResource(R.string.lavori_proof_check)), style = MaterialTheme.typography.bodySmall, color = CmColors.actionIcon,
+                    modifier = if (url != null) Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { runCatching { uri.openUri(url) } } else Modifier,
+                )
             }
         }
     }
