@@ -30,6 +30,8 @@ class CommitmentsTest {
         assertEquals(emptyList<Commitment>(), ContractJson.decodeState(Fixtures.stateQuestion).commitments)
         val paused = stale.commitments!!.single()
         assertEquals("after the client's review", paused.paused!!.reason); assertEquals("master", paused.paused!!.by); assertNull(paused.expected)
+        // 1.77: la pausa aspetta la persona (`waits.on` = person) e `paused.at` è l'inizio vero, prima del passo di pausa.
+        assertEquals("person", paused.waits!!.on); assertEquals(1789100000L, paused.paused!!.at)
         val stalled = ContractJson.decodeEvents(Fixtures.events).single { it.kind == EventKind.TASK_STALLED }
         assertEquals("ledger-migrations-011", stalled.ref); assertEquals("ledger-api", stalled.session)
         assertTrue(StrongAlert.strong(EventKind.TASK_STALLED))
@@ -52,7 +54,8 @@ class CommitmentsTest {
 
     @Test fun aPausedCommitmentHasNoColourAndGoesLast() {
         val row = Commitments.rows(stale, stale.ts).single()
-        assertEquals(Tone.NORMAL, row.tone); assertEquals("orbit-docs", row.turn); assertFalse(row.yourTurn)
+        assertEquals(Tone.NORMAL, row.tone); assertNull(row.turn); assertTrue(row.yourTurn)   // 1.77: la pausa aspetta la persona
+        assertEquals(0, Commitments.yours(stale))   // ma in pausa non conta fra quelli che aspettano adesso
         val mixed = idle.copy(commitments = stale.commitments!! + idle.commitments!!)
         assertEquals(listOf("ledger-migrations-011", "atlas-seo-pages", "orbit-docs-site"), Commitments.rows(mixed, idle.ts).map { it.c.task })
     }

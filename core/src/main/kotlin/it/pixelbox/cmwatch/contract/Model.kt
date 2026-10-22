@@ -130,6 +130,8 @@ enum class CmdOp {
     @SerialName("studio") STUDIO,
     /** Contratto 1.74: l'elenco dei rapporti della notte, `{nights: [{date, title, generated_at, v}]}`; `session` e `arg` null. */
     @SerialName("nights") NIGHTS,
+    /** Contratto 1.77: i compiti chiusi per giorno con la prova (`arg` = giorno ISO o null = oggi), a richiesta come `agenda`. */
+    @SerialName("done") DONE,
 }
 
 /**

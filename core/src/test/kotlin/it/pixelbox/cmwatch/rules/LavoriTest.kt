@@ -65,19 +65,19 @@ class LavoriTest {
     }
 
     @Test fun aPauseWithoutPersonStaysInProgress() {
-        assertEquals(0, Lavori.forYou(stale, null, stale.ts, today).total)
-        val ip = Lavori.inProgress(stale, null, stale.ts, zone, today)
+        val s = stale.copy(commitments = listOf(stale.commitments!!.single().copy(waits = CommitmentWaits("person", "orbit-docs"))))   // relay 1.76
+        assertEquals(0, Lavori.forYou(s, null, stale.ts, today).total)
+        val ip = Lavori.inProgress(s, null, stale.ts, zone, today)
         assertTrue(ip.active.isEmpty()); assertEquals(listOf("orbit-docs-site"), ip.paused.map { it.row!!.c.task })
     }
 
     @Test fun aPauseThatWaitsThePersonIsForYou() {
-        val c = stale.commitments!!.single().copy(waits = CommitmentWaits("orbit-docs", "person"))
-        val s = stale.copy(commitments = listOf(c))
-        val fy = Lavori.forYou(s, null, stale.ts, today)
+        val c = stale.commitments!!.single()   // 1.77: waits.on = person, paused.at = l'inizio vero
+        val fy = Lavori.forYou(stale, null, stale.ts, today)
         assertTrue(fy.ok.isEmpty())
         val row = fy.outside.single()
-        assertEquals("after the client's review", row.title); assertEquals("orbit-docs", row.who); assertEquals(1789190000L, row.at); assertEquals(c, row.commitment)
-        assertEquals(listOf("orbit-docs-site"), Lavori.inProgress(s, null, stale.ts, zone, today).paused.map { it.row!!.c.task })
+        assertEquals("after the client's review", row.title); assertEquals("orbit-docs", row.who); assertEquals(1789100000L, row.at); assertEquals(c, row.commitment)
+        assertEquals(listOf("orbit-docs-site"), Lavori.inProgress(stale, null, stale.ts, zone, today).paused.map { it.row!!.c.task })
     }
 
     @Test fun theAxisCoversSevenDaysEndingTomorrow() {
@@ -98,7 +98,9 @@ class LavoriTest {
     @Test fun aPausedBarIsSolidThenDashed() {
         val ax = Lavori.axis(stale.ts, zone)
         val f = { t: Long -> (t - ax.start).toDouble() / (ax.end - ax.start) }
-        val c = stale.commitments!!.single()   // ok 1789120000, pausa 1789190000
+        val fixture = stale.commitments!!.single()   // ok 1789120000, pausa dal 1789100000: in pausa da prima dell'ok, tutta tratteggiata
+        assertEquals(listOf(Bar(f(1789120000), f(stale.ts), true)), Lavori.bars(fixture, ax, stale.ts))
+        val c = fixture.copy(paused = fixture.paused!!.copy(at = 1789190000))
         assertEquals(listOf(Bar(f(1789120000), f(1789190000), false), Bar(f(1789190000), f(stale.ts), true)), Lavori.bars(c, ax, stale.ts))
         val old = c.copy(approvedAt = ax.start - 2 * 86400, paused = c.paused!!.copy(at = ax.start - 86400))
         assertEquals(listOf(Bar(0.0, f(stale.ts), true)), Lavori.bars(old, ax, stale.ts))

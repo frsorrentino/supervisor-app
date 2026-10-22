@@ -368,6 +368,8 @@ class FakeTransport(
                 .getOrElse { ok("""{"nights": []}""") }
             // Contratto 1.73: la pagina Studio sta nella PWA Studio, non in questa app.
             CmdOp.STUDIO -> ko("unknown op studio")
+            // Contratto 1.77: la demo non ha il registro dei compiti; il blocco Fatto nasce dagli eventi task_check.
+            CmdOp.DONE -> ko("no task registry")
             // Contratti 1.46 e 1.47: la demo ha un'agenda inventata, un gruppo per ognuno di chi deve muoversi, e la cambia
             // con `agenda_set` come il relay (key nuova a ogni modifica, «agenda row changed» con una key vecchia).
             CmdOp.AGENDA -> ok(ContractJson.json.encodeToString(AgendaPage.serializer(), AgendaPage(demoAgenda, owner = "franz")))

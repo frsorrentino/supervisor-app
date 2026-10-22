@@ -34,7 +34,7 @@
 **File:** `docs/richieste/2026-10-22-lavori-fatto.md` (scritta il 22/10), `contract/README.md` quando le fixture arrivano.
 
 - [x] Richiesta scritta e passata alla master (`supervisor talk master`), che la gira alla sessione supervisor.
-- [ ] All'arrivo del ramo del relay: copiare le sei fixture byte per byte in `contract/`, aggiungere il paragrafo «Contratto 1.77» al README, far passare i test che contano le op (`RepoTest`, `FakeTransportTest`).
+- [x] All'arrivo del ramo del relay (22/10 13:20, quattro file): copiare le fixture byte per byte in `contract/`, aggiungere il paragrafo «Contratto 1.77» al README, far passare i test che contano le op (`RepoTest`, `FakeTransportTest`).
 
 ### Task 2: la regola `Lavori` in core
 

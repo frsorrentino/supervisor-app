@@ -20,8 +20,10 @@ describe('impegni', () => {
     expect(led.check).toEqual({ outcome: 'red', at: 1789199760 })
     expect(decodeState(fixture('state-1-question.json')).commitments).toEqual([])
     const paused = stale.commitments![0]
-    expect(paused.paused).toEqual({ reason: "after the client's review", at: 1789190000, by: 'master' })
+    expect(paused.paused).toEqual({ reason: "after the client's review", at: 1789100000, by: 'master' })
     expect(paused.expected).toBeNull()
+    // 1.77: la pausa aspetta la persona e `paused.at` è l'inizio vero, prima del passo di pausa.
+    expect([paused.waits!.on, paused.paused!.at]).toEqual(['person', 1789100000])
     const events = JSON.parse(fixture('events-sample.json')) as { kind: string; ref?: string; session?: string }[]
     const stalled = events.find(e => e.kind === 'task_stalled')!
     expect([stalled.ref, stalled.session]).toEqual(['ledger-migrations-011', 'ledger-api'])
@@ -46,7 +48,8 @@ describe('impegni', () => {
 
   it('un impegno in pausa non ha colore e va in fondo', () => {
     const row = rows(stale, stale.ts)[0]
-    expect([row.tone, row.turn, row.yourTurn]).toEqual(['normal', 'orbit-docs', false])
+    expect([row.tone, row.turn, row.yourTurn]).toEqual(['normal', null, true]) // 1.77: la pausa aspetta la persona
+    expect(yours(stale)).toBe(0)
     const mixed = { ...idle, commitments: [...stale.commitments!, ...idle.commitments!] }
     expect(rows(mixed, idle.ts).map(x => x.c.task)).toEqual(['ledger-migrations-011', 'atlas-seo-pages', 'orbit-docs-site'])
     expect(tone(stale.commitments![0], 10 * 3600)).toBe('normal')
