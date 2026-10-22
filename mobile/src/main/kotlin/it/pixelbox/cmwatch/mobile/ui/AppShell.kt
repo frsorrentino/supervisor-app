@@ -65,8 +65,6 @@ fun AppShell(
     staleMinutes: Int? = null,
     /** La pagina Notte nel menu ≡ (specifica del 07/10); null = la voce non c'è. */
     onNight: (() -> Unit)? = null,
-    /** La pagina Recap (mockup approvato l'08/10); null = la voce non c'è. */
-    onRecap: (() -> Unit)? = null,
     /** Le sessioni aperte, per «N aperte» accanto al titolo. */
     openCount: Int = 0,
     /** La quota in una riga sotto la barra, solo sul riepilogo. */
@@ -87,7 +85,7 @@ fun AppShell(
     content: @Composable (Tab) -> Unit,
 ) {
     val summary = current == null && tab == Tab.OVERVIEW
-    val menu = MenuActions(host, updated, stale, onLaunch, onRegister = { onTab(Tab.DIARY) }, onQuadro, onSearch, onSettings, onNight = onNight, onRecap = onRecap)
+    val menu = MenuActions(host, updated, stale, onLaunch, onLavori = { onTab(Tab.LAVORI) }, onQuadro, onSearch, onSettings, onNight = onNight)
     Scaffold(
         containerColor = CmColors.bg,
         topBar = {
@@ -97,9 +95,9 @@ fun AppShell(
                     // Ogni pagina della home e delle sessioni ha la sua testata, anche una sessione aperta dal Registro (dal vivo
                     // 03/10 20:01: due testate uguali).
                     pagedHeaders && (tab == Tab.OVERVIEW || current != null) -> {}
-                    tab == Tab.DIARY && current == null -> Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    tab == Tab.LAVORI && current == null -> Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { onTab(Tab.OVERVIEW) }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = CmColors.text) }
-                        Text(stringResource(R.string.menu_register), style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.lavori_title), style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.weight(1f))
                         AppMenu(menu, menuStartOpen)
                     }
                     else -> PageHeader(
@@ -242,11 +240,10 @@ private fun SessionMenuRow(s: Session, group: it.pixelbox.cmwatch.rules.Summary.
 
 /** Le voci del menu ≡ e del collegamento in testa, le stesse in ogni testata. */
 data class MenuActions(
-    val host: String?, val updated: String, val stale: Boolean, val onLaunch: () -> Unit, val onRegister: () -> Unit,
+    val host: String?, val updated: String, val stale: Boolean, val onLaunch: () -> Unit, val onLavori: () -> Unit,
     val onQuadro: () -> Unit, val onSearch: (() -> Unit)?, val onSettings: () -> Unit,
     /** La pagina Notte (specifica del 07/10); null = la voce non c'è. */
     val onNight: (() -> Unit)? = null,
-    val onRecap: (() -> Unit)? = null,
 )
 
 /**
@@ -298,5 +295,5 @@ fun PageHeader(
 internal fun AppMenu(menu: MenuActions, startOpen: Boolean = false) {
     var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(startOpen) }
     IconButton(onClick = { open = true }) { Icon(Icons.Rounded.Menu, stringResource(R.string.menu), tint = CmColors.actionIcon) }
-    if (open) AppMenuPanel(menu.host, menu.updated, menu.stale, menu.onLaunch, menu.onRegister, menu.onQuadro, menu.onSearch ?: {}, menu.onSettings, onDismiss = { open = false }, onNight = menu.onNight, onRecap = menu.onRecap)
+    if (open) AppMenuPanel(menu.host, menu.updated, menu.stale, menu.onLaunch, menu.onLavori, menu.onQuadro, menu.onSearch ?: {}, menu.onSettings, onDismiss = { open = false }, onNight = menu.onNight)
 }

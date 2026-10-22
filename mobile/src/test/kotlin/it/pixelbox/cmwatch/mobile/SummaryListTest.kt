@@ -34,15 +34,20 @@ class SummaryListTest {
     @Test fun summaryClosed() = paparazzi.snapshot { page(st) }
     @Test fun summaryOpen() = paparazzi.snapshot { page(st, open = "WAITING:ledger-api") }
 
-    // Contratto 1.76 (P2, P4): «Impegni» sopra le sessioni, con l'età, a chi tocca e «Approva» quando tocca a Franz.
-    @Test fun summaryWithCommitments() = paparazzi.snapshot {
+    // La sezione «Lavori» (22/10): al posto di Da approvare, Impegni e Recap, le righe con un tasto e «Tutti i lavori».
+    @Test fun summaryWithLavori() = paparazzi.snapshot {
         val idle = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())
         val night = ContractJson.decodeNightReport(File("../contract/night-report-sample.json").readText())
         val ok = it.pixelbox.cmwatch.contract.Approval("ledger-release-14", "Release 1.4 di ledger-api", "tag v1.4 e push", "github.com/example/ledger-api", requestedAt = idle.ts - 600)
         val st2 = idle.copy(commitments = night.commitments.take(1) + idle.commitments!!, approvals = listOf(ok))
+        val agenda = it.pixelbox.cmwatch.contract.AgendaPage(listOf(
+            it.pixelbox.cmwatch.contract.AgendaRow("aperto", "personale", "franz", "Revocare la chiave API Anthropic trovata in chiaro", "console.anthropic.com → API Keys"),
+            it.pixelbox.cmwatch.contract.AgendaRow("aperto", "agenzia", "claude", "Migrare a pixel i 4 siti con idemedia attivo", "pinsacesare.it rehalife.it"),
+        ), owner = "franz")
+        val today = java.time.LocalDate.of(2026, 9, 12)
         CmPhoneTheme(still = true) {
             Column(Modifier.background(CmColors.bg)) {
-                SummaryList(model(st2), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st2.ts, approvals = st2.approvals, commitments = it.pixelbox.cmwatch.rules.Commitments.rows(st2, st2.ts))
+                SummaryList(model(st2), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st2.ts, foryou = it.pixelbox.cmwatch.rules.Lavori.forYou(st2, agenda, st2.ts, today), lavoriLine = "Tutti i lavori · in corso 3 · stanotte 1 · fatto oggi 0")
             }
         }
     }

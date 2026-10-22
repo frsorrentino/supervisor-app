@@ -5,8 +5,8 @@ package it.pixelbox.cmwatch.rules
  * schede aperte; solo una rotazione (stato salvato) tiene la scheda e la sessione aperta.
  */
 object StartRoute {
-    /** OVERVIEW è il riepilogo unico (design 03/10): il nome resta per lo stato salvato. */
-    enum class Tab { OVERVIEW, DIARY }
+    /** OVERVIEW è il riepilogo unico (design 03/10): il nome resta per lo stato salvato. LAVORI è la pagina unica (22/10), al posto del Registro. */
+    enum class Tab { OVERVIEW, LAVORI }
 
     fun tab(restored: Tab?): Tab = restored ?: Tab.OVERVIEW
 

@@ -69,6 +69,8 @@ import java.time.format.DateTimeFormatter
 /** Le due metà del cruscotto del tablet: sinistra Per te e Stanotte, destra In corso e Fatto. */
 enum class LavoriPart { ALL, LEFT, RIGHT }
 
+enum class LavoriHeader { BAR, NONE, DESK }
+
 /**
  * La pagina unica «Lavori» (mockup approvato da Franz il 22/10, `docs/mockup/2026-10-22-lavori/`): al posto di Registro,
  * Recap e della sezione Impegni della home. Quattro blocchi per domanda: Per te (ognuno col suo tasto), In corso (un
@@ -81,8 +83,8 @@ fun LavoriScreen(
     onBack: () -> Unit, onApprove: (task: String, note: String) -> Unit, onAgendaEdit: (RecapAgenda.Edit) -> Unit,
     onStart: (RecapActions.Action) -> Unit, onDoneForPerson: (Commitment) -> Unit,
     onAddNight: () -> Unit, onRemoveNight: (String) -> Unit, onNight: () -> Unit, onSession: (String) -> Unit,
-    /** false = nel cruscotto del tablet: niente ← né barre di sistema, il titolo come le sezioni. */
-    topBar: Boolean = true, part: LavoriPart = LavoriPart.ALL,
+    /** BAR = ← e titolo; NONE = la testata la dà la shell del telefono; DESK = nel cruscotto del tablet, il titolo come le sezioni. */
+    header: LavoriHeader = LavoriHeader.BAR, part: LavoriPart = LavoriPart.ALL,
     today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault(),
     /** Solo per i provini: le pieghe già aperte (`outside`, `claude`, `paused`, `others`, `day:<data>`). */
     startOpen: Set<String> = emptySet(),
@@ -99,11 +101,11 @@ fun LavoriScreen(
 
     LazyColumn(Modifier.fillMaxSize().background(CmColors.bg), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp)) {
         item("head") {
-            if (topBar) Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (header == LavoriHeader.BAR) Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = CmColors.text) }
                 Text(stringResource(R.string.lavori_title), style = MaterialTheme.typography.titleLarge, color = CmColors.text)
                 Text(stringResource(R.string.lavori_for_you_n, fy.total), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-            } else DeskSectionTitle(stringResource(R.string.lavori_title))
+            } else if (header == LavoriHeader.DESK) DeskSectionTitle(stringResource(R.string.lavori_title))
         }
         if (left) {
             // ---- Per te ----
@@ -113,7 +115,7 @@ fun LavoriScreen(
             if (fy.ok.isNotEmpty()) {
                 item("grp-ok") { GroupHeader(stringResource(R.string.lavori_ok) + " · " + fy.ok.size, CmColors.primary) }
                 fy.ok.forEachIndexed { i, r ->
-                    item("fy-ok-$i-${r.approval?.task ?: r.commitment?.task}") { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { r.approval?.let { a -> onApprove(a.task, "") } } }
+                    item("fy-ok-$i-${r.approval?.task ?: r.commitment?.task}") { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note -> r.approval?.let { a -> onApprove(a.task, note) } } }
                 }
             }
             if (fy.outside.isNotEmpty()) {
@@ -215,7 +217,7 @@ private fun Fold(text: String, open: Boolean?, onClick: () -> Unit) {
 
 /** Una riga di «Per te»: il segno (ok, agenda, pausa), il titolo, chi e quando, e il suo tasto. */
 @Composable
-private fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled: Boolean, onClick: () -> Unit) {
+internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled: Boolean, onClick: (note: String) -> Unit) {
     var ask by rememberSaveable(r.title) { mutableStateOf(false) }
     val a = r.approval; val who = r.who; val at = r.at; val ag = r.agenda; val cm = r.commitment
     val sub = when (r.kind) {
@@ -242,12 +244,12 @@ private fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled: 
             sub?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
         }
         if (button != null) {
-            val click = { if (a != null) ask = true else onClick() }
+            val click = { if (a != null) ask = true else onClick("") }
             if (filled) Button(onClick = click, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(button) }
             else FilledTonalButton(onClick = click) { Text(button) }
         }
     }
-    if (ask && a != null) ApproveDialog(a, onConfirm = { ask = false; onClick() }, onDismiss = { ask = false })
+    if (ask && a != null) ApproveDialog(a, onConfirm = { n -> ask = false; onClick(n) }, onDismiss = { ask = false })
 }
 
 /** I sette giorni dell'asse, poi «oggi». */

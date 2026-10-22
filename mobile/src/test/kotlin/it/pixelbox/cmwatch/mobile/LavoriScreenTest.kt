@@ -10,6 +10,7 @@ import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.Night
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
+import it.pixelbox.cmwatch.mobile.ui.LavoriHeader
 import it.pixelbox.cmwatch.mobile.ui.LavoriPart
 import it.pixelbox.cmwatch.mobile.ui.LavoriScreen
 import org.junit.Rule
@@ -39,11 +40,11 @@ class LavoriScreenTest {
         AgendaRow("fatto", "postazione", "nessuno", "Backups of the workstation every night", "crontab"),
     ), owner = "franz")
 
-    @Composable private fun page(state: State, agenda: AgendaPage?, part: LavoriPart = LavoriPart.ALL, topBar: Boolean = true, open: Set<String> = emptySet()) = CmPhoneTheme(still = true) {
-        LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, idle.ts, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, topBar = topBar, part = part, today = today, zone = zone, startOpen = open)
+    @Composable private fun page(state: State, agenda: AgendaPage?, part: LavoriPart = LavoriPart.ALL, header: LavoriHeader = LavoriHeader.BAR, open: Set<String> = emptySet()) = CmPhoneTheme(still = true) {
+        LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, idle.ts, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, header = header, part = part, today = today, zone = zone, startOpen = open)
     }
 
     @Test fun lavoriFull() = paparazzi.snapshot { page(st, agenda) }
-    @Test fun lavoriProgressAndDone() = paparazzi.snapshot { page(st, agenda, part = LavoriPart.RIGHT, topBar = false, open = setOf("paused", "others")) }
+    @Test fun lavoriProgressAndDone() = paparazzi.snapshot { page(st, agenda, part = LavoriPart.RIGHT, header = LavoriHeader.DESK, open = setOf("paused", "others")) }
     @Test fun lavoriOldRelay() = paparazzi.snapshot { page(idle.copy(commitments = null, approvals = emptyList(), night = Night()), null) }
 }

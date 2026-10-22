@@ -85,8 +85,8 @@ fun SummaryList(
     onService: (MasterHome.Row) -> Unit, onClosed: () -> Unit, initiallyOpen: String? = null,
     /** Il tablet (Franz, 04/10 14:31): nell'altezza in più, sotto, le schede di «Utilizzo e limiti». */
     footer: (@Composable () -> Unit)? = null,
-    /** Contratto 1.37: i compiti che aspettano l'ok, in cima; l'ok con la nota (vuota = «ok»). */
-    approvals: List<it.pixelbox.cmwatch.contract.Approval> = emptyList(), onApprove: (task: String, note: String) -> Unit = { _, _ -> },
+    /** L'ok a un compito (contratto 1.37), dalla sezione Lavori; la nota vuota vale «ok». */
+    onApprove: (task: String, note: String) -> Unit = { _, _ -> },
     /** Contratto 1.37: «Chiudi» per le sessioni finite o doppie senza finestra; `canExit` = il PC accetta /exit. */
     canExit: Boolean = false, onClose: (String) -> Unit = {},
     /** Il menu contestuale della card (pressione lunga, Franz 14/10 20:58): segui, fai controllare alla master. */
@@ -97,7 +97,7 @@ fun SummaryList(
     /** «Utilizzo»: le schede della quota, nella sua sezione richiudibile. */
     usage: (@Composable () -> Unit)? = null,
     /** Le sezioni aperte la prima volta, prima che tu le apra o chiuda. */
-    startOpen: Set<String> = setOf("night", "sessions", "commitments"),
+    startOpen: Set<String> = setOf("night", "sessions", "lavori"),
     /**
      * La sessione appena chiusa dal pannello di chiusura, con la riga «chiusa alle …» (Franz, 08/10 18:59, volo al contrario):
      * la sua card in cima alle sessioni è dove la pagina atterra tornando alla home; poi si richiude da sola.
@@ -106,18 +106,16 @@ fun SummaryList(
     /** La scheda Stanotte con i lavori della coda (mockup approvato l'08/10 alle 20:43); null = la riga di prima. */
     tonight: it.pixelbox.cmwatch.rules.TonightCard.Model? = null,
     /**
-     * La sezione Recap (mockup approvato l'08/10, Franz 20:41): fra Sessioni e Utilizzo, le Azioni come tasti; il tocco
-     * apre «Mandare questa azione?» e «Manda» la fa partire. `recapDate` = il giorno ISO del recap.
+     * La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe che hanno
+     * un tasto (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
+     * `foryou` null = relay senza impegni e senza agenda: la sezione non c'è.
      */
-    recapActions: List<it.pixelbox.cmwatch.rules.RecapActions.Action> = emptyList(), recapDate: String = "",
-    onRecapAction: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
-    /** Contratto 1.46: le righe dell'agenda (null = non ancora arrivate); «Tutto il recap» apre la pagina. */
-    agenda: it.pixelbox.cmwatch.contract.AgendaPage? = null, onRecapPage: () -> Unit = {},
-    /** Le Azioni sulle schede (piano del 09/10): scritture con l'op del contratto 1.47, «Parlane» apre la master. */
-    canWrite: Boolean = false, onTalk: (String) -> Unit = {}, onEdit: (it.pixelbox.cmwatch.rules.RecapAgenda.Edit) -> Unit = {},
+    foryou: it.pixelbox.cmwatch.rules.Lavori.ForYouGroups? = null, lavoriLine: String? = null, onLavori: () -> Unit = {},
+    onAgendaEdit: (it.pixelbox.cmwatch.rules.RecapAgenda.Edit) -> Unit = {}, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
+    onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = {},
     today: java.time.LocalDate = java.time.LocalDate.now(),
-    /** Sul tablet senza colonne Recap e Utilizzo stanno nel cruscotto a destra (variante B, 09/10): qui non si ripetono. */
-    showRecap: Boolean = true, showUsage: Boolean = true,
+    /** Sul tablet senza colonne Lavori e Utilizzo stanno nel cruscotto a destra (variante B, 09/10): qui non si ripetono. */
+    showLavori: Boolean = true, showUsage: Boolean = true,
     /**
      * «Utilizzo e limiti» dal menu, la riga della quota in alto e l'avviso in una sessione portano qui (Utilizzo unito,
      * 09/10): a ogni nuovo valore la sezione si apre, la lista ci arriva e i pannelli si illuminano un attimo.
@@ -136,8 +134,6 @@ fun SummaryList(
     attention: List<it.pixelbox.cmwatch.contract.Attention> = emptyList(), onAttention: () -> Unit = {},
     /** P6 (21/10): la card dell'aggiornamento in cima quando una release nuova è pronta; null o senza release = niente. */
     update: AppUpdater.Ui? = null, onInstallUpdate: (AppUpdate.Release) -> Unit = {}, onDismissUpdate: (String) -> Unit = {},
-    /** Contratto 1.76 (P2, P4): gli impegni del registro sopra le sessioni; «Approva» quando tocca a Franz e c'è l'ok collegato. */
-    commitments: List<Commitments.Row> = emptyList(),
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura.
@@ -148,15 +144,7 @@ fun SummaryList(
     var usageOpen by remember { section("usage") }
     var otherOpen by remember { section("other") }
     var nightOpen by remember { section("night") }
-    var commitmentsOpen by remember { section("commitments") }
-    var recapOpen by remember { section("recap") }
-    val acts = remember { AgendaActions() }
-    // Le voci della card aperta (variante A del 10/10): le stesse del menu Azioni, «Stanotte» con un relay 1.49.
-    val canNight = LocalAgendaNight.current != null
-    val cardItems: (it.pixelbox.cmwatch.contract.AgendaRow) -> List<it.pixelbox.cmwatch.rules.RecapAgenda.Item> = { r -> it.pixelbox.cmwatch.rules.RecapAgenda.menu(r, canWrite, today, canNight) }
-    var asking by remember { mutableStateOf<it.pixelbox.cmwatch.rules.RecapActions.Action?>(null) }
-    var sent by rememberSaveable { mutableStateOf(listOf<String>()) }
-    val day = recapDay(recapDate)
+    var lavoriOpen by remember { section("lavori") }
     fun save(key: String, v: Boolean) { runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState(scrollMemo?.get(0) ?: 0, scrollMemo?.get(1) ?: 0)
     if (scrollMemo != null) androidx.compose.runtime.LaunchedEffect(listState) {
@@ -204,21 +192,28 @@ fun SummaryList(
             item(key = "sec-night") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_night), null, nightOpen) { nightOpen = !nightOpen; save("night", nightOpen) } } }
             if (nightOpen) item(key = "night-box") { Box(moving()) { NightHomeCard(nightDate, nightPage, onNight) } }
         }
-        if (commitments.isNotEmpty()) {
-            item(key = "sec-commitments") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_commitments), commitments.size.toString().takeIf { !commitmentsOpen }, commitmentsOpen) { commitmentsOpen = !commitmentsOpen; save("commitments", commitmentsOpen) } } }
-            if (commitmentsOpen) items(commitments, key = { "c-" + it.c.task }) { r -> Box(moving()) { CommitmentCard(r, now, onApprove) } }
+        // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
+        if (showLavori && foryou != null) {
+            item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, foryou.total).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
+            if (lavoriOpen) {
+                val zone = java.time.ZoneId.systemDefault()
+                foryou.ok.forEachIndexed { i, r -> item(key = "lv-ok-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note -> r.approval?.let { a -> onApprove(a.task, note) } } } } }
+                foryou.outside.take(2).forEachIndexed { i, r -> item(key = "lv-out-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.agenda_done), filled = false) { _ -> r.agenda?.let { row -> onAgendaEdit(it.pixelbox.cmwatch.rules.RecapAgenda.Edit(it.pixelbox.cmwatch.rules.RecapAgenda.Item.DONE, row)) }; r.commitment?.let(onDoneForPerson) } } } }
+                foryou.claude.take(1).forEachIndexed { i, r -> item(key = "lv-cl-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.lavori_start), filled = false) { _ -> r.agenda?.let { row -> onStart(it.pixelbox.cmwatch.rules.RecapAgenda.doIt(row)) } } } } }
+                item(key = "lv-all") {
+                    Box(moving()) {
+                        Row(Modifier.fillMaxWidth().handCursor().clickable(onClick = onLavori).padding(horizontal = 4.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(lavoriLine ?: stringResource(R.string.lavori_all), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f))
+                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2)
+                        }
+                    }
+                }
+            }
         }
         item(key = "sec-sessions") {
             Box(moving()) { HomeSection(stringResource(R.string.home_sec_sessions), model.rows.size.toString().takeIf { !sessionsOpen }, sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
         }
         justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
-        // Contratto 1.37: «Da approvare» prima di «Ti aspetta» (mockup approvato il 05/10 21:07).
-        // Un ok già sulla riga del suo impegno (1.76) non si ripete in «Da approvare»: una sola attesa, un solo tasto.
-        val loose = approvals.filter { a -> commitments.none { it.yourTurn && it.approval?.task == a.task } }
-        if (sessionsOpen && loose.isNotEmpty()) {
-            item(key = "h-approvals") { Box(moving()) { GroupHeader(stringResource(R.string.approvals_group) + " · " + loose.size, CmColors.advice) } }
-            items(loose, key = { "a-" + it.task }) { a -> Box(moving()) { ApprovalCard(a, now, onApprove) } }
-        }
         if (sessionsOpen) model.rows.groupBy { it.group }.forEach { (group, rows) ->
             item(key = "h-${group.name}") { Box(moving()) { GroupHeader(pluralStringResource(groupLabel(group), rows.size, rows.size), groupTone(group)) } }
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
@@ -231,7 +226,7 @@ fun SummaryList(
                     SummaryCard(
                         r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
                         onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
-                        firstFilled = approvals.isEmpty(), canExit = canExit, onClose = { onClose(s.name) }, now = now,
+                        firstFilled = foryou?.ok?.none { it.approval != null } ?: true, canExit = canExit, onClose = { onClose(s.name) }, now = now,
                         onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                     )
                 }
@@ -242,47 +237,6 @@ fun SummaryList(
             if (usageOpen) item(key = "usage") {
                 val glow by androidx.compose.animation.core.animateFloatAsState(if (usageFlash) 1f else 0f, androidx.compose.animation.core.tween(if (usageFlash) 160 else 700), label = "usageFlash")
                 Box(moving().border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp))) { u() }
-            }
-        }
-        // Il Recap (tavola 1): chiuso dice i conteggi (azioni · aspetta te · può farlo Claude); aperto le Azioni, le prime due
-        // cose che aspettano te, la prima che può fare Claude, e «Tutto il recap».
-        val ag = it.pixelbox.cmwatch.rules.RecapAgenda.of(agenda, today = today)
-        if (showRecap && (recapActions.isNotEmpty() || ag.you.isNotEmpty() || ag.claude.isNotEmpty())) {
-            item(key = "sec-recap") {
-                Box(moving()) {
-                    HomeSection(
-                        stringResource(R.string.home_sec_recap),
-                        listOf(recapActions.size, ag.you.size, ag.claude.size).joinToString(" · ").takeIf { !recapOpen }, recapOpen,
-                    ) { recapOpen = !recapOpen; save("recap", recapOpen) }
-                }
-            }
-            if (recapOpen) {
-                if (recapActions.isNotEmpty()) {
-                    item(key = "h-recap-actions") { Box(moving()) { GroupHeader(stringResource(R.string.recap_actions, recapActions.size), CmColors.text) } }
-                    item(key = "recap-actions") { Box(moving()) { RecapActionChips(recapActions, day, sent) { asking = it } } }
-                }
-                if (ag.you.isNotEmpty()) {
-                    item(key = "h-recap-you") { Box(moving()) { GroupHeader(stringResource(R.string.recap_you, ag.you.size), CmColors.waiting) } }
-                    ag.you.take(2).forEachIndexed { i, r -> item(key = "recap-you-$i") { Box(moving()) { AgendaRowCard(r, onOpen = { acts.deepen(r) }, items = cardItems(r)) { x -> acts.pick(r, x) } } } }
-                }
-                if (ag.claude.isNotEmpty()) {
-                    item(key = "h-recap-claude") { Box(moving()) { GroupHeader(stringResource(R.string.recap_claude, ag.claude.size), CmColors.actionIcon) } }
-                    item(key = "recap-claude-0") {
-                        val r = ag.claude.first()
-                        Box(moving()) { AgendaRowCard(r, onOpen = { acts.deepen(r) }, items = cardItems(r)) { x -> acts.pick(r, x) } }
-                    }
-                }
-                item(key = "recap-all") {
-                    Box(moving()) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(top = 4.dp).handCursor().clickable(onClick = onRecapPage).padding(horizontal = 4.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(stringResource(R.string.recap_all), style = MaterialTheme.typography.bodyLarge, color = CmColors.text2, modifier = Modifier.weight(1f))
-                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2)
-                        }
-                    }
-                }
             }
         }
         // «Fuori dalle sessioni» (mockup A, Franz 03/10 22:34): un titolo vero che separa le sessioni dal resto, poi le
@@ -303,8 +257,6 @@ fun SummaryList(
         }
         footer?.let { f -> item(key = "footer") { f() } }
     }
-    asking?.let { a -> RecapSendSheet(a, day, onDismiss = { asking = null }) { asking = null; sent = sent + sentKey(a); onRecapAction(a) } }
-    AgendaActionsLayer(acts, canWrite, today, onSend = onRecapAction, onTalk = onTalk, onEdit = onEdit, onSpeak = onSpeak)
 }
 
 internal fun groupLabel(g: Summary.Group) = when (g) {

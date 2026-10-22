@@ -753,7 +753,7 @@
     <string-array name="live_numbers"><item>uno</item><item>due</item><item>tre</item><item>quattro</item><item>cinque</item><item>sei</item><item>sette</item><item>otto</item><item>nove</item><item>dieci</item></string-array>
     <!-- La pagina Notte (specifica del 07/10, approvata alle 21:50). -->
     <string name="night_menu">Notte</string>
-    <string name="night_menu_sub">Lavori e sessioni di stanotte</string>
+    <string name="night_menu_sub">Il rapporto di stanotte e le notti prima</string>
     <string name="night_title">Notte del %1$d-%2$d %3$s</string>
     <string name="night_window">Dalle %1$s alle %2$s, %3$s.
 Parte dal tuo ultimo messaggio alla master.</string>
@@ -1117,4 +1117,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_done_empty">Niente di chiuso negli ultimi sette giorni</string>
     <string name="lavori_quota_note">La quota non è qui: resta in «Utilizzo e limiti».</string>
     <string name="lavori_old_relay">Aggiorna supervisor sul PC per vedere gli impegni del registro</string>
+    <string name="lavori_home_line">Tutti i lavori · in corso %1$d · stanotte %2$d · fatto oggi %3$d</string>
+    <string name="lavori_all">Tutti i lavori</string>
+    <string name="lavori_done_prompt">Fatto: %1$s. Riprendi %2$s</string>
 </resources>

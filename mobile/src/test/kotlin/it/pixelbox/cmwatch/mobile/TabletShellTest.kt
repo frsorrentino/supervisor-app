@@ -115,7 +115,7 @@ class TabletShellTest {
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
         TabletDesk(
             home = {
-                SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, showRecap = cols.isNotEmpty(), showUsage = cols.isNotEmpty(), footer = if (cols.isEmpty()) null else ({
+                SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, showLavori = cols.isNotEmpty(), showUsage = cols.isNotEmpty(), footer = if (cols.isEmpty()) null else ({
                     androidx.compose.foundation.layout.Column(
                         androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
@@ -137,9 +137,9 @@ class TabletShellTest {
             empty = {
                 TabletDashboard(
                     recap = {
-                        RecapScreen(
-                            it.pixelbox.cmwatch.rules.RecapActions.of(st), st.recap.date, agenda, error = null, loading = false, onBack = {}, onSend = {},
-                            today = java.time.LocalDate.of(2026, 10, 9), topBar = false,
+                        it.pixelbox.cmwatch.mobile.ui.LavoriScreen(
+                            st, agenda, emptyList(), ts, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {},
+                            header = it.pixelbox.cmwatch.mobile.ui.LavoriHeader.DESK, today = java.time.LocalDate.of(2026, 10, 9), zone = zone,
                         )
                     },
                     usage = { rings.forEach { TabletQuotaPanel(it, ts) }; TodayPanel(today) },

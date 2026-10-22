@@ -744,7 +744,7 @@
     <string-array name="live_numbers"><item>one</item><item>two</item><item>three</item><item>four</item><item>five</item><item>six</item><item>seven</item><item>eight</item><item>nine</item><item>ten</item></string-array>
     <!-- The night page (spec of 07/10, approved at 21:50). -->
     <string name="night_menu">Night</string>
-    <string name="night_menu_sub">Tonight\'s jobs and sessions</string>
+    <string name="night_menu_sub">Tonight\'s report and the nights before</string>
     <string name="night_title">Night of %3$s %1$d-%2$d</string>
     <string name="night_window">From %1$s to %2$s, %3$s.
 It starts at your last message to the master.</string>
@@ -1099,4 +1099,7 @@ It starts at your last message to the master.</string>
     <string name="lavori_done_empty">Nothing closed in the last seven days</string>
     <string name="lavori_quota_note">The quota is not here: it stays in «Usage and limits».</string>
     <string name="lavori_old_relay">Update supervisor on the PC to see the registry\'s commitments</string>
+    <string name="lavori_home_line">All the work · in progress %1$d · tonight %2$d · done today %3$d</string>
+    <string name="lavori_all">All the work</string>
+    <string name="lavori_done_prompt">Done: %1$s. Resume %2$s</string>
 </resources>

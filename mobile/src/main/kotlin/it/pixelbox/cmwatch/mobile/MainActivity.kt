@@ -228,7 +228,6 @@ class MainActivity : ComponentActivity() {
         val goUsage: () -> Unit = { open = null; tab = StartRoute.Tab.OVERVIEW; masterChat = false; usageFocus += 1 }
         var searchOpen by rememberSaveable { mutableStateOf(false) }
         var nightOpen by rememberSaveable { mutableStateOf(false) }
-        var recapPage by rememberSaveable { mutableStateOf(false) }
         // «Parlane con la master» (piano del 09/10): il testo da mettere nel campo della master, poi la sua chat aperta.
         var talkDraft by rememberSaveable { mutableStateOf<String?>(null) }
         // Il tocco sul testo del mini-controller riporta alla sessione da cui legge; la master si apre nella home.
@@ -294,9 +293,8 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() / 1000 } }
         val state = snap.state
 
-        BackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen || recapPage) {
+        BackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen) {
             when {
-                recapPage -> recapPage = false
                 nightOpen -> nightOpen = false
                 searchOpen -> searchOpen = false
                 settingsOpen -> settingsOpen = false
@@ -364,7 +362,7 @@ class MainActivity : ComponentActivity() {
         var tabletDetails by remember { mutableStateOf(tabletPrefs.getBoolean("tablet_details", false)) }
         // Le pagine che prendevano lo schermo di colpo entrano da destra (Franz, 10/10 15:59); tornando da una di loro la home
         // rientra da sinistra. `cameBack` vale solo al primo disegno della home dopo la pagina, quando `PageIn` decide.
-        val pageOpen = settingsOpen || terminal != null || recapPage || nightOpen || searchOpen || (queueOpen && state != null)
+        val pageOpen = settingsOpen || terminal != null || nightOpen || searchOpen || (queueOpen && state != null)
         val pageWas = remember { booleanArrayOf(false) }
         val cameBack = pageWas[0] && !pageOpen
         pageWas[0] = pageOpen
@@ -485,7 +483,6 @@ class MainActivity : ComponentActivity() {
         // Il Recap (Franz, 08/10 20:41): le Azioni delle sessioni vive e del recap, e le righe dell'agenda (contratto 1.46),
         // chieste quando il relay le conosce, a ogni recap nuovo e all'apertura della pagina.
         // Solo i «prossimo» del recap del giorno (Franz, 09/10 17:21): i «Prossimi:» delle sessioni stanno sulle loro schede.
-        val recapActs = remember(state) { state?.let { st -> it.pixelbox.cmwatch.rules.RecapActions.of(st, getString(R.string.recap_resume), withSessions = false) }.orEmpty() }
         val canAgenda = state?.ops?.contains("agenda") == true
         // Contratto 1.47: l'op che scrive nell'agenda (Fatto, Rimanda, Rimuovi, Passa); senza, il menu non le mostra.
         val canAgendaWrite = state?.ops?.contains("agenda_set") == true
@@ -548,22 +545,6 @@ class MainActivity : ComponentActivity() {
             state != null && !canAgenda -> getString(R.string.recap_agenda_old)
             agendaResult?.ok == false -> agendaResult.text.let { t -> if (t.startsWith("no agenda file")) getString(R.string.recap_agenda_none) else t }
             else -> null
-        }
-        if (recapPage) {
-            LaunchedEffect(Unit) { if (canAgenda) askAgenda() }
-            it.pixelbox.cmwatch.mobile.ui.PageIn { CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalAgendaNight provides agendaNight) { RecapScreen(
-                recapActs, state?.recap?.date.orEmpty(), agenda,
-                error = agendaError,
-                loading = agendaId != null && agendaResult == null,
-                onBack = { recapPage = false },
-                canWrite = canAgendaWrite, onTalk = { t -> talkDraft = t; recapPage = false }, onEdit = editAgenda, onSpeak = { t -> speech.toggle(t) },
-                onSend = { a ->
-                    scope.launch {
-                        runCatching { app.repo.prompt(a.to, a.send) }.getOrNull()?.let { id -> app.chatLog.add(Sent(id, a.to, a.send, System.currentTimeMillis() / 1000)) }
-                    }
-                },
-            ) } }
-            return
         }
         if (nightOpen) {
             LaunchedEffect(nightRef?.date) { nightRef?.date?.let { d -> nightSeen = d; homePrefs.edit().putString("night_opened", d).apply() } }
@@ -636,7 +617,7 @@ class MainActivity : ComponentActivity() {
             val searchResult = searchId?.let { results[it] }
             val searchPage = searchResult?.takeIf { it.ok }?.let { r -> runCatching { ContractJson.decodeSearch(r.text) }.getOrNull() }
             it.pixelbox.cmwatch.mobile.ui.PageIn { SearchScreen(
-                chatLog, events, onOpen = { n -> searchOpen = false; if (n != null) { open = n } else { open = null; tab = StartRoute.Tab.DIARY } },
+                chatLog, events, onOpen = { n -> searchOpen = false; if (n != null) { open = n } else { open = null; tab = StartRoute.Tab.LAVORI } },
                 remote = state?.ops?.contains("search") == true, page = searchPage, loading = searchId != null && searchResult == null,
                 known = state?.sessions?.map { it.name }?.toSet().orEmpty(),
                 onQuery = { q ->
@@ -683,7 +664,7 @@ class MainActivity : ComponentActivity() {
         // Sul tablet la conversazione della home è quella della master; le colonne leggono la loro qui sotto.
         val chatName = if (wide) masterName else open ?: masterName?.takeIf { tab == StartRoute.Tab.OVERVIEW }
         // I dettagli a destra (spenti di default, si accendono dalle Impostazioni): della prima colonna, se c'è posto.
-        val inspectorOn = wide && tabletDetails && tab != StartRoute.Tab.DIARY && tabletCols.isNotEmpty() && it.pixelbox.cmwatch.rules.Tablet.inspector(widthDp)
+        val inspectorOn = wide && tabletDetails && tab != StartRoute.Tab.LAVORI && tabletCols.isNotEmpty() && it.pixelbox.cmwatch.rules.Tablet.inspector(widthDp)
         // Sul tablet aprire una sessione, da qualunque strada (scheda della home, ricerca, notifica, menu), la mette in colonna.
         LaunchedEffect(open, wide) {
             val n = open ?: return@LaunchedEffect
@@ -883,6 +864,24 @@ class MainActivity : ComponentActivity() {
                 runCatching { app.repo.prompt(name, text) }.getOrNull()?.let { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) }
             }
         }
+        // La pagina e la sezione «Lavori» (mockup approvato il 22/10): l'ok a un compito, «Fatto» su una pausa che aspetta te
+        // (la master riprende il compito, nessuna op nuova), le righe per te e la riga dei conteggi della home.
+        val approveTask: (String, String) -> Unit = { task, note -> scope.launch {
+            runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(note)) }.onSuccess {
+                android.widget.Toast.makeText(this@MainActivity, getString(R.string.approved), android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } }
+        val doneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = { c ->
+            it.pixelbox.cmwatch.rules.ContextActions.master(state)?.name?.let { m -> sendPrompt(m, getString(R.string.lavori_done_prompt, c.paused?.reason.orEmpty(), c.task)) }
+        }
+        val lavoriZone = java.time.ZoneId.systemDefault()
+        val lavoriToday = java.time.LocalDate.now(lavoriZone)
+        val lavoriForYou = remember(state, agenda, now) { state?.takeIf { it.commitments != null || agenda != null }?.let { st -> it.pixelbox.cmwatch.rules.Lavori.forYou(st, agenda, now, lavoriToday) } }
+        val lavoriLine = remember(state, agenda, now, events) { state?.let { st ->
+            val ip = it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday)
+            val doneToday = it.pixelbox.cmwatch.rules.Lavori.done(events, lavoriZone, lavoriToday).firstOrNull { d -> d.date == lavoriToday }?.rows?.size ?: 0
+            getString(R.string.lavori_home_line, ip.active.size + ip.paused.size + ip.others.size, st.night.queued, doneToday)
+        } }
         val forYouAction: (it.pixelbox.cmwatch.rules.MasterHome.Row) -> Unit = { row ->
             when (row.kind) {
                 // Variante 3 (02/10 21:11): la riga si apre sul posto; «Apri la conversazione» porta alla sessione.
@@ -1306,9 +1305,9 @@ class MainActivity : ComponentActivity() {
         // La testata di ogni pagina della home e delle sessioni (Franz, 03/10 19:19): scorre e vola con la sua pagina.
         val menuActions = MenuActions(
             host, updatedLabel(snap.freshness),
-            snap.freshness is Freshness.Stale, onLaunch = { launching = true }, onRegister = { tab = StartRoute.Tab.DIARY; open = null },
+            snap.freshness is Freshness.Stale, onLaunch = { launching = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
             onQuadro = goUsage, onSearch = { searchOpen = true }, onSettings = { settingsOpen = true },
-            onNight = { nightOpen = true }, onRecap = { recapPage = true },
+            onNight = { nightOpen = true },
         )
         val pageHeader: @Composable (String?) -> Unit = { page ->
             PageHeader(
@@ -1334,7 +1333,7 @@ class MainActivity : ComponentActivity() {
             summary?.rows?.firstOrNull { r -> r.session.name == n && r.key != null }?.key?.let(markRead)
         }
         // Il Registro si apre dal menu a tutto schermo; Indietro torna al riepilogo.
-        BackHandler(enabled = tab == StartRoute.Tab.DIARY && open == null) { tab = StartRoute.Tab.OVERVIEW }
+        BackHandler(enabled = tab == StartRoute.Tab.LAVORI && open == null) { tab = StartRoute.Tab.OVERVIEW }
         // Dalla chat della master Indietro torna alla lista delle sessioni, sempre nella home. Sul tablet anche con una sessione
         // rimasta aperta da un avviso, che lì non si vede: Indietro chiude la master a metà (Franz, 09/10 21:02).
         BackHandler(enabled = masterChat && (open == null || wide) && tab == StartRoute.Tab.OVERVIEW && !settingsOpen && terminal == null && !queueOpen && !searchOpen) { masterChat = false; masterHalf = false }
@@ -1356,7 +1355,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         // Il cruscotto del tablet (variante B): senza colonne né Registro, Recap e Utilizzo stanno a destra e non nella home.
-        val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.DIARY
+        val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.LAVORI
         val summaryPage: @Composable () -> Unit = summaryPage@{
             val st = state
             if (st == null || summary == null) {
@@ -1372,7 +1371,6 @@ class MainActivity : ComponentActivity() {
                 SummaryList(
                     summary,
                     update = updateUi, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
-                    commitments = state?.let { st -> it.pixelbox.cmwatch.rules.Commitments.rows(st, now) }.orEmpty(),
                     // Contratto 1.68: il banner con le voci di «Serve te» delle altre sessioni; il tocco porta alla prima.
                     attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }.orEmpty(),
                     onAttention = {
@@ -1390,12 +1388,7 @@ class MainActivity : ComponentActivity() {
                     onAnswer = { n, k -> scope.launch { runCatching { app.repo.answer(n, k) } } },
                     onStep = sendPrompt, onService = forYouAction, onClosed = { closedOpen = true },
                     // Contratto 1.37: approvazioni in cima e «Chiudi» per le sessioni finite o doppie senza finestra.
-                    approvals = state?.approvals.orEmpty(),
-                    onApprove = { task, note -> scope.launch {
-                        runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(note)) }.onSuccess {
-                            android.widget.Toast.makeText(this@MainActivity, getString(R.string.approved), android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    } },
+                    onApprove = approveTask,
                     canExit = state?.ops?.contains("slash") == true && state.slash?.contains("exit") == true,
                     onClose = { n -> scope.launch { runCatching { app.repo.command(CmdOp.SLASH, n, "exit", null) } } },
                     onFollow = { n, f -> scope.launch { runCatching { app.repo.command(if (f) CmdOp.FOLLOW else CmdOp.UNFOLLOW, n, null) } } },
@@ -1405,14 +1398,12 @@ class MainActivity : ComponentActivity() {
                     nightPage = boxPage, onNight = { nightOpen = true },
                     justClosed = justClosed,
                     tonight = st.night.items?.let { _ -> it.pixelbox.cmwatch.rules.TonightCard.of(st.night, now) },
-                    // La sezione Recap (Franz, 08/10 20:41): le Azioni delle sessioni vive e del recap, ognuna alla sua sessione.
-                    recapActions = recapActs, recapDate = st.recap.date,
-                    onRecapAction = { a -> sendPrompt(a.to, a.send) },
-                    agenda = agenda, onRecapPage = { recapPage = true },
-                    canWrite = canAgendaWrite, onTalk = { t -> talkDraft = t }, onEdit = editAgenda,
+                    // La sezione «Lavori» (22/10): gli ok e le cose da fare fuori dalla chat con il loro tasto; «Tutti i lavori» apre la pagina.
+                    foryou = lavoriForYou, lavoriLine = lavoriLine, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
+                    onAgendaEdit = editAgenda, onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     // «Utilizzo» (Franz, 08/10 12:30; unito il 09/10): le schede della quota e «Oggi» in una sezione richiudibile.
                     usage = { Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { usageContent() } },
-                    showRecap = !deskDashboard, showUsage = !deskDashboard, usageFocus = usageFocus, usageSeen = usageSeen, onUsageFocused = { n -> usageSeen = n }, scrollMemo = homeScroll,
+                    showLavori = !deskDashboard, showUsage = !deskDashboard, usageFocus = usageFocus, usageSeen = usageSeen, onUsageFocused = { n -> usageSeen = n }, scrollMemo = homeScroll,
                     onSpeak = { t -> speech.toggle(t) },
                 )
             }
@@ -1459,15 +1450,18 @@ class MainActivity : ComponentActivity() {
         val uiPrefs = remember { getSharedPreferences("ui", MODE_PRIVATE) }
         var chatZoom by remember { mutableStateOf(it.pixelbox.cmwatch.rules.ChatZoom.of(uiPrefs.getFloat("chat_zoom", 1f))) }
         LaunchedEffect(chatZoom) { delay(400); uiPrefs.edit().putFloat("chat_zoom", chatZoom).apply() }
-        val diaryPage: @Composable () -> Unit = {
+        val lavoriPage: @Composable (it.pixelbox.cmwatch.mobile.ui.LavoriHeader) -> Unit = { header ->
             state?.let { st ->
-                DiaryScreen(st, events.filter { it.kind == EventKind.QUOTA }, PhoneDiary.recaps(events), PhoneDiary.lastNightReport(events), ttsMinChars, speech::toggle,
-                    onAdd = { nightAdding = true },
-                    onRemove = { id -> scope.launch { app.repo.command(CmdOp.NIGHT_REMOVE, null, id) } },
-                    rings = PhoneOverview.build(st, events, samples, now, java.time.ZoneId.systemDefault(), stale = snap.freshness is Freshness.Stale).rings,
-                    onQuadro = goUsage,
-                    // Una riga del Registro apre la sessione del progetto, se è viva.
-                    onSession = { n -> if (st.sessions.any { s -> s.name == n && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE }) { open = n; tab = StartRoute.Tab.OVERVIEW } })
+                it.pixelbox.cmwatch.mobile.ui.LavoriScreen(
+                    st, agenda, events, now,
+                    onBack = { tab = StartRoute.Tab.OVERVIEW }, onApprove = approveTask, onAgendaEdit = editAgenda,
+                    onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
+                    onAddNight = { nightAdding = true }, onRemoveNight = { id -> scope.launch { app.repo.command(CmdOp.NIGHT_REMOVE, null, id) } },
+                    onNight = { nightOpen = true },
+                    // Una riga di Lavori apre la sessione del progetto, se è viva.
+                    onSession = { n -> if (st.sessions.any { s -> s.name == n && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE }) { open = n; tab = StartRoute.Tab.OVERVIEW } },
+                    header = header, today = lavoriToday, zone = lavoriZone,
+                )
             }
         }
         // Contratto 1.29: la cronologia di oggi della sessione al centro, per l'ispettore del tablet. Una lettura passiva al
@@ -1541,7 +1535,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         // Sul tablet il Registro sta al posto delle colonne; Indietro le riporta.
-        BackHandler(enabled = wide && tab == StartRoute.Tab.DIARY && !settingsOpen && terminal == null && !queueOpen && !searchOpen) { tab = StartRoute.Tab.OVERVIEW }
+        BackHandler(enabled = wide && tab == StartRoute.Tab.LAVORI && !settingsOpen && terminal == null && !queueOpen && !searchOpen) { tab = StartRoute.Tab.OVERVIEW }
         val tabletDesk: @Composable (it.pixelbox.cmwatch.contract.State, it.pixelbox.cmwatch.rules.Summary.Model) -> Unit = { st, sm ->
             val zone = java.time.ZoneId.systemDefault()
             val rows = remember(sm) { it.pixelbox.cmwatch.rules.Tablet.groups(sm).flatMap { g -> g.second } }
@@ -1592,18 +1586,11 @@ class MainActivity : ComponentActivity() {
                 // Senza colonne il cruscotto (variante B, approvata da Franz il 09/10 alle 16:17): Recap e Utilizzo larghi.
                 empty = {
                     it.pixelbox.cmwatch.mobile.ui.TabletDashboard(
-                        recap = {
-                            RecapScreen(
-                                recapActs, st.recap.date, agenda, error = agendaError, loading = agendaId != null && agendaResult == null,
-                                onBack = {}, onSend = { a -> sendPrompt(a.to, a.send) },
-                                canWrite = canAgendaWrite, onTalk = { t -> talkDraft = t }, onEdit = editAgenda, topBar = false,
-                                onSpeak = { t -> speech.toggle(t) },
-                            )
-                        },
+                        recap = { lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.DESK) },
                         usage = usageContent,
                     )
                 },
-                override = if (tab == StartRoute.Tab.DIARY) ({ diaryPage() }) else null,
+                override = if (tab == StartRoute.Tab.LAVORI) ({ lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.BAR) }) else null,
                 inspector = if (inspectorOn && first != null) ({
                     TabletInspector(it.pixelbox.cmwatch.rules.Tablet.inspect(first, timeline, now, zone), st.quota[first.account]?.h5, loading = timelineOk && timeline == null)
                 }) else null,
@@ -1639,7 +1626,7 @@ class MainActivity : ComponentActivity() {
             // La master dal menu in alto apre la sua chat come le altre (design 03/10); «Tutte le sessioni» torna al riepilogo.
             current = open, onPick = { n -> open = n; if (n == null) tab = StartRoute.Tab.OVERVIEW },
             onQuadro = goUsage, onSearch = { searchOpen = true }, onLaunch = { launching = true },
-            onNight = { nightOpen = true }, onRecap = { recapPage = true },
+            onNight = { nightOpen = true },
             host = host, stale = snap.freshness is Freshness.Stale,
             staleMinutes = (snap.freshness as? Freshness.Stale)?.minutes.takeIf { state != null },
             updated = updatedLabel(snap.freshness),
@@ -1656,13 +1643,13 @@ class MainActivity : ComponentActivity() {
             onRefresh = if (open == null) ({ refreshing = true; scope.launch { app.repo.refresh(); refreshing = false } }) else null,
             refreshing = refreshing,
         ) { page ->
-            // Il Registro entra da destra come le altre pagine; tornando, la home rientra da sinistra (Franz, 10/10 15:59).
-            val diaryNow = page == StartRoute.Tab.DIARY && open == null
+            // Lavori entra da destra come le altre pagine; tornando, la home rientra da sinistra (Franz, 10/10 15:59).
+            val diaryNow = page == StartRoute.Tab.LAVORI && open == null
             val diaryWas = remember { booleanArrayOf(false) }
             val diaryBack = diaryWas[0] && !diaryNow
             diaryWas[0] = diaryNow
             if (diaryNow) {
-                it.pixelbox.cmwatch.mobile.ui.PageIn { diaryPage() }
+                it.pixelbox.cmwatch.mobile.ui.PageIn { lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.NONE) }
                 return@AppShell
             }
             it.pixelbox.cmwatch.mobile.ui.PageIn(fromStart = true, animate = diaryBack) {
