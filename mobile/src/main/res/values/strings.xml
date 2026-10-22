@@ -1095,8 +1095,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_nothing_progress">Niente in corso</string>
     <string name="lavori_axis_today">oggi</string>
     <string name="lavori_key">barra piena = al lavoro · tratteggio = in pausa · riga bianca = adesso</string>
-    <string name="lavori_state_active">▶ al lavoro</string>
-    <string name="lavori_state_paused">⏸ in pausa</string>
+    <string name="lavori_state_active">al lavoro</string>
+    <string name="lavori_state_paused">in pausa</string>
     <string name="lavori_state_others">fermo su altri</string>
     <string name="lavori_ok_at">ok alle %1$s</string>
     <string name="lavori_ok_on">ok il %1$s alle %2$s</string>

@@ -5,10 +5,10 @@
   import { homeGlyph } from './permissionModes'
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
-  import type { Approval, Session, State } from './contract'
+  import type { Approval, Commitment, Session, State } from './contract'
   import { cleanupOf } from './masterService'
   import { since } from './durations'
-  import { rows as commitmentRows } from './commitments'
+  import { done as lavoriDone, forYou as lavoriForYou, inProgress as lavoriProgress, type ForYou as LavoriRow } from './lavori'
   import { build, MASTER, type Group, type Row } from './summary'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
@@ -16,11 +16,8 @@
   import { t } from './t'
   import Badge from './Badge.svelte'
   import Options from './Options.svelte'
-  import { recapActions, type RecapAction } from './recapActions'
-  import { agendaModel, todayIso, type Edit } from './recapAgenda'
-  import AgendaActions from './AgendaActions.svelte'
-  import AgendaItem from './AgendaItem.svelte'
-  import RecapSend from './RecapSend.svelte'
+  import type { RecapAction } from './recapActions'
+  import { doIt, mark, todayIso, type Edit } from './recapAgenda'
   import { readable } from './slashText'
   import { forYou, type ForYouRow, type Scheduled } from './masterHome'
   import { count as outsideCount, groups as outsideGroups, tonight as tonightOf, type Category } from './outside'
@@ -30,7 +27,7 @@
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, onRecapAction = () => {}, agenda = null, onRecapPage = () => {}, canWrite = false, onTalk = () => {}, onEdit = () => {}, showRecap = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -53,14 +50,12 @@
     /** La sessione appena chiusa dal pannello di chiusura (Franz, 08/10 18:59): la sua card in cima alle sessioni è dove la
      *  pagina atterra tornando alla home (`view-transition-name: page-fly`), poi si richiude da sola. */
     justClosed?: { s: Session; line: string } | null
-    /** La sezione Recap (mockup approvato l'08/10, Franz 20:41): l'azione confermata con «Manda». */
-    onRecapAction?: (a: RecapAction) => void
-    /** Contratto 1.46: le righe dell'agenda (null = non ancora arrivate); «Tutto il recap» apre la pagina. */
-    agenda?: import('./contract').AgendaPage | null; onRecapPage?: () => void
-    /** Le Azioni sulle schede (piano del 09/10): scritture con l'op del contratto 1.47, «Parlane» apre la master. */
-    canWrite?: boolean; onTalk?: (text: string) => void; onEdit?: (e: Edit) => void
+    /** La sezione «Lavori» (22/10): l'agenda (null = non arrivata), «Tutti i lavori» apre la pagina; Fatto su una riga dell'agenda
+     *  (`agenda_set`), Avvia (il «Fallo» dell'agenda alla sua sessione), Fatto su una pausa che aspetta te (la master riprende). */
+    agenda?: import('./contract').AgendaPage | null; onLavori?: () => void; onEdit?: (e: Edit) => void
+    onStart?: (a: RecapAction) => void; onDoneForPerson?: (c: Commitment) => void
     /** Sulla plancia senza colonne Recap e Utilizzo stanno nel cruscotto (variante B, 09/10): qui non si ripetono. */
-    showRecap?: boolean; showUsage?: boolean
+    showLavori?: boolean; showUsage?: boolean
     /** «Utilizzo e limiti» dal menu e dalla riga della quota: a ogni nuovo valore la sezione si apre, si vede e si illumina. */
     usageFocus?: number; onUsageFocused?: () => void
     /** ▶ sul dettaglio di «Approfondisci» (09/10 16:31). */
@@ -70,7 +65,6 @@
   } = $props()
   // Contratto 1.68: in cima alla casa della master quante cose aspettano Franz nelle altre sessioni, coi nomi.
   const waitingYou = $derived(forMaster(st))
-  let acts: AgendaActions | undefined = $state()
   const today = todayIso()
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
@@ -85,17 +79,23 @@
   })
   // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate, anche alla prossima apertura.
   const SEC = 'home-sections'
-  let open = $state<Record<string, boolean>>((() => { try { return { night: true, sessions: true, commitments: true, usage: false, other: false, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { night: true, sessions: true, commitments: true, usage: false, other: false } } })())
+  let open = $state<Record<string, boolean>>((() => { try { return { night: true, sessions: true, lavori: true, usage: false, other: false, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { night: true, sessions: true, commitments: true, usage: false, other: false } } })())
   function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
-  // La sezione Recap: le Azioni come tasti; il tocco apre «Mandare questa azione?» e «Manda» la fa partire.
-  // Solo i «prossimo» del recap del giorno (Franz, 09/10 17:21): i «Prossimi:» delle sessioni stanno sulle loro schede.
-  const actions = $derived(recapActions(st, t.recapResume, false))
-  const recapDay = $derived(/^\d{4}-\d{2}-\d{2}$/.test(st.recap.date) ? `${st.recap.date.slice(8, 10)}/${st.recap.date.slice(5, 7)}` : '')
-  let asking = $state<RecapAction | null>(null)
-  let sentActions = $state(new Set<string>())
-  const actionKey = (a: RecapAction) => `${a.to}\n${a.send}`
-  function askSend(a: RecapAction) { asking = a }
-  const ag = $derived(agendaModel(agenda, null, today))
+  // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe con un tasto
+  // (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const fy = $derived(st.commitments != null || agenda ? lavoriForYou(st, agenda, now, today) : null)
+  const lavoriLine = $derived.by(() => {
+    const ip = lavoriProgress(st, agenda, now, zone, today)
+    const doneToday = lavoriDone(events, zone, today).find(d => d.date === today)?.rows.length ?? 0
+    return t.lavoriHomeLine(ip.active.length + ip.paused.length + ip.others.length, st.night.queued, doneToday)
+  })
+  function fySub(r: LavoriRow): string | null {
+    if (r.kind === 'ok') return r.who && r.at ? t.lavoriAsks(r.who, hhmm(r.at)) : r.who ? t.lavoriAsksWho(r.who) : t.lavoriWaitsOk
+    if (r.commitment) return r.who ? t.lavoriUnblocks(r.who) : null
+    return [r.who, r.agenda?.scope].filter(x => x && x.trim()).join(' · ') || null
+  }
+  function fyOutside(r: LavoriRow) { if (r.agenda) onEdit({ item: 'done', row: r.agenda }); else if (r.commitment) onDoneForPerson(r.commitment) }
   const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   // Come la home dell'app: chi ha finito resta finché non lo apri o non gli scrivi (Summary.kt con sent e read).
   const model = $derived(build(st, sent, now, read))
@@ -122,11 +122,8 @@
   let expanded = $state<string | null>(null)
   const tone: Record<Group, string> = { waiting: 'var(--b-warn)', finished: 'var(--b-good)', working: 'var(--b-ring)', still: 'var(--text2)' }
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
-  // Contratto 1.37: «Da approvare» prima di «Ti aspetta»; con un'approvazione le opzioni delle domande restano tonali,
-  // così sulla schermata c'è un solo bottone pieno.
-  const commitments = $derived(commitmentRows(st, now))
-  // Un ok già sulla riga del suo impegno (1.76) non si ripete in «Da approvare»: una sola attesa, un solo tasto.
-  const approvals = $derived((st.approvals ?? []).filter(a => !commitments.some(r => r.yourTurn && r.approval?.task === a.task)))
+  // Con un ok da dare le opzioni delle domande restano tonali, così sulla schermata c'è un solo bottone pieno.
+  const hasOk = $derived(!!fy?.ok.some(r => r.approval))
   const canExit = $derived(!!st.slash?.includes('exit'))
   let pending = $state<Approval | null>(null)
   let note = $state('')
@@ -200,22 +197,32 @@
     <b>{t.attentionBanner(waitingYou.length)}</b><span>{[...new Set(waitingYou.map(a => a.session).filter(Boolean))].join(', ')}</span>
   </button>
 {/if}
-{#if commitments.length}
-  {@render sec('commitments', t.homeCommitments, String(commitments.length))}
-  {#if open.commitments}
-    {#each commitments as r (r.c.task)}
-      <div class="card appr cmt" class:warn={r.tone === 'warn'} class:alert={r.tone === 'alert'}>
-        <div class="top">
-          <span class="name">{r.c.title}</span>
-          {#if r.c.stalled && !r.c.paused}<span class="prod stalled">{t.commitStalled.toUpperCase()}</span>{/if}
-        </div>
-        <div class="line tone">{[r.c.approved && r.c.approved_at ? t.commitApprovedAt(hhmm(r.c.approved_at)) : r.c.state === 'awaiting_ok' ? t.commitAwaiting : null, r.c.paused ? t.commitPaused(r.c.paused.reason) : t.commitIdle(since(now - r.idle, now))].filter(Boolean).join(' · ')}</div>
-        <div class="line">{r.yourTurn ? t.commitYourTurn : t.commitTurn(r.turn ?? r.c.session ?? '?')}</div>
-        {#if r.c.next}<div class="line dim">{t.commitNext}: {r.c.next}</div>{/if}
-        {#if r.c.check?.outcome === 'red'}<div class="line red">{t.commitCheckRed}</div>{/if}
-        {#if r.yourTurn && r.approval}<button class="approve" onclick={() => askApprove(r.approval!)}>{t.approve}</button>{/if}
+{#if showLavori && fy}
+  {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(fy.total))}
+  {#if open.lavori}
+    {#each fy.ok as r, i (`ok-${i}`)}
+      <div class="card appr fy">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76z" /><path d="m9 12 2 2 4-4" /></svg>
+        <span class="fyt"><b>{r.title}</b>{#if fySub(r)}<small>{fySub(r)}</small>{/if}</span>
+        {#if r.approval}<button class="approve mini" onclick={() => askApprove(r.approval!)}>{t.approve}</button>{/if}
       </div>
     {/each}
+    {#each fy.outside.slice(0, 2) as r, i (`out-${i}`)}
+      <div class="card appr fy">
+        {#if r.agenda}<span class="mark {mark(r.agenda.scope)}"></span>{:else}<svg viewBox="0 0 24 24" width="22" height="22" fill="var(--text2)"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>{/if}
+        <span class="fyt"><b>{r.title}</b>{#if fySub(r)}<small>{fySub(r)}</small>{/if}</span>
+        <button class="tonal" onclick={() => fyOutside(r)}>{t.agendaDone}</button>
+      </div>
+    {/each}
+    {#each fy.claude.slice(0, 1) as r, i (`cl-${i}`)}
+      <div class="card appr fy">
+        <span class="mark {mark(r.agenda?.scope ?? '')}"></span>
+        <span class="fyt"><b>{r.title}</b>{#if fySub(r)}<small>{fySub(r)}</small>{/if}</span>
+        <button class="tonal" onclick={() => r.agenda && onStart(doIt(r.agenda))}>{t.lavoriStart}</button>
+      </div>
+    {/each}
+    <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
   {/if}
 {/if}
 {@render sec('sessions', t.homeSessions, String(model.rows.length))}
@@ -225,24 +232,6 @@
     </div>
   {/if}
   {#if open.sessions}
-  {#if approvals.length}
-    <h2 class="gh" style="--t:var(--advice)"><span>{t.approvalsGroup(approvals.length).toUpperCase()}</span><i></i></h2>
-    {#each approvals as a (a.task)}
-      <div class="card appr">
-        <div class="top">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /><path d="m9 12 2 2 4-4" /></svg>
-          <span class="name">{a.title}</span>
-          {#if a.deploy}<span class="prod">{t.approvalProd.toUpperCase()}</span>{/if}
-        </div>
-        <div class="kv">
-          <span>{t.approvalWhat}</span><span>{a.what}</span>
-          <span>{t.approvalWhere}</span><span>{a.where}</span>
-          <span>{t.approvalAsked}</span><span>{since(a.requested_at, st.ts)}</span>
-        </div>
-        <button class="approve" onclick={() => askApprove(a)}>{t.approve}</button>
-      </div>
-    {/each}
-  {/if}
   {#each groups as [group, rows] (group)}
     <h2 class="gh" style="--t:{tone[group]}"><span>{t.summary[group](rows.length).toUpperCase()}</span><i></i></h2>
     {#each rows as r (r.session.name)}
@@ -291,7 +280,7 @@
         {#if x.body}<p class="body" class:full={open} class:strong={group === 'waiting' || open}>{x.body}</p>{/if}
         {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
         {#if group === 'waiting' && s.question}
-          <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={!approvals.length} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
+          <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={!hasOk} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
         {/if}
         {#if x.steps.length}
           <div class="chips">
@@ -335,35 +324,6 @@
   {#if usage && showUsage}
     <div bind:this={usageEl}>{@render sec('usage', t.homeUsage)}</div>
     {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}</div>{/if}
-  {/if}
-  <!-- Il Recap (tavola 1): chiuso i conteggi (azioni · aspetta te · può farlo Claude); aperto le Azioni, le prime due cose
-       che aspettano te, la prima che può fare Claude, e «Tutto il recap». -->
-  {#if showRecap && (actions.length || ag.you.length || ag.claude.length)}
-    {@render sec('recap', t.homeRecap, `${actions.length} · ${ag.you.length} · ${ag.claude.length}`)}
-    {#if open.recap}
-      {#if actions.length}
-        <h2 class="gh" style="--t:var(--text)"><span>{t.recapActions(actions.length).toUpperCase()}</span><i></i></h2>
-        <div class="chips">
-          {#each actions as a (actionKey(a))}
-            {@const done = sentActions.has(actionKey(a))}
-            <button class="act" class:sent={done} disabled={done} onclick={() => askSend(a)}>
-              {#if done}<svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linecap="round" /></svg>{/if}
-              <span>{a.text}</span><small>{a.recap ? t.recapFrom(recapDay) : a.from}</small>
-            </button>
-          {/each}
-        </div>
-      {/if}
-      {#if ag.you.length}
-        <h2 class="gh" style="--t:var(--b-warn)"><span>{t.recapYou(ag.you.length).toUpperCase()}</span><i></i></h2>
-        {#each ag.you.slice(0, 2) as r}<AgendaItem row={r} onOpen={() => acts?.deepen(r)} onItem={(i) => acts?.pickOf(r, i)} {canWrite} {today} />{/each}
-      {/if}
-      {#if ag.claude.length}
-        <h2 class="gh" style="--t:var(--icon)"><span>{t.recapClaude(ag.claude.length).toUpperCase()}</span><i></i></h2>
-        <AgendaItem row={ag.claude[0]} onOpen={() => acts?.deepen(ag.claude[0])} onItem={(i) => acts?.pickOf(ag.claude[0], i)} {canWrite} {today} />
-      {/if}
-      <button class="all" onclick={onRecapPage}><span>{t.recapAll}</span>
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
-    {/if}
   {/if}
   {#if outside.length}
     {@render sec('other', t.homeOther, outside.map(g => outsideCount(g)).join(' · '))}
@@ -454,8 +414,6 @@
   {/if}
 </dialog>
 
-<AgendaActions bind:this={acts} {canWrite} {today} onSend={onRecapAction} {onTalk} {onEdit} {onSpeak} />
-<RecapSend action={asking} day={recapDay} onClose={() => (asking = null)} onSend={(a) => { sentActions = new Set([...sentActions, actionKey(a)]); onRecapAction(a) }} />
 
 <style>
   .alive { color: var(--idle); font-weight: 500; }
@@ -499,6 +457,11 @@
   .details { font-size: 12.5px; color: var(--text2); }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .appr { cursor: default; padding: 12px 14px 14px; gap: 8px; }
+  .fy { flex-direction: row; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; }
+  .fyt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .fyt b { font-weight: 600; font-size: 15px; } .fyt small { color: var(--text2); font-size: 13px; }
+  .mark { width: 18px; height: 18px; flex: none; border: 2px solid var(--text2); border-radius: 5px; } .mark.personal { border-radius: 50%; } .mark.desk { border-radius: 3px; transform: rotate(45deg) scale(.8); }
+  .approve.mini { align-self: center; margin: 0; padding: 9px 16px; font-size: 14px; }
+  .tonal { background: var(--high); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   /* Contratto 1.76: gli impegni del registro, ambra da 2 ore ferme, rosso da 8. */
   .cmt .line { font-size: 14px; }
   .cmt .tone, .cmt .dim { color: var(--text2); }

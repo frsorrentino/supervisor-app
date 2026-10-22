@@ -31,15 +31,13 @@
   import ColumnHead from './lib/ColumnHead.svelte'
   import { t } from './lib/t'
   import HomePane from './lib/HomePane.svelte'
-  import RecapPage from './lib/RecapPage.svelte'
-  import { recapActions } from './lib/recapActions'
+  import Lavori from './lib/Lavori.svelte'
   import { NIGHT_TARGET, night as nightCards, setCmd, todayIso } from './lib/recapAgenda'
   import NightAgendaPicker from './lib/NightAgendaPicker.svelte'
   import Composer from './lib/Composer.svelte'
   import AppBar, { type Page as PageName } from './lib/AppBar.svelte'
   import Page from './lib/Page.svelte'
   import Launch from './lib/Launch.svelte'
-  import Diary from './lib/Diary.svelte'
   import NightPage from './lib/NightPage.svelte'
   import { page as nightPage, showHomeNight, type NightReport } from './lib/night'
   import TodayPanel from './lib/TodayPanel.svelte'
@@ -372,7 +370,9 @@
   // Le pagine del menu: sul telefono al posto della home, sulla plancia al posto delle colonne.
   // `?page=diary` apre una pagina (link diretto, e i provini).
   const asked = new URLSearchParams(location.search).get('page')
-  let page = $state<PageName | null>(asked && ['launch', 'diary', 'night', 'recap', 'search', 'settings', 'queue'].includes(asked) ? (asked as PageName) : null)
+  // «diary» e «recap» nei link vecchi aprono la pagina unica Lavori (22/10).
+  const askedPage = asked === 'diary' || asked === 'recap' ? 'lavori' : asked
+  let page = $state<PageName | null>(askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'queue'].includes(askedPage) ? (askedPage as PageName) : null)
   // La pagina Notte (specifica del 07/10, approvata alle 21:50): il rapporto si chiede al PC con l'op `night` (contratto 1.44)
   // quando la pagina si apre e col tasto aggiorna; nella demo è la fixture inventata.
   let night = $state<{ report: NightReport | null; error: string | null; loading: boolean }>({ report: null, error: null, loading: false })
@@ -406,8 +406,6 @@
   // Il Recap (Franz, 08/10 20:41): le Azioni e le righe dell'agenda (contratto 1.46), chieste quando il relay le conosce, a
   // ogni recap nuovo e all'apertura della pagina; nella demo un'agenda inventata.
   // Solo i «prossimo» del recap del giorno (Franz, 09/10 17:21): i «Prossimi:» delle sessioni stanno sulle loro schede.
-  const actions = $derived(recapActions(st, t.recapResume, false))
-  const recapDay = $derived(/^\d{4}-\d{2}-\d{2}$/.test(st.recap.date) ? `${st.recap.date.slice(8, 10)}/${st.recap.date.slice(5, 7)}` : '')
   let agenda = $state<{ page: AgendaPage | null; error: string | null; loading: boolean }>({ page: null, error: null, loading: false })
   const canAgenda = $derived(!!st.ops?.includes('agenda'))
   async function loadAgenda() {
@@ -420,7 +418,7 @@
     } catch { agenda = { ...agenda, error: t.noAnswer, loading: false } }
   }
   $effect(() => { void st.recap.date; if (canAgenda) untrack(() => loadAgenda()) })
-  $effect(() => { if (page === 'recap' && canAgenda) untrack(() => loadAgenda()) })
+  $effect(() => { if (page === 'lavori' && canAgenda) untrack(() => loadAgenda()) })
   // Le Azioni sulle schede (piano del 09/10). «Parlane con la master»: la scheda citata nel campo della master, sotto quello
   // che c'era già, e la sua conversazione aperta. Le scritture (Fatto, Rimanda, Rimuovi, Passa) con l'op del contratto 1.47.
   const canWrite = $derived(!!st.ops?.includes('agenda_set'))
@@ -429,6 +427,8 @@
   // Il cruscotto a tre colonne (21/10) ha sempre il riquadro della notte: il rapporto si chiede appena c'è.
   $effect(() => { if (deskDashboard && st.night?.report && !night.report && !night.loading && !night.error) untrack(() => loadNight()) })
   let masterInject = $state<{ text: string; n: number } | null>(null)
+  // «Fatto» su una pausa che aspetta te (pagina Lavori, 22/10): la master riprende il compito; nessuna op nuova.
+  function doneForPerson(c: import('./lib/contract').Commitment) { sendTo(MASTER, t.lavoriDonePrompt(c.paused?.reason ?? '', c.task)) }
   function talk(text: string) {
     masterInject = { text, n: (masterInject?.n ?? 0) + 1 }
     smooth(() => { page = null; masterOpen = true })
@@ -464,7 +464,7 @@
   }
   setContext('agendaNight', { get can() { return canNight }, get rows() { return nightCards(agenda.page, todayIso()) }, queue: queueNight })
   $effect(() => { if (canNight && canAgenda && !agenda.page && !agenda.loading) untrack(() => loadAgenda()) })
-  const pageTitle: Record<PageName, string> = $derived({ recap: t.homeRecap, launch: t.menuLaunch, diary: t.menuRegister, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle })
+  const pageTitle: Record<PageName, string> = $derived({ lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -856,8 +856,8 @@
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home {st} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
         night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
-        onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} onRecapAction={(a) => sendTo(a.to, a.send)} agenda={agenda.page} onRecapPage={() => openPage('recap')} {canWrite} onTalk={talk} onEdit={editAgenda}
-        showRecap={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
+        onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+        showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} /></div>
       {#if !master && ready}
@@ -891,19 +891,16 @@
       <Launch {st} onSession={(n, reopen) => { if (reopen) cmd(n)('reopen'); else { openPage(null); pick(n) } }}
         onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }}
         onNewProject={st.ops?.includes('project_new') && st.project_parents?.length ? newProject : null} />
-    {:else if p === 'diary'}
-      <Diary {st} {events} rings={overview.rings} now={now} onAdd={() => nightDlg?.showModal()} onRemove={(id) => cmd('')('night_remove', id)}
-        onQuadro={() => openPage('overview')} onSession={(n) => { openPage(null); pick(n) }} />
+    {:else if p === 'lavori'}
+      <Lavori {st} agenda={agenda.page} {events} {now} header="none" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+        onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} />
     {:else if p === 'night'}
       <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={loadNight}
         onChat={(n) => { openPage(null); pick(n) }} onAnswer={(n, x) => cmd(n)('answer', String(x))}
         onApprove={(task) => approve(task, '')} onSend={(n, text) => sendTo(n, text)} />
-    {:else if p === 'recap'}
-      <RecapPage {actions} day={recapDay} agenda={agenda.page} loading={agenda.loading}
-        error={canAgenda ? agenda.error : t.recapAgendaOld} onSend={(a) => sendTo(a.to, a.send)} {canWrite} onTalk={talk} onEdit={editAgenda} onSpeak={(x) => toggle(x)} />
     {:else if p === 'search'}
       <Search {sent} {events} remote onQuery={search} page={searchPage}
-        known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('diary') }} />
+        known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('lavori') }} />
     {:else if p === 'settings'}
       <Settings m={devicesOf(st.host, st, freshness(st, now), now, '', __APP_VERSION__, true, null, false, null)}
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
@@ -930,10 +927,10 @@
   {#if s}<ColumnTab {s} r={rowOf[name]} {now} onGrab={grab} onFocus={() => focusColumn(name)} onClose={() => setCols(cols.filter(c => c !== name))} />{/if}
 {/snippet}
 
-{#snippet recapYou()}<RecapPage part="you" {actions} day={recapDay} agenda={agenda.page} loading={agenda.loading}
-  error={canAgenda ? agenda.error : t.recapAgendaOld} onSend={(a) => sendTo(a.to, a.send)} {canWrite} onTalk={talk} onEdit={editAgenda} onSpeak={(x) => toggle(x)} />{/snippet}
-{#snippet recapClaude()}<RecapPage part="claude" {actions} day={recapDay} agenda={agenda.page} loading={agenda.loading}
-  error={null} onSend={(a) => sendTo(a.to, a.send)} {canWrite} onTalk={talk} onEdit={editAgenda} onSpeak={(x) => toggle(x)} />{/snippet}
+{#snippet lavoriLeft()}<Lavori {st} agenda={agenda.page} {events} {now} header="desk" part="left" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+  onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} />{/snippet}
+{#snippet lavoriRight()}<Lavori {st} agenda={agenda.page} {events} {now} header="none" part="right" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+  onNight={() => openPage('night')} onSession={(n) => pick(n)} />{/snippet}
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
 
@@ -955,7 +952,7 @@
     <!-- Senza colonne il cruscotto a tre colonne (Franz, 21/10 13:02): cosa serve da te, il lavoro, numeri e strumenti. -->
     {#snippet empty()}
       <Dash {st} {now} cols={dashColumns(width)} night={nightModel} {nightTitle} nightLoading={night.loading} onNight={() => openPage('night')}
-        {recapYou} {recapClaude} quota={quotaPanels} onPick={card} onTalk={talk}
+        {lavoriLeft} {lavoriRight} quota={quotaPanels} onPick={card} onTalk={talk}
         onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />
     {/snippet}
   </Desk>

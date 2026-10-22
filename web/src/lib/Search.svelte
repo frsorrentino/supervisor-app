@@ -40,7 +40,7 @@
       {@const canOpen = h.kind !== 'conversation' || h.live === true || (h.session != null && known.has(h.session))}
       <svelte:element this={canOpen ? 'button' : 'div'} class="hit" class:open={canOpen} role={canOpen ? undefined : 'group'} onclick={canOpen ? () => onOpen(h.session) : undefined}>
         <span class="top">
-          <span class="who" class:link={canOpen}>{h.session ?? t.menuRegister}</span>
+          <span class="who" class:link={canOpen}>{h.session ?? t.lavoriTitle}</span>
           {#if h.live === false}<span class="closed">{t.searchClosed}</span>{/if}
           <span class="at">{when(h.at)}</span>
         </span>

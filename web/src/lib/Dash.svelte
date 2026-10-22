@@ -10,10 +10,10 @@
   // Il cruscotto della plancia senza sessioni aperte, a tre colonne (Franz, 21/10 13:02): cosa serve da te, il lavoro, numeri
   // e strumenti. Riusa i riquadri che esistono (Recap, notte, quota, ricorrenti); stato di win e pubblicazioni di oggi
   // dal contratto 1.75 (su Firebase, con /state entro 8 KB, al massimo 5 pubblicazioni; la web locale ne vede fino a 30).
-  let { st, now, cols, night, nightTitle, nightLoading, onNight, recapYou, recapClaude, quota, onPick, onTalk, onLaunch }: {
+  let { st, now, cols, night, nightTitle, nightLoading, onNight, lavoriLeft, lavoriRight, quota, onPick, onTalk, onLaunch }: {
     st: State; now: number; cols: 1 | 2 | 3
     night: NightPage | null; nightTitle: string; nightLoading: boolean; onNight: () => void
-    recapYou: Snippet; recapClaude: Snippet; quota: Snippet
+    lavoriLeft: Snippet; lavoriRight: Snippet; quota: Snippet
     onPick: (name: string) => void; onTalk: (text: string) => void; onLaunch: (p: Project) => void
   } = $props()
 
@@ -43,7 +43,7 @@
         {/each}
       </div>
     {/if}
-    {@render recapYou()}
+    {@render lavoriLeft()}
   </section>
 
   <section class="dcol">
@@ -63,7 +63,7 @@
         {:else}<small>{nightLoading ? t.nightLoading : t.dashNightLater}</small>{/if}
       </button>
     {/if}
-    {@render recapClaude()}
+    {@render lavoriRight()}
     <div class="box">
       <h4>{t.dashSessions}</h4>
       <p class="counts">
