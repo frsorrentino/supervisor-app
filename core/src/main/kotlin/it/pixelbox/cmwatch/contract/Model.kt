@@ -390,6 +390,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @SerialName("continue_text") val continueText: String? = null,
     /** Contratto 1.62: Franz è al PC su quella sessione; l'evento si mostra senza suono né vibrazione. */
     val quiet: Boolean = false,
+    /** Contratto 1.78: sui `task_check` l'esito (true = verde), perché il titolo non porta più ✓ o ✗; null sugli altri eventi e con un relay precedente. */
+    val ok: Boolean? = null,
     /** Contratto 1.68, `attention_reminder`: il kind della voce di `state.attention` che aspetta ancora. */
     @SerialName("attention_kind") val attentionKind: String? = null,
     /** Relay 0.8.30: il `turn_failed` chiuso, riscritto senza `continue_text` e con l'ora della chiusura. */

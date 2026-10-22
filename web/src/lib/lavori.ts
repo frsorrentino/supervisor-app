@@ -100,7 +100,8 @@ export function done(events: Event[], zone: string, today: string, days = 7): Do
   const first = addDays(today, -(days - 1))
   const last = new Map<string, Event>()
   for (const e of events) {
-    if (e.kind !== 'task_check' || !e.title.startsWith('✓') || !e.ref?.trim()) continue
+    // Contratto 1.78: l'esito sta in `ok`; con un relay precedente lo dice il ✓ in testa al titolo.
+    if (e.kind !== 'task_check' || !(e.ok ?? e.title.startsWith('✓')) || !e.ref?.trim()) continue
     const prev = last.get(e.ref)
     if (!prev || e.ts > prev.ts) last.set(e.ref, e)
   }

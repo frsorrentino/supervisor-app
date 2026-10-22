@@ -115,10 +115,11 @@ object Lavori {
 
     data class DoneDay(val date: LocalDate, val rows: List<Done>)
 
-    /** I `task_check` verdi degli ultimi `days` giorni, uno per compito (l'ultimo), per giorno dal più recente; `title` = la prima riga del corpo. */
+    /** I `task_check` verdi (`ok`, o ✓ nel titolo con un relay prima della 1.78) degli ultimi `days` giorni, uno per compito (l'ultimo), per giorno dal più recente; `title` = la prima riga del corpo. */
     fun done(events: List<Event>, zone: ZoneId, today: LocalDate, days: Int = 7): List<DoneDay> {
         val first = today.minusDays((days - 1).toLong())
-        return events.filter { it.kind == EventKind.TASK_CHECK && it.title.startsWith("✓") && !it.ref.isNullOrBlank() }
+        // Contratto 1.78: l'esito sta in `ok`; con un relay precedente lo dice il ✓ in testa al titolo.
+        return events.filter { it.kind == EventKind.TASK_CHECK && (it.ok ?: it.title.startsWith("✓")) && !it.ref.isNullOrBlank() }
             .groupBy { it.ref!! }.values.map { es -> es.maxBy { it.ts } }
             .map { e -> Done(e.ref!!, e.body.lineSequence().firstOrNull()?.trim().orEmpty().ifEmpty { e.ref!! }, e.session, e.ts, null) }
             .groupBy { Instant.ofEpochSecond(it.at).atZone(zone).toLocalDate() }

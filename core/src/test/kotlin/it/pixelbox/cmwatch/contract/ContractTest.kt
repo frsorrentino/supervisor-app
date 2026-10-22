@@ -116,7 +116,7 @@ class ContractTest {
     // Contratto 1.45 (08/10): lo stato del PC fermo, segnalato dal guardiano del relay; session, account e ref null.
     @Test fun relayStaleEvent() {
         val e = ContractJson.decodeEvents(Fixtures.events).single { it.kind == EventKind.RELAY_STALE }
-        assertNull(e.session); assertNull(e.account); assertNull(e.ref); assertTrue(e.title.startsWith("⚠"))
+        assertNull(e.session); assertNull(e.account); assertNull(e.ref); assertTrue(e.title.isNotBlank()); assertFalse(e.title.startsWith("⚠"))   // 1.78: niente simboli nei titoli
     }
 
     // Contratto 1.32: i dispositivi accoppiati, nell'ordine del PC; kind e seen null quando non si sanno.
@@ -401,7 +401,7 @@ class ContractTest {
         assertNull(recap.session); assertNull(recap.account); assertTrue(recap.body.isNotBlank()); assertNotNull(recap.ref)
         val night = ev.single { it.kind == EventKind.NIGHT_REPORT }
         assertTrue(night.title.isNotBlank()); assertNotNull(night.ref)
-        assertTrue(ev.any { it.kind == EventKind.QUOTA && it.title.startsWith("✓") })
+        assertTrue(ev.any { it.kind == EventKind.QUOTA && it.title == "quota personal back" })   // 1.78: il titolo nudo, l'icona dal kind
         assertTrue(ev.all { !it.body.contains("…") && !it.title.contains("\n") })
     }
 

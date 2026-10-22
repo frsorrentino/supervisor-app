@@ -110,6 +110,8 @@ export type TranscriptEntry = {
   origin?: string | null; queued?: boolean
   /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */
   diff?: StepDiff | null
+  /** Contratto 1.78: sui `task_check` l'esito (true = verde), perché il titolo non porta più ✓ o ✗; null altrove e con un relay precedente. */
+  ok?: boolean | null
 }
 export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean }
 // Contratto 1.72, il diff dal telefono: un pezzo come in `git diff -U3`, le righe che cominciano per «-», «+» o spazio.

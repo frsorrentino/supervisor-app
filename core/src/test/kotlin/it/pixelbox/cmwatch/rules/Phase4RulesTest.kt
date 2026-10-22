@@ -29,11 +29,11 @@ class TimelineTextTest {
         assertEquals(listOf("12 set"), g.map { it.day })
         assertEquals(16, g[0].rows.size)   // 1.76: in più l'impegno fermo (task_stalled)   // 1.61-1.62: in più il turno fallito e l'esito quiet; 1.18: in più la ripresa della quota; 1.40: il riavvio fallito; 1.45: lo stato fermo; 1.57-1.58: due task_check, quota_limit e un esito con preview; diario e notte restano fuori
         // 1.18: la ripresa della quota è la più recente; del corpo su più righe resta la prima (una riga sul polso).
-        assertEquals("14:10 · ✓ quota personal back · reset 13:10", g[0].rows[0])
+        assertEquals("14:10 · quota personal back · reset 13:10", g[0].rows[0])
         assertEquals("13:01 · 1 yes · ledger-api · answered from watch-pixel5", g[0].rows[1])
         // 1.76: l'impegno fermo delle 09:59 (ts 1789199990) è una riga in più; la domanda delle 12:55 resta com'era.
-        assertTrue(g[0].rows.any { it.startsWith("09:59 · ⏸ 1 commitment stalled for more than 2 h with no step · ledger-api · - ledger-migrations-011") })
-        assertTrue(g[0].rows.contains("12:55 · ❓ ledger-api · Deploy ready, waiting for the client's ok. Deploy now?"))
+        assertTrue(g[0].rows.any { it.startsWith("09:59 · 1 commitment stalled for more than 2 h with no step · ledger-api · - ledger-migrations-011") })
+        assertTrue(g[0].rows.contains("12:55 · ledger-api · Deploy ready, waiting for the client's ok. Deploy now?"))
         assertTrue(g.flatMap { it.rows }.none { '\n' in it })
     }
 
@@ -50,7 +50,7 @@ class TimelineTextTest {
 
     @Test fun rowWithoutBodyHasNoTrailingSeparator() {
         val gone = ev.first { it.kind == EventKind.GONE }
-        assertEquals("10:00 · ✗ orbit-docs", TimelineText.row(gone, zone))
+        assertEquals("10:00 · orbit-docs", TimelineText.row(gone, zone))
     }
 }
 
