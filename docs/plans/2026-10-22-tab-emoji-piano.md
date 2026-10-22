@@ -1,5 +1,7 @@
 # Tab accetta il suggerimento · niente emoji — piano
 
+Stato 22/10 22:15: fatto, pre-release `tab-emoji-2026-10-22`; resoconto `docs/verifiche/2026-10-22-tab-emoji.md`.
+
 Compiti `tab-suggerimento-22-10` e `niente-emoji-22-10` (ok di Franz dal web, 22/10 13:32 e 13:36; registrati dalla
 master). Ramo `tab-emoji/22-10` da `lavori/pagina-unica` (`3ded2d77`); una sola pre-release `tab-emoji-2026-10-22`.
 
