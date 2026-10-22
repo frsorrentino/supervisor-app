@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Lavori, In corso: elenco</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#A8C7FA}a:hover{color:#D3E3FD}
+</style>
+</helmet>
+<div style="width: 412px; height: 840px; box-sizing: border-box; background: #000; color: #F2F4F7; font-family: Roboto, system-ui, sans-serif; font-size: 15px; line-height: 1.4; overflow: hidden">
+<div style="background: #2B1F45; color: #E9DDFF; font: 600 11px/1.3 'Roboto Mono', monospace; letter-spacing: .06em; padding: 7px 12px">PROPOSTA · IN CORSO, VISTA ELENCO · SI APRE COSÌ</div>
+<div style="display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 8px 0 4px; margin-top: 4px">
+<button type="button" aria-label="Indietro" style="width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: #A8C7FA; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></button>
+<span style="font-size: 22px; font-weight: 500">Lavori</span>
+<span style="flex: 1"></span>
+<button type="button" aria-label="Menu" style="width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: #A8C7FA; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></button>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; margin: 12px 16px 4px 20px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8C7FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+<span style="font: 500 12px/1 'Roboto Mono', monospace; letter-spacing: .14em; color: #B0B8C4">IN CORSO · 11</span>
+<span style="flex: 1"></span>
+<div role="group" aria-label="Vista" style="display: flex; border: 1px solid #3A404B; border-radius: 999px; overflow: hidden">
+<button type="button" aria-pressed="true" style="height: 40px; padding: 0 14px; border: 0; background: rgba(168,199,250,.16); color: #D3E3FD; font: 500 13px/1 Roboto, sans-serif; display: flex; align-items: center; gap: 6px; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Elenco</button>
+<button type="button" aria-pressed="false" style="height: 40px; padding: 0 16px; border: 0; border-left: 1px solid #3A404B; background: transparent; color: #B0B8C4; font: 500 13px/1 Roboto, sans-serif; cursor: pointer">Tempo</button>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 8px; margin: 18px 20px 8px; font: 600 11px/1 'Roboto Mono', monospace; letter-spacing: .12em; color: #8BB4F7">AL LAVORO · 2<span style="flex: 1; height: 1px; background: #8BB4F7; opacity: .3"></span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 0 12px">
+<sc-for list="{{run}}" as="item" hint-placeholder-count="2">
+<button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; box-sizing: border-box; padding: 10px 14px; border: 0; border-radius: 16px; background: #1B1F26; color: #F2F4F7; text-align: left; font-family: inherit; cursor: pointer">
+<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #1E2D47; color: #8BB4F7; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 15px; font-weight: 500; line-height: 1.3; white-space: nowrap">{{item.title}}</span>
+<span style="font-size: 13px; line-height: 1.35; color: #B0B8C4; white-space: nowrap">{{item.meta}}</span>
+</span>
+</button>
+</sc-for>
+</div>
+
+<div style="display: flex; align-items: center; gap: 8px; margin: 20px 20px 8px; font: 600 11px/1 'Roboto Mono', monospace; letter-spacing: .12em; color: #FFC46B">ASPETTA TE · 7<span style="flex: 1; height: 1px; background: #FFC46B; opacity: .3"></span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 0 12px">
+<sc-for list="{{you}}" as="item" hint-placeholder-count="3">
+<button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; box-sizing: border-box; padding: 10px 14px; border: 0; border-radius: 16px; background: #1B1F26; color: #F2F4F7; text-align: left; font-family: inherit; cursor: pointer">
+<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #3A3220; color: #FFC46B; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 19.5c1.2-3.6 4-5.5 7-5.5s5.8 1.9 7 5.5"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="display: flex; align-items: center; gap: 8px">
+<span style="font-size: 15px; font-weight: 500; line-height: 1.3; white-space: nowrap">{{item.title}}</span>
+<sc-if value="{{item.hasPill}}" hint-placeholder-val="{{ false }}">
+<span style="font: 600 11px/1 'Roboto Mono', monospace; padding: 4px 8px; border-radius: 999px; background: #3A3220; color: #FFC46B; white-space: nowrap">{{item.pill}}</span>
+</sc-if>
+</span>
+<span style="font-size: 13px; line-height: 1.35; color: #B0B8C4; white-space: nowrap">{{item.meta}}</span>
+</span>
+<span style="flex: none; font: 12px/1 'Roboto Mono', monospace; color: #B0B8C4; white-space: nowrap">{{item.when}}</span>
+</button>
+</sc-for>
+</div>
+
+<div style="display: flex; align-items: center; gap: 8px; margin: 20px 20px 8px; font: 600 11px/1 'Roboto Mono', monospace; letter-spacing: .12em; color: #B0B8C4">FERMI SU ALTRI · 2<span style="flex: 1; height: 1px; background: #B0B8C4; opacity: .3"></span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 0 12px">
+<sc-for list="{{others}}" as="item" hint-placeholder-count="2">
+<button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; box-sizing: border-box; padding: 10px 14px; border: 0; border-radius: 16px; background: #1B1F26; color: #F2F4F7; text-align: left; font-family: inherit; cursor: pointer">
+<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #2A2E35; color: #B0B8C4; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10M7 20h10M8 4c0 5 8 5 8 8s-8 3-8 8M16 4c0 5-8 5-8 8s8 3 8 8"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 15px; font-weight: 500; line-height: 1.3; white-space: nowrap">{{item.title}}</span>
+<span style="font-size: 13px; line-height: 1.35; color: #B0B8C4; white-space: nowrap">{{item.meta}}</span>
+</span>
+<span style="flex: none; font: 12px/1 'Roboto Mono', monospace; color: #B0B8C4; white-space: nowrap">{{item.who}}</span>
+</button>
+</sc-for>
+</div>
+
+<div style="display: flex; align-items: center; gap: 10px; margin: 26px 20px 0; font: 500 12px/1 'Roboto Mono', monospace; letter-spacing: .14em; color: #B0B8C4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8C7FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>STANOTTE<span style="flex: 1; border-top: 1px solid #2A2E35"></span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":412,"height":840}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+run: [
+{ title: "Niente emoji nell'app", meta: "supervisor-app · dalle 20:51" },
+{ title: "Tab sul suggerimento", meta: "supervisor-app · dalle 20:51" }
+],
+you: [
+{ title: "Albo Chiaro", hasPill: true, pill: "5 compiti", meta: "casella Aruba albo@ e chiavi API", when: "dal 18/10" },
+{ title: "Lavori: In corso leggibile", hasPill: false, pill: "", meta: "il tuo ok a questo mockup", when: "dalle 20:50" },
+{ title: "App telefono del 03/10", hasPill: false, pill: "", meta: "è superato? Se sì, si cancella", when: "dal 03/10" }
+],
+others: [
+{ title: "Revisione Chrome Web Store", meta: "chrome-bridge 1.12.0 con move_tab", who: "Google" },
+{ title: "chrome-bridge, issue #2", meta: "risposta di jeet-dhandha", who: "GitHub" }
+]
+};
+}
+}
+</script>
+</body>
+</html>
