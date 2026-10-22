@@ -96,19 +96,98 @@ object Lavori {
         }
     }
 
-    /** Una riga di «In corso»: un impegno (`row`) con le sue barre, o una riga dell'agenda ferma su terzi (`agenda`, senza barre). */
+    /** Una voce di «In corso»: un impegno (`row`) con le sue barre, o una riga dell'agenda ferma su terzi (`agenda`, senza barre). */
     data class Work(val row: Commitments.Row?, val agenda: AgendaRow?, val bars: List<Bar>)
 
-    data class InProgress(val active: List<Work>, val paused: List<Work>, val others: List<Work>, val axis: Axis)
+    /** Chi deve muoversi (mockup della master approvato da Franz il 22/10 alle 21:16, `docs/mockup/2026-10-22-in-corso/`). */
+    enum class Who { WORKING, YOU, OTHERS }
 
-    /** `active` = non in pausa e non tocca a Franz; `paused` = in pausa (anche se aspetta la persona: resta in vista, richiusa); `others` = fermi su terzi. */
+    /**
+     * Una riga di «In corso»: una o più voci (`works`) con lo stesso titolo breve in testa; `n` > 1 = la pastiglia «N compiti»
+     * (stessa sessione e stesso motivo di pausa). `reason` = il motivo della pausa (in coda dietro un altro compito, o cosa
+     * serve da Franz); `next` = il prossimo passo (l'ok da dare); `since` = da quando, epoch s, per la colonna di destra.
+     */
+    data class Line(
+        val who: Who, val works: List<Work>, val short: String,
+        val session: String? = null, val reason: String? = null, val next: String? = null, val approvedAt: Long? = null, val since: Long? = null,
+        val agenda: AgendaRow? = null,
+    ) {
+        val n: Int get() = works.size
+        /** Le barre della riga: quelle della prima voce (le voci raggruppate hanno la stessa pausa). */
+        val bars: List<Bar> get() = works.first().bars
+    }
+
+    /** `working` = al lavoro (anche in coda dietro un altro compito); `you` = aspetta Franz (in pausa o per un ok); `others` = fermi su terzi. */
+    data class InProgress(val working: List<Line>, val you: List<Line>, val others: List<Line>, val axis: Axis) {
+        val total: Int get() = working.sumOf { it.n } + you.sumOf { it.n } + others.size
+    }
+
+    /** Contratto 1.79: la lunghezza massima del titolo breve. */
+    const val SHORT_MAX = 28
+    private val SLUG_PREFIX = Regex("^[\\w.-]+:\\s+")
+    private val TAIL_WORDS = setOf(
+        "a", "ad", "al", "alla", "alle", "ai", "agli", "con", "da", "dal", "dalla", "dalle", "dai", "dei", "del", "della", "delle", "degli", "di", "e", "ed",
+        "il", "in", "la", "le", "lo", "gli", "i", "per", "su", "sul", "sulla", "sui", "un", "una", "uno", "o", "che", "the", "of", "and", "to", "on", "for", "with", "an", "at", "by", "or",
+    )
+
+    /**
+     * Il titolo breve di una riga: `short` del relay (contratto 1.79) quando c'è; altrimenti dal titolo: via il prefisso
+     * «nome: » (un nome senza spazi), parole intere entro [max] caratteri, mai un articolo, una preposizione o una
+     * parentesi aperta in coda, mai «…».
+     */
+    fun shortTitle(title: String, short: String? = null, max: Int = SHORT_MAX): String {
+        short?.trim()?.takeIf { it.isNotEmpty() && it.length <= max && '\n' !in it }?.let { return it }
+        val t = title.replace(SLUG_PREFIX, "").replace(Regex("\\s+"), " ").trim()
+        if (t.length <= max) return t.ifEmpty { title.trim().take(max) }
+        val head = t.take(max + 1)
+        var cut = head.lastIndexOf(' ').takeIf { it > 0 }?.let { head.substring(0, it) } ?: head.take(max)
+        while (true) {
+            val sp = cut.lastIndexOf(' ')
+            if (sp <= 0) break
+            val w = cut.substring(sp + 1)
+            if (w.lowercase().trimEnd(',', ';', ':') in TAIL_WORDS || w.startsWith('(') || w.startsWith('«') || w.startsWith('[')) cut = cut.substring(0, sp) else break
+        }
+        return cut.trimEnd(',', ';', ':', '-', '·', ' ').ifEmpty { t.take(max).trim() }
+    }
+
+    private fun shortOf(c: Commitment) = shortTitle(c.title, c.short)
+    private fun shortOf(a: AgendaRow) = shortTitle(a.title, a.short)
+
+    /** Il titolo di una riga raggruppata: la parte comune dei titoli brevi, a parola intera e di almeno 4 caratteri, altrimenti il primo. */
+    private fun commonShort(shorts: List<String>): String {
+        val first = shorts.first()
+        if (shorts.size == 1) return first
+        var n = first.length
+        for (s in shorts.drop(1)) { var i = 0; while (i < n && i < s.length && first[i] == s[i]) i++; n = i }
+        var common = first.take(n)
+        if (n < first.length && first[n] != ' ') common = common.substringBeforeLast(' ', "")
+        common = common.trimEnd(',', ';', ':', '-', '·', ' ')
+        return if (common.length >= 4) common else first
+    }
+
+    private fun Long?.positive() = this?.takeIf { it > 0 }
+
     fun inProgress(state: State, agenda: AgendaPage?, now: Long, zone: ZoneId, today: LocalDate): InProgress {
         val ax = axis(now, zone)
         val rows = Commitments.rows(state, now)
-        val active = rows.filter { it.c.paused == null && !it.yourTurn }.map { Work(it, null, bars(it.c, ax, now)) }
-        val paused = rows.filter { it.c.paused != null }.map { Work(it, null, bars(it.c, ax, now)) }
-        val others = RecapAgenda.of(agenda, null, today).other.map { Work(null, it, emptyList()) }
-        return InProgress(active, paused, others, ax)
+        val work = { r: Commitments.Row -> Work(r, null, bars(r.c, ax, now)) }
+        // Chi aspetta una sessione è al lavoro anche in pausa: è in coda dietro un altro compito, e il motivo lo dice.
+        val working = rows.filter { !it.yourTurn }.map { r ->
+            val c = r.c
+            Line(Who.WORKING, listOf(work(r)), shortOf(c), c.session, c.paused?.reason, null, c.approvedAt.positive(), c.approvedAt.positive() ?: c.lastStep?.at.positive())
+        }
+        // Chi aspetta Franz: gli ok da dare prima (relay: le pause in fondo); stessa sessione e stesso motivo di pausa = una riga.
+        val grouped = LinkedHashMap<String, MutableList<Commitments.Row>>()
+        rows.filter { it.yourTurn }.forEach { r -> grouped.getOrPut(r.c.paused?.let { "${r.c.session}|${it.reason}" } ?: "task|${r.c.task}") { mutableListOf() }.add(r) }
+        val you = grouped.values.map { g ->
+            val c = g.first().c
+            Line(
+                Who.YOU, g.map(work), commonShort(g.map { shortOf(it.c) }), c.session, c.paused?.reason, c.next?.takeIf { it.isNotBlank() }, c.approvedAt.positive(),
+                c.paused?.at.positive() ?: g.first().approval?.requestedAt.positive() ?: c.lastStep?.at.positive(),
+            )
+        }
+        val others = RecapAgenda.of(agenda, null, today).other.map { a -> Line(Who.OTHERS, listOf(Work(null, a, emptyList())), shortOf(a), agenda = a) }
+        return InProgress(working, you, others, ax)
     }
 
     /**

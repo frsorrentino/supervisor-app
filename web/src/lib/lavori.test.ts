@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { decodeState, type AgendaPage, type Approval, type Commitment, type Event } from './contract'
-import { MIN_BAR, axis, bars, done, doneFromPages, forYou, inProgress, midnight } from './lavori'
+import { decodeState, type AgendaPage, type AgendaRow, type Approval, type Commitment, type Event } from './contract'
+import { MIN_BAR, axis, bars, done, doneFromPages, forYou, inProgress, midnight, shortTitle } from './lavori'
 import type { DonePage } from './contract'
 
 // Gli stessi casi di LavoriTest in Kotlin: la pagina unica «Lavori» (mockup approvato il 22/10).
@@ -30,10 +30,13 @@ describe('lavori', () => {
     expect(fy.claude.map(r => [r.title, r.kind])).toEqual([['Move the docs site to the new host', 'claude']])
     expect(fy.total).toBe(4)
     const ip = inProgress(st, agenda, idle.ts, zone, today)
-    expect(ip.active.map(w => w.row!.c.task)).toEqual(['notes-gantt-apk', 'ledger-migrations-011', 'atlas-seo-pages'])
-    expect(ip.active.every(w => w.bars.length === 1 && !w.bars[0].dashed)).toBe(true)
-    expect(ip.paused).toEqual([])
-    expect(ip.others.map(w => w.agenda!.title)).toEqual(['Staging of atlas-shop not reachable from the CLI'])
+    // Mockup del 22/10 21:16: tre gruppi per chi deve muoversi. Chi aspetta una sessione è al lavoro, chi aspetta Franz no.
+    expect(ip.working.map(l => l.works[0].row!.c.task)).toEqual(['notes-gantt-apk', 'ledger-migrations-011', 'atlas-seo-pages'])
+    expect(ip.working.every(l => l.bars.length === 1 && !l.bars[0].dashed)).toBe(true)
+    expect(ip.you.map(l => l.works[0].row!.c.task)).toEqual(['ledger-release-14'])
+    expect([ip.you[0].next, ip.you[0].since]).toEqual(["l'ok a: tag v1.4 e push", 1791332460])
+    expect(ip.others.map(l => l.agenda!.title)).toEqual(['Staging of atlas-shop not reachable from the CLI'])
+    expect([ip.others[0].short, ip.total]).toEqual(['Staging of atlas-shop', 5])
     const d = done(events, zone, eventDay)
     expect(d.length).toBe(1); expect(d[0].date).toBe(eventDay)
     expect(d[0].rows).toEqual([{ task: 'atlas-release-2-4', title: 'Release 2.4 of atlas-shop', session: 'atlas-shop', at: 1789199700, proof: null }])
@@ -48,7 +51,9 @@ describe('lavori', () => {
     const s = { ...stale, commitments: [{ ...stale.commitments![0], waits: { who: 'person', on: 'orbit-docs' } }] } // relay 1.76
     expect(forYou(s, null, stale.ts, today).total).toBe(0)
     const ip = inProgress(s, null, stale.ts, zone, today)
-    expect(ip.active).toEqual([]); expect(ip.paused.map(w => w.row!.c.task)).toEqual(['orbit-docs-site'])
+    // In pausa in attesa di una sessione = al lavoro (in coda), col motivo della pausa come riga sotto e la barra tratteggiata.
+    expect(ip.working.map(l => l.works[0].row!.c.task)).toEqual(['orbit-docs-site']); expect(ip.you).toEqual([])
+    expect([ip.working[0].reason, ip.working[0].bars.some(b => b.dashed)]).toEqual(["after the client's review", true])
   })
 
   it('una pausa che aspetta la persona è per te', () => {
@@ -57,7 +62,9 @@ describe('lavori', () => {
     expect(fy.ok).toEqual([])
     expect(fy.outside.length).toBe(1)
     expect([fy.outside[0].title, fy.outside[0].who, fy.outside[0].at, fy.outside[0].commitment]).toEqual(["after the client's review", 'orbit-docs', 1789100000, c])
-    expect(inProgress(stale, null, stale.ts, zone, today).paused.map(w => w.row!.c.task)).toEqual(['orbit-docs-site'])
+    const ip = inProgress(stale, null, stale.ts, zone, today)
+    expect(ip.you.map(l => l.works[0].row!.c.task)).toEqual(['orbit-docs-site']); expect(ip.working).toEqual([])
+    expect([ip.you[0].reason, ip.you[0].since]).toEqual(["after the client's review", 1789100000])
   })
 
   it("l'asse copre sette giorni fino a domani", () => {
@@ -123,7 +130,56 @@ describe('lavori', () => {
     const s = { ...idle, commitments: null }
     expect(forYou(s, null, idle.ts, today).total).toBe(0)
     const ip = inProgress(s, null, idle.ts, zone, today)
-    expect([ip.active, ip.paused, ip.others]).toEqual([[], [], []])
+    expect([ip.working, ip.you, ip.others, ip.total]).toEqual([[], [], [], 0])
     expect(done(events, zone, eventDay).length).toBe(1)
+  })
+
+  // Contratto 1.79: `short` del relay quando c'è; altrimenti dal titolo: via il prefisso «nome: », parole intere entro 28, mai un articolo o una parentesi aperta in coda.
+  it('il titolo breve viene dal relay o dal titolo', () => {
+    expect(shortTitle('ledger-api: migrations 008-011 on staging', 'Migrations 008-011')).toBe('Migrations 008-011')
+    expect(shortTitle('supervisor-app: con un suggerimento visibile nella casella di testo, Tab (web) lo copia nel campo')).toBe('con un suggerimento visibile')
+    expect(shortTitle("supervisor-app: niente emoji nell'app e nelle notifiche, solo icone vettoriali")).toBe("niente emoji nell'app")
+    expect(shortTitle('Albo Chiaro fase 1 (task 1-8): repository e CI, verifiche, database')).toBe('Albo Chiaro fase 1')
+    expect(shortTitle('Release 1.4 di ledger-api')).toBe('Release 1.4 di ledger-api')
+    expect(shortTitle('Release 1.4 di ledger-api', '  ')).toBe('Release 1.4 di ledger-api')
+    expect(shortTitle('x'.repeat(40))).toBe('x'.repeat(28))
+    expect(shortTitle('Lavori: In corso leggibile, la sezione è un muro di testo', 'Lavori: In corso leggibile')).toBe('Lavori: In corso leggibile')
+  })
+
+  // Il caso reale della sera del 22/10: 2 al lavoro (uno in coda dietro l'altro), 7 che aspettano Franz con Albo Chiaro ×5 in una riga, 2 fermi su terzi.
+  it('il caso reale si raggruppa per chi deve muoversi', () => {
+    const now = 1792700000
+    const c = (task: string, title: string, session: string, waitsOn: string, o: Partial<Commitment> = {}): Commitment =>
+      ({ task, title, session, state: o.paused ? 'assigned' : 'running', approved: true, approved_at: null, age_s: 3600, idle_s: 600, waits: { who: waitsOn === 'person' ? session : 'person', on: waitsOn }, paused: null, ...o })
+    const albo = { reason: "Albo Chiaro sospeso dal 18/10 a stato pulito: aspetta da Franz la casella Aruba albo@, l'utente con password e le chiavi Gemini e OCR", at: 1792274400, by: 'master' }
+    const list = [
+      c('niente-emoji-22-10', "supervisor-app: niente emoji nell'app e nelle notifiche", 'supervisor-app', 'supervisor-app', { approved_at: 1792695060, short: "Niente emoji nell'app" }),
+      c('tab-suggerimento-22-10', 'supervisor-app: con un suggerimento visibile nella casella di testo, Tab', 'supervisor-app', 'supervisor-app', { paused: { reason: 'in coda dopo niente-emoji-22-10', at: 1792695100, by: 'master' }, approved_at: 1792695060 }),
+      c('albo-fase1-20261017', 'Albo Chiaro fase 1 (task 1-8): repository e CI', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro fase 1' }),
+      c('albo-fase2-20261017', 'Albo Chiaro fase 2 (task 9-15): testo, OCR', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro fase 2' }),
+      c('albo-fase3-20261017', 'Albo Chiaro fase 3 (task 16-19): appalti', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro fase 3' }),
+      c('albo-provincia-20261017', 'Albo Chiaro: albo della Provincia di Crotone', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro: Provincia' }),
+      c('albo-regione-20261017', 'Albo Chiaro: provvedimenti della Regione Calabria', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro: Regione' }),
+      c('lavori-gerarchia-22-10', 'Lavori: In corso leggibile', 'supervisor-app', 'person', { next: "l'ok a: il mockup", short: 'Lavori: In corso leggibile' }),
+      c('phone-fix-0310-sera', 'App telefono: menu che si chiudono, volo card', 'claude-master-phone', 'person', { paused: { reason: 'compito del 03/10: da confermare con Franz se è superato', at: 1792622164, by: 'master' }, approved_at: 1791050000, short: 'App telefono del 03/10' }),
+    ]
+    const rows: AgendaRow[] = [
+      { state: 'aperto', scope: 'personale', blocks: 'terzi', title: 'Revisione Chrome Web Store di chrome-bridge 1.12.0 con move_tab', ref: 'chrome-bridge 1.12.0', key: 'a1', short: 'Revisione Chrome Web Store' },
+      { state: 'aperto', scope: 'personale', blocks: 'terzi', title: 'chrome-bridge, issue #2: risposta di jeet-dhandha', ref: '', detail: 'risposta di jeet-dhandha\nseconda riga', until: '2026-10-25', key: 'a2' },
+    ]
+    const ip = inProgress({ ...idle, commitments: list, approvals: [], ts: now }, { rows, more: false, owner: 'franz' }, now, zone, '2026-10-22')
+    expect(ip.working.map(l => l.short)).toEqual(["Niente emoji nell'app", 'con un suggerimento visibile'])
+    expect(ip.working.map(l => l.reason)).toEqual([null, 'in coda dopo niente-emoji-22-10'])
+    expect(ip.working.map(l => l.since)).toEqual([1792695060, 1792695060])
+    expect(ip.working[1].bars.some(b => b.dashed)).toBe(true)
+    // Gli ok da dare prima (si fanno con un tocco), poi le pause nell'ordine del relay.
+    expect(ip.you.map(l => l.short)).toEqual(['Lavori: In corso leggibile', 'Albo Chiaro', 'App telefono del 03/10'])
+    expect(ip.you.map(l => l.n)).toEqual([1, 5, 1])
+    expect([ip.you[1].reason, ip.you[1].since, ip.you[1].session]).toEqual([albo.reason, 1792274400, 'albo-crotone'])
+    expect([ip.you[0].next, ip.you[0].reason]).toEqual(["l'ok a: il mockup", null])
+    expect(ip.others.map(l => l.short)).toEqual(['Revisione Chrome Web Store', 'chrome-bridge, issue #2'])
+    expect(ip.others[1].agenda!.until).toBe('2026-10-25')
+    expect(ip.total).toBe(11)
+    expect([ip.working[0].who, ip.you[1].who, ip.others[0].who]).toEqual(['working', 'you', 'others'])
   })
 })

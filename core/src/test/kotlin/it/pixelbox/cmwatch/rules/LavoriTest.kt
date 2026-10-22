@@ -2,6 +2,9 @@ package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.Fixtures
 import it.pixelbox.cmwatch.contract.AgendaPage
+import it.pixelbox.cmwatch.contract.AgendaRow
+import it.pixelbox.cmwatch.contract.Commitment
+import it.pixelbox.cmwatch.contract.CommitmentPause
 import it.pixelbox.cmwatch.contract.Approval
 import it.pixelbox.cmwatch.contract.CommitmentWaits
 import it.pixelbox.cmwatch.contract.ContractJson
@@ -49,10 +52,13 @@ class LavoriTest {
         assertEquals(listOf("Move the docs site to the new host"), fy.claude.map { it.title }); assertEquals(Kind.CLAUDE, fy.claude[0].kind)
         assertEquals(4, fy.total)
         val ip = Lavori.inProgress(st, agenda, idle.ts, zone, today)
-        assertEquals(listOf("notes-gantt-apk", "ledger-migrations-011", "atlas-seo-pages"), ip.active.map { it.row!!.c.task })
-        assertTrue(ip.active.all { it.bars.size == 1 && !it.bars[0].dashed })
-        assertTrue(ip.paused.isEmpty())
+        // Mockup del 22/10 21:16: tre gruppi per chi deve muoversi. Chi aspetta una sessione è al lavoro, chi aspetta Franz no.
+        assertEquals(listOf("notes-gantt-apk", "ledger-migrations-011", "atlas-seo-pages"), ip.working.map { it.works.single().row!!.c.task })
+        assertTrue(ip.working.all { it.bars.size == 1 && !it.bars[0].dashed })
+        assertEquals(listOf("ledger-release-14"), ip.you.map { it.works.single().row!!.c.task })
+        assertEquals("l'ok a: tag v1.4 e push", ip.you[0].next); assertEquals(1791332460L, ip.you[0].since)
         assertEquals(listOf("Staging of atlas-shop not reachable from the CLI"), ip.others.map { it.agenda!!.title })
+        assertEquals("Staging of atlas-shop", ip.others[0].short); assertEquals(5, ip.total)
         val done = Lavori.done(events, zone, eventDay)
         assertEquals(1, done.size); assertEquals(eventDay, done[0].date)
         val row = done[0].rows.single()
@@ -69,7 +75,9 @@ class LavoriTest {
         val s = stale.copy(commitments = listOf(stale.commitments!!.single().copy(waits = CommitmentWaits("person", "orbit-docs"))))   // relay 1.76
         assertEquals(0, Lavori.forYou(s, null, stale.ts, today).total)
         val ip = Lavori.inProgress(s, null, stale.ts, zone, today)
-        assertTrue(ip.active.isEmpty()); assertEquals(listOf("orbit-docs-site"), ip.paused.map { it.row!!.c.task })
+        // In pausa in attesa di una sessione = al lavoro (in coda), col motivo della pausa come riga sotto e la barra tratteggiata.
+        assertEquals(listOf("orbit-docs-site"), ip.working.map { it.works.single().row!!.c.task }); assertTrue(ip.you.isEmpty())
+        assertEquals("after the client's review", ip.working[0].reason); assertTrue(ip.working[0].bars.any { it.dashed })
     }
 
     @Test fun aPauseThatWaitsThePersonIsForYou() {
@@ -78,7 +86,9 @@ class LavoriTest {
         assertTrue(fy.ok.isEmpty())
         val row = fy.outside.single()
         assertEquals("after the client's review", row.title); assertEquals("orbit-docs", row.who); assertEquals(1789100000L, row.at); assertEquals(c, row.commitment)
-        assertEquals(listOf("orbit-docs-site"), Lavori.inProgress(stale, null, stale.ts, zone, today).paused.map { it.row!!.c.task })
+        val ip = Lavori.inProgress(stale, null, stale.ts, zone, today)
+        assertEquals(listOf("orbit-docs-site"), ip.you.map { it.works.single().row!!.c.task }); assertTrue(ip.working.isEmpty())
+        assertEquals("after the client's review", ip.you[0].reason); assertEquals(1789100000L, ip.you[0].since)
     }
 
     @Test fun theAxisCoversSevenDaysEndingTomorrow() {
@@ -150,7 +160,60 @@ class LavoriTest {
         val s = idle.copy(commitments = null)
         assertEquals(0, Lavori.forYou(s, null, idle.ts, today).total)
         val ip = Lavori.inProgress(s, null, idle.ts, zone, today)
-        assertTrue(ip.active.isEmpty() && ip.paused.isEmpty() && ip.others.isEmpty())
+        assertTrue(ip.working.isEmpty() && ip.you.isEmpty() && ip.others.isEmpty() && ip.total == 0)
         assertEquals(1, Lavori.done(events, zone, eventDay).size)
+    }
+
+    // Contratto 1.79: `short` del relay quando c'è; altrimenti dal titolo: via il prefisso «nome: », parole intere entro 28, mai un articolo o una parentesi aperta in coda.
+    @Test fun theShortTitleComesFromTheRelayOrFromTheTitle() {
+        assertEquals("Migrations 008-011", Lavori.shortTitle("ledger-api: migrations 008-011 on staging", "Migrations 008-011"))
+        assertEquals("con un suggerimento visibile", Lavori.shortTitle("supervisor-app: con un suggerimento visibile nella casella di testo, Tab (web) lo copia nel campo"))
+        assertEquals("niente emoji nell'app", Lavori.shortTitle("supervisor-app: niente emoji nell'app e nelle notifiche, solo icone vettoriali"))
+        assertEquals("Albo Chiaro fase 1", Lavori.shortTitle("Albo Chiaro fase 1 (task 1-8): repository e CI, verifiche, database"))
+        assertEquals("Release 1.4 di ledger-api", Lavori.shortTitle("Release 1.4 di ledger-api"))
+        assertEquals("Release 1.4 di ledger-api", Lavori.shortTitle("Release 1.4 di ledger-api", "  "))
+        assertEquals("x".repeat(28), Lavori.shortTitle("x".repeat(40)))
+        assertEquals("Lavori: In corso leggibile", Lavori.shortTitle("Lavori: In corso leggibile, la sezione è un muro di testo", "Lavori: In corso leggibile"))
+    }
+
+    // Il caso reale della sera del 22/10: 2 al lavoro (uno in coda dietro l'altro), 7 che aspettano Franz con Albo Chiaro ×5 in una riga, 2 fermi su terzi.
+    @Test fun theRealCaseGroupsByWhoHasToMove() {
+        val now = 1792700000L // 22/10/2026 ~04:13 UTC: non conta, le date stanno sotto
+        fun c(task: String, title: String, session: String, waitsOn: String, paused: CommitmentPause? = null, approvedAt: Long? = null, next: String? = null, short: String? = null) =
+            Commitment(task, title, session = session, state = if (paused != null) "assigned" else "running", approved = true, approvedAt = approvedAt, ageS = 3600, idleS = 600,
+                next = next, waits = CommitmentWaits(if (waitsOn == "person") session else "person", waitsOn), paused = paused, short = short)
+        val albo = CommitmentPause("Albo Chiaro sospeso dal 18/10 a stato pulito: aspetta da Franz la casella Aruba albo@, l'utente con password e le chiavi Gemini e OCR", 1792274400, "master")
+        val list = listOf(
+            c("niente-emoji-22-10", "supervisor-app: niente emoji nell'app e nelle notifiche", "supervisor-app", "supervisor-app", approvedAt = 1792695060, short = "Niente emoji nell'app"),
+            c("tab-suggerimento-22-10", "supervisor-app: con un suggerimento visibile nella casella di testo, Tab", "supervisor-app", "supervisor-app",
+                paused = CommitmentPause("in coda dopo niente-emoji-22-10", 1792695100, "master"), approvedAt = 1792695060),
+            c("albo-fase1-20261017", "Albo Chiaro fase 1 (task 1-8): repository e CI", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 1"),
+            c("albo-fase2-20261017", "Albo Chiaro fase 2 (task 9-15): testo, OCR", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 2"),
+            c("albo-fase3-20261017", "Albo Chiaro fase 3 (task 16-19): appalti", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 3"),
+            c("albo-provincia-20261017", "Albo Chiaro: albo della Provincia di Crotone", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro: Provincia"),
+            c("albo-regione-20261017", "Albo Chiaro: provvedimenti della Regione Calabria", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro: Regione"),
+            c("lavori-gerarchia-22-10", "Lavori: In corso leggibile", "supervisor-app", "person", approvedAt = null, next = "l'ok a: il mockup", short = "Lavori: In corso leggibile"),
+            c("phone-fix-0310-sera", "App telefono: menu che si chiudono, volo card", "claude-master-phone", "person",
+                paused = CommitmentPause("compito del 03/10: da confermare con Franz se è superato", 1792622164, "master"), approvedAt = 1791050000, short = "App telefono del 03/10"),
+        )
+        val ag = AgendaPage(listOf(
+            AgendaRow("aperto", "personale", "terzi", "Revisione Chrome Web Store di chrome-bridge 1.12.0 con move_tab", "chrome-bridge 1.12.0", key = "a1", short = "Revisione Chrome Web Store"),
+            AgendaRow("aperto", "personale", "terzi", "chrome-bridge, issue #2: risposta di jeet-dhandha", "", detail = "risposta di jeet-dhandha\nseconda riga", until = "2026-10-25", key = "a2"),
+        ), owner = "franz")
+        val state = idle.copy(commitments = list, approvals = emptyList(), ts = now)
+        val ip = Lavori.inProgress(state, ag, now, zone, LocalDate.of(2026, 10, 22))
+        assertEquals(listOf("Niente emoji nell'app", "con un suggerimento visibile"), ip.working.map { it.short })
+        assertEquals(listOf(null, "in coda dopo niente-emoji-22-10"), ip.working.map { it.reason })
+        assertEquals(listOf(1792695060L, 1792695060L), ip.working.map { it.since })
+        assertTrue(ip.working[1].bars.any { it.dashed })
+        // Gli ok da dare prima (si fanno con un tocco), poi le pause nell'ordine del relay.
+        assertEquals(listOf("Lavori: In corso leggibile", "Albo Chiaro", "App telefono del 03/10"), ip.you.map { it.short })
+        assertEquals(listOf(1, 5, 1), ip.you.map { it.n })
+        assertEquals(albo.reason, ip.you[1].reason); assertEquals(1792274400L, ip.you[1].since); assertEquals("albo-crotone", ip.you[1].session)
+        assertEquals("l'ok a: il mockup", ip.you[0].next); assertNull(ip.you[0].reason)
+        assertEquals(listOf("Revisione Chrome Web Store", "chrome-bridge, issue #2"), ip.others.map { it.short })
+        assertEquals("2026-10-25", ip.others[1].agenda!!.until)
+        assertEquals(11, ip.total)
+        assertEquals(listOf(Lavori.Who.WORKING, Lavori.Who.YOU, Lavori.Who.OTHERS), listOf(ip.working[0].who, ip.you[1].who, ip.others[0].who))
     }
 }

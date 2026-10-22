@@ -80,15 +80,80 @@ export function bars(c: Commitment, ax: Axis, now: number): Bar[] {
 
 /** Una riga di «In corso»: un impegno (`row`) con le barre, o una riga dell'agenda ferma su terzi (`agenda`, senza barre). */
 export type Work = { row: Row | null; agenda: AgendaRow | null; bars: Bar[] }
-export type InProgress = { active: Work[]; paused: Work[]; others: Work[]; axis: Axis }
+/** Chi deve muoversi (mockup della master approvato da Franz il 22/10 alle 21:16, `docs/mockup/2026-10-22-in-corso/`). */
+export type Who = 'working' | 'you' | 'others'
+/**
+ * Una riga di «In corso»: una o più voci (`works`) con lo stesso titolo breve in testa; `n` > 1 = la pastiglia «N compiti»
+ * (stessa sessione e stesso motivo di pausa). `reason` = il motivo della pausa (in coda dietro un altro compito, o cosa serve
+ * da Franz); `next` = il prossimo passo (l'ok da dare); `since` = da quando, epoch s, per la colonna di destra; `bars` = quelle
+ * della prima voce.
+ */
+export type Line = {
+  who: Who; works: Work[]; short: string; n: number; bars: Bar[]
+  session: string | null; reason: string | null; next: string | null; approvedAt: number | null; since: number | null; agenda: AgendaRow | null
+}
+/** `working` = al lavoro (anche in coda dietro un altro compito); `you` = aspetta Franz (in pausa o per un ok); `others` = fermi su terzi. */
+export type InProgress = { working: Line[]; you: Line[]; others: Line[]; axis: Axis; total: number }
+
+/** Contratto 1.79: la lunghezza massima del titolo breve. */
+export const SHORT_MAX = 28
+const SLUG_PREFIX = /^[\w.-]+:\s+/
+const TAIL_WORDS = new Set(['a', 'ad', 'al', 'alla', 'alle', 'ai', 'agli', 'con', 'da', 'dal', 'dalla', 'dalle', 'dai', 'dei', 'del', 'della', 'delle', 'degli', 'di', 'e', 'ed',
+  'il', 'in', 'la', 'le', 'lo', 'gli', 'i', 'per', 'su', 'sul', 'sulla', 'sui', 'un', 'una', 'uno', 'o', 'che', 'the', 'of', 'and', 'to', 'on', 'for', 'with', 'an', 'at', 'by', 'or'])
+const trimTail = (s: string) => s.replace(/[,;:\-· ]+$/, '')
+
+/**
+ * Il titolo breve di una riga: `short` del relay (contratto 1.79) quando c'è; altrimenti dal titolo: via il prefisso «nome: »
+ * (un nome senza spazi), parole intere entro `max` caratteri, mai un articolo, una preposizione o una parentesi aperta in coda, mai «…».
+ */
+export function shortTitle(title: string, short?: string | null, max = SHORT_MAX): string {
+  const s = short?.trim()
+  if (s && s.length <= max && !s.includes('\n')) return s
+  const t = title.replace(SLUG_PREFIX, '').replace(/\s+/g, ' ').trim()
+  if (t.length <= max) return t || title.trim().slice(0, max)
+  const head = t.slice(0, max + 1)
+  const sp0 = head.lastIndexOf(' ')
+  let cut = sp0 > 0 ? head.slice(0, sp0) : head.slice(0, max)
+  for (;;) {
+    const sp = cut.lastIndexOf(' ')
+    if (sp <= 0) break
+    const w = cut.slice(sp + 1)
+    if (TAIL_WORDS.has(w.toLowerCase().replace(/[,;:]+$/, '')) || /^[(«[]/.test(w)) cut = cut.slice(0, sp); else break
+  }
+  return trimTail(cut) || t.slice(0, max).trim()
+}
+
+/** Il titolo di una riga raggruppata: la parte comune dei titoli brevi, a parola intera e di almeno 4 caratteri, altrimenti il primo. */
+function commonShort(shorts: string[]): string {
+  const first = shorts[0]
+  if (shorts.length === 1) return first
+  let n = first.length
+  for (const s of shorts.slice(1)) { let i = 0; while (i < n && i < s.length && first[i] === s[i]) i++; n = i }
+  let common = first.slice(0, n)
+  if (n < first.length && first[n] !== ' ') common = common.includes(' ') ? common.slice(0, common.lastIndexOf(' ')) : ''
+  common = trimTail(common)
+  return common.length >= 4 ? common : first
+}
+
+const positive = (x: number | null | undefined) => (x && x > 0 ? x : null)
 
 export function inProgress(st: State, agenda: AgendaPage | null | undefined, now: number, zone: string, today: string): InProgress {
   const ax = axis(now, zone)
   const rs = commitmentRows(st, now)
-  const active = rs.filter(r => !r.c.paused && !r.yourTurn).map(r => ({ row: r, agenda: null, bars: bars(r.c, ax, now) }))
-  const paused = rs.filter(r => r.c.paused).map(r => ({ row: r, agenda: null, bars: bars(r.c, ax, now) }))
-  const others = agendaModel(agenda, null, today).other.map(a => ({ row: null, agenda: a, bars: [] }))
-  return { active, paused, others, axis: ax }
+  const work = (r: Row): Work => ({ row: r, agenda: null, bars: bars(r.c, ax, now) })
+  const line = (who: Who, works: Work[], short: string, c: Commitment | null, since: number | null, agenda: AgendaRow | null = null): Line =>
+    ({ who, works, short, n: works.length, bars: works[0].bars, session: c?.session ?? null, reason: c?.paused?.reason ?? null, next: c?.next?.trim() || null, approvedAt: positive(c?.approved_at), since, agenda })
+  // Chi aspetta una sessione è al lavoro anche in pausa: è in coda dietro un altro compito, e il motivo lo dice.
+  const working = rs.filter(r => !r.yourTurn).map(r => line('working', [work(r)], shortTitle(r.c.title, r.c.short), r.c, positive(r.c.approved_at) ?? positive(r.c.last_step?.at)))
+  // Chi aspetta Franz: gli ok da dare prima (relay: le pause in fondo); stessa sessione e stesso motivo di pausa = una riga.
+  const grouped = new Map<string, Row[]>()
+  for (const r of rs.filter(r => r.yourTurn)) { const k = r.c.paused ? `${r.c.session}|${r.c.paused.reason}` : `task|${r.c.task}`; grouped.set(k, [...(grouped.get(k) ?? []), r]) }
+  const you = [...grouped.values()].map(g => {
+    const c = g[0].c
+    return line('you', g.map(work), commonShort(g.map(r => shortTitle(r.c.title, r.c.short))), c, positive(c.paused?.at) ?? positive(g[0].approval?.requested_at) ?? positive(c.last_step?.at))
+  })
+  const others = agendaModel(agenda, null, today).other.map(a => line('others', [{ row: null, agenda: a, bars: [] }], shortTitle(a.title, a.short), null, null, a))
+  return { working, you, others, axis: ax, total: working.reduce((n, l) => n + l.n, 0) + you.reduce((n, l) => n + l.n, 0) + others.length }
 }
 
 /** Un compito chiuso; `proof` = la prova in una riga («release v2.3», «commit 9f8e7d6», il file, il comando), null dagli eventi; `url` col link; `outcome` ∈ green|cancelled|failed. */
