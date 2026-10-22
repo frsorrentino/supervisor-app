@@ -1,0 +1,65 @@
+<!doctype html><meta charset=utf-8><style>
+:root{--bg:#000;--low:#1B1F26;--surf:#23272E;--high:#292F3A;--line:#2A2E35;--text:#F2F4F7;--text2:#B0B8C4;--icon:#A8C7FA;
+--primary:#D3E3FD;--onp:#0A2050;--good:#65C581;--warn:#FFC46B;--bad:#F2B8B5;--run:#8BB4F7;--track:#2E3642;--night:#C9B6FF;--nightbg:#221B33;
+--mono:'Roboto Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0}
+body{background:#120D1C;color:var(--text);font:15px/1.4 Roboto,system-ui,sans-serif;width:412px}
+.screen{width:412px;min-height:915px;background:var(--bg);padding-bottom:28px;position:relative}
+.tag{background:#2B1F45;color:#E9DDFF;font:600 11px/1.3 var(--mono);letter-spacing:.06em;padding:6px 12px}
+.r1{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px 0 18px;margin-top:8px}
+.name{font-size:22px;font-weight:500}.cnt{color:var(--text2);font-size:15px}.sp{flex:1}.ic{color:var(--icon);font-size:22px}
+.menu{width:24px;height:16px;border-top:2px solid var(--icon);border-bottom:2px solid var(--icon);position:relative}
+.menu:after{content:"";position:absolute;left:0;right:0;top:5px;border-top:2px solid var(--icon)}
+.sec{display:flex;align-items:center;gap:10px;margin:18px 20px 4px;font:500 12px/1 var(--mono);letter-spacing:.14em;color:var(--text2)}
+.sec .ln{flex:1;border-top:1px solid var(--line)}.sec .sum{letter-spacing:0;font:13px/1 Roboto,sans-serif;color:var(--text2)}
+.chev{font:16px/1 sans-serif;color:var(--icon);letter-spacing:0}
+.expl{font-size:13.5px;color:var(--text2);margin:0 20px 10px;line-height:1.4}
+.grp{font:600 11px/1 var(--mono);letter-spacing:.12em;margin:12px 20px 8px;display:flex;gap:8px;align-items:center}.grp i{flex:1;height:1px;background:currentColor;opacity:.3}
+.card{margin:0 12px 8px;background:var(--low);border-radius:20px;padding:12px 14px 12px 16px}
+.row{display:flex;gap:12px;align-items:center}.row .t{flex:1;min-width:0}
+.t b{font-weight:500;font-size:15px;display:block;line-height:1.35}.t small{display:block;color:var(--text2);font-size:13px;margin-top:3px;line-height:1.35}
+.t small em{font-style:normal;color:var(--text)}
+.fill{background:var(--primary);color:var(--onp);border-radius:999px;padding:9px 16px;font-weight:500;font-size:14px;white-space:nowrap}
+.tonal{background:rgba(168,199,250,.16);color:var(--primary);border-radius:999px;padding:8px 14px;font-weight:500;font-size:14px;white-space:nowrap}
+.mark{width:18px;height:18px;flex:none;border:2px solid var(--text2)}.mark.p{border-radius:50%}.mark.a{border-radius:5px}.mark.w{border-radius:3px;transform:rotate(45deg) scale(.8)}
+.mark.ok{border-color:var(--primary);background:rgba(211,227,253,.25)}
+.fold{color:var(--text2);font-size:14px;padding:8px 20px 2px;display:flex;justify-content:space-between}.fold .ic{font-size:16px}
+.ok{color:var(--good)}.no{color:var(--bad)}.run{color:var(--run)}.wa{color:var(--warn)}.pa{color:var(--text2)}
+.state{font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.st-run{background:#1E2D47;color:var(--run)}.st-pa{background:#2A2E35;color:var(--text2)}.st-wa{background:#3A3220;color:var(--warn)}
+.axis{display:flex;margin:4px 16px 2px;font:11px/1 var(--mono);color:#8B929C}.axis span{flex:1;text-align:left}.axis span:last-child{text-align:right;color:var(--text)}
+.track{position:relative;height:8px;border-radius:4px;background:var(--track);margin:10px 0 2px}
+.track i{position:absolute;top:0;height:8px;border-radius:4px}
+.track .sol{background:var(--run)}.track .dash{background:repeating-linear-gradient(90deg,#6B7483 0 6px,transparent 6px 10px)}
+.track .nite{background:#3A2E58;top:-3px;height:14px;border-radius:3px;opacity:.9}
+.track .now{width:2px;background:var(--text);top:-4px;height:16px;border-radius:0}
+.key{font:11px/1.4 var(--mono);color:#8B929C;margin:0 20px 2px}
+.night{background:var(--nightbg);border:1px solid #3A2E58}
+.nt{display:flex;gap:12px;align-items:center}.moon{width:36px;height:36px;border-radius:50%;background:#3A2E58;display:grid;place-items:center;color:var(--night);font-size:18px;flex:none}
+.day{display:flex;align-items:center;gap:8px;margin:12px 20px 6px;font:600 12px/1 var(--mono);letter-spacing:.12em;color:var(--text2)}.day i{flex:1;height:1px;background:var(--line)}
+.done{margin:0 12px 6px;background:var(--low);border-radius:18px;padding:10px 14px 10px 14px;display:flex;gap:10px;align-items:flex-start}
+.done .tm{font:12px/1.5 var(--mono);color:var(--text2);white-space:nowrap;margin-top:1px}.done .ck{color:var(--good);font-size:15px;margin-top:0}
+.done .t b{font-size:14.5px}.done .t small{font-size:12.5px}
+.proof{color:var(--icon)}
+.foldline{position:absolute;left:0;right:0;top:915px;border-top:1px dashed #6A5A9A}
+.foldline span{position:absolute;right:10px;top:-9px;background:#2B1F45;color:#E9DDFF;font:600 10px/1 var(--mono);padding:4px 8px;border-radius:999px;letter-spacing:.06em}
+.ghost{opacity:.45;text-decoration:line-through}
+.mi{display:flex;gap:14px;align-items:center;padding:12px 18px}.mi .ico{width:40px;height:40px;border-radius:12px;background:var(--surf);display:grid;place-items:center;color:var(--icon);font-size:18px;flex:none}
+.mi .t b{font-size:16px}.mi.acc .ico{background:#1E2D47}
+.arrow{color:var(--warn);font-size:13px;margin-left:auto;white-space:nowrap;font-weight:500}
+.note{margin:12px 20px 0;color:#BCE4C7;font-size:13px;line-height:1.45;border-top:1px solid var(--line);padding-top:10px}
+</style><div class=screen><div class=tag>PROPOSTA · HOME: UNA SOLA SEZIONE «LAVORI»</div>
+<div class=r1><span class=name>Master</span><span class=cnt>6 aperte</span><span class=sp></span><span class=menu></span></div>
+<div class=sec><span class=chev>▸</span>NOTTE<span class=ln></span><span class=sum>5 progetti · 1 fatto · 3 in parte · 1 fermo</span></div>
+<div class=sec><span class=chev>▾</span>LAVORI<span class=ln></span><span class=sum>29 per te · 10 in corso</span></div>
+<div class=expl>Al posto di «Da approvare», «Impegni» e «Recap»: qui solo le righe con un tasto, il resto nella pagina.</div>
+<div class=card><div class=row><span class="mark a ok"></span><div class=t><b>fable-director: push su origin/main del lavoro della notte</b><small>chiede la <em>master</em> alle 05:53</small></div><span class=fill>Approva</span></div></div>
+<div class=card><div class=row><span class="mark p"></span><div class=t><b>Revocare la chiave API Anthropic trovata in chiaro</b><small>console.anthropic.com → API Keys</small></div><span class=tonal>Fatto</span></div></div>
+<div class=card><div class=row><span class="mark a"></span><div class=t><b>Albo Chiaro: la casella Aruba albo@, con utente e password</b><small>sblocca <em>albo-crotone</em>: 5 compiti in pausa dal 18/10</small></div><span class=tonal>Fatto</span></div></div>
+<div class=fold><span>Tutti i lavori · in corso 10 · stanotte vuota · fatto oggi 7</span><span class=ic>›</span></div>
+<div class=sec><span class=chev>▾</span>SESSIONI · 6<span class=ln></span></div>
+<div class=card><div class=row><span style="width:26px;height:26px;border-radius:50%;background:#3B82F6;flex:none"></span><div class=t><b>supervisor-app</b><small>mockup della pagina «Lavori» · al lavoro</small></div></div></div>
+<div class=card><div class=row><span style="width:26px;height:26px;border-radius:50%;background:#8B929C;flex:none"></span><div class=t><b>finanza</b><small>ferma da 14 ore</small></div></div></div>
+<div class=card><div class=row><span style="width:26px;height:26px;border-radius:50%;background:#8B929C;flex:none"></span><div class=t><b>smaggas-it</b><small>ferma da 11 ore</small></div></div></div>
+<div class=sec><span class=chev>▸</span>UTILIZZO<span class=ln></span><span class=sum>personale 5 h 2 % · settimana 0 %</span></div>
+</div>
