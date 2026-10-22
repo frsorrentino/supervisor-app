@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
@@ -17,10 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import it.pixelbox.cmwatch.rules.NightGantt
 import it.pixelbox.cmwatch.rules.NightPage
 
@@ -54,14 +57,20 @@ object StateIcons {
 
 /** Un'icona di stato piccola, nel colore del testo accanto. */
 @Composable
-fun StateMark(icon: ImageVector, tint: Color, size: Dp = 14.dp) = Icon(icon, null, tint = tint, modifier = Modifier.size(size))
+fun StateMark(icon: ImageVector, tint: Color, size: Dp = 14.dp, modifier: Modifier = Modifier) = Icon(icon, null, tint = tint, modifier = modifier.size(size))
 
-/** Icona e testo sulla stessa riga, dove prima il glifo stava in testa al testo. */
+/**
+ * Icona e testo sulla stessa riga, dove prima il glifo stava in testa al testo. Con un testo su più righe l'icona sta
+ * sulla prima riga, centrata sulla sua altezza (come stava il glifo), non a metà del blocco.
+ */
 @Composable
 fun MarkedText(
     icon: ImageVector, text: String, tint: Color, style: TextStyle, modifier: Modifier = Modifier, size: Dp = 14.dp,
     maxLines: Int = Int.MAX_VALUE, overflow: TextOverflow = TextOverflow.Clip,
-) = Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-    StateMark(icon, tint, size)
-    Text(text, style = style, color = tint, maxLines = maxLines, overflow = overflow)
+) {
+    val line = if (style.lineHeight.isSpecified) with(LocalDensity.current) { style.lineHeight.toDp() } else null
+    Row(modifier, verticalAlignment = if (line == null) Alignment.CenterVertically else Alignment.Top, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        StateMark(icon, tint, size, Modifier.padding(top = line?.let { ((it - size) / 2).coerceAtLeast(0.dp) } ?: 0.dp))
+        Text(text, style = style, color = tint, maxLines = maxLines, overflow = overflow)
+    }
 }
