@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type AgendaPage, type AgendaRow, type Approval, type Commitment, type Event } from './contract'
-import { MIN_BAR, axis, bars, done, doneFromPages, forYou, inProgress, midnight, shortTitle } from './lavori'
+import { MIN_BAR, axis, bars, done, doneFromPages, doneToday, forYou, inProgress, midnight, shortTitle } from './lavori'
 import type { DonePage } from './contract'
 
 // Gli stessi casi di LavoriTest in Kotlin: la pagina unica «Lavori» (mockup approvato il 22/10).
@@ -124,6 +124,14 @@ describe('lavori', () => {
     const older = { ...page, date: '2026-02-09', rows: page.rows.slice(0, 3), days: [] }
     const merged = doneFromPages({ [page.date]: page, [older.date]: older }, zone)
     expect(merged.map(d => d.n)).toEqual([4, 3, 1]); expect(merged[1].rows.length).toBe(3)
+  })
+
+  it("la home conta «fatto oggi» dalla pagina di oggi dell'op done, altrimenti dagli eventi", () => {
+    const page: DonePage = JSON.parse(root.result.find((r: { id: string }) => r.id.endsWith('0760')).text)
+    expect(doneToday({ [page.date]: page }, [], zone, page.date)).toBe(4)
+    expect(doneToday({}, events, zone, eventDay)).toBe(1)
+    expect(doneToday({}, events, zone, page.date)).toBe(0)
+    expect(doneToday({ [page.date]: page }, events, zone, eventDay)).toBe(1)
   })
 
   it('con un relay vecchio niente righe', () => {

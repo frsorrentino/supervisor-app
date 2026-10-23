@@ -41,6 +41,7 @@ La quota non è nella pagina: resta in «Utilizzo e limiti».
 - **Stanotte** = `state.night` con `night_add` e `night_remove`: niente di nuovo.
 - **Fatto** ha bisogno di una cosa nuova: i compiti chiusi per giorno con la prova (`results[].proof`: controllo, commit, release, file). Oggi l'app riceve solo gli eventi `recap` e `night_report`. Richiesta al relay, dopo l'ok di Franz: un'op a richiesta `done` (giorno → `{task, title, session, at, proof{kind, value, url}}`), oppure `commitments` che porta anche i chiusi del giorno.
 - **Quota**: via dalla pagina, resta `state.quota` in Utilizzo e limiti.
+- **Aggiornamento del 23/10.** L'op `done` è arrivata lo stesso 22/10 con il contratto 1.77 (relay 0.8.42): il blocco Fatto la legge da allora, su Android e web, con la prova e i giorni prima richiusi col conteggio (`docs/verifiche/2026-10-22-lavori.md`). Le righe «Fatto oggi» di questo mockup erano raccolte a mano la mattina del 22/10, prima dell'op. Dal 23/10 anche il conteggio «fatto oggi» della riga di home viene dalla stessa op (compito `fatto-home-23-10`), non più dagli eventi `task_check`.
 - **Cosa sparisce nell'app**: DiaryScreen, RecapScreen e i gruppi del Recap, le sezioni Impegni, Da approvare e Recap della home, le voci di menu Registro e Recap. La pagina Notte resta.
 
 ## Come è arrivato a Franz

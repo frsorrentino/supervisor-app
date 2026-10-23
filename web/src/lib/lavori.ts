@@ -197,3 +197,8 @@ export function done(events: Event[], zone: string, today: string, days = 7): Do
   }
   return [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([date, rs]) => ({ date, rows: rs.sort((a, b) => b.at - a.at), n: rs.length }))
 }
+
+/** La riga di home «fatto oggi N»: le righe della pagina di oggi dell'op `done` quando è caricata, altrimenti i `task_check` verdi di oggi dagli eventi. */
+export function doneToday(pages: Record<string, DonePage>, events: Event[], zone: string, today: string): number {
+  return pages[today]?.rows.length ?? (done(events, zone, today, 1).find(d => d.date === today)?.rows.length ?? 0)
+}

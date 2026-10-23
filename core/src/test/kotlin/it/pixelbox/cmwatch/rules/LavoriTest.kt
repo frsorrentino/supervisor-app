@@ -156,6 +156,20 @@ class LavoriTest {
         assertEquals(listOf(4, 3, 1), merged.map { it.n }); assertEquals(3, merged[1].rows.size)
     }
 
+    /** La riga di home «fatto oggi N»: con la pagina di oggi dell'op `done` conta le sue righe, altrimenti i `task_check` verdi di oggi. */
+    @Test fun theHomeCountsTodayFromTheDoneOpWhenItIsLoaded() {
+        val raw = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject.getValue("result").jsonArray
+            .first { it.jsonObject.getValue("id").jsonPrimitive.content.endsWith("0760") }
+            .jsonObject.getValue("text").jsonPrimitive.content
+        val page: DonePage = ContractJson.decodeDone(raw)
+        val pageDay = LocalDate.parse(page.date)
+        assertEquals(4, Lavori.doneToday(mapOf(page.date to page), emptyList(), zone, pageDay))
+        // Senza la pagina di oggi si torna agli eventi: nella fixture un solo controllo verde quel giorno, niente il giorno della pagina.
+        assertEquals(1, Lavori.doneToday(emptyMap(), events, zone, eventDay))
+        assertEquals(0, Lavori.doneToday(emptyMap(), events, zone, pageDay))
+        assertEquals(1, Lavori.doneToday(mapOf(page.date to page), events, zone, eventDay))
+    }
+
     @Test fun oldRelayHasNoRows() {
         val s = idle.copy(commitments = null)
         assertEquals(0, Lavori.forYou(s, null, idle.ts, today).total)

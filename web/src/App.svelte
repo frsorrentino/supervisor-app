@@ -421,14 +421,15 @@
   }
   $effect(() => { void st.recap.date; if (canAgenda) untrack(() => loadAgenda()) })
   $effect(() => { if (page === 'lavori' && canAgenda) untrack(() => loadAgenda()) })
-  // Contratto 1.77: il blocco Fatto dall'op `done`, una pagina per giorno; oggi quando si apre Lavori, un giorno prima al tocco.
+  // Contratto 1.77: il blocco Fatto dall'op `done`, una pagina per giorno. Oggi appena il relay offre l'op (la riga di home conta
+  // «fatto oggi» da lì, come il blocco) e di nuovo a ogni cambio di pagina; un giorno prima al tocco.
   let donePages = $state<Record<string, DonePage>>({})
   const canDone = $derived(!!st.ops?.includes('done'))
   async function loadDone(date: string | null) {
     if (!tr) return
     try { const r = await tr.send(newCmd('done', null, date)); if (r.ok) { const pg = JSON.parse(r.text) as DonePage; donePages = { ...donePages, [pg.date]: pg } } } catch { /* resta quello che c'è */ }
   }
-  $effect(() => { if ((page === 'lavori' || deskDashboard) && canDone) untrack(() => loadDone(null)) })
+  $effect(() => { if (canDone) { page; untrack(() => loadDone(null)) } })
   // Le Azioni sulle schede (piano del 09/10). «Parlane con la master»: la scheda citata nel campo della master, sotto quello
   // che c'era già, e la sua conversazione aperta. Le scritture (Fatto, Rimanda, Rimuovi, Passa) con l'op del contratto 1.47.
   const canWrite = $derived(!!st.ops?.includes('agenda_set'))
@@ -866,7 +867,7 @@
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home {st} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
         night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
-        onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+        onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} /></div>

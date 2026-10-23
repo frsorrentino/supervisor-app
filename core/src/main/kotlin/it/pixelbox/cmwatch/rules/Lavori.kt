@@ -230,4 +230,8 @@ object Lavori {
             .map { (d, rows) -> DoneDay(d, rows.sortedByDescending { it.at }) }
             .sortedByDescending { it.date }
     }
+
+    /** La riga di home «fatto oggi N»: le righe della pagina di oggi dell'op `done` quando è caricata, altrimenti i `task_check` verdi di oggi dagli eventi. */
+    fun doneToday(pages: Map<String, DonePage>, events: List<Event>, zone: ZoneId, today: LocalDate): Int =
+        pages[today.toString()]?.rows?.size ?: done(events, zone, today, days = 1).firstOrNull { it.date == today }?.rows?.size ?: 0
 }
