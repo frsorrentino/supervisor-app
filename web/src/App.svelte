@@ -50,6 +50,7 @@
   import Inspector from './lib/Inspector.svelte'
   import ColumnTab from './lib/ColumnTab.svelte'
   import { alert as elsewhereOf, key as alertKey, keys as alertKeys, type Alert } from './lib/elsewhere'
+  import { settled, withoutApproved } from './lib/approvals'
   import { build as devicesOf, linked as linkedDevices } from './lib/devices'
   import { freshness } from './lib/durations'
   import { setRate, setVoice } from './lib/speech.svelte'
@@ -200,9 +201,15 @@
     }
     if (changed) { clearAfter = next; if (!demo) save('cm.clear_after', JSON.stringify(next)) }
   }
+  // Franz 23/10 21:24: dopo Approva la voce sparisce subito; torna solo se il registro rifiuta (il rifiuto si mostra in basso).
+  let okPending = $state(new Set<string>())
+  const stShown = $derived(withoutApproved(st, okPending))
+  $effect(() => { const s = settled(st, okPending); if (s.size) okPending = new Set([...okPending].filter(x => !s.has(x))) })
   async function approve(task: string, note: string) {
+    okPending = new Set([...okPending, task])
     const r = await run(newCmd('approve', null, task, approveText(note)))
     if (r?.ok) say(`✓ ${t.approved}`)
+    else okPending = new Set([...okPending].filter(x => x !== task))
   }
   async function decide(text: string, project: string | null) {
     const r = await run(newCmd('decision', null, project, text))
@@ -867,7 +874,7 @@
     {#snippet list()}
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
-      <div class="list"><Home {st} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
+      <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
         night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
@@ -905,7 +912,7 @@
         onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }}
         onNewProject={st.ops?.includes('project_new') && st.project_parents?.length ? newProject : null} />
     {:else if p === 'lavori'}
-      <Lavori {st} agenda={agenda.page} {events} {now} header="none" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+      <Lavori st={stShown} agenda={agenda.page} {events} {now} header="none" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} {donePages} onLoadDay={loadDone} />
     {:else if p === 'night'}
       <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={loadNight}
@@ -940,9 +947,9 @@
   {#if s}<ColumnTab {s} r={rowOf[name]} {now} onGrab={grab} onFocus={() => focusColumn(name)} onClose={() => setCols(cols.filter(c => c !== name))} />{/if}
 {/snippet}
 
-{#snippet lavoriLeft()}<Lavori {st} agenda={agenda.page} {events} {now} header="desk" part="left" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+{#snippet lavoriLeft()}<Lavori st={stShown} agenda={agenda.page} {events} {now} header="desk" part="left" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
-{#snippet lavoriRight()}<Lavori {st} agenda={agenda.page} {events} {now} header="none" part="right" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+{#snippet lavoriRight()}<Lavori st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}

@@ -678,6 +678,7 @@
     <string name="approve_text">%1$s: %2$s, to %3$s.</string>
     <string name="approve_note">Note for the session (optional)</string>
     <string name="approved">Approved</string>
+    <string name="approve_refused">Approval not recorded: try again</string>
     <string name="cleanup_finished">finished its task</string>
     <string name="cleanup_attached">Window open on the PC: close it there</string>
     <string name="cleanup_duplicate">same conversation as %1$s</string>

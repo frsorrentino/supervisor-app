@@ -296,6 +296,10 @@ class MainActivity : ComponentActivity() {
         val updateUi by app.updater.ui.collectAsStateWithLifecycle()
         LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() / 1000 } }
         val state = snap.state
+        // Franz 23/10 21:24: dopo Approva la voce sparisce subito; torna solo se il registro rifiuta (Approvals).
+        val okPending = remember { mutableStateListOf<String>() }
+        val stateShown = state?.let { st -> if (okPending.isEmpty()) st else it.pixelbox.cmwatch.rules.Approvals.withoutApproved(st, okPending.toSet()) }
+        LaunchedEffect(state) { state?.let { st -> val s = it.pixelbox.cmwatch.rules.Approvals.settled(st, okPending.toSet()); if (s.isNotEmpty()) okPending.removeAll(s) } }
 
         BackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen) {
             when {
@@ -605,7 +609,11 @@ class MainActivity : ComponentActivity() {
                     if (n == it.pixelbox.cmwatch.rules.ContextActions.MASTER) { open = null; masterChat = true } else open = n
                 },
                 onAnswer = { n, x -> scope.launch { runCatching { app.repo.answer(n, x) } } },
-                onApprove = { task -> scope.launch { runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText("")) } } },
+                onApprove = { task -> okPending.add(task); scope.launch {
+                    val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText("")) }.getOrNull()
+                    val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+                    if (r?.ok != true) okPending.remove(task)
+                } },
                 onSend = { n, text ->
                     scope.launch {
                         runCatching { app.repo.prompt(n, text) }.getOrNull()?.let { id -> app.chatLog.add(Sent(id, n, text, System.currentTimeMillis() / 1000)) }
@@ -870,10 +878,11 @@ class MainActivity : ComponentActivity() {
         }
         // La pagina e la sezione «Lavori» (mockup approvato il 22/10): l'ok a un compito, «Fatto» su una pausa che aspetta te
         // (la master riprende il compito, nessuna op nuova), le righe per te e la riga dei conteggi della home.
-        val approveTask: (String, String) -> Unit = { task, note -> scope.launch {
-            runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(note)) }.onSuccess {
-                android.widget.Toast.makeText(this@MainActivity, getString(R.string.approved), android.widget.Toast.LENGTH_SHORT).show()
-            }
+        val approveTask: (String, String) -> Unit = { task, note -> okPending.add(task); scope.launch {
+            val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(note)) }.getOrNull()
+            val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+            if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(R.string.approved), android.widget.Toast.LENGTH_SHORT).show()
+            else { okPending.remove(task); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_LONG).show() }
         } }
         val doneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = { c ->
             it.pixelbox.cmwatch.rules.ContextActions.master(state)?.name?.let { m -> sendPrompt(m, getString(R.string.lavori_done_prompt, c.paused?.reason.orEmpty(), c.task)) }
@@ -891,7 +900,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(tab, canDone) { if (canDone) askDone(null) }
         val lavoriZone = java.time.ZoneId.systemDefault()
         val lavoriToday = java.time.LocalDate.now(lavoriZone)
-        val lavoriForYou = remember(state, agenda, now) { state?.takeIf { it.commitments != null || agenda != null }?.let { st -> it.pixelbox.cmwatch.rules.Lavori.forYou(st, agenda, now, lavoriToday) } }
+        val lavoriForYou = remember(stateShown, agenda, now) { stateShown?.takeIf { it.commitments != null || agenda != null }?.let { st -> it.pixelbox.cmwatch.rules.Lavori.forYou(st, agenda, now, lavoriToday) } }
         val lavoriLine = remember(state, agenda, now, events, donePages) { state?.let { st ->
             val ip = it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday)
             val doneToday = it.pixelbox.cmwatch.rules.Lavori.doneToday(donePages, events, lavoriZone, lavoriToday)
@@ -1286,7 +1295,7 @@ class MainActivity : ComponentActivity() {
                         }
         }
         // Il riepilogo unico (design 03/10): ogni sessione una volta, nell'ordine del bisogno.
-        val summary = state?.let { st ->
+        val summary = stateShown?.let { st ->
             remember(st, events, chatLog, now, readReports.toList()) {
                 it.pixelbox.cmwatch.rules.Summary.build(st, events, chatLog, now, java.time.ZoneId.systemDefault(), readReports.toSet())
             }
@@ -1467,7 +1476,7 @@ class MainActivity : ComponentActivity() {
         var chatZoom by remember { mutableStateOf(it.pixelbox.cmwatch.rules.ChatZoom.of(uiPrefs.getFloat("chat_zoom", 1f))) }
         LaunchedEffect(chatZoom) { delay(400); uiPrefs.edit().putFloat("chat_zoom", chatZoom).apply() }
         val lavoriPage: @Composable (it.pixelbox.cmwatch.mobile.ui.LavoriHeader) -> Unit = { header ->
-            state?.let { st ->
+            stateShown?.let { st ->
                 it.pixelbox.cmwatch.mobile.ui.LavoriScreen(
                     st, agenda, events, now,
                     onBack = { tab = StartRoute.Tab.OVERVIEW }, onApprove = approveTask, onAgendaEdit = editAgenda,

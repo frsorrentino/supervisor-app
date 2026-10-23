@@ -687,6 +687,7 @@
     <string name="approve_text">%1$s: %2$s, verso %3$s.</string>
     <string name="approve_note">Nota per la sessione (facoltativa)</string>
     <string name="approved">Approvato</string>
+    <string name="approve_refused">Ok non registrato: riprova</string>
     <string name="cleanup_finished">ha finito il compito</string>
     <string name="cleanup_attached">Finestra aperta sul PC: si chiude da lì</string>
     <string name="cleanup_duplicate">stessa conversazione di %1$s</string>
