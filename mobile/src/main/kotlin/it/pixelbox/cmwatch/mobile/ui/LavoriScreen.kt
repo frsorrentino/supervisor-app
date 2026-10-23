@@ -281,7 +281,7 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
             sub?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
         }
         // Contratto 1.81: un tasto per opzione quando l'ok chiede una scelta.
-        val opts = a?.let { it.pixelbox.cmwatch.rules.Approvals.choices(it) }.orEmpty()
+        val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
         if (opts.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { opts.forEach { o -> FilledTonalButton(onClick = { choice = o; ask = true }) { Text(o) } } }
         else if (button != null) {
             val click = { if (a != null) ask = true else onClick("", null) }

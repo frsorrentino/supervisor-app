@@ -15,7 +15,8 @@ import java.time.ZoneId
 
 class LiveFeedTest {
     private val q = ContractJson.decodeState(Fixtures.stateQuestion)
-    private val idle = ContractJson.decodeState(Fixtures.stateIdle)
+    // La fixture 1.81 porta un ok da scegliere: qui serve lo stato quieto, senza nessuno che aspetti.
+    private val idle = ContractJson.decodeState(Fixtures.stateIdle).copy(approvals = emptyList())
     private val events = ContractJson.decodeEvents(Fixtures.events)
     private val zone = ZoneId.of("Europe/Rome")
     private val t0 = 1_789_220_000L
