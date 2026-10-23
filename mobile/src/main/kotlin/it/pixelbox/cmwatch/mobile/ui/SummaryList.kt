@@ -769,7 +769,7 @@ private fun WorkRow(
     onAgendaEdit: (RecapAgenda.Edit) -> Unit, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit,
 ) {
     var ask by rememberSaveable(r.title) { mutableStateOf(false) }
-    val a = r.approval; val ag = r.agenda; val cm = r.commitment; val who = r.who; val at = r.at
+    val a = r.approval; val ag = r.agenda; val cm = r.commitment; val who = r.who?.takeIf { it.isNotBlank() }; val at = r.at
     val sub = when (r.kind) {
         Lavori.Kind.OK -> when {
             who != null && at != null -> stringResource(R.string.lavori_asks, who, hhmmOf(at))
