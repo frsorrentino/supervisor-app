@@ -138,7 +138,7 @@ class TabletShellTest {
                 TabletDashboard(
                     recap = {
                         it.pixelbox.cmwatch.mobile.ui.LavoriScreen(
-                            st, agenda, emptyList(), ts, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {},
+                            st, agenda, emptyList(), ts, {}, { _, _, _ -> }, {}, {}, {}, {}, {}, {}, {},
                             header = it.pixelbox.cmwatch.mobile.ui.LavoriHeader.DESK, today = java.time.LocalDate.of(2026, 10, 9), zone = zone,
                         )
                     },

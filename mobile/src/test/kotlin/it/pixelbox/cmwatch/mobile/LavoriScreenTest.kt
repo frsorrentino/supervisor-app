@@ -64,7 +64,7 @@ class LavoriScreenTest {
         state: State, agenda: AgendaPage?, part: LavoriPart = LavoriPart.ALL, header: LavoriHeader = LavoriHeader.BAR, open: Set<String> = emptySet(),
         pages: Map<String, DonePage> = emptyMap(), view: LavoriView = LavoriView.LIST, now: Long = idle.ts, day: java.time.LocalDate = today,
     ) = CmPhoneTheme(still = true) {
-        LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, now, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, header = header, part = part, today = day, zone = zone, donePages = pages, startOpen = open, startView = view)
+        LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, now, {}, { _, _, _ -> }, {}, {}, {}, {}, {}, {}, {}, header = header, part = part, today = day, zone = zone, donePages = pages, startOpen = open, startView = view)
     }
 
     /** Il caso reale della sera del 22/10 (mockup «In corso leggibile»): 2 al lavoro, 7 che aspettano Franz con Albo Chiaro ×5, 2 fermi su terzi, titoli lunghi. */
