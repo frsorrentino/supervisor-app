@@ -213,7 +213,8 @@ fun SummaryList(
                 val rows = loose.ok + loose.outside.take(2) + loose.claude.take(1)
                 // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli.
                 rows.forEachIndexed { i, r ->
-                    val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key ?: "${r.kind}-$i"
+                    // La chiave dell'agenda è «» con un relay vecchio: mai due schede con la stessa chiave nella lista.
+                    val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
                     item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
                 }
                 item(key = "lv-all") {

@@ -111,7 +111,7 @@
   const placedOut = $derived(placeOutside(outside, new Set(model.rows.map(r => r.session.name))))
   // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli (lavoriDetails).
   let openWork = $state<string | null>(null)
-  const workKey = (r: LavoriRow, i: number) => r.approval?.task ?? r.commitment?.task ?? r.agenda?.key ?? `${r.kind}-${i}`
+  const workKey = (r: LavoriRow, i: number) => r.approval?.task ?? r.commitment?.task ?? (r.agenda?.key || null) ?? `${r.kind}-${i}`
   const fyMeta = (r: LavoriRow): string => r.agenda?.scope?.trim() || r.commitment?.session || (r.kind === 'ok' ? r.who : null) || ''
   const tonightCard = $derived(tonightOf(st.night, now))
   let closedDlg: HTMLDialogElement | undefined = $state()
