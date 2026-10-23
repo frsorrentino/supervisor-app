@@ -1,0 +1,3 @@
+# Le schede che restano a sé: Notte, Sessioni, Altro (23/10/2026)
+
+Richiesta di Franz delle 23:24 via master: «oltre alla revisione concettuale della home per le schede, proponi anche quella grafica per le schede che rimangono separate, es sessioni e stanotte». Tavole nella terza riga della tela https://claude.ai/artifact/G5gAMdiKgw6Hd5JGxaQutL, con la nota arancione delle regole; qui i PNG a grandezza reale (chromium headless, scala 2): `telefono-oggi.png` e `telefono-grammatica.png` (390 di larghezza), `web-oggi.png` e `web-grammatica.png` (1200 di larghezza). La proposta è descritta in `../2026-10-23-sezioni-accordate/README.md`, sezione «Le schede che restano a sé: una grammatica sola». Solo proposta; codice dopo la scelta di Franz.

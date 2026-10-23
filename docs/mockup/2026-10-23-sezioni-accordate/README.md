@@ -25,4 +25,17 @@ Un lavoro legato a una sessione sta nella scheda di quella sessione, come Approv
 - B: il legame lavoro → sessione. Gli impegni del registro hanno già `session`; le righe dell'agenda no: o il relay aggiunge `session` (o `project`) alle righe dell'agenda, o l'app lega per cartella del progetto.
 - Le due strade si sommano: B usa la scheda di A per i lavori senza sessione.
 
-Solo il mockup per ora; codice dopo l'ok di Franz.
+## Scelta di Franz e seguito
+
+Franz ha scelto la strada B alle 23:08 («b», inbox della master `04eec6`): compito `lavori-sessioni-23-10`. Alle 23:24 ha chiesto in più «quella grafica per le schede che rimangono separate, es sessioni e stanotte»: quattro tavole nella terza riga della tela e la nota arancione; i PNG stanno in `docs/mockup/2026-10-23-schede-separate/` (`telefono-oggi.png`, `telefono-grammatica.png`, `web-oggi.png`, `web-grammatica.png`).
+
+## Le schede che restano a sé: una grammatica sola
+
+Riga 1: badge della famiglia (cerchio o quadrato, un glifo), nome breve in grassetto, a destra la meta in mono, il chevron. Riga 2: una riga di testo in grigio, due al massimo. Riga 3, solo quando serve: a sinistra la meta in mono, a destra il tasto (pieno se sblocca una sessione, tonale altrimenti). In fondo, solo nelle sessioni, la barra del contesto con il valore in mono alla sua destra.
+
+- Notte: da riquadro grande con titolo e tasto pieno a scheda come le altre: luna, «Stanotte», «23:30–06:30 · 5», la riga di testo, «Apri» tonale.
+- Sessioni: la meta in alto perde «ctx N%», che sta sulla barra; il corpo è grigio per tutte, bianco solo per chi ti aspetta; le intestazioni dei gruppi restano.
+- Altro: ogni voce è una scheda con la stessa riga 1 (glifo della categoria: triangolo per «da sistemare», orologio per i programmati, archivio per le chiuse) e il suo tasto in riga 3.
+- Utilizzo resta com'è.
+
+Solo proposta; codice dopo la scelta di Franz.
