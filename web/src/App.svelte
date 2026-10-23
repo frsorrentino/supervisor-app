@@ -278,7 +278,7 @@
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
   // Telefono: la sessione aperta, o la home.
-  let open = $state<string | null>(known(linked) && linked !== MASTER ? linked : null)
+  let open = $state<string | null>(linked != null && known(linked) && linked !== MASTER ? linked : null)
   // Chiusa una sessione, la sua pagina non sparisce (Franz, 08/10 18:06): resta com'era l'ultima volta, chiusa, sotto il
   // pannello di chiusura (`CloseSplash`), che dopo 3 s riporta alla home o toglie la colonna.
   let leaving = $state<Leaving | null>(null)
@@ -327,7 +327,7 @@
   })
   const dropCol = (n: string) => smooth(() => { heldCols = heldCols.filter(x => x !== n); if (leaving?.name === n) leaving = null })
   let pinned = $state<string[] | null>(columnsFromPref(load('cm.columns')))
-  if (known(linked) && linked !== MASTER) pinned = add(pinned ?? columns(null, live), linked)
+  if (linked != null && known(linked) && linked !== MASTER) pinned = add(pinned ?? columns(null, live), linked)
   const cols = $derived(columns(pinned, [...live, ...heldCols]))
   $effect(() => { shownCols = cols })
   let shares = $state(sharesFromPref(load('cm.shares'), 0))

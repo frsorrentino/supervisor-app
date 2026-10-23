@@ -69,8 +69,12 @@ function isLabel(line: string): boolean {
 }
 
 /** La sessione chiesta dall'indirizzo: `?s=<nome>` (notifiche e Telegram), altrimenti `#nome` di prima. */
-export function askedSession(search: string, hash: string): string {
+export function askedSession(search: string, hash: string): string | null {
   const q = new URLSearchParams(search).get('s')?.trim()
   if (q) return q
-  try { return decodeURIComponent(hash.slice(1)) } catch { return hash.slice(1) }
+  let h: string
+  try { h = decodeURIComponent(hash.slice(1)) } catch { h = hash.slice(1) }
+  // Niente chiesto è null, mai '' (23/10): con '' la web locale apriva la pagina di una sessione senza nome e la striscia
+  // aveva due pagine con la stessa chiave.
+  return h.trim() || null
 }

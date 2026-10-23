@@ -57,6 +57,8 @@ describe('link di sessione', () => {
     expect(askedSession('?s=legnaia', '')).toBe('legnaia')
     expect(askedSession('?demo&s=field%20notes', '#altro')).toBe('field notes')
     expect(askedSession('?demo', '#master')).toBe('master')
-    expect(askedSession('', '')).toBe('')
+    // 23/10: niente chiesto è null, non '': con '' la home locale apriva una pagina vuota (chiave doppia nella striscia).
+    expect(askedSession('', '')).toBeNull()
+    expect(askedSession('?s=%20', '#')).toBeNull()
   })
 })
