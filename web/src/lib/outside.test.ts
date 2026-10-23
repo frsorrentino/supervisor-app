@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { count, groups, tonight } from './outside'
+import { count, groups, place, tonight } from './outside'
 import type { ForYouRow } from './masterHome'
 import type { Session } from './contract'
 
@@ -27,5 +27,18 @@ describe('TonightCard', () => {
     expect(m.items.map(i => [i.id, i.runningMin])).toEqual([['c', 2], ['a', null], ['b', null]])
     expect(m.items[2].prompt).toBe('due')
     expect([m.running, m.queued]).toEqual([1, 2])
+  })
+
+  // Franz 24/10 00:46: «anche questo suggerimento dovrebbe apparire nella scheda della sessione»: una voce con una sessione aperta sta nella sua scheda; in Altro restano le altre.
+  it('un suggerimento su una sessione aperta sta nella sua scheda', () => {
+    const ctx: ForYouRow = { kind: 'context', title: 'win:bluey', session: 'win:bluey', number: 83 }
+    const ctxGone: ForYouRow = { kind: 'context', title: 'old', session: 'old', number: 90 }
+    const g = groups([ctx, ctxGone, row('scheduled'), row('next_step')], [gone('old')])
+    const p = place(g, new Set(['win:bluey', 'app']))
+    expect(p.inCards.get('win:bluey')).toEqual([ctx])
+    expect(p.groups.map(x => x.category)).toEqual(['fix', 'scheduled', 'resume', 'closed'])
+    expect(p.groups[0].rows).toEqual([ctxGone])
+    const only = place(groups([ctx], []), new Set(['win:bluey']))
+    expect(only.groups).toEqual([]); expect(only.inCards.get('win:bluey')).toEqual([ctx])
   })
 })

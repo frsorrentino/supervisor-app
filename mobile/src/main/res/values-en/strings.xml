@@ -1011,6 +1011,7 @@ It starts at your last message to the master.</string>
     <string name="changes_file_gone">This file has no changes any more: tap Refresh</string>
     <string name="file_code">Code</string>
     <string name="file_page">Page</string>
+    <string name="file_page_full">Full screen</string>
     <string name="show_preview">Show preview</string>
     <!-- Night Gantt (sketches A and B approved by Franz on 21/10 at 10:29) -->
     <string name="night_view_projects">Projects</string>
@@ -1070,6 +1071,19 @@ It starts at your last message to the master.</string>
     <string name="lavori_you">yours</string>
     <string name="lavori_you_at">yours · asked at %1$s</string>
     <string name="lavori_can_start">can start</string>
+    <string name="lavori_d_waits">waits</string>
+    <string name="lavori_d_last_step">last step</string>
+    <string name="lavori_d_next">next</string>
+    <string name="lavori_d_folder">folder</string>
+    <string name="lavori_d_expected">expected</string>
+    <string name="lavori_d_paused">paused</string>
+    <string name="lavori_d_ref">reference</string>
+    <string name="lavori_d_detail">detail</string>
+    <string name="lavori_d_blocks">blocked by</string>
+    <string name="lavori_d_until">until</string>
+    <string name="lavori_d_what">what</string>
+    <string name="lavori_d_where">where</string>
+    <string name="lavori_d_asked_at">asked at</string>
     <string name="lavori_nothing">Nothing waits for you</string>
     <string name="lavori_progress">In progress</string>
     <string name="lavori_nothing_progress">Nothing in progress</string>

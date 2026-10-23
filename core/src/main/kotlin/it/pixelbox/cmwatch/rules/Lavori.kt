@@ -61,6 +61,35 @@ object Lavori {
      * la dice (resta in lista finché il contratto non la porta). Gli ok hanno già la loro riga nella scheda
      * (`Summary.approvalsOf`): `attachedOk` = i loro compiti, che qui non si ripetono.
      */
+    /**
+     * Franz 24/10 00:44: «in lavori ogni scheda dovrebbe essere espandibile con maggiori dettagli». I dettagli di una riga
+     * «Per te», nell'ordine e senza i campi vuoti: impegno (chi aspetta chi, ultimo passo, prossimo, cartella, esito atteso,
+     * pausa), riga dell'agenda (riferimento, dettaglio, chi blocca, fino a quando), ok (cosa, dove, chiesto alle). I valori
+     * sono testo del contratto; `ASKED_AT` porta l'epoch, la vista lo scrive come ora.
+     */
+    enum class Detail { WAITS, LAST_STEP, NEXT, FOLDER, EXPECTED, PAUSED, REF, DETAIL, BLOCKS, UNTIL, WHAT, WHERE, ASKED_AT }
+    data class DetailRow(val kind: Detail, val value: String)
+
+    fun details(r: ForYou): List<DetailRow> {
+        val out = mutableListOf<DetailRow>()
+        fun add(kind: Detail, value: String?) { value?.trim()?.takeIf { it.isNotEmpty() }?.let { out += DetailRow(kind, it) } }
+        r.commitment?.let { c ->
+            add(Detail.WAITS, c.waits?.let { w -> listOf(w.who, w.on).filter { it.isNotBlank() }.joinToString(" ← ") })
+            add(Detail.LAST_STEP, c.lastStep?.text)
+            add(Detail.NEXT, c.next)
+            add(Detail.FOLDER, c.project)
+            add(Detail.EXPECTED, c.expected)
+            add(Detail.PAUSED, c.paused?.reason)
+        }
+        r.agenda?.let { a ->
+            add(Detail.REF, a.ref); add(Detail.DETAIL, a.detail); add(Detail.BLOCKS, a.blocks); add(Detail.UNTIL, a.until)
+        }
+        if (r.commitment == null) r.approval?.let { a ->
+            add(Detail.WHAT, a.what); add(Detail.WHERE, a.where); add(Detail.ASKED_AT, a.requestedAt.takeIf { it > 0 }?.toString())
+        }
+        return out
+    }
+
     data class Placed(val inCards: Map<String, List<ForYou>>, val loose: ForYouGroups)
 
     fun place(groups: ForYouGroups, open: Set<String>, attachedOk: Set<String> = emptySet()): Placed {

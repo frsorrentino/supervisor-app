@@ -9,7 +9,7 @@
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
   import { cleanupOf } from './masterService'
   import { since } from './durations'
-  import { doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, place as lavoriPlace, shortTitle, type ForYou as LavoriRow } from './lavori'
+  import { details as lavoriDetails, doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, place as lavoriPlace, shortTitle, type ForYou as LavoriRow } from './lavori'
   import { attachedTasks, build, MASTER, type Group, type Row } from './summary'
   import { doneOf, type Done } from './queue'
   import { expiry } from './durations'
@@ -25,7 +25,7 @@
   import { doIt, mark, todayIso, type Edit } from './recapAgenda'
   import { readable } from './slashText'
   import { forYou, type ForYouRow, type Scheduled } from './masterHome'
-  import { count as outsideCount, groups as outsideGroups, tonight as tonightOf, type Category } from './outside'
+  import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
 
   // La home del telefono (SummaryList.kt): ogni sessione una card nei gruppi del bisogno; il tocco apre la sessione, ▼ la
@@ -100,13 +100,19 @@
   function fySub(r: LavoriRow): string | null {
     if (r.kind === 'ok') return r.who && r.at ? t.lavoriAsks(r.who, hhmm(r.at)) : r.who ? t.lavoriAsksWho(r.who) : t.lavoriWaitsOk
     if (r.commitment) return r.who ? t.lavoriUnblocks(r.who) : null
-    return [r.agenda?.scope, r.who].filter(x => x && x.trim()).join(' · ') || null
+    return r.who?.trim() || null
   }
   function fyOutside(r: LavoriRow) { if (r.agenda) onEdit({ item: 'done', row: r.agenda }); else if (r.commitment) onDoneForPerson(r.commitment) }
   const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   // Come la home dell'app: chi ha finito resta finché non lo apri o non gli scrivi (Summary.kt con sent e read).
   const model = $derived(build(st, sent, now, read))
   const outside = $derived(outsideGroups(forYou(st, events, sent, now, { read, limit: Infinity }).rows.filter(r => r.kind !== 'question' && r.kind !== 'finished'), model.closed))
+  // Franz 24/10 00:46: un suggerimento che riguarda una sessione aperta (il contesto alto) sta nella sua scheda; in Altro restano gli altri.
+  const placedOut = $derived(placeOutside(outside, new Set(model.rows.map(r => r.session.name))))
+  // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli (lavoriDetails).
+  let openWork = $state<string | null>(null)
+  const workKey = (r: LavoriRow, i: number) => r.approval?.task ?? r.commitment?.task ?? r.agenda?.key ?? `${r.kind}-${i}`
+  const fyMeta = (r: LavoriRow): string => r.agenda?.scope?.trim() || r.commitment?.session || (r.kind === 'ok' ? r.who : null) || ''
   const tonightCard = $derived(tonightOf(st.night, now))
   let closedDlg: HTMLDialogElement | undefined = $state()
   const catLabel = (c: Category) => ({ fix: t.catFix, scheduled: t.catScheduled, resume: t.catResume, night: t.catNight, closed: t.catClosed })[c]
@@ -227,18 +233,30 @@
 {#if showLavori && fy}
   {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(fy.total))}
   {#if open.lavori}
-    {#if looseRows.length}
-      <div class="card list">
-        {#each looseRows as r, i (`lv-${i}`)}
-          <div class="lrow">
-            <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
-            <span class="lt"><b>{fyShort(r)}</b>{#if fySub(r)}<small class="mono2">{fySub(r)}</small>{/if}</span>
-            {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval)}{/if}
-            {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
-          </div>
-        {/each}
+    {#each looseRows as r, i (workKey(r, i))}
+      {@const k = workKey(r, i)}
+      {@const openW = openWork === k}
+      {@const ds = lavoriDetails(r)}
+      <div class="card">
+        <div class="top">
+          <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
+          <span class="nm"><span class="name">{fyShort(r)}</span></span>
+          {#if fyMeta(r)}<span class="mono">{fyMeta(r)}</span>{/if}
+          <button class="chev" aria-label={openW ? t.close : t.open} onclick={() => (openWork = openW ? null : k)}>
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d={openW ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+        </div>
+        <p class="body" class:full={openW}>{r.title}</p>
+        {#if openW && ds.length}
+          <div class="kv wkv">{#each ds as d (d.kind)}<span>{t.lavoriDetail[d.kind]}</span><span>{d.kind === 'asked_at' ? hhmm(Number(d.value)) : d.value}</span>{/each}</div>
+        {/if}
+        <div class="oks"><div class="ok">
+          <span class="okt mono2">{fySub(r) ?? ''}</span>
+          {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval)}{/if}
+          {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
+        </div></div>
       </div>
-    {/if}
+    {/each}
     <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
   {/if}
@@ -258,6 +276,7 @@
       {@const open = expanded === s.name}
       {@const c = cleanupOf(s, canExit, st.ts)}
       {@const mine = placed?.inCards.get(s.name) ?? []}
+      {@const svc = placedOut.inCards.get(s.name) ?? []}
       <div class="card" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)} animate:flip={{ duration: 250 }}
         role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
         oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
@@ -328,6 +347,19 @@
             {/each}
           </div>
         {/if}
+        {#if svc.length}
+          <!-- Franz 24/10 00:46: un suggerimento che riguarda questa sessione (il contesto alto) sta qui, con il suo tasto tonale. -->
+          <div class="oks">
+            {#each svc as r, i (`svc-${i}`)}
+              {@const x = serviceText(r)}
+              <div class="ok">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={CAT_ICON.fix} /></svg>
+                <span class="okt col"><b>{x.title}</b>{#if x.detail}<small class="mono2">{x.detail}</small>{/if}</span>
+                <button class="tonal mini" onclick={(e) => { e.stopPropagation(); onService(r) }}>{x.action}</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
         {#if group === 'waiting' && s.question}
           <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={!hasOk} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
         {/if}
@@ -375,15 +407,15 @@
     <div bind:this={usageEl}>{@render sec('usage', t.homeUsage)}</div>
     {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}</div>{/if}
   {/if}
-  {#if outside.length}
+  {#if placedOut.groups.length}
     {@render sec('other', t.homeOther, outside.map(g => outsideCount(g)).join(' · '))}
   {/if}
-  {#if outside.length && open.other}
+  {#if placedOut.groups.length && open.other}
     <div class="outside">
       <div class="oh"><h3>{t.outsideTitle}</h3><i></i></div>
       <div class="osub">{t.outsideSub}</div>
     </div>
-    {#each outside as g (g.category)}
+    {#each placedOut.groups as g (g.category)}
       <h2 class="gh cat" style="--t:{g.category === 'fix' ? 'var(--wait)' : 'var(--text2)'}">
         <svg viewBox="0 0 24 24" width="16" height="16"><path d={CAT_ICON[g.category]} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         <span>{(g.category === 'night' ? catLabel(g.category) : t.catCount(catLabel(g.category), outsideCount(g))).toUpperCase()}</span>
@@ -522,10 +554,7 @@
   .approve.mini { align-self: center; margin: 0; padding: 9px 16px; font-size: 14px; }
   .tonal { background: var(--high); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   /* Strada B (23/10): la lista compatta dei lavori senza sessione e la riga di un lavoro nella scheda della sua sessione. */
-  .card.list { cursor: default; padding: 4px 10px 4px 14px; gap: 0; }
-  .lrow { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 0; }
-  .lrow + .lrow { border-top: 1px solid var(--line); }
-  .lt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .lt b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; } .lt small { white-space: nowrap; overflow: hidden; }
+  .wkv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; overflow-wrap: anywhere; }
   .okt.col { display: flex; flex-direction: column; gap: 1px; } .okt.col b { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; }
   .mono2 { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text2); }
   .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }

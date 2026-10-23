@@ -1029,6 +1029,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="changes_file_gone">Questo file non ha più modifiche: tocca Aggiorna</string>
     <string name="file_code">Codice</string>
     <string name="file_page">Pagina</string>
+    <string name="file_page_full">Schermo intero</string>
     <string name="show_preview">Mostra anteprima</string>
     <!-- Gantt della notte (bozze A e B approvate da Franz il 21/10 alle 10:29) -->
     <string name="night_view_projects">Progetti</string>
@@ -1088,6 +1089,19 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_you">da te</string>
     <string name="lavori_you_at">da te · chiede alle %1$s</string>
     <string name="lavori_can_start">può partire</string>
+    <string name="lavori_d_waits">aspetta</string>
+    <string name="lavori_d_last_step">ultimo passo</string>
+    <string name="lavori_d_next">prossimo</string>
+    <string name="lavori_d_folder">cartella</string>
+    <string name="lavori_d_expected">esito atteso</string>
+    <string name="lavori_d_paused">in pausa</string>
+    <string name="lavori_d_ref">riferimento</string>
+    <string name="lavori_d_detail">dettaglio</string>
+    <string name="lavori_d_blocks">blocca</string>
+    <string name="lavori_d_until">fino al</string>
+    <string name="lavori_d_what">cosa</string>
+    <string name="lavori_d_where">dove</string>
+    <string name="lavori_d_asked_at">chiesto alle</string>
     <string name="lavori_nothing">Niente che aspetti te</string>
     <string name="lavori_progress">In corso</string>
     <string name="lavori_nothing_progress">Niente in corso</string>

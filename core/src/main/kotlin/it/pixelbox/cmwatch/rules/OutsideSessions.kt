@@ -34,4 +34,24 @@ object OutsideSessions {
             }
         }
     }
+
+    /**
+     * Franz 24/10 00:46: «anche questo suggerimento dovrebbe apparire nella scheda della sessione»: una voce di servizio
+     * che riguarda una sessione aperta (`session` fra `open`) sta nella scheda di quella sessione, come gli Approva e i
+     * lavori; in Altro restano le altre, e una categoria rimasta senza voci sparisce.
+     */
+    data class Placed(val inCards: Map<String, List<MasterHome.Row>>, val groups: List<Group>)
+
+    fun place(groups: List<Group>, open: Set<String>): Placed {
+        val inCards = LinkedHashMap<String, MutableList<MasterHome.Row>>()
+        val rest = groups.mapNotNull { g ->
+            if (g.category == Category.CLOSED) return@mapNotNull g
+            val left = g.rows.filter { r ->
+                val s = r.session?.takeIf { it in open } ?: return@filter true
+                inCards.getOrPut(s) { mutableListOf() }.add(r); false
+            }
+            if (left.isEmpty()) null else g.copy(rows = left)
+        }
+        return Placed(inCards, rest)
+    }
 }

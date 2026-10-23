@@ -40,6 +40,27 @@ export function forYou(st: State, agenda: AgendaPage | null | undefined, now: nu
  * lista finché il contratto non la porta). Gli ok hanno già la loro riga nella scheda (`approvalsOf`): `attachedOk` = i loro
  * compiti, che qui non si ripetono.
  */
+/**
+ * Franz 24/10 00:44: «in lavori ogni scheda dovrebbe essere espandibile con maggiori dettagli». I dettagli di una riga «Per te»,
+ * nell'ordine e senza i campi vuoti: impegno (chi aspetta chi, ultimo passo, prossimo, cartella, esito atteso, pausa), riga
+ * dell'agenda (riferimento, dettaglio, chi blocca, fino a quando), ok (cosa, dove, chiesto alle). `asked_at` porta l'epoch.
+ */
+export type DetailKind = 'waits' | 'last_step' | 'next' | 'folder' | 'expected' | 'paused' | 'ref' | 'detail' | 'blocks' | 'until' | 'what' | 'where' | 'asked_at'
+export type DetailRow = { kind: DetailKind; value: string }
+export function details(r: ForYou): DetailRow[] {
+  const out: DetailRow[] = []
+  const add = (kind: DetailKind, value: string | number | null | undefined) => { const v = value == null ? '' : String(value).trim(); if (v) out.push({ kind, value: v }) }
+  const c = r.commitment
+  if (c) {
+    add('waits', c.waits ? [c.waits.who, c.waits.on].filter(x => x && x.trim()).join(' ← ') : null)
+    add('last_step', c.last_step?.text); add('next', c.next); add('folder', c.project); add('expected', c.expected); add('paused', c.paused?.reason)
+  }
+  const a = r.agenda
+  if (a) { add('ref', a.ref); add('detail', a.detail); add('blocks', a.blocks); add('until', a.until) }
+  if (!c && r.approval) { add('what', r.approval.what); add('where', r.approval.where); add('asked_at', r.approval.requested_at > 0 ? r.approval.requested_at : null) }
+  return out
+}
+
 export type Placed = { inCards: Map<string, ForYou[]>; loose: ForYouGroups }
 export function place(g: ForYouGroups, open: Set<string>, attachedOk: Set<string> = new Set()): Placed {
   const inCards = new Map<string, ForYou[]>()

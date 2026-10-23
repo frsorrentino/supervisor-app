@@ -142,6 +142,7 @@ fun SummaryList(
     update: AppUpdater.Ui? = null, onInstallUpdate: (AppUpdate.Release) -> Unit = {}, onDismissUpdate: (String) -> Unit = {},
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
+    var openWork by rememberSaveable { mutableStateOf<String?>(null) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura.
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { runCatching { ctx.getSharedPreferences("home_sections", android.content.Context.MODE_PRIVATE) }.getOrNull() }
@@ -201,6 +202,8 @@ fun SummaryList(
         // Strada B (Franz 23/10 23:08, mockup del 23/10): un lavoro di una sessione aperta sta nella sua scheda, come gli ok;
         // in Lavori restano quelli senza sessione, in una lista compatta.
         val placed = foryou?.let { Lavori.place(it, model.rows.map { r -> r.session.name }.toSet(), Summary.attachedTasks(model.rows)) }
+        // Franz 24/10 00:46: un suggerimento che riguarda una sessione aperta (il contesto alto) sta nella sua scheda; in Altro restano gli altri.
+        val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
         // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
         if (showLavori && foryou != null) {
             item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, foryou.total).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
@@ -208,7 +211,11 @@ fun SummaryList(
                 val zone = java.time.ZoneId.systemDefault()
                 val loose = placed!!.loose
                 val rows = loose.ok + loose.outside.take(2) + loose.claude.take(1)
-                if (rows.isNotEmpty()) item(key = "lv-list") { Box(moving()) { LavoriList(rows, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
+                // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli.
+                rows.forEachIndexed { i, r ->
+                    val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key ?: "${r.kind}-$i"
+                    item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
+                }
                 item(key = "lv-all") {
                     Box(moving()) {
                         Row(Modifier.fillMaxWidth().handCursor().clickable(onClick = onLavori).padding(horizontal = 4.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -238,7 +245,7 @@ fun SummaryList(
                         firstFilled = foryou?.ok?.none { it.approval != null } ?: true, canExit = canExit, onClose = { onClose(s.name) }, now = now,
                         onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                         onApprove = onApprove, onDone = onDone,
-                        works = placed?.inCards?.get(s.name).orEmpty(),
+                        works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
                         onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
                         onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
                     )
@@ -254,7 +261,7 @@ fun SummaryList(
         }
         // «Fuori dalle sessioni» (mockup A, Franz 03/10 22:34): un titolo vero che separa le sessioni dal resto, poi le
         // categorie con icona e conteggio, dalla più urgente; ognuna nella sua card.
-        val outside = OutsideSessions.groups(model.service, model.closed)
+        val outside = outsidePlaced.groups
         if (outside.isNotEmpty()) {
             item(key = "out-head") {
                 Box(moving()) {
@@ -312,6 +319,8 @@ private fun SummaryCard(
     /** Strada B (23/10): i lavori di questa sessione che aspettano te, ognuno col suo tasto (Fatto o Avvia). */
     works: List<Lavori.ForYou> = emptyList(),
     onWorkDone: (Lavori.ForYou) -> Unit = {}, onWorkStart: (Lavori.ForYou) -> Unit = {},
+    /** Franz 24/10 00:46: i suggerimenti su questa sessione (il contesto alto), ognuno col suo tasto tonale. */
+    services: List<MasterHome.Row> = emptyList(), onService: (MasterHome.Row) -> Unit = {},
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -378,6 +387,7 @@ private fun SummaryCard(
         r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
         // Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok.
         works.forEach { w -> WorkLine(w, onDone = { onWorkDone(w) }, onStart = { onWorkStart(w) }) }
+        services.forEach { row -> ServiceLine(row) { onService(row) } }
         // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto.
         if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -607,10 +617,11 @@ private fun TonightBlock(
     }
 }
 
+/** Titolo, dettaglio e tasto di una riga di servizio, per la scheda di Altro e per la riga nella scheda della sessione. */
 @Composable
-private fun OutsideRow(row: MasterHome.Row, category: OutsideSessions.Category, onAction: (MasterHome.Row) -> Unit) {
+private fun serviceText(row: MasterHome.Row): Triple<String, String?, Int> {
     val n = row.number ?: 0
-    val (title, detail, action) = when (row.kind) {
+    return when (row.kind) {
         MasterHome.Kind.CONTEXT -> Triple(stringResource(R.string.fy_context, row.title, n), stringResource(R.string.fy_context_detail), R.string.fy_btn_handoff)
         MasterHome.Kind.SCHEDULED -> Triple(
             androidx.compose.ui.res.pluralStringResource(R.plurals.fy_scheduled, n.coerceAtLeast(1), n.coerceAtLeast(1)),
@@ -626,6 +637,12 @@ private fun OutsideRow(row: MasterHome.Row, category: OutsideSessions.Category, 
         )
         MasterHome.Kind.QUESTION, MasterHome.Kind.FINISHED -> Triple(row.title, row.detail, R.string.fy_btn_see)
     }
+}
+
+@Composable
+private fun OutsideRow(row: MasterHome.Row, category: OutsideSessions.Category, onAction: (MasterHome.Row) -> Unit) {
+    val n = row.number ?: 0
+    val (title, detail, action) = serviceText(row)
     // Grammatica unica (24/10): il contesto di una sessione ha il suo nome in testa e «ctx N%» in mono; gli altri il titolo.
     val context = row.kind == MasterHome.Kind.CONTEXT
     val meta = when (row.kind) {
@@ -776,51 +793,83 @@ private fun MiniButton(text: String, filled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Strada B: la lista compatta dei lavori senza sessione: una riga per lavoro con il badge, il titolo breve, il riferimento in mono e il tasto piccolo. */
-@Composable
-private fun LavoriList(
-    rows: List<Lavori.ForYou>, onApprove: (String, String, String?) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
-    onAgendaEdit: (RecapAgenda.Edit) -> Unit, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit,
-) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(start = 14.dp, end = 10.dp, top = 4.dp, bottom = 4.dp)) {
-        rows.forEachIndexed { i, r ->
-            if (i > 0) androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 32.dp), color = CmColors.line)
-            WorkRow(r, onApprove, onDoneForPerson, onAgendaEdit, onStart)
-        }
-    }
-}
 
+
+/** Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia (badge, titolo breve, meta in mono, chevron); aperta mostra i dettagli (`Lavori.details`). */
 @Composable
-private fun WorkRow(
-    r: Lavori.ForYou, onApprove: (String, String, String?) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
+private fun WorkCard(
+    r: Lavori.ForYou, open: Boolean, onToggle: () -> Unit, onApprove: (String, String, String?) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
     onAgendaEdit: (RecapAgenda.Edit) -> Unit, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit,
 ) {
     var ask by rememberSaveable(r.title) { mutableStateOf(false) }
     var choice by rememberSaveable(r.title) { mutableStateOf<String?>(null) }
     val a = r.approval; val ag = r.agenda; val cm = r.commitment; val who = r.who?.takeIf { it.isNotBlank() }; val at = r.at
+    val meta = ag?.scope?.takeIf { it.isNotBlank() } ?: cm?.session ?: who
     val sub = when (r.kind) {
         Lavori.Kind.OK -> when {
             who != null && at != null -> stringResource(R.string.lavori_asks, who, hhmmOf(at))
             who != null -> stringResource(R.string.lavori_asks_who, who)
             else -> stringResource(R.string.lavori_waits_ok)
         }
-        Lavori.Kind.OUTSIDE -> if (cm != null) who?.let { stringResource(R.string.lavori_unblocks, it) }
-            else listOfNotNull(ag?.scope?.takeIf { it.isNotBlank() }, who).joinToString(" · ").ifBlank { null }
-        Lavori.Kind.CLAUDE -> listOfNotNull(ag?.scope?.takeIf { it.isNotBlank() }, who).joinToString(" · ").ifBlank { null }
+        Lavori.Kind.OUTSIDE -> if (cm != null) who?.let { stringResource(R.string.lavori_unblocks, it) } else who
+        Lavori.Kind.CLAUDE -> who
     }
-    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        WorkBadge(r.kind, ag?.let { RecapAgenda.mark(it.scope) } ?: RecapAgenda.Mark.NONE)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(Lavori.shortTitle(r.title, ag?.short ?: cm?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
-            sub?.let { Text(it, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip) }
+    Column(familyCard(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            WorkBadge(r.kind, ag?.let { RecapAgenda.mark(it.scope) } ?: RecapAgenda.Mark.NONE)
+            Text(Lavori.shortTitle(r.title, ag?.short ?: cm?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+            meta?.let { Text(it, style = MonoSmall, color = CmColors.text2, maxLines = 1) }
+            IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
+                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = CmColors.text2)
+            }
         }
-        when (r.kind) {
-            Lavori.Kind.OK -> if (a != null) OkButtons(a, filled = true) { o -> choice = o; ask = true }
-            Lavori.Kind.OUTSIDE -> MiniButton(stringResource(R.string.agenda_done), filled = false) { ag?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; cm?.let(onDoneForPerson) }
-            Lavori.Kind.CLAUDE -> MiniButton(stringResource(R.string.lavori_start), filled = false) { ag?.let { row -> onStart(RecapAgenda.doIt(row)) } }
+        Text(r.title, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = if (open) Int.MAX_VALUE else 2, overflow = TextOverflow.Clip)
+        if (open) Lavori.details(r).forEach { d ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(detailLabel(d.kind)), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+                Text(if (d.kind == Lavori.Detail.ASKED_AT) hhmmOf(d.value.toLong()) else d.value, style = MaterialTheme.typography.bodySmall, color = CmColors.text)
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(sub.orEmpty(), style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+            when (r.kind) {
+                Lavori.Kind.OK -> if (a != null) OkButtons(a, filled = true) { o -> choice = o; ask = true }
+                Lavori.Kind.OUTSIDE -> MiniButton(stringResource(R.string.agenda_done), filled = false) { ag?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; cm?.let(onDoneForPerson) }
+                Lavori.Kind.CLAUDE -> MiniButton(stringResource(R.string.lavori_start), filled = false) { ag?.let { row -> onStart(RecapAgenda.doIt(row)) } }
+            }
         }
     }
     if (ask && a != null) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
+}
+
+private fun detailLabel(k: Lavori.Detail): Int = when (k) {
+    Lavori.Detail.WAITS -> R.string.lavori_d_waits
+    Lavori.Detail.LAST_STEP -> R.string.lavori_d_last_step
+    Lavori.Detail.NEXT -> R.string.lavori_d_next
+    Lavori.Detail.FOLDER -> R.string.lavori_d_folder
+    Lavori.Detail.EXPECTED -> R.string.lavori_d_expected
+    Lavori.Detail.PAUSED -> R.string.lavori_d_paused
+    Lavori.Detail.REF -> R.string.lavori_d_ref
+    Lavori.Detail.DETAIL -> R.string.lavori_d_detail
+    Lavori.Detail.BLOCKS -> R.string.lavori_d_blocks
+    Lavori.Detail.UNTIL -> R.string.lavori_d_until
+    Lavori.Detail.WHAT -> R.string.lavori_d_what
+    Lavori.Detail.WHERE -> R.string.lavori_d_where
+    Lavori.Detail.ASKED_AT -> R.string.lavori_d_asked_at
+}
+
+/** Franz 24/10 00:46: un suggerimento su questa sessione (il contesto alto) nella sua scheda, come gli ok: icona, titolo, dettaglio in mono, tasto tonale. */
+@Composable
+private fun ServiceLine(row: MasterHome.Row, onAction: () -> Unit) {
+    val (title, detail, action) = serviceText(row)
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(Icons.Rounded.WarningAmber, null, tint = CmColors.briefWarn, modifier = Modifier.size(22.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
+            detail?.let { Text(it, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip) }
+        }
+        MiniButton(stringResource(action), filled = false, onClick = onAction)
+    }
 }
 
 /** Titolo di sezione della home: si apre e si chiude al tocco; chiusa, a destra un riassunto se c'è. */

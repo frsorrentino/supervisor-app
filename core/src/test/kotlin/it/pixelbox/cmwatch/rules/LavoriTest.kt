@@ -5,6 +5,7 @@ import it.pixelbox.cmwatch.contract.AgendaPage
 import it.pixelbox.cmwatch.contract.AgendaRow
 import it.pixelbox.cmwatch.contract.Commitment
 import it.pixelbox.cmwatch.contract.CommitmentPause
+import it.pixelbox.cmwatch.contract.CommitmentStep
 import it.pixelbox.cmwatch.contract.Approval
 import it.pixelbox.cmwatch.contract.CommitmentWaits
 import it.pixelbox.cmwatch.contract.ContractJson
@@ -247,5 +248,28 @@ class LavoriTest {
         assertEquals(all.claude, p.loose.claude)
         assertEquals(all.outside.filter { it.agenda != null }, p.loose.outside.filter { it.agenda != null })
         assertEquals(listOf("loose-task"), p.loose.ok.map { it.approval?.task })
+    }
+
+    /**
+     * Franz 24/10 00:44: «in lavori ogni scheda dovrebbe essere espandibile con maggiori dettagli»: i dettagli di una riga
+     * «Per te», nell'ordine, senza i campi vuoti: impegno (chi aspetta chi, ultimo passo, prossimo, cartella, esito atteso,
+     * pausa), riga dell'agenda (riferimento, dettaglio, chi blocca, fino a quando), ok (cosa, dove, chiesto alle).
+     */
+    @Test fun aRowOpensOnItsDetails() {
+        val c = Commitment("t1", "uno", project = "personali/app", session = "app", state = "running", waits = CommitmentWaits("app", "person"),
+            lastStep = CommitmentStep(1789210000, "note", "build verde"), next = "l'ok al push", expected = "release 1.2", paused = CommitmentPause("manca la chiave", 1789210100))
+        val row = Lavori.ForYou(Kind.OUTSIDE, "manca la chiave", "app", 1789210100, commitment = c)
+        assertEquals(listOf(
+            Lavori.Detail.WAITS to "app ← person", Lavori.Detail.LAST_STEP to "build verde", Lavori.Detail.NEXT to "l'ok al push",
+            Lavori.Detail.FOLDER to "personali/app", Lavori.Detail.EXPECTED to "release 1.2", Lavori.Detail.PAUSED to "manca la chiave",
+        ), Lavori.details(row).map { it.kind to it.value })
+        val a = AgendaRow("aperto", "personale", "franz", "Revocare la chiave", "console.anthropic.com", detail = "scade a maggio", until = "2026-11-02")
+        assertEquals(listOf(Lavori.Detail.REF to "console.anthropic.com", Lavori.Detail.DETAIL to "scade a maggio", Lavori.Detail.BLOCKS to "franz", Lavori.Detail.UNTIL to "2026-11-02"),
+            Lavori.details(Lavori.ForYou(Kind.OUTSIDE, a.title, a.ref, null, agenda = a)).map { it.kind to it.value })
+        val ok = Approval("t2", "Release", "tag e push", "github.com/x", requestedAt = 1789214000)
+        assertEquals(listOf(Lavori.Detail.WHAT to "tag e push", Lavori.Detail.WHERE to "github.com/x", Lavori.Detail.ASKED_AT to "1789214000"),
+            Lavori.details(Lavori.ForYou(Kind.OK, ok.title, null, ok.requestedAt, approval = ok)).map { it.kind to it.value })
+        // Niente campi vuoti.
+        assertTrue(Lavori.details(Lavori.ForYou(Kind.OK, "x", null, null, approval = Approval("t3", "x"))).isEmpty())
     }
 }

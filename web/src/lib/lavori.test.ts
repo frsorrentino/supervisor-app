@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type AgendaPage, type AgendaRow, type Approval, type Commitment, type Event } from './contract'
-import { MIN_BAR, axis, bars, done, doneFromPages, doneToday, forYou, inProgress, midnight, place, shortTitle } from './lavori'
+import { MIN_BAR, axis, bars, details, done, doneFromPages, doneToday, forYou, inProgress, midnight, place, shortTitle, type ForYou } from './lavori'
 import type { DonePage } from './contract'
 
 // Gli stessi casi di LavoriTest in Kotlin: la pagina unica «Lavori» (mockup approvato il 22/10).
@@ -207,5 +207,20 @@ describe('lavori', () => {
     expect(p.loose.claude).toEqual(all.claude)
     expect(p.loose.outside.filter(r => r.agenda)).toEqual(all.outside.filter(r => r.agenda))
     expect(p.loose.ok.map(r => r.approval?.task)).toEqual(['loose-task'])
+  })
+
+  // Franz 24/10 00:44: «in lavori ogni scheda dovrebbe essere espandibile con maggiori dettagli»: i dettagli di una riga «Per te».
+  it('una riga si apre sui suoi dettagli, nell\'ordine e senza i campi vuoti', () => {
+    const c = { task: 't1', title: 'uno', project: 'personali/app', session: 'app', state: 'running', approved: true, waits: { who: 'app', on: 'person' },
+      last_step: { at: 1789210000, kind: 'note', text: 'build verde' }, next: "l'ok al push", expected: 'release 1.2', paused: { reason: 'manca la chiave', at: 1789210100 } } as Commitment
+    const row = (p: Partial<ForYou>): ForYou => ({ kind: 'outside', title: 'x', who: null, at: null, approval: null, commitment: null, agenda: null, ...p })
+    expect(details(row({ commitment: c })).map(d => [d.kind, d.value])).toEqual([
+      ['waits', 'app ← person'], ['last_step', 'build verde'], ['next', "l'ok al push"], ['folder', 'personali/app'], ['expected', 'release 1.2'], ['paused', 'manca la chiave'],
+    ])
+    const a: AgendaRow = { state: 'aperto', scope: 'personale', blocks: 'franz', title: 'Revocare la chiave', ref: 'console.anthropic.com', detail: 'scade a maggio', until: '2026-11-02' }
+    expect(details(row({ agenda: a })).map(d => [d.kind, d.value])).toEqual([['ref', 'console.anthropic.com'], ['detail', 'scade a maggio'], ['blocks', 'franz'], ['until', '2026-11-02']])
+    const ok: Approval = { task: 't2', title: 'Release', what: 'tag e push', where: 'github.com/x', deploy: false, requested_at: 1789214000 }
+    expect(details(row({ kind: 'ok', approval: ok })).map(d => [d.kind, d.value])).toEqual([['what', 'tag e push'], ['where', 'github.com/x'], ['asked_at', '1789214000']])
+    expect(details(row({ kind: 'ok', approval: { task: 't3', title: 'x', what: '', where: '', deploy: false, requested_at: 0 } }))).toEqual([])
   })
 })
