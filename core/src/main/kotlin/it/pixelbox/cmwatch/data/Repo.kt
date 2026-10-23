@@ -220,6 +220,8 @@ class Repo(
         at: Long? = null, confirm: Boolean? = null, prompt: String? = null,
         /** Contratto 1.65: `prompt` a una sessione chiusa, da riaprire. */
         reopen: Boolean? = null,
+        /** Contratto 1.80, `attention_done`: il kind della voce e, per un turn_blocking, il suo since. */
+        kind: String? = null, since: Long? = null,
     ): String {
         // Contratto 1.52: la risposta vale per la domanda aperta adesso, anche se parte dalla coda dopo minuti.
         val question = if (op == CmdOp.ANSWER || op == CmdOp.ALLOW_ALL)
@@ -227,6 +229,7 @@ class Repo(
         val cmd = Cmd(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt, reopen = reopen,
+            kind = kind, since = since,
         )
         question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {

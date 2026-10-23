@@ -9,7 +9,8 @@ export type Question = { id: string; kind: 'permission' | 'ask' | 'plan'; text: 
   preview?: string | null }
 /** Contratto 1.55: una domanda risolta al terminale, nello stato per 5 minuti. */
 /** Contratto 1.66: question | turn_failed | quota_limit | task_red. */
-export type Attention = { kind: string; session?: string | null; ref?: string | null; title: string; since: number }
+/** Contratto 1.80: `closes` = come si chiude da sola (answer | prompt | check); `expires_at` per needs_you (epoch s). */
+export type Attention = { kind: string; session?: string | null; ref?: string | null; title: string; since: number; closes?: string | null; expires_at?: number | null }
 export type Resolved = { id: string; text: string; at: number; by: string }
 /** Contratto 1.60: `preview` = short e full senza segreti, solo quando il relay ha nascosto qualcosa. */
 export type Outcome = { short: string; full: string; at: number; preview?: { short: string; full: string } | null }
@@ -22,7 +23,8 @@ export type Session = {
   /** Contratto 1.62: attaccata e con un tasto premuto al PC negli ultimi 2 minuti. */
   at_pc?: boolean
   /** Contratto 1.68: `supervisor needs-you` e il turno finito con una voce bloccante, finché la sessione è ferma. */
-  needs_you?: { reason: string; at: number } | null; turn_blocking?: { text: string; at: number } | null
+  /** Contratto 1.80: `until` = c'è una condizione che il relay verifica; `expires_at` = quando scade (epoch s). */
+  needs_you?: { reason: string; at: number; until?: boolean; expires_at?: number | null } | null; turn_blocking?: { text: string; at: number } | null
   /** Contratto 1.69: la sessione può arrivare a bypassPermissions. */
   permission_bypass?: boolean
   /** Contratto 1.72: i conteggi delle modifiche della cartella; null fuori da git, senza modifiche o con git fermo. */
@@ -200,6 +202,7 @@ export type State = {
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
+  | 'attention_done'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */
@@ -214,6 +217,8 @@ export type Cmd = {
   reopen?: boolean
   /** Contratto 1.47, `agenda_set`: done | snooze | remove | pass, il giorno di uno snooze, a chi passa. */
   action?: string; until?: string; blocks?: string
+  /** Contratto 1.80, `attention_done`: il kind della voce da chiudere e, per un turn_blocking, il suo since. */
+  kind?: string; since?: number
 }
 export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null }
 

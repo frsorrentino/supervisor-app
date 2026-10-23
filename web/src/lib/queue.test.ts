@@ -53,6 +53,18 @@ describe('AttentionQueue', () => {
     expect(l[1].text).toBe('ok alla pubblicazione')
     expect(l[0].kind).toBe('question')
   })
+  // Contratto 1.80: una ferma si chiude dal telefono col tasto «Fatto» (attention_done): kind e ref, since per una ferma del turno.
+  it('una ferma porta il «Fatto» (kind, ref, since) e la scadenza di un needs_you; una domanda no', () => {
+    const st = three()
+    st.sessions[3] = { ...st.sessions[3], needs_you: { reason: 'login', at: 150, until: true, expires_at: 999 } }
+    st.sessions[0] = { ...st.sessions[0], question: null, turn_blocking: { text: 'ok al deploy', at: 160 } }
+    const l = items(st)
+    expect(l.find(i => i.session === 'd')!.done).toEqual({ kind: 'needs_you', ref: 'd' })
+    expect(l.find(i => i.session === 'd')!.expiresAt).toBe(999)
+    expect(l.find(i => i.session === 'a')!.done).toEqual({ kind: 'turn_blocking', ref: 'a', since: 160 })
+    expect(l.find(i => i.session === 'a')!.expiresAt).toBeNull()
+    expect(l.find(i => i.session === 'b')!.done).toBeNull()
+  })
   it('una ferma con la domanda conta una volta, come domanda; una sessione chiusa mai, con o senza domanda, come nel banner', () => {
     const st = three()
     st.sessions[0] = { ...st.sessions[0], needs_you: { reason: 'login', at: 50 } }

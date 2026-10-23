@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { State } from './contract'
-  import { items as queueOf, next as nextOf, page as pageOf } from './queue'
+  import { items as queueOf, next as nextOf, page as pageOf, type Done } from './queue'
   import { since } from './durations'
   import { CHAT_ARG } from './questionRules'
   import { t } from './t'
@@ -9,11 +9,14 @@
 
   // «Ti aspettano» (QueueScreen dell'app): le domande aperte di tutte le sessioni in fila, dalla più vecchia, una per
   // pagina; dopo una risposta si passa alla successiva. Si scorre di lato (trascinando o con le frecce e i tasti ← →).
-  let { st, now, onAnswer, onSession, skip = null }: {
+  let { st, now, onAnswer, onSession, skip = null, onDone = () => {} }: {
     /** Aperta dall'avviso di una chat: la sessione di quella chat non è in fila, come nel conto dell'avviso. */
     skip?: string | null
     st: State; now: number; onAnswer: (session: string, arg: string, op?: 'answer' | 'allow_all') => void; onSession: (name: string) => void
+    /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
+    onDone?: (d: Done) => void
   } = $props()
+  const hm = (x: number) => new Date(x * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 
   const list = $derived(queueOf(st).filter(x => x.session !== skip))
   let strip: HTMLElement | undefined = $state()
@@ -56,7 +59,12 @@
             <div class="stop">
               <span class="sh">{t.queueStopHead}</span>
               <p>{it.text}</p>
-              <button class="go" onclick={() => onSession(s.name)}>{t.queueStopOpen}</button>
+              <!-- Contratto 1.80: la scadenza di un needs-you e il tasto «Fatto», che chiude la richiesta dal telefono. -->
+              {#if it.expiresAt}<span class="exp">{t.expiresAt(hm(it.expiresAt))}</span>{/if}
+              <div class="acts">
+                <button class="go" class:tonal={!!it.done} onclick={() => onSession(s.name)}>{t.queueStopOpen}</button>
+                {#if it.done}{@const d = it.done}<button class="go" onclick={() => onDone(d)}>{t.attentionDone}</button>{/if}
+              </div>
             </div>
           </div>
         {/if}
@@ -82,6 +90,9 @@
   .sh { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--advice); }
   .stop p { margin: 0; font-size: 16px; line-height: 1.45; color: var(--text); }
   .go { align-self: flex-start; height: 44px; padding: 0 22px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 500; }
+  .go.tonal { background: var(--high); color: var(--text); }
+  .acts { display: flex; gap: 10px; flex-wrap: wrap; }
+  .exp { font-family: ui-monospace, monospace; font-size: 13px; color: var(--text2); }
   .nav { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px; font-size: 14px; font-weight: 500; color: var(--text2); }
   .arrow { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .arrow:not(:disabled):hover { background: var(--surface); }

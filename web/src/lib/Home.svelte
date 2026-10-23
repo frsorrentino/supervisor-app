@@ -11,6 +11,7 @@
   import { since } from './durations'
   import { doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, type ForYou as LavoriRow } from './lavori'
   import { attachedTasks, build, MASTER, type Group, type Row } from './summary'
+  import { doneOf, type Done } from './queue'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
   import { blockingOf, parseSteps } from './nextSteps'
@@ -28,7 +29,7 @@
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -42,6 +43,8 @@
     onAnswer: (session: string, n: number) => void; onStep: (session: string, text: string) => void
     /** Contratto 1.37: l'ok a un compito (`approve`) e «Chiudi» per una sessione finita o doppione (/exit). */
     onApprove?: (task: string, note: string) => void; onClose?: (name: string) => void
+    /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
+    onDone?: (d: Done) => void
     /** Il menu contestuale della card (Franz, 14/10 20:58): segui, fai controllare alla master, come il ⋮ della sessione. */
     onSessionCmd?: (name: string, op: 'follow' | 'unfollow' | 'prompt', arg?: string) => void
     /** Il riquadro Notte (mockup approvato l'08/10 alle 12:57): `undefined` = nascosto, null = rapporto in arrivo. */
@@ -160,6 +163,7 @@
   const stepKey = (s: { name: string; outcome?: { at: number } | null }, step: string) => `${s.name}@${s.outcome?.at ?? 0}:${step}`
   function askApprove(a: Approval) { pending = a; note = ''; approveDlg?.showModal() }
   const ctxTone = (p: number) => (p >= 90 ? 'var(--b-alert)' : p >= 75 ? 'var(--b-warn)' : 'var(--b-ring)')
+  const hm = (x: number) => new Date(x * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
   function text(r: Row) {
     const parsed = parseSteps(r.text ?? '')
     const shown = r.group === 'waiting' ? parsed.text : r.session.outcome ? outcomeSummary(r.session.outcome) : parsed.text
@@ -282,6 +286,11 @@
         </div>
         {#if s.goal?.text}<div class="goal">{t.goal}: {s.goal.text}</div>{/if}
         {#if x.body}<p class="body" class:full={open} class:strong={group === 'waiting' || open}>{x.body}</p>{/if}
+        {#if group === 'waiting' && !s.question}
+          {@const d = doneOf(s)}
+          <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. -->
+          {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? t.expiresAt(hm(s.needs_you.expires_at)) : ''}</span><button class="approve mini" onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
+        {/if}
         {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
         {#if r.approvals.length}
           <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
@@ -574,5 +583,6 @@
   .oks { display: flex; flex-direction: column; gap: 6px; }
   .ok { display: flex; align-items: center; gap: 10px; }
   .ok svg { flex: none; }
+  .okt.mono2 { font-family: ui-monospace, monospace; font-size: 13px; color: var(--text2); }
   .okt { flex: 1; min-width: 0; font-size: 14px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 </style>

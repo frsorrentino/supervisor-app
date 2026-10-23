@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { blankState, decodeChanges, decodeDiff, decodeState, tailKey, withTail, type TranscriptEntry } from './contract'
+import { blankState, decodeChanges, decodeDiff, decodeState, tailKey, withTail, type Cmd, type CmdResult, type TranscriptEntry } from './contract'
+import { newCmd } from './transport'
 
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
 
@@ -97,6 +98,22 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     const s = decodeState(fixture('state-1-question.json'))
     expect(s.sessions.filter(x => x.changes).map(x => [x.name, x.changes])).toEqual([['atlas-shop', { files: 4, added: 8, removed: 2, at: 1792100000 }]])
     for (const n of ['state-1-question.json', 'state-2-idle.json']) expect(decodeState(fixture(n)).ops).toEqual(expect.arrayContaining(['changes', 'diff']))
+  })
+  // Contratto 1.80 (23/10): le richieste in «Serve te» si chiudono da sole; op `attention_done` = il tasto «Fatto».
+  it('1.80: attention porta closes, needs_you until ed expires_at, e attention_done parte con kind e since', () => {
+    const s = decodeState(fixture('state-1-question.json'))
+    expect(s.ops).toEqual(expect.arrayContaining(['attention_done']))
+    expect(s.attention![0].closes).toBe('answer')
+    const root = JSON.parse(fixture('cmd-result-sample.json'))
+    const done = root.cmd.filter((c: Cmd) => c.op === 'attention_done')
+    expect(done.map((c: Cmd) => [c.arg, c.kind])).toEqual([['atlas-shop', 'needs_you'], ['nobody', 'needs_you']])
+    expect(root.result.find((r: CmdResult) => r.id === done[0].id).text).toBe('closed: needs_you atlas-shop')
+    expect(root.result.find((r: CmdResult) => r.id === done[1].id).ok).toBe(false)
+    const c = newCmd('attention_done', null, 'pix-docs', undefined, undefined, { kind: 'turn_blocking', since: 1789210000 })
+    expect([c.kind, c.since, c.session]).toEqual(['turn_blocking', 1789210000, null])
+    expect('kind' in newCmd('screen', 'x')).toBe(false)
+    const st = decodeState(fixture('state-2-idle.json').replace('"state": "idle"', '"state": "idle", "needs_you": {"reason": "login su win", "at": 1789210100, "until": true, "expires_at": 1789296500}'))
+    expect(st.sessions.find(x => x.needs_you)!.needs_you).toEqual({ reason: 'login su win', at: 1789210100, until: true, expires_at: 1789296500 })
   })
   it('ogni voce della trascrizione ha la chiave diff, e la voce Edit porta il suo', () => {
     const root = JSON.parse(fixture('cmd-result-sample.json'))

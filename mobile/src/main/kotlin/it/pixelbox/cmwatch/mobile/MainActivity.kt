@@ -219,6 +219,8 @@ class MainActivity : ComponentActivity() {
         var launching by rememberSaveable { mutableStateOf(false) }
         var nightAdding by rememberSaveable { mutableStateOf(false) }
         var queueOpen by rememberSaveable { mutableStateOf(false) }
+        // Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno).
+        val attentionDone: (it.pixelbox.cmwatch.rules.AttentionQueue.Done) -> Unit = { d -> scope.launch { runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, d.ref, kind = d.kind, since = d.since) } } }
         // La chat dal cui banner si è aperta la coda: non è in fila, come nel conto del banner (23/10, come la web).
         var queueSkip by rememberSaveable { mutableStateOf<String?>(null) }
         // La Panoramica in un foglio dal basso sopra la scheda (Franz, 01/10 12:34): si guarda la quota e si torna.
@@ -633,7 +635,7 @@ class MainActivity : ComponentActivity() {
         }
         if (queueOpen && state != null) {
             // La coda usa solo la card della domanda: risposta, «Parliamone», «Consenti tutto» e la lettura a voce.
-            it.pixelbox.cmwatch.mobile.ui.PageIn { QueueScreen(state, now, skip = queueSkip, actionsFor = { s ->
+            it.pixelbox.cmwatch.mobile.ui.PageIn { QueueScreen(state, now, skip = queueSkip, onDone = attentionDone, actionsFor = { s ->
                 SheetActions(
                     answer = { n -> scope.launch { app.repo.answer(s.name, n) } },
                     allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, s.name, null) } },
@@ -1413,6 +1415,7 @@ class MainActivity : ComponentActivity() {
                     tonight = st.night.items?.let { _ -> it.pixelbox.cmwatch.rules.TonightCard.of(st.night, now) },
                     // La sezione «Lavori» (22/10): gli ok e le cose da fare fuori dalla chat con il loro tasto; «Tutti i lavori» apre la pagina.
                     foryou = lavoriForYou, lavoriLine = lavoriLine, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
+                    onDone = attentionDone,
                     onAgendaEdit = editAgenda, onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     // «Utilizzo» (Franz, 08/10 12:30; unito il 09/10): le schede della quota e «Oggi» in una sezione richiudibile.
                     usage = { Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { usageContent() } },

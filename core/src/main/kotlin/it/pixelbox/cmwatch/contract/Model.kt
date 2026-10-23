@@ -132,6 +132,8 @@ enum class CmdOp {
     @SerialName("nights") NIGHTS,
     /** Contratto 1.77: i compiti chiusi per giorno con la prova (`arg` = giorno ISO o null = oggi), a richiesta come `agenda`. */
     @SerialName("done") DONE,
+    /** Contratto 1.80: il tasto «Fatto» su una voce di «Serve te»: `kind` della voce, `arg` = il suo ref, `since` per una ferma del turno. */
+    @SerialName("attention_done") ATTENTION_DONE,
 }
 
 /**
@@ -155,7 +157,13 @@ enum class CmdOp {
  * quota_limit (ref = la sessione), task_red (ref = id del task). Contratto 1.68: needs_you e turn_blocking (ref = la
  * sessione, title = il motivo o la voce).
  */
-@Serializable data class Attention(val kind: String, val session: String? = null, val ref: String? = null, val title: String = "", val since: Long = 0)
+@Serializable data class Attention(
+    val kind: String, val session: String? = null, val ref: String? = null, val title: String = "", val since: Long = 0,
+    /** Contratto 1.80: come si chiude da sola: answer (la domanda), prompt (il prompt dopo o la chiusura), check (lo verifica il relay). */
+    val closes: String? = null,
+    /** Contratto 1.80: per needs_you, quando scade (epoch s). */
+    @SerialName("expires_at") val expiresAt: Long? = null,
+)
 
 /** Contratto 1.55: una domanda uscita dallo stato senza risposta da un dispositivo; resta 5 minuti. */
 @Serializable data class Resolved(val id: String, val text: String, val at: Long, val by: String = "terminal")
@@ -229,7 +237,11 @@ enum class CmdOp {
     val changes: ChangesCount? = null,
 )
 
-@Serializable data class NeedsYou(val reason: String, val at: Long = 0)
+@Serializable data class NeedsYou(
+    val reason: String, val at: Long = 0,
+    /** Contratto 1.80: `until` = c'è una condizione che il relay verifica; `expires_at` = quando scade (epoch s, 24 h senza). */
+    val until: Boolean = false, @SerialName("expires_at") val expiresAt: Long? = null,
+)
 
 @Serializable data class TurnBlocking(val text: String, val at: Long = 0)
 
@@ -470,6 +482,14 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val reopen: Boolean? = null,
+    /** Contratto 1.80, `attention_done`: il kind della voce da chiudere (needs_you, turn_blocking, turn_failed, quota_limit, task_red). */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val kind: String? = null,
+    /** Contratto 1.80, `attention_done` di un turn_blocking: il `since` della voce. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val since: Long? = null,
 )
 
 /**

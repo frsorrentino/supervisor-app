@@ -28,7 +28,11 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
  * successiva. Una domanda risposta al PC sparisce dalla fila da sola (`AttentionQueue`).
  */
 @Composable
-fun QueueScreen(state: State, now: Long, actionsFor: (Session) -> SheetActions, onSession: (String) -> Unit, skip: String? = null) {
+fun QueueScreen(
+    state: State, now: Long, actionsFor: (Session) -> SheetActions, onSession: (String) -> Unit, skip: String? = null,
+    /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
+    onDone: (AttentionQueue.Done) -> Unit = {},
+) {
     // Aperta dal banner di una chat: la sessione di quella chat non è in fila, come nel conto del banner (web 15/10).
     val items = AttentionQueue.items(state).filter { it.session != skip }
     Column(Modifier.fillMaxSize().background(CmColors.bg).systemBarsPadding()) {
@@ -59,7 +63,12 @@ fun QueueScreen(state: State, now: Long, actionsFor: (Session) -> SheetActions, 
                     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.queue_stop_head), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
                         Text(item.text, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
-                        FilledTonalButton(onClick = { onSession(s.name) }) { Text(stringResource(R.string.queue_stop_open)) }
+                        // Contratto 1.80: la scadenza di un needs-you e il tasto «Fatto», che chiude la richiesta dal telefono.
+                        item.expiresAt?.let { Text(stringResource(R.string.expires_at, hhmmOf(it)), style = MaterialTheme.typography.labelLarge, color = CmColors.text2) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilledTonalButton(onClick = { onSession(s.name) }) { Text(stringResource(R.string.queue_stop_open)) }
+                            item.done?.let { d -> Button(onClick = { onDone(d) }) { Text(stringResource(R.string.attention_done)) } }
+                        }
                     }
                 }
                 return@HorizontalPager

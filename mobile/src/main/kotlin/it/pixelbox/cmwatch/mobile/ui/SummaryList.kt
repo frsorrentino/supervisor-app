@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.rules.AttentionQueue
 import it.pixelbox.cmwatch.rules.MasterHome
 import it.pixelbox.cmwatch.rules.OutsideSessions
 import it.pixelbox.cmwatch.rules.uniqueKeys
@@ -87,6 +88,8 @@ fun SummaryList(
     footer: (@Composable () -> Unit)? = null,
     /** L'ok a un compito (contratto 1.37), dalla sezione Lavori; la nota vuota vale «ok». */
     onApprove: (task: String, note: String) -> Unit = { _, _ -> },
+    /** Contratto 1.80: il tasto «Fatto» di una ferma nella card (op `attention_done`). */
+    onDone: (AttentionQueue.Done) -> Unit = {},
     /** Contratto 1.37: «Chiudi» per le sessioni finite o doppie senza finestra; `canExit` = il PC accetta /exit. */
     canExit: Boolean = false, onClose: (String) -> Unit = {},
     /** Il menu contestuale della card (pressione lunga, Franz 14/10 20:58): segui, fai controllare alla master. */
@@ -230,7 +233,7 @@ fun SummaryList(
                         onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
                         firstFilled = foryou?.ok?.none { it.approval != null } ?: true, canExit = canExit, onClose = { onClose(s.name) }, now = now,
                         onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
-                        onApprove = onApprove,
+                        onApprove = onApprove, onDone = onDone,
                     )
                 }
             }
@@ -297,6 +300,8 @@ private fun SummaryCard(
     onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
     /** L'ok a un compito del registro che questa sessione chiede (Franz 23/10: «Approva» nella scheda della sessione). */
     onApprove: (task: String, note: String) -> Unit = { _, _ -> },
+    /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
+    onDone: (AttentionQueue.Done) -> Unit = {},
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -362,6 +367,15 @@ private fun SummaryCard(
         }
         // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
         r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
+        // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto.
+        if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(s.needsYou?.expiresAt?.let { stringResource(R.string.expires_at, hhmmOf(it)) } ?: "", style = MonoSmall, color = CmColors.text2, modifier = Modifier.weight(1f))
+                Surface(onClick = { onDone(d) }, shape = CircleShape, color = CmColors.primary, contentColor = CmColors.onPrimary) {
+                    Text(stringResource(R.string.attention_done), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                }
+            }
+        }
         // Le opzioni della domanda subito, anche a card chiusa: rispondere è il motivo per cui la card è in cima.
         if (waiting) s.question?.let { q ->
             var holdHint by rememberSaveable(q.id) { mutableStateOf(false) }

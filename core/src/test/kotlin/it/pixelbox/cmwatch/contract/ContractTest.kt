@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.contract
 
 import it.pixelbox.cmwatch.Fixtures
 import it.pixelbox.cmwatch.rules.RecapAgenda
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -100,6 +101,29 @@ class ContractTest {
     }
 
     // Contratto 1.68: ferma per Franz e promemoria, come li scrive il relay 0.8.24 (test R52 del relay).
+    /** Contratto 1.80 (23/10): le richieste in «Serve te» si chiudono da sole; op `attention_done` = il tasto «Fatto». */
+    @Test fun attentionDoneAndTheClosingRequests() {
+        val st = ContractJson.decodeState(Fixtures.stateQuestion)
+        assertTrue("attention_done" in st.ops.orEmpty())
+        assertEquals("answer", st.attention.orEmpty().first().closes)
+        val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
+        val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
+        val done = cmds.filter { it.op == CmdOp.ATTENTION_DONE }
+        assertEquals(listOf("atlas-shop", "nobody"), done.map { it.arg })
+        assertEquals(listOf("needs_you", "needs_you"), done.map { it.kind })
+        val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+        assertEquals("closed: needs_you atlas-shop", results.first { it.id == done[0].id }.text)
+        assertFalse(results.first { it.id == done[1].id }.ok)
+        // Il comando codificato porta kind e, per una ferma del turno, since; i campi assenti non si scrivono.
+        val enc = ContractJson.json.encodeToString(Cmd("c1", CmdOp.ATTENTION_DONE, null, "pix-docs", 1, "phone", kind = "turn_blocking", since = 1789210000))
+        assertTrue(enc, enc.contains("\"op\":\"attention_done\"") && enc.contains("\"kind\":\"turn_blocking\"") && enc.contains("\"since\":1789210000"))
+        assertFalse(ContractJson.json.encodeToString(Cmd("c2", CmdOp.SCREEN, "x", null, 1, "phone")).contains("kind"))
+        // needs_you con una condizione e una scadenza.
+        val raw = Fixtures.stateIdle.replaceFirst("\"state\": \"idle\"", "\"state\": \"idle\", \"needs_you\": {\"reason\": \"login su win\", \"at\": 1789210100, \"until\": true, \"expires_at\": 1789296500}")
+        val s = ContractJson.decodeState(raw).sessions.first { it.needsYou != null }
+        assertEquals(NeedsYou("login su win", 1789210100, until = true, expiresAt = 1789296500), s.needsYou)
+    }
+
     @Test fun needsYouTurnBlockingAndReminder() {
         val st = ContractJson.decodeState(Fixtures.stateIdle)
         val raw = Fixtures.stateIdle.replaceFirst("\"state\": \"idle\"", "\"state\": \"idle\", \"needs_you\": {\"reason\": \"login su win\", \"at\": 1789210100}, \"turn_blocking\": {\"text\": \"ok al deploy\", \"at\": 1789210000}")
@@ -168,7 +192,7 @@ class ContractTest {
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
         // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
         // Contratto 1.74: due nights, con due notti e vuoto.
-        assertEquals(76, results.size); assertEquals(25, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata
+        assertEquals(78, results.size); assertEquals(26, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)

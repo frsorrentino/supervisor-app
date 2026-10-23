@@ -210,6 +210,8 @@
   }
 
   /** Un comando al relay; il rifiuto si mostra in basso. */
+  /** Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno). */
+  const attentionDone = (d: { kind: string; ref: string; since?: number }) => run(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since }))
   async function run(c: Cmd): Promise<CmdResult | null> {
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     try {
@@ -867,7 +869,7 @@
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home {st} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
         night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
-        onApprove={approve} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+        onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} /></div>
@@ -918,7 +920,7 @@
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
         onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo} />
     {:else if p === 'queue'}
-      <Queue {st} now={now} skip={queueSkip} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} />
+      <Queue {st} now={now} skip={queueSkip} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} onDone={attentionDone} />
     {:else}
       <p class="soon">{t.soon}</p>
     {/if}

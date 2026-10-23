@@ -76,6 +76,23 @@ class AttentionQueueTest {
         assertEquals(AttentionQueue.Kind.QUESTION, l[0].kind)
     }
 
+    /** Contratto 1.80: una ferma si chiude dal telefono col tasto «Fatto» (attention_done): kind e ref, since per una ferma del turno. */
+    @Test fun aStopCarriesItsDoneAndTheExpiryOfANeedsYou() {
+        val s = three().let { st -> st.copy(sessions = st.sessions.map {
+            when (it.name) {
+                "d" -> it.copy(needsYou = NeedsYou("login", 150, until = true, expiresAt = 999))
+                "a" -> it.copy(question = null, turnBlocking = TurnBlocking("ok al deploy", 160))
+                else -> it
+            }
+        }) }
+        val l = AttentionQueue.items(s)
+        assertEquals(AttentionQueue.Done("needs_you", "d"), l.first { it.session == "d" }.done)
+        assertEquals(999L, l.first { it.session == "d" }.expiresAt)
+        assertEquals(AttentionQueue.Done("turn_blocking", "a", 160), l.first { it.session == "a" }.done)
+        assertNull(l.first { it.session == "a" }.expiresAt)
+        assertNull(l.first { it.session == "b" }.done)
+    }
+
     /** Una ferma con la domanda conta una volta, come domanda; una sessione chiusa mai, con o senza domanda, come nel banner. */
     @Test fun aStopWithAQuestionCountsOnceAndAGoneSessionNever() {
         val s = three().let { st -> st.copy(sessions = st.sessions.map {
