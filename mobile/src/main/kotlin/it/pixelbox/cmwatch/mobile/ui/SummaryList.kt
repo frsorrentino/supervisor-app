@@ -666,7 +666,8 @@ private fun JustClosedCard(s: it.pixelbox.cmwatch.contract.Session, line: String
 @Composable
 private fun ClosedCard(closed: List<Session>, onClick: () -> Unit) {
     val names = closed.take(3).joinToString(", ") { it.name } + if (closed.size > 3) " " + stringResource(R.string.closed_more, closed.size - 3) else ""
-    Column(familyCard(onClick).semantics { contentDescription = pluralStringResource(R.plurals.summary_closed, closed.size, closed.size) }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    val description = pluralStringResource(R.plurals.summary_closed, closed.size, closed.size)
+    Column(familyCard(onClick).semantics { contentDescription = description }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FamilyTop(Icons.Rounded.Inventory2, stringResource(R.string.cat_closed), closed.size.toString(), chevron = true)
         Text(names, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 2, overflow = TextOverflow.Clip)
     }
