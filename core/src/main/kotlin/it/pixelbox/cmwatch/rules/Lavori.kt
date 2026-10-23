@@ -54,6 +54,26 @@ object Lavori {
         return ForYouGroups(ok, outside, claude)
     }
 
+    /**
+     * Strada B (Franz 23/10 23:08, mockup `docs/mockup/2026-10-23-sezioni-accordate`): una riga «Per te» che appartiene a
+     * una sessione aperta sta nella scheda di quella sessione (`inCards`, per nome, nell'ordine di `forYou`); in «Lavori»
+     * restano le altre (`loose`), in una lista compatta. L'impegno del registro dice la sessione; una riga dell'agenda non
+     * la dice (resta in lista finché il contratto non la porta). Gli ok hanno già la loro riga nella scheda
+     * (`Summary.approvalsOf`): `attachedOk` = i loro compiti, che qui non si ripetono.
+     */
+    data class Placed(val inCards: Map<String, List<ForYou>>, val loose: ForYouGroups)
+
+    fun place(groups: ForYouGroups, open: Set<String>, attachedOk: Set<String> = emptySet()): Placed {
+        val inCards = LinkedHashMap<String, MutableList<ForYou>>()
+        fun loose(r: ForYou): Boolean {
+            val s = r.commitment?.session?.takeIf { it in open } ?: return true
+            inCards.getOrPut(s) { mutableListOf() }.add(r)
+            return false
+        }
+        val ok = groups.ok.filter { r -> r.approval?.let { it.task !in attachedOk } ?: true }
+        return Placed(inCards, ForYouGroups(ok, groups.outside.filter(::loose), groups.claude.filter(::loose)))
+    }
+
     /** Un tratto della barra, frazioni 0..1 dell'asse; `dashed` = in pausa. */
     data class Bar(val from: Double, val to: Double, val dashed: Boolean)
 

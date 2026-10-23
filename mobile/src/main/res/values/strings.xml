@@ -1081,6 +1081,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_asks_who">chiede %1$s</string>
     <string name="lavori_waits_ok">aspetta il tuo ok nel registro</string>
     <string name="lavori_unblocks">sblocca %1$s</string>
+    <string name="lavori_you">da te</string>
+    <string name="lavori_you_at">da te · chiede alle %1$s</string>
+    <string name="lavori_can_start">può partire</string>
     <string name="lavori_nothing">Niente che aspetti te</string>
     <string name="lavori_progress">In corso</string>
     <string name="lavori_nothing_progress">Niente in corso</string>

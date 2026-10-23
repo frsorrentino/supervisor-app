@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Badge
+import it.pixelbox.cmwatch.rules.Lavori
+import it.pixelbox.cmwatch.rules.RecapAgenda
 import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
@@ -80,12 +82,51 @@ private fun DrawScope.drawBadge(spec: Badge.Spec, d: Float, alpha: Float) {
  * Il glifo di stato dal tracciato di `Badge.paths` (Franz, 03/10 09:01: icone uniche; mano, fulmine, pausa, croce), a
  * tratto in un riquadro di 0,6 del diametro: lo stesso disegno del badge dell'orologio e delle sue notifiche.
  */
-private fun DrawScope.glyph(g: Badge.Glyph, d: Float, ink: Color) {
+private fun DrawScope.glyph(g: Badge.Glyph, d: Float, ink: Color) = glyph(Badge.paths(g), d, ink)
+
+private fun DrawScope.glyph(paths: List<String>, d: Float, ink: Color) {
     val box = d * 0.6f; val o = (d - box) / 2f
     withTransform({ translate(o, o); scale(box / 24f, box / 24f, pivot = Offset.Zero) }) {
-        Badge.paths(g).forEach { p ->
+        paths.forEach { p ->
             drawPath(androidx.compose.ui.graphics.vector.PathParser().parsePathString(p).toPath(), ink,
                 style = Stroke(width = 3f, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
         }
     }
+}
+
+/**
+ * Il segno di un lavoro (strada B, Franz 23/10 23:08): la stessa famiglia del badge delle sessioni: cerchio = account
+ * personale, quadrato = agenzia; il glifo dice cosa chiede: mano = aspetta te, triangolo = può partire, sigillo = un ok.
+ */
+@Composable
+fun WorkBadge(kind: Lavori.Kind, mark: RecapAgenda.Mark, modifier: Modifier = Modifier, size: Dp = 22.dp) {
+    val description = stringResource(when (kind) { Lavori.Kind.OK -> R.string.lavori_ok; Lavori.Kind.OUTSIDE -> R.string.lavori_outside; Lavori.Kind.CLAUDE -> R.string.lavori_claude })
+    val square = mark == RecapAgenda.Mark.AGENCY || mark == RecapAgenda.Mark.DESK
+    Canvas(modifier.size(size).semantics { contentDescription = description }) {
+        val d = this.size.minDimension
+        if (square) drawRoundRect(CmColors.briefTrack, size = Size(d, d), cornerRadius = CornerRadius(d * 0.23f))
+        else drawCircle(CmColors.briefTrack, radius = d / 2f, center = Offset(d / 2f, d / 2f))
+        glyph(workPaths(kind), d, Color.White)
+    }
+}
+
+/** Solo il glifo di un lavoro, a tratto nel colore del gruppo: nella scheda di una sessione, accanto agli ok. */
+@Composable
+fun WorkGlyph(kind: Lavori.Kind, tint: Color, modifier: Modifier = Modifier, size: Dp = 22.dp) {
+    Canvas(modifier.size(size)) {
+        val d = this.size.minDimension
+        withTransform({ scale(d / 24f, d / 24f, pivot = Offset.Zero) }) {
+            workPaths(kind).forEach { p ->
+                drawPath(androidx.compose.ui.graphics.vector.PathParser().parsePathString(p).toPath(), tint,
+                    style = Stroke(width = 2f, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            }
+        }
+    }
+}
+
+/** I tracciati dei glifi dei lavori, nel riquadro 24×24 di `Badge.paths`: la mano del badge, un triangolo, il sigillo dell'ok. */
+internal fun workPaths(kind: Lavori.Kind): List<String> = when (kind) {
+    Lavori.Kind.OUTSIDE -> Badge.paths(Badge.Glyph.HAND)
+    Lavori.Kind.CLAUDE -> listOf("M7 4v16l13-8z")
+    Lavori.Kind.OK -> listOf("M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76z", "M9 12l2 2 4-4")
 }

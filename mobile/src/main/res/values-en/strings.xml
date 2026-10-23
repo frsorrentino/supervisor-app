@@ -1063,6 +1063,9 @@ It starts at your last message to the master.</string>
     <string name="lavori_asks_who">%1$s asks</string>
     <string name="lavori_waits_ok">waits for your ok in the registry</string>
     <string name="lavori_unblocks">unblocks %1$s</string>
+    <string name="lavori_you">yours</string>
+    <string name="lavori_you_at">yours · asked at %1$s</string>
+    <string name="lavori_can_start">can start</string>
     <string name="lavori_nothing">Nothing waits for you</string>
     <string name="lavori_progress">In progress</string>
     <string name="lavori_nothing_progress">Nothing in progress</string>

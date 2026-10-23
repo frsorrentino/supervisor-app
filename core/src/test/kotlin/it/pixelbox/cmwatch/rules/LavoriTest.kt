@@ -230,4 +230,21 @@ class LavoriTest {
         assertEquals(11, ip.total)
         assertEquals(listOf(Lavori.Who.WORKING, Lavori.Who.YOU, Lavori.Who.OTHERS), listOf(ip.working[0].who, ip.you[1].who, ip.others[0].who))
     }
+
+    /** Strada B (Franz 23/10 23:08): una riga «Per te» di una sessione aperta sta nella scheda di quella sessione; le altre restano in lista. */
+    @Test fun aRowOfAnOpenSessionSitsInItsCard() {
+        val fy = Lavori.forYou(stale, null, stale.ts, today) // una pausa che aspetta Franz, sessione orbit-docs
+        val placed = Lavori.place(fy, open = setOf("orbit-docs"))
+        assertEquals(listOf("after the client's review"), placed.inCards.getValue("orbit-docs").map { it.title })
+        assertTrue(placed.loose.outside.isEmpty()); assertEquals(0, placed.loose.total)
+        // Sessione chiusa: niente scheda, la riga resta in lista.
+        val closed = Lavori.place(fy, open = emptySet())
+        assertTrue(closed.inCards.isEmpty()); assertEquals(1, closed.loose.outside.size)
+        // Le righe dell'agenda non hanno sessione: restano in lista; un ok il cui compito sta già in una scheda non si ripete.
+        val all = Lavori.forYou(st, agenda, idle.ts, today)
+        val p = Lavori.place(all, open = setOf("ledger-api"), attachedOk = setOf("ledger-release-14"))
+        assertEquals(all.claude, p.loose.claude)
+        assertEquals(all.outside.filter { it.agenda != null }, p.loose.outside.filter { it.agenda != null })
+        assertEquals(listOf("loose-task"), p.loose.ok.map { it.approval?.task })
+    }
 }

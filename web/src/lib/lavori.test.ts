@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type AgendaPage, type AgendaRow, type Approval, type Commitment, type Event } from './contract'
-import { MIN_BAR, axis, bars, done, doneFromPages, doneToday, forYou, inProgress, midnight, shortTitle } from './lavori'
+import { MIN_BAR, axis, bars, done, doneFromPages, doneToday, forYou, inProgress, midnight, place, shortTitle } from './lavori'
 import type { DonePage } from './contract'
 
 // Gli stessi casi di LavoriTest in Kotlin: la pagina unica «Lavori» (mockup approvato il 22/10).
@@ -189,5 +189,22 @@ describe('lavori', () => {
     expect(ip.others[1].agenda!.until).toBe('2026-10-25')
     expect(ip.total).toBe(11)
     expect([ip.working[0].who, ip.you[1].who, ip.others[0].who]).toEqual(['working', 'you', 'others'])
+  })
+
+  // Strada B (Franz 23/10 23:08): una riga «Per te» di una sessione aperta sta nella scheda di quella sessione; le altre restano in lista.
+  it('una riga di una sessione aperta sta nella sua scheda, le altre restano in lista', () => {
+    const fy = forYou(stale, null, stale.ts, today) // una pausa che aspetta Franz, sessione orbit-docs
+    const placed = place(fy, new Set(['orbit-docs']))
+    expect(placed.inCards.get('orbit-docs')!.map(r => r.title)).toEqual(["after the client's review"])
+    expect(placed.loose.outside).toEqual([]); expect(placed.loose.total).toBe(0)
+    // Sessione chiusa: niente scheda, la riga resta in lista.
+    const closed = place(fy, new Set())
+    expect(closed.inCards.size).toBe(0); expect(closed.loose.outside.length).toBe(1)
+    // Le righe dell'agenda non hanno sessione: restano in lista; un ok il cui compito sta già in una scheda non si ripete.
+    const all = forYou(st, agenda, idle.ts, today)
+    const p = place(all, new Set(['ledger-api']), new Set(['ledger-release-14']))
+    expect(p.loose.claude).toEqual(all.claude)
+    expect(p.loose.outside.filter(r => r.agenda)).toEqual(all.outside.filter(r => r.agenda))
+    expect(p.loose.ok.map(r => r.approval?.task)).toEqual(['loose-task'])
   })
 })

@@ -33,6 +33,27 @@ export function forYou(st: State, agenda: AgendaPage | null | undefined, now: nu
   return { ok, outside, claude, total: ok.length + outside.length + claude.length }
 }
 
+/**
+ * Strada B (Franz 23/10 23:08, mockup `docs/mockup/2026-10-23-sezioni-accordate`): una riga «Per te» che appartiene a una
+ * sessione aperta sta nella scheda di quella sessione (`inCards`, per nome, nell'ordine di `forYou`); in «Lavori» restano le
+ * altre (`loose`), in una lista compatta. L'impegno del registro dice la sessione; una riga dell'agenda non la dice (resta in
+ * lista finché il contratto non la porta). Gli ok hanno già la loro riga nella scheda (`approvalsOf`): `attachedOk` = i loro
+ * compiti, che qui non si ripetono.
+ */
+export type Placed = { inCards: Map<string, ForYou[]>; loose: ForYouGroups }
+export function place(g: ForYouGroups, open: Set<string>, attachedOk: Set<string> = new Set()): Placed {
+  const inCards = new Map<string, ForYou[]>()
+  const loose = (r: ForYou): boolean => {
+    const s = r.commitment?.session
+    if (!s || !open.has(s)) return true
+    inCards.set(s, [...(inCards.get(s) ?? []), r])
+    return false
+  }
+  const ok = g.ok.filter(r => !r.approval || !attachedOk.has(r.approval.task))
+  const outside = g.outside.filter(loose), claude = g.claude.filter(loose)
+  return { inCards, loose: { ok, outside, claude, total: ok.length + outside.length + claude.length } }
+}
+
 /** Un tratto della barra, frazioni 0..1 dell'asse; `dashed` = in pausa. */
 export type Bar = { from: number; to: number; dashed: boolean }
 /** Sette giorni: `start` = mezzanotte locale del primo, `end` = mezzanotte di domani; `days` = [etichetta, frazione di inizio]. */

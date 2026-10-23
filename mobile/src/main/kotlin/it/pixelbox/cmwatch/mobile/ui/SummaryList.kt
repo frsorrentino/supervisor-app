@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -71,6 +72,8 @@ import it.pixelbox.cmwatch.rules.uniqueKeys
 import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.Summary
+import it.pixelbox.cmwatch.rules.Lavori
+import it.pixelbox.cmwatch.rules.RecapAgenda
 import it.pixelbox.cmwatch.rules.AppUpdate
 import it.pixelbox.cmwatch.rules.Commitments
 import it.pixelbox.cmwatch.mobile.update.AppUpdater
@@ -113,8 +116,8 @@ fun SummaryList(
      * un tasto (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
      * `foryou` null = relay senza impegni e senza agenda: la sezione non c'è.
      */
-    foryou: it.pixelbox.cmwatch.rules.Lavori.ForYouGroups? = null, lavoriLine: String? = null, onLavori: () -> Unit = {},
-    onAgendaEdit: (it.pixelbox.cmwatch.rules.RecapAgenda.Edit) -> Unit = {}, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
+    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, onLavori: () -> Unit = {},
+    onAgendaEdit: (RecapAgenda.Edit) -> Unit = {}, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
     onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = {},
     today: java.time.LocalDate = java.time.LocalDate.now(),
     /** Sul tablet senza colonne Lavori e Utilizzo stanno nel cruscotto a destra (variante B, 09/10): qui non si ripetono. */
@@ -195,16 +198,17 @@ fun SummaryList(
             item(key = "sec-night") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_night), null, nightOpen) { nightOpen = !nightOpen; save("night", nightOpen) } } }
             if (nightOpen) item(key = "night-box") { Box(moving()) { NightHomeCard(nightDate, nightPage, onNight) } }
         }
+        // Strada B (Franz 23/10 23:08, mockup del 23/10): un lavoro di una sessione aperta sta nella sua scheda, come gli ok;
+        // in Lavori restano quelli senza sessione, in una lista compatta.
+        val placed = foryou?.let { Lavori.place(it, model.rows.map { r -> r.session.name }.toSet(), Summary.attachedTasks(model.rows)) }
         // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
         if (showLavori && foryou != null) {
             item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, foryou.total).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
             if (lavoriOpen) {
                 val zone = java.time.ZoneId.systemDefault()
-                // Franz 23/10 19:34: gli ok che una sessione aperta chiede stanno nella sua card, non in schede a parte.
-                val attached = Summary.attachedTasks(model.rows)
-                foryou.ok.filter { r -> r.approval.let { a -> a == null || a.task !in attached } }.forEachIndexed { i, r -> item(key = "lv-ok-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note -> r.approval?.let { a -> onApprove(a.task, note) } } } } }
-                foryou.outside.take(2).forEachIndexed { i, r -> item(key = "lv-out-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.agenda_done), filled = false) { _ -> r.agenda?.let { row -> onAgendaEdit(it.pixelbox.cmwatch.rules.RecapAgenda.Edit(it.pixelbox.cmwatch.rules.RecapAgenda.Item.DONE, row)) }; r.commitment?.let(onDoneForPerson) } } } }
-                foryou.claude.take(1).forEachIndexed { i, r -> item(key = "lv-cl-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.lavori_start), filled = false) { _ -> r.agenda?.let { row -> onStart(it.pixelbox.cmwatch.rules.RecapAgenda.doIt(row)) } } } } }
+                val loose = placed!!.loose
+                val rows = loose.ok + loose.outside.take(2) + loose.claude.take(1)
+                if (rows.isNotEmpty()) item(key = "lv-list") { Box(moving()) { LavoriList(rows, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
                 item(key = "lv-all") {
                     Box(moving()) {
                         Row(Modifier.fillMaxWidth().handCursor().clickable(onClick = onLavori).padding(horizontal = 4.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -234,6 +238,9 @@ fun SummaryList(
                         firstFilled = foryou?.ok?.none { it.approval != null } ?: true, canExit = canExit, onClose = { onClose(s.name) }, now = now,
                         onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                         onApprove = onApprove, onDone = onDone,
+                        works = placed?.inCards?.get(s.name).orEmpty(),
+                        onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
+                        onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
                     )
                 }
             }
@@ -302,6 +309,9 @@ private fun SummaryCard(
     onApprove: (task: String, note: String) -> Unit = { _, _ -> },
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone: (AttentionQueue.Done) -> Unit = {},
+    /** Strada B (23/10): i lavori di questa sessione che aspettano te, ognuno col suo tasto (Fatto o Avvia). */
+    works: List<Lavori.ForYou> = emptyList(),
+    onWorkDone: (Lavori.ForYou) -> Unit = {}, onWorkStart: (Lavori.ForYou) -> Unit = {},
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -367,6 +377,8 @@ private fun SummaryCard(
         }
         // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
         r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
+        // Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok.
+        works.forEach { w -> WorkLine(w, onDone = { onWorkDone(w) }, onStart = { onWorkStart(w) }) }
         // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto.
         if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -711,6 +723,76 @@ private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (S
         }
     }
     if (ask) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
+}
+
+/** Strada B: un lavoro nella scheda della sua sessione: glifo nel colore del gruppo, titolo breve, «da te · chiede alle HH:MM» o «può partire», e il tasto. */
+@Composable
+private fun WorkLine(w: Lavori.ForYou, onDone: () -> Unit, onStart: () -> Unit) {
+    val outside = w.kind == Lavori.Kind.OUTSIDE
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        WorkGlyph(w.kind, if (outside) CmColors.briefWarn else CmColors.briefRing)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(Lavori.shortTitle(w.title, w.commitment?.short ?: w.agenda?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
+            val sub = if (outside) (w.at?.let { stringResource(R.string.lavori_you_at, hhmmOf(it)) } ?: stringResource(R.string.lavori_you)) else stringResource(R.string.lavori_can_start)
+            Text(sub, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip)
+        }
+        if (outside) MiniButton(stringResource(R.string.agenda_done), filled = true, onClick = onDone)
+        else MiniButton(stringResource(R.string.lavori_start), filled = false, onClick = onStart)
+    }
+}
+
+/** Il tasto piccolo delle righe (come l'Approva della scheda): pieno per quello che sblocca una sessione, tonale per l'agenda. */
+@Composable
+private fun MiniButton(text: String, filled: Boolean, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = CircleShape, color = if (filled) CmColors.primary else CmColors.surfaceHigh, contentColor = if (filled) CmColors.onPrimary else CmColors.text) {
+        Text(text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+    }
+}
+
+/** Strada B: la lista compatta dei lavori senza sessione: una riga per lavoro con il badge, il titolo breve, il riferimento in mono e il tasto piccolo. */
+@Composable
+private fun LavoriList(
+    rows: List<Lavori.ForYou>, onApprove: (String, String) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
+    onAgendaEdit: (RecapAgenda.Edit) -> Unit, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(start = 14.dp, end = 10.dp, top = 4.dp, bottom = 4.dp)) {
+        rows.forEachIndexed { i, r ->
+            if (i > 0) androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 32.dp), color = CmColors.line)
+            WorkRow(r, onApprove, onDoneForPerson, onAgendaEdit, onStart)
+        }
+    }
+}
+
+@Composable
+private fun WorkRow(
+    r: Lavori.ForYou, onApprove: (String, String) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
+    onAgendaEdit: (RecapAgenda.Edit) -> Unit, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit,
+) {
+    var ask by rememberSaveable(r.title) { mutableStateOf(false) }
+    val a = r.approval; val ag = r.agenda; val cm = r.commitment; val who = r.who; val at = r.at
+    val sub = when (r.kind) {
+        Lavori.Kind.OK -> when {
+            who != null && at != null -> stringResource(R.string.lavori_asks, who, hhmmOf(at))
+            who != null -> stringResource(R.string.lavori_asks_who, who)
+            else -> stringResource(R.string.lavori_waits_ok)
+        }
+        Lavori.Kind.OUTSIDE -> if (cm != null) who?.let { stringResource(R.string.lavori_unblocks, it) }
+            else listOfNotNull(ag?.scope?.takeIf { it.isNotBlank() }, who).joinToString(" · ").ifBlank { null }
+        Lavori.Kind.CLAUDE -> listOfNotNull(ag?.scope?.takeIf { it.isNotBlank() }, who).joinToString(" · ").ifBlank { null }
+    }
+    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        WorkBadge(r.kind, ag?.let { RecapAgenda.mark(it.scope) } ?: RecapAgenda.Mark.NONE)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(Lavori.shortTitle(r.title, ag?.short ?: cm?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
+            sub?.let { Text(it, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip) }
+        }
+        when (r.kind) {
+            Lavori.Kind.OK -> if (a != null) MiniButton(stringResource(R.string.approve), filled = true) { ask = true }
+            Lavori.Kind.OUTSIDE -> MiniButton(stringResource(R.string.agenda_done), filled = false) { ag?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; cm?.let(onDoneForPerson) }
+            Lavori.Kind.CLAUDE -> MiniButton(stringResource(R.string.lavori_start), filled = false) { ag?.let { row -> onStart(RecapAgenda.doIt(row)) } }
+        }
+    }
+    if (ask && a != null) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
 }
 
 /** Titolo di sezione della home: si apre e si chiude al tocco; chiusa, a destra un riassunto se c'è. */

@@ -9,7 +9,7 @@
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
   import { cleanupOf } from './masterService'
   import { since } from './durations'
-  import { doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, type ForYou as LavoriRow } from './lavori'
+  import { doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, place as lavoriPlace, shortTitle, type ForYou as LavoriRow } from './lavori'
   import { attachedTasks, build, MASTER, type Group, type Row } from './summary'
   import { doneOf, type Done } from './queue'
   import { expiry } from './durations'
@@ -18,6 +18,7 @@
   import { blockingOf, parseSteps } from './nextSteps'
   import { t } from './t'
   import Badge from './Badge.svelte'
+  import WorkBadge from './WorkBadge.svelte'
   import Options from './Options.svelte'
   import type { RecapAction } from './recapActions'
   import { doIt, mark, todayIso, type Edit } from './recapAgenda'
@@ -98,7 +99,7 @@
   function fySub(r: LavoriRow): string | null {
     if (r.kind === 'ok') return r.who && r.at ? t.lavoriAsks(r.who, hhmm(r.at)) : r.who ? t.lavoriAsksWho(r.who) : t.lavoriWaitsOk
     if (r.commitment) return r.who ? t.lavoriUnblocks(r.who) : null
-    return [r.who, r.agenda?.scope].filter(x => x && x.trim()).join(' · ') || null
+    return [r.agenda?.scope, r.who].filter(x => x && x.trim()).join(' · ') || null
   }
   function fyOutside(r: LavoriRow) { if (r.agenda) onEdit({ item: 'done', row: r.agenda }); else if (r.commitment) onDoneForPerson(r.commitment) }
   const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
@@ -130,7 +131,13 @@
   // Con un ok da dare le opzioni delle domande restano tonali, così sulla schermata c'è un solo bottone pieno.
   // Franz 23/10 19:34: gli ok che una sessione aperta chiede stanno nella sua card, non in schede a parte.
   const attached = $derived(attachedTasks(model.rows))
-  const looseOk = $derived(fy ? fy.ok.filter(r => !r.approval || !attached.has(r.approval.task)) : [])
+  // Strada B (Franz 23/10 23:08, mockup del 23/10): un lavoro di una sessione aperta sta nella sua scheda, come gli ok;
+  // in Lavori restano quelli senza sessione, in una lista compatta (titolo breve, riferimento in mono, tasto piccolo).
+  const placed = $derived(fy ? lavoriPlace(fy, new Set(model.rows.map(r => r.session.name)), attached) : null)
+  const looseOk = $derived(placed?.loose.ok ?? [])
+  const looseRows = $derived(placed ? [...placed.loose.ok, ...placed.loose.outside.slice(0, 2), ...placed.loose.claude.slice(0, 1)] : [])
+  const fyShort = (r: LavoriRow) => shortTitle(r.title, r.agenda?.short ?? r.commitment?.short)
+  function fyAct(r: LavoriRow) { if (r.kind === 'outside') fyOutside(r); else if (r.kind === 'claude' && r.agenda) onStart(doIt(r.agenda)) }
   const hasOk = $derived(looseOk.some(r => r.approval))
   const canExit = $derived(!!st.slash?.includes('exit'))
   let pending = $state<Approval | null>(null)
@@ -209,27 +216,18 @@
 {#if showLavori && fy}
   {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(fy.total))}
   {#if open.lavori}
-    {#each looseOk as r, i (`ok-${i}`)}
-      <div class="card appr fy">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76z" /><path d="m9 12 2 2 4-4" /></svg>
-        <span class="fyt"><b>{r.title}</b>{#if fySub(r)}<small>{fySub(r)}</small>{/if}</span>
-        {#if r.approval}<button class="approve mini" onclick={() => askApprove(r.approval!)}>{t.approve}</button>{/if}
+    {#if looseRows.length}
+      <div class="card list">
+        {#each looseRows as r, i (`lv-${i}`)}
+          <div class="lrow">
+            <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
+            <span class="lt"><b>{fyShort(r)}</b>{#if fySub(r)}<small class="mono2">{fySub(r)}</small>{/if}</span>
+            {#if r.kind === 'ok'}{#if r.approval}<button class="approve mini" onclick={() => askApprove(r.approval!)}>{t.approve}</button>{/if}
+            {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
+          </div>
+        {/each}
       </div>
-    {/each}
-    {#each fy.outside.slice(0, 2) as r, i (`out-${i}`)}
-      <div class="card appr fy">
-        {#if r.agenda}<span class="mark {mark(r.agenda.scope)}"></span>{:else}<svg viewBox="0 0 24 24" width="22" height="22" fill="var(--text2)"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>{/if}
-        <span class="fyt"><b>{r.title}</b>{#if fySub(r)}<small>{fySub(r)}</small>{/if}</span>
-        <button class="tonal" onclick={() => fyOutside(r)}>{t.agendaDone}</button>
-      </div>
-    {/each}
-    {#each fy.claude.slice(0, 1) as r, i (`cl-${i}`)}
-      <div class="card appr fy">
-        <span class="mark {mark(r.agenda?.scope ?? '')}"></span>
-        <span class="fyt"><b>{r.title}</b>{#if fySub(r)}<small>{fySub(r)}</small>{/if}</span>
-        <button class="tonal" onclick={() => r.agenda && onStart(doIt(r.agenda))}>{t.lavoriStart}</button>
-      </div>
-    {/each}
+    {/if}
     <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
   {/if}
@@ -248,6 +246,7 @@
       {@const x = text(r)}
       {@const open = expanded === s.name}
       {@const c = cleanupOf(s, canExit, st.ts)}
+      {@const mine = placed?.inCards.get(s.name) ?? []}
       <div class="card" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)} animate:flip={{ duration: 250 }}
         role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
         oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
@@ -302,6 +301,19 @@
                 <span class="okt">{a.title}</span>
                 {#if a.deploy}<span class="dup">{t.approvalProd.toUpperCase()}</span>{/if}
                 <button class="approve mini" onclick={(e) => { e.stopPropagation(); askApprove(a) }}>{t.approve}</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        {#if mine.length}
+          <!-- Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok. -->
+          <div class="oks">
+            {#each mine as w, i (`w-${i}`)}
+              <div class="ok">
+                <WorkBadge kind={w.kind} bare />
+                <span class="okt col"><b>{fyShort(w)}</b><small class="mono2">{w.kind === 'outside' ? t.lavoriYou(w.at ? hhmm(w.at) : null) : t.lavoriCanStart}</small></span>
+                {#if w.kind === 'outside'}<button class="approve mini" onclick={(e) => { e.stopPropagation(); fyAct(w) }}>{t.agendaDone}</button>
+                {:else}<button class="tonal mini" onclick={(e) => { e.stopPropagation(); fyAct(w) }}>{t.lavoriStart}</button>{/if}
               </div>
             {/each}
           </div>
@@ -483,12 +495,15 @@
   .body.strong { color: var(--text); }
   .details { font-size: 12.5px; color: var(--text2); }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .appr { cursor: default; padding: 12px 14px 14px; gap: 8px; }
-  .fy { flex-direction: row; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; }
-  .fyt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .fyt b { font-weight: 600; font-size: 15px; } .fyt small { color: var(--text2); font-size: 13px; }
-  .mark { width: 18px; height: 18px; flex: none; border: 2px solid var(--text2); border-radius: 5px; } .mark.personal { border-radius: 50%; } .mark.desk { border-radius: 3px; transform: rotate(45deg) scale(.8); }
   .approve.mini { align-self: center; margin: 0; padding: 9px 16px; font-size: 14px; }
   .tonal { background: var(--high); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
+  /* Strada B (23/10): la lista compatta dei lavori senza sessione e la riga di un lavoro nella scheda della sua sessione. */
+  .card.list { cursor: default; padding: 4px 10px 4px 14px; gap: 0; }
+  .lrow { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 0; }
+  .lrow + .lrow { border-top: 1px solid var(--line); }
+  .lt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .lt b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; } .lt small { white-space: nowrap; overflow: hidden; }
+  .okt.col { display: flex; flex-direction: column; gap: 1px; } .okt.col b { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; }
+  .mono2 { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text2); }
   /* Contratto 1.76: gli impegni del registro, ambra da 2 ore ferme, rosso da 8. */
   .cmt .line { font-size: 14px; }
   .cmt .tone, .cmt .dim { color: var(--text2); }
