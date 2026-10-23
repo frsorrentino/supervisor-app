@@ -1529,8 +1529,14 @@ private fun FileChip(f: TranscriptFile, entry: String) {
         // Franz, 16/10 11:18: HTML e SVG come pagina (PagePreview, WebView isolata); «Codice» mostra il sorgente come prima.
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.PAGE) {
             var code by rememberSaveable(key) { mutableStateOf(false) }
+            var full by rememberSaveable(key) { mutableStateOf(false) }
             if (code) TextFirstLines(local) { opener.open(key, f) } else PagePreview(local, f.mime)
-            androidx.compose.material3.FilledTonalButton(onClick = { code = !code }) { Text(stringResource(if (code) R.string.file_page else R.string.file_code)) }
+            // Franz 24/10 00:40 (anteprime in app): «Schermo intero» apre la pagina a tutto schermo, scorrevole e cliccabile.
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                androidx.compose.material3.FilledTonalButton(onClick = { code = !code }) { Text(stringResource(if (code) R.string.file_page else R.string.file_code)) }
+                androidx.compose.material3.FilledTonalButton(onClick = { full = true }) { Text(stringResource(R.string.file_page_full)) }
+            }
+            if (full) PageFullDialog(local, f.mime, f.path.substringAfterLast('/')) { full = false }
         }
         // Oltre i limiti, o su una rete a contatore, l'anteprima aspetta il tocco.
         if (local == null && key !in opener.loading && !autoPreview && it.pixelbox.cmwatch.rules.MediaPreview.canPreview(f.mime, f.path)) {

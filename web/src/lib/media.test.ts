@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { autoPreview, canPreview, fileKey, firstLines, isVideo, previewKind } from './media'
+import { autoPreview, canPreview, fileKey, firstLines, isVideo, previewKind, pageHeight } from './media'
 
 describe('la chiave di un file della chat, come FileCache.key nell\'app', () => {
   const video = { path: '/home/franz/bozza.mp4', mime: 'video/mp4', size: 11_402 }
@@ -70,5 +70,10 @@ describe('anteprime che arrivano da sole, come sul telefono', () => {
   it('le prime righe di un testo', () => {
     expect(firstLines('a\r\nb\n\n', 12)).toEqual({ lines: 'a\nb', more: false })
     expect(firstLines(Array.from({ length: 20 }, (_, i) => String(i)).join('\n'), 12)).toEqual({ lines: Array.from({ length: 12 }, (_, i) => String(i)).join('\n'), more: true })
+  })
+
+  // Franz 24/10 00:40 (anteprime in app): un HTML allegato si vede a tutta larghezza e alto quanto basta: il 60% dello schermo, fra 360 e 720.
+  it('il riquadro pagina prende il 60% dello schermo, fra 360 e 720', () => {
+    expect([pageHeight(500), pageHeight(915), pageHeight(1400)]).toEqual([360, 549, 720])
   })
 })

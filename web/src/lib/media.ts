@@ -58,3 +58,6 @@ export function firstLines(text: string, n = TEXT_LINES): { lines: string; more:
   while (all.length && !all.at(-1)!.trim()) all.pop()
   return { lines: all.slice(0, n).join('\n'), more: all.length > n }
 }
+
+/** Franz 24/10 00:40 (anteprime in app): il riquadro di un HTML allegato è alto il 60% della finestra, fra 360 e 720 px. */
+export const pageHeight = (viewport: number): number => Math.min(720, Math.max(360, Math.floor(viewport * 0.6)))

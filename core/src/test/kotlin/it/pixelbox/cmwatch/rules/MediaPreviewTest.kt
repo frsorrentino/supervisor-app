@@ -57,4 +57,11 @@ class MediaPreviewTest {
         assertTrue(MediaPreview.isVideo("video/webm"))
         assertFalse(MediaPreview.isVideo("image/gif"))
     }
+
+    /** Franz 24/10 00:40 (anteprime in app): un HTML allegato si vede a tutta larghezza e alto quanto basta: il 60% dello schermo, fra 360 e 720. */
+    @Test fun thePageFrameTakesSixtyPercentOfTheScreenBetween360And720() {
+        assertEquals(360, MediaPreview.pageHeight(500))
+        assertEquals(549, MediaPreview.pageHeight(915))
+        assertEquals(720, MediaPreview.pageHeight(1400))
+    }
 }

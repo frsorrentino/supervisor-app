@@ -8,6 +8,25 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.rules.MediaPreview
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
@@ -30,10 +49,12 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-internal fun PagePreview(path: String, mime: String?) {
+internal fun PagePreview(path: String, mime: String?, fill: Boolean = false) {
     val doc = remember(path) { runCatching { FileActions.pageDoc(mime, java.io.File(path).readText()) }.getOrNull() } ?: return
     val shape = MaterialTheme.shapes.large
-    val box = Modifier.fillMaxWidth().height(360.dp).clip(shape).background(Color.White).border(1.dp, CmColors.line, shape)
+    // Franz 24/10 00:40 (anteprime in app): il riquadro è alto il 60% dello schermo (MediaPreview.pageHeight); a schermo intero riempie tutto.
+    val box = if (fill) Modifier.fillMaxSize().background(Color.White)
+    else Modifier.fillMaxWidth().height(MediaPreview.pageHeight(LocalConfiguration.current.screenHeightDp).dp).clip(shape).background(Color.White).border(1.dp, CmColors.line, shape)
     if (LocalInspectionMode.current) { Box(box); return }
     val rules = FileActions.PAGE_VIEW
     AndroidView(
@@ -58,4 +79,21 @@ internal fun PagePreview(path: String, mime: String?) {
         onRelease = { it.destroy() },
         modifier = box,
     )
+}
+
+/** Franz 24/10 00:40: la pagina a schermo intero, scorrevole e cliccabile, con il nome del file e «Chiudi». */
+@Composable
+internal fun PageFullDialog(path: String, mime: String?, name: String, onClose: () -> Unit) {
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        Column(Modifier.fillMaxSize().background(CmColors.bg).safeDrawingPadding()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(name, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+                IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = CmColors.text) }
+            }
+            PagePreview(path, mime, fill = true)
+        }
+    }
 }

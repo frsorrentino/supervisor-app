@@ -48,6 +48,9 @@ object MediaPreview {
     /** Il tasto «Mostra anteprima»: dove un'anteprima c'è ma non è arrivata da sola. */
     fun canPreview(mime: String?, path: String = ""): Boolean = kind(mime, path) != Kind.OTHER
 
+    /** Franz 24/10 00:40 (anteprime in app): il riquadro di un HTML allegato è alto il 60% dello schermo, fra 360 e 720 dp. */
+    fun pageHeight(screenDp: Int): Int = (screenDp * 0.6).toInt().coerceIn(360, 720)
+
     fun isVideo(mime: String?): Boolean = mime?.startsWith("video/") == true
 
     /** Le prime righe di un testo per l'anteprima, senza righe vuote in fondo; `more` = ce n'erano altre. */

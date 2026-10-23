@@ -16,7 +16,11 @@
   import { t } from './t'
   import Icon from './Icon.svelte'
   import { canCopy, canShare, pageDoc, PAGE_SANDBOX, type FileAct } from './fileActions'
-  import { autoPreview, canPreview, fileKey, isImage, isVideo, previewKind } from './media'
+  import { autoPreview, canPreview, fileKey, isImage, isVideo, pageHeight, previewKind } from './media'
+  // Franz 24/10 00:40 (anteprime in app): il riquadro di una pagina è alto il 60% della finestra; «Schermo intero» la apre a tutto schermo.
+  let vh = $state(typeof window !== 'undefined' ? window.innerHeight : 800)
+  $effect(() => { const on = () => (vh = window.innerHeight); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on) })
+  let full = $state<{ key: string; name: string } | null>(null)
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
   import { failed, media, pages, texts } from './mediaCache.svelte'
@@ -165,9 +169,9 @@
         {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><img src={url} alt="" /></button>{/if}
         {#if pages[key] && !code[key]}
           <!-- Franz, 16/10 11:18: HTML e SVG come pagina, in un riquadro isolato (PAGE_SANDBOX: origine opaca, niente token). -->
-          <iframe class="fpage" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>
+          <iframe class="fpage" style="height:{pageHeight(vh)}px" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>
         {:else if texts[key]}<button class="ftext" class:cut={texts[key].more} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><pre>{texts[key].lines}</pre></button>{/if}
-        {#if pages[key]}<button class="fshow" aria-pressed={!!code[key]} onclick={() => (code[key] = !code[key])}>{code[key] ? t.filePage : t.fileCode}</button>{/if}
+        {#if pages[key]}<span class="fbtns"><button class="fshow" aria-pressed={!!code[key]} onclick={() => (code[key] = !code[key])}>{code[key] ? t.filePage : t.fileCode}</button><button class="fshow" onclick={() => (full = { key, name: f.path.split('/').pop() ?? '' })}>{t.filePageFull}</button></span>{/if}
         {#if !url && !texts[key] && !failed[key] && canPreview(f.mime, f.path) && !autoPreview(f.mime, f.size, !((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true), f.path)}
           <!-- Oltre i limiti, o col risparmio dati, l'anteprima aspetta il tocco. -->
           <button class="fshow" onclick={() => onFile(f.path, 'preview', key)}>{t.showPreview}</button>
@@ -264,7 +268,20 @@
   </div>
 {/if}
 
+{#if full && pages[full.key]}
+  <div class="pagefull" role="dialog" aria-modal="true" aria-label={full.name}>
+    <div class="pfbar"><span class="pfname">{full.name}</span><button class="pfclose" aria-label={t.closeWord} onclick={() => (full = null)}>✕</button></div>
+    <iframe class="pfframe" title={full.name} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[full.key].mime, pages[full.key].text)}></iframe>
+  </div>
+{/if}
+
 <style>
+  .fbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pagefull { position: fixed; inset: 0; z-index: 80; background: #000; display: flex; flex-direction: column; }
+  .pfbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--text2); font-size: 14px; }
+  .pfname { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
+  .pfclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); font-size: 18px; }
+  .pfframe { flex: 1; width: 100%; border: 0; background: #fff; }
   p { white-space: pre-wrap; overflow-wrap: anywhere; }
   .it { display: flex; flex-direction: column; border-radius: 14px; }
   .rise { animation: rise 200ms cubic-bezier(0.3, 0, 0.2, 1) both; animation-delay: calc(var(--rank) * 30ms); }
@@ -327,7 +344,7 @@
   .ftext pre { margin: 0; font: 13px/1.5 var(--mono); color: var(--text); white-space: pre-wrap; word-break: break-word; }
   /* Un testo più lungo delle righe mostrate sfuma in fondo, senza puntini. */
   .ftext.cut pre { mask-image: linear-gradient(#000 70%, transparent); -webkit-mask-image: linear-gradient(#000 70%, transparent); }
-  .fpage { display: block; width: 100%; height: 360px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+  .fpage { display: block; width: 100%; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
   .fshow { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--icon); font-size: 14px; font-weight: 500; }
   .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; }
   /* Con l'anteprima la scheda prende tutta la larghezza della chat, come nell'app (Franz, 12/10 12:27: «anteprime con width
