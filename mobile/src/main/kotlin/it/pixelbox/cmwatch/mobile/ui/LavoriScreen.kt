@@ -98,7 +98,7 @@ enum class LavoriView { LIST, TIME }
 @Composable
 fun LavoriScreen(
     state: State, agenda: AgendaPage?, events: List<Event>, now: Long,
-    onBack: () -> Unit, onApprove: (task: String, note: String) -> Unit, onAgendaEdit: (RecapAgenda.Edit) -> Unit,
+    onBack: () -> Unit, onApprove: (task: String, note: String, choice: String?) -> Unit, onAgendaEdit: (RecapAgenda.Edit) -> Unit,
     onStart: (RecapActions.Action) -> Unit, onDoneForPerson: (Commitment) -> Unit,
     onAddNight: () -> Unit, onRemoveNight: (String) -> Unit, onNight: () -> Unit, onSession: (String) -> Unit,
     /** BAR = ← e titolo; NONE = la testata la dà la shell del telefono; DESK = nel cruscotto del tablet, il titolo come le sezioni. */
@@ -141,7 +141,7 @@ fun LavoriScreen(
             if (fy.ok.isNotEmpty()) {
                 item("grp-ok") { GroupHeader(stringResource(R.string.lavori_ok) + " · " + fy.ok.size, CmColors.primary) }
                 fy.ok.forEachIndexed { i, r ->
-                    item("fy-ok-$i-${r.approval?.task ?: r.commitment?.task}") { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note -> r.approval?.let { a -> onApprove(a.task, note) } } }
+                    item("fy-ok-$i-${r.approval?.task ?: r.commitment?.task}") { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note, choice -> r.approval?.let { a -> onApprove(a.task, note, choice) } } }
                 }
             }
             if (fy.outside.isNotEmpty()) {
@@ -149,7 +149,7 @@ fun LavoriScreen(
                 val shown = if ("outside" in open) fy.outside else fy.outside.take(2)
                 shown.forEachIndexed { i, r ->
                     item("fy-out-$i-${r.agenda?.key ?: r.commitment?.task ?: r.title}") {
-                        ForYouCard(r, zone, stringResource(R.string.agenda_done), filled = false) {
+                        ForYouCard(r, zone, stringResource(R.string.agenda_done), filled = false) { _, _ ->
                             r.agenda?.let { onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, it)) }
                             r.commitment?.let(onDoneForPerson)
                         }
@@ -161,7 +161,7 @@ fun LavoriScreen(
                 item("grp-claude") { GroupHeader(stringResource(R.string.lavori_claude) + " · " + fy.claude.size, CmColors.busy) }
                 val shown = if ("claude" in open) fy.claude else fy.claude.take(2)
                 shown.forEachIndexed { i, r ->
-                    item("fy-cl-$i-${r.agenda?.key ?: r.title}") { ForYouCard(r, zone, stringResource(R.string.lavori_start), filled = false) { r.agenda?.let { onStart(RecapAgenda.doIt(it)) } } }
+                    item("fy-cl-$i-${r.agenda?.key ?: r.title}") { ForYouCard(r, zone, stringResource(R.string.lavori_start), filled = false) { _, _ -> r.agenda?.let { onStart(RecapAgenda.doIt(it)) } } }
                 }
                 if (fy.claude.size > 2) item("fold-claude") { Fold(if ("claude" in open) stringResource(R.string.lavori_less) else stringResource(R.string.lavori_more, fy.claude.size - 2), "claude" in open) { toggle("claude") } }
             }
@@ -253,8 +253,9 @@ private fun Fold(text: String, open: Boolean?, onClick: () -> Unit) {
 
 /** Una riga di «Per te»: il segno (ok, agenda, pausa), il titolo, chi e quando, e il suo tasto. */
 @Composable
-internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled: Boolean, onClick: (note: String) -> Unit) {
+internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled: Boolean, onClick: (note: String, choice: String?) -> Unit) {
     var ask by rememberSaveable(r.title) { mutableStateOf(false) }
+    var choice by rememberSaveable(r.title) { mutableStateOf<String?>(null) }
     val a = r.approval; val who = r.who; val at = r.at; val ag = r.agenda; val cm = r.commitment
     val sub = when (r.kind) {
         Lavori.Kind.OK -> when {
@@ -279,13 +280,16 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
             Text(r.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
             sub?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
         }
-        if (button != null) {
-            val click = { if (a != null) ask = true else onClick("") }
+        // Contratto 1.81: un tasto per opzione quando l'ok chiede una scelta.
+        val opts = a?.let { it.pixelbox.cmwatch.rules.Approvals.choices(it) }.orEmpty()
+        if (opts.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { opts.forEach { o -> FilledTonalButton(onClick = { choice = o; ask = true }) { Text(o) } } }
+        else if (button != null) {
+            val click = { if (a != null) ask = true else onClick("", null) }
             if (filled) Button(onClick = click, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(button) }
             else FilledTonalButton(onClick = click) { Text(button) }
         }
     }
-    if (ask && a != null) ApproveDialog(a, onConfirm = { n -> ask = false; onClick(n) }, onDismiss = { ask = false })
+    if (ask && a != null) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onClick(n, choice) }, onDismiss = { ask = false })
 }
 
 /** La larghezza dell'etichetta nella vista Tempo (mockup: 120 px su 412). */

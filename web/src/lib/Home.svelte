@@ -18,6 +18,7 @@
   import { blockingOf, parseSteps } from './nextSteps'
   import { t } from './t'
   import Badge from './Badge.svelte'
+  import { choices } from './approvals'
   import WorkBadge from './WorkBadge.svelte'
   import Options from './Options.svelte'
   import type { RecapAction } from './recapActions'
@@ -44,7 +45,7 @@
     footer?: Snippet
     onAnswer: (session: string, n: number) => void; onStep: (session: string, text: string) => void
     /** Contratto 1.37: l'ok a un compito (`approve`) e «Chiudi» per una sessione finita o doppione (/exit). */
-    onApprove?: (task: string, note: string) => void; onClose?: (name: string) => void
+    onApprove?: (task: string, note: string, choice?: string) => void; onClose?: (name: string) => void
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone?: (d: Done) => void
     /** Il menu contestuale della card (Franz, 14/10 20:58): segui, fai controllare alla master, come il ⋮ della sessione. */
@@ -141,6 +142,7 @@
   const hasOk = $derived(looseOk.some(r => r.approval))
   const canExit = $derived(!!st.slash?.includes('exit'))
   let pending = $state<Approval | null>(null)
+  let pendingChoice = $state<string | null>(null)
   let note = $state('')
   let approveDlg: HTMLDialogElement | undefined = $state()
   let confirming = $state<string | null>(null)
@@ -169,7 +171,8 @@
   // risponde subito, poi la sessione al lavoro la aggiorna.
   let sentSteps = $state(new Set<string>())
   const stepKey = (s: { name: string; outcome?: { at: number } | null }, step: string) => `${s.name}@${s.outcome?.at ?? 0}:${step}`
-  function askApprove(a: Approval) { pending = a; note = ''; approveDlg?.showModal() }
+  // Contratto 1.81: con le opzioni, un tasto per opzione; la finestra conferma quella scelta.
+  function askApprove(a: Approval, choice: string | null = null) { pending = a; pendingChoice = choice; note = ''; approveDlg?.showModal() }
   const ctxTone = (p: number) => (p >= 90 ? 'var(--b-alert)' : p >= 75 ? 'var(--b-warn)' : 'var(--b-ring)')
   const expiryText = (x: number) => { const e = expiry(x, now); return e.day === 'today' ? t.expiresAt(e.hm) : e.day === 'tomorrow' ? t.expiresTomorrow(e.hm) : t.expiresOn(e.date ?? '', e.hm) }
   function text(r: Row) {
@@ -222,7 +225,7 @@
           <div class="lrow">
             <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
             <span class="lt"><b>{fyShort(r)}</b>{#if fySub(r)}<small class="mono2">{fySub(r)}</small>{/if}</span>
-            {#if r.kind === 'ok'}{#if r.approval}<button class="approve mini" onclick={() => askApprove(r.approval!)}>{t.approve}</button>{/if}
+            {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval)}{/if}
             {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
           </div>
         {/each}
@@ -300,7 +303,7 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76M9 12l2 2 4-4" /></svg>
                 <span class="okt">{a.title}</span>
                 {#if a.deploy}<span class="dup">{t.approvalProd.toUpperCase()}</span>{/if}
-                <button class="approve mini" onclick={(e) => { e.stopPropagation(); askApprove(a) }}>{t.approve}</button>
+                {@render okButtons(a)}
               </div>
             {/each}
           </div>
@@ -441,14 +444,20 @@
   {/each}
 </dialog>
 
+{#snippet okButtons(a: Approval)}
+  {@const opts = choices(a)}
+  {#if opts.length}<span class="opts">{#each opts as o (o)}<button class="tonal mini" onclick={(e) => { e.stopPropagation(); askApprove(a, o) }}>{o}</button>{/each}</span>
+  {:else}<button class="approve mini" onclick={(e) => { e.stopPropagation(); askApprove(a) }}>{t.approve}</button>{/if}
+{/snippet}
+
 <dialog bind:this={approveDlg} class="alert" onclick={(e) => e.target === e.currentTarget && approveDlg?.close()}>
   {#if pending}
-    <h3>{pending.deploy ? t.approveProdTitle : t.approveTitle(pending.title)}</h3>
+    <h3>{pendingChoice ? t.chooseTitle(pendingChoice, pending.title) : pending.deploy ? t.approveProdTitle : t.approveTitle(pending.title)}</h3>
     <p class="sub">{t.approveText(pending.title, pending.what, pending.where)}</p>
     <label class="lab">{t.approveNote}<input bind:value={note} placeholder="ok" /></label>
     <div class="btns">
       <button class="text2" onclick={() => approveDlg?.close()}>{t.cancel}</button>
-      <button class="filled" onclick={() => { onApprove(pending!.task, note); approveDlg?.close() }}>{t.approve}</button>
+      <button class="filled" onclick={() => { onApprove(pending!.task, note, pendingChoice ?? undefined); approveDlg?.close() }}>{pendingChoice ?? t.approve}</button>
     </div>
   {/if}
 </dialog>
@@ -504,6 +513,7 @@
   .lt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .lt b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; } .lt small { white-space: nowrap; overflow: hidden; }
   .okt.col { display: flex; flex-direction: column; gap: 1px; } .okt.col b { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; }
   .mono2 { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text2); }
+  .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   /* Contratto 1.76: gli impegni del registro, ambra da 2 ore ferme, rosso da 8. */
   .cmt .line { font-size: 14px; }
   .cmt .tone, .cmt .dim { color: var(--text2); }

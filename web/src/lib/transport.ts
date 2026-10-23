@@ -118,12 +118,14 @@ const DEVICE_OPS = new Set<CmdOp>(['prompt', 'resume', 'launch', 'report', 'appr
  * Un comando nuovo dalla web app: `by` = "web" come mette il relay di default. `question` (contratto 1.52): per `answer` e
  * `allow_all`, l'id della domanda aperta al tocco; il relay non preme tasti se nel frattempo ne è arrivata un'altra.
  */
-export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { kind?: string; since?: number }): Cmd {
+export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { kind?: string; since?: number; choice?: string }): Cmd {
   const c: Cmd = { id: crypto.randomUUID(), op, session, arg: arg ?? null, issued: Math.round(Date.now() / 1000), by: 'web' }
   if (text !== undefined) c.text = text
   // Contratto 1.80, `attention_done`: il kind della voce e, per un turn_blocking, il suo since.
   if (extra?.kind !== undefined) c.kind = extra.kind
   if (extra?.since !== undefined) c.since = extra.since
+  // Contratto 1.81, `approve`: l'opzione scelta.
+  if (extra?.choice !== undefined) c.choice = extra.choice
   if (question !== undefined && (op === 'answer' || op === 'allow_all')) c.question = question
   // Contratto 1.36: il relay scrive «via web app» e la trascrizione dà origin "web".
   if (DEVICE_OPS.has(op)) c.device = 'web'

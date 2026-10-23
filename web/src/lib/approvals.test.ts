@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Approval, Commitment, State } from './contract'
-import { settled, withoutApproved } from './approvals'
+import { settled, withoutApproved, choices } from './approvals'
 
 // Gli stessi casi di ApprovalsTest in Kotlin.
 const base: State = { v: 1, ts: 1_000_000, host: 'pc', sessions: [], quota: {}, projects: [], night: { queued: 0 }, recap: { date: '', items: [] } }
@@ -20,5 +20,15 @@ describe('Approva ottimistica (Franz 23/10 21:24: «dopo aver approvato non deve
   it('settled: i compiti che il registro ha già tolto dagli ok si dimenticano, gli altri restano nascosti', () => {
     const st: State = { ...base, approvals: [ok('b')], commitments: [c('a', 'approved', null), c('b', 'awaiting_ok')] }
     expect(settled(st, new Set(['a', 'b']))).toEqual(new Set(['a']))
+  })
+
+  // Contratto 1.81 (Franz 23/10 23:08: «quando la scelta è tra A e B il tasto approva non ha molto senso»): un tasto per opzione.
+  it('una scelta mostra un tasto per opzione; fuori dal contratto si torna al solo Approva', () => {
+    const plain: Approval = { task: 't1', title: 'uno', what: '', where: '', deploy: false, requested_at: 1 }
+    expect(choices(plain)).toEqual([])
+    expect(choices({ ...plain, options: ['Strada A', 'Strada B'] })).toEqual(['Strada A', 'Strada B'])
+    expect(choices({ ...plain, options: ['Sola'] })).toEqual([])
+    expect(choices({ ...plain, options: ['A', ' '] })).toEqual([])
+    expect(choices({ ...plain, options: ['1', '2', '3', '4', '5'] })).toEqual([])
   })
 })

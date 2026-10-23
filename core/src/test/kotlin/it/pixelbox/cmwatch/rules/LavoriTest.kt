@@ -171,7 +171,8 @@ class LavoriTest {
     }
 
     @Test fun oldRelayHasNoRows() {
-        val s = idle.copy(commitments = null)
+        // Un relay prima dell'1.76 non manda né impegni né ok (la fixture 1.81 ne porta uno).
+        val s = idle.copy(commitments = null, approvals = emptyList())
         assertEquals(0, Lavori.forYou(s, null, idle.ts, today).total)
         val ip = Lavori.inProgress(s, null, idle.ts, zone, today)
         assertTrue(ip.working.isEmpty() && ip.you.isEmpty() && ip.others.isEmpty() && ip.total == 0)

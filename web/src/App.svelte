@@ -206,9 +206,10 @@
   let okPending = $state(new Set<string>())
   const stShown = $derived(withoutApproved(st, okPending))
   $effect(() => { const s = settled(st, okPending); if (s.size) okPending = new Set([...okPending].filter(x => !s.has(x))) })
-  async function approve(task: string, note: string) {
+  async function approve(task: string, note: string, choice?: string) {
     okPending = new Set([...okPending, task])
-    const r = await run(newCmd('approve', null, task, approveText(note)))
+    // Contratto 1.81: l'opzione scelta viaggia con l'ok.
+    const r = await run(newCmd('approve', null, task, approveText(note), undefined, choice ? { choice } : undefined))
     if (r?.ok) say(`✓ ${t.approved}`)
     else okPending = new Set([...okPending].filter(x => x !== task))
   }

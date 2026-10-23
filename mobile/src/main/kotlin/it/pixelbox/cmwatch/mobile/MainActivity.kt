@@ -878,8 +878,9 @@ class MainActivity : ComponentActivity() {
         }
         // La pagina e la sezione «Lavori» (mockup approvato il 22/10): l'ok a un compito, «Fatto» su una pausa che aspetta te
         // (la master riprende il compito, nessuna op nuova), le righe per te e la riga dei conteggi della home.
-        val approveTask: (String, String) -> Unit = { task, note -> okPending.add(task); scope.launch {
-            val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(note)) }.getOrNull()
+        val approveTask: (String, String, String?) -> Unit = { task, note, choice -> okPending.add(task); scope.launch {
+            // Contratto 1.81: l'opzione scelta viaggia con l'ok.
+            val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(note), choice = choice) }.getOrNull()
             val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
             if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(R.string.approved), android.widget.Toast.LENGTH_SHORT).show()
             else { okPending.remove(task); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_LONG).show() }

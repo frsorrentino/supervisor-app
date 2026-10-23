@@ -5,6 +5,7 @@
   // «Utilizzo e limiti». Un solo bottone pieno: «Approva» (o «Aggiungi» quando non c'è un ok da dare).
   import { locale } from './lang'
   import type { AgendaPage, Approval, Commitment, DonePage, Event, State } from './contract'
+  import { choices } from './approvals'
   import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Line } from './lavori'
   import { doIt, mark, type Edit } from './recapAgenda'
   import type { RecapAction } from './recapActions'
@@ -18,7 +19,7 @@
     /** Le due metà del cruscotto: left = Per te e Stanotte, right = In corso e Fatto. */
     part?: 'all' | 'left' | 'right'
     today?: string | null
-    onBack?: () => void; onApprove?: (task: string, note: string) => void; onAgendaEdit?: (e: Edit) => void
+    onBack?: () => void; onApprove?: (task: string, note: string, choice?: string) => void; onAgendaEdit?: (e: Edit) => void
     onStart?: (a: RecapAction) => void; onDoneForPerson?: (c: Commitment) => void
     onAddNight?: () => void; onRemoveNight?: (id: string) => void; onNight?: () => void; onSession?: (name: string) => void
     /** Contratto 1.77: le pagine dell'op `done` già caricate, per data; `onLoadDay` carica un giorno richiuso. */
@@ -68,9 +69,10 @@
   try { timeView = localStorage.getItem('lavori.view') === 'time' } catch { /* senza memoria */ }
   function setView(time: boolean) { timeView = time; try { localStorage.setItem('lavori.view', time ? 'time' : 'list') } catch { /* senza memoria */ } }
   let pending = $state<Approval | null>(null)
+  let pendingChoice = $state<string | null>(null)
   let note = $state('')
   let dlg: HTMLDialogElement | undefined = $state()
-  function ask(a: Approval) { pending = a; note = ''; dlg?.showModal() }
+  function ask(a: Approval, choice: string | null = null) { pending = a; pendingChoice = choice; note = ''; dlg?.showModal() }
   function outsideClick(r: ForYou) { if (r.agenda) onAgendaEdit({ item: 'done', row: r.agenda }); else if (r.commitment) onDoneForPerson(r.commitment) }
 </script>
 
@@ -86,7 +88,8 @@
     {:else if r.commitment?.paused}<svg viewBox="0 0 24 24" width="22" height="22" fill="var(--text2)"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
     {:else}<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76z" /><path d="m9 12 2 2 4-4" /></svg>{/if}
     <span class="t"><b>{r.title}</b>{#if sub(r)}<small>{sub(r)}</small>{/if}</span>
-    {#if button}<button class={filled ? 'filled' : 'tonal'} onclick={onClick}>{button}</button>{/if}
+    {#if r.approval && choices(r.approval).length}<span class="opts">{#each choices(r.approval) as o (o)}<button class="tonal" onclick={() => ask(r.approval!, o)}>{o}</button>{/each}</span>
+    {:else if button}<button class={filled ? 'filled' : 'tonal'} onclick={onClick}>{button}</button>{/if}
   </div>
 {/snippet}
 
@@ -211,12 +214,12 @@
 
 <dialog bind:this={dlg} class="alert" onclick={(e) => e.target === e.currentTarget && dlg?.close()}>
   {#if pending}
-    <h3>{pending.deploy ? t.approveProdTitle : t.approveTitle(pending.title)}</h3>
+    <h3>{pendingChoice ? t.chooseTitle(pendingChoice, pending.title) : pending.deploy ? t.approveProdTitle : t.approveTitle(pending.title)}</h3>
     <p>{t.approveText(pending.title, pending.what ?? '', pending.where ?? '')}</p>
     <input bind:value={note} placeholder="ok" aria-label={t.approveNote} />
     <div class="btns">
       <button class="text2" onclick={() => dlg?.close()}>{t.cancel}</button>
-      <button class="filled" onclick={() => { onApprove(pending!.task, note); dlg?.close() }}>{t.approve}</button>
+      <button class="filled" onclick={() => { onApprove(pending!.task, note, pendingChoice ?? undefined); dlg?.close() }}>{pendingChoice ?? t.approve}</button>
     </div>
   {/if}
 </dialog>
@@ -267,4 +270,5 @@
   dialog input { width: 100%; background: var(--low); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 15px; }
   .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; } .btns .text2 { color: var(--text2); padding: 10px 16px; border-radius: 999px; }
   @media (prefers-reduced-motion: reduce) { .track i { transition: none; } }
+  .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 </style>

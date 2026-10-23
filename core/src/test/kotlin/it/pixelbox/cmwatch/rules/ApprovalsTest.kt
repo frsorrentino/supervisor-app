@@ -29,4 +29,15 @@ class ApprovalsTest {
         val st = base.copy(approvals = listOf(ok("b")), commitments = listOf(c("a", "approved", null), c("b", "awaiting_ok")))
         assertEquals(setOf("a"), Approvals.settled(st, setOf("a", "b")))
     }
+
+    /** Contratto 1.81 (Franz 23/10 23:08: «quando la scelta è tra A e B il tasto approva non ha molto senso»): un tasto per opzione. */
+    @Test fun aChoiceShowsOneButtonPerOption() {
+        val plain = Approval("t1", "uno")
+        assertEquals(emptyList<String>(), Approvals.choices(plain))
+        assertEquals(listOf("Strada A", "Strada B"), Approvals.choices(plain.copy(options = listOf("Strada A", "Strada B"))))
+        // Fuori dal contratto (una sola, vuote, più di quattro) si torna al solo «Approva».
+        assertEquals(emptyList<String>(), Approvals.choices(plain.copy(options = listOf("Sola"))))
+        assertEquals(emptyList<String>(), Approvals.choices(plain.copy(options = listOf("A", " "))))
+        assertEquals(emptyList<String>(), Approvals.choices(plain.copy(options = listOf("1", "2", "3", "4", "5"))))
+    }
 }

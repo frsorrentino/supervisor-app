@@ -675,6 +675,7 @@
     <string name="approve">Approve</string>
     <string name="approve_prod_title">Approve the release to production?</string>
     <string name="approve_title">Approve «%1$s»?</string>
+    <string name="choose_title">Choose «%1$s» for «%2$s»?</string>
     <string name="approve_text">%1$s: %2$s, to %3$s.</string>
     <string name="approve_note">Note for the session (optional)</string>
     <string name="approved">Approved</string>

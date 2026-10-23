@@ -90,7 +90,7 @@ fun SummaryList(
     /** Il tablet (Franz, 04/10 14:31): nell'altezza in più, sotto, le schede di «Utilizzo e limiti». */
     footer: (@Composable () -> Unit)? = null,
     /** L'ok a un compito (contratto 1.37), dalla sezione Lavori; la nota vuota vale «ok». */
-    onApprove: (task: String, note: String) -> Unit = { _, _ -> },
+    onApprove: (task: String, note: String, choice: String?) -> Unit = { _, _, _ -> },
     /** Contratto 1.80: il tasto «Fatto» di una ferma nella card (op `attention_done`). */
     onDone: (AttentionQueue.Done) -> Unit = {},
     /** Contratto 1.37: «Chiudi» per le sessioni finite o doppie senza finestra; `canExit` = il PC accetta /exit. */
@@ -306,7 +306,7 @@ private fun SummaryCard(
     firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, now: Long = System.currentTimeMillis() / 1000,
     onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
     /** L'ok a un compito del registro che questa sessione chiede (Franz 23/10: «Approva» nella scheda della sessione). */
-    onApprove: (task: String, note: String) -> Unit = { _, _ -> },
+    onApprove: (task: String, note: String, choice: String?) -> Unit = { _, _, _ -> },
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone: (AttentionQueue.Done) -> Unit = {},
     /** Strada B (23/10): i lavori di questa sessione che aspettano te, ognuno col suo tasto (Fatto o Avvia). */
@@ -681,8 +681,9 @@ internal fun Tag(text: String, tone: Color) = Text(
 
 /** Contratto 1.37: un compito che aspetta l'ok — cosa esce, dove, da quanto — con «Approva» e la conferma. */
 @Composable
-internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, onApprove: (String, String) -> Unit) {
+internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, onApprove: (String, String, String?) -> Unit) {
     var ask by rememberSaveable(a.task) { mutableStateOf(false) }
+    var choice by rememberSaveable(a.task) { mutableStateOf<String?>(null) }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -707,22 +708,21 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
         ) { Text(stringResource(R.string.approve)) }
     }
-    if (ask) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
+    if (ask) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
 }
 
 /** Un ok del registro dentro la card della sessione che lo chiede: il titolo e «Approva», che apre la stessa finestra della scheda. */
 @Composable
-private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (String, String) -> Unit) {
+private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (String, String, String?) -> Unit) {
     var ask by rememberSaveable(a.task) { mutableStateOf(false) }
+    var choice by rememberSaveable(a.task) { mutableStateOf<String?>(null) }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(18.dp))
         Text(a.title, style = MaterialTheme.typography.bodySmall, color = CmColors.text, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f))
         if (a.deploy) Tag(stringResource(R.string.approval_prod), CmColors.prod)
-        Surface(onClick = { ask = true }, shape = CircleShape, color = CmColors.primary, contentColor = CmColors.onPrimary) {
-            Text(stringResource(R.string.approve), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-        }
+        OkButtons(a, filled = true) { o -> choice = o; ask = true }
     }
-    if (ask) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
+    if (ask) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
 }
 
 /** Strada B: un lavoro nella scheda della sua sessione: glifo nel colore del gruppo, titolo breve, «da te · chiede alle HH:MM» o «può partire», e il tasto. */
@@ -741,6 +741,14 @@ private fun WorkLine(w: Lavori.ForYou, onDone: () -> Unit, onStart: () -> Unit) 
     }
 }
 
+/** Contratto 1.81 (Franz 23/10 23:08): un tasto per opzione quando l'ok chiede una scelta (`Approvals.choices`), altrimenti «Approva». */
+@Composable
+private fun OkButtons(a: it.pixelbox.cmwatch.contract.Approval, filled: Boolean, onPick: (choice: String?) -> Unit) {
+    val opts = it.pixelbox.cmwatch.rules.Approvals.choices(a)
+    if (opts.isEmpty()) MiniButton(stringResource(R.string.approve), filled = filled) { onPick(null) }
+    else Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { opts.forEach { o -> MiniButton(o, filled = false) { onPick(o) } } }
+}
+
 /** Il tasto piccolo delle righe (come l'Approva della scheda): pieno per quello che sblocca una sessione, tonale per l'agenda. */
 @Composable
 private fun MiniButton(text: String, filled: Boolean, onClick: () -> Unit) {
@@ -752,7 +760,7 @@ private fun MiniButton(text: String, filled: Boolean, onClick: () -> Unit) {
 /** Strada B: la lista compatta dei lavori senza sessione: una riga per lavoro con il badge, il titolo breve, il riferimento in mono e il tasto piccolo. */
 @Composable
 private fun LavoriList(
-    rows: List<Lavori.ForYou>, onApprove: (String, String) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
+    rows: List<Lavori.ForYou>, onApprove: (String, String, String?) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
     onAgendaEdit: (RecapAgenda.Edit) -> Unit, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(start = 14.dp, end = 10.dp, top = 4.dp, bottom = 4.dp)) {
@@ -765,10 +773,11 @@ private fun LavoriList(
 
 @Composable
 private fun WorkRow(
-    r: Lavori.ForYou, onApprove: (String, String) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
+    r: Lavori.ForYou, onApprove: (String, String, String?) -> Unit, onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit,
     onAgendaEdit: (RecapAgenda.Edit) -> Unit, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit,
 ) {
     var ask by rememberSaveable(r.title) { mutableStateOf(false) }
+    var choice by rememberSaveable(r.title) { mutableStateOf<String?>(null) }
     val a = r.approval; val ag = r.agenda; val cm = r.commitment; val who = r.who?.takeIf { it.isNotBlank() }; val at = r.at
     val sub = when (r.kind) {
         Lavori.Kind.OK -> when {
@@ -787,12 +796,12 @@ private fun WorkRow(
             sub?.let { Text(it, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip) }
         }
         when (r.kind) {
-            Lavori.Kind.OK -> if (a != null) MiniButton(stringResource(R.string.approve), filled = true) { ask = true }
+            Lavori.Kind.OK -> if (a != null) OkButtons(a, filled = true) { o -> choice = o; ask = true }
             Lavori.Kind.OUTSIDE -> MiniButton(stringResource(R.string.agenda_done), filled = false) { ag?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; cm?.let(onDoneForPerson) }
             Lavori.Kind.CLAUDE -> MiniButton(stringResource(R.string.lavori_start), filled = false) { ag?.let { row -> onStart(RecapAgenda.doIt(row)) } }
         }
     }
-    if (ask && a != null) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
+    if (ask && a != null) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
 }
 
 /** Titolo di sezione della home: si apre e si chiude al tocco; chiusa, a destra un riassunto se c'è. */
@@ -945,9 +954,10 @@ private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Releas
  * approvare»: dopo l'ok il relay risveglia la sessione).
  */
 @Composable
-internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, String) -> Unit) {
+internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, String, String?) -> Unit) {
     val c = r.c
     var ask by rememberSaveable(c.task) { mutableStateOf(false) }
+    var choice by rememberSaveable(c.task) { mutableStateOf<String?>(null) }
     val toneColor = when (r.tone) { Commitments.Tone.ALERT -> CmColors.gone; Commitments.Tone.WARN -> CmColors.waiting; Commitments.Tone.NORMAL -> CmColors.text2 }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
@@ -973,24 +983,25 @@ internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, S
             onClick = { ask = true }, modifier = Modifier.fillMaxWidth(),
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
         ) { Text(stringResource(R.string.approve)) }
-        if (ask && a != null) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
+        if (ask && a != null) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
     }
 }
 
 /** La conferma dell'ok (contratto 1.37), la stessa in home e nella pagina Lavori: cosa, dove, una nota facoltativa. */
 @Composable
-internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, onConfirm: (note: String) -> Unit, onDismiss: () -> Unit) {
+internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: String? = null, onConfirm: (note: String) -> Unit, onDismiss: () -> Unit) {
     var note by rememberSaveable(a.task) { mutableStateOf("") }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss, containerColor = CmColors.surface,
-        title = { Text(if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_title, a.title)) },
+        // Contratto 1.81: con una scelta la finestra conferma quell'opzione.
+        title = { Text(if (choice != null) stringResource(R.string.choose_title, choice, a.title) else if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_title, a.title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.approve_text, a.title, a.what.orEmpty(), a.where.orEmpty()))
                 androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
             }
         },
-        confirmButton = { androidx.compose.material3.TextButton(onClick = { onConfirm(note) }) { Text(stringResource(R.string.approve), color = CmColors.actionIcon) } },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { onConfirm(note) }) { Text(choice ?: stringResource(R.string.approve), color = CmColors.actionIcon) } },
         dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
     )
 }

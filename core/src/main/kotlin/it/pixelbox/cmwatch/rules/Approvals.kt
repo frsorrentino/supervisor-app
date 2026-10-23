@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.rules
 
+import it.pixelbox.cmwatch.contract.Approval
 import it.pixelbox.cmwatch.contract.State
 
 /**
@@ -21,5 +22,15 @@ object Approvals {
         val asking = state.approvals.map { it.task }.toSet()
         val awaiting = state.commitments.orEmpty().filter { it.state == "awaiting_ok" }.map { it.task }.toSet()
         return tasks.filterTo(mutableSetOf()) { it !in asking && it !in awaiting }
+    }
+
+    /**
+     * Contratto 1.81 (Franz 23/10 23:08: «quando la scelta è tra A e B il tasto approva non ha molto senso»): le opzioni
+     * di un ok che chiede una scelta, un tasto per ognuna al posto di «Approva»; vuoto = solo «Approva». Fuori dal
+     * contratto (meno di 2 o più di 4, etichette vuote) si torna al solo «Approva».
+     */
+    fun choices(a: Approval): List<String> {
+        val o = a.options.orEmpty().map { it.trim() }
+        return if (o.size in 2..4 && o.all { it.isNotEmpty() }) o else emptyList()
     }
 }

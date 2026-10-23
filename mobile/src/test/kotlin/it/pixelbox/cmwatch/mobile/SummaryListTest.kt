@@ -52,6 +52,21 @@ class SummaryListTest {
         }
     }
 
+    // Contratto 1.81 (23/10): un ok che chiede una scelta mostra un tasto per opzione, nella scheda della sessione e nella lista di Lavori.
+    @Test fun summaryWithChoices() = paparazzi.snapshot {
+        val idle = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())
+        val live = idle.sessions.first { it.state != SessionState.GONE }.name
+        val inCard = Approval("ledger-release-14", "Layout del checkout", "scegli il layout", "atlas-shop", requestedAt = idle.ts - 600, options = listOf("Strada A", "Strada B"))
+        val loose = Approval("atlas-checkout-layout", "Checkout layout of atlas-shop", "pick the checkout layout", "atlas-shop", requestedAt = idle.ts - 300, options = listOf("Strada A", "Strada B"))
+        val st2 = idle.copy(approvals = listOf(inCard, loose), commitments = listOf(Commitment("ledger-release-14", "Layout del checkout", session = live, state = "awaiting_ok")))
+        val today = java.time.LocalDate.of(2026, 9, 12)
+        CmPhoneTheme(still = true) {
+            Column(Modifier.background(CmColors.bg)) {
+                SummaryList(model(st2), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st2.ts, foryou = it.pixelbox.cmwatch.rules.Lavori.forYou(st2, null, st2.ts, today), lavoriLine = "Tutti i lavori")
+            }
+        }
+    }
+
     // P6 (21/10): in cima alla home la card «Aggiornamento disponibile · Installa» per una release nuova su GitHub.
     @Test fun summaryWithUpdate() = paparazzi.snapshot {
         val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("impegni-2026-10-22", "Notte 22/10", st.ts - 2 * 3600 - 300, true, "https://example.com/mobile-release.apk", 68813846, null, "")

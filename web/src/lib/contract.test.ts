@@ -115,6 +115,20 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     const st = decodeState(fixture('state-2-idle.json').replace('"state": "idle"', '"state": "idle", "needs_you": {"reason": "login su win", "at": 1789210100, "until": true, "expires_at": 1789296500}'))
     expect(st.sessions.find(x => x.needs_you)!.needs_you).toEqual({ reason: 'login su win', at: 1789210100, until: true, expires_at: 1789296500 })
   })
+  // Contratto 1.81 (23/10): un compito che chiede una scelta porta `options`; op `approve` con `choice`.
+  it('1.81: un ok con opzioni porta options e approve parte con choice', () => {
+    const s = decodeState(fixture('state-2-idle.json'))
+    expect(s.approvals!.find(a => a.task === 'atlas-checkout-layout')!.options).toEqual(['Strada A', 'Strada B'])
+    expect(decodeState(fixture('state-1-question.json')).approvals?.some(a => a.options)).toBeFalsy()
+    const root = JSON.parse(fixture('cmd-result-sample.json'))
+    const ch = root.cmd.filter((c: Cmd) => c.op === 'approve' && c.choice)
+    expect(ch.map((c: Cmd) => c.choice)).toEqual(['Strada B', 'Strada C'])
+    expect(root.result.find((r: CmdResult) => r.id === ch[0].id).text).toBe('approved atlas-checkout-layout (Strada B)')
+    expect(root.result.find((r: CmdResult) => r.id === ch[1].id).ok).toBe(false)
+    const c = newCmd('approve', null, 'atlas-checkout-layout', 'ok', undefined, { choice: 'Strada B' })
+    expect(c.choice).toBe('Strada B')
+    expect('choice' in newCmd('approve', null, 't', 'ok')).toBe(false)
+  })
   it('ogni voce della trascrizione ha la chiave diff, e la voce Edit porta il suo', () => {
     const root = JSON.parse(fixture('cmd-result-sample.json'))
     const ids = new Set(root.cmd.filter((c: { op: string }) => c.op === 'transcript').map((c: { id: string }) => c.id))

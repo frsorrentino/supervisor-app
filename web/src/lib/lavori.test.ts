@@ -135,7 +135,8 @@ describe('lavori', () => {
   })
 
   it('con un relay vecchio niente righe', () => {
-    const s = { ...idle, commitments: null }
+    // Un relay prima dell'1.76 non manda né impegni né ok (la fixture 1.81 ne porta uno).
+    const s = { ...idle, commitments: null, approvals: [] }
     expect(forYou(s, null, idle.ts, today).total).toBe(0)
     const ip = inProgress(s, null, idle.ts, zone, today)
     expect([ip.working, ip.you, ip.others, ip.total]).toEqual([[], [], [], 0])

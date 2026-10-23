@@ -259,6 +259,8 @@ enum class CmdOp {
 @Serializable data class Approval(
     val task: String, val title: String, val what: String? = null, val where: String? = null, val deploy: Boolean = false,
     @SerialName("requested_at") val requestedAt: Long = 0,
+    /** Contratto 1.81: le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
+    val options: List<String>? = null,
 )
 
 /**
@@ -490,6 +492,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val since: Long? = null,
+    /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok; assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val choice: String? = null,
 )
 
 /**

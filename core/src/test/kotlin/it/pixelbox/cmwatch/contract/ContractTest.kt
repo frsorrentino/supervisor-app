@@ -124,6 +124,25 @@ class ContractTest {
         assertEquals(NeedsYou("login su win", 1789210100, until = true, expiresAt = 1789296500), s.needsYou)
     }
 
+    /** Contratto 1.81 (23/10): un compito che chiede una scelta porta `options`; op `approve` con `choice`. */
+    @Test fun choicesWithButtons() {
+        val a = ContractJson.decodeState(Fixtures.stateIdle).approvals.first { it.task == "atlas-checkout-layout" }
+        assertEquals(listOf("Strada A", "Strada B"), a.options)
+        assertTrue(ContractJson.decodeState(Fixtures.stateQuestion).approvals.none { it.options != null })
+        val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
+        val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
+        val chosen = cmds.filter { it.op == CmdOp.APPROVE && it.choice != null }
+        assertEquals(listOf("Strada B", "Strada C"), chosen.map { it.choice })
+        val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+        assertEquals("approved atlas-checkout-layout (Strada B)", results.first { it.id == chosen[0].id }.text)
+        val ko = results.first { it.id == chosen[1].id }
+        assertFalse(ko.ok); assertTrue(ko.text, ko.text.contains("not among"))
+        // Il comando codificato porta choice; assente non si scrive.
+        val enc = ContractJson.json.encodeToString(Cmd("c1", CmdOp.APPROVE, null, "atlas-checkout-layout", 1, "phone", text = "ok", choice = "Strada B"))
+        assertTrue(enc, enc.contains("\"choice\":\"Strada B\""))
+        assertFalse(ContractJson.json.encodeToString(Cmd("c2", CmdOp.APPROVE, null, "t", 1, "phone", text = "ok")).contains("choice"))
+    }
+
     @Test fun needsYouTurnBlockingAndReminder() {
         val st = ContractJson.decodeState(Fixtures.stateIdle)
         val raw = Fixtures.stateIdle.replaceFirst("\"state\": \"idle\"", "\"state\": \"idle\", \"needs_you\": {\"reason\": \"login su win\", \"at\": 1789210100}, \"turn_blocking\": {\"text\": \"ok al deploy\", \"at\": 1789210000}")
@@ -192,7 +211,7 @@ class ContractTest {
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
         // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
         // Contratto 1.74: due nights, con due notti e vuoto.
-        assertEquals(78, results.size); assertEquals(26, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»
+        assertEquals(80, results.size); assertEquals(27, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)

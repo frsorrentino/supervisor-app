@@ -48,7 +48,8 @@ export type NextStep = { text: string; blocking: boolean }
 /** Contratto 1.37: il consiglio di fable-director; `when` "now" o "next_task", `differs` = il puntino sul tasto. */
 export type Advice = { model: string; effort: string; reason: string; switch_cost_tokens: number; at: number; source: string; when: 'now' | 'next_task'; differs: boolean }
 /** Contratto 1.37: un compito che aspetta l'ok; `deploy` = esce in produzione. */
-export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number }
+/** Contratto 1.81: `options` = le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
+export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[] }
 /** Contratto 1.76: una voce della vista «Impegni» del registro; `waits` = chi aspetta chi (`person` = l'utente). */
 export type Commitment = {
   /** Contratto 1.79: `short` = il titolo breve, 1-28 caratteri su una riga, mai «…»; assente con un relay precedente. */
@@ -219,6 +220,8 @@ export type Cmd = {
   action?: string; until?: string; blocks?: string
   /** Contratto 1.80, `attention_done`: il kind della voce da chiudere e, per un turn_blocking, il suo since. */
   kind?: string; since?: number
+  /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok. */
+  choice?: string
 }
 export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null }
 
