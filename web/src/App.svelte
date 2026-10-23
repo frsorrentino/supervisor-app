@@ -12,6 +12,7 @@
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
+  import { older } from './lib/chatFeed'
   import { blankState, decodeChanges, decodeDiff, withTail } from './lib/contract'
   import { cleanEvent } from './lib/alertEvents'
   import { ask } from './lib/changes'
@@ -250,10 +251,10 @@
     const first = transcripts[name]?.[0]?.id
     if (!tr || !first) return
     const r = await run(newCmd('transcript', name, `50:before=${first}`))
-    if (!r?.ok) return
-    const p: TranscriptPage = JSON.parse(r.text)
-    transcripts = { ...transcripts, [name]: [...p.entries, ...(transcripts[name] ?? [])] }
-    olderOf = { ...olderOf, [name]: !!p.more }
+    // Franz 23/10 23:17: il tasto carica o sparisce (older): pagina vuota, già nota o rifiutata = niente tasto.
+    const o = older(transcripts[name] ?? [], r?.ok ? (JSON.parse(r.text) as TranscriptPage) : null)
+    transcripts = { ...transcripts, [name]: o.entries }
+    olderOf = { ...olderOf, [name]: o.more }
   }
   /** Vero quando la lettura è arrivata, anche senza voci nuove. */
   async function loadTranscript(name: string): Promise<boolean> {

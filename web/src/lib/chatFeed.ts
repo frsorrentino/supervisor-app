@@ -52,6 +52,17 @@ export function append(old: TranscriptEntry[], page: TranscriptPage, mode: Page)
   return mode === 'fresh' ? page.entries : mode === 'after' ? [...updated, ...fresh] : [...fresh, ...updated]
 }
 
+/**
+ * Franz 23/10 23:17: «il tasto carica messaggi precedenti non funziona» (chat della master dopo un /clear: la pagina «prima»
+ * tornava vuota o con voci già note e il tasto restava). Il tasto carica o sparisce: la lista con la pagina in testa e `more`
+ * vero solo se la pagina ha portato voci nuove; una pagina rifiutata (null: la voce non c'è più) lo spegne.
+ */
+export function older(entries: TranscriptEntry[], page: TranscriptPage | null): { entries: TranscriptEntry[]; more: boolean } {
+  if (!page) return { entries, more: false }
+  const list = append(entries, page, 'before')
+  return { entries: list, more: page.more && list.length > entries.length }
+}
+
 /** La rotella solo fino alla prima risposta del relay: una conversazione vuota è una risposta. */
 export const loading = (entries: TranscriptEntry[], answered: boolean): boolean => entries.length === 0 && !answered
 

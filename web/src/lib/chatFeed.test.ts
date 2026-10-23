@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { CmdResult, TranscriptEntry, TranscriptPage } from './contract'
 import type { Sent, Status } from './chatRules'
-import { anchor, append, arg, counts, group, loading, merge, olderArg, pageEntries, type Item } from './chatFeed'
+import { anchor, append, arg, counts, group, loading, merge, older, olderArg, pageEntries, type Item } from './chatFeed'
 
 // Gli stessi casi di ChatFeedTest in Kotlin.
 const results: CmdResult[] = JSON.parse(readFileSync(new URL('../../../contract/cmd-result-sample.json', import.meta.url), 'utf8')).result
@@ -60,6 +60,16 @@ describe('ChatFeed', () => {
   it('before page prepends', () => {
     const older: TranscriptPage = { entries: [entry('u0.0', 'user', { text: 'earlier', at: 1 })], more: false }
     expect(append(first.entries, older, 'before')[0].id).toBe('u0.0')
+  })
+  // Franz 23/10 23:17: «il tasto carica messaggi precedenti non funziona» (dopo un /clear la pagina «prima» torna vuota o
+  // già nota e il tasto resta). Il tasto carica o sparisce: more resta vero solo con voci nuove; una pagina rifiutata lo spegne.
+  it('the older button loads or goes away', () => {
+    const olderPage: TranscriptPage = { entries: [entry('u0.0', 'user', { text: 'earlier', at: 1 })], more: true }
+    const r = older(first.entries, olderPage)
+    expect(r.entries[0].id).toBe('u0.0'); expect(r.more).toBe(true)
+    expect(older(first.entries, { entries: [], more: true })).toEqual({ entries: first.entries, more: false })
+    expect(older(first.entries, { entries: first.entries.slice(0, 3), more: true })).toEqual({ entries: first.entries, more: false })
+    expect(older(first.entries, null)).toEqual({ entries: first.entries, more: false })
   })
   it('arg for the polls', () => {
     expect(arg(null)).toBe('50')

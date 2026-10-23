@@ -72,6 +72,20 @@ class ChatFeedTest {
         assertEquals("u0.0", ChatFeed.append(first.entries, older, ChatFeed.Page.BEFORE).first().id)
     }
 
+    /**
+     * Franz 23/10 23:17: «il tasto carica messaggi precedenti non funziona» (chat della master dopo un /clear: la pagina
+     * «prima» torna vuota, o con voci già note, e il tasto resta). Il tasto carica o sparisce: `more` resta vero solo se
+     * la pagina ha portato voci nuove; una pagina rifiutata (null) lo spegne.
+     */
+    @Test fun theOlderButtonLoadsOrGoesAway() {
+        val older = TranscriptPage(listOf(TranscriptEntry("u0.0", "user", text = "earlier", at = 1)), more = true)
+        val (list, more) = ChatFeed.older(first.entries, older)
+        assertEquals("u0.0", list.first().id); assertTrue(more)
+        assertEquals(first.entries to false, ChatFeed.older(first.entries, TranscriptPage(emptyList(), more = true)))
+        assertEquals(first.entries to false, ChatFeed.older(first.entries, TranscriptPage(first.entries.take(3), more = true)))
+        assertEquals(first.entries to false, ChatFeed.older(first.entries, null))
+    }
+
     @Test fun argForThePolls() {
         assertEquals("50", ChatFeed.arg(null))
         assertEquals("50:after=a5.0", ChatFeed.arg("a5.0"))

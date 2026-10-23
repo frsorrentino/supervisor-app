@@ -858,10 +858,10 @@ class MainActivity : ComponentActivity() {
             while (System.currentTimeMillis() < until) {
                 val r = app.repo.resultsById.value[id]
                 if (r != null) {
-                    if (r.ok) runCatching { ContractJson.decodeTranscript(r.text) }.onSuccess { page ->
-                        entries = ChatFeed.append(entries, page, ChatFeed.Page.BEFORE); more = page.more
-                        chatName?.let { n -> feedMore[n] = page.more }
-                    }
+                    // Franz 23/10 23:17: il tasto carica o sparisce (ChatFeed.older): pagina vuota, già nota o rifiutata = niente tasto.
+                    val page = if (r.ok) runCatching { ContractJson.decodeTranscript(r.text) }.getOrNull() else null
+                    val (list, m) = ChatFeed.older(entries, page)
+                    entries = list; more = m; chatName?.let { n -> feedMore[n] = m }
                     break
                 }
                 delay(500)

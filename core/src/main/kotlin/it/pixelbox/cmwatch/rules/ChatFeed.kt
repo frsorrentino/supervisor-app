@@ -140,6 +140,17 @@ object ChatFeed {
      */
     fun moreOnOpen(cached: List<TranscriptEntry>, known: Boolean?): Boolean = known ?: cached.isNotEmpty()
 
+    /**
+     * Franz 23/10 23:17: «il tasto carica messaggi precedenti non funziona» (chat della master dopo un /clear: la pagina
+     * «prima» tornava vuota o con voci già note e il tasto restava). Il tasto carica o sparisce: la lista con la pagina in
+     * testa e `more` vero solo se la pagina ha portato voci nuove; una pagina rifiutata (null: la voce non c'è più) lo spegne.
+     */
+    fun older(entries: List<TranscriptEntry>, page: TranscriptPage?): Pair<List<TranscriptEntry>, Boolean> {
+        if (page == null) return entries to false
+        val list = append(entries, page, Page.BEFORE)
+        return list to (page.more && list.size > entries.size)
+    }
+
     fun anchor(entries: List<TranscriptEntry>): String? {
         if (entries.isEmpty()) return null
         val q = entries.indexOfFirst { it.queued }
