@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type Session } from './contract'
-import { freshness, orderSessions, publishedTs, since, waitingPc } from './durations'
+import { expiry, freshness, orderSessions, publishedTs, since, waitingPc } from './durations'
 
 // Gli stessi casi di OrderTest in Kotlin.
 const st = decodeState(readFileSync(new URL('../../../contract/state-1-question.json', import.meta.url), 'utf8'))
 const NB = ' '
 describe('ordine, freschezza, durate', () => {
+  // Contratto 1.80: la scadenza di un needs-you si legge con il giorno (23/10 21:23: «scade alle 21:23» per una scadenza a 24 ore).
+  it('la scadenza dice il giorno: oggi solo l\'ora, domani «domani», poi la data', () => {
+    const now = Math.round(new Date(2026, 9, 23, 21, 23).getTime() / 1000)
+    expect(expiry(now + 97 * 60, now)).toEqual({ day: 'today', hm: '23:00' })
+    expect(expiry(now + 86400, now)).toEqual({ day: 'tomorrow', hm: '21:23' })
+    expect(expiry(Math.round(new Date(2026, 9, 26, 9, 0).getTime() / 1000), now)).toEqual({ day: 'later', hm: '09:00', date: '26/10' })
+    expect(expiry(now - 83 * 60, now)).toEqual({ day: 'today', hm: '20:00' })
+  })
   it('waiting, busy, idle, gone', () => {
     const shuffled = [...st.sessions].reverse()
     expect(orderSessions(shuffled).map(s => s.name)).toEqual(['ledger-api', 'atlas-shop', 'field-notes', 'orbit-docs'])

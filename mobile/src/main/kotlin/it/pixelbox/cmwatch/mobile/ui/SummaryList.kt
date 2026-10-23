@@ -370,7 +370,7 @@ private fun SummaryCard(
         // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto.
         if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(s.needsYou?.expiresAt?.let { stringResource(R.string.expires_at, hhmmOf(it)) } ?: "", style = MonoSmall, color = CmColors.text2, modifier = Modifier.weight(1f))
+                Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = CmColors.text2, modifier = Modifier.weight(1f))
                 Surface(onClick = { onDone(d) }, shape = CircleShape, color = CmColors.primary, contentColor = CmColors.onPrimary) {
                     Text(stringResource(R.string.attention_done), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
                 }
@@ -911,6 +911,17 @@ internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, onConfirm: 
         confirmButton = { androidx.compose.material3.TextButton(onClick = { onConfirm(note) }) { Text(stringResource(R.string.approve), color = CmColors.actionIcon) } },
         dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
     )
+}
+
+/** Contratto 1.80: la scadenza di un needs-you con il giorno (`Durations.expiry`): oggi solo l'ora, domani, poi la data. */
+@Composable
+internal fun expiryText(at: Long, now: Long): String {
+    val e = it.pixelbox.cmwatch.contract.Durations.expiry(at, now, java.time.ZoneId.systemDefault())
+    return when (e.day) {
+        it.pixelbox.cmwatch.contract.Durations.Day.TODAY -> stringResource(R.string.expires_at, e.hm)
+        it.pixelbox.cmwatch.contract.Durations.Day.TOMORROW -> stringResource(R.string.expires_tomorrow, e.hm)
+        it.pixelbox.cmwatch.contract.Durations.Day.LATER -> stringResource(R.string.expires_on, e.date.orEmpty(), e.hm)
+    }
 }
 
 internal fun hhmmOf(epoch: Long): String =

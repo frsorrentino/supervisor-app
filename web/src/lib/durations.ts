@@ -39,3 +39,18 @@ export function since(from: number, now: number, days = DAY): string {
   if (s < 86400) return `${Math.floor(s / 3600)}${NB}h${NB}${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
   return `${Math.floor(s / 86400)}${NB}${days}`
 }
+
+/** Contratto 1.80: la scadenza di un needs-you con il giorno: oggi solo l'ora, domani «domani», poi la data (g/m). */
+export type Expiry = { day: 'today' | 'tomorrow' | 'later'; hm: string; date?: string }
+export function expiry(at: number, now: number): Expiry {
+  const t = new Date(at * 1000)
+  const n = new Date(now * 1000)
+  const hm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`
+  const same = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  const tomorrow = new Date(n)
+  tomorrow.setDate(n.getDate() + 1)
+  if (same(t, n)) return { day: 'today', hm }
+  if (same(t, tomorrow)) return { day: 'tomorrow', hm }
+  return { day: 'later', hm, date: `${t.getDate()}/${t.getMonth() + 1}` }
+}
+

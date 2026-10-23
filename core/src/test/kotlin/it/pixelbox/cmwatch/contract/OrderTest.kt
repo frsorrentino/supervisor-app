@@ -50,4 +50,15 @@ class OrderTest {
         assertEquals("1 h 05", Durations.since(0, 65 * 60))
         assertEquals("3 g", Durations.since(0, 3 * 86400 + 100))
     }
+
+    /** Contratto 1.80: la scadenza di un needs-you si legge con il giorno: oggi solo l'ora, domani «domani», poi la data (23/10 21:23: «scade alle 21:23» per una scadenza a 24 ore). */
+    @Test fun expiryTellsTheDay() {
+        val zone = java.time.ZoneId.of("Europe/Rome")
+        val now = java.time.LocalDate.of(2026, 10, 23).atTime(21, 23).atZone(zone).toEpochSecond()
+        assertEquals(Durations.Expiry(Durations.Day.TODAY, "23:00"), Durations.expiry(now + 97 * 60, now, zone))
+        assertEquals(Durations.Expiry(Durations.Day.TOMORROW, "21:23"), Durations.expiry(now + 86400, now, zone))
+        assertEquals(Durations.Expiry(Durations.Day.LATER, "09:00", "26/10"), Durations.expiry(java.time.LocalDate.of(2026, 10, 26).atTime(9, 0).atZone(zone).toEpochSecond(), now, zone))
+        // Già scaduta: resta «oggi» con l'ora, il relay la toglie da solo.
+        assertEquals(Durations.Expiry(Durations.Day.TODAY, "20:00"), Durations.expiry(now - 83 * 60, now, zone))
+    }
 }

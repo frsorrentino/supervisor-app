@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { State } from './contract'
   import { items as queueOf, next as nextOf, page as pageOf, type Done } from './queue'
-  import { since } from './durations'
+  import { expiry, since } from './durations'
   import { CHAT_ARG } from './questionRules'
   import { t } from './t'
   import Badge from './Badge.svelte'
@@ -16,7 +16,7 @@
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone?: (d: Done) => void
   } = $props()
-  const hm = (x: number) => new Date(x * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const expiryText = (x: number) => { const e = expiry(x, now); return e.day === 'today' ? t.expiresAt(e.hm) : e.day === 'tomorrow' ? t.expiresTomorrow(e.hm) : t.expiresOn(e.date ?? '', e.hm) }
 
   const list = $derived(queueOf(st).filter(x => x.session !== skip))
   let strip: HTMLElement | undefined = $state()
@@ -60,7 +60,7 @@
               <span class="sh">{t.queueStopHead}</span>
               <p>{it.text}</p>
               <!-- Contratto 1.80: la scadenza di un needs-you e il tasto «Fatto», che chiude la richiesta dal telefono. -->
-              {#if it.expiresAt}<span class="exp">{t.expiresAt(hm(it.expiresAt))}</span>{/if}
+              {#if it.expiresAt}<span class="exp">{expiryText(it.expiresAt)}</span>{/if}
               <div class="acts">
                 <button class="go" class:tonal={!!it.done} onclick={() => onSession(s.name)}>{t.queueStopOpen}</button>
                 {#if it.done}{@const d = it.done}<button class="go" onclick={() => onDone(d)}>{t.attentionDone}</button>{/if}

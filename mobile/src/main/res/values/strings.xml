@@ -397,6 +397,8 @@
     <string name="queue_stop_open">Apri la chat</string>
     <string name="attention_done">Fatto</string>
     <string name="expires_at">scade alle %1$s</string>
+    <string name="expires_tomorrow">scade domani alle %1$s</string>
+    <string name="expires_on">scade il %1$s alle %2$s</string>
     <string name="quota_warn">Finestra al %1$d%%, riparte alle %2$s</string>
     <string name="quota_warn_pace">Finestra al %1$d%%: a questo ritmo finisce prima delle %2$s</string>
     <string name="send_at_reset">Invia alla ripartenza</string>

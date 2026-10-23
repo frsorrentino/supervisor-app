@@ -64,7 +64,7 @@ fun QueueScreen(
                         Text(stringResource(R.string.queue_stop_head), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
                         Text(item.text, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
                         // Contratto 1.80: la scadenza di un needs-you e il tasto «Fatto», che chiude la richiesta dal telefono.
-                        item.expiresAt?.let { Text(stringResource(R.string.expires_at, hhmmOf(it)), style = MaterialTheme.typography.labelLarge, color = CmColors.text2) }
+                        item.expiresAt?.let { Text(expiryText(it, now), style = MaterialTheme.typography.labelLarge, color = CmColors.text2) }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilledTonalButton(onClick = { onSession(s.name) }) { Text(stringResource(R.string.queue_stop_open)) }
                             item.done?.let { d -> Button(onClick = { onDone(d) }) { Text(stringResource(R.string.attention_done)) } }

@@ -393,6 +393,8 @@
     <string name="queue_stop_open">Open the chat</string>
     <string name="attention_done">Done</string>
     <string name="expires_at">expires at %1$s</string>
+    <string name="expires_tomorrow">expires tomorrow at %1$s</string>
+    <string name="expires_on">expires on %1$s at %2$s</string>
     <string name="quota_warn">Window at %1$d%%, resets at %2$s</string>
     <string name="quota_warn_pace">Window at %1$d%%: at this pace it runs out before %2$s</string>
     <string name="send_at_reset">Send at the reset</string>

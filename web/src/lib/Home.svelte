@@ -12,6 +12,7 @@
   import { doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, type ForYou as LavoriRow } from './lavori'
   import { attachedTasks, build, MASTER, type Group, type Row } from './summary'
   import { doneOf, type Done } from './queue'
+  import { expiry } from './durations'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
   import { blockingOf, parseSteps } from './nextSteps'
@@ -163,7 +164,7 @@
   const stepKey = (s: { name: string; outcome?: { at: number } | null }, step: string) => `${s.name}@${s.outcome?.at ?? 0}:${step}`
   function askApprove(a: Approval) { pending = a; note = ''; approveDlg?.showModal() }
   const ctxTone = (p: number) => (p >= 90 ? 'var(--b-alert)' : p >= 75 ? 'var(--b-warn)' : 'var(--b-ring)')
-  const hm = (x: number) => new Date(x * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const expiryText = (x: number) => { const e = expiry(x, now); return e.day === 'today' ? t.expiresAt(e.hm) : e.day === 'tomorrow' ? t.expiresTomorrow(e.hm) : t.expiresOn(e.date ?? '', e.hm) }
   function text(r: Row) {
     const parsed = parseSteps(r.text ?? '')
     const shown = r.group === 'waiting' ? parsed.text : r.session.outcome ? outcomeSummary(r.session.outcome) : parsed.text
@@ -289,7 +290,7 @@
         {#if group === 'waiting' && !s.question}
           {@const d = doneOf(s)}
           <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. -->
-          {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? t.expiresAt(hm(s.needs_you.expires_at)) : ''}</span><button class="approve mini" onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
+          {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class="approve mini" onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
         {/if}
         {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
         {#if r.approvals.length}

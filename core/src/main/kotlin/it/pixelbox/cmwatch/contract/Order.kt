@@ -30,6 +30,19 @@ sealed class Freshness {
 }
 
 object Durations {
+    enum class Day { TODAY, TOMORROW, LATER }
+    /** Contratto 1.80: la scadenza di un needs-you con il giorno: oggi solo l'ora, domani «domani», poi la data (g/m). */
+    data class Expiry(val day: Day, val hm: String, val date: String? = null)
+    fun expiry(at: Long, now: Long, zone: java.time.ZoneId): Expiry {
+        val t = java.time.Instant.ofEpochSecond(at).atZone(zone)
+        val today = java.time.Instant.ofEpochSecond(now).atZone(zone).toLocalDate()
+        val hm = java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(t)
+        return when (t.toLocalDate()) {
+            today -> Expiry(Day.TODAY, hm)
+            today.plusDays(1) -> Expiry(Day.TOMORROW, hm)
+            else -> Expiry(Day.LATER, hm, "${t.dayOfMonth}/${t.monthValue}")
+        }
+    }
     /** La lettera dei giorni la decide la lingua di chi disegna: «g» in italiano, «d» in inglese (le altre coincidono). */
     fun since(from: Long, now: Long, days: String = "g"): String {
         val s = (now - from).coerceAtLeast(0)
