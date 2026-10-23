@@ -53,10 +53,12 @@ describe('AttentionQueue', () => {
     expect(l[1].text).toBe('ok alla pubblicazione')
     expect(l[0].kind).toBe('question')
   })
-  it('una ferma con la domanda conta una volta, come domanda; una chiusa non conta', () => {
+  it('una ferma con la domanda conta una volta, come domanda; una sessione chiusa mai, con o senza domanda, come nel banner', () => {
     const st = three()
     st.sessions[0] = { ...st.sessions[0], needs_you: { reason: 'login', at: 50 } }
+    // 23/10: il banner esclude le chiuse; la coda deve mostrare le stesse voci.
+    st.sessions[2] = { ...st.sessions[2], state: 'gone' }
     st.sessions[3] = { ...st.sessions[3], state: 'gone', needs_you: { reason: 'login', at: 50 } }
-    expect(items(st).map(i => [i.session, i.kind])).toEqual([['b', 'question'], ['c', 'question'], ['a', 'question']])
+    expect(items(st).map(i => [i.session, i.kind])).toEqual([['b', 'question'], ['a', 'question']])
   })
 })

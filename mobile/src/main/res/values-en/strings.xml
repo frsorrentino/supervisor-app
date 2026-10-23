@@ -389,6 +389,8 @@
     <string name="queue_empty">No one is waiting for you</string>
     <string name="queue_age">for %1$s</string>
     <string name="queue_position">%1$d of %2$d</string>
+    <string name="queue_stop_head">Stopped for you</string>
+    <string name="queue_stop_open">Open the chat</string>
     <string name="quota_warn">Window at %1$d%%, resets at %2$s</string>
     <string name="quota_warn_pace">Window at %1$d%%: at this pace it runs out before %2$s</string>
     <string name="send_at_reset">Send at the reset</string>

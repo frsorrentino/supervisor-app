@@ -1,14 +1,25 @@
 package it.pixelbox.cmwatch.rules
 
+import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.contract.State
 
-/** La coda «Ti aspettano» (piano 30/09, Task 1): le domande aperte di tutte le sessioni, da rispondere in fila. */
+/**
+ * La coda «Ti aspettano» (piano 30/09, Task 1): le domande aperte di tutte le sessioni, da rispondere in fila.
+ * Contratto 1.68: chi è ferma per Franz conta come una domanda, come nel banner (`Elsewhere`) e nella home; la web dal
+ * 15/10, il telefono dal 23/10 (il banner diceva «3 sessioni ti aspettano» con tre needs-you, la coda «Nessuno ti
+ * aspetta»). `questionId` di una ferma è una chiave sua, mai l'id di una domanda. Le sessioni chiuse mai, come nel banner.
+ */
 object AttentionQueue {
-    data class Item(val session: String, val questionId: String, val askedAt: Long)
+    enum class Kind { QUESTION, STOP }
+    data class Item(val session: String, val questionId: String, val askedAt: Long, val kind: Kind = Kind.QUESTION, val text: String = "")
 
-    /** Le domande aperte, dalla più vecchia. */
+    /** Le domande aperte e le ferme per Franz, dalla più vecchia. */
     fun items(state: State): List<Item> = state.sessions
-        .mapNotNull { s -> s.question?.let { Item(s.name, it.id, it.askedAt) } }
+        .filter { it.state != SessionState.GONE }
+        .mapNotNull { s ->
+            s.question?.let { Item(s.name, it.id, it.askedAt, Kind.QUESTION, it.text) }
+                ?: StrongAlert.stop(s)?.let { Item(s.name, "stop:${s.name}@${it.at}", it.at, Kind.STOP, it.text) }
+        }
         .sortedBy { it.askedAt }
 
     /**

@@ -219,6 +219,8 @@ class MainActivity : ComponentActivity() {
         var launching by rememberSaveable { mutableStateOf(false) }
         var nightAdding by rememberSaveable { mutableStateOf(false) }
         var queueOpen by rememberSaveable { mutableStateOf(false) }
+        // La chat dal cui banner si è aperta la coda: non è in fila, come nel conto del banner (23/10, come la web).
+        var queueSkip by rememberSaveable { mutableStateOf<String?>(null) }
         // La Panoramica in un foglio dal basso sopra la scheda (Franz, 01/10 12:34): si guarda la quota e si torna.
         // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più foglio dal basso. Il menu, la
         // riga della quota, l'avviso in una sessione e il Registro portano alla sezione Utilizzo della home, che si apre e si
@@ -287,7 +289,7 @@ class MainActivity : ComponentActivity() {
             if (n.isEmpty()) { open = null; tab = StartRoute.Tab.OVERVIEW } else { open = n }
             sessionAsked = null
         }
-        LaunchedEffect(queueAsked) { if (queueAsked) { queueOpen = true; searchOpen = false; settingsOpen = false; terminal = null; queueAsked = false } }
+        LaunchedEffect(queueAsked) { if (queueAsked) { queueSkip = null; queueOpen = true; searchOpen = false; settingsOpen = false; terminal = null; queueAsked = false } }
         var now by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
         val updateUi by app.updater.ui.collectAsStateWithLifecycle()
         LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() / 1000 } }
@@ -631,7 +633,7 @@ class MainActivity : ComponentActivity() {
         }
         if (queueOpen && state != null) {
             // La coda usa solo la card della domanda: risposta, «Parliamone», «Consenti tutto» e la lettura a voce.
-            it.pixelbox.cmwatch.mobile.ui.PageIn { QueueScreen(state, now, actionsFor = { s ->
+            it.pixelbox.cmwatch.mobile.ui.PageIn { QueueScreen(state, now, skip = queueSkip, actionsFor = { s ->
                 SheetActions(
                     answer = { n -> scope.launch { app.repo.answer(s.name, n) } },
                     allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, s.name, null) } },
@@ -1267,7 +1269,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onElsewhere = {
                                 when (val a = elsewhere) {
-                                    is it.pixelbox.cmwatch.rules.Elsewhere.Waiting -> if (a.sessions.size > 1) queueOpen = true else { open = a.sessions[0] }
+                                    is it.pixelbox.cmwatch.rules.Elsewhere.Waiting -> if (a.sessions.size > 1) { queueSkip = session.name; queueOpen = true } else { open = a.sessions[0] }
                                     is it.pixelbox.cmwatch.rules.Elsewhere.Finished -> { elsewhereSeen += a.key; open = a.session }
                                     null -> {}
                                 }

@@ -393,6 +393,8 @@
     <string name="queue_empty">Nessuno ti aspetta</string>
     <string name="queue_age">da %1$s</string>
     <string name="queue_position">%1$d di %2$d</string>
+    <string name="queue_stop_head">Ferma per te</string>
+    <string name="queue_stop_open">Apri la chat</string>
     <string name="quota_warn">Finestra al %1$d%%, riparte alle %2$s</string>
     <string name="quota_warn_pace">Finestra al %1$d%%: a questo ritmo finisce prima delle %2$s</string>
     <string name="send_at_reset">Invia alla ripartenza</string>

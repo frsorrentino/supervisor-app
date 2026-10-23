@@ -9,7 +9,8 @@ export type QueueItem = { session: string; questionId: string; askedAt: number; 
 
 /** Le domande aperte e le ferme per Franz, dalla più vecchia. */
 export const items = (state: State): QueueItem[] =>
-  state.sessions.flatMap((s): QueueItem[] => {
+  // Le sessioni chiuse mai, come nel banner (23/10): banner e coda mostrano le stesse voci.
+  state.sessions.filter(s => s.state !== 'gone').flatMap((s): QueueItem[] => {
     if (s.question) return [{ session: s.name, questionId: s.question.id, askedAt: s.question.asked_at, kind: 'question', text: s.question.text }]
     const x = stop(s)
     return x ? [{ session: s.name, questionId: `stop:${s.name}@${x.at}`, askedAt: x.at, kind: 'stop', text: x.text }] : []

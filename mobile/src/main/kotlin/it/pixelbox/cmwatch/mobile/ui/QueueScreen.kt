@@ -28,8 +28,9 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
  * successiva. Una domanda risposta al PC sparisce dalla fila da sola (`AttentionQueue`).
  */
 @Composable
-fun QueueScreen(state: State, now: Long, actionsFor: (Session) -> SheetActions, onSession: (String) -> Unit) {
-    val items = AttentionQueue.items(state)
+fun QueueScreen(state: State, now: Long, actionsFor: (Session) -> SheetActions, onSession: (String) -> Unit, skip: String? = null) {
+    // Aperta dal banner di una chat: la sessione di quella chat non è in fila, come nel conto del banner (web 15/10).
+    val items = AttentionQueue.items(state).filter { it.session != skip }
     Column(Modifier.fillMaxSize().background(CmColors.bg).systemBarsPadding()) {
         Text(
             stringResource(R.string.queue_title), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
@@ -50,7 +51,19 @@ fun QueueScreen(state: State, now: Long, actionsFor: (Session) -> SheetActions, 
         HorizontalPager(pager, key = { items[it].questionId }, modifier = Modifier.weight(1f)) { page ->
             val item = items[page]
             val s = state.sessions.firstOrNull { it.name == item.session } ?: return@HorizontalPager
-            val q = s.question ?: return@HorizontalPager
+            val q = s.question
+            if (q == null || item.kind == AttentionQueue.Kind.STOP) {
+                // Contratto 1.68: ferma per Franz (un login, un ok, una scelta di quota): il motivo, e la chat dove si risponde.
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    QueueHead(s, item.askedAt, now, onSession)
+                    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.queue_stop_head), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
+                        Text(item.text, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                        FilledTonalButton(onClick = { onSession(s.name) }) { Text(stringResource(R.string.queue_stop_open)) }
+                    }
+                }
+                return@HorizontalPager
+            }
             var holdHint by remember(q.id) { mutableStateOf(false) }
             val base = actionsFor(s)
             // Dopo la risposta la pagina dopo, subito: la domanda sparisce dalla fila quando il PC la chiude.
@@ -59,14 +72,7 @@ fun QueueScreen(state: State, now: Long, actionsFor: (Session) -> SheetActions, 
                 base.answer(n)
             })
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
-                    Modifier.fillMaxWidth().handCursor().clickable { onSession(s.name) }.padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    SessionBadge(s, size = 26.dp)
-                    Text(s.name, style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.weight(1f), maxLines = 1)
-                    Text(stringResource(R.string.queue_age, Durations.since(q.askedAt, now)), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
-                }
+                QueueHead(s, q.askedAt, now, onSession)
                 QuestionCard(q, firstFilled = true, holdHint = holdHint, onHold = { holdHint = true }, actions = actions)
             }
         }
@@ -74,5 +80,18 @@ fun QueueScreen(state: State, now: Long, actionsFor: (Session) -> SheetActions, 
             stringResource(R.string.queue_position, (pager.currentPage + 1).coerceAtMost(items.size), items.size), style = MaterialTheme.typography.labelLarge,
             color = CmColors.text2, modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 12.dp),
         )
+    }
+}
+
+/** La testata di una pagina della fila: la sessione e da quanto aspetta; il tocco apre la chat. */
+@Composable
+private fun QueueHead(s: Session, askedAt: Long, now: Long, onSession: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().handCursor().clickable { onSession(s.name) }.padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        SessionBadge(s, size = 26.dp)
+        Text(s.name, style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.weight(1f), maxLines = 1)
+        Text(stringResource(R.string.queue_age, Durations.since(askedAt, now)), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
     }
 }

@@ -2,7 +2,10 @@ package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.Fixtures
 import it.pixelbox.cmwatch.contract.ContractJson
+import it.pixelbox.cmwatch.contract.NeedsYou
+import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.contract.State
+import it.pixelbox.cmwatch.contract.TurnBlocking
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -57,5 +60,32 @@ class AttentionQueueTest {
         val after = before.copy(sessions = before.sessions.map { if (it.name == "b") it.copy(question = null) else it })
         assertEquals(0, AttentionQueue.page(AttentionQueue.items(after), target))
         assertNull(AttentionQueue.page(AttentionQueue.items(after), "gone"))
+    }
+
+    /**
+     * Contratto 1.68: chi è ferma per Franz conta come una domanda, anche nella coda, come nel banner (web dal 15/10,
+     * `f69ba30a`). Telefono 23/10 18:39: il banner diceva «3 sessioni ti aspettano» con tre needs-you e la coda «Nessuno
+     * ti aspetta».
+     */
+    @Test fun stopsForFranzQueueWithTheQuestions() {
+        val s = three().let { st -> st.copy(sessions = st.sessions.map { if (it.name == "d") it.copy(turnBlocking = TurnBlocking("ok alla pubblicazione", 150)) else it }) }
+        val l = AttentionQueue.items(s)
+        assertEquals(listOf("b", "d", "c", "a"), l.map { it.session })
+        assertEquals(AttentionQueue.Kind.STOP, l[1].kind)
+        assertEquals("ok alla pubblicazione", l[1].text)
+        assertEquals(AttentionQueue.Kind.QUESTION, l[0].kind)
+    }
+
+    /** Una ferma con la domanda conta una volta, come domanda; una sessione chiusa mai, con o senza domanda, come nel banner. */
+    @Test fun aStopWithAQuestionCountsOnceAndAGoneSessionNever() {
+        val s = three().let { st -> st.copy(sessions = st.sessions.map {
+            when (it.name) {
+                "a" -> it.copy(needsYou = NeedsYou("login", 50))
+                "c" -> it.copy(state = SessionState.GONE)
+                "d" -> it.copy(state = SessionState.GONE, needsYou = NeedsYou("login", 50))
+                else -> it
+            }
+        }) }
+        assertEquals(listOf("b" to AttentionQueue.Kind.QUESTION, "a" to AttentionQueue.Kind.QUESTION), AttentionQueue.items(s).map { it.session to it.kind })
     }
 }
