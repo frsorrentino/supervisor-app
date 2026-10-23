@@ -882,6 +882,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_sec_other">Altro</string>
     <string name="home_night_window">Dalle %1$s alle %2$s: %3$d tra sessioni e lavori</string>
     <string name="home_night_open">Apri</string>
+    <string name="night_card_body">%1$s: %2$d tra sessioni e lavori</string>
+    <string name="night_no_needs">niente che aspetti te</string>
+    <string name="tonight_meta">%1$d in corso · %2$d in coda</string>
     <plurals name="home_night_needs"><item quantity="one">%1$d cosa per te: %2$s, %3$s</item><item quantity="other">%1$d cose per te, prima %2$s: %3$s</item></plurals>
     <string name="night_refresh">Aggiorna</string>
     <string name="night_loading">Leggo il rapporto della notte</string>

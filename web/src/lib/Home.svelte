@@ -195,10 +195,17 @@
   {#if night !== undefined}
     {@render sec('night', t.homeNight)}
     {#if open.night}
-      <button class="nightbox" onclick={onNight}>
-        <b>{nightTitle}</b>
+      <!-- Grammatica unica (Franz 24/10 00:01): la Notte è una scheda come le altre: luna, «Stanotte», la finestra in mono, una riga di testo, «Apri» tonale. -->
+      <button class="card ncard" onclick={onNight}>
+        <div class="top">
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11z" /></g></svg>
+          <span class="nm"><span class="name">{t.catNight}</span></span>
+          {#if night}<span class="mono">{hhmm(night.start)}–{hhmm(night.end)} · {night.cards.length}</span>{/if}
+          <svg class="chevr" viewBox="0 0 24 24" width="22" height="22"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
         {#if night}
-          <small>{t.homeNightWindow(hhmm(night.start), hhmm(night.end), night.cards.length)}</small>
+          <p class="body">{t.nightCardBody(nightTitle, night.cards.length)}</p>
+          {#if night.counts.done || night.counts.running || night.counts.partial || night.counts.stopped || night.counts.asking}
           <span class="nchips">
             {#if night.counts.done}<span style:color="var(--good)"><Icon name="check" size={14} />{t.nightDone(night.counts.done)}</span>{/if}
             {#if night.counts.running}<span style:color="var(--icon)"><Icon name="play" size={14} />{t.nightRunningN(night.counts.running)}</span>{/if}
@@ -206,8 +213,9 @@
             {#if night.counts.stopped}<span style:color="var(--gone-dim)"><Icon name="x" size={14} />{t.nightStopped(night.counts.stopped)}</span>{/if}
             {#if night.counts.asking}<span style:color="var(--advice)"><Icon name="question" size={14} />{t.nightAsking(night.counts.asking)}</span>{/if}
           </span>
-          <span class="nrow"><small>{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, readable(night.needs[0].text, t.slashPhrases)) : ''}</small><span class="open">{t.homeNightOpen}</span></span>
-        {:else}<small>{t.nightLoading}</small>{/if}
+          {/if}
+          <div class="oks"><div class="ok"><span class="okt mono2">{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, readable(night.needs[0].text, t.slashPhrases)) : t.nightNoNeeds}</span><span class="tonal mini">{t.homeNightOpen}</span></div></div>
+        {:else}<p class="body">{t.nightLoading}</p>{/if}
       </button>
     {/if}
   {/if}
@@ -281,7 +289,6 @@
           <!-- Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2). -->
           <span class="nm"><span class="name">{s.name}</span><PermGlyph g={homeGlyph(s)} /></span>
           {#if s.duplicate_of}<span class="dup">{t.cleanupDupTag.toUpperCase()}</span>{/if}
-          {#if s.context != null}<span class="mono">{t.ctx(s.context)}</span>{/if}
           {#if r.quota?.h5 != null}<span class="mono" class:stale={r.quota.stale}>{t.quota5h(r.quota.h5)}</span>{/if}
           <button class="chev" aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); expanded = open ? null : s.name }}>
             <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -356,7 +363,8 @@
           </div>
         {/if}
         {#if s.context != null}
-          <div class="track"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div>
+          <!-- Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa. -->
+          <div class="trackrow"><div class="track"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div><span class="ctxv">{t.ctx(s.context)}</span></div>
         {/if}
       </div>
     {/each}
@@ -382,53 +390,60 @@
         {#if g.category === 'resume'}<small class="note">{t.catResumeNote}</small>{/if}
       </h2>
       {#if g.category === 'closed'}
-        <button class="closed" onclick={() => closedDlg?.showModal()}>
-          <span>{g.closed.slice(0, 3).map(s => s.name).join(', ')}{g.closed.length > 3 ? ` ${t.closedMore(g.closed.length - 3)}` : ''}</span>
-          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+        <!-- Grammatica unica (Franz 24/10 00:01): ogni voce di Altro è una scheda della famiglia: badge col glifo della categoria, nome, meta in mono, testo, tasto in fondo. -->
+        <button class="card ncard" onclick={() => closedDlg?.showModal()}>
+          <div class="top">
+            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={CAT_ICON.closed} /></g></svg>
+            <span class="nm"><span class="name">{t.catClosed}</span></span>
+            <span class="mono">{g.closed.length}</span>
+            <svg class="chevr" viewBox="0 0 24 24" width="22" height="22"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </div>
+          <p class="body">{g.closed.slice(0, 3).map(s => s.name).join(', ')}{g.closed.length > 3 ? ` ${t.closedMore(g.closed.length - 3)}` : ''}</p>
         </button>
       {:else}
-        <div class="ocard">
-          {#each g.rows as r, i}
-            {#if i > 0}<i class="oline"></i>{/if}
-            {#if r.kind === 'night'}
-              <!-- La scheda Stanotte (mockup approvato l'08/10 alle 20:43): i lavori, quello in corso per primo, poi l'ultima notte. -->
-              <div class="orow tonight">
-                <div class="otop">
-                  <span class="otext"><b>{tonightCard.items.length ? t.tonightTitle(tonightCard.items.length) : t.fyNightEmptyShort}</b>
-                    <small>{tonightCard.items.length ? t.tonightSub(tonightCard.running, tonightCard.queued) : t.tonightEmptySub}</small></span>
-                  <button class="obtn" onclick={() => onService(r)}>{t.fyAdd}</button>
-                </div>
-                {#each tonightCard.items as it, k (it.id)}
-                  <i class="oline"></i>
-                  <div class="tjob">
-                    <span class="tn" class:run={it.runningMin != null}>{#if it.runningMin != null}<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>{:else}{k + 1}{/if}</span>
-                    <span class="otext"><b>{it.name}</b><small class="two">{it.prompt}</small></span>
-                    <span class="ttag" class:run={it.runningMin != null}>{it.runningMin != null ? t.tonightRunning(it.runningMin) : t.tonightQueued}</span>
-                  </div>
-                {/each}
-                {#if lastNight}
-                  <i class="oline"></i>
-                  <div class="tlast">
-                    <small>{t.tonightLast(Number(lastNight.dayBefore.slice(8)), Number(lastNight.day.slice(8)))}</small>
-                    {#if lastNight.counts.done}<small style:color="var(--good)">{t.nightDone(lastNight.counts.done)}</small>{/if}
-                    {#if lastNight.counts.stopped}<small style:color="var(--gone-dim)">{t.nightStopped(lastNight.counts.stopped)}</small>{/if}
-                    <span class="sp"></span>
-                    <button class="olink" onclick={onNight}>{t.tonightReport}</button>
-                  </div>
-                {/if}
+        {#each g.rows as r, i}
+          {#if r.kind === 'night'}
+            <!-- La scheda Stanotte (mockup approvato l'08/10 alle 20:43): i lavori, quello in corso per primo, poi l'ultima notte. -->
+            <div class="card svc">
+              <div class="top">
+                <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={CAT_ICON.night} /></g></svg>
+                <span class="nm"><span class="name">{t.catNight}</span></span>
+                <span class="mono">{t.tonightMeta(tonightCard.running, tonightCard.queued)}</span>
               </div>
-            {:else}
-              {@const x = serviceText(r)}
-              <div class="orow">
-                <div class="otop">
-                  {#if r.kind === 'next_step'}<span class="oini">{r.title.slice(0, 1).toUpperCase()}</span>{/if}
-                  <span class="otext"><b>{x.title}</b>{#if x.detail}<small class="two">{x.detail}</small>{/if}</span>
-                  <button class="obtn" onclick={() => onService(r)}>{x.action}</button>
+              <p class="body">{tonightCard.items.length ? t.tonightTitle(tonightCard.items.length) : t.fyNightEmptyShort}</p>
+              {#each tonightCard.items as it, k (it.id)}
+                <i class="oline"></i>
+                <div class="tjob">
+                  <span class="tn" class:run={it.runningMin != null}>{#if it.runningMin != null}<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>{:else}{k + 1}{/if}</span>
+                  <span class="otext"><b>{it.name}</b><small class="two">{it.prompt}</small></span>
+                  <span class="ttag" class:run={it.runningMin != null}>{it.runningMin != null ? t.tonightRunning(it.runningMin) : t.tonightQueued}</span>
                 </div>
+              {/each}
+              {#if lastNight}
+                <i class="oline"></i>
+                <div class="tlast">
+                  <small>{t.tonightLast(Number(lastNight.dayBefore.slice(8)), Number(lastNight.day.slice(8)))}</small>
+                  {#if lastNight.counts.done}<small style:color="var(--good)">{t.nightDone(lastNight.counts.done)}</small>{/if}
+                  {#if lastNight.counts.stopped}<small style:color="var(--gone-dim)">{t.nightStopped(lastNight.counts.stopped)}</small>{/if}
+                  <span class="sp"></span>
+                  <button class="olink" onclick={onNight}>{t.tonightReport}</button>
+                </div>
+              {/if}
+              <div class="oks"><div class="ok"><span class="okt mono2">{tonightCard.items.length ? t.tonightSub(tonightCard.running, tonightCard.queued) : t.tonightEmptySub}</span><button class="tonal mini" onclick={() => onService(r)}>{t.fyAdd}</button></div></div>
+            </div>
+          {:else}
+            {@const x = serviceText(r)}
+            <div class="card svc">
+              <div class="top">
+                <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={CAT_ICON[g.category]} /></g></svg>
+                <span class="nm"><span class="name">{r.kind === 'context' ? r.title : x.title}</span></span>
+                {#if r.kind === 'context'}<span class="mono">{t.ctx(r.number ?? 0)}</span>{:else if r.at}<span class="mono">{hhmm(r.at)}</span>{/if}
               </div>
-            {/if}
-          {/each}
-        </div>
+              {#if r.kind === 'context'}<p class="body">{x.title}. {x.detail}</p>{:else if x.detail}<p class="body">{x.detail}</p>{/if}
+              <div class="oks"><div class="ok"><span class="okt mono2">{catLabel(g.category)}</span><button class="tonal mini" onclick={() => onService(r)}>{x.action}</button></div></div>
+            </div>
+          {/if}
+        {/each}
       {/if}
     {/each}
   {/if}
@@ -514,6 +529,12 @@
   .okt.col { display: flex; flex-direction: column; gap: 1px; } .okt.col b { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; }
   .mono2 { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text2); }
   .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  /* Grammatica unica (24/10): la Notte e le voci di Altro come schede della famiglia; il contesto sulla barra col valore accanto. */
+  .ncard { width: 100%; text-align: left; }
+  .svc { cursor: default; }
+  .chevr { flex: none; color: var(--text2); }
+  .trackrow { display: flex; align-items: center; gap: 8px; } .trackrow .track { flex: 1; }
+  .ctxv { flex: none; font: 500 11px/1 var(--mono); color: var(--text2); }
   /* Contratto 1.76: gli impegni del registro, ambra da 2 ore ferme, rosso da 8. */
   .cmt .line { font-size: 14px; }
   .cmt .tone, .cmt .dim { color: var(--text2); }
@@ -556,32 +577,20 @@
   .sec { display: flex; align-items: center; gap: 8px; width: 100%; margin: 14px 0 4px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-align: left; }
   .sec i { flex: 1; height: 1px; background: var(--line); }
   .sec small { font: 13px/1 var(--sans, inherit); letter-spacing: 0; }
-  .nightbox { display: flex; flex-direction: column; gap: 10px; width: 100%; padding: 16px; border-radius: 24px; background: var(--surface); text-align: left; }
-  .nightbox b { font-size: 17px; font-weight: 500; }
-  .nightbox small { color: var(--text2); font-size: 14px; }
   .nchips { display: flex; gap: 8px; flex-wrap: wrap; }
   .nchips span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
-  .nrow { display: flex; align-items: center; gap: 12px; }
-  .nrow small { flex: 1; }
-  .open { padding: 10px 18px; border-radius: 22px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
   .outside { margin: 18px 4px 0; }
   .oh { display: flex; align-items: center; gap: 12px; }
   .oh h3 { font-size: 16px; font-weight: 600; }
   .oh i { flex: 1; height: 1px; background: var(--line); }
   .osub { font-size: 12.5px; color: var(--stale); }
   .cat { margin-top: 6px; }
-  .closed { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 20px; background: var(--low); color: var(--text2); text-align: left; }
-  .closed span { flex: 1; }
   .gh .note { font: 400 11.5px/1 var(--sans, inherit); letter-spacing: 0; text-transform: none; color: var(--stale); }
-  .ocard { border-radius: 20px; background: var(--low); display: flex; flex-direction: column; }
   .oline { display: block; height: 1px; margin: 0 14px; background: var(--line); }
-  .orow { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-  .otop { display: flex; align-items: flex-start; gap: 12px; }
   .otext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
   .otext b { font-size: 16px; font-weight: 600; color: var(--text); }
   .otext small { font-size: 14px; color: var(--text2); }
   .two { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .oini { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--icon); font-weight: 600; flex: none; }
   .obtn { flex: none; padding: 9px 16px; border-radius: 999px; background: var(--surface); color: var(--primary); font-size: 14px; font-weight: 500; }
   .tonight .otop { align-items: flex-start; }
   .tjob { display: flex; align-items: flex-start; gap: 12px; }

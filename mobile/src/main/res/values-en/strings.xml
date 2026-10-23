@@ -870,6 +870,9 @@ It starts at your last message to the master.</string>
     <string name="home_sec_other">Other</string>
     <string name="home_night_window">From %1$s to %2$s: %3$d sessions and jobs</string>
     <string name="home_night_open">Open</string>
+    <string name="night_card_body">%1$s: %2$d sessions and jobs</string>
+    <string name="night_no_needs">nothing waits for you</string>
+    <string name="tonight_meta">%1$d running · %2$d queued</string>
     <plurals name="home_night_needs"><item quantity="one">%1$d thing for you: %2$s, %3$s</item><item quantity="other">%1$d things for you, first %2$s: %3$s</item></plurals>
     <string name="night_refresh">Refresh</string>
     <string name="night_loading">Reading the night report</string>
