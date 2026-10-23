@@ -1272,7 +1272,7 @@ class MainActivity : ComponentActivity() {
                                     null -> {}
                                 }
                             },
-                            onElsewhereDismiss = { elsewhere?.let { a -> elsewhereSeen += a.key } },
+                            onElsewhereDismiss = { elsewhere?.let { a -> elsewhereSeen += it.pixelbox.cmwatch.rules.Elsewhere.run { a.seenKeys } } },
                             onOlder = {
                                 val first = entries.firstOrNull()?.id
                                 if (first != null && olderId == null) scope.launch { olderId = runCatching { app.repo.command(CmdOp.TRANSCRIPT, session.name, ChatFeed.olderArg(first)) }.getOrNull() }

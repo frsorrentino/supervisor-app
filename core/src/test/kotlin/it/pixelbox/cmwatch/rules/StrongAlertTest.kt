@@ -59,6 +59,6 @@ class StrongAlertTest {
 
     @Test fun elsewhereCountsAStoppedSessionAsWaiting() {
         val state = st(s("kb").copy(needsYou = NeedsYou("login", 5)), s("open"))
-        assertEquals(Elsewhere.Waiting(listOf("kb")), Elsewhere.alert(state, "open", 10, emptySet(), emptySet()))
+        assertEquals(Elsewhere.Waiting(listOf("kb"), listOf("w:kb@5")), Elsewhere.alert(state, "open", 10, emptySet(), emptySet()))
     }
 }

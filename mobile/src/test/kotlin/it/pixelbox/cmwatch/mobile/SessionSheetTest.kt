@@ -35,7 +35,7 @@ class SessionSheetTest {
 
     // L'avviso delle altre sessioni sotto la barra (Franz, 02/10 20:47, variante A): chi ti aspetta e chi ha finito.
     @Test fun sheetElsewhereWaiting() = paparazzi.snapshot {
-        CmPhoneTheme(still = true) { SessionSheet(st.sessions.first { it.state == SessionState.IDLE }, st.ts, emptyList(), 120, none, elsewhere = it.pixelbox.cmwatch.rules.Elsewhere.Waiting(listOf("ledger-api"))) }
+        CmPhoneTheme(still = true) { SessionSheet(st.sessions.first { it.state == SessionState.IDLE }, st.ts, emptyList(), 120, none, elsewhere = it.pixelbox.cmwatch.rules.Elsewhere.Waiting(listOf("ledger-api"), listOf("w:ledger-api@0"))) }
     }
     @Test fun sheetElsewhereFinished() = paparazzi.snapshot {
         CmPhoneTheme(still = true) { SessionSheet(st.sessions.first { it.state == SessionState.IDLE }, st.ts, emptyList(), 120, none, elsewhere = it.pixelbox.cmwatch.rules.Elsewhere.Finished("atlas-shop", st.ts - 30)) }

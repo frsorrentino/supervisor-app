@@ -37,6 +37,6 @@ describe('avviso forte (1.68)', () => {
   })
 
   it('l\'avviso delle altre sessioni conta chi è ferma per te', () => {
-    expect(alert(st([s('kb', { needs_you: { reason: 'login', at: 5 } }), s('open')]), 'open', 10, new Set(), new Set())).toEqual({ type: 'waiting', sessions: ['kb'] })
+    expect(alert(st([s('kb', { needs_you: { reason: 'login', at: 5 } }), s('open')]), 'open', 10, new Set(), new Set())).toEqual({ type: 'waiting', sessions: ['kb'], requests: ['w:kb@5'] })
   })
 })
