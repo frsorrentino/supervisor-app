@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Session, SessionState } from './contract'
-import { closeSplash, SLOW_S } from './closeSplash'
+import { closeSplash, ghostSession, SLOW_S } from './closeSplash'
 
 // Gli stessi casi di CloseSplashTest.kt.
 const s = (n: string, state: SessionState, since = 100): Session => ({ id: n, name: n, account: 'personale', project: n, state, since })
@@ -24,4 +24,14 @@ describe('closeSplash', () => {
   it('a question after exit shows the question, not the panel', () =>
     expect(closeSplash('kb', [{ ...s('kb', 'waiting'), question: { id: 'q1', kind: 'ask', text: 'Background tasks are running', options: [{ n: 3, label: 'Stay' }], tier: 'low', asked_at: 1_010 } }], sent(true), null, 1_030)).toBeNull())
   it("another session's exit does not count", () => expect(closeSplash('atlas', [s('atlas', 'idle')], sent(), null, 1_005)).toBeNull())
+})
+
+// 23/10: la pagina (colonna appuntata o pagina della striscia) di una sessione che non è più nello stato né tra le viste
+// faceva crollare l'app su `s.state` (App.svelte:844); la sessione fantasma esiste sempre.
+describe('ghostSession', () => {
+  it('a session seen before comes back as it was, gone and without question', () =>
+    expect(ghostSession('kb', { kb: { ...s('kb', 'busy', 900), question: { id: 'q1', kind: 'ask', text: 'x', options: [], tier: 'low', asked_at: 1 } } }))
+      .toEqual({ ...s('kb', 'gone', 900), question: null }))
+  it('a session never seen is a gone placeholder, never null', () =>
+    expect(ghostSession('kb', {})).toEqual({ id: 'kb', name: 'kb', account: '', project: '', state: 'gone', since: 0, question: null }))
 })

@@ -56,7 +56,7 @@
   import { build as overviewOf } from './lib/overview'
   import ReadingPill from './lib/ReadingPill.svelte'
   import CloseSplash from './lib/CloseSplash.svelte'
-  import { closeSplash, type Leaving } from './lib/closeSplash'
+  import { closeSplash, ghostSession, type Leaving } from './lib/closeSplash'
   import { askedSession } from './lib/sessionLinks'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
@@ -284,7 +284,7 @@
   let leaving = $state<Leaving | null>(null)
   let lastSeen = $state<Record<string, Session>>({})
   $effect(() => { const next = { ...untrack(() => lastSeen) }; for (const x of st.sessions) next[x.name] = x; lastSeen = next })
-  const ghost = (n: string): Session | null => { const x = lastSeen[n]; return x ? { ...x, state: 'gone', question: null } : null }
+  const ghost = (n: string): Session => ghostSession(n, lastSeen)
   const session = $derived(st.sessions.find(s => s.name === open) ?? (open && open !== MASTER ? ghost(open) : null))
   const splashOf = (n: string, column = false) => {
     // In colonna una gone non resta: conta come chiusa.
@@ -348,7 +348,7 @@
   // La riga di una colonna appena chiusa, com'era: la sua testata resta finché il pannello non toglie la colonna.
   let rowSeen = $state<Record<string, (typeof summary.rows)[number]>>({})
   $effect(() => { rowSeen = { ...untrack(() => rowSeen), ...rowOf } })
-  const headRow = (n: string) => rowOf[n] ?? (heldCols.includes(n) && rowSeen[n] ? { ...rowSeen[n], session: ghost(n) ?? rowSeen[n].session } : null)
+  const headRow = (n: string) => rowOf[n] ?? (heldCols.includes(n) && rowSeen[n] ? { ...rowSeen[n], session: lastSeen[n] ? ghost(n) : rowSeen[n].session } : null)
 
   // Il cambio con la transizione del browser, quando c'è (Chrome): niente ridisegni continui.
   // Con la pagina nascosta niente transizione: il browser la interrompe e la promessa rifiutata finiva in console (15/10).
@@ -841,7 +841,7 @@
 {:else}
 
 {#snippet chatOf(name: string, inColumn: boolean)}
-  {@const s = (st.sessions.find(x => x.name === name) ?? ghost(name))!}
+  {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
   <Chat {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}

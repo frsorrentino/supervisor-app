@@ -27,3 +27,13 @@ export function closeSplash(name: string, sessions: Session[], leaving: Leaving 
   if (mine) return { kind: 'closing', name, sentAt: leaving!.sentAt, delivered: leaving!.delivered, slow: now - leaving!.sentAt >= SLOW_S }
   return null
 }
+
+/**
+ * La sessione fantasma per la pagina di `name` quando non è più nello stato: com'era l'ultima volta, chiusa e senza domanda.
+ * Mai vista in questa apertura (colonna appuntata o pagina ricordata da un'altra volta): un segnaposto chiuso, mai null,
+ * perché la pagina la legge subito (`s.state`) e un null faceva crollare l'app (23/10).
+ */
+export function ghostSession(name: string, lastSeen: Record<string, Session>): Session {
+  const x = lastSeen[name]
+  return x ? { ...x, state: 'gone', question: null } : { id: name, name, account: '', project: '', state: 'gone', since: 0, question: null }
+}
