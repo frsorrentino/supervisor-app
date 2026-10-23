@@ -96,8 +96,10 @@ describe('accesso locale', () => {
     expect(localAccess(new URL('http://localhost:5173/'), new Map())).toBeNull()
   })
 
-  it('attese come l\'app Android: slash 60 s, file 180 s, gli altri 20 s', () => {
+  it('attese come l\'app Android: slash e done 60 s, file 180 s, gli altri 20 s', () => {
     expect(resultTimeoutMs('slash')).toBe(60_000)
+    // Dal vivo 23/10 14:00: col PC sotto carico l'op done ci mette 14-23 s e la home restava a «fatto oggi 0».
+    expect(resultTimeoutMs('done')).toBe(60_000)
     expect(resultTimeoutMs('file')).toBe(180_000)
     expect(resultTimeoutMs('prompt')).toBe(20_000)
   })

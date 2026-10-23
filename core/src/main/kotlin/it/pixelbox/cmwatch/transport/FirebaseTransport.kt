@@ -204,7 +204,7 @@ class FirebaseTransport(
         k()
         rtdb.put("cmd/${cmd.id}", seal(ContractJson.encode(cmd)))
         onWritten()
-        val r = withTimeoutOrNull(when (cmd.op) { CmdOp.SLASH -> slashTimeoutMs; CmdOp.FILE -> fileTimeoutMs; else -> resultTimeoutMs }) {
+        val r = withTimeoutOrNull(when (cmd.op) { CmdOp.SLASH, CmdOp.DONE -> slashTimeoutMs; CmdOp.FILE -> fileTimeoutMs; else -> resultTimeoutMs }) {
             while (true) {
                 rtdb.get("result/${cmd.id}")?.let { return@withTimeoutOrNull ContractJson.decodeResult(open(Json.parseToJsonElement(it))) }
                 delay(pollMs)

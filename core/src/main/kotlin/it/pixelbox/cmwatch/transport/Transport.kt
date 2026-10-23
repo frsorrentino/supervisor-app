@@ -60,7 +60,9 @@ interface Transport {
         const val FILE_RESULT_TIMEOUT_MS = 180_000L
 
         fun resultTimeoutMs(op: CmdOp): Long = when (op) {
-            CmdOp.SLASH -> SLASH_RESULT_TIMEOUT_MS
+            // Anche `done` (1.77): col PC sotto carico il registro risponde in 14-23 s (dal vivo 23/10 14:00) e a 20 s la
+            // home restava a «fatto oggi 0» fino al cambio di scheda.
+            CmdOp.SLASH, CmdOp.DONE -> SLASH_RESULT_TIMEOUT_MS
             CmdOp.FILE -> FILE_RESULT_TIMEOUT_MS
             // Contratto 1.58: il passaggio di consegne lo scrive la sessione, poi il relay lancia o passa.
             CmdOp.QUOTA_ROUTE -> FILE_RESULT_TIMEOUT_MS

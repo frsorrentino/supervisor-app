@@ -135,6 +135,25 @@ class FirebaseTransportTest {
         }
     }
 
+    // Dal vivo 23/10 14:00: col PC sotto carico l'op done (contratto 1.77) ci mette 14-23 s e la home restava a «fatto oggi 0»
+    // fino al cambio di scheda; aspetta quanto uno slash.
+    @Test fun theDoneOpWaitsLikeASlashCommand() {
+        val late = blobOf("""{"id":"id-7","ok":true,"text":"done 2026-10-23","at":1}""")
+        val start = System.currentTimeMillis()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.requestUrl!!.encodedPath.removePrefix("/").removeSuffix(".json")
+                if (request.method == "PUT") { store[path] = request.body.readUtf8(); return MockResponse().setBody(store[path]!!) }
+                if (path == "result/id-7" && System.currentTimeMillis() - start > 600) return MockResponse().setBody(late)
+                return MockResponse().setBody("null")
+            }
+        }
+        val t = transport(timeout = 200, slashTimeout = 5_000)
+        assertEquals("done 2026-10-23", runBlocking { t.send(Cmd("id-7", CmdOp.DONE, null, "2026-10-23", clock, "phone")) }.text)
+        // Lo stesso limite per l'attesa del Repo intorno all'invio.
+        assertEquals(Transport.SLASH_RESULT_TIMEOUT_MS, Transport.resultTimeoutMs(CmdOp.DONE))
+    }
+
     /** 10/10 15:10: il relay ha risposto «file ready» per un video di 7 MB dopo 39 s di pezzi; l'app aveva già smesso a 20 s. */
     @Test fun aFileCommandWaitsLongerThanTheOthers() {
         val late = blobOf("""{"id":"id-5","ok":true,"text":"file ready (video/mp4, 7211071 bytes)","at":1}""")
