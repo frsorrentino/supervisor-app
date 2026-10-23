@@ -1,5 +1,5 @@
 import { workingText } from './masterHome'
-import type { QuotaAccount, Session, State } from './contract'
+import type { Approval, QuotaAccount, Session, State } from './contract'
 import { DAY } from './durations'
 import { stop } from './strongAlert'
 
@@ -9,26 +9,47 @@ import { stop } from './strongAlert'
 export const MASTER = 'master'
 export const FINISHED_S = 12 * 3600
 export type Group = 'waiting' | 'finished' | 'working' | 'still'
-export type Row = { group: Group; session: Session; text: string | null; at: number | null; key?: string; quota?: QuotaAccount }
+export type Row = {
+  group: Group; session: Session; text: string | null; at: number | null; key?: string; quota?: QuotaAccount
+  /** Gli ok del registro che chiede questa sessione, dal più vecchio, ognuno col suo Approva nella card. */
+  approvals: Approval[]
+}
+/** Una riga prima degli ok e della quota, che `build` aggiunge alla fine. */
+type Bare = Omit<Row, 'approvals' | 'quota'>
 export type Model = { rows: Row[]; closed: Session[]; open: number; master: Session | null }
 /** Un messaggio mandato da questo dispositivo, per sapere a chi abbiamo scritto. */
 export type Sent = { session: string; sentAt: number }
 
 export const finishedKey = (session: string, at: number) => `finished:${session}@${at}`
 
+/**
+ * Franz 23/10 19:34: «i tasti di riapprovazione starebbero meglio nelle schede della sessione»: gli ok del registro stanno
+ * nella card della sessione che li chiede, non in schede a parte. L'impegno con lo stesso compito dice la sessione; senza
+ * sessione vale il suo progetto. Una sessione chiusa non ha card: il suo ok resta fra le righe «Per te».
+ */
+export const approvalsOf = (state: State, s: Session): Approval[] =>
+  (state.approvals ?? []).filter(a => {
+    const c = state.commitments?.find(x => x.task === a.task)
+    if (!c) return false
+    return c.session === s.name || (c.session == null && !!c.project && !!s.project && (c.project.endsWith(s.project) || s.project.endsWith(c.project)))
+  }).sort((a, b) => a.requested_at - b.requested_at)
+
+/** I compiti i cui ok stanno già in una card: le righe «Per te» della casa non li ripetono. */
+export const attachedTasks = (rows: Row[]): Set<string> => new Set(rows.flatMap(r => r.approvals.map(a => a.task)))
+
 export function build(state: State, sent: Sent[], now: number, read: Set<string>): Model {
   const live = state.sessions.filter(s => s.state !== 'gone')
   const master = live.find(s => s.name === MASTER) ?? null
   const others = live.filter(s => s.name !== MASTER)
   // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
-  const waiting: Row[] = others.flatMap((s): Row[] => {
+  const waiting: Bare[] = others.flatMap((s): Bare[] => {
     if (s.question) return [{ group: 'waiting', session: s, text: s.question.text, at: s.question.asked_at }]
     const x = stop(s)
     return x ? [{ group: 'waiting', session: s, text: x.text, at: x.at }] : []
   }).sort((a, b) => a.at! - b.at!)
   const asking = new Set(waiting.map(r => r.session.name))
   // Chi ha finito resta finché non lo apri o non gli scrivi, per 12 ore; solo le seguite o quelle a cui hai scritto.
-  const finished: Row[] = others.filter(s => s.state === 'idle' && s.outcome && !asking.has(s.name))
+  const finished: Bare[] = others.filter(s => s.state === 'idle' && s.outcome && !asking.has(s.name))
     .filter(s => {
       const o = s.outcome!
       return now - o.at <= FINISHED_S && !read.has(finishedKey(s.name, o.at)) &&
@@ -36,13 +57,13 @@ export function build(state: State, sent: Sent[], now: number, read: Set<string>
     })
     .sort((a, b) => b.outcome!.at - a.outcome!.at)
     .map(s => ({ group: 'finished', session: s, text: s.outcome!.full, at: s.outcome!.at, key: finishedKey(s.name, s.outcome!.at) }))
-  const working: Row[] = others.filter(s => (s.state === 'busy' || s.state === 'awaiting') && !asking.has(s.name))
+  const working: Bare[] = others.filter(s => (s.state === 'busy' || s.state === 'awaiting') && !asking.has(s.name))
     .map(s => ({ group: 'working', session: s, text: workingText(s), at: s.turn_started ?? s.since }))
   const taken = new Set([...waiting, ...finished, ...working].map(r => r.session.name))
-  const still: Row[] = others.filter(s => !taken.has(s.name)).sort((a, b) => b.since - a.since)
+  const still: Bare[] = others.filter(s => !taken.has(s.name)).sort((a, b) => b.since - a.since)
     .map(s => ({ group: 'still', session: s, text: s.outcome?.full ?? null, at: s.since }))
   return {
-    rows: [...waiting, ...finished, ...working, ...still].map(r => ({ ...r, quota: state.quota[r.session.account] })),
+    rows: [...waiting, ...finished, ...working, ...still].map(r => ({ ...r, quota: state.quota[r.session.account], approvals: approvalsOf(state, r.session) })),
     closed: state.sessions.filter(s => s.state === 'gone'),
     open: others.length,
     master,

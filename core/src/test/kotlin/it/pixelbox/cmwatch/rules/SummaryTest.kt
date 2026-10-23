@@ -18,6 +18,29 @@ class SummaryTest {
     private fun st(vararg ss: Session) = State(v = 1, ts = at(15), host = "pc", sessions = ss.toList())
     private fun build(state: State, sent: List<Sent> = emptyList()) = Summary.build(state, emptyList(), sent, at(15), zone, emptySet())
 
+    /**
+     * Franz 23/10 19:34: «i tasti di riapprovazione starebbero meglio nelle schede della sessione»: gli ok del registro stanno
+     * nella card della sessione che li chiede (l'impegno con lo stesso compito ne dà la sessione, o il progetto), dal più
+     * vecchio, ognuno col suo Approva; una sessione chiusa non li prende, così restano fra le righe «Per te».
+     */
+    @Test fun approvalsSitInTheCardOfTheSessionThatAsks() {
+        val a1 = Approval("t1", "supervisor-app: uno", requestedAt = at(14))
+        val a2 = Approval("t2", "supervisor-app: due", requestedAt = at(14, 30))
+        val a3 = Approval("t3", "curriculum: ok", requestedAt = at(14, 10))
+        val a4 = Approval("t4", "orfano", requestedAt = at(14, 20))
+        val state = st(s("supervisor-app", SessionState.WAITING).copy(needsYou = NeedsYou("ok?", at(14))), s("curriculum"), s("gone", SessionState.GONE))
+            .copy(approvals = listOf(a2, a1, a3, a4), commitments = listOf(
+                Commitment("t1", "uno", session = "supervisor-app", state = "awaiting_ok"),
+                Commitment("t2", "due", project = "/home/franz/personali/supervisor-app", state = "awaiting_ok"),
+                Commitment("t3", "ok", session = "curriculum", state = "awaiting_ok"),
+                Commitment("t4", "orfano", session = "gone", state = "awaiting_ok"),
+            ))
+        val m = build(state)
+        assertEquals(listOf(a1, a2), m.rows.first { it.session.name == "supervisor-app" }.approvals)
+        assertEquals(listOf(a3), m.rows.first { it.session.name == "curriculum" }.approvals)
+        assertEquals(setOf("t1", "t2", "t3"), Summary.attachedTasks(m.rows))
+    }
+
     @Test fun groupsInOrderOfNeed() {
         val m = build(st(
             s("idle"), s("busy", SessionState.BUSY),

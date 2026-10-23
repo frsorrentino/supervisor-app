@@ -10,7 +10,7 @@
   import { cleanupOf } from './masterService'
   import { since } from './durations'
   import { doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, type ForYou as LavoriRow } from './lavori'
-  import { build, MASTER, type Group, type Row } from './summary'
+  import { attachedTasks, build, MASTER, type Group, type Row } from './summary'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
   import { blockingOf, parseSteps } from './nextSteps'
@@ -124,7 +124,10 @@
   const tone: Record<Group, string> = { waiting: 'var(--b-warn)', finished: 'var(--b-good)', working: 'var(--b-ring)', still: 'var(--text2)' }
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
   // Con un ok da dare le opzioni delle domande restano tonali, così sulla schermata c'è un solo bottone pieno.
-  const hasOk = $derived(!!fy?.ok.some(r => r.approval))
+  // Franz 23/10 19:34: gli ok che una sessione aperta chiede stanno nella sua card, non in schede a parte.
+  const attached = $derived(attachedTasks(model.rows))
+  const looseOk = $derived(fy ? fy.ok.filter(r => !r.approval || !attached.has(r.approval.task)) : [])
+  const hasOk = $derived(looseOk.some(r => r.approval))
   const canExit = $derived(!!st.slash?.includes('exit'))
   let pending = $state<Approval | null>(null)
   let note = $state('')
@@ -201,7 +204,7 @@
 {#if showLavori && fy}
   {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(fy.total))}
   {#if open.lavori}
-    {#each fy.ok as r, i (`ok-${i}`)}
+    {#each looseOk as r, i (`ok-${i}`)}
       <div class="card appr fy">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76z" /><path d="m9 12 2 2 4-4" /></svg>
         <span class="fyt"><b>{r.title}</b>{#if fySub(r)}<small>{fySub(r)}</small>{/if}</span>
@@ -280,6 +283,19 @@
         {#if s.goal?.text}<div class="goal">{t.goal}: {s.goal.text}</div>{/if}
         {#if x.body}<p class="body" class:full={open} class:strong={group === 'waiting' || open}>{x.body}</p>{/if}
         {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
+        {#if r.approvals.length}
+          <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
+          <div class="oks">
+            {#each r.approvals as a (a.task)}
+              <div class="ok">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76M9 12l2 2 4-4" /></svg>
+                <span class="okt">{a.title}</span>
+                {#if a.deploy}<span class="dup">{t.approvalProd.toUpperCase()}</span>{/if}
+                <button class="approve mini" onclick={(e) => { e.stopPropagation(); askApprove(a) }}>{t.approve}</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
         {#if group === 'waiting' && s.question}
           <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={!hasOk} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
         {/if}
@@ -555,4 +571,8 @@
   .all { display: flex; justify-content: space-between; align-items: center; padding: 12px 4px; color: var(--text2); font-size: 15px; text-align: left; }
   .footer.flash { outline: 2px solid color-mix(in srgb, var(--icon) 80%, transparent); outline-offset: 4px; border-radius: 18px; }
   .footer { transition: outline-color .7s; display: flex; flex-direction: column; gap: 12px; padding: 12px 0; }
+  .oks { display: flex; flex-direction: column; gap: 6px; }
+  .ok { display: flex; align-items: center; gap: 10px; }
+  .ok svg { flex: none; }
+  .okt { flex: 1; min-width: 0; font-size: 14px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 </style>

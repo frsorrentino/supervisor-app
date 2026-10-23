@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.rules
 
+import it.pixelbox.cmwatch.contract.Approval
 import it.pixelbox.cmwatch.contract.Event
 import it.pixelbox.cmwatch.contract.QuotaAccount
 import it.pixelbox.cmwatch.contract.Session
@@ -16,10 +17,27 @@ import java.time.ZoneId
 object Summary {
     enum class Group { WAITING, FINISHED, WORKING, STILL }
     /** `quota`: la quota dell'account della sessione; sulla card la finestra delle 5 ore (Franz, 03/10 20:31). */
-    data class Row(val group: Group, val session: Session, val text: String?, val at: Long?, val key: String? = null, val quota: QuotaAccount? = null)
+    data class Row(
+        val group: Group, val session: Session, val text: String?, val at: Long?, val key: String? = null, val quota: QuotaAccount? = null,
+        /** Gli ok del registro che chiede questa sessione, dal più vecchio, ognuno col suo Approva nella card. */
+        val approvals: List<Approval> = emptyList(),
+    )
     data class Model(val rows: List<Row>, val closed: List<Session>, val service: List<MasterHome.Row>, val open: Int, val master: Session?)
 
     private val SERVICE = setOf(MasterHome.Kind.CONTEXT, MasterHome.Kind.NIGHT_REPORT, MasterHome.Kind.NIGHT, MasterHome.Kind.NEXT_STEP, MasterHome.Kind.SCHEDULED)
+
+    /**
+     * Franz 23/10 19:34: «i tasti di riapprovazione starebbero meglio nelle schede della sessione»: gli ok del registro
+     * stanno nella card della sessione che li chiede, non in schede a parte. L'impegno con lo stesso compito dice la
+     * sessione; senza sessione vale il suo progetto. Una sessione chiusa non ha card: il suo ok resta fra le righe «Per te».
+     */
+    fun approvalsOf(state: State, s: Session): List<Approval> = state.approvals.filter { a ->
+        val c = state.commitments?.firstOrNull { it.task == a.task } ?: return@filter false
+        c.session == s.name || (c.session == null && c.project != null && s.project.isNotBlank() && (c.project.endsWith(s.project) || s.project.endsWith(c.project)))
+    }.sortedBy { it.requestedAt }
+
+    /** I compiti i cui ok stanno già in una card: le righe «Per te» della casa non li ripetono. */
+    fun attachedTasks(rows: List<Row>): Set<String> = rows.flatMap { r -> r.approvals.map { it.task } }.toSet()
 
     fun build(state: State, events: List<Event>, sent: List<Sent>, now: Long, zone: ZoneId, read: Set<String>): Model {
         val live = state.sessions.filter { it.state != SessionState.GONE }
@@ -42,7 +60,7 @@ object Summary {
         val still = others.filter { it.name !in taken }.sortedByDescending { it.since }
             .map { Row(Group.STILL, it, it.outcome?.full, it.since) }
         return Model(
-            rows = (waiting + finished + working + still).map { it.copy(quota = state.quota[it.session.account]) },
+            rows = (waiting + finished + working + still).map { it.copy(quota = state.quota[it.session.account], approvals = approvalsOf(state, it.session)) },
             closed = state.sessions.filter { it.state == SessionState.GONE },
             service = forYou.filter { it.kind in SERVICE },
             open = others.size,

@@ -197,7 +197,9 @@ fun SummaryList(
             item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, foryou.total).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
             if (lavoriOpen) {
                 val zone = java.time.ZoneId.systemDefault()
-                foryou.ok.forEachIndexed { i, r -> item(key = "lv-ok-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note -> r.approval?.let { a -> onApprove(a.task, note) } } } } }
+                // Franz 23/10 19:34: gli ok che una sessione aperta chiede stanno nella sua card, non in schede a parte.
+                val attached = Summary.attachedTasks(model.rows)
+                foryou.ok.filter { r -> r.approval.let { a -> a == null || a.task !in attached } }.forEachIndexed { i, r -> item(key = "lv-ok-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note -> r.approval?.let { a -> onApprove(a.task, note) } } } } }
                 foryou.outside.take(2).forEachIndexed { i, r -> item(key = "lv-out-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.agenda_done), filled = false) { _ -> r.agenda?.let { row -> onAgendaEdit(it.pixelbox.cmwatch.rules.RecapAgenda.Edit(it.pixelbox.cmwatch.rules.RecapAgenda.Item.DONE, row)) }; r.commitment?.let(onDoneForPerson) } } } }
                 foryou.claude.take(1).forEachIndexed { i, r -> item(key = "lv-cl-$i") { Box(moving()) { ForYouCard(r, zone, stringResource(R.string.lavori_start), filled = false) { _ -> r.agenda?.let { row -> onStart(it.pixelbox.cmwatch.rules.RecapAgenda.doIt(row)) } } } } }
                 item(key = "lv-all") {
@@ -228,6 +230,7 @@ fun SummaryList(
                         onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
                         firstFilled = foryou?.ok?.none { it.approval != null } ?: true, canExit = canExit, onClose = { onClose(s.name) }, now = now,
                         onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
+                        onApprove = onApprove,
                     )
                 }
             }
@@ -292,6 +295,8 @@ private fun SummaryCard(
     onAnswer: (Int) -> Unit, onStep: (String) -> Unit, onOpen: () -> Unit,
     firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, now: Long = System.currentTimeMillis() / 1000,
     onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
+    /** L'ok a un compito del registro che questa sessione chiede (Franz 23/10: «Approva» nella scheda della sessione). */
+    onApprove: (task: String, note: String) -> Unit = { _, _ -> },
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -355,6 +360,8 @@ private fun SummaryCard(
         if (open) {
             details(s).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
         }
+        // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
+        r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
         // Le opzioni della domanda subito, anche a card chiusa: rispondere è il motivo per cui la card è in cima.
         if (waiting) s.question?.let { q ->
             var holdHint by rememberSaveable(q.id) { mutableStateOf(false) }
@@ -673,6 +680,21 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
             onClick = { ask = true }, modifier = Modifier.fillMaxWidth(),
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
         ) { Text(stringResource(R.string.approve)) }
+    }
+    if (ask) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
+}
+
+/** Un ok del registro dentro la card della sessione che lo chiede: il titolo e «Approva», che apre la stessa finestra della scheda. */
+@Composable
+private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (String, String) -> Unit) {
+    var ask by rememberSaveable(a.task) { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(18.dp))
+        Text(a.title, style = MaterialTheme.typography.bodySmall, color = CmColors.text, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f))
+        if (a.deploy) Tag(stringResource(R.string.approval_prod), CmColors.prod)
+        Surface(onClick = { ask = true }, shape = CircleShape, color = CmColors.primary, contentColor = CmColors.onPrimary) {
+            Text(stringResource(R.string.approve), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+        }
     }
     if (ask) ApproveDialog(a, onConfirm = { n -> ask = false; onApprove(a.task, n) }, onDismiss = { ask = false })
 }
