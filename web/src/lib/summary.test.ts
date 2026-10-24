@@ -25,4 +25,19 @@ describe('Summary: gli ok nella scheda della sessione', () => {
     expect(m.rows.find(r => r.session.name === 'curriculum')!.approvals).toEqual([a3])
     expect(attachedTasks(m.rows)).toEqual(new Set(['t1', 't2', 't3']))
   })
+
+  // Franz 24/10 18:49 (ok-master-dove-24-10): la master ha una scheda solo con un ok o una richiesta per Franz.
+  it('gli ok della master nella sua scheda, fra quelle che aspettano; senza niente per Franz la master resta fuori', () => {
+    const a1 = { ...ok('ads', 'Ads Widget su Play', now - 300), options: ['Non etichettare', 'Etichetta come AI'] }
+    const q = { id: 'q', text: '2', options: [], asked_at: now - 200 } as unknown as Session['question']
+    const base = st(s('master', 'busy'), { ...s('a', 'waiting'), question: q })
+    expect(build(base, [], now, new Set()).rows.map(r => r.session.name)).toEqual(['a'])
+    const m = build({ ...base, approvals: [a1], commitments: [c('ads', { session: 'master' })] }, [], now, new Set())
+    expect(m.rows.map(r => r.session.name)).toEqual(['master', 'a'])
+    expect(m.rows[0].approvals).toEqual([a1])
+    expect(attachedTasks(m.rows)).toEqual(new Set(['ads']))
+    const blocked = build(st({ ...s('master'), turn_blocking: { text: 'ok al push', at: now - 10 } } as Session), [], now, new Set())
+    expect(blocked.rows.map(r => [r.session.name, r.text])).toEqual([['master', 'ok al push']])
+  })
 })
+

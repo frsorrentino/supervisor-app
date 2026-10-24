@@ -4,8 +4,8 @@ import { DAY } from './durations'
 import { stop } from './strongAlert'
 
 // Il riepilogo unico della home, porta di Summary.kt: ogni sessione una volta, nell'ordine del bisogno (ti aspetta, ha
-// finito, al lavoro, ferme), le chiuse a parte. La master non compare mai nella lista, neanche quando chiede o è ferma per
-// Franz (21/10 21:15): quello che chiede sta nella sua barra e nel campo di scrittura.
+// finito, al lavoro, ferme), le chiuse a parte. La master sta nella lista solo con un ok o una richiesta per Franz (24/10
+// 18:49); le sue domande e il resto stanno nella sua barra e nel campo di scrittura (21/10 21:15).
 export const MASTER = 'master'
 export const FINISHED_S = 12 * 3600
 export type Group = 'waiting' | 'finished' | 'working' | 'still'
@@ -59,6 +59,13 @@ export function build(state: State, sent: Sent[], now: number, read: Set<string>
     .map(s => ({ group: 'finished', session: s, text: s.outcome!.full, at: s.outcome!.at, key: finishedKey(s.name, s.outcome!.at) }))
   const working: Bare[] = others.filter(s => (s.state === 'busy' || s.state === 'awaiting') && !asking.has(s.name))
     .map(s => ({ group: 'working', session: s, text: workingText(s), at: s.turn_started ?? s.since }))
+  // Franz 24/10 18:49 (ok-master-dove-24-10): la master ha una scheda come le altre, ma solo quando ha qualcosa per Franz,
+  // un ok del registro (con o senza opzioni) o una richiesta ferma; il resto di quello che chiede sta nella sua barra.
+  if (master) {
+    const oks = approvalsOf(state, master), x = stop(master)
+    if (oks.length || x) waiting.push({ group: 'waiting', session: master, text: x?.text ?? null, at: x?.at ?? oks[0].requested_at })
+    waiting.sort((a, b) => a.at! - b.at!)
+  }
   const taken = new Set([...waiting, ...finished, ...working].map(r => r.session.name))
   const still: Bare[] = others.filter(s => !taken.has(s.name)).sort((a, b) => b.since - a.since)
     .map(s => ({ group: 'still', session: s, text: s.outcome?.full ?? null, at: s.since }))

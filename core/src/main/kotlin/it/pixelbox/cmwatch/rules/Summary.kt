@@ -11,8 +11,8 @@ import java.time.ZoneId
 /**
  * Il riepilogo unico (design 03/10, approvato da Franz): Sessioni e casa della master fuse. Ogni sessione una volta,
  * nell'ordine del bisogno: ti aspetta, ha finito, al lavoro, ferme; le chiuse a parte; le righe di servizio in fondo.
- * La master è la cornice (in basso, vicino al campo) e non compare mai nella lista, neanche quando chiede o è ferma per
- * Franz (segnalazione del 21/10 21:15): quello che chiede sta nella sua barra e nel campo di scrittura.
+ * La master è la cornice (in basso, vicino al campo): nella lista solo con un ok o una richiesta per Franz (24/10 18:49);
+ * le sue domande e il resto stanno nella sua barra e nel campo di scrittura (segnalazione del 21/10 21:15).
  */
 object Summary {
     enum class Group { WAITING, FINISHED, WORKING, STILL }
@@ -45,10 +45,17 @@ object Summary {
         val others = live.filter { it.name != ContextActions.MASTER }
         val forYou = MasterHome.forYou(state, events, sent, now, zone, read, limit = Int.MAX_VALUE).rows
         // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
-        val waiting = others.mapNotNull { s ->
+        // Franz 24/10 18:49 (ok-master-dove-24-10): la master ha una scheda come le altre, ma solo quando ha qualcosa per
+        // Franz, un ok del registro (con o senza opzioni) o una richiesta ferma; il resto di quello che chiede sta nella barra.
+        val masterRow = master?.let { m ->
+            val oks = approvalsOf(state, m)
+            val x = StrongAlert.stop(m)
+            if (oks.isEmpty() && x == null) null else Row(Group.WAITING, m, x?.text, x?.at ?: oks.first().requestedAt)
+        }
+        val waiting = (others.mapNotNull { s ->
             s.question?.let { Row(Group.WAITING, s, it.text, it.askedAt) }
                 ?: StrongAlert.stop(s)?.let { Row(Group.WAITING, s, it.text, it.at) }
-        }.sortedBy { it.at }
+        } + listOfNotNull(masterRow)).sortedBy { it.at }
         val stopped = waiting.map { it.session.name }.toSet()
         val finished = forYou.filter { it.kind == MasterHome.Kind.FINISHED && it.session !in stopped }
             .mapNotNull { r -> others.firstOrNull { it.name == r.session }?.let { Row(Group.FINISHED, it, r.detail, r.at, r.key) } }

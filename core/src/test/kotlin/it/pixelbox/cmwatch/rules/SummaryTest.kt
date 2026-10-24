@@ -66,13 +66,14 @@ class SummaryTest {
         assertEquals(listOf(Group.FINISHED), m.rows.map { it.group })
     }
 
-    // Franz, 21/10 21:15: la master non sta mai fra le sessioni, neanche quando chiede o è ferma per lui; quello che chiede
-    // sta nella sua barra e nel campo di scrittura.
-    @Test fun theMasterIsNeverListed() {
+    // Franz, 21/10 21:15: la master non sta fra le sessioni quando chiede o ha finito; quello che chiede sta nella sua barra e
+    // nel campo di scrittura. Dal 24/10 18:49 una scheda sua solo con un ok o una richiesta per Franz (sotto).
+    @Test fun theMasterIsListedOnlyForFranz() {
         assertTrue(build(st(s("master", SessionState.BUSY))).rows.isEmpty())
         assertTrue(build(st(s("master", SessionState.WAITING).copy(question = q("1", at(14))))).rows.isEmpty())
-        assertTrue(build(st(s("master").copy(turnBlocking = TurnBlocking("ok al push", at(14))))).rows.isEmpty())
         assertTrue(build(st(s("master").copy(outcome = done(at(14, 50)), followed = true))).rows.isEmpty())
+        val blocked = build(st(s("master").copy(turnBlocking = TurnBlocking("ok al push", at(14))))).rows.single()
+        assertEquals(Group.WAITING to "ok al push", blocked.group to blocked.text)
         val m = build(st(s("master", SessionState.WAITING).copy(question = q("1", at(14))), s("a", SessionState.WAITING).copy(question = q("2", at(14, 5)))))
         assertEquals(listOf("a"), m.rows.map { it.session.name })
         assertEquals("master", m.master?.name)
@@ -120,5 +121,17 @@ class SummaryTest {
         assertEquals(listOf("login", "asks", "deploy", "busy"), m.rows.map { it.session.name })
         assertEquals(listOf(Group.WAITING, Group.WAITING, Group.WAITING, Group.WORKING), m.rows.map { it.group })
         assertEquals(listOf("login su win", "Pubblico?", "ok al deploy"), m.rows.take(3).map { it.text })
+    }
+
+    /** Franz 24/10 18:49 (ok-master-dove-24-10): gli ok della master nella sua scheda, fra quelle che aspettano, non in Lavori. */
+    @Test fun theMastersOksGetItsCard() {
+        val a1 = Approval("ads", "Ads Widget su Play", requestedAt = at(14, 4), options = listOf("Non etichettare", "Etichetta come AI"))
+        val state = st(s("master", SessionState.BUSY), s("a", SessionState.WAITING).copy(question = q("2", at(14, 5))))
+            .copy(approvals = listOf(a1), commitments = listOf(Commitment("ads", "Ads", session = "master", state = "awaiting_ok")))
+        val m = build(state)
+        assertEquals(listOf("master", "a"), m.rows.map { it.session.name })
+        assertEquals(listOf(a1), m.rows.first().approvals)
+        assertNull(m.rows.first().text)
+        assertEquals(setOf("ads"), Summary.attachedTasks(m.rows))
     }
 }
