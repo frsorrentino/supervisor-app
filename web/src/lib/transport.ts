@@ -121,6 +121,9 @@ const DEVICE_OPS = new Set<CmdOp>(['prompt', 'resume', 'launch', 'report', 'appr
 export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { kind?: string; since?: number; choice?: string; sid?: string }): Cmd {
   const c: Cmd = { id: crypto.randomUUID(), op, session, arg: arg ?? null, issued: Math.round(Date.now() / 1000), by: 'web' }
   if (text !== undefined) c.text = text
+  // Contratto 1.34: il file della chat a pezzi da 1 MB fino a 25 MB, come il telefono (Repo.file); senza, il relay rifiuta
+  // ogni file oltre il nodo unico (Franz, 24/10 18:27: Scarica e Condividi su un PDF di 4 MB, «too large»).
+  if (op === 'file') c.parts = true
   // Contratto 1.80, `attention_done`: il kind della voce e, per un turn_blocking, il suo since.
   if (extra?.kind !== undefined) c.kind = extra.kind
   if (extra?.since !== undefined) c.since = extra.since

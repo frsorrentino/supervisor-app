@@ -121,4 +121,9 @@ describe('accesso locale', () => {
     expect({ op: mine.op, device: mine.device, by: mine.by, arg: mine.arg }).toEqual({ op: web.op, device: web.device, by: web.by, arg: web.arg })
     expect(newCmd('transcript', 'x', '50').device).toBeUndefined()
   })
+
+  it('il file della chat si chiede a pezzi (contratto 1.34), come il telefono: oltre 843 KB il nodo unico è rifiutato', () => {
+    expect(newCmd('file', 'x', '/w/a.pdf').parts).toBe(true)
+    expect('parts' in newCmd('prompt', 'x', 'hi')).toBe(false)
+  })
 })
