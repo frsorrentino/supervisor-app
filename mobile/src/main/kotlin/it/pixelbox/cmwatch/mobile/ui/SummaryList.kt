@@ -1240,7 +1240,7 @@ private fun CloseFinishedDialog(p: it.pixelbox.cmwatch.rules.CloseFinished.Previ
                                     x.save?.outcome?.let { Text(stringResource(R.string.close_saves_outcome, it), style = small, color = CmColors.text2) }
                                     x.save?.next?.let { Text(stringResource(R.string.close_saves_next, it), style = small, color = CmColors.text2) }
                                     x.save?.dirtyN?.takeIf { it > 0 }?.let { n -> Text(stringResource(R.string.close_dirty, n, x.save?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = CmColors.briefWarn) }
-                                    if (x.save?.sessionId != null) Text(stringResource(R.string.close_resumable), style = small, color = CmColors.briefGoodInk)
+                                    if (x.save?.sessionId != null) Text(stringResource(R.string.close_resumable), style = small, color = CmColors.idle)
                                 }
                             }
                         }

@@ -61,7 +61,7 @@ internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Sugg
             if (i > 0) HorizontalDivider(color = CmColors.advice.copy(alpha = 0.18f))
             val (icon, tone, label) = when (s.kind) {
                 "recurring" -> Triple(Icons.Rounded.Repeat, CmColors.briefRing, R.string.sug_kind_recurring)
-                "cleanup" -> Triple(Icons.Rounded.DeleteOutline, CmColors.briefGoodInk, R.string.sug_kind_cleanup)
+                "cleanup" -> Triple(Icons.Rounded.DeleteOutline, CmColors.idle, R.string.sug_kind_cleanup)
                 "deadline" -> Triple(Icons.Rounded.Schedule, CmColors.briefWarn, R.string.sug_kind_deadline)
                 else -> Triple(Icons.Rounded.DataUsage, CmColors.advice, R.string.sug_kind_quota)
             }
