@@ -110,6 +110,8 @@ fun SummaryList(
      * la sua card in cima alle sessioni è dove la pagina atterra tornando alla home; poi si richiude da sola.
      */
     justClosed: Pair<it.pixelbox.cmwatch.contract.Session, String>? = null,
+    /** La sessione chiusa da una card, finché non esce dallo stato o il PC rifiuta (Franz 24/10 13:20: «nessun feedback»). */
+    closing: String? = null,
     /** La scheda Stanotte con i lavori della coda (mockup approvato l'08/10 alle 20:43); null = la riga di prima. */
     tonight: it.pixelbox.cmwatch.rules.TonightCard.Model? = null,
     /**
@@ -218,7 +220,7 @@ fun SummaryList(
                     SummaryCard(
                         r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
                         onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
-                        firstFilled = foryou?.ok?.none { it.approval != null } ?: true, canExit = canExit, onClose = { onClose(s.name) }, now = now,
+                        firstFilled = foryou?.ok?.none { it.approval != null } ?: true, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, now = now,
                         onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                         onApprove = onApprove, onDone = onDone,
                         works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
@@ -313,7 +315,7 @@ private fun details(s: Session): List<String> = listOfNotNull(
 private fun SummaryCard(
     r: Summary.Row, open: Boolean, onToggle: () -> Unit,
     onAnswer: (Int) -> Unit, onStep: (String) -> Unit, onOpen: () -> Unit,
-    firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, now: Long = System.currentTimeMillis() / 1000,
+    firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, closing: Boolean = false, now: Long = System.currentTimeMillis() / 1000,
     onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
     /** L'ok a un compito del registro che questa sessione chiede (Franz 23/10: «Approva» nella scheda della sessione). */
     onApprove: (task: String, note: String, choice: String?) -> Unit = { _, _, _ -> },
@@ -433,7 +435,8 @@ private fun SummaryCard(
                     },
                     style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.weight(1f),
                 )
-                if (c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
+                if (closing) ClosingChip(s.name)
+                else if (c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
                     Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Rounded.PowerSettingsNew, null, tint = CmColors.briefAlertRing, modifier = Modifier.size(18.dp))
                         Text(stringResource(R.string.cleanup_close, s.name), style = MaterialTheme.typography.labelLarge)
@@ -451,6 +454,7 @@ private fun SummaryCard(
                 ) { Text(stringResource(R.string.cleanup_close, s.name)) }
             }
         }
+        if (closing && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now) == null) ClosingChip(s.name)
         if (menuClose) androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -1144,3 +1148,14 @@ internal fun expiryText(at: Long, now: Long): String {
 
 internal fun hhmmOf(epoch: Long): String =
     java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(epoch).atZone(java.time.ZoneId.systemDefault()))
+
+/** Mandato /exit da una card: lo dice finché la sessione non esce; poi in cima la card «chiusa alle» (Franz 24/10 13:20). */
+@Composable
+private fun ClosingChip(name: String) {
+    Surface(shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.CircularProgressIndicator(color = CmColors.actionIcon, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+            Text(stringResource(R.string.splash_closing, name), style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}

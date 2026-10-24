@@ -1318,12 +1318,30 @@ class MainActivity : ComponentActivity() {
         // Tornando alla home la pagina vola al contrario verso la card della sessione appena chiusa, in cima alle sessioni, che
         // resta un attimo e poi si richiude (Franz, 08/10 18:59).
         var justClosed by remember { mutableStateOf<Pair<it.pixelbox.cmwatch.contract.Session, String>?>(null) }
-        LaunchedEffect(justClosed) { if (justClosed != null) { delay(JUST_CLOSED_MS); justClosed = null } }
+        var justClosedMs by remember { mutableStateOf(JUST_CLOSED_MS) }
+        LaunchedEffect(justClosed) { if (justClosed != null) { delay(justClosedMs); justClosed = null } }
+        // Chiusa da una card della home, senza la sua pagina a schermo (Franz 24/10 13:20): la card dice «si sta chiudendo» e,
+        // uscita la sessione, in cima resta la card «chiusa alle HH:MM» più a lungo, perché qui non c'è stato il pannello.
+        // Rifiutata dal PC, la card torna com'era (il motivo lo dice l'esito del comando).
+        LaunchedEffect(leaving, state?.sessions, leaving?.cmd?.let { id -> results[id] }) {
+            val l = leaving ?: return@LaunchedEffect
+            if (open == l.name || (wide && l.name in tabletCols)) return@LaunchedEffect
+            if (l.cmd?.let { id -> results[id] }?.ok == false) { leaving = null; return@LaunchedEffect }
+            val st = state ?: return@LaunchedEffect
+            val c = CloseSplash.of(l.name, st.sessions, l, lastSeen[l.name], now) as? CloseSplash.Phase.Closed ?: return@LaunchedEffect
+            (st.sessions.firstOrNull { x -> x.name == l.name } ?: lastSeen[l.name])?.let { x ->
+                val hm = java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(c.at).atZone(java.time.ZoneId.systemDefault()))
+                justClosedMs = JUST_CLOSED_CARD_MS
+                justClosed = x.copy(state = SessionState.GONE, question = null) to getString(R.string.just_closed_line, hm)
+            }
+            leaving = null
+        }
         val splashHome = {
             val o = open
             (splash as? CloseSplash.Phase.Closed)?.let { c ->
                 (state?.sessions?.firstOrNull { x -> x.name == o } ?: o?.let { lastSeen[it] })?.let { x ->
                     val hm = java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(c.at).atZone(java.time.ZoneId.systemDefault()))
+                    justClosedMs = JUST_CLOSED_MS
                     justClosed = x.copy(state = SessionState.GONE, question = null) to getString(R.string.just_closed_line, hm)
                 }
             }
@@ -1420,7 +1438,9 @@ class MainActivity : ComponentActivity() {
                     // Contratto 1.37: approvazioni in cima e «Chiudi» per le sessioni finite o doppie senza finestra.
                     onApprove = approveTask,
                     canExit = state?.ops?.contains("slash") == true && state.slash?.contains("exit") == true,
-                    onClose = { n -> scope.launch { runCatching { app.repo.command(CmdOp.SLASH, n, "exit", null) } } },
+                    onClose = { n -> val l = CloseSplash.Leaving(n, System.currentTimeMillis() / 1000, null); leaving = l
+                        scope.launch { runCatching { app.repo.command(CmdOp.SLASH, n, "exit", null) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } } },
+                    closing = leaving?.name,
                     onFollow = { n, f -> scope.launch { runCatching { app.repo.command(if (f) CmdOp.FOLLOW else CmdOp.UNFOLLOW, n, null) } } },
                     onAskMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.let { m -> { n: String -> if (n != m.name) askMasterAbout(m.name, n) } },
                     now = now,
@@ -2197,6 +2217,7 @@ class MainActivity : ComponentActivity() {
         private const val SUMMARY_PAGE = "\u0000summary"
         /** Quanto resta in cima alle sessioni la card della sessione appena chiusa, dopo il volo di ritorno. */
         private const val JUST_CLOSED_MS = 2_500L
+        private const val JUST_CLOSED_CARD_MS = 6_000L
         private const val KEY_LAUNCH = "cm.launch"
         /** Extra dell'intent delle notifiche con domanda: apre la coda «Ti aspettano». */
         const val EXTRA_QUEUE = "cm.queue"
