@@ -200,69 +200,11 @@
 {/snippet}
 
 <section class="home">
-  {#if night !== undefined}
-    {@render sec('night', t.homeNight)}
-    {#if open.night}
-      <!-- Grammatica unica (Franz 24/10 00:01): la Notte è una scheda come le altre: luna, «Stanotte», la finestra in mono, una riga di testo, «Apri» tonale. -->
-      <button class="card ncard" onclick={onNight}>
-        <div class="top">
-          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11z" /></g></svg>
-          <span class="nm"><span class="name">{t.catNight}</span></span>
-          {#if night}<span class="mono">{hhmm(night.start)}–{hhmm(night.end)} · {night.cards.length}</span>{/if}
-          <svg class="chevr" viewBox="0 0 24 24" width="22" height="22"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-        </div>
-        {#if night}
-          <p class="body">{t.nightCardBody(nightTitle, night.cards.length)}</p>
-          {#if night.counts.done || night.counts.running || night.counts.partial || night.counts.stopped || night.counts.asking}
-          <span class="nchips">
-            {#if night.counts.done}<span style:color="var(--good)"><Icon name="check" size={14} />{t.nightDone(night.counts.done)}</span>{/if}
-            {#if night.counts.running}<span style:color="var(--icon)"><Icon name="play" size={14} />{t.nightRunningN(night.counts.running)}</span>{/if}
-            {#if night.counts.partial}<span style:color="var(--b-warn)"><Icon name="half" size={14} />{t.nightPartial(night.counts.partial)}</span>{/if}
-            {#if night.counts.stopped}<span style:color="var(--gone-dim)"><Icon name="x" size={14} />{t.nightStopped(night.counts.stopped)}</span>{/if}
-            {#if night.counts.asking}<span style:color="var(--advice)"><Icon name="question" size={14} />{t.nightAsking(night.counts.asking)}</span>{/if}
-          </span>
-          {/if}
-          <div class="oks"><div class="ok"><span class="okt mono2">{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, readable(night.needs[0].text, t.slashPhrases)) : t.nightNoNeeds}</span><span class="tonal mini">{t.homeNightOpen}</span></div></div>
-        {:else}<p class="body">{t.nightLoading}</p>{/if}
-      </button>
-    {/if}
-  {/if}
+  <!-- Franz 24/10 09:36: «L'ordine in home deve essere: Sessioni, Utilizzo, Lavoro, Altro»; la Notte, che non nomina, prima di Altro. -->
   {#if waitingYou.length}
   <button class="attn-banner" onclick={() => { if (!open.sessions) toggleSec('sessions'); onAttention() }}>
     <b>{t.attentionBanner(waitingYou.length)}</b><span>{[...new Set(waitingYou.map(a => a.session).filter(Boolean))].join(', ')}</span>
   </button>
-{/if}
-{#if showLavori && fy}
-  {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(fy.total))}
-  {#if open.lavori}
-    {#each looseRows as r, i (workKey(r, i))}
-      {@const k = workKey(r, i)}
-      {@const openW = openWork === k}
-      {@const ds = lavoriDetails(r)}
-      <div class="card">
-        <div class="top">
-          <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
-          <span class="nm"><span class="name">{fyShort(r)}</span></span>
-          {#if fyMeta(r)}<span class="mono">{fyMeta(r)}</span>{/if}
-          <button class="chev" aria-label={openW ? t.close : t.open} onclick={() => (openWork = openW ? null : k)}>
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d={openW ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-          </button>
-        </div>
-        <!-- Franz 24/10 09:22: per una scelta la domanda intera, sempre. -->
-        <p class="body" class:full={openW || (!!r.approval && choices(r.approval).length > 0)}>{r.title}</p>
-        {#if openW && ds.length}
-          <div class="kv wkv">{#each ds as d (d.kind)}<span>{t.lavoriDetail[d.kind]}</span><span>{d.kind === 'asked_at' ? hhmm(Number(d.value)) : d.value}</span>{/each}</div>
-        {/if}
-        <div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
-          <span class="okt mono2">{fySub(r) ?? ''}</span>
-          {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval)}{/if}
-          {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
-        </div></div>
-      </div>
-    {/each}
-    <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
-      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
-  {/if}
 {/if}
 {@render sec('sessions', t.homeSessions, String(model.rows.length))}
   {#if justClosed}
@@ -409,6 +351,65 @@
   {#if usage && showUsage}
     <div bind:this={usageEl}>{@render sec('usage', t.homeUsage)}</div>
     {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}</div>{/if}
+  {/if}
+{#if showLavori && fy}
+  {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(fy.total))}
+  {#if open.lavori}
+    {#each looseRows as r, i (workKey(r, i))}
+      {@const k = workKey(r, i)}
+      {@const openW = openWork === k}
+      {@const ds = lavoriDetails(r)}
+      <div class="card">
+        <div class="top">
+          <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
+          <span class="nm"><span class="name">{fyShort(r)}</span></span>
+          {#if fyMeta(r)}<span class="mono">{fyMeta(r)}</span>{/if}
+          <button class="chev" aria-label={openW ? t.close : t.open} onclick={() => (openWork = openW ? null : k)}>
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d={openW ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+        </div>
+        <!-- Franz 24/10 09:22: per una scelta la domanda intera, sempre. -->
+        <p class="body" class:full={openW || (!!r.approval && choices(r.approval).length > 0)}>{r.title}</p>
+        {#if openW && ds.length}
+          <div class="kv wkv">{#each ds as d (d.kind)}<span>{t.lavoriDetail[d.kind]}</span><span>{d.kind === 'asked_at' ? hhmm(Number(d.value)) : d.value}</span>{/each}</div>
+        {/if}
+        <div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
+          <span class="okt mono2">{fySub(r) ?? ''}</span>
+          {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval)}{/if}
+          {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
+        </div></div>
+      </div>
+    {/each}
+    <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+  {/if}
+{/if}
+  {#if night !== undefined}
+    {@render sec('night', t.homeNight)}
+    {#if open.night}
+      <!-- Grammatica unica (Franz 24/10 00:01): la Notte è una scheda come le altre: luna, «Stanotte», la finestra in mono, una riga di testo, «Apri» tonale. -->
+      <button class="card ncard" onclick={onNight}>
+        <div class="top">
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11z" /></g></svg>
+          <span class="nm"><span class="name">{t.catNight}</span></span>
+          {#if night}<span class="mono">{hhmm(night.start)}–{hhmm(night.end)} · {night.cards.length}</span>{/if}
+          <svg class="chevr" viewBox="0 0 24 24" width="22" height="22"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
+        {#if night}
+          <p class="body">{t.nightCardBody(nightTitle, night.cards.length)}</p>
+          {#if night.counts.done || night.counts.running || night.counts.partial || night.counts.stopped || night.counts.asking}
+          <span class="nchips">
+            {#if night.counts.done}<span style:color="var(--good)"><Icon name="check" size={14} />{t.nightDone(night.counts.done)}</span>{/if}
+            {#if night.counts.running}<span style:color="var(--icon)"><Icon name="play" size={14} />{t.nightRunningN(night.counts.running)}</span>{/if}
+            {#if night.counts.partial}<span style:color="var(--b-warn)"><Icon name="half" size={14} />{t.nightPartial(night.counts.partial)}</span>{/if}
+            {#if night.counts.stopped}<span style:color="var(--gone-dim)"><Icon name="x" size={14} />{t.nightStopped(night.counts.stopped)}</span>{/if}
+            {#if night.counts.asking}<span style:color="var(--advice)"><Icon name="question" size={14} />{t.nightAsking(night.counts.asking)}</span>{/if}
+          </span>
+          {/if}
+          <div class="oks"><div class="ok"><span class="okt mono2">{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, readable(night.needs[0].text, t.slashPhrases)) : t.nightNoNeeds}</span><span class="tonal mini">{t.homeNightOpen}</span></div></div>
+        {:else}<p class="body">{t.nightLoading}</p>{/if}
+      </button>
+    {/if}
   {/if}
   {#if placedOut.groups.length}
     {@render sec('other', t.homeOther, outside.map(g => outsideCount(g)).join(' · '))}

@@ -196,38 +196,12 @@ fun SummaryList(
         if (attention.isNotEmpty()) item(key = "attention-banner") {
             Box(moving()) { AttentionBanner(attention) { sessionsOpen = true; save("sessions", true); onAttention() } }
         }
-        if (nightDate != null) {
-            item(key = "sec-night") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_night), null, nightOpen) { nightOpen = !nightOpen; save("night", nightOpen) } } }
-            if (nightOpen) item(key = "night-box") { Box(moving()) { NightHomeCard(nightDate, nightPage, onNight) } }
-        }
         // Strada B (Franz 23/10 23:08, mockup del 23/10): un lavoro di una sessione aperta sta nella sua scheda, come gli ok;
         // in Lavori restano quelli senza sessione, in una lista compatta.
         val placed = foryou?.let { Lavori.place(it, model.rows.map { r -> r.session.name }.toSet(), Summary.attachedTasks(model.rows)) }
         // Franz 24/10 00:46: un suggerimento che riguarda una sessione aperta (il contesto alto) sta nella sua scheda; in Altro restano gli altri.
         val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
-        // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
-        if (showLavori && foryou != null) {
-            item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, foryou.total).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
-            if (lavoriOpen) {
-                val zone = java.time.ZoneId.systemDefault()
-                val loose = placed!!.loose
-                val rows = loose.ok + loose.outside.take(2) + loose.claude.take(1)
-                // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli.
-                rows.forEachIndexed { i, r ->
-                    // La chiave dell'agenda è «» con un relay vecchio: mai due schede con la stessa chiave nella lista.
-                    val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
-                    item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
-                }
-                item(key = "lv-all") {
-                    Box(moving()) {
-                        Row(Modifier.fillMaxWidth().handCursor().clickable(onClick = onLavori).padding(horizontal = 4.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(lavoriLine ?: stringResource(R.string.lavori_all), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f))
-                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2)
-                        }
-                    }
-                }
-            }
-        }
+        // Franz 24/10 09:36: «L'ordine in home deve essere: Sessioni, Utilizzo, Lavoro, Altro»; la Notte, che non nomina, prima di Altro.
         item(key = "sec-sessions") {
             Box(moving()) { HomeSection(stringResource(R.string.home_sec_sessions), model.rows.size.toString().takeIf { !sessionsOpen }, sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
         }
@@ -260,6 +234,33 @@ fun SummaryList(
                 val glow by androidx.compose.animation.core.animateFloatAsState(if (usageFlash) 1f else 0f, androidx.compose.animation.core.tween(if (usageFlash) 160 else 700), label = "usageFlash")
                 Box(moving().border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp))) { u() }
             }
+        }
+        // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
+        if (showLavori && foryou != null) {
+            item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, foryou.total).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
+            if (lavoriOpen) {
+                val zone = java.time.ZoneId.systemDefault()
+                val loose = placed!!.loose
+                val rows = loose.ok + loose.outside.take(2) + loose.claude.take(1)
+                // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli.
+                rows.forEachIndexed { i, r ->
+                    // La chiave dell'agenda è «» con un relay vecchio: mai due schede con la stessa chiave nella lista.
+                    val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
+                    item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
+                }
+                item(key = "lv-all") {
+                    Box(moving()) {
+                        Row(Modifier.fillMaxWidth().handCursor().clickable(onClick = onLavori).padding(horizontal = 4.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(lavoriLine ?: stringResource(R.string.lavori_all), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f))
+                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2)
+                        }
+                    }
+                }
+            }
+        }
+        if (nightDate != null) {
+            item(key = "sec-night") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_night), null, nightOpen) { nightOpen = !nightOpen; save("night", nightOpen) } } }
+            if (nightOpen) item(key = "night-box") { Box(moving()) { NightHomeCard(nightDate, nightPage, onNight) } }
         }
         // «Fuori dalle sessioni» (mockup A, Franz 03/10 22:34): un titolo vero che separa le sessioni dal resto, poi le
         // categorie con icona e conteggio, dalla più urgente; ognuna nella sua card.
