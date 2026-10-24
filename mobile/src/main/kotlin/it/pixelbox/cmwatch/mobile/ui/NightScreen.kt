@@ -262,7 +262,7 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
     Column(
         // Franz 24/10 08:42: «ogni scheda deve essere cliccabile e portarmi alla sessione che ha lavorato»: il tocco apre la
         // sessione (c.chat); il chevron apre i passi. Senza sessione apribile il tocco apre i passi come prima.
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).handCursor().clickable { val sid = c.sid; when { c.chat != null -> onChat(c.chat); sid != null -> onTranscript(c.title, sid); else -> onToggle() } }
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).handCursor().clickable { val chat = c.chat; val sid = c.sid; when { chat != null -> onChat(chat); sid != null -> onTranscript(c.title, sid); else -> onToggle() } }
             .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {

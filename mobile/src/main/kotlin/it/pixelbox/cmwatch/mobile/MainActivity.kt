@@ -234,7 +234,7 @@ class MainActivity : ComponentActivity() {
         var nightOpen by rememberSaveable { mutableStateOf(false) }
         // Contratto 1.82: le conversazioni chiuse aperte dalla Notte, per nome mostrato: si leggono per sid, in sola lettura.
         val sidOf = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
-        fun transcriptSid(name: String): String? = sidOf[name]?.takeIf { app.repo.snapshot.value.state?.sessions?.none { s -> s.name == name && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE } != false }
+        fun transcriptSid(name: String): String? = sidOf[name]?.takeIf { app.repo.snapshot.value.state?.sessions?.none { s -> s.name == name && s.state != SessionState.GONE } != false }
         // «Parlane con la master» (piano del 09/10): il testo da mettere nel campo della master, poi la sua chat aperta.
         var talkDraft by rememberSaveable { mutableStateOf<String?>(null) }
         // Il tocco sul testo del mini-controller riporta alla sessione da cui legge; la master si apre nella home.
