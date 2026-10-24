@@ -195,7 +195,7 @@
   {#if dragging}<div class="dropzone">{t.dropHere}</div>{/if}
   <Header {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} onChanges={onChanges ? () => (changesOpen = true) : null} />
   {#if elsewhere}<ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} />{/if}
-  {#if s.name === MASTER && conversation}<button class="tohome" onclick={() => (conversation = false)}>{t.home}</button>{/if}
+  <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
   <div class="lines" class:dots={home} bind:this={list}>
     {#if home}
@@ -306,10 +306,7 @@
   .chat.master > :global(.bar) { margin-top: 10px; padding-top: 10px; border-radius: 26px 26px 0 0; background: var(--master-high); }
   .chat { display: flex; flex-direction: column; height: 100%; min-width: 0; position: relative; container-type: inline-size; }
   .dropzone { position: absolute; inset: 8px; z-index: 20; display: grid; place-items: center; border: 2px dashed color-mix(in srgb, var(--icon) 60%, transparent); border-radius: 24px; background: rgb(0 0 0 / .6); color: var(--icon); font-weight: 500; pointer-events: none; }
-  .tohome { align-self: flex-start; margin: 8px 12px 0; color: var(--icon); padding: 6px 12px; border-radius: 16px; }
-  .tohome:hover { background: var(--surface); }
   /* Gli hover nella master: un passo sopra il suo fondo celeste, non il grigio delle altre sessioni (Franz, 07/10 14:49). */
-  .chat.master .tohome:hover { background: var(--master-high); }
   .chat.master > :global(header .ib:hover), .chat.master > :global(header .ctxb:not(:disabled):hover),
   .chat.master :global(.bar :is(.plus, .use, .chip, .sugrow):hover), .chat.master .lines :global(.sm:hover) { background: var(--master-highest); }
   /* La griglia di puntini dietro la casa della master (TechStyle.dotGrid): un'immagine ripetuta, niente ridisegni. */

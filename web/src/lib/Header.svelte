@@ -60,20 +60,41 @@
   let modelW = $state(0)
   let ctxW = $state(0)
   const formW = $state<Record<QuotaForm, number>>({ full: 0, short: 0, tiny: 0 })
+  // Le larghezze intere di modello e contesto: misurate quando la pillola è nella forma lunga, così accorciarla non cambia
+  // il conto che ha deciso di accorciarla.
+  let modelFullW = $state(0)
+  let ctxFullW = $state(0)
+  let effW = $state(0)
+  let ctxPctW = $state(0)
+  let ctxLongW = $state(0)
   const fixed = $derived.by(() => {
     const items = (inRow ? 1 : 0) + 3 + (s.context != null ? 1 : 0) + 1
-    return (inRow ? 2 + 36 : 16) + (items - 1) * (inRow ? 6 : 8) + modelW + (s.context != null ? ctxW : 0) + 44
+    return (inRow ? 2 + 36 : 16) + (items - 1) * (inRow ? 6 : 8) + modelFullW + (s.context != null ? ctxFullW : 0) + 44
   })
-  // Franz, 24/10 18:23: «1 file · +164 −0» accanto al modello quando ci sta, con la quota nella forma più lunga e, sulla
-  // colonna larga, il nome intero; altrimenti nella sua riga sotto le pillole.
+  // Franz, 24/10 18:23 e 18:58: «7 file · +161 −14» nella riga del modello quando ci sta, accorciando quello che serve:
+  // prima la quota (forma corta, poi senza l'ora), poi la pillola senza effort, poi il contesto senza «ctx». Sulla colonna
+  // larga il nome resta intero. Se non ci sta neanche così, nella sua riga sotto le pillole.
   let chW = $state(0)
   let nameW = $state(0)
-  const chInline = $derived(!!changes && !changesMenu && width > 0 && chW > 0 &&
-    fixed + (quota?.h5 != null && width >= 300 ? formW.full : 0) + (wide ? 26 + 12 + nameW : 0) + (inRow ? 6 : 8) + chW <= width)
+  const chLevel = $derived.by(() => {
+    if (!changes || changesMenu || width === 0 || chW === 0 || modelFullW === 0) return -1
+    const q = quota?.h5 != null && width >= 300
+    // 16 px di margine: le pillole accorciate non calano esattamente quanto il testo tolto, e la riga non deve sbordare.
+    const base = fixed + (wide ? 26 + 12 + nameW : 0) + (inRow ? 6 : 8) + chW + 16
+    const cut = (f: QuotaForm, eff: boolean, pct: boolean) => base + (q ? formW[f] : 0) - (eff ? effW : 0) - (pct && s.context != null ? Math.max(0, ctxLongW - ctxPctW) : 0)
+    const steps: [QuotaForm, boolean, boolean][] = [['full', false, false], ['short', false, false], ['tiny', false, false], ['tiny', true, false], ['tiny', true, true]]
+    return steps.findIndex(([f, e, c]) => cut(f, e, c) <= width)
+  })
+  const chInline = $derived(chLevel >= 0)
+  const noEffort = $derived(chLevel >= 3)
+  const ctxPct = $derived(chLevel >= 4)
+  $effect(() => { if (!noEffort && modelW) modelFullW = modelW })
+  $effect(() => { if (!ctxPct && !compact && ctxW) ctxFullW = ctxW })
   const quotaForm = $derived.by<QuotaForm>(() => {
     if (width === 0) return 'full'
-    const used = fixed + (chInline ? (inRow ? 6 : 8) + chW : 0)
-    return (['full', 'short'] as const).find(f => used + formW[f] <= width) ?? 'tiny'
+    // Col chip nella riga la quota è quella scelta insieme al chip, non una più lunga.
+    if (chInline) return (['full', 'short'] as const)[chLevel] ?? 'tiny'
+    return (['full', 'short'] as const).find(f => fixed + formW[f] <= width) ?? 'tiny'
   })
   const forms: QuotaForm[] = ['full', 'short', 'tiny']
   // Una colonna molto stretta: «62%» senza «ctx», così il menu ⋮ resta in vista.
@@ -147,7 +168,7 @@
       oncontextmenu={(e) => { if (glyph(s.permission_mode) !== 'none') { e.preventDefault(); permTip = true } }}
       onpointerdown={(e) => { if (e.pointerType !== 'mouse' && glyph(s.permission_mode) !== 'none') holdTimer = setTimeout(() => { held = true; permTip = true }, 500) }}
       onpointerup={() => clearTimeout(holdTimer)} onpointerleave={() => clearTimeout(holdTimer)}>
-      <span class="lbl">{[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}</span>
+      <span class="lbl">{[shortModel(model) ?? t.modelTitle, noEffort ? null : effort].filter(Boolean).join(' · ')}</span>
       <!-- Il segno della modalità dei permessi (mockup del 14/10); il nome e la spiegazione passandoci sopra. -->
       {#if glyph(s.permission_mode) !== 'none'}<span class="pm" title={permTitle}><PermGlyph g={glyph(s.permission_mode)} /></span>{/if}
       {#if tunable}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z" fill="var(--text2)" /></svg>{/if}
@@ -159,6 +180,7 @@
     {/if}
     {#if chInline && changes}{@render changesPill(changes)}{/if}
     {#if wide}<span class="ghost" aria-hidden="true"><span class="gname" bind:offsetWidth={nameW}>{s.name}</span></span>{/if}
+    <span class="ghost" aria-hidden="true"><span class="gl" bind:offsetWidth={effW}>{effort ? ` · ${effort}` : ''}</span>{#if s.context != null}<span class="gl" bind:offsetWidth={ctxLongW}>{t.ctx(s.context)}</span><span class="gl" bind:offsetWidth={ctxPctW}>{`${s.context}%`}</span>{/if}</span>
     {#if !wide}<span class="sp"></span>{/if}
     <!-- In una colonna stretta la quota lascia il posto a modello, contesto e menu (è anche nella home). -->
     {#if quota?.h5 != null && (width === 0 || width >= 300)}
@@ -177,7 +199,7 @@
     {#if s.context != null}
       <button class="mpill" bind:offsetWidth={ctxW} disabled={!tunable} onclick={() => ctx?.showModal()}>
         <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="7.5" class="trk" /><circle cx="10" cy="10" r="7.5" pathLength="47.12" stroke-dasharray={arc(s.context)} style="stroke:{ring[tone(s.context)]}" class="arc" /></svg>
-        <span>{compact ? `${s.context}%` : t.ctx(s.context)}</span>
+        <span>{compact || ctxPct ? `${s.context}%` : t.ctx(s.context)}</span>
       </button>
     {/if}
     <span class="anchor">
@@ -310,11 +332,12 @@
 <CloseDialog bind:this={closer} onConfirm={() => onCmd('slash', 'exit')} />
 
 <style>
-  header { border-bottom: 1px solid var(--line); padding: 2px 0 8px; background: var(--bg); }
+  header { border-bottom: 1px solid var(--line); padding: 2px 0 6px; background: var(--bg); }
   /* Senza note sotto le pillole lo stesso margine di sopra, così stanno al centro della barra, come nell'app (Franz, 10/10
      14:32; sulla web 12/10 11:11: «dovrebbe essere un po' meno alta»). */
   header.bare { padding-bottom: 2px; }
-  .row { display: flex; align-items: center; gap: 8px; padding: 0 0 0 16px; min-height: 48px; }
+  /* Franz 24/10 18:58: «header troppo alto»: la riga delle pillole da 48 a 42 px, le pillole restano alte 31-33. */
+  .row { display: flex; align-items: center; gap: 8px; padding: 0 0 0 16px; min-height: 42px; }
   .row:has(.back) { padding-left: 2px; gap: 6px; }
   .lead { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
   .row.top { padding-left: 2px; gap: 6px; min-height: 44px; }
@@ -408,6 +431,7 @@
   .chrow { display: flex; padding: 4px 0 6px 16px; }
   .mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--icon); border: 2px solid var(--bg); }
   .gname { font-size: 19px; font-weight: 600; white-space: nowrap; }
+  .gl { font-size: 13px; font-weight: 500; white-space: pre; }
   .cpill { flex: none; display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--text); }
   .cpill:not(:disabled):hover { filter: brightness(1.2); }
   .cpill:disabled { cursor: default; }
