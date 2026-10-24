@@ -67,6 +67,16 @@ class SummaryListTest {
         }
     }
 
+    // Contratto 1.83 (24/10): le domande dei server MCP in cima alla home, il modulo con i quattro tipi (progetto scelto,
+    // titolo troppo corto) e il link da aprire.
+    @Test fun summaryWithElicitations() = paparazzi.snapshot {
+        val idle = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())
+        val now = idle.elicitations[0].askedAt + 18
+        CmPhoneTheme(still = true) {
+            Column(Modifier.background(CmColors.bg)) { SummaryList(model(idle), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = now, elicitations = idle.elicitations) }
+        }
+    }
+
     // P6 (21/10): in cima alla home la card «Aggiornamento disponibile · Installa» per una release nuova su GitHub.
     @Test fun summaryWithUpdate() = paparazzi.snapshot {
         val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("impegni-2026-10-22", "Notte 22/10", st.ts - 2 * 3600 - 300, true, "https://example.com/mobile-release.apk", 68813846, null, "")

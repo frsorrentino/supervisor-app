@@ -1138,4 +1138,25 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_home_line">Tutti i lavori · in corso %1$d · stanotte %2$d · fatto oggi %3$d</string>
     <string name="lavori_all">Tutti i lavori</string>
     <string name="lavori_done_prompt">Fatto: %1$s. Riprendi %2$s</string>
+    <!-- Contratto 1.83: le domande dei server MCP (elicitation) -->
+    <string name="elicit_meta">%1$s · torna al terminale fra %2$s</string>
+    <string name="elicit_send">Invia</string>
+    <string name="elicit_decline">Rifiuta</string>
+    <string name="elicit_yes">Sì</string>
+    <string name="elicit_no">No</string>
+    <string name="elicit_open">Apri</string>
+    <string name="elicit_link_note">Accedi nel browser, poi la sessione continua dal terminale.</string>
+    <string name="elicit_required">Obbligatorio</string>
+    <string name="elicit_not_number">Serve un numero</string>
+    <string name="elicit_not_whole">Serve un numero intero</string>
+    <string name="elicit_not_option">Scegli una delle opzioni</string>
+    <string name="elicit_length">Da %1$d a %2$d caratteri</string>
+    <string name="elicit_length_min">Almeno %1$d caratteri</string>
+    <string name="elicit_length_max">Al massimo %1$d caratteri</string>
+    <string name="elicit_range">Fra %1$s e %2$s</string>
+    <string name="elicit_range_min">Almeno %1$s</string>
+    <string name="elicit_range_max">Al massimo %1$s</string>
+    <string name="elicit_answered">Risposta mandata</string>
+    <string name="elicit_refused">Risposta non accettata</string>
+    <string name="notif_elicit">%1$s chiede</string>
 </resources>

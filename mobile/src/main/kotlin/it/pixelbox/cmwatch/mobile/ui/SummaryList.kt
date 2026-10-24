@@ -112,6 +112,9 @@ fun SummaryList(
     justClosed: Pair<it.pixelbox.cmwatch.contract.Session, String>? = null,
     /** La sessione chiusa da una card, finché non esce dallo stato o il PC rifiuta (Franz 24/10 13:20: «nessun feedback»). */
     closing: String? = null,
+    /** Contratto 1.83: le domande aperte dei server MCP, in cima; `onElicit` manda la risposta (action, content). */
+    elicitations: List<it.pixelbox.cmwatch.contract.Elicitation> = emptyList(),
+    onElicit: (it.pixelbox.cmwatch.contract.Elicitation, String, Map<String, String?>) -> Unit = { _, _, _ -> },
     /** La scheda Stanotte con i lavori della coda (mockup approvato l'08/10 alle 20:43); null = la riga di prima. */
     tonight: it.pixelbox.cmwatch.rules.TonightCard.Model? = null,
     /**
@@ -195,6 +198,8 @@ fun SummaryList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }
+        // Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto.
+        elicitations.forEach { e -> item(key = "elicit-${e.id}") { Box(moving()) { ElicitationCard(e, now, onElicit) } } }
         if (attention.isNotEmpty()) item(key = "attention-banner") {
             Box(moving()) { AttentionBanner(attention) { sessionsOpen = true; save("sessions", true); onAttention() } }
         }

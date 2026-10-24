@@ -38,6 +38,8 @@ enum class EventKind {
      * bloccante), `ref` = la sessione; `attention_reminder` dopo 10 e 30 minuti, `ref` = il ref della voce, con `attention_kind`.
      */
     @SerialName("needs_you") NEEDS_YOU, @SerialName("turn_blocking") TURN_BLOCKING, @SerialName("attention_reminder") ATTENTION_REMINDER,
+    /** Contratto 1.83: un server MCP chiede qualcosa (elicitation); title = server, body = domanda, ref = id della domanda. */
+    @SerialName("elicitation") ELICITATION,
     /** Contratto 1.76: impegni fermi da più di `tasks.stall_hours` senza un passo; `ref` = il primo compito, `session` = a chi tocca, una riga per compito nel body. */
     @SerialName("task_stalled") TASK_STALLED,
 }
@@ -134,6 +136,11 @@ enum class CmdOp {
     @SerialName("done") DONE,
     /** Contratto 1.80: il tasto «Fatto» su una voce di «Serve te»: `kind` della voce, `arg` = il suo ref, `since` per una ferma del turno. */
     @SerialName("attention_done") ATTENTION_DONE,
+    /**
+     * Contratto 1.83: la risposta a una domanda di un server MCP. `session`, `arg` = id della domanda, `action` = accept |
+     * decline | cancel, `content` = {key: valore} (per choice il value, i numeri come numeri). Esito «answered <server> (<id>)».
+     */
+    @SerialName("elicit") ELICIT,
 }
 
 /**
@@ -256,6 +263,28 @@ enum class CmdOp {
 )
 
 /** Contratto 1.37: un compito del registro che aspetta l'ok; `deploy` = esce in produzione. */
+/**
+ * Contratto 1.83: una domanda di un server MCP a metà di uno strumento (elicitation). `mode` form = un modulo di `fields`;
+ * url = un link da aprire (accesso nel browser), a cui il telefono non risponde. Dopo `expires_at` torna al terminale.
+ */
+@Serializable data class Elicitation(
+    val id: String, val session: String, val server: String, val message: String, val mode: String,
+    @SerialName("asked_at") val askedAt: Long, @SerialName("expires_at") val expiresAt: Long,
+    val url: String? = null, val fields: List<ElicitField>? = null,
+)
+
+/** Un campo del modulo: `kind` choice (`options`), boolean, text (lunghezze e `format`), number o integer (`min`, `max`). */
+@Serializable data class ElicitField(
+    val key: String, val title: String, val required: Boolean = false, val kind: String,
+    val description: String? = null, @SerialName("default") val defaultValue: kotlinx.serialization.json.JsonElement? = null,
+    val options: List<ElicitOption>? = null,
+    @SerialName("min_length") val minLength: Int? = null, @SerialName("max_length") val maxLength: Int? = null, val format: String? = null,
+    val min: Double? = null, val max: Double? = null,
+)
+
+/** Un tasto di un campo choice: si manda `value`, si mostra `label`. */
+@Serializable data class ElicitOption(val value: String, val label: String)
+
 @Serializable data class Approval(
     val task: String, val title: String, val what: String? = null, val where: String? = null, val deploy: Boolean = false,
     @SerialName("requested_at") val requestedAt: Long = 0,
@@ -356,6 +385,8 @@ enum class CmdOp {
     val recurring: List<Recurring>? = null,
     /** Contratto 1.37: i compiti che aspettano l'ok, dal più vecchio; vuota con un relay precedente. */
     val approvals: List<Approval> = emptyList(),
+    /** Contratto 1.83: le domande aperte dei server MCP, dalla più vecchia; assente = nessuna. */
+    val elicitations: List<Elicitation> = emptyList(),
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
     val commitments: List<Commitment>? = null,
 )
@@ -500,6 +531,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val choice: String? = null,
+    /** Contratto 1.83, `elicit`: le risposte del modulo, {key: valore}. Assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val content: kotlinx.serialization.json.JsonObject? = null,
 )
 
 /**

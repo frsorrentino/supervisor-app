@@ -6,6 +6,12 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -143,6 +149,41 @@ class ContractTest {
         assertFalse(ContractJson.json.encodeToString(Cmd("c2", CmdOp.APPROVE, null, "t", 1, "phone", text = "ok")).contains("choice"))
     }
 
+    /** Contratto 1.83 (24/10): le domande dei server MCP (elicitation) in /state, l'evento e l'op `elicit`. */
+    @Test fun elicitations() {
+        val st = ContractJson.decodeState(Fixtures.stateIdle)
+        assertTrue("elicit" in st.ops.orEmpty())
+        val (form, link) = st.elicitations
+        assertEquals("issue-tracker", form.server); assertEquals("form", form.mode); assertNull(form.url)
+        assertEquals(listOf("choice", "boolean", "text", "integer"), form.fields.orEmpty().map { it.kind })
+        val project = form.fields!!.first()
+        assertEquals(listOf("DOCS", "SHOP", "OPS"), project.options!!.map { it.value }); assertEquals("Shop", project.options!![1].label)
+        assertTrue(project.required); assertEquals(false, form.fields!![1].defaultValue?.jsonPrimitive?.boolean)
+        assertEquals(3, form.fields!![2].minLength); assertEquals(80, form.fields!![2].maxLength); assertEquals("One line for the issue list", form.fields!![2].description)
+        assertEquals(1.0, form.fields!![3].min); assertEquals(13.0, form.fields!![3].max)
+        assertEquals(120, form.expiresAt - form.askedAt)
+        assertEquals("url", link.mode); assertEquals("https://www.figma.com/oauth?client_id=demo", link.url); assertNull(link.fields)
+        // Senza domande il campo manca: lista vuota, come prima della 1.83.
+        assertTrue(ContractJson.decodeState(Fixtures.stateQuestion).elicitations.isEmpty())
+        val ev = ContractJson.json.decodeFromString(ListSerializer(Event.serializer()), Fixtures.events).single { it.kind == EventKind.ELICITATION }
+        assertEquals("issue-tracker", ev.title); assertEquals("e-4f1c2a9b7d30", ev.ref)
+        val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
+        val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
+        val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+        val el = cmds.filter { it.op == CmdOp.ELICIT }
+        assertEquals(listOf("accept", "accept", "decline"), el.map { it.action })
+        assertEquals("SHOP", el[0].content!!.getValue("project").jsonPrimitive.content)
+        assertEquals(3, el[0].content!!.getValue("estimate").jsonPrimitive.int)
+        assertNull(el[2].content)
+        assertEquals("answered issue-tracker (e-4f1c2a9b7d30)", results.first { it.id == el[0].id }.text)
+        assertFalse(results.first { it.id == el[1].id }.ok)
+        // Il comando codificato porta action e content; senza content la chiave non si scrive.
+        val enc = ContractJson.json.encodeToString(Cmd("c1", CmdOp.ELICIT, "atlas-shop", "e-1", 1, "phone", action = "accept",
+            content = buildJsonObject { put("project", "SHOP"); put("estimate", 3) }))
+        assertTrue(enc, enc.contains("\"op\":\"elicit\"") && enc.contains("\"content\":{\"project\":\"SHOP\",\"estimate\":3}"))
+        assertFalse(ContractJson.json.encodeToString(Cmd("c2", CmdOp.ELICIT, "s", "e-1", 1, "phone", action = "decline")).contains("content"))
+    }
+
     /** Contratto 1.82 (24/10): `session_id` nel rapporto della notte; op `transcript` con `sid` per una conversazione chiusa. */
     @Test fun transcriptBySid() {
         val r = ContractJson.decodeNightReport(Fixtures.read("night-report-sample.json"))
@@ -228,7 +269,7 @@ class ContractTest {
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
         // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
         // Contratto 1.74: due nights, con due notti e vuoto.
-        assertEquals(82, results.size); assertEquals(28, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato
+        assertEquals(85, results.size); assertEquals(30, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)

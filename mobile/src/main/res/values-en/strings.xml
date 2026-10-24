@@ -1119,4 +1119,25 @@ It starts at your last message to the master.</string>
     <string name="lavori_home_line">All the work · in progress %1$d · tonight %2$d · done today %3$d</string>
     <string name="lavori_all">All the work</string>
     <string name="lavori_done_prompt">Done: %1$s. Resume %2$s</string>
+    <!-- Contract 1.83: MCP server questions (elicitation) -->
+    <string name="elicit_meta">%1$s · back to the terminal in %2$s</string>
+    <string name="elicit_send">Send</string>
+    <string name="elicit_decline">Decline</string>
+    <string name="elicit_yes">Yes</string>
+    <string name="elicit_no">No</string>
+    <string name="elicit_open">Open</string>
+    <string name="elicit_link_note">Sign in in the browser, then the session goes on from the terminal.</string>
+    <string name="elicit_required">Required</string>
+    <string name="elicit_not_number">A number is needed</string>
+    <string name="elicit_not_whole">A whole number is needed</string>
+    <string name="elicit_not_option">Pick one of the options</string>
+    <string name="elicit_length">%1$d to %2$d characters</string>
+    <string name="elicit_length_min">At least %1$d characters</string>
+    <string name="elicit_length_max">At most %1$d characters</string>
+    <string name="elicit_range">Between %1$s and %2$s</string>
+    <string name="elicit_range_min">At least %1$s</string>
+    <string name="elicit_range_max">At most %1$s</string>
+    <string name="elicit_answered">Answer sent</string>
+    <string name="elicit_refused">Answer not accepted</string>
+    <string name="notif_elicit">%1$s asks</string>
 </resources>

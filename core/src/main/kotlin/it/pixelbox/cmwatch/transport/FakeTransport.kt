@@ -159,6 +159,8 @@ class FakeTransport(
                 )
             },
             projects = s.projects.map { it.copy(lastUsed = sh(it.lastUsed)) },
+            // Contratto 1.83: nella demo la domanda del server MCP resta aperta un'ora, il tempo di guardarla.
+            elicitations = s.elicitations.map { it.copy(askedAt = it.askedAt + d, expiresAt = now() + 3_600) },
         )
     }
 
@@ -383,6 +385,21 @@ class FakeTransport(
             CmdOp.DONE -> ko("no task registry")
             // Contratto 1.80: la demo non ha voci da chiudere.
             CmdOp.ATTENTION_DONE -> ko("${cmd.kind} ${cmd.arg}: nothing to close")
+            // Contratto 1.83: la domanda del server MCP, controllata come il relay; risposta, esce dallo stato.
+            CmdOp.ELICIT -> {
+                val e = s.elicitations.firstOrNull { it.id == cmd.arg && it.expiresAt > now() }
+                val values = cmd.content.orEmpty().mapValues { (_, v) -> (v as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                val bad = e?.fields.orEmpty().firstOrNull { f -> it.pixelbox.cmwatch.rules.Elicit.problem(f, values[f.key]) != null }
+                when {
+                    e == null -> ko("${cmd.arg}: no question waiting")
+                    e.mode == "url" && cmd.action == "accept" -> ko("${e.id}: ${e.server} asks to open a link, answer in the terminal")
+                    cmd.action == "accept" && bad != null -> ko("${e.id}: ${bad.key} is not valid")
+                    else -> {
+                        current.value = s.copy(elicitations = s.elicitations - e)
+                        ok("${mapOf("accept" to "answered", "decline" to "declined").getOrElse(cmd.action ?: "") { "cancelled" }} ${e.server} (${e.id})")
+                    }
+                }
+            }
             // Contratti 1.46 e 1.47: la demo ha un'agenda inventata, un gruppo per ognuno di chi deve muoversi, e la cambia
             // con `agenda_set` come il relay (key nuova a ogni modifica, «agenda row changed» con una key vecchia).
             CmdOp.AGENDA -> ok(ContractJson.json.encodeToString(AgendaPage.serializer(), AgendaPage(demoAgenda, owner = "franz")))

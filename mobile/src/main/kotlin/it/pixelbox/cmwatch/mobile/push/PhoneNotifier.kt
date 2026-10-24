@@ -172,6 +172,16 @@ class PhoneNotifier(private val ctx: Context) {
             .setContentIntent(openSession(e.session)).setAutoCancel(true))
     }
 
+    /**
+     * Contratto 1.83: un server MCP chiede qualcosa a metà di uno strumento (titolo il server, testo la domanda). Avviso forte:
+     * dopo 120 s la domanda torna al terminale, e la notifica sparisce con lei.
+     */
+    fun elicitation(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
+        post(("elicit-" + (e.ref ?: e.key)).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(icon(e.kind))
+            .setContentTitle(ctx.getString(R.string.notif_elicit, e.shareTitle)).setContentText(e.shareBody).setStyle(NotificationCompat.BigTextStyle().bigText(e.shareBody))
+            .setTimeoutAfter(ELICIT_TIMEOUT_MS).setContentIntent(openSession(null)).setAutoCancel(true))
+    }
+
     /** Contratto 1.68: la voce è uscita da `state.attention`, la sua notifica e il suo promemoria si chiudono. */
     fun closeAttention(a: it.pixelbox.cmwatch.contract.Attention) {
         val ref = a.ref ?: return
@@ -218,6 +228,8 @@ class PhoneNotifier(private val ctx: Context) {
         const val CH_SOUND = "phone_questions"
         const val CH_QUIET = "phone_quiet"
         const val CH_STRONG = "phone_strong"
+        /** Contratto 1.83: la domanda di un server MCP aspetta il telefono 120 s, poi torna al terminale. */
+        const val ELICIT_TIMEOUT_MS = 125_000L
 
         /** Il codice del tocco: la domanda (apre la coda) e l'esito della stessa sessione hanno PendingIntent distinti. */
         fun openCode(session: String, queue: Boolean): Int = session.hashCode() * 2 + if (queue) 1 else 0

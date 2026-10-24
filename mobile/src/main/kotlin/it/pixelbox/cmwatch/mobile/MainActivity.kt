@@ -889,6 +889,14 @@ class MainActivity : ComponentActivity() {
             if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(R.string.approved), android.widget.Toast.LENGTH_SHORT).show()
             else { okPending.remove(task); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_LONG).show() }
         } }
+        // Contratto 1.83: la risposta a un server MCP. La scheda sparisce subito e torna solo se il relay rifiuta, col motivo.
+        val elicitSent = remember { mutableStateListOf<String>() }
+        val answerElicit: (it.pixelbox.cmwatch.contract.Elicitation, String, Map<String, String?>) -> Unit = { e, action, values -> elicitSent.add(e.id); scope.launch {
+            val id = runCatching { app.repo.elicit(e, action, values) }.getOrNull()
+            val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+            if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(R.string.elicit_answered), android.widget.Toast.LENGTH_SHORT).show()
+            else { elicitSent.remove(e.id); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.elicit_refused), android.widget.Toast.LENGTH_LONG).show() }
+        } }
         val doneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = { c ->
             it.pixelbox.cmwatch.rules.ContextActions.master(state)?.name?.let { m -> sendPrompt(m, getString(R.string.lavori_done_prompt, c.paused?.reason.orEmpty(), c.task)) }
         }
@@ -1441,6 +1449,7 @@ class MainActivity : ComponentActivity() {
                     onClose = { n -> val l = CloseSplash.Leaving(n, System.currentTimeMillis() / 1000, null); leaving = l
                         scope.launch { runCatching { app.repo.command(CmdOp.SLASH, n, "exit", null) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } } },
                     closing = leaving?.name,
+                    elicitations = it.pixelbox.cmwatch.rules.Elicit.open(state, now).filter { e -> e.id !in elicitSent }, onElicit = answerElicit,
                     onFollow = { n, f -> scope.launch { runCatching { app.repo.command(if (f) CmdOp.FOLLOW else CmdOp.UNFOLLOW, n, null) } } },
                     onAskMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.let { m -> { n: String -> if (n != m.name) askMasterAbout(m.name, n) } },
                     now = now,

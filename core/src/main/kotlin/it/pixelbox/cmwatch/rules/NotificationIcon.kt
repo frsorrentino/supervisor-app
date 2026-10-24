@@ -11,7 +11,7 @@ object NotificationIcon {
 
     /** `ok` conta solo per un `task_check` (contratto 1.78, o il «✓» del titolo con un relay precedente). */
     fun of(kind: EventKind, ok: Boolean? = null): Icon = when (kind) {
-        EventKind.QUESTION -> Icon.QUESTION
+        EventKind.QUESTION, EventKind.ELICITATION -> Icon.QUESTION
         EventKind.OUTCOME -> Icon.DONE
         EventKind.TASK_CHECK -> if (ok == false) Icon.CROSS else Icon.CHECK
         EventKind.GONE -> Icon.CROSS

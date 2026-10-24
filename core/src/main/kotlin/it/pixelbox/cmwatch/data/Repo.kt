@@ -208,6 +208,10 @@ class Repo(
     /** Contratto 1.10: «Chat about this». */
     suspend fun chat(session: String) = command(CmdOp.ANSWER, session, it.pixelbox.cmwatch.rules.QuestionRules.CHAT_ARG)
 
+    /** Contratto 1.83: la risposta a una domanda di un server MCP; `values` come nel modulo (`Elicit.content` li tipizza). */
+    suspend fun elicit(e: it.pixelbox.cmwatch.contract.Elicitation, action: String, values: Map<String, String?>) =
+        command(CmdOp.ELICIT, e.session, e.id, action = action, content = if (action == "accept") it.pixelbox.cmwatch.rules.Elicit.content(e, values) else null)
+
     /** Ritorna l'id del comando (uuid): stesso id in Riprova, il PC ignora i duplicati. */
     /** `text`: il primo messaggio di un `launch` (contratto 1.13); per gli altri comandi resta null. */
     /** `voice`, `via`, `confirmations`: contratto 1.42, i comandi della modalità live; null = non scritti. */
@@ -222,6 +226,8 @@ class Repo(
         reopen: Boolean? = null,
         /** Contratto 1.80, `attention_done`: il kind della voce e, per un turn_blocking, il suo since. */
         kind: String? = null, since: Long? = null, choice: String? = null, sid: String? = null,
+        /** Contratto 1.83, `elicit`: le risposte del modulo di un server MCP. */
+        content: kotlinx.serialization.json.JsonObject? = null,
     ): String {
         // Contratto 1.52: la risposta vale per la domanda aperta adesso, anche se parte dalla coda dopo minuti.
         val question = if (op == CmdOp.ANSWER || op == CmdOp.ALLOW_ALL)
@@ -229,7 +235,7 @@ class Repo(
         val cmd = Cmd(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt, reopen = reopen,
-            kind = kind, since = since, choice = choice, sid = sid,
+            kind = kind, since = since, choice = choice, sid = sid, content = content,
         )
         question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {
