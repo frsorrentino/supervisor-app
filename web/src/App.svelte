@@ -34,7 +34,7 @@
   import { t } from './lib/t'
   import HomePane from './lib/HomePane.svelte'
   import DockEmbed from './lib/DockEmbed.svelte'
-  import { dockWanted } from './lib/dockEmbed'
+  import { DOCK_CACHE, dockCacheOf, dockWanted, readDockCache } from './lib/dockEmbed'
   import Lavori from './lib/Lavori.svelte'
   import { NIGHT_TARGET, night as nightCards, setCmd, todayIso } from './lib/recapAgenda'
   import NightAgendaPicker from './lib/NightAgendaPicker.svelte'
@@ -299,6 +299,9 @@
   const embed = /^\/embed(\.html)?$/.test(location.pathname)
   // `/embed?dock=1` (studio-dock-coerente-24-10): la barra della master e il suo foglio, su fondo trasparente, dentro Studio.
   const dock = dockWanted(location.pathname, location.search)
+  // Dentro Studio la barra parte dall'ultima vista (dockEmbed.ts), finché il relay non risponde; poi si aggiorna da sé.
+  const dockCached = dock ? readDockCache<Session, TranscriptEntry>(load(DOCK_CACHE)) : null
+  $effect(() => { const e = transcripts[MASTER]; if (dock && master && e) save(DOCK_CACHE, dockCacheOf(master, e)) })
   let masterOpen = $state(linked === MASTER || embed)
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
@@ -988,7 +991,7 @@
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
 
 {#if dock}
-  <DockEmbed master={master ?? ghost(MASTER)} entries={transcripts[MASTER] ?? []} onSpeak={(x) => toggle(x, MASTER)}>
+  <DockEmbed master={master ?? dockCached?.master ?? ghost(MASTER)} entries={transcripts[MASTER] ?? dockCached?.entries ?? []} onSpeak={(x) => toggle(x, MASTER)}>
     {#snippet chat()}{@render chatOf(MASTER, true)}{/snippet}
   </DockEmbed>
 {:else if embed}

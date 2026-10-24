@@ -14,3 +14,22 @@ export const dragHeight = (start: number, dy: number, closed: number, open: numb
 
 /** Lasciata la barra: come MasterDock nella web app, oltre 40 px in su apre e oltre 40 px in giù chiude. */
 export const settle = (expanded: boolean, dy: number) => (expanded ? dy <= 40 : dy < -40)
+
+// L'ultima barra vista, per disegnarla appena la pagina parte (Franz dal telefono, 24/10 13:47): a ogni cambio di pagina
+// Studio ricarica il riquadro, e il relay risponde dopo qualche secondo. Basta la sessione e l'ultima risposta della master,
+// che dà la riga dell'esito (masterHome.hero); il relay la sostituisce appena arriva.
+export const DOCK_CACHE = 'cm.dock_bar'
+export type DockCache<S, E> = { master: S; entries: E[] }
+
+export function dockCacheOf<S, E extends { role: string; text?: string | null }>(master: S, entries: E[]): string {
+  const last = [...entries].reverse().find(e => e.role !== 'user' && e.role !== 'tool' && e.text?.trim())
+  return JSON.stringify({ master, entries: last ? [last] : [] })
+}
+
+export function readDockCache<S, E>(raw: string | null): DockCache<S, E> | null {
+  if (!raw) return null
+  try {
+    const c = JSON.parse(raw)
+    return c && typeof c === 'object' && c.master && Array.isArray(c.entries) ? c : null
+  } catch { return null }
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { STUDIO, dockMessage, dockWanted, dragHeight, settle } from './dockEmbed'
+import { STUDIO, dockCacheOf, dockMessage, dockWanted, dragHeight, readDockCache, settle } from './dockEmbed'
 
 describe('/embed?dock=1, la master dentro Studio (studio-dock-coerente-24-10)', () => {
   it('il messaggio per Studio: tipo cm-dock, stato, altezza in px interi', () => {
@@ -28,5 +28,15 @@ describe('/embed?dock=1, la master dentro Studio (studio-dock-coerente-24-10)', 
     expect(settle(true, 41)).toBe(false)
     expect(settle(true, 30)).toBe(true)
     expect(settle(true, -200)).toBe(true)
+  })
+
+  it("la cache della barra tiene la sessione e solo l'ultima risposta della master", () => {
+    const m = { name: 'master', context: 34 }
+    const raw = dockCacheOf(m, [{ role: 'assistant', text: 'Esito: vecchio' }, { role: 'assistant', text: 'Esito: nuovo' }, { role: 'user', text: 'ok' }, { role: 'tool', text: 'x' }])
+    expect(readDockCache(raw)).toEqual({ master: m, entries: [{ role: 'assistant', text: 'Esito: nuovo' }] })
+    expect(readDockCache(dockCacheOf(m, []))).toEqual({ master: m, entries: [] })
+    expect(readDockCache(null)).toBeNull()
+    expect(readDockCache('{rotto')).toBeNull()
+    expect(readDockCache('{"entries":[]}')).toBeNull()
   })
 })
