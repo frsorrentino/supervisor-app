@@ -158,6 +158,7 @@ fun SummaryList(
     var otherOpen by remember { section("other") }
     var nightOpen by remember { section("night") }
     var lavoriOpen by remember { section("lavori") }
+    var laterOpen by remember { mutableStateOf(false) }
     fun save(key: String, v: Boolean) { runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState(scrollMemo?.get(0) ?: 0, scrollMemo?.get(1) ?: 0)
     if (scrollMemo != null) androidx.compose.runtime.LaunchedEffect(listState) {
@@ -244,16 +245,26 @@ fun SummaryList(
         }
         // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
         if (showLavori && foryou != null) {
-            item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, foryou.total).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
+            item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, placed?.loose?.ok?.size ?: 0).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
             if (lavoriOpen) {
                 val zone = java.time.ZoneId.systemDefault()
                 val loose = placed!!.loose
-                val rows = loose.ok + loose.outside.take(2) + loose.claude.take(1)
+                // Franz 24/10 19:46 (B1): in alto solo gli ok che fermano un lavoro; il resto in «Più tardi», chiuso.
+                val laterRows = loose.outside + loose.claude
+                val rows = loose.ok + if (laterOpen) laterRows else emptyList()
                 // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli.
                 rows.forEachIndexed { i, r ->
                     // La chiave dell'agenda è «» con un relay vecchio: mai due schede con la stessa chiave nella lista.
                     val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
                     item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
+                }
+                if (laterRows.isNotEmpty()) item(key = "lv-later") {
+                    Box(moving()) {
+                        Row(Modifier.fillMaxWidth().handCursor().clickable { laterOpen = !laterOpen }.padding(horizontal = 4.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.lavori_later, laterRows.size), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f))
+                            Icon(if (laterOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = CmColors.text2)
+                        }
+                    }
                 }
                 item(key = "lv-all") {
                     Box(moving()) {
@@ -386,10 +397,21 @@ private fun SummaryCard(
         SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g ->
             Text(g, style = MaterialTheme.typography.bodySmall, color = CmColors.briefLabel, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
         }
+        // Franz 24/10 19:46 (B2): l'esito di una ferma più vecchio di 6 ore si spegne e dice da quante ore.
+        val old = Summary.staleHours(r, now)
         if (body.isNotBlank()) Text(
-            body, style = MaterialTheme.typography.bodyMedium, color = if (waiting || open) CmColors.text else CmColors.text2,
+            if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
+                append(body); append("  ")
+                withStyle(androidx.compose.ui.text.SpanStyle(color = CmColors.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
+            },
+            style = MaterialTheme.typography.bodyMedium.copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
+            color = if (waiting || open) CmColors.text else if (old != null) CmColors.text2.copy(alpha = 0.75f) else CmColors.text2,
             maxLines = if (open) Int.MAX_VALUE else 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
         )
+        // Contratto 1.84: la richiesta di un'altra sessione per un compito di questa dice chi la fa.
+        if (waiting) Summary.askedFor(s)?.let { a ->
+            Text(if (a.task != null) stringResource(R.string.asked_for_task, a.from, a.task!!) else stringResource(R.string.asked_for, a.from), style = MonoSmall)
+        }
         if (open) {
             details(s).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
         }

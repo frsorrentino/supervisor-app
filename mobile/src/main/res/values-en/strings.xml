@@ -1059,6 +1059,12 @@ It starts at your last message to the master.</string>
     <string name="menu_lavori">Work</string>
     <string name="menu_lavori_sub">For you, in progress, tonight, done</string>
     <string name="lavori_for_you_n">%1$d for you</string>
+    <string name="lavori_later">Later · %1$d</string>
+    <string name="today_usage_label">Today · quota per session</string>
+    <string name="today_usage_others">%1$d more</string>
+    <string name="stale_ago">%1$d h ago</string>
+    <string name="asked_for">asked by %1$s</string>
+    <string name="asked_for_task">asked by %1$s for %2$s</string>
     <string name="lavori_foryou">For you</string>
     <string name="lavori_foryou_expl">Only what waits for you: an ok to give or something to do outside the chat. Every row has its button.</string>
     <string name="lavori_ok">Ok to give</string>

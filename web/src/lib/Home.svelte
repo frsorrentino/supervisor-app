@@ -10,7 +10,7 @@
   import { cleanupOf } from './masterService'
   import { since } from './durations'
   import { details as lavoriDetails, doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, place as lavoriPlace, shortTitle, type ForYou as LavoriRow } from './lavori'
-  import { attachedTasks, build, MASTER, type Group, type Row } from './summary'
+  import { askedFor, attachedTasks, build, MASTER, staleHours, type Group, type Row } from './summary'
   import { doneOf, type Done } from './queue'
   import { expiry } from './durations'
   import { groups as deskGroups } from './tablet'
@@ -151,7 +151,10 @@
   // in Lavori restano quelli senza sessione, in una lista compatta (titolo breve, riferimento in mono, tasto piccolo).
   const placed = $derived(fy ? lavoriPlace(fy, new Set(model.rows.map(r => r.session.name)), attached) : null)
   const looseOk = $derived(placed?.loose.ok ?? [])
-  const looseRows = $derived(placed ? [...placed.loose.ok, ...placed.loose.outside.slice(0, 2), ...placed.loose.claude.slice(0, 1)] : [])
+  // Franz 24/10 19:46 (B1): in alto solo gli ok che fermano un lavoro; le cose fuori dalla chat e da avviare in «Più tardi».
+  let laterOpen = $state(false)
+  const laterRows = $derived(placed ? [...placed.loose.outside, ...placed.loose.claude] : [])
+  const looseRows = $derived(placed ? [...placed.loose.ok, ...(laterOpen ? laterRows : [])] : [])
   const fyShort = (r: LavoriRow) => shortTitle(r.title, r.agenda?.short ?? r.commitment?.short)
   function fyAct(r: LavoriRow) { if (r.kind === 'outside') fyOutside(r); else if (r.kind === 'claude' && r.agenda) onStart(doIt(r.agenda)) }
   const hasOk = $derived(looseOk.some(r => r.approval))
@@ -268,7 +271,8 @@
           </button>
         </div>
         {#if s.goal?.text}<div class="goal">{t.goal}: {s.goal.text}</div>{/if}
-        {#if x.body}<p class="body" class:full={open} class:strong={group === 'waiting' || open}>{x.body}</p>{/if}
+        {#if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:strong={group === 'waiting' || open} class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
+        {#if group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
         {#if group === 'waiting' && !s.question}
           {@const d = doneOf(s)}
           <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. -->
@@ -367,7 +371,7 @@
     {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}</div>{/if}
   {/if}
 {#if showLavori && fy}
-  {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(fy.total))}
+  {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(looseOk.length))}
   {#if open.lavori}
     {#each looseRows as r, i (workKey(r, i))}
       {@const k = workKey(r, i)}
@@ -394,6 +398,10 @@
         </div></div>
       </div>
     {/each}
+    {#if laterRows.length}
+      <button class="all later" aria-expanded={laterOpen} onclick={() => (laterOpen = !laterOpen)}><span>{t.lavoriLater(laterRows.length)}</span>
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d={laterOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+    {/if}
     <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
   {/if}
@@ -560,6 +568,9 @@
   .chev { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .chev:hover { background: var(--surface); }
   .goal { font-size: 12.5px; color: var(--b-label); }
+  /* Franz 24/10 19:46 (B2): un esito di più di 6 ore fa si spegne e dice da quanto. */
+  .body.stale { font-style: italic; opacity: .75; } .body .ago { font: 600 10.5px var(--mono); letter-spacing: .06em; color: var(--b-warn); background: color-mix(in srgb, var(--b-warn) 14%, transparent); border-radius: 999px; padding: 1px 7px; margin-left: 6px; font-style: normal; white-space: nowrap; }
+  .asked { margin: 2px 0 0; }
   .body { font-size: 14px; color: var(--text2); white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: clip; }
   .body.full { display: block; }
   .body.strong { color: var(--text); }

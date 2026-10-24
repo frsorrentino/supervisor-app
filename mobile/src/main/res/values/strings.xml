@@ -1077,6 +1077,12 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="menu_lavori">Lavori</string>
     <string name="menu_lavori_sub">Per te, in corso, stanotte, fatto</string>
     <string name="lavori_for_you_n">%1$d per te</string>
+    <string name="lavori_later">Più tardi · %1$d</string>
+    <string name="today_usage_label">Oggi · quota per sessione</string>
+    <string name="today_usage_others">altre %1$d</string>
+    <string name="stale_ago">%1$d h fa</string>
+    <string name="asked_for">chiede %1$s</string>
+    <string name="asked_for_task">chiede %1$s per %2$s</string>
     <string name="lavori_foryou">Per te</string>
     <string name="lavori_foryou_expl">Solo quello che aspetta te: un ok da dare o una cosa da fare fuori dalla chat. Ogni riga ha il suo tasto.</string>
     <string name="lavori_ok">Ok da dare</string>

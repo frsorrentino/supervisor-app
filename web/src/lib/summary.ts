@@ -84,3 +84,18 @@ export function age(since: number, now: number): string {
   if (s < 86400) return `${Math.round(s / 3600)} h`
   return `${Math.round(s / 86400)} ${DAY}`
 }
+
+/** Franz 24/10 19:46 (B2): l'esito di una sessione ferma più vecchio di 6 ore si spegne e dice da quante ore; null se è fresco. */
+export const STALE_S = 6 * 3600
+export function staleHours(r: Row, now: number): number | null {
+  const o = r.session.outcome
+  if (r.group !== 'still' || !o?.at || now - o.at <= STALE_S) return null
+  return Math.floor((now - o.at) / 3600)
+}
+
+/** Contratto 1.84: la richiesta di un'altra sessione per un compito di questa (`needs_you.from`, `task`); null altrimenti. */
+export function askedFor(s: Session): { from: string; task: string | null } | null {
+  const n = s.needs_you
+  return n?.from && n.from !== s.name ? { from: n.from, task: n.task ?? null } : null
+}
+

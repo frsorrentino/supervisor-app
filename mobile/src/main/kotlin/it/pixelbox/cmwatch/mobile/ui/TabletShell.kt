@@ -219,7 +219,7 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
  * ore non ancora arrivate a puntino, il totale a destra.
  */
 @Composable
-fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>) {
+fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>, usage: it.pixelbox.cmwatch.rules.UsageTodayRules.Rows? = null) {
     val shape = RoundedCornerShape(16.dp)
     val total = bars.sumOf { it.count }
     val peak = it.pixelbox.cmwatch.rules.DayBars.peak(bars).coerceAtLeast(1)
@@ -227,6 +227,13 @@ fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>) {
         Modifier.fillMaxWidth().clip(shape).background(CmColors.surfaceLow).border(1.dp, Color.White.copy(alpha = 0.12f), shape).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // Contratto 1.84 (Franz 24/10 19:46, B5): con `usage_today` al posto del grafico la quota di oggi per sessione.
+        if (usage != null) {
+            Text(stringResource(R.string.today_usage_label).uppercase(), style = MonoLabel)
+            usage.rows.forEach { u -> UsageBar(u.session, u.pct, dim = false) }
+            usage.others?.let { o -> UsageBar(stringResource(R.string.today_usage_others, o.n), o.pct, dim = true) }
+            return@Column
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.tablet_today_label).uppercase(), style = MonoLabel, modifier = Modifier.weight(1f))
             Text(total.toString(), style = Mono.copy(color = CmColors.text))
@@ -251,6 +258,18 @@ fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>) {
         Row(Modifier.fillMaxWidth()) {
             listOf("0", "6", "12", "18").forEach { Text(it, style = Mono.copy(fontSize = 10.sp), modifier = Modifier.weight(1f)) }
         }
+    }
+}
+
+/** Una sessione nella quota di oggi: il nome, la barra, «34 %». */
+@Composable
+private fun UsageBar(name: String, pct: Int, dim: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(name, style = MaterialTheme.typography.bodyMedium, color = CmColors.text, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fillMaxWidth(0.42f))
+        Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(CmColors.briefTrack)) {
+            Box(Modifier.fillMaxWidth((pct.coerceIn(0, 100)) / 100f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(if (dim) CmColors.text2.copy(alpha = 0.5f) else CmColors.briefRing))
+        }
+        Text("$pct %", style = Mono.copy(fontSize = 12.sp), modifier = Modifier.width(40.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
 }
 

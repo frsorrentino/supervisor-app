@@ -1407,7 +1407,7 @@ class MainActivity : ComponentActivity() {
                 // Un account fermo (dato vecchio) non ha il suo riquadro se l'altro è aggiornato, come nella riga in alto
                 // (Franz, 08/10 20:32: «inutile mostrare anche il suo box»).
                 PhoneOverview.lineRings(ov.rings).forEach { r -> TabletQuotaPanel(r, now, dataStale = snap.freshness is Freshness.Stale) }
-                TodayPanel(ov.today)
+                TodayPanel(ov.today, it.pixelbox.cmwatch.rules.UsageTodayRules.rows(st.usageToday))
             }
         }
         // Il cruscotto del tablet (variante B): senza colonne né Registro, Recap e Utilizzo stanno a destra e non nella home.

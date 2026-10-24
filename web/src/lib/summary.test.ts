@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Approval, Commitment, Session, State } from './contract'
-import { attachedTasks, build } from './summary'
+import { askedFor, attachedTasks, build, staleHours } from './summary'
 
 // Gli stessi casi di SummaryTest in Kotlin (la parte degli ok nella scheda).
 const now = 1_000_000
@@ -39,5 +39,16 @@ describe('Summary: gli ok nella scheda della sessione', () => {
     const blocked = build(st({ ...s('master'), turn_blocking: { text: 'ok al push', at: now - 10 } } as Session), [], now, new Set())
     expect(blocked.rows.map(r => [r.session.name, r.text])).toEqual([['master', 'ok al push']])
   })
-})
 
+  // Franz 24/10 19:46 (B2): stati veri.
+  it("l'esito di una ferma oltre 6 ore si spegne e dice da quante ore; una richiesta per un compito dice chi la fa", () => {
+    const old = { ...s('bluey'), outcome: { at: now - 16 * 3600, full: 'release 0.8.57', short: '' } } as unknown as Session
+    const fresh = { ...s('legnaia'), outcome: { at: now - 3600, full: 'tavola', short: '' } } as unknown as Session
+    const m = build(st(old, fresh), [], now, new Set())
+    expect(Object.fromEntries(m.rows.map(r => [r.session.name, staleHours(r, now)]))).toEqual({ bluey: 16, legnaia: null })
+    const asked = { ...s('win:ads-widget'), needs_you: { reason: 'codice di accoppiamento', at: now - 60, task: 'ads-widget-apk-default', from: 'master' } }
+    expect(askedFor(asked)).toEqual({ from: 'master', task: 'ads-widget-apk-default' })
+    expect(askedFor({ ...s('a'), needs_you: { reason: 'x', at: now, from: 'a' } })).toBeNull()
+    expect(build(st(asked), [], now, new Set()).rows[0].group).toBe('waiting')
+  })
+})

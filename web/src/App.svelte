@@ -45,6 +45,7 @@
   import NightPage from './lib/NightPage.svelte'
   import { page as nightPage, showHomeNight, type NightReport } from './lib/night'
   import TodayPanel from './lib/TodayPanel.svelte'
+  import { usageRows } from './lib/usageToday'
   import Search from './lib/Search.svelte'
   import Settings from './lib/Settings.svelte'
   import AddDevice from './lib/AddDevice.svelte'
@@ -981,7 +982,7 @@
 {/snippet}
 
 <!-- Un account fermo (dato vecchio) non ha il suo riquadro se l'altro è aggiornato, come nella riga in alto (Franz, 08/10 20:32). -->
-{#snippet quotaPanels()}{#each overview.rings.some(r => !r.stale) ? overview.rings.filter(r => !r.stale) : overview.rings as r (r.account)}<QuotaPanel ring={r} now={now} />{/each}<TodayPanel bars={overview.today} />{/snippet}
+{#snippet quotaPanels()}{#each overview.rings.some(r => !r.stale) ? overview.rings.filter(r => !r.stale) : overview.rings as r (r.account)}<QuotaPanel ring={r} now={now} />{/each}<TodayPanel bars={overview.today} usage={usageRows(st.usage_today)} />{/snippet}
 
 {#snippet inspector()}
   {@const first = st.sessions.find(x => x.name === cols[0])}

@@ -74,4 +74,20 @@ object Summary {
             master = master,
         )
     }
+
+    /** Franz 24/10 19:46 (B2): l'esito di una sessione ferma più vecchio di 6 ore si spegne e dice da quante ore; null se è fresco. */
+    const val STALE_S = 6 * 3600L
+    fun staleHours(r: Row, now: Long): Long? {
+        val o = r.session.outcome ?: return null
+        if (r.group != Group.STILL || o.at <= 0 || now - o.at <= STALE_S) return null
+        return (now - o.at) / 3600
+    }
+
+    /** Contratto 1.84: la richiesta di un'altra sessione per un compito di questa (`needs_you.from`, `task`); null altrimenti. */
+    data class AskedFor(val from: String, val task: String?)
+    fun askedFor(s: Session): AskedFor? {
+        val n = s.needsYou ?: return null
+        val from = n.from?.takeIf { it.isNotBlank() && it != s.name } ?: return null
+        return AskedFor(from, n.task)
+    }
 }

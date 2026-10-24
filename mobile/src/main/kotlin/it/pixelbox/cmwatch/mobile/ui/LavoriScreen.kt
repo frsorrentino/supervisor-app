@@ -130,12 +130,13 @@ fun LavoriScreen(
             if (header == LavoriHeader.BAR) Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = CmColors.text) }
                 Text(stringResource(R.string.lavori_title), style = MaterialTheme.typography.titleLarge, color = CmColors.text)
-                Text(stringResource(R.string.lavori_for_you_n, fy.total), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                Text(stringResource(R.string.lavori_for_you_n, fy.ok.size), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
             } else if (header == LavoriHeader.DESK) DeskSectionTitle(stringResource(R.string.lavori_title))
         }
         if (left) {
             // ---- Per te ----
-            item("sec-foryou") { HomeSection(stringResource(R.string.lavori_foryou) + " · " + fy.total, null, true) {} }
+            // Franz 24/10 19:46 (B1): in alto solo quello che blocca adesso, gli ok; il resto in «Più tardi», chiuso.
+            item("sec-foryou") { HomeSection(stringResource(R.string.lavori_foryou) + " · " + fy.ok.size, null, true) {} }
             item("expl-foryou") { Expl(stringResource(R.string.lavori_foryou_expl)) }
             if (fy.total == 0) item("foryou-empty") { Expl(stringResource(R.string.lavori_nothing), CmColors.text) }
             if (fy.ok.isNotEmpty()) {
@@ -144,7 +145,9 @@ fun LavoriScreen(
                     item("fy-ok-$i-${r.approval?.task ?: r.commitment?.task}") { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note, choice -> r.approval?.let { a -> onApprove(a.task, note, choice) } } }
                 }
             }
-            if (fy.outside.isNotEmpty()) {
+            val later = fy.outside.size + fy.claude.size
+            if (later > 0) item("fold-later") { Fold(stringResource(R.string.lavori_later, later), "later" in open) { toggle("later") } }
+            if (fy.outside.isNotEmpty() && "later" in open) {
                 item("grp-outside") { GroupHeader(stringResource(R.string.lavori_outside) + " · " + fy.outside.size, CmColors.waiting) }
                 val shown = if ("outside" in open) fy.outside else fy.outside.take(2)
                 shown.forEachIndexed { i, r ->
@@ -157,7 +160,7 @@ fun LavoriScreen(
                 }
                 if (fy.outside.size > 2) item("fold-outside") { Fold(if ("outside" in open) stringResource(R.string.lavori_less) else stringResource(R.string.lavori_more, fy.outside.size - 2), "outside" in open) { toggle("outside") } }
             }
-            if (fy.claude.isNotEmpty()) {
+            if (fy.claude.isNotEmpty() && "later" in open) {
                 item("grp-claude") { GroupHeader(stringResource(R.string.lavori_claude) + " · " + fy.claude.size, CmColors.busy) }
                 val shown = if ("claude" in open) fy.claude else fy.claude.take(2)
                 shown.forEachIndexed { i, r ->

@@ -248,6 +248,8 @@ enum class CmdOp {
     val reason: String, val at: Long = 0,
     /** Contratto 1.80: `until` = c'è una condizione che il relay verifica; `expires_at` = quando scade (epoch s, 24 h senza). */
     val until: Boolean = false, @SerialName("expires_at") val expiresAt: Long? = null,
+    /** Contratto 1.84: `task` = il compito a cui serve, `from` = chi l'ha chiesto quando non è questa sessione. */
+    val task: String? = null, val from: String? = null,
 )
 
 @Serializable data class TurnBlocking(val text: String, val at: Long = 0)
@@ -284,6 +286,9 @@ enum class CmdOp {
 
 /** Un tasto di un campo choice: si manda `value`, si mostra `label`. */
 @Serializable data class ElicitOption(val value: String, val label: String)
+
+/** Contratto 1.84: una sessione nei token di oggi; `share` = la parte sul totale dell'account (0..1). */
+@Serializable data class UsageToday(val session: String, val account: String = "", val tokens: Long = 0, val share: Double = 0.0)
 
 @Serializable data class Approval(
     val task: String, val title: String, val what: String? = null, val where: String? = null, val deploy: Boolean = false,
@@ -387,6 +392,8 @@ enum class CmdOp {
     val approvals: List<Approval> = emptyList(),
     /** Contratto 1.83: le domande aperte dei server MCP, dalla più vecchia; assente = nessuna. */
     val elicitations: List<Elicitation> = emptyList(),
+    /** Contratto 1.84: i token di oggi per sessione, dal più grande; null con un relay precedente. */
+    @SerialName("usage_today") val usageToday: List<UsageToday>? = null,
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
     val commitments: List<Commitment>? = null,
 )

@@ -38,6 +38,7 @@
   const right = $derived(part !== 'left')
   const oldRelay = $derived(st.commitments == null)
   const progressN = $derived(ip.total)
+  const later = $derived(fy.outside.length + fy.claude.length)
   let open = $state<Record<string, boolean>>({})
   const toggle = (k: string) => { open = { ...open, [k]: !open[k] } }
   // Senza una prova da mostrare l'esito in parole, mai il comando del controllo (Franz 24/10 18:36).
@@ -119,24 +120,26 @@
   {#if header === 'bar'}
     <div class="head">
       <button class="back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 12H5M12 19l-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
-      <h2>{t.lavoriTitle}</h2><small>{t.lavoriForYouN(fy.total)}</small>
+      <h2>{t.lavoriTitle}</h2><small>{t.lavoriForYouN(fy.ok.length)}</small>
     </div>
   {:else if header === 'desk'}<h3 class="desk">{t.lavoriTitle.toUpperCase()}<i></i></h3>{/if}
 
   {#if left}
-    <h3 class="sec"><span>{t.lavoriForYou.toUpperCase()} · {fy.total}</span><i></i></h3>
+    <!-- Franz 24/10 19:46 (B1): in alto solo quello che blocca adesso, gli ok; il resto in «Più tardi», chiuso. -->
+    <h3 class="sec"><span>{t.lavoriForYou.toUpperCase()} · {fy.ok.length}</span><i></i></h3>
     <p class="expl">{t.lavoriForYouExpl}</p>
     {#if !fy.total}<p class="expl bright">{t.lavoriNothing}</p>{/if}
     {#if fy.ok.length}
       <h4 class="gh" style="--t:var(--primary)"><span>{t.lavoriOk.toUpperCase()} · {fy.ok.length}</span><i></i></h4>
       {#each fy.ok as r, i (`ok-${i}`)}{@render row(r, r.approval ? t.approve : null, true, () => r.approval && ask(r.approval))}{/each}
     {/if}
-    {#if fy.outside.length}
+    {#if later}{@render fold(t.lavoriLater(later), !!open.later, () => toggle('later'))}{/if}
+    {#if fy.outside.length && open.later}
       <h4 class="gh" style="--t:var(--b-warn)"><span>{t.lavoriOutside.toUpperCase()} · {fy.outside.length}</span><i></i></h4>
       {#each open.outside ? fy.outside : fy.outside.slice(0, 2) as r, i (`out-${i}`)}{@render row(r, t.agendaDone, false, () => outsideClick(r))}{/each}
       {#if fy.outside.length > 2}{@render fold(open.outside ? t.lavoriLess : t.lavoriMore(fy.outside.length - 2), !!open.outside, () => toggle('outside'))}{/if}
     {/if}
-    {#if fy.claude.length}
+    {#if fy.claude.length && open.later}
       <h4 class="gh" style="--t:var(--busy)"><span>{t.lavoriClaude.toUpperCase()} · {fy.claude.length}</span><i></i></h4>
       {#each open.claude ? fy.claude : fy.claude.slice(0, 2) as r, i (`cl-${i}`)}{@render row(r, t.lavoriStart, false, () => r.agenda && onStart(doIt(r.agenda)))}{/each}
       {#if fy.claude.length > 2}{@render fold(open.claude ? t.lavoriLess : t.lavoriMore(fy.claude.length - 2), !!open.claude, () => toggle('claude'))}{/if}

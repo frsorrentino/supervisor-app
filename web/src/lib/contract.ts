@@ -24,7 +24,8 @@ export type Session = {
   at_pc?: boolean
   /** Contratto 1.68: `supervisor needs-you` e il turno finito con una voce bloccante, finché la sessione è ferma. */
   /** Contratto 1.80: `until` = c'è una condizione che il relay verifica; `expires_at` = quando scade (epoch s). */
-  needs_you?: { reason: string; at: number; until?: boolean; expires_at?: number | null } | null; turn_blocking?: { text: string; at: number } | null
+  /** Contratto 1.84: `task` = il compito a cui serve, `from` = chi l'ha chiesto quando non è questa sessione. */
+  needs_you?: { reason: string; at: number; until?: boolean; expires_at?: number | null; task?: string | null; from?: string | null } | null; turn_blocking?: { text: string; at: number } | null
   /** Contratto 1.69: la sessione può arrivare a bypassPermissions. */
   permission_bypass?: boolean
   /** Contratto 1.72: i conteggi delle modifiche della cartella; null fuori da git, senza modifiche o con git fermo. */
@@ -49,6 +50,7 @@ export type NextStep = { text: string; blocking: boolean }
 export type Advice = { model: string; effort: string; reason: string; switch_cost_tokens: number; at: number; source: string; when: 'now' | 'next_task'; differs: boolean }
 /** Contratto 1.37: un compito che aspetta l'ok; `deploy` = esce in produzione. */
 /** Contratto 1.81: `options` = le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
+export type UsageToday = { session: string; account: string; tokens: number; share: number }
 export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[] }
 /** Contratto 1.76: una voce della vista «Impegni» del registro; `waits` = chi aspetta chi (`person` = l'utente). */
 export type Commitment = {
@@ -196,6 +198,8 @@ export type State = {
   approvals?: Approval[]
   /** Contratto 1.83: le domande aperte dei server MCP, dalla più vecchia; assente = nessuna. */
   elicitations?: Elicitation[]
+  /** Contratto 1.84: i token di oggi per sessione, dal più grande; `share` = la parte sul totale dell'account (0..1). */
+  usage_today?: UsageToday[]
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
