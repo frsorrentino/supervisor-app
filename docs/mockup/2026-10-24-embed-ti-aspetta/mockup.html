@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ti aspetta in Studio</title>
+<style>
+  :root { --bg: #0E1C2E; --master-high: #1D2B3E; --text: #F2F4F7; --text2: #B0B8C4; --warn: #FFC46B; --high: #292F3A; --note: #FF9F43; --mono: ui-monospace, "Roboto Mono", monospace; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0B0D10; color: var(--text); font: 15px/1.45 Roboto, system-ui, sans-serif; padding: 24px; display: flex; gap: 32px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  .tag { font: 600 13px/1 var(--mono); letter-spacing: .14em; color: var(--text2); padding: 4px 2px 8px; } .tag.new { color: var(--note); }
+  .phone { width: 412px; background: var(--bg); border-radius: 26px; overflow: hidden; border: 1px solid #1d2127; }
+  .bar { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #16263A; }
+  .round { width: 44px; height: 44px; border-radius: 50%; background: #23344B; display: grid; place-items: center; flex: none; }
+  .bar .t { flex: 1; min-width: 0; } .bar small { font: 12px var(--mono); letter-spacing: .1em; color: var(--text2); } .bar b { display: block; font-size: 16px; white-space: nowrap; overflow: hidden; }
+  .pills { display: flex; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #22303F; font-size: 13px; }
+  .pills span { background: #1A2533; border-radius: 999px; padding: 6px 12px; }
+  .pill { display: flex; align-items: center; gap: 10px; margin: 10px 12px; min-height: 44px; padding: 0 4px 0 14px; border-radius: 22px; background: color-mix(in srgb, var(--warn) 16%, transparent); }
+  .pill .tx { flex: 1; font-weight: 500; font-size: 16px; white-space: nowrap; overflow: hidden; } .pill .act { color: var(--warn); font-weight: 500; font-size: 14px; }
+  .x { width: 36px; height: 36px; display: grid; place-items: center; color: var(--text2); flex: none; }
+  .card { margin: 10px 12px; border-radius: 20px; padding: 12px 6px 12px 14px; background: color-mix(in srgb, var(--warn) 13%, var(--bg)); display: flex; flex-direction: column; gap: 6px; }
+  .card .top { display: flex; align-items: center; gap: 10px; } .card .top b { flex: 1; font-size: 15.5px; font-weight: 600; } .card .top .m { font: 12px var(--mono); color: var(--text2); }
+  .card .req { font-size: 14.5px; line-height: 1.4; padding-right: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .row { display: flex; align-items: center; gap: 8px; padding-right: 8px; } .card .row .sp { flex: 1; } .card .row small { color: var(--text2); font-size: 12.5px; }
+  .tonal { background: var(--high); border-radius: 999px; padding: 8px 16px; font-weight: 500; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+  .chat { padding: 12px 16px 20px; font-size: 15px; color: var(--text); line-height: 1.5; opacity: .55; }
+  .note { background: color-mix(in srgb, var(--note) 14%, transparent); border: 1px dashed color-mix(in srgb, var(--note) 60%, transparent); color: #FFC690; border-radius: 12px; padding: 7px 10px; font-size: 12.5px; line-height: 1.35; width: 412px; }
+  .note b { color: var(--note); }
+  svg { flex: none; }
+</style>
+</head>
+<body>
+  <div class="col">
+    <div class="tag">Studio · oggi</div>
+    <div class="phone">
+      <div class="bar"><span class="round">⌄</span><span class="t"><small>MASTER · 21:32</small><b>ok permanente sulle release di supervisor</b></span><span class="round">▶</span></div>
+      <div class="pills"><span>Opus 5.5 · max</span><span>5h 9% · 23:40</span><span>ctx 64%</span></div>
+      <div class="pill">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC46B" stroke-width="2" stroke-linecap="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.4l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg>
+        <span class="tx">console-personale ti aspetta</span><span class="act">Rispondi ›</span><span class="x">✕</span>
+      </div>
+      <div class="chat">Ti aspetta ancora console-personale da 7 minuti: entra in Studio con l'impronta nella finestra di Chrome…</div>
+    </div>
+    <div class="note"><b>Oggi.</b> Non dice cosa chiede, e «Rispondi» dentro Studio non porta da nessuna parte: l'embed non ha le pagine delle sessioni.</div>
+  </div>
+  <div class="col">
+    <div class="tag new">Studio · proposta</div>
+    <div class="phone">
+      <div class="bar"><span class="round">⌄</span><span class="t"><small>MASTER · 21:32</small><b>ok permanente sulle release di supervisor</b></span><span class="round">▶</span></div>
+      <div class="pills"><span>Opus 5.5 · max</span><span>5h 9% · 23:40</span><span>ctx 64%</span></div>
+      <div class="card">
+        <div class="top">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC46B" stroke-width="2" stroke-linecap="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.4l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg>
+          <b>console-personale ti aspetta</b><span class="m">7 min</span><span class="x">✕</span>
+        </div>
+        <div class="req">Entra in Studio con l'impronta nella finestra di Chrome aperta sul Chromebook: serve per provare le pagine degli indicatori.</div>
+        <div class="row"><small>si apre nella web app, in una scheda nuova</small><span class="sp"></span><span class="tonal">Apri ↗</span></div>
+      </div>
+      <div class="chat">…</div>
+    </div>
+    <div class="note"><b>Proposta.</b> La striscia diventa una scheda: chi aspetta e da quanto, poi la richiesta stessa (il needs-you o la domanda, al massimo 3 righe). «Apri ↗» tonale (non sblocca nulla da qui) apre la sessione nella web app di supervisor in una scheda nuova, che dentro Studio sul telefono funziona. Con più sessioni: la prima e «altre N», e «Apri» porta alla coda.</div>
+  </div>
+</body>
+</html>

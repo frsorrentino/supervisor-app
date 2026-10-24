@@ -56,7 +56,7 @@
   import QuotaPanel from './lib/QuotaPanel.svelte'
   import Inspector from './lib/Inspector.svelte'
   import ColumnTab from './lib/ColumnTab.svelte'
-  import { alert as elsewhereOf, key as alertKey, keys as alertKeys, type Alert } from './lib/elsewhere'
+  import { alert as elsewhereOf, away as awayOf, key as alertKey, keys as alertKeys, type Alert } from './lib/elsewhere'
   import { settled, withoutApproved } from './lib/approvals'
   import { content as elicitContent, openElicitations, type Values } from './lib/elicit'
   import type { Elicitation, Suggestion } from './lib/contract'
@@ -924,7 +924,7 @@
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
     onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onFiles={(fs, a) => filesAction(name, fs, a)} onHandoff={() => handoff(name)} onDecision={decide}
-    wide={false} {slots} elsewhere={elsewhereFor(name)} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
+    wide={false} {slots} elsewhere={elsewhereFor(name)} elsewhereAway={embed ? (() => { const a = elsewhereFor(name); return a ? awayOf(a, st.sessions, location.origin) : null })() : null} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, ...alertKeys(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
     inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} onOlder={olderOf[name] ? () => loadOlder(name) : null}
     onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu}

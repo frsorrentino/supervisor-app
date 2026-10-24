@@ -1,4 +1,4 @@
-import type { State } from './contract'
+import type { Session, State } from './contract'
 import { stop } from './strongAlert'
 
 // L'avviso delle altre sessioni nella chat di una sessione, porta di Elsewhere.kt: prima chi ti aspetta, poi un turno
@@ -26,3 +26,18 @@ export function alert(state: State, current: string, now: number, mine: Set<stri
     .filter(a => !seen.has(key(a)))
     .reduce<Alert | null>((m, a) => (m == null || a.at > (m as { at: number }).at ? a : m), null)
 }
+
+/**
+ * Dentro Studio (`/embed`, Franz 24/10 21:38) la striscia non può aprire la sessione: diventa una scheda con la richiesta
+ * stessa e un link alla web app. `text` = la domanda o il needs-you (o la voce bloccante del turno), `at` = da quando;
+ * `href` = la sessione (`?s=`) o, con più d'una, la coda.
+ */
+export type Away = { text: string | null; at: number | null; href: string; more: number }
+export function away(a: Alert, sessions: Session[], origin: string): Away | null {
+  if (a.type !== 'waiting' || !a.sessions.length) return null
+  const s = sessions.find(x => x.name === a.sessions[0])
+  const ask = s?.question ? { text: s.question.text, at: s.question.asked_at } : s ? stop(s) : null
+  const href = a.sessions.length === 1 ? `${origin}/?s=${encodeURIComponent(a.sessions[0])}` : `${origin}/?page=queue`
+  return { text: ask?.text?.trim() || null, at: ask?.at || null, href, more: a.sessions.length - 1 }
+}
+

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Outcome, Question, Session, State } from './contract'
-import { FRESH_S, alert, key, keys } from './elsewhere'
+import { FRESH_S, alert, away, key, keys } from './elsewhere'
 
 // Gli stessi casi di ElsewhereTest in Kotlin.
 const now = 1_000_000
@@ -66,4 +66,14 @@ describe('Elsewhere', () => {
   it('le chiavi come in Kotlin', () => {
     expect(key({ type: 'waiting', sessions: ['a', 'b'] })).toBe('w:a,b'); expect(key({ type: 'finished', session: 'x', at: 5 })).toBe('f:x@5')
   })
+
+  // Franz 24/10 21:38: dentro Studio la scheda dice la richiesta e apre la sessione nella web app.
+  it("dentro Studio: la richiesta, da quando, e il link alla sessione o alla coda", () => {
+    const ses = [{ id: 'c', name: 'console-personale', account: 'p', project: 'c', state: 'waiting', since: 0, needs_you: { reason: "Entra in Studio con l'impronta", at: 900 } } as Session]
+    expect(away({ type: 'waiting', sessions: ['console-personale'], requests: ['r'] }, ses, 'https://x.app'))
+      .toEqual({ text: "Entra in Studio con l'impronta", at: 900, href: 'https://x.app/?s=console-personale', more: 0 })
+    expect(away({ type: 'waiting', sessions: ['console-personale', 'blog'], requests: ['r', 's'] }, ses, 'https://x.app')!.href).toBe('https://x.app/?page=queue')
+    expect(away({ type: 'finished', session: 'blog', at: 1 }, ses, 'https://x.app')).toBeNull()
+  })
 })
+

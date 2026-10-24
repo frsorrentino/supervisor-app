@@ -28,7 +28,7 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
+  let { st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
     onCmd: (op: CmdOp, arg?: string, text?: string) => void; wide: boolean; slots: (string | null)[]
@@ -40,7 +40,7 @@
     /** Contratto 1.37: «Handoff, poi /clear» (prompt e /clear a turno finito, li gestisce App) e «Salva come decisione». */
     onHandoff: () => void; onDecision: (text: string, project: string | null) => void
     /** L'avviso delle altre sessioni sotto la barra (Elsewhere). */
-    elsewhere?: Alert | null; onElsewhere?: () => void; onElsewhereDismiss?: () => void
+    elsewhere?: Alert | null; elsewhereAway?: import('./elsewhere').Away | null; onElsewhere?: () => void; onElsewhereDismiss?: () => void
     /** Da quando (ms) una lettura della conversazione aspetta il PC; null se nessuna è in volo (piano prestazioni, Task 7). */
     waitingSince?: number | null
     /** La copia a schermo è più vecchia dell'ultima attività e la prima lettura non è arrivata (Franz, 14/10 18:39). */
@@ -194,7 +194,7 @@
   ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); dragging = true } }} ondragleave={(e) => { if (e.currentTarget === e.target) dragging = false }} ondrop={onDrop}>
   {#if dragging}<div class="dropzone">{t.dropHere}</div>{/if}
   <Header {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} onChanges={onChanges ? () => (changesOpen = true) : null} />
-  {#if elsewhere}<ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} />{/if}
+  {#if elsewhere}<ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} away={elsewhereAway} now={st.ts} />{/if}
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
   <div class="lines" class:dots={home} bind:this={list}>
