@@ -16,7 +16,9 @@ object UsageTodayRules {
     fun rows(list: List<UsageToday>?): Rows? {
         if (list.isNullOrEmpty()) return null
         val sorted = list.sortedByDescending { it.share }
-        val (big, small) = sorted.partition { it.share >= SMALL }
+        // Una sola voce piccola resta col suo nome: «altre 1» non dice niente (prova dal vivo del 24/10, 21:24).
+        val few = sorted.count { it.share < SMALL } < 2
+        val (big, small) = sorted.partition { few || it.share >= SMALL }
         fun pct(x: Double) = (x * 100).roundToInt()
         return Rows(big.map { Row(it.session, pct(it.share)) }, small.takeIf { it.isNotEmpty() }?.let { Others(it.size, pct(it.sumOf { u -> u.share })) })
     }

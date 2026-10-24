@@ -13,4 +13,8 @@ describe('Oggi · quota per sessione (contratto 1.84, B5)', () => {
     expect(usageRows([])).toBeNull()
     expect(usageRows(undefined)).toBeNull()
   })
+  it('una sola voce piccola resta col suo nome', () => {
+    expect(usageRows([{ session: 'master', account: 'p', tokens: 9, share: 0.9 }, { session: 'console', account: 'p', tokens: 1, share: 0.029 }]))
+      .toEqual({ rows: [{ session: 'master', pct: 90 }, { session: 'console', pct: 3 }], others: null })
+  })
 })

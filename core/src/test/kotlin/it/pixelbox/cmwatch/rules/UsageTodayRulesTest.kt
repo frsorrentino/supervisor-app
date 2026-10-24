@@ -16,4 +16,9 @@ class UsageTodayRulesTest {
         assertNull(UsageTodayRules.rows(emptyList()))
         assertNull(UsageTodayRules.rows(null))
     }
+
+    @Test fun aSingleSmallOneKeepsItsName() {
+        val r = UsageTodayRules.rows(listOf(UsageToday("master", "p", 9, 0.9), UsageToday("console", "p", 1, 0.029)))
+        assertEquals(UsageTodayRules.Rows(listOf(UsageTodayRules.Row("master", 90), UsageTodayRules.Row("console", 3)), null), r)
+    }
 }
