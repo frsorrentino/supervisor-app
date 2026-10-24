@@ -13,7 +13,8 @@ export default defineConfig({
   // Il service worker si costruisce accanto alla pagina, come /sw.js alla radice (lo scope è la cartella del file).
   build: {
     rollupOptions: {
-      input: { index: 'index.html', sw: 'src/sw.ts' },
+      // `embed.html`: la sola chat della master, incorporabile da Studio (Franz 24/10 09:41, strada A).
+      input: { index: 'index.html', embed: 'embed.html', sw: 'src/sw.ts' },
       output: { entryFileNames: c => (c.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js') },
     },
   },

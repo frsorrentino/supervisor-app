@@ -291,7 +291,9 @@
   const known = (n: string) => (!!tr && !demo) || st.sessions.some(s => s.name === n && s.state !== 'gone')
 
   // La master vive nella home: ridotta è la barra in fondo, espansa occupa la home (mai una colonna o una pagina a parte).
-  let masterOpen = $state(linked === MASTER)
+  // Franz 24/10 09:41 (Studio, strada A): `/embed` è la sola chat della master, incorporata da studio.francescosorrentino.com.
+  const embed = /^\/embed(\.html)?$/.test(location.pathname)
+  let masterOpen = $state(linked === MASTER || embed)
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
   // Telefono: la sessione aperta, o la home.
@@ -962,7 +964,9 @@
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
 
-{#if wide}
+{#if embed}
+  <div class="embedded">{@render chatOf(MASTER, true)}</div>
+{:else if wide}
   <Desk {cols} {shares} {homeRight} tab={wco ? columnTab : null} onCols={setCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={() => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
     {#snippet home()}{@render homePane()}{/snippet}
@@ -1043,4 +1047,5 @@
   .notice { position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); max-width: min(560px, calc(100vw - 32px)); padding: 10px 16px; border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: 0 4px 16px rgb(0 0 0 / .35); z-index: 20; }
   .demo { position: fixed; right: 12px; bottom: 6px; opacity: .6; pointer-events: none; }
   @media (max-width: 839px) { .demo { bottom: 0; right: 50%; transform: translateX(50%); font-size: 10px; } }
+  .embedded { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
 </style>
