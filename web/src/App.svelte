@@ -54,6 +54,8 @@
   import ColumnTab from './lib/ColumnTab.svelte'
   import { alert as elsewhereOf, key as alertKey, keys as alertKeys, type Alert } from './lib/elsewhere'
   import { settled, withoutApproved } from './lib/approvals'
+  import { content as elicitContent, openElicitations, type Values } from './lib/elicit'
+  import type { Elicitation } from './lib/contract'
   import { build as devicesOf, linked as linkedDevices } from './lib/devices'
   import { freshness } from './lib/durations'
   import { setRate, setVoice } from './lib/speech.svelte'
@@ -214,6 +216,14 @@
     const r = await run(newCmd('approve', null, task, approveText(note), undefined, choice ? { choice } : undefined))
     if (r?.ok) say(`✓ ${t.approved}`)
     else okPending = new Set([...okPending].filter(x => x !== task))
+  }
+  // Contratto 1.83: la risposta a un server MCP. La scheda sparisce subito e torna solo se il relay rifiuta (il motivo in basso).
+  let elicitSent = $state(new Set<string>())
+  async function elicit(e: Elicitation, action: 'accept' | 'decline', values: Values) {
+    elicitSent = new Set([...elicitSent, e.id])
+    const r = await run(newCmd('elicit', e.session, e.id, undefined, undefined, { action, ...(action === 'accept' ? { content: elicitContent(e, values) } : {}) }))
+    if (r?.ok) say(`✓ ${t.elicitAnswered}`)
+    else elicitSent = new Set([...elicitSent].filter(x => x !== e.id))
   }
   async function decide(text: string, project: string | null) {
     const r = await run(newCmd('decision', null, project, text))
@@ -911,7 +921,7 @@
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} onNight={() => openPage('night')}
+        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}

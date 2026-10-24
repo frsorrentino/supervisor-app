@@ -19,6 +19,9 @@
   import { t } from './t'
   import Badge from './Badge.svelte'
   import { choices } from './approvals'
+  import ElicitationCard from './ElicitationCard.svelte'
+  import type { Elicitation } from './contract'
+  import type { Values } from './elicit'
   import WorkBadge from './WorkBadge.svelte'
   import ApproveBody from './ApproveBody.svelte'
   import Options from './Options.svelte'
@@ -33,7 +36,7 @@
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -60,6 +63,8 @@
     justClosed?: { s: Session; line: string } | null
     /** La sessione chiusa da una card, finché non esce dallo stato o il PC rifiuta (Franz 24/10 13:20: «nessun feedback»). */
     closing?: string | null
+    /** Contratto 1.83: le domande aperte dei server MCP, in cima; `onElicit` manda la risposta. */
+    elicitations?: Elicitation[]; onElicit?: (e: Elicitation, action: 'accept' | 'decline', values: Values) => void
     /** La sezione «Lavori» (22/10): l'agenda (null = non arrivata), «Tutti i lavori» apre la pagina; Fatto su una riga dell'agenda
      *  (`agenda_set`), Avvia (il «Fallo» dell'agenda alla sua sessione), Fatto su una pausa che aspetta te (la master riprende). */
     agenda?: import('./contract').AgendaPage | null; onLavori?: () => void; onEdit?: (e: Edit) => void
@@ -202,6 +207,8 @@
 {/snippet}
 
 <section class="home">
+  <!-- Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto. -->
+  {#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}
   <!-- Franz 24/10 09:36: «L'ordine in home deve essere: Sessioni, Utilizzo, Lavoro, Altro»; la Notte, che non nomina, prima di Altro. -->
   {#if waitingYou.length}
   <button class="attn-banner" onclick={() => { if (!open.sessions) toggleSec('sessions'); onAttention() }}>

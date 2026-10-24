@@ -96,7 +96,7 @@ export type DoneRow = { task: string; title: string; short?: string | null; proj
 export type DonePage = { date: string; rows: DoneRow[]; days: { date: string; n: number }[]; more: boolean }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
-export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder' | 'task_stalled'
+export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder' | 'task_stalled' | 'elicitation'
 export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null
   /** Contratto 1.56: titolo e corpo senza segreti. */
   preview?: { title: string; body?: string } | null
@@ -194,6 +194,8 @@ export type State = {
   /** Fase 4 del piano web: la chiave pubblica VAPID del relay (base64url); assente = il relay non manda web push. */
   push?: { vapid: string } | null
   approvals?: Approval[]
+  /** Contratto 1.83: le domande aperte dei server MCP, dalla più vecchia; assente = nessuna. */
+  elicitations?: Elicitation[]
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
@@ -204,6 +206,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
+  /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
+  | 'elicit'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */
@@ -224,6 +228,21 @@ export type Cmd = {
   sid?: string
   /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok. */
   choice?: string
+  /** Contratto 1.83, `elicit`: le risposte del modulo, {key: valore}. */
+  content?: Record<string, string | number | boolean>
+}
+/**
+ * Contratto 1.83: una domanda di un server MCP a metà di uno strumento (elicitation). `mode` form = un modulo di `fields`;
+ * url = un link da aprire, a cui la web app non risponde. Dopo `expires_at` torna al terminale.
+ */
+export type Elicitation = {
+  id: string; session: string; server: string; message: string; mode: 'form' | 'url' | string
+  asked_at: number; expires_at: number; url?: string; fields?: ElicitField[]
+}
+export type ElicitField = {
+  key: string; title: string; required: boolean; kind: 'choice' | 'boolean' | 'text' | 'number' | 'integer' | string
+  description?: string; default?: string | number | boolean; options?: { value: string; label: string }[]
+  min_length?: number; max_length?: number; format?: string; min?: number; max?: number
 }
 export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null }
 
