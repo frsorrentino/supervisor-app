@@ -232,6 +232,9 @@ class MainActivity : ComponentActivity() {
         val goUsage: () -> Unit = { open = null; tab = StartRoute.Tab.OVERVIEW; masterChat = false; usageFocus += 1 }
         var searchOpen by rememberSaveable { mutableStateOf(false) }
         var nightOpen by rememberSaveable { mutableStateOf(false) }
+        // Contratto 1.82: le conversazioni chiuse aperte dalla Notte, per nome mostrato: si leggono per sid, in sola lettura.
+        val sidOf = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
+        fun transcriptSid(name: String): String? = sidOf[name]?.takeIf { app.repo.snapshot.value.state?.sessions?.none { s -> s.name == name && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE } != false }
         // «Parlane con la master» (piano del 09/10): il testo da mettere nel campo della master, poi la sua chat aperta.
         var talkDraft by rememberSaveable { mutableStateOf<String?>(null) }
         // Il tocco sul testo del mini-controller riporta alla sessione da cui legge; la master si apre nella home.
@@ -608,6 +611,7 @@ class MainActivity : ComponentActivity() {
                     nightOpen = false; tab = StartRoute.Tab.OVERVIEW
                     if (n == it.pixelbox.cmwatch.rules.ContextActions.MASTER) { open = null; masterChat = true } else open = n
                 },
+                onTranscript = { title, sid -> sidOf[title] = sid; nightOpen = false; tab = StartRoute.Tab.OVERVIEW; open = title },
                 onAnswer = { n, x -> scope.launch { runCatching { app.repo.answer(n, x) } } },
                 onApprove = { task -> okPending.add(task); scope.launch {
                     val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText("")) }.getOrNull()
@@ -764,7 +768,7 @@ class MainActivity : ComponentActivity() {
                     return
                 }
                 val have = feedCache[name].orEmpty()
-                val id = runCatching { app.repo.command(CmdOp.TRANSCRIPT, name, ChatFeed.arg(if (have.isEmpty()) null else ChatFeed.anchor(have))) }.getOrNull()
+                val id = runCatching { transcriptSid(name).let { sid -> app.repo.command(CmdOp.TRANSCRIPT, name.takeIf { sid == null }, ChatFeed.arg(if (have.isEmpty()) null else ChatFeed.anchor(have)), sid = sid) } }.getOrNull()
                 val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
                 id?.let { app.repo.forget(it) }
                 val page = r?.takeIf { it.ok }?.let { runCatching { ContractJson.decodeTranscript(it.text) }.getOrNull() }
@@ -840,7 +844,7 @@ class MainActivity : ComponentActivity() {
                         // Una lettura persa non resta fra i comandi in sospeso (revisione 30/09).
                         pendingId?.let { app.repo.forget(it) }
                         val from = if (mode == ChatFeed.Page.FRESH) null else ChatFeed.anchor(entries)
-                        pendingId = runCatching { app.repo.command(CmdOp.TRANSCRIPT, name, ChatFeed.arg(from)) }.getOrNull()
+                        pendingId = runCatching { transcriptSid(name).let { sid -> app.repo.command(CmdOp.TRANSCRIPT, name.takeIf { sid == null }, ChatFeed.arg(from), sid = sid) } }.getOrNull()
                         // Una lettura persa e richiesta di nuovo non azzera l'attesa: si aspetta il PC dalla prima.
                         readSince = if (pendingId == null) null else readSince ?: t
                     }
@@ -1289,7 +1293,7 @@ class MainActivity : ComponentActivity() {
                             onElsewhereDismiss = { elsewhere?.let { a -> elsewhereSeen += it.pixelbox.cmwatch.rules.Elsewhere.run { a.seenKeys } } },
                             onOlder = {
                                 val first = entries.firstOrNull()?.id
-                                if (first != null && olderId == null) scope.launch { olderId = runCatching { app.repo.command(CmdOp.TRANSCRIPT, session.name, ChatFeed.olderArg(first)) }.getOrNull() }
+                                if (first != null && olderId == null) scope.launch { olderId = runCatching { transcriptSid(session.name).let { sid -> app.repo.command(CmdOp.TRANSCRIPT, session.name.takeIf { sid == null }, ChatFeed.olderArg(first), sid = sid) } }.getOrNull() }
                             },
                         )
                         }

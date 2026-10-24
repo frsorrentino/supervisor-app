@@ -220,6 +220,8 @@ export type Cmd = {
   action?: string; until?: string; blocks?: string
   /** Contratto 1.80, `attention_done`: il kind della voce da chiudere e, per un turn_blocking, il suo since. */
   kind?: string; since?: number
+  /** Contratto 1.82: `transcript` di una conversazione chiusa (session null). */
+  sid?: string
   /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok. */
   choice?: string
 }

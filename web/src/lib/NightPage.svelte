@@ -9,7 +9,8 @@
   // Un solo tasto pieno: il primo di «Serve a te».
   let { model, error = null, loading = false, onRefresh, onChat, onAnswer, onApprove, onSend }: {
     model: NightPage | null; error?: string | null; loading?: boolean; onRefresh: () => void
-    onChat: (session: string) => void; onAnswer: (session: string, n: number) => void
+    /** Contratto 1.82: con `sid` la conversazione chiusa si apre in sola lettura. */
+    onChat: (session: string, sid?: string) => void; onAnswer: (session: string, n: number) => void
     onApprove: (task: string) => void; onSend: (session: string, text: string) => void
   } = $props()
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -23,6 +24,12 @@
   let needsOpen = $state(true)
   let itemsOpen = $state(true)
   let projectsOpen = $state(false)
+  // Franz 24/10 08:42: la scheda apre la sessione che ha lavorato: viva per nome, chiusa o lavoro della coda per sid (1.82).
+  function go(c: { id: string; title: string; chat: string | null; sid: string | null }, open: boolean) {
+    if (c.chat) onChat(c.chat)
+    else if (c.sid) onChat(c.title, c.sid)
+    else opened = open ? null : c.id
+  }
 </script>
 
 <div class="night">
@@ -76,8 +83,8 @@
     {#each model.cards as c (c.id)}
       {@const open = opened === c.id}
       <!-- Franz 24/10 08:42: «ogni scheda deve essere cliccabile e portarmi alla sessione che ha lavorato»: il tocco apre la sessione (c.chat), il chevron i passi. -->
-      <div class="card" role="button" tabindex="0" onclick={() => (c.chat ? onChat(c.chat) : (opened = open ? null : c.id))} onkeydown={(e) => { if (e.key === 'Enter') (c.chat ? onChat(c.chat) : (opened = open ? null : c.id)) }}>
-        <span class="hd"><b class="tt">{c.title}</b>{#if c.chat}<Icon name="message" size={16} color="var(--icon)" />{/if}<i class="st" style:color={tone[c.icon]}><Icon name={stateIcon[c.icon] ?? 'circle'} size={13} />{t.nightState[c.icon]}</i>{#if c.steps.length}<button class="chev" aria-expanded={open} aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); opened = open ? null : c.id }}><svg viewBox="0 0 24 24" width="20" height="20"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}</span>
+      <div class="card" role="button" tabindex="0" onclick={() => go(c, open)} onkeydown={(e) => { if (e.key === 'Enter') go(c, open) }}>
+        <span class="hd"><b class="tt">{c.title}</b>{#if c.chat || c.sid}<Icon name="message" size={16} color="var(--icon)" />{/if}<i class="st" style:color={tone[c.icon]}><Icon name={stateIcon[c.icon] ?? 'circle'} size={13} />{t.nightState[c.icon]}</i>{#if c.steps.length}<button class="chev" aria-expanded={open} aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); opened = open ? null : c.id }}><svg viewBox="0 0 24 24" width="20" height="20"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}</span>
         <small>{c.queue ? t.nightKindJob : t.nightKindSession} · {times(c)}</small>
         {#if c.folder}<small>{c.folder}</small>{/if}
         {#if c.detail}<span class="out">{c.detail}</span>{/if}

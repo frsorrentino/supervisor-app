@@ -129,6 +129,16 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     expect(c.choice).toBe('Strada B')
     expect('choice' in newCmd('approve', null, 't', 'ok')).toBe(false)
   })
+  // Contratto 1.82 (24/10): op transcript con sid per una conversazione chiusa.
+  it('1.82: transcript per sid, riuscito e rifiutato; il comando porta sid', () => {
+    const root = JSON.parse(fixture('cmd-result-sample.json'))
+    const by = root.cmd.filter((c: Cmd) => c.op === 'transcript' && c.sid)
+    expect(by.length).toBe(2); expect(by[0].session).toBe(null)
+    expect(root.result.find((r: CmdResult) => r.id === by[0].id).ok).toBe(true)
+    expect(root.result.find((r: CmdResult) => r.id === by[1].id).text).toBe('no transcript for ffffffff-0000-4000-8000-000000000000')
+    expect(newCmd('transcript', null, '50', undefined, undefined, { sid: 'abc' }).sid).toBe('abc')
+    expect('sid' in newCmd('transcript', 'x', '50')).toBe(false)
+  })
   it('ogni voce della trascrizione ha la chiave diff, e la voce Edit porta il suo', () => {
     const root = JSON.parse(fixture('cmd-result-sample.json'))
     const ids = new Set(root.cmd.filter((c: { op: string }) => c.op === 'transcript').map((c: { id: string }) => c.id))

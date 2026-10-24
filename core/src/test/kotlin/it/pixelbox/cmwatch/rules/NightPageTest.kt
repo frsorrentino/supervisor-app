@@ -107,4 +107,16 @@ class NightPageTest {
         assertEquals("Seconda esecuzione della voce d17d7b00", NightPage.shortTitle("Seconda esecuzione della voce d17d7b00. Alle 02:01 la prima si è fermata perché le fonti stavano fuori dal worktree e i permessi ne negavano la lett…"))
         assertEquals("Un titolo lungo senza punti che il relay ha tagliato a metà di una parola", NightPage.shortTitle("Un titolo lungo senza punti che il relay ha tagliato a metà di una parola lungh…"))
     }
+
+    /**
+     * Contratto 1.82 (Franz 24/10 08:42: «ogni scheda deve essere cliccabile e portarmi alla sessione che ha lavorato»): una
+     * sessione viva si apre per nome (`chat`); una chiusa o un lavoro della coda con `session_id` si apre in sola lettura (`sid`).
+     */
+    @Test fun aClosedSessionOrAJobOpensItsTranscriptBySid() {
+        val byId = page.cards.associateBy { it.id }
+        assertEquals("master", byId.getValue("master").chat); assertNull(byId.getValue("master").sid)
+        assertNull(byId.getValue("atlas-shop").chat); assertEquals("0b6e3c52-1f4a-4d7e-9a21-6c8d2e5f7a90", byId.getValue("atlas-shop").sid)
+        assertEquals("7d2a9e14-58c3-4b6f-8e01-3a9c4f2b6d18", byId.getValue("e5f6a7b8").sid)
+        assertNull(byId.getValue("a1b2c3d4").sid)
+    }
 }

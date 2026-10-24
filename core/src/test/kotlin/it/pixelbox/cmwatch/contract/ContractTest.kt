@@ -143,6 +143,23 @@ class ContractTest {
         assertFalse(ContractJson.json.encodeToString(Cmd("c2", CmdOp.APPROVE, null, "t", 1, "phone", text = "ok")).contains("choice"))
     }
 
+    /** Contratto 1.82 (24/10): `session_id` nel rapporto della notte; op `transcript` con `sid` per una conversazione chiusa. */
+    @Test fun transcriptBySid() {
+        val r = ContractJson.decodeNightReport(Fixtures.read("night-report-sample.json"))
+        assertEquals("0b6e3c52-1f4a-4d7e-9a21-6c8d2e5f7a90", r.timeline.first { it.id == "atlas-shop" }.sessionId)
+        assertNull(r.timeline.first { it.id == "master" }.sessionId)
+        val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
+        val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
+        val bySid = cmds.filter { it.op == CmdOp.TRANSCRIPT && it.sid != null }
+        assertEquals(2, bySid.size); assertNull(bySid[0].session)
+        val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+        assertTrue(results.first { it.id == bySid[0].id }.ok)
+        assertEquals("no transcript for ffffffff-0000-4000-8000-000000000000", results.first { it.id == bySid[1].id }.text)
+        val enc = ContractJson.json.encodeToString(Cmd("c1", CmdOp.TRANSCRIPT, null, "50", 1, "phone", sid = "abc"))
+        assertTrue(enc, enc.contains("\"sid\":\"abc\""))
+        assertFalse(ContractJson.json.encodeToString(Cmd("c2", CmdOp.TRANSCRIPT, "x", "50", 1, "phone")).contains("sid"))
+    }
+
     @Test fun needsYouTurnBlockingAndReminder() {
         val st = ContractJson.decodeState(Fixtures.stateIdle)
         val raw = Fixtures.stateIdle.replaceFirst("\"state\": \"idle\"", "\"state\": \"idle\", \"needs_you\": {\"reason\": \"login su win\", \"at\": 1789210100}, \"turn_blocking\": {\"text\": \"ok al deploy\", \"at\": 1789210000}")
@@ -211,7 +228,7 @@ class ContractTest {
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
         // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
         // Contratto 1.74: due nights, con due notti e vuoto.
-        assertEquals(80, results.size); assertEquals(27, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato
+        assertEquals(82, results.size); assertEquals(28, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)

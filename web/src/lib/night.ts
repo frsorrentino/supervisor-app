@@ -12,7 +12,9 @@ export type NightReport = {
     unblock?: { session: string; project?: string | null; text: string }[]
   }
   timeline?: { kind: string; id: string; title: string; project?: string | null; start: number; end?: number | null; outcome: string
-    detail?: string | null; report?: string | null; live?: boolean; counts?: { prompts: number; tests: number; commits: number } | null }[]
+    detail?: string | null; report?: string | null; live?: boolean; counts?: { prompts: number; tests: number; commits: number } | null
+    /** Contratto 1.82: la conversazione che ha lavorato; assente se non nota. */
+    session_id?: string }[]
   projects?: { name: string; path?: string | null; parts?: { title: string; state: string }[]; parts_total?: number; waiting_on?: string[]
     next?: string | null; events?: { at: number; kind: string; text: string; ok?: boolean | null }[] }[]
 }
@@ -25,6 +27,8 @@ export type Step = { at: number; kind: string; text: string; ok: boolean | null 
 export type Card = {
   id: string; icon: Icon; title: string; folder: string | null; queue: boolean; start: number; end: number | null; durationS: number | null
   detail: string | null; from: number; to: number; chat: string | null; prompts: number | null; tests: number | null; commits: number | null; steps: Step[]
+  /** Contratto 1.82: la conversazione da aprire in sola lettura quando non c'è una sessione viva. */
+  sid: string | null
 }
 export type Need = { kind: 'question' | 'approval' | 'unblock'; session: string; text: string; options: Option[]; task?: string }
 export type Project = { name: string; done: number; total: number; parts: string[]; waiting: string[]; next: string | null }
@@ -61,6 +65,7 @@ export function page(r: NightReport, timeZone: string, now?: { live: Set<string>
       title: queue ? shortTitle(rest) : i.title, folder, queue, start: i.start, end: i.end ?? null,
       durationS: i.end != null ? Math.max(0, i.end - i.start) : null, detail: i.detail ?? null, from, to,
       chat: i.kind === 'session' && i.live ? i.id : null,
+      sid: i.session_id && !(i.kind === 'session' && i.live) ? i.session_id : null,
       prompts: i.counts?.prompts ?? null, tests: i.counts?.tests ?? null, commits: i.counts?.commits ?? null,
       // Il passo che ripete l'esito, già scritto sopra, non torna fra i passi (Franz, 08/10 19:55).
       steps: (project?.events ?? []).filter(e => e.at >= i.start - 60 && e.at <= until && e.text.trim() !== (i.detail ?? '').trim()).map(e => ({ at: e.at, kind: e.kind, text: e.text, ok: e.ok ?? null })),

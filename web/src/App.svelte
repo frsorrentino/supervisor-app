@@ -251,20 +251,26 @@
   async function loadOlder(name: string) {
     const first = transcripts[name]?.[0]?.id
     if (!tr || !first) return
-    const r = await run(newCmd('transcript', name, `50:before=${first}`))
+    const r = await run(transcriptCmd(name, `50:before=${first}`))
     // Franz 23/10 23:17: il tasto carica o sparisce (older): pagina vuota, già nota o rifiutata = niente tasto.
     const o = older(transcripts[name] ?? [], r?.ok ? (JSON.parse(r.text) as TranscriptPage) : null)
     transcripts = { ...transcripts, [name]: o.entries }
     olderOf = { ...olderOf, [name]: o.more }
   }
   /** Vero quando la lettura è arrivata, anche senza voci nuove. */
+  // Contratto 1.82: una conversazione chiusa aperta dalla Notte si legge per sid, in sola lettura.
+  let sidOf = $state<Record<string, string>>({})
+  const transcriptCmd = (name: string, arg: string) => {
+    const sid = st.sessions.some(x => x.name === name && x.state !== 'gone') ? undefined : sidOf[name]
+    return sid ? newCmd('transcript', null, arg, undefined, undefined, { sid }) : newCmd('transcript', name, arg)
+  }
   async function loadTranscript(name: string): Promise<boolean> {
     if (!tr || loadingT.has(name)) return false
     loadingT.add(name)
     try {
       const have = untrack(() => transcripts[name])
       const last = have?.at(-1)?.id
-      const r = await tr.send(newCmd('transcript', name, last ? `200:after=${last}` : '50'))
+      const r = await tr.send(transcriptCmd(name, last ? `200:after=${last}` : '50'))
       if (!r.ok) {
         if (last && r.text.startsWith('no entry')) transcripts = { ...transcripts, [name]: [] }
         return false
@@ -918,7 +924,7 @@
         onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} {donePages} onLoadDay={loadDone} />
     {:else if p === 'night'}
       <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={loadNight}
-        onChat={(n) => { openPage(null); pick(n) }} onAnswer={(n, x) => cmd(n)('answer', String(x))}
+        onChat={(n, sid) => { if (sid) sidOf = { ...sidOf, [n]: sid }; openPage(null); pick(n) }} onAnswer={(n, x) => cmd(n)('answer', String(x))}
         onApprove={(task) => approve(task, '')} onSend={(n, text) => sendTo(n, text)} />
     {:else if p === 'search'}
       <Search {sent} {events} remote onQuery={search} page={searchPage}

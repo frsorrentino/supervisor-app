@@ -492,6 +492,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val since: Long? = null,
+    /** Contratto 1.82: `transcript` di una conversazione chiusa (session null); assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val sid: String? = null,
     /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok; assente, non scritto. */
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)

@@ -50,6 +50,8 @@ fun NightScreen(
     onChat: (String) -> Unit, onAnswer: (String, Int) -> Unit, onApprove: (String) -> Unit, onSend: (String, String) -> Unit,
     zone: ZoneId = ZoneId.systemDefault(), opened: String? = null,
     gantt: GanttViews? = null, byGoal: Boolean = false, onByGoal: (Boolean) -> Unit = {},
+    /** Contratto 1.82: una conversazione chiusa (sessione chiusa o lavoro della coda) da aprire in sola lettura: titolo e sid. */
+    onTranscript: (String, String) -> Unit = { _, _ -> },
     earlier: List<NightIndex> = emptyList(), onNight: (String) -> Unit = {},
 ) {
     val hm = remember(zone) { DateTimeFormatter.ofPattern("HH:mm").withZone(zone) }
@@ -110,7 +112,7 @@ fun NightScreen(
             if (itemsOpen) items(page.cards.size, key = { cardKeys[it] }) { i ->
                 val c = page.cards[i]
                 val times = if (c.end == null) stringResource(R.string.night_since, t(c.start)) else "${t(c.start)}–${t(c.end!!)} · ${shortDuration(c.durationS ?: 0)}"
-                CardRow(c, open = open == c.id, times = times, t = ::t, onToggle = { open = if (open == c.id) null else c.id }, onChat = onChat)
+                CardRow(c, open = open == c.id, times = times, t = ::t, onToggle = { open = if (open == c.id) null else c.id }, onChat = onChat, onTranscript = onTranscript)
             }
             if (gantt == null && page.projects.isNotEmpty()) {
                 item(key = "projects") { Section(stringResource(R.string.night_projects_title, page.projects.size), stringResource(R.string.night_projects_expl), projectsOpen) { projectsOpen = !projectsOpen } }
@@ -255,18 +257,18 @@ private fun iconColor(i: NightPage.Icon): Color = when (i) {
  * la conversazione (Franz, 08/10 12:30: le barre sull'asse non si capivano, tolte).
  */
 @Composable
-private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -> String, onToggle: () -> Unit, onChat: (String) -> Unit) {
+private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -> String, onToggle: () -> Unit, onChat: (String) -> Unit, onTranscript: (String, String) -> Unit = { _, _ -> }) {
     val tone = iconColor(c.icon)
     Column(
         // Franz 24/10 08:42: «ogni scheda deve essere cliccabile e portarmi alla sessione che ha lavorato»: il tocco apre la
         // sessione (c.chat); il chevron apre i passi. Senza sessione apribile il tocco apre i passi come prima.
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).handCursor().clickable { c.chat?.let(onChat) ?: onToggle() }
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).handCursor().clickable { val sid = c.sid; when { c.chat != null -> onChat(c.chat); sid != null -> onTranscript(c.title, sid); else -> onToggle() } }
             .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(c.title, style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.weight(1f))
-            if (c.chat != null) Icon(Icons.AutoMirrored.Rounded.Chat, stringResource(R.string.night_conversation), tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
+            if (c.chat != null || c.sid != null) Icon(Icons.AutoMirrored.Rounded.Chat, stringResource(R.string.night_conversation), tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
             MarkedText(
                 StateIcons.of(c.icon),
                 stringResource(when (c.icon) {

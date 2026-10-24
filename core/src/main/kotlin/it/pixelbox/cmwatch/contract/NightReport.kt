@@ -64,6 +64,8 @@ import kotlinx.serialization.encoding.Encoder
     val live: Boolean = false, val counts: NightCounts? = null,
     /** Contratto 1.46: il testo della voce della coda o il primo prompt della notte, entro 400 caratteri; null se non c'è. */
     val prompt: String? = null,
+    /** Contratto 1.82: la conversazione che ha lavorato (sessione: l'ultima; lavoro della coda: il suo claude -p); assente se non nota. */
+    @kotlinx.serialization.SerialName("session_id") val sessionId: String? = null,
 ) {
     enum class Kind { SESSION, NIGHT_JOB, OTHER }
 }

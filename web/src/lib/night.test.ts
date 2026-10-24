@@ -66,4 +66,13 @@ describe('pagina Notte', () => {
     expect(shortTitle('Seconda esecuzione della voce d17d7b00. Alle 02:01 la prima si è fermata perché le fonti stavano fuori dal worktree e i permessi ne negavano la lett…')).toBe('Seconda esecuzione della voce d17d7b00')
     expect(shortTitle('Un titolo lungo senza punti che il relay ha tagliato a metà di una parola lungh…')).toBe('Un titolo lungo senza punti che il relay ha tagliato a metà di una parola')
   })
+
+  // Contratto 1.82 (Franz 24/10 08:42): viva per nome (chat), chiusa o lavoro della coda con session_id in sola lettura (sid).
+  it('una sessione chiusa o un lavoro della coda si apre in sola lettura per sid', () => {
+    const by = Object.fromEntries(p.cards.map(c => [c.id, c]))
+    expect([by['master'].chat, by['master'].sid]).toEqual(['master', null])
+    expect([by['atlas-shop'].chat, by['atlas-shop'].sid]).toEqual([null, '0b6e3c52-1f4a-4d7e-9a21-6c8d2e5f7a90'])
+    expect(by['e5f6a7b8'].sid).toBe('7d2a9e14-58c3-4b6f-8e01-3a9c4f2b6d18')
+    expect(by['a1b2c3d4'].sid).toBe(null)
+  })
 })

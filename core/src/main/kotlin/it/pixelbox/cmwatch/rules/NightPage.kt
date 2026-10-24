@@ -38,6 +38,8 @@ object NightPage {
         val start: Long, val end: Long?, val durationS: Int?, val detail: String?, val from: Double, val to: Double,
         /** La sessione viva da aprire con «Conversazione»; null se non c'è (chiusa o lavoro della coda: richiesta 2). */
         val chat: String?, val prompts: Int?, val tests: Int?, val commits: Int?, val steps: List<Step>,
+        /** Contratto 1.82: la conversazione da aprire in sola lettura quando non c'è una sessione viva (chiusa o lavoro della coda). */
+        val sid: String? = null,
     )
     data class Project(val name: String, val done: Int, val total: Int, val parts: List<String>, val waiting: List<String>, val next: String?)
 
@@ -73,6 +75,7 @@ object NightPage {
                 durationS = i.end?.let { e -> (e - i.start).toInt().coerceAtLeast(0) },
                 detail = i.detail, from = from, to = to,
                 chat = i.id.takeIf { i.kind == NightEntry.Kind.SESSION && i.live },
+                sid = i.sessionId?.takeIf { it.isNotBlank() && !(i.kind == NightEntry.Kind.SESSION && i.live) },
                 prompts = i.counts?.prompts, tests = i.counts?.tests, commits = i.counts?.commits,
                 // Il passo che ripete l'esito, già scritto sopra, non torna fra i passi (Franz, 08/10 19:55).
                 steps = project?.events.orEmpty().filter { e -> e.at >= i.start - 60 && e.at <= until && e.text.trim() != i.detail?.trim() }
