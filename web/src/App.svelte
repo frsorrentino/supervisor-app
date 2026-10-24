@@ -321,20 +321,31 @@
   // un attimo e poi si richiude (Franz, 08/10 18:59): le due hanno lo stesso view-transition-name.
   let justClosed = $state<{ s: Session; line: string } | null>(null)
   let justTimer: ReturnType<typeof setTimeout> | undefined
+  const showClosed = (x: Session, at: number, ms: number) => {
+    justClosed = { s: { ...x, state: 'gone', question: null }, line: t.justClosedLine(new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) }
+    clearTimeout(justTimer)
+    justTimer = setTimeout(() => smooth(() => { justClosed = null }), ms)
+  }
   const splashHome = () => {
     const o = open
     const ph = o ? splashOf(o) : null
     const x = o ? (st.sessions.find(y => y.name === o) ?? lastSeen[o]) : null
     smooth(() => {
-      if (ph?.kind === 'closed' && x) {
-        justClosed = { s: { ...x, state: 'gone', question: null }, line: t.justClosedLine(new Date(ph.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) }
-        clearTimeout(justTimer)
-        justTimer = setTimeout(() => smooth(() => { justClosed = null }), 2_500)
-      }
+      if (ph?.kind === 'closed' && x) showClosed(x, ph.at, 2_500)
       if (leaving?.name === o) leaving = null
       open = null
     })
   }
+  // Chiusa da una card della home, senza la sua pagina a schermo (Franz 24/10 13:20): la card dice «si sta chiudendo» e,
+  // uscita la sessione, in cima resta la card «chiusa alle HH:MM» più a lungo, perché qui non c'è stato il pannello.
+  $effect(() => {
+    const l = leaving
+    if (!l || open === l.name || (wide && cols.includes(l.name))) return
+    const ph = splashOf(l.name)
+    if (ph?.kind !== 'closed') return
+    const x = st.sessions.find(y => y.name === l.name) ?? untrack(() => lastSeen[l.name])
+    untrack(() => smooth(() => { if (x) showClosed(x, ph.at, 6_000); leaving = null }))
+  })
 
   // Plancia: le colonne scelte (le prime tre senza una scelta salvata), le larghezze in dodicesimi, il lato della home.
   // Le colonne sono le sessioni della lista, senza la master: una master rimasta fra le scelte salvate si toglie da sé.
@@ -778,7 +789,8 @@
     else if (op === 'slash' && arg === 'exit' && name && name !== MASTER) {
       const l: Leaving = { name, sentAt: nowS(), delivered: false }
       leaving = l
-      run(newCmd(op, name, arg, text)).then(r => { if (r && leaving?.name === name && leaving.sentAt === l.sentAt) leaving = { ...l, delivered: true } })
+      // Rifiutata (il motivo lo dice già l'avviso di `run`), la card torna com'era; senza risposta la chiusura può essere in corso.
+      run(newCmd(op, name, arg, text)).then(r => { if (r && leaving?.name === name && leaving.sentAt === l.sentAt) leaving = r.ok ? { ...l, delivered: true } : null })
     } else run(newCmd(op, name || null, arg, text, st.sessions.find(x => x.name === name)?.question?.id))
   }
   // La conversazione di quello che è a schermo, la master sempre (vive nella home), alla cadenza del telefono e una lettura
@@ -896,7 +908,7 @@
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} onNight={() => openPage('night')}
+        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}

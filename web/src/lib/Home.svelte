@@ -33,7 +33,7 @@
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -58,6 +58,8 @@
     /** La sessione appena chiusa dal pannello di chiusura (Franz, 08/10 18:59): la sua card in cima alle sessioni è dove la
      *  pagina atterra tornando alla home (`view-transition-name: page-fly`), poi si richiude da sola. */
     justClosed?: { s: Session; line: string } | null
+    /** La sessione chiusa da una card, finché non esce dallo stato o il PC rifiuta (Franz 24/10 13:20: «nessun feedback»). */
+    closing?: string | null
     /** La sezione «Lavori» (22/10): l'agenda (null = non arrivata), «Tutti i lavori» apre la pagina; Fatto su una riga dell'agenda
      *  (`agenda_set`), Avvia (il «Fallo» dell'agenda alla sua sessione), Fatto su una pausa che aspetta te (la master riprende). */
     agenda?: import('./contract').AgendaPage | null; onLavori?: () => void; onEdit?: (e: Edit) => void
@@ -317,7 +319,9 @@
           <div class="clean">
             <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
             <span>{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b> · {c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(new Date(s.outcome.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) : t.cleanupFinished}{/if}</span>
-            {#if c.canClose && confirming !== s.name}
+            {#if closing === s.name}
+              <span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span>
+            {:else if c.canClose && confirming !== s.name}
               <button class="close" onclick={(e) => { e.stopPropagation(); confirming = s.name }}>
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--b-alert)" stroke-width="2" stroke-linecap="round"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>{t.cleanupClose(s.name)}
               </button>
@@ -331,6 +335,9 @@
               <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
             </div>
           {/if}
+        {/if}
+        {#if closing === s.name && !c}
+          <div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>
         {/if}
         {#if confirming === s.name && !c?.canClose}
           <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
@@ -584,6 +591,11 @@
   .approve { align-self: stretch; margin-top: 4px; background: var(--primary); color: var(--on-primary); border-radius: 999px; padding: 11px 20px; font-weight: 500; }
   .clean { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text2); }
   .clean span { flex: 1; min-width: 0; }
+  /* Mandato /exit da una card: la riga lo dice finché la sessione non esce (poi la card «chiusa alle» in cima). */
+  .closing { flex: none !important; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--text); font-weight: 500; }
+  .closing .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--b-track); border-top-color: var(--icon); animation: turn 1s linear infinite; }
+  @keyframes turn { to { rotate: 360deg; } }
+  @media (prefers-reduced-motion: reduce) { .closing .spin { animation: none; } }
   .confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13.5px; color: var(--text2); }
   .confirm span { flex: 1 1 160px; min-width: 0; }
   .confirm button { border-radius: 999px; padding: 8px 14px; font-weight: 500; flex: none; }
