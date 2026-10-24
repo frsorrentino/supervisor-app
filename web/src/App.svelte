@@ -33,6 +33,8 @@
   import ColumnHead from './lib/ColumnHead.svelte'
   import { t } from './lib/t'
   import HomePane from './lib/HomePane.svelte'
+  import DockEmbed from './lib/DockEmbed.svelte'
+  import { dockWanted } from './lib/dockEmbed'
   import Lavori from './lib/Lavori.svelte'
   import { NIGHT_TARGET, night as nightCards, setCmd, todayIso } from './lib/recapAgenda'
   import NightAgendaPicker from './lib/NightAgendaPicker.svelte'
@@ -295,6 +297,8 @@
   // La master vive nella home: ridotta è la barra in fondo, espansa occupa la home (mai una colonna o una pagina a parte).
   // Franz 24/10 09:41 (Studio, strada A): `/embed` è la sola chat della master, incorporata da studio.francescosorrentino.com.
   const embed = /^\/embed(\.html)?$/.test(location.pathname)
+  // `/embed?dock=1` (studio-dock-coerente-24-10): la barra della master e il suo foglio, su fondo trasparente, dentro Studio.
+  const dock = dockWanted(location.pathname, location.search)
   let masterOpen = $state(linked === MASTER || embed)
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
@@ -857,7 +861,12 @@
 
 <svelte:window bind:innerWidth={width} />
 
-{#if pairing}
+{#if pairing && dock}
+<DockEmbed master={null} entries={[]} onSpeak={() => {}}>
+  {#snippet chat()}{/snippet}
+  {#snippet pair()}<PairPage {store} onPaired={() => location.reload()} />{/snippet}
+</DockEmbed>
+{:else if pairing}
 <PairPage {store} onPaired={() => location.reload()} />
 {:else}
 
@@ -966,7 +975,11 @@
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
 
-{#if embed}
+{#if dock}
+  <DockEmbed master={master ?? ghost(MASTER)} entries={transcripts[MASTER] ?? []} onSpeak={(x) => toggle(x, MASTER)}>
+    {#snippet chat()}{@render chatOf(MASTER, true)}{/snippet}
+  </DockEmbed>
+{:else if embed}
   <div class="embedded">{@render chatOf(MASTER, true)}</div>
 {:else if wide}
   <Desk {cols} {shares} {homeRight} tab={wco ? columnTab : null} onCols={setCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}

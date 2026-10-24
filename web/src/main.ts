@@ -3,6 +3,7 @@ import './app.css'
 import App from './App.svelte'
 import { canonicalUrl, loadRemote } from './lib/remoteAccess'
 import { lang } from './lib/lang'
+import { dockWanted } from './lib/dockEmbed'
 
 // L'altezza dell'area visibile davvero (visualViewport): la usa #app in app.css. Nei browser interni delle app (X,
 // Telegram, Instagram) la barra in basso non è tolta da 100vh né sempre da 100dvh.
@@ -17,7 +18,11 @@ document.documentElement.lang = lang
 
 // Dai nomi di Firebase del sito al dominio, prima di disegnare la pagina (un browser già collegato lì resta lì).
 const store = { get: (k: string) => { try { return localStorage.getItem(k) } catch { return null } }, set() {}, remove() {} }
-const canonical = canonicalUrl(new URL(location.href), loadRemote(store) != null)
+// `/embed` resta dov'è: Studio riconosce i messaggi del riquadro dall'origine con cui l'ha aperto.
+const embedded = /^\/embed(\.html)?$/.test(location.pathname)
+const canonical = embedded ? null : canonicalUrl(new URL(location.href), loadRemote(store) != null)
+// `/embed?dock=1` è trasparente sopra Studio: niente fondo su html e body (app.css).
+if (dockWanted(location.pathname, location.search)) document.documentElement.classList.add('dock')
 if (canonical) location.replace(canonical)
 
 const app = canonical ? undefined : mount(App, {

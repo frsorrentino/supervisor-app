@@ -12,9 +12,12 @@
   // destra il menu ≡ della home (`trailing`). `toggleUp` e `onToggleKey`: il tasto tondo nelle tre misure della plancia,
   // dove a metà dice ▲ e porta a tutto schermo. `onClose`: a metà, «Chiudi» ▼ accanto ad «Apri» ▲ (Franz, 09/10 21:02):
   // chiudere non chiede più il trascinamento, ogni gesto ha un tocco che fa lo stesso (WCAG 2.5.1).
-  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, trailing, toggleUp, onToggleKey, onClose }: {
+  // `onDrag`: il gesto passo per passo (`/embed?dock=1`, dove Studio fa seguire al riquadro il dito), con lo spostamento in
+  // px dall'inizio, e `null` alla fine; allora decide `onDrop` invece di `onToggle`.
+  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, trailing, toggleUp, onToggleKey, onClose, onDrag, onDrop }: {
     master: Session; entries: Entry[]; onToggle: () => void; onSpeak: (text: string) => void; expanded?: boolean
     screen?: boolean; trailing?: Snippet; toggleUp?: boolean; onToggleKey?: () => void; onClose?: () => void
+    onDrag?: (dy: number) => void; onDrop?: (dy: number) => void
   } = $props()
   const up = $derived(toggleUp ?? !expanded)
   const key = $derived(onToggleKey ?? onToggle)
@@ -27,13 +30,20 @@
   // Il cerchio rosso era l'elemento più saturo della schermata e nel Material 3 il rosso è il ruolo «errore» (22:27).
   const attention = $derived(master.state === 'waiting' || master.state === 'gone')
   // Trascinare la barra oltre 40 px (MasterDock.kt): in su espande, in giù riduce; il tocco resta, il gesto lo affianca.
+  // screenY e non clientY: dentro Studio il riquadro si sposta col dito, e le coordinate della pagina con lui.
   let y0: number | null = null
   let dragged = false
-  function down(e: PointerEvent) { y0 = e.clientY; dragged = false }
+  function down(e: PointerEvent) { y0 = e.screenY; dragged = false; if (onDrag) (e.currentTarget as Element).setPointerCapture?.(e.pointerId) }
+  function move(e: PointerEvent) {
+    if (y0 == null || !onDrag) return
+    const dy = e.screenY - y0
+    if (Math.abs(dy) > 8) { dragged = true; onDrag(dy) }
+  }
   function release(e: PointerEvent) {
     if (y0 == null) return
-    const dy = e.clientY - y0
+    const dy = e.screenY - y0
     y0 = null
+    if (onDrop) { if (dragged) onDrop(dy); return }
     if ((dy < -40 && !expanded) || (dy > 40 && expanded)) { dragged = true; onToggle() }
   }
 </script>
@@ -45,7 +55,7 @@
 {/snippet}
 
 <div class="dock" class:expanded class:screen role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
-  onpointerdown={down} onpointerup={release} onpointercancel={() => (y0 = null)}>
+  onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={() => { if (y0 != null && dragged) onDrop?.(0); y0 = null }}>
   <!-- La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42). -->
   {@render toggleKey()}
   {#if onClose}
