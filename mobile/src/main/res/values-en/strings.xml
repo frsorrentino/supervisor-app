@@ -1074,6 +1074,7 @@ It starts at your last message to the master.</string>
     <string name="close_blocked_question">stays open: has a question</string>
     <string name="close_blocked_background">stays open: background job</string>
     <string name="close_blocked_attached">stays open: open at the PC</string>
+    <string name="close_blocked_gone">no longer running: nothing to close</string>
     <string name="close_blocked_other">stays open</string>
     <string name="closed_saved">Closed, state saved</string>
     <string name="close_refused">The PC did not close them</string>

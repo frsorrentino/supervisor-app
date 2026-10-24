@@ -1235,7 +1235,7 @@ private fun CloseFinishedDialog(p: it.pixelbox.cmwatch.rules.CloseFinished.Previ
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(x.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = if (x.closable) CmColors.text else CmColors.text2)
                                 val small = MaterialTheme.typography.bodySmall
-                                if (!x.closable) Text(stringResource(when (x.blockedBy) { "busy" -> R.string.close_blocked_busy; "question" -> R.string.close_blocked_question; "background" -> R.string.close_blocked_background; "attached" -> R.string.close_blocked_attached; else -> R.string.close_blocked_other }), style = small, color = CmColors.text2)
+                                if (!x.closable) Text(stringResource(when (x.blockedBy) { "busy" -> R.string.close_blocked_busy; "question" -> R.string.close_blocked_question; "background" -> R.string.close_blocked_background; "attached" -> R.string.close_blocked_attached; "gone" -> R.string.close_blocked_gone; else -> R.string.close_blocked_other }), style = small, color = CmColors.text2)
                                 else {
                                     x.save?.outcome?.let { Text(stringResource(R.string.close_saves_outcome, it), style = small, color = CmColors.text2) }
                                     x.save?.next?.let { Text(stringResource(R.string.close_saves_next, it), style = small, color = CmColors.text2) }

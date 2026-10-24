@@ -1092,6 +1092,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="close_blocked_question">resta aperta: ha una domanda</string>
     <string name="close_blocked_background">resta aperta: ha un lavoro in sottofondo</string>
     <string name="close_blocked_attached">resta aperta: è aperta al PC</string>
+    <string name="close_blocked_gone">non è più in esecuzione: niente da chiudere</string>
     <string name="close_blocked_other">resta aperta</string>
     <string name="closed_saved">Chiuse, stato salvato</string>
     <string name="close_refused">Il PC non ha chiuso</string>
