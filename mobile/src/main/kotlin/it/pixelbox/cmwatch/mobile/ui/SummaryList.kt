@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -753,11 +754,16 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
 private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (String, String, String?) -> Unit) {
     var ask by rememberSaveable(a.task) { mutableStateOf(false) }
     var choice by rememberSaveable(a.task) { mutableStateOf<String?>(null) }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(18.dp))
-        Text(a.title, style = MaterialTheme.typography.bodySmall, color = CmColors.text, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f))
-        if (a.deploy) Tag(stringResource(R.string.approval_prod), CmColors.prod)
-        OkButtons(a, filled = true) { o -> choice = o; ask = true }
+    // Franz 24/10 09:22: con le opzioni il titolo intero sopra e i tasti sotto, che vanno a capo fra loro.
+    val withOptions = it.pixelbox.cmwatch.rules.Approvals.choices(a).isNotEmpty()
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(18.dp))
+            Text(a.title, style = MaterialTheme.typography.bodySmall, color = CmColors.text, maxLines = if (withOptions) 4 else 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f))
+            if (a.deploy) Tag(stringResource(R.string.approval_prod), CmColors.prod)
+            if (!withOptions) OkButtons(a, filled = true) { o -> choice = o; ask = true }
+        }
+        if (withOptions) Box(Modifier.padding(start = 28.dp)) { OkButtons(a, filled = true) { o -> choice = o; ask = true } }
     }
     if (ask) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
 }
@@ -783,14 +789,17 @@ private fun WorkLine(w: Lavori.ForYou, onDone: () -> Unit, onStart: () -> Unit) 
 private fun OkButtons(a: it.pixelbox.cmwatch.contract.Approval, filled: Boolean, onPick: (choice: String?) -> Unit) {
     val opts = it.pixelbox.cmwatch.rules.Approvals.choices(a)
     if (opts.isEmpty()) MiniButton(stringResource(R.string.approve), filled = filled) { onPick(null) }
-    else Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { opts.forEach { o -> MiniButton(o, filled = false) { onPick(o) } } }
+    else {
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { opts.forEach { o -> MiniButton(o, filled = false) { onPick(o) } } }
+    }
 }
 
 /** Il tasto piccolo delle righe (come l'Approva della scheda): pieno per quello che sblocca una sessione, tonale per l'agenda. */
 @Composable
 private fun MiniButton(text: String, filled: Boolean, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = CircleShape, color = if (filled) CmColors.primary else CmColors.surfaceHigh, contentColor = if (filled) CmColors.onPrimary else CmColors.text) {
-        Text(text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
 }
 
@@ -805,7 +814,8 @@ private fun WorkCard(
     var ask by rememberSaveable(r.title) { mutableStateOf(false) }
     var choice by rememberSaveable(r.title) { mutableStateOf<String?>(null) }
     val a = r.approval; val ag = r.agenda; val cm = r.commitment; val who = r.who?.takeIf { it.isNotBlank() }; val at = r.at
-    val meta = ag?.scope?.takeIf { it.isNotBlank() } ?: cm?.session ?: who
+    // Franz 24/10 09:22: per un ok «chi chiede» sta nella riga in fondo; in testa resta corto e non schiaccia il titolo.
+    val meta = ag?.scope?.takeIf { it.isNotBlank() } ?: cm?.session
     val sub = when (r.kind) {
         Lavori.Kind.OK -> when {
             who != null && at != null -> stringResource(R.string.lavori_asks, who, hhmmOf(at))
@@ -819,19 +829,29 @@ private fun WorkCard(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             WorkBadge(r.kind, ag?.let { RecapAgenda.mark(it.scope) } ?: RecapAgenda.Mark.NONE)
             Text(Lavori.shortTitle(r.title, ag?.short ?: cm?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
-            meta?.let { Text(it, style = MonoSmall, color = CmColors.text2, maxLines = 1) }
+            meta?.let { Text(it, style = MonoSmall, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.widthIn(max = 120.dp)) }
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
                 Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = CmColors.text2)
             }
         }
-        Text(r.title, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = if (open) Int.MAX_VALUE else 2, overflow = TextOverflow.Clip)
+        // Franz 24/10 09:22: per una scelta la domanda intera, sempre.
+        val asksChoice = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x).isNotEmpty() } == true
+        Text(r.title, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = if (open || asksChoice) Int.MAX_VALUE else 2, overflow = TextOverflow.Clip)
         if (open) Lavori.details(r).forEach { d ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(detailLabel(d.kind)), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
                 Text(if (d.kind == Lavori.Detail.ASKED_AT) hhmmOf(d.value.toLong()) else d.value, style = MaterialTheme.typography.bodySmall, color = CmColors.text)
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
+        if (opts.isNotEmpty()) {
+            // Franz 24/10 09:22: con le opzioni, chi chiede su una riga sua e i tasti interi sotto, che vanno a capo fra loro.
+            sub?.let { Text(it, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip) }
+            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                opts.forEach { o -> MiniButton(o, filled = false) { choice = o; ask = true } }
+            }
+        } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(sub.orEmpty(), style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
             when (r.kind) {
                 Lavori.Kind.OK -> if (a != null) OkButtons(a, filled = true) { o -> choice = o; ask = true }

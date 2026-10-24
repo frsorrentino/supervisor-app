@@ -112,7 +112,8 @@
   // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli (lavoriDetails).
   let openWork = $state<string | null>(null)
   const workKey = (r: LavoriRow, i: number) => r.approval?.task ?? r.commitment?.task ?? (r.agenda?.key || null) ?? `${r.kind}-${i}`
-  const fyMeta = (r: LavoriRow): string => r.agenda?.scope?.trim() || r.commitment?.session || (r.kind === 'ok' ? r.who : null) || ''
+  // Franz 24/10 09:22: per un ok «chi chiede» sta nella riga in fondo; in testa la meta resta corta.
+  const fyMeta = (r: LavoriRow): string => r.agenda?.scope?.trim() || r.commitment?.session || ''
   const tonightCard = $derived(tonightOf(st.night, now))
   let closedDlg: HTMLDialogElement | undefined = $state()
   const catLabel = (c: Category) => ({ fix: t.catFix, scheduled: t.catScheduled, resume: t.catResume, night: t.catNight, closed: t.catClosed })[c]
@@ -246,11 +247,12 @@
             <svg viewBox="0 0 24 24" width="22" height="22"><path d={openW ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
           </button>
         </div>
-        <p class="body" class:full={openW}>{r.title}</p>
+        <!-- Franz 24/10 09:22: per una scelta la domanda intera, sempre. -->
+        <p class="body" class:full={openW || (!!r.approval && choices(r.approval).length > 0)}>{r.title}</p>
         {#if openW && ds.length}
           <div class="kv wkv">{#each ds as d (d.kind)}<span>{t.lavoriDetail[d.kind]}</span><span>{d.kind === 'asked_at' ? hhmm(Number(d.value)) : d.value}</span>{/each}</div>
         {/if}
-        <div class="oks"><div class="ok">
+        <div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
           <span class="okt mono2">{fySub(r) ?? ''}</span>
           {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval)}{/if}
           {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
@@ -325,7 +327,7 @@
           <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
           <div class="oks">
             {#each r.approvals as a (a.task)}
-              <div class="ok">
+              <div class="ok" class:wrap={choices(a).length > 0}>
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76M9 12l2 2 4-4" /></svg>
                 <span class="okt">{a.title}</span>
                 {#if a.deploy}<span class="dup">{t.approvalProd.toUpperCase()}</span>{/if}
@@ -558,6 +560,11 @@
   .okt.col { display: flex; flex-direction: column; gap: 1px; } .okt.col b { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; }
   .mono2 { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text2); }
   .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  .opts button { white-space: nowrap; }
+  /* Franz 24/10 09:22: con le opzioni chi chiede (o il titolo) sopra e i tasti interi sotto, che vanno a capo fra loro. */
+  .ok.stack { flex-direction: column; align-items: stretch; } .ok.stack .opts { justify-content: flex-start; }
+  .ok.wrap { flex-wrap: wrap; } .ok.wrap .opts { flex-basis: 100%; justify-content: flex-start; padding-left: 28px; }
+  .card .top .mono { max-width: 40%; white-space: nowrap; overflow: hidden; }
   /* Grammatica unica (24/10): la Notte e le voci di Altro come schede della famiglia; il contesto sulla barra col valore accanto. */
   .ncard { width: 100%; text-align: left; }
   .svc { cursor: default; }
