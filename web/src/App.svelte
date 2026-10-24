@@ -260,6 +260,8 @@
   /** Vero quando la lettura è arrivata, anche senza voci nuove. */
   // Contratto 1.82: una conversazione chiusa aperta dalla Notte si legge per sid, in sola lettura.
   let sidOf = $state<Record<string, string>>({})
+  // La conversazione chiusa aperta dalla Notte: un riquadro a tutto schermo sopra la pagina, in sola lettura, con ✕.
+  let reading = $state<string | null>(null)
   const transcriptCmd = (name: string, arg: string) => {
     const sid = st.sessions.some(x => x.name === name && x.state !== 'gone') ? undefined : sidOf[name]
     return sid ? newCmd('transcript', null, arg, undefined, undefined, { sid }) : newCmd('transcript', name, arg)
@@ -926,7 +928,7 @@
         onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} {donePages} onLoadDay={loadDone} />
     {:else if p === 'night'}
       <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={loadNight}
-        onChat={(n, sid) => { if (sid) sidOf = { ...sidOf, [n]: sid }; openPage(null); pick(n) }} onAnswer={(n, x) => cmd(n)('answer', String(x))}
+        onChat={(n, sid) => { if (sid) { sidOf = { ...sidOf, [n]: sid }; reading = n; loadTranscript(n) } else { openPage(null); pick(n) } }} onAnswer={(n, x) => cmd(n)('answer', String(x))}
         onApprove={(task) => approve(task, '')} onSend={(n, text) => sendTo(n, text)} />
     {:else if p === 'search'}
       <Search {sent} {events} remote onQuery={search} page={searchPage}
@@ -1012,6 +1014,12 @@
   </div>
 {/if}
 <AddDevice bind:this={addDlg} origin={CANONICAL} ask={() => tr ? tr.send(newCmd('pair_add', null, null)) : Promise.resolve(null)} />
+{#if reading}
+  <div class="embedded reading">
+    <div class="rbar"><button class="rclose" aria-label={t.close} onclick={() => (reading = null)}>✕</button><b>{reading}</b><small>{t.readOnly}</small></div>
+    {@render chatOf(reading, true)}
+  </div>
+{/if}
 {#if !demo && (!ready || down)}<span class="demo mono">{ready ? t.relayDown : t.relayConnecting}</span>{/if}
 {#if notice}<div class="notice" role="status">{notice}</div>{/if}
 {/if}
@@ -1048,4 +1056,11 @@
   .demo { position: fixed; right: 12px; bottom: 6px; opacity: .6; pointer-events: none; }
   @media (max-width: 839px) { .demo { bottom: 0; right: 50%; transform: translateX(50%); font-size: 10px; } }
   .embedded { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+  .embedded.reading { z-index: 70; }
+  /* Sola lettura: niente campo di scrittura, né avvisi di altre sessioni. */
+  .embedded.reading :global(form.field), .embedded.reading :global(.elsewhere) { display: none; }
+  .rbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .rbar b { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
+  .rbar small { color: var(--text2); font: 500 12px/1 var(--mono); }
+  .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
 </style>

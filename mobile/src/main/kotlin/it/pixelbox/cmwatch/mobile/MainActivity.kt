@@ -1309,7 +1309,8 @@ class MainActivity : ComponentActivity() {
         // Se la sessione aperta si chiude, la pagina non sparisce (Franz, 08/10 18:06): resta sotto il pannello di chiusura, che
         // riporta alla home da solo dopo 3 s o col suo tasto (`CloseSplash`).
         LaunchedEffect(state?.sessions) { state?.sessions?.forEach { x -> lastSeen[x.name] = x } }
-        val splash = open?.let { o ->
+        // Contratto 1.82: una conversazione chiusa aperta dalla Notte non è una sessione che si sta chiudendo: niente pannello.
+        val splash = open?.takeIf { o -> o !in sidOf }?.let { o ->
             state?.let { st ->
                 CloseSplash.of(o, st.sessions, leaving, lastSeen[o], now, delivered = leaving?.cmd?.let { id -> results[id] != null } == true)
             }
@@ -1831,7 +1832,9 @@ class MainActivity : ComponentActivity() {
                         androidx.compose.foundation.pager.HorizontalPager(pager, modifier = Modifier.nestedScroll(backDrag), key = { pages[it] ?: SUMMARY_PAGE }, beyondViewportPageCount = 0) { page ->
                             val n = pages[page]
                             // La sessione aperta appena uscita dallo stato resta com'era, chiusa, sotto il pannello di chiusura.
-                            val session = n?.let { x -> state?.sessions?.firstOrNull { it.name == x } ?: lastSeen[x]?.takeIf { x == target }?.copy(state = SessionState.GONE, question = null) }
+                            val session = n?.let { x -> state?.sessions?.firstOrNull { it.name == x } ?: lastSeen[x]?.takeIf { x == target }?.copy(state = SessionState.GONE, question = null)
+                                // Contratto 1.82: la conversazione chiusa aperta dalla Notte, in sola lettura, su un segnaposto chiuso.
+                                ?: x.takeIf { y -> y in sidOf }?.let { _ -> it.pixelbox.cmwatch.contract.Session(id = x, name = x, account = "", project = "", state = SessionState.GONE, since = 0) } }
                             if (session == null) {
                                 // Il riepilogo; sotto la scheda, durante il gesto indietro, è questa pagina.
                                 if (n == null) summaryPage()
