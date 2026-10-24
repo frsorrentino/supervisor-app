@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suggerimenti e home</title>
+<style>
+  :root {
+    --bg: #000; --low: #1B1F26; --surface: #23272E; --high: #292F3A; --line: #2A2E35;
+    --text: #F2F4F7; --text2: #B0B8C4; --icon: #A8C7FA; --primary: #D3E3FD; --on-primary: #0A2050;
+    --wait: #FFB020; --good: #65C581; --busy: #7FA1FF; --gone: #FF453A; --advice: #C58AF9;
+    --b-ring: #8BB4F7; --b-track: #455165; --b-warn: #FFC46B; --b-week: #B9A6F5;
+    --master-container: #122033; --master-high: #1D2B3E;
+    --note: #FF9F43;
+    --mono: ui-monospace, "Roboto Mono", "JetBrains Mono", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0B0D10; color: var(--text); font: 15px/1.45 Roboto, system-ui, sans-serif; -webkit-font-smoothing: antialiased; padding: 24px; }
+  button { font: inherit; color: inherit; background: none; border: 0; }
+  .board { display: flex; gap: 32px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  .tag { font: 600 13px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text2); padding: 4px 2px 8px; }
+  .tag.new { color: var(--note); }
+  .phone { width: 390px; background: var(--bg); border-radius: 28px; padding: 14px 12px 20px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #1d2127; }
+  .web { width: 1200px; background: var(--bg); border-radius: 18px; padding: 18px; display: grid; grid-template-columns: 310px 1.45fr 1fr 1fr; gap: 18px; border: 1px solid #1d2127; }
+  .web .pane { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .top { display: flex; align-items: center; gap: 10px; padding: 4px 6px 6px; }
+  .top h1 { font-size: 22px; font-weight: 500; } .top small { color: var(--text2); font-size: 14px; }
+  .top .sp { flex: 1; }
+  .pill { background: color-mix(in srgb, var(--wait) 25%, transparent); color: #FFD27A; border-radius: 999px; padding: 5px 12px; font-size: 13.5px; font-weight: 500; }
+  .meters { display: flex; gap: 16px; padding: 0 6px 4px; font: 12px var(--mono); color: var(--text2); }
+  .meters span { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .meters i { flex: 1; height: 4px; border-radius: 2px; background: var(--b-track); position: relative; overflow: hidden; }
+  .meters i b { position: absolute; inset: 0 auto 0 0; background: var(--b-ring); border-radius: 2px; }
+  .sec { display: flex; align-items: center; gap: 10px; margin: 10px 4px 2px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-transform: uppercase; }
+  .sec i { flex: 1; height: 1px; background: var(--line); }
+  .sec.wait { color: var(--wait); } .sec.wait i { background: color-mix(in srgb, var(--wait) 30%, transparent); }
+  .sec .act { font: 500 13px Roboto, sans-serif; letter-spacing: 0; text-transform: none; color: var(--icon); padding: 4px 10px; border-radius: 14px; background: color-mix(in srgb, var(--icon) 12%, transparent); }
+  .card { background: var(--low); border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .card.master { background: var(--master-container); }
+  .head { display: flex; align-items: center; gap: 10px; }
+  .badge { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; color: #0b0d10; }
+  .head b { font-weight: 600; font-size: 16px; flex: 1; min-width: 0; }
+  .head .m { font: 12px var(--mono); color: var(--text2); }
+  .body { font-size: 14.5px; line-height: 1.4; color: var(--text); }
+  .sub { font-size: 13px; color: var(--text2); }
+  .stale { color: var(--text2); font-style: italic; }
+  .old { font: 600 10.5px var(--mono); letter-spacing: .06em; color: var(--b-warn); background: color-mix(in srgb, var(--b-warn) 14%, transparent); border-radius: 999px; padding: 2px 8px; margin-left: 6px; font-style: normal; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .row .t { flex: 1; min-width: 0; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .b { border-radius: 999px; padding: 7px 14px; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+  .b.tonal { background: var(--high); }
+  .sug .b { padding: 6px 12px; } .sug .b.text { padding: 6px 8px; }
+  .web .qrow span:first-child { width: 96px; } .b.filled { background: var(--primary); color: var(--on-primary); } .b.text { color: var(--text2); padding: 7px 10px; }
+  .ctx { display: flex; align-items: center; gap: 8px; font: 12px var(--mono); color: var(--text2); }
+  .ctx i { flex: 1; height: 3px; background: var(--b-track); border-radius: 2px; position: relative; } .ctx i b { position: absolute; inset: 0 auto 0 0; background: var(--b-ring); border-radius: 2px; }
+  .sug { display: flex; gap: 10px; padding: 10px 0 2px; border-top: 1px solid color-mix(in srgb, var(--advice) 18%, transparent); }
+  .sug:first-of-type { border-top: 0; padding-top: 2px; }
+  .sym { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; background: color-mix(in srgb, var(--s) 20%, transparent); color: var(--s); }
+  .sug .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .sug .k { font: 600 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--s); }
+  .sug .btns { justify-content: flex-start; margin-top: 4px; }
+  .card.sugg { background: color-mix(in srgb, var(--advice) 9%, var(--low)); }
+  .note { background: color-mix(in srgb, var(--note) 14%, transparent); border: 1px dashed color-mix(in srgb, var(--note) 60%, transparent); color: #FFC690; border-radius: 12px; padding: 7px 10px; font-size: 12.5px; line-height: 1.35; }
+  .note b { color: var(--note); font-weight: 600; }
+  .fold { display: flex; align-items: center; gap: 8px; padding: 8px 6px; color: var(--text2); font-size: 14px; }
+  .fold span { flex: 1; } .fold svg { flex: none; }
+  .li { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-top: 1px solid var(--line); font-size: 14px; }
+  .li:first-child { border-top: 0; }
+  .li .sq { width: 14px; height: 14px; border: 2px solid var(--text2); border-radius: 4px; flex: none; }
+  .li .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+  .ok { display: flex; align-items: center; gap: 10px; }
+  .chart { display: flex; align-items: flex-end; gap: 4px; height: 70px; padding: 6px 4px 0; }
+  .chart i { flex: 1; background: var(--b-track); border-radius: 3px 3px 0 0; }
+  .qrow { display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 4px 0; }
+  .qrow span:first-child { width: 132px; flex: none; white-space: nowrap; overflow: hidden; }
+  .qrow i { flex: 1; height: 8px; background: var(--b-track); border-radius: 4px; position: relative; }
+  .qrow i b { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--b-ring); }
+  .qrow em { font: 12px var(--mono); color: var(--text2); font-style: normal; width: 40px; text-align: right; }
+  .pub { display: flex; flex-direction: column; gap: 1px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .pub:first-of-type { border-top: 0; }
+  .pub small { color: var(--text2); font-size: 12.5px; }
+  .glued { color: var(--text); }
+  .web .phonecap { display: none; }
+  h2 { font: 500 20px Roboto, sans-serif; margin: 0 0 4px; }
+  .lede { color: var(--text2); font-size: 14px; max-width: 900px; margin-bottom: 18px; line-height: 1.45; }
+  body[data-view] > header { display: none; }
+  body[data-view="phone"] .webboard, body[data-view="web"] .phoneboard { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h2>Suggerimenti della master e cinque migliorie della home</h2>
+  <p class="lede">Proposta del 24/10/2026 (compito suggerimenti-home-mockup-24-10): a sinistra la home di oggi, a destra la proposta. Le note arancioni dicono il perché. Solo mockup: il codice viene dopo la scelta di Franz. Numeri della quota per sessione d'esempio.</p>
+</header>
+
+<!-- ============================== TELEFONO ============================== -->
+<div class="board phoneboard">
+  <div class="col">
+    <div class="tag">Telefono · oggi</div>
+    <div class="phone">
+      <div class="top"><h1>Master</h1><small>7 aperte</small><span class="sp"></span><span class="pill">28 per te</span></div>
+      <div class="meters"><span>5h <i><b style="width:2%"></b></i> 2%</span><span>sett. <i><b style="width:62%;background:var(--b-week)"></b></i> 62%</span></div>
+
+      <div class="sec">Per te · 28<i></i></div>
+      <div class="card"><div class="li"><span class="sq"></span><span class="t">Rinnovo dominio pixelbox.it</span></div><div class="li"><span class="sq"></span><span class="t">Firma il verbale del collaudo</span></div><div class="li"><span class="sq"></span><span class="t">Foto del giunto per legnaia</span></div><div class="li"><span class="sq"></span><span class="t">Carica le ricevute di ottobre</span></div><div class="li"><span class="sq"></span><span class="t">Altre 13 da fare fuori dalla chat</span></div></div>
+      <div class="card"><div class="ok"><span class="badge" style="background:var(--advice)">✓</span><div class="t" style="flex:1"><div class="body">Studio, Investimenti: cron serale acceso su SiteGround</div><div class="sub">chiede master alle 19:02</div></div><button class="b filled">Approva</button></div></div>
+      <div class="note"><b>1.</b> L'ok che ferma un lavoro arriva dopo 17 cose da fare fuori dalla chat.</div>
+
+      <div class="sec">Al lavoro · 2<i></i></div>
+      <div class="card"><div class="head"><span class="badge" style="background:#7FA1FF">A</span><b>Ads Widget, APK default</b><span class="m">5h 2%</span></div><div class="body">Aspetto il codice di accoppiamento del telefono</div></div>
+      <div class="note"><b>2.</b> Sembra al lavoro, ma aspetta Franz.</div>
+
+      <div class="sec">Ferme · 4<i></i></div>
+      <div class="card"><div class="head"><span class="badge" style="background:#65C581">c</span><b>curriculum</b><span class="m">5h 2%</span></div><div class="body">CV .doc 23/10 inviato</div></div>
+      <div class="card"><div class="head"><span class="badge" style="background:#65C581">l</span><b>legnaia</b><span class="m">5h 2%</span></div><div class="body">Inviata tavola: M8×160 al giunto, Fischer a terra</div></div>
+      <div class="card"><div class="head"><span class="badge" style="background:#B9A6F5">b</span><b>win:bluey</b><span class="m">5h 2%</span></div><div class="body">La supervisor avvisa che la release 0.8.57 usa il WSL di Windows per circa 12 minuti.</div></div>
+      <div class="note"><b>2, 4.</b> Il motivo di bluey è di stamattina; tre sessioni finite da ore restano aperte e occupano i posti del tetto di 5.</div>
+
+      <div class="sec">Oggi · eventi per ora<i></i></div>
+      <div class="card"><div class="chart"><i style="height:20%"></i><i style="height:45%"></i><i style="height:30%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:40%"></i><i style="height:65%"></i><i style="height:35%"></i><i style="height:50%"></i></div></div>
+      <div class="note"><b>5.</b> Gli eventi per ora non dicono dove va la quota.</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="tag new">Telefono · proposta</div>
+    <div class="phone">
+      <div class="top"><h1>Master</h1><small>7 aperte</small><span class="sp"></span><span class="pill">2 per te</span></div>
+      <div class="meters"><span>5h <i><b style="width:2%"></b></i> 2%</span><span>sett. <i><b style="width:62%;background:var(--b-week)"></b></i> 62%</span></div>
+
+      <div class="sec wait">Aspettano te · 2<i></i></div>
+      <div class="card master"><div class="head"><span class="badge" style="background:var(--wait)">M</span><b>master</b><span class="m">5h 2%</span></div>
+        <div class="ok"><span class="badge" style="background:var(--advice);width:22px;height:22px;font-size:11px">✓</span><div class="t" style="flex:1"><div class="body">Studio, Investimenti: cron serale acceso su SiteGround</div></div><button class="b filled">Approva</button></div></div>
+      <div class="card"><div class="head"><span class="badge" style="background:#7FA1FF">A</span><b>win:ads-widget</b><span class="m">5h 2%</span></div><div class="body">Mandami codice e IP:porta di «Accoppia dispositivo con codice»</div><div class="sub">chiede la master per il compito ads-widget-apk-default</div><div class="btns"><button class="b tonal">Rispondi</button></div></div>
+      <div class="note"><b>2.</b> Una richiesta legata a un compito porta la sessione in «Aspettano te», anche se il turno è aperto.</div>
+
+      <div class="card sugg">
+        <div class="head"><span class="badge" style="background:var(--advice)">✦</span><b>Suggerimenti della master</b><span class="m">19:00 · 3 di 4</span></div>
+        <div class="sug" style="--s:#8BB4F7"><span class="sym"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></svg></span><div class="t"><span class="k">Ricorrente</span><span class="body">Chiedi spesso «com'è andata la CI di supervisor-app»: la aggiungo ai Ricorrenti?</span><div class="btns"><button class="b tonal">Accetta</button><button class="b text">Non ora</button><button class="b text">Mai</button></div></div></div>
+        <div class="sug" style="--s:#65C581"><span class="sym"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span><div class="t"><span class="k">Pulizia</span><span class="body">Cinque compiti in pausa da 2 giorni (albo-* e phone-fix): li archivio?</span><div class="btns"><button class="b tonal">Accetta</button><button class="b text">Non ora</button><button class="b text">Mai</button></div></div></div>
+        <div class="sug" style="--s:#FFC46B"><span class="sym"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg></span><div class="t"><span class="k">Scadenza</span><span class="body">Il cron serale di Investimenti di Studio non è mai partito: lo attivo stasera?</span><div class="btns"><button class="b tonal">Accetta</button><button class="b text">Non ora</button><button class="b text">Mai</button></div></div></div>
+      </div>
+      <div class="note"><b>A.</b> Dopo quello che ti aspetta, prima delle sessioni: si legge quando nulla blocca. Tre al massimo; la master li prepara alle 8 e alle 19 da registro e diario. Accetta manda il prompt alla master, nient'altro parte da solo.</div>
+
+      <div class="sec">Ferme · 4<span class="act">Chiudi le finite (3)</span><i></i></div>
+      <div class="card"><div class="head"><span class="badge" style="background:#65C581">c</span><b>curriculum</b><span class="m">finita da 3 h</span></div><div class="body">CV .doc 23/10 inviato</div></div>
+      <div class="card"><div class="head"><span class="badge" style="background:#B9A6F5">b</span><b>win:bluey</b><span class="m">5h 2%</span></div><div class="body stale">La supervisor avvisa che la release 0.8.57 usa il WSL di Windows per circa 12 minuti.<span class="old">16 H FA</span></div></div>
+      <div class="note"><b>4.</b> Un tasto chiude curriculum, legnaia e rendicontazione-ak dopo una conferma, e libera posti del tetto. <b>2.</b> Un motivo più vecchio di 6 ore si spegne e dice da quanto.</div>
+
+      <div class="sec">Per te<i></i></div>
+      <div class="card"><div class="fold"><span>Più tardi · 26 (fuori dalla chat, ricorrenti)</span><svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"/></svg></div></div>
+      <div class="note"><b>1.</b> In alto solo quello che blocca adesso (in «Aspettano te»); il resto chiuso in «Più tardi».</div>
+
+      <div class="sec">Oggi · quota per sessione<i></i></div>
+      <div class="card">
+        <div class="qrow"><span>supervisor-app</span><i><b style="width:58%"></b></i><em>34 %</em></div>
+        <div class="qrow"><span>master</span><i><b style="width:24%"></b></i><em>14 %</em></div>
+        <div class="qrow"><span>rendicontazione-ak</span><i><b style="width:14%"></b></i><em>8 %</em></div>
+        <div class="qrow"><span>altre 4</span><i><b style="width:10%;background:var(--b-track)"></b></i><em>6 %</em></div>
+      </div>
+      <div class="note"><b>5.</b> Al posto degli eventi per ora, la quota delle 5 ore usata oggi da ciascuna sessione.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== WEB ============================== -->
+<div class="board webboard">
+  <div class="col">
+    <div class="tag">Web desktop · oggi</div>
+    <div class="web">
+      <div class="pane">
+        <div class="top"><h1>Master</h1><small>7 aperte</small><span class="sp"></span><span class="pill">28 per te</span></div>
+        <div class="sec">Al lavoro · 2<i></i></div>
+        <div class="card"><div class="head"><span class="badge" style="background:#7FA1FF">A</span><b>Ads Widget, APK default</b></div><div class="body">Aspetto il codice di accoppiamento</div></div>
+        <div class="note"><b>2.</b> Aspetta Franz, ma sta fra quelle al lavoro.</div>
+        <div class="sec">Ferme · 4<i></i></div>
+        <div class="card"><div class="head"><span class="badge" style="background:#65C581">c</span><b>curriculum</b></div><div class="body">CV .doc 23/10 inviato</div></div>
+        <div class="card"><div class="head"><span class="badge" style="background:#65C581">l</span><b>legnaia</b></div><div class="body">Inviata tavola: M8×160 al giunto</div></div>
+        <div class="card"><div class="head"><span class="badge" style="background:#B9A6F5">b</span><b>win:bluey</b></div><div class="body">La supervisor avvisa che la release 0.8.57 usa il WSL di Windows per circa 12 minuti.</div></div>
+      </div>
+      <div class="pane">
+        <div class="sec">Cosa serve da te<i></i></div>
+        <div class="sec">Per te · 28<i></i></div>
+        <div class="card"><div class="li"><span class="sq"></span><span class="t">Rinnovo dominio pixelbox.it</span></div><div class="li"><span class="sq"></span><span class="t">Firma il verbale del collaudo</span></div><div class="li"><span class="sq"></span><span class="t">Foto del giunto per legnaia</span></div><div class="li"><span class="sq"></span><span class="t">Carica le ricevute di ottobre</span></div><div class="li"><span class="sq"></span><span class="t">Prenota la revisione dell'auto</span></div><div class="li"><span class="sq"></span><span class="t">Altre 12 da fare fuori dalla chat</span></div></div>
+        <div class="card"><div class="ok"><div class="t" style="flex:1"><div class="body">Studio, Investimenti: cron serale acceso su SiteGround</div><div class="sub">chiede master alle 19:02</div></div><button class="b filled">Approva</button></div></div>
+        <div class="note"><b>1.</b> L'ok che ferma un lavoro sta sotto 17 voci.</div>
+      </div>
+      <div class="pane">
+        <div class="sec">Il lavoro<i></i></div>
+        <div class="card"><div class="body" style="font-weight:600">Pubblicazioni di oggi</div>
+          <div class="pub glued">team-supervisor-app-watchorigin/tab-emoji/22-10</div>
+          <div class="pub glued">supervisor0.8.60</div></div>
+        <div class="note"><b>3.</b> Nome e testo attaccati, come li ha letti la master: è una correzione a parte, non va nel mockup.</div>
+      </div>
+      <div class="pane">
+        <div class="sec">Numeri e strumenti<i></i></div>
+        <div class="card"><div class="body" style="font-weight:600">Oggi · eventi per ora</div><div class="chart"><i style="height:20%"></i><i style="height:45%"></i><i style="height:30%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:40%"></i><i style="height:65%"></i><i style="height:35%"></i><i style="height:50%"></i></div></div>
+        <div class="note"><b>5.</b> Non dice dove va la quota.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="tag new">Web desktop · proposta</div>
+    <div class="web">
+      <div class="pane">
+        <div class="top"><h1>Master</h1><small>7 aperte</small><span class="sp"></span><span class="pill">2 per te</span></div>
+        <div class="sec wait">Aspettano te · 2<i></i></div>
+        <div class="card master"><div class="head"><span class="badge" style="background:var(--wait)">M</span><b>master</b></div><div class="ok"><div class="t" style="flex:1"><div class="body">Studio, Investimenti: cron serale acceso su SiteGround</div></div><button class="b filled">Approva</button></div></div>
+        <div class="card"><div class="head"><span class="badge" style="background:#7FA1FF">A</span><b>win:ads-widget</b></div><div class="body">Mandami codice e IP:porta di «Accoppia dispositivo con codice»</div><div class="sub">chiede la master per ads-widget-apk-default</div></div>
+        <div class="sec">Ferme · 4<span class="act">Chiudi le finite (3)</span><i></i></div>
+        <div class="card"><div class="head"><span class="badge" style="background:#65C581">c</span><b>curriculum</b><span class="m">finita da 3 h</span></div><div class="body">CV .doc 23/10 inviato</div></div>
+        <div class="card"><div class="head"><span class="badge" style="background:#B9A6F5">b</span><b>win:bluey</b></div><div class="body stale">La supervisor avvisa che la release 0.8.57 usa il WSL di Windows.<span class="old">16 H FA</span></div></div>
+        <div class="note"><b>2, 4.</b> Richiesta legata a un compito in «Aspettano te»; motivo vecchio spento; un tasto per le finite.</div>
+      </div>
+      <div class="pane">
+        <div class="sec">Cosa serve da te<i></i></div>
+        <div class="card sugg">
+          <div class="head"><span class="badge" style="background:var(--advice)">✦</span><b>Suggerimenti della master</b><span class="m">19:00 · 3 di 4</span></div>
+          <div class="sug" style="--s:#8BB4F7"><span class="sym">↻</span><div class="t"><span class="k">Ricorrente</span><span class="body">«Com'è andata la CI di supervisor-app» ai Ricorrenti?</span><div class="btns"><button class="b tonal">Accetta</button><button class="b text">Non ora</button><button class="b text">Mai</button></div></div></div>
+          <div class="sug" style="--s:#65C581"><span class="sym">⌫</span><div class="t"><span class="k">Pulizia</span><span class="body">Archiviare i cinque compiti in pausa da 2 giorni?</span><div class="btns"><button class="b tonal">Accetta</button><button class="b text">Non ora</button><button class="b text">Mai</button></div></div></div>
+          <div class="sug" style="--s:#FFC46B"><span class="sym">◷</span><div class="t"><span class="k">Scadenza</span><span class="body">Il cron serale di Investimenti non è mai partito: lo attivo?</span><div class="btns"><button class="b tonal">Accetta</button><button class="b text">Non ora</button><button class="b text">Mai</button></div></div></div>
+        </div>
+        <div class="note"><b>A.</b> In testa a «Cosa serve da te»: sul desktop è la colonna che si guarda per decidere; le sessioni restano a sinistra.</div>
+        <div class="card"><div class="fold"><span>Più tardi · 26</span><svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"/></svg></div></div>
+        <div class="note"><b>1.</b> Le 26 cose senza urgenza chiuse; quello che blocca è già a sinistra.</div>
+      </div>
+      <div class="pane">
+        <div class="sec">Il lavoro<i></i></div>
+        <div class="card"><div class="body" style="font-weight:600">Pubblicazioni di oggi</div>
+          <div class="pub">push · team-supervisor-app-watch<small>origin/tab-emoji/22-10</small></div>
+          <div class="pub">release · supervisor<small>0.8.60</small></div></div>
+        <div class="note"><b>3.</b> Nome e destinazione separati (correzione a parte).</div>
+      </div>
+      <div class="pane">
+        <div class="sec">Numeri e strumenti<i></i></div>
+        <div class="card"><div class="body" style="font-weight:600">Oggi · quota per sessione</div>
+          <div class="qrow"><span>supervisor-app</span><i><b style="width:58%"></b></i><em>34 %</em></div>
+          <div class="qrow"><span>master</span><i><b style="width:24%"></b></i><em>14 %</em></div>
+          <div class="qrow"><span>rendicontazione</span><i><b style="width:14%"></b></i><em>8 %</em></div>
+          <div class="qrow"><span>altre 4</span><i><b style="width:10%;background:var(--b-track)"></b></i><em>6 %</em></div>
+        </div>
+        <div class="note"><b>5.</b> Dove va la quota oggi, per sessione (valori d'esempio).</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const v = new URLSearchParams(location.search).get('view'); if (v) document.body.dataset.view = v
+</script>
+</body>
+</html>
