@@ -2010,6 +2010,7 @@ private fun SheetHeader(
     // Sul telefono la pillola è la prima voce del menu ⋮, col puntino sul ⋮: la testata resta su una riga (Franz, 16/10 13:08).
     val changes = DiffRules.pill(s)
     val changesMenu = changes != null && DiffRules.inMenu(androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp)
+    var changesInline by remember(s.name) { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().background(bg)) {
         Row(Modifier.fillMaxWidth().padding(start = if (lead != null) 16.dp else 12.dp, end = 0.dp, top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // Una riga sola: modello, quota, contesto e menu. Lo stato e il tempo vanno nella riga dal vivo in fondo alla chat
@@ -2027,6 +2028,8 @@ private fun SheetHeader(
                 tune = { TunePill(tune, tunable, dot = tunable && advice?.dot == true, mode = s.permissionMode) { picker = "tune" } },
                 quota = quota?.h5?.let { pct -> { form -> QuotaPill(pct, quota.resetH5, quota.stale, now, form, onClick = actions.overview) } },
                 context = s.context?.let { pct -> { ContextPill(pct, enabled = tunable) { ctxSheet = true } } },
+                changes = changes?.takeIf { !changesMenu }?.let { c -> { ChangesPill(c, onChanges) } },
+                onChangesInline = { if (changesInline != it) changesInline = it },
             ) {
             Box {
                 IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = CmColors.text2) }
@@ -2065,9 +2068,9 @@ private fun SheetHeader(
             }
             }
         }
-        // Contratto 1.72: «4 file · +8 −2» in una riga sua sotto le pillole: nella riga delle pillole sul telefono non ci sta.
+        // Contratto 1.72: «4 file · +8 −2» nella riga delle pillole quando ci sta (MeterPills), altrimenti in una riga sua sotto.
         // Anche su una sessione chiusa: la cartella c'è ancora e la vista funziona.
-        changes?.takeIf { !changesMenu }?.let { c -> ChangesPill(c, onChanges, Modifier.padding(start = if (lead != null) 16.dp else 12.dp, top = 6.dp)) }
+        changes?.takeIf { !changesMenu && !changesInline }?.let { c -> ChangesPill(c, onChanges, Modifier.padding(start = if (lead != null) 16.dp else 12.dp, top = 6.dp)) }
         val notes = listOfNotNull(
             SessionsText.goalLine(s, stringResource(R.string.goal)).takeIf { notesInHeader },
             SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered)).takeIf { notesInHeader },
@@ -2075,7 +2078,7 @@ private fun SheetHeader(
         )
         notes.forEach { Text(it, style = MaterialTheme.typography.labelMedium, color = CmColors.briefLabel, modifier = Modifier.padding(horizontal = 16.dp)) }
         // Senza note sotto le pillole lo stesso margine di sopra, così stanno al centro della barra (Franz, 10/10 14:32: «riduci barra»).
-        Spacer(Modifier.height(if (notes.isEmpty() && (changes == null || changesMenu)) 2.dp else 8.dp))
+        Spacer(Modifier.height(if (notes.isEmpty() && (changes == null || changesMenu || changesInline)) 2.dp else 8.dp))
         HorizontalDivider(color = CmColors.line)
     }
     if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) })
@@ -2360,6 +2363,7 @@ internal fun quotaLabel(form: QuotaForm, h5: String, reset: String?): String =
 @Composable
 private fun MeterPills(
     fill: Boolean, tune: @Composable () -> Unit, quota: (@Composable (QuotaForm) -> Unit)?, context: (@Composable () -> Unit)?,
+    changes: (@Composable () -> Unit)? = null, onChangesInline: (Boolean) -> Unit = {},
     more: @Composable () -> Unit,
 ) {
     androidx.compose.ui.layout.Layout(
@@ -2368,6 +2372,7 @@ private fun MeterPills(
             QuotaForm.entries.forEach { f -> Box { quota?.invoke(f) } }
             Box { context?.invoke() }
             Box { more() }
+            Box { changes?.invoke() }
         },
     ) { ms, c ->
         val gap = 6.dp.roundToPx()
@@ -2376,10 +2381,16 @@ private fun MeterPills(
         val quotas = (1..3).map { ms[it].measure(loose) }
         val ctxP = ms[4].measure(loose)
         val moreP = ms[5].measure(loose)
-        val parts = { q: androidx.compose.ui.layout.Placeable -> listOf(tuneP, q, ctxP).filter { it.width > 0 } }
-        val need = { q: androidx.compose.ui.layout.Placeable -> parts(q).sumOf { it.width } + gap * parts(q).size + moreP.width }
+        val chP = ms[6].measure(loose)
         // Sul tablet il nome sta a sinistra e prende il resto: le pillole non oltre due terzi della riga.
         val room = if (fill) c.maxWidth else c.maxWidth * 2 / 3
+        // Franz, 24/10 18:23: le modifiche accanto al modello quando ci stanno con la quota nella forma più lunga.
+        val base = { q: androidx.compose.ui.layout.Placeable -> listOf(tuneP, q, ctxP).filter { it.width > 0 } }
+        val needOf = { ps: List<androidx.compose.ui.layout.Placeable> -> ps.sumOf { it.width } + gap * ps.size + moreP.width }
+        val inline = chP.width > 0 && needOf(base(quotas[0]) + chP) <= room
+        onChangesInline(inline)
+        val parts = { q: androidx.compose.ui.layout.Placeable -> base(q).let { if (inline) listOf(it[0], chP) + it.drop(1) else it } }
+        val need = { q: androidx.compose.ui.layout.Placeable -> needOf(parts(q)) }
         val q = quotas.firstOrNull { need(it) <= room } ?: quotas.last()
         val shown = parts(q)
         val h = (shown + moreP).maxOf { it.height }

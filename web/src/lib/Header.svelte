@@ -60,11 +60,20 @@
   let modelW = $state(0)
   let ctxW = $state(0)
   const formW = $state<Record<QuotaForm, number>>({ full: 0, short: 0, tiny: 0 })
+  const fixed = $derived.by(() => {
+    const items = (inRow ? 1 : 0) + 3 + (s.context != null ? 1 : 0) + 1
+    return (inRow ? 2 + 36 : 16) + (items - 1) * (inRow ? 6 : 8) + modelW + (s.context != null ? ctxW : 0) + 44
+  })
+  // Franz, 24/10 18:23: «1 file · +164 −0» accanto al modello quando ci sta, con la quota nella forma più lunga e, sulla
+  // colonna larga, il nome intero; altrimenti nella sua riga sotto le pillole.
+  let chW = $state(0)
+  let nameW = $state(0)
+  const chInline = $derived(!!changes && !changesMenu && width > 0 && chW > 0 &&
+    fixed + (quota?.h5 != null && width >= 300 ? formW.full : 0) + (wide ? 26 + 12 + nameW : 0) + (inRow ? 6 : 8) + chW <= width)
   const quotaForm = $derived.by<QuotaForm>(() => {
     if (width === 0) return 'full'
-    const items = (inRow ? 1 : 0) + 3 + (s.context != null ? 1 : 0) + 1
-    const fixed = (inRow ? 2 + 36 : 16) + (items - 1) * (inRow ? 6 : 8) + modelW + (s.context != null ? ctxW : 0) + 44
-    return (['full', 'short'] as const).find(f => fixed + formW[f] <= width) ?? 'tiny'
+    const used = fixed + (chInline ? (inRow ? 6 : 8) + chW : 0)
+    return (['full', 'short'] as const).find(f => used + formW[f] <= width) ?? 'tiny'
   })
   const forms: QuotaForm[] = ['full', 'short', 'tiny']
   // Una colonna molto stretta: «62%» senza «ctx», così il menu ⋮ resta in vista.
@@ -121,7 +130,7 @@
 
 <svelte:window bind:innerWidth={viewport} onkeydown={(e) => e.key === 'Escape' && (menu = false)} />
 
-<header bind:clientWidth={width} class:bare={!notes.length && (!changes || changesMenu)}>
+<header bind:clientWidth={width} class:bare={!notes.length && (!changes || changesMenu || chInline)}>
   {#if top}
     <div class="row top">
       <button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
@@ -148,6 +157,8 @@
       <button class="tipscrim" aria-label={t.closeWord} onclick={() => (permTip = false)}></button>
       <div class="permtip" role="tooltip"><PermGlyph g={glyph(s.permission_mode)} /><span><b>{permName(s.permission_mode)}</b><small>{t.perm.subs[s.permission_mode || 'default'] ?? t.perm.unknown}</small></span></div>
     {/if}
+    {#if chInline && changes}{@render changesPill(changes)}{/if}
+    {#if wide}<span class="ghost" aria-hidden="true"><span class="gname" bind:offsetWidth={nameW}>{s.name}</span></span>{/if}
     {#if !wide}<span class="sp"></span>{/if}
     <!-- In una colonna stretta la quota lascia il posto a modello, contesto e menu (è anche nella home). -->
     {#if quota?.h5 != null && (width === 0 || width >= 300)}
@@ -211,17 +222,17 @@
       {/if}
     </span>
   </div>
-  <!-- Contratto 1.72: in una riga sua, sotto le pillole: nella riga delle pillole sul telefono non ci sta. -->
-  {#if changes && !changesMenu}
-    <div class="chrow">
-      <button class="cpill" disabled={!onChanges} title={t.changesOpen} aria-label={`${t.changesOpen}: ${t.changesFiles(changes.files)} · ${counts(changes.added, changes.removed)}`} onclick={() => onChanges?.()}>
-        <Icon name="diff" size={16} color="var(--icon)" />
-        <span>{t.changesFiles(changes.files)} · <b class="plus">+{changes.added}</b> <b class="minus">{MINUS}{changes.removed}</b></span>
-      </button>
-    </div>
-  {/if}
+  <!-- Contratto 1.72: nella riga delle pillole quando ci sta (chInline), altrimenti in una riga sua sotto. -->
+  {#if changes && !changesMenu && !chInline}<div class="chrow">{@render changesPill(changes)}</div>{/if}
   {#each notes as n}<div class="note">{n}</div>{/each}
 </header>
+
+{#snippet changesPill(c: NonNullable<typeof changes>)}
+  <button class="cpill" bind:offsetWidth={chW} disabled={!onChanges} title={t.changesOpen} aria-label={`${t.changesOpen}: ${t.changesFiles(c.files)} · ${counts(c.added, c.removed)}`} onclick={() => onChanges?.()}>
+    <Icon name="diff" size={16} color="var(--icon)" />
+    <span>{t.changesFiles(c.files)} · <b class="plus">+{c.added}</b> <b class="minus">{MINUS}{c.removed}</b></span>
+  </button>
+{/snippet}
 
 <!-- Il pannello Modello ed effort (bozza approvata da Franz il 07/10 alle 00:06, docs/mockup/2026-10-06-modello-effort/):
      come il menu dell'app, scende dalla pillola; in testa il consiglio sul compito, poi i modelli con la riga che li spiega
@@ -396,7 +407,8 @@
   .note { padding: 0 16px; font-size: 12px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; }
   .chrow { display: flex; padding: 4px 0 6px 16px; }
   .mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--icon); border: 2px solid var(--bg); }
-  .cpill { display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--text); }
+  .gname { font-size: 19px; font-weight: 600; white-space: nowrap; }
+  .cpill { flex: none; display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--text); }
   .cpill:not(:disabled):hover { filter: brightness(1.2); }
   .cpill:disabled { cursor: default; }
   .cpill b { font-weight: 500; }
