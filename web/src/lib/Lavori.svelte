@@ -40,6 +40,8 @@
   const progressN = $derived(ip.total)
   let open = $state<Record<string, boolean>>({})
   const toggle = (k: string) => { open = { ...open, [k]: !open[k] } }
+  // Senza una prova da mostrare l'esito in parole, mai il comando del controllo (Franz 24/10 18:36).
+  const proofFallback = (x: { outcome?: string }) => (x.outcome === 'failed' ? t.lavoriProofFailed : x.outcome === 'cancelled' ? t.lavoriProofCancelled : t.lavoriProofCheck)
   const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`
   const yesterday = $derived(new Date(new Date(day + 'T12:00:00Z').getTime() - 86400000).toISOString().slice(0, 10))
@@ -86,7 +88,8 @@
 {/snippet}
 
 {#snippet row(r: ForYou, button: string | null, filled: boolean, onClick: () => void)}
-  <div class="row">
+  <!-- Franz 24/10 18:35: con le opzioni la domanda intera a tutta larghezza e i tasti interi sotto, come nella home (e8afbe1c). -->
+  <div class="row" class:stack={!!r.approval && choices(r.approval).length > 0}>
     {#if r.agenda}<span class="mark {mark(r.agenda.scope)}"></span>
     {:else if r.commitment?.paused}<svg viewBox="0 0 24 24" width="22" height="22" fill="var(--text2)"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
     {:else}<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76z" /><path d="m9 12 2 2 4-4" /></svg>{/if}
@@ -206,7 +209,7 @@
             {:else if x.outcome === 'cancelled'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" /></svg>
             {:else}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linecap="round" /></svg>{/if}
             <span class="tm">{hhmm(x.at)}</span>
-            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? t.lavoriProofCheck}</a>{:else}<span class="proof">{x.proof ?? t.lavoriProofCheck}</span>{/if}</small></span>
+            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? proofFallback(x)}</a>{:else}<span class="proof" class:plain={!x.proof}>{x.proof ?? proofFallback(x)}</span>{/if}</small></span>
           </div>
         {/each}
       {/if}
@@ -263,7 +266,10 @@
   .link { color: var(--icon); padding: 8px 12px; border-radius: 16px; font-weight: 500; font-size: 14px; }
   .day { display: flex; align-items: center; gap: 8px; width: 100%; margin: 10px 0 2px; padding: 0 6px; font: 600 12px/1.6 var(--mono); letter-spacing: .12em; color: var(--text2); text-align: left; } .day:disabled { color: var(--text2); }
   .done { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 18px; } .done .tm { font: 12px/1.5 var(--mono); color: var(--text2); } .done b { font-weight: 600; font-size: 14px; }
-  .done .who { color: var(--text2); font-size: 13px; padding: 0; } .proof { color: var(--icon); }
+  .done .who { color: var(--text2); font-size: 13px; padding: 0; } .proof { color: var(--icon); } .proof.plain { color: var(--text2); }
+  /* Franz 24/10 18:36: niente esce dalla scheda, neanche un percorso lungo senza spazi. */
+  .row .t, .done .t { overflow-wrap: anywhere; }
+  .row.stack { flex-wrap: wrap; } .row.stack .t { flex-basis: calc(100% - 34px); } .row.stack .opts { flex-basis: 100%; justify-content: flex-start; padding-left: 34px; }
   dialog.alert { background: var(--surface); color: var(--text); border: none; border-radius: 28px; padding: 24px; max-width: 420px; width: calc(100% - 48px); }
   dialog.alert::backdrop { background: rgb(0 0 0 / .6); } dialog h3 { margin: 0 0 8px; font-size: 20px; font-weight: 500; } dialog p { margin: 0 0 12px; color: var(--text2); font-size: 14px; }
   dialog input { width: 100%; background: var(--low); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 15px; }

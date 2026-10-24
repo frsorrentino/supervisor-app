@@ -252,6 +252,7 @@ private fun Fold(text: String, open: Boolean?, onClick: () -> Unit) {
 }
 
 /** Una riga di «Per te»: il segno (ok, agenda, pausa), il titolo, chi e quando, e il suo tasto. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled: Boolean, onClick: (note: String, choice: String?) -> Unit) {
     var ask by rememberSaveable(r.title) { mutableStateOf(false) }
@@ -267,10 +268,14 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
             else listOfNotNull(who, ag?.scope?.takeIf { it.isNotBlank() }).joinToString(" · ").ifBlank { null }
         Lavori.Kind.CLAUDE -> listOfNotNull(who, ag?.scope?.takeIf { it.isNotBlank() }).joinToString(" · ").ifBlank { null }
     }
-    Row(
+    // Contratto 1.81: un tasto per opzione quando l'ok chiede una scelta; la domanda intera a tutta larghezza e i tasti interi
+    // sotto, che vanno a capo fra loro, come nella home (Franz 24/10 18:35, regola di e8afbe1c).
+    val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
+    Column(
         Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         when {
             ag != null -> AgendaMark(ag.scope)
             cm?.paused != null -> Icon(Icons.Rounded.Pause, null, tint = CmColors.text2, modifier = Modifier.size(22.dp))
@@ -280,14 +285,15 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
             Text(r.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
             sub?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
         }
-        // Contratto 1.81: un tasto per opzione quando l'ok chiede una scelta.
-        val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
-        if (opts.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { opts.forEach { o -> FilledTonalButton(onClick = { choice = o; ask = true }) { Text(o) } } }
-        else if (button != null) {
+        if (opts.isEmpty() && button != null) {
             val click = { if (a != null) ask = true else onClick("", null) }
             if (filled) Button(onClick = click, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(button) }
             else FilledTonalButton(onClick = click) { Text(button) }
         }
+    }
+    if (opts.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
+        Modifier.padding(start = 34.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) { opts.forEach { o -> FilledTonalButton(onClick = { choice = o; ask = true }) { Text(o, maxLines = 1, softWrap = false) } } }
     }
     if (ask && a != null) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onClick(n, choice) }, onDismiss = { ask = false })
 }
@@ -439,7 +445,9 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
                 val uri = LocalUriHandler.current
                 val url = d.url
                 Text(
-                    (if (d.session != null) "· " else "") + (d.proof ?: stringResource(R.string.lavori_proof_check)), style = MaterialTheme.typography.bodySmall, color = CmColors.actionIcon,
+                    // Senza prova l'esito in parole, mai il comando del controllo (Franz 24/10 18:36).
+                    (if (d.session != null) "· " else "") + (d.proof ?: stringResource(when (d.outcome) { "failed" -> R.string.lavori_proof_failed; "cancelled" -> R.string.lavori_proof_cancelled; else -> R.string.lavori_proof_check })),
+                    style = MaterialTheme.typography.bodySmall, color = if (d.proof != null) CmColors.actionIcon else CmColors.text2,
                     modifier = if (url != null) Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { runCatching { uri.openUri(url) } } else Modifier,
                 )
             }
