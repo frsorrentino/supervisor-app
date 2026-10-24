@@ -105,6 +105,15 @@ export function world(now: number): World {
       { kind: 'needs_you', session: 'storefront', ref: 'storefront', title: stopLogin.reason, since: stopLogin.at },
       { kind: 'turn_blocking', session: 'blog', ref: 'blog', title: stopOk.text, since: stopOk.at },
     ].sort((a, b) => a.since - b.since),
+    // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
+    ops: [...(base.ops ?? []), 'suggestion', 'close_preview', 'close'],
+    // Contratto 1.84 (scheda A): tre suggerimenti della master del giro delle 8 o delle 19, uno per tipo.
+    suggestions: [
+      { id: 'sg-1', kind: 'recurring', key: 'recurring:ci-storefront', text: en ? 'You often ask «how did the storefront CI go»: add it to Recurring?' : 'Chiedi spesso «com\'è andata la CI di storefront»: la aggiungo ai Ricorrenti?', prompt: 'Add «how did the storefront CI go» to Recurring', at: now - 900 },
+      { id: 'sg-2', kind: 'cleanup', key: 'cleanup:paused:docs', text: en ? 'Two tasks paused for 2 days: archive them?' : 'Due compiti in pausa da 2 giorni: li archivio?', prompt: 'Archive the two tasks paused for 2 days', at: now - 900 },
+      { id: 'sg-3', kind: 'deadline', key: 'deadline:cron:blog', text: en ? 'The blog\'s nightly cron never ran: turn it on tonight?' : 'Il cron notturno del blog non è mai partito: lo attivo stasera?', prompt: 'Turn on the blog nightly cron', at: now - 900 },
+      { id: 'sg-4', kind: 'quota', key: 'quota:week', text: en ? 'Week at 62 %: move the heavy jobs to the night?' : 'Settimana al 62 %: sposto i lavori pesanti alla notte?', prompt: 'Move the heavy jobs to the night', at: now - 960 },
+    ],
   }
   state.projects = [...state.projects, { path: '/home/demo/workspaces/personal/docs-site', name: 'docs-site', account: 'personal', last_used: now - 26 * 3600 }]
 

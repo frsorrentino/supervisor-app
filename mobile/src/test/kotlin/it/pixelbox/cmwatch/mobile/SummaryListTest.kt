@@ -77,6 +77,20 @@ class SummaryListTest {
         }
     }
 
+    // Contratto 1.84 (scheda A, Franz 24/10 19:46): i suggerimenti della master dopo chi ti aspetta, tre di quattro.
+    @Test fun summaryWithSuggestions() = paparazzi.snapshot {
+        val sg = listOf(
+            it.pixelbox.cmwatch.contract.Suggestion("sg-1", "recurring", "r", "Chiedi spesso «com'è andata la CI di atlas-shop»: la aggiungo ai Ricorrenti?", "p", st.ts - 900),
+            it.pixelbox.cmwatch.contract.Suggestion("sg-2", "cleanup", "c", "Due compiti in pausa da 2 giorni: li archivio?", "p", st.ts - 900),
+            it.pixelbox.cmwatch.contract.Suggestion("sg-3", "deadline", "d", "Il cron notturno di orbit-docs non è mai partito: lo attivo stasera?", "p", st.ts - 900),
+            it.pixelbox.cmwatch.contract.Suggestion("sg-4", "quota", "q", "Settimana al 62 %: sposto i lavori pesanti alla notte?", "p", st.ts - 960),
+        )
+        val withSg = st.copy(suggestions = sg)
+        CmPhoneTheme(still = true) {
+            Column(Modifier.background(CmColors.bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+        }
+    }
+
     // P6 (21/10): in cima alla home la card «Aggiornamento disponibile · Installa» per una release nuova su GitHub.
     @Test fun summaryWithUpdate() = paparazzi.snapshot {
         val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("impegni-2026-10-22", "Notte 22/10", st.ts - 2 * 3600 - 300, true, "https://example.com/mobile-release.apk", 68813846, null, "")

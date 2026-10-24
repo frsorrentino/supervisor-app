@@ -204,6 +204,29 @@ export class DemoTransport implements Transport {
           if (!s.approvals.some(a => a.task === cmd.arg)) return ko(`${cmd.arg}: no task waiting for an ok`)
           this.set({ ...s, approvals: s.approvals.filter(a => a.task !== cmd.arg) })
           return ok(`approved ${cmd.arg}`)
+        // Contratto 1.84 (B4): cosa si salva di ognuna, poi la chiusura con lo stato salvato.
+        case 'close_preview': {
+          const names = (cmd.arg ?? '').split(',').map(x => x.trim()).filter(Boolean)
+          return ok(JSON.stringify({ sessions: names.map(n => {
+            const x = s.sessions.find(y => y.name === n)
+            if (!x || x.state === 'gone') return { name: n, closable: false, blocked_by: null }
+            if (x.state === 'busy') return { name: n, closable: false, blocked_by: 'busy' }
+            return { name: n, closable: true, blocked_by: null, save: { outcome: x.outcome?.short ?? null, next: x.next_steps?.[0]?.text ?? null, session_id: `demo-${x.id}`, dirty_n: n === 'docs' ? 2 : 0, dirty: n === 'docs' ? ['README.md', 'docs/api.md'] : [] } }
+          }) }))
+        }
+        case 'close': {
+          const names = new Set((cmd.arg ?? '').split(',').map(x => x.trim()))
+          const at = Math.round(Date.now() / 1000)
+          this.set({ ...s, sessions: s.sessions.map(x => (names.has(x.name) && x.state === 'idle' ? { ...x, state: 'gone' as const, closed: { at, outcome: x.outcome?.short ?? null, next: x.next_steps?.[0]?.text ?? null, session_id: `demo-${x.id}`, dirty_n: 0, dirty: [] } } : x)) })
+          return ok(`closed ${[...names].join(', ')}`)
+        }
+        case 'suggestion': {
+          // Contratto 1.84: accept manda il prompt alla master; later e never tolgono la voce.
+          const sg = s.suggestions?.find(x => x.id === cmd.arg)
+          if (!sg) return ko(`unknown suggestion ${cmd.arg}`)
+          this.set({ ...s, suggestions: s.suggestions!.filter(x => x.id !== sg.id) })
+          return ok(cmd.action === 'accept' ? 'sent to master' : cmd.action === 'later' ? 'hidden until the next round' : 'never again')
+        }
         case 'decision': return cmd.text?.trim() ? ok('decision sent to the master') : ko('empty decision')
         case 'night': return ok(JSON.stringify(this.world.night))
         case 'agenda': return ok(JSON.stringify(this.world.agenda))

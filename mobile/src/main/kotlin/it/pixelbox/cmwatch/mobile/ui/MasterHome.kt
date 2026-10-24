@@ -121,9 +121,13 @@ fun ForYouCard(
 
 /** L'intestazione di un gruppo («Al lavoro · N» in «Per te», i gruppi del riepilogo): testo nel colore del gruppo e filo. */
 @Composable
-internal fun GroupHeader(text: String, tone: Color) {
+internal fun GroupHeader(text: String, tone: Color, action: String? = null, onAction: () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(text.uppercase(), style = MonoSmall.copy(color = tone))
+        // Contratto 1.84 (B4): un'azione sul gruppo, «Chiudi le finite (N)».
+        if (action != null) androidx.compose.material3.Surface(onClick = onAction, shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp), color = CmColors.actionIcon.copy(alpha = 0.12f), contentColor = CmColors.actionIcon) {
+            Text(action, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+        }
         Box(Modifier.weight(1f).height(1.dp).background(tone.copy(alpha = 0.25f)))
     }
 }

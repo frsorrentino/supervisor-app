@@ -385,6 +385,14 @@ class FakeTransport(
             CmdOp.DONE -> ko("no task registry")
             // Contratto 1.80: la demo non ha voci da chiudere.
             CmdOp.ATTENTION_DONE -> ko("${cmd.kind} ${cmd.arg}: nothing to close")
+            // Contratto 1.84 (B4): la demo non chiude: l'anteprima dice cosa salverebbe, la chiusura non c'è.
+            CmdOp.CLOSE_PREVIEW -> ok("""{"sessions": []}""")
+            CmdOp.CLOSE -> ko("the demo does not close sessions")
+            // Contratto 1.84: accept manda il prompt alla master; later e never tolgono la voce.
+            CmdOp.SUGGESTION -> s.suggestions.orEmpty().firstOrNull { it.id == cmd.arg }?.let { sg ->
+                current.value = s.copy(suggestions = s.suggestions.orEmpty() - sg)
+                ok(when (cmd.action) { "accept" -> "sent to master"; "later" -> "hidden until the next round"; else -> "never again" })
+            } ?: ko("unknown suggestion ${cmd.arg}")
             // Contratto 1.83: la domanda del server MCP, controllata come il relay; risposta, esce dallo stato.
             CmdOp.ELICIT -> {
                 val e = s.elicitations.firstOrNull { it.id == cmd.arg && it.expiresAt > now() }

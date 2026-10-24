@@ -46,6 +46,9 @@
   import { page as nightPage, showHomeNight, type NightReport } from './lib/night'
   import TodayPanel from './lib/TodayPanel.svelte'
   import { usageRows } from './lib/usageToday'
+  import { visible as visibleSuggestions } from './lib/suggestions'
+  import SuggestionsCard from './lib/SuggestionsCard.svelte'
+  import { readPreview, type Preview } from './lib/closeFinished'
   import Search from './lib/Search.svelte'
   import Settings from './lib/Settings.svelte'
   import AddDevice from './lib/AddDevice.svelte'
@@ -56,7 +59,7 @@
   import { alert as elsewhereOf, key as alertKey, keys as alertKeys, type Alert } from './lib/elsewhere'
   import { settled, withoutApproved } from './lib/approvals'
   import { content as elicitContent, openElicitations, type Values } from './lib/elicit'
-  import type { Elicitation } from './lib/contract'
+  import type { Elicitation, Suggestion } from './lib/contract'
   import { build as devicesOf, linked as linkedDevices } from './lib/devices'
   import { freshness } from './lib/durations'
   import { setRate, setVoice } from './lib/speech.svelte'
@@ -225,6 +228,24 @@
     const r = await run(newCmd('elicit', e.session, e.id, undefined, undefined, { action, ...(action === 'accept' ? { content: elicitContent(e, values) } : {}) }))
     if (r?.ok) say(`✓ ${t.elicitAnswered}`)
     else elicitSent = new Set([...elicitSent].filter(x => x !== e.id))
+  }
+  // Contratto 1.84 (scheda A): la risposta a un suggerimento della master; la voce sparisce subito e torna solo se il relay rifiuta.
+  let sugDone = $state(new Set<string>())
+  async function suggest(x: Suggestion, action: 'accept' | 'later' | 'never') {
+    sugDone = new Set([...sugDone, x.id])
+    const r = await run(newCmd('suggestion', null, x.id, undefined, undefined, { action }))
+    if (r?.ok) say(`✓ ${action === 'accept' ? t.sugSent : action === 'later' ? t.sugHidden : t.sugNeverDone}`)
+    else sugDone = new Set([...sugDone].filter(id => id !== x.id))
+  }
+  const sug = $derived(visibleSuggestions(st, sugDone, now))
+  // Contratto 1.84 (B4): prima cosa salva il PC di ognuna, poi la chiusura di quelle che si possono chiudere.
+  async function closePreview(names: string[]): Promise<Preview | null> {
+    const r = await run(newCmd('close_preview', null, names.join(',')))
+    return r?.ok ? readPreview(r.text) : null
+  }
+  async function closeMany(names: string[]) {
+    const r = await run(newCmd('close', null, names.join(',')))
+    if (r?.ok) say(`✓ ${t.closedSaved(names.length)}`)
   }
   async function decide(text: string, project: string | null) {
     const r = await run(newCmd('decision', null, project, text))
@@ -922,7 +943,7 @@
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} onNight={() => openPage('night')}
+        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}
@@ -994,7 +1015,8 @@
   {#if s}<ColumnTab {s} r={rowOf[name]} {now} onGrab={grab} onFocus={() => focusColumn(name)} onClose={() => setCols(cols.filter(c => c !== name))} />{/if}
 {/snippet}
 
-{#snippet lavoriLeft()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="desk" part="left" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+{#snippet sugCard()}{#if sug.shown.length}<SuggestionsCard shown={sug.shown} total={sug.total} at={new Date(sug.shown[0].at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} onAnswer={suggest} />{/if}{/snippet}
+{#snippet lavoriLeft()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="desk" part="left" suggestions={sugCard} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 {#snippet lavoriRight()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}

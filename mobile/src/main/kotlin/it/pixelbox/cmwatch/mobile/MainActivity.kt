@@ -897,6 +897,14 @@ class MainActivity : ComponentActivity() {
             if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(R.string.elicit_answered), android.widget.Toast.LENGTH_SHORT).show()
             else { elicitSent.remove(e.id); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.elicit_refused), android.widget.Toast.LENGTH_LONG).show() }
         } }
+        // Contratto 1.84 (scheda A): la voce sparisce subito e torna solo se il relay rifiuta.
+        val sugDone = remember { mutableStateListOf<String>() }
+        val answerSuggestion: (it.pixelbox.cmwatch.contract.Suggestion, String) -> Unit = { sg, action -> sugDone.add(sg.id); scope.launch {
+            val id = runCatching { app.repo.suggestion(sg.id, action) }.getOrNull()
+            val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+            if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(when (action) { "accept" -> R.string.sug_sent; "later" -> R.string.sug_hidden; else -> R.string.sug_never_done }), android.widget.Toast.LENGTH_SHORT).show()
+            else { sugDone.remove(sg.id); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.sug_refused), android.widget.Toast.LENGTH_LONG).show() }
+        } }
         val doneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = { c ->
             it.pixelbox.cmwatch.rules.ContextActions.master(state)?.name?.let { m -> sendPrompt(m, getString(R.string.lavori_done_prompt, c.paused?.reason.orEmpty(), c.task)) }
         }
@@ -1450,6 +1458,17 @@ class MainActivity : ComponentActivity() {
                         scope.launch { runCatching { app.repo.command(CmdOp.SLASH, n, "exit", null) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } } },
                     closing = leaving?.name,
                     elicitations = it.pixelbox.cmwatch.rules.Elicit.open(state, now).filter { e -> e.id !in elicitSent }, onElicit = answerElicit,
+                    suggestions = state?.let { st -> it.pixelbox.cmwatch.rules.Suggestions.visible(st, sugDone.toSet(), now) }, onSuggestion = answerSuggestion,
+                    closePreview = if (state?.ops?.contains("close_preview") == true && state.ops?.contains("close") == true) ({ names ->
+                        val id = runCatching { app.repo.closePreview(names) }.getOrNull()
+                        val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                        r?.takeIf { x -> x.ok }?.let { x -> it.pixelbox.cmwatch.rules.CloseFinished.read(x.text) }
+                    }) else null,
+                    onCloseMany = { names -> scope.launch {
+                        val id = runCatching { app.repo.close(names) }.getOrNull()
+                        val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                        android.widget.Toast.makeText(this@MainActivity, if (r?.ok == true) getString(R.string.closed_saved) else r?.text ?: getString(R.string.close_refused), android.widget.Toast.LENGTH_SHORT).show()
+                    } },
                     onFollow = { n, f -> scope.launch { runCatching { app.repo.command(if (f) CmdOp.FOLLOW else CmdOp.UNFOLLOW, n, null) } } },
                     onAskMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.let { m -> { n: String -> if (n != m.name) askMasterAbout(m.name, n) } },
                     now = now,
@@ -1939,10 +1958,17 @@ class MainActivity : ComponentActivity() {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(resources.getQuantityString(R.plurals.summary_closed, summary.closed.size, summary.closed.size), style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text)
                     summary.closed.forEach { s ->
+                        // Contratto 1.84 (B4): lo stato salvato alla chiusura, e «Riprendi» quando c'è l'id della conversazione.
                         Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             SessionBadge(s, 20.dp)
-                            Text(s.name, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
-                            androidx.compose.material3.FilledTonalButton(onClick = { closedOpen = false; scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, s.name, null) } } }) { Text(getString(R.string.reopen)) }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Text(s.name, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                                val small = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                                s.closed?.outcome?.let { o -> Text(getString(R.string.close_saves_outcome, o), style = small, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text2) }
+                                s.closed?.next?.let { nx -> Text(getString(R.string.close_saves_next, nx), style = small, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text2) }
+                                s.closed?.dirtyN?.takeIf { d -> d > 0 }?.let { n -> Text(getString(R.string.close_dirty, n, s.closed?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = it.pixelbox.cmwatch.ui.tokens.CmColors.briefWarn) }
+                            }
+                            androidx.compose.material3.FilledTonalButton(onClick = { closedOpen = false; scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, s.name, null) } } }) { Text(getString(if (s.closed?.sessionId != null) R.string.resume_saved else R.string.reopen)) }
                         }
                     }
                 }

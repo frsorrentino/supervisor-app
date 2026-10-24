@@ -35,8 +35,13 @@
   // La home del telefono (SummaryList.kt): ogni sessione una card nei gruppi del bisogno; il tocco apre la sessione, ▼ la
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
+  import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {} }: {
+    /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
+    onClosePreview?: ((names: string[]) => Promise<Preview | null>) | null; onCloseMany?: (names: string[]) => void
+    /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto. */
+    suggestions?: Snippet
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -163,6 +168,18 @@
   let pendingChoice = $state<string | null>(null)
   let note = $state('')
   let approveDlg: HTMLDialogElement | undefined = $state()
+  // Contratto 1.84 (B4, Franz 24/10 19:46): «Chiudi le finite» chiede prima al PC cosa salva di ognuna e cosa ne impedisce
+  // la chiusura; la conferma lo elenca, avvisa dei file non committati e chiude solo quelle che si possono chiudere.
+  const finished = $derived(onClosePreview ? finishedOf(model.rows, now) : [])
+  let closeDlg: HTMLDialogElement | undefined = $state()
+  let preview = $state<Preview | null>(null)
+  let previewing = $state(false)
+  async function askCloseFinished() {
+    if (!onClosePreview) return
+    previewing = true; preview = null; closeDlg?.showModal()
+    preview = await onClosePreview(finished.map(s => s.name))
+    previewing = false
+  }
   let confirming = $state<string | null>(null)
   // Il menu contestuale della sessione sulla card (Franz, 14/10 20:58: «il menu contestuale di una sessione non lo vedo»):
   // tasto destro, o pressione lunga sul telefono; le voci del ⋮ della sessione, «Chiudi» con la conferma nella card.
@@ -225,8 +242,9 @@
     </div>
   {/if}
   {#if open.sessions}
+  {#if suggestions && !groups.some(([g]) => g === 'waiting')}{@render suggestions()}{/if}
   {#each groups as [group, rows] (group)}
-    <h2 class="gh" style="--t:{tone[group]}"><span>{t.summary[group](rows.length).toUpperCase()}</span><i></i></h2>
+    <h2 class="gh" style="--t:{tone[group]}"><span>{t.summary[group](rows.length).toUpperCase()}</span>{#if group === 'still' && finished.length}<button class="ghact" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button>{/if}<i></i></h2>
     {#each rows as r (r.session.name)}
       {@const s = r.session}
       {@const x = text(r)}
@@ -363,6 +381,8 @@
         {/if}
       </div>
     {/each}
+    <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta, prima delle altre sessioni. -->
+    {#if suggestions && group === 'waiting'}{@render suggestions()}{/if}
   {/each}
 
   {/if}
@@ -512,8 +532,14 @@
 <dialog bind:this={closedDlg} class="sheet" onclick={(e) => e.target === e.currentTarget && closedDlg?.close()}>
   <h2 class="sh">{t.closedCat(model.closed.length)}</h2>
   {#each model.closed as c (c.name)}
-    <div class="crow"><Badge s={c} size={24} /><b>{c.name}</b>
-      {#if onReopen}<button class="obtn" onclick={() => { closedDlg?.close(); onReopen(c.name) }}>{t.reopen}</button>{/if}</div>
+    <!-- Contratto 1.84 (B4): lo stato salvato alla chiusura, e «Riprendi» quando c'è l'id della conversazione. -->
+    <div class="crow"><Badge s={c} size={24} />
+      <span class="ccol"><b>{c.name}</b>
+        {#if c.closed?.outcome}<small>{t.closeSavesOutcome(c.closed.outcome)}</small>{/if}
+        {#if c.closed?.next}<small>{t.closeSavesNext(c.closed.next)}</small>{/if}
+        {#if c.closed?.dirty_n}<small class="warn">{t.closeDirty(c.closed.dirty_n, (c.closed.dirty ?? []).slice(0, 3).join(', '))}</small>{/if}
+      </span>
+      {#if onReopen}<button class="obtn" onclick={() => { closedDlg?.close(); onReopen(c.name) }}>{c.closed?.session_id ? t.resumeSaved : t.reopen}</button>{/if}</div>
   {/each}
 </dialog>
 
@@ -522,6 +548,33 @@
   {#if opts.length}<span class="opts">{#each opts as o (o)}<button class="tonal mini" onclick={(e) => { e.stopPropagation(); askApprove(a, o) }}>{o}</button>{/each}</span>
   {:else}<button class="approve mini" onclick={(e) => { e.stopPropagation(); askApprove(a) }}>{t.approve}</button>{/if}
 {/snippet}
+
+<dialog bind:this={closeDlg} class="alert closef" onclick={(e) => e.target === e.currentTarget && closeDlg?.close()}>
+  <h3>{t.closeFinishedTitle}</h3>
+  {#if previewing}<p class="sub">{t.closeFinishedLoading}</p>
+  {:else if !preview}<p class="sub">{t.closeFinishedNoPreview}</p>
+  {:else}
+    <p class="sub">{t.closeFinishedSub}</p>
+    <div class="cfl">
+      {#each preview.sessions as x (x.name)}
+        <div class="cf" class:no={!x.closable}>
+          <b>{x.name}</b>
+          {#if !x.closable}<span class="why">{t.closeBlocked[x.blocked_by ?? ''] ?? t.closeBlockedOther}</span>
+          {:else}
+            {#if x.save?.outcome}<span>{t.closeSavesOutcome(x.save.outcome)}</span>{/if}
+            {#if x.save?.next}<span>{t.closeSavesNext(x.save.next)}</span>{/if}
+            {#if x.save?.dirty_n}<span class="warn">{t.closeDirty(x.save.dirty_n, (x.save.dirty ?? []).slice(0, 3).join(', '))}</span>{/if}
+            {#if x.save?.session_id}<span class="ok">{t.closeResumable}</span>{/if}
+          {/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
+  <div class="btns">
+    <button class="text2" onclick={() => closeDlg?.close()}>{t.cancel}</button>
+    {#if preview && closableOf(preview).length}<button class="filled" onclick={() => { onCloseMany(closableOf(preview!)); closeDlg?.close() }}>{t.closeFinishedGo(closableOf(preview).length)}</button>{/if}
+  </div>
+</dialog>
 
 <dialog bind:this={approveDlg} class="alert" onclick={(e) => e.target === e.currentTarget && approveDlg?.close()}>
   {#if pending}
@@ -623,6 +676,13 @@
   .close { display: flex; align-items: center; gap: 8px; background: var(--high); border-radius: 999px; padding: 8px 14px; color: var(--text); font-weight: 500; flex: none; }
   dialog.alert { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 22px; width: min(400px, 92vw); border-radius: 28px; }
   dialog.alert::backdrop { background: rgb(0 0 0 / .55); }
+  .ccol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow-wrap: anywhere; } .ccol small { color: var(--text2); font-size: 12.5px; } .ccol small.warn { color: var(--b-warn); }
+  .ghact { font: 500 13px Roboto, system-ui, sans-serif; letter-spacing: 0; color: var(--icon); padding: 3px 10px; border-radius: 14px; background: color-mix(in srgb, var(--icon) 12%, transparent); }
+  .ghact:hover { background: color-mix(in srgb, var(--icon) 20%, transparent); }
+  .cfl { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; max-height: 50vh; overflow-y: auto; }
+  .cf { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; color: var(--text2); overflow-wrap: anywhere; }
+  .cf b { color: var(--text); font-size: 15px; font-weight: 600; } .cf.no b { color: var(--text2); }
+  .cf .warn { color: var(--b-warn); } .cf .ok { color: var(--good); } .cf .why { font-style: italic; }
   dialog h3 { font-size: 22px; font-weight: 600; }
   dialog .sub { color: var(--text2); font-size: 14px; margin-top: 6px; }
   dialog .lab { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text2); margin-top: 14px; }

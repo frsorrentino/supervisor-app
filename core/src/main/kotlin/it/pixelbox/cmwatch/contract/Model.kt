@@ -141,6 +141,11 @@ enum class CmdOp {
      * decline | cancel, `content` = {key: valore} (per choice il value, i numeri come numeri). Esito «answered <server> (<id>)».
      */
     @SerialName("elicit") ELICIT,
+    /** Contratto 1.84: la risposta a un suggerimento della master; `arg` = id, `action` = accept | later | never. */
+    @SerialName("suggestion") SUGGESTION,
+    /** Contratto 1.84: `arg` = nomi separati da virgola; l'anteprima di cosa si salva (sola lettura), poi la chiusura. */
+    @SerialName("close_preview") CLOSE_PREVIEW,
+    @SerialName("close") CLOSE,
 }
 
 /**
@@ -228,6 +233,8 @@ enum class CmdOp {
     @SerialName("duplicate_of") val duplicateOf: String? = null,
     /** Contratto 1.38: i Prossimi dell'ultimo esito, col «!» tolto; assente = nessun tasto. */
     @SerialName("next_steps") val nextSteps: List<NextStep>? = null,
+    /** Contratto 1.84: per una sessione chiusa, lo stato salvato alla chiusura; `session_id` per riprenderla con Riprendi. */
+    val closed: ClosedState? = null,
     /** Contratto 1.54: default | acceptEdits | plan | bypassPermissions, o un nome nuovo da mostrare così; null = non si sa. */
     @SerialName("permission_mode") val permissionMode: String? = null,
     /** Contratto 1.55: la domanda risolta al terminale negli ultimi 5 minuti. */
@@ -286,6 +293,18 @@ enum class CmdOp {
 
 /** Un tasto di un campo choice: si manda `value`, si mostra `label`. */
 @Serializable data class ElicitOption(val value: String, val label: String)
+
+/** Contratto 1.84: lo stato di una sessione salvato quando si è chiusa. */
+@Serializable data class ClosedState(
+    val at: Long = 0, val outcome: String? = null, val next: String? = null,
+    @SerialName("dirty_n") val dirtyN: Int? = null, val dirty: List<String>? = null, @SerialName("session_id") val sessionId: String? = null,
+)
+
+/** Contratto 1.84: un suggerimento della master; `kind` = recurring | cleanup | deadline | quota, `key` stabile per «Mai». */
+@Serializable data class Suggestion(
+    val id: String, val kind: String, val key: String = "", val text: String, val prompt: String = "", val at: Long = 0,
+    @SerialName("expires_at") val expiresAt: Long? = null,
+)
 
 /** Contratto 1.84: una sessione nei token di oggi; `share` = la parte sul totale dell'account (0..1). */
 @Serializable data class UsageToday(val session: String, val account: String = "", val tokens: Long = 0, val share: Double = 0.0)
@@ -394,6 +413,8 @@ enum class CmdOp {
     val elicitations: List<Elicitation> = emptyList(),
     /** Contratto 1.84: i token di oggi per sessione, dal più grande; null con un relay precedente. */
     @SerialName("usage_today") val usageToday: List<UsageToday>? = null,
+    /** Contratto 1.84: i suggerimenti della master, dal più recente, al massimo 6; null con un relay precedente. */
+    val suggestions: List<Suggestion>? = null,
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
     val commitments: List<Commitment>? = null,
 )

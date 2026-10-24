@@ -42,7 +42,10 @@ export type Session = {
   advice?: Advice | null; finished?: boolean; duplicate_of?: string | null
   /** Contratto 1.38: i Prossimi dell'ultimo esito, col «!» tolto; `blocking` = sblocca un lavoro fermo. */
   next_steps?: NextStep[] | null
+  /** Contratto 1.84: per una sessione chiusa, lo stato salvato alla chiusura; `session_id` per riprenderla con Riprendi. */
+  closed?: ClosedState | null
 }
+export type ClosedState = { at: number; outcome?: string | null; next?: string | null; dirty_n?: number | null; dirty?: string[] | null; session_id?: string | null }
 
 export type NextStep = { text: string; blocking: boolean }
 
@@ -50,6 +53,8 @@ export type NextStep = { text: string; blocking: boolean }
 export type Advice = { model: string; effort: string; reason: string; switch_cost_tokens: number; at: number; source: string; when: 'now' | 'next_task'; differs: boolean }
 /** Contratto 1.37: un compito che aspetta l'ok; `deploy` = esce in produzione. */
 /** Contratto 1.81: `options` = le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
+export type SuggestionKind = 'recurring' | 'cleanup' | 'deadline' | 'quota'
+export type Suggestion = { id: string; kind: SuggestionKind | string; key: string; text: string; prompt: string; at: number; expires_at?: number | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
 export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[] }
 /** Contratto 1.76: una voce della vista «Impegni» del registro; `waits` = chi aspetta chi (`person` = l'utente). */
@@ -200,6 +205,8 @@ export type State = {
   elicitations?: Elicitation[]
   /** Contratto 1.84: i token di oggi per sessione, dal più grande; `share` = la parte sul totale dell'account (0..1). */
   usage_today?: UsageToday[]
+  /** Contratto 1.84: i suggerimenti della master, dal più recente, al massimo 6; assente con un relay precedente. */
+  suggestions?: Suggestion[]
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
@@ -212,6 +219,10 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'attention_done'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
+  /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */
+  | 'suggestion'
+  /** Contratto 1.84: cosa si salva chiudendo queste sessioni (arg = nomi separati da virgola), e la chiusura stessa. */
+  | 'close_preview' | 'close'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */

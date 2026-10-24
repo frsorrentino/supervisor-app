@@ -13,7 +13,9 @@
   import { t } from './t'
   import Icon from './Icon.svelte'
 
-  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {}, onSpeak = null }: {
+  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {}, onSpeak = null, suggestions }: {
+    /** Contratto 1.84 (scheda A): nel cruscotto i suggerimenti della master in cima a «Cosa serve da te». */
+    suggestions?: import('svelte').Snippet
     st: State; agenda?: AgendaPage | null; events?: Event[]; now: number; timeZone?: string | null
     /** bar = ← e titolo; none = la testata la dà chi ospita; desk = nel cruscotto, il titolo come le sezioni. */
     header?: 'bar' | 'none' | 'desk'
@@ -124,6 +126,7 @@
     </div>
   {:else if header === 'desk'}<h3 class="desk">{t.lavoriTitle.toUpperCase()}<i></i></h3>{/if}
 
+  {#if left && suggestions}{@render suggestions()}{/if}
   {#if left}
     <!-- Franz 24/10 19:46 (B1): in alto solo quello che blocca adesso, gli ok; il resto in «Più tardi», chiuso. -->
     <h3 class="sec"><span>{t.lavoriForYou.toUpperCase()} · {fy.ok.length}</span><i></i></h3>

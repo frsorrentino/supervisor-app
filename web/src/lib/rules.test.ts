@@ -59,10 +59,11 @@ describe('riepilogo', () => {
   })
   it('chi ha finito non è anche ferma', () => expect(b(st({ ...s('fin'), outcome: done(at(14, 50)), followed: true })).rows.map(r => r.group)).toEqual(['finished']))
   // Franz, 21/10 21:15: la master non sta mai fra le sessioni, neanche quando chiede o è ferma per lui.
-  it('la master mai in lista', () => {
+  // Dal 24/10 18:49 la master ha una scheda solo con un ok o una richiesta per Franz (summary.test.ts); le sue domande no.
+  it('la master in lista solo con qualcosa per Franz', () => {
     expect(b(st(s('master', 'busy'))).rows).toEqual([])
     expect(b(st({ ...s('master', 'waiting'), question: q(at(14)) })).rows).toEqual([])
-    expect(b(st({ ...s('master'), turn_blocking: { text: 'ok al push', at: at(14) } })).rows).toEqual([])
+    expect(b(st({ ...s('master'), turn_blocking: { text: 'ok al push', at: at(14) } })).rows.map(r => r.session.name)).toEqual(['master'])
     expect(b(st({ ...s('master'), outcome: done(at(14, 50)), followed: true })).rows).toEqual([])
     const m = b(st({ ...s('master', 'waiting'), question: q(at(14)) }, { ...s('a', 'waiting'), question: q(at(14, 5)) }))
     expect(m.rows.map(r => r.session.name)).toEqual(['a'])

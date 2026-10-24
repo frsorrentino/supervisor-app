@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -115,6 +116,12 @@ fun SummaryList(
     /** Contratto 1.83: le domande aperte dei server MCP, in cima; `onElicit` manda la risposta (action, content). */
     elicitations: List<it.pixelbox.cmwatch.contract.Elicitation> = emptyList(),
     onElicit: (it.pixelbox.cmwatch.contract.Elicitation, String, Map<String, String?>) -> Unit = { _, _, _ -> },
+    /** Contratto 1.84 (scheda A): i suggerimenti della master, dopo chi ti aspetta; `onSuggestion` = accept | later | never. */
+    suggestions: it.pixelbox.cmwatch.rules.Suggestions.Visible? = null,
+    onSuggestion: (it.pixelbox.cmwatch.contract.Suggestion, String) -> Unit = { _, _ -> },
+    /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo le finite, poi la chiusura; null = il relay non le ha. */
+    closePreview: (suspend (List<String>) -> it.pixelbox.cmwatch.rules.CloseFinished.Preview?)? = null,
+    onCloseMany: (List<String>) -> Unit = {},
     /** La scheda Stanotte con i lavori della coda (mockup approvato l'08/10 alle 20:43); null = la riga di prima. */
     tonight: it.pixelbox.cmwatch.rules.TonightCard.Model? = null,
     /**
@@ -159,6 +166,14 @@ fun SummaryList(
     var nightOpen by remember { section("night") }
     var lavoriOpen by remember { section("lavori") }
     var laterOpen by remember { mutableStateOf(false) }
+    // Contratto 1.84 (B4): le sessioni di «Chiudi le finite» in attesa della conferma, e l'anteprima del PC.
+    var closeAsk by remember { mutableStateOf<List<String>?>(null) }
+    var preview by remember { mutableStateOf<it.pixelbox.cmwatch.rules.CloseFinished.Preview?>(null) }
+    var previewDone by remember { mutableStateOf(false) }
+    closeAsk?.let { names ->
+        androidx.compose.runtime.LaunchedEffect(names) { previewDone = false; preview = closePreview?.invoke(names); previewDone = true }
+        CloseFinishedDialog(preview, previewDone, onDismiss = { closeAsk = null; preview = null }) { ok -> closeAsk = null; preview = null; onCloseMany(ok) }
+    }
     fun save(key: String, v: Boolean) { runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState(scrollMemo?.get(0) ?: 0, scrollMemo?.get(1) ?: 0)
     if (scrollMemo != null) androidx.compose.runtime.LaunchedEffect(listState) {
@@ -214,8 +229,18 @@ fun SummaryList(
             Box(moving()) { HomeSection(stringResource(R.string.home_sec_sessions), model.rows.size.toString().takeIf { !sessionsOpen }, sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
         }
         justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
+        val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
+        val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(java.time.ZoneId.systemDefault())) }
+        // Contratto 1.84 (scheda A): senza nessuno che aspetta, i suggerimenti in cima alle sessioni.
+        if (sessionsOpen && sug != null && model.rows.none { it.group == Summary.Group.WAITING }) item(key = "suggestions") { Box(moving()) { SuggestionsCard(sug, sugAt!!, onSuggestion) } }
         if (sessionsOpen) model.rows.groupBy { it.group }.forEach { (group, rows) ->
-            item(key = "h-${group.name}") { Box(moving()) { GroupHeader(pluralStringResource(groupLabel(group), rows.size, rows.size), groupTone(group)) } }
+            item(key = "h-${group.name}") {
+                Box(moving()) {
+                    val fin = if (group == Summary.Group.STILL && closePreview != null) it.pixelbox.cmwatch.rules.CloseFinished.candidates(model.rows, now) else emptyList()
+                    GroupHeader(pluralStringResource(groupLabel(group), rows.size, rows.size), groupTone(group),
+                        action = fin.takeIf { f -> f.isNotEmpty() }?.let { f -> stringResource(R.string.close_finished_n, f.size) }) { closeAsk = fin.map { x -> x.name } }
+                }
+            }
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
             val keys = uniqueKeys(rows) { "s-" + it.session.id }
             items(rows.size, key = { keys[it] }) { i ->
@@ -235,6 +260,8 @@ fun SummaryList(
                     )
                 }
             }
+            // Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta, prima delle altre sessioni.
+            if (group == Summary.Group.WAITING && sug != null) item(key = "suggestions") { Box(moving()) { SuggestionsCard(sug, sugAt!!, onSuggestion) } }
         }
         usage?.takeIf { showUsage }?.let { u ->
             item(key = "sec-usage") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_usage), null, usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) } } }
@@ -1186,3 +1213,43 @@ private fun ClosingChip(name: String) {
         }
     }
 }
+
+/**
+ * Contratto 1.84 (B4, Franz 24/10 19:46): la conferma di «Chiudi le finite» dice per ogni sessione cosa salva il PC (esito,
+ * prossimo passo, l'id per riprenderla), avvisa dei file non committati e dice chi resta aperta e perché.
+ */
+@Composable
+private fun CloseFinishedDialog(p: it.pixelbox.cmwatch.rules.CloseFinished.Preview?, done: Boolean, onDismiss: () -> Unit, onConfirm: (List<String>) -> Unit) {
+    val ok = p?.let { pv -> it.pixelbox.cmwatch.rules.CloseFinished.closable(pv) }.orEmpty()
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss, containerColor = CmColors.surface,
+        title = { Text(stringResource(R.string.close_finished_title)) },
+        text = {
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                when {
+                    !done -> Text(stringResource(R.string.close_finished_loading), color = CmColors.text2)
+                    p == null -> Text(stringResource(R.string.close_finished_no_preview), color = CmColors.text2)
+                    else -> {
+                        Text(stringResource(R.string.close_finished_sub), color = CmColors.text2, style = MaterialTheme.typography.bodyMedium)
+                        p.sessions.forEach { x ->
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(x.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = if (x.closable) CmColors.text else CmColors.text2)
+                                val small = MaterialTheme.typography.bodySmall
+                                if (!x.closable) Text(stringResource(when (x.blockedBy) { "busy" -> R.string.close_blocked_busy; "question" -> R.string.close_blocked_question; "background" -> R.string.close_blocked_background; "attached" -> R.string.close_blocked_attached; else -> R.string.close_blocked_other }), style = small, color = CmColors.text2)
+                                else {
+                                    x.save?.outcome?.let { Text(stringResource(R.string.close_saves_outcome, it), style = small, color = CmColors.text2) }
+                                    x.save?.next?.let { Text(stringResource(R.string.close_saves_next, it), style = small, color = CmColors.text2) }
+                                    x.save?.dirtyN?.takeIf { it > 0 }?.let { n -> Text(stringResource(R.string.close_dirty, n, x.save?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = CmColors.briefWarn) }
+                                    if (x.save?.sessionId != null) Text(stringResource(R.string.close_resumable), style = small, color = CmColors.briefGoodInk)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { if (ok.isNotEmpty()) androidx.compose.material3.Button(onClick = { onConfirm(ok) }) { Text(stringResource(R.string.close_finished_go, ok.size)) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+

@@ -212,6 +212,13 @@ class Repo(
     suspend fun elicit(e: it.pixelbox.cmwatch.contract.Elicitation, action: String, values: Map<String, String?>) =
         command(CmdOp.ELICIT, e.session, e.id, action = action, content = if (action == "accept") it.pixelbox.cmwatch.rules.Elicit.content(e, values) else null)
 
+    /** Contratto 1.84: la risposta a un suggerimento della master (accept | later | never). */
+    suspend fun suggestion(id: String, action: String) = command(CmdOp.SUGGESTION, null, id, action = action)
+
+    /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura. */
+    suspend fun closePreview(names: List<String>) = command(CmdOp.CLOSE_PREVIEW, null, names.joinToString(","))
+    suspend fun close(names: List<String>) = command(CmdOp.CLOSE, null, names.joinToString(","))
+
     /** Ritorna l'id del comando (uuid): stesso id in Riprova, il PC ignora i duplicati. */
     /** `text`: il primo messaggio di un `launch` (contratto 1.13); per gli altri comandi resta null. */
     /** `voice`, `via`, `confirmations`: contratto 1.42, i comandi della modalità live; null = non scritti. */
