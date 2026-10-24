@@ -14,7 +14,8 @@ import org.junit.Test
 
 class WakeTest {
     private val q = ContractJson.decodeState(Fixtures.stateQuestion)
-    private val idle = ContractJson.decodeState(Fixtures.stateIdle)
+    // Dalla 1.84 state-2 ha un needs_you (atlas-shop): qui si parte da una sessione senza.
+    private val idle = ContractJson.decodeState(Fixtures.stateIdle).let { st -> st.copy(sessions = st.sessions.map { it.copy(needsYou = null) }) }
 
     @Test fun newQuestionNotifies() {
         val a = Wake.plan(idle, q)

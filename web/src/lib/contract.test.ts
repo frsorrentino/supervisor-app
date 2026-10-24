@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readPreview } from './closeFinished'
 import { readFileSync } from 'node:fs'
 import { blankState, decodeChanges, decodeDiff, decodeState, tailKey, withTail, type Cmd, type CmdResult, type TranscriptEntry } from './contract'
 import { newCmd } from './transport'
@@ -112,8 +113,29 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     const c = newCmd('attention_done', null, 'pix-docs', undefined, undefined, { kind: 'turn_blocking', since: 1789210000 })
     expect([c.kind, c.since, c.session]).toEqual(['turn_blocking', 1789210000, null])
     expect('kind' in newCmd('screen', 'x')).toBe(false)
-    const st = decodeState(fixture('state-2-idle.json').replace('"state": "idle"', '"state": "idle", "needs_you": {"reason": "login su win", "at": 1789210100, "until": true, "expires_at": 1789296500}'))
-    expect(st.sessions.find(x => x.needs_you)!.needs_you).toEqual({ reason: 'login su win', at: 1789210100, until: true, expires_at: 1789296500 })
+    // Dalla 1.84 la fixture ha già un needs_you con expires_at (atlas-shop, legato a un compito).
+    const st = decodeState(fixture('state-2-idle.json'))
+    expect(st.sessions.find(x => x.needs_you)!.needs_you!.expires_at).toBe(1789221400)
+  })
+  // Contratto 1.84 (24/10): suggerimenti, quota di oggi, needs_you legato a un compito, chiusura con lo stato salvato.
+  it('1.84: suggestions, usage_today, needs_you.task/from, closed e le op suggestion, close_preview, close', () => {
+    const s1 = decodeState(fixture('state-1-question.json')), s2 = decodeState(fixture('state-2-idle.json')), s3 = decodeState(fixture('state-3-stale.json'))
+    expect(s1.suggestions).toEqual([])
+    expect(s2.suggestions!.map(x => x.kind).sort()).toEqual([...new Set(s2.suggestions!.map(x => x.kind))].sort())
+    expect(s2.suggestions!.length).toBe(3)
+    expect(s2.usage_today!.length).toBe(4)
+    expect(new Set(s2.usage_today!.map(u => u.account)).size).toBe(2)
+    const asked = s2.sessions.find(x => x.needs_you?.task)!
+    expect([asked.name, asked.needs_you!.task, asked.needs_you!.from]).toEqual(['atlas-shop', 'atlas-tv-pairing', 'master'])
+    expect(s1.sessions.find(x => x.closed)!.closed).toEqual({ at: 1789200000, session_id: '3d1b2c4e-0000-4000-8000-000000000004' })
+    expect(s3.sessions.find(x => x.closed)!.closed!.dirty_n).toBe(2)
+    const root = JSON.parse(fixture('cmd-result-sample.json'))
+    const ops = (op: string) => root.cmd.filter((c: Cmd) => c.op === op).map((c: Cmd) => root.result.find((r: CmdResult) => r.id === c.id).ok)
+    expect(ops('suggestion')).toEqual([true, false])
+    expect(ops('close_preview')).toEqual([true, false])
+    expect(ops('close')).toEqual([true, false])
+    const prev = root.cmd.find((c: Cmd) => c.op === 'close_preview')
+    expect(readPreview(root.result.find((r: CmdResult) => r.id === prev.id).text)!.sessions.length).toBeGreaterThan(0)
   })
   // Contratto 1.81 (23/10): un compito che chiede una scelta porta `options`; op `approve` con `choice`.
   it('1.81: un ok con opzioni porta options e approve parte con choice', () => {

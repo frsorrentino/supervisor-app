@@ -60,9 +60,24 @@ class ContractTest {
         assertEquals(1789610400L, q.getValue("personal").resetW7)
     }
 
-    @Test fun staleFixtureHasNoSessions() {
+    // Dalla 1.84 state-3 ha solo una sessione chiusa dall'app, con lo stato salvato.
+    @Test fun staleFixtureHasNoLiveSessions() {
         val s = ContractJson.decodeState(Fixtures.stateStale)
-        assertTrue(s.sessions.isEmpty()); assertEquals(1789200000L, s.ts)
+        assertTrue(s.sessions.all { it.state == SessionState.GONE }); assertEquals(1789200000L, s.ts)
+        assertEquals(ClosedState(1789199000, "Pricing page draft ready for review", "Pick up the pricing page", 2, listOf("src/pages/pricing.md", "docs/notes.md"), "3d1b2c4e-0000-4000-8000-000000000004"), s.sessions.single().closed)
+    }
+
+    /** Dalla 1.84 state-2 ha già un needs_you (atlas-shop, legato a un compito): i casi che ne scrivono uno lo sostituiscono. */
+    private fun idleWithNeedsYou(obj: String) = Fixtures.stateIdle.replaceFirst(Regex("\"needs_you\": \\{[^}]*\\}"), "\"needs_you\": $obj")
+
+    /** Contratto 1.84 (24/10): suggerimenti, quota di oggi, needs_you legato a un compito, stato salvato alla chiusura. */
+    @Test fun contract184() {
+        val s1 = ContractJson.decodeState(Fixtures.stateQuestion); val s2 = ContractJson.decodeState(Fixtures.stateIdle)
+        assertEquals(emptyList<Suggestion>(), s1.suggestions)
+        assertEquals(3, s2.suggestions!!.size); assertEquals(3, s2.suggestions!!.map { it.kind }.toSet().size)
+        assertEquals(4, s2.usageToday!!.size); assertEquals(2, s2.usageToday!!.map { it.account }.toSet().size)
+        assertEquals(NeedsYou("Type the pairing code shown on the TV", 1789214200, expiresAt = 1789221400, task = "atlas-tv-pairing", from = "master"), s2.sessions.single().needsYou)
+        assertEquals(ClosedState(1789200000, sessionId = "3d1b2c4e-0000-4000-8000-000000000004"), s1.sessions.first { it.closed != null }.closed)
     }
 
     @Test fun rulesHoldOnEveryFixture() {
@@ -125,7 +140,7 @@ class ContractTest {
         assertTrue(enc, enc.contains("\"op\":\"attention_done\"") && enc.contains("\"kind\":\"turn_blocking\"") && enc.contains("\"since\":1789210000"))
         assertFalse(ContractJson.json.encodeToString(Cmd("c2", CmdOp.SCREEN, "x", null, 1, "phone")).contains("kind"))
         // needs_you con una condizione e una scadenza.
-        val raw = Fixtures.stateIdle.replaceFirst("\"state\": \"idle\"", "\"state\": \"idle\", \"needs_you\": {\"reason\": \"login su win\", \"at\": 1789210100, \"until\": true, \"expires_at\": 1789296500}")
+        val raw = idleWithNeedsYou("{\"reason\": \"login su win\", \"at\": 1789210100, \"until\": true, \"expires_at\": 1789296500}")
         val s = ContractJson.decodeState(raw).sessions.first { it.needsYou != null }
         assertEquals(NeedsYou("login su win", 1789210100, until = true, expiresAt = 1789296500), s.needsYou)
     }
@@ -202,8 +217,8 @@ class ContractTest {
     }
 
     @Test fun needsYouTurnBlockingAndReminder() {
-        val st = ContractJson.decodeState(Fixtures.stateIdle)
-        val raw = Fixtures.stateIdle.replaceFirst("\"state\": \"idle\"", "\"state\": \"idle\", \"needs_you\": {\"reason\": \"login su win\", \"at\": 1789210100}, \"turn_blocking\": {\"text\": \"ok al deploy\", \"at\": 1789210000}")
+        val st = ContractJson.decodeState(Fixtures.stateQuestion)
+        val raw = idleWithNeedsYou("{\"reason\": \"login su win\", \"at\": 1789210100}, \"turn_blocking\": {\"text\": \"ok al deploy\", \"at\": 1789210000}")
         assertNotEquals(Fixtures.stateIdle, raw)
         val s = ContractJson.decodeState(raw).sessions.first { it.needsYou != null }
         assertEquals(NeedsYou("login su win", 1789210100), s.needsYou)
@@ -243,8 +258,7 @@ class ContractTest {
         val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
         val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
         // Manca «unfollow»; dal contratto 1.72 anche «changes» e «diff», il cui risultato ha la sua fixture (changes-sample.json).
-        // Contratto 1.84: suggestion, close_preview e close entrano nella fixture con la release del relay (richiesta del 24/10).
-        assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.SUGGESTION, CmdOp.CLOSE_PREVIEW, CmdOp.CLOSE), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
+        assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
         // Contratto 1.12: due risultati in più, «model» riuscito ed «effort» rifiutato su una sessione occupata.
         // Contratto 1.13: uno in più, il launch con il primo messaggio. Contratto 1.17: night_add e night_remove.
         // Contratto 1.19: tre report, uno rifiutato. Contratto 1.21: due interrupt, «stopped» e «nothing to stop».
@@ -270,7 +284,7 @@ class ContractTest {
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
         // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
         // Contratto 1.74: due nights, con due notti e vuoto.
-        assertEquals(85, results.size); assertEquals(30, results.count { !it.ok })   // 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
+        assertEquals(91, results.size); assertEquals(33, results.count { !it.ok })   // 1.84: suggestion, close_preview e close, ognuno riuscito e rifiutato; 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)
