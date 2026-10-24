@@ -250,6 +250,18 @@ object Lavori {
     data class DoneDay(val date: LocalDate, val rows: List<Done>, val n: Int = rows.size)
 
     /**
+     * La prova in una riga leggibile (Franz 24/10 18:36: «nemmeno questo»): una release o un commit col loro nome, un file col
+     * percorso; il comando del controllo mai, e neanche una release o un commit senza cifre («release v»): la UI scrive l'esito.
+     */
+    fun proofLabel(kind: String?, value: String?): String? {
+        val v = value?.trim().orEmpty()
+        if (v.isEmpty() || kind.isNullOrBlank() || kind == "check") return null
+        if (kind == "file") return v
+        val ok = if (kind == "commit") Regex("^[0-9a-fA-F]{7,40}$").matches(v) else v.any { it.isDigit() }
+        return if (ok) "$kind $v" else null
+    }
+
+    /**
      * Contratto 1.77: i giorni dalle pagine dell'op `done` già caricate (una per data), più i giorni prima che la pagina di
      * ogni data elenca col solo conteggio; dal più recente. Con le pagine l'app non guarda più gli eventi.
      */
@@ -258,8 +270,8 @@ object Lavori {
             val d = runCatching { LocalDate.parse(pg.date) }.getOrNull() ?: return@mapNotNull null
             d to DoneDay(d, pg.rows.map { r ->
                 val pr = r.proof
-                val label = pr?.let { if (it.kind == "file" || it.kind == "check" || it.kind.isBlank()) it.value else "${it.kind} ${it.value}" }?.takeIf { it.isNotBlank() }
-                Done(r.task, r.title.ifBlank { r.task }, r.session, r.at, label, pr?.url, r.outcome.ifBlank { "green" })
+                val label = pr?.let { proofLabel(it.kind, it.value) }
+                Done(r.task, r.title.ifBlank { r.task }, r.session, r.at, label, pr?.url?.takeIf { label != null }, r.outcome.ifBlank { "green" })
             })
         }.toMap()
         val refs = pages.values.flatMap { it.days }.mapNotNull { ref -> runCatching { LocalDate.parse(ref.date) }.getOrNull()?.let { it to ref.n } }

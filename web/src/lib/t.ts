@@ -140,7 +140,7 @@ const it = {
   lavoriPausedReason: (r: string) => `in pausa: ${r}`, lavoriNext: (x: string) => `prossimo: ${x}`, lavoriBlocks: (w: string) => `fermo su ${w}`, lavoriPausedN: (n: number) => `Altri ${n} in pausa`, lavoriOthersN: (n: number) => `${n} fermi su altri`,
   lavoriTonight: 'Stanotte', lavoriTonightExpl: 'La coda per stanotte. Sta solo qui.', lavoriLastNight: (d: string) => `La notte del ${d}`,
   lavoriDone: 'Fatto', lavoriDoneExpl: 'Per giorno, con la prova accanto. Oggi aperto, i giorni prima chiusi.', lavoriToday: (d: string, n: number) => `Oggi ${d} · ${n}`, lavoriYesterday: (d: string, n: number) => `Ieri ${d} · ${n}`, lavoriDay: (d: string, n: number) => `${d} · ${n}`,
-  lavoriProofCheck: 'controllo verde', lavoriDoneEmpty: 'Niente di chiuso negli ultimi sette giorni', lavoriQuotaNote: 'La quota non è qui: resta in «Utilizzo e limiti».',
+  lavoriProofCheck: 'controllo verde', lavoriProofFailed: 'controllo rosso', lavoriProofCancelled: 'annullato', lavoriDoneEmpty: 'Niente di chiuso negli ultimi sette giorni', lavoriQuotaNote: 'La quota non è qui: resta in «Utilizzo e limiti».',
   // In corso per chi deve muoversi (mockup della master approvato da Franz il 22/10 alle 21:16).
   lavoriWorking: 'Al lavoro', lavoriWaitsYou: 'Aspetta te', lavoriOthers: 'Fermi su altri', lavoriNTasks: (n: number) => `${n} compiti`, lavoriSinceAt: (h: string) => `dalle ${h}`, lavoriSinceOn: (d: string) => `dal ${d}`, lavoriUntil: (d: string) => `fino al ${d}`,
   lavoriViewList: 'Elenco', lavoriViewTime: 'Tempo', lavoriAgendaNoDate: "dall'agenda, senza data", lavoriTimeKey: 'piena = al lavoro · tratteggio = in pausa o in coda · riga bianca = adesso',
@@ -447,7 +447,7 @@ const en: typeof it = {
   lavoriPausedReason: (r: string) => `paused: ${r}`, lavoriNext: (x: string) => `next: ${x}`, lavoriBlocks: (w: string) => `blocked by ${w}`, lavoriPausedN: (n: number) => `${n} more paused`, lavoriOthersN: (n: number) => `${n} blocked by others`,
   lavoriTonight: 'Tonight', lavoriTonightExpl: 'The queue for tonight. It lives only here.', lavoriLastNight: (d: string) => `The night of ${d}`,
   lavoriDone: 'Done', lavoriDoneExpl: 'Per day, with the proof next to it. Today open, the days before closed.', lavoriToday: (d: string, n: number) => `Today ${d} · ${n}`, lavoriYesterday: (d: string, n: number) => `Yesterday ${d} · ${n}`, lavoriDay: (d: string, n: number) => `${d} · ${n}`,
-  lavoriProofCheck: 'check green', lavoriDoneEmpty: 'Nothing closed in the last seven days', lavoriQuotaNote: 'The quota is not here: it stays in «Usage and limits».',
+  lavoriProofCheck: 'check green', lavoriProofFailed: 'check red', lavoriProofCancelled: 'cancelled', lavoriDoneEmpty: 'Nothing closed in the last seven days', lavoriQuotaNote: 'The quota is not here: it stays in «Usage and limits».',
   lavoriWorking: 'Working', lavoriWaitsYou: 'Waits for you', lavoriOthers: 'Blocked by others', lavoriNTasks: (n: number) => `${n} tasks`, lavoriSinceAt: (h: string) => `since ${h}`, lavoriSinceOn: (d: string) => `since ${d}`, lavoriUntil: (d: string) => `until ${d}`,
   lavoriViewList: 'List', lavoriViewTime: 'Time', lavoriAgendaNoDate: 'from the agenda, no date', lavoriTimeKey: 'solid = working · dashes = paused or queued · white line = now',
   lavoriOldRelay: "Update supervisor on the PC to see the registry's commitments", lavoriHomeLine: (a: number, b: number, c: number) => `All the work · in progress ${a} · tonight ${b} · done today ${c}`, lavoriAll: 'All the work',

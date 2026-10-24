@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type AgendaPage, type AgendaRow, type Approval, type Commitment, type Event } from './contract'
-import { MIN_BAR, axis, bars, details, done, doneFromPages, doneToday, forYou, inProgress, midnight, place, shortTitle, type ForYou } from './lavori'
+import { MIN_BAR, axis, bars, details, done, doneFromPages, doneToday, forYou, inProgress, midnight, place, proofLabel, shortTitle, type ForYou } from './lavori'
 import type { DonePage } from './contract'
 
 // Gli stessi casi di LavoriTest in Kotlin: la pagina unica «Lavori» (mockup approvato il 22/10).
@@ -117,7 +117,7 @@ describe('lavori', () => {
     expect(days.map(d => [d.date, d.n, d.rows.length])).toEqual([['2026-02-10', 4, 4], ['2026-02-09', 3, 0], ['2026-02-07', 1, 0]])
     const rows = days[0].rows
     expect(rows.map(r => r.task)).toEqual(['atlas-release-2-3', 'ledger-migrations-010', 'notes-night-report', 'orbit-docs-lint'])
-    expect(rows.map(r => r.proof)).toEqual(['release v2.3', 'commit 9f8e7d6', 'docs/notte/2026-02-10-field-notes.md', 'npm run lint'])
+    expect(rows.map(r => r.proof)).toEqual(['release v2.3', 'commit 9f8e7d6', 'docs/notte/2026-02-10-field-notes.md', null])
     expect([rows[0].url, rows[2].url]).toEqual(['https://github.com/example/atlas-shop/releases/tag/v2.3', null])
     expect(rows.map(r => r.outcome)).toEqual(['green', 'green', 'cancelled', 'failed'])
     expect([rows[0].title, rows[0].session, rows[2].session, rows[0].at]).toEqual(['Release 2.3 of atlas-shop', 'atlas-shop', null, 1789211400])
@@ -222,5 +222,16 @@ describe('lavori', () => {
     const ok: Approval = { task: 't2', title: 'Release', what: 'tag e push', where: 'github.com/x', deploy: false, requested_at: 1789214000 }
     expect(details(row({ kind: 'ok', approval: ok })).map(d => [d.kind, d.value])).toEqual([['what', 'tag e push'], ['where', 'github.com/x'], ['asked_at', '1789214000']])
     expect(details(row({ kind: 'ok', approval: { task: 't3', title: 'x', what: '', where: '', deploy: false, requested_at: 0 } }))).toEqual([])
+  })
+})
+
+describe('la prova leggibile di un fatto (Franz 24/10 18:36)', () => {
+  it('mai il comando del controllo, mai una release o un commit senza cifre', () => {
+    expect(proofLabel({ kind: 'check', value: "git fetch -q origin && git rev-list --remotes | grep -q ." })).toBeNull()
+    expect(proofLabel({ kind: 'release', value: 'v' })).toBeNull()
+    expect(proofLabel({ kind: 'release', value: 'v2.3' })).toBe('release v2.3')
+    expect(proofLabel({ kind: 'commit', value: '9f8e7d6' })).toBe('commit 9f8e7d6')
+    expect(proofLabel({ kind: 'file', value: 'docs/a.md' })).toBe('docs/a.md')
+    expect(proofLabel({ kind: '', value: 'x' })).toBeNull()
   })
 })

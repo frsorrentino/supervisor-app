@@ -147,7 +147,7 @@ class LavoriTest {
         assertEquals(listOf(4, 3, 1), days.map { it.n }); assertEquals(listOf(4, 0, 0), days.map { it.rows.size })
         val rows = days[0].rows
         assertEquals(listOf("atlas-release-2-3", "ledger-migrations-010", "notes-night-report", "orbit-docs-lint"), rows.map { it.task })
-        assertEquals(listOf("release v2.3", "commit 9f8e7d6", "docs/notte/2026-02-10-field-notes.md", "npm run lint"), rows.map { it.proof })
+        assertEquals(listOf("release v2.3", "commit 9f8e7d6", "docs/notte/2026-02-10-field-notes.md", null), rows.map { it.proof })
         assertEquals("https://github.com/example/atlas-shop/releases/tag/v2.3", rows[0].url); assertNull(rows[2].url)
         assertEquals(listOf("green", "green", "cancelled", "failed"), rows.map { it.outcome })
         assertEquals("Release 2.3 of atlas-shop", rows[0].title); assertEquals("atlas-shop", rows[0].session); assertNull(rows[2].session); assertEquals(1789211400L, rows[0].at)
@@ -271,5 +271,15 @@ class LavoriTest {
             Lavori.details(Lavori.ForYou(Kind.OK, ok.title, null, ok.requestedAt, approval = ok)).map { it.kind to it.value })
         // Niente campi vuoti.
         assertTrue(Lavori.details(Lavori.ForYou(Kind.OK, "x", null, null, approval = Approval("t3", "x"))).isEmpty())
+    }
+
+    /** Franz 24/10 18:36: mai il comando del controllo, mai una release o un commit senza cifre. */
+    @Test fun proofLabelLeggibile() {
+        assertNull(Lavori.proofLabel("check", "git fetch -q origin && git rev-list --remotes | grep -q ."))
+        assertNull(Lavori.proofLabel("release", "v"))
+        assertEquals("release v2.3", Lavori.proofLabel("release", "v2.3"))
+        assertEquals("commit 9f8e7d6", Lavori.proofLabel("commit", "9f8e7d6"))
+        assertEquals("docs/a.md", Lavori.proofLabel("file", "docs/a.md"))
+        assertNull(Lavori.proofLabel("", "x"))
     }
 }

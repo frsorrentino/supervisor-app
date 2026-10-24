@@ -203,6 +203,18 @@ export type Done = { task: string; title: string; session: string | null; at: nu
 /** `n` = quanti chiusi quel giorno; `rows` vuote con `n` > 0 = un giorno prima richiuso, da caricare con `done` di quel giorno. */
 export type DoneDay = { date: string; rows: Done[]; n: number }
 
+/**
+ * La prova in una riga leggibile (Franz 24/10 18:36: «nemmeno questo»): una release o un commit col loro nome, un file col
+ * percorso; il comando del controllo mai, e neanche una release o un commit senza cifre («release v»): la UI scrive l'esito.
+ */
+export function proofLabel(pr: { kind?: string | null; value?: string | null }): string | null {
+  const v = (pr.value ?? '').trim()
+  if (!v || pr.kind === 'check' || !pr.kind) return null
+  if (pr.kind === 'file') return v
+  const ok = pr.kind === 'commit' ? /^[0-9a-f]{7,40}$/i.test(v) : /\d/.test(v)
+  return ok ? `${pr.kind} ${v}` : null
+}
+
 /** Contratto 1.77: i giorni dalle pagine dell'op `done` già caricate (una per data), più i giorni prima elencati col solo conteggio; dal più recente. */
 export function doneFromPages(pages: Record<string, DonePage>, _zone: string): DoneDay[] {
   const loaded = new Map<string, DoneDay>()
@@ -210,8 +222,8 @@ export function doneFromPages(pages: Record<string, DonePage>, _zone: string): D
     if (!/^\d{4}-\d{2}-\d{2}$/.test(pg.date)) continue
     const rows: Done[] = pg.rows.map(r => {
       const pr = r.proof
-      const label = pr ? (pr.kind === 'file' || pr.kind === 'check' || !pr.kind ? pr.value : `${pr.kind} ${pr.value}`).trim() || null : null
-      return { task: r.task, title: r.title || r.task, session: r.session ?? null, at: r.at, proof: label, url: pr?.url ?? null, outcome: r.outcome || 'green' }
+      const label = pr ? proofLabel(pr) : null
+      return { task: r.task, title: r.title || r.task, session: r.session ?? null, at: r.at, proof: label, url: label ? pr?.url ?? null : null, outcome: r.outcome || 'green' }
     })
     loaded.set(pg.date, { date: pg.date, rows, n: rows.length })
   }
