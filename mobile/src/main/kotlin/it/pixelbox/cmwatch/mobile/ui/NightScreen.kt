@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -257,12 +258,15 @@ private fun iconColor(i: NightPage.Icon): Color = when (i) {
 private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -> String, onToggle: () -> Unit, onChat: (String) -> Unit) {
     val tone = iconColor(c.icon)
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).handCursor().clickable(onClick = onToggle)
+        // Franz 24/10 08:42: «ogni scheda deve essere cliccabile e portarmi alla sessione che ha lavorato»: il tocco apre la
+        // sessione (c.chat); il chevron apre i passi. Senza sessione apribile il tocco apre i passi come prima.
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).handCursor().clickable { c.chat?.let(onChat) ?: onToggle() }
             .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(c.title, style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.weight(1f))
+            if (c.chat != null) Icon(Icons.AutoMirrored.Rounded.Chat, stringResource(R.string.night_conversation), tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
             MarkedText(
                 StateIcons.of(c.icon),
                 stringResource(when (c.icon) {
@@ -273,6 +277,9 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
                 tone, MaterialTheme.typography.labelLarge,
                 modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = .16f)).padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
             )
+            if (c.steps.isNotEmpty()) androidx.compose.material3.IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
+                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = CmColors.text2)
+            }
         }
         Text(stringResource(if (c.queue) R.string.night_kind_job else R.string.night_kind_session) + " · " + times, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
         c.folder?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
@@ -287,13 +294,6 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
                     Text(t(s.at), style = MonoSmall.copy(color = CmColors.text2))
                     Text(s.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
                 } }
-            }
-            c.chat?.let { name ->
-                FilledTonalButton(onClick = { onChat(name) }) {
-                    Icon(Icons.AutoMirrored.Rounded.Chat, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.night_conversation))
-                }
             }
         }
     }
