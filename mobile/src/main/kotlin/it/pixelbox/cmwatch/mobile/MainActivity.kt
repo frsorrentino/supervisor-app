@@ -837,7 +837,7 @@ class MainActivity : ComponentActivity() {
                     prev = cur
                     val t = System.currentTimeMillis()
                     // Letture diradate: ogni lettura costa al relay 5-8 s (dal vivo 30/09 23:00).
-                    if (moved || PhoneTerminal.shouldAskChat(cur, askedAt, answered, t)) {
+                    if (moved || PhoneTerminal.shouldAskChat(cur, askedAt, answered, t) || (askedAt == null && transcriptSid(name) != null)) { // 1.82: una conversazione chiusa dalla Notte si legge una volta, per sid
                         askedAt = t
                         askedSig = cur?.let(ChatFeed::activity)
                         mode = if (entries.isEmpty() || restart) ChatFeed.Page.FRESH else ChatFeed.Page.AFTER
