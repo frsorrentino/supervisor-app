@@ -1100,17 +1100,32 @@ internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, S
 @Composable
 internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: String? = null, onConfirm: (note: String) -> Unit, onDismiss: () -> Unit) {
     var note by rememberSaveable(a.task) { mutableStateOf("") }
+    // Franz 24/10 09:25: titolo corto, la domanda una volta sola con il tasto ▶, le opzioni con quella scelta evidenziata,
+    // la nota facoltativa, poi Annulla e la conferma.
+    val question = listOfNotNull(a.title.takeIf { it.isNotBlank() }, a.what?.takeIf { it.isNotBlank() }, a.where?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.approve_where, it) }).joinToString(". ")
+    val opts = it.pixelbox.cmwatch.rules.Approvals.choices(a)
+    val speak = LocalSpeakText.current
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss, containerColor = CmColors.surface,
-        // Contratto 1.81: con una scelta la finestra conferma quell'opzione.
-        title = { Text(if (choice != null) stringResource(R.string.choose_title, choice, a.title) else if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_title, a.title)) },
+        title = { Text(if (choice != null) stringResource(R.string.choose_short, choice) else if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_short), style = MaterialTheme.typography.titleLarge) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(R.string.approve_text, a.title, a.what.orEmpty(), a.where.orEmpty()))
+                if (speak != null) Speakable(question, speak = true, onSpeak = speak)
+                else Text(question, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                if (opts.isNotEmpty()) {
+                    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        opts.forEach { o ->
+                            val on = o == choice
+                            Text(o, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, color = if (on) CmColors.onPrimary else CmColors.text2,
+                                modifier = Modifier.clip(CircleShape).background(if (on) CmColors.primary else CmColors.surfaceHigh).padding(horizontal = 12.dp, vertical = 6.dp))
+                        }
+                    }
+                }
                 androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
             }
         },
-        confirmButton = { androidx.compose.material3.TextButton(onClick = { onConfirm(note) }) { Text(choice ?: stringResource(R.string.approve), color = CmColors.actionIcon) } },
+        confirmButton = { androidx.compose.material3.Button(onClick = { onConfirm(note) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(choice ?: stringResource(R.string.approve)) } },
         dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
     )
 }

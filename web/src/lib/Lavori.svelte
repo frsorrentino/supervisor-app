@@ -6,13 +6,14 @@
   import { locale } from './lang'
   import type { AgendaPage, Approval, Commitment, DonePage, Event, State } from './contract'
   import { choices } from './approvals'
+  import ApproveBody from './ApproveBody.svelte'
   import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Line } from './lavori'
   import { doIt, mark, type Edit } from './recapAgenda'
   import type { RecapAction } from './recapActions'
   import { t } from './t'
   import Icon from './Icon.svelte'
 
-  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {} }: {
+  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {}, onSpeak = null }: {
     st: State; agenda?: AgendaPage | null; events?: Event[]; now: number; timeZone?: string | null
     /** bar = ← e titolo; none = la testata la dà chi ospita; desk = nel cruscotto, il titolo come le sezioni. */
     header?: 'bar' | 'none' | 'desk'
@@ -20,6 +21,8 @@
     part?: 'all' | 'left' | 'right'
     today?: string | null
     onBack?: () => void; onApprove?: (task: string, note: string, choice?: string) => void; onAgendaEdit?: (e: Edit) => void
+    /** Franz 24/10 09:25: il tasto ▶ nella finestra di conferma di un ok. */
+    onSpeak?: ((text: string) => void) | null
     onStart?: (a: RecapAction) => void; onDoneForPerson?: (c: Commitment) => void
     onAddNight?: () => void; onRemoveNight?: (id: string) => void; onNight?: () => void; onSession?: (name: string) => void
     /** Contratto 1.77: le pagine dell'op `done` già caricate, per data; `onLoadDay` carica un giorno richiuso. */
@@ -214,13 +217,9 @@
 
 <dialog bind:this={dlg} class="alert" onclick={(e) => e.target === e.currentTarget && dlg?.close()}>
   {#if pending}
-    <h3>{pendingChoice ? t.chooseTitle(pendingChoice, pending.title) : pending.deploy ? t.approveProdTitle : t.approveTitle(pending.title)}</h3>
-    <p>{t.approveText(pending.title, pending.what ?? '', pending.where ?? '')}</p>
-    <input bind:value={note} placeholder="ok" aria-label={t.approveNote} />
-    <div class="btns">
-      <button class="text2" onclick={() => dlg?.close()}>{t.cancel}</button>
-      <button class="filled" onclick={() => { onApprove(pending!.task, note, pendingChoice ?? undefined); dlg?.close() }}>{pendingChoice ?? t.approve}</button>
-    </div>
+    {#key `${pending.task}:${pendingChoice}`}
+      <ApproveBody a={pending} choice={pendingChoice} {onSpeak} onCancel={() => dlg?.close()} onConfirm={(n) => { onApprove(pending!.task, n, pendingChoice ?? undefined); dlg?.close() }} />
+    {/key}
   {/if}
 </dialog>
 

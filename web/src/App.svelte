@@ -914,7 +914,7 @@
         onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }}
         onNewProject={st.ops?.includes('project_new') && st.project_parents?.length ? newProject : null} />
     {:else if p === 'lavori'}
-      <Lavori st={stShown} agenda={agenda.page} {events} {now} header="none" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+      <Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="none" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} {donePages} onLoadDay={loadDone} />
     {:else if p === 'night'}
       <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={loadNight}
@@ -949,9 +949,9 @@
   {#if s}<ColumnTab {s} r={rowOf[name]} {now} onGrab={grab} onFocus={() => focusColumn(name)} onClose={() => setCols(cols.filter(c => c !== name))} />{/if}
 {/snippet}
 
-{#snippet lavoriLeft()}<Lavori st={stShown} agenda={agenda.page} {events} {now} header="desk" part="left" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+{#snippet lavoriLeft()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="desk" part="left" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
-{#snippet lavoriRight()}<Lavori st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+{#snippet lavoriRight()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}

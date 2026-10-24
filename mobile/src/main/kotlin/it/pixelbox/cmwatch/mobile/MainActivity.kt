@@ -1637,6 +1637,7 @@ class MainActivity : ComponentActivity() {
         }
         CompositionLocalProvider(
             LocalSpeaking provides speaking, LocalSpeakingBlock provides speakingBlock, LocalBlocksOf provides speech::blocksOf,
+            it.pixelbox.cmwatch.mobile.ui.LocalSpeakText provides { t: String -> speech.toggle(t) },
             LocalSpeechRate provides speechRate, LocalSetSpeechRate provides speech::setRateNow,
             it.pixelbox.cmwatch.mobile.ui.LocalFieldFocus provides fieldFocus,
             it.pixelbox.cmwatch.mobile.ui.LocalPromptBoxes provides promptBoxes,

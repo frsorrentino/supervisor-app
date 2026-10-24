@@ -684,6 +684,9 @@
     <string name="approve">Approva</string>
     <string name="approve_prod_title">Approvi l\'uscita in produzione?</string>
     <string name="approve_title">Approvi «%1$s»?</string>
+    <string name="choose_short">Scegli «%1$s»?</string>
+    <string name="approve_short">Approvi?</string>
+    <string name="approve_where">Dove: %1$s</string>
     <string name="choose_title">Scegli «%1$s» per «%2$s»?</string>
     <string name="approve_text">%1$s: %2$s, verso %3$s.</string>
     <string name="approve_note">Nota per la sessione (facoltativa)</string>

@@ -20,6 +20,7 @@
   import Badge from './Badge.svelte'
   import { choices } from './approvals'
   import WorkBadge from './WorkBadge.svelte'
+  import ApproveBody from './ApproveBody.svelte'
   import Options from './Options.svelte'
   import type { RecapAction } from './recapActions'
   import { doIt, mark, todayIso, type Edit } from './recapAgenda'
@@ -501,13 +502,9 @@
 
 <dialog bind:this={approveDlg} class="alert" onclick={(e) => e.target === e.currentTarget && approveDlg?.close()}>
   {#if pending}
-    <h3>{pendingChoice ? t.chooseTitle(pendingChoice, pending.title) : pending.deploy ? t.approveProdTitle : t.approveTitle(pending.title)}</h3>
-    <p class="sub">{t.approveText(pending.title, pending.what, pending.where)}</p>
-    <label class="lab">{t.approveNote}<input bind:value={note} placeholder="ok" /></label>
-    <div class="btns">
-      <button class="text2" onclick={() => approveDlg?.close()}>{t.cancel}</button>
-      <button class="filled" onclick={() => { onApprove(pending!.task, note, pendingChoice ?? undefined); approveDlg?.close() }}>{pendingChoice ?? t.approve}</button>
-    </div>
+    {#key `${pending.task}:${pendingChoice}`}
+      <ApproveBody a={pending} choice={pendingChoice} {onSpeak} onCancel={() => approveDlg?.close()} onConfirm={(n) => { onApprove(pending!.task, n, pendingChoice ?? undefined); approveDlg?.close() }} />
+    {/key}
   {/if}
 </dialog>
 

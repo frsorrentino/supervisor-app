@@ -2462,6 +2462,8 @@ private const val MAX_IMAGES = 5
 
 /** Il testo che la voce sta leggendo: il suo tasto diventa Stop. Fornito da `MainActivity` da `Speech.speaking`. */
 val LocalSpeaking = androidx.compose.runtime.staticCompositionLocalOf<String?> { null }
+/** Franz 24/10 09:25: leggere un testo ad alta voce da dove non arriva un onSpeak (la finestra di conferma di un ok). */
+val LocalSpeakText = androidx.compose.runtime.staticCompositionLocalOf<((String) -> Unit)?> { null }
 
 /** Lo zoom del testo della conversazione (`ChatZoom`) e come cambiarlo, da `MainActivity`. */
 val LocalChatZoom = androidx.compose.runtime.staticCompositionLocalOf { 1f }
