@@ -72,7 +72,7 @@ internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Sugg
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(stringResource(label).uppercase(), style = MonoSmall.copy(color = tone, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold))
                     Text(s.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
-                    FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SugButton(stringResource(R.string.sug_accept), tonal = true) { onAnswer(s, "accept") }
                         SugButton(stringResource(R.string.sug_discuss), tonal = false) { onAnswer(s, "discuss") }
                         SugButton(stringResource(R.string.sug_later), tonal = false) { onAnswer(s, "later") }
@@ -87,6 +87,6 @@ internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Sugg
 @Composable
 private fun SugButton(text: String, tonal: Boolean, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = CircleShape, color = if (tonal) CmColors.surfaceHigh else Color.Transparent, contentColor = if (tonal) CmColors.text else CmColors.text2) {
-        Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = if (tonal) 14.dp else 8.dp, vertical = 8.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = if (tonal) 12.dp else 6.dp, vertical = 8.dp))
     }
 }
