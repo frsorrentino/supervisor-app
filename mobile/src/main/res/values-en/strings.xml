@@ -540,6 +540,8 @@
     <string name="tablet_now_pct">now\u00A0%1$d%%</string>
     <string name="tablet_week_forecast">At the same pace: %1$d%% at the renewal on\u00A0%2$s</string>
     <string name="tablet_week_reset">Renews\u00A0%1$s</string>
+    <string name="tablet_week_runs_out">At the same pace: 100%% on\u00A0%1$s, before the renewal on\u00A0%2$s</string>
+    <string name="tablet_week_full">Used up: renews on\u00A0%1$s</string>
     <string name="tablet_state_waiting">waiting for you</string>
     <string name="tablet_state_finished">finished</string>
     <string name="tablet_state_working">working</string>

@@ -205,8 +205,14 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
             val projected = Tablet.weekProjected(w, ring.weekResetAt, now)
             WeekBar(w, projected)
             ring.weekResetAt?.let { at ->
+                val runsOut = Tablet.weekRunsOut(w, at, now)
                 Text(
-                    projected?.let { stringResource(R.string.tablet_week_forecast, it, dayTime(at)) } ?: stringResource(R.string.tablet_week_reset, dayTime(at)),
+                    when {
+                        w >= 100 -> stringResource(R.string.tablet_week_full, dayTime(at))
+                        runsOut != null -> stringResource(R.string.tablet_week_runs_out, dayTime(runsOut), dayTime(at))
+                        projected != null -> stringResource(R.string.tablet_week_forecast, projected, dayTime(at))
+                        else -> stringResource(R.string.tablet_week_reset, dayTime(at))
+                    },
                     style = MaterialTheme.typography.bodySmall, color = CmColors.text,
                 )
             }

@@ -125,3 +125,11 @@ export function weekProjected(w7: number | null | undefined, resetAt: number | n
   if (elapsed < 3600) return null
   return Math.min(100, Math.max(0, Math.trunc(w7 + (w7 / elapsed) * (resetAt - now))))
 }
+/** L'istante del 100% allo stesso ritmo medio, solo se cade prima del rinnovo; a 100 già raggiunto o senza ritmo, null. */
+export function weekRunsOut(w7: number | null | undefined, resetAt: number | null | undefined, now: number): number | null {
+  if (w7 == null || resetAt == null || resetAt <= now || w7 <= 0 || w7 >= 100) return null
+  const elapsed = now - (resetAt - WEEK_S)
+  if (elapsed < 3600) return null
+  const at = now + Math.trunc((100 - w7) / (w7 / elapsed))
+  return at < resetAt ? at : null
+}

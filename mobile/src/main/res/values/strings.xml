@@ -549,6 +549,8 @@
     <string name="tablet_now_pct">ora\u00A0%1$d%%</string>
     <string name="tablet_week_forecast">Allo stesso ritmo: %1$d%% al rinnovo di\u00A0%2$s</string>
     <string name="tablet_week_reset">Rinnovo\u00A0%1$s</string>
+    <string name="tablet_week_runs_out">Allo stesso ritmo: 100%%\u00A0%1$s, prima del rinnovo di\u00A0%2$s</string>
+    <string name="tablet_week_full">Esaurita: rinnovo di\u00A0%1$s</string>
     <string name="tablet_state_waiting">ti aspetta</string>
     <string name="tablet_state_finished">ha finito</string>
     <string name="tablet_state_working">al lavoro</string>

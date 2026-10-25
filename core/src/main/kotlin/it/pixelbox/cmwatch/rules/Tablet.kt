@@ -88,6 +88,15 @@ object Tablet {
         return (w7 + w7.toDouble() / elapsed * (resetAt - now)).toInt().coerceIn(0, 100)
     }
 
+    /** L'istante del 100% allo stesso ritmo medio, solo se cade prima del rinnovo; a 100 già raggiunto o senza ritmo, null. */
+    fun weekRunsOut(w7: Int?, resetAt: Long?, now: Long): Long? {
+        if (w7 == null || resetAt == null || resetAt <= now || w7 <= 0 || w7 >= 100) return null
+        val elapsed = now - (resetAt - WEEK_S)
+        if (elapsed < 3600) return null
+        val at = now + ((100 - w7) / (w7.toDouble() / elapsed)).toLong()
+        return at.takeIf { it < resetAt }
+    }
+
     /** Pezzo 5: le colonne affiancate, al massimo quattro. */
     const val MAX_COLUMNS = 4
 

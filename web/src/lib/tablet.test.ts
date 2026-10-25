@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Session, State } from './contract'
 import { build } from './summary'
-import { add, columns, forecast, inspect, timelineArg, weekProjected, columnsFromPref, columnsPref, drag, equal, groups, parts, sharesFromPref, sharesPref, swap, toggle, wide } from './tablet'
+import { add, columns, forecast, inspect, timelineArg, weekProjected, weekRunsOut, columnsFromPref, columnsPref, drag, equal, groups, parts, sharesFromPref, sharesPref, swap, toggle, wide } from './tablet'
 
 // Gli stessi casi di TabletTest in Kotlin (colonne e plancia).
 const at = (h: number, m = 0) => Date.UTC(2026, 9, 4, h - 2, m) / 1000
@@ -93,5 +93,12 @@ describe('ispettore e previsione', () => {
     const reset = at3(15) + 4 * 86400
     expect(weekProjected(24, reset, at3(15))).toBe(56); expect(weekProjected(80, reset, at3(15))).toBe(100)
     expect(weekProjected(null, reset, at3(15))).toBeNull(); expect(weekProjected(1, at3(15) + 7 * 86400 - 600, at3(15))).toBeNull()
+  })
+  it('la settimana: quando arriva al 100% prima del rinnovo', () => {
+    const now = at3(15), reset = now + 81 * 3600
+    // 65% dopo 87 ore su 168: 35 punti a 65/87 l'ora, 100% fra 46,8 ore, prima del rinnovo.
+    expect(weekRunsOut(65, reset, now)).toBe(now + Math.trunc(35 / (65 / (87 * 3600))))
+    expect(weekRunsOut(24, now + 4 * 86400, now)).toBeNull(); expect(weekRunsOut(100, reset, now)).toBeNull()
+    expect(weekRunsOut(0, reset, now)).toBeNull(); expect(weekRunsOut(1, now + 7 * 86400 - 600, now)).toBeNull()
   })
 })

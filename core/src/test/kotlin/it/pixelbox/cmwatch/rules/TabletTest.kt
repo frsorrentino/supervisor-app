@@ -100,6 +100,17 @@ class TabletTest {
         assertNull(Tablet.weekProjected(1, at(15) + 7 * 86400 - 600, at(15)))
     }
 
+    // Il 100% prima del rinnovo: 65% dopo 87 ore su 168, allo stesso ritmo 100% fra 46,8 ore.
+    @Test fun weekRunsOutBeforeTheRenewal() {
+        val now = at(15)
+        val reset = now + 81 * 3600
+        assertEquals(now + (35 / (65.0 / (87 * 3600))).toLong(), Tablet.weekRunsOut(65, reset, now))
+        assertNull(Tablet.weekRunsOut(24, now + 4 * 86400, now))
+        assertNull(Tablet.weekRunsOut(100, reset, now))
+        assertNull(Tablet.weekRunsOut(0, reset, now))
+        assertNull(Tablet.weekRunsOut(1, now + 7 * 86400 - 600, now))
+    }
+
     // Pezzo 5, le colonne: al massimo 4, solo sessioni vive, nell'ordine in cui le hai messe.
     @Test fun columnsKeepTheLiveOnesInOrder() {
         val live = listOf("a", "b", "c", "d", "e")

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { locale } from './lang'
   import type { Ring } from './overview'
-  import { forecast, weekProjected } from './tablet'
+  import { forecast, weekProjected, weekRunsOut } from './tablet'
   import { t } from './t'
   import QuotaRing from './QuotaRing.svelte'
 
@@ -14,6 +14,7 @@
   const f = $derived(ring.resetAt != null && ring.pace ? forecast(ring.pace, ring.resetAt, now) : null)
   const nowPct = $derived(ring.h5 ?? f?.points[f.points.length - 1]?.[1] ?? 0)
   const week = $derived(weekProjected(ring.w7, ring.weekResetAt, now))
+  const runsOut = $derived(weekRunsOut(ring.w7, ring.weekResetAt, now))
   // Il grafico in un riquadro 300×96: margine a sinistra per le soglie, sotto per le ore.
   const L = 30, W = 262, T = 4, H = 76
   const x = (v: number) => L + W * v
@@ -66,7 +67,7 @@
       {#if week != null}<i class="proj" style="width:{week}%"></i>{/if}
       <i class="used" style="width:{Math.min(100, ring.w7)}%"></i><i class="mark"></i>
     </span>
-    {#if ring.weekResetAt}<p class="txt">{week != null ? t.tabletWeekForecast(week, dayTime(ring.weekResetAt)) : t.tabletWeekReset(dayTime(ring.weekResetAt))}</p>{/if}
+    {#if ring.weekResetAt}<p class="txt">{ring.w7 >= 100 ? t.tabletWeekFull(dayTime(ring.weekResetAt)) : runsOut != null ? t.tabletWeekRunsOut(dayTime(runsOut), dayTime(ring.weekResetAt)) : week != null ? t.tabletWeekForecast(week, dayTime(ring.weekResetAt)) : t.tabletWeekReset(dayTime(ring.weekResetAt))}</p>{/if}
   {/if}
 </div>
 
