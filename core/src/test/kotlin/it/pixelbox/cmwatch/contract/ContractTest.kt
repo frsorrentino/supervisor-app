@@ -121,6 +121,15 @@ class ContractTest {
         assertNull(ev.first { it.kind == EventKind.QUOTA }.session)
     }
 
+    /** Contratto 1.85 (25/10): il limite di un modello; il quota_limit 5h non offre più «pass». */
+    @Test fun modelLimitEvent() {
+        val ev = ContractJson.decodeEvents(Fixtures.events).filter { it.kind == EventKind.QUOTA_LIMIT }
+        val model = ev.single { it.window == "model" }
+        assertEquals("1789199830_026", model.key); assertEquals("Opus 5.5", model.otherModel); assertNull(model.resetAt)
+        assertEquals(listOf("other_model", "other_account"), model.actions)
+        assertTrue(ev.none { "pass" in it.actions.orEmpty() })
+    }
+
     // Contratto 1.68: ferma per Franz e promemoria, come li scrive il relay 0.8.24 (test R52 del relay).
     /** Contratto 1.80 (23/10): le richieste in «Serve te» si chiudono da sole; op `attention_done` = il tasto «Fatto». */
     @Test fun attentionDoneAndTheClosingRequests() {

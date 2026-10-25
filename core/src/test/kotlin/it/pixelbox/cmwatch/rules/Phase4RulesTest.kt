@@ -27,7 +27,7 @@ class TimelineTextTest {
     @Test fun groupedByDayNewestFirst() {
         val g = TimelineText.groups(ev, zone)
         assertEquals(listOf("12 set"), g.map { it.day })
-        assertEquals(17, g[0].rows.size)   // 1.83: in più la domanda del server MCP (elicitation); 1.76: in più l'impegno fermo (task_stalled)   // 1.61-1.62: in più il turno fallito e l'esito quiet; 1.18: in più la ripresa della quota; 1.40: il riavvio fallito; 1.45: lo stato fermo; 1.57-1.58: due task_check, quota_limit e un esito con preview; diario e notte restano fuori
+        assertEquals(18, g[0].rows.size)   // 1.85: in più il limite del modello (quota_limit); 1.83: in più la domanda del server MCP (elicitation); 1.76: in più l'impegno fermo (task_stalled)   // 1.61-1.62: in più il turno fallito e l'esito quiet; 1.18: in più la ripresa della quota; 1.40: il riavvio fallito; 1.45: lo stato fermo; 1.57-1.58: due task_check, quota_limit e un esito con preview; diario e notte restano fuori
         // 1.18: la ripresa della quota è la più recente; del corpo su più righe resta la prima (una riga sul polso).
         assertEquals("14:10 · quota personal back · reset 13:10", g[0].rows[0])
         // 1.83: la domanda del server MCP delle 13:58 viene subito dopo, col server per titolo.
