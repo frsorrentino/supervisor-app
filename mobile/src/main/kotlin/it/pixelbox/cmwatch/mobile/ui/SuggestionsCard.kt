@@ -87,6 +87,6 @@ internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Sugg
 @Composable
 private fun SugButton(text: String, tonal: Boolean, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = CircleShape, color = if (tonal) CmColors.surfaceHigh else Color.Transparent, contentColor = if (tonal) CmColors.text else CmColors.text2) {
-        Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = if (tonal) 14.dp else 10.dp, vertical = 8.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = if (tonal) 14.dp else 8.dp, vertical = 8.dp))
     }
 }
