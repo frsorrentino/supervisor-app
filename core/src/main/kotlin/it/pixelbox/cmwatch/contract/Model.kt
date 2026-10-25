@@ -459,6 +459,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @SerialName("reset_at") val resetAt: Long? = null,
     val window: String? = null,
     @SerialName("other_account") val otherAccount: String? = null,
+    /** `quota_limit` con window "model": l'etichetta dell'altro modello per la strada `other_model` (es. «Opus 5.5»). */
+    @SerialName("other_model") val otherModel: String? = null,
     val actions: List<String>? = null,
     /** Contratto 1.61, `turn_failed`: il motivo in una riga (senza segreti) e il testo che fa continuare la sessione. */
     val reason: String? = null,

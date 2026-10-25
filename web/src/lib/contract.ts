@@ -108,7 +108,7 @@ export type Event = { key: string; kind: EventKind; session?: string | null; acc
   /** Contratto 1.56: titolo e corpo senza segreti. */
   preview?: { title: string; body?: string } | null
   /** Contratto 1.58, `quota_limit`. */
-  reset_at?: number | null; window?: string | null; other_account?: string | null; actions?: string[] | null
+  reset_at?: number | null; window?: string | null; other_account?: string | null; other_model?: string | null; actions?: string[] | null
   /** Contratto 1.61 (`turn_failed`) e 1.62 (`quiet`: senza suono, Franz è al PC). */
   reason?: string | null; continue_text?: string | null; quiet?: boolean
   /** Contratto 1.68, `attention_reminder`: il kind della voce che aspetta ancora. */

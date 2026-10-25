@@ -88,7 +88,7 @@
   // Contratto 1.58: la quota finita ancora da decidere per questa sessione.
   const limit = $derived(openLimit(events, s, st.ts, st.attention ?? []))
   const hhmm = (sec: number) => new Date(sec * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-  const limitWays = $derived(limit ? ways(limit, { otherAccount: t.quotaWayOther, atReset: t.quotaWayReset, pass: t.quotaWayPass }, hhmm) : [])
+  const limitWays = $derived(limit ? ways(limit, { otherAccount: t.quotaWayOther, atReset: t.quotaWayReset, pass: t.quotaWayPass, otherModel: t.quotaWayModel }, hhmm) : [])
   let picking = $state(false)
   // Contratto 1.61: il turno finito in errore ancora da riprendere.
   const failure = $derived(openFailure(events, s, st.ts, st.attention ?? []))

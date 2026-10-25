@@ -14,8 +14,8 @@ object AlertEvents {
     /** 1.78: l'esito sta in `ok`; con un relay precedente lo dice il «✓» in testa al titolo grezzo (1.57). */
     fun green(e: Event): Boolean = e.ok ?: (e.preview?.title ?: e.title).trimStart().startsWith("✓")
 
-    /** Le parole dei tasti: «continua su %s», «riprendi alle %s», «passa a un'altra sessione». */
-    data class Words(val otherAccount: String, val atReset: String, val pass: String)
+    /** Le parole dei tasti: «continua su %s», «riprendi alle %s», «passa a un'altra sessione», «continua con %s» (il modello). */
+    data class Words(val otherAccount: String, val atReset: String, val pass: String, val otherModel: String)
 
     /** Una strada: la parola del tasto e l'`arg` di `quota_route`; null per «pass», dove la sessione la sceglie l'utente. */
     data class Way(val action: String, val label: String, val arg: String?)
@@ -25,6 +25,7 @@ object AlertEvents {
         when (a) {
             OTHER_ACCOUNT -> e.otherAccount?.let { Way(a, w.otherAccount.format(it), OTHER_ACCOUNT) }
             AT_RESET -> e.resetAt?.let { Way(a, w.atReset.format(hhmm(it)), AT_RESET) }
+            OTHER_MODEL -> e.otherModel?.let { Way(a, w.otherModel.format(it), OTHER_MODEL) }
             PASS -> Way(a, w.pass, null)
             else -> null
         }
@@ -67,4 +68,5 @@ object AlertEvents {
     const val OTHER_ACCOUNT = "other_account"
     const val AT_RESET = "at_reset"
     const val PASS = "pass"
+    const val OTHER_MODEL = "other_model"
 }

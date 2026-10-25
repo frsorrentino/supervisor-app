@@ -9,7 +9,7 @@ const limit: Event = {
 }
 const s = (name: string, state: Session['state'] = 'idle', turn: number | null = 900): Session =>
   ({ id: name, name, account: 'a', project: 'p', state, since: 1, turn_started: turn })
-const w = { otherAccount: (a: string) => `continua su ${a}`, atReset: (t: string) => `riprendi alle ${t}`, pass: "passa a un'altra sessione" }
+const w = { otherAccount: (a: string) => `continua su ${a}`, atReset: (t: string) => `riprendi alle ${t}`, pass: "passa a un'altra sessione", otherModel: (m: string) => `continua con ${m}` }
 
 describe('eventi con tasti', () => {
   it('task_check verde o rosso', () => {
@@ -34,6 +34,10 @@ describe('eventi con tasti', () => {
   it('quota_limit: le strade del relay, solo con i dati per il tasto', () => {
     expect(ways(limit, w, () => '18:00').map(x => x.label)).toEqual(['continua su work', 'riprendi alle 18:00', "passa a un'altra sessione"])
     expect(ways({ ...limit, other_account: null, reset_at: null, actions: ['other_account', 'at_reset', 'pass', 'x'] }, w, () => '').map(x => x.action)).toEqual(['pass'])
+    // Limite di un modello: il tasto «continua con Opus 5.5», arg other_model; senza il campo il tasto non c'è.
+    const model = { ...limit, window: 'model', other_account: null, other_model: 'Opus 5.5', actions: ['other_model', 'at_reset'] }
+    expect(ways(model, w, () => '18:00').map(x => [x.label, x.arg])).toEqual([['continua con Opus 5.5', 'other_model'], ['riprendi alle 18:00', 'at_reset']])
+    expect(ways({ ...model, other_model: null }, w, () => '18:00').map(x => x.action)).toEqual(['at_reset'])
     expect(passArg('ledger-api')).toBe('pass:ledger-api')
     expect(passTargets([s('atlas-shop'), s('ledger-api'), s('old', 'gone')], 'atlas-shop')).toEqual(['ledger-api'])
   })

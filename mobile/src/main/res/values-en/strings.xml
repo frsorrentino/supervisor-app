@@ -952,6 +952,7 @@ It starts at your last message to the master.</string>
     <string name="quota_way_other">continue on %1$s</string>
     <string name="quota_way_reset">resume at %1$s</string>
     <string name="quota_way_pass">pass to another session</string>
+    <string name="quota_way_model">continue with %1$s</string>
     <string name="turn_continue">Continue</string>
     <string name="send_at">Send at</string>
     <string name="send_at_title">Send to %1$s at</string>

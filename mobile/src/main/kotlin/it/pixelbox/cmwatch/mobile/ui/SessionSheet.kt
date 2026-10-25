@@ -2179,6 +2179,7 @@ internal fun QuestionOptions(
 private fun QuotaLimitCard(e: it.pixelbox.cmwatch.contract.Event, passTargets: List<String>, onRoute: (String) -> Unit) {
     val words = it.pixelbox.cmwatch.rules.AlertEvents.Words(
         stringResource(R.string.quota_way_other), stringResource(R.string.quota_way_reset), stringResource(R.string.quota_way_pass),
+        stringResource(R.string.quota_way_model),
     )
     val ways = it.pixelbox.cmwatch.rules.AlertEvents.ways(e, words) { s ->
         java.time.Instant.ofEpochSecond(s).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5)

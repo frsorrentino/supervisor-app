@@ -20,7 +20,7 @@ export function cleanEvent(e: Event): Event {
   }
 }
 
-export type Words = { otherAccount: (a: string) => string; atReset: (t: string) => string; pass: string }
+export type Words = { otherAccount: (a: string) => string; atReset: (t: string) => string; pass: string; otherModel: (m: string) => string }
 /** Una strada: la parola del tasto e l'`arg` di `quota_route`; null per «pass», dove la sessione la sceglie l'utente. */
 export type Way = { action: string; label: string; arg: string | null }
 
@@ -28,6 +28,7 @@ export function ways(e: Event, w: Words, hhmm: (s: number) => string): Way[] {
   return (e.actions ?? []).flatMap((a): Way[] => {
     if (a === 'other_account') return e.other_account ? [{ action: a, label: w.otherAccount(e.other_account), arg: a }] : []
     if (a === 'at_reset') return e.reset_at != null ? [{ action: a, label: w.atReset(hhmm(e.reset_at)), arg: a }] : []
+    if (a === 'other_model') return e.other_model ? [{ action: a, label: w.otherModel(e.other_model), arg: a }] : []
     if (a === 'pass') return [{ action: a, label: w.pass, arg: null }]
     return []
   })

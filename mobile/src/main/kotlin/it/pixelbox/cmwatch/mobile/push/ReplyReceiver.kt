@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 object ReplyRoute {
     const val OPTION = "it.pixelbox.cmwatch.mobile.OPTION"
     const val REPLY = "it.pixelbox.cmwatch.mobile.REPLY"
-    /** Contratto 1.58: una strada dalla notifica di quota finita; `arg` = other_account | at_reset. */
+    /** Contratto 1.58: una strada dalla notifica di quota finita; `arg` = other_account | at_reset | other_model. */
     const val QUOTA = "it.pixelbox.cmwatch.mobile.QUOTA"
     const val ARG = "arg"
     /** Contratto 1.61: «Continua» dopo un turno fallito; `arg` = il testo da mandare come prompt. */

@@ -17,7 +17,7 @@ class AlertEventsTest {
     private val limit = ContractJson.json.decodeFromString(Event.serializer(), """{"key":"k1","kind":"quota_limit","session":"atlas-shop",
         "account":"personal","ts":1000,"title":"⛔ atlas-shop: limite 5h finito, reset alle 18:00","body":"","ref":"atlas-shop",
         "reset_at":5000,"window":"5h","other_account":"work","actions":["other_account","at_reset","pass"]}""")
-    private val w = AlertEvents.Words("continua su %s", "riprendi alle %s", "passa a un'altra sessione")
+    private val w = AlertEvents.Words("continua su %s", "riprendi alle %s", "passa a un'altra sessione", "continua con %s")
 
     @Test fun taskCheckIsGreenOrRed() {
         val e = Event("k", EventKind.TASK_CHECK, "atlas-shop", null, 1, "✓ t-1: check green", "title", "t-1")
@@ -43,6 +43,10 @@ class AlertEventsTest {
         assertEquals(listOf("other_account", "at_reset", null), ways.map { it.arg })
         // Senza l'altro account o l'ora del reset quel tasto non c'è; un'azione sconosciuta si salta.
         assertEquals(listOf("pass"), AlertEvents.ways(limit.copy(otherAccount = null, resetAt = null, actions = listOf("other_account", "at_reset", "pass", "x")), w) { "" }.map { it.action })
+        // Limite di un modello: il tasto «continua con Opus 5.5», arg other_model; senza il campo il tasto non c'è.
+        val model = limit.copy(window = "model", otherAccount = null, otherModel = "Opus 5.5", actions = listOf("other_model", "at_reset"))
+        assertEquals(listOf("continua con Opus 5.5" to "other_model", "riprendi alle 18:00" to "at_reset"), AlertEvents.ways(model, w) { "18:00" }.map { it.label to it.arg })
+        assertEquals(listOf("at_reset"), AlertEvents.ways(model.copy(otherModel = null), w) { "18:00" }.map { it.action })
         assertEquals("pass:ledger-api", AlertEvents.passArg("ledger-api"))
         assertFalse("atlas-shop" in AlertEvents.passTargets(st.sessions, "atlas-shop"))
     }

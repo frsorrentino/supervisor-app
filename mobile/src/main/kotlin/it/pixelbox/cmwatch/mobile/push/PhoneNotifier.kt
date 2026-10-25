@@ -113,6 +113,7 @@ class PhoneNotifier(private val ctx: Context) {
         val session = e.ref ?: e.session ?: return
         val words = it.pixelbox.cmwatch.rules.AlertEvents.Words(
             ctx.getString(R.string.quota_way_other), ctx.getString(R.string.quota_way_reset), ctx.getString(R.string.quota_way_pass),
+            ctx.getString(R.string.quota_way_model),
         )
         val hhmm = { s: Long -> java.time.Instant.ofEpochSecond(s).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5) }
         val b = NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(icon(e.kind))

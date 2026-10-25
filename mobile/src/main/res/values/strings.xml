@@ -969,6 +969,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="quota_way_other">continua su %1$s</string>
     <string name="quota_way_reset">riprendi alle %1$s</string>
     <string name="quota_way_pass">passa a un\'altra sessione</string>
+    <string name="quota_way_model">continua con %1$s</string>
     <string name="turn_continue">Continua</string>
     <string name="send_at">Manda alle</string>
     <string name="send_at_title">Manda a %1$s alle</string>
