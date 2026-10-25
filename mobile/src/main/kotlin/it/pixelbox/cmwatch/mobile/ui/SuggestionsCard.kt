@@ -41,7 +41,7 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
 /**
  * «Suggerimenti della master» (Franz 24/10 19:46, scheda A del mockup docs/mockup/2026-10-24-suggerimenti-home; contratto
  * 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Non ora» e
- * «Mai». Accetta manda il prompt alla master: niente parte senza un tocco.
+ * «Mai», più «Parliamone» (Franz 25/10 07:36). Accetta manda il prompt alla master: niente parte senza un tocco.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -74,6 +74,7 @@ internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Sugg
                     Text(s.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
                     FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SugButton(stringResource(R.string.sug_accept), tonal = true) { onAnswer(s, "accept") }
+                        SugButton(stringResource(R.string.sug_discuss), tonal = false) { onAnswer(s, "discuss") }
                         SugButton(stringResource(R.string.sug_later), tonal = false) { onAnswer(s, "later") }
                         SugButton(stringResource(R.string.sug_never), tonal = false) { onAnswer(s, "never") }
                     }

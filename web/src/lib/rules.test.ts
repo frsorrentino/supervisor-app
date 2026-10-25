@@ -87,3 +87,11 @@ describe('preposizione', () => {
     expect(t.writeTo('master')).toBe('Scrivi alla master')
   })
 })
+
+// «Parliamone» (Franz 25/10 07:36): il prompt fisso tiene la punteggiatura del suggerimento.
+describe('parliamone', () => {
+  it('mette il punto solo se manca', () => {
+    expect(t.sugDiscussPrompt('Li archivio?')).toBe('Parliamone, senza farlo: Li archivio? Spiegami cosa faresti e perché.')
+    expect(t.sugDiscussPrompt('Archivia i due compiti ')).toBe('Parliamone, senza farlo: Archivia i due compiti. Spiegami cosa faresti e perché.')
+  })
+})

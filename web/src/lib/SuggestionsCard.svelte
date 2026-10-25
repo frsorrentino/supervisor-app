@@ -3,9 +3,9 @@
   import { t } from './t'
 
   // «Suggerimenti della master» (Franz 24/10 19:46, scheda A del mockup docs/mockup/2026-10-24-suggerimenti-home; contratto
-  // 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Non ora»
-  // e «Mai». Accetta manda il prompt alla master: niente parte senza un tocco.
-  let { shown, total, at, onAnswer }: { shown: Suggestion[]; total: number; at: string; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never') => void } = $props()
+  // 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Parliamone»,
+  // «Non ora» e «Mai». Accetta manda il prompt alla master: niente parte senza un tocco.
+  let { shown, total, at, onAnswer }: { shown: Suggestion[]; total: number; at: string; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss') => void } = $props()
   const tone: Record<string, string> = { recurring: 'var(--b-ring)', cleanup: 'var(--good)', deadline: 'var(--b-warn)', quota: 'var(--b-week, #B9A6F5)' }
   const icon: Record<string, string> = {
     recurring: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
@@ -29,6 +29,7 @@
         <span class="body">{s.text}</span>
         <span class="btns">
           <button class="tonal" onclick={() => onAnswer(s, 'accept')}>{t.sugAccept}</button>
+          <button class="text" onclick={() => onAnswer(s, 'discuss')}>{t.sugDiscuss}</button>
           <button class="text" onclick={() => onAnswer(s, 'later')}>{t.sugLater}</button>
           <button class="text" onclick={() => onAnswer(s, 'never')}>{t.sugNever}</button>
         </span>

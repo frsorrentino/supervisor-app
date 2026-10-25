@@ -1104,6 +1104,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="sug_kind_deadline">Scadenza</string>
     <string name="sug_kind_quota">Quota</string>
     <string name="sug_accept">Accetta</string>
+    <string name="sug_discuss">Parliamone</string>
+    <string name="sug_discuss_prompt">Parliamone, senza farlo: %1$s Spiegami cosa faresti e perché.</string>
     <string name="sug_later">Non ora</string>
     <string name="sug_never">Mai</string>
     <string name="sug_sent">Mandato alla master</string>

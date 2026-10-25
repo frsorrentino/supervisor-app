@@ -1086,6 +1086,8 @@ It starts at your last message to the master.</string>
     <string name="sug_kind_deadline">Deadline</string>
     <string name="sug_kind_quota">Quota</string>
     <string name="sug_accept">Accept</string>
+    <string name="sug_discuss">Let\'s talk</string>
+    <string name="sug_discuss_prompt">Let\'s talk about it, without doing it: %1$s Tell me what you would do and why.</string>
     <string name="sug_later">Not now</string>
     <string name="sug_never">Never</string>
     <string name="sug_sent">Sent to the master</string>

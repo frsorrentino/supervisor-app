@@ -231,7 +231,9 @@
   }
   // Contratto 1.84 (scheda A): la risposta a un suggerimento della master; la voce sparisce subito e torna solo se il relay rifiuta.
   let sugDone = $state(new Set<string>())
-  async function suggest(x: Suggestion, action: 'accept' | 'later' | 'never') {
+  async function suggest(x: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss') {
+    // «Parliamone» (Franz 25/10 07:36): un prompt fisso alla master, senza l'op suggestion; la voce resta per Accetta.
+    if (action === 'discuss') { sendTo(MASTER, t.sugDiscussPrompt(x.text)); pick(MASTER); return }
     sugDone = new Set([...sugDone, x.id])
     const r = await run(newCmd('suggestion', null, x.id, undefined, undefined, { action }))
     if (r?.ok) say(`✓ ${action === 'accept' ? t.sugSent : action === 'later' ? t.sugHidden : t.sugNeverDone}`)
