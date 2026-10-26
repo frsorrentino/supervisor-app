@@ -179,7 +179,8 @@
       {/if}
     {/if}
     <!-- 2B: la spesa di ogni giorno contro il budget di 100/7; sopra la riga ambra. -->
-    <p class="txt">{t.weekUsed(Math.trunc((now - wk.start) / 86400), Math.trunc(((now - wk.start) % 86400) / 3600))}</p>
+    <!-- Il budget del giorno nella frase, non sulla riga: lì copriva la barra di oggi quando la supera (320 px). -->
+    <p class="txt">{t.weekUsed(Math.trunc((now - wk.start) / 86400), Math.trunc(((now - wk.start) % 86400) / 3600))} · {t.weekBudget(budget)}</p>
     <div class="chartbox" bind:clientWidth={bw}>
       {#if bw > 0}
         {@const b = barsLayout(wd, bw)}
@@ -193,7 +194,6 @@
             <text x={x.x + x.w / 2} y={BH - 2} class="ax" class:today={x.d.today} text-anchor="middle">{x.d.today ? t.weekToday : dayShort(x.d.start)}</text>
           {/each}
           <line x1={PAD} y1={b.yBudget} x2={bw - PAD} y2={b.yBudget} stroke="var(--text)" stroke-opacity=".8" stroke-dasharray="4 3" />
-          <text x={bw - PAD} y={b.yBudget - 4} class="ax val" text-anchor="end">{t.weekBudget(budget)}</text>
         </svg>
       {/if}
     </div>

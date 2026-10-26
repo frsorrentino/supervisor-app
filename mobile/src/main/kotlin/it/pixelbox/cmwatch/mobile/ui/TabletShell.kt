@@ -222,8 +222,10 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
             val el = (now - c.start).coerceAtLeast(0)
             val d = (el / 86400).toInt()
             val h = ((el % 86400) / 3600).toInt()
+            // Il budget del giorno nella frase, non sulla riga: lì copriva la barra di oggi quando la supera (320 dp).
+            val budget = stringResource(R.string.week_budget, String.format(LocalConfiguration.current.locales[0], "%.1f", Week7.BUDGET))
             Text(
-                stringResource(R.string.week_used, androidx.compose.ui.res.pluralStringResource(R.plurals.week_days, d, d), androidx.compose.ui.res.pluralStringResource(R.plurals.week_hours, h, h)),
+                stringResource(R.string.week_used, androidx.compose.ui.res.pluralStringResource(R.plurals.week_days, d, d), androidx.compose.ui.res.pluralStringResource(R.plurals.week_hours, h, h)) + " · " + budget,
                 style = MaterialTheme.typography.bodySmall, color = CmColors.text,
             )
             WeekDaysChart(days, Modifier.fillMaxWidth().height(130.dp))
@@ -606,14 +608,12 @@ private fun WeekOriginsBar(w7: Int, o: it.pixelbox.cmwatch.contract.WeekOrigins)
     }
 }
 
-/** 2B: la spesa di ogni giorno contro il budget di 100/7, ambra sopra la riga; i giorni a venire tratteggiati. */
+/** 2B: la spesa di ogni giorno contro la riga del budget di 100/7 (la cifra sta nella frase sopra), ambra sopra la riga; i giorni a venire tratteggiati. */
 @Composable
 private fun WeekDaysChart(days: List<Week7.Day>, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val label = Mono.copy(fontSize = 10.sp)
     val strong = label.copy(color = CmColors.text)
-    val locale = LocalConfiguration.current.locales[0]
-    val budget = stringResource(R.string.week_budget, String.format(locale, "%.1f", Week7.BUDGET))
     val today = stringResource(R.string.week_today)
     val names = days.map { if (it.today) today else dayShort(it.start) }
     Canvas(modifier) {
@@ -640,8 +640,6 @@ private fun WeekDaysChart(days: List<Week7.Day>, modifier: Modifier) {
             drawText(m, topLeft = Offset(bx + bw / 2 - m.size.width / 2f, size.height - 14.dp.toPx()))
         }
         drawLine(CmColors.text.copy(alpha = 0.8f), Offset(l, yb), Offset(size.width - l, yb), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
-        val b = measurer.measure(budget, strong)
-        drawText(b, topLeft = Offset(size.width - l - b.size.width, yb - 4.dp.toPx() - b.size.height))
     }
 }
 
