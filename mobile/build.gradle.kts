@@ -23,7 +23,21 @@ android {
         versionCode = 21
         versionName = "0.2"
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
+    // Due distribuzioni (26/10, approvata da Franz alle 14:38 «Solo build Play»): `github` è la build delle release e di
+    // ADB, con l'aggiornamento dentro l'app e REQUEST_INSTALL_PACKAGES (in src/github); `play` è il bundle per Play, che
+    // vieta l'auto-aggiornamento fuori dallo store e quel permesso: niente controllo delle release, niente card.
+    flavorDimensions += "dist"
+    productFlavors {
+        create("github") {
+            dimension = "dist"
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+        }
+        create("play") {
+            dimension = "dist"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

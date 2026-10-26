@@ -124,14 +124,18 @@ packages keep the older `it.pixelbox.cmwatch` name).
 
    ```bash
    export KEYSTORE_PATH=/path/to/release.jks KEYSTORE_PASS=… KEY_ALIAS=… KEY_PASS=…
-   ./gradlew :mobile:assembleRelease :wear:assembleRelease
-   adb -s <phone> install -r mobile/build/outputs/apk/release/mobile-release.apk
+   ./gradlew :mobile:assembleGithubRelease :wear:assembleRelease
+   adb -s <phone> install -r mobile/build/outputs/apk/github/release/mobile-github-release.apk
    adb connect <watch-ip>:<port>        # Wear OS: Developer options → Wireless debugging
    adb -s <watch-ip>:<port> install -r wear/build/outputs/apk/release/wear-release.apk
    ```
 
    Keep one key for good: an app signed with another key cannot be updated in place, and
    uninstalling it wipes the pairing. Debug builds work too, with the same caveat.
+
+   The phone app has two flavors: `github` (the APK above, which updates itself from this
+   repo's releases) and `play` (`./gradlew :mobile:bundlePlayRelease`, the bundle for Google
+   Play: no self-update and no `REQUEST_INSTALL_PACKAGES`, as Play's policies require).
 4. **Pair**: on the PC `supervisor relay pair` shows a QR. On the phone tap «Pair» and scan
    it (or «Paste the code» with `relay pair --text`). The phone joins your Firebase project,
    agrees the AES key with the PC over X25519, then passes it to the watch, which keeps it in

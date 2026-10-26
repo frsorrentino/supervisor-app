@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import it.pixelbox.cmwatch.mobile.BuildConfig
 import it.pixelbox.cmwatch.rules.AppUpdate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,7 @@ import java.security.MessageDigest
  * (anonimo, pre-release comprese), scarica l'APK del telefono nella cache, lo verifica col digest sha256 che GitHub
  * pubblica per l'asset e apre l'installer di Android, che accetta solo un APK con la stessa firma di quello installato.
  * Le regole stanno in [AppUpdate]; qui rete, file e intent. Niente ADB, niente link, niente limiti della chat.
+ * Solo nel flavor github: nella build di Play (`BuildConfig.SELF_UPDATE` falso) non controlla e non installa niente.
  */
 class AppUpdater(private val ctx: Context, private val scope: CoroutineScope) {
     sealed class Phase {
@@ -50,11 +52,13 @@ class AppUpdater(private val ctx: Context, private val scope: CoroutineScope) {
 
     /** Da solo, all'apertura dell'app: non più di una volta ogni mezz'ora. */
     fun checkIfDue(now: Long = System.currentTimeMillis() / 1000) {
+        if (!BuildConfig.SELF_UPDATE) return
         if (AppUpdate.due(prefs.getLong(CHECKED, 0), now)) check()
     }
 
     /** Legge le release e decide. `manual` («Controlla ora») rifà il controllo anche se recente e dimentica «Non ora». */
     fun check(manual: Boolean = false) {
+        if (!BuildConfig.SELF_UPDATE) return
         if (ui.value.checking) return
         if (manual) prefs.edit().remove(DISMISSED).apply()
         ui.update { it.copy(checking = true) }
@@ -86,6 +90,7 @@ class AppUpdater(private val ctx: Context, private val scope: CoroutineScope) {
 
     /** «Installa»: scarica se serve (verificando il digest mentre scarica), poi apre l'installer. */
     fun install(release: AppUpdate.Release) {
+        if (!BuildConfig.SELF_UPDATE) return
         val p = ui.value.phase
         if (p is Phase.Downloading) return
         if (p is Phase.Ready && p.release.tag == release.tag && p.file.exists()) { scope.launch { open(p.file) }; return }
@@ -142,6 +147,7 @@ class AppUpdater(private val ctx: Context, private val scope: CoroutineScope) {
 
     /** Di ritorno dalla schermata del permesso con il file pronto: l'installer si apre da solo. */
     fun resumed() {
+        if (!BuildConfig.SELF_UPDATE) return
         val u = ui.value
         val p = u.phase
         if (u.needsPermission && p is Phase.Ready && p.file.exists() && ctx.packageManager.canRequestPackageInstalls()) scope.launch { open(p.file) }

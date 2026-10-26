@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo nella build GitHub/ADB (26/10): l'aggiornamento dentro l'app (P6, 21/10) apre l'installer di Android con l'APK
+     scaricato e verificato. La build di Play non lo dichiara: le norme di Play lo vietano a un'app che si aggiorna da sé. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+</manifest>

@@ -5,8 +5,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <!-- P6 (21/10): l'aggiornamento dentro l'app apre l'installer di Android con l'APK scaricato e verificato. -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Il permesso di installare app sta solo nel flavor github (src/github): Play non lo ammette (26/10). -->
 
     <application
         android:name=".PhoneApp"

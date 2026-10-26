@@ -41,16 +41,17 @@ jobs:
           key: gradle-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml', 'core/build.gradle.kts', 'wear/build.gradle.kts', 'mobile/build.gradle.kts', 'ui-tokens/build.gradle.kts') }}
           restore-keys: gradle-
       - name: Unit tests
-        run: ./gradlew :core:testDebugUnitTest :mobile:testDebugUnitTest --console=plain
+        # Il telefono ha due flavor dal 26/10: github (release e ADB, con l'aggiornamento interno) e play (bundle per Play).
+        run: ./gradlew :core:testDebugUnitTest :mobile:testGithubDebugUnitTest :mobile:testPlayDebugUnitTest --console=plain
       - name: Screenshot tests (Paparazzi, verify)
         if: hashFiles('wear/src/test/snapshots/**') != '' && github.event.inputs.record != 'true'
         run: ./gradlew :wear:verifyPaparazziDebug --console=plain
       - name: Screenshot tests del telefono (Paparazzi, verify)
         if: hashFiles('mobile/src/test/snapshots/**') != '' && github.event.inputs.record != 'true'
-        run: ./gradlew :mobile:verifyPaparazziDebug --console=plain
+        run: ./gradlew :mobile:verifyPaparazziGithubDebug --console=plain
       - name: Screenshot tests (Paparazzi, record)
         if: github.event.inputs.record == 'true'
-        run: ./gradlew :wear:recordPaparazziDebug :mobile:recordPaparazziDebug --console=plain
+        run: ./gradlew :wear:recordPaparazziDebug :mobile:recordPaparazziGithubDebug --console=plain
       - name: Upload snapshots
         if: github.event.inputs.record == 'true'
         uses: actions/upload-artifact@v4
@@ -61,7 +62,7 @@ jobs:
             mobile/src/test/snapshots
           retention-days: 30
       - name: Debug APKs
-        run: ./gradlew :wear:assembleDebug :mobile:assembleDebug --console=plain
+        run: ./gradlew :wear:assembleDebug :mobile:assembleGithubDebug --console=plain
       - name: Restore keystore
         if: env.HAS_KEYSTORE == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > release.jks
@@ -73,7 +74,18 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASS: ${{ secrets.KEY_PASS }}
         # Anche gli AAB per Play (26/09): stesso pacchetto, versionCode 21 telefono e 22 orologio (pacchetto com.francescosorrentino.cmaster dal 29/09).
-        run: ./gradlew :wear:assembleRelease :mobile:assembleRelease :wear:bundleRelease :mobile:bundleRelease --console=plain -x lint -x test
+        # L'APK del telefono è il flavor github (si aggiorna dalle release), l'AAB del telefono il flavor play (26/10).
+        run: ./gradlew :wear:assembleRelease :mobile:assembleGithubRelease :wear:bundleRelease :mobile:bundlePlayRelease --console=plain -x lint -x test
+      # I nomi di sempre nell'artifact: mobile-release.apk è l'asset che l'app installata cerca nelle release
+      # (AppUpdate.ASSET) e che scaricano install-watch.sh e le pre-release; mobile-release.aab va a Play.
+      - name: Telefono, nomi di sempre
+        run: |
+          mkdir -p mobile/build/outputs/apk/debug mobile/build/outputs/apk/release mobile/build/outputs/bundle/release
+          cp mobile/build/outputs/apk/github/debug/mobile-github-debug.apk mobile/build/outputs/apk/debug/mobile-debug.apk
+          if [ -f mobile/build/outputs/apk/github/release/mobile-github-release.apk ]; then
+            cp mobile/build/outputs/apk/github/release/mobile-github-release.apk mobile/build/outputs/apk/release/mobile-release.apk
+            cp mobile/build/outputs/bundle/playRelease/mobile-play-release.aab mobile/build/outputs/bundle/release/mobile-release.aab
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: cmwatch-apk

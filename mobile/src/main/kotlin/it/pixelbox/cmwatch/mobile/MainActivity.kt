@@ -416,7 +416,8 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.PageIn { SettingsScreen(
                 host = host, phoneName = app.phoneName, watchName = r?.watchName, watchPending = r?.watchPending == true, demo = demo,
                 version = version,
-                updateStatus = updateStatus(updateUi), onCheckUpdate = { app.updater.check(manual = true) },
+                updateStatus = if (BuildConfig.SELF_UPDATE) updateStatus(updateUi) else null,
+                onCheckUpdate = if (BuildConfig.SELF_UPDATE) ({ app.updater.check(manual = true) }) else null,
                 devices = it.pixelbox.cmwatch.rules.SettingsDevices.build(
                     host, state, snap.freshness, now, app.phoneName, version, notificationsOn, r?.watchName, r?.watchPending == true, watchNear,
                 ),
@@ -1438,7 +1439,7 @@ class MainActivity : ComponentActivity() {
             val list: @Composable () -> Unit = {
                 SummaryList(
                     summary,
-                    update = updateUi, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
+                    update = updateUi.takeIf { BuildConfig.SELF_UPDATE }, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
                     // Contratto 1.68: il banner con le voci di «Serve te» delle altre sessioni; il tocco porta alla prima.
                     attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }.orEmpty(),
                     onAttention = {
