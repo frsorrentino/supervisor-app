@@ -613,6 +613,27 @@
     <string name="rhythm_hundred_at">100%% alle %1$s</string>
     <string name="rhythm_now">%1$d%% ora</string>
     <string name="rhythm_idle">fermi %1$d min</string>
+    <!-- La settimana ora per ora (proposte 2A e 2B, 25/10, contratto 1.86). -->
+    <string name="week_even">ritmo pari</string>
+    <string name="week_renewal">rinnovo %1$s</string>
+    <string name="week_hundred_at">100%% %1$s</string>
+    <string name="week_at_renewal">%1$d%% al rinnovo</string>
+    <string name="week_origins_title">da dove viene il %1$d%%</string>
+    <string name="week_origin_sessions">sessioni %1$d</string>
+    <string name="week_origin_automations">automazioni %1$d</string>
+    <string name="week_origin_requests">tu %1$d</string>
+    <string name="week_budget">%1$s%% al giorno</string>
+    <string name="week_used">usato in %1$s e %2$s su 7</string>
+    <plurals name="week_days">
+        <item quantity="one">%1$d giorno</item>
+        <item quantity="other">%1$d giorni</item>
+    </plurals>
+    <plurals name="week_hours">
+        <item quantity="one">%1$d ora</item>
+        <item quantity="other">%1$d ore</item>
+    </plurals>
+    <string name="week_today">oggi</string>
+    <string name="week_samples_from">Giorni dai campioni di %1$s: prima non ci sono.</string>
     <string name="pair_err_full">Il PC ha già quattro dispositivi accoppiati: non ne accetta un altro.</string>
     <string name="step_tablet">Tablet</string>
     <string name="dev_tablet">Tablet</string>

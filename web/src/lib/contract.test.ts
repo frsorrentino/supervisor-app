@@ -26,6 +26,15 @@ describe('contratto', () => {
     expect(blankState(1).hosts_status).toEqual([]); expect(blankState(1).published_today).toEqual([])
   })
 
+  // Contratto 1.86: i campioni orari della settimana e da dove viene; assenti con un relay precedente o senza campioni.
+  it('porta w7_points e w7_origins della 1.86', () => {
+    const q = decodeState(fixture('state-2-idle.json')).quota
+    expect(q.personal.w7_points).toEqual({ start: 1789005600, steps: [[0, 2], [2, 4], [3, 5], [24, 30], [25, 38]] })
+    expect(q.personal.w7_origins).toEqual({ sessions: 20.1, automations: 6.5, requests: 11.4 })
+    expect(q.work.w7_points ?? null).toBeNull()
+    expect(q.work.w7_origins ?? null).toBeNull()
+  })
+
   it('porta i ricorrenti della 1.33 e i dispositivi della 1.32', () => {
     const s = decodeState(fixture('state-2-idle.json'))
     expect(s.recurring?.map(r => r.id)).toEqual(['x-posts', 'release-changelog', 'plugin-rivals'])

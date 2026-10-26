@@ -69,7 +69,14 @@ export type Commitment = {
   check?: { outcome: string; at: number } | null; paused?: { reason: string; at: number; by?: string | null } | null; stalled: boolean
 }
 
-export type QuotaAccount = { h5?: number | null; w7?: number | null; reset_w7?: number | null; reset_h5?: number | null; stale?: boolean; kind?: string | null }
+/** Contratto 1.86: la quota della settimana ora per ora, `steps` = [ora da `start`, percentuale], una voce a ogni cambio. */
+export type WeekPoints = { start: number; steps: [number, number][] }
+/** Contratto 1.86: da dove viene la settimana, in punti di `w7` (la somma è `w7`). */
+export type WeekOrigins = { sessions: number; automations: number; requests: number }
+export type QuotaAccount = {
+  h5?: number | null; w7?: number | null; reset_w7?: number | null; reset_h5?: number | null; stale?: boolean; kind?: string | null
+  w7_points?: WeekPoints | null; w7_origins?: WeekOrigins | null
+}
 export type Device = { uid: string; name: string; kind?: string | null; seen?: number | null }
 export type Recurring = { id: string; label: string; prompt: string; param?: boolean }
 /** Contratto 1.75: un host remoto confermato, dall'ultima lettura del poller; con `up` false i numeri sono null e `error` dice perché.

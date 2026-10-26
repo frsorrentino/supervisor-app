@@ -1203,4 +1203,25 @@ It starts at your last message to the master.</string>
     <string name="rhythm_hundred_at">100%% at %1$s</string>
     <string name="rhythm_now">%1$d%% now</string>
     <string name="rhythm_idle">idle %1$d min</string>
+    <!-- The week hour by hour (proposals 2A and 2B, 25/10, contract 1.86). -->
+    <string name="week_even">even pace</string>
+    <string name="week_renewal">renewal %1$s</string>
+    <string name="week_hundred_at">100%% %1$s</string>
+    <string name="week_at_renewal">%1$d%% at renewal</string>
+    <string name="week_origins_title">where the %1$d%% comes from</string>
+    <string name="week_origin_sessions">sessions %1$d</string>
+    <string name="week_origin_automations">automations %1$d</string>
+    <string name="week_origin_requests">you %1$d</string>
+    <string name="week_budget">%1$s%% a day</string>
+    <string name="week_used">used in %1$s and %2$s of 7</string>
+    <plurals name="week_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="week_hours">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+    <string name="week_today">today</string>
+    <string name="week_samples_from">Days from the samples of %1$s: none before.</string>
 </resources>

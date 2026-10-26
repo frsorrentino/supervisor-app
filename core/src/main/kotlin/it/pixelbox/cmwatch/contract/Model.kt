@@ -354,7 +354,17 @@ enum class CmdOp {
     @SerialName("reset_h5") val resetH5: Long? = null,
     /** Contratto 1.8: «personal» o «work»; assente con un relay precedente. */
     val kind: String? = null,
+    /** Contratto 1.86: la quota della settimana ora per ora; assente senza reset o senza campioni. */
+    @SerialName("w7_points") val w7Points: WeekPoints? = null,
+    /** Contratto 1.86: da dove viene la settimana, in punti di `w7`; assente finché il conto non è completo. */
+    @SerialName("w7_origins") val w7Origins: WeekOrigins? = null,
 )
+
+/** `start` = `reset_w7` meno 7 giorni; `steps` = [ora da `start`, percentuale], una voce a ogni cambio, vale fino alla dopo. */
+@Serializable data class WeekPoints(val start: Long, val steps: List<List<Int>>)
+
+/** Punti di `w7` per origine (un decimale, la somma è `w7`). */
+@Serializable data class WeekOrigins(val sessions: Double, val automations: Double, val requests: Double)
 
 @Serializable data class Project(
     val path: String, val name: String, val account: String,

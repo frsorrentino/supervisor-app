@@ -52,6 +52,15 @@ class ContractTest {
         assertTrue("\"via\":\"live\"" in sent); assertTrue("\"confirmations\":2" in sent)
     }
 
+    // Contratto 1.86: i campioni orari della settimana e da dove viene; senza, null.
+    @Test fun quotaCarriesTheWeekPointsAndOrigins() {
+        val q = ContractJson.decodeState(Fixtures.stateIdle).quota
+        assertEquals(WeekPoints(1789005600, listOf(listOf(0, 2), listOf(2, 4), listOf(3, 5), listOf(24, 30), listOf(25, 38))), q.getValue("personal").w7Points)
+        assertEquals(WeekOrigins(20.1, 6.5, 11.4), q.getValue("personal").w7Origins)
+        assertNull(q.getValue("work").w7Points)
+        assertNull(q.getValue("work").w7Origins)
+    }
+
     @Test fun quotaCarriesTheFiveHourReset() {
         // Contratto 1.3: `reset_h5` è la ripartenza della finestra di 5 ore; `reset_w7` resta quella settimanale.
         val q = ContractJson.decodeState(Fixtures.stateQuestion).quota

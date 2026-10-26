@@ -86,6 +86,7 @@ import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.contract.TimelineEvent
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.ModelText
+import it.pixelbox.cmwatch.rules.Week7
 import it.pixelbox.cmwatch.rules.PhoneOverview
 import it.pixelbox.cmwatch.rules.SessionMeters
 import it.pixelbox.cmwatch.rules.Summary
@@ -209,7 +210,27 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
         }
         HorizontalDivider(color = CmColors.line, modifier = Modifier.padding(vertical = 2.dp))
         PanelTitle(stringResource(R.string.tablet_week_label), ring.account, ring.w7?.let { "$it%" })
-        ring.w7?.let { w ->
+        val wp = ring.weekPoints
+        val wr = ring.weekResetAt
+        val w7 = ring.w7
+        // La settimana ora per ora (2A e 2B, contratto 1.86): solo con i campioni, il rinnovo e la quota non vecchia.
+        if (wp != null && wr != null && w7 != null && !ring.stale && !dataStale) {
+            val c = Week7.chart(wp, w7, wr, now)
+            val days = Week7.days(wp, w7, now)
+            WeekChart(c, days, Modifier.fillMaxWidth().height(160.dp))
+            ring.weekOrigins?.let { WeekOriginsBar(w7, it) }
+            val el = (now - c.start).coerceAtLeast(0)
+            val d = (el / 86400).toInt()
+            val h = ((el % 86400) / 3600).toInt()
+            Text(
+                stringResource(R.string.week_used, androidx.compose.ui.res.pluralStringResource(R.plurals.week_days, d, d), androidx.compose.ui.res.pluralStringResource(R.plurals.week_hours, h, h)),
+                style = MaterialTheme.typography.bodySmall, color = CmColors.text,
+            )
+            WeekDaysChart(days, Modifier.fillMaxWidth().height(130.dp))
+            Week7.samplesFrom(wp)?.let { from ->
+                Text(stringResource(R.string.week_samples_from, dayShortTime(from)), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+            }
+        } else ring.w7?.let { w ->
             val projected = Tablet.weekProjected(w, ring.weekResetAt, now)
             WeekBar(w, projected)
             ring.weekResetAt?.let { at ->
@@ -485,6 +506,145 @@ private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, m
     }
 }
 
+/**
+ * 2A: la settimana cumulata a gradini contro la diagonale del ritmo pari, la proiezione al ritmo delle ultime 48 ore fino
+ * al 100% o al rinnovo; i giorni sotto, oggi in grassetto. Etichette tenute dentro i bordi, come in RhythmChart.
+ */
+@Composable
+private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier) {
+    val measurer = rememberTextMeasurer()
+    val label = Mono.copy(fontSize = 10.sp)
+    val strong = label.copy(color = CmColors.text)
+    val renewal = stringResource(R.string.week_renewal, dayShortTime(c.resetAt))
+    val endText = when {
+        c.fullAt != null -> stringResource(R.string.week_hundred_at, dayTime(c.fullAt!!))
+        c.projected != null && c.pct < 100 -> stringResource(R.string.week_at_renewal, c.projected!!)
+        else -> null
+    }
+    val nowText = stringResource(R.string.rhythm_now, c.pct)
+    val even = stringResource(R.string.week_even)
+    val dayNames = days.map { dayShort(it.start) }
+    Canvas(modifier) {
+        val l = 2.dp.toPx()
+        val xr = size.width - 6.dp.toPx()
+        val y100 = 34.dp.toPx()
+        val yb = 128.dp.toPx()
+        fun x(f: Float) = l + (xr - l) * f
+        fun y(p: Int) = y100 + (yb - y100) * (1f - p.coerceIn(0, 100) / 100f)
+        val rt = measurer.measure(renewal, label)
+        drawText(rt, topLeft = Offset(xr - rt.size.width, 0f))
+        drawLine(CmColors.text2.copy(alpha = 0.6f), Offset(xr, y100 - 14.dp.toPx()), Offset(xr, yb), strokeWidth = 1.dp.toPx())
+        drawLine(CmColors.text2, Offset(l, y100), Offset(xr, y100), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())))
+        // La diagonale del ritmo pari e la sua scritta, dalla parte opposta alla linea: sotto se la quota è avanti.
+        drawLine(CmColors.text2.copy(alpha = 0.7f), Offset(l, yb), Offset(xr, y100), strokeWidth = 1.dp.toPx())
+        val deg = Math.toDegrees(kotlin.math.atan2((y100 - yb).toDouble(), (xr - l).toDouble())).toFloat()
+        val ahead = c.pct > c.nowX * 100
+        val e = measurer.measure(even, label)
+        val ep = Offset(x(0.2f), yb + (y100 - yb) * 0.2f)
+        rotate(deg, ep) { drawText(e, topLeft = Offset(ep.x, if (ahead) ep.y + 2.dp.toPx() else ep.y - e.size.height - 2.dp.toPx())) }
+        val fullX = c.fullAt?.let { x(c.x(it)) }
+        val dot = Offset(x(c.nowX), y(c.pct))
+        val proj = when {
+            fullX != null -> Offset(fullX, y100)
+            c.projected != null && c.pct < 100 -> Offset(xr, y(c.projected!!))
+            else -> null
+        }
+        var leftFree = xr
+        var endBelow = false
+        if (endText != null && proj != null) {
+            val m = measurer.measure(endText, strong)
+            if (fullX != null) {
+                val end = (fullX + 4.dp.toPx()).coerceIn(l + m.size.width, xr)
+                drawText(m, topLeft = Offset(end - m.size.width, y100 - 4.dp.toPx() - m.size.height))
+                leftFree = end - m.size.width
+            } else {
+                val end = (proj.x - 10.dp.toPx()).coerceIn(l + m.size.width, xr - 10.dp.toPx())
+                val top = (proj.y - 10.dp.toPx() - m.size.height).coerceAtLeast(y100 + 2.dp.toPx())
+                drawText(m, topLeft = Offset(end - m.size.width, top))
+                endBelow = true
+            }
+        }
+        val h100 = measurer.measure("100%", label)
+        if (endBelow || l + h100.size.width + 8.dp.toPx() < leftFree) drawText(h100, topLeft = Offset(l, y100 - 4.dp.toPx() - h100.size.height))
+        if (c.points.isNotEmpty()) {
+            val line = Path().apply { c.points.forEachIndexed { i, (px, p) -> if (i == 0) moveTo(x(px), y(p)) else lineTo(x(px), y(p)) } }
+            drawPath(line, CmColors.briefWeek, style = Stroke(2.dp.toPx(), join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        }
+        proj?.let {
+            drawLine(CmColors.briefWeek, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
+            drawCircle(if (fullX != null) CmColors.briefAlertRing else CmColors.briefWeek, 4.dp.toPx(), it)
+        }
+        drawCircle(CmColors.briefWeek, 4.dp.toPx(), dot)
+        val n = measurer.measure(nowText, strong)
+        val ny = if (dot.y - 8.dp.toPx() - n.size.height > y100 + 4.dp.toPx()) dot.y - 6.dp.toPx() - n.size.height else dot.y + 6.dp.toPx()
+        val nx = if (dot.x - 7.dp.toPx() - n.size.width >= l) dot.x - 7.dp.toPx() - n.size.width else minOf(dot.x + 7.dp.toPx(), xr - n.size.width)
+        drawText(n, topLeft = Offset(nx, ny))
+        val base = size.height - 14.dp.toPx()
+        days.forEachIndexed { i, d ->
+            val m = measurer.measure(dayNames[i], if (d.today) strong.copy(fontWeight = FontWeight.Bold) else label)
+            drawText(m, topLeft = Offset(x((i + 0.5f) / 7) - m.size.width / 2f, base))
+        }
+    }
+}
+
+/** Da dove viene la settimana: una barra in tre pezzi e sotto le tre cifre, ognuna del colore del suo pezzo. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WeekOriginsBar(w7: Int, o: it.pixelbox.cmwatch.contract.WeekOrigins) {
+    Text(stringResource(R.string.week_origins_title, w7).uppercase(), style = MonoLabel)
+    if (o.sessions + o.automations + o.requests <= 0) return
+    val parts = listOf(
+        Triple(o.sessions, CmColors.briefRing, R.string.week_origin_sessions),
+        Triple(o.automations, CmColors.briefAlertRing, R.string.week_origin_automations),
+        Triple(o.requests, CmColors.briefGood, R.string.week_origin_requests),
+    )
+    Row(Modifier.fillMaxWidth().height(10.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        parts.filter { it.first > 0 }.forEach { (v, c, _) -> Box(Modifier.weight(v.toFloat()).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(c)) }
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        parts.forEach { (v, c, r) -> Text(stringResource(r, kotlin.math.round(v).toInt()), style = MaterialTheme.typography.bodySmall, color = c) }
+    }
+}
+
+/** 2B: la spesa di ogni giorno contro il budget di 100/7, ambra sopra la riga; i giorni a venire tratteggiati. */
+@Composable
+private fun WeekDaysChart(days: List<Week7.Day>, modifier: Modifier) {
+    val measurer = rememberTextMeasurer()
+    val label = Mono.copy(fontSize = 10.sp)
+    val strong = label.copy(color = CmColors.text)
+    val locale = LocalConfiguration.current.locales[0]
+    val budget = stringResource(R.string.week_budget, String.format(locale, "%.1f", Week7.BUDGET))
+    val today = stringResource(R.string.week_today)
+    val names = days.map { if (it.today) today else dayShort(it.start) }
+    Canvas(modifier) {
+        val l = 2.dp.toPx()
+        val bb = size.height - 18.dp.toPx()
+        val slot = (size.width - 2 * l) / 7
+        val bw = slot * 0.72f
+        val top = maxOf(Week7.BUDGET * 1.35, days.maxOf { (it.spent ?: 0).toDouble() }) * 1.15
+        fun y(p: Double) = (bb - (bb - 16.dp.toPx()) * (p / top)).toFloat()
+        val yb = y(Week7.BUDGET)
+        days.forEachIndexed { i, d ->
+            val bx = l + slot * i + (slot - bw) / 2
+            val spent = d.spent
+            if (d.future) drawRoundRect(
+                CmColors.text2.copy(alpha = 0.6f), Offset(bx, yb), Size(bw, bb - yb), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()),
+                style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx()))),
+            ) else if (spent != null) {
+                val ty = y(spent.toDouble())
+                drawRoundRect(if (spent > Week7.BUDGET) CmColors.briefWarn else CmColors.briefRing, Offset(bx, ty), Size(bw, bb - ty), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()))
+                val v = measurer.measure("$spent", strong)
+                drawText(v, topLeft = Offset(bx + bw / 2 - v.size.width / 2f, ty - 4.dp.toPx() - v.size.height))
+            }
+            val m = measurer.measure(names[i], if (d.today) strong.copy(fontWeight = FontWeight.Bold) else label)
+            drawText(m, topLeft = Offset(bx + bw / 2 - m.size.width / 2f, size.height - 14.dp.toPx()))
+        }
+        drawLine(CmColors.text.copy(alpha = 0.8f), Offset(l, yb), Offset(size.width - l, yb), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
+        val b = measurer.measure(budget, strong)
+        drawText(b, topLeft = Offset(size.width - l - b.size.width, yb - 4.dp.toPx() - b.size.height))
+    }
+}
+
 private fun groupWord(g: Summary.Group) = when (g) {
     Summary.Group.WAITING -> R.string.tablet_state_waiting
     Summary.Group.FINISHED -> R.string.tablet_state_finished
@@ -587,6 +747,13 @@ private fun TimelineRow(e: TimelineEvent) {
 @Composable
 private fun hhmm(epoch: Long): String =
     DateTimeFormatter.ofPattern("HH:mm", LocalConfiguration.current.locales[0]).format(Instant.ofEpochSecond(epoch).atZone(ZoneId.systemDefault()))
+
+@Composable
+private fun dayShort(epoch: Long): String =
+    DateTimeFormatter.ofPattern("EEE", LocalConfiguration.current.locales[0]).format(Instant.ofEpochSecond(epoch).atZone(ZoneId.systemDefault())).trimEnd('.')
+
+@Composable
+private fun dayShortTime(epoch: Long): String = "${dayShort(epoch)} ${hhmm(epoch)}"
 
 @Composable
 private fun dayTime(epoch: Long): String =

@@ -1,4 +1,4 @@
-import type { Event, State } from './contract'
+import type { Event, State, WeekOrigins, WeekPoints } from './contract'
 import { isPersonalQuota, type Tone } from './briefCards'
 import { today, type Bar } from './dayBars'
 import { shortModel } from './header'
@@ -15,6 +15,8 @@ import * as work from './workPanel'
 export type Ring = {
   account: string; personal: boolean; h5: number | null; w7: number | null; resetAt: number | null; pace: Pace | null
   weekResetAt: number | null; stale: boolean
+  /** Contratto 1.86: la settimana ora per ora e da dove viene (2A e 2B); null con un relay precedente. */
+  weekPoints?: WeekPoints | null; weekOrigins?: WeekOrigins | null
 }
 /** Una riga del contesto: le soglie della card delle misure, più modello ed effort come li legge il PC. */
 export type ContextRow = { name: string; pct: number; tone: Tone; model: string | null; effort: string | null }
@@ -34,7 +36,7 @@ export function build(state: State, events: Event[], samples: Record<string, Sam
     const s = samples[row.account]
     const p = s && s.length >= 2 && row.resetAt != null && !stale && !row.stale ? pace(s, row.resetAt, now) : null
     return { account: row.account, personal: row.personal, h5: q.h5 ?? null, w7: q.w7 ?? null, resetAt: row.resetAt, pace: p,
-      weekResetAt: q.reset_w7 != null && q.reset_w7 > now ? q.reset_w7 : null, stale: row.stale }
+      weekResetAt: q.reset_w7 != null && q.reset_w7 > now ? q.reset_w7 : null, stale: row.stale, weekPoints: q.w7_points ?? null, weekOrigins: q.w7_origins ?? null }
   })
   const contexts = work.contexts(state).map((c): ContextRow => {
     const s = state.sessions.find(x => x.name === c.name)!

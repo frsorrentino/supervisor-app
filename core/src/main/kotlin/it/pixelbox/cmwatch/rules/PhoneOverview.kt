@@ -17,6 +17,8 @@ object PhoneOverview {
     data class Ring(
         val account: String, val personal: Boolean, val h5: Int?, val w7: Int?, val resetAt: Long?, val pace: QuotaHistory.Pace?,
         val weekResetAt: Long? = null, val stale: Boolean = false,
+        /** Contratto 1.86: la settimana ora per ora e da dove viene (2A e 2B); null con un relay precedente. */
+        val weekPoints: it.pixelbox.cmwatch.contract.WeekPoints? = null, val weekOrigins: it.pixelbox.cmwatch.contract.WeekOrigins? = null,
     )
 
     /**
@@ -42,7 +44,7 @@ object PhoneOverview {
             val pace = samples[row.account]?.takeIf { it.size >= 2 && row.resetAt != null && !stale && !row.stale }
                 ?.let { QuotaHistory.pace(it, row.resetAt!!, now) }
             val weekReset = q.resetW7?.takeIf { it > now }
-            Ring(row.account, row.personal, q.h5, q.w7, row.resetAt, pace, weekReset, row.stale)
+            Ring(row.account, row.personal, q.h5, q.w7, row.resetAt, pace, weekReset, row.stale, q.w7Points, q.w7Origins)
         }
         val contexts = WorkPanel.contexts(state).map { c ->
             val s = state.sessions.first { it.name == c.name }
