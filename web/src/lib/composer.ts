@@ -55,6 +55,9 @@ export function box(steps: string[], terminal: string | null | undefined, draft:
  */
 export const acceptSuggestion = (draft: string, field: string | null | undefined): string | null =>
   field?.trim() && !draft.trim() ? field : null
+/** Il tasto che mette il suggerimento nel campo: solo Tab senza Maiusc (sugg-focus, Franz 26/10 19:56); il resto, null. */
+export const suggestionKey = (e: { key: string; shiftKey: boolean }, draft: string, field: string | null | undefined): string | null =>
+  e.key === 'Tab' && !e.shiftKey ? acceptSuggestion(draft, field) : null
 
 /** Una riga toccata col campo già scritto si accoda: «fai X e poi prova dal vivo»; minuscola tranne le sigle. */
 export function append(draft: string, step: string, then = 'e poi'): string {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import CloseDialog from './CloseDialog.svelte'
   import type { Session, State } from './contract'
-  import { acceptSuggestion, mode as modeOf, slashConfirm, slashParse, slashSuggest } from './composer'
+  import { mode as modeOf, suggestionKey, slashConfirm, slashParse, slashSuggest } from './composer'
   import { textArg } from './questionRules'
   import { t } from './t'
   import { sendAtEpoch } from './chatRules'
@@ -105,13 +105,8 @@
   // vuoto lo mette nel campo come testo, pronto per l'invio, e il fuoco resta qui (Franz, 22/10 13:32: come nel terminale).
   function key(e: KeyboardEvent) {
     if (e.isComposing) return
-    if (e.key === 'Tab' && !e.shiftKey) {
-      const text = acceptSuggestion(draft, field)
-      if (text === null) return
-      e.preventDefault()
-      draft = text
-      return
-    }
+    const text = suggestionKey(e, draft, field)
+    if (text !== null) { e.preventDefault(); draft = text; return }
     if (e.key !== 'Enter' || e.shiftKey) return
     e.preventDefault()
     if (md === 'send' || md === 'send_tonal') send()
@@ -167,7 +162,7 @@
       <input bind:this={images} type="file" accept="image/*" multiple hidden onchange={picked} />
       <input bind:this={camera} type="file" accept="image/*" capture="environment" hidden onchange={picked} />
       <input bind:this={any} type="file" multiple hidden onchange={picked} />
-      <textarea bind:this={area} rows="1" class:sug={!!inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
+      <textarea bind:this={area} data-fix="sugg-focus" rows="1" class:sug={!!inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
       {#if Speech && md !== 'reopen'}
         <button type="button" class="round mic" class:on={!!dictation} aria-label={t.micStart} aria-pressed={!!dictation} title={dictation ? t.micStop : t.micStart} onclick={mic}>
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>

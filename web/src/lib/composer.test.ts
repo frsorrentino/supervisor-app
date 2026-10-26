@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CmdResult, Question, Session } from './contract'
-import { acceptSuggestion, append, box, button, mode, slashConfirm, slashPanel, slashParse, slashSuggest, suggestion, target } from './composer'
+import { acceptSuggestion, append, suggestionKey, box, button, mode, slashConfirm, slashPanel, slashParse, slashSuggest, suggestion, target } from './composer'
 
 // Gli stessi casi di PhonePrimaryTest, NextStepsTest (box e append) e SlashTest in Kotlin.
 const q: Question = { id: 'q1', kind: 'ask', text: 'Quale?', options: [{ n: 1, label: 'A' }], tier: 'medium', asked_at: 0 }
@@ -49,6 +49,16 @@ describe('box Prossimi', () => {
     expect(acceptSuggestion('scrivo altro', 'Committa')).toBeNull()
     expect(acceptSuggestion('', null)).toBeNull()
     expect(acceptSuggestion('', '  ')).toBeNull()
+  })
+  // sugg-focus (Franz, 26/10 19:56): entrare nel campo non mette mai il suggerimento nel campo; solo il Tab della tastiera
+  // del desktop. Sul telefono la tastiera dello schermo manda «Unidentified» o lettere, mai Tab.
+  it('sugg-focus: solo Tab mette il suggerimento nel campo', () => {
+    expect(suggestionKey({ key: 'Tab', shiftKey: false }, '', 'Committa')).toBe('Committa')
+    expect(suggestionKey({ key: 'Tab', shiftKey: true }, '', 'Committa')).toBeNull()
+    expect(suggestionKey({ key: 'Unidentified', shiftKey: false }, '', 'Committa')).toBeNull()
+    expect(suggestionKey({ key: 'c', shiftKey: false }, '', 'Committa')).toBeNull()
+    expect(suggestionKey({ key: 'Enter', shiftKey: false }, '', 'Committa')).toBeNull()
+    expect(suggestionKey({ key: 'Tab', shiftKey: false }, 'scrivo', 'Committa')).toBeNull()
   })
   it('una riga toccata si accoda con «e poi»', () => {
     expect(append('', 'Prova dal vivo')).toBe('Prova dal vivo')
