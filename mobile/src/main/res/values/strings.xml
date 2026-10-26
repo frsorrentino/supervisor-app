@@ -595,6 +595,24 @@
     <string name="tablet_priority_active">bassa</string>
     <string name="tablet_priority_offered">bassa, proposta</string>
     <string name="tablet_forecast_stale">Dato vecchio: la previsione torna col prossimo aggiornamento; riparte alle\u00A0%1$s</string>
+    <!-- Il ritmo delle cinque ore (proposte 1A e 1B, 25/10): due barre sulla stessa scala e la linea con la proiezione. -->
+    <string name="rhythm_time">tempo</string>
+    <string name="rhythm_quota">quota</string>
+    <plurals name="rhythm_ahead">
+        <item quantity="one">quota avanti di %1$d punto sul tempo</item>
+        <item quantity="other">quota avanti di %1$d punti sul tempo</item>
+    </plurals>
+    <plurals name="rhythm_behind">
+        <item quantity="one">quota indietro di %1$d punto sul tempo</item>
+        <item quantity="other">quota indietro di %1$d punti sul tempo</item>
+    </plurals>
+    <string name="rhythm_even">quota al passo col tempo</string>
+    <string name="rhythm_full_at">A questo ritmo 100%% alle\u00A0%1$s, reset alle\u00A0%2$s.</string>
+    <string name="rhythm_at_reset">A questo ritmo %1$d%% al reset delle\u00A0%2$s.</string>
+    <string name="rhythm_reset">reset %1$s</string>
+    <string name="rhythm_hundred_at">100%% alle %1$s</string>
+    <string name="rhythm_now">%1$d%% ora</string>
+    <string name="rhythm_idle">fermi %1$d min</string>
     <string name="pair_err_full">Il PC ha già quattro dispositivi accoppiati: non ne accetta un altro.</string>
     <string name="step_tablet">Tablet</string>
     <string name="dev_tablet">Tablet</string>

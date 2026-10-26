@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -179,12 +180,19 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
             }
         }
         val reset = ring.resetAt
-        val pace = ring.pace
-        if (reset != null && pace != null) {
-            val f = Tablet.forecast(pace, reset, now)
-            ForecastChart(f, ring.h5 ?: f.points.lastOrNull()?.second ?: 0, Modifier.fillMaxWidth().height(96.dp))
+        val pct = ring.h5
+        // Il ritmo delle cinque ore (1A e 1B, 25/10): solo con la quota letta e non vecchia, altrimenti la frase del perché.
+        if (reset != null && pct != null && !ring.stale && !dataStale) {
+            val r = it.pixelbox.cmwatch.rules.Rhythm5h.of(ring.pace?.points.orEmpty(), pct, reset, now)
+            RhythmBars(r)
+            if (r.points.size >= 2) RhythmChart(r, now, Modifier.fillMaxWidth().height(150.dp))
             Text(
-                f.projected?.let { stringResource(R.string.tablet_forecast, it, hhmm(reset)) } ?: stringResource(R.string.tablet_forecast_flat, hhmm(reset)),
+                when {
+                    r.fullAt != null -> stringResource(R.string.rhythm_full_at, hhmm(r.fullAt!!), hhmm(reset))
+                    r.projected != null && r.pct < 100 -> stringResource(R.string.rhythm_at_reset, r.projected!!, hhmm(reset))
+                    r.points.size < 2 -> stringResource(R.string.tablet_forecast_none, hhmm(reset))
+                    else -> stringResource(R.string.tablet_forecast_flat, hhmm(reset))
+                },
                 style = MaterialTheme.typography.bodySmall, color = CmColors.text,
             )
         } else {
@@ -362,55 +370,118 @@ private fun WeekBar(pct: Int, projected: Int?) {
     }
 }
 
-/** Il grafico della finestra di 5 ore: 100, 80 tratteggiato, 50; i campioni pieni, la previsione tratteggiata; «ora». */
+
+/** 1A: tempo e quota sulla stessa scala, il pezzo di quota oltre il tempo ambra; sotto, di quanti punti. */
 @Composable
-private fun ForecastChart(f: Tablet.Forecast, nowPct: Int, modifier: Modifier) {
+private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
+    @Composable fun row(label: String, value: Int, track: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(label, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, softWrap = false, modifier = Modifier.width(44.dp))
+            Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(CmColors.briefTrack), content = track)
+            Text("$value%", style = Mono.copy(fontSize = 12.sp, color = CmColors.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.width(40.dp))
+        }
+    }
+    val e = r.elapsed / 100f
+    row(stringResource(R.string.rhythm_time), r.elapsed) {
+        Box(Modifier.fillMaxWidth(e).fillMaxHeight().background(CmColors.text2))
+        Tick(e)
+    }
+    row(stringResource(R.string.rhythm_quota), r.pct) {
+        Box(Modifier.fillMaxWidth(minOf(r.pct, r.elapsed).coerceIn(0, 100) / 100f).fillMaxHeight().background(CmColors.briefRing))
+        if (r.ahead > 0) androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+            Box(Modifier.padding(start = maxWidth * e).width(maxWidth * ((r.pct.coerceAtMost(100) - r.elapsed) / 100f)).fillMaxHeight().background(CmColors.briefWarn))
+        }
+        Tick(e)
+    }
+    Text(
+        when {
+            r.ahead > 0 -> androidx.compose.ui.res.pluralStringResource(R.plurals.rhythm_ahead, r.ahead, r.ahead)
+            r.ahead < 0 -> androidx.compose.ui.res.pluralStringResource(R.plurals.rhythm_behind, -r.ahead, -r.ahead)
+            else -> stringResource(R.string.rhythm_even)
+        },
+        style = Mono.copy(fontSize = 12.sp, color = if (r.ahead > 0) CmColors.briefWarn else CmColors.text2),
+    )
+}
+
+/** La tacca del tempo passato sulle barre di 1A. */
+@Composable
+private fun androidx.compose.foundation.layout.BoxScope.Tick(at: Float) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+        Box(Modifier.padding(start = (maxWidth * at - 1.dp).coerceAtLeast(0.dp)).width(2.dp).fillMaxHeight().background(CmColors.text))
+    }
+}
+
+/**
+ * 1B: la linea della finestra, la proiezione tratteggiata al ritmo dell'ultima ora, la fascia rossa dei minuti fermi fra il
+ * 100% e il reset; etichette sul grafico, tenute dentro i bordi, e quelle che non ci stanno non si disegnano.
+ */
+@Composable
+private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val label = Mono.copy(fontSize = 10.sp)
-    val nowLabel = stringResource(R.string.tablet_now_pct, nowPct)
-    val startLabel = hhmm(f.start)
-    val endLabel = hhmm(f.resetAt)
+    val strong = label.copy(color = CmColors.text)
+    val resetText = stringResource(R.string.rhythm_reset, hhmm(r.resetAt))
+    val hundredText = r.fullAt?.let { stringResource(R.string.rhythm_hundred_at, hhmm(it)) }
+    val nowText = stringResource(R.string.rhythm_now, r.pct)
+    val idleText = r.idleMin?.let { stringResource(R.string.rhythm_idle, it) }
+    val startText = hhmm(r.start)
+    val nowTime = hhmm(now)
     Canvas(modifier) {
-        val left = 30.dp.toPx()
-        val bottomPad = 16.dp.toPx()
-        val w = size.width - left - 8.dp.toPx()
-        val h = size.height - bottomPad - 4.dp.toPx()
-        val top = 4.dp.toPx()
-        fun x(f: Float) = left + w * f
-        fun y(p: Int) = top + h * (1f - p.coerceIn(0, 100) / 100f)
-        listOf(100 to CmColors.line, 50 to CmColors.line.copy(alpha = 0.6f)).forEach { (p, c) ->
-            drawLine(c, Offset(left, y(p)), Offset(left + w, y(p)), strokeWidth = 1.dp.toPx())
-            drawText(measurer, "$p", Offset(0f, y(p) - 7.sp.toPx()), label)
-        }
-        drawLine(CmColors.briefWarn, Offset(left, y(80)), Offset(left + w, y(80)), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f)))
-        drawText(measurer, "80", Offset(0f, y(80) - 7.sp.toPx()), label.copy(color = CmColors.briefWarn))
-        // «ora»: la riga verticale punteggiata.
-        drawLine(CmColors.text2.copy(alpha = 0.6f), Offset(x(f.nowX), top), Offset(x(f.nowX), top + h), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f, 4f)))
-        if (f.points.isNotEmpty()) {
-            val line = Path().apply {
-                f.points.forEachIndexed { i, (px, p) -> if (i == 0) moveTo(x(px), y(p)) else lineTo(x(px), y(p)) }
+        val l = 2.dp.toPx()
+        val xr = size.width - 6.dp.toPx()
+        val y100 = 34.dp.toPx()
+        val yb = size.height - 22.dp.toPx()
+        fun x(f: Float) = l + (xr - l) * f
+        fun y(p: Int) = y100 + (yb - y100) * (1f - p.coerceIn(0, 100) / 100f)
+        val fullX = r.fullAt?.let { x(r.x(it)) }
+        if (fullX != null) {
+            drawRect(CmColors.briefAlertRing.copy(alpha = 0.18f), Offset(fullX, y100), Size(xr - fullX, yb - y100))
+            idleText?.let { t ->
+                val m = measurer.measure(t, label.copy(color = CmColors.briefAlertRing))
+                if (xr - fullX >= m.size.height + 2.dp.toPx() && m.size.width <= yb - y100 - 8.dp.toPx()) {
+                    val c = Offset((fullX + xr) / 2, (y100 + yb) / 2)
+                    rotate(-90f, c) { drawText(m, topLeft = Offset(c.x - m.size.width / 2f, c.y - m.size.height / 2f)) }
+                }
             }
-            val fill = Path().apply { addPath(line); lineTo(x(f.points.last().first), top + h); lineTo(x(f.points.first().first), top + h); close() }
-            drawPath(fill, CmColors.briefRing.copy(alpha = 0.12f))
-            drawPath(line, CmColors.briefRing, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
-            val last = Offset(x(f.nowX), y(nowPct))
-            f.projected?.let { p ->
-                val end = Offset(x(1f), y(p))
-                drawLine(CmColors.briefRing, last, end, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f)))
-                drawCircle(CmColors.bg, 4.5.dp.toPx(), end)
-                drawCircle(CmColors.briefRing, 4.5.dp.toPx(), end, style = Stroke(2.dp.toPx()))
-                val t = measurer.measure("$p%", label.copy(color = CmColors.text))
-                drawText(t, topLeft = Offset((end.x - t.size.width).coerceAtLeast(left), end.y - t.size.height - 6.dp.toPx()))
-            }
-            drawCircle(CmColors.briefRing, 3.5.dp.toPx(), last)
         }
-        val base = top + h + 3.dp.toPx()
-        drawText(measurer, startLabel, Offset(left, base), label)
-        val n = measurer.measure(nowLabel, label.copy(color = CmColors.text))
-        drawText(n, topLeft = Offset((x(f.nowX) - n.size.width / 2f).coerceIn(left, left + w - n.size.width), base))
-        val e = measurer.measure(endLabel, label)
-        // L'ora della ripartenza a destra, se non si sovrappone a «ora».
-        if (x(f.nowX) + n.size.width / 2f + 6.dp.toPx() < left + w - e.size.width) drawText(e, topLeft = Offset(left + w - e.size.width, base))
+        drawLine(CmColors.text2.copy(alpha = 0.6f), Offset(xr, y100 - 14.dp.toPx()), Offset(xr, yb), strokeWidth = 1.dp.toPx())
+        val rt = measurer.measure(resetText, label)
+        drawText(rt, topLeft = Offset(xr - rt.size.width, 0f))
+        drawLine(CmColors.text2, Offset(l, y100), Offset(xr, y100), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())))
+        val above = y100 - 4.dp.toPx()
+        var leftFree = xr
+        if (hundredText != null && fullX != null) {
+            val h = measurer.measure(hundredText, strong)
+            val end = (fullX + 4.dp.toPx()).coerceIn(l + h.size.width, xr)
+            drawText(h, topLeft = Offset(end - h.size.width, above - h.size.height))
+            leftFree = end - h.size.width
+        }
+        val h100 = measurer.measure("100%", label)
+        if (l + h100.size.width + 8.dp.toPx() < leftFree) drawText(h100, topLeft = Offset(l, above - h100.size.height))
+        val line = Path().apply { r.points.forEachIndexed { i, (px, p) -> if (i == 0) moveTo(x(px), y(p)) else lineTo(x(px), y(p)) } }
+        drawPath(line, CmColors.briefRing, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        val dot = Offset(x(r.nowX), y(r.pct))
+        val proj = when {
+            fullX != null -> Offset(fullX, y100)
+            r.projected != null && r.pct < 100 -> Offset(xr, y(r.projected!!))
+            else -> null
+        }
+        proj?.let {
+            drawLine(CmColors.briefRing, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
+            drawCircle(if (fullX != null) CmColors.briefAlertRing else CmColors.briefRing, 4.dp.toPx(), it)
+        }
+        drawCircle(CmColors.briefRing, 4.dp.toPx(), dot)
+        // «62% ora» a sinistra del punto, o a destra se a sinistra non ci sta; sotto se sopra tocca la riga del 100%.
+        val n = measurer.measure(nowText, strong)
+        val ny = if (dot.y - 8.dp.toPx() - n.size.height > y100 + 4.dp.toPx()) dot.y - 6.dp.toPx() - n.size.height else dot.y + 6.dp.toPx()
+        val nx = if (dot.x - 7.dp.toPx() - n.size.width >= l) dot.x - 7.dp.toPx() - n.size.width else minOf(dot.x + 7.dp.toPx(), xr - n.size.width)
+        drawText(n, topLeft = Offset(nx, ny))
+        val base = size.height - 14.dp.toPx()
+        val st = measurer.measure(startText, label)
+        drawText(st, topLeft = Offset(l, base))
+        val nt = measurer.measure(nowTime, label)
+        val ntx = dot.x - nt.size.width / 2f
+        if (ntx > l + st.size.width + 8.dp.toPx() && ntx + nt.size.width <= xr) drawText(nt, topLeft = Offset(ntx, base))
     }
 }
 

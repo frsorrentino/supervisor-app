@@ -1185,4 +1185,22 @@ It starts at your last message to the master.</string>
     <string name="elicit_answered">Answer sent</string>
     <string name="elicit_refused">Answer not accepted</string>
     <string name="notif_elicit">%1$s asks</string>
+    <!-- The five-hour pace (proposals 1A and 1B, 25/10). -->
+    <string name="rhythm_time">time</string>
+    <string name="rhythm_quota">quota</string>
+    <plurals name="rhythm_ahead">
+        <item quantity="one">quota %1$d point ahead of time</item>
+        <item quantity="other">quota %1$d points ahead of time</item>
+    </plurals>
+    <plurals name="rhythm_behind">
+        <item quantity="one">quota %1$d point behind time</item>
+        <item quantity="other">quota %1$d points behind time</item>
+    </plurals>
+    <string name="rhythm_even">quota in step with time</string>
+    <string name="rhythm_full_at">At this pace 100%% at\u00A0%1$s, reset at\u00A0%2$s.</string>
+    <string name="rhythm_at_reset">At this pace %1$d%% at the %2$s reset.</string>
+    <string name="rhythm_reset">reset %1$s</string>
+    <string name="rhythm_hundred_at">100%% at %1$s</string>
+    <string name="rhythm_now">%1$d%% now</string>
+    <string name="rhythm_idle">idle %1$d min</string>
 </resources>
