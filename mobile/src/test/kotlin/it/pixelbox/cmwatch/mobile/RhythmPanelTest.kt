@@ -41,19 +41,22 @@ class RhythmPanelTest {
         weekResetAt = reset + 3 * 86400,
     )
 
-    private fun at(dp: Int) {
+    // Un pannello per scatto: due insieme a 320 dp superano l'altezza dello schermo del test, che non scorre.
+    private fun at(dp: Int, ring: PhoneOverview.Ring) {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt()))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
                 Column(Modifier.fillMaxSize().background(CmColors.bg).padding(16.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
-                    TabletQuotaPanel(fast, now)
-                    TabletQuotaPanel(slow, now)
+                    TabletQuotaPanel(ring, now)
                 }
             }
         }
     }
 
-    @Test fun rhythm320() = at(320)
-    @Test fun rhythm360() = at(360)
-    @Test fun rhythm412() = at(412)
+    @Test fun rhythmFull320() = at(320, fast)
+    @Test fun rhythmFull360() = at(360, fast)
+    @Test fun rhythmFull412() = at(412, fast)
+    @Test fun rhythmBehind320() = at(320, slow)
+    @Test fun rhythmBehind360() = at(360, slow)
+    @Test fun rhythmBehind412() = at(412, slow)
 }
