@@ -140,7 +140,7 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     expect(s3.sessions.find(x => x.closed)!.closed!.dirty_n).toBe(2)
     const root = JSON.parse(fixture('cmd-result-sample.json'))
     const ops = (op: string) => root.cmd.filter((c: Cmd) => c.op === op).map((c: Cmd) => root.result.find((r: CmdResult) => r.id === c.id).ok)
-    expect(ops('suggestion')).toEqual([true, false])
+    expect(ops('suggestion')).toEqual([true, true])   // 1.87: un id che non c'è più è «already gone», ok
     expect(ops('close_preview')).toEqual([true, false])
     expect(ops('close')).toEqual([true, false])
     const prev = root.cmd.find((c: Cmd) => c.op === 'close_preview')
