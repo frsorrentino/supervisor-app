@@ -34,6 +34,6 @@ export const ICON = {
   pdf: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z', 'M14 2v4a2 2 0 0 0 2 2h4', 'M8 13h2a1.5 1.5 0 0 1 0 3H8v-5', 'M14 16v-5h1.5a2.5 2.5 0 0 1 0 5z'],
   film: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M7 3v18', 'M3 7.5h4', 'M3 12h18', 'M3 16.5h4', 'M17 3v18', 'M17 7.5h4', 'M17 16.5h4'],
   audio: ['M9 18V5l12-2v13', 'M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0', 'M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0'],
-  diff: ['M12 3v14', 'M5 10h14', 'M5 21h14'],
+  diff: ['M12 5v14', 'M5 12h14'],
 } satisfies Record<string, string[]>
 export type IconName = keyof typeof ICON
