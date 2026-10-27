@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { State, Suggestion } from './contract'
-import { visible } from './suggestions'
+import { KINDS, known, visible } from './suggestions'
 
 const sg = (id: string, at: number, expires_at: number | null = null): Suggestion => ({ id, kind: 'cleanup', key: `k-${id}`, text: id, prompt: `p ${id}`, at, expires_at })
 const st = (suggestions?: Suggestion[]) => ({ suggestions } as unknown as State)
@@ -11,5 +11,10 @@ describe('Suggerimenti della master (contratto 1.84, scheda A)', () => {
     expect(v.shown.map(s => s.id)).toEqual(['b', 'c', 'd'])
     expect(v.total).toBe(4)
     expect(visible(st(), new Set(), 100)).toEqual({ shown: [], total: 0 })
+  })
+  it('i dieci tipi; un tipo sconosciuto non è fra i noti', () => {
+    expect(KINDS.length).toBe(10)
+    expect(known('unsaved')).toBe(true)
+    expect(known('zzz')).toBe(false)
   })
 })

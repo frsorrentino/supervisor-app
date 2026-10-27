@@ -53,7 +53,7 @@ export type NextStep = { text: string; blocking: boolean }
 export type Advice = { model: string; effort: string; reason: string; switch_cost_tokens: number; at: number; source: string; when: 'now' | 'next_task'; differs: boolean }
 /** Contratto 1.37: un compito che aspetta l'ok; `deploy` = esce in produzione. */
 /** Contratto 1.81: `options` = le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
-export type SuggestionKind = 'recurring' | 'cleanup' | 'deadline' | 'quota'
+export type SuggestionKind = 'recurring' | 'cleanup' | 'deadline' | 'quota' | 'choice' | 'followup' | 'unsaved' | 'waiting' | 'idea' | 'proposal'
 export type Suggestion = { id: string; kind: SuggestionKind | string; key: string; text: string; prompt: string; at: number; expires_at?: number | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
 export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[] }

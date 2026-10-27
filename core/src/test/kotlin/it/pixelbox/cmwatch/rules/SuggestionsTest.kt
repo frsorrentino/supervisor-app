@@ -16,4 +16,10 @@ class SuggestionsTest {
         assertEquals(4, v.total)
         assertEquals(Suggestions.Visible(emptyList(), 0), Suggestions.visible(st(null), emptySet(), 100))
     }
+
+    @Test fun knownKinds() {
+        assertEquals(10, Suggestions.KINDS.size)
+        assertEquals(true, Suggestions.known("unsaved"))
+        assertEquals(false, Suggestions.known("zzz"))
+    }
 }

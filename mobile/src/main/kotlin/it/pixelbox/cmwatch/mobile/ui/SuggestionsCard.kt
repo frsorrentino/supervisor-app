@@ -13,11 +13,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Redo
+import androidx.compose.material.icons.rounded.AltRoute
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.DataUsage
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.HourglassEmpty
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.SaveAs
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -63,7 +69,15 @@ internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Sugg
                 "recurring" -> Triple(Icons.Rounded.Repeat, CmColors.briefRing, R.string.sug_kind_recurring)
                 "cleanup" -> Triple(Icons.Rounded.DeleteOutline, CmColors.idle, R.string.sug_kind_cleanup)
                 "deadline" -> Triple(Icons.Rounded.Schedule, CmColors.briefWarn, R.string.sug_kind_deadline)
-                else -> Triple(Icons.Rounded.DataUsage, CmColors.advice, R.string.sug_kind_quota)
+                "quota" -> Triple(Icons.Rounded.DataUsage, CmColors.advice, R.string.sug_kind_quota)
+                "choice" -> Triple(Icons.Rounded.AltRoute, CmColors.briefWarn, R.string.sug_kind_choice)
+                "followup" -> Triple(Icons.AutoMirrored.Rounded.Redo, CmColors.briefRing, R.string.sug_kind_followup)
+                "unsaved" -> Triple(Icons.Rounded.SaveAs, CmColors.idle, R.string.sug_kind_unsaved)
+                "waiting" -> Triple(Icons.Rounded.HourglassEmpty, CmColors.text2, R.string.sug_kind_waiting)
+                "idea" -> Triple(Icons.Rounded.Lightbulb, CmColors.advice, R.string.sug_kind_idea)
+                "proposal" -> Triple(Icons.Rounded.TipsAndUpdates, CmColors.advice, R.string.sug_kind_proposal)
+                // Un tipo che quest'app non conosce: neutro, non più «Quota» (documento suggerimenti-coda, §8.8).
+                else -> Triple(Icons.Rounded.AutoAwesome, CmColors.text2, R.string.sug_kind_other)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.size(30.dp).clip(CircleShape).background(tone.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {

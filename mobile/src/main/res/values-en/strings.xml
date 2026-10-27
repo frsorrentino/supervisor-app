@@ -1088,6 +1088,13 @@ It starts at your last message to the master.</string>
     <string name="sug_kind_cleanup">Cleanup</string>
     <string name="sug_kind_deadline">Deadline</string>
     <string name="sug_kind_quota">Quota</string>
+    <string name="sug_kind_choice">Choice</string>
+    <string name="sug_kind_followup">Follow-up</string>
+    <string name="sug_kind_unsaved">Unsaved</string>
+    <string name="sug_kind_waiting">Waiting</string>
+    <string name="sug_kind_idea">Idea</string>
+    <string name="sug_kind_proposal">Proposal</string>
+    <string name="sug_kind_other">Suggestion</string>
     <string name="sug_accept">Accept</string>
     <string name="sug_discuss">Let\'s talk</string>
     <string name="sug_discuss_prompt">Let\'s talk about it, without doing it: %1$s Tell me what you would do and why.</string>

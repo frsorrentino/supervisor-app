@@ -1145,6 +1145,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="sug_kind_cleanup">Pulizia</string>
     <string name="sug_kind_deadline">Scadenza</string>
     <string name="sug_kind_quota">Quota</string>
+    <string name="sug_kind_choice">Scelta</string>
+    <string name="sug_kind_followup">Seguito</string>
+    <string name="sug_kind_unsaved">Da salvare</string>
+    <string name="sug_kind_waiting">In attesa</string>
+    <string name="sug_kind_idea">Idea</string>
+    <string name="sug_kind_proposal">Proposta</string>
+    <string name="sug_kind_other">Suggerimento</string>
     <string name="sug_accept">Accetta</string>
     <string name="sug_discuss">Parliamone</string>
     <string name="sug_discuss_prompt">Parliamone, senza farlo: %1$s Spiegami cosa faresti e perché.</string>
