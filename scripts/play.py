@@ -16,7 +16,7 @@ or --key / PLAY_KEY). Only the standard library and `cryptography` (already requ
 """
 import argparse, base64, json, os, stat, sys, time, urllib.error, urllib.parse, urllib.request
 
-PACKAGE = "com.francescosorrentino.cmaster"
+PACKAGE = "it.pixelfarm.supervisor"
 API = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{PACKAGE}"
 UPLOAD = f"https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/{PACKAGE}"
 SCOPE = "https://www.googleapis.com/auth/androidpublisher"

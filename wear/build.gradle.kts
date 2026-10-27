@@ -15,7 +15,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.francescosorrentino.cmaster"
+        applicationId = "it.pixelfarm.supervisor"
         minSdk = 33
         targetSdk = 36
         // Stesso pacchetto su Play per telefono e orologio: versionCode = release × 10 + fattore di forma

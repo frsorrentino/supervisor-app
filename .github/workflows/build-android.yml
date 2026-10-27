@@ -73,7 +73,7 @@ jobs:
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASS: ${{ secrets.KEY_PASS }}
-        # Anche gli AAB per Play (26/09): stesso pacchetto, versionCode 21 telefono e 22 orologio (pacchetto com.francescosorrentino.cmaster dal 29/09).
+        # Anche gli AAB per Play (26/09): stesso pacchetto, versionCode 21 telefono e 22 orologio (pacchetto it.pixelfarm.supervisor dal 27/10, app nuova in pixelfarm.it; prima com.francescosorrentino.cmaster).
         # L'APK del telefono è il flavor github (si aggiorna dalle release), l'AAB del telefono il flavor play (26/10).
         run: ./gradlew :wear:assembleRelease :mobile:assembleGithubRelease :wear:bundleRelease :mobile:bundlePlayRelease --console=plain -x lint -x test
       # I nomi di sempre nell'artifact: mobile-release.apk è l'asset che l'app installata cerca nelle release

@@ -29,8 +29,8 @@ import java.io.File
  * Solo debug: disegna il widget fuori dal launcher in PNG (files/widget-renders), con lo stato della Demo, alla densità
  * e alla scala dei caratteri del telefono di Franz (390 dpi, 1,3). Serve a confrontarlo con ads-widget pixel per pixel
  * senza il telefono in mano:
- * `adb shell am broadcast -n com.francescosorrentino.cmaster/it.pixelbox.cmwatch.mobile.widget.WidgetRenderReceiver`
- * poi `adb pull /sdcard/Android/data/com.francescosorrentino.cmaster/files/widget-renders`.
+ * `adb shell am broadcast -n it.pixelfarm.supervisor/it.pixelbox.cmwatch.mobile.widget.WidgetRenderReceiver`
+ * poi `adb pull /sdcard/Android/data/it.pixelfarm.supervisor/files/widget-renders`.
  */
 class WidgetRenderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

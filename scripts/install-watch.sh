@@ -68,7 +68,7 @@ case "${1:-}" in
         esac
         adbq -s "$TARGET" install -r "$APK"
         echo "Installato $APK su $TARGET ($M)"
-        adbq -s "$TARGET" shell dumpsys package com.francescosorrentino.cmaster | grep -m1 lastUpdateTime | tr -d '\r'
+        adbq -s "$TARGET" shell dumpsys package it.pixelfarm.supervisor | grep -m1 lastUpdateTime | tr -d '\r'
         exit 0 ;;
     "")
         echo "uso: $0 pair IP:PORTA CODICE | devices | IP:PORTA [file.apk] | phone IP:PORTA file.apk|TAG"; exit 1 ;;
