@@ -34,6 +34,18 @@ class FakeTransportTest {
         assertEquals("ledger-api", s.sessions[1].name)                     // atlas-shop (busy) prima per alfabeto
     }
 
+    // Contratto 1.88, come il relay: choose fuori dalle opzioni è rifiutato e la voce resta; discuss la lascia; choose la toglie.
+    @Test fun suggestionChooseAndDiscussLikeTheRelay() = runTest {
+        val tr = t(); tr.useFixture("state-3-stale")
+        fun sg() = runBlocking { tr.state.first().suggestions.orEmpty().map { it.id } }
+        val bad = tr.send(Cmd("s1", CmdOp.SUGGESTION, null, "s-1c0a7e5f21", clock, "test", action = "choose", choice = "Maybe"))
+        assertFalse(bad.ok); assertEquals("suggestion: «Maybe» is not one of its options", bad.text); assertTrue("s-1c0a7e5f21" in sg())
+        val talk = tr.send(Cmd("s2", CmdOp.SUGGESTION, null, "s-6b5f8a0c76", clock, "test", action = "discuss"))
+        assertTrue(talk.ok); assertEquals("sent to master to talk it over", talk.text); assertTrue("s-6b5f8a0c76" in sg())
+        val chosen = tr.send(Cmd("s3", CmdOp.SUGGESTION, null, "s-1c0a7e5f21", clock, "test", action = "choose", choice = "Full"))
+        assertTrue(chosen.ok); assertEquals("sent to master with the choice", chosen.text); assertFalse("s-1c0a7e5f21" in sg())
+    }
+
     @Test fun answerOnUnknownSessionFails() = runTest {
         val r = t().send(Cmd("u2", CmdOp.ANSWER, "nope", "1", clock, "test"))
         assertFalse(r.ok)

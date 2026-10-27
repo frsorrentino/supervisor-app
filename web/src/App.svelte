@@ -231,12 +231,18 @@
   }
   // Contratto 1.84 (scheda A): la risposta a un suggerimento della master; la voce sparisce subito e torna solo se il relay rifiuta.
   let sugDone = $state(new Set<string>())
-  async function suggest(x: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss') {
-    // «Parliamone» (Franz 25/10 07:36): un prompt fisso alla master, senza l'op suggestion; la voce resta per Accetta.
-    if (action === 'discuss') { sendTo(MASTER, t.sugDiscussPrompt(x.text)); pick(MASTER); return }
+  async function suggest(x: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', choice?: string) {
+    // «Parliamone» (Franz 25/10 07:36; contratto 1.88): l'op suggestion con discuss, così il registro la vede; la voce resta
+    // per Accetta. Se il relay non la prende, il prompt fisso di prima alla master.
+    if (action === 'discuss') {
+      pick(MASTER)
+      const d = await run(newCmd('suggestion', null, x.id, undefined, undefined, { action }))
+      if (!d?.ok) sendTo(MASTER, t.sugDiscussPrompt(x.text))
+      return
+    }
     sugDone = new Set([...sugDone, x.id])
-    const r = await run(newCmd('suggestion', null, x.id, undefined, undefined, { action }))
-    if (r?.ok) say(`✓ ${action === 'accept' ? t.sugSent : action === 'later' ? t.sugHidden : t.sugNeverDone}`)
+    const r = await run(newCmd('suggestion', null, x.id, undefined, undefined, { action, ...(choice ? { choice } : {}) }))
+    if (r?.ok) say(`✓ ${action === 'accept' || action === 'choose' ? t.sugSent : action === 'later' ? t.sugHidden : t.sugNeverDone}`)
     else sugDone = new Set([...sugDone].filter(id => id !== x.id))
   }
   const sug = $derived(visibleSuggestions(st, sugDone, now))

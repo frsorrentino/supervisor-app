@@ -91,6 +91,19 @@ class SummaryListTest {
         }
     }
 
+    // Contratto 1.88 (la coda): una scelta con un tasto per opzione, un lavoro da salvare e un tipo che l'app non conosce, neutro.
+    @Test fun summaryWithSuggestionQueue() = paparazzi.snapshot {
+        val sg = listOf(
+            it.pixelbox.cmwatch.contract.Suggestion("sq-1", "choice", "choice:privacy", "Informativa privacy di orbit-docs: versione breve o completa?", at = st.ts - 900, rank = 2, source = "master", options = listOf("Breve", "Completa")),
+            it.pixelbox.cmwatch.contract.Suggestion("sq-2", "unsaved", "unsaved:atlas-shop:1", "atlas-shop si è chiusa con 2 file non committati: la riapro per salvarli?", at = st.ts - 600, rank = 4, source = "script"),
+            it.pixelbox.cmwatch.contract.Suggestion("sq-3", "zzz", "zzz:1", "Un tipo che quest'app non conosce ancora.", at = st.ts - 300, rank = 6, source = "master"),
+        )
+        val withSg = st.copy(suggestions = sg)
+        CmPhoneTheme(still = true) {
+            Column(Modifier.background(CmColors.bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+        }
+    }
+
     // P6 (21/10): in cima alla home la card «Aggiornamento disponibile · Installa» per una release nuova su GitHub.
     @Test fun summaryWithUpdate() = paparazzi.snapshot {
         val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("impegni-2026-10-22", "Notte 22/10", st.ts - 2 * 3600 - 300, true, "https://example.com/mobile-release.apk", 68813846, null, "")

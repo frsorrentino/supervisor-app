@@ -1,11 +1,13 @@
 <script lang="ts">
   import type { Suggestion } from './contract'
   import { t } from './t'
+  import { options } from './suggestions'
 
   // «Suggerimenti della master» (Franz 24/10 19:46, scheda A del mockup docs/mockup/2026-10-24-suggerimenti-home; contratto
   // 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Parliamone»,
-  // «Non ora» e «Mai». Accetta manda il prompt alla master: niente parte senza un tocco.
-  let { shown, total, at, onAnswer }: { shown: Suggestion[]; total: number; at: string; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss') => void } = $props()
+  // «Non ora» e «Mai». Accetta manda il prompt alla master: niente parte senza un tocco. Contratto 1.88: una scelta
+  // (`choice`) ha un tasto tonale per opzione al posto di Accetta, come in «Per te».
+  let { shown, total, at, onAnswer }: { shown: Suggestion[]; total: number; at: string; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', choice?: string) => void } = $props()
   const tone: Record<string, string> = { recurring: 'var(--b-ring)', cleanup: 'var(--good)', deadline: 'var(--b-warn)', quota: 'var(--b-week, #B9A6F5)', choice: 'var(--b-warn)', followup: 'var(--b-ring)', unsaved: 'var(--good)', waiting: 'var(--text2)', idea: 'var(--advice)', proposal: 'var(--advice)' }
   const icon: Record<string, string> = {
     recurring: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
@@ -36,7 +38,7 @@
         <span class="k">{t.sugKind[s.kind] ?? t.sugKindOther}</span>
         <span class="body">{s.text}</span>
         <span class="btns">
-          <button class="tonal" onclick={() => onAnswer(s, 'accept')}>{t.sugAccept}</button>
+          {#each options(s) as o (o)}<button class="tonal" onclick={() => onAnswer(s, 'choose', o)}>{o}</button>{:else}<button class="tonal" onclick={() => onAnswer(s, 'accept')}>{t.sugAccept}</button>{/each}
           <button class="text" onclick={() => onAnswer(s, 'discuss')}>{t.sugDiscuss}</button>
           <button class="text" onclick={() => onAnswer(s, 'later')}>{t.sugLater}</button>
           <button class="text" onclick={() => onAnswer(s, 'never')}>{t.sugNever}</button>

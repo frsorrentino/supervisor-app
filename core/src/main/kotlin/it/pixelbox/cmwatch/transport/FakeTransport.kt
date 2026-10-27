@@ -388,10 +388,17 @@ class FakeTransport(
             // Contratto 1.84 (B4): la demo non chiude: l'anteprima dice cosa salverebbe, la chiusura non c'è.
             CmdOp.CLOSE_PREVIEW -> ok("""{"sessions": []}""")
             CmdOp.CLOSE -> ko("the demo does not close sessions")
-            // Contratto 1.84: accept manda il prompt alla master; later e never tolgono la voce.
+            // Contratto 1.84: accept manda il prompt alla master; later e never tolgono la voce. 1.88: choose con una delle
+            // opzioni la toglie (fuori dalle opzioni rifiutato, la voce resta); discuss la lascia.
             CmdOp.SUGGESTION -> s.suggestions.orEmpty().firstOrNull { it.id == cmd.arg }?.let { sg ->
-                current.value = s.copy(suggestions = s.suggestions.orEmpty() - sg)
-                ok(when (cmd.action) { "accept" -> "sent to master"; "later" -> "hidden until the next round"; else -> "never again" })
+                when {
+                    cmd.action == "discuss" -> ok("sent to master to talk it over")
+                    cmd.action == "choose" && cmd.choice !in sg.options.orEmpty() -> ko("suggestion: «${cmd.choice}» is not one of its options")
+                    else -> {
+                        current.value = s.copy(suggestions = s.suggestions.orEmpty() - sg)
+                        ok(when (cmd.action) { "accept" -> "sent to master"; "choose" -> "sent to master with the choice"; "later" -> "hidden until the next round"; else -> "never again" })
+                    }
+                }
             } ?: ko("unknown suggestion ${cmd.arg}")
             // Contratto 1.83: la domanda del server MCP, controllata come il relay; risposta, esce dallo stato.
             CmdOp.ELICIT -> {

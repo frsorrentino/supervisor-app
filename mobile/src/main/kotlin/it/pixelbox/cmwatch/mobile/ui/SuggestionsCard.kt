@@ -48,10 +48,11 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
  * «Suggerimenti della master» (Franz 24/10 19:46, scheda A del mockup docs/mockup/2026-10-24-suggerimenti-home; contratto
  * 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Non ora» e
  * «Mai», più «Parliamone» (Franz 25/10 07:36). Accetta manda il prompt alla master: niente parte senza un tocco.
+ * Contratto 1.88: una scelta (`choice`) ha un tasto tonale per opzione al posto di Accetta, come in «Per te».
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Suggestion, String) -> Unit) {
+internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Suggestion, String, String?) -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(lerp(CmColors.surfaceLow, CmColors.advice, 0.09f)).padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -87,10 +88,12 @@ internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Sugg
                     Text(stringResource(label).uppercase(), style = MonoSmall.copy(color = tone, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold))
                     Text(s.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
                     FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SugButton(stringResource(R.string.sug_accept), tonal = true) { onAnswer(s, "accept") }
-                        SugButton(stringResource(R.string.sug_discuss), tonal = false) { onAnswer(s, "discuss") }
-                        SugButton(stringResource(R.string.sug_later), tonal = false) { onAnswer(s, "later") }
-                        SugButton(stringResource(R.string.sug_never), tonal = false) { onAnswer(s, "never") }
+                        val opts = Suggestions.options(s)
+                        if (opts.isEmpty()) SugButton(stringResource(R.string.sug_accept), tonal = true) { onAnswer(s, "accept", null) }
+                        else opts.forEach { o -> SugButton(o, tonal = true) { onAnswer(s, "choose", o) } }
+                        SugButton(stringResource(R.string.sug_discuss), tonal = false) { onAnswer(s, "discuss", null) }
+                        SugButton(stringResource(R.string.sug_later), tonal = false) { onAnswer(s, "later", null) }
+                        SugButton(stringResource(R.string.sug_never), tonal = false) { onAnswer(s, "never", null) }
                     }
                 }
             }

@@ -221,11 +221,14 @@ export class DemoTransport implements Transport {
           return ok(`closed ${[...names].join(', ')}`)
         }
         case 'suggestion': {
-          // Contratto 1.84: accept manda il prompt alla master; later e never tolgono la voce.
+          // Contratto 1.84: accept manda il prompt alla master; later e never tolgono la voce. 1.88: choose con una delle
+          // opzioni la toglie (fuori dalle opzioni rifiutato, la voce resta); discuss la lascia.
           const sg = s.suggestions?.find(x => x.id === cmd.arg)
           if (!sg) return ko(`unknown suggestion ${cmd.arg}`)
+          if (cmd.action === 'discuss') return ok('sent to master to talk it over')
+          if (cmd.action === 'choose' && !(sg.options ?? []).includes(cmd.choice ?? '')) return ko(`suggestion: «${cmd.choice}» is not one of its options`)
           this.set({ ...s, suggestions: s.suggestions!.filter(x => x.id !== sg.id) })
-          return ok(cmd.action === 'accept' ? 'sent to master' : cmd.action === 'later' ? 'hidden until the next round' : 'never again')
+          return ok(cmd.action === 'accept' ? 'sent to master' : cmd.action === 'choose' ? 'sent to master with the choice' : cmd.action === 'later' ? 'hidden until the next round' : 'never again')
         }
         case 'decision': return cmd.text?.trim() ? ok('decision sent to the master') : ko('empty decision')
         case 'night': return ok(JSON.stringify(this.world.night))

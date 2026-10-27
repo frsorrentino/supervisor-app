@@ -116,9 +116,9 @@ fun SummaryList(
     /** Contratto 1.83: le domande aperte dei server MCP, in cima; `onElicit` manda la risposta (action, content). */
     elicitations: List<it.pixelbox.cmwatch.contract.Elicitation> = emptyList(),
     onElicit: (it.pixelbox.cmwatch.contract.Elicitation, String, Map<String, String?>) -> Unit = { _, _, _ -> },
-    /** Contratto 1.84 (scheda A): i suggerimenti della master, dopo chi ti aspetta; `onSuggestion` = accept | later | never. */
+    /** Contratto 1.84 (scheda A): i suggerimenti della master, dopo chi ti aspetta; `onSuggestion` = accept | discuss | later | never, o choose con l'opzione (1.88). */
     suggestions: it.pixelbox.cmwatch.rules.Suggestions.Visible? = null,
-    onSuggestion: (it.pixelbox.cmwatch.contract.Suggestion, String) -> Unit = { _, _ -> },
+    onSuggestion: (it.pixelbox.cmwatch.contract.Suggestion, String, String?) -> Unit = { _, _, _ -> },
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo le finite, poi la chiusura; null = il relay non le ha. */
     closePreview: (suspend (List<String>) -> it.pixelbox.cmwatch.rules.CloseFinished.Preview?)? = null,
     onCloseMany: (List<String>) -> Unit = {},

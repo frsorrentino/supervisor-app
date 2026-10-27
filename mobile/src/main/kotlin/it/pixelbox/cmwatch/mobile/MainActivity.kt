@@ -900,14 +900,19 @@ class MainActivity : ComponentActivity() {
         } }
         // Contratto 1.84 (scheda A): la voce sparisce subito e torna solo se il relay rifiuta.
         val sugDone = remember { mutableStateListOf<String>() }
-        // «Parliamone» (Franz 25/10 07:36): un prompt fisso alla master, senza l'op suggestion; la voce resta per Accetta.
-        val answerSuggestion: (it.pixelbox.cmwatch.contract.Suggestion, String) -> Unit = { sg, action -> if (action == "discuss") {
-            sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, getString(R.string.sug_discuss_prompt, sg.text.trim().let { x -> if (x.endsWith('.') || x.endsWith('?') || x.endsWith('!')) x else "$x." }))
+        // «Parliamone» (Franz 25/10 07:36; contratto 1.88): l'op suggestion con discuss, così il registro la vede; la voce resta
+        // per Accetta. Se il relay non la prende, il prompt fisso di prima alla master.
+        val answerSuggestion: (it.pixelbox.cmwatch.contract.Suggestion, String, String?) -> Unit = { sg, action, choice -> if (action == "discuss") {
             open = null; masterChat = true
+            scope.launch {
+                val id = runCatching { app.repo.suggestion(sg.id, "discuss") }.getOrNull()
+                val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+                if (r?.ok != true) sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, getString(R.string.sug_discuss_prompt, sg.text.trim().let { x -> if (x.endsWith('.') || x.endsWith('?') || x.endsWith('!')) x else "$x." }))
+            }
         } else { sugDone.add(sg.id); scope.launch {
-            val id = runCatching { app.repo.suggestion(sg.id, action) }.getOrNull()
+            val id = runCatching { app.repo.suggestion(sg.id, action, choice) }.getOrNull()
             val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
-            if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(when (action) { "accept" -> R.string.sug_sent; "later" -> R.string.sug_hidden; else -> R.string.sug_never_done }), android.widget.Toast.LENGTH_SHORT).show()
+            if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(when (action) { "accept", "choose" -> R.string.sug_sent; "later" -> R.string.sug_hidden; else -> R.string.sug_never_done }), android.widget.Toast.LENGTH_SHORT).show()
             else { sugDone.remove(sg.id); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.sug_refused), android.widget.Toast.LENGTH_LONG).show() }
         } } }
         val doneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = { c ->
