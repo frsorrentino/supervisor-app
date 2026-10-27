@@ -76,6 +76,17 @@ class ContractTest {
         assertEquals(ClosedState(1789199000, "Pricing page draft ready for review", "Pick up the pricing page", 2, listOf("src/pages/pricing.md", "docs/notes.md"), "3d1b2c4e-0000-4000-8000-000000000004"), s.sessions.single().closed)
     }
 
+    /** Contratto 1.88 (27/10): la coda dei suggerimenti; state-3 ha una voce per tipo nuovo, state-2 le tre con rank e source. */
+    @Test fun contract188() {
+        val s2 = ContractJson.decodeState(Fixtures.stateIdle); val s3 = ContractJson.decodeState(Fixtures.stateStale)
+        assertEquals(listOf(2, 5, 6), s2.suggestions!!.map { it.rank })
+        assertTrue(s2.suggestions!!.all { it.source == "master" && it.prompt.isEmpty() })
+        assertEquals(listOf("choice", "followup", "unsaved", "waiting", "idea", "proposal"), s3.suggestions!!.map { it.kind })
+        assertEquals(listOf("Short", "Full"), s3.suggestions!!.first { it.kind == "choice" }.options)
+        assertEquals(3, s3.suggestions!!.count { it.source == "script" })
+        assertTrue(s3.suggestions!!.filter { it.kind != "choice" }.all { it.options == null })
+    }
+
     /** Dalla 1.84 state-2 ha già un needs_you (atlas-shop, legato a un compito): i casi che ne scrivono uno lo sostituiscono. */
     private fun idleWithNeedsYou(obj: String) = Fixtures.stateIdle.replaceFirst(Regex("\"needs_you\": \\{[^}]*\\}"), "\"needs_you\": $obj")
 
@@ -302,7 +313,7 @@ class ContractTest {
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
         // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
         // Contratto 1.74: due nights, con due notti e vuoto.
-        assertEquals(91, results.size); assertEquals(32, results.count { !it.ok })   // 1.84: close_preview e close, ognuno riuscito e rifiutato; 1.87: suggestion riuscito e «already gone» (ok); 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
+        assertEquals(94, results.size); assertEquals(33, results.count { !it.ok })   // 1.88: suggestion choose fuori dalle opzioni (rifiutato), discuss, choose accettato; 1.84: close_preview e close, ognuno riuscito e rifiutato; 1.87: suggestion riuscito e «already gone» (ok); 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)

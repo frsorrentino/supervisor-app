@@ -304,6 +304,8 @@ enum class CmdOp {
 @Serializable data class Suggestion(
     val id: String, val kind: String, val key: String = "", val text: String, val prompt: String = "", val at: Long = 0,
     @SerialName("expires_at") val expiresAt: Long? = null,
+    /** Contratto 1.88: posto nella coda (0-9, 0 in cima; assente = 5), chi l'ha scritta (`script` | `master`), le 2-4 opzioni di una `choice`. Il `prompt` non è più nello stato. */
+    val rank: Int? = null, val source: String? = null, val options: List<String>? = null,
 )
 
 /** Contratto 1.84: una sessione nei token di oggi; `share` = la parte sul totale dell'account (0..1). */
