@@ -489,14 +489,15 @@ private fun SummaryCard(
                     },
                     style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.weight(1f),
                 )
-                if (closing) ClosingChip(s.name)
-                else if (c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
+                if (!closing && c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
                     Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Rounded.PowerSettingsNew, null, tint = CmColors.briefAlertRing, modifier = Modifier.size(18.dp))
                         Text(stringResource(R.string.cleanup_close, s.name), style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
+            // Su una riga sua (Franz 27/10 13:23): accanto, col nome lungo, lasciava allo stato due-tre lettere per riga.
+            if (closing) ClosingChip(s.name)
             if (c.canClose && closeAsk) androidx.compose.foundation.layout.FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {

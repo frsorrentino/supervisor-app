@@ -348,14 +348,16 @@
           <div class="clean">
             <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
             <span>{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b> · {c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(new Date(s.outcome.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) : t.cleanupFinished}{/if}</span>
-            {#if closing === s.name}
-              <span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span>
-            {:else if c.canClose && confirming !== s.name}
+            {#if closing !== s.name && c.canClose && confirming !== s.name}
               <button class="close" onclick={(e) => { e.stopPropagation(); confirming = s.name }}>
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--b-alert)" stroke-width="2" stroke-linecap="round"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>{t.cleanupClose(s.name)}
               </button>
             {/if}
           </div>
+          <!-- Su una riga sua (Franz, 27/10 13:23): accanto, col nome lungo, lasciava allo stato due-tre lettere per riga. -->
+          {#if closing === s.name}
+            <div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>
+          {/if}
           <!-- La conferma sta nella card, senza finestre (Franz, 06/10 12:40): il secondo tocco, col nome, chiude. -->
           {#if c.canClose && confirming === s.name}
             <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
