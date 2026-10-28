@@ -2025,7 +2025,7 @@ private fun SheetHeader(
                     entries = listOfNotNull(
                         changes?.takeIf { changesMenu }?.let { c ->
                             MenuEntry(
-                                Icons.Rounded.Difference,
+                                Icons.Rounded.Add,
                                 DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c),
                                 stringResource(R.string.changes_open),
                             ) { onChanges?.invoke() }

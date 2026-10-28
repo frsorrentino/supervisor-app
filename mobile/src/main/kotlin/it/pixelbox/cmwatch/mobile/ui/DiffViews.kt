@@ -18,7 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Difference
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.*
@@ -147,7 +147,7 @@ internal fun DiffLine(
     val desc = stringResource(if (open) R.string.diff_close else R.string.diff_open, name)
     Surface(onClick = onClick, color = CmColors.surface, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().semantics { contentDescription = desc }) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Rounded.Difference, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.Add, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     buildAnnotatedString {
@@ -234,7 +234,7 @@ internal fun ChangesPill(c: ChangesCount, onClick: (() -> Unit)?, modifier: Modi
         modifier = modifier.semantics { contentDescription = desc },
     ) {
         Row(Modifier.padding(start = 10.dp, end = 12.dp, top = 7.dp, bottom = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Rounded.Difference, null, tint = CmColors.actionIcon, modifier = Modifier.size(16.dp))
+            Icon(Icons.Rounded.Add, null, tint = CmColors.actionIcon, modifier = Modifier.size(16.dp))
             Text(
                 buildAnnotatedString {
                     append(files); append(" · ")
