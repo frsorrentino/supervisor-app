@@ -18,7 +18,7 @@ object SystemRules {
     fun opOf(a: SystemAdvice, ops: List<String>?): CmdOp? {
         val op = a.action?.op ?: return null
         if (ops?.contains(op) != true) return null
-        return when (op) { "sys_kill" -> CmdOp.SYS_KILL; "close" -> CmdOp.CLOSE; else -> null }
+        return when (op) { "sys_kill" -> CmdOp.SYS_KILL; "sys_unit_stop" -> CmdOp.SYS_UNIT_STOP; "close" -> CmdOp.CLOSE; else -> null }
     }
 
     /** Al massimo un decimale, senza «,0»; la virgola in italiano. */

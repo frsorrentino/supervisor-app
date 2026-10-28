@@ -389,6 +389,7 @@ class FakeTransport(
             CmdOp.CLOSE_PREVIEW -> ok("""{"sessions": []}""")
             CmdOp.CLOSE -> ko("the demo does not close sessions")
             CmdOp.SYS_KILL -> ko("the demo does not close processes")
+            CmdOp.SYS_UNIT_STOP -> ko("the demo does not stop services")
             // Contratto 1.84: accept manda il prompt alla master; later e never tolgono la voce. 1.88: choose con una delle
             // opzioni la toglie (fuori dalle opzioni rifiutato, la voce resta); discuss la lascia.
             CmdOp.SUGGESTION -> s.suggestions.orEmpty().firstOrNull { it.id == cmd.arg }?.let { sg ->

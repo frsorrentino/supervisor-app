@@ -12,9 +12,13 @@ class SystemRulesTest {
     @Test fun system_advice_redStateCarriesLevelConsumersAndFourAdvice() {
         val s = red.system!!
         assertEquals("red", s.level)
-        assertEquals(listOf("orphan_proc", "heavy_job", "low_memory", "orphan"), s.advice.map { it.kind })
+        assertEquals(listOf("stuck_loop", "orphan_proc", "low_memory", "stuck", "orphan"), s.advice.map { it.kind })
         assertEquals(SystemConsumer("claude", 5, 142.5, 2310), s.consumers.first())
-        assertNull(s.advice[1].action)
+        assertNull(s.advice[2].action)
+        // Contratto 1.91: i 48 bloccati sul ponte grafico restano in load1 ma escono dal carico per core.
+        assertEquals(48, s.stuck!!.count)
+        assertEquals(2.17, s.loadPerCore, 0.0)
+        assertEquals(65.36, s.load1, 0.0)
     }
 
     @Test fun olderRelayHasNoSystem() {
@@ -32,9 +36,10 @@ class SystemRulesTest {
     }
 
     @Test fun buttonOnlyWithAnActionTheRelayRuns() {
-        val (kill, job) = red.system!!.advice
+        val (loop, kill, mem) = red.system!!.advice
+        assertEquals(CmdOp.SYS_UNIT_STOP, SystemRules.opOf(loop, red.ops))
         assertEquals(CmdOp.SYS_KILL, SystemRules.opOf(kill, red.ops))
-        assertNull(SystemRules.opOf(job, red.ops))
+        assertNull(SystemRules.opOf(mem, red.ops))
         assertNull(SystemRules.opOf(kill, listOf("close")))
         assertNull(SystemRules.opOf(kill, null))
         val close = kill.copy(action = SystemAction("close", "a,b", "Chiudi"))

@@ -248,6 +248,8 @@ export type SystemStatus = {
   level: SystemLevel; load_level: SystemLevel; mem_level: SystemLevel
   /** Lo stato tagliato a 8 KB arriva spesso senza consumatori: il livello e i consigli valgono lo stesso. */
   consumers: SystemConsumer[]; advice: SystemAdvice[]
+  /** Contratto 1.91: i processi bloccati sul ponte grafico, fuori da `load_per_core` (`load1` resta grezzo); null se non ce ne sono. */
+  stuck?: { count: number; since: number; rss_mb: number; units: string[] } | null
 }
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
@@ -262,6 +264,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'close_preview' | 'close'
   /** Contratto 1.90: chiude un processo consigliato; arg = «pid:procStart», rifiutato se il consiglio non c'è più. */
   | 'sys_kill'
+  /** Contratto 1.91: ferma le unità di systemd in ciclo; arg = unità separate da virgola. */
+  | 'sys_unit_stop'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */

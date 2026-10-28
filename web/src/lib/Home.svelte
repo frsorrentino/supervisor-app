@@ -428,7 +428,7 @@
             </div>
             {#if act && sysAsk === a.id}
               <div class="confirm" role="group" aria-label={act.label}>
-                <span>{t.sysConfirm}</span>
+                <span>{act.op === 'sys_unit_stop' ? t.sysConfirmStop : t.sysConfirm}</span>
                 <button class="keep" onclick={() => (sysAsk = null)}>{t.sysKeep}</button>
                 <button class="danger" onclick={() => { sysAsk = null; sysSent = new Set([...sysSent, a.id]); onSystem?.(act.op, act.arg) }}>{act.label}</button>
               </div>

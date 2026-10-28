@@ -148,6 +148,8 @@ enum class CmdOp {
     @SerialName("close") CLOSE,
     /** Contratto 1.90: chiude un processo consigliato; `arg` = «pid:procStart», rifiutato se il consiglio non c'è più. */
     @SerialName("sys_kill") SYS_KILL,
+    /** Contratto 1.91: ferma le unità di systemd in ciclo; `arg` = unità separate da virgola, rifiutato se il consiglio non c'è più. */
+    @SerialName("sys_unit_stop") SYS_UNIT_STOP,
 }
 
 /**
@@ -446,7 +448,12 @@ enum class CmdOp {
     @SerialName("mem_available_mb") val memAvailableMb: Int,
     val level: String, @SerialName("load_level") val loadLevel: String, @SerialName("mem_level") val memLevel: String,
     val consumers: List<SystemConsumer> = emptyList(), val advice: List<SystemAdvice> = emptyList(),
+    /** Contratto 1.91: i processi bloccati sul ponte grafico, fuori da `load_per_core`; null se non ce ne sono. */
+    val stuck: SystemStuck? = null,
 )
+
+/** Contratto 1.91: `since` = l'avvio del più vecchio (epoch s), `units` = le unità di systemd da cui vengono. */
+@Serializable data class SystemStuck(val count: Int, val since: Long, @SerialName("rss_mb") val rssMb: Int, val units: List<String> = emptyList())
 
 /** Contratto 1.90: `cpu` in percento di un core, sommato sui processi del gruppo (claude, chrome_bridge, relay, other). */
 @Serializable data class SystemConsumer(val group: String, val count: Int, val cpu: Double, @SerialName("rss_mb") val rssMb: Int)

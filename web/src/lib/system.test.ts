@@ -9,7 +9,9 @@ describe('sezione Sistema (contratto 1.90)', () => {
   it('system_advice: lo stato rosso porta livello, consumatori e quattro consigli', () => {
     const s = fixture('state-3-stale.json').system!
     expect(s.level).toBe('red')
-    expect(s.advice.map(a => a.kind)).toEqual(['orphan_proc', 'heavy_job', 'low_memory', 'orphan'])
+    expect(s.advice.map(a => a.kind)).toEqual(['stuck_loop', 'orphan_proc', 'low_memory', 'stuck', 'orphan'])
+    // Contratto 1.91: i bloccati sul ponte grafico restano in load1 ma escono dal carico per core.
+    expect([s.stuck?.count, s.load1, s.load_per_core]).toEqual([48, 65.36, 2.17])
     expect(s.consumers[0]).toEqual({ group: 'claude', count: 5, cpu: 142.5, rss_mb: 2310 })
   })
 
@@ -20,7 +22,8 @@ describe('sezione Sistema (contratto 1.90)', () => {
 
   it('il tasto solo se il consiglio ha un\'azione e il relay ne conosce l\'op', () => {
     const st = fixture('state-3-stale.json')
-    const [kill, job] = st.system!.advice
+    const [loop, kill, job] = st.system!.advice
+    expect(actionOf(loop, st.ops)?.op).toBe('sys_unit_stop')
     expect(actionOf(kill, st.ops)).toEqual({ op: 'sys_kill', arg: '4410:912345', label: 'Close' })
     expect(actionOf(job, st.ops)).toBeNull()
     expect(actionOf(kill, ['close'])).toBeNull()

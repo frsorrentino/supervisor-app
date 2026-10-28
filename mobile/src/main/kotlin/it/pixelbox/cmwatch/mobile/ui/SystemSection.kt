@@ -116,7 +116,7 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
                 ) { Text(a.action!!.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) }
             }
             if (op != null && ask == a.id) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(stringResource(R.string.system_confirm), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))
+                Text(stringResource(if (op == CmdOp.SYS_UNIT_STOP) R.string.system_confirm_stop else R.string.system_confirm), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))
                 TextButton(onClick = { ask = null }) { Text(stringResource(R.string.system_keep), color = CmColors.actionIcon) }
                 Button(
                     onClick = { ask = null; sent = sent + a.id; onAction?.invoke(op, a.action!!.arg) },
