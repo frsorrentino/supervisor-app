@@ -457,9 +457,12 @@ fun LinkedList(linked: List<SettingsDevices.Linked>, now: Long, onRevoke: ((Stri
 
 /** «visto 5 min fa», «visto ora», «mai visto», o «questo dispositivo» per quello in uso. */
 @Composable
-private fun lastSeenLine(d: SettingsDevices.Linked, now: Long): String = when {
-    d.self -> stringResource(R.string.device_this)
-    d.seen == null -> stringResource(R.string.device_never_seen)
-    now - d.seen < 120 -> stringResource(R.string.device_last_seen_now)
-    else -> stringResource(R.string.device_last_seen, seenShort(d.seen, now))
+private fun lastSeenLine(d: SettingsDevices.Linked, now: Long): String {
+    val seen = d.seen
+    return when {
+        d.self -> stringResource(R.string.device_this)
+        seen == null -> stringResource(R.string.device_never_seen)
+        now - seen < 120 -> stringResource(R.string.device_last_seen_now)
+        else -> stringResource(R.string.device_last_seen, seenShort(seen, now))
+    }
 }
