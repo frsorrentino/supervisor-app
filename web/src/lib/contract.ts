@@ -180,6 +180,14 @@ export function withTail(old: TranscriptEntry[], tail: Tail): TranscriptEntry[] 
   const seen = new Set(old.map(e => e.id))
   return [...old.map(e => byId.get(e.id) ?? e), ...tail.entries.filter(e => !seen.has(e.id))]
 }
+/** L'arg del `transcript`: la prima lettura dall'avvio chiede la pagina intera anche se il tail ha già messo delle voci. */
+export const transcriptArg = (have: TranscriptEntry[], paged: boolean): string => {
+  const last = have.at(-1)?.id
+  return paged && last ? `200:after=${last}` : '50'
+}
+/** La prima pagina con le voci già in copia (dal tail): le stesse si aggiornano, le più nuove restano in coda. */
+export const withFirstPage = (have: TranscriptEntry[], page: TranscriptPage): TranscriptEntry[] =>
+  have.length ? withTail(page.entries, { session: '', id: '', at: 0, entries: have }) : page.entries
 
 // Ricerca (contratto 1.27): `match` = [inizio, fine] dentro `snippet`.
 export type SearchHit = { session: string; live: boolean; project?: string | null; entry?: string | null; role?: string | null; at?: number | null; snippet: string; match?: number[] }

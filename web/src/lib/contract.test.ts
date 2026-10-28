@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readPreview } from './closeFinished'
 import { readFileSync } from 'node:fs'
-import { blankState, decodeChanges, decodeDiff, decodeState, tailKey, withTail, type Cmd, type CmdResult, type TranscriptEntry } from './contract'
+import { blankState, decodeChanges, decodeDiff, decodeState, withFirstPage, tailKey, transcriptArg, withTail, type Cmd, type CmdResult, type TranscriptEntry } from './contract'
 import { newCmd } from './transport'
 
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
@@ -86,6 +86,18 @@ describe('chat da /tail (contratto 1.59)', () => {
     expect(withTail([e('x')], tail).map(x => x.id)).toEqual(['b', 'c', 'd'])
     expect(withTail([e('x')], { ...tail, entries: [] }).map(x => x.id)).toEqual(['x'])
     expect(tailKey('abc.def#g$h[i]j/k')).toBe('abc_def_g_h_i_j_k')
+  })
+
+  // Franz 28/10 11:02: al riavvio della PWA la chat mostrava solo i prompt. Il /tail di una sessione con passaggi pesanti
+  // tiene una o due voci (32 KB), e la lettura dopo chiedeva solo `after=` l'ultima: le risposte prima non arrivavano mai.
+  it('transcript_after_restart: la prima lettura chiede la pagina intera anche con le voci del tail', () => {
+    expect(transcriptArg([e('y'), e('z')], false)).toBe('50')
+    expect(transcriptArg([], false)).toBe('50')
+    expect(transcriptArg([e('y'), e('z')], true)).toBe('200:after=z')
+    const page = { entries: [e('v'), e('w'), e('x'), e('y')], more: true }
+    expect(withFirstPage([e('y'), e('z')], page).map(x => x.id)).toEqual(['v', 'w', 'x', 'y', 'z'])
+    expect(withFirstPage([], page).map(x => x.id)).toEqual(['v', 'w', 'x', 'y'])
+    expect(withFirstPage([e('z')], { entries: [] }).map(x => x.id)).toEqual(['z'])
   })
 })
 

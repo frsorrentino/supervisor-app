@@ -13,7 +13,7 @@
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
-  import { blankState, decodeChanges, decodeDiff, withTail } from './lib/contract'
+  import { blankState, decodeChanges, decodeDiff, transcriptArg, withFirstPage, withTail } from './lib/contract'
   import { cleanEvent } from './lib/alertEvents'
   import { ask } from './lib/changes'
   import { fileArg } from './lib/diff'
@@ -278,6 +278,8 @@
 
   // La conversazione delle sessioni a schermo: la prima volta le ultime 50 voci, poi solo quelle venute dopo.
   const loadingT = new Set<string>()
+  /** Le chat che hanno già la pagina iniziale dall'avvio: solo loro leggono con `after=`. */
+  const paged = new Set<string>()
   /** Contratto 1.59: le ultime voci da /tail, senza passare dal relay. Vero se c'erano. */
   async function loadTail(name: string): Promise<boolean> {
     const s = st.sessions.find(x => x.name === name)
@@ -312,17 +314,18 @@
     if (!tr || loadingT.has(name)) return false
     loadingT.add(name)
     try {
-      const have = untrack(() => transcripts[name])
-      const last = have?.at(-1)?.id
-      const r = await tr.send(transcriptCmd(name, last ? `200:after=${last}` : '50'))
+      const have = untrack(() => transcripts[name]) ?? []
+      // Franz 28/10 11:02: dopo il riavvio il tail mette solo le ultime voci; la prima lettura chiede comunque la pagina.
+      const after = paged.has(name) && have.length > 0
+      const r = await tr.send(transcriptCmd(name, transcriptArg(have, paged.has(name))))
       if (!r.ok) {
-        if (last && r.text.startsWith('no entry')) transcripts = { ...transcripts, [name]: [] }
+        if (after && r.text.startsWith('no entry')) { transcripts = { ...transcripts, [name]: [] }; paged.delete(name) }
         return false
       }
       const p: TranscriptPage = JSON.parse(r.text)
-      if (!last) olderOf = { ...olderOf, [name]: !!p.more }
-      if (last && !p.entries.length) return true
-      transcripts = { ...transcripts, [name]: last ? [...(have ?? []), ...p.entries] : p.entries }
+      if (!after) { olderOf = { ...olderOf, [name]: !!p.more }; paged.add(name) }
+      if (after && !p.entries.length) return true
+      transcripts = { ...transcripts, [name]: after ? [...have, ...p.entries] : withFirstPage(have, p) }
       return true
     } catch { return false /* al prossimo stato */ } finally { loadingT.delete(name) }
   }
