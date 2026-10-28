@@ -53,6 +53,9 @@ object ChatFeed {
      * si sostituisce con la sua versione nuova (una voce «in coda» che diventa normale, il costo del turno arrivato dopo):
      * mai due voci con lo stesso id.
      */
+    /** Contratto 1.93: una pagina con `reset` vale come prima lettura, qualunque modo si fosse chiesto (anche per il «more»). */
+    fun mode(page: TranscriptPage, asked: Page): Page = if (page.reset) Page.FRESH else asked
+
     fun append(old: List<TranscriptEntry>, page: TranscriptPage, mode: Page): List<TranscriptEntry> {
         val byId = page.entries.associateBy { it.id }
         val updated = old.map { byId[it.id] ?: it }

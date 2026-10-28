@@ -13,7 +13,7 @@
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
-  import { blankState, decodeChanges, decodeDiff, transcriptArg, withFirstPage, withTail } from './lib/contract'
+  import { blankState, decodeChanges, decodeDiff, transcriptArg, withAfterPage, withFirstPage, withTail } from './lib/contract'
   import { cleanEvent } from './lib/alertEvents'
   import { ask } from './lib/changes'
   import { fileArg } from './lib/diff'
@@ -328,9 +328,9 @@
         return false
       }
       const p: TranscriptPage = JSON.parse(r.text)
-      if (!after) { olderOf = { ...olderOf, [name]: !!p.more }; paged.add(name) }
-      if (after && !p.entries.length) return true
-      transcripts = { ...transcripts, [name]: after ? [...have, ...p.entries] : withFirstPage(have, p) }
+      if (!after || p.reset) { olderOf = { ...olderOf, [name]: !!p.more }; paged.add(name) }
+      if (after && !p.entries.length && !p.reset) return true
+      transcripts = { ...transcripts, [name]: after ? withAfterPage(have, p) : withFirstPage(have, p) }
       return true
     } catch { return false /* al prossimo stato */ } finally { loadingT.delete(name) }
   }

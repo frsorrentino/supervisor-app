@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readPreview } from './closeFinished'
 import { readFileSync } from 'node:fs'
-import { blankState, decodeChanges, decodeDiff, decodeState, withFirstPage, tailKey, transcriptArg, withTail, type Cmd, type CmdResult, type TranscriptEntry } from './contract'
+import { blankState, decodeChanges, decodeDiff, decodeState, withAfterPage, withFirstPage, tailKey, transcriptArg, withTail, type Cmd, type CmdResult, type TranscriptEntry } from './contract'
 import { newCmd } from './transport'
 
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
@@ -90,6 +90,13 @@ describe('chat da /tail (contratto 1.59)', () => {
 
   // Franz 28/10 11:02: al riavvio della PWA la chat mostrava solo i prompt. Il /tail di una sessione con passaggi pesanti
   // tiene una o due voci (32 KB), e la lettura dopo chiedeva solo `after=` l'ultima: le risposte prima non arrivavano mai.
+  it('transcript_reset: con reset la pagina after prende il posto della lista, senza reset va in coda', () => {
+    const have: TranscriptEntry[] = [{ id: 'a1.0', role: 'user', text: 'vecchia' }]
+    const fresh: TranscriptEntry[] = [{ id: 'n1.0', role: 'user', text: 'nuova' }]
+    expect(withAfterPage(have, { entries: fresh, more: true, reset: true }).map(e => e.id)).toEqual(['n1.0'])
+    expect(withAfterPage(have, { entries: fresh }).map(e => e.id)).toEqual(['a1.0', 'n1.0'])
+  })
+
   it('transcript_after_restart: la prima lettura chiede la pagina intera anche con le voci del tail', () => {
     expect(transcriptArg([e('y'), e('z')], false)).toBe('50')
     expect(transcriptArg([], false)).toBe('50')

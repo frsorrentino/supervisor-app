@@ -777,8 +777,9 @@ class MainActivity : ComponentActivity() {
                 val page = r?.takeIf { it.ok }?.let { runCatching { ContractJson.decodeTranscript(it.text) }.getOrNull() }
                 if (page == null) { bgReads[name] = ChatFeed.Read("", t); return }
                 val cur = feedCache[name].orEmpty()
-                if (cur.isEmpty()) feedMore[name] = page.more
-                feedCache[name] = ChatFeed.append(cur, page, if (cur.isEmpty()) ChatFeed.Page.FRESH else ChatFeed.Page.AFTER)
+                val m = ChatFeed.mode(page, if (cur.isEmpty()) ChatFeed.Page.FRESH else ChatFeed.Page.AFTER)
+                if (m == ChatFeed.Page.FRESH) feedMore[name] = page.more
+                feedCache[name] = ChatFeed.append(cur, page, m)
                 bgReads[name] = ChatFeed.Read(sig, t, done = true)
             }
             lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
@@ -820,6 +821,8 @@ class MainActivity : ComponentActivity() {
                     pendingId?.let { app.repo.resultsById.value[it] }?.let { r ->
                         when {
                             r.ok -> runCatching { ContractJson.decodeTranscript(r.text) }.onSuccess { page ->
+                                // Contratto 1.93: con `reset` la conversazione è un'altra: le ultime voci prendono il posto della lista.
+                                mode = ChatFeed.mode(page, mode)
                                 entries = ChatFeed.append(entries, page, mode)
                                 feedCache[name] = entries
                                 freshFor = name
@@ -1608,6 +1611,7 @@ class MainActivity : ComponentActivity() {
                                 val have = feedCache[name].orEmpty()
                                 feedCache[name] = when {
                                     r.ok -> runCatching { ContractJson.decodeTranscript(r.text) }.map { page ->
+                                        mode = ChatFeed.mode(page, mode)
                                         if (mode == ChatFeed.Page.FRESH) feedMore[name] = page.more
                                         ChatFeed.append(have, page, mode)
                                     }.getOrDefault(have)

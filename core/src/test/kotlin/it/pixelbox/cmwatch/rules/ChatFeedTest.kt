@@ -67,6 +67,17 @@ class ChatFeedTest {
         assertEquals(first.entries.map { it.id }, merged.map { it.id })
     }
 
+    // Contratto 1.93: l'id di `after` non c'è più (riavvio, /clear): il relay manda le ultime voci con reset, e prendono il posto.
+    @Test fun transcript_reset_replacesTheListAndTakesMore() {
+        val page = ContractJson.decodeTranscript("""{"entries": [{"id": "n1.0", "role": "user", "text": "ciao", "at": 1789300000}], "more": true, "reset": true}""")
+        assertTrue(page.reset)
+        val mode = ChatFeed.mode(page, ChatFeed.Page.AFTER)
+        assertEquals(ChatFeed.Page.FRESH, mode)
+        assertEquals(listOf("n1.0"), ChatFeed.append(first.entries, page, mode).map { it.id })
+        assertFalse(after.reset)
+        assertEquals(ChatFeed.Page.AFTER, ChatFeed.mode(after, ChatFeed.Page.AFTER))
+    }
+
     @Test fun beforePagePrepends() {
         val older = TranscriptPage(listOf(TranscriptEntry("u0.0", "user", text = "earlier", at = 1)), more = false)
         assertEquals("u0.0", ChatFeed.append(first.entries, older, ChatFeed.Page.BEFORE).first().id)

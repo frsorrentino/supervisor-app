@@ -142,7 +142,8 @@ export type TranscriptEntry = {
   /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */
   diff?: StepDiff | null
 }
-export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean }
+/** Contratto 1.93: `reset` = l'id di `after` non c'è più (riavvio, /clear): le ultime voci prendono il posto della lista. */
+export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean; reset?: boolean }
 // Contratto 1.72, il diff dal telefono: un pezzo come in `git diff -U3`, le righe che cominciano per «-», «+» o spazio.
 export type Hunk = { old_start: number; old_lines: number; new_start: number; new_lines: number; lines: string[] }
 /** Il diff di un passaggio di modifica; `kind` edit | create | overwrite; `cut` = oltre 200 righe, il resto con l'op `diff`. */
@@ -192,6 +193,8 @@ export const transcriptArg = (have: TranscriptEntry[], paged: boolean): string =
   return paged && last ? `200:after=${last}` : '50'
 }
 /** La prima pagina con le voci già in copia (dal tail): le stesse si aggiornano, le più nuove restano in coda. */
+/** Una pagina `after` in coda; con `reset` (contratto 1.93) al posto della lista. */
+export const withAfterPage = (have: TranscriptEntry[], page: TranscriptPage): TranscriptEntry[] => (page.reset ? page.entries : [...have, ...page.entries])
 export const withFirstPage = (have: TranscriptEntry[], page: TranscriptPage): TranscriptEntry[] =>
   have.length ? withTail(page.entries, { session: '', id: '', at: 0, entries: have }) : page.entries
 

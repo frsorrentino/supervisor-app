@@ -777,7 +777,11 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
 /** L'invito per chi lo mostra: il QR già come testo da disegnare (lo stesso che `PairQr.parse` legge). */
 data class PairAddInvite(val qr: String?, val code: String, val exp: Long)
 
-@Serializable data class TranscriptPage(val entries: List<TranscriptEntry> = emptyList(), val more: Boolean = false)
+/**
+ * Contratto 1.93: `reset` = la pagina `after` chiedeva un id che non c'è più (riavvio, /clear, conversazione nuova): sono
+ * le ultime voci e prendono il posto della lista. Assente nelle altre pagine.
+ */
+@Serializable data class TranscriptPage(val entries: List<TranscriptEntry> = emptyList(), val more: Boolean = false, val reset: Boolean = false)
 
 /**
  * Contratto 1.59: `/tail/<id>`, le ultime voci di una sessione viva che il relay riscrive quando la trascrizione cambia (al
