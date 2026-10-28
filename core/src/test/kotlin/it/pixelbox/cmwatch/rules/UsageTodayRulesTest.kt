@@ -10,7 +10,7 @@ class UsageTodayRulesTest {
     @Test fun fromTheBiggestWithTheSmallTogether() {
         val r = UsageTodayRules.rows(listOf(
             UsageToday("master", "personale", 140, 0.14), UsageToday("supervisor-app", "personale", 340, 0.34),
-            UsageToday("legnaia", "personale", 20, 0.02), UsageToday("curriculum", "personale", 10, 0.01),
+            UsageToday("officina", "personale", 20, 0.02), UsageToday("curriculum", "personale", 10, 0.01),
         ))
         assertEquals(UsageTodayRules.Rows(listOf(UsageTodayRules.Row("supervisor-app", 34), UsageTodayRules.Row("master", 14)), UsageTodayRules.Others(2, 3)), r)
         assertNull(UsageTodayRules.rows(emptyList()))

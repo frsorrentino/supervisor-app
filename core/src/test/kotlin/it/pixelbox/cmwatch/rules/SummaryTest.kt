@@ -138,9 +138,9 @@ class SummaryTest {
     /** Franz 24/10 19:46 (B2): stati veri. */
     @Test fun staleOutcomeAndAskedFor() {
         val old = s("bluey").copy(outcome = done(at(15) - 16 * 3600))
-        val fresh = s("legnaia").copy(outcome = done(at(14)))
+        val fresh = s("officina").copy(outcome = done(at(14)))
         val m = build(st(old, fresh))
-        assertEquals(mapOf("bluey" to 16L, "legnaia" to null), m.rows.associate { it.session.name to Summary.staleHours(it, at(15)) })
+        assertEquals(mapOf("bluey" to 16L, "officina" to null), m.rows.associate { it.session.name to Summary.staleHours(it, at(15)) })
         val asked = s("win:ads-widget").copy(needsYou = NeedsYou("codice di accoppiamento", at(14, 59), task = "ads-widget-apk-default", from = "master"))
         assertEquals(Summary.AskedFor("master", "ads-widget-apk-default"), Summary.askedFor(asked))
         assertNull(Summary.askedFor(s("a").copy(needsYou = NeedsYou("x", at(14), from = "a"))))

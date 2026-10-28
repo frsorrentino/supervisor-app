@@ -68,7 +68,7 @@ class SessionLinksTest {
     }
 
     @Test fun deepLinkOpensASession() {
-        assertEquals("legnaia", SessionLinks.deepLink("cmwatch://session/legnaia"))
+        assertEquals("officina", SessionLinks.deepLink("cmwatch://session/officina"))
         assertEquals("master", SessionLinks.deepLink("cmwatch://session/master/"))
         assertEquals("field notes", SessionLinks.deepLink("cmwatch://session/field%20notes"))
         assertNull(SessionLinks.deepLink("cmwatch://session/"))
@@ -79,7 +79,7 @@ class SessionLinksTest {
     }
 
     @Test fun deepLinkRoundTrip() {
-        for (n in listOf("legnaia", "master", "field notes", "ledger-api", "così")) assertEquals(n, SessionLinks.deepLink(SessionLinks.deepLinkTo(n)))
+        for (n in listOf("officina", "master", "field notes", "ledger-api", "così")) assertEquals(n, SessionLinks.deepLink(SessionLinks.deepLinkTo(n)))
         assertEquals("cmwatch://session/field%20notes", SessionLinks.deepLinkTo("field notes"))
     }
 }

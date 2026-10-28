@@ -2,7 +2,7 @@
 // all'app claude possiamo mandare link o tasto che apra sessioni in app supervisor?»), porta di SessionLinks.kt. Un link
 // uguale al `link` di una sessione dello stato esce dal testo e diventa il tasto «Apri in supervisor» col nome della
 // sessione; il link com'era resta nel tasto (tasto destro o pressione lunga). Un link di sessione che lo stato non conosce
-// resta un link normale. Un link con testo `[legnaia](url)` lascia il suo testo. La riga che senza il link è solo
+// resta un link normale. Un link con testo `[officina](url)` lascia il suo testo. La riga che senza il link è solo
 // un'etichetta («• **Link:**») sparisce, come le parentesi rimaste vuote; i due punti rimasti in coda a una frase se ne vanno.
 import type { Session } from './contract'
 import { findLinks } from './links'

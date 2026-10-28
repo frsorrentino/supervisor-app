@@ -9,7 +9,7 @@ const row = (name: string, group: Row['group'], p: Partial<Session> = {}): Row =
 
 describe('Chiudi le finite (contratto 1.84, B4)', () => {
   it('candidate: le ferme senza finestra al PC da almeno un\'ora', () => {
-    const rows = [row('curriculum', 'still'), row('legnaia', 'still', { attached: true }), row('fresca', 'still', { since: now - 600 }), row('blog', 'waiting'), row('app', 'working', { state: 'busy' })]
+    const rows = [row('curriculum', 'still'), row('officina', 'still', { attached: true }), row('fresca', 'still', { since: now - 600 }), row('blog', 'waiting'), row('app', 'working', { state: 'busy' })]
     expect(candidates(rows, now).map(s => s.name)).toEqual(['curriculum'])
   })
   it("l'anteprima: cosa si salva, chi non si chiude e perché", () => {

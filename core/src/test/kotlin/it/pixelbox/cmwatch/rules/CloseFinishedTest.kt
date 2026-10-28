@@ -13,7 +13,7 @@ class CloseFinishedTest {
         Summary.Row(group, Session(id = name, name = name, account = "p", project = name, state = state, since = since, attached = attached), null, null)
 
     @Test fun candidatesAreTheStillOnesIdleForAnHour() {
-        val rows = listOf(row("curriculum", Summary.Group.STILL), row("legnaia", Summary.Group.STILL, attached = true), row("fresca", Summary.Group.STILL, since = now - 600),
+        val rows = listOf(row("curriculum", Summary.Group.STILL), row("officina", Summary.Group.STILL, attached = true), row("fresca", Summary.Group.STILL, since = now - 600),
             row("blog", Summary.Group.WAITING), row("app", Summary.Group.WORKING, SessionState.BUSY))
         assertEquals(listOf("curriculum"), CloseFinished.candidates(rows, now).map { it.name })
     }

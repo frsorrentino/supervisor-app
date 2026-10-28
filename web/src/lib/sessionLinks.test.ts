@@ -54,7 +54,7 @@ describe('link di sessione', () => {
     expect(stripSessionLinks(atlas, []).text).toBe(atlas)
   })
   it("l'indirizzo chiede una sessione con ?s= o #nome", () => {
-    expect(askedSession('?s=legnaia', '')).toBe('legnaia')
+    expect(askedSession('?s=officina', '')).toBe('officina')
     expect(askedSession('?demo&s=field%20notes', '#altro')).toBe('field notes')
     expect(askedSession('?demo', '#master')).toBe('master')
     // 23/10: niente chiesto è null, non '': con '' la home locale apriva una pagina vuota (chiave doppia nella striscia).

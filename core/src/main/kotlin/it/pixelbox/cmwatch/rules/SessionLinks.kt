@@ -10,7 +10,7 @@ import java.net.URLEncoder
  * all'app claude possiamo mandare link o tasto che apra sessioni in app supervisor?»). Un link uguale al `link` di una
  * sessione dello stato esce dal testo e diventa il tasto «Apri in supervisor» col nome della sessione; la pressione lunga
  * apre il link com'era. Un link di sessione che lo stato non conosce resta un link normale. Un link con testo
- * `[legnaia](url)` lascia il suo testo. La riga che senza il link è solo un'etichetta («• **Link:**») sparisce, come le
+ * `[officina](url)` lascia il suo testo. La riga che senza il link è solo un'etichetta («• **Link:**») sparisce, come le
  * parentesi rimaste vuote; i due punti rimasti in coda a una frase se ne vanno.
  *
  * Il deep link dell'app, per le notifiche e Telegram: `cmwatch://session/<nome>` apre la chat di quella sessione
