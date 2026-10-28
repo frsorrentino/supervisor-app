@@ -1,0 +1,102 @@
+/* Concept «firma» (06/10): la master si riconosce dal segno e dalla forma, non dal colore.
+   Un foglio color grafite con una sola cornice (la stessa da chiusa e da aperta), la scintilla ✻ di Claude
+   al posto del badge, in testa a ogni risposta e nella tacca del campo; inchiostro avorio al posto del blu. */
+
+:root {
+  --m-tab: #2A2927;    /* linguetta: un gradino sopra il foglio */
+  --m-bed: #1C1B1A;    /* il foglio: fondo del blocco, della chat, intorno al campo */
+  --m-sunk: #121211;   /* incassi: campo, gruppi di passaggi, Prossimi */
+  --m-raise: #33322F;  /* rilievi: bolle di Franz, pillola modello, tasto invia */
+  --m-key: #403E3A;    /* i due tasti tondi sulla linguetta */
+  --m-rule: #3D3B37;   /* filetti: separatori, il filo sotto la scintilla */
+  --m-frame: #8F8A80;  /* la cornice: blocco e campo, una sola penna */
+  --m-ink: #F5F2EA;    /* inchiostro avorio: testo, scintilla, icone */
+  --m-ink2: #B9B4A8;   /* inchiostro secondario: riga MASTER, ore, segnaposto */
+  --m-spark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M11.2 9H17M10.56 10.56L14.66 14.66M9 11.2V17M7.44 10.56L3.34 14.66M6.8 9H1M7.44 7.44L3.34 3.34M9 6.8V1M10.56 7.44L14.66 3.34' stroke='%23000' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  --m-spark-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M11.2 9H17M10.56 10.56L14.66 14.66M9 11.2V17M7.44 10.56L3.34 14.66M6.8 9H1M7.44 7.44L3.34 3.34M9 6.8V1M10.56 7.44L14.66 3.34' stroke='%23F5F2EA' stroke-width='2.1' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+}
+
+/* Dentro la master i token dell'app diventano quelli del foglio: blu e grigio-blu non entrano. */
+.pane > .closed, .slide {
+  --text: var(--m-ink); --text2: var(--m-ink2); --icon: var(--m-ink); --stale: var(--m-ink2);
+  --bg: var(--m-bed); --low: var(--m-sunk); --surface: var(--m-raise); --high: var(--m-raise); --line: var(--m-rule);
+  --steps-bg: var(--m-sunk); --steps-dot: #6E6A62; --opus: var(--m-ink);
+  --primary: var(--m-ink); --on-primary: var(--m-bed);
+  --b-ring: var(--m-ink2); --b-track: #4A4842;
+  --master-tab: var(--m-tab); --master-bed: var(--m-bed); --master-field: var(--m-sunk);
+  color: var(--m-ink);
+}
+
+/* ——— La forma: un foglio rientrato di 6 px, una cornice sola sopra e ai lati, aperto in basso. ——— */
+.pane > .closed, .slide {
+  margin: 0 6px !important;
+  background: var(--m-bed) !important;
+  border: 1.5px solid var(--m-frame) !important; border-bottom: 0 !important;
+  border-radius: 26px 26px 0 0 !important;
+}
+.pane > .closed .dock, .slide .dock {
+  position: relative;
+  background: var(--m-tab) !important; border-top: 0 !important;
+  border-radius: 24.5px 24.5px 0 0 !important;
+  padding: 10px 10px 9px 14px !important;
+}
+
+/* ——— La firma sulla linguetta: la scintilla al posto del badge, lo stato nel moto e in un punto. ——— */
+.pane > .closed .dock > svg[role=img], .slide .dock > svg[role=img] { display: none !important; }
+.pane > .closed .dock::before, .slide .dock::before {
+  content: ''; flex: none; width: 24px; height: 24px;
+  background: var(--m-ink);
+  -webkit-mask: var(--m-spark) center / contain no-repeat; mask: var(--m-spark) center / contain no-repeat;
+  animation: m-tick .42s cubic-bezier(.2, .8, .2, 1);
+}
+.pane > .closed .dock::after, .slide .dock::after {
+  content: ''; position: absolute; left: 31px; top: calc(50% + 2px); width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--m-tab); background: var(--m-dot, transparent); display: none;
+}
+.dock:has(> svg[aria-label=waiting])::after { --m-dot: var(--wait); display: block; }
+.dock:has(> svg[aria-label=busy])::after, .dock:has(> svg[aria-label=awaiting])::after { --m-dot: var(--busy); display: block; }
+.dock:has(> svg[aria-label=gone])::after { --m-dot: var(--gone); display: block; }
+.dock:has(> svg[aria-label=gone])::before { opacity: .5; }
+.dock:has(> svg[aria-label=busy])::before, .dock:has(> svg[aria-label=awaiting])::before { animation: m-tick .42s cubic-bezier(.2, .8, .2, 1), m-turn 12s linear .42s infinite; }
+@keyframes m-tick { from { rotate: -45deg; } }
+@keyframes m-turn { to { rotate: 360deg; } }
+
+.pane > .closed .dock .mono, .slide .dock .mono { color: var(--m-ink2) !important; }
+.pane > .closed .dock b, .slide .dock b { color: var(--m-ink); }
+.pane > .closed .dock .ib, .slide .dock .ib { background: var(--m-key) !important; color: var(--m-ink) !important; }
+
+/* ——— Il campo: incassato nel foglio, la stessa cornice, la scintilla nella tacca come l'etichetta di un campo
+   Material, sul tratto dritto del bordo e sulla colonna del testo (x = 50 dal bordo interno del foglio). ——— */
+.pane > .closed .bar { padding: 12px 10px 12px !important; }
+.slide .field.master { --m-notch: 25.5px; } /* barra a 12 px: la tacca resta sulla colonna del testo, x = 50 */
+.field.master {
+  position: relative;
+  background: var(--m-sunk) !important;
+  border: 1.5px solid var(--m-frame) !important; padding: 0 7.5px 0 3.5px !important;
+}
+.field.master:focus-within { border-color: var(--m-ink) !important; }
+.field.master::before {
+  content: ''; position: absolute; top: -8px; left: var(--m-notch, 27.5px); width: 22px; height: 15px;
+  background: var(--m-bed) var(--m-spark-ink) center / 13px no-repeat;
+}
+
+/* ——— Aperta: la chat è il foglio; testata e righe senza nero. ——— */
+.slide .chat > header { background: transparent !important; border-bottom-color: var(--m-rule) !important; }
+.slide .lines { background: var(--m-bed); }
+
+/* La voce della master: ogni risposta appesa a una scintilla, un filo sotto, interlinea più ampia. */
+.slide .claude { position: relative; padding-left: 26px; }
+.slide .claude::before {
+  content: ''; position: absolute; left: -1.5px; top: 9px; width: 15px; height: 15px;
+  background: var(--m-spark-ink) center / contain no-repeat;
+}
+.slide .claude::after {
+  content: ''; position: absolute; left: 5.5px; top: 32px; bottom: 44px; width: 1px; background: var(--m-rule);
+}
+.slide .ctext { color: var(--m-ink); line-height: 1.6 !important; letter-spacing: .012em !important; text-wrap: pretty; }
+.slide .me .bubble { color: var(--m-ink); }
+.slide .tohome { text-decoration: underline 1px var(--m-frame); text-underline-offset: 5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pane > .closed .dock::before, .slide .dock::before { animation: none !important; }
+}

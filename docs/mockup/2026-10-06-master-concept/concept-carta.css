@@ -1,0 +1,104 @@
+/* Concept «carta» (06/10): la master è l'unica superficie chiara dell'app, carta avorio smorzata con testo d'inchiostro.
+   Il meccanismo: dentro la master (blocco chiuso in fondo alla home e pagina aperta) i token dell'app vengono riassegnati
+   alla tavolozza carta, così ogni componente che usa var(--text), var(--surface), var(--wait)... si gira da solo.
+   Su Android è lo stesso: una tavolozza `CmPalette.Carta` fornita con un CompositionLocal solo intorno alla master. */
+
+:root {
+  /* Carta: la luminanza massima è quella della linguetta, Y = 0,696 (il tasto «Approva» della home è 0,759, il testo 0,903). */
+  --m-tab: #E0D9C6;      /* linguetta e campo: il foglio più chiaro, oklch(0.885 0.026 90) */
+  --m-paper: #D6CDB8;    /* fondo intorno al campo e sfondo della chat, oklch(0.851 0.030 88) */
+  --m-well: #CCC3AD;     /* pillola del modello, passaggi, tasti tondi: carta in ombra */
+  --m-bubble: #C5BAA4;   /* bolla di Franz, tasto ▶ della risposta */
+  --m-line: #B7AB95;     /* fili e binari, solo decoro */
+  --m-edge: #787165;     /* bordo del campo: 3,05 sul fondo, 3,43 sul campo */
+  --m-dot: #9A907E;      /* puntini dei passaggi */
+  --m-ink: #25201A;      /* inchiostro: 10,2 sulla carta, 11,5 sulla linguetta */
+  --m-ink-2: #554D42;    /* inchiostro leggero: 5,3 sulla carta, 4,7 sulla carta in ombra */
+  --m-btn: #D1CAB8;      /* tasto tonale sulla linguetta (inchiostro all'8 %) */
+  --m-wait: #714900;  --m-wait-bg: #E8C17F;   /* ambra «ti aspetta» girata per la carta */
+  --m-good: #206234;  --m-good-bg: #ABD8B3;
+  --m-busy: #3051A4;  --m-ring: #4167AD;
+  --m-alert: #9E2D26; --m-fail-bg: #E1C7C3;
+  --m-advice: #61459F;
+  --m-opus: #A94D2C;     /* solo la stella di Claude mentre lavora, 3,5 sulla carta */
+  --m-sel: rgb(37 32 26 / .18);
+}
+/* Sera: la stessa carta con la luce abbassata (Y massima 0,475). Sull'app la mette l'orario o l'impostazione «Carta: sera». */
+:root[data-carta="sera"] {
+  --m-tab: #BEB7A5; --m-paper: #B6AD99; --m-well: #ADA38F; --m-bubble: #A69B87; --m-line: #968B77; --m-edge: #5E574C; --m-dot: #807663;
+  --m-ink: #14100B; --m-ink-2: #3F372D; --m-btn: #B0AA99;
+  --m-wait: #563400; --m-wait-bg: #C4A269; --m-good: #004A1D; --m-good-bg: #90B697; --m-busy: #1C398B; --m-ring: #2C4F94;
+  --m-alert: #820C0C; --m-fail-bg: #C0A7A3; --m-advice: #4B2C84; --m-opus: #8E3510; --m-sel: rgb(20 16 11 / .2);
+}
+
+/* L'ambito della master: chiusa (.pane > .closed) e aperta (.slide). Fuori di qui l'app resta com'è. */
+.pane > .closed, .slide {
+  --bg: var(--m-paper); --low: var(--m-tab); --surface: var(--m-well); --high: var(--m-bubble); --line: var(--m-line);
+  --text: var(--m-ink); --text2: var(--m-ink-2); --icon: var(--m-ink-2); --stale: var(--m-ink-2);
+  --primary: var(--m-ink); --on-primary: var(--m-tab);
+  --wait: var(--m-wait); --good: var(--m-good); --idle: var(--m-good); --busy: var(--m-busy); --gone: var(--m-alert); --gone-dim: var(--m-alert);
+  --opus: var(--m-opus); --advice: var(--m-advice); --prod: var(--m-alert);
+  --steps-bg: var(--m-well); --steps-fail: var(--m-fail-bg); --steps-dot: var(--m-dot);
+  --b-second: var(--m-ink-2); --b-week: var(--m-advice); --b-warn: var(--m-wait); --b-good: var(--m-good); --b-ring: var(--m-ring);
+  --b-track: var(--m-line); --b-label: var(--m-good); --b-alert: var(--m-alert);
+  --master-tab: var(--m-tab); --master-bed: var(--m-paper); --master-field: var(--m-tab);
+  color: var(--m-ink);
+  color-scheme: light;
+  caret-color: var(--m-ink);
+}
+.pane > .closed ::selection, .slide ::selection { background: var(--m-sel); color: inherit; }
+
+/* ---------- La linguetta (chiusa in fondo, aperta in cima): il foglio più chiaro ---------- */
+.dock { background: var(--m-tab) !important; color: var(--m-ink); }
+.dock:hover, .dock:focus-visible { filter: brightness(.97) !important; }
+.dock:focus-visible { box-shadow: inset 0 0 0 2px var(--m-ink); }
+.dock .mono { color: var(--m-ink-2) !important; font-weight: 500; }
+.dock b { color: var(--m-ink); }
+.dock .ib { background: var(--m-btn) !important; color: var(--m-ink) !important; }
+.dock .ib:hover { filter: brightness(.95) !important; }
+/* Il badge porta un anello d'inchiostro: sulla carta il giallo, il verde e il grigio non hanno 3:1, con l'anello sì. */
+.dock svg[role=img] { border-radius: 50%; box-shadow: 0 0 0 2px var(--m-ink); }
+.dock svg[role=img]:has(> rect) { border-radius: 23%; }
+
+/* ---------- Master chiusa: il blocco carta in fondo alla home ---------- */
+.pane > .closed { background: var(--m-paper) !important; }
+.pane > .closed .field.master, .slide .field.master {
+  background: var(--m-tab) !important; border: 1.5px solid var(--m-edge) !important; padding: 0 7.5px 0 3.5px !important;
+}
+.pane > .closed .field.master:focus-within, .slide .field.master:focus-within {
+  border: 2px solid var(--m-ink) !important; padding: 0 7px 0 3px !important;
+}
+.pane > .closed .use, .slide .use, .pane > .closed .sugrow span, .slide .sugrow span { color: var(--m-ink) !important; font-weight: 600; }
+.pane > .closed .plus:hover, .slide .plus:hover { background: var(--m-well); }
+/* La riga piccola sotto il campo (e «Dati di prova» / stato del relay che sul telefono ci cade sopra). */
+.pane > .closed .keys, .slide .keys { color: var(--m-ink-2) !important; }
+body:has(.pane > .closed) .demo, body:has(.slide) .demo { color: var(--m-ink-2) !important; opacity: 1 !important; }
+
+/* ---------- Master aperta: tutta la conversazione è su carta ---------- */
+.slide > .body { background: var(--m-paper) !important; }
+.slide .chat > header { background: var(--m-paper) !important; border-bottom-color: var(--m-line) !important; }
+.slide .chat > header .pill { background: var(--m-well) !important; color: var(--m-ink); }
+/* La pillola «ledger-api ti aspetta»: resta ambra, ma ambra da carta (fondo ambra chiaro, testo d'inchiostro). */
+.slide .chat > .pill { --t: var(--m-wait) !important; background: var(--m-wait-bg) !important; color: var(--m-ink); }
+.slide .chat > .pill:has(.x) { --t: var(--m-good) !important; background: var(--m-good-bg) !important; }
+.slide .chat > .pill .x:hover { background: rgb(37 32 26 / .08) !important; }
+.slide .tohome { color: var(--m-ink) !important; font-weight: 500; text-decoration: underline; text-decoration-color: var(--m-edge); text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.slide .tohome:hover { background: var(--m-well) !important; }
+.slide .lines { background: transparent !important; }
+/* La casa della master su carta puntinata (oggi puntini bianchi al 7 %). */
+.slide .lines.dots { background-image: radial-gradient(rgb(37 32 26 / .13) 1px, transparent 1.4px) !important; }
+.slide .ctext { color: var(--m-ink); }
+.slide .ctext a, .slide .claude a { color: var(--m-ink) !important; text-decoration-color: var(--m-edge) !important; }
+.slide .me .bubble { background: var(--m-bubble) !important; color: var(--m-ink); }
+.slide .steps .fchip { background: rgb(37 32 26 / .06) !important; }
+.slide .box { background: var(--m-tab) !important; border-color: var(--m-line) !important; }
+.slide .box .head:hover, .slide .box .row:hover { background: rgb(37 32 26 / .05) !important; }
+.slide .sm:hover, .slide .chat > header .ib:hover { background: var(--m-well) !important; }
+
+/* Movimento (una sola apertura, la luce sale invece di accendersi): nell'app la regola è questa.
+   .slide { animation: m-carta-sale 320ms cubic-bezier(.16, 1, .3, 1); }
+   @keyframes m-carta-sale { from { translate: 0 24px; opacity: 0; } }
+   @media (prefers-reduced-motion: reduce) { .slide { animation: m-carta-luce 160ms linear; } }
+   @keyframes m-carta-luce { from { opacity: 0; } }
+   Nel banco di prova resta spenta: lo screenshot headless fotografava la pagina a metà dissolvenza (giro 2). */
+.slide { animation: none !important; }

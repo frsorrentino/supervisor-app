@@ -1,0 +1,27 @@
+# Recap di claude-master-phone (fino al 02/10/2026: claude-master-watch-telefono)
+
+- 2026-09-29: Ho lanciato la revisione finale di tutto il ramo su un revisore con contesto fresco; aspet…
+- 2026-09-30: Ho fatto i due passaggi di revisione sui provini e corretto tre cose. Ho pushato il commit…
+- 2026-10-01: Feature telefono mergiata, v1.52.3 pubblicata, widget Master disegnato · prossimo: Prove dal vivo su telefono: passaggi MCP, frasi rapide, peso file, asterisco visuale
+- 2026-10-02: Release 0.5.8 uscita, B (contratto 1.26) inviata a claude-master · prossimo: Implementare design tasti Ultimo esito (due pillole)
+- 2026-10-03: Bug visuale master corretto, lampo scomparso, build 8e148e8 pushata · prossimo: Test osservazioni rimaste, merge o continuazione
+- 2026-10-04: Telefono, tablet e Chromebook con APK finale pubblicata e installata
+- 2026-10-05: Web app complete di tutte le schermate Android, crypto, relay e gestione allegati
+- 2026-10-06: APK 96251a0 installato su telefono e tablet, stili della master in revisione · prossimo: Seleziona stile master preferito tra le 6 proposte (consigliati B o D)
+- 2026-10-07: 15 rilievi esaminati e piani di correzione pronti; aspetta approvazione · prossimo: Approvazione del piano prima di procedere alle correzioni
+- 2026-10-08: Schermata master a tutto schermo, pannello di chiusura e controller audio fatti; APK in CI · prossimo: Installare l'APK su telefono e tablet quando finisce la run 37820607101
+- 2026-10-09: Azioni del Recap e riga modello/quota online; orologio fuori rete · prossimo: Scegliere il modello per gli allegati fino a 50 MB, poi il tuo ok al relay
+- 2026-10-10: Live aggiornata su tutti e tre i dispositivi; compito allegati chiuso, handoff scritto · prossimo: Verificare sul dispositivo il tocco sulla live, mai visto funzionare; poi /clear
+- 2026-10-11: Corretto il salto della chat: ora scorre in due passi, su tablet e telefono
+- 2026-10-12: Cache video provata dal vivo; anteprime a tutta larghezza e fix web pubblicati · prossimo: Ricaricare la PWA per avere la cache nuova della web app
+- 2026-10-13: Test chiuso Android e Wear OS in revisione; aggiunta dispositivi dalla web app · prossimo: Attendere la risposta di supervisor su «Aggiungi un dispositivo» e la revisione Google
+- 2026-10-14: Pubblicate 5 risposte su X; online correzione alle domande e icona PWA più piccola · prossimo: Installare l'APK della rilettura chat sul telefono, appena adb wireless lo raggiunge
+- 2026-10-15: APK 1.69 installato sul Pixel e demo alla 1.68; contratto 1.70 pubblicato su master · prossimo: Testare e pubblicare il codice web di /api/tail quando win torna su
+- 2026-10-16: Gruppo di file e Condividi PWA online; banner corretto, CI Android rossa · prossimo: Sistemare i due test Kotlin vecchi che fanno fallire la CI Android
+- 2026-10-19: Pagina Studio tolta dalla PWA (17f20cdc, pushato); risposte Studio inoltrate
+- 2026-10-21: Gantt notte pushato, CI verde; ramo link-sessioni pronto e pulito · prossimo: Ok di Franz al push di notte/link-sessioni; poi la master registra il compito
+- 2026-10-22: Impegni con golden e pre-release -b; mockup e pagina Lavori pubblicati su feature/tablet · prossimo: Verificare sul telefono che compaia «Aggiornamento disponibile» sulla build -b
+- 2026-10-23: Avviso chiudibile pubblicato su web e telefono; Approva nella scheda pronto in locale · prossimo: Pubblicare Approva e la correzione della coda insieme, dopo il tuo ok su coda-ferme-23-10
+- 2026-10-24: Scheda master su telefono e web; barra rapida pubblicata in Studio · prossimo: Correggere la barra in Studio: la chat riparte da zero a ogni swipe
+- 2026-10-27: Icona diff corretta e Supervisor inviato su Play; contratto 1.87 adottato, CI in corso · prossimo: Attendere l'esito della CI Android sul commit 1656ea26, poi scrivere alla master
+- 2026-10-28: App pre-release abbinata e funzionante con il pacchetto Play nuovo; vecchia app revocata · prossimo: Decidere sui commit mancanti (accetta, non ora, mai); poi disinstallare la vecchia app

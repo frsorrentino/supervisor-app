@@ -1,0 +1,13 @@
+/* Profondità piatta (06/10 21:11): stessi toni, nessun effetto di luce. La master si distingue con la grammatica dell'app,
+   quella del Material 3: superfici tonali più chiare (elevazione tonale), forma della linguetta, la scintilla. */
+.slide { animation: none !important; }
+.pane > .closed { background: var(--master-sheet) !important; box-shadow: none !important; }
+.dock { background: var(--master-tab) !important; box-shadow: none !important; }
+.dock::after { content: none !important; }
+.dock .ib { box-shadow: none !important; }
+.field.master { box-shadow: none !important; border: 0 !important; }
+.field.master:focus-within { box-shadow: inset 0 0 0 2px var(--text2) !important; }
+.chat.master { background: #171A20 !important; }
+.chat.master > header { box-shadow: none !important; border-bottom: 1px solid var(--line) !important; }
+.chat.master header .pill, .chat.master .me .bubble, .chat.master .play, .chat.master .steps, .chat.master .box { box-shadow: none !important; }
+.chat.master > .bar { background: var(--master-sheet) !important; box-shadow: none !important; }

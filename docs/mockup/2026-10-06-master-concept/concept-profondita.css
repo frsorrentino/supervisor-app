@@ -1,0 +1,116 @@
+/* Concept «Profondità» (06/10): la master è un foglio di grafite sollevato sopra la home. Si riconosce per la materia
+   (grigio caldo quasi neutro, più chiaro delle card), per la luce (un filo luminoso sul bordo alto, più vivo al centro)
+   e per l'ombra che getta sulla lista. Un solo accento: la scintilla di Claude in --opus prima di «MASTER». */
+:root {
+  --m-lip: #433F3B;        /* oklch(.37 .009 70)  cima della linguetta, dove batte la luce */
+  --m-tab: #373330;        /* oklch(.325 .008 70) linguetta */
+  --m-disc: #4D4843;       /* oklch(.405 .010 70) dischi dei tasti ▶ ▲ */
+  --m-sheet: #23201D;      /* oklch(.245 .007 70) foglio: fondo intorno al campo, testata aperta */
+  --m-sheet-low: #1D1B18;  /* oklch(.222 .006 70) foglio, in basso */
+  --m-well: #100E0C;       /* oklch(.165 .005 70) campo: un incavo nel foglio */
+  --m-raise: #302D2A;      /* oklch(.30 .008 70)  bolle, pillola del modello, Prossimi */
+  --m-steps: #1A1815;      /* oklch(.21 .006 70)  gruppi di passaggi */
+  --m-dusk: #191714;       /* oklch(.205 .006 70) chat, fascia alta */
+  --m-deep: #110F0D;       /* oklch(.17 .005 70)  chat, punto più profondo */
+  --m-ink: #F7F3EE;        /* testo */
+  --m-ink2: #D0C9C2;       /* testo secondario */
+  --m-ink3: #AFA8A1;       /* righe piccole attenuate */
+  --m-rim: rgb(255 238 220 / .16);   /* filo di luce sul bordo */
+  --m-glint: rgb(255 242 228 / .9);  /* il punto più vivo del filo, al centro */
+  --m-crease: rgb(0 0 0 / .55);      /* la piega tra linguetta e foglio */
+  --m-line: rgb(255 238 220 / .2);   /* bordo del campo */
+  --m-accent: var(--opus);           /* #D97757: la scintilla, niente colori nuovi */
+  --m-spark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M11.2 9H17.3M10.56 10.56L14.87 14.87M9 11.2V17.3M7.44 10.56L3.13 14.87M6.8 9H.7M7.44 7.44L3.13 3.13M9 6.8V.7M10.56 7.44L14.87 3.13' stroke='%23000' stroke-width='2.1' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* ── Chiusa: il blocco è un foglio sollevato, getta l'ombra sulla lista che gli passa sotto ── */
+/* position senza z-index: basta per dipingere l'ombra sopra la lista, e la scritta fissa «relay giù» resta sopra. */
+.pane > .closed {
+  position: relative;
+  background: linear-gradient(180deg, var(--m-sheet) 0%, var(--m-sheet-low) 100%) !important;
+  box-shadow: 0 -2px 3px rgb(0 0 0 / .7), 0 -14px 28px -6px rgb(0 0 0 / .8), 0 -34px 56px -18px rgb(0 0 0 / .6);
+}
+
+/* La linguetta: la parte alta del foglio, più chiara, con la luce sul bordo. Sotto, la piega. */
+.dock {
+  position: relative;
+  border-top: 0 !important; padding-top: 11px !important;
+  background:
+    radial-gradient(55% 110% at 50% 0%, rgb(255 240 225 / .09), transparent 72%),
+    linear-gradient(180deg, var(--m-lip) 0%, var(--m-tab) 62%) !important;
+  box-shadow: inset 0 1px 0 var(--m-rim), inset 0 -1px 0 var(--m-crease);
+  transition: translate .18s cubic-bezier(.2, .8, .2, 1), box-shadow .18s;
+}
+.dock::after, .slide .chat > .bar::after {
+  content: ''; position: absolute; top: 0; left: 18%; right: 18%; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--m-glint) 50%, transparent);
+  animation: m-glint .7s .12s cubic-bezier(.16, 1, .3, 1) both;
+}
+@keyframes m-glint { from { translate: -55% 0; opacity: 0; } }
+.dock:active { translate: 0 1px; transition-duration: .09s; }
+.dock .mono { color: var(--m-ink2) !important; }
+.dock .mono::before {
+  content: ''; display: inline-block; width: 11px; height: 11px; margin: 0 7px 0 1px; vertical-align: -1px;
+  background: var(--m-accent); -webkit-mask: var(--m-spark) center / contain no-repeat; mask: var(--m-spark) center / contain no-repeat;
+}
+/* Mentre la master lavora la scintilla gira piano, come la stella di Claude nella conversazione. */
+.dock:has(.breathe) .mono::before { animation: m-spin 2.4s linear infinite; }
+@keyframes m-spin { to { rotate: 360deg; } }
+.dock b { color: var(--m-ink) !important; }
+.dock .ib {
+  background: var(--m-disc) !important; color: var(--m-ink) !important;
+  box-shadow: inset 0 1px 0 rgb(255 240 225 / .12), 0 1px 2px rgb(0 0 0 / .55);
+}
+
+/* Il campo: un incavo nel foglio (ombra interna in alto, labbro chiaro in basso), niente cornice colorata. */
+.pane > .closed .mquick { box-shadow: inset 0 1px 0 rgb(255 240 225 / .045); }
+.field.master {
+  background: var(--m-well) !important; border: 1px solid var(--m-line) !important; padding: 0 8px 0 4px !important;
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / .6), 0 1px 0 rgb(255 240 225 / .05); caret-color: var(--m-accent);
+}
+.field.master:focus-within { border: 2px solid var(--m-ink2) !important; padding: 0 7px 0 3px !important; }
+.field.master textarea { color: var(--m-ink) !important; }
+.field.master textarea:not(.sug)::placeholder { color: var(--m-ink2) !important; }
+.field.master .round:not(.filled) { background: var(--m-raise) !important; color: var(--m-ink2) !important; }
+.pane > .closed .keys { color: var(--m-ink3) !important; }
+
+/* ── Aperta: la linguetta sale, il letto del campo resta giù, in mezzo la conversazione è una vasca ── */
+.slide .dock.expanded { box-shadow: inset 0 1px 0 var(--m-rim), inset 0 -1px 0 var(--m-crease), 0 8px 16px -8px rgb(0 0 0 / .8); }
+.slide .chat {
+  background:
+    radial-gradient(140% 70% at 50% 45%, transparent 50%, rgb(0 0 0 / .4) 100%),
+    radial-gradient(120% 45% at 50% 0%, rgb(255 240 225 / .05), transparent 70%),
+    linear-gradient(180deg, var(--m-sheet) 0%, var(--m-dusk) 26%, var(--m-deep) 68%, var(--m-dusk) 100%) !important;
+}
+.slide .chat > header { background: var(--m-sheet) !important; border-bottom: 1px solid rgb(0 0 0 / .5) !important; box-shadow: 0 1px 0 rgb(255 240 225 / .04); }
+.slide .chat > header .pill { background: var(--m-raise) !important; color: var(--m-ink); box-shadow: inset 0 1px 0 rgb(255 240 225 / .07); }
+.slide .chat > header .ml, .slide .chat > header .reset { color: var(--m-ink2) !important; }
+.slide .chat > header .dot { border-color: var(--m-sheet) !important; }
+.slide .lines { background: none !important; }
+.slide .tohome:hover { background: var(--m-raise) !important; }
+.slide .ctext { color: var(--m-ink); }
+.slide .me .bubble { background: var(--m-raise) !important; color: var(--m-ink); box-shadow: inset 0 1px 0 rgb(255 240 225 / .07), 0 4px 10px -4px rgb(0 0 0 / .6); }
+.slide .time, .slide .meta, .slide .sm { color: var(--m-ink2) !important; }
+.slide .play { background: var(--m-raise) !important; box-shadow: inset 0 1px 0 rgb(255 240 225 / .07); }
+.slide .steps { background: var(--m-steps) !important; box-shadow: inset 0 1px 2px rgb(0 0 0 / .5); }
+.slide .ssum { color: var(--m-ink2) !important; }
+.slide .box {
+  background: var(--m-raise) !important; border: 0 !important;
+  box-shadow: inset 0 1px 0 rgb(255 240 225 / .08), 0 8px 18px -8px rgb(0 0 0 / .75);
+}
+.slide .box .row { border-top-color: rgb(0 0 0 / .4) !important; box-shadow: inset 0 1px 0 rgb(255 240 225 / .03); }
+.slide .box .row.unblock { box-shadow: inset 3px 0 0 var(--wait) !important; }
+.slide .box .mono { color: var(--m-ink2) !important; }
+/* Il letto del campo in basso: lo stesso foglio di quando è chiusa, col suo filo di luce, alza l'ombra sulla vasca. */
+.slide .chat > .bar {
+  position: relative; margin-top: 10px; padding-top: 10px !important; border-radius: 26px 26px 0 0;
+  background: linear-gradient(180deg, var(--m-sheet) 0%, var(--m-sheet-low) 100%);
+  box-shadow: inset 0 1px 0 var(--m-rim), 0 -12px 24px -10px rgb(0 0 0 / .85);
+}
+.slide .chat > .bar::after { left: 24%; right: 24%; opacity: .7; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dock::after, .slide .chat > .bar::after { animation: none; }
+  .dock:has(.breathe) .mono::before { animation: none; }
+  .dock, .dock:active { transition: none; translate: none; }
+}

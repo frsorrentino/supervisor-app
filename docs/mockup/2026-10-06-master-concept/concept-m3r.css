@@ -1,0 +1,3 @@
+.slide { animation: none !important; }
+/* come quando rileggi più su: la riga modello/quota rientra */
+.chat.master > header { max-height: 0 !important; opacity: 0 !important; overflow: hidden !important; border-bottom-width: 0 !important; }

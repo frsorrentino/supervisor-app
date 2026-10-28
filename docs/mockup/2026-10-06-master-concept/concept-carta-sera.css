@@ -1,0 +1,9 @@
+/* Concept «carta», tinta sera: solo per il banco di prova, che non può mettere data-carta="sera" sulla pagina.
+   Importa la carta e le abbassa la luce con i token di :root[data-carta="sera"]. */
+@import url('/mc/concept-carta.css');
+:root {
+  --m-tab: #BEB7A5; --m-paper: #B6AD99; --m-well: #ADA38F; --m-bubble: #A69B87; --m-line: #968B77; --m-edge: #5E574C; --m-dot: #807663;
+  --m-ink: #14100B; --m-ink-2: #3F372D; --m-btn: #B0AA99;
+  --m-wait: #563400; --m-wait-bg: #C4A269; --m-good: #004A1D; --m-good-bg: #90B697; --m-busy: #1C398B; --m-ring: #2C4F94;
+  --m-alert: #820C0C; --m-fail-bg: #C0A7A3; --m-advice: #4B2C84; --m-opus: #8E3510; --m-sel: rgb(20 16 11 / .2);
+}

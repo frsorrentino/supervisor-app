@@ -1,0 +1,13 @@
+/* Token dell’app */
+:root { --master-tab: #292F3A; --master-disc: #343A46; --master-sheet: #23272E; --master-well: #1B1F26; --master-raise: #292F3A; --m-chat: #14171C; }
+.slide { animation: none !important; }
+.pane > .closed { background: var(--master-sheet) !important; box-shadow: none !important; }
+.dock { background: var(--master-tab) !important; box-shadow: none !important; }
+.dock::after { content: none !important; }
+.dock .ib { box-shadow: none !important; }
+.field.master { box-shadow: none !important; border: 0 !important; }
+.chat.master { background: var(--m-chat) !important; }
+.chat.master > header { box-shadow: none !important; border-bottom: 1px solid var(--line) !important; }
+.chat.master header .pill, .chat.master .me .bubble, .chat.master .play, .chat.master .steps, .chat.master .box { box-shadow: none !important; }
+.chat.master .steps { background: var(--master-sheet) !important; }
+.chat.master > .bar { background: var(--master-sheet) !important; box-shadow: none !important; }

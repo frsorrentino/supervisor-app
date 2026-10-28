@@ -1,0 +1,40 @@
+:root { --bg:#000; --low:#1B1F26; --surface:#23272E; --high:#292F3A; --line:#2A2E35; --text:#F2F4F7; --text2:#B0B8C4; --icon:#A8C7FA; --primary:#D3E3FD; --on-primary:#0A2050; --wait:#FFB020; --amber:#FFC46B; --stale:#98A2B3; --gone:#FF453A; --busy:#7FA1FF; }
+* { box-sizing: border-box; margin: 0; }
+body { background: #10131a; color: var(--text); font: 16px/1.35 Roboto, "Google Sans", system-ui, sans-serif; padding: 24px; }
+.cap { font: 600 14px system-ui; color: var(--text2); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 10px 4px; }
+.row { display: flex; gap: 28px; align-items: flex-start; }
+.phone { width: 412px; height: 892px; background: var(--bg); border-radius: 28px; overflow: hidden; position: relative; border: 1px solid #333; }
+.pills { display: flex; gap: 6px; align-items: center; padding: 10px 6px 4px 12px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 17px; background: var(--surface); font-size: 14px; font-weight: 500; white-space: nowrap; }
+.pill .ring { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #455165; border-top-color: #8BB4F7; }
+.dots { margin-left: auto; width: 40px; text-align: center; color: var(--text2); font-size: 22px; }
+.note { color: #BCE4C7; font-size: 13px; padding: 2px 18px 8px; border-bottom: 1px solid var(--line); }
+svg.m { width: 16px; height: 16px; flex: none; }
+.ic-pause { fill: var(--text); } .ic-ff { fill: var(--text); } .ic-ff.amber { fill: var(--amber); } .ic-q { fill: none; stroke: var(--stale); stroke-width: 2; stroke-linecap: round; }
+.tip { position: absolute; left: 14px; right: 14px; top: 56px; background: var(--high); border-radius: 18px; padding: 14px 16px; box-shadow: 0 12px 40px rgb(0 0 0 / .6); border: 1px solid var(--line); }
+.tip b { display: flex; gap: 8px; align-items: center; font-size: 16px; } .tip p { color: var(--text2); font-size: 14px; margin-top: 4px; }
+.bubble { margin: 14px 14px 0 auto; max-width: 300px; background: var(--surface); border-radius: 20px; padding: 10px 14px; font-size: 15px; }
+.claude { margin: 14px 18px; font-size: 15px; color: var(--text); }
+.field { position: absolute; left: 12px; right: 12px; bottom: 14px; height: 56px; border: 1px solid var(--line); border-radius: 28px; display: flex; align-items: center; padding: 0 8px 0 18px; color: var(--text2); }
+.field .send { margin-left: auto; width: 40px; height: 40px; border-radius: 50%; background: var(--surface); }
+.home h1 { font: 500 22px system-ui; padding: 16px 18px 4px; } .home h1 small { font-size: 14px; color: var(--text2); font-weight: 400; margin-left: 8px; }
+.gh { font: 500 12px var(--m, monospace); letter-spacing: .1em; color: var(--busy); padding: 14px 18px 6px; }
+.card { margin: 6px 12px; background: var(--low); border-radius: 20px; padding: 10px 12px 12px 14px; }
+.card .top { display: flex; align-items: center; gap: 10px; } .card .top b { font-size: 16px; } .card .top .mono { margin-left: auto; font: 13px monospace; color: var(--text2); }
+.badge { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; }
+.card p { color: var(--text2); font-size: 14px; margin-top: 6px; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 28px 28px 0 0; padding: 14px 18px 24px; }
+.sheet .grab { width: 32px; height: 4px; border-radius: 2px; background: var(--text2); opacity: .5; margin: 0 auto 12px; }
+.sheet h3 { font: 500 13px system-ui; color: var(--text2); letter-spacing: .06em; text-transform: uppercase; margin: 14px 0 8px; }
+.sheet hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0 4px; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { background: var(--high); border-radius: 16px; padding: 10px 14px; font-size: 15px; } .opt small { display: block; color: var(--text2); font-size: 13px; }
+.opt.on { background: var(--primary); color: var(--on-primary); } .opt.on small { color: var(--on-primary); opacity: .8; }
+.seg { display: flex; gap: 2px; }
+.seg span { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; background: var(--high); font-size: 13px; text-align: center; }
+.seg span:first-child { border-radius: 18px 6px 6px 18px; } .seg span:last-child { border-radius: 6px 18px 18px 6px; }
+.seg span.on { background: var(--primary); color: var(--on-primary); } .seg span.on svg { fill: var(--on-primary); }
+.seg span.ask { background: color-mix(in srgb, var(--wait) 22%, var(--high)); outline: 2px solid var(--wait); color: var(--text); }
+.confirm { margin-top: 10px; font-size: 14px; color: var(--wait); }
+.legend { width: 412px; background: #161a22; border-radius: 20px; padding: 16px 18px; font-size: 14px; color: var(--text2); }
+.legend div { display: flex; gap: 10px; align-items: center; margin: 8px 0; } .legend b { color: var(--text); font-weight: 500; min-width: 150px; }

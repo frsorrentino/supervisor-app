@@ -1,0 +1,6 @@
+.slide { animation: none !important; }
+/* C · filo di luce: il campo ha la luce della linguetta sul bordo in alto e la piega in basso, sul tono del foglio. */
+.field.master { background: #22262D !important; border: 1px solid transparent !important; padding: 0 8px 0 4px !important;
+  border-top-color: rgb(222 233 255 / .24) !important; border-bottom-color: rgb(0 0 0 / .55) !important; box-shadow: 0 6px 14px -6px rgb(0 0 0 / .6) !important; }
+.field.master:focus-within { border: 2px solid var(--text2) !important; padding: 0 7px 0 3px !important; }
+.field.master .round:not(.filled) { background: #30343C !important; }

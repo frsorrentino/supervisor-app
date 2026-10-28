@@ -1,0 +1,13 @@
+/* Sommessa */
+:root { --master-tab: #292D33; --master-disc: #3A3D44; --master-sheet: #21252A; --master-well: #191C21; --master-raise: #272A30; --m-chat: #111419; }
+.slide { animation: none !important; }
+.pane > .closed { background: var(--master-sheet) !important; box-shadow: none !important; }
+.dock { background: var(--master-tab) !important; box-shadow: none !important; }
+.dock::after { content: none !important; }
+.dock .ib { box-shadow: none !important; }
+.field.master { box-shadow: none !important; border: 0 !important; }
+.chat.master { background: var(--m-chat) !important; }
+.chat.master > header { box-shadow: none !important; border-bottom: 1px solid var(--line) !important; }
+.chat.master header .pill, .chat.master .me .bubble, .chat.master .play, .chat.master .steps, .chat.master .box { box-shadow: none !important; }
+.chat.master .steps { background: var(--master-sheet) !important; }
+.chat.master > .bar { background: var(--master-sheet) !important; box-shadow: none !important; }

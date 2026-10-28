@@ -1,0 +1,74 @@
+/* Concept «carbone» (06/10): la master nella temperatura di claude.ai.
+   Neutri caldi carbone e testo avorio; il corallo di Claude solo come segno (la scintilla, il cursore, il fuoco del campo).
+   Il trucco: dentro la master ogni token freddo dell'app ha il suo gemello caldo, quindi chat, bolle, passaggi, Prossimi e
+   testata cambiano temperatura da soli. Le card della home restano fuori dal blocco e restano grigio-blu. */
+
+:root {
+  --m-well: #1F1D1A;     /* campo, gruppi di passaggi, Prossimi: incavati */
+  --m-bed: #292723;      /* fondo intorno al campo e sfondo della chat aperta */
+  --m-tab: #36332E;      /* linguetta: un passo più chiara del fondo */
+  --m-high: #413E39;     /* bolle di Franz, pillola del modello */
+  --m-key: #4B4742;      /* tasti tondi sulla linguetta */
+  --m-line: #46433E;     /* filetti */
+  --m-edge: #5E5A55;     /* bordo del campo a riposo */
+  --m-track: #58554F;    /* binario degli anelli */
+  --m-dot: #6C6863;      /* puntini dei passaggi */
+  --m-text: #F6F3EC;     /* avorio caldo */
+  --m-text2: #C7C2B9;    /* pietra: righe mono, ore, meta */
+  --m-text3: #A6A199;    /* suggerimento in corsivo */
+  --m-sand: #DCCFBC;     /* icone e link: sabbia chiara */
+  --m-primary: #EFEBE1;  /* l'unico bottone pieno, avorio */
+  --m-on-primary: #24211D;
+  --m-spark: #D97757;    /* il corallo di Claude, solo segno */
+  --m-spark-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M11.20 9.00L17.00 9.00M10.56 10.56L14.66 14.66M9.00 11.20L9.00 17.00M7.44 10.56L3.34 14.66M6.80 9.00L1.00 9.00M7.44 7.44L3.34 3.34M9.00 6.80L9.00 1.00M10.56 7.44L14.66 3.34' stroke='black' stroke-width='2.1' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+}
+
+/* I gemelli caldi: dentro il blocco della master i token dell'app puntano alla rampa carbone. */
+.pane > .closed, .slide {
+  --bg: var(--m-bed); --low: var(--m-well); --surface: var(--m-tab); --high: var(--m-high); --line: var(--m-line);
+  --text: var(--m-text); --text2: var(--m-text2); --icon: var(--m-sand); --primary: var(--m-primary); --on-primary: var(--m-on-primary);
+  --stale: var(--m-text3); --b-second: var(--m-text2); --b-track: var(--m-track); --b-ring: var(--m-sand);
+  --steps-bg: var(--m-well); --steps-dot: var(--m-dot);
+  color: var(--m-text);
+}
+.pane > .closed ::selection, .slide ::selection { background: rgb(220 207 188 / .28); }
+
+/* ── Chiusa: linguetta e campo, un blocco unico ── */
+.pane > .closed { background: var(--m-bed) !important; border-radius: 26px 26px 0 0; }
+.dock { background: var(--m-tab) !important; box-shadow: inset 0 1px 0 rgb(246 243 236 / .07); }
+.dock .mono { color: var(--m-text2) !important; }
+.dock .mono::before {
+  content: ""; display: inline-block; width: 13px; height: 13px; margin: 0 7px -2px 0; background: var(--m-spark);
+  -webkit-mask: var(--m-spark-svg) center / contain no-repeat; mask: var(--m-spark-svg) center / contain no-repeat;
+}
+.dock b { color: var(--m-text); }
+.dock .ib { background: var(--m-key) !important; color: var(--m-text) !important; }
+
+.field.master { background: var(--m-well) !important; border: 1.5px solid var(--m-edge) !important; padding: 0 7.5px 0 3.5px !important; }
+.field.master:focus-within { border: 2px solid var(--m-spark) !important; padding: 0 7px 0 3px !important; }
+.field.master textarea { caret-color: var(--m-spark); }
+.field.master textarea::placeholder { color: var(--m-text2); }
+.field.master textarea.sug::placeholder { color: var(--m-text3); }
+
+/* ── Aperta: la pagina intera nella stessa famiglia ── */
+.slide { background: var(--m-bed); }
+.slide .chat { background: var(--m-bed) !important; }
+.slide .chat > header { background: var(--m-bed) !important; border-bottom-color: var(--m-line) !important; }
+.slide .lines { background-color: var(--m-bed); }
+.slide .lines.dots { background-image: radial-gradient(rgb(246 243 236 / .06) 1px, transparent 1.4px) !important; }
+/* «Casa» in sabbia si confonderebbe col testo avorio: diventa una pastiglia tonale, come i tasti tondi. */
+.slide .tohome { color: var(--m-sand) !important; font-weight: 500; background: var(--m-high); padding: 6px 14px !important; }
+.slide .me .bubble { background: var(--m-high) !important; }
+.slide .steps:not(.fail) { background: var(--m-well) !important; }
+.slide .box { background: var(--m-well) !important; border-color: var(--m-line) !important; }
+/* La firma di Claude in fondo a ogni sua risposta, come in claude.ai: la stessa scintilla della linguetta. */
+.slide .claude .acts::before {
+  content: ""; flex: none; width: 14px; height: 14px; margin: 0 8px 0 6px; background: var(--m-spark);
+  -webkit-mask: var(--m-spark-svg) center / contain no-repeat; mask: var(--m-spark-svg) center / contain no-repeat;
+}
+
+/* ── Movimento: la scintilla gira solo mentre la master lavora (lo stesso giro della stella «al lavoro» della chat).
+   Il badge ha aria-label = stato; .breathe non basta perché respira anche in «awaiting». ── */
+@keyframes m-spin { to { rotate: 360deg; } }
+.dock:has(svg[role=img][aria-label="busy"]) .mono::before { animation: m-spin 2.4s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .dock:has(svg[role=img][aria-label="busy"]) .mono::before { animation: none; } }

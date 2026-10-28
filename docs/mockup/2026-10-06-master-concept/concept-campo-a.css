@@ -1,0 +1,6 @@
+.slide { animation: none !important; }
+/* A · a rilievo: il campo è dello stesso materiale della linguetta, sollevato sul foglio, con il suo filo di luce. */
+.field.master { background: linear-gradient(180deg, #353943, #2C3038) !important; border: 0 !important; padding: 0 8px 0 4px !important;
+  box-shadow: inset 0 1px 0 rgb(222 233 255 / .16), 0 3px 8px rgb(0 0 0 / .55) !important; }
+.field.master:focus-within { box-shadow: inset 0 0 0 2px var(--text2), 0 3px 8px rgb(0 0 0 / .55) !important; }
+.field.master .round:not(.filled) { background: #444953 !important; box-shadow: inset 0 1px 0 rgb(222 233 255 / .12); }

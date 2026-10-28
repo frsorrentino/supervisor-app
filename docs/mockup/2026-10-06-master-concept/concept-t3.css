@@ -1,0 +1,13 @@
+/* Velo blu (primario) */
+:root { --master-tab: #2B3645; --master-disc: #3D4958; --master-sheet: #202B39; --master-well: #151F2D; --master-raise: #26313F; --m-chat: #0E1825; }
+.slide { animation: none !important; }
+.pane > .closed { background: var(--master-sheet) !important; box-shadow: none !important; }
+.dock { background: var(--master-tab) !important; box-shadow: none !important; }
+.dock::after { content: none !important; }
+.dock .ib { box-shadow: none !important; }
+.field.master { box-shadow: none !important; border: 0 !important; }
+.chat.master { background: var(--m-chat) !important; }
+.chat.master > header { box-shadow: none !important; border-bottom: 1px solid var(--line) !important; }
+.chat.master header .pill, .chat.master .me .bubble, .chat.master .play, .chat.master .steps, .chat.master .box { box-shadow: none !important; }
+.chat.master .steps { background: var(--master-sheet) !important; }
+.chat.master > .bar { background: var(--master-sheet) !important; box-shadow: none !important; }
