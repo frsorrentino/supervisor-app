@@ -28,7 +28,7 @@ describe('Prossimi', () => {
     expect(b.steps).toEqual(['ok release claude-master 0.6.9', 'aggiorna il changelog', 'x'.repeat(40)])
     expect([...b.blocking]).toEqual(['ok release claude-master 0.6.9', 'x'.repeat(40)])
   })
-  it("«Esito:» dopo i Prossimi non li nasconde (social-pixelbox-it, 12/10 11:17)", () => {
+  it("«Esito:» dopo i Prossimi non li nasconde (social-example-it, 12/10 11:17)", () => {
     const r = parseSteps('In attesa del tuo ok.\n\nProssimi: ! ok push e deploy · ripubblica post 59 su FB dopo deploy\n\nEsito: push in attesa di ok.\nWatch: attende ok deploy')
     expect(r.text).toBe('In attesa del tuo ok.\n\nEsito: push in attesa di ok.\nWatch: attende ok deploy')
     expect(r.steps).toEqual(['ok push e deploy', 'ripubblica post 59 su FB dopo deploy'])

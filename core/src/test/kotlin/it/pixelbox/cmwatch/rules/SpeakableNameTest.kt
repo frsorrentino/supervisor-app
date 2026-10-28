@@ -7,7 +7,7 @@ class SpeakableNameTest {
     @Test fun specExamples() {
         assertEquals("atlas shop", SpeakableName.of("pix-atlas-shop-it"))
         assertEquals("ledger api", SpeakableName.of("ledger-api"))
-        assertEquals("fccrotone", SpeakableName.of("pix-fccrotone-it"))
+        assertEquals("orbit", SpeakableName.of("pix-orbit-it"))
     }
 
     @Test fun everyFinalDomainGoes() {

@@ -26,4 +26,4 @@ Ogni riga si spunta con data ed esito visto sul telefono o al polso; una riga ch
 
 ## Difetti trovati dal vivo
 
-- 30/09 15:49: su un permesso senza opzioni (my-pixelbox-it, strumento Agent) la scheda del telefono offre solo «Allow all» e il testo libero; l'orologio mostra anche «Chat about this». Da allineare.
+- 30/09 15:49: su un permesso senza opzioni (my-example-it, strumento Agent) la scheda del telefono offre solo «Allow all» e il testo libero; l'orologio mostra anche «Chat about this». Da allineare.

@@ -71,7 +71,7 @@ PER_TE = """
 <div class=card><div class=row><span class="mark a"></span><div class=t><b>Albo Chiaro: la casella Aruba albo@, con utente e password</b><small>sblocca <em>albo-crotone</em>: 5 compiti in pausa dal 18/10</small></div><span class=tonal>Fatto</span></div></div>
 <div class=fold><span>Altre 16 dall'agenda</span><span class=ic>›</span></div>
 <div class=grp style="color:var(--run)">PUÒ FARLO CLAUDE · 10<i></i></div>
-<div class=card><div class=row><span class="mark a"></span><div class=t><b>Migrare a pixel i 4 siti di produzione con idemedia attivo</b><small>pinsacesare.it rehalife.it tgcal24.it anotherbeach.com</small></div><span class=tonal>Avvia</span></div></div>
+<div class=card><div class=row><span class="mark a"></span><div class=t><b>Migrare a pixel i 4 siti di produzione con idemedia attivo</b><small>alfa.example beta.example gamma.example delta.example</small></div><span class=tonal>Avvia</span></div></div>
 <div class=fold><span>Altre 9 dall'agenda</span><span class=ic>›</span></div>
 """
 
@@ -94,7 +94,7 @@ IN_CORSO = """
 <div class=card><div class=row><div class=t><b>Albo Chiaro fase 1 (task 1-8): repository e CI, verifiche, database, lettore orario, area riservata e deploy</b><small><em>albo-crotone</em> · ok il 17/10 alle 22:05 · in pausa dal 18/10: aspetta da te la casella Aruba</small></div><span class="state st-pa">⏸ in pausa</span></div>{bar(sol=(27.4, 1.2), dash=(28.6, 61.9))}</div>
 <div class=card><div class=row><div class=t><b>Albo Chiaro fase 2 (task 9-15): testo, OCR, dati personali, IA Gemini, lotti, pagine pubbliche</b><small><em>albo-crotone</em> · ok il 17/10 · parte dopo la fase 1</small></div><span class="state st-pa">⏸ in pausa</span></div>{bar(dash=(27.4, 63.1))}</div>
 <div class=fold><span>Altri 4 in pausa: Albo fase 3, Provincia, Regione · App telefono del 03/10</span><span class=ic>›</span></div>
-<div class=fold><span>3 fermi su altri: Chrome Web Store, dev.pinsacesare.it, chrome-bridge #2</span><span class=ic>›</span></div>
+<div class=fold><span>3 fermi su altri: Chrome Web Store, dev.alfa.example, chrome-bridge #2</span><span class=ic>›</span></div>
 """
 
 STANOTTE = """
@@ -137,7 +137,7 @@ HOME = page("PROPOSTA · HOME: UNA SOLA SEZIONE «LAVORI»", """
 <div class=sec><span class=chev>▾</span>SESSIONI · 6<span class=ln></span></div>
 <div class=card><div class=row><span style="width:26px;height:26px;border-radius:50%;background:#3B82F6;flex:none"></span><div class=t><b>supervisor-app</b><small>mockup della pagina «Lavori» · al lavoro</small></div></div></div>
 <div class=card><div class=row><span style="width:26px;height:26px;border-radius:50%;background:#8B929C;flex:none"></span><div class=t><b>finanza</b><small>ferma da 14 ore</small></div></div></div>
-<div class=card><div class=row><span style="width:26px;height:26px;border-radius:50%;background:#8B929C;flex:none"></span><div class=t><b>smaggas-it</b><small>ferma da 11 ore</small></div></div></div>
+<div class=card><div class=row><span style="width:26px;height:26px;border-radius:50%;background:#8B929C;flex:none"></span><div class=t><b>shop-example-it</b><small>ferma da 11 ore</small></div></div></div>
 <div class=sec><span class=chev>▸</span>UTILIZZO<span class=ln></span><span class=sum>personale 5 h 2 % · settimana 0 %</span></div>
 """)
 

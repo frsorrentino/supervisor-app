@@ -38,7 +38,7 @@ class NextStepsTest {
     }
 
     /**
-     * Il testo vero di social-pixelbox-it (12/10 11:17): «Esito:» dopo i Prossimi, poi «Watch:». Il relay li leggeva, l'app e la
+     * Il testo vero di social-example-it (12/10 11:17): «Esito:» dopo i Prossimi, poi «Watch:». Il relay li leggeva, l'app e la
      * web no, e la riga restava testo invece di diventare tasti.
      */
     @Test fun esitoLineAfterIsSkipped() {

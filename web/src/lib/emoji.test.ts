@@ -6,7 +6,7 @@ describe('filtro delle emoji', () => {
   it('i simboli di stato in testa a un titolo del relay se ne vanno', () => {
     expect(stripEmoji('✓ atlas-release-2-4: check green')).toBe('atlas-release-2-4: check green')
     expect(stripEmoji('✗ ledger-migrations-011: check red')).toBe('ledger-migrations-011: check red')
-    expect(stripEmoji('⛔ social-pixelbox-it: limite cinque ore')).toBe('social-pixelbox-it: limite cinque ore')
+    expect(stripEmoji('⛔ social-example-it: limite cinque ore')).toBe('social-example-it: limite cinque ore')
     expect(stripEmoji('⚠ atlas-shop: turn failed — 529')).toBe('atlas-shop: turn failed — 529')
     expect(stripEmoji('❓ ledger-api')).toBe('ledger-api')
     expect(stripEmoji('⏸ orbit-docs in pausa')).toBe('orbit-docs in pausa')

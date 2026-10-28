@@ -32,12 +32,12 @@ import java.time.ZoneId
 
 /**
  * chiusura-testo (Franz, 27/10 13:23, screenshot): nella card di una sessione finita che si sta chiudendo, il segno
- * «gerardosacco-com si sta chiudendo» stava accanto a «● aperta · ha finito il compito alle 13:07» e lo stato andava a
+ * «studio-example-com si sta chiudendo» stava accanto a «● aperta · ha finito il compito alle 13:07» e lo stato andava a
  * capo ogni due-tre lettere. Il segno va su una riga sua, sotto lo stato.
  */
 private object Closing {
     private val st = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
-    const val NAME = "gerardosacco-com"
+    const val NAME = "studio-example-com"
     val state: State = st.copy(sessions = st.sessions.map {
         if (it.name != "field-notes") it
         else it.copy(name = NAME, state = SessionState.IDLE, finished = true, since = st.ts - 3600,

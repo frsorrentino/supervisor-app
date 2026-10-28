@@ -42,7 +42,7 @@ class SummaryListTest {
         val st2 = idle.copy(commitments = night.commitments.take(1) + idle.commitments!!, approvals = listOf(ok))
         val agenda = it.pixelbox.cmwatch.contract.AgendaPage(listOf(
             it.pixelbox.cmwatch.contract.AgendaRow("aperto", "personale", "franz", "Revocare la chiave API Anthropic trovata in chiaro", "console.anthropic.com → API Keys"),
-            it.pixelbox.cmwatch.contract.AgendaRow("aperto", "agenzia", "claude", "Migrare a pixel i 4 siti con idemedia attivo", "pinsacesare.it rehalife.it"),
+            it.pixelbox.cmwatch.contract.AgendaRow("aperto", "agenzia", "claude", "Migrare a pixel i 4 siti con idemedia attivo", "alfa.example beta.example"),
         ), owner = "franz")
         val today = java.time.LocalDate.of(2026, 9, 12)
         CmPhoneTheme(still = true) {

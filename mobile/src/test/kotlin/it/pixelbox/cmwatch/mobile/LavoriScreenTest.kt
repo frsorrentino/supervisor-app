@@ -42,7 +42,7 @@ class LavoriScreenTest {
         AgendaRow("aperto", "personale", "franz", "Revocare la chiave API Anthropic trovata in chiaro", "console.anthropic.com → API Keys"),
         AgendaRow("aperto", "agenzia", "franz", "17 client_id residui: 6 con candidato da confermare", ".claude/DA-DECIDERE-client-id.md"),
         AgendaRow("aperto", "agenzia", "franz", "Svuotare i 46 container con Universal Analytics", ".claude/scan/tag-runtime.json"),
-        AgendaRow("aperto", "agenzia", "claude", "Migrare a pixel i 4 siti di produzione con idemedia attivo", "pinsacesare.it rehalife.it tgcal24.it"),
+        AgendaRow("aperto", "agenzia", "claude", "Migrare a pixel i 4 siti di produzione con idemedia attivo", "alfa.example beta.example gamma.example"),
         AgendaRow("aperto", "postazione", "claude", "Cancellare le cache orfane dei plugin", "~/.claude*/plugins/cache/"),
         AgendaRow("aperto", "postazione", "terzi", "Attesa revisione Chrome Web Store per chrome-bridge 1.12.0", "blocca la prova delle schede"),
         AgendaRow("fatto", "postazione", "nessuno", "Backups of the workstation every night", "crontab"),

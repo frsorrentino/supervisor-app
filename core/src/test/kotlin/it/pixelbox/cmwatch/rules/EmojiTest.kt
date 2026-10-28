@@ -8,7 +8,7 @@ class EmojiTest {
     @Test fun statusSymbolsAtTheHeadOfARelayTitleGo() {
         assertEquals("atlas-release-2-4: check green", Emoji.strip("✓ atlas-release-2-4: check green"))
         assertEquals("ledger-migrations-011: check red", Emoji.strip("✗ ledger-migrations-011: check red"))
-        assertEquals("social-pixelbox-it: limite cinque ore", Emoji.strip("⛔ social-pixelbox-it: limite cinque ore"))
+        assertEquals("social-example-it: limite cinque ore", Emoji.strip("⛔ social-example-it: limite cinque ore"))
         assertEquals("atlas-shop: turn failed — 529", Emoji.strip("⚠ atlas-shop: turn failed — 529"))
         assertEquals("ledger-api", Emoji.strip("❓ ledger-api"))
         assertEquals("orbit-docs in pausa", Emoji.strip("⏸ orbit-docs in pausa"))
