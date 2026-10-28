@@ -1004,7 +1004,8 @@
       <Settings m={devicesOf(st.host, st, freshness(st, now), now, '', __APP_VERSION__, true, null, false, null)}
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
-        onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo} />
+        onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
+        onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => run(newCmd('unpair', null, uid)) : null} />
     {:else if p === 'queue'}
       <Queue {st} now={now} skip={queueSkip} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} onDone={attentionDone} />
     {:else}

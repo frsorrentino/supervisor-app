@@ -436,9 +436,16 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
 
 /**
  * Contratto 1.32: un dispositivo accoppiato come lo vede il PC. `kind` = phone, watch, tablet, chromebook o null se non si
- * sa; `seen` = epoch s dell'ultima lettura (`/seen`), null se non è mai arrivata.
+ * sa; `seen` = epoch s dell'ultima lettura (`/seen`), null se non è mai arrivata. Contratto 1.89: `seen` comprende l'ultimo
+ * arrivo tenuto dal relay, `cmd_at` = l'ultimo comando con l'uid del dispositivo (assente se non ce n'è uno).
  */
-@Serializable data class Device(val uid: String, val name: String, val kind: String? = null, val seen: Long? = null)
+@Serializable data class Device(
+    val uid: String, val name: String, val kind: String? = null, val seen: Long? = null,
+    @SerialName("cmd_at") val cmdAt: Long? = null,
+) {
+    /** Contratto 1.89: l'ultimo segno di vita, il più recente fra lettura e comando; null se non c'è nessuno dei due. */
+    val lastSign: Long? get() = listOfNotNull(seen, cmdAt).maxOrNull()
+}
 
 /**
  * Contratto 1.33: un'azione ricorrente della master (Franz, 04/10 20:24). `param` = il prompt aspetta un pezzo da
@@ -577,6 +584,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val content: kotlinx.serialization.json.JsonObject? = null,
+    /** Contratto 1.89: l'uid Firebase con cui il dispositivo si è abbinato; lo mette il trasporto. Assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val uid: String? = null,
 )
 
 /**

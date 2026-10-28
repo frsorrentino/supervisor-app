@@ -437,6 +437,8 @@ class MainActivity : ComponentActivity() {
                 onTabletDetails = { on -> tabletDetails = on; tabletPrefs.edit().putBoolean("tablet_details", on).apply() },
                 // Contratto 1.32: lo schema dei collegamenti con i dispositivi veri; «questo» è il primo uid dell'accoppiamento.
                 linked = it.pixelbox.cmwatch.rules.SettingsDevices.linked(state, r?.uids?.firstOrNull(), now),
+                // Contratto 1.89: Revoca dall'elenco; il relay toglie il dispositivo e lo stato dopo lo mostra senza.
+                onRevoke = if (!demo && state?.ops?.contains("unpair") == true) ({ uid -> scope.launch { runCatching { app.repo.command(CmdOp.UNPAIR, null, uid) } } }) else null,
             ) }
             return
         }

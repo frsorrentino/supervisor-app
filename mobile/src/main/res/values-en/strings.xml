@@ -634,6 +634,15 @@
     <string name="dev_seen_never">never</string>
     <string name="dev_seen_never_long">never read</string>
     <string name="dev_seen_ago">read %1$s ago</string>
+    <string name="device_list">Paired devices</string>
+    <string name="device_last_seen">seen %1$s ago</string>
+    <string name="device_last_seen_now">seen just now</string>
+    <string name="device_never_seen">never seen</string>
+    <string name="device_this">this device</string>
+    <string name="device_revoke">Revoke</string>
+    <string name="device_revoke_title">Revoke %1$s?</string>
+    <string name="device_revoke_what">It will no longer read the PC\'s state or send commands. To use it again, pair it from scratch.</string>
+    <string name="device_keep">Keep</string>
     <string name="fact_kind">Kind</string>
     <string name="fact_seen">Last read</string>
     <plurals name="dev_count"><item quantity="one">%1$d\u00A0device</item><item quantity="other">%1$d\u00A0devices</item></plurals>

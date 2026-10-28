@@ -15,7 +15,7 @@
 
   // Impostazioni (SettingsScreen dell'app, mockup A): sezioni con l'etichetta e il filo. Collegamento: lo schema dei
   // dispositivi da toccare (schema B, contratto 1.32); Lettura ad alta voce: voce e velocità; Informazioni: la versione.
-  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, demo = false }: {
+  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, onRevoke = null, demo = false }: {
     /** La demo (Modalità demo dell'app): l'interruttore porta dentro e fuori dai dati di prova. */
     demo?: boolean
     m: DevicesModel; devices: Linked[]; now: number; channel: string
@@ -26,6 +26,8 @@
     push?: PushStatus; onPush?: (on: boolean) => void
     /** «Aggiungi un dispositivo» (pair_add, 1.31); null se il relay non lo fa o nella demo. */
     onAdd?: (() => void) | null
+    /** Contratto 1.89: Revoca accanto a ogni dispositivo dell'elenco (op `unpair`); null se il relay non la fa o nella demo. */
+    onRevoke?: ((uid: string) => void) | null
   } = $props()
 
   const PC = 'pc'
@@ -50,6 +52,10 @@
   const dayTime = (at: number) => new Date(at * 1000).toLocaleString(locale, { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone }).replace(',', '')
   const anyLive = $derived(devices.some(d => d.tone !== 'off'))
   const pick = $derived(devices.find(d => d.uid === selected) ?? null)
+  // Contratto 1.89: «visto 5 min fa», «visto ora», «mai visto», o «questo dispositivo» per quello in uso.
+  const lastSeenLine = (d: Linked) => d.self ? t.devThisDevice : d.seen == null ? t.devNeverSeen : now - d.seen < 120 ? t.devLastSeenNow : t.devLastSeen(seenShort(d.seen))
+  let revokeDlg: HTMLDialogElement | undefined = $state()
+  let revoking = $state<Linked | null>(null)
   const rate = (r: number) => `${r.toLocaleString(locale, { maximumFractionDigits: 2 })}×`
 </script>
 
@@ -101,6 +107,30 @@
     </div>
     <p class="hint">{t.devHint}</p>
   </div>
+
+  {#if devices.length}
+    <div class="gh"><span>{t.devList.toUpperCase()}</span><i></i></div>
+    <div class="sec">
+      {#each devices as d (d.uid)}
+        <div class="srow">
+          <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke={toneColor(d.tone)} stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{#each icon(d.kind) as p}<path d={p} />{/each}</svg></span>
+          <span class="st"><b>{d.name}</b><small>{lastSeenLine(d)}</small></span>
+          {#if onRevoke && !d.self}<button class="revoke" onclick={() => { revoking = d; revokeDlg?.showModal() }}>{t.devRevoke}</button>{/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <dialog class="revdlg" bind:this={revokeDlg} onclick={(e) => e.target === e.currentTarget && revokeDlg?.close()}>
+    {#if revoking}
+      <h3>{t.devRevokeTitle(revoking.name)}</h3>
+      <p>{t.devRevokeWhat}</p>
+      <div class="btns">
+        <button class="keep" onclick={() => revokeDlg?.close()}>{t.devKeep}</button>
+        <button class="danger" onclick={() => { const u = revoking!.uid; revokeDlg?.close(); onRevoke?.(u) }}>{t.devRevoke}</button>
+      </div>
+    {/if}
+  </dialog>
 
   {#if onAdd}
     <div class="sec">
@@ -231,6 +261,13 @@
   .st b { font-size: 16px; font-weight: 500; }
   .st small { font-size: 12.5px; color: var(--text2); }
   label.srow { cursor: pointer; }
+  .revoke { color: var(--gone); font-weight: 500; font-size: 14px; padding: 10px 14px; border-radius: 999px; flex: none; }
+  .revoke:hover { background: var(--surface); }
+  .revdlg p { color: var(--text2); font-size: 14px; margin: 0 0 8px; }
+  .revdlg .btns button { padding: 10px 16px; border-radius: 999px; font-weight: 500; font-size: 14px; }
+  .keep { color: var(--icon); }
+  .keep:hover { background: var(--high); }
+  .danger { background: var(--gone); color: #fff; }
   label.srow:hover { background: var(--surface); }
   .switch { appearance: none; width: 52px; height: 32px; border-radius: 16px; background: var(--high); border: 2px solid var(--stale); position: relative; cursor: pointer; flex: none; transition: background .15s; }
   .switch::after { content: ''; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--stale); transition: all .15s; }

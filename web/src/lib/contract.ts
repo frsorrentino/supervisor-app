@@ -78,7 +78,13 @@ export type QuotaAccount = {
   h5?: number | null; w7?: number | null; reset_w7?: number | null; reset_h5?: number | null; stale?: boolean; kind?: string | null
   w7_points?: WeekPoints | null; w7_origins?: WeekOrigins | null
 }
-export type Device = { uid: string; name: string; kind?: string | null; seen?: number | null }
+/** Contratto 1.89: `seen` comprende l'ultimo arrivo tenuto dal relay; `cmd_at` = l'ultimo comando con l'uid del dispositivo. */
+export type Device = { uid: string; name: string; kind?: string | null; seen?: number | null; cmd_at?: number | null }
+/** Contratto 1.89: l'ultimo segno di vita, il più recente fra lettura e comando; null se non c'è nessuno dei due. */
+export const lastSign = (d: Device): number | null => {
+  const xs = [d.seen, d.cmd_at].filter((x): x is number => x != null)
+  return xs.length ? Math.max(...xs) : null
+}
 export type Recurring = { id: string; label: string; prompt: string; param?: boolean }
 /** Contratto 1.75: un host remoto confermato, dall'ultima lettura del poller; con `up` false i numeri sono null e `error` dice perché.
  *  `cpu` fra 0 e 1, RAM e disco in byte (il disco della radice delle sessioni), `sessions` = i nomi delle sessioni vive lì. */
@@ -261,6 +267,8 @@ export type Cmd = {
   choice?: string
   /** Contratto 1.83, `elicit`: le risposte del modulo, {key: valore}. */
   content?: Record<string, string | number | boolean>
+  /** Contratto 1.89: l'uid Firebase dell'abbinamento; lo mette il trasporto remoto. */
+  uid?: string
 }
 /**
  * Contratto 1.83: una domanda di un server MCP a metà di uno strumento (elicitation). `mode` form = un modulo di `fields`;

@@ -202,7 +202,9 @@ class FirebaseTransport(
 
     override suspend fun send(cmd: Cmd, onWritten: () -> Unit): CmdResult {
         k()
-        rtdb.put("cmd/${cmd.id}", seal(ContractJson.encode(cmd)))
+        // Contratto 1.89: l'uid dell'abbinamento in ogni comando, per l'ultimo segno di vita del dispositivo.
+        val sent = if (cmd.uid == null) uid()?.let { cmd.copy(uid = it) } ?: cmd else cmd
+        rtdb.put("cmd/${cmd.id}", seal(ContractJson.encode(sent)))
         onWritten()
         val r = withTimeoutOrNull(when (cmd.op) { CmdOp.SLASH, CmdOp.DONE -> slashTimeoutMs; CmdOp.FILE -> fileTimeoutMs; else -> resultTimeoutMs }) {
             while (true) {

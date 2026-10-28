@@ -9,6 +9,12 @@ import org.junit.Rule
 import org.junit.Test
 import it.pixelbox.cmwatch.mobile.ui.*
 import java.io.File
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /** Le Impostazioni del mockup A (Franz, 03/10 21:59): sezioni per argomento e lo schema dei dispositivi da toccare. */
 class SettingsScreenTest {
@@ -29,6 +35,17 @@ class SettingsScreenTest {
                 "penguin", "Pixel 9", "Pixel Watch 5", false, false, "0.2", {}, {}, {}, {}, devices = devices(),
                 linked = SettingsDevices.linked(st, "phoneUid00000000000000000000", st.ts),
             )
+        }
+    }
+
+    // Contratto 1.89 (Franz, 28/10): l'elenco con l'ultimo segno di vita di ognuno e Revoca accanto, tranne che su questo
+    // telefono; il browser conta il comando delle 10 s dopo la lettura, il Pixel 7 l'arrivo tenuto dal relay.
+    @Test fun device_last_seen_list() = paparazzi.snapshot {
+        val stale = ContractJson.decodeState(File("../contract/state-3-stale.json").readText())
+        CmPhoneTheme(still = true) {
+            Box(Modifier.background(CmColors.bg).padding(16.dp)) {
+                LinkedList(SettingsDevices.linked(stale, "phoneUid00000000000000000000", 1789211000)!!, 1789211000, onRevoke = {})
+            }
         }
     }
 

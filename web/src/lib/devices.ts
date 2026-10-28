@@ -1,4 +1,4 @@
-import type { State } from './contract'
+import { lastSign, type State } from './contract'
 import type { Freshness } from './durations'
 import { isPersonalQuota } from './launch'
 import { MASTER } from './summary'
@@ -30,7 +30,8 @@ export const quotaRows = (state: State, now: number): QuotaRow[] =>
 export const linked = (state: State | null, ownUid: string | null, now: number): Linked[] | null =>
   state?.devices?.map(d => {
     const self = d.uid === ownUid
-    const seen = d.seen ?? null
+    // Contratto 1.89: conta l'ultimo segno di vita, lettura o comando.
+    const seen = lastSign(d)
     const tone: Tone = self ? 'live' : seen == null ? 'off' : now - seen <= LIVE_S ? 'live' : 'stale'
     return { uid: d.uid, name: d.name, kind: d.kind ?? null, seen, tone, self }
   }) ?? null

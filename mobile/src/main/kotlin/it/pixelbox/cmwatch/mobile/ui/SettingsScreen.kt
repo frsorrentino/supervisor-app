@@ -70,6 +70,8 @@ fun SettingsScreen(
     linked: List<SettingsDevices.Linked>? = null,
     /** P6 (21/10): la riga «Aggiornamenti» con l'esito dell'ultimo controllo; il tocco controlla ora. Null = niente riga. */
     updateStatus: String? = null, onCheckUpdate: (() -> Unit)? = null,
+    /** Contratto 1.89: Revoca accanto a ogni dispositivo dell'elenco (op `unpair`); null = relay senza l'op, niente tasto. */
+    onRevoke: ((String) -> Unit)? = null,
 ) {
     var choosing by remember { mutableStateOf(false) }
     var choosingVoice by remember { mutableStateOf(false) }
@@ -85,7 +87,11 @@ fun SettingsScreen(
         ) {
             GroupHeader(stringResource(R.string.sec_link), CmColors.text2)
             var linkedPick by rememberSaveable { mutableStateOf(PC_KEY) }
-            if (linked != null && host != null) DeviceSchemeB(devices, linked, nowSec(), linkedPick) { linkedPick = it }
+            if (linked != null && host != null) {
+                DeviceSchemeB(devices, linked, nowSec(), linkedPick) { linkedPick = it }
+                GroupHeader(stringResource(R.string.device_list), CmColors.text2)
+                LinkedList(linked, nowSec(), onRevoke)
+            }
             else DeviceScheme(devices, device, onSelect = { device = it }) {
                 // Non accoppiati (Demo): accoppiare è l'azione principale, sotto lo schema tratteggiato.
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -114,7 +114,8 @@ export class RemoteTransport implements Transport {
   }
 
   async send(cmd: Cmd): Promise<CmdResult> {
-    await this.bus.put(`cmd/${cmd.id}`, await this.seal(JSON.stringify(cmd)))
+    // Contratto 1.89: l'uid dell'abbinamento in ogni comando, per l'ultimo segno di vita del browser.
+    await this.bus.put(`cmd/${cmd.id}`, await this.seal(JSON.stringify({ ...cmd, uid: cmd.uid ?? this.o.uid })))
     const deadline = Date.now() + this.o.timeoutMs(cmd.op)
     while (Date.now() <= deadline) {
       const doc = await this.bus.get(`result/${cmd.id}`).catch(() => null)

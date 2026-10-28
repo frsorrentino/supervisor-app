@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -413,3 +414,52 @@ private fun hhmmDay(epoch: Long): String =
     java.time.format.DateTimeFormatter.ofPattern("EEE d\u00A0HH:mm", androidx.compose.ui.platform.LocalConfiguration.current.locales[0])
         .format(java.time.Instant.ofEpochSecond(epoch).atZone(java.time.ZoneId.systemDefault()))
 
+
+/**
+ * Contratto 1.89 (Franz, 28/10): l'elenco dei dispositivi abbinati, ognuno col suo ultimo segno di vita (lettura o comando)
+ * e Revoca accanto, con conferma. Quello in uso non si revoca da qui. `onRevoke` null = relay senza `unpair`: niente tasto.
+ */
+@Composable
+fun LinkedList(linked: List<SettingsDevices.Linked>, now: Long, onRevoke: ((String) -> Unit)?) {
+    var asking by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<SettingsDevices.Linked?>(null) }
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surface).padding(vertical = 6.dp)) {
+        linked.forEach { d ->
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 16.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Icon(kindIcon(d.kind), null, tint = toneColor(d.tone), modifier = Modifier.size(24.dp))
+                Column(Modifier.weight(1f).padding(vertical = 10.dp)) {
+                    Text(d.name, style = MaterialTheme.typography.titleSmall, color = CmColors.text)
+                    Text(lastSeenLine(d, now), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+                }
+                if (onRevoke != null && !d.self) androidx.compose.material3.TextButton(onClick = { asking = d }) {
+                    Text(stringResource(R.string.device_revoke), color = CmColors.gone)
+                }
+            }
+        }
+    }
+    asking?.let { d ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { asking = null }, containerColor = CmColors.surface,
+            title = { Text(stringResource(R.string.device_revoke_title, d.name)) },
+            text = { Text(stringResource(R.string.device_revoke_what), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = { asking = null; onRevoke?.invoke(d.uid) },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
+                ) { Text(stringResource(R.string.device_revoke)) }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { asking = null }) { Text(stringResource(R.string.device_keep), color = CmColors.actionIcon) } },
+        )
+    }
+}
+
+/** «visto 5 min fa», «visto ora», «mai visto», o «questo dispositivo» per quello in uso. */
+@Composable
+private fun lastSeenLine(d: SettingsDevices.Linked, now: Long): String = when {
+    d.self -> stringResource(R.string.device_this)
+    d.seen == null -> stringResource(R.string.device_never_seen)
+    now - d.seen < 120 -> stringResource(R.string.device_last_seen_now)
+    else -> stringResource(R.string.device_last_seen, seenShort(d.seen, now))
+}
