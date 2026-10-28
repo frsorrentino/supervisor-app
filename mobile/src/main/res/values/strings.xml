@@ -945,7 +945,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="system_group_chrome_bridge">chrome-bridge</string>
     <string name="system_group_relay">relay</string>
     <string name="system_group_other">altri</string>
-    <string name="system_calm">Nessun consiglio: la macchina regge.</string>
+    <string name="system_calm">Nessun consiglio dal PC per ora.</string>
     <string name="system_confirm">Lo chiudo? Il PC controlla prima che il consiglio valga ancora.</string>
     <string name="system_keep">Lascia stare</string>
     <string name="home_night_window">Dalle %1$s alle %2$s: %3$d tra sessioni e lavori</string>

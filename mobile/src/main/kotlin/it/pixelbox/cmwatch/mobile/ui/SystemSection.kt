@@ -101,7 +101,7 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
                 val name = groups[g.group]?.let { stringResource(it) } ?: g.group
                 "$name${if (g.count > 1) " ×${g.count}" else ""} ${SystemRules.cpu(g.cpu)}% ${SystemRules.size(g.rssMb, c)}"
             }.joinToString(" · ")
-            Text(line, style = MonoSmall, color = CmColors.text2, maxLines = 3)
+            Text(line, style = MonoSmall, color = CmColors.text2)
         }
         if (s.advice.isEmpty()) Text(stringResource(R.string.system_calm), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
         s.advice.forEach { a ->

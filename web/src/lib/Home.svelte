@@ -753,7 +753,7 @@
   .sysdot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
   .card.sys { cursor: default; padding: 12px 14px; }
   .sysm { align-items: center; } .sysm .trackrow { min-width: 0; } .sysm .track, .sysm .fill { display: block; }
-  .who { -webkit-line-clamp: 3; line-clamp: 3; }
+  .who { display: block; flex: none; overflow: visible; }
   .nchips { display: flex; gap: 8px; flex-wrap: wrap; }
   .nchips span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
   .outside { margin: 18px 4px 0; }
