@@ -104,6 +104,24 @@ class SummaryListTest {
         }
     }
 
+    // Contratto 1.90 (Franz 28/10 13:19): la sezione «Sistema», le altre chiuse perché si veda per intero.
+    private val red = ContractJson.decodeState(File("../contract/state-3-stale.json").readText())
+    @Composable private fun systemPage(sys: SystemStatus) = CmPhoneTheme(still = true) {
+        Column(Modifier.background(CmColors.bg)) {
+            SummaryList(model(red), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = red.ts, startOpen = emptySet(), usage = { Text("quota") }, system = sys, ops = red.ops, onSystem = { _, _ -> })
+        }
+    }
+    // Rosso: aperta da sola, carico e memoria, chi consuma, quattro consigli; «Chiudi» solo dove c'è l'azione.
+    @Test fun system_advice_red() = paparazzi.snapshot { systemPage(red.system!!) }
+    // Verde: compatta, il pallino e la riga del carico nel titolo.
+    @Test fun system_green_compact() = paparazzi.snapshot {
+        systemPage(red.system!!.copy(level = "green", loadLevel = "green", memLevel = "green", loadPerCore = 0.4, memAvailableMb = 3200, advice = emptyList()))
+    }
+    // Giallo dallo stato tagliato a 8 KB: senza consumatori, il livello e i consigli restano.
+    @Test fun system_yellow_noConsumers() = paparazzi.snapshot {
+        systemPage(red.system!!.copy(level = "yellow", loadLevel = "yellow", memLevel = "green", loadPerCore = 1.3, memAvailableMb = 2900, consumers = emptyList(), advice = red.system!!.advice.take(2).map { it.copy(level = "yellow") }))
+    }
+
     // P6 (21/10): in cima alla home la card «Aggiornamento disponibile · Installa» per una release nuova su GitHub.
     @Test fun summaryWithUpdate() = paparazzi.snapshot {
         val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("impegni-2026-10-22", "Notte 22/10", st.ts - 2 * 3600 - 300, true, "https://example.com/mobile-release.apk", 68813846, null, "")

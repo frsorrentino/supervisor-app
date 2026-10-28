@@ -174,6 +174,9 @@ const it = {
   agendaChanged: "La scheda era cambiata sul PC: ho ricaricato l'agenda, riprova.", agendaBusy: "L'agenda è occupata da un'altra modifica: riprova fra poco.",
   menuRecap: 'Recap', menuRecapSub: 'Azioni, cosa aspetta te, cosa può fare Claude', recapGoes: 'Va a', recapGoesMaster: 'Va alla',
   recapResume: (p: string, n: string) => `Riprendi il progetto ${p}: ${n}`, homeOther: 'Altro', homeNightOpen: 'Apri',
+  // Contratto 1.90 (Franz 28/10 13:19): la sezione «Sistema» della home; i testi dei consigli arrivano già scritti dal relay.
+  homeSystem: 'Sistema', sysLoad: 'Carico', sysMem: 'Memoria', sysLoadV: (x: string) => `${x} per core`, sysMemV: (free: string, total: string) => `${free} GB liberi su ${total}`,
+  sysCalm: 'Nessun consiglio: la macchina regge.', sysConfirm: 'Lo chiudo? Il PC controlla prima che il consiglio valga ancora.', sysKeep: 'Lascia stare',
   homeNightWindow: (from: string, to: string, n: number) => `Dalle ${from} alle ${to}: ${n} tra sessioni e lavori`,
   nightCardBody: (title: string, n: number) => `${title}: ${n} tra sessioni e lavori`, nightNoNeeds: 'niente che aspetti te', tonightMeta: (r: number, q: number) => `${r} in corso · ${q} in coda`,
   homeNightNeeds: (n: number, s: string, x: string) => (n === 1 ? `1 cosa per te: ${s}, ${x}` : `${n} cose per te, prima ${s}: ${x}`),
@@ -503,6 +506,8 @@ const en: typeof it = {
   agendaChanged: 'The card had changed on the PC: the agenda is reloaded, try again.', agendaBusy: 'The agenda is busy with another change: try again shortly.',
   menuRecap: 'Recap', menuRecapSub: 'Actions, what waits for you, what Claude can do', recapGoes: 'Goes to', recapGoesMaster: 'Goes to the',
   recapResume: (p: string, n: string) => `Resume the ${p} project: ${n}`, homeOther: 'Other', homeNightOpen: 'Open',
+  homeSystem: 'System', sysLoad: 'Load', sysMem: 'Memory', sysLoadV: (x: string) => `${x} per core`, sysMemV: (free: string, total: string) => `${free} GB free of ${total}`,
+  sysCalm: 'No advice: the machine copes.', sysConfirm: 'Close it? The PC first checks that the advice still holds.', sysKeep: 'Leave it',
   homeNightWindow: (from: string, to: string, n: number) => `From ${from} to ${to}: ${n} sessions and jobs`,
   nightCardBody: (title: string, n: number) => `${title}: ${n} sessions and jobs`, nightNoNeeds: 'nothing waits for you', tonightMeta: (r: number, q: number) => `${r} running · ${q} queued`,
   homeNightNeeds: (n: number, s: string, x: string) => (n === 1 ? `1 thing for you: ${s}, ${x}` : `${n} things for you, first ${s}: ${x}`),

@@ -255,6 +255,11 @@
     const r = await run(newCmd('close', null, names.join(',')))
     if (r?.ok) say(`✓ ${t.closedSaved(names.length)}`)
   }
+  /** Contratto 1.90: il tasto di un consiglio del Sistema (sys_kill o close con i nomi); il testo del relay dice cosa ha chiuso. */
+  async function sysAct(op: string, arg: string) {
+    const r = await run(newCmd(op as CmdOp, null, arg))
+    if (r?.ok) say(`✓ ${r.text}`)
+  }
   async function decide(text: string, project: string | null) {
     const r = await run(newCmd('decision', null, project, text))
     if (r?.ok) say(`✓ ${t.decisionSent}`)
@@ -954,7 +959,7 @@
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onNight={() => openPage('night')}
+        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}

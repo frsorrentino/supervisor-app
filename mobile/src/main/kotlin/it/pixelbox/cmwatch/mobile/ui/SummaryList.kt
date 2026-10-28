@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.rules.SystemRules
 import it.pixelbox.cmwatch.rules.AttentionQueue
 import it.pixelbox.cmwatch.rules.MasterHome
 import it.pixelbox.cmwatch.rules.OutsideSessions
@@ -153,6 +154,9 @@ fun SummaryList(
     attention: List<it.pixelbox.cmwatch.contract.Attention> = emptyList(), onAttention: () -> Unit = {},
     /** P6 (21/10): la card dell'aggiornamento in cima quando una release nuova è pronta; null o senza release = niente. */
     update: AppUpdater.Ui? = null, onInstallUpdate: (AppUpdate.Release) -> Unit = {}, onDismissUpdate: (String) -> Unit = {},
+    /** Contratto 1.90, la sezione «Sistema»: null con un relay precedente; `onSystem` null = sola lettura (demo, relay senza l'op). */
+    system: it.pixelbox.cmwatch.contract.SystemStatus? = null, ops: List<String>? = null,
+    onSystem: ((it.pixelbox.cmwatch.contract.CmdOp, String) -> Unit)? = null,
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
@@ -166,6 +170,7 @@ fun SummaryList(
     var nightOpen by remember { section("night") }
     var lavoriOpen by remember { section("lavori") }
     var laterOpen by remember { mutableStateOf(false) }
+    var sysManual by remember { mutableStateOf<SystemRules.Manual?>(null) }
     // Contratto 1.84 (B4): le sessioni di «Chiudi le finite» in attesa della conferma, e l'anteprima del PC.
     var closeAsk by remember { mutableStateOf<List<String>?>(null) }
     var preview by remember { mutableStateOf<it.pixelbox.cmwatch.rules.CloseFinished.Preview?>(null) }
@@ -269,6 +274,12 @@ fun SummaryList(
                 val glow by androidx.compose.animation.core.animateFloatAsState(if (usageFlash) 1f else 0f, androidx.compose.animation.core.tween(if (usageFlash) 160 else 700), label = "usageFlash")
                 Box(moving().border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp))) { u() }
             }
+        }
+        // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
+        system?.let { sys ->
+            val sysOpen = SystemRules.isOpen(sys.level, sysManual)
+            item(key = "sec-system") { Box(moving()) { SystemHeader(sys, sysOpen) { sysManual = SystemRules.Manual(sys.level, !sysOpen) } } }
+            if (sysOpen) item(key = "system") { Box(moving()) { SystemCard(sys, ops, onSystem) } }
         }
         // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
         if (showLavori && foryou != null) {

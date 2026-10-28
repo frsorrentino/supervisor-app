@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { locale } from './lang'
+  import { lang, locale } from './lang'
+  import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import Icon from './Icon.svelte'
   import { forMaster } from './strongAlert'
   import PermGlyph from './PermGlyph.svelte'
@@ -37,9 +38,11 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {} }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null }: {
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
     onClosePreview?: ((names: string[]) => Promise<Preview | null>) | null; onCloseMany?: (names: string[]) => void
+    /** Contratto 1.90: il tasto di un consiglio del Sistema; null = sola lettura (demo, relay senza l'op). */
+    onSystem?: ((op: string, arg: string) => void) | null
     /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto. */
     suggestions?: Snippet
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
@@ -181,6 +184,14 @@
     previewing = false
   }
   let confirming = $state<string | null>(null)
+  // Contratto 1.90, la sezione «Sistema» (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso;
+  // il tocco sull'intestazione vale finché il livello non cambia. Ogni tasto chiede conferma nella card, come «Chiudi».
+  const sys = $derived(st.system ?? null)
+  let sysManual = $state<Manual>(null)
+  const sysOpen = $derived(sys ? sysIsOpen(sys.level, sysManual) : false)
+  let sysAsk = $state<string | null>(null)
+  let sysSent = $state(new Set<string>())
+  const SYS_TONE = { green: 'var(--good)', yellow: 'var(--b-warn)', red: 'var(--b-alert)' } as const
   // Il menu contestuale della sessione sulla card (Franz, 14/10 20:58: «il menu contestuale di una sessione non lo vedo»):
   // tasto destro, o pressione lunga sul telefono; le voci del ⋮ della sessione, «Chiudi» con la conferma nella card.
   let ctx = $state<string | null>(null)
@@ -392,6 +403,42 @@
     <div bind:this={usageEl}>{@render sec('usage', t.homeUsage)}</div>
     {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}</div>{/if}
   {/if}
+{#if sys}
+  <button class="sec" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}>
+    <svg viewBox="0 0 24 24" width="16" height="16"><path d={sysOpen ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>
+    <span>{t.homeSystem.toUpperCase()}</span><b class="sysdot" style:background={SYS_TONE[sys.level]}></b><i></i>{#if !sysOpen}<small>{summaryLine(sys, lang)}</small>{/if}
+  </button>
+  {#if sysOpen}
+    <div class="card sys" data-testid="system_advice">
+      <div class="kv sysm">
+        <span>{t.sysLoad}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{SYS_TONE[sys.load_level]}"></span></span><span class="ctxv">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></span>
+        <span>{t.sysMem}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, (1 - sys.mem_available_mb / Math.max(1, sys.mem_total_mb)) * 100)}%;background:{SYS_TONE[sys.mem_level]}"></span></span><span class="ctxv">{t.sysMemV(sysNum(sys.mem_available_mb / 1024, lang), sysNum(sys.mem_total_mb / 1024, lang))}</span></span>
+      </div>
+      <!-- Lo stato tagliato a 8 KB arriva spesso senza consumatori: allora niente riga, il livello e i consigli restano. -->
+      {#if sys.consumers.length}<p class="okt mono2 who">{consumersLine(sys, lang)}</p>{/if}
+      {#if sys.advice.length}
+        <div class="oks">
+          {#each sys.advice as a (a.id)}
+            {@const act = onSystem ? actionOf(a, st.ops) : null}
+            <i class="oline"></i>
+            <div class="ok">
+              <b class="sysdot" style:background={SYS_TONE[a.level]}></b>
+              <span class="okt">{a.text}</span>
+              {#if act && sysAsk !== a.id}<button class="tonal mini" disabled={sysSent.has(a.id)} onclick={() => (sysAsk = a.id)}>{act.label}</button>{/if}
+            </div>
+            {#if act && sysAsk === a.id}
+              <div class="confirm" role="group" aria-label={act.label}>
+                <span>{t.sysConfirm}</span>
+                <button class="keep" onclick={() => (sysAsk = null)}>{t.sysKeep}</button>
+                <button class="danger" onclick={() => { sysAsk = null; sysSent = new Set([...sysSent, a.id]); onSystem?.(act.op, act.arg) }}>{act.label}</button>
+              </div>
+            {/if}
+          {/each}
+        </div>
+      {:else}<p class="okt mono2">{t.sysCalm}</p>{/if}
+    </div>
+  {/if}
+{/if}
 {#if showLavori && fy}
   {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(looseOk.length))}
   {#if open.lavori}
@@ -703,6 +750,10 @@
   .sec { display: flex; align-items: center; gap: 8px; width: 100%; margin: 14px 0 4px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-align: left; }
   .sec i { flex: 1; height: 1px; background: var(--line); }
   .sec small { font: 13px/1 var(--sans, inherit); letter-spacing: 0; }
+  .sysdot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+  .card.sys { cursor: default; padding: 12px 14px; }
+  .sysm { align-items: center; } .sysm .trackrow { min-width: 0; } .sysm .track, .sysm .fill { display: block; }
+  .who { -webkit-line-clamp: 3; line-clamp: 3; }
   .nchips { display: flex; gap: 8px; flex-wrap: wrap; }
   .nchips span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
   .outside { margin: 18px 4px 0; }

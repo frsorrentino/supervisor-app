@@ -934,6 +934,20 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <plurals name="night_agenda_added"><item quantity="one">Messa nella notte</item><item quantity="other">%d messe nella notte</item></plurals>
     <string name="menu_recap">Recap</string>
     <string name="home_sec_other">Altro</string>
+    <!-- Contratto 1.90 (Franz 28/10 13:19): la sezione «Sistema»; i testi dei consigli arrivano già scritti dal relay. -->
+    <string name="home_sec_system">Sistema</string>
+    <string name="system_summary">carico %1$s per core · %2$s GB liberi su %3$s</string>
+    <string name="system_load">Carico</string>
+    <string name="system_load_v">%1$s per core</string>
+    <string name="system_mem">Memoria</string>
+    <string name="system_mem_v">%1$s GB liberi su %2$s</string>
+    <string name="system_group_claude">Claude</string>
+    <string name="system_group_chrome_bridge">chrome-bridge</string>
+    <string name="system_group_relay">relay</string>
+    <string name="system_group_other">altri</string>
+    <string name="system_calm">Nessun consiglio: la macchina regge.</string>
+    <string name="system_confirm">Lo chiudo? Il PC controlla prima che il consiglio valga ancora.</string>
+    <string name="system_keep">Lascia stare</string>
     <string name="home_night_window">Dalle %1$s alle %2$s: %3$d tra sessioni e lavori</string>
     <string name="home_night_open">Apri</string>
     <string name="night_card_body">%1$s: %2$d tra sessioni e lavori</string>

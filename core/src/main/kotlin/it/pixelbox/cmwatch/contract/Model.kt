@@ -146,6 +146,8 @@ enum class CmdOp {
     /** Contratto 1.84: `arg` = nomi separati da virgola; l'anteprima di cosa si salva (sola lettura), poi la chiusura. */
     @SerialName("close_preview") CLOSE_PREVIEW,
     @SerialName("close") CLOSE,
+    /** Contratto 1.90: chiude un processo consigliato; `arg` = «pid:procStart», rifiutato se il consiglio non c'è più. */
+    @SerialName("sys_kill") SYS_KILL,
 }
 
 /**
@@ -429,7 +431,31 @@ enum class CmdOp {
     val suggestions: List<Suggestion>? = null,
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
     val commitments: List<Commitment>? = null,
+    /** Contratto 1.90: quanto è pesante la macchina e cosa farci; null con un relay precedente o se la lettura fallisce. */
+    val system: SystemStatus? = null,
 )
+
+/**
+ * Contratto 1.90: `level`, `load_level` e `mem_level` sono green, yellow o red; `level` il peggiore dei due. Lo stato
+ * tagliato a 8 KB arriva spesso con `consumers` vuoto: il livello e i consigli valgono lo stesso.
+ */
+@Serializable data class SystemStatus(
+    val at: Long, val cores: Int, val load1: Double,
+    @SerialName("load_per_core") val loadPerCore: Double,
+    @SerialName("mem_total_mb") val memTotalMb: Int,
+    @SerialName("mem_available_mb") val memAvailableMb: Int,
+    val level: String, @SerialName("load_level") val loadLevel: String, @SerialName("mem_level") val memLevel: String,
+    val consumers: List<SystemConsumer> = emptyList(), val advice: List<SystemAdvice> = emptyList(),
+)
+
+/** Contratto 1.90: `cpu` in percento di un core, sommato sui processi del gruppo (claude, chrome_bridge, relay, other). */
+@Serializable data class SystemConsumer(val group: String, val count: Int, val cpu: Double, @SerialName("rss_mb") val rssMb: Int)
+
+/** Contratto 1.90: `text` già scritto dal relay; `action` null = solo parole (heavy_job, low_memory). */
+@Serializable data class SystemAdvice(val id: String, val kind: String, val level: String, val text: String, val action: SystemAction? = null)
+
+/** Contratto 1.90: op `sys_kill` con arg «pid:procStart», o `close` con i nomi delle sessioni. */
+@Serializable data class SystemAction(val op: String, val arg: String, val label: String)
 
 /** Contratto 1.43: da quando lo stato vale per il PC, cioè la pubblicazione; `ts` con un relay precedente. */
 val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts

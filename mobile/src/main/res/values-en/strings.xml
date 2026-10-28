@@ -882,6 +882,19 @@ It starts at your last message to the master.</string>
     <plurals name="night_agenda_added"><item quantity="one">Queued for tonight</item><item quantity="other">%d queued for tonight</item></plurals>
     <string name="menu_recap">Recap</string>
     <string name="home_sec_other">Other</string>
+    <string name="home_sec_system">System</string>
+    <string name="system_summary">load %1$s per core · %2$s GB free of %3$s</string>
+    <string name="system_load">Load</string>
+    <string name="system_load_v">%1$s per core</string>
+    <string name="system_mem">Memory</string>
+    <string name="system_mem_v">%1$s GB free of %2$s</string>
+    <string name="system_group_claude">Claude</string>
+    <string name="system_group_chrome_bridge">chrome-bridge</string>
+    <string name="system_group_relay">relay</string>
+    <string name="system_group_other">other</string>
+    <string name="system_calm">No advice: the machine copes.</string>
+    <string name="system_confirm">Close it? The PC first checks that the advice still holds.</string>
+    <string name="system_keep">Leave it</string>
     <string name="home_night_window">From %1$s to %2$s: %3$d sessions and jobs</string>
     <string name="home_night_open">Open</string>
     <string name="night_card_body">%1$s: %2$d sessions and jobs</string>

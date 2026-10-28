@@ -1496,6 +1496,13 @@ class MainActivity : ComponentActivity() {
                     usage = { Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { usageContent() } },
                     showLavori = !deskDashboard, showUsage = !deskDashboard, usageFocus = usageFocus, usageSeen = usageSeen, onUsageFocused = { n -> usageSeen = n }, scrollMemo = homeScroll,
                     onSpeak = { t -> speech.toggle(t) },
+                    // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
+                    system = state?.system, ops = state?.ops,
+                    onSystem = if (!demo) ({ op, arg -> scope.launch {
+                        val id = runCatching { app.repo.command(op, null, arg) }.getOrNull()
+                        val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                        r?.let { x -> android.widget.Toast.makeText(this@MainActivity, x.text, android.widget.Toast.LENGTH_SHORT).show() }
+                    } }) else null,
                 )
             }
             if (master != null) {

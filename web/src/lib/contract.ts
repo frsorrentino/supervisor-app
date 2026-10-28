@@ -233,6 +233,21 @@ export type State = {
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
   hosts_status: HostStatus[]; published_today: Published[]
+  /** Contratto 1.90: quanto è pesante la macchina e cosa farci; assente con un relay precedente o se la lettura fallisce. */
+  system?: SystemStatus | null
+}
+
+/** Contratto 1.90: `green`, `yellow` o `red`; `level` è il peggiore fra carico e memoria. */
+export type SystemLevel = 'green' | 'yellow' | 'red'
+/** Contratto 1.90: `cpu` in percento di un core, sommato sui processi del gruppo. */
+export type SystemConsumer = { group: string; count: number; cpu: number; rss_mb: number }
+/** Contratto 1.90: `action` null = il consiglio è solo parole (spostalo su win). */
+export type SystemAdvice = { id: string; kind: string; level: SystemLevel; text: string; action: { op: string; arg: string; label: string } | null }
+export type SystemStatus = {
+  at: number; cores: number; load1: number; load_per_core: number; mem_total_mb: number; mem_available_mb: number
+  level: SystemLevel; load_level: SystemLevel; mem_level: SystemLevel
+  /** Lo stato tagliato a 8 KB arriva spesso senza consumatori: il livello e i consigli valgono lo stesso. */
+  consumers: SystemConsumer[]; advice: SystemAdvice[]
 }
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
@@ -245,6 +260,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'suggestion'
   /** Contratto 1.84: cosa si salva chiudendo queste sessioni (arg = nomi separati da virgola), e la chiusura stessa. */
   | 'close_preview' | 'close'
+  /** Contratto 1.90: chiude un processo consigliato; arg = «pid:procStart», rifiutato se il consiglio non c'è più. */
+  | 'sys_kill'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */
