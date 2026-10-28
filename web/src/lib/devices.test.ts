@@ -65,5 +65,13 @@ describe('SettingsDevices', () => {
     expect(l[0].tone).toBe('live'); expect(l[3].tone).toBe('stale'); expect(l[4].tone).toBe('off'); expect(l[2].tone).toBe('live')
   })
 
+  // Contratto 1.89 (Franz, 28/10): l'ultimo segno di vita è il più recente fra l'ultima lettura e l'ultimo comando.
+  it('device_last_seen: il più recente fra lettura e comando', () => {
+    const st = decodeState(readFileSync(new URL('../../../contract/state-3-stale.json', import.meta.url), 'utf8'))
+    const l = Object.fromEntries(linked(st, null, 1789211000)!.map(d => [d.name, d]))
+    expect([l['Pixel 9'].seen, l['Safari on Mac'].seen, l['Pixel 7'].seen]).toEqual([1789210790, 1789198000, 1789150500])
+    expect(l['Safari on Mac'].tone).toBe('stale')
+  })
+
   it('prima del contratto non c\'è l\'elenco', () => expect(linked(decodeState('{"v":1,"ts":0,"host":"pc"}'), 'u', 0)).toBeNull())
 })

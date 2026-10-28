@@ -274,6 +274,15 @@ class ContractTest {
         assertNotNull(d.first().seen)
     }
 
+    // Contratto 1.89: `cmd_at` = l'ultimo comando con l'uid del dispositivo, solo se ce n'è uno.
+    @Test fun devicesCarryTheLastCommand() {
+        val d = ContractJson.decodeState(Fixtures.stateStale).devices!!.associateBy { it.name }
+        assertEquals(1789199950L, d.getValue("Pixel 9").cmdAt)
+        assertEquals(1789198000L, d.getValue("Safari on Mac").cmdAt)
+        assertNull(d.getValue("Pixel 7").cmdAt)
+        assertEquals(1789150500L, d.getValue("Pixel 7").seen)
+    }
+
     // Contratto 1.33: le azioni ricorrenti della master, nell'ordine del PC; param solo dove il prompt aspetta un pezzo.
     @Test fun stateCarriesTheRecurringActions() {
         val r = ContractJson.decodeState(Fixtures.stateIdle).recurring!!

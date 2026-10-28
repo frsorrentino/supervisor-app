@@ -107,7 +107,8 @@ class FirebaseTransportTest {
         assertTrue(r.ok); assertEquals("answered 1. yes", r.text)
         val written = Json.parseToJsonElement(store.getValue("cmd/id-1")).jsonObject
         assertEquals(1, written.getValue("v").jsonPrimitive.content.toInt())
-        assertEquals(cmd, ContractJson.json.decodeFromString(Cmd.serializer(), Blob.open(store.getValue("cmd/id-1"), key)))
+        // Contratto 1.89: il comando porta l'uid con cui il dispositivo si è abbinato, per il suo ultimo segno di vita.
+        assertEquals(cmd.copy(uid = "u1"), ContractJson.json.decodeFromString(Cmd.serializer(), Blob.open(store.getValue("cmd/id-1"), key)))
     }
 
     @Test fun noResultIsATimeout() {

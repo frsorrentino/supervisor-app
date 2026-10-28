@@ -74,5 +74,15 @@ class SettingsDevicesTest {
         assertEquals(SettingsDevices.Tone.LIVE, l[2].tone)
     }
 
+    // Contratto 1.89 (Franz, 28/10): l'ultimo segno di vita è il più recente fra l'ultima lettura e l'ultimo comando.
+    @Test fun device_last_seen_isTheLaterOfReadAndCommand() {
+        val st = it.pixelbox.cmwatch.contract.ContractJson.decodeState(java.io.File("../contract/state-3-stale.json").readText())
+        val l = SettingsDevices.linked(st, null, 1789211000)!!.associateBy { it.name }
+        assertEquals(1789210790L, l.getValue("Pixel 9").seen)
+        assertEquals(1789198000L, l.getValue("Safari on Mac").seen)
+        assertEquals(1789150500L, l.getValue("Pixel 7").seen)
+        assertEquals(SettingsDevices.Tone.STALE, l.getValue("Safari on Mac").tone)
+    }
+
     @Test fun beforeTheContractThereIsNoList() = assertNull(SettingsDevices.linked(it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "pc"), "u", 0))
 }

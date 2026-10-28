@@ -74,7 +74,8 @@ describe('strada remota: comandi', () => {
     const bus = new MemoryBus({})
     bus.onPut = async (path, v) => {
       if (path !== 'cmd/c1') return
-      expect(JSON.parse(await openBlob(JSON.stringify(v), KEY))).toEqual(cmd)
+      // Contratto 1.89: il comando porta l'uid dell'abbinamento, per l'ultimo segno di vita del browser.
+      expect(JSON.parse(await openBlob(JSON.stringify(v), KEY))).toEqual({ ...cmd, uid: 'webUid' })
       bus.data['result/c1'] = await env(JSON.stringify({ id: 'c1', ok: true, text: 'sent', at: 2 }))
     }
     expect(await transport(bus).send(cmd)).toMatchObject({ id: 'c1', ok: true, text: 'sent' })
