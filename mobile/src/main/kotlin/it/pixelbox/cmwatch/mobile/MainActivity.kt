@@ -1435,6 +1435,25 @@ class MainActivity : ComponentActivity() {
         }
         // Il cruscotto del tablet (variante B): senza colonne né Registro, Recap e Utilizzo stanno a destra e non nella home.
         val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.LAVORI
+        // I KPI 6, 11 e 18 della home (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni, una lettura
+        // passiva ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op.
+        var kpiPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.TimelinePage?>(null) }
+        val kpiOk = demo || state?.ops?.contains("timeline") == true
+        LaunchedEffect(kpiOk) {
+            if (!kpiOk) return@LaunchedEffect
+            lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                while (true) {
+                    val since = it.pixelbox.cmwatch.rules.Kpi.since(System.currentTimeMillis() / 1000, java.time.ZoneId.systemDefault())
+                    val id = runCatching { app.repo.command(CmdOp.TIMELINE, null, since.toString()) }.getOrNull()
+                    if (id != null) {
+                        val r = kotlinx.coroutines.withTimeoutOrNull(PhoneTerminal.LOST_MS) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+                        if (r?.ok == true) runCatching { ContractJson.decodeTimeline(r.text) }.onSuccess { page -> kpiPage = page }
+                        app.repo.forget(id)
+                    }
+                    delay(300_000)
+                }
+            }
+        }
         val summaryPage: @Composable () -> Unit = summaryPage@{
             val st = state
             if (st == null || summary == null) {
@@ -1501,6 +1520,7 @@ class MainActivity : ComponentActivity() {
                     onSpeak = { t -> speech.toggle(t) },
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
                     system = state?.system, ops = state?.ops,
+                    kpiPage = kpiPage, kpiState = state,
                     onSystem = if (!demo) ({ op, arg -> scope.launch {
                         val id = runCatching { app.repo.command(op, null, arg) }.getOrNull()
                         val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }

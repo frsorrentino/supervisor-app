@@ -58,7 +58,7 @@ private fun italian(): Boolean = androidx.compose.ui.platform.LocalConfiguration
 @Composable
 internal fun systemSummary(s: SystemStatus): String {
     val c = italian()
-    return stringResource(R.string.system_summary, SystemRules.num(s.loadPerCore, c), SystemRules.num(s.memAvailableMb / 1024.0, c), SystemRules.num(s.memTotalMb / 1024.0, c))
+    return stringResource(R.string.system_summary, SystemRules.num(s.loadPerCore, c), SystemRules.num(s.memAvailableMb / 1024.0, c))
 }
 
 /** Il titolo della sezione «Sistema»: come gli altri, col pallino del livello; compatto, a destra la riga del carico. */

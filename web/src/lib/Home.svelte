@@ -1,5 +1,10 @@
 <script lang="ts">
   import { lang, locale } from './lang'
+  import Kpi6 from './Kpi6.svelte'
+  import Kpi11 from './Kpi11.svelte'
+  import Kpi18 from './Kpi18.svelte'
+  import { day as kpiDay, dayFigures, hourly, midnight, waitingSince } from './kpi'
+  import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import Icon from './Icon.svelte'
   import { forMaster } from './strongAlert'
@@ -38,11 +43,13 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null }: {
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
     onClosePreview?: ((names: string[]) => Promise<Preview | null>) | null; onCloseMany?: (names: string[]) => void
     /** Contratto 1.90: il tasto di un consiglio del Sistema; null = sola lettura (demo, relay senza l'op). */
     onSystem?: ((op: string, arg: string) => void) | null
+    /** I KPI 6, 11 e 18 (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni; null finché non c'è. */
+    kpiPage?: TimelinePage | null
     /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto. */
     suggestions?: Snippet
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
@@ -187,6 +194,9 @@
   // Contratto 1.90, la sezione «Sistema» (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso;
   // il tocco sull'intestazione vale finché il livello non cambia. Ogni tasto chiede conferma nella card, come «Chiudi».
   const sys = $derived(st.system ?? null)
+  // I KPI coi dati già nel relay: per ogni sessione viva i suoi eventi di oggi (la voce viva prima di una chiusa omonima).
+  const kpiEvents = $derived(new Map((kpiPage?.sessions ?? []).slice().sort((a, b) => Number(a.live) - Number(b.live)).map(x => [x.session, x.events])))
+  const dayStart = $derived(midnight(now))
   let sysManual = $state<Manual>(null)
   const sysOpen = $derived(sys ? sysIsOpen(sys.level, sysManual) : false)
   let sysAsk = $state<string | null>(null)
@@ -308,6 +318,7 @@
           {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class="approve mini" onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
         {/if}
         {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
+        {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
         {#if r.approvals.length}
           <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
           <div class="oks">
@@ -390,7 +401,10 @@
         {/if}
         {#if s.context != null}
           <!-- Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa. -->
-          <div class="trackrow"><div class="track"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div><span class="ctxv">{t.ctx(s.context)}</span></div>
+          <div class="trackrow">{#if kpiPage && s.state !== 'gone'}<Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} />{/if}<div class="track"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div><span class="ctxv">{t.ctx(s.context)}</span></div>
+        {:else if kpiPage && s.state !== 'gone'}
+          <!-- Proposta 6 senza contesto letto: le colonnine da sole, sulla riga dove starebbe la barra. -->
+          <div class="trackrow"><Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} /></div>
         {/if}
       </div>
     {/each}
@@ -401,7 +415,7 @@
   {/if}
   {#if usage && showUsage}
     <div bind:this={usageEl}>{@render sec('usage', t.homeUsage)}</div>
-    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}</div>{/if}
+    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}</div>{/if}
   {/if}
 {#if sys}
   <button class="sec" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}>

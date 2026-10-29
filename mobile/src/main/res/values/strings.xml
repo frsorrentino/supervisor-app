@@ -935,8 +935,23 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="menu_recap">Recap</string>
     <string name="home_sec_other">Altro</string>
     <!-- Contratto 1.90 (Franz 28/10 13:19): la sezione «Sistema»; i testi dei consigli arrivano già scritti dal relay. -->
+    <!-- KPI coi dati già nel relay (proposte 6, 11, 18 del 25/10, compito app-kpi-medie-25-10). -->
+    <string name="kpi6_aria">%1$d eventi nelle ultime 6 ore, uno per colonna d\'ora</string>
+    <string name="kpi11_title">Oggi</string>
+    <string name="kpi11_work_h">%1$d h %2$d al lavoro</string>
+    <string name="kpi11_work_m">%1$d min al lavoro</string>
+    <string name="kpi18_prompts">prompt oggi</string>
+    <string name="kpi18_commits">commit oggi</string>
+    <string name="kpi18_waiting_since">ti aspettano, la prima da %1$d min</string>
+    <string name="kpi18_none_waiting">nessuna ti aspetta</string>
+    <string name="kpi18_tokens">token, %1$s il %2$d%%</string>
+    <string name="kpi18_tokens_none">token oggi</string>
+    <string name="kpi18_prompt">prompt</string>
+    <string name="kpi18_commit">commit</string>
+    <string name="kpi18_and">e</string>
+    <string name="kpi18_per_hour">per ora</string>
     <string name="home_sec_system">Sistema</string>
-    <string name="system_summary">carico %1$s per core · %2$s GB liberi su %3$s</string>
+    <string name="system_summary">carico %1$s per core · %2$s GB liberi</string>
     <string name="system_load">Carico</string>
     <string name="system_load_v">%1$s per core</string>
     <string name="system_mem">Memoria</string>

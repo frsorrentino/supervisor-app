@@ -157,6 +157,8 @@ fun SummaryList(
     /** Contratto 1.90, la sezione «Sistema»: null con un relay precedente; `onSystem` null = sola lettura (demo, relay senza l'op). */
     system: it.pixelbox.cmwatch.contract.SystemStatus? = null, ops: List<String>? = null,
     onSystem: ((it.pixelbox.cmwatch.contract.CmdOp, String) -> Unit)? = null,
+    /** I KPI 6, 11 e 18 (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni; null finché non c'è. */
+    kpiPage: it.pixelbox.cmwatch.contract.TimelinePage? = null, kpiState: it.pixelbox.cmwatch.contract.State? = null,
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
@@ -171,6 +173,8 @@ fun SummaryList(
     var lavoriOpen by remember { section("lavori") }
     var laterOpen by remember { mutableStateOf(false) }
     var sysManual by remember { mutableStateOf<SystemRules.Manual?>(null) }
+    // I KPI: per ogni sessione i suoi eventi di oggi, la voce viva prima di una chiusa omonima.
+    val kpiEvents = remember(kpiPage) { kpiPage?.sessions?.sortedBy { it.live }?.associate { it.session to it.events } }
     // Contratto 1.84 (B4): le sessioni di «Chiudi le finite» in attesa della conferma, e l'anteprima del PC.
     var closeAsk by remember { mutableStateOf<List<String>?>(null) }
     var preview by remember { mutableStateOf<it.pixelbox.cmwatch.rules.CloseFinished.Preview?>(null) }
@@ -260,6 +264,7 @@ fun SummaryList(
                         onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                         onApprove = onApprove, onDone = onDone,
                         works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
+                        kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
                         onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
                         onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
                     )
@@ -272,7 +277,13 @@ fun SummaryList(
             item(key = "sec-usage") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_usage), null, usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) } } }
             if (usageOpen) item(key = "usage") {
                 val glow by androidx.compose.animation.core.animateFloatAsState(if (usageFlash) 1f else 0f, androidx.compose.animation.core.tween(if (usageFlash) 160 else 700), label = "usageFlash")
-                Box(moving().border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp))) { u() }
+                Box(moving().border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp))) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        u()
+                        // Proposta 18: la giornata in cifre sotto le schede della quota.
+                        kpiPage?.let { p -> Kpi18(it.pixelbox.cmwatch.rules.Kpi.dayFigures(p, state = kpiState, now = now, zone = java.time.ZoneId.systemDefault())) }
+                    }
+                }
             }
         }
         // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
@@ -380,6 +391,8 @@ private fun SummaryCard(
     onWorkDone: (Lavori.ForYou) -> Unit = {}, onWorkStart: (Lavori.ForYou) -> Unit = {},
     /** Franz 24/10 00:46: i suggerimenti su questa sessione (il contesto alto), ognuno col suo tasto tonale. */
     services: List<MasterHome.Row> = emptyList(), onService: (MasterHome.Row) -> Unit = {},
+    /** I KPI 6 e 11: gli eventi di oggi della sessione; null = cronologia non ancora arrivata (niente grafici). */
+    kpiEvents: List<it.pixelbox.cmwatch.contract.TimelineEvent>? = null,
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -452,6 +465,11 @@ private fun SummaryCard(
         }
         if (open) {
             details(s).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+            // Proposta 11: la giornata a fasce nella card aperta; «ti aspetta» solo per il tratto in corso, dallo stato.
+            kpiEvents?.let { ev ->
+                val from = it.pixelbox.cmwatch.rules.Kpi.midnight(now, java.time.ZoneId.systemDefault())
+                Kpi11(it.pixelbox.cmwatch.rules.Kpi.day(ev, from, now, if (s.state == it.pixelbox.cmwatch.contract.SessionState.GONE) null else it.pixelbox.cmwatch.rules.Kpi.waitingSince(s)), from, now)
+            }
         }
         // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
         r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
@@ -558,12 +576,14 @@ private fun SummaryCard(
             }
             // Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa.
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Proposta 6: le ultime sei ore sulla riga della barra, dove c'è posto anche a 320 dp.
+                if (s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) }
                 Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(CmColors.briefTrack)) {
                     Box(Modifier.fillMaxWidth(it.pixelbox.cmwatch.rules.SessionMeters.contextFraction(pct) ?: 0f).fillMaxHeight().background(bar))
                 }
                 Text(stringResource(R.string.ctx_short, pct), style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2, maxLines = 1)
             }
-        }
+        } ?: run { if (s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) } }
     }
 }
 

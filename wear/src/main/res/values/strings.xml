@@ -60,6 +60,13 @@
     <string name="complication_stale">PC fermo</string>
     <string name="complication_name">Supervisor</string>
     <string name="tile_name">Sessioni Claude</string>
+    <!-- Proposta 15 (compito app-kpi-medie-25-10): la tile «Ultime 6 ore». -->
+    <string name="kpi15_name">Ultime 6 ore</string>
+    <string name="kpi15_title">Ultime 6 ore</string>
+    <string name="kpi15_waiting">%1$s ti aspetta</string>
+    <string name="kpi15_none_waiting">nessuna ti aspetta</string>
+    <string name="kpi15_loading">Chiedo la cronologia al PC</string>
+    <string name="kpi15_quiet">Nessuna sessione attiva nelle ultime 6 ore</string>
     <string name="tile_open">Apri</string>
     <string name="tile_sessions">Sessioni</string>
     <string name="tile_quota">Quota</string>

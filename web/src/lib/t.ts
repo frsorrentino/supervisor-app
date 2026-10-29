@@ -175,6 +175,11 @@ const it = {
   menuRecap: 'Recap', menuRecapSub: 'Azioni, cosa aspetta te, cosa può fare Claude', recapGoes: 'Va a', recapGoesMaster: 'Va alla',
   recapResume: (p: string, n: string) => `Riprendi il progetto ${p}: ${n}`, homeOther: 'Altro', homeNightOpen: 'Apri',
   // Contratto 1.90 (Franz 28/10 13:19): la sezione «Sistema» della home; i testi dei consigli arrivano già scritti dal relay.
+  // KPI coi dati già nel relay (proposte 6, 11, 18 del 25/10, compito app-kpi-medie-25-10).
+  kpi6Aria: (n: number) => `${n} eventi nelle ultime 6 ore, uno per colonna d'ora`,
+  kpi11Title: 'Oggi', kpi11Work: (h: number, m: number) => (h ? `${h} h ${m} al lavoro` : `${m} min al lavoro`), kpi11Band: { work: 'al lavoro', wait: 'ti aspetta', still: 'ferma' } as Record<string, string>,
+  kpi18Prompts: 'prompt oggi', kpi18Commits: 'commit oggi', kpi18WaitingSince: (m: number) => `ti aspettano, la prima da ${m} min`, kpi18NoneWaiting: 'nessuna ti aspetta',
+  kpi18Tokens: (s: string, p: number) => `token, ${s} il ${p}%`, kpi18TokensNone: 'token oggi', kpi18Prompt: 'prompt', kpi18Commit: 'commit', kpi18And: 'e', kpi18PerHour: 'per ora', kpi18HoursAria: 'prompt e commit per ora di oggi',
   homeSystem: 'Sistema', sysLoad: 'Carico', sysMem: 'Memoria', sysLoadV: (x: string) => `${x} per core`, sysMemV: (free: string, total: string) => `${free} GB liberi su ${total}`,
   sysCalm: 'Nessun consiglio dal PC per ora.', sysConfirm: 'Lo chiudo? Il PC controlla prima che il consiglio valga ancora.', sysKeep: 'Lascia stare', sysConfirmStop: 'Lo fermo? Il PC controlla prima che il consiglio valga ancora.',
   homeNightWindow: (from: string, to: string, n: number) => `Dalle ${from} alle ${to}: ${n} tra sessioni e lavori`,
@@ -506,6 +511,10 @@ const en: typeof it = {
   agendaChanged: 'The card had changed on the PC: the agenda is reloaded, try again.', agendaBusy: 'The agenda is busy with another change: try again shortly.',
   menuRecap: 'Recap', menuRecapSub: 'Actions, what waits for you, what Claude can do', recapGoes: 'Goes to', recapGoesMaster: 'Goes to the',
   recapResume: (p: string, n: string) => `Resume the ${p} project: ${n}`, homeOther: 'Other', homeNightOpen: 'Open',
+  kpi6Aria: (n: number) => `${n} events in the last 6 hours, one column per hour`,
+  kpi11Title: 'Today', kpi11Work: (h: number, m: number) => (h ? `${h} h ${m} working` : `${m} min working`), kpi11Band: { work: 'working', wait: 'waiting for you', still: 'idle' } as Record<string, string>,
+  kpi18Prompts: 'prompts today', kpi18Commits: 'commits today', kpi18WaitingSince: (m: number) => `waiting for you, the first for ${m} min`, kpi18NoneWaiting: 'none waiting for you',
+  kpi18Tokens: (s: string, p: number) => `tokens, ${s} ${p}%`, kpi18TokensNone: 'tokens today', kpi18Prompt: 'prompts', kpi18Commit: 'commits', kpi18And: 'and', kpi18PerHour: 'per hour', kpi18HoursAria: 'prompts and commits per hour today',
   homeSystem: 'System', sysLoad: 'Load', sysMem: 'Memory', sysLoadV: (x: string) => `${x} per core`, sysMemV: (free: string, total: string) => `${free} GB free of ${total}`,
   sysCalm: 'No advice from the PC for now.', sysConfirm: 'Close it? The PC first checks that the advice still holds.', sysKeep: 'Leave it', sysConfirmStop: 'Stop it? The PC first checks that the advice still holds.',
   homeNightWindow: (from: string, to: string, n: number) => `From ${from} to ${to}: ${n} sessions and jobs`,

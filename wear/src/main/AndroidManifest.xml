@@ -87,5 +87,16 @@
             </intent-filter>
             <meta-data android:name="androidx.wear.tiles.PREVIEW" android:resource="@drawable/tile_preview" />
         </service>
+        <!-- Proposta 15 (compito app-kpi-medie-25-10): la tile «Ultime 6 ore», a parte da quella delle sessioni. -->
+        <service
+            android:name=".wear.tile.KpiTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile"
+            android:label="@string/kpi15_name"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

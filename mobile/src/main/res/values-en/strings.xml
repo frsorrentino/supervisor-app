@@ -882,8 +882,22 @@ It starts at your last message to the master.</string>
     <plurals name="night_agenda_added"><item quantity="one">Queued for tonight</item><item quantity="other">%d queued for tonight</item></plurals>
     <string name="menu_recap">Recap</string>
     <string name="home_sec_other">Other</string>
+    <string name="kpi6_aria">%1$d events in the last 6 hours, one column per hour</string>
+    <string name="kpi11_title">Today</string>
+    <string name="kpi11_work_h">%1$d h %2$d working</string>
+    <string name="kpi11_work_m">%1$d min working</string>
+    <string name="kpi18_prompts">prompts today</string>
+    <string name="kpi18_commits">commits today</string>
+    <string name="kpi18_waiting_since">waiting for you, the first for %1$d min</string>
+    <string name="kpi18_none_waiting">none waiting for you</string>
+    <string name="kpi18_tokens">tokens, %1$s %2$d%%</string>
+    <string name="kpi18_tokens_none">tokens today</string>
+    <string name="kpi18_prompt">prompts</string>
+    <string name="kpi18_commit">commits</string>
+    <string name="kpi18_and">and</string>
+    <string name="kpi18_per_hour">per hour</string>
     <string name="home_sec_system">System</string>
-    <string name="system_summary">load %1$s per core · %2$s GB free of %3$s</string>
+    <string name="system_summary">load %1$s per core · %2$s GB free</string>
     <string name="system_load">Load</string>
     <string name="system_load_v">%1$s per core</string>
     <string name="system_mem">Memory</string>
