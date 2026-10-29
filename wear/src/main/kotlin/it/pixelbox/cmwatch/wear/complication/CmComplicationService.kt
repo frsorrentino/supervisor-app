@@ -97,6 +97,8 @@ class CmComplicationService : SuspendingComplicationDataSourceService() {
     companion object {
         fun requestUpdate(app: CmApp) {
             ComplicationDataSourceUpdateRequester.create(app, ComponentName(app, CmComplicationService::class.java)).requestUpdateAll()
+            // Proposta 14: la complicazione delle attese cambia con lo stesso stato.
+            ComplicationDataSourceUpdateRequester.create(app, ComponentName(app, KpiComplicationService::class.java)).requestUpdateAll()
         }
     }
 }

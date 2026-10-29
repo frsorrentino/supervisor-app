@@ -30,6 +30,31 @@ class PhoneNotifier(private val ctx: Context) {
         m.createNotificationChannel(NotificationChannel(CH_STRONG, ctx.getString(R.string.channel_strong), NotificationManager.IMPORTANCE_HIGH).apply {
             enableVibration(true); vibrationPattern = StrongAlert.VIBRATION
         })
+        // Proposta 16 (compito app-kpi-piccole-25-10): il riepilogo fisso, su un canale suo che si spegne dalle impostazioni.
+        m.createNotificationChannel(NotificationChannel(CH_PINNED, ctx.getString(R.string.channel_pinned), NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
+    }
+
+    /**
+     * Proposta 16: la notifica fissa con quante sessioni ti aspettano e da quanto la prima, la quota 5h con la barra e l'ora in
+     * cui riparte; `null` la toglie (niente stato, Demo, non accoppiato).
+     */
+    fun pinned(p: it.pixelbox.cmwatch.rules.Kpi.Pinned?) {
+        val m = nm
+        if (p == null) { m.cancel(PINNED_TAG, PINNED_ID); return }
+        val title = listOfNotNull(
+            if (p.waiting > 0) ctx.resources.getQuantityString(R.plurals.pinned_waiting, p.waiting, p.waiting) else ctx.getString(R.string.pinned_none_waiting),
+            p.quota?.let { ctx.getString(R.string.pinned_quota, it) },
+        ).joinToString(" · ")
+        val hm = java.time.format.DateTimeFormatter.ofPattern("HH:mm").withZone(java.time.ZoneId.systemDefault())
+        val text = listOfNotNull(
+            p.oldestWaitS?.let { ctx.getString(R.string.pinned_wait, maxOf(1L, (it + 30) / 60)) },
+            p.resetAt?.let { ctx.getString(R.string.pinned_reset, hm.format(java.time.Instant.ofEpochSecond(it))) },
+        ).joinToString(" · ")
+        val b = NotificationCompat.Builder(ctx, CH_PINNED).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title).setContentText(text.ifEmpty { null }).setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
+            .setShowWhen(false).setCategory(NotificationCompat.CATEGORY_STATUS).setContentIntent(open(PINNED_ID))
+        p.quota?.let { b.setProgress(100, it.coerceIn(0, 100), false) }
+        runCatching { m.notify(PINNED_TAG, PINNED_ID, b.build()) }
     }
 
     private fun channel(mode: PhoneAlert.Mode) = if (mode == PhoneAlert.Mode.SOUND) CH_SOUND else CH_QUIET
@@ -229,6 +254,10 @@ class PhoneNotifier(private val ctx: Context) {
         const val CH_SOUND = "phone_questions"
         const val CH_QUIET = "phone_quiet"
         const val CH_STRONG = "phone_strong"
+        const val CH_PINNED = "phone_pinned"
+        /** Il tag della notifica fissa: l'identificatore stabile della proposta 16. */
+        const val PINNED_TAG = "kpi-16"
+        const val PINNED_ID = 16
         /** Contratto 1.83: la domanda di un server MCP aspetta il telefono 120 s, poi torna al terminale. */
         const val ELICIT_TIMEOUT_MS = 125_000L
 

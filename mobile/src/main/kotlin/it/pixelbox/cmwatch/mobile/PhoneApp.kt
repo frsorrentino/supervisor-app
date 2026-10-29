@@ -149,6 +149,16 @@ class PhoneApp : Application() {
                         runCatching { it.pixelbox.cmwatch.mobile.widget.MasterWidget().updateAll(this@PhoneApp) }
                     }
             }
+            // Proposta 16 (compito app-kpi-piccole-25-10): la notifica fissa del riepilogo, rifatta quando cambia quello che dice
+            // (al minuto per l'attesa), al più una ogni 2 s; tolta in Demo o senza accoppiamento.
+            launch {
+                repo.snapshot.map { it.state }.map { st -> it.pixelbox.cmwatch.rules.Kpi.pinned(st, System.currentTimeMillis() / 1000)?.let { p -> p.copy(oldestWaitS = p.oldestWaitS?.div(60)) } }
+                    .distinctUntilChanged().debounce(2_000).collect { _ ->
+                        val s = prefs.current()
+                        val st = repo.snapshot.value.state
+                        notifier.pinned(if (s.demoMode || !s.paired) null else it.pixelbox.cmwatch.rules.Kpi.pinned(st, System.currentTimeMillis() / 1000))
+                    }
+            }
             repo.snapshot.map { it.state }.filterNotNull().distinctUntilChanged().collect { cur ->
                 val prev = lastState; lastState = cur
                 // I passaggi dei messaggi della chat (in coda, in lavorazione, elaborato) si vedono a ogni stato.

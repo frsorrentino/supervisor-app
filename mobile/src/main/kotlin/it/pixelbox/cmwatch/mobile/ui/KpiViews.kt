@@ -1,6 +1,7 @@
 package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -136,5 +138,52 @@ private fun Figure(value: String, label: String, tone: Color?, modifier: Modifie
     Column(modifier.clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(value, style = MaterialTheme.typography.headlineSmall, color = tone ?: CmColors.text, maxLines = 1)
         Text(label, style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+    }
+}
+
+// ---- Proposte piccole (4, 5, 7; compito app-kpi-piccole-25-10) ----
+
+/** 7 · tre cifre in testa alla home; un tocco su «ti aspettano» porta alla prima che aspetta. */
+@Composable
+internal fun Kpi7(h: Kpi.Head, onWaiting: () -> Unit) {
+    Row(Modifier.testTag("kpi-7").fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min).padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val m = maxOf(1L, ((h.oldestWaitS ?: 0L) + 30) / 60)
+        Figure(
+            h.waiting.toString(), if (h.waiting > 0) stringResource(R.string.kpi7_waiting, m) else stringResource(R.string.kpi7_none_waiting),
+            if (h.waiting > 0) CmColors.waiting else null,
+            Modifier.weight(1f).fillMaxHeight().then(if (h.waiting > 0) Modifier.handCursor().clickable(onClick = onWaiting) else Modifier),
+        )
+        Figure(h.busy.toString(), stringResource(R.string.kpi7_busy), if (h.busy > 0) CmColors.busy else null, Modifier.weight(1f).fillMaxHeight())
+        Figure(
+            h.outcomes?.toString() ?: "–",
+            when { h.outcomes == null -> stringResource(R.string.kpi7_outcomes_unknown); (h.red ?: 0) > 0 -> pluralStringResource(R.plurals.kpi7_outcomes_red, h.red!!, h.red!!); else -> stringResource(R.string.kpi7_outcomes) },
+            null, Modifier.weight(1f).fillMaxHeight(),
+        )
+    }
+}
+
+/** 4 · la quota 5h di un account divisa per sessione; i nomi sono le etichette della barra, nel colore del loro tratto. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+internal fun Kpi4(s: Kpi.Split) {
+    val tones = listOf(CmColors.briefRing, CmColors.briefWeek, CmColors.briefGood, CmColors.text2)
+    Column(
+        Modifier.testTag("kpi-4").fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.kpi4_title, s.account).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = CmColors.text2, modifier = Modifier.weight(1f))
+            Text("${s.h5}%", style = MonoSmall, color = CmColors.text)
+        }
+        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(CmColors.briefTrack)) {
+            val parts = s.slices.map { it.pct } + listOfNotNull(s.others.takeIf { it > 0 })
+            parts.forEachIndexed { i, p -> if (p > 0) Box(Modifier.fillMaxHeight().weight(p / 100f).background(tones[minOf(i, 3)])) }
+            val free = 100 - parts.sum()
+            if (free > 0) Box(Modifier.fillMaxHeight().weight(free / 100f))
+        }
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            s.slices.forEachIndexed { i, x -> Text("${x.session} ${x.pct}%", style = MaterialTheme.typography.bodySmall, color = tones[i]) }
+            if (s.others > 0) Text("${stringResource(R.string.kpi4_others)} ${s.others}%", style = MaterialTheme.typography.bodySmall, color = tones[3])
+        }
     }
 }

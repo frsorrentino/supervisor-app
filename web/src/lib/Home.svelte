@@ -3,7 +3,9 @@
   import Kpi6 from './Kpi6.svelte'
   import Kpi11 from './Kpi11.svelte'
   import Kpi18 from './Kpi18.svelte'
-  import { day as kpiDay, dayFigures, hourly, midnight, waitingSince } from './kpi'
+  import Kpi7 from './Kpi7.svelte'
+  import Kpi4 from './Kpi4.svelte'
+  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, split as kpiSplit, todayShare, waitingSince } from './kpi'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import Icon from './Icon.svelte'
@@ -256,6 +258,8 @@
     <b>{t.attentionBanner(waitingYou.length)}</b><span>{[...new Set(waitingYou.map(a => a.session).filter(Boolean))].join(', ')}</span>
   </button>
 {/if}
+<!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. -->
+<Kpi7 h={kpiHead(st, kpiPage, now)} onWaiting={() => { if (!open.sessions) toggleSec('sessions'); onAttention() }} />
 {@render sec('sessions', t.homeSessions, String(model.rows.length))}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
@@ -401,7 +405,7 @@
         {/if}
         {#if s.context != null}
           <!-- Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa. -->
-          <div class="trackrow">{#if kpiPage && s.state !== 'gone'}<Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} />{/if}<div class="track"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div><span class="ctxv">{t.ctx(s.context)}</span></div>
+          <div class="trackrow">{#if kpiPage && s.state !== 'gone'}<Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} />{/if}<div class="track hand" data-kpi="kpi-5" style="--hand:{HANDOFF}%"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div><span class="ctxv">{t.ctx(s.context)}{#if todayShare(st, s.name) != null}{' · '}{t.kpi5Today(todayShare(st, s.name)!)}{/if}</span></div>
         {:else if kpiPage && s.state !== 'gone'}
           <!-- Proposta 6 senza contesto letto: le colonnine da sole, sulla riga dove starebbe la barra. -->
           <div class="trackrow"><Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} /></div>
@@ -415,7 +419,7 @@
   {/if}
   {#if usage && showUsage}
     <div bind:this={usageEl}>{@render sec('usage', t.homeUsage)}</div>
-    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}</div>{/if}
+    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}</div>{/if}
   {/if}
 {#if sys}
   <button class="sec" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}>
@@ -761,6 +765,10 @@
   .chip.unblock { display: inline-flex; align-items: center; gap: 6px; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--wait) 65%, transparent); }
   .track { margin-right: 4px; height: 3px; border-radius: 2px; background: var(--b-track); overflow: hidden; }
   .fill { height: 100%; }
+  /* Proposta 5: il segno della soglia di handoff sulla barra del contesto. */
+  .track.hand { position: relative; overflow: visible; }
+  .track.hand::after { content: ''; position: absolute; left: var(--hand); top: -2px; width: 2px; height: 7px; border-radius: 1px; background: var(--text); opacity: .8; }
+  .track.hand .fill { border-radius: 2px; }
   .sec { display: flex; align-items: center; gap: 8px; width: 100%; margin: 14px 0 4px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-align: left; }
   .sec i { flex: 1; height: 1px; background: var(--line); }
   .sec small { font: 13px/1 var(--sans, inherit); letter-spacing: 0; }

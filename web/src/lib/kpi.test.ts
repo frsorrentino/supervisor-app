@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type TimelineEvent, type TimelinePage } from './contract'
-import { cells, day, dayFigures, hourly, workSeconds } from './kpi'
+import { cells, day, dayFigures, head, hourly, split, todayShare, workSeconds } from './kpi'
 
 const read = (f: string) => readFileSync(new URL(`../../../contract/${f}`, import.meta.url), 'utf8')
 const sample = JSON.parse(read('cmd-result-sample.json'))
@@ -45,5 +45,15 @@ describe('KPI coi dati già nel relay (proposte 6, 11, 15, 18)', () => {
     expect(f.perHour.reduce((n, [p]) => n + p, 0)).toBe(7)
     const full = { ...page, sessions: [{ ...page.sessions[0], events: Array.from({ length: 40 }, () => ev(now - 100)) }] }
     expect(dayFigures(full, st, now, 'Europe/Rome').atLeast).toBe(true)
+  })
+
+  it('kpi-4, kpi-5, kpi-7: la quota per sessione, la parte di oggi, le tre cifre', () => {
+    const st = decodeState(read('state-2-idle.json'))
+    expect(split(st, 'personal')).toEqual({ account: 'personal', h5: 24, slices: [{ session: 'atlas-shop', pct: 15 }, { session: 'master', pct: 9 }], others: 0 })
+    expect(split(st, 'nobody')).toBeNull()
+    expect(todayShare(st, 'atlas-shop')).toBe(62)
+    const h = head(st, page, now, 'Europe/Rome')
+    expect([h.waiting, h.busy, h.outcomes, h.red]).toEqual([1, 0, 1, 0])
+    expect(head(st, null, now, 'Europe/Rome').outcomes).toBeNull()
   })
 })

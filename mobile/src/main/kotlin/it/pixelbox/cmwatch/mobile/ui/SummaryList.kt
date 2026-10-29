@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -234,6 +236,10 @@ fun SummaryList(
         // Franz 24/10 00:46: un suggerimento che riguarda una sessione aperta (il contesto alto) sta nella sua scheda; in Altro restano gli altri.
         val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
         // Franz 24/10 09:36: «L'ordine in home deve essere: Sessioni, Utilizzo, Lavoro, Altro»; la Notte, che non nomina, prima di Altro.
+        // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni.
+        kpiState?.let { st ->
+            item(key = "kpi-7") { Box(moving()) { Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault())) { sessionsOpen = true; save("sessions", true); onAttention() } } }
+        }
         item(key = "sec-sessions") {
             Box(moving()) { HomeSection(stringResource(R.string.home_sec_sessions), model.rows.size.toString().takeIf { !sessionsOpen }, sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
         }
@@ -265,6 +271,7 @@ fun SummaryList(
                         onApprove = onApprove, onDone = onDone,
                         works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
                         kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
+                        todayShare = kpiState?.let { st -> it.pixelbox.cmwatch.rules.Kpi.todayShare(st, s.name) },
                         onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
                         onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
                     )
@@ -280,6 +287,8 @@ fun SummaryList(
                 Box(moving().border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp))) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         u()
+                        // Proposta 4: la quota 5h di ogni account divisa per sessione.
+                        kpiState?.let { st -> st.quota.keys.forEach { a -> it.pixelbox.cmwatch.rules.Kpi.split(st, a)?.let { sp -> Kpi4(sp) } } }
                         // Proposta 18: la giornata in cifre sotto le schede della quota.
                         kpiPage?.let { p -> Kpi18(it.pixelbox.cmwatch.rules.Kpi.dayFigures(p, state = kpiState, now = now, zone = java.time.ZoneId.systemDefault())) }
                     }
@@ -393,6 +402,8 @@ private fun SummaryCard(
     services: List<MasterHome.Row> = emptyList(), onService: (MasterHome.Row) -> Unit = {},
     /** I KPI 6 e 11: gli eventi di oggi della sessione; null = cronologia non ancora arrivata (niente grafici). */
     kpiEvents: List<it.pixelbox.cmwatch.contract.TimelineEvent>? = null,
+    /** Proposta 5: la parte di token di oggi della sessione sul suo account; null senza dati. */
+    todayShare: Int? = null,
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -578,10 +589,14 @@ private fun SummaryCard(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Proposta 6: le ultime sei ore sulla riga della barra, dove c'è posto anche a 320 dp.
                 if (s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) }
-                Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(CmColors.briefTrack)) {
-                    Box(Modifier.fillMaxWidth(it.pixelbox.cmwatch.rules.SessionMeters.contextFraction(pct) ?: 0f).fillMaxHeight().background(bar))
+                // Proposta 5: il segno della soglia di handoff sulla barra, e la parte di quota di oggi accanto al contesto.
+                androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).height(7.dp).testTag("kpi-5"), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(CmColors.briefTrack)) {
+                        Box(Modifier.fillMaxWidth(it.pixelbox.cmwatch.rules.SessionMeters.contextFraction(pct) ?: 0f).fillMaxHeight().background(bar))
+                    }
+                    Box(Modifier.offset(x = maxWidth * (it.pixelbox.cmwatch.rules.Kpi.HANDOFF / 100f)).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(CmColors.text.copy(alpha = 0.8f)))
                 }
-                Text(stringResource(R.string.ctx_short, pct), style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2, maxLines = 1)
+                Text(stringResource(R.string.ctx_short, pct) + (todayShare?.let { " · " + stringResource(R.string.kpi5_today, it) } ?: ""), style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2, maxLines = 1)
             }
         } ?: run { if (s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) } }
     }

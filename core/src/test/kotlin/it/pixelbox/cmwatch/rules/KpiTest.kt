@@ -71,4 +71,37 @@ class KpiTest {
         val full = page.copy(sessions = listOf(page.sessions[0].copy(events = List(40) { ev(now - 100) })))
         assertTrue(Kpi.dayFigures(full, st, now, zone).atLeast)
     }
+
+    // ---- Proposte piccole (compito app-kpi-piccole-25-10) ----
+    private val idle = ContractJson.decodeState(Fixtures.stateIdle)
+
+    @Test fun kpi4_theFiveHourQuotaSplitBySessionByTodaysShare() {
+        val sp = Kpi.split(idle, "personal")!!
+        assertEquals(24, sp.h5)
+        assertEquals(listOf(Kpi.Slice("atlas-shop", 15), Kpi.Slice("master", 9)), sp.slices)
+        assertEquals(0, sp.others)
+        assertNull(Kpi.split(idle, "nobody"))
+    }
+
+    @Test fun kpi5_todaysShareAndTheHandoffMark() {
+        assertEquals(62, Kpi.todayShare(idle, "atlas-shop"))
+        assertNull(Kpi.todayShare(idle, "nobody"))
+        assertEquals(60, Kpi.HANDOFF)
+    }
+
+    @Test fun kpi7_threeFiguresOnTopOfTheHome() {
+        val h = Kpi.head(idle, page, now, zone)
+        // atlas-shop è ferma per Franz (needs_you): una attesa, nessuna al lavoro.
+        assertEquals(1, h.waiting); assertEquals(0, h.busy)
+        assertEquals(1, h.outcomes); assertEquals(0, h.red)
+        // Senza cronologia gli esiti non si sanno: null, non zero.
+        assertNull(Kpi.head(idle, null, now, zone).outcomes)
+    }
+
+    @Test fun kpi14_ringAndKpi16_pinned() {
+        assertEquals(Kpi.Ring(24, 1), Kpi.ring(idle, "personal"))
+        val p = Kpi.pinned(idle, idle.ts)!!
+        assertEquals(1, p.waiting); assertEquals(24, p.quota); assertEquals(1_789_228_800L, p.resetAt)
+        assertNull(Kpi.pinned(null, now))
+    }
 }

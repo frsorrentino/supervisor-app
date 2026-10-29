@@ -61,6 +61,9 @@
     <string name="complication_name">Supervisor</string>
     <string name="tile_name">Sessioni Claude</string>
     <!-- Proposta 15 (compito app-kpi-medie-25-10): la tile «Ultime 6 ore». -->
+    <string name="kpi14_name">Quota e attese</string>
+    <string name="kpi14_title">attese</string>
+    <string name="kpi14_desc">%1$d sessioni ti aspettano, quota 5h %2$s</string>
     <string name="kpi15_name">Ultime 6 ore</string>
     <string name="kpi15_title">Ultime 6 ore</string>
     <string name="kpi15_waiting">%1$s ti aspetta</string>

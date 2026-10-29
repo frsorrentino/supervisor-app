@@ -109,3 +109,41 @@ export function dayFigures(page: TimelinePage | null, st: State | null, now: num
     waitingNow: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, perHour, firstHour: first,
   }
 }
+
+// ---- Proposte piccole (4, 5, 7; compito app-kpi-piccole-25-10), porta di Kpi.kt ----
+
+/** 5 · la soglia di handoff sul contesto (fable-director: handoff dal 60%, rosso dall'80%). */
+export const HANDOFF = 60
+
+export type Slice = { session: string; pct: number }
+export type Split = { account: string; h5: number; slices: Slice[]; others: number }
+
+/** 4 · la quota 5h di un account divisa per sessione, in proporzione alla parte di token di oggi; le prime tre, il resto insieme. */
+export function split(st: State, account: string, top = 3): Split | null {
+  const q = st.quota[account]
+  if (q?.h5 == null) return null
+  const mine = (st.usage_today ?? []).filter(u => u.account === account || (!!q.kind && u.account === q.kind)).sort((a, b) => b.share - a.share)
+  if (!mine.length) return null
+  const slices = mine.slice(0, top).map(u => ({ session: u.session, pct: Math.round(q.h5! * u.share) }))
+  return { account, h5: q.h5, slices, others: mine.length > top ? Math.max(0, q.h5 - slices.reduce((n, x) => n + x.pct, 0)) : 0 }
+}
+
+/** 5 · la parte di token di oggi della sessione sul suo account, in percento; null senza dati. */
+export const todayShare = (st: State, session: string): number | null => {
+  const u = st.usage_today?.find(x => x.session === session)
+  return u ? Math.round(u.share * 100) : null
+}
+
+/** 7 · tre cifre in testa alla home: chi ti aspetta (e da quanto la prima), chi lavora, gli esiti di oggi e i rossi. */
+export type Head = { waiting: number; oldestWaitS: number | null; busy: number; outcomes: number | null; red: number | null }
+
+export function head(st: State, page: TimelinePage | null, now: number, timeZone?: string): Head {
+  const live = st.sessions.filter(s => s.state !== 'gone')
+  const waits = live.map(waitingSince).filter((x): x is number => x != null)
+  const from = midnight(now, timeZone)
+  const today = page ? page.sessions.flatMap(s => s.events).filter(e => e.at >= from && e.at <= now) : null
+  return {
+    waiting: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, busy: live.filter(s => s.state === 'busy').length,
+    outcomes: today ? today.filter(e => e.kind === 'outcome').length : null, red: today ? today.filter(e => e.kind === 'task' && e.ok === false).length : null,
+  }
+}

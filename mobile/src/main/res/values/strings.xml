@@ -936,6 +936,21 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_sec_other">Altro</string>
     <!-- Contratto 1.90 (Franz 28/10 13:19): la sezione «Sistema»; i testi dei consigli arrivano già scritti dal relay. -->
     <!-- KPI coi dati già nel relay (proposte 6, 11, 18 del 25/10, compito app-kpi-medie-25-10). -->
+    <string name="channel_pinned">Riepilogo fisso</string>
+    <plurals name="pinned_waiting"><item quantity="one">%1$d ti aspetta</item><item quantity="other">%1$d ti aspettano</item></plurals>
+    <string name="pinned_none_waiting">Nessuna ti aspetta</string>
+    <string name="pinned_quota">quota 5h %1$d%%</string>
+    <string name="pinned_wait">attesa %1$d min</string>
+    <string name="pinned_reset">riparte %1$s</string>
+    <string name="kpi7_waiting">ti aspettano, la prima da %1$d min</string>
+    <string name="kpi7_none_waiting">nessuna ti aspetta</string>
+    <string name="kpi7_busy">al lavoro adesso</string>
+    <string name="kpi7_outcomes">esiti oggi</string>
+    <plurals name="kpi7_outcomes_red"><item quantity="one">esiti oggi, %1$d rosso</item><item quantity="other">esiti oggi, %1$d rossi</item></plurals>
+    <string name="kpi7_outcomes_unknown">esiti oggi, in arrivo</string>
+    <string name="kpi4_title">Quota 5h · %1$s</string>
+    <string name="kpi4_others">altre</string>
+    <string name="kpi5_today">oggi %1$d%%</string>
     <string name="kpi6_aria">%1$d eventi nelle ultime 6 ore, uno per colonna d\'ora</string>
     <string name="kpi11_title">Oggi</string>
     <string name="kpi11_work_h">%1$d h %2$d al lavoro</string>

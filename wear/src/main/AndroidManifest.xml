@@ -76,6 +76,20 @@
             <meta-data android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS" android:value="0" />
         </service>
 
+        <!-- Proposta 14 (compito app-kpi-piccole-25-10): anello della quota 5h con le attese al centro. -->
+        <service
+            android:name=".wear.complication.KpiComplicationService"
+            android:exported="true"
+            android:icon="@drawable/ic_app_mono"
+            android:label="@string/kpi14_name"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data android:name="android.support.wearable.complications.SUPPORTED_TYPES" android:value="RANGED_VALUE" />
+            <meta-data android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS" android:value="0" />
+        </service>
+
         <service
             android:name=".wear.tile.CmTileService"
             android:exported="true"

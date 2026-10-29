@@ -176,6 +176,9 @@ const it = {
   recapResume: (p: string, n: string) => `Riprendi il progetto ${p}: ${n}`, homeOther: 'Altro', homeNightOpen: 'Apri',
   // Contratto 1.90 (Franz 28/10 13:19): la sezione «Sistema» della home; i testi dei consigli arrivano già scritti dal relay.
   // KPI coi dati già nel relay (proposte 6, 11, 18 del 25/10, compito app-kpi-medie-25-10).
+  kpi7Waiting: (m: number) => `ti aspettano, la prima da ${m} min`, kpi7NoneWaiting: 'nessuna ti aspetta', kpi7Busy: 'al lavoro adesso',
+  kpi7Outcomes: 'esiti oggi', kpi7OutcomesRed: (n: number) => `esiti oggi, ${n} ${n === 1 ? 'rosso' : 'rossi'}`, kpi7OutcomesUnknown: 'esiti oggi, in arrivo',
+  kpi4Title: (a: string) => `Quota 5h · ${a}`, kpi4Others: 'altre', kpi5Today: (p: number) => `oggi ${p}%`,
   kpi6Aria: (n: number) => `${n} eventi nelle ultime 6 ore, uno per colonna d'ora`,
   kpi11Title: 'Oggi', kpi11Work: (h: number, m: number) => (h ? `${h} h ${m} al lavoro` : `${m} min al lavoro`), kpi11Band: { work: 'al lavoro', wait: 'ti aspetta', still: 'ferma' } as Record<string, string>,
   kpi18Prompts: 'prompt oggi', kpi18Commits: 'commit oggi', kpi18WaitingSince: (m: number) => `ti aspettano, la prima da ${m} min`, kpi18NoneWaiting: 'nessuna ti aspetta',
@@ -511,6 +514,9 @@ const en: typeof it = {
   agendaChanged: 'The card had changed on the PC: the agenda is reloaded, try again.', agendaBusy: 'The agenda is busy with another change: try again shortly.',
   menuRecap: 'Recap', menuRecapSub: 'Actions, what waits for you, what Claude can do', recapGoes: 'Goes to', recapGoesMaster: 'Goes to the',
   recapResume: (p: string, n: string) => `Resume the ${p} project: ${n}`, homeOther: 'Other', homeNightOpen: 'Open',
+  kpi7Waiting: (m: number) => `waiting for you, the first for ${m} min`, kpi7NoneWaiting: 'none waiting for you', kpi7Busy: 'working now',
+  kpi7Outcomes: 'outcomes today', kpi7OutcomesRed: (n: number) => `outcomes today, ${n} red`, kpi7OutcomesUnknown: 'outcomes today, loading',
+  kpi4Title: (a: string) => `5h quota · ${a}`, kpi4Others: 'others', kpi5Today: (p: number) => `today ${p}%`,
   kpi6Aria: (n: number) => `${n} events in the last 6 hours, one column per hour`,
   kpi11Title: 'Today', kpi11Work: (h: number, m: number) => (h ? `${h} h ${m} working` : `${m} min working`), kpi11Band: { work: 'working', wait: 'waiting for you', still: 'idle' } as Record<string, string>,
   kpi18Prompts: 'prompts today', kpi18Commits: 'commits today', kpi18WaitingSince: (m: number) => `waiting for you, the first for ${m} min`, kpi18NoneWaiting: 'none waiting for you',

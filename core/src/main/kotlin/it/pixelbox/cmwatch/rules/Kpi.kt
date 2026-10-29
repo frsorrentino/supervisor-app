@@ -122,4 +122,58 @@ object Kpi {
             waitingNow = waits.size, oldestWaitS = waits.minOrNull()?.let { now - it }, perHour = perHour, firstHour = first,
         )
     }
+
+    // ---- Proposte piccole (4, 5, 7, 14, 16; compito app-kpi-piccole-25-10) ----
+
+    /** 5 · la soglia di handoff sul contesto (fable-director: handoff dal 60%, rosso dall'80%). */
+    const val HANDOFF = 60
+
+    data class Slice(val session: String, val pct: Int)
+    data class Split(val account: String, val h5: Int, val slices: List<Slice>, val others: Int)
+
+    /**
+     * 4 · la quota 5h di un account divisa per sessione, in proporzione alla parte di token di oggi (`usage_today.share`):
+     * le prime tre, il resto insieme. Null senza quota 5h o senza token di oggi per quell'account.
+     */
+    fun split(state: State, account: String, top: Int = 3): Split? {
+        val h5 = state.quota[account]?.h5 ?: return null
+        val kind = state.quota[account]?.kind
+        val mine = state.usageToday.orEmpty().filter { it.account == account || (kind != null && it.account == kind) }.sortedByDescending { it.share }
+        if (mine.isEmpty()) return null
+        val slices = mine.take(top).map { Slice(it.session, Math.round(h5 * it.share).toInt()) }
+        return Split(account, h5, slices, (h5 - slices.sumOf { it.pct }).coerceAtLeast(0).takeIf { mine.size > top } ?: 0)
+    }
+
+    /** 5 · la parte di token di oggi della sessione sul suo account, in percento; null senza dati. */
+    fun todayShare(state: State, session: String): Int? = state.usageToday?.firstOrNull { it.session == session }?.let { Math.round(it.share * 100).toInt() }
+
+    /** 7 · tre cifre in testa alla home: chi ti aspetta (e da quanto la prima), chi lavora, gli esiti di oggi e i rossi. */
+    data class Head(val waiting: Int, val oldestWaitS: Long?, val busy: Int, val outcomes: Int?, val red: Int?)
+
+    fun head(state: State, page: TimelinePage?, now: Long, zone: ZoneId): Head {
+        val live = state.sessions.filter { it.state != SessionState.GONE }
+        val waits = live.mapNotNull { waitingSince(it) }
+        val from = midnight(now, zone)
+        val today = page?.sessions?.flatMap { it.events }?.filter { it.at in from..now }
+        return Head(
+            waiting = waits.size, oldestWaitS = waits.minOrNull()?.let { now - it }, busy = live.count { it.state == SessionState.BUSY },
+            outcomes = today?.count { it.kind == "outcome" }, red = today?.count { it.kind == "task" && it.ok == false },
+        )
+    }
+
+    /** 14 · l'anello della complicazione: la quota 5h dell'account e, al centro, quante sessioni ti aspettano. */
+    data class Ring(val quota: Int?, val waiting: Int)
+
+    fun ring(state: State?, account: String): Ring = Ring(state?.quota?.get(account)?.h5, state?.sessions.orEmpty().count { it.state != SessionState.GONE && waitingSince(it) != null })
+
+    /** 16 · il riepilogo della notifica fissa; null senza stato. */
+    data class Pinned(val waiting: Int, val oldestWaitS: Long?, val quota: Int?, val resetAt: Long?)
+
+    fun pinned(state: State?, now: Long): Pinned? {
+        state ?: return null
+        val account = Accounts.personalQuota(state) ?: state.quota.keys.firstOrNull()
+        val q = account?.let { state.quota[it] }
+        val waits = state.sessions.filter { it.state != SessionState.GONE }.mapNotNull { waitingSince(it) }
+        return Pinned(waits.size, waits.minOrNull()?.let { now - it }, q?.h5, q?.resetH5?.takeIf { it > now })
+    }
 }

@@ -26,7 +26,7 @@ import java.io.File
 import java.time.ZoneId
 
 /**
- * I KPI coi dati già nel relay (proposte 6, 11, 18, compito app-kpi-medie-25-10) a 320, 360 e 412 dp: nessun testo esce
+ * I KPI coi dati già nel relay (proposte 6, 11, 18, compito app-kpi-medie-25-10; 4 e 7, app-kpi-piccole-25-10) a 320, 360 e 412 dp: nessun testo esce
  * da card e pagina (Franz 25/10 21:33). Una giornata di prova dalle 8 alle 16, una sessione che ti aspetta da 25 minuti.
  */
 class KpiViewsTest {
@@ -48,6 +48,9 @@ class KpiViewsTest {
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
                 Column(Modifier.fillMaxSize().background(CmColors.bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Proposte piccole (compito app-kpi-piccole-25-10): le tre cifre e la quota per sessione.
+                    Kpi7(Kpi.head(st, page, now, zone)) {}
+                    Kpi.split(st, "personal")?.let { Kpi4(it) }
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) { Text("atlas-shop", color = CmColors.text, modifier = Modifier.weight(1f)); Kpi6(Kpi.hourly(events, now)) }
                         Kpi11(spans, from, now)
