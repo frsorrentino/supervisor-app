@@ -16,9 +16,6 @@ import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.ui.*
 import it.pixelbox.cmwatch.rules.Kpi
 import it.pixelbox.cmwatch.ui.tokens.CmColors
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -31,12 +28,11 @@ import java.io.File
 class KpiDataViewsTest {
     @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar")
 
+    // Il `kpi` di cmd-result-sample.json preso dal file: il modulo del telefono non ha kotlinx-json nei test, il testo si
+    // toglie dalle virgolette a mano (non ha altri escape) e lo legge ContractJson del core.
     private val data: KpiData = run {
-        val root = Json.parseToJsonElement(File("../contract/cmd-result-sample.json").readText()).jsonObject
-        val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
-        val id = cmds.single { it.op == CmdOp.KPI }.id
-        val r = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }.single { it.id == id }
-        ContractJson.decodeKpi(r.text)
+        val line = File("../contract/cmd-result-sample.json").readLines().single { "\"text\": \"{\\\"at\\\": " in it && "kpi_tasks" in it }
+        ContractJson.decodeKpi(line.substringAfter("\"text\": \"").substringBeforeLast("\"").replace("\\\"", "\""))
     }
     private val now = data.at
 
