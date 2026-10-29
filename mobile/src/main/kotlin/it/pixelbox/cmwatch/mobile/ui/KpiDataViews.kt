@@ -202,6 +202,7 @@ private fun turnTone(o: String): Color = when (o) {
     else -> CmColors.busy
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun Kpi10(turns: List<KpiTurn>) {
     val s = Kpi.turnsSummary(turns)
@@ -211,14 +212,15 @@ internal fun Kpi10(turns: List<KpiTurn>) {
     val last = compact(s.tokensLast)
     val aria = stringResource(R.string.kpi10_aria, s.n, s.minutes, first, last)
     Column(Modifier.testTag("kpi-10").fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.kpi10_title).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = CmColors.text2, maxLines = 1, modifier = Modifier.weight(1f))
+        // Titolo e sintesi sulla stessa riga se ci stanno, altrimenti la sintesi va sotto: niente tagli a 320 dp.
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(R.string.kpi10_title).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = CmColors.text2, maxLines = 1, modifier = Modifier.padding(end = 12.dp))
             Text(
                 buildAnnotatedString {
                     append(pluralStringResource(R.plurals.kpi10_turns, s.n, s.n, s.minutes))
                     if (s.failed > 0) withStyle(SpanStyle(color = CmColors.briefAlertRing)) { append(" · " + pluralStringResource(R.plurals.kpi10_failed, s.failed, s.failed)) }
                 },
-                style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2, maxLines = 1,
+                style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2,
             )
         }
         // La lunghezza di un blocco è la durata del turno, il colore l'esito; sopra, la linea del costo per turno.

@@ -30,6 +30,7 @@
 
 <div class="k10" data-kpi="kpi-10">
   <div class="head"><span>{t.kpi10Title}</span><b>{t.kpi10Turns(s.n, s.minutes)}{#if s.failed}<em> · {t.kpi10Failed(s.failed)}</em>{/if}</b></div>
+  <div class="plot">
   <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" role="img" aria-label={t.kpi10Aria(s.n, s.minutes, first, last)}>
     {#each geo as g, i (i)}<rect x={g.x} y={H - BAR} width={g.w} height={BAR} rx="3" fill={g.tone} />{/each}
     {#if geo.length > 1}<polyline points={geo.map(g => `${g.cx},${g.cy}`).join(' ')} fill="none" stroke="var(--b-week)" stroke-width="2" vector-effect="non-scaling-stroke" />{/if}
@@ -41,17 +42,19 @@
       {#if geo.length > 1 && geo.at(-1)!.cx - geo[0].cx > 70}<span style:left="{(geo.at(-1)!.cx / W) * 100}%" style:top="{geo.at(-1)!.cy - 14}px" class="last">{last}</span>{/if}
     </div>
   {/if}
+  </div>
   <small>{t.kpi10Caption}</small>
 </div>
 
 <style>
-  .k10 { display: flex; flex-direction: column; gap: 4px; position: relative; min-width: 0; }
-  .head { display: flex; justify-content: space-between; gap: 8px; font: 500 11px/1.3 var(--mono); color: var(--text2); letter-spacing: .06em; }
+  .k10 { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .plot { position: relative; }
+  .head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font: 500 11px/1.3 var(--mono); color: var(--text2); letter-spacing: .06em; }
   .head span { text-transform: uppercase; white-space: nowrap; }
-  .head b { font-weight: 400; letter-spacing: 0; white-space: nowrap; }
+  .head b { font-weight: 400; letter-spacing: 0; }
   .head em { font-style: normal; color: var(--b-alert); }
   svg { width: 100%; height: 58px; display: block; }
-  .vals { position: absolute; left: 0; right: 0; top: 20px; height: 0; }
+  .vals { position: absolute; left: 0; right: 0; top: 0; height: 0; }
   .vals span { position: absolute; font: 10px/1 var(--mono); color: var(--b-week); white-space: nowrap; }
   .vals .first { transform: translateX(0); }
   .vals .last { transform: translateX(-100%); }
