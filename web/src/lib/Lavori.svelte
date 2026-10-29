@@ -7,15 +7,19 @@
   import type { AgendaPage, Approval, Commitment, DonePage, Event, State } from './contract'
   import { choices } from './approvals'
   import ApproveBody from './ApproveBody.svelte'
+  import Kpi8 from './Kpi8.svelte'
+  import Kpi9 from './Kpi9.svelte'
   import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Line } from './lavori'
   import { doIt, mark, type Edit } from './recapAgenda'
   import type { RecapAction } from './recapActions'
   import { t } from './t'
   import Icon from './Icon.svelte'
 
-  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {}, onSpeak = null, suggestions }: {
+  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {}, onSpeak = null, suggestions, kpi = null }: {
     /** Contratto 1.84 (scheda A): nel cruscotto i suggerimenti della master in cima a «Cosa serve da te». */
     suggestions?: import('svelte').Snippet
+    /** Contratto 1.96: le cifre dell'op `kpi`; 8 in cima a «In corso», 9 in fondo a «Fatto» (compito app-kpi-dati-relay-25-10). */
+    kpi?: import('./contract').KpiData | null
     st: State; agenda?: AgendaPage | null; events?: Event[]; now: number; timeZone?: string | null
     /** bar = ← e titolo; none = la testata la dà chi ospita; desk = nel cruscotto, il titolo come le sezioni. */
     header?: 'bar' | 'none' | 'desk'
@@ -156,6 +160,8 @@
         <button class:on={timeView} aria-pressed={timeView} onclick={() => setView(true)}>{t.lavoriViewTime}</button>
       </span>
     </h3>
+    <!-- Proposta 8: quattro cifre e, per compito, l'età e i tentativi già spesi. -->
+    {#if kpi?.kpi_tasks}<div class="kpi"><Kpi8 k={kpi.kpi_tasks} /></div>{/if}
     {#if oldRelay}<p class="expl bright">{t.lavoriOldRelay}</p>
     {:else if !progressN}<p class="expl bright">{t.lavoriNothingProgress}</p>{/if}
     {#if !timeView}
@@ -220,6 +226,8 @@
         {/each}
       {/if}
     {/each}
+    <!-- Proposta 9: i controlli verdi e rossi della settimana. -->
+    {#if kpi?.kpi_checks_week?.length}<div class="kpi"><Kpi9 days={kpi.kpi_checks_week} /></div>{/if}
     <p class="expl quota">{t.lavoriQuotaNote}</p>
   {/if}
 </div>
@@ -275,6 +283,7 @@
   .done .who { color: var(--text2); font-size: 13px; padding: 0; } .proof { color: var(--icon); } .proof.plain { color: var(--text2); }
   /* Franz 24/10 18:36: niente esce dalla scheda, neanche un percorso lungo senza spazi. */
   .row .t, .done .t { overflow-wrap: anywhere; }
+  .kpi { padding: 4px 4px 8px; }
   .row.stack { flex-wrap: wrap; } .row.stack .t { flex-basis: calc(100% - 34px); } .row.stack .opts { flex-basis: 100%; justify-content: flex-start; padding-left: 34px; }
   dialog.alert { background: var(--surface); color: var(--text); border: none; border-radius: 28px; padding: 24px; max-width: 420px; width: calc(100% - 48px); }
   dialog.alert::backdrop { background: rgb(0 0 0 / .6); } dialog h3 { margin: 0 0 8px; font-size: 20px; font-weight: 500; } dialog p { margin: 0 0 12px; color: var(--text2); font-size: 14px; }

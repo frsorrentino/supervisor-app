@@ -1454,6 +1454,24 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // Le proposte 8, 9, 10, 12, 13 e 17 (contratto 1.96, compito app-kpi-dati-relay-25-10): l'op `kpi`, una lettura passiva
+        // ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op.
+        var kpiData by remember { mutableStateOf<it.pixelbox.cmwatch.contract.KpiData?>(null) }
+        val kpiDataOk = !demo && state?.ops?.contains("kpi") == true
+        LaunchedEffect(kpiDataOk) {
+            if (!kpiDataOk) return@LaunchedEffect
+            lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                while (true) {
+                    val id = runCatching { app.repo.command(CmdOp.KPI, null, null) }.getOrNull()
+                    if (id != null) {
+                        val r = kotlinx.coroutines.withTimeoutOrNull(PhoneTerminal.LOST_MS) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+                        if (r?.ok == true) runCatching { ContractJson.decodeKpi(r.text) }.onSuccess { d -> kpiData = d }
+                        app.repo.forget(id)
+                    }
+                    delay(300_000)
+                }
+            }
+        }
         val summaryPage: @Composable () -> Unit = summaryPage@{
             val st = state
             if (st == null || summary == null) {
@@ -1520,7 +1538,7 @@ class MainActivity : ComponentActivity() {
                     onSpeak = { t -> speech.toggle(t) },
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
                     system = state?.system, ops = state?.ops,
-                    kpiPage = kpiPage, kpiState = state,
+                    kpiPage = kpiPage, kpiState = state, kpiData = kpiData,
                     // Contratto 1.95: «Plugin e skill»; l'elenco è una lettura passiva, gli aggiornamenti mostrano il testo del relay.
                     plugins = state?.plugins?.takeIf { !demo && state.ops?.contains("plugins") == true && state.ops?.contains("plugin_update") == true },
                     onPluginsLoad = {
@@ -1595,6 +1613,7 @@ class MainActivity : ComponentActivity() {
                     onSession = { n -> if (st.sessions.any { s -> s.name == n && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE }) { open = n; tab = StartRoute.Tab.OVERVIEW } },
                     header = header, today = lavoriToday, zone = lavoriZone,
                     donePages = donePages, onLoadDay = { d -> askDone(d) },
+                    kpi = kpiData,
                 )
             }
         }

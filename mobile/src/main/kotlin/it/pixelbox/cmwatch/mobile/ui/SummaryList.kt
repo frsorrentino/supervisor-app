@@ -161,6 +161,8 @@ fun SummaryList(
     onSystem: ((it.pixelbox.cmwatch.contract.CmdOp, String) -> Unit)? = null,
     /** I KPI 6, 11 e 18 (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni; null finché non c'è. */
     kpiPage: it.pixelbox.cmwatch.contract.TimelinePage? = null, kpiState: it.pixelbox.cmwatch.contract.State? = null,
+    /** Contratto 1.96: le cifre dell'op `kpi` (proposte 10, 12, 13, 17, compito app-kpi-dati-relay-25-10); null finché non arrivano. */
+    kpiData: it.pixelbox.cmwatch.contract.KpiData? = null,
     /** Contratto 1.95: la sezione «Plugin e skill»; null = relay senza le op. `pluginsInitial` per i test. */
     plugins: it.pixelbox.cmwatch.contract.PluginsSummary? = null,
     onPluginsLoad: (suspend () -> it.pixelbox.cmwatch.contract.PluginsPage?)? = null,
@@ -253,7 +255,7 @@ fun SummaryList(
         val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
         val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(java.time.ZoneId.systemDefault())) }
         // Contratto 1.84 (scheda A): senza nessuno che aspetta, i suggerimenti in cima alle sessioni.
-        if (sessionsOpen && sug != null && model.rows.none { it.group == Summary.Group.WAITING }) item(key = "suggestions") { Box(moving()) { SuggestionsCard(sug, sugAt!!, onSuggestion) } }
+        if (sessionsOpen && sug != null && model.rows.none { it.group == Summary.Group.WAITING }) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, sugAt!!, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
         if (sessionsOpen) model.rows.groupBy { it.group }.forEach { (group, rows) ->
             item(key = "h-${group.name}") {
                 Box(moving()) {
@@ -277,6 +279,7 @@ fun SummaryList(
                         onApprove = onApprove, onDone = onDone,
                         works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
                         kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
+                        kpiTurns = kpiData?.let { d -> it.pixelbox.cmwatch.rules.Kpi.turnsOf(d, s.name) },
                         todayShare = kpiState?.let { st -> it.pixelbox.cmwatch.rules.Kpi.todayShare(st, s.name) },
                         onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
                         onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
@@ -284,7 +287,7 @@ fun SummaryList(
                 }
             }
             // Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta, prima delle altre sessioni.
-            if (group == Summary.Group.WAITING && sug != null) item(key = "suggestions") { Box(moving()) { SuggestionsCard(sug, sugAt!!, onSuggestion) } }
+            if (group == Summary.Group.WAITING && sug != null) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, sugAt!!, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
         }
         usage?.takeIf { showUsage }?.let { u ->
             item(key = "sec-usage") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_usage), null, usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) } } }
@@ -297,6 +300,8 @@ fun SummaryList(
                         kpiState?.let { st -> st.quota.keys.forEach { a -> it.pixelbox.cmwatch.rules.Kpi.split(st, a)?.let { sp -> Kpi4(sp) } } }
                         // Proposta 18: la giornata in cifre sotto le schede della quota.
                         kpiPage?.let { p -> Kpi18(it.pixelbox.cmwatch.rules.Kpi.dayFigures(p, state = kpiState, now = now, zone = java.time.ZoneId.systemDefault())) }
+                        // Proposta 17: quanto aspettano le sessioni, dalla 1.96.
+                        kpiData?.waits?.let { w -> Kpi17(w, now) }
                     }
                 }
             }
@@ -305,7 +310,7 @@ fun SummaryList(
         system?.let { sys ->
             val sysOpen = SystemRules.isOpen(sys.level, sysManual)
             item(key = "sec-system") { Box(moving()) { SystemHeader(sys, sysOpen) { sysManual = SystemRules.Manual(sys.level, !sysOpen) } } }
-            if (sysOpen) item(key = "system") { Box(moving()) { SystemCard(sys, ops, onSystem) } }
+            if (sysOpen) item(key = "system") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } } }
         }
         // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
         if (plugins != null && onPluginsLoad != null && onPluginCmd != null) {
@@ -414,6 +419,8 @@ private fun SummaryCard(
     services: List<MasterHome.Row> = emptyList(), onService: (MasterHome.Row) -> Unit = {},
     /** I KPI 6 e 11: gli eventi di oggi della sessione; null = cronologia non ancora arrivata (niente grafici). */
     kpiEvents: List<it.pixelbox.cmwatch.contract.TimelineEvent>? = null,
+    /** Proposta 10 (1.96): i turni di oggi della sessione col costo; null = op `kpi` non ancora arrivata. */
+    kpiTurns: List<it.pixelbox.cmwatch.contract.KpiTurn>? = null,
     /** Proposta 5: la parte di token di oggi della sessione sul suo account; null senza dati. */
     todayShare: Int? = null,
 ) {
@@ -493,6 +500,8 @@ private fun SummaryCard(
                 val from = it.pixelbox.cmwatch.rules.Kpi.midnight(now, java.time.ZoneId.systemDefault())
                 Kpi11(it.pixelbox.cmwatch.rules.Kpi.day(ev, from, now, if (s.state == it.pixelbox.cmwatch.contract.SessionState.GONE) null else it.pixelbox.cmwatch.rules.Kpi.waitingSince(s)), from, now)
             }
+            // Proposta 10: la striscia dei turni di oggi col costo, sotto la giornata a fasce.
+            kpiTurns?.takeIf { t -> t.isNotEmpty() }?.let { t -> Kpi10(t) }
         }
         // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
         r.approvals.forEach { a -> ApprovalLine(a, onApprove) }

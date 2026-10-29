@@ -911,6 +911,54 @@ It starts at your last message to the master.</string>
     <string name="kpi18_commit">commits</string>
     <string name="kpi18_and">and</string>
     <string name="kpi18_per_hour">per hour</string>
+    <!-- KPIs from the relay's new data (proposals 8, 9, 10, 12, 13, 17 of 25/10, contract 1.96, task app-kpi-dati-relay-25-10). -->
+    <string name="kpi_age_m">%1$d min</string>
+    <string name="kpi_age_h">%1$d h</string>
+    <string name="kpi_age_d">%1$d d</string>
+    <string name="kpi8_open">open tasks</string>
+    <string name="kpi8_waiting_you">waiting for you</string>
+    <string name="kpi8_stalled_n">stalled</string>
+    <string name="kpi8_closed_today">closed today</string>
+    <string name="kpi8_title">Open tasks</string>
+    <string name="kpi8_axis">age · attempts</string>
+    <plurals name="kpi8_tries"><item quantity="one">%1$d attempt of %2$d</item><item quantity="other">%1$d attempts of %2$d</item></plurals>
+    <string name="kpi8_stalled">stalled</string>
+    <string name="kpi8_running">working</string>
+    <string name="kpi8_paused">paused</string>
+    <string name="kpi8_assigned">assigned</string>
+    <string name="kpi8_approved">approved</string>
+    <string name="kpi9_title">Checks · 7 days</string>
+    <plurals name="kpi9_green"><item quantity="one">%1$d green</item><item quantity="other">%1$d green</item></plurals>
+    <plurals name="kpi9_red"><item quantity="one">%1$d red</item><item quantity="other">%1$d red</item></plurals>
+    <string name="kpi9_caption">Per day the task checks that passed and, next to them, the red ones.</string>
+    <string name="kpi10_title">Today's turns</string>
+    <plurals name="kpi10_turns"><item quantity="one">%1$d turn · %2$d min</item><item quantity="other">%1$d turns · %2$d min</item></plurals>
+    <plurals name="kpi10_failed"><item quantity="one">%1$d failed</item><item quantity="other">%1$d failed</item></plurals>
+    <string name="kpi10_caption">tokens per turn</string>
+    <string name="kpi10_aria">%1$d turns today, %2$d minutes; the cost goes from %3$s to %4$s tokens per turn</string>
+    <string name="kpi12_seconds">%1$s s</string>
+    <string name="kpi12_latency">from the push to the phone, median of the last hour</string>
+    <string name="kpi12_latency_max">from the push to the phone, median; peak %1$s s</string>
+    <string name="kpi12_latency_none">from the push to the phone: no sample in the last hour</string>
+    <string name="kpi12_sessions_here">sessions on this computer</string>
+    <string name="kpi12_ram">RAM used on %1$s</string>
+    <string name="kpi12_up">%1$s on</string>
+    <string name="kpi12_down">off</string>
+    <string name="kpi13_title">Suggestions · 7 days</string>
+    <string name="kpi13_rate">%1$d%% accepted</string>
+    <string name="kpi13_none">No suggestions in the last 7 days.</string>
+    <plurals name="kpi13_accepted"><item quantity="one">%1$d accepted</item><item quantity="other">%1$d accepted</item></plurals>
+    <plurals name="kpi13_discussed"><item quantity="one">%1$d discussed</item><item quantity="other">%1$d discussed</item></plurals>
+    <plurals name="kpi13_later"><item quantity="one">%1$d later</item><item quantity="other">%1$d later</item></plurals>
+    <plurals name="kpi13_never"><item quantity="one">%1$d never</item><item quantity="other">%1$d never</item></plurals>
+    <plurals name="kpi13_expired"><item quantity="one">%1$d expired</item><item quantity="other">%1$d expired</item></plurals>
+    <string name="kpi17_title">Waits · 7 days</string>
+    <plurals name="kpi17_closed"><item quantity="one">%1$d closed</item><item quantity="other">%1$d closed</item></plurals>
+    <string name="kpi17_now">%1$s has waited %3$d min: %2$s</string>
+    <string name="kpi17_question">question</string>
+    <string name="kpi17_permission">permission</string>
+    <string name="kpi17_needs_you">needs you</string>
+    <string name="kpi17_caption">Minutes between a session\'s request and your answer, median per day.</string>
     <string name="home_sec_system">System</string>
     <string name="home_sec_plugins">Plugins and skills</string>
     <plurals name="plugins_to_update"><item quantity="one">%1$d to update</item><item quantity="other">%1$d to update</item></plurals>

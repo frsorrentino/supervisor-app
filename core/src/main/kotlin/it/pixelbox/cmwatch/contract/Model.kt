@@ -828,3 +828,50 @@ data class PairAddInvite(val qr: String?, val code: String, val exp: Long)
 
 /** Contratto 1.51: con un relay che non dice `handoff`, il comando di prima. */
 const val LEGACY_HANDOFF = "/fable-director:handoff --here"
+
+/**
+ * Contratto 1.96: il risultato dell'op `kpi`, le cifre delle proposte 8, 9, 10, 12, 13 e 17 del 25/10. Un blocco che il relay
+ * non riesce a leggere è null.
+ */
+@Serializable data class KpiData(
+    val at: Long,
+    @SerialName("kpi_tasks") val tasks: KpiTasks? = null,
+    @SerialName("kpi_checks_week") val checksWeek: List<KpiChecksDay>? = null,
+    @SerialName("kpi_turns_today") val turnsToday: List<KpiSessionTurns>? = null,
+    @SerialName("kpi_health") val health: KpiHealth? = null,
+    @SerialName("kpi_suggestions_7d") val suggestions7d: KpiSuggestions? = null,
+    @SerialName("kpi_waits") val waits: KpiWaits? = null,
+)
+
+/** 8 · `attempts` = i controlli rossi già spesi; al massimo 12 compiti. */
+@Serializable data class KpiTasks(
+    val open: Int = 0, @SerialName("waiting_you") val waitingYou: Int = 0, val stalled: Int = 0,
+    @SerialName("closed_today") val closedToday: Int = 0, val tasks: List<KpiTask> = emptyList(),
+)
+@Serializable data class KpiTask(
+    val task: String, val short: String? = null, val state: String, @SerialName("age_s") val ageS: Long = 0,
+    val attempts: Int = 0, @SerialName("attempts_max") val attemptsMax: Int = 3, val stalled: Boolean = false, val who: String? = null,
+)
+
+/** 9 · sette giorni, il più vecchio prima. */
+@Serializable data class KpiChecksDay(val date: String, val green: Int = 0, val red: Int = 0)
+
+/** 10 · `outcome` ok | fail | question | running; `tokens` = input + scritture in cache + output, `cache_read` a parte. */
+@Serializable data class KpiSessionTurns(val session: String, val turns: List<KpiTurn> = emptyList())
+@Serializable data class KpiTurn(val start: Long, val end: Long, val outcome: String, val tokens: Long = 0, @SerialName("cache_read") val cacheRead: Long = 0)
+
+/** 12 · la latenza dalla push alla lettura nell'ultima ora, le sessioni di questo computer e le altre macchine. */
+@Serializable data class KpiHealth(
+    val latency: KpiLatency? = null, @SerialName("sessions_here") val sessionsHere: Int? = null,
+    @SerialName("sessions_max") val sessionsMax: Int? = null, val hosts: List<KpiHost> = emptyList(),
+)
+@Serializable data class KpiLatency(@SerialName("p50_s") val p50S: Double? = null, @SerialName("max_s") val maxS: Double? = null, val n: Int = 0)
+@Serializable data class KpiHost(val name: String, val up: Boolean, val cpu: Double? = null, @SerialName("ram_pct") val ramPct: Int? = null, @SerialName("disk_pct") val diskPct: Int? = null)
+
+/** 13 · come sono finiti i suggerimenti degli ultimi sette giorni; `accepted` conta anche le scelte. */
+@Serializable data class KpiSuggestions(val accepted: Int = 0, val discussed: Int = 0, val later: Int = 0, val never: Int = 0, val expired: Int = 0)
+
+/** 17 · chi aspetta adesso (`kind` question, permission, needs_you) e la mediana in minuti delle attese chiuse ogni giorno. */
+@Serializable data class KpiWaits(val now: List<KpiWaitNow> = emptyList(), val week: List<KpiWaitDay> = emptyList())
+@Serializable data class KpiWaitNow(val session: String, val kind: String, val since: Long)
+@Serializable data class KpiWaitDay(val date: String, @SerialName("median_min") val medianMin: Double? = null, val n: Int = 0)

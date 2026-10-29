@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { decodeState, type TimelineEvent, type TimelinePage } from './contract'
-import { cells, day, dayFigures, head, hourly, split, todayShare, workSeconds } from './kpi'
+import { decodeState, type KpiData, type TimelineEvent, type TimelinePage } from './contract'
+import { acceptRate, ageFraction, cells, checksTotals, day, dayFigures, head, hourly, split, suggestionsTotal, tasksOrder, todayShare, turnsOf, turnsSummary, waitsClosed, waitsTop, workSeconds } from './kpi'
 
 const read = (f: string) => readFileSync(new URL(`../../../contract/${f}`, import.meta.url), 'utf8')
 const sample = JSON.parse(read('cmd-result-sample.json'))
@@ -55,5 +55,45 @@ describe('KPI coi dati già nel relay (proposte 6, 11, 15, 18)', () => {
     const h = head(st, page, now, 'Europe/Rome')
     expect([h.waiting, h.busy, h.outcomes, h.red]).toEqual([1, 0, 1, 0])
     expect(head(st, null, now, 'Europe/Rome').outcomes).toBeNull()
+  })
+})
+
+describe('contratto 1.96, op kpi (proposte 8, 9, 10, 12, 13, 17)', () => {
+  const kid = sample.cmd.find((c: { op: string }) => c.op === 'kpi').id
+  const data: KpiData = JSON.parse(sample.result.find((r: { id: string }) => r.id === kid).text)
+
+  it('8 · barra piena da un giorno, i fermi prima', () => {
+    expect(ageFraction(43200)).toBeCloseTo(0.5)
+    expect(ageFraction(172800)).toBe(1)
+    const t = data.kpi_tasks!
+    expect([t.open, t.waiting_you, t.stalled, t.closed_today]).toEqual([3, 1, 1, 2])
+    expect(tasksOrder(t).map(x => x.task)).toEqual(['atlas-release-2-4', 'ledger-vendor-ticket'])
+    expect(tasksOrder({ ...t, tasks: t.tasks.map(x => ({ ...x, stalled: false })) }).map(x => x.task)).toEqual(['ledger-vendor-ticket', 'atlas-release-2-4'])
+  })
+  it('9 · i totali della settimana', () => {
+    expect(checksTotals(data.kpi_checks_week!)).toEqual([33, 4])
+    expect(checksTotals([])).toEqual([0, 0])
+  })
+  it('10 · i turni di una sessione e la sintesi', () => {
+    const turns = turnsOf(data, 'atlas-shop')
+    expect(turns).toHaveLength(3)
+    expect(turnsOf(data, 'ledger-api')).toEqual([])
+    expect(turnsOf(null, 'atlas-shop')).toEqual([])
+    // 240 + 420 + 700 s = 22 min 40, arrotondati a 23; un fallito.
+    expect(turnsSummary(turns)).toEqual({ n: 3, minutes: 23, failed: 1, tokensFirst: 18200, tokensLast: 41000, tokensMax: 41000 })
+  })
+  it('12 · la salute arriva intera', () => {
+    const h = data.kpi_health!
+    expect([h.latency?.p50_s, h.sessions_here, h.sessions_max, h.hosts[0].ram_pct]).toEqual([2.1, 4, 5, 71])
+  })
+  it('13 · il tasso di accettazione', () => {
+    expect(acceptRate(data.kpi_suggestions_7d!)).toBe(50)
+    expect(suggestionsTotal(data.kpi_suggestions_7d!)).toBe(14)
+    expect(acceptRate({ accepted: 0, discussed: 0, later: 0, never: 0, expired: 0 })).toBeNull()
+  })
+  it('17 · attese chiuse e scala', () => {
+    expect(waitsClosed(data.kpi_waits!)).toBe(5)
+    expect(waitsTop(data.kpi_waits!)).toBe(11.5)
+    expect(waitsTop({ now: [], week: [] })).toBe(0)
   })
 })

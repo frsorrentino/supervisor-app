@@ -104,4 +104,67 @@ class KpiTest {
         assertEquals(1, p.waiting); assertEquals(24, p.quota); assertEquals(1_789_228_800L, p.resetAt)
         assertNull(Kpi.pinned(null, now))
     }
+
+    // ---- Contratto 1.96: l'op `kpi` (proposte 8, 9, 10, 12, 13, 17) ----
+
+    private val data: KpiData = run {
+        val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
+        val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
+        val id = cmds.single { it.op == CmdOp.KPI }.id
+        val r = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }.single { it.id == id }
+        ContractJson.decodeKpi(r.text)
+    }
+
+    @Test fun kpiOp_decodesEveryBlockOfTheSample() {
+        assertEquals(1_789_214_700L, data.at)
+        val t = data.tasks!!
+        assertEquals(listOf(3, 1, 1, 2), listOf(t.open, t.waitingYou, t.stalled, t.closedToday))
+        assertEquals(KpiTask("atlas-release-2-4", "Release 2.4 of atlas-shop", "running", 9000, 2, 3, true, "master"), t.tasks.first())
+        assertEquals(7, data.checksWeek!!.size)
+        assertEquals(KpiTurn(1_789_201_000, 1_789_201_420, "fail", 26_100, 260_000), data.turnsToday!!.single().turns[1])
+        val h = data.health!!
+        assertEquals(2.1, h.latency!!.p50S!!, 0.0); assertEquals(4, h.sessionsHere); assertEquals(5, h.sessionsMax)
+        assertEquals(KpiHost("win", true, 0.12, 71, null), h.hosts.single())
+        assertEquals(KpiSuggestions(7, 3, 2, 0, 2), data.suggestions7d)
+        assertEquals(KpiWaitNow("ledger-api", "question", 1_789_210_500), data.waits!!.now.single())
+        assertNull(data.waits!!.week.first().medianMin)
+        // Un blocco che il relay non legge arriva null, il resto resta.
+        val partial = ContractJson.decodeKpi("""{"at": 1, "kpi_tasks": null, "kpi_health": null}""")
+        assertNull(partial.tasks); assertNull(partial.health); assertNull(partial.waits)
+    }
+
+    @Test fun kpi8_ageBarFullFromADay_stalledFirst() {
+        assertEquals(0.5f, Kpi.ageFraction(43_200), 0.001f)
+        assertEquals(1f, Kpi.ageFraction(172_800), 0f)
+        val t = data.tasks!!
+        assertEquals(listOf("atlas-release-2-4", "ledger-vendor-ticket"), Kpi.tasksOrder(t).map { it.task })
+        // Senza fermi conta l'età: il più vecchio prima.
+        assertEquals(listOf("ledger-vendor-ticket", "atlas-release-2-4"), Kpi.tasksOrder(t.copy(tasks = t.tasks.map { it.copy(stalled = false) })).map { it.task })
+    }
+
+    @Test fun kpi9_weekTotals() {
+        assertEquals(33 to 4, Kpi.checksTotals(data.checksWeek!!))
+        assertEquals(0 to 0, Kpi.checksTotals(emptyList()))
+    }
+
+    @Test fun kpi10_turnsOfASession_andTheirSummary() {
+        val turns = Kpi.turnsOf(data, "atlas-shop")
+        assertEquals(3, turns.size)
+        assertTrue(Kpi.turnsOf(data, "ledger-api").isEmpty())
+        assertTrue(Kpi.turnsOf(null, "atlas-shop").isEmpty())
+        // 240 + 420 + 700 s = 22 min 40, arrotondati a 23; un fallito; il costo dal primo all'ultimo turno.
+        assertEquals(Kpi.TurnsSummary(3, 23, 1, 18_200, 41_000, 41_000), Kpi.turnsSummary(turns))
+    }
+
+    @Test fun kpi13_acceptRate() {
+        assertEquals(50, Kpi.acceptRate(data.suggestions7d!!))
+        assertEquals(14, Kpi.suggestionsTotal(data.suggestions7d!!))
+        assertNull(Kpi.acceptRate(KpiSuggestions()))
+    }
+
+    @Test fun kpi17_closedWaitsAndScale() {
+        assertEquals(5, Kpi.waitsClosed(data.waits!!))
+        assertEquals(11.5, Kpi.waitsTop(data.waits!!), 0.0)
+        assertEquals(0.0, Kpi.waitsTop(KpiWaits()), 0.0)
+    }
 }

@@ -247,6 +247,25 @@ export type Plugin = { id: string; name: string; marketplace?: string | null; sc
 export type Skill = { name: string; version?: string | null; source?: string | null }
 export type PluginsPage = { checked_at: number | null; accounts: { account: string; plugins: Plugin[]; skills: Skill[] }[] }
 
+/** Contratto 1.96: il risultato dell'op `kpi`, le cifre delle proposte 8, 9, 10, 12, 13 e 17 del 25/10; un blocco illeggibile è null. */
+export type KpiTask = { task: string; short: string | null; state: string; age_s: number; attempts: number; attempts_max: number; stalled: boolean; who: string | null }
+export type KpiTasks = { open: number; waiting_you: number; stalled: number; closed_today: number; tasks: KpiTask[] }
+export type KpiChecksDay = { date: string; green: number; red: number }
+export type KpiTurn = { start: number; end: number; outcome: 'ok' | 'fail' | 'question' | 'running' | string; tokens: number; cache_read: number }
+export type KpiHost = { name: string; up: boolean; cpu: number | null; ram_pct: number | null; disk_pct: number | null }
+export type KpiHealth = { latency: { p50_s: number | null; max_s: number | null; n: number } | null; sessions_here: number | null; sessions_max: number | null; hosts: KpiHost[] }
+export type KpiSuggestions = { accepted: number; discussed: number; later: number; never: number; expired: number }
+export type KpiWaits = { now: { session: string; kind: string; since: number }[]; week: { date: string; median_min: number | null; n: number }[] }
+export type KpiData = {
+  at: number
+  kpi_tasks: KpiTasks | null
+  kpi_checks_week: KpiChecksDay[] | null
+  kpi_turns_today: { session: string; turns: KpiTurn[] }[] | null
+  kpi_health: KpiHealth | null
+  kpi_suggestions_7d: KpiSuggestions | null
+  kpi_waits: KpiWaits | null
+}
+
 /** Contratto 1.90: `green`, `yellow` o `red`; `level` è il peggiore fra carico e memoria. */
 export type SystemLevel = 'green' | 'yellow' | 'red'
 /** Contratto 1.90: `cpu` in percento di un core, sommato sui processi del gruppo. */
@@ -278,6 +297,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'sys_unit_stop'
   /** Contratto 1.95: l'elenco (passivo), il controllo, l'aggiornamento (arg «account:id») e tutti (arg account), mai -y. */
   | 'plugins' | 'plugin_check' | 'plugin_update' | 'plugin_update_all'
+  /** Contratto 1.96: le cifre delle viste KPI, lettura passiva. */
+  | 'kpi'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */

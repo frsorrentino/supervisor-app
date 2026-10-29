@@ -110,6 +110,8 @@ fun LavoriScreen(
     startOpen: Set<String> = emptySet(),
     /** La vista di «In corso» all'apertura; dal vivo vale l'ultima scelta (preferenze `lavori`), per i provini questa. */
     startView: LavoriView? = null,
+    /** Contratto 1.96: le cifre dell'op `kpi`; 8 in cima a «In corso», 9 in fondo a «Fatto» (compito app-kpi-dati-relay-25-10). */
+    kpi: it.pixelbox.cmwatch.contract.KpiData? = null,
 ) {
     val fy = remember(state, agenda, now, today) { Lavori.forYou(state, agenda, now, today) }
     val ip = remember(state, agenda, now, zone, today) { Lavori.inProgress(state, agenda, now, zone, today) }
@@ -177,6 +179,8 @@ fun LavoriScreen(
                     ViewSwitch(timeView) { v -> timeView = v; runCatching { prefs?.edit()?.putBoolean("time", v)?.apply() } }
                 }
             }
+            // Proposta 8: quattro cifre e, per compito, l'età e i tentativi già spesi.
+            kpi?.tasks?.let { t -> item("kpi-8") { Box(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) { Kpi8(t) } } }
             if (oldRelay) item("progress-old") { Expl(stringResource(R.string.lavori_old_relay), CmColors.text) }
             else if (ip.total == 0) item("progress-empty") { Expl(stringResource(R.string.lavori_nothing_progress), CmColors.text) }
             val groups = listOf(
@@ -228,6 +232,8 @@ fun LavoriScreen(
                 }
                 if (shown) day.rows.forEach { d -> item("dn-${day.date}-${d.task}") { DoneRow(d, zone, onSession) } }
             }
+            // Proposta 9: i controlli verdi e rossi della settimana.
+            kpi?.checksWeek?.takeIf { it.isNotEmpty() }?.let { d -> item("kpi-9") { Box(Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) { Kpi9(d) } } }
             item("quota-note") { Expl(stringResource(R.string.lavori_quota_note), CmColors.briefGoodInk, top = 14.dp) }
         }
         if (!hasOk && left && !right) item("end") { Spacer(Modifier.height(1.dp)) }

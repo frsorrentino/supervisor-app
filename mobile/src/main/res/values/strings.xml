@@ -965,6 +965,54 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="kpi18_commit">commit</string>
     <string name="kpi18_and">e</string>
     <string name="kpi18_per_hour">per ora</string>
+    <!-- KPI coi dati nuovi del relay (proposte 8, 9, 10, 12, 13, 17 del 25/10, contratto 1.96, compito app-kpi-dati-relay-25-10). -->
+    <string name="kpi_age_m">%1$d min</string>
+    <string name="kpi_age_h">%1$d h</string>
+    <string name="kpi_age_d">%1$d g</string>
+    <string name="kpi8_open">compiti aperti</string>
+    <string name="kpi8_waiting_you">aspettano te</string>
+    <string name="kpi8_stalled_n">fermi</string>
+    <string name="kpi8_closed_today">chiusi oggi</string>
+    <string name="kpi8_title">Compiti aperti</string>
+    <string name="kpi8_axis">età · tentativi</string>
+    <plurals name="kpi8_tries"><item quantity="one">%1$d tentativo su %2$d</item><item quantity="other">%1$d tentativi su %2$d</item></plurals>
+    <string name="kpi8_stalled">fermo</string>
+    <string name="kpi8_running">al lavoro</string>
+    <string name="kpi8_paused">in pausa</string>
+    <string name="kpi8_assigned">assegnato</string>
+    <string name="kpi8_approved">approvato</string>
+    <string name="kpi9_title">Controlli · 7 giorni</string>
+    <plurals name="kpi9_green"><item quantity="one">%1$d verde</item><item quantity="other">%1$d verdi</item></plurals>
+    <plurals name="kpi9_red"><item quantity="one">%1$d rosso</item><item quantity="other">%1$d rossi</item></plurals>
+    <string name="kpi9_caption">Per giorno i controlli dei compiti passati e, accanto, quelli rossi.</string>
+    <string name="kpi10_title">Turni di oggi</string>
+    <plurals name="kpi10_turns"><item quantity="one">%1$d turno · %2$d min</item><item quantity="other">%1$d turni · %2$d min</item></plurals>
+    <plurals name="kpi10_failed"><item quantity="one">%1$d fallito</item><item quantity="other">%1$d falliti</item></plurals>
+    <string name="kpi10_caption">token per turno</string>
+    <string name="kpi10_aria">%1$d turni oggi, %2$d minuti; il costo va da %3$s a %4$s token per turno</string>
+    <string name="kpi12_seconds">%1$s s</string>
+    <string name="kpi12_latency">dalla push al telefono, mediana dell'ultima ora</string>
+    <string name="kpi12_latency_max">dalla push al telefono, mediana; picco %1$s s</string>
+    <string name="kpi12_latency_none">dalla push al telefono: nessuna misura nell'ultima ora</string>
+    <string name="kpi12_sessions_here">sessioni su questo computer</string>
+    <string name="kpi12_ram">RAM usata su %1$s</string>
+    <string name="kpi12_up">%1$s acceso</string>
+    <string name="kpi12_down">spento</string>
+    <string name="kpi13_title">Suggerimenti · 7 giorni</string>
+    <string name="kpi13_rate">%1$d%% accettati</string>
+    <string name="kpi13_none">Nessun suggerimento negli ultimi 7 giorni.</string>
+    <plurals name="kpi13_accepted"><item quantity="one">%1$d accettato</item><item quantity="other">%1$d accettati</item></plurals>
+    <plurals name="kpi13_discussed"><item quantity="one">%1$d parliamone</item><item quantity="other">%1$d parliamone</item></plurals>
+    <plurals name="kpi13_later"><item quantity="one">%1$d più tardi</item><item quantity="other">%1$d più tardi</item></plurals>
+    <plurals name="kpi13_never"><item quantity="one">%1$d mai</item><item quantity="other">%1$d mai</item></plurals>
+    <plurals name="kpi13_expired"><item quantity="one">%1$d scaduto</item><item quantity="other">%1$d scaduti</item></plurals>
+    <string name="kpi17_title">Attese · 7 giorni</string>
+    <plurals name="kpi17_closed"><item quantity="one">%1$d chiusa</item><item quantity="other">%1$d chiuse</item></plurals>
+    <string name="kpi17_now">%1$s ti aspetta da %3$d min: %2$s</string>
+    <string name="kpi17_question">domanda</string>
+    <string name="kpi17_permission">permesso</string>
+    <string name="kpi17_needs_you">serve te</string>
+    <string name="kpi17_caption">Minuti fra la richiesta di una sessione e la tua risposta, mediana per giorno.</string>
     <string name="home_sec_system">Sistema</string>
     <!-- Contratto 1.95: la sezione «Plugin e skill» (mockup approvato il 29/10). -->
     <string name="home_sec_plugins">Plugin e skill</string>

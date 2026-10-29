@@ -1,4 +1,4 @@
-import type { Session, State, TimelineEvent, TimelinePage } from './contract'
+import type { KpiChecksDay, KpiData, KpiSuggestions, KpiTask, KpiTasks, KpiTurn, KpiWaits, Session, State, TimelineEvent, TimelinePage } from './contract'
 import { stop } from './strongAlert'
 
 // I KPI coi dati che il relay ha già (proposte 6, 11, 15 e 18 del 25/10, compito app-kpi-medie-25-10), porta di Kpi.kt:
@@ -147,3 +147,40 @@ export function head(st: State, page: TimelinePage | null, now: number, timeZone
     outcomes: today ? today.filter(e => e.kind === 'outcome').length : null, red: today ? today.filter(e => e.kind === 'task' && e.ok === false).length : null,
   }
 }
+
+// ---- Proposte coi dati nuovi del relay (8, 9, 10, 12, 13, 17; contratto 1.96, compito app-kpi-dati-relay-25-10) ----
+
+/** 8 · la barra d'età di un compito: piena da un giorno in su. */
+export const ageFraction = (ageS: number) => Math.min(1, Math.max(0, ageS / 86400))
+
+/** 8 · i compiti fermi prima, poi i più vecchi. */
+export const tasksOrder = (t: KpiTasks): KpiTask[] => t.tasks.slice().sort((a, b) => Number(b.stalled) - Number(a.stalled) || b.age_s - a.age_s)
+
+/** 9 · i verdi e i rossi della settimana. */
+export const checksTotals = (days: KpiChecksDay[]): [number, number] => [days.reduce((n, d) => n + d.green, 0), days.reduce((n, d) => n + d.red, 0)]
+
+/** 10 · i turni di oggi di una sessione; vuoto se il relay non ne ha. */
+export const turnsOf = (data: KpiData | null, session: string): KpiTurn[] => data?.kpi_turns_today?.find(x => x.session === session)?.turns ?? []
+
+export type TurnsSummary = { n: number; minutes: number; failed: number; tokensFirst: number; tokensLast: number; tokensMax: number }
+
+/** 10 · quanti turni, i minuti in tutto, i falliti e il costo del primo, dell'ultimo e del più caro. */
+export function turnsSummary(turns: KpiTurn[]): TurnsSummary {
+  const secs = turns.reduce((n, x) => n + Math.max(0, x.end - x.start), 0)
+  return {
+    n: turns.length, minutes: Math.floor((secs + 30) / 60), failed: turns.filter(x => x.outcome === 'fail').length,
+    tokensFirst: turns[0]?.tokens ?? 0, tokensLast: turns.at(-1)?.tokens ?? 0, tokensMax: Math.max(0, ...turns.map(x => x.tokens)),
+  }
+}
+
+export const suggestionsTotal = (s: KpiSuggestions) => s.accepted + s.discussed + s.later + s.never + s.expired
+
+/** 13 · la parte accettata in percento; null senza suggerimenti nei sette giorni. */
+export function acceptRate(s: KpiSuggestions): number | null {
+  const total = suggestionsTotal(s)
+  return total ? Math.round((s.accepted * 100) / total) : null
+}
+
+/** 17 · le attese chiuse nella settimana e la mediana più alta, per la scala delle colonne. */
+export const waitsClosed = (w: KpiWaits) => w.week.reduce((n, d) => n + d.n, 0)
+export const waitsTop = (w: KpiWaits) => Math.max(0, ...w.week.map(d => d.median_min ?? 0))

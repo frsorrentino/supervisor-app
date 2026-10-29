@@ -3,11 +3,15 @@
   import Kpi6 from './Kpi6.svelte'
   import Kpi11 from './Kpi11.svelte'
   import Kpi18 from './Kpi18.svelte'
+  import Kpi10 from './Kpi10.svelte'
+  import Kpi12 from './Kpi12.svelte'
+  import Kpi13 from './Kpi13.svelte'
+  import Kpi17 from './Kpi17.svelte'
   import Kpi7 from './Kpi7.svelte'
   import Kpi4 from './Kpi4.svelte'
   import PluginsSection from './PluginsSection.svelte'
-  import type { PluginsPage } from './contract'
-  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, split as kpiSplit, todayShare, waitingSince } from './kpi'
+  import type { KpiData, PluginsPage } from './contract'
+  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import Icon from './Icon.svelte'
@@ -47,13 +51,15 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, pluginsLoad = null, pluginsRun = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, pluginsLoad = null, pluginsRun = null }: {
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
     onClosePreview?: ((names: string[]) => Promise<Preview | null>) | null; onCloseMany?: (names: string[]) => void
     /** Contratto 1.90: il tasto di un consiglio del Sistema; null = sola lettura (demo, relay senza l'op). */
     onSystem?: ((op: string, arg: string) => void) | null
     /** I KPI 6, 11 e 18 (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni; null finché non c'è. */
     kpiPage?: TimelinePage | null
+    /** Contratto 1.96: le cifre dell'op `kpi` (proposte 10, 12, 13, 17, compito app-kpi-dati-relay-25-10); null finché non arrivano. */
+    kpiData?: KpiData | null
     /** Contratto 1.95: l'elenco dei plugin e i comandi della sezione «Plugin e skill»; null = il relay non ha le op. */
     pluginsLoad?: (() => Promise<PluginsPage | null>) | null
     pluginsRun?: ((op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => Promise<{ ok: boolean; text: string } | null>) | null
@@ -272,7 +278,7 @@
     </div>
   {/if}
   {#if open.sessions}
-  {#if suggestions && !groups.some(([g]) => g === 'waiting')}{@render suggestions()}{/if}
+  {#if suggestions && !groups.some(([g]) => g === 'waiting')}{@render suggestions()}{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}{/if}
   {#each groups as [group, rows] (group)}
     <h2 class="gh" style="--t:{tone[group]}"><span>{t.summary[group](rows.length).toUpperCase()}</span>{#if group === 'still' && finished.length}<button class="ghact" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button>{/if}<i></i></h2>
     {#each rows as r (r.session.name)}
@@ -328,6 +334,7 @@
         {/if}
         {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
         {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
+        {#if open && turnsOf(kpiData, s.name).length}<Kpi10 turns={turnsOf(kpiData, s.name)} />{/if}
         {#if r.approvals.length}
           <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
           <div class="oks">
@@ -418,13 +425,13 @@
       </div>
     {/each}
     <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta, prima delle altre sessioni. -->
-    {#if suggestions && group === 'waiting'}{@render suggestions()}{/if}
+    {#if suggestions && group === 'waiting'}{@render suggestions()}{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}{/if}
   {/each}
 
   {/if}
   {#if usage && showUsage}
     <div bind:this={usageEl}>{@render sec('usage', t.homeUsage)}</div>
-    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}</div>{/if}
+    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}{#if kpiData?.kpi_waits}<Kpi17 w={kpiData.kpi_waits} {now} />{/if}</div>{/if}
   {/if}
 {#if sys}
   <button class="sec" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}>
@@ -460,6 +467,7 @@
         </div>
       {:else}<p class="okt mono2">{t.sysCalm}</p>{/if}
     </div>
+    {#if kpiData?.kpi_health}<Kpi12 h={kpiData.kpi_health} />{/if}
   {/if}
 {/if}
 {#if pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} />{/if}

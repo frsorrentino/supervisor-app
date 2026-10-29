@@ -134,7 +134,7 @@ internal fun Kpi18(f: Kpi.DayFigures) {
 }
 
 @Composable
-private fun Figure(value: String, label: String, tone: Color?, modifier: Modifier) {
+internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifier) {
     Column(modifier.clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(value, style = MaterialTheme.typography.headlineSmall, color = tone ?: CmColors.text, maxLines = 1)
         Text(label, style = MaterialTheme.typography.bodySmall, color = CmColors.text2)

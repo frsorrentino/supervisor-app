@@ -1,5 +1,12 @@
 package it.pixelbox.cmwatch.rules
 
+import it.pixelbox.cmwatch.contract.KpiChecksDay
+import it.pixelbox.cmwatch.contract.KpiData
+import it.pixelbox.cmwatch.contract.KpiSuggestions
+import it.pixelbox.cmwatch.contract.KpiTask
+import it.pixelbox.cmwatch.contract.KpiTasks
+import it.pixelbox.cmwatch.contract.KpiTurn
+import it.pixelbox.cmwatch.contract.KpiWaits
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.contract.State
@@ -176,4 +183,38 @@ object Kpi {
         val waits = state.sessions.filter { it.state != SessionState.GONE }.mapNotNull { waitingSince(it) }
         return Pinned(waits.size, waits.minOrNull()?.let { now - it }, q?.h5, q?.resetH5?.takeIf { it > now })
     }
+
+    // ---- Proposte coi dati nuovi del relay (8, 9, 10, 12, 13, 17; contratto 1.96, compito app-kpi-dati-relay-25-10) ----
+
+    /** 8 · la barra d'età di un compito: piena da un giorno in su. */
+    fun ageFraction(ageS: Long): Float = (ageS / 86_400f).coerceIn(0f, 1f)
+
+    /** 8 · i compiti fermi prima, poi i più vecchi. */
+    fun tasksOrder(t: KpiTasks): List<KpiTask> = t.tasks.sortedWith(compareByDescending<KpiTask> { it.stalled }.thenByDescending { it.ageS })
+
+    /** 9 · i verdi e i rossi della settimana. */
+    fun checksTotals(days: List<KpiChecksDay>): Pair<Int, Int> = days.sumOf { it.green } to days.sumOf { it.red }
+
+    /** 10 · i turni di oggi di una sessione; vuoto se il relay non ne ha. */
+    fun turnsOf(data: KpiData?, session: String): List<KpiTurn> = data?.turnsToday.orEmpty().firstOrNull { it.session == session }?.turns.orEmpty()
+
+    data class TurnsSummary(val n: Int, val minutes: Long, val failed: Int, val tokensFirst: Long, val tokensLast: Long, val tokensMax: Long)
+
+    /** 10 · quanti turni, i minuti in tutto, i falliti e il costo del primo, dell'ultimo e del più caro. */
+    fun turnsSummary(turns: List<KpiTurn>): TurnsSummary = TurnsSummary(
+        n = turns.size, minutes = (turns.sumOf { (it.end - it.start).coerceAtLeast(0) } + 30) / 60, failed = turns.count { it.outcome == "fail" },
+        tokensFirst = turns.firstOrNull()?.tokens ?: 0, tokensLast = turns.lastOrNull()?.tokens ?: 0, tokensMax = turns.maxOfOrNull { it.tokens } ?: 0,
+    )
+
+    /** 13 · la parte accettata in percento; null senza suggerimenti nei sette giorni. */
+    fun acceptRate(s: KpiSuggestions): Int? {
+        val total = suggestionsTotal(s)
+        return if (total == 0) null else Math.round(s.accepted * 100f / total)
+    }
+
+    fun suggestionsTotal(s: KpiSuggestions): Int = s.accepted + s.discussed + s.later + s.never + s.expired
+
+    /** 17 · le attese chiuse nella settimana e la mediana più alta, per la scala delle colonne. */
+    fun waitsClosed(w: KpiWaits): Int = w.week.sumOf { it.n }
+    fun waitsTop(w: KpiWaits): Double = w.week.mapNotNull { it.medianMin }.maxOrNull() ?: 0.0
 }
