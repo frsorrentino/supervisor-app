@@ -51,7 +51,7 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, pluginsLoad = null, pluginsRun = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, pluginsLoad = null, pluginsRun = null }: {
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
     onClosePreview?: ((names: string[]) => Promise<Preview | null>) | null; onCloseMany?: (names: string[]) => void
     /** Contratto 1.90: il tasto di un consiglio del Sistema; null = sola lettura (demo, relay senza l'op). */
@@ -60,6 +60,8 @@
     kpiPage?: TimelinePage | null
     /** Contratto 1.96: le cifre dell'op `kpi` (proposte 10, 12, 13, 17, compito app-kpi-dati-relay-25-10); null finché non arrivano. */
     kpiData?: KpiData | null
+    /** I tre box in alto aprono la loro pagina (app-box-cliccabili-29-10). */
+    onBox?: (b: import('./HomeBox.svelte').Box) => void
     /** Contratto 1.95: l'elenco dei plugin e i comandi della sezione «Plugin e skill»; null = il relay non ha le op. */
     pluginsLoad?: (() => Promise<PluginsPage | null>) | null
     pluginsRun?: ((op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => Promise<{ ok: boolean; text: string } | null>) | null
@@ -270,7 +272,7 @@
   </button>
 {/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. -->
-<Kpi7 h={kpiHead(st, kpiPage, now)} onWaiting={() => { if (!open.sessions) toggleSec('sessions'); onAttention() }} />
+<Kpi7 h={kpiHead(st, kpiPage, now)} {onBox} />
 {@render sec('sessions', t.homeSessions, String(model.rows.length))}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">

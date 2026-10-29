@@ -1378,4 +1378,34 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="elicit_answered">Risposta mandata</string>
     <string name="elicit_refused">Risposta non accettata</string>
     <string name="notif_elicit">%1$s chiede</string>
+    <!-- I box della home aperti (app-box-cliccabili-29-10). -->
+    <string name="box_waiting_title">Ti aspettano</string>
+    <string name="box_busy_title">Al lavoro adesso</string>
+    <string name="box_outcomes_title">Esiti di oggi</string>
+    <string name="box_since_midnight">da mezzanotte</string>
+    <string name="box_waiting_head">Sessioni ferme finché non fai qualcosa tu: rispondere a una domanda, dare un ok, fare una cosa che solo tu puoi fare. La prima aspetta da %1$s.</string>
+    <string name="box_waiting_none">Nessuna sessione aspetta te. Quando una ti fa una domanda, chiede un ok o ha bisogno di te, compare qui con il motivo e da quanto aspetta.</string>
+    <string name="box_kind_question">DOMANDA</string>
+    <string name="box_kind_needs_you">SERVE TE</string>
+    <string name="box_kind_blocking">DA SBLOCCARE</string>
+    <string name="box_closes_itself">SI CHIUDE DA SOLA</string>
+    <string name="box_waiting_note">Un tocco apre la sessione sulla domanda. Le ferme senza una richiesta per te non stanno qui: sono in «Sessioni».</string>
+    <string name="box_busy_head">Sessioni con un turno in corso: Claude sta lavorando e non serve niente da te. Il tempo conta da quando è partito il turno.</string>
+    <string name="box_busy_none">Nessuna sessione sta lavorando adesso. Quando ne parte una, compare qui con lo strumento che usa e da quanto dura il turno.</string>
+    <string name="box_busy_note">La riga sotto il nome è l\'obiettivo della sessione, quando ne ha uno; poi lo strumento che sta usando adesso.</string>
+    <string name="box_still">FERME, NIENTE PER TE</string>
+    <plurals name="box_more"><item quantity="one">+ %1$d altra</item><item quantity="other">+ %1$d altre</item></plurals>
+    <string name="box_show">Mostra</string>
+    <plurals name="box_outcomes_head"><item quantity="one">Le righe «Esito:» con cui le sessioni chiudono un turno. In più, in cima, %1$d rosso: un compito il cui controllo è fallito.</item><item quantity="other">Le righe «Esito:» con cui le sessioni chiudono un turno. In più, in cima, %1$d rossi: compiti il cui controllo è fallito.</item></plurals>
+    <string name="box_outcomes_head_green">Le righe «Esito:» con cui le sessioni chiudono un turno. Nessun compito rosso oggi.</string>
+    <string name="box_red">ROSSI</string>
+    <string name="box_red_kind">CONTROLLO FALLITO</string>
+    <string name="box_outcomes">ESITI</string>
+    <string name="box_newest_first">%1$d · il più nuovo prima</string>
+    <string name="box_outcomes_loading">La cronologia di oggi sta arrivando dal PC.</string>
+    <string name="box_outcomes_none">Nessun esito da mezzanotte.</string>
+    <string name="box_rest">altri %1$d</string>
+    <string name="box_show_more">Mostra altri %1$d</string>
+    <string name="box_at_least">Il relay manda al massimo 40 eventi per sessione: oggi la cifra è un minimo.</string>
+    <string name="box_outcomes_note">Un tocco su una riga apre la sessione, se è ancora aperta.</string>
 </resources>

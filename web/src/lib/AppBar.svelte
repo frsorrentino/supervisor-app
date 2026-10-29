@@ -1,5 +1,5 @@
 <script module lang="ts">
-  export type Page = 'launch' | 'lavori' | 'night' | 'overview' | 'search' | 'settings' | 'queue'
+  export type Page = 'launch' | 'lavori' | 'night' | 'overview' | 'search' | 'settings' | 'queue' | 'box-aspetta' | 'box-lavoro' | 'box-esiti'
 </script>
 
 <script lang="ts">

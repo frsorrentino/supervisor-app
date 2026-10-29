@@ -161,6 +161,8 @@ fun SummaryList(
     onSystem: ((it.pixelbox.cmwatch.contract.CmdOp, String) -> Unit)? = null,
     /** I KPI 6, 11 e 18 (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni; null finché non c'è. */
     kpiPage: it.pixelbox.cmwatch.contract.TimelinePage? = null, kpiState: it.pixelbox.cmwatch.contract.State? = null,
+    /** I tre box in alto aprono la loro pagina (app-box-cliccabili-29-10). */
+    onBox: (HomeBox) -> Unit = {},
     /** Contratto 1.96: le cifre dell'op `kpi` (proposte 10, 12, 13, 17, compito app-kpi-dati-relay-25-10); null finché non arrivano. */
     kpiData: it.pixelbox.cmwatch.contract.KpiData? = null,
     /** Contratto 1.95: la sezione «Plugin e skill»; null = relay senza le op. `pluginsInitial` per i test. */
@@ -246,7 +248,7 @@ fun SummaryList(
         // Franz 24/10 09:36: «L'ordine in home deve essere: Sessioni, Utilizzo, Lavoro, Altro»; la Notte, che non nomina, prima di Altro.
         // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni.
         kpiState?.let { st ->
-            item(key = "kpi-7") { Box(moving()) { Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault())) { sessionsOpen = true; save("sessions", true); onAttention() } } }
+            item(key = "kpi-7") { Box(moving()) { Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), onBox) } }
         }
         item(key = "sec-sessions") {
             Box(moving()) { HomeSection(stringResource(R.string.home_sec_sessions), model.rows.size.toString().takeIf { !sessionsOpen }, sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }

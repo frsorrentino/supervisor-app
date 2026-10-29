@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=412">
+<title>Box della home</title>
+<style>
+  /* Mockup delle tre pagine dietro i box in alto della home (compito app-box-cliccabili-29-10, segnalazione di Franz del
+     29/10 16:10). Larghezza telefono 412, colori dell'app (ui-tokens/CmColors.kt). #home, #aspetta, #lavoro, #esiti.
+     Dati di prova, nella forma dello stato del relay: sessions[] (domanda, needs_you, turn_blocking, strumento, turno)
+     e la cronologia di oggi (op timeline: outcome e task con ok). */
+  :root { --bg:#000; --low:#1B1F26; --high:#292F3A; --line:#2A2E35; --text:#F2F4F7; --text2:#B0B8C4; --icon:#A8C7FA;
+    --primary:#D3E3FD; --on-primary:#0A2050; --wait:#FFB020; --busy:#7FA1FF; --idle:#34C759; --gone:#FF453A;
+    --mono: "Roboto Mono", ui-monospace, monospace; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.35 Roboto, "Google Sans", system-ui, sans-serif; width: 412px; padding: 0 12px 24px; }
+  .view { display: none; } .view.on { display: block; }
+  .bar { display: flex; align-items: center; gap: 8px; height: 56px; margin: 0 -4px; }
+  .bar svg { flex: none; }
+  .bar b { font: 500 22px/1 Roboto, sans-serif; flex: 1; }
+  .bar small { font: 13px var(--mono); color: var(--text2); }
+  .hero { display: flex; gap: 14px; align-items: flex-start; background: var(--low); border-radius: 20px; padding: 14px 16px; margin-bottom: 14px; }
+  .hero .n { font: 500 44px/1 Roboto, sans-serif; flex: none; }
+  .hero p { font-size: 14.5px; color: var(--text2); }
+  .hero p b { color: var(--text); font-weight: 500; }
+  .sec { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); }
+  .sec i { flex: 1; height: 1px; background: var(--line); }
+  .sec small { font: 13px/1 Roboto, sans-serif; letter-spacing: 0; }
+  .card { background: var(--low); border-radius: 20px; padding: 4px 14px; margin-bottom: 8px; }
+  .row { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); align-items: flex-start; }
+  .row:first-child { border-top: 0; }
+  .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; margin-top: 1px; }
+  .ic.w { background: color-mix(in srgb, var(--wait) 18%, transparent); color: var(--wait); }
+  .ic.b { background: color-mix(in srgb, var(--busy) 18%, transparent); color: var(--busy); }
+  .ic.g { background: color-mix(in srgb, var(--idle) 18%, transparent); color: var(--idle); }
+  .ic.r { background: color-mix(in srgb, var(--gone) 20%, transparent); color: var(--gone); }
+  .bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .hd { display: flex; align-items: baseline; gap: 8px; }
+  .hd b { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+  .hd span { font: 12px var(--mono); color: var(--text2); flex: none; }
+  .kind { font: 500 11.5px var(--mono); letter-spacing: .08em; }
+  .kind.w { color: var(--wait); } .kind.b { color: var(--busy); } .kind.r { color: var(--gone); }
+  .tx { font-size: 14.5px; }
+  .meta { font: 12px var(--mono); color: var(--text2); }
+  .chev { flex: none; align-self: center; color: var(--text2); }
+  .more { display: flex; align-items: center; gap: 8px; padding: 6px 4px 0; }
+  .more span { flex: 1; font: 12px var(--mono); color: var(--text2); }
+  .text { background: none; border: 0; color: var(--icon); font: 500 14px Roboto, sans-serif; padding: 8px 6px; }
+  .tonal { background: var(--high); color: var(--text); border: 0; border-radius: 999px; padding: 8px 14px; font: 500 14px Roboto, sans-serif; white-space: nowrap; }
+  .note { font-size: 13px; color: var(--text2); padding: 8px 4px 0; }
+  /* home */
+  .top { display: flex; align-items: baseline; gap: 10px; height: 64px; padding-top: 20px; }
+  .top b { font: 500 26px/1 Roboto, sans-serif; } .top span { color: var(--text2); font-size: 18px; }
+  .k7 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 4px; }
+  .fig { position: relative; background: var(--low); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 2px; }
+  .fig b { font: 500 22px/1.1 Roboto, sans-serif; }
+  .fig span { font-size: 12.5px; line-height: 1.25; color: var(--text2); }
+  .fig svg { position: absolute; right: 8px; top: 12px; color: var(--text2); }
+  .press { outline: 2px solid var(--icon); outline-offset: -2px; }
+  .hint { font-size: 13px; color: var(--text2); padding: 10px 4px 0; }
+</style>
+</head>
+<body>
+<script>addEventListener('DOMContentLoaded', () => { const v = (location.hash || '#home').slice(1); document.getElementById(v)?.classList.add('on') })</script>
+
+<!-- Home: i tre box con la freccina; tutti e tre si toccano, anche a zero. -->
+<section class="view" id="home">
+  <div class="top"><b>Master</b><span>5 aperte</span></div>
+  <div class="k7">
+    <div class="fig"><b style="color:var(--wait)">2</b><span>ti aspettano, la prima da 12 min</span><svg width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+    <div class="fig press"><b style="color:var(--busy)">2</b><span>al lavoro adesso</span><svg width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+    <div class="fig"><b>88</b><span>esiti oggi, 3 rossi</span><svg width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+  </div>
+  <p class="hint">La freccina in alto a destra dice che il box si apre. Il bordo azzurro è il tocco su «al lavoro adesso».</p>
+</section>
+
+<!-- Ti aspettano -->
+<section class="view" id="aspetta">
+  <div class="bar"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="#F2F4F7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Ti aspettano</b></div>
+  <div class="hero"><span class="n" style="color:var(--wait)">2</span>
+    <p>Sessioni <b>ferme finché non fai qualcosa tu</b>: rispondere a una domanda, dare un ok, fare una cosa che solo tu puoi fare. La prima aspetta da <b>12 min</b>.</p></div>
+
+  <div class="card">
+    <div class="row">
+      <span class="ic w"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5M12 18h.01"/></svg></span>
+      <span class="bd">
+        <span class="hd"><b>pix-claude-plugins</b><span>da 12 min</span></span>
+        <span class="kind w">DOMANDA</span>
+        <span class="tx">Pubblico la 0.4.2 sul marketplace adesso o aspetto il test su win?</span>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </div>
+    <div class="row">
+      <span class="ic w"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+      <span class="bd">
+        <span class="hd"><b>francescosorrentino.com</b><span>da 3 min</span></span>
+        <span class="kind w">SERVE TE · SI CHIUDE DA SOLA</span>
+        <span class="tx">Fai il login su Search Console e mandami il codice di verifica.</span>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+  <p class="note">Un tocco apre la sessione sulla domanda. Le ferme senza una richiesta per te non stanno qui: sono in «Sessioni».</p>
+
+  <div class="sec"><span>A ZERO</span><i></i></div>
+  <div class="hero" style="margin-bottom:0"><span class="n">0</span>
+    <p>Nessuna sessione aspetta te. Quando una ti fa una domanda, chiede un ok o ha bisogno di te, compare qui con il motivo e da quanto aspetta.</p></div>
+</section>
+
+<!-- Al lavoro adesso -->
+<section class="view" id="lavoro">
+  <div class="bar"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="#F2F4F7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Al lavoro adesso</b></div>
+  <div class="hero"><span class="n" style="color:var(--busy)">2</span>
+    <p>Sessioni con <b>un turno in corso</b>: Claude sta lavorando e non serve niente da te. Il tempo conta da quando è partito il turno.</p></div>
+
+  <div class="card">
+    <div class="row">
+      <span class="ic b"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6M12 19h8"/></svg></span>
+      <span class="bd">
+        <span class="hd"><b>master</b><span>da 4 min</span></span>
+        <span class="tx">correzione dei suggerimenti</span>
+        <span class="meta"><span style="color:var(--busy)">Bash</span> · supervisor task list</span>
+        <span class="meta">Opus 5.5 · ctx 31%</span>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </div>
+    <div class="row">
+      <span class="ic b"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+      <span class="bd">
+        <span class="hd"><b>win:bluey</b><span>da 27 min</span></span>
+        <span class="tx">Fase 3: la schermata dei livelli</span>
+        <span class="meta"><span style="color:var(--busy)">Edit</span> · LevelSelect.kt</span>
+        <span class="meta">Sonnet 5.5 · ctx 64% · su win</span>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+  <p class="note">La riga sotto il nome è l'obiettivo della sessione, o l'ultimo prompt se non ne ha uno. Poi lo strumento che sta usando adesso.</p>
+
+  <div class="sec"><span>FERME, NIENTE PER TE</span><i></i><small>3</small></div>
+  <div class="card">
+    <div class="row">
+      <span class="ic g"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <span class="bd"><span class="hd"><b>supervisor-app</b><span>16:05</span></span><span class="tx">Contratto 1.97 adottato, pre-release kpi-dati-2026-10-29</span></span>
+    </div>
+    <div class="row">
+      <span class="ic g"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <span class="bd"><span class="hd"><b>watchface</b><span>14:40</span></span><span class="tx">Quadrante notturno pubblicato su Play</span></span>
+    </div>
+  </div>
+  <div class="more"><span>+ 1 altra</span><button class="text">Mostra</button></div>
+</section>
+
+<!-- Esiti di oggi -->
+<section class="view" id="esiti">
+  <div class="bar"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="#F2F4F7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Esiti di oggi</b><small>da mezzanotte</small></div>
+  <div class="hero"><span class="n">88</span>
+    <p>Le righe <b>«Esito:»</b> con cui le sessioni chiudono un turno. In più, in cima, i <b style="color:var(--gone)">3 rossi</b>: compiti il cui controllo è fallito.</p></div>
+
+  <div class="sec"><span style="color:var(--gone)">ROSSI</span><i></i><small>3</small></div>
+  <div class="card">
+    <div class="row">
+      <span class="ic r"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></span>
+      <span class="bd">
+        <span class="hd"><b>chrome-bridge</b><span>15:52</span></span>
+        <span class="kind r">CONTROLLO FALLITO</span>
+        <span class="tx">benchmark-mcp-29-10: il file del benchmark non c'è in docs/</span>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </div>
+    <div class="row">
+      <span class="ic r"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></span>
+      <span class="bd">
+        <span class="hd"><b>supervisor-app</b><span>11:20</span></span>
+        <span class="kind r">CONTROLLO FALLITO</span>
+        <span class="tx">app-kpi-dati-relay-25-10: la release non è sul ramo tab-emoji/22-10</span>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </div>
+    <div class="row">
+      <span class="ic r"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></span>
+      <span class="bd">
+        <span class="hd"><b>win:ads-widget</b><span>09:05</span></span>
+        <span class="kind r">CONTROLLO FALLITO</span>
+        <span class="tx">ads-widget-cache-28-10: npm test esce con 1</span>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+
+  <div class="sec"><span>ESITI</span><i></i><small>88 · il più nuovo prima</small></div>
+  <div class="card">
+    <div class="row">
+      <span class="ic g"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <span class="bd"><span class="hd"><b>master</b><span>16:09</span></span><span class="tx">Suggerimenti corretti: due «da salvare» al posto di quattro</span></span>
+    </div>
+    <div class="row">
+      <span class="ic g"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <span class="bd"><span class="hd"><b>supervisor-app</b><span>16:05</span></span><span class="tx">Contratto 1.97 adottato, pre-release kpi-dati-2026-10-29</span></span>
+    </div>
+    <div class="row">
+      <span class="ic g"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <span class="bd"><span class="hd"><b>watchface</b><span>14:40</span></span><span class="tx">Quadrante notturno pubblicato su Play</span></span>
+    </div>
+    <div class="row">
+      <span class="ic g"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <span class="bd"><span class="hd"><b>win:bluey</b><span>13:58</span></span><span class="tx">Fase 2 chiusa: menu e salvataggi, test verdi su win</span></span>
+    </div>
+  </div>
+  <div class="more"><span>altri 84</span><button class="tonal">Mostra altri 20</button></div>
+  <p class="note">Un tocco su una riga apre la sessione a quel turno. Il relay manda al massimo 40 eventi per sessione: in una giornata lunga la cifra è un minimo e la pagina lo scrive.</p>
+</section>
+</body>
+</html>

@@ -168,6 +168,61 @@ object Kpi {
         )
     }
 
+    // ---- I box della home aperti (compito app-box-cliccabili-29-10, mockup approvato da Franz il 29/10 alle 18:57) ----
+
+    enum class WaitKind { QUESTION, NEEDS_YOU, BLOCKING }
+
+    /** Una sessione che aspetta Franz: perché, da quando; `closesItself` = il relay verifica da sé la condizione (needs-you --until). */
+    data class Waiting(val session: String, val kind: WaitKind, val text: String, val since: Long, val closesItself: Boolean)
+
+    /** «Ti aspettano»: le stesse sessioni contate da [head], la più vecchia prima. */
+    fun waitingRows(state: State): List<Waiting> = state.sessions.filter { it.state != SessionState.GONE }.mapNotNull { s ->
+        val q = s.question
+        val n = s.needsYou?.takeIf { it.reason.isNotBlank() }
+        val b = s.turnBlocking?.takeIf { it.text.isNotBlank() }
+        when {
+            q != null -> Waiting(s.name, WaitKind.QUESTION, q.shareable, q.askedAt, false)
+            n != null -> Waiting(s.name, WaitKind.NEEDS_YOU, n.reason, n.at, n.until)
+            b != null -> Waiting(s.name, WaitKind.BLOCKING, b.text, b.at, false)
+            else -> null
+        }
+    }.sortedBy { it.since }
+
+    /** Una sessione al lavoro: l'obiettivo (/goal), lo strumento di adesso, da quanto dura il turno. */
+    data class Working(val session: String, val goal: String?, val tool: String?, val toolNote: String?, val turnS: Long?, val model: String?, val context: Int?)
+
+    /** «Al lavoro adesso»: le sessioni con un turno in corso, il turno più lungo prima. */
+    fun workingRows(state: State, now: Long): List<Working> = state.sessions.filter { it.state == SessionState.BUSY }.map { s ->
+        Working(s.name, s.goal?.text?.takeIf { it.isNotBlank() }, s.tool, s.toolNote?.takeIf { it.isNotBlank() }, s.turnStarted?.let { maxOf(0L, now - it) }, s.model?.let { it.label ?: it.id }, s.context)
+    }.sortedByDescending { it.turnS ?: -1L }
+
+    /** Una sessione ferma che non aspetta Franz, col suo ultimo esito. */
+    data class Still(val session: String, val outcome: String?, val at: Long?)
+
+    /** Sotto «Al lavoro adesso»: le ferme senza niente per Franz, l'esito più nuovo prima. */
+    fun stillRows(state: State): List<Still> = state.sessions
+        .filter { it.state != SessionState.GONE && it.state != SessionState.BUSY && waitingSince(it) == null }
+        .map { s -> Still(s.name, (s.outcome?.preview?.short ?: s.outcome?.short)?.takeIf { it.isNotBlank() }, s.outcome?.at) }
+        .sortedByDescending { it.at ?: -1L }
+
+    /** Una riga di «Esiti di oggi»: un esito (`ref` null) o un compito rosso (`ref` = id del compito). */
+    data class Done(val session: String, val text: String, val at: Long, val ref: String?)
+
+    /** «Esiti di oggi»: i rossi in cima, poi gli esiti, il più nuovo prima; `atLeast` = la cronologia è al tetto. */
+    data class Outcomes(val red: List<Done>, val done: List<Done>, val atLeast: Boolean)
+
+    /** Gli stessi eventi contati da [head]; null senza cronologia. */
+    fun outcomes(page: TimelinePage?, now: Long, zone: ZoneId): Outcomes? {
+        page ?: return null
+        val from = midnight(now, zone)
+        val today = page.sessions.flatMap { s -> s.events.filter { it.at in from..now }.map { s.session to it } }.sortedByDescending { it.second.at }
+        return Outcomes(
+            red = today.filter { it.second.kind == "task" && it.second.ok == false }.map { (n, e) -> Done(n, e.text, e.at, e.ref) },
+            done = today.filter { it.second.kind == "outcome" }.map { (n, e) -> Done(n, e.text, e.at, null) },
+            atLeast = page.more == true || page.sessions.any { it.events.size >= EVENTS_CAP },
+        )
+    }
+
     /** 14 · l'anello della complicazione: la quota 5h dell'account e, al centro, quante sessioni ti aspettano. */
     data class Ring(val quota: Int?, val waiting: Int)
 

@@ -1354,4 +1354,33 @@ It starts at your last message to the master.</string>
     </plurals>
     <string name="week_today">today</string>
     <string name="week_samples_from">Days from the samples of %1$s: none before.</string>
+    <string name="box_waiting_title">Waiting for you</string>
+    <string name="box_busy_title">Working now</string>
+    <string name="box_outcomes_title">Today\'s outcomes</string>
+    <string name="box_since_midnight">since midnight</string>
+    <string name="box_waiting_head">Sessions stopped until you act: answer a question, give an ok, do something only you can do. The first has been waiting for %1$s.</string>
+    <string name="box_waiting_none">No session is waiting for you. When one asks a question, needs an ok or needs you, it shows up here with the reason and how long it has waited.</string>
+    <string name="box_kind_question">QUESTION</string>
+    <string name="box_kind_needs_you">NEEDS YOU</string>
+    <string name="box_kind_blocking">TO UNBLOCK</string>
+    <string name="box_closes_itself">CLOSES BY ITSELF</string>
+    <string name="box_waiting_note">A tap opens the session on the question. Stopped sessions with nothing for you are not here: they are in «Sessions».</string>
+    <string name="box_busy_head">Sessions with a turn running: Claude is working and needs nothing from you. The time counts from the start of the turn.</string>
+    <string name="box_busy_none">No session is working now. When one starts, it shows up here with the tool it is using and how long the turn has run.</string>
+    <string name="box_busy_note">The line under the name is the session\'s goal, when it has one; then the tool it is using now.</string>
+    <string name="box_still">STOPPED, NOTHING FOR YOU</string>
+    <plurals name="box_more"><item quantity="one">+ %1$d more</item><item quantity="other">+ %1$d more</item></plurals>
+    <string name="box_show">Show</string>
+    <plurals name="box_outcomes_head"><item quantity="one">The «Esito:» lines sessions end a turn with. On top, %1$d red: a task whose check failed.</item><item quantity="other">The «Esito:» lines sessions end a turn with. On top, %1$d red: tasks whose check failed.</item></plurals>
+    <string name="box_outcomes_head_green">The «Esito:» lines sessions end a turn with. No red task today.</string>
+    <string name="box_red">RED</string>
+    <string name="box_red_kind">CHECK FAILED</string>
+    <string name="box_outcomes">OUTCOMES</string>
+    <string name="box_newest_first">%1$d · newest first</string>
+    <string name="box_outcomes_loading">Today\'s timeline is on its way from the PC.</string>
+    <string name="box_outcomes_none">No outcome since midnight.</string>
+    <string name="box_rest">%1$d more</string>
+    <string name="box_show_more">Show %1$d more</string>
+    <string name="box_at_least">The relay sends at most 40 events per session: today the figure is a minimum.</string>
+    <string name="box_outcomes_note">A tap on a row opens the session, if it is still open.</string>
 </resources>

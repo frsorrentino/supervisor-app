@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -134,30 +136,34 @@ internal fun Kpi18(f: Kpi.DayFigures) {
 }
 
 @Composable
-internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifier) {
+internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifier, chevron: Boolean = false) {
     Column(modifier.clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, style = MaterialTheme.typography.headlineSmall, color = tone ?: CmColors.text, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(value, style = MaterialTheme.typography.headlineSmall, color = tone ?: CmColors.text, maxLines = 1, modifier = Modifier.weight(1f))
+            // I box della home si aprono (app-box-cliccabili-29-10): la freccina lo dice.
+            if (chevron) androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = CmColors.text2, modifier = Modifier.size(16.dp))
+        }
         Text(label, style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
     }
 }
 
 // ---- Proposte piccole (4, 5, 7; compito app-kpi-piccole-25-10) ----
 
-/** 7 · tre cifre in testa alla home; un tocco su «ti aspettano» porta alla prima che aspetta. */
+/** 7 · tre cifre in testa alla home; ognuna apre la sua pagina, anche a zero (app-box-cliccabili-29-10). */
 @Composable
-internal fun Kpi7(h: Kpi.Head, onWaiting: () -> Unit) {
+internal fun Kpi7(h: Kpi.Head, onBox: (HomeBox) -> Unit) {
     Row(Modifier.testTag("kpi-7").fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min).padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val m = maxOf(1L, ((h.oldestWaitS ?: 0L) + 30) / 60)
+        val box = { b: HomeBox, tag: String -> Modifier.weight(1f).fillMaxHeight().testTag(tag).handCursor().clickable { onBox(b) } }
         Figure(
             h.waiting.toString(), if (h.waiting > 0) stringResource(R.string.kpi7_waiting, m) else stringResource(R.string.kpi7_none_waiting),
-            if (h.waiting > 0) CmColors.waiting else null,
-            Modifier.weight(1f).fillMaxHeight().then(if (h.waiting > 0) Modifier.handCursor().clickable(onClick = onWaiting) else Modifier),
+            if (h.waiting > 0) CmColors.waiting else null, box(HomeBox.WAITING, "home-box-aspetta"), chevron = true,
         )
-        Figure(h.busy.toString(), stringResource(R.string.kpi7_busy), if (h.busy > 0) CmColors.busy else null, Modifier.weight(1f).fillMaxHeight())
+        Figure(h.busy.toString(), stringResource(R.string.kpi7_busy), if (h.busy > 0) CmColors.busy else null, box(HomeBox.BUSY, "home-box-lavoro"), chevron = true)
         Figure(
             h.outcomes?.toString() ?: "–",
             when { h.outcomes == null -> stringResource(R.string.kpi7_outcomes_unknown); (h.red ?: 0) > 0 -> pluralStringResource(R.plurals.kpi7_outcomes_red, h.red!!, h.red!!); else -> stringResource(R.string.kpi7_outcomes) },
-            null, Modifier.weight(1f).fillMaxHeight(),
+            null, box(HomeBox.OUTCOMES, "home-box-esiti"), chevron = true,
         )
     }
 }

@@ -219,6 +219,8 @@ class MainActivity : ComponentActivity() {
         var launching by rememberSaveable { mutableStateOf(false) }
         var nightAdding by rememberSaveable { mutableStateOf(false) }
         var queueOpen by rememberSaveable { mutableStateOf(false) }
+        // La pagina di uno dei tre box in alto della home (app-box-cliccabili-29-10).
+        var boxOpen by rememberSaveable { mutableStateOf<it.pixelbox.cmwatch.mobile.ui.HomeBox?>(null) }
         // Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno).
         val attentionDone: (it.pixelbox.cmwatch.rules.AttentionQueue.Done) -> Unit = { d -> scope.launch { runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, d.ref, kind = d.kind, since = d.since) } } }
         // La chat dal cui banner si è aperta la coda: non è in fila, come nel conto del banner (23/10, come la web).
@@ -252,7 +254,7 @@ class MainActivity : ComponentActivity() {
                     rate = rate, onRate = speech::setRateNow, onRateLive = speech::setRateAtNextSentence,
                     voice = voice, onVoice = if (voices.isEmpty()) null else ({ speech.setVoiceNow(it.pixelbox.cmwatch.rules.VoiceRules.next(voices, voice)) }),
                     onOpen = if (!live) null else ({
-                        settingsOpen = false; searchOpen = false; queueOpen = false; tab = StartRoute.Tab.OVERVIEW
+                        settingsOpen = false; searchOpen = false; queueOpen = false; boxOpen = null; tab = StartRoute.Tab.OVERVIEW
                         if (src == it.pixelbox.cmwatch.rules.ContextActions.MASTER) { open = null; masterChat = true } else open = src
                     }),
                     onStop = { speech.stop() },
@@ -290,11 +292,11 @@ class MainActivity : ComponentActivity() {
         val elsewhereSeen = remember { mutableStateListOf<String>() }
         LaunchedEffect(sessionAsked) {
             val n = sessionAsked ?: return@LaunchedEffect
-            settingsOpen = false; terminal = null; queueOpen = false; searchOpen = false
+            settingsOpen = false; terminal = null; queueOpen = false; boxOpen = null; searchOpen = false
             if (n.isEmpty()) { open = null; tab = StartRoute.Tab.OVERVIEW } else { open = n }
             sessionAsked = null
         }
-        LaunchedEffect(queueAsked) { if (queueAsked) { queueSkip = null; queueOpen = true; searchOpen = false; settingsOpen = false; terminal = null; queueAsked = false } }
+        LaunchedEffect(queueAsked) { if (queueAsked) { queueSkip = null; queueOpen = true; boxOpen = null; searchOpen = false; settingsOpen = false; terminal = null; queueAsked = false } }
         var now by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
         val updateUi by app.updater.ui.collectAsStateWithLifecycle()
         LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() / 1000 } }
@@ -304,12 +306,32 @@ class MainActivity : ComponentActivity() {
         val stateShown = state?.let { st -> if (okPending.isEmpty()) st else it.pixelbox.cmwatch.rules.Approvals.withoutApproved(st, okPending.toSet()) }
         LaunchedEffect(state) { state?.let { st -> val s = it.pixelbox.cmwatch.rules.Approvals.settled(st, okPending.toSet()); if (s.isNotEmpty()) okPending.removeAll(s) } }
 
-        BackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen) {
+        // I KPI 6, 11 e 18 della home (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni, una lettura
+        // passiva ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op. Sta prima delle pagine: la usa anche «Esiti di oggi».
+        var kpiPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.TimelinePage?>(null) }
+        val kpiOk = demo || state?.ops?.contains("timeline") == true
+        LaunchedEffect(kpiOk) {
+            if (!kpiOk) return@LaunchedEffect
+            lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                while (true) {
+                    val since = it.pixelbox.cmwatch.rules.Kpi.since(System.currentTimeMillis() / 1000, java.time.ZoneId.systemDefault())
+                    val id = runCatching { app.repo.command(CmdOp.TIMELINE, null, since.toString()) }.getOrNull()
+                    if (id != null) {
+                        val r = kotlinx.coroutines.withTimeoutOrNull(PhoneTerminal.LOST_MS) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+                        if (r?.ok == true) runCatching { ContractJson.decodeTimeline(r.text) }.onSuccess { page -> kpiPage = page }
+                        app.repo.forget(id)
+                    }
+                    delay(300_000)
+                }
+            }
+        }
+        BackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen || boxOpen != null) {
             when {
                 nightOpen -> nightOpen = false
                 searchOpen -> searchOpen = false
                 settingsOpen -> settingsOpen = false
                 terminal != null -> { terminal = null; screenId = null }
+                boxOpen != null -> boxOpen = null
                 else -> queueOpen = false
             }
         }
@@ -373,7 +395,7 @@ class MainActivity : ComponentActivity() {
         var tabletDetails by remember { mutableStateOf(tabletPrefs.getBoolean("tablet_details", false)) }
         // Le pagine che prendevano lo schermo di colpo entrano da destra (Franz, 10/10 15:59); tornando da una di loro la home
         // rientra da sinistra. `cameBack` vale solo al primo disegno della home dopo la pagina, quando `PageIn` decide.
-        val pageOpen = settingsOpen || terminal != null || nightOpen || searchOpen || (queueOpen && state != null)
+        val pageOpen = settingsOpen || terminal != null || nightOpen || searchOpen || (queueOpen && state != null) || (boxOpen != null && state != null)
         val pageWas = remember { booleanArrayOf(false) }
         val cameBack = pageWas[0] && !pageOpen
         pageWas[0] = pageOpen
@@ -661,6 +683,10 @@ class MainActivity : ComponentActivity() {
             }, onSession = { n -> queueOpen = false; open = n }) }
             return
         }
+        boxOpen?.let { b -> stateShown?.let { st ->
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.HomeBoxScreen(b, st, kpiPage, now, onBack = { boxOpen = null }, onSession = { n -> boxOpen = null; open = n }) }
+            return
+        } }
         // Contratto 1.22: la conversazione della scheda aperta, a pagine, letta dal vivo finché la scheda resta aperta.
         val transcriptOk = !demo && state?.ops?.contains("transcript") == true
         // La casa della master (design 01/10): sulla prima scheda, senza schede aperte, la chat è quella della master.
@@ -1435,25 +1461,6 @@ class MainActivity : ComponentActivity() {
         }
         // Il cruscotto del tablet (variante B): senza colonne né Registro, Recap e Utilizzo stanno a destra e non nella home.
         val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.LAVORI
-        // I KPI 6, 11 e 18 della home (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni, una lettura
-        // passiva ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op.
-        var kpiPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.TimelinePage?>(null) }
-        val kpiOk = demo || state?.ops?.contains("timeline") == true
-        LaunchedEffect(kpiOk) {
-            if (!kpiOk) return@LaunchedEffect
-            lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-                while (true) {
-                    val since = it.pixelbox.cmwatch.rules.Kpi.since(System.currentTimeMillis() / 1000, java.time.ZoneId.systemDefault())
-                    val id = runCatching { app.repo.command(CmdOp.TIMELINE, null, since.toString()) }.getOrNull()
-                    if (id != null) {
-                        val r = kotlinx.coroutines.withTimeoutOrNull(PhoneTerminal.LOST_MS) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
-                        if (r?.ok == true) runCatching { ContractJson.decodeTimeline(r.text) }.onSuccess { page -> kpiPage = page }
-                        app.repo.forget(id)
-                    }
-                    delay(300_000)
-                }
-            }
-        }
         // Le proposte 8, 9, 10, 12, 13 e 17 (contratto 1.96, compito app-kpi-dati-relay-25-10): l'op `kpi`, una lettura passiva
         // ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op.
         var kpiData by remember { mutableStateOf<it.pixelbox.cmwatch.contract.KpiData?>(null) }
@@ -1539,6 +1546,7 @@ class MainActivity : ComponentActivity() {
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
                     system = state?.system, ops = state?.ops,
                     kpiPage = kpiPage, kpiState = state, kpiData = kpiData,
+                    onBox = { b -> boxOpen = b },
                     // Contratto 1.95: «Plugin e skill»; l'elenco è una lettura passiva, gli aggiornamenti mostrano il testo del relay.
                     plugins = state?.plugins?.takeIf { !demo && state.ops?.contains("plugins") == true && state.ops?.contains("plugin_update") == true },
                     onPluginsLoad = {

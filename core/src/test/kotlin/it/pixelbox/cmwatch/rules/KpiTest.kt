@@ -98,6 +98,47 @@ class KpiTest {
         assertNull(Kpi.head(idle, null, now, zone).outcomes)
     }
 
+    // ---- I box della home aperti (compito app-box-cliccabili-29-10) ----
+
+    @Test fun boxWaiting_sameSessionsAsTheFigure_oldestFirst_secretsMasked() {
+        val q = ContractJson.decodeState(Fixtures.stateQuestion)
+        val rows = Kpi.waitingRows(q)
+        assertEquals(listOf(Kpi.Waiting("ledger-api", Kpi.WaitKind.QUESTION, "Deploy ready with DEPLOY_TOKEN=\u2022\u2022\u2022, waiting for the client's ok. Deploy now?", 1_789_210_500L, false)), rows)
+        assertEquals(Kpi.head(q, null, q.ts, zone).waiting, rows.size)
+        // needs_you dice se si chiude da sé; la voce bloccante viene dopo; la più vecchia in cima.
+        val st = State(v = 1, ts = now, host = "pc", sessions = listOf(
+            s("a").copy(turnBlocking = TurnBlocking("ok to publish", now - 60)),
+            s("b").copy(needsYou = NeedsYou("type the code", now - 600, until = true)),
+            s("c", SessionState.GONE).copy(needsYou = NeedsYou("gone", now - 900)),
+        ), quota = emptyMap())
+        assertEquals(listOf("b" to Kpi.WaitKind.NEEDS_YOU, "a" to Kpi.WaitKind.BLOCKING), Kpi.waitingRows(st).map { it.session to it.kind })
+        assertTrue(Kpi.waitingRows(st).first().closesItself)
+        assertEquals(Kpi.head(st, null, now, zone).waiting, Kpi.waitingRows(st).size)
+    }
+
+    @Test fun boxWorking_busySessionsWithGoalToolAndTurn_thenTheStillOnes() {
+        val q = ContractJson.decodeState(Fixtures.stateQuestion)
+        assertEquals(listOf(Kpi.Working("atlas-shop", "All checkout tests green and the release tagged", "Bash pytest -q tests", "Run the test suite", 100L, "Sonnet 5", 18)), Kpi.workingRows(q, q.ts))
+        assertEquals(Kpi.head(q, null, q.ts, zone).busy, Kpi.workingRows(q, q.ts).size)
+        // Ferme senza niente per Franz: non chi aspetta (ledger-api), non le sparite.
+        assertEquals(listOf(Kpi.Still("field-notes", "README rewritten", 1_789_121_000L)), Kpi.stillRows(q))
+    }
+
+    @Test fun boxOutcomes_redsOnTop_newestFirst_onlyToday() {
+        val p = TimelinePage(since = 0, sessions = listOf(
+            TimelineSession("a", true, events = listOf(TimelineEvent(now - 300, "outcome", "first"), TimelineEvent(now - 200, "task", "check red", ok = false, ref = "t1"), TimelineEvent(now - 100, "task", "check green", ok = true, ref = "t2"))),
+            TimelineSession("b", true, events = listOf(TimelineEvent(now - 50, "outcome", "second"), TimelineEvent(now - 30 * 3600, "outcome", "yesterday"))),
+        ))
+        val o = Kpi.outcomes(p, now, zone)!!
+        assertEquals(listOf(Kpi.Done("a", "check red", now - 200, "t1")), o.red)
+        assertEquals(listOf(Kpi.Done("b", "second", now - 50, null), Kpi.Done("a", "first", now - 300, null)), o.done)
+        assertFalse(o.atLeast)
+        val h = Kpi.head(State(v = 1, ts = now, host = "pc", sessions = emptyList(), quota = emptyMap()), p, now, zone)
+        assertEquals(h.outcomes, o.done.size); assertEquals(h.red, o.red.size)
+        assertNull(Kpi.outcomes(null, now, zone))
+        assertTrue(Kpi.outcomes(p.copy(more = true), now, zone)!!.atLeast)
+    }
+
     @Test fun kpi14_ringAndKpi16_pinned() {
         assertEquals(Kpi.Ring(24, 1), Kpi.ring(idle, "personal"))
         val p = Kpi.pinned(idle, idle.ts)!!

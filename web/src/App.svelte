@@ -40,6 +40,7 @@
   import NightAgendaPicker from './lib/NightAgendaPicker.svelte'
   import Composer from './lib/Composer.svelte'
   import AppBar, { type Page as PageName } from './lib/AppBar.svelte'
+  import HomeBox from './lib/HomeBox.svelte'
   import Page from './lib/Page.svelte'
   import Launch from './lib/Launch.svelte'
   import NightPage from './lib/NightPage.svelte'
@@ -468,7 +469,7 @@
   const asked = new URLSearchParams(location.search).get('page')
   // «diary» e «recap» nei link vecchi aprono la pagina unica Lavori (22/10).
   const askedPage = asked === 'diary' || asked === 'recap' ? 'lavori' : asked
-  let page = $state<PageName | null>(askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'queue'].includes(askedPage) ? (askedPage as PageName) : null)
+  let page = $state<PageName | null>(askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
   // La pagina Notte (specifica del 07/10, approvata alle 21:50): il rapporto si chiede al PC con l'op `night` (contratto 1.44)
   // quando la pagina si apre e col tasto aggiorna; nella demo è la fixture inventata.
   let night = $state<{ report: NightReport | null; error: string | null; loading: boolean }>({ report: null, error: null, loading: false })
@@ -569,7 +570,7 @@
   }
   setContext('agendaNight', { get can() { return canNight }, get rows() { return nightCards(agenda.page, todayIso()) }, queue: queueNight })
   $effect(() => { if (canNight && canAgenda && !agenda.page && !agenda.loading) untrack(() => loadAgenda()) })
-  const pageTitle: Record<PageName, string> = $derived({ lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle })
+  const pageTitle: Record<PageName, string> = $derived({ lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -990,7 +991,7 @@
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
+        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}
@@ -1042,6 +1043,8 @@
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
         onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
         onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => run(newCmd('unpair', null, uid)) : null} />
+    {:else if p === 'box-aspetta' || p === 'box-lavoro' || p === 'box-esiti'}
+      <HomeBox box={p === 'box-aspetta' ? 'aspetta' : p === 'box-lavoro' ? 'lavoro' : 'esiti'} st={stShown} page={kpiPage} {now} onSession={(n) => { openPage(null); pick(n) }} />
     {:else if p === 'queue'}
       <Queue {st} now={now} skip={queueSkip} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} onDone={attentionDone} />
     {:else}

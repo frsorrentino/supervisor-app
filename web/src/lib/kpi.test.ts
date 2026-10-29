@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { decodeState, type KpiData, type TimelineEvent, type TimelinePage } from './contract'
-import { acceptRate, ageFraction, cells, checksTotals, day, dayFigures, head, hourly, split, suggestionsTotal, tasksOrder, todayShare, turnsOf, turnsSummary, waitsClosed, waitsTop, workSeconds } from './kpi'
+import { decodeState, type KpiData, type Session, type State, type TimelineEvent, type TimelinePage } from './contract'
+import { acceptRate, ageFraction, cells, checksTotals, day, dayFigures, head, hourly, outcomes, split, stillRows, suggestionsTotal, tasksOrder, todayShare, turnsOf, turnsSummary, waitingRows, waitsClosed, waitsTop, workingRows, workSeconds } from './kpi'
 
 const read = (f: string) => readFileSync(new URL(`../../../contract/${f}`, import.meta.url), 'utf8')
 const sample = JSON.parse(read('cmd-result-sample.json'))
@@ -55,6 +55,41 @@ describe('KPI coi dati già nel relay (proposte 6, 11, 15, 18)', () => {
     const h = head(st, page, now, 'Europe/Rome')
     expect([h.waiting, h.busy, h.outcomes, h.red]).toEqual([1, 0, 1, 0])
     expect(head(st, null, now, 'Europe/Rome').outcomes).toBeNull()
+  })
+})
+
+describe('i box della home aperti (app-box-cliccabili-29-10)', () => {
+  const q = decodeState(read('state-1-question.json'))
+  const s = (name: string, extra: Partial<Session> = {}): Session => ({ id: name, name, account: 'personale', project: name, state: 'idle', since: 0, ...extra })
+  const st = (sessions: Session[]): State => ({ ...q, ts: now, sessions })
+
+  it('ti aspettano: le sessioni della cifra, la più vecchia prima, senza segreti', () => {
+    expect(waitingRows(q)).toEqual([{ session: 'ledger-api', kind: 'question', text: "Deploy ready with DEPLOY_TOKEN=\u2022\u2022\u2022, waiting for the client's ok. Deploy now?", since: 1789210500, closesItself: false }])
+    const x = st([s('a', { turn_blocking: { text: 'ok to publish', at: now - 60 } }), s('b', { needs_you: { reason: 'type the code', at: now - 600, until: true } }), s('c', { state: 'gone', needs_you: { reason: 'gone', at: now - 900 } })])
+    expect(waitingRows(x).map(r => [r.session, r.kind, r.closesItself])).toEqual([['b', 'needs_you', true], ['a', 'blocking', false]])
+    expect(waitingRows(x).length).toBe(head(x, null, now).waiting)
+    expect(waitingRows(q).length).toBe(head(q, null, q.ts).waiting)
+  })
+
+  it('al lavoro: obiettivo, strumento, turno; poi le ferme senza niente per te', () => {
+    expect(workingRows(q, q.ts)).toEqual([{ session: 'atlas-shop', goal: 'All checkout tests green and the release tagged', tool: 'Bash pytest -q tests', toolNote: 'Run the test suite', turnS: 100, model: 'Sonnet 5', context: 18 }])
+    expect(workingRows(q, q.ts).length).toBe(head(q, null, q.ts).busy)
+    expect(stillRows(q)).toEqual([{ session: 'field-notes', outcome: 'README rewritten', at: 1789121000 }])
+  })
+
+  it('esiti di oggi: i rossi in cima, il più nuovo prima, solo da mezzanotte', () => {
+    const p: TimelinePage = { since: 0, sessions: [
+      { session: 'a', live: true, events: [{ at: now - 300, kind: 'outcome', text: 'first' }, { at: now - 200, kind: 'task', text: 'check red', ok: false, ref: 't1' }, { at: now - 100, kind: 'task', text: 'check green', ok: true, ref: 't2' }] },
+      { session: 'b', live: true, events: [{ at: now - 50, kind: 'outcome', text: 'second' }, { at: now - 30 * 3600, kind: 'outcome', text: 'yesterday' }] },
+    ] }
+    const o = outcomes(p, now, 'Europe/Rome')!
+    expect(o.red).toEqual([{ session: 'a', text: 'check red', at: now - 200, ref: 't1' }])
+    expect(o.done.map(d => [d.session, d.text])).toEqual([['b', 'second'], ['a', 'first']])
+    expect(o.atLeast).toBe(false)
+    const h = head(st([]), p, now, 'Europe/Rome')
+    expect([o.done.length, o.red.length]).toEqual([h.outcomes, h.red])
+    expect(outcomes(null, now)).toBeNull()
+    expect(outcomes({ ...p, more: true }, now, 'Europe/Rome')!.atLeast).toBe(true)
   })
 })
 
