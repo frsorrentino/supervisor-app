@@ -991,9 +991,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="kpi10_caption">token per turno</string>
     <string name="kpi10_aria">%1$d turni oggi, %2$d minuti; il costo va da %3$s a %4$s token per turno</string>
     <string name="kpi12_seconds">%1$s s</string>
-    <string name="kpi12_latency">dalla push al telefono, mediana dell'ultima ora</string>
+    <string name="kpi12_latency">dalla push al telefono, mediana dell\'ultima ora</string>
     <string name="kpi12_latency_max">dalla push al telefono, mediana; picco %1$s s</string>
-    <string name="kpi12_latency_none">dalla push al telefono: nessuna misura nell'ultima ora</string>
+    <string name="kpi12_latency_none">dalla push al telefono: nessuna misura nell\'ultima ora</string>
     <string name="kpi12_sessions_here">sessioni su questo computer</string>
     <string name="kpi12_ram">RAM usata su %1$s</string>
     <string name="kpi12_up">%1$s acceso</string>

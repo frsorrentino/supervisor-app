@@ -931,7 +931,7 @@ It starts at your last message to the master.</string>
     <plurals name="kpi9_green"><item quantity="one">%1$d green</item><item quantity="other">%1$d green</item></plurals>
     <plurals name="kpi9_red"><item quantity="one">%1$d red</item><item quantity="other">%1$d red</item></plurals>
     <string name="kpi9_caption">Per day the task checks that passed and, next to them, the red ones.</string>
-    <string name="kpi10_title">Today's turns</string>
+    <string name="kpi10_title">Today\'s turns</string>
     <plurals name="kpi10_turns"><item quantity="one">%1$d turn · %2$d min</item><item quantity="other">%1$d turns · %2$d min</item></plurals>
     <plurals name="kpi10_failed"><item quantity="one">%1$d failed</item><item quantity="other">%1$d failed</item></plurals>
     <string name="kpi10_caption">tokens per turn</string>
