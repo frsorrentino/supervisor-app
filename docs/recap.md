@@ -24,4 +24,4 @@
 - 2026-10-23: Avviso chiudibile pubblicato su web e telefono; Approva nella scheda pronto in locale · prossimo: Pubblicare Approva e la correzione della coda insieme, dopo il tuo ok su coda-ferme-23-10
 - 2026-10-24: Scheda master su telefono e web; barra rapida pubblicata in Studio · prossimo: Correggere la barra in Studio: la chat riparte da zero a ogni swipe
 - 2026-10-27: Icona diff corretta e Supervisor inviato su Play; contratto 1.87 adottato, CI in corso · prossimo: Attendere l'esito della CI Android sul commit 1656ea26, poi scrivere alla master
-- 2026-10-28: App pre-release abbinata e funzionante con il pacchetto Play nuovo; vecchia app revocata · prossimo: Decidere sui commit mancanti (accetta, non ora, mai); poi disinstallare la vecchia app
+- 2026-10-28: Sezione «Sistema» online su web e pre-release telefono; dispositivi abbinati pubblicati · prossimo: Verificare sul telefono la sezione «Sistema» nella pre-release installata

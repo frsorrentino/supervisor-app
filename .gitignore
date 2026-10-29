@@ -38,3 +38,6 @@ __pycache__/
 
 # Claude Code project settings (plugin toggles): local tooling, not part of the app
 .claude/
+
+# Cache di firebase deploy: la rigenera ogni deploy (29/10)
+web/.firebase/
