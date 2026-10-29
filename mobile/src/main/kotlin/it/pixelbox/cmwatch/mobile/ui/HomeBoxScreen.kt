@@ -141,12 +141,14 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
             }
             HomeBox.OUTCOMES -> {
                 val out = Kpi.outcomes(page, now, zone)
-                val head = when {
-                    out == null -> stringResource(R.string.box_outcomes_loading)
-                    out.red.isNotEmpty() -> pluralStringResource(R.plurals.box_outcomes_head, out.red.size, out.red.size)
-                    else -> stringResource(R.string.box_outcomes_head_green)
+                item("hero") {
+                    val head = when {
+                        out == null -> stringResource(R.string.box_outcomes_loading)
+                        out.red.isNotEmpty() -> pluralStringResource(R.plurals.box_outcomes_head, out.red.size, out.red.size)
+                        else -> stringResource(R.string.box_outcomes_head_green)
+                    }
+                    BoxHero(out?.done?.size?.toString() ?: "–", null, head)
                 }
-                item("hero") { BoxHero(out?.done?.size?.toString() ?: "–", null, head) }
                 if (out != null) {
                     if (out.red.isNotEmpty()) {
                         item("red-head") { BoxSection(stringResource(R.string.box_red), out.red.size.toString(), CmColors.gone) }
