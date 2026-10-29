@@ -11,11 +11,10 @@
   import Kpi4 from './Kpi4.svelte'
   import PluginsSection from './PluginsSection.svelte'
   import type { KpiData, PluginsPage } from './contract'
-  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
+  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import Icon from './Icon.svelte'
-  import { forMaster } from './strongAlert'
   import PermGlyph from './PermGlyph.svelte'
   import { homeGlyph } from './permissionModes'
   import { tick, untrack } from 'svelte'
@@ -51,7 +50,7 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, pluginsLoad = null, pluginsRun = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, pluginsLoad = null, pluginsRun = null, suggestionsN = 0 }: {
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
     onClosePreview?: ((names: string[]) => Promise<Preview | null>) | null; onCloseMany?: (names: string[]) => void
     /** Contratto 1.90: il tasto di un consiglio del Sistema; null = sola lettura (demo, relay senza l'op). */
@@ -65,8 +64,9 @@
     /** Contratto 1.95: l'elenco dei plugin e i comandi della sezione «Plugin e skill»; null = il relay non ha le op. */
     pluginsLoad?: (() => Promise<PluginsPage | null>) | null
     pluginsRun?: ((op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => Promise<{ ok: boolean; text: string } | null>) | null
-    /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto. */
-    suggestions?: Snippet
+    /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto.
+     *  `suggestionsN`: quanti ne mostra, perché «Ti aspettano» compaia anche quando ci sono solo loro. */
+    suggestions?: Snippet; suggestionsN?: number
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -105,11 +105,7 @@
     usageFocus?: number; onUsageFocused?: () => void
     /** ▶ sul dettaglio di «Approfondisci» (09/10 16:31). */
     onSpeak?: ((text: string) => void) | null
-    /** Contratto 1.68: il tocco sul banner di «Serve te» porta alla prima voce. */
-    onAttention?: () => void
   } = $props()
-  // Contratto 1.68: in cima alla casa della master quante cose aspettano Franz nelle altre sessioni, coi nomi.
-  const waitingYou = $derived(forMaster(st))
   const today = todayIso()
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
@@ -123,8 +119,11 @@
     })
   })
   // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate, anche alla prossima apertura.
-  const SEC = 'home-sections'
-  let open = $state<Record<string, boolean>>((() => { try { return { night: true, sessions: true, lavori: true, usage: false, other: false, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { night: true, sessions: true, commitments: true, usage: false, other: false } } })())
+  // Chiave nuova col riordino (app-home-riordino-29-10): Notte e Utilizzo partono chiuse col numero in vista, anche per chi
+  // le aveva aperte; sessioni, lavori ed esiti aperti.
+  const SEC = 'home-sections-2'
+  const SEC_START = { sessions: true, lavori: true, esiti: true, usage: false, night: false }
+  let open = $state<Record<string, boolean>>((() => { try { return { ...SEC_START, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { ...SEC_START } } })())
   function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
   // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe con un tasto
   // (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
@@ -147,6 +146,8 @@
   const outside = $derived(outsideGroups(forYou(st, events, sent, now, { read, limit: Infinity }).rows.filter(r => r.kind !== 'question' && r.kind !== 'finished'), model.closed))
   // Franz 24/10 00:46: un suggerimento che riguarda una sessione aperta (il contesto alto) sta nella sua scheda; in Altro restano gli altri.
   const placedOut = $derived(placeOutside(outside, new Set(model.rows.map(r => r.session.name))))
+  // Da riprendere, Stanotte, Da sistemare e Programmati sono lavori: stanno in «Lavori»; le chiuse hanno la loro riga.
+  const workGroups = $derived(placedOut.groups.filter(g => g.category !== 'closed'))
   // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli (lavoriDetails).
   let openWork = $state<string | null>(null)
   const workKey = (r: LavoriRow, i: number) => r.approval?.task ?? r.commitment?.task ?? (r.agenda?.key || null) ?? `${r.kind}-${i}`
@@ -174,6 +175,22 @@
   let expanded = $state<string | null>(null)
   const tone: Record<Group, string> = { waiting: 'var(--b-warn)', finished: 'var(--b-good)', working: 'var(--b-ring)', still: 'var(--text2)' }
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
+  // Il riordino (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te in cima, in «Ti aspettano»; le altre in «Sessioni».
+  const waitRows = $derived(groups.find(([g]) => g === 'waiting')?.[1] ?? [])
+  const restGroups = $derived(groups.filter(([g]) => g !== 'waiting'))
+  // Un solo bottone pieno: l'azione della prima che ti aspetta; senza nessuna, il primo ok di un compito.
+  const primary = $derived(waitRows[0]?.session.name ?? null)
+  // Gli esiti di oggi dalla cronologia (null finché non arriva) e le sessioni vive, che una riga può aprire.
+  const out = $derived(kpiPage ? kpiOutcomes(kpiPage, now) : null)
+  const liveNames = $derived(new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)))
+  // Chiusa, «Utilizzo» dice la settimana di ogni account e i token di oggi; la quota 5h sta già nella barra in cima.
+  const usageLine = $derived.by(() => {
+    const weeks = Object.entries(st.quota).filter(([, q]) => !q.stale && q.w7 != null).map(([a, q]) => `${a.length > 5 ? `${a.slice(0, 4)}.` : a} ${q.w7}%`)
+    const tok = kpiPage ? dayFigures(kpiPage, st, now).tokens : 0
+    return [weeks.length ? `${t.weekShort} ${weeks.join(' · ')}` : null, tok ? t.tokensShort(tok >= 1e6 ? `${Math.round(tok / 1e6)} M` : `${Math.round(tok / 1e3)} k`) : null].filter(Boolean).join(' · ') || null
+  })
+  // Chiusa, «Notte» dice com'è andata l'ultima notte.
+  const nightLine = $derived(night ? [night.counts.done && t.nightDone(night.counts.done), night.counts.running && t.nightRunningN(night.counts.running), night.counts.partial && t.nightPartial(night.counts.partial), night.counts.stopped && t.nightStopped(night.counts.stopped), night.counts.asking && t.nightAsking(night.counts.asking)].filter(Boolean).join(' · ') || null : null)
   // Con un ok da dare le opzioni delle domande restano tonali, così sulla schermata c'è un solo bottone pieno.
   // Franz 23/10 19:34: gli ok che una sessione aperta chiede stanno nella sua card, non in schede a parte.
   const attached = $derived(attachedTasks(model.rows))
@@ -184,10 +201,8 @@
   // Franz 24/10 19:46 (B1): in alto solo gli ok che fermano un lavoro; le cose fuori dalla chat e da avviare in «Più tardi».
   let laterOpen = $state(false)
   const laterRows = $derived(placed ? [...placed.loose.outside, ...placed.loose.claude] : [])
-  const looseRows = $derived(placed ? [...placed.loose.ok, ...(laterOpen ? laterRows : [])] : [])
   const fyShort = (r: LavoriRow) => shortTitle(r.title, r.agenda?.short ?? r.commitment?.short)
   function fyAct(r: LavoriRow) { if (r.kind === 'outside') fyOutside(r); else if (r.kind === 'claude' && r.agenda) onStart(doIt(r.agenda)) }
-  const hasOk = $derived(looseOk.some(r => r.approval))
   const canExit = $derived(!!st.slash?.includes('exit'))
   let pending = $state<Approval | null>(null)
   let pendingChoice = $state<string | null>(null)
@@ -255,8 +270,8 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && ctx && (ctx = null)} />
 
-{#snippet sec(key: string, title: string, summary: string | null = null)}
-  <button class="sec" aria-expanded={open[key]} onclick={() => toggleSec(key)}>
+{#snippet sec(key: string, title: string, summary: string | null = null, testid: string | null = null)}
+  <button class="sec" aria-expanded={open[key]} data-testid={testid} onclick={() => toggleSec(key)}>
     <svg viewBox="0 0 24 24" width="16" height="16"><path d={open[key] ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>
     <span>{title.toUpperCase()}</span><i></i>{#if summary && !open[key]}<small>{summary}</small>{/if}
   </button>
@@ -265,175 +280,107 @@
 <section class="home">
   <!-- Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto. -->
   {#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}
-  <!-- Franz 24/10 09:36: «L'ordine in home deve essere: Sessioni, Utilizzo, Lavoro, Altro»; la Notte, che non nomina, prima di Altro. -->
-  {#if waitingYou.length}
-  <button class="attn-banner" onclick={() => { if (!open.sessions) toggleSec('sessions'); onAttention() }}>
-    <b>{t.attentionBanner(waitingYou.length)}</b><span>{[...new Set(waitingYou.map(a => a.session).filter(Boolean))].join(', ')}</span>
-  </button>
-{/if}
-<!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. -->
+<!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
+     avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
 <Kpi7 h={kpiHead(st, kpiPage, now)} {onBox} />
-{@render sec('sessions', t.homeSessions, String(model.rows.length))}
+<!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
+     Utilizzo, Sistema, Plugin, Notte e Chiuse chiuse col numero in vista. -->
+{#if waitRows.length || looseOk.length || suggestionsN}
+  <div class="sec static wait" data-testid="home-sez-aspettano"><span>{t.homeWaiting.toUpperCase()}</span><i></i>{#if waitRows.length + looseOk.length}<small>{waitRows.length + looseOk.length}</small>{/if}</div>
+  {#each waitRows as r (r.session.name)}<div class="cw" animate:flip={{ duration: 250 }}>{@render card(r, 'waiting')}</div>{/each}
+  <!-- Gli ok ai compiti senza una sessione aperta: aspettano te come le domande. -->
+  {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
+  <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta. -->
+  {#if suggestions}{@render suggestions()}{/if}
+{/if}
+{#if restGroups.length || justClosed}
+  {@render sec('sessions', t.homeSessions, String(restGroups.reduce((n, [, rows]) => n + rows.length, 0)), 'home-sez-sessioni')}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
     </div>
   {/if}
   {#if open.sessions}
-  {#if suggestions && !groups.some(([g]) => g === 'waiting')}{@render suggestions()}{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}{/if}
-  {#each groups as [group, rows] (group)}
+  {#each restGroups as [group, rows] (group)}
     <h2 class="gh" style="--t:{tone[group]}"><span>{t.summary[group](rows.length).toUpperCase()}</span>{#if group === 'still' && finished.length}<button class="ghact" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button>{/if}<i></i></h2>
-    {#each rows as r (r.session.name)}
-      {@const s = r.session}
-      {@const x = text(r)}
-      {@const open = expanded === s.name}
-      {@const c = cleanupOf(s, canExit, st.ts)}
-      {@const mine = placed?.inCards.get(s.name) ?? []}
-      {@const svc = placedOut.inCards.get(s.name) ?? []}
-      <div class="card" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)} animate:flip={{ duration: 250 }}
-        role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
-        oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
-        {#if ctx === s.name}
-          <button class="scrim" aria-label={t.closeWord} onclick={(e) => { e.stopPropagation(); ctx = null }}></button>
-          <div class="cmenu" role="menu" tabindex="-1" style="left:{at.x}px; top:{at.y}px" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') ctx = null; e.stopPropagation() }}>
-            <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
-            <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, s.followed ? 'unfollow' : 'follow'); ctx = null }}>
-              <svg viewBox="0 0 24 24" width="22" height="22"><path d={s.followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
-              <span><span class="mt">{s.followed ? t.unfollow : t.follow}</span><span class="ms">{s.followed ? t.unfollowSub : t.followSub}</span></span>
-            </button>
-            {#if s.name !== MASTER && hasMaster}
-              <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, 'prompt', t.askMasterPrompt(s.name)); ctx = null }}>
-                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
-                <span><span class="mt">{t.askMaster}</span><span class="ms">{t.askMasterSub}</span></span>
-              </button>
-            {/if}
-            {#if canExit && s.state !== 'gone'}
-              <hr />
-              <button class="mi danger" role="menuitem" onclick={() => { ctx = null; confirming = s.name }}>
-                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
-                <span><span class="mt">{t.menuExit}</span><span class="ms">{t.menuExitSub}</span></span>
-              </button>
-            {/if}
-          </div>
-        {/if}
-        <div class="top">
-          <Badge {s} size={24} />
-          <!-- Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2). -->
-          <span class="nm"><span class="name">{s.name}</span><PermGlyph g={homeGlyph(s)} /></span>
-          {#if s.duplicate_of}<span class="dup">{t.cleanupDupTag.toUpperCase()}</span>{/if}
-          {#if r.quota?.h5 != null}<span class="mono" class:stale={r.quota.stale}>{t.quota5h(r.quota.h5)}</span>{/if}
-          <button class="chev" aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); expanded = open ? null : s.name }}>
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-          </button>
-        </div>
-        {#if s.goal?.text}<div class="goal">{t.goal}: {s.goal.text}</div>{/if}
-        {#if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:strong={group === 'waiting' || open} class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
-        {#if group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
-        {#if group === 'waiting' && !s.question}
-          {@const d = doneOf(s)}
-          <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. -->
-          {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class="approve mini" onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
-        {/if}
-        {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
-        {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
-        {#if open && turnsOf(kpiData, s.name).length}<Kpi10 turns={turnsOf(kpiData, s.name)} />{/if}
-        {#if r.approvals.length}
-          <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
-          <div class="oks">
-            {#each r.approvals as a (a.task)}
-              <div class="ok" class:wrap={choices(a).length > 0}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76M9 12l2 2 4-4" /></svg>
-                <span class="okt">{a.title}</span>
-                {#if a.deploy}<span class="dup">{t.approvalProd.toUpperCase()}</span>{/if}
-                {@render okButtons(a)}
-              </div>
-            {/each}
-          </div>
-        {/if}
-        {#if mine.length}
-          <!-- Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok. -->
-          <div class="oks">
-            {#each mine as w, i (`w-${i}`)}
-              <div class="ok">
-                <WorkBadge kind={w.kind} bare />
-                <span class="okt col"><b>{fyShort(w)}</b><small class="mono2">{w.kind === 'outside' ? t.lavoriYou(w.at ? hhmm(w.at) : null) : t.lavoriCanStart}</small></span>
-                {#if w.kind === 'outside'}<button class="approve mini" onclick={(e) => { e.stopPropagation(); fyAct(w) }}>{t.agendaDone}</button>
-                {:else}<button class="tonal mini" onclick={(e) => { e.stopPropagation(); fyAct(w) }}>{t.lavoriStart}</button>{/if}
-              </div>
-            {/each}
-          </div>
-        {/if}
-        {#if svc.length}
-          <!-- Franz 24/10 00:46: un suggerimento che riguarda questa sessione (il contesto alto) sta qui, con il suo tasto tonale. -->
-          <div class="oks">
-            {#each svc as r, i (`svc-${i}`)}
-              {@const x = serviceText(r)}
-              <div class="ok">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={CAT_ICON.fix} /></svg>
-                <span class="okt col"><b>{x.title}</b>{#if x.detail}<small class="mono2">{x.detail}</small>{/if}</span>
-                <button class="tonal mini" onclick={(e) => { e.stopPropagation(); onService(r) }}>{x.action}</button>
-              </div>
-            {/each}
-          </div>
-        {/if}
-        {#if group === 'waiting' && s.question}
-          <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={!hasOk} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
-        {/if}
-        {#if x.steps.length}
-          <div class="chips">
-            {#each x.steps as step}{@const k = stepKey(s, step)}<button class="chip" class:unblock={x.blocking.has(step)} class:sent={sentSteps.has(k)} disabled={sentSteps.has(k)} aria-label={sentSteps.has(k) ? t.stepSent(step) : undefined} onclick={(e) => { e.stopPropagation(); sentSteps = new Set([...sentSteps, k]); onStep(s.name, step) }}>{#if sentSteps.has(k)}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--good)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{:else if x.blocking.has(step)}<svg class="lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>{/if}{step}</button>{/each}
-          </div>
-        {/if}
-        {#if c}
-          <div class="clean">
-            <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
-            <span>{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b> · {c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(new Date(s.outcome.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) : t.cleanupFinished}{/if}</span>
-            {#if closing !== s.name && c.canClose && confirming !== s.name}
-              <button class="close" onclick={(e) => { e.stopPropagation(); confirming = s.name }}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--b-alert)" stroke-width="2" stroke-linecap="round"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>{t.cleanupClose(s.name)}
-              </button>
-            {/if}
-          </div>
-          <!-- Su una riga sua (Franz, 27/10 13:23): accanto, col nome lungo, lasciava allo stato due-tre lettere per riga. -->
-          {#if closing === s.name}
-            <div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>
-          {/if}
-          <!-- La conferma sta nella card, senza finestre (Franz, 06/10 12:40): il secondo tocco, col nome, chiude. -->
-          {#if c.canClose && confirming === s.name}
-            <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
-              <span>{t.closeInline}</span>
-              <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
-              <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
+    {#each rows as r (r.session.name)}<div class="cw" animate:flip={{ duration: 250 }}>{@render card(r, group)}</div>{/each}
+  {/each}
+  {/if}
+{/if}
+{#if showLavori && (fy || workGroups.length)}
+  {@render sec('lavori', t.lavoriTitle, lavoriLine, 'home-sez-lavori')}
+  {#if open.lavori}
+    {#if laterRows.length}
+      <button class="all later" aria-expanded={laterOpen} onclick={() => (laterOpen = !laterOpen)}><span>{t.lavoriLater(laterRows.length)}</span>
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d={laterOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+      {#if laterOpen}{#each laterRows as r, i (workKey(r, i))}{@render workCard(r, i, false)}{/each}{/if}
+    {/if}
+    <!-- Da riprendere, Stanotte, Da sistemare e Programmati, che stavano in «Altro», sono lavori (Franz 29/10 20:32). -->
+    {#each workGroups as g (g.category)}
+      {#if g.category === 'night'}
+        {#each g.rows as r, i (`n-${i}`)}
+          {#if r.kind !== 'night'}
+            {@const x = serviceText(r)}
+            <div class="card wrows"><div class="wrow"><span class="otext"><b>{x.title}</b>{#if x.detail}<small>{x.detail}</small>{/if}</span><button class="tonal mini" onclick={() => onService(r)}>{x.action}</button></div></div>
+          {:else if tonightCard.items.length}
+            {@render tonight(r)}
+          {:else}
+            <!-- Stanotte vuota: una riga col tasto, non una scheda di tre (Franz 29/10 20:32: il testo finiva sotto «Aggiungi»). -->
+            <div class="card wrows">
+              <div class="wrow"><span class="wic"><svg viewBox="0 0 24 24" width="16" height="16"><path d={CAT_ICON.night} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+                <span class="otext"><b>{t.tonightEmpty}</b><small>{t.tonightEmptySub}</small></span>
+                <button class="text mini" onclick={() => onService(r)}>{t.fyAdd}</button></div>
             </div>
           {/if}
-        {/if}
-        {#if closing === s.name && !c}
-          <div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>
-        {/if}
-        {#if confirming === s.name && !c?.canClose}
-          <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
-            <span>{t.closeInline}</span>
-            <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
-            <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
-          </div>
-        {/if}
-        {#if s.context != null}
-          <!-- Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa. -->
-          <div class="trackrow">{#if kpiPage && s.state !== 'gone'}<Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} />{/if}<div class="track hand" data-kpi="kpi-5" style="--hand:{HANDOFF}%"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div><span class="ctxv">{t.ctx(s.context)}{#if todayShare(st, s.name) != null}{' · '}{t.kpi5Today(todayShare(st, s.name)!)}{/if}</span></div>
-        {:else if kpiPage && s.state !== 'gone'}
-          <!-- Proposta 6 senza contesto letto: le colonnine da sole, sulla riga dove starebbe la barra. -->
-          <div class="trackrow"><Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} /></div>
-        {/if}
-      </div>
+        {/each}
+      {:else}
+        <h2 class="gh cat" style="--t:{g.category === 'fix' ? 'var(--wait)' : 'var(--text2)'}">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path d={CAT_ICON[g.category]} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <span>{t.catCount(catLabel(g.category), outsideCount(g)).toUpperCase()}</span>
+          {#if g.category === 'resume'}<small class="note">{t.catResumeNote}</small>{/if}
+        </h2>
+        <div class="card wrows">
+          {#each g.rows as r, i (`${g.category}-${i}`)}
+            {@const x = serviceText(r)}
+            <div class="wrow">
+              <span class="otext"><b>{r.kind === 'context' ? r.title : x.title}</b>{#if r.kind === 'context'}<small>{x.title}. {x.detail}</small>{:else if x.detail}<small>{x.detail}</small>{/if}</span>
+              <button class="tonal mini" onclick={() => onService(r)}>{x.action}</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
     {/each}
-    <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta, prima delle altre sessioni. -->
-    {#if suggestions && group === 'waiting'}{@render suggestions()}{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}{/if}
-  {/each}
-
+    {#if fy}
+      <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+    {/if}
   {/if}
+{/if}
+{#if out}
+  <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. -->
+  {@render sec('esiti', t.homeOutcomes, out.red.length ? `${t.kpi7Red(out.red.length)} · ${out.done.length}` : String(out.done.length), 'home-sez-esiti')}
+  {#if open.esiti}
+    <div class="card wrows">
+      {#each out.red.length ? out.red.slice(0, 3) : out.done.slice(0, 2) as d, i (i)}
+        <button class="wrow orow" onclick={() => (liveNames.has(d.session) ? onPick(d.session) : onBox('esiti'))}>
+          <span class="wic" class:red={d.ref != null} class:good={d.ref == null}><Icon name={d.ref != null ? 'x' : 'check'} size={16} /></span>
+          <span class="otext"><b>{d.session}</b><small class="txt">{d.text}</small></span>
+          <span class="mono">{hhmm(d.at)}</span>
+        </button>
+      {:else}
+        <p class="wnote">{t.boxOutcomesNone}</p>
+      {/each}
+      <button class="wrow orow" onclick={() => onBox('esiti')}>
+        <span class="otext"><b>{t.homeAllOutcomes}</b></span>
+        <span class="mono">{out.red.length > 3 ? `${t.homeMoreRed(out.red.length - 3)} · ` : ''}{out.done.length}</span>
+        <svg class="chevr" viewBox="0 0 24 24" width="20" height="20"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </button>
+    </div>
+  {/if}
+{/if}
   {#if usage && showUsage}
-    <div bind:this={usageEl}>{@render sec('usage', t.homeUsage)}</div>
-    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}{#if kpiData?.kpi_waits}<Kpi17 w={kpiData.kpi_waits} {now} />{/if}</div>{/if}
+    <div bind:this={usageEl}>{@render sec('usage', t.homeUsage, usageLine)}</div>
+    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}{#if kpiData?.kpi_waits}<Kpi17 w={kpiData.kpi_waits} {now} />{/if}{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div>{/if}
   {/if}
 {#if sys}
   <button class="sec" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}>
@@ -446,8 +393,9 @@
         <span>{t.sysLoad}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{SYS_TONE[sys.load_level]}"></span></span><span class="ctxv">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></span>
         <span>{t.sysMem}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, (1 - sys.mem_available_mb / Math.max(1, sys.mem_total_mb)) * 100)}%;background:{SYS_TONE[sys.mem_level]}"></span></span><span class="ctxv">{t.sysMemV(sysNum(sys.mem_available_mb / 1024, lang), sysNum(sys.mem_total_mb / 1024, lang))}</span></span>
       </div>
-      <!-- Lo stato tagliato a 8 KB arriva spesso senza consumatori: allora niente riga, il livello e i consigli restano. -->
-      {#if sys.consumers.length}<p class="okt mono2 who">{consumersLine(sys, lang)}</p>{/if}
+      <!-- Lo stato tagliato a 8 KB arriva spesso senza consumatori: allora niente riga, il livello e i consigli restano.
+           Un consumatore per riga: in una riga sola il testo era tagliato a metà altezza (app-home-riordino-29-10). -->
+      {#if sys.consumers.length}<p class="mono2 who">{#each consumersLine(sys, lang).split(' · ') as c, i (i)}<span>{c}</span>{/each}</p>{/if}
       {#if sys.advice.length}
         <div class="oks">
           {#each sys.advice as a (a.id)}
@@ -473,44 +421,8 @@
   {/if}
 {/if}
 {#if pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} />{/if}
-{#if showLavori && fy}
-  {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(looseOk.length))}
-  {#if open.lavori}
-    {#each looseRows as r, i (workKey(r, i))}
-      {@const k = workKey(r, i)}
-      {@const openW = openWork === k}
-      {@const ds = lavoriDetails(r)}
-      <div class="card">
-        <div class="top">
-          <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
-          <span class="nm"><span class="name">{fyShort(r)}</span></span>
-          {#if fyMeta(r)}<span class="mono">{fyMeta(r)}</span>{/if}
-          <button class="chev" aria-label={openW ? t.close : t.open} onclick={() => (openWork = openW ? null : k)}>
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d={openW ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-          </button>
-        </div>
-        <!-- Franz 24/10 09:22: per una scelta la domanda intera, sempre. -->
-        <p class="body" class:full={openW || (!!r.approval && choices(r.approval).length > 0)}>{r.title}</p>
-        {#if openW && ds.length}
-          <div class="kv wkv">{#each ds as d (d.kind)}<span>{t.lavoriDetail[d.kind]}</span><span>{d.kind === 'asked_at' ? hhmm(Number(d.value)) : d.value}</span>{/each}</div>
-        {/if}
-        <div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
-          <span class="okt mono2">{fySub(r) ?? ''}</span>
-          {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval)}{/if}
-          {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
-        </div></div>
-      </div>
-    {/each}
-    {#if laterRows.length}
-      <button class="all later" aria-expanded={laterOpen} onclick={() => (laterOpen = !laterOpen)}><span>{t.lavoriLater(laterRows.length)}</span>
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d={laterOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
-    {/if}
-    <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
-      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
-  {/if}
-{/if}
   {#if night !== undefined}
-    {@render sec('night', t.homeNight)}
+    {@render sec('night', t.homeNight, nightLine)}
     {#if open.night}
       <!-- Grammatica unica (Franz 24/10 00:01): la Notte è una scheda come le altre: luna, «Stanotte», la finestra in mono, una riga di testo, «Apri» tonale. -->
       <button class="card ncard" onclick={onNight}>
@@ -528,7 +440,7 @@
             {#if night.counts.running}<span style:color="var(--icon)"><Icon name="play" size={14} />{t.nightRunningN(night.counts.running)}</span>{/if}
             {#if night.counts.partial}<span style:color="var(--b-warn)"><Icon name="half" size={14} />{t.nightPartial(night.counts.partial)}</span>{/if}
             {#if night.counts.stopped}<span style:color="var(--gone-dim)"><Icon name="x" size={14} />{t.nightStopped(night.counts.stopped)}</span>{/if}
-            {#if night.counts.asking}<span style:color="var(--advice)"><Icon name="question" size={14} />{t.nightAsking(night.counts.asking)}</span>{/if}
+            {#if night.counts.asking}<span style:color="var(--wait)"><Icon name="question" size={14} />{t.nightAsking(night.counts.asking)}</span>{/if}
           </span>
           {/if}
           <div class="oks"><div class="ok"><span class="okt mono2">{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, readable(night.needs[0].text, t.slashPhrases)) : t.nightNoNeeds}</span><span class="tonal mini">{t.homeNightOpen}</span></div></div>
@@ -536,77 +448,12 @@
       </button>
     {/if}
   {/if}
-  {#if placedOut.groups.length}
-    {@render sec('other', t.homeOther, outside.map(g => outsideCount(g)).join(' · '))}
-  {/if}
-  {#if placedOut.groups.length && open.other}
-    <div class="outside">
-      <div class="oh"><h3>{t.outsideTitle}</h3><i></i></div>
-      <div class="osub">{t.outsideSub}</div>
-    </div>
-    {#each placedOut.groups as g (g.category)}
-      <h2 class="gh cat" style="--t:{g.category === 'fix' ? 'var(--wait)' : 'var(--text2)'}">
-        <svg viewBox="0 0 24 24" width="16" height="16"><path d={CAT_ICON[g.category]} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-        <span>{(g.category === 'night' ? catLabel(g.category) : t.catCount(catLabel(g.category), outsideCount(g))).toUpperCase()}</span>
-        {#if g.category === 'resume'}<small class="note">{t.catResumeNote}</small>{/if}
-      </h2>
-      {#if g.category === 'closed'}
-        <!-- Grammatica unica (Franz 24/10 00:01): ogni voce di Altro è una scheda della famiglia: badge col glifo della categoria, nome, meta in mono, testo, tasto in fondo. -->
-        <button class="card ncard" onclick={() => closedDlg?.showModal()}>
-          <div class="top">
-            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={CAT_ICON.closed} /></g></svg>
-            <span class="nm"><span class="name">{t.catClosed}</span></span>
-            <span class="mono">{g.closed.length}</span>
-            <svg class="chevr" viewBox="0 0 24 24" width="22" height="22"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-          </div>
-          <p class="body">{g.closed.slice(0, 3).map(s => s.name).join(', ')}{g.closed.length > 3 ? ` ${t.closedMore(g.closed.length - 3)}` : ''}</p>
-        </button>
-      {:else}
-        {#each g.rows as r, i}
-          {#if r.kind === 'night'}
-            <!-- La scheda Stanotte (mockup approvato l'08/10 alle 20:43): i lavori, quello in corso per primo, poi l'ultima notte. -->
-            <div class="card svc">
-              <div class="top">
-                <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={CAT_ICON.night} /></g></svg>
-                <span class="nm"><span class="name">{t.catNight}</span></span>
-                <span class="mono">{t.tonightMeta(tonightCard.running, tonightCard.queued)}</span>
-              </div>
-              <p class="body">{tonightCard.items.length ? t.tonightTitle(tonightCard.items.length) : t.fyNightEmptyShort}</p>
-              {#each tonightCard.items as it, k (it.id)}
-                <i class="oline"></i>
-                <div class="tjob">
-                  <span class="tn" class:run={it.runningMin != null}>{#if it.runningMin != null}<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>{:else}{k + 1}{/if}</span>
-                  <span class="otext"><b>{it.name}</b><small class="two">{it.prompt}</small></span>
-                  <span class="ttag" class:run={it.runningMin != null}>{it.runningMin != null ? t.tonightRunning(it.runningMin) : t.tonightQueued}</span>
-                </div>
-              {/each}
-              {#if lastNight}
-                <i class="oline"></i>
-                <div class="tlast">
-                  <small>{t.tonightLast(Number(lastNight.dayBefore.slice(8)), Number(lastNight.day.slice(8)))}</small>
-                  {#if lastNight.counts.done}<small style:color="var(--good)">{t.nightDone(lastNight.counts.done)}</small>{/if}
-                  {#if lastNight.counts.stopped}<small style:color="var(--gone-dim)">{t.nightStopped(lastNight.counts.stopped)}</small>{/if}
-                  <span class="sp"></span>
-                  <button class="olink" onclick={onNight}>{t.tonightReport}</button>
-                </div>
-              {/if}
-              <div class="oks"><div class="ok"><span class="okt mono2">{tonightCard.items.length ? t.tonightSub(tonightCard.running, tonightCard.queued) : t.tonightEmptySub}</span><button class="tonal mini" onclick={() => onService(r)}>{t.fyAdd}</button></div></div>
-            </div>
-          {:else}
-            {@const x = serviceText(r)}
-            <div class="card svc">
-              <div class="top">
-                <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={CAT_ICON[g.category]} /></g></svg>
-                <span class="nm"><span class="name">{r.kind === 'context' ? r.title : x.title}</span></span>
-                {#if r.kind === 'context'}<span class="mono">{t.ctx(r.number ?? 0)}</span>{:else if r.at}<span class="mono">{hhmm(r.at)}</span>{/if}
-              </div>
-              {#if r.kind === 'context'}<p class="body">{x.title}. {x.detail}</p>{:else if x.detail}<p class="body">{x.detail}</p>{/if}
-              <div class="oks"><div class="ok"><span class="okt mono2">{catLabel(g.category)}</span><button class="tonal mini" onclick={() => onService(r)}>{x.action}</button></div></div>
-            </div>
-          {/if}
-        {/each}
-      {/if}
-    {/each}
+  {#if model.closed.length}
+    <!-- «Chiuse · N» (ClosedSheet dell'app): chiusa col numero, il tocco apre l'elenco con «Riapri». -->
+    <button class="sec" onclick={() => closedDlg?.showModal()}>
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>
+      <span>{t.catClosed.toUpperCase()}</span><i></i><small>{model.closed.length}</small>
+    </button>
   {/if}
   {#if footer}<div class="footer">{@render footer()}</div>{/if}
 </section>
@@ -626,10 +473,219 @@
   {/each}
 </dialog>
 
-{#snippet okButtons(a: Approval)}
+{#snippet card(r: Row, group: Group)}
+    {@const s = r.session}
+    {@const x = text(r)}
+    {@const open = expanded === s.name}
+    {@const c = cleanupOf(s, canExit, st.ts)}
+    {@const mine = placed?.inCards.get(s.name) ?? []}
+    {@const svc = placedOut.inCards.get(s.name) ?? []}
+    <div class="card" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
+      role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
+      oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
+      {#if ctx === s.name}
+        <button class="scrim" aria-label={t.closeWord} onclick={(e) => { e.stopPropagation(); ctx = null }}></button>
+        <div class="cmenu" role="menu" tabindex="-1" style="left:{at.x}px; top:{at.y}px" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') ctx = null; e.stopPropagation() }}>
+          <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
+          <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, s.followed ? 'unfollow' : 'follow'); ctx = null }}>
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d={s.followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
+            <span><span class="mt">{s.followed ? t.unfollow : t.follow}</span><span class="ms">{s.followed ? t.unfollowSub : t.followSub}</span></span>
+          </button>
+          {#if s.name !== MASTER && hasMaster}
+            <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, 'prompt', t.askMasterPrompt(s.name)); ctx = null }}>
+              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
+              <span><span class="mt">{t.askMaster}</span><span class="ms">{t.askMasterSub}</span></span>
+            </button>
+          {/if}
+          {#if canExit && s.state !== 'gone'}
+            <hr />
+            <button class="mi danger" role="menuitem" onclick={() => { ctx = null; confirming = s.name }}>
+              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
+              <span><span class="mt">{t.menuExit}</span><span class="ms">{t.menuExitSub}</span></span>
+            </button>
+          {/if}
+        </div>
+      {/if}
+      <div class="top">
+        <Badge {s} size={24} />
+        <!-- Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2). -->
+        <span class="nm"><span class="name">{s.name}</span><PermGlyph g={homeGlyph(s)} /></span>
+        {#if s.duplicate_of}<span class="dup">{t.cleanupDupTag.toUpperCase()}</span>{/if}
+        <!-- La quota 5h sta una volta sola, nella barra in cima (app-home-riordino-29-10); qui l'età dell'attesa e il contesto. -->
+        {#if group === 'waiting' && waitingSince(s) != null}<span class="mono">{since(waitingSince(s)!, now)}{#if s.context != null} · {t.ctx(s.context)}{/if}</span>{/if}
+        <button class="chev" aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); expanded = open ? null : s.name }}>
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+      </div>
+      {#if open && s.goal?.text}<div class="goal">{t.goal}: {s.goal.text}</div>{/if}
+      {#if group === 'working' && !open && s.tool}
+        <!-- Chiusa, una sessione al lavoro è una riga: lo strumento, da quanto dura il turno, il contesto (app-home-riordino-29-10). -->
+        {@const [tool, ...rest] = s.tool.split(' ')}
+        <p class="meta mono2"><span class="tool">{tool}</span>{rest.length ? ` ${rest.join(' ')}` : ''}{#if s.turn_started != null}{` · ${since(s.turn_started, now)}`}{/if}{#if s.context != null}{` · ${t.ctx(s.context)}`}{/if}</p>
+      {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open && group !== 'waiting'} class:strong={group === 'waiting' || open} class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
+      {#if group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
+      {#if group === 'waiting' && !s.question}
+        {@const d = doneOf(s)}
+        <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. -->
+        {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
+      {/if}
+      {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
+      {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
+      {#if open && turnsOf(kpiData, s.name).length}<Kpi10 turns={turnsOf(kpiData, s.name)} />{/if}
+      {#if r.approvals.length}
+        <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
+        <div class="oks">
+          {#each r.approvals as a (a.task)}
+            <div class="ok" class:wrap={choices(a).length > 0}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76M9 12l2 2 4-4" /></svg>
+              <span class="okt">{a.title}</span>
+              {#if a.deploy}<span class="dup">{t.approvalProd.toUpperCase()}</span>{/if}
+              {@render okButtons(a, false)}
+            </div>
+          {/each}
+        </div>
+      {/if}
+      {#if mine.length}
+        <!-- Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok. -->
+        <div class="oks">
+          {#each mine as w, i (`w-${i}`)}
+            <div class="ok">
+              <WorkBadge kind={w.kind} bare />
+              <span class="okt col"><b>{fyShort(w)}</b><small class="mono2">{w.kind === 'outside' ? t.lavoriYou(w.at ? hhmm(w.at) : null) : t.lavoriCanStart}</small></span>
+              {#if w.kind === 'outside'}<button class="approve mini" onclick={(e) => { e.stopPropagation(); fyAct(w) }}>{t.agendaDone}</button>
+              {:else}<button class="tonal mini" onclick={(e) => { e.stopPropagation(); fyAct(w) }}>{t.lavoriStart}</button>{/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+      {#if svc.length}
+        <!-- Franz 24/10 00:46: un suggerimento che riguarda questa sessione (il contesto alto) sta qui, con il suo tasto tonale. -->
+        <div class="oks">
+          {#each svc as r, i (`svc-${i}`)}
+            {@const x = serviceText(r)}
+            <div class="ok">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={CAT_ICON.fix} /></svg>
+              <span class="okt col"><b>{x.title}</b>{#if x.detail}<small class="mono2">{x.detail}</small>{/if}</span>
+              <button class="tonal mini" onclick={(e) => { e.stopPropagation(); onService(r) }}>{x.action}</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+      {#if group === 'waiting' && s.question}
+        <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={s.name === primary} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
+      {/if}
+      {#if x.steps.length}
+        <div class="chips">
+          {#each x.steps as step}{@const k = stepKey(s, step)}<button class="chip" class:unblock={x.blocking.has(step)} class:sent={sentSteps.has(k)} disabled={sentSteps.has(k)} aria-label={sentSteps.has(k) ? t.stepSent(step) : undefined} onclick={(e) => { e.stopPropagation(); sentSteps = new Set([...sentSteps, k]); onStep(s.name, step) }}>{#if sentSteps.has(k)}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--good)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{:else if x.blocking.has(step)}<svg class="lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>{/if}{step}</button>{/each}
+        </div>
+      {/if}
+      {#if c}
+        <div class="clean">
+          <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
+          <span>{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b> · {c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(new Date(s.outcome.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) : t.cleanupFinished}{/if}</span>
+          {#if closing !== s.name && c.canClose && confirming !== s.name}
+            <button class="close" onclick={(e) => { e.stopPropagation(); confirming = s.name }}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--b-alert)" stroke-width="2" stroke-linecap="round"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>{t.cleanupClose(s.name)}
+            </button>
+          {/if}
+        </div>
+        <!-- Su una riga sua (Franz, 27/10 13:23): accanto, col nome lungo, lasciava allo stato due-tre lettere per riga. -->
+        {#if closing === s.name}
+          <div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>
+        {/if}
+        <!-- La conferma sta nella card, senza finestre (Franz, 06/10 12:40): il secondo tocco, col nome, chiude. -->
+        {#if c.canClose && confirming === s.name}
+          <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
+            <span>{t.closeInline}</span>
+            <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
+            <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
+          </div>
+        {/if}
+      {/if}
+      {#if closing === s.name && !c}
+        <div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>
+      {/if}
+      {#if confirming === s.name && !c?.canClose}
+        <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
+          <span>{t.closeInline}</span>
+          <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
+          <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
+        </div>
+      {/if}
+      {#if !open}
+        <!-- Le barre del contesto e delle ultime sei ore (kpi-5, kpi-6) solo nella card aperta (app-home-riordino-29-10). -->
+      {:else if s.context != null}
+        <!-- Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa. -->
+        <div class="trackrow">{#if kpiPage && s.state !== 'gone'}<Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} />{/if}<div class="track hand" data-kpi="kpi-5" style="--hand:{HANDOFF}%"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div><span class="ctxv">{t.ctx(s.context)}{#if todayShare(st, s.name) != null}{' · '}{t.kpi5Today(todayShare(st, s.name)!)}{/if}</span></div>
+      {:else if kpiPage && s.state !== 'gone'}
+        <!-- Proposta 6 senza contesto letto: le colonnine da sole, sulla riga dove starebbe la barra. -->
+        <div class="trackrow"><Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} /></div>
+      {/if}
+    </div>
+{/snippet}
+
+{#snippet workCard(r: LavoriRow, i: number, filled: boolean)}
+    {@const k = workKey(r, i)}
+    {@const openW = openWork === k}
+    {@const ds = lavoriDetails(r)}
+    <div class="card">
+      <div class="top">
+        <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
+        <span class="nm"><span class="name">{fyShort(r)}</span></span>
+        {#if fyMeta(r)}<span class="mono">{fyMeta(r)}</span>{/if}
+        <button class="chev" aria-label={openW ? t.close : t.open} onclick={() => (openWork = openW ? null : k)}>
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d={openW ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+      </div>
+      <!-- Franz 24/10 09:22: per una scelta la domanda intera, sempre. -->
+      <p class="body" class:full={openW || (!!r.approval && choices(r.approval).length > 0)}>{r.title}</p>
+      {#if openW && ds.length}
+        <div class="kv wkv">{#each ds as d (d.kind)}<span>{t.lavoriDetail[d.kind]}</span><span>{d.kind === 'asked_at' ? hhmm(Number(d.value)) : d.value}</span>{/each}</div>
+      {/if}
+      <div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
+        <span class="okt mono2">{fySub(r) ?? ''}</span>
+        {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval, filled)}{/if}
+        {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
+      </div></div>
+    </div>
+{/snippet}
+
+<!-- La scheda Stanotte con lavori in coda (mockup approvato l'08/10 alle 20:43): quello in corso per primo, poi l'ultima notte. -->
+{#snippet tonight(r: ForYouRow)}
+    <div class="card svc">
+      <div class="top">
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={CAT_ICON.night} /></g></svg>
+        <span class="nm"><span class="name">{t.catNight}</span></span>
+        <span class="mono">{t.tonightMeta(tonightCard.running, tonightCard.queued)}</span>
+      </div>
+      <p class="body">{tonightCard.items.length ? t.tonightTitle(tonightCard.items.length) : t.fyNightEmptyShort}</p>
+      {#each tonightCard.items as it, k (it.id)}
+        <i class="oline"></i>
+        <div class="tjob">
+          <span class="tn" class:run={it.runningMin != null}>{#if it.runningMin != null}<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>{:else}{k + 1}{/if}</span>
+          <span class="otext"><b>{it.name}</b><small class="two">{it.prompt}</small></span>
+          <span class="ttag" class:run={it.runningMin != null}>{it.runningMin != null ? t.tonightRunning(it.runningMin) : t.tonightQueued}</span>
+        </div>
+      {/each}
+      {#if lastNight}
+        <i class="oline"></i>
+        <div class="tlast">
+          <small>{t.tonightLast(Number(lastNight.dayBefore.slice(8)), Number(lastNight.day.slice(8)))}</small>
+          {#if lastNight.counts.done}<small style:color="var(--good)">{t.nightDone(lastNight.counts.done)}</small>{/if}
+          {#if lastNight.counts.stopped}<small style:color="var(--gone-dim)">{t.nightStopped(lastNight.counts.stopped)}</small>{/if}
+          <span class="sp"></span>
+          <button class="olink" onclick={onNight}>{t.tonightReport}</button>
+        </div>
+      {/if}
+      <div class="oks"><div class="ok"><span class="okt mono2">{tonightCard.items.length ? t.tonightSub(tonightCard.running, tonightCard.queued) : t.tonightEmptySub}</span><button class="tonal mini" onclick={() => onService(r)}>{t.fyAdd}</button></div></div>
+    </div>
+{/snippet}
+
+<!-- `filled`: il solo bottone pieno della schermata, quando prima non c'è chi aspetta (app-home-riordino-29-10). -->
+{#snippet okButtons(a: Approval, filled: boolean)}
   {@const opts = choices(a)}
   {#if opts.length}<span class="opts">{#each opts as o (o)}<button class="tonal mini" onclick={(e) => { e.stopPropagation(); askApprove(a, o) }}>{o}</button>{/each}</span>
-  {:else}<button class="approve mini" onclick={(e) => { e.stopPropagation(); askApprove(a) }}>{t.approve}</button>{/if}
+  {:else}<button class={filled ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); askApprove(a) }}>{t.approve}</button>{/if}
 {/snippet}
 
 <dialog bind:this={closeDlg} class="alert closef" onclick={(e) => e.target === e.currentTarget && closeDlg?.close()}>
@@ -689,9 +745,6 @@
   .mt { font-size: 15.5px; }
   .ms { font-size: 13px; color: var(--text2); }
   .mi.danger svg { stroke: var(--b-alert); }
-  .attn-banner { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 10px 14px; border-radius: 16px; background: var(--b-warn); color: var(--b-warn-ink, #1d1300); font-size: 15px; cursor: pointer; }
-  .attn-banner b { flex: none; font-weight: 600; }
-  .attn-banner span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card { position: relative; -webkit-touch-callout: none; background: var(--low); border-radius: 20px; padding: 8px 10px 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background .15s, box-shadow .15s; outline: none; }
   .card.waiting { background: color-mix(in srgb, var(--low) 94%, var(--b-warn)); }
   .card:hover, .card:focus-visible { box-shadow: inset 0 0 0 1px var(--line); }
@@ -791,7 +844,6 @@
   .sysdot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
   .card.sys { cursor: default; padding: 12px 14px; }
   .sysm { align-items: center; } .sysm .trackrow { min-width: 0; } .sysm .track, .sysm .fill { display: block; }
-  .who { display: block; flex: none; overflow: visible; }
   .nchips { display: flex; gap: 8px; flex-wrap: wrap; }
   .nchips span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
   .outside { margin: 18px 4px 0; }
@@ -835,4 +887,26 @@
   .ok svg { flex: none; }
   .okt.mono2 { font-family: ui-monospace, monospace; font-size: 13px; color: var(--text2); }
   .okt { flex: 1; min-width: 0; font-size: 14px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Il riordino (app-home-riordino-29-10): «Ti aspettano» ha un'intestazione fissa ambra; le card stanno in un involucro
+     per l'animazione; chiuse, le card fuori da «Ti aspettano» tengono una riga; Lavori ed Esiti hanno righe compatte. */
+  .sec.static { cursor: default; }
+  .sec.wait span, .sec.wait small { color: var(--wait); }
+  .cw { display: flex; flex-direction: column; }
+  .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
+  .meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+  .meta .tool { color: var(--busy); }
+  .who { display: flex; flex-direction: column; gap: 1px; }
+  .wrows { cursor: default; padding: 2px 14px; gap: 0; }
+  .wrow { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); width: 100%; text-align: left; color: var(--text); }
+  .wrow:first-child { border-top: 0; }
+  .wrow .otext b { font-size: 15px; font-weight: 500; }
+  .wrow .otext small { font: 12.5px/1.35 var(--mono); color: var(--text2); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .wrow .otext small.txt { font: 14px/1.35 var(--sans, inherit); color: var(--text); }
+  .wrow .mono { font: 12px var(--mono); color: var(--text2); white-space: nowrap; }
+  .wic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--high); color: var(--text2); }
+  .wic.red { background: color-mix(in srgb, var(--gone) 20%, transparent); color: var(--gone); }
+  .wic.good { background: color-mix(in srgb, var(--idle) 18%, transparent); color: var(--idle); }
+  .orow { cursor: pointer; }
+  .wnote { font-size: 14px; color: var(--text2); padding: 10px 0; }
+  .text.mini { color: var(--icon); font-weight: 500; font-size: 14px; padding: 8px 6px; white-space: nowrap; }
 </style>

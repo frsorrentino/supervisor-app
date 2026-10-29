@@ -40,9 +40,10 @@
     const now = { x: x(v.nowX), y: y(v.pct) }
     const fullX = v.fullAt != null ? x((v.fullAt - v.start) / (v.resetAt - v.start)) : null
     const proj = fullX != null ? { x: fullX, y: Y100 } : v.projected != null && v.pct < 100 ? { x: xr, y: y(v.projected) } : null
-    // «100% mercoledì 11:30» sul punto del 100%, o «79% al rinnovo» sopra la fine della proiezione; sempre dentro i bordi.
+    // «100% mercoledì 11:30» sul punto del 100%, o «79% al rinnovo» sotto la fine della proiezione, su un fondo: sopra
+    // finiva sulla linea del ritmo pari (Franz, 29/10 20:32, app-home-riordino-29-10); sempre dentro i bordi.
     const ht = v.fullAt != null ? t.weekHundredAt(dayTime(v.fullAt)) : proj ? t.weekAtRenewal(v.projected!) : null
-    const hundred = ht && proj ? { text: ht, x: Math.min(fullX != null ? xr : xr - 10, Math.max(PAD + tw(ht), proj.x + (fullX != null ? 4 : -10))), y: fullX != null ? Y100 - 5 : Math.max(Y100 + 12, proj.y - 10) } : null
+    const hundred = ht && proj ? { text: ht, x: Math.min(fullX != null ? xr : xr - 10, Math.max(PAD + tw(ht), proj.x + (fullX != null ? 4 : -10))), y: fullX != null ? Y100 - 5 : Math.min(YB - 2, proj.y + 20) } : null
     const left100 = !hundred || hundred.y > Y100 || hundred.x - tw(hundred.text) > PAD + tw('100%') + 8
     // «ritmo pari» lungo la diagonale, a un quinto della settimana, dalla parte opposta alla linea: sotto se la quota è
     // avanti sul ritmo pari, sopra se è indietro.
@@ -157,7 +158,7 @@
           {#if g.left100}<text x={PAD} y={Y100 - 5} class="ax">100%</text>{/if}
           <line x1={PAD} y1={YB} x2={g.xr} y2={Y100} stroke="var(--text2)" stroke-opacity=".7" />
           <text transform="translate({g.even.x},{g.even.y}) rotate({g.even.deg})" class="ax">{t.weekEven}</text>
-          {#if g.hundred}<text x={g.hundred.x} y={g.hundred.y} class="ax val" text-anchor="end">{g.hundred.text}</text>{/if}
+          {#if g.hundred}<rect class="halo" x={g.hundred.x - tw(g.hundred.text) - 4} y={g.hundred.y - 12} width={tw(g.hundred.text) + 8} height="16" rx="5" /><text x={g.hundred.x} y={g.hundred.y} class="ax val" text-anchor="end">{g.hundred.text}</text>{/if}
           {#if g.line}<polyline points={g.line} fill="none" stroke="var(--b-week)" stroke-width="2" stroke-linejoin="round" />{/if}
           {#if g.proj}
             <line x1={g.now.x} y1={g.now.y} x2={g.proj.x} y2={g.proj.y} stroke="var(--b-week)" stroke-width="2" stroke-dasharray="6 5" />
@@ -247,4 +248,5 @@
   .proj { background: color-mix(in srgb, var(--b-week) 35%, transparent); }
   .used { background: var(--b-week); }
   .mark { left: 80% !important; width: 1.5px; top: -2px !important; bottom: -2px !important; background: var(--b-warn); border-radius: 0 !important; }
+  .halo { fill: var(--low); }
 </style>

@@ -77,6 +77,13 @@ describe('i box della home aperti (app-box-cliccabili-29-10)', () => {
     expect(stillRows(q)).toEqual([{ session: 'field-notes', outcome: 'README rewritten', at: 1789121000 }])
   })
 
+  it('chi lavora e intanto aspetta te conta solo in «ti aspettano» (app-home-riordino-29-10)', () => {
+    const x = st([s('a', { state: 'busy', needs_you: { reason: 'type the code', at: now - 60 } }), s('b', { state: 'busy' })])
+    const h = head(x, null, now)
+    expect([h.waiting, h.busy]).toEqual([1, 1])
+    expect(workingRows(x, now).map(w => w.session)).toEqual(['b'])
+  })
+
   it('esiti di oggi: i rossi in cima, il più nuovo prima, solo da mezzanotte', () => {
     const p: TimelinePage = { since: 0, sessions: [
       { session: 'a', live: true, events: [{ at: now - 300, kind: 'outcome', text: 'first' }, { at: now - 200, kind: 'task', text: 'check red', ok: false, ref: 't1' }, { at: now - 100, kind: 'task', text: 'check green', ok: true, ref: 't2' }] },

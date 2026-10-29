@@ -163,7 +163,7 @@ object Kpi {
         val from = midnight(now, zone)
         val today = page?.sessions?.flatMap { it.events }?.filter { it.at in from..now }
         return Head(
-            waiting = waits.size, oldestWaitS = waits.minOrNull()?.let { now - it }, busy = live.count { it.state == SessionState.BUSY },
+            waiting = waits.size, oldestWaitS = waits.minOrNull()?.let { now - it }, busy = live.count { it.state == SessionState.BUSY && waitingSince(it) == null },
             outcomes = today?.count { it.kind == "outcome" }, red = today?.count { it.kind == "task" && it.ok == false },
         )
     }
@@ -192,7 +192,7 @@ object Kpi {
     data class Working(val session: String, val goal: String?, val tool: String?, val toolNote: String?, val turnS: Long?, val model: String?, val context: Int?)
 
     /** «Al lavoro adesso»: le sessioni con un turno in corso, il turno più lungo prima. */
-    fun workingRows(state: State, now: Long): List<Working> = state.sessions.filter { it.state == SessionState.BUSY }.map { s ->
+    fun workingRows(state: State, now: Long): List<Working> = state.sessions.filter { it.state == SessionState.BUSY && waitingSince(it) == null }.map { s ->
         Working(s.name, s.goal?.text?.takeIf { it.isNotBlank() }, s.tool, s.toolNote?.takeIf { it.isNotBlank() }, s.turnStarted?.let { maxOf(0L, now - it) }, s.model?.let { it.label ?: it.id }, s.context)
     }.sortedByDescending { it.turnS ?: -1L }
 

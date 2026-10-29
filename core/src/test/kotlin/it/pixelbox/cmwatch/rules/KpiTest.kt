@@ -124,6 +124,16 @@ class KpiTest {
         assertEquals(listOf(Kpi.Still("field-notes", "README rewritten", 1_789_121_000L)), Kpi.stillRows(q))
     }
 
+    /** app-home-riordino-29-10: chi lavora e intanto aspetta Franz sta solo in «ti aspettano», non in due box. */
+    @Test fun boxWorking_busyAndWaiting_countsOnlyAsWaiting() {
+        val q = ContractJson.decodeState(Fixtures.stateQuestion)
+        val st = q.copy(sessions = q.sessions.map { if (it.name == "atlas-shop") it.copy(needsYou = NeedsYou("type the code", q.ts - 60)) else it })
+        val h = Kpi.head(st, null, st.ts, zone)
+        assertEquals(Kpi.head(q, null, q.ts, zone).waiting + 1, h.waiting)
+        assertEquals(0, h.busy)
+        assertEquals(emptyList<Kpi.Working>(), Kpi.workingRows(st, st.ts))
+    }
+
     @Test fun boxOutcomes_redsOnTop_newestFirst_onlyToday() {
         val p = TimelinePage(since = 0, sessions = listOf(
             TimelineSession("a", true, events = listOf(TimelineEvent(now - 300, "outcome", "first"), TimelineEvent(now - 200, "task", "check red", ok = false, ref = "t1"), TimelineEvent(now - 100, "task", "check green", ok = true, ref = "t2"))),

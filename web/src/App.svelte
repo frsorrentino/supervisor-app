@@ -600,13 +600,6 @@
     else openQueue(from)
   }
   const openQueue = (from: string | null = null) => { queueSkip = from; openPage('queue') }
-  // Il tocco su «N per te» e sul banner (MainActivity, Tablet.toggle): sulla plancia la sessione che aspetta va in fondo alle
-  // colonne, anche se c'era già, e il campo prende il fuoco; sul telefono si apre.
-  function attend(n: string) {
-    if (n === MASTER || !wide) { pick(n); return }
-    setCols(toggleCol(cols.filter(c => c !== n), n))
-    setTimeout(() => focusColumn(n), 400)
-  }
   // Il tocco su una scheda della home: sulla plancia apre e chiude la sua colonna (Franz, 05/10 11:09), sul telefono apre.
   function card(name: string) { if (name !== MASTER && wide) setCols(toggleCol(cols, name)); else pick(name) }
   // Telefono: si scorre di lato fra la home e le sessioni, come nell'app (HorizontalPager con SwipePages; 15/10 20:24: «non
@@ -989,12 +982,11 @@
     {#snippet quick()}{@render masterQuick()}{/snippet}
     {#snippet list()}
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
-      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
+      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} />
       <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
+        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} suggestionsN={deskDashboard ? 0 : sug.shown.length} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
-        onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} /></div>
       {#if !master && ready}
         <!-- Senza master (MasterHome.kt): una card con «Riapri», invece della barra che non c'è. -->

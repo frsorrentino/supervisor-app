@@ -5,7 +5,8 @@
   import { locale } from './lang'
   // La sezione «Plugin e skill» (contratto 1.95, mockup approvato da Franz il 29/10 alle 10:39): per account i plugin da
   // aggiornare con il loro «Aggiorna», gli altri dietro «Mostra»; in fondo «Controlla ora» e «Aggiorna tutto» con conferma.
-  // L'elenco si chiede al relay quando la sezione si apre; il riassunto nello stato basta per il titolo chiuso.
+  // L'elenco si chiede al relay quando la sezione si apre; il riassunto nello stato basta per il titolo chiuso, che dice
+  // sempre un numero o «nessun aggiornamento», come Sistema (app-home-riordino-29-10).
   let { st, load, run }: {
     st: State
     load: () => Promise<PluginsPage | null>
@@ -45,7 +46,7 @@
 {#if count != null}
   <button class="sec" aria-expanded={open} onclick={toggle}>
     <svg viewBox="0 0 24 24" width="16" height="16"><path d={open ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>
-    <span>{t.homePlugins.toUpperCase()}</span><i></i>{#if count}<small>{t.pluginsToUpdate(count)}</small>{/if}
+    <span>{t.homePlugins.toUpperCase()}</span><i></i>{#if !open}<small>{count ? t.pluginsToUpdate(count) : t.pluginsUpToDate}</small>{/if}
   </button>
   {#if open}
     <div class="plugins" data-kpi="plugins_state">
@@ -67,7 +68,8 @@
             {#if a.skillNames.length}<p class="skills">{t.pluginsSkills}: {a.skillNames.join(' · ')}</p>{/if}
           {/if}
           {#if a.rest.length || a.skills}
-            <div class="foot"><span>{shown[a.account] ? '' : t.pluginsOthers(a.rest.length, a.skills)}</span><button class="text" onclick={() => (shown = { ...shown, [a.account]: !shown[a.account] })}>{shown[a.account] ? t.pluginsHide : t.pluginsShow}</button></div>
+            <!-- Il numero sta già accanto al nome dell'account: qui solo il tasto (Franz, 29/10 20:32: «+ altri…» lo ripeteva). -->
+            <div class="foot"><span></span><button class="text" onclick={() => (shown = { ...shown, [a.account]: !shown[a.account] })}>{shown[a.account] ? t.pluginsHide : t.pluginsShow}</button></div>
           {/if}
           {#if notes[a.account]}<p class="note" class:ko={!notes[a.account].ok}>{notes[a.account].text}{#if notes[a.account].ok} · {t.pluginsNewSessions}{/if}</p>{/if}
         </div>

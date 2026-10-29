@@ -143,7 +143,7 @@ export function head(st: State, page: TimelinePage | null, now: number, timeZone
   const from = midnight(now, timeZone)
   const today = page ? page.sessions.flatMap(s => s.events).filter(e => e.at >= from && e.at <= now) : null
   return {
-    waiting: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, busy: live.filter(s => s.state === 'busy').length,
+    waiting: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, busy: live.filter(s => s.state === 'busy' && waitingSince(s) == null).length,
     outcomes: today ? today.filter(e => e.kind === 'outcome').length : null, red: today ? today.filter(e => e.kind === 'task' && e.ok === false).length : null,
   }
 }
@@ -166,8 +166,11 @@ export const waitingRows = (st: State): Waiting[] => st.sessions.filter(s => s.s
 /** Una sessione al lavoro: l'obiettivo (/goal), lo strumento di adesso, da quanto dura il turno. */
 export type Working = { session: string; goal: string | null; tool: string | null; toolNote: string | null; turnS: number | null; model: string | null; context: number | null }
 
-/** «Al lavoro adesso»: le sessioni con un turno in corso, il turno più lungo prima. */
-export const workingRows = (st: State, now: number): Working[] => st.sessions.filter(s => s.state === 'busy').map(s => ({
+/**
+ * «Al lavoro adesso»: le sessioni con un turno in corso, il turno più lungo prima. Chi lavora e intanto aspetta te sta solo
+ * in «Ti aspettano», come in `head` (app-home-riordino-29-10: una sessione non conta in due box).
+ */
+export const workingRows = (st: State, now: number): Working[] => st.sessions.filter(s => s.state === 'busy' && waitingSince(s) == null).map(s => ({
   session: s.name, goal: s.goal?.text?.trim() || null, tool: s.tool ?? null, toolNote: s.tool_note?.trim() || null,
   turnS: s.turn_started != null ? Math.max(0, now - s.turn_started) : null, model: s.model ? s.model.label ?? s.model.id : null, context: s.context ?? null,
 })).sort((a, b) => (b.turnS ?? -1) - (a.turnS ?? -1))
