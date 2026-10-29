@@ -432,7 +432,7 @@ class Repo(
          */
         private val OPTIMISTIC = setOf(CmdOp.ANSWER, CmdOp.PROMPT, CmdOp.FOLLOW, CmdOp.UNFOLLOW)
         /** Le letture che le schermate fanno da sole (terminale, chat): i loro risultati non sono azioni dell'utente. */
-        // Contratto 1.72: anche la vista «Modifiche» e «Mostra tutto»; 1.74: l'elenco delle notti.
-        private val PASSIVE = setOf(CmdOp.SCREEN, CmdOp.LAST, CmdOp.TRANSCRIPT, CmdOp.PROJECTS, CmdOp.SEARCH, CmdOp.TIMELINE, CmdOp.PAIR_ADD, CmdOp.AGENDA, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.NIGHTS, CmdOp.DONE)
+        // Contratto 1.72: anche la vista «Modifiche» e «Mostra tutto»; 1.74: l'elenco delle notti; 1.95 e 1.96: plugin e KPI.
+        private val PASSIVE = setOf(CmdOp.SCREEN, CmdOp.LAST, CmdOp.TRANSCRIPT, CmdOp.PROJECTS, CmdOp.SEARCH, CmdOp.TIMELINE, CmdOp.PAIR_ADD, CmdOp.AGENDA, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.NIGHTS, CmdOp.DONE, CmdOp.PLUGINS, CmdOp.KPI)
     }
 }

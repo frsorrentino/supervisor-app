@@ -322,7 +322,7 @@ class ContractTest {
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
         // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
         // Contratto 1.74: due nights, con due notti e vuoto.
-        assertEquals(98, results.size); assertEquals(35, results.count { !it.ok })   // 1.91: sys_unit_stop riuscito, poi lo stesso rifiutato; 1.90: sys_kill riuscito, poi lo stesso rifiutato; 1.88: suggestion choose fuori dalle opzioni (rifiutato), discuss, choose accettato; 1.84: close_preview e close, ognuno riuscito e rifiutato; 1.87: suggestion riuscito e «already gone» (ok); 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
+        assertEquals(104, results.size); assertEquals(36, results.count { !it.ok })   // 1.95: plugins, plugin_check, plugin_update riuscito e uno da confermare al PC, plugin_update_all senza niente; 1.96: kpi; 1.91: sys_unit_stop riuscito, poi lo stesso rifiutato; 1.90: sys_kill riuscito, poi lo stesso rifiutato; 1.88: suggestion choose fuori dalle opzioni (rifiutato), discuss, choose accettato; 1.84: close_preview e close, ognuno riuscito e rifiutato; 1.87: suggestion riuscito e «already gone» (ok); 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)
@@ -370,7 +370,7 @@ class ContractTest {
         assertEquals(listOf("ledger-api", "field-notes"), tl.sessions.map { it.session })
         // Il progetto nella stessa forma di state.sessions[].project, relativo alla radice dei progetti.
         assertEquals("work/clients/ledger-api", tl.sessions[0].project); assertFalse(tl.sessions[0].live)
-        assertEquals(setOf("prompt", "test", "commit", "outcome", "task"), tl.sessions.flatMap { it.events }.map { it.kind }.toSet())
+        assertEquals(setOf("prompt", "test", "commit", "outcome", "task", "wait"), tl.sessions.flatMap { it.events }.map { it.kind }.toSet())   // 1.96: le attese nella cronologia
         val tests = tl.sessions[0].events.filter { it.kind == "test" }
         assertEquals(listOf(false, true), tests.map { it.ok }); assertEquals("3/4 OK, FAIL: A2 invoices", tests[0].ref)
         assertEquals("0f20786", tl.sessions[0].events.single { it.kind == "commit" }.ref)

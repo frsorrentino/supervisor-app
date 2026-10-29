@@ -161,6 +161,11 @@ fun SummaryList(
     onSystem: ((it.pixelbox.cmwatch.contract.CmdOp, String) -> Unit)? = null,
     /** I KPI 6, 11 e 18 (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni; null finché non c'è. */
     kpiPage: it.pixelbox.cmwatch.contract.TimelinePage? = null, kpiState: it.pixelbox.cmwatch.contract.State? = null,
+    /** Contratto 1.95: la sezione «Plugin e skill»; null = relay senza le op. `pluginsInitial` per i test. */
+    plugins: it.pixelbox.cmwatch.contract.PluginsSummary? = null,
+    onPluginsLoad: (suspend () -> it.pixelbox.cmwatch.contract.PluginsPage?)? = null,
+    onPluginCmd: (suspend (it.pixelbox.cmwatch.contract.CmdOp, String?) -> it.pixelbox.cmwatch.contract.CmdResult?)? = null,
+    pluginsInitial: it.pixelbox.cmwatch.contract.PluginsPage? = null,
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
@@ -173,6 +178,7 @@ fun SummaryList(
     var otherOpen by remember { section("other") }
     var nightOpen by remember { section("night") }
     var lavoriOpen by remember { section("lavori") }
+    var pluginsOpen by remember { section("plugins") }
     var laterOpen by remember { mutableStateOf(false) }
     var sysManual by remember { mutableStateOf<SystemRules.Manual?>(null) }
     // I KPI: per ogni sessione i suoi eventi di oggi, la voce viva prima di una chiusa omonima.
@@ -300,6 +306,12 @@ fun SummaryList(
             val sysOpen = SystemRules.isOpen(sys.level, sysManual)
             item(key = "sec-system") { Box(moving()) { SystemHeader(sys, sysOpen) { sysManual = SystemRules.Manual(sys.level, !sysOpen) } } }
             if (sysOpen) item(key = "system") { Box(moving()) { SystemCard(sys, ops, onSystem) } }
+        }
+        // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
+        if (plugins != null && onPluginsLoad != null && onPluginCmd != null) {
+            val n = plugins.accounts.sumOf { it.updates.size }
+            item(key = "sec-plugins") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_plugins), n.takeIf { it > 0 && !pluginsOpen }?.let { androidx.compose.ui.res.pluralStringResource(R.plurals.plugins_to_update, it, it) }, pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) } } }
+            if (pluginsOpen) item(key = "plugins") { Box(moving()) { PluginsCard(plugins, onPluginsLoad, onPluginCmd, pluginsInitial) } }
         }
         // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
         if (showLavori && foryou != null) {

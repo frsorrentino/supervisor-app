@@ -150,6 +150,16 @@ enum class CmdOp {
     @SerialName("sys_kill") SYS_KILL,
     /** Contratto 1.91: ferma le unità di systemd in ciclo; `arg` = unità separate da virgola, rifiutato se il consiglio non c'è più. */
     @SerialName("sys_unit_stop") SYS_UNIT_STOP,
+    /** Contratto 1.95: l'elenco intero di plugin e skill per account (lettura passiva); il testo è un `PluginsPage`. */
+    @SerialName("plugins") PLUGINS,
+    /** Contratto 1.95: controlla i marketplace adesso; le versioni arrivano con lo stato dopo. */
+    @SerialName("plugin_check") PLUGIN_CHECK,
+    /** Contratto 1.95: `arg` = «account:id»; mai -y: se il marketplace chiede una conferma, non ok e va fatto al PC. */
+    @SerialName("plugin_update") PLUGIN_UPDATE,
+    /** Contratto 1.95: `arg` = account; i plugin dell'utente con un aggiornamento. */
+    @SerialName("plugin_update_all") PLUGIN_UPDATE_ALL,
+    /** Contratto 1.96: le cifre delle viste KPI (lettura passiva); le usa il compito app-kpi-dati-relay-25-10. */
+    @SerialName("kpi") KPI,
 }
 
 /**
@@ -435,6 +445,8 @@ enum class CmdOp {
     val commitments: List<Commitment>? = null,
     /** Contratto 1.90: quanto è pesante la macchina e cosa farci; null con un relay precedente o se la lettura fallisce. */
     val system: SystemStatus? = null,
+    /** Contratto 1.95: plugin con un aggiornamento, per account; null con un relay precedente. */
+    val plugins: PluginsSummary? = null,
 )
 
 /**
@@ -451,6 +463,23 @@ enum class CmdOp {
     /** Contratto 1.91: i processi bloccati sul ponte grafico, fuori da `load_per_core`; null se non ce ne sono. */
     val stuck: SystemStuck? = null,
 )
+
+/** Contratto 1.95: il riassunto nello stato; `checked_at` null se i marketplace non sono mai stati controllati. */
+@Serializable data class PluginsSummary(@SerialName("checked_at") val checkedAt: Long? = null, val accounts: List<PluginsAccountSummary> = emptyList())
+@Serializable data class PluginsAccountSummary(val account: String, val updates: List<String> = emptyList())
+
+/** Contratto 1.95: il risultato dell'op `plugins`, l'elenco intero per account. */
+@Serializable data class PluginsPage(@SerialName("checked_at") val checkedAt: Long? = null, val accounts: List<PluginsAccount> = emptyList())
+@Serializable data class PluginsAccount(val account: String, val plugins: List<Plugin> = emptyList(), val skills: List<Skill> = emptyList())
+
+/** `latest` null quando il marketplace non lo dice; `update` true se `latest` è più nuova, null se non si sa. */
+@Serializable data class Plugin(
+    val id: String, val name: String, val marketplace: String? = null, val scope: String? = null,
+    val installed: String? = null, val latest: String? = null, val update: Boolean? = null,
+)
+
+/** `source` = account, «repo@commit», «link:destinazione» o local; le skill non si aggiornano dall'app. */
+@Serializable data class Skill(val name: String, val version: String? = null, val source: String? = null)
 
 /** Contratto 1.91: `since` = l'avvio del più vecchio (epoch s), `units` = le unità di systemd da cui vengono. */
 @Serializable data class SystemStuck(val count: Int, val since: Long, @SerialName("rss_mb") val rssMb: Int, val units: List<String> = emptyList())

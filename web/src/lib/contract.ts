@@ -238,7 +238,14 @@ export type State = {
   hosts_status: HostStatus[]; published_today: Published[]
   /** Contratto 1.90: quanto è pesante la macchina e cosa farci; assente con un relay precedente o se la lettura fallisce. */
   system?: SystemStatus | null
+  /** Contratto 1.95: plugin con un aggiornamento, per account; assente con un relay precedente. */
+  plugins?: { checked_at: number | null; accounts: { account: string; updates: string[] }[] } | null
 }
+
+/** Contratto 1.95: l'elenco intero dell'op `plugins`. `latest` null se il marketplace non lo dice; `update` null se non si sa. */
+export type Plugin = { id: string; name: string; marketplace?: string | null; scope?: string | null; installed?: string | null; latest?: string | null; update?: boolean | null }
+export type Skill = { name: string; version?: string | null; source?: string | null }
+export type PluginsPage = { checked_at: number | null; accounts: { account: string; plugins: Plugin[]; skills: Skill[] }[] }
 
 /** Contratto 1.90: `green`, `yellow` o `red`; `level` è il peggiore fra carico e memoria. */
 export type SystemLevel = 'green' | 'yellow' | 'red'
@@ -269,6 +276,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'sys_kill'
   /** Contratto 1.91: ferma le unità di systemd in ciclo; arg = unità separate da virgola. */
   | 'sys_unit_stop'
+  /** Contratto 1.95: l'elenco (passivo), il controllo, l'aggiornamento (arg «account:id») e tutti (arg account), mai -y. */
+  | 'plugins' | 'plugin_check' | 'plugin_update' | 'plugin_update_all'
   /** Contratto 1.69: arg = default | acceptEdits | plan | auto | bypassPermissions. */
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */

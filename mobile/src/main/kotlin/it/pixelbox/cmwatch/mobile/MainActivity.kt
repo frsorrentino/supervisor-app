@@ -1521,6 +1521,18 @@ class MainActivity : ComponentActivity() {
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
                     system = state?.system, ops = state?.ops,
                     kpiPage = kpiPage, kpiState = state,
+                    // Contratto 1.95: «Plugin e skill»; l'elenco è una lettura passiva, gli aggiornamenti mostrano il testo del relay.
+                    plugins = state?.plugins?.takeIf { !demo && state.ops?.contains("plugins") == true && state.ops?.contains("plugin_update") == true },
+                    onPluginsLoad = {
+                        val id = runCatching { app.repo.command(CmdOp.PLUGINS, null, null) }.getOrNull()
+                        val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                        id?.let { i -> app.repo.forget(i) }
+                        r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodePlugins(x.text) }.getOrNull() }
+                    },
+                    onPluginCmd = { op, arg ->
+                        val id = runCatching { app.repo.command(op, null, arg) }.getOrNull()
+                        id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(180_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                    },
                     onSystem = if (!demo) ({ op, arg -> scope.launch {
                         val id = runCatching { app.repo.command(op, null, arg) }.getOrNull()
                         val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }

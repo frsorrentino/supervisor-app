@@ -912,6 +912,28 @@ It starts at your last message to the master.</string>
     <string name="kpi18_and">and</string>
     <string name="kpi18_per_hour">per hour</string>
     <string name="home_sec_system">System</string>
+    <string name="home_sec_plugins">Plugins and skills</string>
+    <plurals name="plugins_to_update"><item quantity="one">%1$d to update</item><item quantity="other">%1$d to update</item></plurals>
+    <string name="plugins_loading">Asking the PC for the list</string>
+    <string name="plugins_none">The PC did not answer.</string>
+    <string name="plugins_meta">%1$d plugins · %2$d skills</string>
+    <string name="plugins_update">Update</string>
+    <string name="plugins_updating">Updating</string>
+    <string name="plugins_latest">latest</string>
+    <string name="plugins_unknown">latest unknown</string>
+    <string name="plugins_skills">Skills</string>
+    <string name="plugins_others">+ %1$d more plugins and %2$d skills</string>
+    <string name="plugins_others_p">+ %1$d more plugins</string>
+    <string name="plugins_others_s">+ %1$d skills</string>
+    <string name="plugins_show">Show</string>
+    <string name="plugins_hide">Hide</string>
+    <string name="plugins_new_sessions">it applies to new sessions</string>
+    <plurals name="plugins_confirm"><item quantity="one">Update %1$d plugin? Open sessions stay as they are; it applies to new ones.</item><item quantity="other">Update %1$d plugins? Open sessions stay as they are; it applies to new ones.</item></plurals>
+    <string name="plugins_keep">Leave it</string>
+    <string name="plugins_update_all">Update all (%1$d)</string>
+    <string name="plugins_checked">checked at %1$s</string>
+    <string name="plugins_never_checked">never checked</string>
+    <string name="plugins_check">Check now</string>
     <string name="system_summary">load %1$s per core · %2$s GB free</string>
     <string name="system_load">Load</string>
     <string name="system_load_v">%1$s per core</string>

@@ -11,7 +11,7 @@
   import { DemoTransport } from './lib/demoTransport'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
-  import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
+  import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
   import { blankState, decodeChanges, decodeDiff, transcriptArg, withAfterPage, withFirstPage, withTail } from './lib/contract'
   import { cleanEvent } from './lib/alertEvents'
@@ -257,6 +257,12 @@
     if (r?.ok) say(`✓ ${t.closedSaved(names.length)}`)
   }
   /** Contratto 1.90: il tasto di un consiglio del Sistema (sys_kill o close con i nomi); il testo del relay dice cosa ha chiuso. */
+  /** Contratto 1.95: l'elenco dei plugin (lettura passiva) e i comandi della sezione; il testo del relay dice com'è andata. */
+  async function pluginsLoad(): Promise<PluginsPage | null> {
+    const r = await run(newCmd('plugins', null))
+    return r?.ok ? JSON.parse(r.text) : null
+  }
+  const pluginsRun = (op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => run(newCmd(op, null, arg ?? undefined))
   async function sysAct(op: string, arg: string) {
     const r = await run(newCmd(op as CmdOp, null, arg))
     if (r?.ok) say(`✓ ${r.text}`)
@@ -972,7 +978,7 @@
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) { openPage(null); attend(n) } }} />
       <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} onNight={() => openPage('night')}
+        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         onAttention={() => { const n = st.attention?.find(a => a.session && a.session !== MASTER)?.session; if (n) attend(n) }}

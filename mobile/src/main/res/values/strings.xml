@@ -966,6 +966,29 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="kpi18_and">e</string>
     <string name="kpi18_per_hour">per ora</string>
     <string name="home_sec_system">Sistema</string>
+    <!-- Contratto 1.95: la sezione «Plugin e skill» (mockup approvato il 29/10). -->
+    <string name="home_sec_plugins">Plugin e skill</string>
+    <plurals name="plugins_to_update"><item quantity="one">%1$d da aggiornare</item><item quantity="other">%1$d da aggiornare</item></plurals>
+    <string name="plugins_loading">Chiedo al PC l\'elenco</string>
+    <string name="plugins_none">Il PC non ha risposto.</string>
+    <string name="plugins_meta">%1$d plugin · %2$d skill</string>
+    <string name="plugins_update">Aggiorna</string>
+    <string name="plugins_updating">Aggiorno</string>
+    <string name="plugins_latest">ultima</string>
+    <string name="plugins_unknown">ultima non nota</string>
+    <string name="plugins_skills">Skill</string>
+    <string name="plugins_others">+ altri %1$d plugin e %2$d skill</string>
+    <string name="plugins_others_p">+ altri %1$d plugin</string>
+    <string name="plugins_others_s">+ %1$d skill</string>
+    <string name="plugins_show">Mostra</string>
+    <string name="plugins_hide">Nascondi</string>
+    <string name="plugins_new_sessions">vale dalle sessioni nuove</string>
+    <plurals name="plugins_confirm"><item quantity="one">Aggiorno %1$d plugin? Le sessioni aperte restano come sono; vale dalle nuove.</item><item quantity="other">Aggiorno %1$d plugin? Le sessioni aperte restano come sono; vale dalle nuove.</item></plurals>
+    <string name="plugins_keep">Lascia stare</string>
+    <string name="plugins_update_all">Aggiorna tutto (%1$d)</string>
+    <string name="plugins_checked">controllato alle %1$s</string>
+    <string name="plugins_never_checked">mai controllato</string>
+    <string name="plugins_check">Controlla ora</string>
     <string name="system_summary">carico %1$s per core · %2$s GB liberi</string>
     <string name="system_load">Carico</string>
     <string name="system_load_v">%1$s per core</string>

@@ -5,6 +5,8 @@
   import Kpi18 from './Kpi18.svelte'
   import Kpi7 from './Kpi7.svelte'
   import Kpi4 from './Kpi4.svelte'
+  import PluginsSection from './PluginsSection.svelte'
+  import type { PluginsPage } from './contract'
   import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, split as kpiSplit, todayShare, waitingSince } from './kpi'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
@@ -45,13 +47,16 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, onAttention = () => {}, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, pluginsLoad = null, pluginsRun = null }: {
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
     onClosePreview?: ((names: string[]) => Promise<Preview | null>) | null; onCloseMany?: (names: string[]) => void
     /** Contratto 1.90: il tasto di un consiglio del Sistema; null = sola lettura (demo, relay senza l'op). */
     onSystem?: ((op: string, arg: string) => void) | null
     /** I KPI 6, 11 e 18 (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni; null finché non c'è. */
     kpiPage?: TimelinePage | null
+    /** Contratto 1.95: l'elenco dei plugin e i comandi della sezione «Plugin e skill»; null = il relay non ha le op. */
+    pluginsLoad?: (() => Promise<PluginsPage | null>) | null
+    pluginsRun?: ((op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => Promise<{ ok: boolean; text: string } | null>) | null
     /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto. */
     suggestions?: Snippet
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
@@ -457,6 +462,7 @@
     </div>
   {/if}
 {/if}
+{#if pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} />{/if}
 {#if showLavori && fy}
   {@render sec('lavori', t.lavoriTitle, t.lavoriForYouN(looseOk.length))}
   {#if open.lavori}
