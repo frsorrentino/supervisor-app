@@ -1177,6 +1177,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="sug_kind_waiting">In attesa</string>
     <string name="sug_kind_idea">Idea</string>
     <string name="sug_kind_proposal">Proposta</string>
+    <string name="sug_kind_observe">Note del plugin</string>
     <string name="sug_kind_other">Suggerimento</string>
     <string name="sug_accept">Accetta</string>
     <string name="sug_discuss">Parliamone</string>

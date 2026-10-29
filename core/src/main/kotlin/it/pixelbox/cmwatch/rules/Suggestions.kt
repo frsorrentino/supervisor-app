@@ -12,7 +12,7 @@ import it.pixelbox.cmwatch.contract.Suggestion
 object Suggestions {
     const val MAX_SHOWN = 3
     /** I quattro del 1.84 e i sei della coda (documento suggerimenti-coda, §8.1); un tipo fuori lista si mostra neutro. */
-    val KINDS = listOf("recurring", "cleanup", "deadline", "quota", "choice", "followup", "unsaved", "waiting", "idea", "proposal")
+    val KINDS = listOf("recurring", "cleanup", "deadline", "quota", "choice", "followup", "unsaved", "waiting", "idea", "proposal", "observe")
     fun known(kind: String) = kind in KINDS
     data class Visible(val shown: List<Suggestion>, val total: Int)
 

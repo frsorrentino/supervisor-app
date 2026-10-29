@@ -6,7 +6,7 @@ import type { State, Suggestion } from './contract'
 // tre al massimo due dello stesso tipo, ma se la coda non ha altro si riempie con le scartate.
 export const MAX_SHOWN = 3
 // I quattro del 1.84 e i sei della coda (documento suggerimenti-coda, §8.1); un tipo fuori lista si mostra neutro.
-export const KINDS = ['recurring', 'cleanup', 'deadline', 'quota', 'choice', 'followup', 'unsaved', 'waiting', 'idea', 'proposal'] as const
+export const KINDS = ['recurring', 'cleanup', 'deadline', 'quota', 'choice', 'followup', 'unsaved', 'waiting', 'idea', 'proposal', 'observe'] as const
 export const known = (kind: string) => (KINDS as readonly string[]).includes(kind)
 
 export const MAX_PER_KIND = 2

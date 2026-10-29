@@ -13,7 +13,9 @@ describe('Suggerimenti della master (contratto 1.84, scheda A)', () => {
     expect(visible(st(), new Set(), 100)).toEqual({ shown: [], total: 0 })
   })
   it('i dieci tipi; un tipo sconosciuto non è fra i noti', () => {
-    expect(KINDS.length).toBe(10)
+    expect(KINDS.length).toBe(11)
+    // Contratto 1.94: le note di claude-observe di un plugin, «Note del plugin».
+    expect(known('observe')).toBe(true)
     expect(known('unsaved')).toBe(true)
     expect(known('zzz')).toBe(false)
   })

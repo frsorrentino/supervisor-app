@@ -81,9 +81,9 @@ class ContractTest {
         val s2 = ContractJson.decodeState(Fixtures.stateIdle); val s3 = ContractJson.decodeState(Fixtures.stateStale)
         assertEquals(listOf(2, 5, 6), s2.suggestions!!.map { it.rank })
         assertTrue(s2.suggestions!!.all { it.source == "master" && it.prompt.isEmpty() })
-        assertEquals(listOf("choice", "followup", "unsaved", "waiting", "idea", "proposal"), s3.suggestions!!.map { it.kind })
+        assertEquals(listOf("choice", "followup", "unsaved", "waiting", "observe", "idea", "proposal"), s3.suggestions!!.map { it.kind })   // 1.94: observe dopo l'attesa esterna
         assertEquals(listOf("Short", "Full"), s3.suggestions!!.first { it.kind == "choice" }.options)
-        assertEquals(3, s3.suggestions!!.count { it.source == "script" })
+        assertEquals(4, s3.suggestions!!.count { it.source == "script" })   // 1.94: anche observe viene da uno script
         assertTrue(s3.suggestions!!.filter { it.kind != "choice" }.all { it.options == null })
     }
 

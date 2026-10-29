@@ -8,7 +8,7 @@
   // «Non ora» e «Mai». Accetta manda il prompt alla master: niente parte senza un tocco. Contratto 1.88: una scelta
   // (`choice`) ha un tasto tonale per opzione al posto di Accetta, come in «Per te».
   let { shown, total, at, onAnswer }: { shown: Suggestion[]; total: number; at: string; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', choice?: string) => void } = $props()
-  const tone: Record<string, string> = { recurring: 'var(--b-ring)', cleanup: 'var(--good)', deadline: 'var(--b-warn)', quota: 'var(--b-week, #B9A6F5)', choice: 'var(--b-warn)', followup: 'var(--b-ring)', unsaved: 'var(--good)', waiting: 'var(--text2)', idea: 'var(--advice)', proposal: 'var(--advice)' }
+  const tone: Record<string, string> = { recurring: 'var(--b-ring)', cleanup: 'var(--good)', deadline: 'var(--b-warn)', quota: 'var(--b-week, #B9A6F5)', choice: 'var(--b-warn)', followup: 'var(--b-ring)', unsaved: 'var(--good)', waiting: 'var(--text2)', idea: 'var(--advice)', proposal: 'var(--advice)', observe: 'var(--b-ring)' }
   const icon: Record<string, string> = {
     recurring: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
     cleanup: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
@@ -20,6 +20,8 @@
     waiting: 'M6 2h12M6 22h12M7 2v4l5 6 5-6V2M7 22v-4l5-6 5 6v4',
     idea: 'M9 18h6M10 22h4M12 2a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 2z',
     proposal: 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6',
+    // Contratto 1.94: le note di claude-observe di un plugin, un foglietto con l'angolo piegato.
+    observe: 'M15 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10zM15 21v-4a2 2 0 0 1 2-2h4M7 8h10M7 12h6',
     // Un tipo che quest'app non conosce: una stella neutra, non più l'icona della quota (documento suggerimenti-coda, §8.8).
     other: 'M12 3l1.9 4.6L19 9l-4 3.4L16 18l-4-2.8L8 18l1-5.6L5 9l5.1-1.4z',
   }

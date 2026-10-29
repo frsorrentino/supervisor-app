@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.rounded.Redo
 import androidx.compose.material.icons.rounded.AltRoute
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.DataUsage
+import androidx.compose.material.icons.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.Lightbulb
@@ -77,6 +78,8 @@ internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Sugg
                 "waiting" -> Triple(Icons.Rounded.HourglassEmpty, CmColors.text2, R.string.sug_kind_waiting)
                 "idea" -> Triple(Icons.Rounded.Lightbulb, CmColors.advice, R.string.sug_kind_idea)
                 "proposal" -> Triple(Icons.Rounded.TipsAndUpdates, CmColors.advice, R.string.sug_kind_proposal)
+                // Contratto 1.94: le note di claude-observe di un plugin, da smistare nella sua sessione.
+                "observe" -> Triple(Icons.Rounded.StickyNote2, CmColors.briefRing, R.string.sug_kind_observe)
                 // Un tipo che quest'app non conosce: neutro, non più «Quota» (documento suggerimenti-coda, §8.8).
                 else -> Triple(Icons.Rounded.AutoAwesome, CmColors.text2, R.string.sug_kind_other)
             }

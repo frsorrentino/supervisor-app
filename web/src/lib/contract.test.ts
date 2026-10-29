@@ -170,9 +170,9 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     const s2 = decodeState(fixture('state-2-idle.json')), s3 = decodeState(fixture('state-3-stale.json'))
     expect(s2.suggestions!.map(x => x.rank)).toEqual([2, 5, 6])
     expect(s2.suggestions!.every(x => x.source === 'master' && x.prompt === undefined)).toBe(true)
-    expect(s3.suggestions!.map(x => x.kind)).toEqual(['choice', 'followup', 'unsaved', 'waiting', 'idea', 'proposal'])
+    expect(s3.suggestions!.map(x => x.kind)).toEqual(['choice', 'followup', 'unsaved', 'waiting', 'observe', 'idea', 'proposal'])  // 1.94: observe dopo l'attesa esterna
     expect(s3.suggestions!.find(x => x.kind === 'choice')!.options).toEqual(['Short', 'Full'])
-    expect(s3.suggestions!.filter(x => x.source === 'script').length).toBe(3)
+    expect(s3.suggestions!.filter(x => x.source === 'script').length).toBe(4)  // 1.94: anche observe viene da uno script
   })
   // Contratto 1.81 (23/10): un compito che chiede una scelta porta `options`; op `approve` con `choice`.
   it('1.81: un ok con opzioni porta options e approve parte con choice', () => {
