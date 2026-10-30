@@ -385,6 +385,7 @@ class FakeTransport(
             CmdOp.DONE -> ko("no task registry")
             // Contratto 1.80: la demo non ha voci da chiudere.
             CmdOp.ATTENTION_DONE -> ko("${cmd.kind} ${cmd.arg}: nothing to close")
+            CmdOp.HOME_ORDER -> ko("the demo does not save the order")
             // Contratto 1.84 (B4): la demo non chiude: l'anteprima dice cosa salverebbe, la chiusura non c'è.
             CmdOp.CLOSE_PREVIEW -> ok("""{"sessions": []}""")
             CmdOp.CLOSE -> ko("the demo does not close sessions")

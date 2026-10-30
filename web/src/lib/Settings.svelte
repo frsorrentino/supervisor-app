@@ -15,7 +15,9 @@
 
   // Impostazioni (SettingsScreen dell'app, mockup A): sezioni con l'etichetta e il filo. Collegamento: lo schema dei
   // dispositivi da toccare (schema B, contratto 1.32); Lettura ad alta voce: voce e velocità; Informazioni: la versione.
-  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, onRevoke = null, demo = false }: {
+  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, onRevoke = null, demo = false, onHomeOrder = null }: {
+    /** «Riordina la home» (contratto 1.97); null se il relay non ha `home_order`. */
+    onHomeOrder?: (() => void) | null
     /** La demo (Modalità demo dell'app): l'interruttore porta dentro e fuori dai dati di prova. */
     demo?: boolean
     m: DevicesModel; devices: Linked[]; now: number; channel: string
@@ -132,6 +134,15 @@
     {/if}
   </dialog>
 
+  {#if onHomeOrder}
+    <div class="sec">
+      <button class="srow" onclick={onHomeOrder}>
+        <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg></span>
+        <span class="st"><b>{t.reorderTitle}</b><small>{t.reorderRowSub}</small></span>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
+      </button>
+    </div>
+  {/if}
   {#if onAdd}
     <div class="sec">
       <button class="srow" onclick={onAdd}>

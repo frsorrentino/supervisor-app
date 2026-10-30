@@ -1397,4 +1397,13 @@ It starts at your last message to the master.</string>
     <string name="rail_h">%1$d h</string>
     <string name="rail_d">%1$d d</string>
     <string name="sug_more">Other answers</string>
+    <string name="reorder_title">Reorder the home</string>
+    <string name="reorder_row_sub">The order of the sections, on phone and web</string>
+    <string name="reorder_sub">The board and Waiting for you stay on top. The order also applies to the one-column web.</string>
+    <string name="reorder_board">Board</string>
+    <string name="reorder_save">Save</string>
+    <string name="reorder_reset">Restore the default order</string>
+    <string name="reorder_drag">Drag %1$s</string>
+    <string name="reorder_up">Move %1$s up</string>
+    <string name="reorder_down">Move %1$s down</string>
 </resources>

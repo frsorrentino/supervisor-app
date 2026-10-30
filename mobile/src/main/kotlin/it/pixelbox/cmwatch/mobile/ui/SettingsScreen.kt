@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Reorder
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -72,7 +73,15 @@ fun SettingsScreen(
     updateStatus: String? = null, onCheckUpdate: (() -> Unit)? = null,
     /** Contratto 1.89: Revoca accanto a ogni dispositivo dell'elenco (op `unpair`); null = relay senza l'op, niente tasto. */
     onRevoke: ((String) -> Unit)? = null,
+    /** «Riordina la home» (app-riordino-sezioni-30-10): l'ordine salvato e il salvataggio; null = relay senza `home_order`, niente voce. */
+    homeOrder: List<String>? = null, onHomeOrder: ((List<String>) -> Unit)? = null,
 ) {
+    var reorder by rememberSaveable { mutableStateOf(false) }
+    if (reorder && onHomeOrder != null) {
+        androidx.activity.compose.BackHandler { reorder = false }
+        HomeOrderScreen(homeOrder, onBack = { reorder = false }) { o -> onHomeOrder(o); reorder = false }
+        return
+    }
     var choosing by remember { mutableStateOf(false) }
     var choosingVoice by remember { mutableStateOf(false) }
     var device by rememberSaveable { mutableStateOf(initialDevice) }
@@ -114,6 +123,10 @@ fun SettingsScreen(
                         androidx.compose.material3.Switch(checked = on, onCheckedChange = onTabletDetails)
                     }
                 }
+            }
+
+            onHomeOrder?.let {
+                SectionCard { SettingsRow(Icons.Rounded.Reorder, stringResource(R.string.reorder_title), stringResource(R.string.reorder_row_sub), onClick = { reorder = true }) }
             }
 
             GroupHeader(stringResource(R.string.sec_reading), CmColors.text2)

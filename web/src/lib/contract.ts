@@ -232,6 +232,8 @@ export type State = {
   usage_today?: UsageToday[]
   /** Contratto 1.84: i suggerimenti della master, dal più recente, al massimo 6; assente con un relay precedente. */
   suggestions?: Suggestion[]
+  /** Contratto 1.97: l'ordine delle sezioni della home; assente = predefinito (homeOrder.ts). */
+  home_order?: string[]
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
@@ -285,6 +287,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
+  /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
+  | 'home_order'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
   /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */

@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.SportsScore
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.PanTool
@@ -117,7 +118,7 @@ fun SummaryList(
     /** «Utilizzo»: le schede della quota, nella sua sezione richiudibile. */
     usage: (@Composable () -> Unit)? = null,
     /** Le sezioni aperte la prima volta, prima che tu le apra o chiuda. */
-    startOpen: Set<String> = setOf("sessions", "lavori", "esiti"),
+    startOpen: Set<String> = setOf("sessions", "suggestions", "lavori", "esiti"),
     /**
      * La sessione appena chiusa dal pannello di chiusura, con la riga «chiusa alle …» (Franz, 08/10 18:59, volo al contrario):
      * la sua card in cima alle sessioni è dove la pagina atterra tornando alla home; poi si richiude da sola.
@@ -192,6 +193,7 @@ fun SummaryList(
     var sessionsOpen by remember { section("sessions") }
     var usageOpen by remember { section("usage") }
     var esitiOpen by remember { section("esiti") }
+    var suggestionsOpen by remember { section("suggestions") }
     var lavoriOpen by remember { section("lavori") }
     var pluginsOpen by remember { section("plugins") }
     var laterOpen by remember { mutableStateOf(false) }
@@ -296,9 +298,12 @@ fun SummaryList(
                 item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
             }
         }
+        val outside = outsidePlaced.groups.filter { g -> g.category != OutsideSessions.Category.CLOSED }
+        val closedGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.CLOSED }
         // Contratto 1.84 (scheda A): i suggerimenti dopo le sessioni (Franz 30/10 16:44), fuori dal numero di chi aspetta: un consiglio non blocca nessuno.
         val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
         val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(zone)) }
+        val renderSessions: () -> Unit = {
         if (restRows.isNotEmpty() || justClosed != null) {
             item(key = "sec-sessions") {
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
@@ -314,10 +319,15 @@ fun SummaryList(
                 }
             }
         }
-        if (sug != null) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, sugAt!!, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
-        // La sezione «Lavori»: i compiti da riprendere e la coda di stanotte, «Tutti i lavori» apre la pagina.
-        val outside = outsidePlaced.groups.filter { g -> g.category != OutsideSessions.Category.CLOSED }
-        val closedGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.CLOSED }
+        }
+        val renderSuggestions: () -> Unit = {
+            if (sug != null) {
+                // Una sezione come le altre (Franz 30/10 17:33): titolo, numero, freccina; da chiusa resta il numero, la barra dei 7 giorni sta dentro.
+                item(key = "sec-suggestions") { Box(moving()) { V3Section(stringResource(R.string.sug_title), androidx.compose.material.icons.Icons.Outlined.AutoAwesome, sug.total.toString(), sugAt.takeIf { suggestionsOpen }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) } } }
+                if (suggestionsOpen) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
+            }
+        }
+        val renderLavori: () -> Unit = {
         if (showLavori && (foryou != null || outside.isNotEmpty())) {
             val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
             item(key = "sec-lavori") { Box(moving()) { V3Section(stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
@@ -365,6 +375,8 @@ fun SummaryList(
                 }
             }
         }
+        }
+        val renderEsiti: () -> Unit = {
         // Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box.
         it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.let { out ->
             val liveNames = kpiState?.sessions.orEmpty().filter { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }.map { x -> x.name }.toSet()
@@ -394,6 +406,8 @@ fun SummaryList(
                 }
             }
         }
+        }
+        val renderAltro: () -> Unit = {
         // «Altro»: Utilizzo, Sistema, Plugin e skill e Chiuse come righe di una lista, col numero in vista; il tocco apre sul posto.
         val hasUsage = usage != null && showUsage
         val hasPlugins = plugins != null && onPluginsLoad != null && onPluginCmd != null
@@ -456,6 +470,17 @@ fun SummaryList(
                         }
                     }
                 }
+            }
+        }
+        }
+        // L'ordine scelto da Franz (Impostazioni › Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra.
+        it.pixelbox.cmwatch.rules.HomeOrder.normalize(kpiState?.homeOrder).forEach { k ->
+            when (k) {
+                "sessions" -> renderSessions()
+                "suggestions" -> renderSuggestions()
+                "lavori" -> renderLavori()
+                "esiti" -> renderEsiti()
+                "altro" -> renderAltro()
             }
         }
         footer?.let { f -> item(key = "footer") { f() } }

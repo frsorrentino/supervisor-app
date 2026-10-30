@@ -6,6 +6,7 @@ import app.cash.paparazzi.Paparazzi
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.SystemStatus
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
+import it.pixelbox.cmwatch.mobile.ui.HomeOrderScreen
 import it.pixelbox.cmwatch.mobile.ui.SummaryList
 import it.pixelbox.cmwatch.rules.Summary
 import org.junit.Rule
@@ -24,6 +25,16 @@ class HomeAltroTest {
         CmPhoneTheme(still = true) {
             SummaryList(Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, usage = { Text("") }, system = system, kpiState = st)
         }
+    }
+
+    /** «Riordina la home» (app-riordino-sezioni-30-10): due voci fisse, le sezioni con maniglia e frecce, un solo tasto pieno. */
+    @Test fun reorderScreen() = paparazzi.snapshot {
+        CmPhoneTheme(still = true) { HomeOrderScreen(listOf("esiti", "sessions"), {}, {}) }
+    }
+
+    @Test fun reorderScreen360LargeFont() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), fontScale = 1.3f))
+        paparazzi.snapshot { CmPhoneTheme(still = true) { HomeOrderScreen(null, {}, {}) } }
     }
 
     @Test fun altroSystemClosed() = shot()

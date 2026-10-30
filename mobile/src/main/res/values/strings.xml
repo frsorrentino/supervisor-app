@@ -1422,4 +1422,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="rail_h">%1$d h</string>
     <string name="rail_d">%1$d g</string>
     <string name="sug_more">Altre risposte</string>
+    <string name="reorder_title">Riordina la home</string>
+    <string name="reorder_row_sub">L\'ordine delle sezioni, su telefono e web</string>
+    <string name="reorder_sub">Tabellone e Ti aspettano restano in cima. L\'ordine vale anche sul web a una colonna.</string>
+    <string name="reorder_board">Tabellone</string>
+    <string name="reorder_save">Salva</string>
+    <string name="reorder_reset">Ripristina l\'ordine predefinito</string>
+    <string name="reorder_drag">Trascina %1$s</string>
+    <string name="reorder_up">Sposta su %1$s</string>
+    <string name="reorder_down">Sposta giù %1$s</string>
 </resources>

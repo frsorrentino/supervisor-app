@@ -54,19 +54,13 @@ import it.pixelbox.cmwatch.rules.Suggestions
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun SuggestionsCard(v: Suggestions.Visible, at: String, onAnswer: (Suggestion, String, String?) -> Unit) {
+internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, String, String?) -> Unit) {
     // «Altre risposte» (app-home-riordino-29-10): Parliamone, Non ora e Mai dietro un tocco; prima erano dodici tasti in tre voci.
     var more by remember { mutableStateOf(setOf<String>()) }
     // Nello stile «Studio e Diretta» (30/10): una lista a filo col binario; il tipo è l'icona grigia a sinistra e la parola sopra il testo.
     Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1)) {
-        Row(Modifier.padding(top = 12.dp, end = 12.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.AutoAwesome, null, tint = V3.Tx2, modifier = Modifier.size(20.dp)) }
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.sug_title), style = V3.Name, modifier = Modifier.weight(1f))
-            Text("$at · " + stringResource(R.string.sug_count, v.shown.size, v.total), style = V3.Meter, maxLines = 1)
-        }
-        v.shown.forEach { s ->
-            Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+        v.shown.forEachIndexed { i, s ->
+            if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             val (icon, label) = when (s.kind) {
                 "recurring" -> Icons.Rounded.Repeat to R.string.sug_kind_recurring
                 "cleanup" -> Icons.Rounded.DeleteOutline to R.string.sug_kind_cleanup

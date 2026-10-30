@@ -111,6 +111,8 @@ enum class CmdOp {
      * (con `blocks`); riuscita, il testo è `{"row": …}` con la key nuova; «agenda row changed» = ricaricare.
      */
     @SerialName("agenda_set") AGENDA_SET,
+    /** L'ordine delle sezioni della home: `arg` = array JSON delle chiavi, vuoto = predefinito (compito relay-ordine-home-30-10). */
+    @SerialName("home_order") HOME_ORDER,
     /** Contratto 1.58: dopo `quota_limit`, `arg` = other_account | at_reset | pass:<sessione>. */
     @SerialName("quota_route") QUOTA_ROUTE,
     /**
@@ -441,6 +443,8 @@ enum class CmdOp {
     @SerialName("usage_today") val usageToday: List<UsageToday>? = null,
     /** Contratto 1.84: i suggerimenti della master, dal più recente, al massimo 6; null con un relay precedente. */
     val suggestions: List<Suggestion>? = null,
+    /** L'ordine delle sezioni della home; null = predefinito (rules.HomeOrder). */
+    @SerialName("home_order") val homeOrder: List<String>? = null,
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
     val commitments: List<Commitment>? = null,
     /** Contratto 1.90: quanto è pesante la macchina e cosa farci; null con un relay precedente o se la lettura fallisce. */

@@ -154,6 +154,7 @@ const it = {
   // La plancia (pwa2, Franz 30/10): quattro colonne per argomento con la loro cifra in testa; le sessioni Claude distinte dai
   // compiti del registro.
   masterMoveLeft: 'Sposta a sinistra', masterMoveRight: 'Sposta a destra',
+  reorderTitle: 'Riordina la home', reorderRowSub: "L'ordine delle sezioni, su telefono e web", reorderSub: "Tabellone e Ti aspettano restano in cima. L'ordine vale anche sul telefono.", reorderBoard: 'Tabellone', reorderSave: 'Salva', reorderReset: "Ripristina l'ordine predefinito", reorderDrag: (x: string) => `Trascina ${x}`, reorderUp: (x: string) => `Sposta su ${x}`, reorderDown: (x: string) => `Sposta giù ${x}`,
   appTitle: 'Supervisor', deskTasks: 'Compiti in corso', deskFromRegistry: 'dal registro', deskTaskSince: (s: string) => `in corso da ${s}`, deskAllTasks: 'Tutti i compiti', deskLater: (n: number) => `${n} più tardi`, deskDoneToday: 'Fatto oggi', deskRedToday: 'Rossi di oggi',
   deskYou: 'Richiede te', deskWork: 'Attività e code', deskOut: 'Esiti', deskTools: 'Numeri e strumenti', deskSessions: 'Sessioni Claude',
   deskLastNight: 'La notte scorsa', deskNightEnd: (hm: string) => `finito alle ${hm}`, deskNightAll: 'Tutta la notte', deskHostSessions: 'Sessioni:',
@@ -544,6 +545,7 @@ const en: typeof it = {
   railSpan: (s: { n: number; unit: 'min' | 'h' | 'd' }) => (s.unit === 'min' ? `${s.n}'` : s.unit === 'h' ? `${s.n} h` : `${s.n} d`),
   homeMore: 'More', board5h: '5 hours',
   masterMoveLeft: 'Move to the left', masterMoveRight: 'Move to the right',
+  reorderTitle: 'Reorder the home', reorderRowSub: 'The order of the sections, on phone and web', reorderSub: 'The board and Waiting for you stay on top. The order also applies to the phone.', reorderBoard: 'Board', reorderSave: 'Save', reorderReset: 'Restore the default order', reorderDrag: (x: string) => `Drag ${x}`, reorderUp: (x: string) => `Move ${x} up`, reorderDown: (x: string) => `Move ${x} down`,
   appTitle: 'Supervisor', deskTasks: 'Tasks in progress', deskFromRegistry: 'from the registry', deskTaskSince: (s: string) => `running for ${s}`, deskAllTasks: 'All tasks', deskLater: (n: number) => `${n} later`, deskDoneToday: 'Done today', deskRedToday: 'Reds today',
   deskYou: 'Needs you', deskWork: 'Activity and queues', deskOut: 'Outcomes', deskTools: 'Numbers and tools', deskSessions: 'Claude sessions',
   deskLastNight: 'Last night', deskNightEnd: (hm: string) => `done at ${hm}`, deskNightAll: 'The whole night', deskHostSessions: 'Sessions:',

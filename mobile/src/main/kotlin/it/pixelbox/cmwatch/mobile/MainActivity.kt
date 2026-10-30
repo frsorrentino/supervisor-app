@@ -443,6 +443,8 @@ class MainActivity : ComponentActivity() {
                 devices = it.pixelbox.cmwatch.rules.SettingsDevices.build(
                     host, state, snap.freshness, now, app.phoneName, version, notificationsOn, r?.watchName, r?.watchPending == true, watchNear,
                 ),
+                homeOrder = state?.homeOrder,
+                onHomeOrder = if (state?.ops?.contains("home_order") == true) ({ o -> scope.launch { runCatching { app.repo.command(CmdOp.HOME_ORDER, null, it.pixelbox.cmwatch.rules.HomeOrder.arg(o)) } } }) else null,
                 onBack = { settingsOpen = false },
                 onRepair = onRepair, onDemo = { app.setDemo(it) },
                 onNotifications = { startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)) },

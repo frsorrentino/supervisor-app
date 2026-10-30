@@ -30,6 +30,7 @@
   import Desk from './lib/Desk.svelte'
   import Dash from './lib/Dash.svelte'
   import Plancia from './lib/Plancia.svelte'
+  import HomeOrder from './lib/HomeOrder.svelte'
   import MasterDock from './lib/MasterDock.svelte'
   import DeskHead from './lib/DeskHead.svelte'
   import DeskTools from './lib/DeskTools.svelte'
@@ -479,7 +480,7 @@
   const asked = new URLSearchParams(location.search).get('page')
   // «diary» e «recap» nei link vecchi aprono la pagina unica Lavori (22/10).
   const askedPage = asked === 'diary' || asked === 'recap' ? 'lavori' : asked
-  let page = $state<PageName | null>(askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
+  let page = $state<PageName | null>(askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'homeorder', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
   // La pagina Notte (specifica del 07/10, approvata alle 21:50): il rapporto si chiede al PC con l'op `night` (contratto 1.44)
   // quando la pagina si apre e col tasto aggiorna; nella demo è la fixture inventata.
   let night = $state<{ report: NightReport | null; error: string | null; loading: boolean }>({ report: null, error: null, loading: false })
@@ -559,6 +560,15 @@
   }
   // Contratto 1.47: la scrittura va al relay con `agenda_set`; riuscita, l'agenda si ricarica; «agenda row changed» ricarica
   // e lo dice. Nella demo cambia la riga in memoria, come farebbe il relay.
+  // Contratto 1.97: l'ordine delle sezioni della home, unico sul relay; vuoto = il predefinito.
+  async function saveHomeOrder(arg: string | null) {
+    if (!tr) return
+    try {
+      const r = await tr.send(newCmd('home_order', null, arg ?? ''))
+      if (!r.ok) { say(r.text); return }
+      openPage('settings')
+    } catch { say(t.noAnswer) }
+  }
   async function editAgenda(e: import('./lib/recapAgenda').Edit) {
     const c = setCmd(e, agenda.page?.owner ?? null)
     if (!c) return
@@ -588,7 +598,7 @@
   }
   setContext('agendaNight', { get can() { return canNight }, get rows() { return nightCards(agenda.page, todayIso()) }, queue: queueNight })
   $effect(() => { if (canNight && canAgenda && !agenda.page && !agenda.loading) untrack(() => loadAgenda()) })
-  const pageTitle: Record<PageName, string> = $derived({ lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
+  const pageTitle: Record<PageName, string> = $derived({ homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -1015,7 +1025,7 @@
 
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
 {#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | null)}<Home st={stShown} {part} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={sugCard} suggestionsN={sug.shown.length} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
+        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
@@ -1049,11 +1059,13 @@
     {:else if p === 'search'}
       <Search {sent} {events} remote onQuery={search} page={searchPage}
         known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('lavori') }} />
+    {:else if p === 'homeorder'}
+      <HomeOrder saved={st.home_order} onSave={saveHomeOrder} />
     {:else if p === 'settings'}
       <Settings m={devicesOf(st.host, st, freshness(st, now), now, '', __APP_VERSION__, true, null, false, null)}
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
-        onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
+        onHomeOrder={st.ops?.includes('home_order') ? () => openPage('homeorder') : null} onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
         onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => run(newCmd('unpair', null, uid)) : null} />
     {:else if p === 'box-aspetta' || p === 'box-lavoro' || p === 'box-esiti'}
       <HomeBox box={p === 'box-aspetta' ? 'aspetta' : p === 'box-lavoro' ? 'lavoro' : 'esiti'} st={stShown} page={kpiPage} {now} onSession={(n) => { openPage(null); pick(n) }} />
@@ -1078,7 +1090,7 @@
   {#if s}<ColumnTab {s} r={rowOf[name]} {now} onGrab={grab} onFocus={() => focusColumn(name)} onClose={() => setCols(cols.filter(c => c !== name))} />{/if}
 {/snippet}
 
-{#snippet sugCard()}{#if sug.shown.length}<SuggestionsCard shown={sug.shown} total={sug.total} at={new Date(sug.shown[0].at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} onAnswer={suggest} />{/if}{/snippet}
+{#snippet sugCard()}{#if sug.shown.length}<SuggestionsCard shown={sug.shown} onAnswer={suggest} />{/if}{/snippet}
 {#snippet lavoriLeft()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="desk" part="left" suggestions={sugCard} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 {#snippet lavoriRight()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" kpi={kpiData} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}

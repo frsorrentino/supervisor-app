@@ -7,7 +7,7 @@
   // 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Parliamone»,
   // «Non ora» e «Mai». Accetta manda il prompt alla master: niente parte senza un tocco. Contratto 1.88: una scelta
   // (`choice`) ha un tasto tonale per opzione al posto di Accetta, come in «Per te».
-  let { shown, total, at, onAnswer }: { shown: Suggestion[]; total: number; at: string; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', choice?: string) => void } = $props()
+  let { shown, onAnswer }: { shown: Suggestion[]; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', choice?: string) => void } = $props()
   // «Altre risposte» (app-home-riordino-29-10): Parliamone, Non ora e Mai dietro un tocco; prima erano dodici tasti in tre voci.
   let more = $state(new Set<string>())
   const icon: Record<string, string> = {
@@ -31,11 +31,6 @@
 <!-- Nello stile «Studio e Diretta» (30/10): fuori da «Ti aspettano», una lista a filo col binario; il tipo è l'icona grigia
      a sinistra e la parola sopra il testo; a destra «Altre risposte» (da cui si rifiuta) e «Accetta» tonale. -->
 <div class="card sugg">
-  <div class="top">
-    <span class="rail"><span class="ms" aria-hidden="true">auto_awesome</span></span>
-    <span class="nm">{t.sugTitle}</span>
-    <span class="mono">{at} · {t.sugCount(shown.length, total)}</span>
-  </div>
   {#each shown as s (s.id)}
     <div class="sug">
       <span class="rail sym"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={icon[s.kind] ?? icon.other} /></svg></span>
@@ -57,10 +52,7 @@
 
 <style>
   .card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; }
-  .top { display: flex; align-items: center; gap: 8px; padding: 12px 12px 4px 0; }
   .rail { width: 52px; flex: none; display: flex; justify-content: center; color: var(--tx2); }
-  .nm { flex: 1; min-width: 0; font: 600 17px/1.2 var(--display); }
-  .mono { font: 400 12.5px var(--mono); color: var(--tx2); white-space: nowrap; }
   .sug { display: flex; gap: 8px; padding: 12px 12px 12px 0; border-top: 1px solid var(--line); }
   .sug:first-of-type { border-top: 0; }
   .sym { padding-top: 2px; }

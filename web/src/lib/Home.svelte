@@ -43,6 +43,7 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
+  import { DEFAULT_ORDER, normalize as normalizeOrder } from './homeOrder'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
 
@@ -51,7 +52,7 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0 }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal }: {
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
     onQuota?: () => void
     /** Una colonna della plancia (pwa2, Franz 30/10): «you» le attese e i suggerimenti, «work» sessioni e lavori, «out» gli
@@ -74,7 +75,7 @@
     pluginsRun?: ((op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => Promise<{ ok: boolean; text: string } | null>) | null
     /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto.
      *  `suggestionsN`: quanti ne mostra, perché «Ti aspettano» compaia anche quando ci sono solo loro. */
-    suggestions?: Snippet; suggestionsN?: number
+    suggestions?: Snippet; suggestionsN?: number; suggestionsTotal?: number
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -115,6 +116,7 @@
     onSpeak?: ((text: string) => void) | null
   } = $props()
   const today = todayIso()
+  const order = $derived(part ? DEFAULT_ORDER : normalizeOrder(st.home_order))
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
   $effect(() => {
@@ -130,7 +132,7 @@
   // Chiave nuova col riordino (app-home-riordino-29-10): Notte e Utilizzo partono chiuse col numero in vista, anche per chi
   // le aveva aperte; sessioni, lavori ed esiti aperti.
   const SEC = 'home-sections-2'
-  const SEC_START = { sessions: true, lavori: true, esiti: true, usage: false, night: false }
+  const SEC_START = { suggestions: true, sessions: true, lavori: true, esiti: true, usage: false, night: false }
   let open = $state<Record<string, boolean>>((() => { try { return { ...SEC_START, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { ...SEC_START } } })())
   function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
   // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe con un tasto
@@ -329,6 +331,15 @@
 <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo le sessioni, fuori da «Ti aspettano» e dal suo
      numero, a filo e non pieni: un consiglio non blocca nessuno (correzione 1 del 30/10). -->
 {#if part === 'you' && !waitRows.length && !looseOk.length && !(suggestions && suggestionsN)}<p class="wnote">{t.deskYouEmpty}</p>{/if}
+<!-- I suggerimenti come sezione richiudibile (Franz 30/10 17:33), dopo le sessioni (16:44): la barra dei 7 giorni sta dentro.
+     Nella plancia restano nella colonna «Richiede te». -->
+{#snippet secSuggestions()}
+{#if (!part || part === 'you') && suggestions && suggestionsN}
+  {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti')}
+  {#if part || open.suggestions}<div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}{/if}
+{/if}
+{/snippet}
+{#snippet secSessions()}
 {#if (!part || part === 'work') && (restGroups.length || justClosed)}
   {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(restGroups.reduce((n, [, rows]) => n + rows.length, 0)), 'home-sez-sessioni', sessionsLine)}
   {#if justClosed}
@@ -347,9 +358,9 @@
     {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   {/if}
 {/if}
-<!-- I suggerimenti dopo le sessioni (Franz 30/10 16:44); nella plancia restano nella colonna «Richiede te». -->
-{#if (!part || part === 'you') && suggestions && suggestionsN}<div class="sugg">{@render suggestions()}</div>{/if}
 {#if part === 'work' && afterSessions}{@render afterSessions()}{/if}
+{/snippet}
+{#snippet secLavori()}
 {#if (!part || part === 'work') && showLavori && (fy || workGroups.length)}
   {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', null, 'home-sez-lavori', open.lavori ? null : lavoriLine)}{/if}
   {#if part || open.lavori}
@@ -402,6 +413,8 @@
     {/if}
   {/if}
 {/if}
+{/snippet}
+{#snippet secEsiti()}
 {#if (!part || part === 'out') && out}
   <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. -->
   {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', part && out.red.length ? String(out.red.length) : null, 'home-sez-esiti')}
@@ -424,6 +437,8 @@
     </div>
   {/if}
 {/if}
+{/snippet}
+{#snippet secAltro()}
   {#if (!part || part === 'tools') && ((usage && showUsage) || sys || (pluginsLoad && pluginsRun) || model.closed.length)}
     <!-- «Altro» (stile «Studio e Diretta», 30/10): Utilizzo, Sistema, Plugin e skill e Chiuse come righe di una lista, col
          numero in vista; il tocco apre la riga sul posto, Chiuse apre l'elenco. La Notte sta nei Lavori. -->
@@ -438,7 +453,7 @@
         <div bind:this={usageEl}>
           <button class="wrow orow" aria-expanded={open.usage} onclick={() => toggleSec('usage')}><span class="wic"><span class="ms">data_usage</span></span><span class="otext"><b>{t.homeUsage}</b></span>{#if usageLine && !open.usage}<span class="mono">{usageLine}</span>{/if}<span class="ms tog">{open.usage ? 'expand_less' : 'expand_more'}</span></button>
         </div>
-        {#if open.usage}<div class="footer exp" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}{#if kpiData?.kpi_waits}<Kpi17 w={kpiData.kpi_waits} {now} />{/if}{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div>{/if}
+        {#if open.usage}<div class="footer exp" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}{#if kpiData?.kpi_waits}<Kpi17 w={kpiData.kpi_waits} {now} />{/if}</div>{/if}
       {/if}
       {#if sys}
         <button class="wrow orow" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}><span class="wic"><span class="ms">memory</span></span><span class="otext"><b>{t.homeSystem}</b></span>{#if !sysOpen}<span class="mono"><b class="sysdot" style:background={SYS_TONE[sys.level]}></b>{summaryLine(sys, lang)}</span>{/if}<span class="ms tog">{sysOpen ? 'expand_less' : 'expand_more'}</span></button>
@@ -482,6 +497,11 @@
       {/if}
     </div>
   {/if}
+{/snippet}
+<!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
+{#each order as k (k)}
+  {#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else}{@render secAltro()}{/if}
+{/each}
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
 </section>
 
