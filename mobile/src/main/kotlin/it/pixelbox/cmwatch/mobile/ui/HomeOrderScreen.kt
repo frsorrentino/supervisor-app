@@ -125,7 +125,8 @@ private fun OrderRow(icon: ImageVector, name: String, first: Boolean, i: Int, si
         }) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(20.dp))
-                Text(name, style = V3.Name, maxLines = 1)
+                // A capo, mai tagliato: con i caratteri grandi «Suggerimenti della master» non sta su una riga.
+                Text(name, style = V3.Name)
             }
         }
     }
