@@ -291,12 +291,21 @@ class ContractTest {
         assertTrue(r.all { it.label.length <= 40 })
     }
 
+    /** Contratto 1.97: `state.home_order` e l'op; assente quando è il predefinito. */
+    @Test fun homeOrderInTheState() {
+        val idle = ContractJson.decodeState(java.io.File("../contract/state-2-idle.json").readText())
+        assertEquals(listOf("suggestions", "sessions", "lavori", "esiti", "altro"), idle.homeOrder)
+        assertTrue("home_order" in idle.ops.orEmpty())
+        assertEquals(null, ContractJson.decodeState(java.io.File("../contract/state-3-stale.json").readText()).homeOrder)
+    }
+
     @Test fun cmdAndResultDecodeAndEncode() {
         val root = Json.parseToJsonElement(Fixtures.cmdResult).jsonObject
         val cmds = root.getValue("cmd").jsonArray.map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
         val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
         // Manca «unfollow»; dal contratto 1.72 anche «changes» e «diff», il cui risultato ha la sua fixture (changes-sample.json).
-        assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
+        // Dal 1.97 anche «home_order», senza esempio in questa fixture: il risultato è quello solito, e lo stato lo prova homeOrderInTheState.
+        assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.HOME_ORDER), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
         // Contratto 1.12: due risultati in più, «model» riuscito ed «effort» rifiutato su una sessione occupata.
         // Contratto 1.13: uno in più, il launch con il primo messaggio. Contratto 1.17: night_add e night_remove.
         // Contratto 1.19: tre report, uno rifiutato. Contratto 1.21: due interrupt, «stopped» e «nothing to stop».
