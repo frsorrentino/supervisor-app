@@ -16,15 +16,15 @@ import it.pixelbox.cmwatch.contract.SessionState
 object Glyphs {
     fun state(ctx: Context, state: SessionState?, sizePx: Int = 96): Bitmap {
         val (res, color) = when (state) {
-            SessionState.WAITING -> R.drawable.ic_state_question to 0xFFFFB020.toInt()
-            SessionState.BUSY, SessionState.AWAITING -> R.drawable.ic_state_busy to 0xFF8BB4F7.toInt()
-            SessionState.IDLE -> R.drawable.ic_state_done to 0xFF65C581.toInt()
-            SessionState.GONE -> R.drawable.ic_state_gone to 0xFFC2554D.toInt()
-            null -> R.drawable.ic_app_mono to 0xFF8BB4F7.toInt()
+            SessionState.WAITING -> R.drawable.ic_state_question to 0xFFFFB23F.toInt()
+            SessionState.BUSY, SessionState.AWAITING -> R.drawable.ic_state_busy to 0xFF5AA2FF.toInt()
+            SessionState.IDLE -> R.drawable.ic_state_done to 0xFF34D399.toInt()
+            SessionState.GONE -> R.drawable.ic_state_gone to 0xFFFF5A5F.toInt()
+            null -> R.drawable.ic_app_mono to 0xFF5AA2FF.toInt()
         }
         val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
-        c.drawCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = 0xFF262A32.toInt() })
+        c.drawCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = 0xFF1B1D22.toInt() })
         val icon = ContextCompat.getDrawable(ctx, res)?.mutate() ?: return bmp
         icon.setTint(color)
         val pad = (sizePx * 0.22f).toInt()

@@ -492,7 +492,7 @@ open class CmTileService : TileService() {
         const val MARK_WORK = "mark_work"
         private const val AMBER = 0xFFFFB23F.toInt()
         private const val LABEL = 0xFFFFFFFF.toInt()   // mittente di Gmail: 10,1:1 sulla card
-        private const val TRACK = 0xFF3C4452.toInt()   // traccia della barra: visibile sulla card #2A313C
+        private const val TRACK = 0xFF272A31.toInt()   // traccia della barra: visibile sulla card #1B1D22
         private const val BAR_H = 10f
         private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
         fun requestUpdate(app: CmApp) = getUpdater(app).requestUpdate(CmTileService::class.java)
