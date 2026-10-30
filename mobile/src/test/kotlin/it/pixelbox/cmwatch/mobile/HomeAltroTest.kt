@@ -28,6 +28,14 @@ class HomeAltroTest {
 
     @Test fun altroSystemClosed() = shot()
 
+    /** Utilizzo con due account (state-2-idle): il nome intero, mai tagliato in un'altra parola (master 30/10 16:42). */
+    @Test fun altroUsageTwoAccounts() = shot()
+
+    @Test fun altroUsageTwoAccounts360LargeFont() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), fontScale = 1.3f))
+        shot()
+    }
+
     @Test fun altroSystemClosed360LargeFont() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), fontScale = 1.3f))
         shot()

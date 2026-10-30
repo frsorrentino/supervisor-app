@@ -407,7 +407,7 @@ fun SummaryList(
                         var first = true
                         if (hasUsage) {
                             val weeks = kpiState?.quota.orEmpty().filter { (_, q) -> !q.stale && q.w7 != null }.entries
-                            val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "${a.take(5)} ${q.w7}%" }
+                            val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "$a ${q.w7}%" }
                             V3Row(first, { usageOpen = !usageOpen; save("usage", usageOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.DataUsage) }, {
                                 toggle(usageOpen)
                             }, meter = { if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
