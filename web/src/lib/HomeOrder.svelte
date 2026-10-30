@@ -8,7 +8,7 @@
   let order = $state<HomeSection[]>(normalize(saved))
   const SEC: Record<HomeSection, { icon: string; name: string }> = {
     sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle },
-    lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, altro: { icon: 'more_horiz', name: t.homeMore },
+    lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, altro: { icon: 'data_usage', name: t.reorderTools },
   }
   const ROW = 56
   let held = $state<HomeSection | null>(null)

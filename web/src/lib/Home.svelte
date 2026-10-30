@@ -449,8 +449,8 @@
       <div class="sec static"><span class="ic"><span class="ms">data_usage</span></span><span class="st">{t.homeUsage}</span></div>
       <div class="card wrows altro"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
     {/if}
-    <div class="sec static"><span class="ic"><span class="ms">more_horiz</span></span><span class="st">{t.homeMore}</span></div>
-    <div class="card wrows altro">
+    <!-- Senza testata (Franz 30/10 21:05): il margine lo tiene staccato dalla sezione di prima. -->
+    <div class="card wrows altro detached">
       {#if usage && showUsage && !part}
         <div bind:this={usageEl}>
           <button class="wrow orow" aria-expanded={open.usage} onclick={() => toggleSec('usage')}><span class="wic"><span class="ms">data_usage</span></span><span class="otext"><b>{t.homeUsage}</b></span>{#if usageLine && !open.usage}<span class="mono">{usageLine}</span>{/if}<span class="ms tog">{open.usage ? 'expand_less' : 'expand_more'}</span></button>
@@ -990,6 +990,7 @@
   .home.part :global(.vsec), .home.part :global(.vlist) { margin-left: 0; margin-right: 0; }
   /* In «Altro» il titolo non cede mai: è il riepilogo a destra che va a capo, su una colonna stretta. */
   .altro .otext { flex: 1 0 auto; }
+  .altro.detached { margin-top: 14px; }
   .altro .wrow .mono { min-width: 0; white-space: normal; text-align: right; }
   .sec { gap: 0; margin: 18px 0 2px; padding: 0; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
   .sec .ic { width: 52px; flex: none; display: flex; justify-content: center; margin-right: 8px; }

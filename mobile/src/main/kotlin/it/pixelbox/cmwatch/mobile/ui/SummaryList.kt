@@ -413,11 +413,11 @@ fun SummaryList(
         val hasUsage = usage != null && showUsage
         val hasPlugins = plugins != null && onPluginsLoad != null && onPluginCmd != null
         if (hasUsage || system != null || hasPlugins || closedGroup != null) {
-            item(key = "sec-altro") { Box(moving()) { V3Section(stringResource(R.string.home_sec_other), androidx.compose.material.icons.Icons.Outlined.MoreHoriz) } }
+            // Senza testata (Franz 30/10 21:05): il margine lo tiene staccato dalla sezione di prima.
             item(key = "sec-usage") {
                 val rowIcon = @Composable { v: androidx.compose.ui.graphics.vector.ImageVector -> Icon(v, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
                 val toggle = @Composable { o: Boolean -> Icon(if (o) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3) }
-                Box(moving()) {
+                Box(moving().padding(top = 14.dp)) {
                     V3List {
                         var first = true
                         if (hasUsage) {

@@ -1441,4 +1441,5 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="usage_above_pace">%1$d punti sopra il ritmo pari</string>
     <string name="usage_peak">Prompt e commit per ora, punta alle %1$02d:00</string>
     <string name="usage_waits">Attesa mediana %1$d min · %2$d chiuse in 7 giorni</string>
+    <string name="reorder_tools">Utilizzo e sistema</string>
 </resources>

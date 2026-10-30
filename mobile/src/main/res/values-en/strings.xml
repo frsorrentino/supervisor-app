@@ -1416,4 +1416,5 @@ It starts at your last message to the master.</string>
     <string name="usage_above_pace">%1$d points above the even pace</string>
     <string name="usage_peak">Prompts and commits per hour, peak at %1$02d:00</string>
     <string name="usage_waits">Median wait %1$d min · %2$d closed in 7 days</string>
+    <string name="reorder_tools">Usage and system</string>
 </resources>

@@ -21,7 +21,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DragIndicator
-import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material.icons.outlined.PanTool
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.SportsScore
@@ -59,7 +59,7 @@ private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
     "suggestions" -> Icons.Outlined.AutoAwesome to stringResource(R.string.sug_title)
     "lavori" -> Icons.Outlined.Checklist to stringResource(R.string.lavori_title)
     "esiti" -> Icons.Outlined.SportsScore to stringResource(R.string.box_outcomes_title)
-    else -> Icons.Outlined.MoreHoriz to stringResource(R.string.home_sec_other)
+    else -> Icons.Outlined.DataUsage to stringResource(R.string.reorder_tools)
 }
 
 private val ROW = 56.dp
