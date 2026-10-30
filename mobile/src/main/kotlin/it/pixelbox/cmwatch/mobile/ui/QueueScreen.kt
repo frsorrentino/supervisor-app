@@ -82,7 +82,7 @@ fun QueueScreen(
             })
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 QueueHead(s, q.askedAt, now, onSession)
-                QuestionCard(q, firstFilled = true, holdHint = holdHint, onHold = { holdHint = true }, actions = actions)
+                QuestionCard(q, holdHint = holdHint, onHold = { holdHint = true }, actions = actions)
             }
         }
         Text(

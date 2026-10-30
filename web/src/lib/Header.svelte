@@ -102,7 +102,8 @@
   const forms: QuotaForm[] = ['full', 'short', 'tiny']
   // Una colonna molto stretta: «62%» senza «ctx», così il menu ⋮ resta in vista.
   const compact = $derived(width > 0 && width < 300)
-  const ring: Record<Tone, string> = { neutral: 'var(--b-ring)', warn: 'var(--b-warn)', alert: 'var(--b-alert)' }
+  // Il colore solo per lo stato (Franz 30/10 21:19): sotto le soglie l'anello è neutro.
+  const ring: Record<Tone, string> = { neutral: 'var(--tx2)', warn: 'var(--b-warn)', alert: 'var(--b-alert)' }
   const arc = (pct: number) => `${Math.max(0, Math.min(100, pct)) * 0.4712} 100`
 
   let menu = $state(false)
@@ -162,7 +163,7 @@
       {#if appMenu}{@render appMenu()}{/if}
     </div>
   {/if}
-  <div class="row">
+  <div class="row v3">
     {#if inRow}<button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
     {#if wide}
       <span class="lead"><Badge {s} size={26} /><h1>{s.name}</h1></span>
@@ -259,7 +260,7 @@
 </header>
 
 {#snippet changesPill(c: NonNullable<typeof changes>)}
-  <button class="cpill" bind:offsetWidth={chW} disabled={!onChanges} title={t.changesOpen} aria-label={`${t.changesOpen}: ${t.changesFiles(c.files)} · ${counts(c.added, c.removed)}`} onclick={() => onChanges?.()}>
+  <button class="cpill v3" bind:offsetWidth={chW} disabled={!onChanges} title={t.changesOpen} aria-label={`${t.changesOpen}: ${t.changesFiles(c.files)} · ${counts(c.added, c.removed)}`} onclick={() => onChanges?.()}>
     <Icon name="diff" size={16} color="var(--icon)" />
     <span>{t.changesFiles(c.files)} · <b class="plus">+{c.added}</b> <b class="minus">{MINUS}{c.removed}</b></span>
   </button>
@@ -370,7 +371,7 @@
   .mpill .stale { color: var(--wait); }
   .pill { position: relative; }
   .tipscrim { position: fixed; inset: 0; z-index: 30; background: transparent; }
-  .row { position: relative; }
+  .row { position: relative; background: none; }
   .permtip { position: absolute; left: 12px; top: 42px; z-index: 31; width: min(320px, calc(100vw - 24px)); display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: var(--high); box-shadow: 0 8px 28px rgb(0 0 0 / .5); }
   .permtip span { display: flex; flex-direction: column; gap: 4px; }
   .permtip small { color: var(--text2); font-size: 13.5px; line-height: 1.4; }

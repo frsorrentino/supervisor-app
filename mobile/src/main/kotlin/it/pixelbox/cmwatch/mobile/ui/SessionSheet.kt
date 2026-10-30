@@ -40,6 +40,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.content.consume
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
@@ -511,7 +513,7 @@ fun SessionSheet(
                 // La domanda dopo la chat, sopra la barra: il suo bottone pieno resta in vista (revisione 30/09).
                 s.question?.let { q ->
                     item(key = "q-" + q.id) {
-                        QuestionCard(q, primary == PhonePrimary.Button.OPTION, holdHint, onHold = { holdHint = true }, actions)
+                        QuestionCard(q, holdHint, onHold = { holdHint = true }, actions)
                     }
                 }
                 quotaLimit?.let { e -> item(key = "quota-" + e.key) { QuotaLimitCard(e, passTargets, onQuotaRoute) } }
@@ -1283,23 +1285,30 @@ private fun DecisionSheet(draft: String, project: String?, onDismiss: () -> Unit
     }
 }
 
-/** La domanda come sull'orologio: prima opzione piena, pressione lunga per il rischio alto, «Parliamone», «Consenti tutto». */
+/**
+ * La domanda nella forma delle schede di «Ti aspettano» (Franz 30/10 21:19, compito app-sessione-blocchi-v3-30-10): fondo neutro, il
+ * colore solo nel glifo di stato, la consigliata col bordo chiaro e il numero pieno, nessuna lastra piena. Pressione lunga per il
+ * rischio alto, «Parliamone», «Consenti tutto».
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun QuestionCard(
-    q: it.pixelbox.cmwatch.contract.Question, firstFilled: Boolean, holdHint: Boolean, onHold: () -> Unit, actions: SheetActions,
-) {
-    Surface(color = CmColors.surfaceHigh, shape = MaterialTheme.shapes.extraLarge, border = BorderStroke(2.dp, if (q.tier == Tier.HIGH) CmColors.gone else CmColors.waiting)) {
-        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Speakable(q.text, speak = true, actions.speak)
-            QuestionOptions(q, firstFilled, holdHint, onHold, actions.answer)
+    q: it.pixelbox.cmwatch.contract.Question, holdHint: Boolean, onHold: () -> Unit, actions: SheetActions,
+) = V3Theme {
+    Surface(color = V3.S2, shape = RoundedCornerShape(14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(Modifier.padding(top = 2.dp)) { StateGlyph(if (q.tier == Tier.HIGH) it.pixelbox.cmwatch.rules.Rail.Glyph.RED else it.pixelbox.cmwatch.rules.Rail.Glyph.WAITING) }
+                Box(Modifier.weight(1f)) { Speakable(q.text, speak = true, actions.speak, tint = V3.Tx2) }
+            }
+            QuestionOptions(q, firstFilled = false, holdHint, onHold, actions.answer, tonal = V3.S3, v3 = true)
             val allowAll = QuestionRules.allowAllVisible(q)
             ButtonGroup(overflowIndicator = { ButtonGroupDefaults.OverflowIndicator(it) }, modifier = Modifier.fillMaxWidth()) {
                 customItem(
                     buttonGroupContent = {
                         val src = remember { MutableInteractionSource() }
-                        OutlinedButton(onClick = actions.chat, interactionSource = src, modifier = Modifier.weight(1f).animateWidth(src)) {
-                            Text(stringResource(R.string.chat_about_this), maxLines = 1)
+                        OutlinedButton(onClick = actions.chat, interactionSource = src, border = BorderStroke(1.dp, V3.Tx3.copy(alpha = .5f)), modifier = Modifier.weight(1f).animateWidth(src)) {
+                            Text(stringResource(R.string.chat_about_this), color = V3.Tx, maxLines = 1)
                         }
                     },
                     menuContent = { m -> DropdownMenuItem(text = { Text(stringResource(R.string.chat_about_this)) }, onClick = { m.dismiss(); actions.chat() }) },
@@ -1307,8 +1316,8 @@ internal fun QuestionCard(
                 if (allowAll) customItem(
                     buttonGroupContent = {
                         val src = remember { MutableInteractionSource() }
-                        OutlinedButton(onClick = actions.allowAll, interactionSource = src, modifier = Modifier.weight(1f).animateWidth(src)) {
-                            Text(stringResource(R.string.allow_all), maxLines = 1)
+                        OutlinedButton(onClick = actions.allowAll, interactionSource = src, border = BorderStroke(1.dp, V3.Tx3.copy(alpha = .5f)), modifier = Modifier.weight(1f).animateWidth(src)) {
+                            Text(stringResource(R.string.allow_all), color = V3.Tx, maxLines = 1)
                         }
                     },
                     menuContent = { m -> DropdownMenuItem(text = { Text(stringResource(R.string.allow_all)) }, onClick = { m.dismiss(); actions.allowAll() }) },
@@ -1447,14 +1456,14 @@ private fun toolIcon(k: ToolText.Kind): androidx.compose.ui.graphics.vector.Imag
  * di seguito»): «N file» con «Salva tutti» e «Condividi tutti»; le card dei singoli file restano sotto. Come la web.
  */
 @Composable
-private fun FilesGroup(files: List<Pair<TranscriptFile, String>>) {
+private fun FilesGroup(files: List<Pair<TranscriptFile, String>>, v3: Boolean = false) {
     if (!it.pixelbox.cmwatch.rules.FileActions.grouped(files.size)) return
     val opener = LocalFileOpener.current
     val all = files.map { (f, entry) -> it.pixelbox.cmwatch.rules.FileCache.key(f, entry) to f }
     // Il conto a sinistra e i tasti a destra, come nella web.
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.AutoMirrored.Rounded.InsertDriveFile, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Rounded.InsertDriveFile, null, tint = if (v3) V3.Tx2 else CmColors.actionIcon, modifier = Modifier.size(18.dp))
             Text(pluralStringResource(R.plurals.files_group, files.size, files.size), style = MaterialTheme.typography.labelLarge, color = CmColors.text, softWrap = false)
         }
         // I due tasti in un solo pezzo: su uno schermo stretto vanno sotto insieme, mai uno per riga.
@@ -1463,7 +1472,7 @@ private fun FilesGroup(files: List<Pair<TranscriptFile, String>>) {
                 Triple(FileAct.DOWNLOAD, Icons.Rounded.Download, R.string.files_save_all),
                 Triple(FileAct.SHARE, Icons.Rounded.Share, R.string.files_share_all),
             )) {
-                androidx.compose.material3.FilledTonalButton(onClick = { opener.actAll(all, act) }, modifier = Modifier.handCursor()) {
+                androidx.compose.material3.FilledTonalButton(onClick = { opener.actAll(all, act) }, modifier = Modifier.handCursor(), colors = if (v3) androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(containerColor = V3.S3, contentColor = V3.Tx) else androidx.compose.material3.ButtonDefaults.filledTonalButtonColors()) {
                     Icon(icon, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(label), softWrap = false)
@@ -1475,7 +1484,7 @@ private fun FilesGroup(files: List<Pair<TranscriptFile, String>>) {
 
 /** Un file prodotto da Claude: icona per tipo, nome e peso. L'anteprima e l'apertura arrivano con il trasferimento dei file. */
 @Composable
-private fun FileChip(f: TranscriptFile, entry: String) {
+private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
     val icon = when {
         f.mime?.startsWith("image/") == true -> Icons.Rounded.Image
         f.mime == "application/pdf" -> Icons.Rounded.PictureAsPdf
@@ -1496,10 +1505,10 @@ private fun FileChip(f: TranscriptFile, entry: String) {
     LaunchedEffect(key, autoPreview) { if (autoPreview && opener.local[key] == null && key !in opener.loading) opener.preview(key, f) }
     // Ogni allegato a tutta larghezza della chat (Franz, 12/10 12:27 per immagini e video, 15/10 22:20 per tutti).
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Surface(color = CmColors.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }, modifier = Modifier.fillMaxWidth()) {
+        Surface(color = if (v3) V3.S2 else CmColors.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }, modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (key in opener.loading) CircularProgressIndicator(Modifier.size(18.dp), color = CmColors.actionIcon, strokeWidth = 2.dp)
-                else Icon(icon, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
+                else Icon(icon, null, tint = if (v3) V3.Tx2 else CmColors.actionIcon, modifier = Modifier.size(18.dp))
                 // Il nome va a capo nello spazio che resta; il peso sta sempre su una riga (segnalazione 01/10 18:16: con un
                 // nome lungo il peso finiva in colonna, una lettera per riga).
                 Text(f.path.substringAfterLast('/'), style = MaterialTheme.typography.labelLarge, color = CmColors.text, modifier = Modifier.weight(1f, fill = false))
@@ -1622,13 +1631,13 @@ private fun feedKey(i: ChatFeed.Item): String = when (i) {
  * se è fallito. I file prodotti restano sempre in vista sotto.
  */
 @Composable
-private fun StepsCard(g: ChatFeed.Item.Steps) {
+private fun StepsCard(g: ChatFeed.Item.Steps) = V3Theme {
     var open by rememberSaveable(g.entries.first().id) { mutableStateOf(false) }
     val failed = g.entries.count { it.error == true }
     val last = g.entries.last()
     val shape = RoundedCornerShape(14.dp)
     Row(
-        Modifier.fillMaxWidth().clip(shape).background(if (failed > 0) CmColors.stepsFailBg else CmColors.stepsBg).smoothSize(),
+        Modifier.fillMaxWidth().testTag("sessione-v3").clip(shape).background(if (failed > 0) V3.Red.copy(alpha = .12f).compositeOver(V3.S1) else V3.S1).smoothSize(),
     ) {
         Column(Modifier.weight(1f).padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).handCursor().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) {
@@ -1643,28 +1652,28 @@ private fun StepsCard(g: ChatFeed.Item.Steps) {
                         append(listOfNotNull(total, top, others).joinToString(" · "))
                         errors?.let { e ->
                             append(" · ")
-                            pushStyle(androidx.compose.ui.text.SpanStyle(color = CmColors.briefAlertRing, fontWeight = FontWeight.SemiBold)); append(e); pop()
+                            pushStyle(androidx.compose.ui.text.SpanStyle(color = V3.Red, fontWeight = FontWeight.SemiBold)); append(e); pop()
                         }
                     },
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
-                    style = MaterialTheme.typography.labelLarge, color = CmColors.text2, modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelLarge, color = V3.Tx2, modifier = Modifier.weight(1f),
                 )
                 StepDots(g.entries.map { it.error == true })
-                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = CmColors.text2)
+                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = V3.Tx2)
             }
             if (open) g.entries.forEach { ToolLine(it, files = false) } else {
                 val (main, _) = ToolText.row(last.tool, last.text, last.note)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(if (last.error == true) Icons.Rounded.ErrorOutline else toolIcon(ToolText.kind(last.tool)), last.tool,
-                        tint = if (last.error == true) CmColors.gone else CmColors.text2, modifier = Modifier.size(16.dp))
+                        tint = if (last.error == true) V3.Red else V3.Tx2, modifier = Modifier.size(16.dp))
                     Text(main, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, style = MaterialTheme.typography.bodyMedium,
-                        color = if (last.error == true) CmColors.goneDim else CmColors.text)
+                        color = if (last.error == true) V3.Red else V3.Tx)
                 }
             }
             g.entries.flatMap { e -> e.files.orEmpty().map { it to e.id } }.takeIf { it.isNotEmpty() }?.let { files ->
-                FilesGroup(files)
+                FilesGroup(files, v3 = true)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    files.forEach { (f, id) -> FileChip(f, id) }
+                    files.forEach { (f, id) -> FileChip(f, id, v3 = true) }
                 }
             }
             // Contratto 1.72: le righe chiuse dei diff del gruppo, sempre in vista come i file.
@@ -1678,7 +1687,7 @@ private fun StepsCard(g: ChatFeed.Item.Steps) {
 private fun StepDots(failed: List<Boolean>) {
     Row(Modifier.padding(start = 8.dp, end = 4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
         failed.take(MAX_DOTS).forEach { bad ->
-            Box(Modifier.size(5.dp).clip(CircleShape).background(if (bad) CmColors.briefAlertRing else CmColors.stepsDot))
+            Box(Modifier.size(5.dp).clip(CircleShape).background(if (bad) V3.Red else V3.Tx3))
         }
         if (failed.size > MAX_DOTS) Text("+${failed.size - MAX_DOTS}", style = MaterialTheme.typography.labelSmall, color = CmColors.text2, modifier = Modifier.padding(start = 2.dp))
     }
@@ -2292,13 +2301,13 @@ internal fun linked(text: String): AnnotatedString = androidx.compose.ui.text.bu
 
 /** Testo con il tasto ▶ accanto (regola di Franz 12/09: testi lunghi, esiti, risposte e domande). */
 @Composable
-fun Speakable(text: String, speak: Boolean, onSpeak: (String) -> Unit) {
+fun Speakable(text: String, speak: Boolean, onSpeak: (String) -> Unit, tint: androidx.compose.ui.graphics.Color = CmColors.actionIcon) {
     Row(verticalAlignment = Alignment.Top) {
         Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = CmColors.text, modifier = Modifier.weight(1f))
         val reading = LocalSpeaking.current == text
         if (speak && reading) RatePill()
         if (speak) IconButton(onClick = { onSpeak(text) }) {
-            Icon(if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, stringResource(if (reading) R.string.stop_reading else R.string.read_aloud), tint = CmColors.actionIcon)
+            Icon(if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, stringResource(if (reading) R.string.stop_reading else R.string.read_aloud), tint = tint)
         }
     }
 }
@@ -2312,19 +2321,19 @@ private fun TunePill(label: String, enabled: Boolean, dot: Boolean = false, mode
     Box {
         // Tenendo premuta la pillola, la scheda della modalità dei permessi (mockup del 14/10, schermata 1).
         Surface(
-            color = CmColors.surface, shape = CircleShape,
+            color = V3.S2, shape = CircleShape,
             modifier = Modifier.clip(CircleShape).combinedClickable(enabled = enabled || glyph != it.pixelbox.cmwatch.rules.PermissionModes.Glyph.NONE,
                 onClick = { if (enabled) onClick() }, onLongClick = { if (glyph != it.pixelbox.cmwatch.rules.PermissionModes.Glyph.NONE) card = true }),
         ) {
             Row(Modifier.padding(start = 12.dp, end = if (enabled) 6.dp else 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(label, style = PillText, color = CmColors.text, maxLines = 1, softWrap = false)
+                Text(label, style = PillText, color = V3.Tx, maxLines = 1, softWrap = false)
                 // Lo spazio solo col segno: senza, la pillola resta larga come prima e la quota tiene l'ora del reset.
                 if (glyph != it.pixelbox.cmwatch.rules.PermissionModes.Glyph.NONE) { Spacer(Modifier.width(4.dp)); PermissionGlyph(glyph, 14.dp) }
-                if (enabled) Icon(Icons.Rounded.ArrowDropDown, null, tint = CmColors.text2, modifier = Modifier.size(18.dp))
+                if (enabled) Icon(Icons.Rounded.ArrowDropDown, null, tint = V3.Tx2, modifier = Modifier.size(18.dp))
             }
         }
         // Contratto 1.37: c'è un consiglio diverso dalla scelta di adesso (mockup approvato il 05/10 21:07).
-        if (dot) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(CmColors.bg, CircleShape).padding(2.dp).background(CmColors.advice, CircleShape))
+        if (dot) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(CmColors.bg, CircleShape).padding(2.dp).background(V3.Tx2, CircleShape))
         if (card) androidx.compose.ui.window.Popup(onDismissRequest = { card = false }, offset = androidx.compose.ui.unit.IntOffset(0, 120)) {
             Box(Modifier.width(320.dp)) { PermissionCard(mode) }
         }
@@ -2339,7 +2348,7 @@ internal fun AdviceTag() = Text(
 )
 
 /** Il testo delle pillole della testata: 13 sp, così le tre stanno su una riga di telefono (variante A, 09/10). */
-private val PillText = androidx.compose.ui.text.TextStyle(fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp), fontWeight = FontWeight.Medium, letterSpacing = androidx.compose.ui.unit.TextUnit(0.1f, androidx.compose.ui.unit.TextUnitType.Sp))
+private val PillText = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp), fontWeight = FontWeight.Medium, letterSpacing = androidx.compose.ui.unit.TextUnit(0.1f, androidx.compose.ui.unit.TextUnitType.Sp))
 
 /**
  * La forma della pillola della quota, dalla più lunga: «5h 4% · 20:00», «5h 4%», «5h 4%» senza anello. «5h» resta sempre,
@@ -2403,22 +2412,22 @@ private fun MeterPills(
 @Composable
 private fun ContextPill(pct: Int, enabled: Boolean, onClick: () -> Unit) {
     val tone = when (SessionMeters.contextTone(pct)) {
-        it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> CmColors.briefAlertRing
-        it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> CmColors.briefWarn
-        else -> CmColors.briefRing
+        it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> V3.Red
+        it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> V3.Wait
+        else -> V3.Tx2
     }
     val frac = SessionMeters.contextFraction(pct) ?: 0f
     MeterPill(enabled, onClick) {
         MeterRing(frac, tone)
         // «ctx» davanti alla percentuale (Franz, 04/10 20:43), come «5h» davanti alla quota.
-        Text(stringResource(R.string.ctx_short, pct), style = PillText, color = CmColors.text, maxLines = 1, softWrap = false)
+        Text(stringResource(R.string.ctx_short, pct), style = PillText, color = V3.Tx, maxLines = 1, softWrap = false)
     }
 }
 
 /** Il fondo comune delle pillole: stessa forma, stessa altezza della pillola del modello. Senza anello il testo sta al centro. */
 @Composable
 private fun MeterPill(enabled: Boolean, onClick: () -> Unit, ring: Boolean = true, content: @Composable RowScope.() -> Unit) {
-    Surface(onClick = onClick, enabled = enabled, color = CmColors.surface, shape = CircleShape) {
+    Surface(onClick = onClick, enabled = enabled, color = V3.S2, shape = CircleShape) {
         Row(Modifier.padding(start = if (ring) 8.dp else 10.dp, end = 10.dp, top = 7.dp, bottom = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp), content = content)
     }
 }
@@ -2430,7 +2439,7 @@ private fun MeterRing(frac: Float, tone: androidx.compose.ui.graphics.Color) {
         val w = 2.5.dp.toPx()
         val inset = w / 2
         val sz = androidx.compose.ui.geometry.Size(size.width - w, size.height - w)
-        drawArc(CmColors.briefTrack, -90f, 360f, false, topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = sz, style = androidx.compose.ui.graphics.drawscope.Stroke(w))
+        drawArc(V3.S3, -90f, 360f, false, topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = sz, style = androidx.compose.ui.graphics.drawscope.Stroke(w))
         drawArc(tone, -90f, 360f * frac, false, topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = sz, style = androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
     }
 }
@@ -2441,10 +2450,10 @@ private fun MeterRing(frac: Float, tone: androidx.compose.ui.graphics.Color) {
  */
 @Composable
 private fun QuotaPill(pct: Int, resetAt: Long?, stale: Boolean, now: Long, form: QuotaForm, onClick: () -> Unit) {
-    val tone = if (stale) CmColors.waiting else when (SessionMeters.quotaTone(pct)) {
-        it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> CmColors.briefAlertRing
-        it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> CmColors.briefWarn
-        else -> CmColors.briefRing
+    val tone = if (stale) V3.Wait else when (SessionMeters.quotaTone(pct)) {
+        it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> V3.Red
+        it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> V3.Wait
+        else -> V3.Tx2
     }
     val zone = ZoneId.systemDefault()
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
@@ -2459,7 +2468,7 @@ private fun QuotaPill(pct: Int, resetAt: Long?, stale: Boolean, now: Long, form:
     Box(Modifier.semantics(mergeDescendants = true) { contentDescription = desc }) {
         MeterPill(true, onClick, ring) {
             if (ring) MeterRing((pct / 100f).coerceIn(0f, 1f), tone)
-            Text(label, style = PillText, color = if (stale || !ring && tone != CmColors.briefRing) tone else CmColors.text, maxLines = 1, softWrap = false)
+            Text(label, style = PillText, color = if (stale || !ring && tone != V3.Tx2) tone else V3.Tx, maxLines = 1, softWrap = false)
         }
     }
 }

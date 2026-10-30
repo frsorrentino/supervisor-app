@@ -29,7 +29,7 @@
 </script>
 
 {#if away}
-<div class="away" style="--t:{tone}">
+<div class="away v3" style="--t:{tone}">
   <div class="top">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--t)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{#each PATHS.hand as d}<path {d} />{/each}</svg>
     <b>{text}</b>
@@ -43,27 +43,27 @@
   </div>
 </div>
 {:else}
-<div class="pill" style="--t:{tone}; translate: {dx}px 0; opacity: {1 - Math.min(1, Math.abs(dx) / (SWIPE_PX * 2))}" role="button" tabindex="0" onclick={open} onkeydown={(e) => e.key === 'Enter' && onOpen()}
+<div class="pill v3" style="--t:{tone}; translate: {dx}px 0; opacity: {1 - Math.min(1, Math.abs(dx) / (SWIPE_PX * 2))}" role="button" tabindex="0" onclick={open} onkeydown={(e) => e.key === 'Enter' && onOpen()}
   onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up}>
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--t)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{#each waiting ? PATHS.hand : FLAG as d}<path {d} />{/each}</svg>
   <span class="text">{text}</span>
   <span class="act">{waiting ? t.elsewhereReply : t.elsewhereOpen}</span>
-  {#if waiting}<svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--t)" stroke-width="2" stroke-linecap="round" /></svg>{/if}
+  {#if waiting}<svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-linecap="round" /></svg>{/if}
   <button class="x" aria-label={t.closeWord} onclick={(e) => { e.stopPropagation(); onDismiss() }} onpointerdown={(e) => e.stopPropagation()}><svg viewBox="0 0 24 24" width="18" height="18"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg></button>
 </div>
 {/if}
 
 <style>
-  .pill { display: flex; align-items: center; gap: 10px; margin: 8px 12px; min-height: 44px; padding: 0 4px 0 14px; border-radius: 22px; cursor: pointer; outline: none; touch-action: pan-y;
-    background: color-mix(in srgb, var(--t) 16%, transparent); animation: in .25s cubic-bezier(.2, .8, .2, 1); }
-  .pill:hover, .pill:focus-visible { background: color-mix(in srgb, var(--t) 22%, transparent); }
+  .pill { display: flex; align-items: center; gap: 10px; margin: 8px 12px; min-height: 44px; padding: 0 4px 0 14px; border-radius: 14px; cursor: pointer; outline: none; touch-action: pan-y;
+    background: var(--s2); animation: in .25s cubic-bezier(.2, .8, .2, 1); }
+  .pill:hover, .pill:focus-visible { background: var(--s3); }
   svg { flex: none; }
   .text { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
-  .act { color: var(--t); font-size: 14px; font-weight: 500; }
+  .act { color: var(--tx); font: 600 14px var(--display); }
   .x { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; }
   .x:hover { background: rgb(255 255 255 / .06); }
-  .away { margin: 8px 12px; padding: 12px 6px 12px 14px; border-radius: 20px; display: flex; flex-direction: column; gap: 6px;
-    background: color-mix(in srgb, var(--t) 13%, transparent); animation: in .25s cubic-bezier(.2, .8, .2, 1); }
+  .away { margin: 8px 12px; padding: 12px 6px 12px 14px; border-radius: 14px; display: flex; flex-direction: column; gap: 6px;
+    background: var(--s2); animation: in .25s cubic-bezier(.2, .8, .2, 1); }
   .away .top { display: flex; align-items: center; gap: 10px; }
   .away b { flex: 1; min-width: 0; font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; }
   .away .m { font: 12px var(--mono); color: var(--text2); white-space: nowrap; }

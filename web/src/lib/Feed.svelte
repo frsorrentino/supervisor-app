@@ -202,7 +202,7 @@
   {@const cs = counts(g)}
   {@const last = g.entries[g.entries.length - 1]}
   {@const fs = g.entries.flatMap(e => (e.files ?? []).map(f => ({ f, entry: e.id })))}
-  <div class="steps" class:fail={failed > 0}>
+  <div class="steps v3" data-testid="sessione-v3" class:fail={failed > 0}>
     <button class="shead" aria-expanded={!!open[id]} onclick={() => (open[id] = !open[id])}>
       <span class="ssum">{[t.stepsCount(g.entries.length), cs[0] ? `${cs[0][1]} ${cs[0][0]}` : null, cs.length > 1 ? `+${cs.length - 1}` : null].filter(Boolean).join(' · ')}{#if failed}{' · '}<b class="sfail">{t.stepsFailed(failed)}</b>{/if}</span>
       <span class="dots">{#each g.entries.slice(0, 12) as e}<i class:bad={e.error}></i>{/each}{#if g.entries.length > 12}<span>+{g.entries.length - 12}</span>{/if}</span>

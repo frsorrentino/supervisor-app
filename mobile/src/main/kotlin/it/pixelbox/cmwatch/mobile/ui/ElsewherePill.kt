@@ -44,7 +44,7 @@ private const val SWIPE_DP = 80
 @Composable
 fun ElsewherePill(alert: Elsewhere.Alert, onOpen: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     val waiting = alert is Elsewhere.Waiting
-    val tone = if (waiting) CmColors.briefWarn else CmColors.briefGood
+    val tone = if (waiting) V3.Wait else V3.Good
     val text = when (alert) {
         is Elsewhere.Waiting -> if (alert.sessions.size == 1) stringResource(R.string.elsewhere_waiting, alert.sessions[0])
             else stringResource(R.string.elsewhere_waiting_many, alert.sessions.size)
@@ -53,7 +53,7 @@ fun ElsewherePill(alert: Elsewhere.Alert, onOpen: () -> Unit, onDismiss: () -> U
     val swipePx = with(LocalDensity.current) { SWIPE_DP.dp.toPx() }
     var dx by remember(alert.key) { mutableFloatStateOf(0f) }
     Surface(
-        onClick = onOpen, color = tone.copy(alpha = 0.16f), shape = CircleShape,
+        onClick = onOpen, color = V3.S2, shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).heightIn(min = 44.dp)
             .offset { IntOffset(dx.roundToInt(), 0) }
             .graphicsLayer { alpha = 1f - (abs(dx) / (swipePx * 2)).coerceIn(0f, 1f) }
@@ -61,11 +61,11 @@ fun ElsewherePill(alert: Elsewhere.Alert, onOpen: () -> Unit, onDismiss: () -> U
     ) {
         Row(Modifier.padding(start = 14.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(painterResource(if (waiting) R.drawable.ic_hand else R.drawable.ic_flag), null, tint = tone, modifier = Modifier.size(20.dp))
-            Text(text, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = CmColors.text,
+            Text(text, style = MaterialTheme.typography.bodyLarge.copy(fontFamily = V3.Sans, fontWeight = FontWeight.Medium), color = V3.Tx,
                 maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
-            Text(stringResource(if (waiting) R.string.elsewhere_reply else R.string.elsewhere_open), style = MaterialTheme.typography.labelLarge, color = tone)
-            if (waiting) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = tone, modifier = Modifier.size(20.dp))
-            IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = CmColors.text2, modifier = Modifier.size(18.dp)) }
+            Text(stringResource(if (waiting) R.string.elsewhere_reply else R.string.elsewhere_open), style = MaterialTheme.typography.labelLarge.copy(fontFamily = V3.Display), color = V3.Tx)
+            if (waiting) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx2, modifier = Modifier.size(20.dp))
+            IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = V3.Tx2, modifier = Modifier.size(18.dp)) }
         }
     }
 }
