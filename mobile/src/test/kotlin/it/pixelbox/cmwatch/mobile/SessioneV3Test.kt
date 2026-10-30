@@ -16,7 +16,8 @@ class SessioneV3Test {
     private val st = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
     private val none = SheetActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {})
 
-    private fun shot(open: Boolean = false, failed: Boolean = false) {
+    @androidx.compose.runtime.Composable
+    private fun shot(failed: Boolean = false) {
         val s = st.sessions.first { it.question != null }
         val t = st.ts - 600
         val v = ContractJson.decodeChanges(File("../contract/changes-sample.json").readText())
