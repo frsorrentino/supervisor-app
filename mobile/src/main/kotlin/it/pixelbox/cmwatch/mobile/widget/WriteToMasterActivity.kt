@@ -34,7 +34,6 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.rules.ContextActions
 import it.pixelbox.cmwatch.rules.Sent
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import kotlinx.coroutines.launch
 
 /**
@@ -55,9 +54,9 @@ class WriteToMasterActivity : ComponentActivity() {
                 val asking = master?.question != null
                 var text by rememberSaveable { mutableStateOf("") }
                 val focus = remember { FocusRequester() }
-                ModalBottomSheet(onDismissRequest = { finish() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = CmColors.surface) {
+                ModalBottomSheet(onDismissRequest = { finish() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = it.pixelbox.cmwatch.mobile.ui.Cm.surface) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 16.dp).imePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        master?.question?.let { q -> Text(q.text, style = MaterialTheme.typography.bodyLarge, color = CmColors.text) }
+                        master?.question?.let { q -> Text(q.text, style = MaterialTheme.typography.bodyLarge, color = it.pixelbox.cmwatch.mobile.ui.Cm.text) }
                         OutlinedTextField(
                             text, { text = it }, modifier = Modifier.fillMaxWidth().focusRequester(focus), minLines = 2, maxLines = 6,
                             placeholder = { Text(stringResource(if (asking) R.string.mw_reply else R.string.mw_write)) },
@@ -74,7 +73,7 @@ class WriteToMasterActivity : ComponentActivity() {
                                 }
                             },
                             enabled = master != null && text.isNotBlank(), modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                            colors = ButtonDefaults.buttonColors(containerColor = it.pixelbox.cmwatch.mobile.ui.Cm.primary, contentColor = it.pixelbox.cmwatch.mobile.ui.Cm.onPrimary),
                         ) { Text(stringResource(R.string.send)) }
                         // Dentro il foglio, che si compone in una finestra sua: fuori il fuoco non arrivava al campo.
                         LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }

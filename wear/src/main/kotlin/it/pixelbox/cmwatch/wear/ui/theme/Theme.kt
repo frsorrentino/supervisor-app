@@ -5,6 +5,8 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import it.pixelbox.cmwatch.R
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -27,7 +29,7 @@ fun stateColor(s: SessionState, fresh: Boolean = true): Color = if (!fresh) CmCo
 }
 
 private val scheme = ColorScheme(
-    primary = CmColors.primary, primaryDim = Color(0xFFA8C7FA), primaryContainer = CmColors.primary,
+    primary = CmColors.primary, primaryDim = CmColors.text2, primaryContainer = CmColors.primary,
     onPrimary = CmColors.onPrimary, onPrimaryContainer = CmColors.onPrimary,
     secondary = CmColors.text2, secondaryDim = CmColors.text2, secondaryContainer = CmColors.surface,
     onSecondary = CmColors.bg, onSecondaryContainer = CmColors.text,
@@ -41,13 +43,15 @@ private val scheme = ColorScheme(
     onError = CmColors.text, onErrorContainer = CmColors.text,
 )
 
-val Mono = FontFamily.Monospace
+val Mono = FontFamily(Font(R.font.v3_geist_mono_regular, FontWeight.Normal), Font(R.font.v3_geist_mono_medium, FontWeight.Medium))
+private val Sans = FontFamily(Font(R.font.v3_barlow_regular, FontWeight.Normal), Font(R.font.v3_barlow_medium, FontWeight.Medium))
+private val Display = FontFamily(Font(R.font.v3_barlow_sc_medium, FontWeight.Medium), Font(R.font.v3_barlow_sc_semibold, FontWeight.SemiBold), Font(R.font.v3_barlow_sc_bold, FontWeight.Bold))
 
 /**
  * Numero grande della card in stile brief: 26 sp. Misurato sulla schermata vera (altezza delle maiuscole 18 dp a
  * densità 2,0); i token `numeral*` di Wear M3 sono molto più grandi e sfondavano la card.
  */
-val BriefNumber = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Medium)
+val BriefNumber = TextStyle(fontFamily = Display, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
 
 /** Nomi di sessione e terminale: mono 14 sp (design, sezione 3). */
 val MonoStyle = TextStyle(fontSize = 14.sp, fontFamily = Mono, fontWeight = FontWeight.Medium)
@@ -64,16 +68,16 @@ val TerminalStyle = TextStyle(fontSize = 13.sp, fontFamily = Mono)
  * fuori da questa scala, perché nella lista devono starci interi.
  */
 private val typography = Typography(
-    displaySmall = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Medium),
-    titleLarge = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium),
-    titleMedium = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Medium),
-    titleSmall = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
-    labelLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
-    labelMedium = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-    labelSmall = TextStyle(fontSize = 13.sp),
-    bodyLarge = TextStyle(fontSize = 16.sp),
-    bodyMedium = TextStyle(fontSize = 15.sp),
-    bodySmall = TextStyle(fontSize = 15.sp),
+    displaySmall = TextStyle(fontFamily = Display, fontSize = 26.sp, fontWeight = FontWeight.Medium),
+    titleLarge = TextStyle(fontFamily = Display, fontSize = 18.sp, fontWeight = FontWeight.Medium),
+    titleMedium = TextStyle(fontFamily = Display, fontSize = 17.sp, fontWeight = FontWeight.Medium),
+    titleSmall = TextStyle(fontFamily = Display, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+    labelLarge = TextStyle(fontFamily = Display, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+    labelMedium = TextStyle(fontFamily = Display, fontSize = 14.sp, fontWeight = FontWeight.Medium),
+    labelSmall = TextStyle(fontFamily = Sans, fontSize = 13.sp),
+    bodyLarge = TextStyle(fontFamily = Sans, fontSize = 16.sp),
+    bodyMedium = TextStyle(fontFamily = Sans, fontSize = 15.sp),
+    bodySmall = TextStyle(fontFamily = Sans, fontSize = 15.sp),
 )
 
 @Composable

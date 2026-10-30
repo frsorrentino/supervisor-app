@@ -137,7 +137,7 @@ class Notifier(private val ctx: Context) {
 
     private fun base(plan: NotificationPlan.Plan): NotificationCompat.Builder = NotificationCompat.Builder(ctx, plan.channel)
         .setSmallIcon(R.drawable.ic_app_mono)
-        .setColor(0xFF4C7DFF.toInt())
+        .setColor(0xFF5AA2FF.toInt())
         .setContentTitle(plan.title)
         .setSubText(plan.subText)
         .setLargeIcon(Glyphs.state(ctx, plan.accent))
@@ -216,7 +216,7 @@ class Notifier(private val ctx: Context) {
     }
 
     private fun simple(session: String, channel: String, text: String, accent: SessionState) = NotificationCompat.Builder(ctx, channel)
-        .setSmallIcon(R.drawable.ic_app_mono).setColor(0xFF4C7DFF.toInt()).setContentTitle(session).setContentText(text)
+        .setSmallIcon(R.drawable.ic_app_mono).setColor(0xFF5AA2FF.toInt()).setContentTitle(session).setContentText(text)
         .setLargeIcon(Glyphs.state(ctx, accent)).setOnlyAlertOnce(true).setLocalOnly(true).setGroup(NotificationPlan.GROUP).setSound(null)
         .setContentIntent(open("cmwatch://session/$session", id(session)))
 
@@ -249,7 +249,7 @@ class Notifier(private val ctx: Context) {
         val s = NotificationPlan.summary(state, labels)
         val style = NotificationCompat.InboxStyle().setBigContentTitle(s.title)
         s.rows.forEach { style.addLine(it) }
-        post(SUMMARY_ID, NotificationCompat.Builder(ctx, NotificationPlan.CH_OUTCOMES).setSmallIcon(R.drawable.ic_app_mono).setColor(0xFF4C7DFF.toInt())
+        post(SUMMARY_ID, NotificationCompat.Builder(ctx, NotificationPlan.CH_OUTCOMES).setSmallIcon(R.drawable.ic_app_mono).setColor(0xFF5AA2FF.toInt())
             .setContentTitle(s.title).setStyle(style).setGroup(NotificationPlan.GROUP).setGroupSummary(true).setLocalOnly(true).setOnlyAlertOnce(true).setSound(null)
             .setContentIntent(open("cmwatch://sessions", SUMMARY_ID)))
     }
@@ -272,7 +272,7 @@ class Notifier(private val ctx: Context) {
         val tag = if (e.kind == EventKind.ATTENTION_REMINDER) "reminder-" else e.kind.name + "-"
         val text = e.reason ?: e.shareBody.lineSequence().firstOrNull { it.isNotBlank() }
         post((tag + session).hashCode(), NotificationCompat.Builder(ctx, NotificationPlan.CH_QUESTIONS)
-            .setSmallIcon(R.drawable.ic_app_mono).setColor(0xFF4C7DFF.toInt()).setContentTitle(e.shareTitle).setContentText(text)
+            .setSmallIcon(R.drawable.ic_app_mono).setColor(0xFF5AA2FF.toInt()).setContentTitle(e.shareTitle).setContentText(text)
             .setLargeIcon(Glyphs.state(ctx, SessionState.WAITING)).setLocalOnly(true).setGroup(NotificationPlan.GROUP).setSound(null)
             .setSilent(e.quiet).setAutoCancel(true).setContentIntent(open("cmwatch://session/$session", (tag + session).hashCode())))
     }

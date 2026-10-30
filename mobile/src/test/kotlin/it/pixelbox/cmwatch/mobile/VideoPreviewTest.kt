@@ -15,7 +15,6 @@ import app.cash.paparazzi.Paparazzi
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.mobile.ui.VideoPoster
 import it.pixelbox.cmwatch.mobile.ui.clockOf
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

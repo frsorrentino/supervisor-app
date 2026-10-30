@@ -58,7 +58,7 @@ internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, Stri
     // «Altre risposte» (app-home-riordino-29-10): Parliamone, Non ora e Mai dietro un tocco; prima erano dodici tasti in tre voci.
     var more by remember { mutableStateOf(setOf<String>()) }
     // Nello stile «Studio e Diretta» (30/10): una lista a filo col binario; il tipo è l'icona grigia a sinistra e la parola sopra il testo.
-    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1)) {
+    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
         v.shown.forEachIndexed { i, s ->
             if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             val (icon, label) = when (s.kind) {

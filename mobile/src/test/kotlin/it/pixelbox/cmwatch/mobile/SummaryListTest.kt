@@ -13,7 +13,6 @@ import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.ui.*
 import it.pixelbox.cmwatch.rules.MasterHome
 import it.pixelbox.cmwatch.rules.Summary
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 import java.io.File

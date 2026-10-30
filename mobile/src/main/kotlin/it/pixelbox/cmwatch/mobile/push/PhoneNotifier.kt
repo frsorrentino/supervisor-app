@@ -126,7 +126,7 @@ class PhoneNotifier(private val ctx: Context) {
         post(("task-" + e.ref).hashCode(), NotificationCompat.Builder(ctx, if (green || e.quiet) CH_QUIET else CH_SOUND).setSmallIcon(icon(e.kind, green))
             .setContentTitle(e.shareTitle).setContentText(e.shareBody.lineSequence().firstOrNull { it.isNotBlank() })
             .setStyle(NotificationCompat.BigTextStyle().bigText(e.shareBody))
-            .setColor(if (green) 0xFF2E7D32.toInt() else 0xFFC62828.toInt()).setColorized(false)
+            .setColor(if (green) 0xFF34D399.toInt() else 0xFFFF5A5F.toInt()).setColorized(false)
             .setContentIntent(openSession(e.session)).setAutoCancel(true))
     }
 

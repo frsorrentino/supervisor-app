@@ -14,7 +14,6 @@ import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.mobile.ui.TabletQuotaPanel
 import it.pixelbox.cmwatch.rules.PhoneOverview
 import it.pixelbox.cmwatch.rules.Week7
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 

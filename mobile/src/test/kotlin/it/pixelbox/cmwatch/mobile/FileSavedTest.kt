@@ -8,7 +8,6 @@ import androidx.compose.ui.unit.dp
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import it.pixelbox.cmwatch.mobile.ui.*
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 
@@ -18,7 +17,7 @@ class FileSavedTest {
 
     private fun saved(inDownloads: Boolean) = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.surface).padding(top = 24.dp)) {
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.S1).padding(top = 24.dp)) {
                 FileSavedContent(
                     SavedFile("release-notes-2.4.0-rc1.pdf", "content://media/external/downloads/1", "application/pdf", "/cache/files/x", inDownloads),
                     onOpen = {}, onFolder = if (inDownloads) ({}) else null, onElsewhere = if (inDownloads) ({}) else null,

@@ -561,7 +561,7 @@ private fun SummaryCard(
     if (!waiting && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Row(
         // La chat si restringe verso la sua card durante il gesto indietro.
-        Modifier.fly("card-${s.id}").fillMaxWidth().then(if (waiting) Modifier.clip(V3.Shape).background(V3.S2) else Modifier).smoothSize()
+        Modifier.fly("card-${s.id}").fillMaxWidth().then(if (waiting) Modifier.clip(V3.Shape).background(if (V3.day) V3.WaitFill else V3.S2).border(1.dp, if (V3.day) V3.WaitLine else androidx.compose.ui.graphics.Color.Transparent, V3.Shape) else Modifier).smoothSize()
             // Franz, 03/10 17:05: il tocco sulla card porta dritto alla sessione; il tasto ▼ la apre sul posto.
             .handCursor().combinedClickable(onClick = onOpen, onLongClick = { menu = true }).contextClick { menu = true }
             .padding(end = 10.dp, top = 8.dp, bottom = 10.dp),
@@ -646,7 +646,7 @@ private fun SummaryCard(
         if (waiting) s.question?.let { q ->
             var holdHint by rememberSaveable(q.id) { mutableStateOf(false) }
             // Sul fondo della card il tonale di sempre quasi spariva (provini 03/10): un velo del colore primario.
-            QuestionOptions(q, firstFilled = firstFilled, holdHint = holdHint, onHold = { holdHint = true }, onAnswer = onAnswer, tonal = V3.S3, v3 = true)
+            QuestionOptions(q, firstFilled = firstFilled, holdHint = holdHint, onHold = { holdHint = true }, onAnswer = onAnswer, tonal = if (V3.day) V3.S1 else V3.S3, v3 = true)
         }
         // I consigli come tasti, sempre visibili (Franz, 03/10 17:27): il tocco li manda subito a quella sessione, che li
         // prende a fine turno se sta lavorando.

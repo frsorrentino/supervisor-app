@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /** Le Impostazioni del mockup A (Franz, 03/10 21:59): sezioni per argomento e lo schema dei dispositivi da toccare. */
 class SettingsScreenTest {

@@ -44,8 +44,8 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
  */
 
 /** Pillola spenta e accesa come nelle impostazioni di sistema: grigio scuro, e grigio-blu quando la voce è attiva. */
-private val Spenta = Color(0xFF2B2E34)
-private val Accesa = Color(0xFF444B59)
+private val Spenta = CmColors.surface
+private val Accesa = CmColors.surfaceHigh
 
 @Composable
 private fun switchColors() = SwitchButtonDefaults.switchButtonColors(

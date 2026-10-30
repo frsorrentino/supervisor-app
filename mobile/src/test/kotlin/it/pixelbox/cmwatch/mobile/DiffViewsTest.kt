@@ -12,7 +12,6 @@ import com.android.resources.ScreenOrientation
 import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.ui.*
 import it.pixelbox.cmwatch.rules.DiffRules
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 import java.io.File

@@ -10,7 +10,6 @@ import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.ui.*
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 import java.io.File

@@ -12,7 +12,6 @@ import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.mobile.ui.LocalReadingOverlay
 import it.pixelbox.cmwatch.mobile.ui.ReadingOverlay
 import it.pixelbox.cmwatch.mobile.ui.ReadingPill
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 

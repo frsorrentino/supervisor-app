@@ -19,7 +19,6 @@ import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.ui.*
 import it.pixelbox.cmwatch.rules.Kpi
 import it.pixelbox.cmwatch.rules.Summary
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -51,8 +50,8 @@ class KpiViewsTest {
                     // Proposte piccole (compito app-kpi-piccole-25-10): le tre cifre e la quota per sessione.
                     Kpi7(Kpi.head(st, page, now, zone), st, now, {})
                     Kpi.split(st, "personal")?.let { Kpi4(it) }
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) { Text("atlas-shop", color = CmColors.text, modifier = Modifier.weight(1f)); Kpi6(Kpi.hourly(events, now)) }
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(it.pixelbox.cmwatch.mobile.ui.V3.S1).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) { Text("atlas-shop", color = it.pixelbox.cmwatch.mobile.ui.V3.Tx, modifier = Modifier.weight(1f)); Kpi6(Kpi.hourly(events, now)) }
                         Kpi11(spans, from, now)
                     }
                     Kpi18(figures)

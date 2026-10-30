@@ -22,7 +22,6 @@ import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.mobile.ui.SummaryList
 import it.pixelbox.cmwatch.rules.Summary
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule

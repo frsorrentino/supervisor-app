@@ -13,7 +13,6 @@ import it.pixelbox.cmwatch.mobile.ui.TabletQuotaPanel
 import it.pixelbox.cmwatch.rules.PhoneOverview
 import it.pixelbox.cmwatch.rules.QuotaHistory
 import it.pixelbox.cmwatch.rules.QuotaHistory.Sample
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 

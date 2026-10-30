@@ -30,7 +30,6 @@ import it.pixelbox.cmwatch.mobile.ui.cmSwitchColors
 import it.pixelbox.cmwatch.rules.WidgetModel
 import it.pixelbox.cmwatch.rules.WidgetModel.Metric
 import it.pixelbox.cmwatch.rules.WidgetModel.Mode
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import kotlinx.coroutines.launch
 
 /**
@@ -76,14 +75,14 @@ fun WidgetConfigScreen(state: State?, initial: WidgetModel.Config, onSave: (Widg
     var opacity by remember { mutableFloatStateOf(initial.opacity.toFloat()) }
     var corners by remember { mutableFloatStateOf(initial.corners.toFloat()) }
     var mono by remember { mutableStateOf(initial.mono) }
-    Column(Modifier.fillMaxSize().background(CmColors.bg).systemBarsPadding()) {
+    Column(Modifier.fillMaxSize().background(it.pixelbox.cmwatch.mobile.ui.Cm.bg).systemBarsPadding()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(stringResource(R.string.wcfg_title), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
+            Text(stringResource(R.string.wcfg_title), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold), color = it.pixelbox.cmwatch.mobile.ui.Cm.text)
             Label(R.string.wcfg_mode)
             listOf(Mode.BOARD to R.string.wcfg_board, Mode.ACCOUNT to R.string.wcfg_account, Mode.SESSION to R.string.wcfg_session).forEach { (m, l) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(mode == m, onClick = { if (mode != m) { mode = m; target = null; metrics = WidgetModel.defaults(m) } })
-                    Text(stringResource(l), color = CmColors.text)
+                    Text(stringResource(l), color = it.pixelbox.cmwatch.mobile.ui.Cm.text)
                 }
             }
             val choices = when (mode) {
@@ -112,20 +111,20 @@ fun WidgetConfigScreen(state: State?, initial: WidgetModel.Config, onSave: (Widg
             Label(R.string.wcfg_corners)
             Slider(corners, { corners = it }, valueRange = 0f..32f)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.wcfg_mono), color = CmColors.text, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.wcfg_mono), color = it.pixelbox.cmwatch.mobile.ui.Cm.text, modifier = Modifier.weight(1f))
                 Switch(mono, { mono = it }, colors = cmSwitchColors())
             }
         }
         Button(
             onClick = { onSave(WidgetModel.Config(mode, target, metrics.ifEmpty { WidgetModel.defaults(mode) }, opacity.toInt(), corners.toInt(), mono)) },
-            colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+            colors = ButtonDefaults.buttonColors(containerColor = it.pixelbox.cmwatch.mobile.ui.Cm.primary, contentColor = it.pixelbox.cmwatch.mobile.ui.Cm.onPrimary),
             modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
         ) { Text(stringResource(R.string.wcfg_save)) }
     }
 }
 
 @Composable
-private fun Label(id: Int) = Text(stringResource(id), style = MaterialTheme.typography.titleSmall, color = CmColors.text2)
+private fun Label(id: Int) = Text(stringResource(id), style = MaterialTheme.typography.titleSmall, color = it.pixelbox.cmwatch.mobile.ui.Cm.text2)
 
 fun metricLabel(m: Metric) = when (m) {
     Metric.WEEK -> R.string.w_week

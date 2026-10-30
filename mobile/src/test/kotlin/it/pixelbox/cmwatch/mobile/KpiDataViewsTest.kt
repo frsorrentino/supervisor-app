@@ -15,7 +15,6 @@ import app.cash.paparazzi.Paparazzi
 import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.ui.*
 import it.pixelbox.cmwatch.rules.Kpi
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -44,7 +43,7 @@ class KpiDataViewsTest {
                     d.tasks?.let { Kpi8(it) }
                     d.checksWeek?.let { Kpi9(it) }
                     // La 10 sta nella card aperta della sessione: la stessa cornice.
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surface).padding(14.dp)) { Kpi10(Kpi.turnsOf(d, "atlas-shop")) }
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(it.pixelbox.cmwatch.mobile.ui.V3.S1).padding(14.dp)) { Kpi10(Kpi.turnsOf(d, "atlas-shop")) }
                     d.health?.let { Kpi12(it) }
                     d.suggestions7d?.let { Kpi13(it) }
                     d.waits?.let { Kpi17(it, now) }

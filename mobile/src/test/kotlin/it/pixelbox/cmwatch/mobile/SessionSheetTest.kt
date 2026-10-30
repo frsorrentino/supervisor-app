@@ -306,7 +306,7 @@ class SessionSheetTest {
                 androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize()) {
                     SessionSheet(m, st.ts, emptyList(), 120, none, grid = true, home = { _, _ -> }, canAttach = true, canAttachFiles = true)
                     androidx.compose.material3.Surface(
-                        color = it.pixelbox.cmwatch.ui.tokens.CmColors.surface, shape = androidx.compose.material3.MaterialTheme.shapes.extraSmall, shadowElevation = 3.dp,
+                        color = it.pixelbox.cmwatch.mobile.ui.V3.S1, shape = androidx.compose.material3.MaterialTheme.shapes.extraSmall, shadowElevation = 3.dp,
                         modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(start = 18.dp, bottom = 76.dp).width(232.dp),
                     ) {
                         androidx.compose.foundation.layout.Column(androidx.compose.ui.Modifier.padding(vertical = 8.dp)) {
@@ -376,7 +376,7 @@ class SessionSheetTest {
         val menu = it.pixelbox.cmwatch.mobile.ui.MenuActions(null, "", false, {}, {}, {}, {}, {})
         CmPhoneTheme(still = true) {
             SessionSheet(m, st.ts, emptyList(), 120, none, grid = true,
-                home = { _, _ -> st.sessions.take(4).forEach { s -> androidx.compose.material3.Text(s.name, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text, modifier = androidx.compose.ui.Modifier.padding(16.dp)) } },
+                home = { _, _ -> st.sessions.take(4).forEach { s -> androidx.compose.material3.Text(s.name, color = it.pixelbox.cmwatch.mobile.ui.V3.Tx, modifier = androidx.compose.ui.Modifier.padding(16.dp)) } },
                 homeOpen = false, halfStops = tablet, half = half,
                 appBar = { it.pixelbox.cmwatch.mobile.ui.PageHeader(null, st.sessions, 3, st.ts, {}, {}, menu) },
                 bar = { it.pixelbox.cmwatch.mobile.ui.MasterDock(m, hero, {}, {}, expanded = true, toggleUp = half, onClose = if (half) ({}) else null, screen = !tablet, trailing = if (half) null else ({ it.pixelbox.cmwatch.mobile.ui.AppMenu(menu) })) },
