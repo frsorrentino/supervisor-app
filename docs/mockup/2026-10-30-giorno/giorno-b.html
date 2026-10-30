@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=412">
+<title>Home Studio e Diretta 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add,auto_awesome,bedtime,checklist,chevron_right,data_usage,event_list,extension,inventory_2,memory,menu,mic,more_horiz,pan_tool,play_circle,replay,search,sports_score&display=block" rel="stylesheet">
+<style>
+
+  :root { --bg: #0B0C0E; --s1: #121316; --s2: #1B1D22; --s3: #272A31; --line: #25272D; --tx: #EDEEF0; --tx2: #969BA4; --tx3: #858A93;
+    --act: #FFFFFF; --on-act: #0B0C0E; --wait: #FFB23F; --busy: #5AA2FF; --good: #34D399; --red: #FF5A5F; --master: #C39BFF; }
+  .light { color: var(--tx); }
+  .light { --bg: #FFFFFF; --s1: #F6F7F9; --s2: #EEF0F3; --s3: #E1E4E9; --line: #E1E4E9; --tx: #121418; --tx2: #565C66; --tx3: #60666F;
+    --act: #121418; --on-act: #FFFFFF; --wait: #9A5700; --busy: #1A64D6; --good: #0B7F55; --red: #C9302F; --master: #7445D6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 412px; background: var(--bg); color: var(--tx); font: 15px/1.38 Barlow, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  ::selection { background: color-mix(in srgb, var(--busy) 35%, transparent); }
+  .mono { font: 400 12.5px/1.35 "Geist Mono", ui-monospace, monospace; color: var(--tx2); font-variant-numeric: tabular-nums; }
+  .ms { font-family: "Material Symbols Rounded"; font-size: 20px; line-height: 1; font-variation-settings: "FILL" 0, "wght" 400, "opsz" 20; color: var(--tx2); }
+  .ms.f { font-variation-settings: "FILL" 1, "wght" 500, "opsz" 20; color: inherit; }
+  .ms.top { font-size: 24px; color: var(--tx); }
+  .sbar { height: 26px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: 13px; font-weight: 500; }
+  .sbi svg { margin-left: 6px; vertical-align: -2px; }
+  .top { display: flex; align-items: center; gap: 18px; height: 54px; padding: 0 16px; }
+  .top h1 { flex: 1; font: 700 22px "Barlow Semi Condensed", sans-serif; letter-spacing: .005em; }
+  /* Il tabellone: tre cifre che aprono la loro pagina, e sotto la quota delle 5 ore. */
+  .board { display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; margin: 4px 12px 0; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .cell { position: relative; padding: 12px 12px 13px; border-left: 1px solid var(--line); }
+  .cell:first-child { border-left: 0; }
+  .cell .n { display: block; font: 700 42px/1 "Barlow Semi Condensed", sans-serif; letter-spacing: -0.01em; }
+  .cell .l { display: block; font-size: 13.5px; line-height: 1.25; color: var(--tx2); margin-top: 6px; }
+  .cell .l em { font-style: normal; font-weight: 500; color: var(--red); }
+  .cell .chev { position: absolute; top: 12px; right: 8px; }
+  .qrow { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--tx2); }
+  .qrow strong { font: 600 15px "Barlow Semi Condensed", sans-serif; color: var(--tx); }
+  .qrow .mono { color: var(--tx); }
+  .meter { flex: 1; position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
+  .meter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--busy); }
+  .meter b { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
+  /* Le sezioni: l'icona sta nel binario dei minuti, il titolo allineato ai nomi. */
+  .sec { display: flex; align-items: center; margin: 24px 12px 8px 13px; font: 700 18px "Barlow Semi Condensed", sans-serif; }
+  .sec .ic { width: 52px; margin-right: 8px; display: flex; justify-content: center; }
+  .sec small { font: 600 15px "Barlow Semi Condensed", sans-serif; color: var(--tx2); margin-left: 8px; }
+  .sec.wt, .sec.wt small { color: var(--wait); }
+  .sec .live-ic { color: var(--busy); }
+  .sec .r { margin-left: auto; padding-right: 4px; font: 400 14px Barlow, sans-serif; color: var(--tx2); }
+  .pill { font: 600 13px "Barlow Semi Condensed", sans-serif; letter-spacing: .02em; border-radius: 6px; padding: 2px 8px; }
+  .pill.red { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+  /* Il pieno è per quello che aspetta te: schede piene; tutto il resto sta in liste a filo. */
+  .card { margin: 0 12px 8px; background: var(--s2); border-radius: 14px; overflow: hidden; }
+  .list { margin: 0 12px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .m { display: grid; grid-template-columns: 52px 1fr auto; column-gap: 8px; align-items: start; padding: 11px 12px 11px 0; border-top: 1px solid var(--line); }
+  .m:first-child { border-top: 0; }
+  .m.c { align-items: center; min-height: 52px; }
+  .card .m { border-top: 0; padding: 13px 12px 10px 1px; }
+  .min { grid-row: span 2; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 1px; }
+  .min b { font: 700 15px/1 "Barlow Semi Condensed", sans-serif; letter-spacing: .01em; }
+  .wt b { color: var(--wait); } .live b { color: var(--busy); } .end b { color: var(--tx2); } .rd b { color: var(--red); } .mst { color: var(--master); }
+  .nm { display: block; font: 600 17px/1.2 "Barlow Semi Condensed", sans-serif; }
+  .main { min-width: 0; } .main .mono { display: block; margin-top: 2px; }
+  .main p { font-size: 14px; color: var(--tx2); margin-top: 2px; }
+  .main p.ask { font-size: 16px; line-height: 1.36; color: var(--tx); margin-top: 4px; }
+  .main p.sug { font-size: 15px; }
+  .main p.note { font-size: 13.5px; margin-top: 4px; }
+  .r { display: flex; align-items: center; gap: 4px; }
+  .chev { font-size: 20px; color: var(--tx3); }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--good); margin-right: 6px; vertical-align: 1px; }
+  /* La cronaca della giornata: dalle 8 ad adesso, sullo stesso asse per tutte le righe. */
+  .axis { display: grid; grid-template-columns: 52px 1fr; column-gap: 8px; padding: 9px 12px 7px 0; }
+  .ax { position: relative; height: 12px; }
+  .ax span { position: absolute; top: 0; transform: translateX(-50%); font: 400 11px/1 "Geist Mono", monospace; color: var(--tx3); }
+  .ax span:first-child { transform: none; }
+  .inc { grid-column: 2 / 4; position: relative; height: 10px; margin-top: 9px; }
+  .inc::before { content: ""; position: absolute; left: 0; right: 0; top: 4.5px; height: 1px; background: var(--s3); }
+  .inc i { position: absolute; top: 2.5px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--tx2); }
+  .inc i.r { top: .5px; height: 9px; border-radius: 1px; background: var(--red); }
+  .inc i.n { top: 0; width: 2px; height: 10px; margin-left: -1px; border-radius: 1px; background: var(--busy); }
+  .inc i.e { top: 0; width: 2px; height: 10px; margin-left: -1px; border-radius: 1px; background: var(--tx3); }
+  .acts { display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 0 12px 12px; }
+  .btn { height: 40px; padding: 0 16px; border-radius: 20px; font: 600 15px "Barlow Semi Condensed", sans-serif; letter-spacing: .02em; border: 0; background: none; color: var(--tx); display: inline-flex; align-items: center; }
+  .btn.filled { background: var(--act); color: var(--on-act); padding: 0 26px; }
+  .btn.tonal { background: var(--s3); }
+  .btn.text { padding: 0 10px; }
+  .vote { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 2px 12px 12px 61px; }
+  .opt { background: var(--s3); border: 0; border-radius: 10px; padding: 9px 11px 10px; text-align: left; color: var(--tx); font: inherit; }
+  .opt b { display: flex; align-items: baseline; gap: 8px; font: 600 16px "Barlow Semi Condensed", sans-serif; }
+  .opt .k { font: 500 12px "Geist Mono", monospace; color: var(--tx2); }
+  .opt .d { display: block; font-size: 12.5px; line-height: 1.3; color: var(--tx2); margin-top: 2px; }
+  .opt.rec { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 55%, transparent); }
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; width: 412px; background: var(--s1); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; padding: 8px 12px 12px; }
+  .dock .mm { display: flex; align-items: center; gap: 8px; padding: 2px 4px 8px; font-size: 13.5px; }
+  .dock .mm b { font: 700 15px "Barlow Semi Condensed", sans-serif; } .dock .mm .txt { flex: 1; color: var(--tx2); }
+  .compose { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 14px; border-radius: 24px; background: var(--s2); color: var(--tx2); }
+  .compose .ph { flex: 1; }
+  .pad { height: 128px; }
+  /* tavola del sistema */
+  .sheet { padding: 20px 16px 28px; }
+  .sheet h1 { font: 700 30px "Barlow Semi Condensed", sans-serif; }
+  .sheet .lead { color: var(--tx2); margin-top: 6px; }
+  .sheet h2.sh { font: 700 17px "Barlow Semi Condensed", sans-serif; margin: 24px 0 10px; }
+  .sheet .list, .sheet .card { margin-left: 0; margin-right: 0; }
+  .sw { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .sw div { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 11px; }
+  .sw i { display: block; height: 34px; } .sw span { display: block; padding: 4px 6px; color: var(--tx2); line-height: 1.25; }
+  .ts div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .ts .mono { font-size: 12px; text-align: right; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 2px 0; font-size: 13.5px; color: var(--tx2); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { display: inline-block; background: var(--tx2); width: 5px; height: 5px; border-radius: 50%; }
+  .legend i.r { width: 5px; height: 9px; border-radius: 1px; background: var(--red); }
+  .legend i.n { width: 2px; height: 10px; border-radius: 1px; background: var(--busy); }
+  .legend i.e { width: 2px; height: 10px; border-radius: 1px; background: var(--tx3); }
+  .icons { display: flex; gap: 16px; flex-wrap: wrap; } .icons .ms { font-size: 24px; color: var(--tx); }
+  .daypanel { border-radius: 14px; padding: 12px; margin-top: 8px; background: var(--bg); }
+
+  .opts { display: grid; gap: 8px; padding: 2px 12px 12px 61px; }
+  .opt { display: block; width: 100%; min-height: 52px; background: var(--s3); border: 0; border-radius: 12px; padding: 9px 14px 10px; text-align: left; color: var(--tx); font: inherit; }
+  .opt b { display: flex; align-items: baseline; gap: 8px; font: 600 16px "Barlow Semi Condensed", sans-serif; }
+  .opt .k { font: 500 12px "Geist Mono", monospace; color: var(--tx2); }
+  .opt .d { display: block; font-size: 13px; line-height: 1.3; color: var(--tx2); margin-top: 2px; }
+  .opt.filled { background: var(--act); color: var(--on-act); }
+  .opt.filled .k, .opt.filled .d { color: color-mix(in srgb, var(--on-act) 72%, var(--act)); }
+  .list.sugg { margin-top: 16px; }
+  .rc { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .redtag { display: inline-flex; align-items: center; gap: 5px; font: 500 12.5px "Geist Mono", monospace; color: var(--red); }
+
+  .sec.wt { color: var(--tx); } .sec.wt small { color: var(--tx2); }
+  .sec .ic .ms { font-variation-settings: "FILL" 0, "wght" 400, "opsz" 20; color: var(--tx2); }
+  .sec .live-ic { color: var(--tx2); }
+  .meter i { background: var(--tx2); }
+  .btn.text { color: var(--tx2); }
+  .opt b { align-items: center; }
+  .opt .k { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 1.2px var(--tx3); font: 500 11.5px/1 "Geist Mono", monospace; color: var(--tx2); }
+  .opt .d { margin-left: 28px; }
+  .opt.rec { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
+  .opt.rec .k { background: var(--tx); box-shadow: none; color: var(--s3); }
+
+
+  /* Idea A, schede bianche: fondo grigio-azzurro, scatole bianche col filetto. */
+  .light { --bg: #F1F4F8; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EAEEF4; --line: #DFE4EB; }
+  .light .card { border: 1px solid var(--line); }
+  .light .dock { background: #FFFFFF; }
+  .light .compose { background: #F1F4F8; }
+
+  /* Idea B, attese in ambra: la zona che aspetta te prende il colore del suo stato. */
+  .light .card { background: #FFF6E5; border-color: #F2D7A2; }
+  .light .card .opt { background: #FFFFFF; }
+  .light .card .btn.tonal { background: #FFFFFF; box-shadow: inset 0 0 0 1px #EBCB8F; }
+  .light .board .cell:first-child { background: #FFF6E5; }
+  .light .list .m:has(> .min.rd) { background: #FFF3F2; }
+</style>
+</head>
+<body class="light">
+<div class="sbar"><span>20:40</span><span class="sbi"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 13h2V9H1zm4 0h2V6H5zm4 0h2V3H9zm4 0h2V0h-2z"/></svg><svg width="16" height="14" viewBox="0 0 24 20" fill="currentColor"><path d="M12 19 0 6a17 17 0 0 1 24 0z"/></svg><svg width="22" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="1" width="21" height="12" rx="3"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="currentColor" stroke="none"/><path d="M24 5v4"/></svg></span></div>
+  <div class="top"><h1>Supervisor</h1><span class="ms top" aria-hidden="true">search</span><span class="ms top" aria-hidden="true">menu</span></div>
+  <div class="board">
+    <div class="cell"><b class="n" style="color:var(--wait)">2</b><span class="l">ti aspettano, la prima da 12 min</span><span class="ms chev" aria-hidden="true">chevron_right</span></div>
+    <div class="cell"><b class="n">3</b><span class="l">al lavoro</span><span class="ms chev" aria-hidden="true">chevron_right</span></div>
+    <div class="cell"><b class="n">122</b><span class="l">esiti oggi, <em>3 rossi</em></span><span class="ms chev" aria-hidden="true">chevron_right</span></div>
+    <div class="qrow"><strong>5 ore</strong><span class="meter"><i style="width:34%"></i><b style="left:53%"></b></span><span class="mono">34%</span><span>si azzera alle 23:00</span></div>
+  </div>
+  <div class="sec wt"><span class="ic "><span class="ms f" aria-hidden="true">pan_tool</span></span>Ti aspettano<small>2</small></div>
+  <div class="card"><div class="m"><span class="min wt"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--wait)" stroke-width="1.8"/><path d="M7.7 8a2.4 2.4 0 1 1 3.3 2.2c-.7.3-1 .8-1 1.5v.4" fill="none" stroke="var(--wait)" stroke-width="1.7" stroke-linecap="round"/><circle cx="10" cy="14.7" r="1.05" fill="var(--wait)"/></svg><b>12'</b></span><span class="main"><b class="nm">gerardosacco-com</b><p class="ask">Fai il login su Search Console e mandami il codice di verifica</p><p class="note">Si chiude da sola quando il codice arriva.</p></span><span></span></div>
+    <div class="acts"><button class="btn tonal">Fatto</button></div></div>
+  <div class="card"><div class="m"><span class="min wt"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--wait)" stroke-width="1.8"/><path d="M7.7 8a2.4 2.4 0 1 1 3.3 2.2c-.7.3-1 .8-1 1.5v.4" fill="none" stroke="var(--wait)" stroke-width="1.7" stroke-linecap="round"/><circle cx="10" cy="14.7" r="1.05" fill="var(--wait)"/></svg><b>5'</b></span><span class="main"><b class="nm">chrome-bridge</b><p class="ask">Pubblico la 0.9.3 sul marketplace?</p></span><span class="mono">ctx 62%</span></div>
+    <div class="opts"><button class="opt rec"><b><span class="k">1</span>Sì</b><span class="d">consigliata, la CI è verde</span></button><button class="opt"><b><span class="k">2</span>No</b><span class="d">aspetta la prova a mano</span></button></div></div>
+  <div class="list sugg"><div class="m"><span class="min"><span class="ms " aria-hidden="true">auto_awesome</span></span><span class="main"><b class="nm">La master suggerisce</b><p class="ask sug">Chiedi spesso «com'è andata la CI di supervisor-app»: la aggiungo ai Ricorrenti?</p></span><span class="mono">1 di 3</span></div>
+    <div class="acts"><button class="btn text">Altre risposte</button><button class="btn tonal">Accetta</button></div></div>
+  <div class="sec "><span class="ic live-ic"><span class="ms f" aria-hidden="true">play_circle</span></span>Sessioni<small>4</small><span class="r">3 al lavoro, 1 ferma</span></div>
+  <div class="list"><div class="m"><span class="min live"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-opacity=".28" stroke-width="2"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-width="2" stroke-linecap="round" stroke-dasharray="7.73 51.52" transform="rotate(-90 10 10)"/><path d="M8.3 6.7 13.6 10 8.3 13.3Z" fill="var(--busy)" stroke="var(--busy)" stroke-width="1.2" stroke-linejoin="round"/></svg><b>12'</b></span><span class="main"><b class="nm">supervisor-app</b><span class="mono">Bash&ensp;&ensp;gh run watch</span></span><span class="rc"><span class="mono">ctx 15%</span><span class="redtag"><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--red)" stroke-width="1.8"/><path d="M7.3 7.3l5.4 5.4M12.7 7.3l-5.4 5.4" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round"/></svg>17:40</span></span></div><div class="m"><span class="min live"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-opacity=".28" stroke-width="2"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-width="2" stroke-linecap="round" stroke-dasharray="21.12 51.52" transform="rotate(-90 10 10)"/><path d="M8.3 6.7 13.6 10 8.3 13.3Z" fill="var(--busy)" stroke="var(--busy)" stroke-width="1.2" stroke-linejoin="round"/></svg><b>3'</b></span><span class="main"><b class="nm">claude-plugins</b><span class="mono">Edit&ensp;&ensp;SKILL.md</span></span><span class="rc"><span class="mono">ctx 41%</span></span></div><div class="m"><span class="min live"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-opacity=".28" stroke-width="2"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-width="2" stroke-linecap="round" stroke-dasharray="11.33 51.52" transform="rotate(-90 10 10)"/><path d="M8.3 6.7 13.6 10 8.3 13.3Z" fill="var(--busy)" stroke="var(--busy)" stroke-width="1.2" stroke-linejoin="round"/></svg><b>1'</b></span><span class="main"><b class="nm">termocamino</b><span class="mono">Read&ensp;&ensp;contact.php</span></span><span class="rc"><span class="mono">ctx 22%</span></span></div><div class="m c"><span class="min end"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--tx3)" stroke-width="1.8" stroke-dasharray="2.6 2.4"/></svg><b>19:32</b></span><span class="main"><b class="nm">ceraudo.it</b><p>Moduli di contatto unificati, test verdi</p></span><button class="btn tonal">Chiudi</button></div></div>
+  <div class="sec "><span class="ic "><span class="ms f" aria-hidden="true">checklist</span></span>Lavori<small>34 più tardi</small></div>
+  <div class="list"><div class="m c"><span class="min"><span class="ms " aria-hidden="true">replay</span></span><span class="main"><b class="nm">Da riprendere, 3</b><p>ads-widget: inviare a SiteGround la richiesta antibot</p></span><button class="btn tonal">Avvia</button></div><div class="m c"><span class="min"><span class="ms " aria-hidden="true">bedtime</span></span><span class="main"><b class="nm">Notte</b><p>Coda vuota; ieri 3 finiti su 4</p></span><button class="btn tonal">Aggiungi</button></div><div class="m c"><span class="min"><span class="ms " aria-hidden="true">event_list</span></span><span class="main"><b class="nm">Tutti i lavori</b></span><span class="r"><span class="mono">17 in corso&ensp;&ensp;24 fatti</span><span class="ms chev" aria-hidden="true">chevron_right</span></span></div></div>
+  <div class="sec "><span class="ic "><span class="ms f" aria-hidden="true">sports_score</span></span>Esiti di oggi</div>
+  <div class="list"><div class="m"><span class="min rd"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--red)" stroke-width="1.8"/><path d="M7.3 7.3l5.4 5.4M12.7 7.3l-5.4 5.4" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round"/></svg><b>18:12</b></span><span class="main"><b class="nm">chrome-bridge</b><p>Il file del benchmark non c'è in docs/</p></span><span></span></div><div class="m"><span class="min rd"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--red)" stroke-width="1.8"/><path d="M7.3 7.3l5.4 5.4M12.7 7.3l-5.4 5.4" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round"/></svg><b>17:40</b></span><span class="main"><b class="nm">supervisor-app</b><p>La CI Android non compila HomeBoxScreen.kt</p></span><span></span></div><div class="m"><span class="min rd"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--red)" stroke-width="1.8"/><path d="M7.3 7.3l5.4 5.4M12.7 7.3l-5.4 5.4" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round"/></svg><b>16:05</b></span><span class="main"><b class="nm">gerardosacco-com</b><p>Search Console rifiuta la sitemap</p></span><span></span></div><div class="m c"><span class="min"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--good)" stroke-width="1.8"/><path d="M6.4 10.2l2.4 2.4 4.8-5" fill="none" stroke="var(--good)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="main"><b class="nm">Tutti gli esiti</b></span><span class="r"><span class="mono">119 verdi</span><span class="ms chev" aria-hidden="true">chevron_right</span></span></div></div>
+  <div class="sec "><span class="ic "><span class="ms f" aria-hidden="true">more_horiz</span></span>Altro</div>
+  <div class="list"><div class="m c"><span class="min"><span class="ms " aria-hidden="true">data_usage</span></span><span class="main"><b class="nm">Utilizzo</b></span><span class="r"><span class="mono">settimana 41%&ensp;&ensp;537 M token</span><span class="ms chev" aria-hidden="true">chevron_right</span></span></div><div class="m c"><span class="min"><span class="ms " aria-hidden="true">memory</span></span><span class="main"><b class="nm">Sistema</b></span><span class="r"><span class="mono"><i class="dot"></i>0,4/core&ensp;&ensp;4,6 GB</span><span class="ms chev" aria-hidden="true">chevron_right</span></span></div><div class="m c"><span class="min"><span class="ms " aria-hidden="true">extension</span></span><span class="main"><b class="nm">Plugin e skill</b></span><span class="r"><span class="mono">aggiornati</span><span class="ms chev" aria-hidden="true">chevron_right</span></span></div><div class="m c"><span class="min"><span class="ms " aria-hidden="true">inventory_2</span></span><span class="main"><b class="nm">Chiuse</b></span><span class="r"><span class="mono">46</span><span class="ms chev" aria-hidden="true">chevron_right</span></span></div></div>
+  <div class="pad"></div>
+  <div class="dock"><div class="mm"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-opacity=".28" stroke-width="2"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-width="2" stroke-linecap="round" stroke-dasharray="15.46 51.52" transform="rotate(-90 10 10)"/><path d="M8.3 6.7 13.6 10 8.3 13.3Z" fill="var(--busy)" stroke="var(--busy)" stroke-width="1.2" stroke-linejoin="round"/></svg><b>Master</b><span class="txt">Fase 2.2 avviata su payments-api</span><span class="mono">20:38</span></div>
+    <div class="compose"><span class="ms " aria-hidden="true">add</span><span class="ph">Scrivi alla master</span><span class="ms " aria-hidden="true">mic</span></div></div>
+</body>
+</html>
