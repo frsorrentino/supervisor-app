@@ -41,7 +41,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -132,8 +131,10 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
         Spacer(Modifier.width(8.dp))
         Text(title, style = V3.Section, maxLines = 1)
         count?.let { Text(it, style = V3.Section.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = V3.Tx2), modifier = Modifier.padding(start = 8.dp)) }
-        Spacer(Modifier.weight(1f))
-        right?.let { Text(it, style = V3.Small, maxLines = 1, overflow = TextOverflow.Clip) }
+        // Il riepilogo prende quello che avanza e va a capo: mai tagliato, mai addosso al numero (Franz 30/10 19:46).
+        Box(Modifier.weight(1f).padding(start = 12.dp), contentAlignment = Alignment.CenterEnd) {
+            right?.let { Text(it, style = V3.Small, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
+        }
         if (open != null) Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(20.dp))
     }
 }
