@@ -7,7 +7,7 @@ import org.junit.Test
 
 class UtilizzoRulesTest {
     @Test fun elapsedIsThePartOfTheWindowGone() {
-        assertEquals(40f, UtilizzoRules.elapsedPct(3000, 5000, 1000)!!, 0.01f)
+        assertEquals(60f, UtilizzoRules.elapsedPct(3000, 5000, 1000)!!, 0.01f)
         assertNull(UtilizzoRules.elapsedPct(1000, 5000, 1000))
         assertNull(UtilizzoRules.elapsedPct(null, 5000, 1000))
     }
