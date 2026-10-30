@@ -40,7 +40,7 @@ class KpiDataViewsTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 3400))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.fillMaxSize().background(CmColors.bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxSize().background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     d.tasks?.let { Kpi8(it) }
                     d.checksWeek?.let { Kpi9(it) }
                     // La 10 sta nella card aperta della sessione: la stessa cornice.

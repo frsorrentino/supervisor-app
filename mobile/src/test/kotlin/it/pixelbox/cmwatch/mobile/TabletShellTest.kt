@@ -170,7 +170,7 @@ class TabletShellTest {
     // tasti di sistema lasciati liberi (qui 140 dp a destra, come quelli di Android).
     @Test fun captionBar() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            androidx.compose.foundation.layout.Column(androidx.compose.ui.Modifier.background(it.pixelbox.cmwatch.ui.tokens.CmColors.bg)) {
+            androidx.compose.foundation.layout.Column(androidx.compose.ui.Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
                 androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxWidth().height(40.dp)) {
                     it.pixelbox.cmwatch.mobile.ui.CaptionStrip(androidx.compose.ui.Modifier.padding(end = 140.dp)) {
                         st.sessions.take(2).forEach { ses -> it.pixelbox.cmwatch.mobile.ui.CaptionTab(ses, onFocus = {}, onClose = {}) }

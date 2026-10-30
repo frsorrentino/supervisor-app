@@ -1,7 +1,7 @@
 <resources>
-    <!-- Solo scuro, come l'orologio (design 24/09); Compose disegna il resto. -->
+    <!-- Il fondo prima di Compose segue il sistema (giorno B, 30/10); Compose disegna il resto. -->
     <style name="Theme.CmPhone" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowBackground">@color/v3_window</item>
     </style>
     <!-- Il foglio di scrittura del widget Master: trasparente sopra la home (spec 01/10). -->
     <style name="Theme.CmPhone.Sheet" parent="Theme.CmPhone">

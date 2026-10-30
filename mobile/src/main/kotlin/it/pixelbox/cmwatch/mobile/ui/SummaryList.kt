@@ -93,7 +93,6 @@ import it.pixelbox.cmwatch.rules.RecapAgenda
 import it.pixelbox.cmwatch.rules.AppUpdate
 import it.pixelbox.cmwatch.rules.Commitments
 import it.pixelbox.cmwatch.mobile.update.AppUpdater
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Il riepilogo unico (design 03/10, tavola 4): ogni sessione una volta, nei gruppi del bisogno, una riga aperta alla
@@ -315,7 +314,7 @@ fun SummaryList(
             if (sessionsOpen && restRows.isNotEmpty()) item(key = "sessions-list") {
                 val fin = if (closePreview != null) it.pixelbox.cmwatch.rules.CloseFinished.candidates(model.rows, now) else emptyList()
                 Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    V3List { restRows.forEachIndexed { i, r -> androidx.compose.runtime.key(r.session.id, i) { card(r, i == 0) } } }
+                    V3List { restRows.forEachIndexed { i, r -> androidx.compose.runtime.key(r.session.id, i) { Box(if (V3.day && r.group == Summary.Group.WAITING) Modifier.background(V3.WaitFill) else Modifier) { card(r, i == 0) } } } }
                     if (fin.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { V3Pill(stringResource(R.string.close_finished_n, fin.size)) { closeAsk = fin.map { x -> x.name } } }
                 }
             }
@@ -394,7 +393,7 @@ fun SummaryList(
                                     StateGlyph(if (red) it.pixelbox.cmwatch.rules.Rail.Glyph.RED else it.pixelbox.cmwatch.rules.Rail.Glyph.DONE)
                                     Text(hhmmOf(d.at), style = V3.RailText.copy(color = if (red) V3.Red else V3.Tx2))
                                 }
-                            }) {
+                            }, fill = if (V3.day && red) V3.RedFill else androidx.compose.ui.graphics.Color.Transparent) {
                                 Text(d.session, style = V3.Name)
                                 Text(d.text, style = V3.Small, maxLines = 2, overflow = TextOverflow.Clip)
                             }
@@ -487,10 +486,10 @@ internal fun groupLabel(g: Summary.Group) = when (g) {
 }
 
 internal fun groupTone(g: Summary.Group): Color = when (g) {
-    Summary.Group.WAITING -> CmColors.briefWarn
-    Summary.Group.FINISHED -> CmColors.briefGood
-    Summary.Group.WORKING -> CmColors.briefRing
-    Summary.Group.STILL -> CmColors.text2
+    Summary.Group.WAITING -> Cm.briefWarn
+    Summary.Group.FINISHED -> Cm.briefGood
+    Summary.Group.WORKING -> Cm.briefRing
+    Summary.Group.STILL -> Cm.text2
 }
 
 /** Priorità e «modello · effort · account» (il contesto sta in testa alla card, l'obiettivo sopra il testo). */
@@ -582,7 +581,7 @@ private fun SummaryCard(
                 )
                 PermissionGlyph(it.pixelbox.cmwatch.rules.PermissionModes.homeGlyph(s), 14.dp)
             }
-            if (s.duplicateOf != null) Tag(stringResource(R.string.cleanup_dup_tag), CmColors.briefWarn)
+            if (s.duplicateOf != null) Tag(stringResource(R.string.cleanup_dup_tag), Cm.briefWarn)
             // «ctx 17%»: il contesto occupato, non un avanzamento del lavoro (osservazioni del 03/10).
             // La quota delle 5 ore dell'account al posto dell'età della sessione (Franz, 03/10 20:31: «non è un'informazione
             // rilevante»); il dato vecchio nel colore dell'attesa, come nel Quadro.
@@ -595,7 +594,7 @@ private fun SummaryCard(
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
                 androidx.compose.material3.Icon(
                     if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = CmColors.text2,
+                    stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = Cm.text2,
                 )
             }
         }
@@ -611,7 +610,7 @@ private fun SummaryCard(
         else if (body.isNotBlank()) Text(
             if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
                 append(body); append("  ")
-                withStyle(androidx.compose.ui.text.SpanStyle(color = CmColors.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
+                withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = androidx.compose.ui.text.font.V3.Mono, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
             },
             style = (if (waiting || open) V3.Body else V3.Small).copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
             color = if (waiting || open) V3.Tx else if (old != null) V3.Tx2.copy(alpha = 0.75f) else V3.Tx2,
@@ -622,7 +621,7 @@ private fun SummaryCard(
             Text(if (a.task != null) stringResource(R.string.asked_for_task, a.from, a.task!!) else stringResource(R.string.asked_for, a.from), style = MonoSmall)
         }
         if (open) {
-            details(s).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+            details(s).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
             // Proposta 11: la giornata a fasce nella card aperta; «ti aspetta» solo per il tratto in corso, dallo stato.
             kpiEvents?.let { ev ->
                 val from = it.pixelbox.cmwatch.rules.Kpi.midnight(now, java.time.ZoneId.systemDefault())
@@ -639,7 +638,7 @@ private fun SummaryCard(
         // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto.
         if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = CmColors.text2, modifier = Modifier.weight(1f))
+                Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = Cm.text2, modifier = Modifier.weight(1f))
                 V3Pill(stringResource(R.string.attention_done), filled = doneFilled) { onDone(d) }
             }
         }
@@ -673,15 +672,15 @@ private fun SummaryCard(
                     Text(
                         if (detail == null) androidx.compose.ui.text.AnnotatedString(stringResource(R.string.cleanup_attached))
                         else androidx.compose.ui.text.buildAnnotatedString {
-                            withStyle(androidx.compose.ui.text.SpanStyle(color = CmColors.idle, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)) { append("● $open") }
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.idle, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)) { append("● $open") }
                             append(" · $detail")
                         },
-                        style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
+                        style = MaterialTheme.typography.bodySmall, color = Cm.text2,
                     )
                 }) {
-                    if (!closing && c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
+                    if (!closing && c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text) {
                         Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Rounded.PowerSettingsNew, null, tint = CmColors.briefAlertRing, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Rounded.PowerSettingsNew, null, tint = Cm.briefAlertRing, modifier = Modifier.size(18.dp))
                             Text(stringResource(R.string.cleanup_close_short), style = MaterialTheme.typography.labelLarge)
                         }
                     }
@@ -692,11 +691,11 @@ private fun SummaryCard(
             if (c.canClose && closeAsk) androidx.compose.foundation.layout.FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))
-                androidx.compose.material3.TextButton(onClick = { closeAsk = false }) { Text(stringResource(R.string.close_keep), color = CmColors.actionIcon) }
+                Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
+                androidx.compose.material3.TextButton(onClick = { closeAsk = false }) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
                 androidx.compose.material3.Button(
                     onClick = { closeAsk = false; onClose() },
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
                 ) { Text(stringResource(R.string.cleanup_close_short)) }
             }
         }
@@ -704,11 +703,11 @@ private fun SummaryCard(
         if (menuClose) androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))
-            androidx.compose.material3.TextButton(onClick = { menuClose = false }) { Text(stringResource(R.string.close_keep), color = CmColors.actionIcon) }
+            Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
+            androidx.compose.material3.TextButton(onClick = { menuClose = false }) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
             androidx.compose.material3.Button(
                 onClick = { menuClose = false; onClose() },
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
             ) { Text(stringResource(R.string.cleanup_close_short)) }
         }
         if (menu) MenuPanel(
@@ -726,16 +725,16 @@ private fun SummaryCard(
         ) {
             SessionBadge(s, 20.dp)
             Text(
-                s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = CmColors.text,
+                s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
             )
         }
         // Le barre dei KPI 5 e 6 solo nella card aperta (riordino del 29/10, punto 8).
         if (open) s.context?.let { pct ->
             val bar = when (it.pixelbox.cmwatch.rules.SessionMeters.contextTone(pct)) {
-                it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> CmColors.briefAlertRing
-                it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> CmColors.briefWarn
-                else -> CmColors.briefRing
+                it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> Cm.briefAlertRing
+                it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> Cm.briefWarn
+                else -> Cm.briefRing
             }
             // Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa.
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -743,12 +742,12 @@ private fun SummaryCard(
                 if (s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) }
                 // Proposta 5: il segno della soglia di handoff sulla barra, e la parte di quota di oggi accanto al contesto.
                 androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).height(7.dp).testTag("kpi-5"), contentAlignment = Alignment.CenterStart) {
-                    Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(CmColors.briefTrack)) {
+                    Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
                         Box(Modifier.fillMaxWidth(it.pixelbox.cmwatch.rules.SessionMeters.contextFraction(pct) ?: 0f).fillMaxHeight().background(bar))
                     }
-                    Box(Modifier.offset(x = maxWidth * (it.pixelbox.cmwatch.rules.Kpi.HANDOFF / 100f)).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(CmColors.text.copy(alpha = 0.8f)))
+                    Box(Modifier.offset(x = maxWidth * (it.pixelbox.cmwatch.rules.Kpi.HANDOFF / 100f)).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(Cm.text.copy(alpha = 0.8f)))
                 }
-                Text(stringResource(R.string.ctx_short, pct) + (todayShare?.let { " · " + stringResource(R.string.kpi5_today, it) } ?: ""), style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2, maxLines = 1)
+                Text(stringResource(R.string.ctx_short, pct) + (todayShare?.let { " · " + stringResource(R.string.kpi5_today, it) } ?: ""), style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2, maxLines = 1)
             }
         } ?: run { if (open && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) } }
     }
@@ -773,10 +772,10 @@ private fun railSpan(from: Long, now: Long): String {
 private fun OutsideHeader() {
     Column(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 18.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.outside_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = CmColors.text)
-            Box(Modifier.weight(1f).height(1.dp).background(CmColors.line))
+            Text(stringResource(R.string.outside_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text)
+            Box(Modifier.weight(1f).height(1.dp).background(Cm.line))
         }
-        Text(stringResource(R.string.outside_sub), style = MaterialTheme.typography.bodySmall, color = CmColors.stale)
+        Text(stringResource(R.string.outside_sub), style = MaterialTheme.typography.bodySmall, color = Cm.stale)
     }
 }
 
@@ -793,13 +792,13 @@ private fun CategoryHeader(g: OutsideSessions.Group) {
         OutsideSessions.Category.NIGHT -> Icons.Rounded.Bedtime to R.string.cat_night
         OutsideSessions.Category.CLOSED -> Icons.Rounded.Inventory2 to R.string.cat_closed
     }
-    val tone = if (g.category == OutsideSessions.Category.FIX) CmColors.waiting else CmColors.text2
+    val tone = if (g.category == OutsideSessions.Category.FIX) Cm.waiting else Cm.text2
     val name = stringResource(label)
     val text = if (g.category == OutsideSessions.Category.NIGHT) name else stringResource(R.string.cat_count, name, g.count)
     Row(Modifier.padding(start = 8.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(icon, null, tint = tone, modifier = Modifier.size(16.dp))
         Text(text.uppercase(), style = MonoSmall.copy(color = tone))
-        if (g.category == OutsideSessions.Category.RESUME) Text(stringResource(R.string.cat_resume_note), style = MaterialTheme.typography.labelSmall, color = CmColors.stale)
+        if (g.category == OutsideSessions.Category.RESUME) Text(stringResource(R.string.cat_resume_note), style = MaterialTheme.typography.labelSmall, color = Cm.stale)
     }
 }
 
@@ -843,46 +842,46 @@ private fun TonightBlock(
     row: MasterHome.Row, m: it.pixelbox.cmwatch.rules.TonightCard.Model, last: it.pixelbox.cmwatch.rules.NightPage.Page?,
     onAction: (MasterHome.Row) -> Unit, onNight: () -> Unit,
 ) {
-    val line = @Composable { Box(Modifier.fillMaxWidth().height(1.dp).background(CmColors.line)) }
+    val line = @Composable { Box(Modifier.fillMaxWidth().height(1.dp).background(Cm.line)) }
     Column(familyCard(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         FamilyTop(Icons.Rounded.Bedtime, stringResource(R.string.cat_night), stringResource(R.string.tonight_meta, m.running, m.queued), chevron = false)
         Text(
             if (m.items.isEmpty()) stringResource(R.string.fy_night_empty_short) else pluralStringResource(R.plurals.tonight_title, m.items.size, m.items.size),
-            style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+            style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
         )
         m.items.forEachIndexed { i, it ->
             line()
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val running = it.runningMin != null
-                Box(Modifier.size(24.dp).clip(CircleShape).background(if (running) CmColors.busy else CmColors.surface), contentAlignment = Alignment.Center) {
-                    if (running) Icon(Icons.Rounded.PlayArrow, null, tint = CmColors.bg, modifier = Modifier.size(16.dp))
-                    else Text((i + 1).toString(), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
+                Box(Modifier.size(24.dp).clip(CircleShape).background(if (running) Cm.busy else Cm.surface), contentAlignment = Alignment.Center) {
+                    if (running) Icon(Icons.Rounded.PlayArrow, null, tint = Cm.bg, modifier = Modifier.size(16.dp))
+                    else Text((i + 1).toString(), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(it.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
-                    Text(it.prompt, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                    Text(it.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                    Text(it.prompt, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                 }
                 Text(
                     if (running) stringResource(R.string.tonight_running, it.runningMin ?: 0) else stringResource(R.string.tonight_queued),
-                    style = MonoSmall.copy(color = if (running) CmColors.busy else CmColors.text2),
-                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (running) CmColors.busy.copy(alpha = 0.14f) else CmColors.surface).padding(horizontal = 7.dp, vertical = 4.dp),
+                    style = MonoSmall.copy(color = if (running) Cm.busy else Cm.text2),
+                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (running) Cm.busy.copy(alpha = 0.14f) else Cm.surface).padding(horizontal = 7.dp, vertical = 4.dp),
                 )
             }
         }
         last?.let { p ->
             line()
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.tonight_last, p.dayBefore.dayOfMonth, p.day.dayOfMonth), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-                if (p.counts.done > 0) MarkedText(StateIcons.done, pluralStringResource(R.plurals.night_c_done, p.counts.done, p.counts.done), CmColors.briefGood, MaterialTheme.typography.bodyMedium)
-                if (p.counts.stopped > 0) MarkedText(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, p.counts.stopped, p.counts.stopped), CmColors.gone, MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.tonight_last, p.dayBefore.dayOfMonth, p.day.dayOfMonth), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+                if (p.counts.done > 0) MarkedText(StateIcons.done, pluralStringResource(R.plurals.night_c_done, p.counts.done, p.counts.done), Cm.briefGood, MaterialTheme.typography.bodyMedium)
+                if (p.counts.stopped > 0) MarkedText(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, p.counts.stopped, p.counts.stopped), Cm.gone, MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.weight(1f))
-                Text(stringResource(R.string.tonight_report), style = MaterialTheme.typography.labelLarge, color = CmColors.actionIcon, modifier = Modifier.clip(RoundedCornerShape(8.dp)).handCursor().clickable(onClick = onNight).padding(6.dp))
+                Text(stringResource(R.string.tonight_report), style = MaterialTheme.typography.labelLarge, color = Cm.actionIcon, modifier = Modifier.clip(RoundedCornerShape(8.dp)).handCursor().clickable(onClick = onNight).padding(6.dp))
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 if (m.items.isEmpty()) stringResource(R.string.tonight_empty_sub) else stringResource(R.string.tonight_sub, m.running, m.queued),
-                style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f),
+                style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f),
             )
             MiniButton(stringResource(R.string.fy_btn_add), filled = false) { onAction(row) }
         }
@@ -925,9 +924,9 @@ private fun OutsideRow(row: MasterHome.Row, category: OutsideSessions.Category, 
     val body = if (context) listOfNotNull(title, detail).joinToString(". ") else detail
     Column(familyCard(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FamilyTop(categoryIcon(category), if (context) row.title else title, meta, chevron = false)
-        body?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 2, overflow = TextOverflow.Clip) }
+        body?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 2, overflow = TextOverflow.Clip) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(stringResource(categoryLabel(category)), style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, modifier = Modifier.weight(1f))
+            Text(stringResource(categoryLabel(category)), style = MonoSmall.copy(color = Cm.text2), maxLines = 1, modifier = Modifier.weight(1f))
             MiniButton(stringResource(action), filled = false) { onAction(row) }
         }
     }
@@ -940,14 +939,14 @@ private val OUT_HM = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
 @Composable
 private fun JustClosedCard(s: it.pixelbox.cmwatch.contract.Session, line: String) {
     Row(
-        Modifier.fly("card-${s.id}").fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surface)
-            .border(1.5.dp, CmColors.actionIcon.copy(alpha = 0.7f), RoundedCornerShape(20.dp)).padding(14.dp),
+        Modifier.fly("card-${s.id}").fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surface)
+            .border(1.5.dp, Cm.actionIcon.copy(alpha = 0.7f), RoundedCornerShape(20.dp)).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SessionBadge(s, 22.dp)
         Column(Modifier.weight(1f)) {
-            Text(s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
-            Text(line, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+            Text(s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+            Text(line, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
         }
     }
 }
@@ -958,7 +957,7 @@ private fun ClosedCard(closed: List<Session>, onClick: () -> Unit) {
     val description = pluralStringResource(R.plurals.summary_closed, closed.size, closed.size)
     Column(familyCard(onClick).semantics { contentDescription = description }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FamilyTop(Icons.Rounded.Inventory2, stringResource(R.string.cat_closed), closed.size.toString(), chevron = true)
-        Text(names, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 2, overflow = TextOverflow.Clip)
+        Text(names, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 2, overflow = TextOverflow.Clip)
     }
 }
 
@@ -968,13 +967,13 @@ internal fun StepChip(text: String, blocking: Boolean, sent: Boolean = false, on
     val label = stringResource(R.string.step_sent, text)
     Surface(
         onClick = onClick, enabled = !sent, shape = CircleShape,
-        color = if (sent) CmColors.idle.copy(alpha = 0.14f) else CmColors.primary.copy(alpha = 0.12f), contentColor = if (sent) CmColors.text2 else CmColors.text,
-        border = if (blocking && !sent) androidx.compose.foundation.BorderStroke(1.5.dp, CmColors.waiting.copy(alpha = 0.65f)) else null,
+        color = if (sent) Cm.idle.copy(alpha = 0.14f) else Cm.primary.copy(alpha = 0.12f), contentColor = if (sent) Cm.text2 else Cm.text,
+        border = if (blocking && !sent) androidx.compose.foundation.BorderStroke(1.5.dp, Cm.waiting.copy(alpha = 0.65f)) else null,
         modifier = if (sent) Modifier.semantics { contentDescription = label } else Modifier,
     ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (sent) Icon(Icons.Rounded.Check, null, tint = CmColors.idle, modifier = Modifier.size(16.dp))
-            else if (blocking) Icon(Icons.Rounded.LockOpen, null, tint = CmColors.waiting, modifier = Modifier.size(16.dp))
+            if (sent) Icon(Icons.Rounded.Check, null, tint = Cm.idle, modifier = Modifier.size(16.dp))
+            else if (blocking) Icon(Icons.Rounded.LockOpen, null, tint = Cm.waiting, modifier = Modifier.size(16.dp))
             Text(text, style = MaterialTheme.typography.bodyMedium)
         }
     }
@@ -993,13 +992,13 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
     var ask by rememberSaveable(a.task) { mutableStateOf(false) }
     var choice by rememberSaveable(a.task) { mutableStateOf<String?>(null) }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(24.dp))
-            Text(a.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f))
-            if (a.deploy) Tag(stringResource(R.string.approval_prod), CmColors.prod)
+            Icon(Icons.Rounded.Verified, null, tint = Cm.advice, modifier = Modifier.size(24.dp))
+            Text(a.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text, modifier = Modifier.weight(1f))
+            if (a.deploy) Tag(stringResource(R.string.approval_prod), Cm.prod)
         }
         listOfNotNull(
             a.what?.let { stringResource(R.string.approval_what) to it },
@@ -1007,13 +1006,13 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
             stringResource(R.string.approval_asked) to it.pixelbox.cmwatch.contract.Durations.since(a.requestedAt, now),
         ).forEach { (k, v) ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(k, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.width(64.dp))
-                Text(v, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
+                Text(k, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.width(64.dp))
+                Text(v, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
             }
         }
         androidx.compose.material3.Button(
             onClick = { ask = true }, modifier = Modifier.fillMaxWidth(),
-            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
         ) { Text(stringResource(R.string.approve)) }
     }
     if (ask) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
@@ -1028,10 +1027,10 @@ private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (S
     val withOptions = it.pixelbox.cmwatch.rules.Approvals.choices(a).isNotEmpty()
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(18.dp))
-            V3Split(Modifier.weight(1f), gap = 10.dp, text = { Text(a.title, style = MaterialTheme.typography.bodySmall, color = CmColors.text) }) {
+            Icon(Icons.Rounded.Verified, null, tint = Cm.advice, modifier = Modifier.size(18.dp))
+            V3Split(Modifier.weight(1f), gap = 10.dp, text = { Text(a.title, style = MaterialTheme.typography.bodySmall, color = Cm.text) }) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (a.deploy) Tag(stringResource(R.string.approval_prod), CmColors.prod)
+                    if (a.deploy) Tag(stringResource(R.string.approval_prod), Cm.prod)
                     if (!withOptions) OkButtons(a, filled = true) { o -> choice = o; ask = true }
                 }
             }
@@ -1046,11 +1045,11 @@ private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (S
 private fun WorkLine(w: Lavori.ForYou, onDone: () -> Unit, onStart: () -> Unit) {
     val outside = w.kind == Lavori.Kind.OUTSIDE
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        WorkGlyph(w.kind, if (outside) CmColors.briefWarn else CmColors.briefRing)
+        WorkGlyph(w.kind, if (outside) Cm.briefWarn else Cm.briefRing)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(Lavori.shortTitle(w.title, w.commitment?.short ?: w.agenda?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
+            Text(Lavori.shortTitle(w.title, w.commitment?.short ?: w.agenda?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip)
             val sub = if (outside) (w.at?.let { stringResource(R.string.lavori_you_at, hhmmOf(it)) } ?: stringResource(R.string.lavori_you)) else stringResource(R.string.lavori_can_start)
-            Text(sub, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip)
+            Text(sub, style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip)
         }
         if (outside) MiniButton(stringResource(R.string.agenda_done), filled = true, onClick = onDone)
         else MiniButton(stringResource(R.string.lavori_start), filled = false, onClick = onStart)
@@ -1071,7 +1070,7 @@ private fun OkButtons(a: it.pixelbox.cmwatch.contract.Approval, filled: Boolean,
 /** Il tasto piccolo delle righe (come l'Approva della scheda): pieno per quello che sblocca una sessione, tonale per l'agenda. */
 @Composable
 private fun MiniButton(text: String, filled: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = CircleShape, color = if (filled) CmColors.primary else CmColors.surfaceHigh, contentColor = if (filled) CmColors.onPrimary else CmColors.text) {
+    Surface(onClick = onClick, shape = CircleShape, color = if (filled) Cm.primary else Cm.surfaceHigh, contentColor = if (filled) Cm.onPrimary else Cm.text) {
         Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
 }
@@ -1101,31 +1100,31 @@ private fun WorkCard(
     Column(familyCard(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             WorkBadge(r.kind, ag?.let { RecapAgenda.mark(it.scope) } ?: RecapAgenda.Mark.NONE)
-            Text(Lavori.shortTitle(r.title, ag?.short ?: cm?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
-            meta?.let { Text(it, style = MonoSmall, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.widthIn(max = 120.dp)) }
+            Text(Lavori.shortTitle(r.title, ag?.short ?: cm?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+            meta?.let { Text(it, style = MonoSmall, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.widthIn(max = 120.dp)) }
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
-                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = CmColors.text2)
+                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = Cm.text2)
             }
         }
         // Franz 24/10 09:22: per una scelta la domanda intera, sempre.
         val asksChoice = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x).isNotEmpty() } == true
-        Text(r.title, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = if (open || asksChoice) Int.MAX_VALUE else 2, overflow = TextOverflow.Clip)
+        Text(r.title, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = if (open || asksChoice) Int.MAX_VALUE else 2, overflow = TextOverflow.Clip)
         if (open) Lavori.details(r).forEach { d ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(detailLabel(d.kind)), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
-                Text(if (d.kind == Lavori.Detail.ASKED_AT) hhmmOf(d.value.toLong()) else d.value, style = MaterialTheme.typography.bodySmall, color = CmColors.text)
+                Text(stringResource(detailLabel(d.kind)), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
+                Text(if (d.kind == Lavori.Detail.ASKED_AT) hhmmOf(d.value.toLong()) else d.value, style = MaterialTheme.typography.bodySmall, color = Cm.text)
             }
         }
         val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
         if (opts.isNotEmpty()) {
             // Franz 24/10 09:22: con le opzioni, chi chiede su una riga sua e i tasti interi sotto, che vanno a capo fra loro.
-            sub?.let { Text(it, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip) }
+            sub?.let { Text(it, style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip) }
             @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 opts.forEach { o -> MiniButton(o, filled = false) { choice = o; ask = true } }
             }
         } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(sub.orEmpty(), style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+            Text(sub.orEmpty(), style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
             when (r.kind) {
                 Lavori.Kind.OK -> if (a != null) OkButtons(a, filled = true) { o -> choice = o; ask = true }
                 Lavori.Kind.OUTSIDE -> MiniButton(stringResource(R.string.agenda_done), filled = false) { ag?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; cm?.let(onDoneForPerson) }
@@ -1157,10 +1156,10 @@ private fun detailLabel(k: Lavori.Detail): Int = when (k) {
 private fun ServiceLine(row: MasterHome.Row, onAction: () -> Unit) {
     val (title, detail, action) = serviceText(row)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(Icons.Rounded.WarningAmber, null, tint = CmColors.briefWarn, modifier = Modifier.size(22.dp))
+        Icon(Icons.Rounded.WarningAmber, null, tint = Cm.briefWarn, modifier = Modifier.size(22.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
-            detail?.let { Text(it, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip) }
+            Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip)
+            detail?.let { Text(it, style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip) }
         }
         MiniButton(stringResource(action), filled = false, onClick = onAction)
     }
@@ -1175,11 +1174,11 @@ internal fun HomeSection(title: String, summary: String?, open: Boolean, onToggl
     ) {
         androidx.compose.material3.Icon(
             if (open) androidx.compose.material.icons.Icons.Rounded.ExpandMore else androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-            null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp),
+            null, tint = Cm.actionIcon, modifier = Modifier.size(18.dp),
         )
-        Text(title.uppercase(), style = MonoSmall.copy(color = CmColors.text2, letterSpacing = 1.8.sp))
-        Box(Modifier.weight(1f).height(1.dp).background(CmColors.line))
-        summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2) }
+        Text(title.uppercase(), style = MonoSmall.copy(color = Cm.text2, letterSpacing = 1.8.sp))
+        Box(Modifier.weight(1f).height(1.dp).background(Cm.line))
+        summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2) }
     }
 }
 
@@ -1193,25 +1192,25 @@ private fun NightHomeCard(date: java.time.LocalDate, page: it.pixelbox.cmwatch.r
     val title = stringResource(R.string.night_title, before.dayOfMonth, day.dayOfMonth, day.month.getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, locale))
     Column(familyCard(onOpen), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FamilyTop(Icons.Rounded.Bedtime, stringResource(R.string.cat_night), page?.let { "${hm.format(java.time.Instant.ofEpochSecond(it.start))}–${hm.format(java.time.Instant.ofEpochSecond(it.end))} · ${it.cards.size}" }, chevron = true)
-        if (page == null) Text(stringResource(R.string.night_loading), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+        if (page == null) Text(stringResource(R.string.night_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
         else {
-            Text(stringResource(R.string.night_card_body, title, page.cards.size), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            Text(stringResource(R.string.night_card_body, title, page.cards.size), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             val c = page.counts
             if (c.done + c.running + c.partial + c.stopped + c.asking > 0) {
                 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
                 androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (c.done > 0) NightCount(StateIcons.done, pluralStringResource(R.plurals.night_c_done, c.done, c.done), CmColors.briefGood)
-                    if (c.running > 0) NightCount(StateIcons.running, pluralStringResource(R.plurals.night_c_running, c.running, c.running), CmColors.actionIcon)
-                    if (c.partial > 0) NightCount(StateIcons.partial, pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), CmColors.briefWarn)
-                    if (c.stopped > 0) NightCount(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), CmColors.goneDim)
-                    if (c.asking > 0) NightCount(StateIcons.question, pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), CmColors.advice)
+                    if (c.done > 0) NightCount(StateIcons.done, pluralStringResource(R.plurals.night_c_done, c.done, c.done), Cm.briefGood)
+                    if (c.running > 0) NightCount(StateIcons.running, pluralStringResource(R.plurals.night_c_running, c.running, c.running), Cm.actionIcon)
+                    if (c.partial > 0) NightCount(StateIcons.partial, pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), Cm.briefWarn)
+                    if (c.stopped > 0) NightCount(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), Cm.goneDim)
+                    if (c.asking > 0) NightCount(StateIcons.question, pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), Cm.advice)
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 val need = page.needs.firstOrNull()
                 Text(
                     need?.let { pluralStringResource(R.plurals.home_night_needs, page.needs.size, page.needs.size, it.session, readableSlash(it.text)) } ?: stringResource(R.string.night_no_needs),
-                    style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f),
+                    style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f),
                 )
                 MiniButton(stringResource(R.string.home_night_open), filled = false, onClick = onOpen)
             }
@@ -1222,7 +1221,7 @@ private fun NightHomeCard(date: java.time.LocalDate, page: it.pixelbox.cmwatch.r
 /** Grammatica unica: il badge della famiglia per le schede che non sono sessioni (cerchio del colore della barra, icona bianca). */
 @Composable
 private fun FamilyBadge(icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Box(Modifier.size(24.dp).clip(CircleShape).background(CmColors.briefTrack), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(24.dp).clip(CircleShape).background(Cm.briefTrack), contentAlignment = Alignment.Center) {
         Icon(icon, null, tint = Color.White, modifier = Modifier.size(14.dp))
     }
 }
@@ -1232,22 +1231,22 @@ private fun FamilyBadge(icon: androidx.compose.ui.graphics.vector.ImageVector) {
 private fun FamilyTop(icon: androidx.compose.ui.graphics.vector.ImageVector, name: String, meta: String?, chevron: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         FamilyBadge(icon)
-        V3Split(Modifier.weight(1f), text = { Text(name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text) }) { meta?.let { Text(it, style = MonoSmall, color = CmColors.text2, maxLines = 1) } }
-        if (chevron) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2, modifier = Modifier.size(22.dp))
+        V3Split(Modifier.weight(1f), text = { Text(name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text) }) { meta?.let { Text(it, style = MonoSmall, color = Cm.text2, maxLines = 1) } }
+        if (chevron) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Cm.text2, modifier = Modifier.size(22.dp))
     }
 }
 
 /** La scheda della famiglia: stesso fondo, raggio e margini della scheda di una sessione. */
 @Composable
 private fun familyCard(onClick: (() -> Unit)? = null): Modifier =
-    Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1)
+    Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()
         .then(if (onClick != null) Modifier.handCursor().clickable(onClick = onClick) else Modifier)
         .padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 12.dp)
 
 @Composable
 private fun NightCount(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, tone: Color) = MarkedText(
     icon, text, tone, MaterialTheme.typography.labelLarge,
-    modifier = Modifier.clip(CircleShape).background(CmColors.surfaceHigh).padding(start = 10.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+    modifier = Modifier.clip(CircleShape).background(Cm.surfaceHigh).padding(start = 10.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
 )
 
 /**
@@ -1258,16 +1257,16 @@ private fun NightCount(icon: androidx.compose.ui.graphics.vector.ImageVector, te
 private fun AttentionBanner(items: List<it.pixelbox.cmwatch.contract.Attention>, onClick: () -> Unit) {
     val names = items.mapNotNull { it.session }.distinct().joinToString(", ")
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.briefWarn).handCursor().clickable(onClick = onClick)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.briefWarn).handCursor().clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             pluralStringResource(R.plurals.attention_banner, items.size, items.size), style = MaterialTheme.typography.titleSmall,
-            color = CmColors.briefWarnInk, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            color = Cm.briefWarnInk, fontWeight = FontWeight.SemiBold, maxLines = 1,
         )
         if (names.isNotEmpty()) Text(
-            names, style = MaterialTheme.typography.bodyMedium, color = CmColors.briefWarnInk, maxLines = 1,
+            names, style = MaterialTheme.typography.bodyMedium, color = Cm.briefWarnInk, maxLines = 1,
             overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
         )
     }
@@ -1283,30 +1282,30 @@ private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Releas
     val p = u.phase
     val r = p.release ?: return
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Rounded.SystemUpdate, null, tint = CmColors.briefGood, modifier = Modifier.size(24.dp))
+            Icon(Icons.Rounded.SystemUpdate, null, tint = Cm.briefGood, modifier = Modifier.size(24.dp))
             Text(
                 stringResource(R.string.update_available), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = CmColors.text, modifier = Modifier.weight(1f),
+                color = Cm.text, modifier = Modifier.weight(1f),
             )
         }
         Text(
             stringResource(R.string.update_sub, r.name, AppUpdate.sizeLabel(r.size), it.pixelbox.cmwatch.contract.Durations.since(r.publishedAt, now)),
-            style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+            style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
         )
         when (p) {
             is AppUpdater.Phase.Downloading -> {
                 androidx.compose.material3.LinearProgressIndicator(
-                    progress = { p.percent / 100f }, modifier = Modifier.fillMaxWidth(), color = CmColors.briefGood, trackColor = CmColors.briefTrack,
+                    progress = { p.percent / 100f }, modifier = Modifier.fillMaxWidth(), color = Cm.briefGood, trackColor = Cm.briefTrack,
                 )
-                Text(stringResource(R.string.update_downloading, p.percent), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                Text(stringResource(R.string.update_downloading, p.percent), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             }
             is AppUpdater.Phase.Ready -> Text(
                 stringResource(if (u.needsPermission) R.string.update_allow else R.string.update_ready),
-                style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+                style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
             )
             is AppUpdater.Phase.Failed -> Text(
                 stringResource(R.string.update_failed, stringResource(when (p.reason) {
@@ -1315,16 +1314,16 @@ private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Releas
                     AppUpdater.Reason.NETWORK -> R.string.update_fail_network
                     AppUpdater.Reason.HTTP -> R.string.update_fail_http
                 })),
-                style = MaterialTheme.typography.bodyMedium, color = CmColors.gone,
+                style = MaterialTheme.typography.bodyMedium, color = Cm.gone,
             )
             else -> {}
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (p !is AppUpdater.Phase.Downloading) androidx.compose.material3.Button(
                 onClick = { onInstall(r) },
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
             ) { Text(stringResource(if (p is AppUpdater.Phase.Failed) R.string.update_retry else R.string.update_install)) }
-            androidx.compose.material3.TextButton(onClick = { onDismiss(r.tag) }) { Text(stringResource(R.string.update_not_now), color = CmColors.text2) }
+            androidx.compose.material3.TextButton(onClick = { onDismiss(r.tag) }) { Text(stringResource(R.string.update_not_now), color = Cm.text2) }
         }
     }
 }
@@ -1339,14 +1338,14 @@ internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, S
     val c = r.c
     var ask by rememberSaveable(c.task) { mutableStateOf(false) }
     var choice by rememberSaveable(c.task) { mutableStateOf<String?>(null) }
-    val toneColor = when (r.tone) { Commitments.Tone.ALERT -> CmColors.gone; Commitments.Tone.WARN -> CmColors.waiting; Commitments.Tone.NORMAL -> CmColors.text2 }
+    val toneColor = when (r.tone) { Commitments.Tone.ALERT -> Cm.gone; Commitments.Tone.WARN -> Cm.waiting; Commitments.Tone.NORMAL -> Cm.text2 }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Rounded.Verified, null, tint = if (c.paused != null) CmColors.text2 else CmColors.advice, modifier = Modifier.size(22.dp))
-            Text(c.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f))
+            Icon(Icons.Rounded.Verified, null, tint = if (c.paused != null) Cm.text2 else Cm.advice, modifier = Modifier.size(22.dp))
+            Text(c.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, modifier = Modifier.weight(1f))
             if (c.stalled && c.paused == null) Tag(stringResource(R.string.commit_stalled), toneColor)
         }
         val approvedAt = c.approvedAt
@@ -1355,14 +1354,14 @@ internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, S
         Text(listOfNotNull(when_, idle).joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = toneColor)
         Text(
             if (r.yourTurn) stringResource(R.string.commit_your_turn) else stringResource(R.string.commit_turn, r.turn ?: c.session ?: "?"),
-            style = MaterialTheme.typography.bodyMedium, color = CmColors.text,
+            style = MaterialTheme.typography.bodyMedium, color = Cm.text,
         )
-        c.next?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.commit_next) + ": " + it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
-        if (c.check?.outcome == "red") Text(stringResource(R.string.commit_check_red), style = MaterialTheme.typography.bodySmall, color = CmColors.gone)
+        c.next?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.commit_next) + ": " + it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+        if (c.check?.outcome == "red") Text(stringResource(R.string.commit_check_red), style = MaterialTheme.typography.bodySmall, color = Cm.gone)
         val a = r.approval
         if (r.yourTurn && a != null) androidx.compose.material3.Button(
             onClick = { ask = true }, modifier = Modifier.fillMaxWidth(),
-            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
         ) { Text(stringResource(R.string.approve)) }
         if (ask && a != null) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
     }
@@ -1378,27 +1377,27 @@ internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: Str
     val opts = it.pixelbox.cmwatch.rules.Approvals.choices(a)
     val speak = LocalSpeakText.current
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = CmColors.surface,
+        onDismissRequest = onDismiss, containerColor = Cm.surface,
         title = { Text(if (choice != null) stringResource(R.string.choose_short, choice) else if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_short), style = MaterialTheme.typography.titleLarge) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (speak != null) Speakable(question, speak = true, onSpeak = speak)
-                else Text(question, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                else Text(question, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                 if (opts.isNotEmpty()) {
                     @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
                     androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         opts.forEach { o ->
                             val on = o == choice
-                            Text(o, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, color = if (on) CmColors.onPrimary else CmColors.text2,
-                                modifier = Modifier.clip(CircleShape).background(if (on) CmColors.primary else CmColors.surfaceHigh).padding(horizontal = 12.dp, vertical = 6.dp))
+                            Text(o, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, color = if (on) Cm.onPrimary else Cm.text2,
+                                modifier = Modifier.clip(CircleShape).background(if (on) Cm.primary else Cm.surfaceHigh).padding(horizontal = 12.dp, vertical = 6.dp))
                         }
                     }
                 }
                 androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
             }
         },
-        confirmButton = { androidx.compose.material3.Button(onClick = { onConfirm(note) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(choice ?: stringResource(R.string.approve)) } },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
+        confirmButton = { androidx.compose.material3.Button(onClick = { onConfirm(note) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(choice ?: stringResource(R.string.approve)) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Cm.text2) } },
     )
 }
 
@@ -1419,9 +1418,9 @@ internal fun hhmmOf(epoch: Long): String =
 /** Mandato /exit da una card: lo dice finché la sessione non esce; poi in cima la card «chiusa alle» (Franz 24/10 13:20). */
 @Composable
 private fun ClosingChip(name: String) {
-    Surface(shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
+    Surface(shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            androidx.compose.material3.CircularProgressIndicator(color = CmColors.actionIcon, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+            androidx.compose.material3.CircularProgressIndicator(color = Cm.actionIcon, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
             Text(stringResource(R.string.splash_closing, name), style = MaterialTheme.typography.labelLarge)
         }
     }
@@ -1435,25 +1434,25 @@ private fun ClosingChip(name: String) {
 private fun CloseFinishedDialog(p: it.pixelbox.cmwatch.rules.CloseFinished.Preview?, done: Boolean, onDismiss: () -> Unit, onConfirm: (List<String>) -> Unit) {
     val ok = p?.let { pv -> it.pixelbox.cmwatch.rules.CloseFinished.closable(pv) }.orEmpty()
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = CmColors.surface,
+        onDismissRequest = onDismiss, containerColor = Cm.surface,
         title = { Text(stringResource(R.string.close_finished_title)) },
         text = {
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 when {
-                    !done -> Text(stringResource(R.string.close_finished_loading), color = CmColors.text2)
-                    p == null -> Text(stringResource(R.string.close_finished_no_preview), color = CmColors.text2)
+                    !done -> Text(stringResource(R.string.close_finished_loading), color = Cm.text2)
+                    p == null -> Text(stringResource(R.string.close_finished_no_preview), color = Cm.text2)
                     else -> {
-                        Text(stringResource(R.string.close_finished_sub), color = CmColors.text2, style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.close_finished_sub), color = Cm.text2, style = MaterialTheme.typography.bodyMedium)
                         p.sessions.forEach { x ->
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(x.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = if (x.closable) CmColors.text else CmColors.text2)
+                                Text(x.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = if (x.closable) Cm.text else Cm.text2)
                                 val small = MaterialTheme.typography.bodySmall
-                                if (!x.closable) Text(stringResource(when (x.blockedBy) { "busy" -> R.string.close_blocked_busy; "question" -> R.string.close_blocked_question; "background" -> R.string.close_blocked_background; "attached" -> R.string.close_blocked_attached; "gone" -> R.string.close_blocked_gone; else -> R.string.close_blocked_other }), style = small, color = CmColors.text2)
+                                if (!x.closable) Text(stringResource(when (x.blockedBy) { "busy" -> R.string.close_blocked_busy; "question" -> R.string.close_blocked_question; "background" -> R.string.close_blocked_background; "attached" -> R.string.close_blocked_attached; "gone" -> R.string.close_blocked_gone; else -> R.string.close_blocked_other }), style = small, color = Cm.text2)
                                 else {
-                                    x.save?.outcome?.let { Text(stringResource(R.string.close_saves_outcome, it), style = small, color = CmColors.text2) }
-                                    x.save?.next?.let { Text(stringResource(R.string.close_saves_next, it), style = small, color = CmColors.text2) }
-                                    x.save?.dirtyN?.takeIf { it > 0 }?.let { n -> Text(stringResource(R.string.close_dirty, n, x.save?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = CmColors.briefWarn) }
-                                    if (x.save?.sessionId != null) Text(stringResource(R.string.close_resumable), style = small, color = CmColors.idle)
+                                    x.save?.outcome?.let { Text(stringResource(R.string.close_saves_outcome, it), style = small, color = Cm.text2) }
+                                    x.save?.next?.let { Text(stringResource(R.string.close_saves_next, it), style = small, color = Cm.text2) }
+                                    x.save?.dirtyN?.takeIf { it > 0 }?.let { n -> Text(stringResource(R.string.close_dirty, n, x.save?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = Cm.briefWarn) }
+                                    if (x.save?.sessionId != null) Text(stringResource(R.string.close_resumable), style = small, color = Cm.idle)
                                 }
                             }
                         }

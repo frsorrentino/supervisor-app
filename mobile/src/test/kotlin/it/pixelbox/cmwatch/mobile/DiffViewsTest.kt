@@ -26,7 +26,7 @@ class DiffViewsTest {
     private fun step(d: StepDiff, open: Boolean, opener: DiffOpener = DiffOpener()) = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
             CompositionLocalProvider(LocalDiffOpener provides opener) {
-                Column(Modifier.background(CmColors.bg).padding(16.dp)) { StepDiffRow("a8.0", d, startOpen = open) }
+                Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp)) { StepDiffRow("a8.0", d, startOpen = open) }
             }
         }
     }

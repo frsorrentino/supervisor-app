@@ -52,7 +52,6 @@ import it.pixelbox.cmwatch.contract.AgendaPage
 import it.pixelbox.cmwatch.contract.AgendaRow
 import it.pixelbox.cmwatch.rules.RecapActions
 import it.pixelbox.cmwatch.rules.RecapAgenda
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /** «06/10» dal giorno ISO del recap; vuoto se non si legge. */
 internal fun recapDay(date: String): String =
@@ -67,16 +66,16 @@ internal fun RecapActionChip(a: RecapActions.Action, day: String, sent: Boolean,
     val label = stringResource(R.string.step_sent, a.text)
     Surface(
         onClick = onClick, enabled = !sent, shape = CircleShape,
-        color = if (sent) CmColors.idle.copy(alpha = 0.14f) else CmColors.surfaceLow, contentColor = if (sent) CmColors.text2 else CmColors.text,
+        color = if (sent) Cm.idle.copy(alpha = 0.14f) else Cm.surfaceLow, contentColor = if (sent) Cm.text2 else Cm.text,
         modifier = if (sent) Modifier.semantics { contentDescription = label } else Modifier,
     ) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (sent) Icon(Icons.Rounded.Check, null, tint = CmColors.idle, modifier = Modifier.size(16.dp))
+            if (sent) Icon(Icons.Rounded.Check, null, tint = Cm.idle, modifier = Modifier.size(16.dp))
             // L'etichetta resta su una riga e, se è un nome lungo, scende sotto: il testo dell'azione non si schiaccia mai.
             V3Split(Modifier.weight(1f, fill = false), text = { Text(a.text, style = MaterialTheme.typography.bodyLarge) }) {
                 Text(
                     if (a.recap) stringResource(R.string.recap_from_recap, day).trim() else a.from,
-                    style = MaterialTheme.typography.bodySmall, color = CmColors.text2, softWrap = false, maxLines = 1,
+                    style = MaterialTheme.typography.bodySmall, color = Cm.text2, softWrap = false, maxLines = 1,
                 )
             }
         }
@@ -90,36 +89,36 @@ internal fun RecapActionChip(a: RecapActions.Action, day: String, sent: Boolean,
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun RecapSendSheet(a: RecapActions.Action, day: String, onDismiss: () -> Unit, from: String? = null, onSend: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = CmColors.surface) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Cm.surface) {
         Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(stringResource(R.string.recap_send_title), style = MaterialTheme.typography.headlineSmall, color = CmColors.text)
+            Text(stringResource(R.string.recap_send_title), style = MaterialTheme.typography.headlineSmall, color = Cm.text)
             Text(
                 from ?: when {
                     a.agenda -> stringResource(R.string.recap_send_from_agenda)
                     a.recap -> stringResource(R.string.recap_send_from_recap, day, a.from)
                     else -> stringResource(R.string.recap_send_from_session, a.from)
                 },
-                style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+                style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
             )
             Text(
-                a.send, style = MaterialTheme.typography.bodyLarge, color = CmColors.text,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 18.dp, vertical = 14.dp),
+                a.send, style = MaterialTheme.typography.bodyLarge, color = Cm.text,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 18.dp, vertical = 14.dp),
             )
             val to = stringResource(if (a.agenda) R.string.recap_send_to_master_agenda else if (a.viaMaster) R.string.recap_send_to_master else R.string.recap_send_to_session, a.to)
             Text(
                 buildAnnotatedString {
                     val i = to.indexOf(a.to)
                     if (i < 0) append(to) else {
-                        append(to.substring(0, i)); withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = CmColors.text)) { append(a.to) }; append(to.substring(i + a.to.length))
+                        append(to.substring(0, i)); withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Cm.text)) { append(a.to) }; append(to.substring(i + a.to.length))
                     }
                 },
-                style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+                style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = CmColors.actionIcon) }
+                androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Cm.actionIcon) }
                 androidx.compose.material3.Button(
                     onClick = onSend,
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
                 ) { Text(stringResource(R.string.recap_send)) }
             }
         }
@@ -130,7 +129,7 @@ internal fun RecapSendSheet(a: RecapActions.Action, day: String, onDismiss: () -
 @Composable
 internal fun AgendaMark(scope: String) {
     val m = RecapAgenda.mark(scope)
-    val border = androidx.compose.foundation.BorderStroke(2.dp, CmColors.text2)
+    val border = androidx.compose.foundation.BorderStroke(2.dp, Cm.text2)
     val mod = Modifier.padding(top = 3.dp).size(18.dp)
     when (m) {
         RecapAgenda.Mark.PERSONAL -> androidx.compose.foundation.layout.Box(mod.border(border, CircleShape))
@@ -158,33 +157,33 @@ internal fun AgendaRowCard(
 ) {
     var open by rememberSaveable(row.key.ifBlank { row.title }) { mutableStateOf(startOpen) }
     var more by rememberSaveable(row.key.ifBlank { row.title }) { mutableStateOf(startMore) }
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(CmColors.surface).padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surface).padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
             AgendaMark(row.scope)
             Column(
                 Modifier.weight(1f).then(if (onOpen != null) Modifier.clip(RoundedCornerShape(10.dp)).handCursor().clickable(onClick = onOpen) else Modifier),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text(row.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = CmColors.text)
+                Text(row.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = Cm.text)
                 val sub = when {
                     row.state.trim().lowercase() == "sospeso" && !row.until.isNullOrBlank() -> stringResource(R.string.agenda_until, untilLabel(row.until))
                     !RecapAgenda.isOpen(row) -> listOf(row.state.trim(), row.ref.trim()).filter { it.isNotEmpty() }.joinToString(" · ")
                     other -> stringResource(R.string.recap_blocks, row.blocks.trim())
                     else -> row.ref.trim()
                 }
-                if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             }
             if (items.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { open = !open }, modifier = Modifier.size(40.dp).handCursor()) {
                 Icon(
                     if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    stringResource(if (open) R.string.agenda_card_close else R.string.agenda_card_open), tint = CmColors.text2,
+                    stringResource(if (open) R.string.agenda_card_close else R.string.agenda_card_open), tint = Cm.text2,
                 )
             }
         }
         if (open && items.isNotEmpty()) Column(Modifier.padding(end = 10.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            androidx.compose.material3.HorizontalDivider(color = CmColors.line)
+            androidx.compose.material3.HorizontalDivider(color = Cm.line)
             val detail = row.detail?.trim()?.takeIf { it.isNotEmpty() }
-            Text(detail ?: stringResource(R.string.agenda_no_detail), style = MaterialTheme.typography.bodyMedium, color = if (detail != null) CmColors.text else CmColors.text2)
+            Text(detail ?: stringResource(R.string.agenda_no_detail), style = MaterialTheme.typography.bodyMedium, color = if (detail != null) Cm.text else Cm.text2)
             // I tasti (Franz, 10/10 10:36, variante A + C): una barra di icone con l'etichetta sotto, uguali, «Fallo» pieno, per le
             // azioni più usate; «Altro» apre qui sotto l'elenco delle altre, come nella C. Senza «Fallo» (scheda non aperta) la
             // barra comincia da quello che c'è.
@@ -197,7 +196,7 @@ internal fun AgendaRowCard(
                 repeat(5 - bar.size - (if (rest.isNotEmpty()) 1 else 0)) { androidx.compose.foundation.layout.Spacer(Modifier.weight(1f)) }
             }
             if (rest.isNotEmpty() && more) Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(vertical = 6.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(vertical = 6.dp),
             ) {
                 rest.forEach { item ->
                     val red = item == RecapAgenda.Item.REMOVE
@@ -205,8 +204,8 @@ internal fun AgendaRowCard(
                         Modifier.fillMaxWidth().handCursor().clickable { onItem(item) }.padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Icon(icon(item), null, tint = if (red) CmColors.gone else CmColors.actionIcon, modifier = Modifier.size(22.dp))
-                        Text(label(item), style = MaterialTheme.typography.bodyLarge, color = if (red) CmColors.gone else CmColors.text)
+                        Icon(icon(item), null, tint = if (red) Cm.gone else Cm.actionIcon, modifier = Modifier.size(22.dp))
+                        Text(label(item), style = MaterialTheme.typography.bodyLarge, color = if (red) Cm.gone else Cm.text)
                     }
                 }
             }
@@ -218,18 +217,18 @@ internal fun AgendaRowCard(
 @Composable
 private fun AgendaBarKey(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, filled: Boolean, lit: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(16.dp)).handCursor().clickable(onClickLabel = text, onClick = onClick).padding(vertical = 4.dp),
+        modifier.clip(RoundedCornerShape(14.dp)).handCursor().clickable(onClickLabel = text, onClick = onClick).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         androidx.compose.foundation.layout.Box(
-            Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(
-                when { filled -> CmColors.primary; lit -> androidx.compose.ui.graphics.Color(0xFF3A4A66); else -> CmColors.surfaceHigh },
+            Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(
+                when { filled -> Cm.primary; lit -> androidx.compose.ui.graphics.Color(0xFF3A4A66); else -> Cm.surfaceHigh },
             ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, null, tint = when { filled -> CmColors.onPrimary; lit -> CmColors.primary; else -> CmColors.actionIcon }, modifier = Modifier.size(24.dp))
+            Icon(icon, null, tint = when { filled -> Cm.onPrimary; lit -> Cm.primary; else -> Cm.actionIcon }, modifier = Modifier.size(24.dp))
         }
-        Text(text, style = MaterialTheme.typography.labelMedium, color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+        Text(text, style = MaterialTheme.typography.labelMedium, color = Cm.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
     }
 }
 

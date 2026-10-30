@@ -8,7 +8,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.mobile.R
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /** «Incolla il codice»: la riga di `relay pair --text`, quando il QR non si legge; la finestra dice quale (Franz, 04/10 15:46). */
 @Composable
@@ -16,14 +15,14 @@ fun PasteDialog(onPair: (String) -> Unit, onDismiss: () -> Unit) {
     var text by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CmColors.surfaceHigh,
+        containerColor = Cm.surfaceHigh,
         title = { Text(stringResource(R.string.paste_title)) },
         text = {
             androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(R.string.paste_hint), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                Text(stringResource(R.string.paste_hint), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
                 OutlinedTextField(text, { text = it }, minLines = 4, modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("{\"v\":1,…", fontFamily = FontFamily.Monospace, color = CmColors.stale) },
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace))
+                    placeholder = { Text("{\"v\":1,…", fontFamily = V3.Mono, color = Cm.stale) },
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = V3.Mono))
             }
         },
         confirmButton = { Button({ onPair(text) }, enabled = text.isNotBlank()) { Text(stringResource(R.string.pair_button)) } },

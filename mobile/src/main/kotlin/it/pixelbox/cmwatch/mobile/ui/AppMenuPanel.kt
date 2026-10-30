@@ -52,7 +52,6 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.foundation.border
 import androidx.compose.ui.platform.testTag
 import it.pixelbox.cmwatch.mobile.R
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /** Una voce dei menu a pannello: icona su fondo tonale, titolo e una riga che spiega cosa fa. */
 data class MenuEntry(
@@ -140,7 +139,7 @@ fun PanelShell(
                     V3Theme { Column {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             header()
-                            IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = CmColors.text2) }
+                            IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2) }
                         }
                         Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
                         Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) { content(close) }

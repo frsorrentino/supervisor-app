@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,7 +44,6 @@ import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.StartRoute
 import it.pixelbox.cmwatch.rules.StartRoute.Tab
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Il guscio del riepilogo unico (design 03/10): niente schede in basso. Senza scheda aperta, in alto «Sessioni · N
@@ -90,17 +90,17 @@ fun AppShell(
     val summary = current == null && tab == Tab.OVERVIEW
     val menu = MenuActions(host, updated, stale, onLaunch, onLavori = { onTab(Tab.LAVORI) }, onQuadro, onSearch, onSettings, onNight = onNight)
     Scaffold(
-        containerColor = CmColors.bg,
+        containerColor = Cm.bg,
         topBar = {
-            val top by androidx.compose.animation.animateColorAsState(if (masterScreen) MasterHighest else CmColors.bg, label = "status")
+            val top by androidx.compose.animation.animateColorAsState(if (masterScreen) MasterHighest else Cm.bg, label = "status")
             Column(Modifier.background(top).statusBarsPadding()) {
                 when {
                     // Ogni pagina della home e delle sessioni ha la sua testata, anche una sessione aperta dal Registro (dal vivo
                     // 03/10 20:01: due testate uguali).
                     pagedHeaders && (tab == Tab.OVERVIEW || current != null) -> {}
                     tab == Tab.LAVORI && current == null -> Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { onTab(Tab.OVERVIEW) }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = CmColors.text) }
-                        Text(stringResource(R.string.lavori_title), style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.weight(1f))
+                        IconButton(onClick = { onTab(Tab.OVERVIEW) }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Cm.text) }
+                        Text(stringResource(R.string.lavori_title), style = MaterialTheme.typography.titleLarge, color = Cm.text, modifier = Modifier.weight(1f))
                         AppMenu(menu, menuStartOpen)
                     }
                     else -> PageHeader(
@@ -110,16 +110,16 @@ fun AppShell(
                 }
                 if (staleMinutes != null && !demo) {
                     Text(
-                        stringResource(R.string.stale_banner, staleMinutes), color = CmColors.briefWarnInk, style = MaterialTheme.typography.labelLarge,
+                        stringResource(R.string.stale_banner, staleMinutes), color = Cm.briefWarnInk, style = MaterialTheme.typography.labelLarge,
                         maxLines = 1, overflow = TextOverflow.Clip,
-                        modifier = Modifier.fillMaxWidth().background(CmColors.briefWarn).padding(horizontal = 20.dp, vertical = 6.dp),
+                        modifier = Modifier.fillMaxWidth().background(Cm.briefWarn).padding(horizontal = 20.dp, vertical = 6.dp),
                     )
                 }
                 if (demo) {
                     Text(
-                        stringResource(R.string.demo_banner), color = CmColors.briefWarnInk, style = MaterialTheme.typography.labelLarge,
+                        stringResource(R.string.demo_banner), color = Cm.briefWarnInk, style = MaterialTheme.typography.labelLarge,
                         maxLines = 1, overflow = TextOverflow.Clip,
-                        modifier = Modifier.fillMaxWidth().background(CmColors.briefWarn).padding(horizontal = 20.dp, vertical = 6.dp),
+                        modifier = Modifier.fillMaxWidth().background(Cm.briefWarn).padding(horizontal = 20.dp, vertical = 6.dp),
                     )
                 }
             }
@@ -155,9 +155,9 @@ private fun SessionMenu(
             cur?.let { SessionBadge(it, size = 18.dp) }
             Text(
                 cur?.name ?: stringResource(R.string.all_sessions), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
+                color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
             )
-            Icon(Icons.Rounded.ArrowDropDown, null, tint = CmColors.text2)
+            Icon(Icons.Rounded.ArrowDropDown, null, tint = Cm.text2)
         }
     }
     if (open) {
@@ -237,23 +237,28 @@ fun PageHeader(
     /** Contratto 1.66: quante cose servono a Franz (`state.attention` senza le voci della master), e il tocco che porta alla prima. */
     attention: Int = 0, onAttention: () -> Unit = {},
 ) {
-    Column(Modifier.fillMaxWidth().background(if (page == null) V3.Bg else CmColors.bg)) {
+    Column(Modifier.fillMaxWidth().background(if (page == null) V3.Bg else Cm.bg)) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (page != null) {
                 // Dalla pagina di una sessione un tocco riporta al riepilogo, dove sta la master (Franz, 03/10 15:25).
-                IconButton(onClick = { onPick(null) }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back_to_summary), tint = CmColors.text) }
+                IconButton(onClick = { onPick(null) }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back_to_summary), tint = Cm.text) }
                 SessionMenu(sessions, page, now, onPick, onClosed, Modifier.weight(1f), startOpen = sessionMenuStartOpen)
             } else {
                 Row(Modifier.weight(1f).padding(start = 12.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.home_title), style = V3.Section.copy(fontSize = 22.sp, lineHeight = 26.sp), color = V3.Tx)
+                    // Accanto al titolo solo se la larghezza lo permette, mai a schiacciare il resto (Franz 30/10 22:01).
+                    if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 400) Text(
+                        if (LocalStill.current) "0.2" else it.pixelbox.cmwatch.mobile.BuildConfig.VERSION_NAME, style = V3.Meter, maxLines = 1,
+                        modifier = Modifier.testTag("versione-titolo").padding(bottom = 3.dp),
+                    )
                     Text(
                         pluralStringResource(R.plurals.summary_open, openCount, openCount), style = V3.Small.copy(fontSize = 15.sp), color = V3.Tx2,
                         maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.padding(bottom = 2.dp),
                     )
                 }
                 if (attention > 0) androidx.compose.material3.Surface(
-                    onClick = onAttention, shape = androidx.compose.foundation.shape.CircleShape, color = CmColors.waiting.copy(alpha = 0.18f),
-                    contentColor = CmColors.waiting, modifier = Modifier.handCursor(),
+                    onClick = onAttention, shape = androidx.compose.foundation.shape.CircleShape, color = Cm.waiting.copy(alpha = 0.18f),
+                    contentColor = Cm.waiting, modifier = Modifier.handCursor(),
                 ) {
                     Text(
                         pluralStringResource(R.plurals.attention_count, attention, attention), style = MaterialTheme.typography.labelLarge,
@@ -261,7 +266,7 @@ fun PageHeader(
                     )
                 }
                 // La lente solo nella home: la ricerca è di tutte le sessioni, e in una sessione la testa ha già abbastanza comandi.
-                menu.onSearch?.let { IconButton(onClick = it) { Icon(Icons.Rounded.Search, stringResource(R.string.search), tint = CmColors.text2) } }
+                menu.onSearch?.let { IconButton(onClick = it) { Icon(Icons.Rounded.Search, stringResource(R.string.search), tint = Cm.text2) } }
             }
             AppMenu(menu, menuStartOpen)
         }
@@ -273,6 +278,6 @@ fun PageHeader(
 @Composable
 internal fun AppMenu(menu: MenuActions, startOpen: Boolean = false) {
     var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(startOpen) }
-    IconButton(onClick = { open = true }) { Icon(Icons.Rounded.Menu, stringResource(R.string.menu), tint = CmColors.actionIcon) }
+    IconButton(onClick = { open = true }) { Icon(Icons.Rounded.Menu, stringResource(R.string.menu), tint = Cm.actionIcon) }
     if (open) AppMenuPanel(menu.host, menu.updated, menu.stale, menu.onLaunch, menu.onLavori, menu.onQuadro, menu.onSearch ?: {}, menu.onSettings, onDismiss = { open = false }, onNight = menu.onNight)
 }

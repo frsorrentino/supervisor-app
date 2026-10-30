@@ -35,21 +35,20 @@ import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.PermissionModes
 import it.pixelbox.cmwatch.rules.PermissionModes.Glyph
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * La modalità dei permessi coi segni del terminale (mockup del 14/10, ok di Franz il 15/10 alle 07:39): ⏸ piano, ⏵⏵
  * modifiche automatiche e automatica, ⏵⏵ ambra senza conferme, ? sconosciuta; niente per «chiede sempre».
  */
 @Composable
-fun PermissionGlyph(glyph: Glyph, size: Dp = 16.dp, tint: Color = CmColors.text) {
+fun PermissionGlyph(glyph: Glyph, size: Dp = 16.dp, tint: Color = Cm.text) {
     val icon = when (glyph) {
         Glyph.NONE -> return
         Glyph.PLAN -> Icons.Rounded.Pause
         Glyph.FORWARD, Glyph.BYPASS -> Icons.Rounded.FastForward
         Glyph.UNKNOWN -> Icons.AutoMirrored.Rounded.HelpOutline
     }
-    Icon(icon, null, tint = if (glyph == Glyph.BYPASS) CmColors.briefWarn else tint, modifier = Modifier.size(size))
+    Icon(icon, null, tint = if (glyph == Glyph.BYPASS) Cm.briefWarn else tint, modifier = Modifier.size(size))
 }
 
 @Composable
@@ -76,14 +75,14 @@ fun permissionSub(mode: String?): String = when (mode) {
 @Composable
 fun PermissionCard(mode: String?) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceHigh).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceHigh).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PermissionGlyph(PermissionModes.glyph(mode))
-            Text(permissionName(mode), style = MaterialTheme.typography.titleSmall, color = CmColors.text, fontWeight = FontWeight.SemiBold)
+            Text(permissionName(mode), style = MaterialTheme.typography.titleSmall, color = Cm.text, fontWeight = FontWeight.SemiBold)
         }
-        Text(permissionSub(mode), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+        Text(permissionSub(mode), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     }
 }
 
@@ -110,13 +109,13 @@ fun PermissionGroup(s: Session, onPick: (String) -> Unit) {
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
-                        color = if (on) CmColors.primary else CmColors.surfaceHigh,
-                        contentColor = if (on) CmColors.onPrimary else CmColors.text,
-                        border = if (isArmed) androidx.compose.foundation.BorderStroke(2.dp, CmColors.briefWarn) else null,
+                        color = if (on) Cm.primary else Cm.surfaceHigh,
+                        contentColor = if (on) Cm.onPrimary else Cm.text,
+                        border = if (isArmed) androidx.compose.foundation.BorderStroke(2.dp, Cm.briefWarn) else null,
                         modifier = Modifier.weight(1f).heightIn(min = 64.dp).handCursor(),
                     ) {
                         Column(Modifier.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
-                            PermissionGlyph(PermissionModes.glyph(m), 14.dp, tint = if (on) CmColors.onPrimary else CmColors.text)
+                            PermissionGlyph(PermissionModes.glyph(m), 14.dp, tint = if (on) Cm.onPrimary else Cm.text)
                             Text(permissionName(m), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                         }
                     }
@@ -124,7 +123,7 @@ fun PermissionGroup(s: Session, onPick: (String) -> Unit) {
                 repeat(3 - row.size) { androidx.compose.foundation.layout.Spacer(Modifier.weight(1f)) }
             }
         }
-        armed?.let { Text(stringResource(R.string.perm_confirm, permissionName(it)), style = MaterialTheme.typography.bodyMedium, color = CmColors.briefWarn) }
-        Text(stringResource(R.string.perm_note), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+        armed?.let { Text(stringResource(R.string.perm_confirm, permissionName(it)), style = MaterialTheme.typography.bodyMedium, color = Cm.briefWarn) }
+        Text(stringResource(R.string.perm_note), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
     }
 }

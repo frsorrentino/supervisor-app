@@ -33,7 +33,6 @@ import it.pixelbox.cmwatch.contract.NightIndex
 import it.pixelbox.cmwatch.rules.NightGantt
 import it.pixelbox.cmwatch.rules.NightPage
 import it.pixelbox.cmwatch.rules.uniqueKeys
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -58,17 +57,17 @@ fun NightScreen(
     fun t(s: Long) = hm.format(Instant.ofEpochSecond(s))
     var open by rememberSaveable { mutableStateOf(opened) }
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
-    Column(Modifier.fillMaxSize().background(CmColors.bg).systemBarsPadding()) {
+    Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = CmColors.text) }
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Cm.text) }
             val title = page?.let { p -> stringResource(R.string.night_title, p.dayBefore.dayOfMonth, p.day.dayOfMonth, p.day.month.getDisplayName(TextStyle.FULL_STANDALONE, locale)) }
                 ?: stringResource(R.string.night_menu)
-            Text(title, style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.weight(1f))
-            IconButton(onClick = onRefresh, enabled = !loading) { Icon(Icons.Rounded.Refresh, stringResource(R.string.night_refresh), tint = CmColors.actionIcon) }
+            Text(title, style = MaterialTheme.typography.titleLarge, color = Cm.text, modifier = Modifier.weight(1f))
+            IconButton(onClick = onRefresh, enabled = !loading) { Icon(Icons.Rounded.Refresh, stringResource(R.string.night_refresh), tint = Cm.actionIcon) }
         }
-        if (loading) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 20.dp), color = CmColors.actionIcon)
+        if (loading) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 20.dp), color = Cm.actionIcon)
         if (page == null) {
-            Text(error ?: stringResource(R.string.night_loading), color = CmColors.text2, modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp))
+            Text(error ?: stringResource(R.string.night_loading), color = Cm.text2, modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp))
             return@Column
         }
         // Sezioni richiudibili (Franz, 08/10 12:30): «Progetti» parte chiusa, le altre aperte.
@@ -81,7 +80,7 @@ fun NightScreen(
                 Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         stringResource(if (page.fromLastMessage) R.string.night_window else R.string.night_window_plain, t(page.start), t(page.end), longDuration(page.windowS)),
-                        style = MaterialTheme.typography.bodyLarge, color = CmColors.text2,
+                        style = MaterialTheme.typography.bodyLarge, color = Cm.text2,
                     )
                     if (gantt != null) WhereChips(gantt.projects.counts) else CountChips(page.counts)
                 }
@@ -140,8 +139,8 @@ data class GanttViews(val projects: NightGantt.Projects, val goals: NightGantt.G
 @Composable
 private fun Heading(title: String, explain: String?) {
     Column(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title.uppercase(), style = MonoSmall.copy(color = CmColors.text2, letterSpacing = 1.8.sp))
-        explain?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
+        Text(title.uppercase(), style = MonoSmall.copy(color = Cm.text2, letterSpacing = 1.8.sp))
+        explain?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
     }
 }
 
@@ -150,10 +149,10 @@ private fun Heading(title: String, explain: String?) {
 private fun Section(title: String, explain: String, open: Boolean, onToggle: () -> Unit) {
     Column(Modifier.fillMaxWidth().handCursor().clickable(onClick = onToggle).padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(if (open) Icons.Rounded.ExpandMore else Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
-            Text(title.uppercase(), style = MonoSmall.copy(color = CmColors.text2, letterSpacing = 1.8.sp))
+            Icon(if (open) Icons.Rounded.ExpandMore else Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Cm.actionIcon, modifier = Modifier.size(18.dp))
+            Text(title.uppercase(), style = MonoSmall.copy(color = Cm.text2, letterSpacing = 1.8.sp))
         }
-        Text(explain, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+        Text(explain, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     }
 }
 
@@ -162,18 +161,18 @@ private fun Section(title: String, explain: String, open: Boolean, onToggle: () 
 private fun CountChips(c: NightPage.Counts) {
     @OptIn(ExperimentalLayoutApi::class)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (c.done > 0) CountChip(StateIcons.done, pluralStringResource(R.plurals.night_c_done, c.done, c.done), CmColors.briefGood)
-        if (c.running > 0) CountChip(StateIcons.running, pluralStringResource(R.plurals.night_c_running, c.running, c.running), CmColors.actionIcon)
-        if (c.partial > 0) CountChip(StateIcons.partial, pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), CmColors.briefWarn)
-        if (c.stopped > 0) CountChip(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), CmColors.goneDim)
-        if (c.asking > 0) CountChip(StateIcons.question, pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), CmColors.advice)
+        if (c.done > 0) CountChip(StateIcons.done, pluralStringResource(R.plurals.night_c_done, c.done, c.done), Cm.briefGood)
+        if (c.running > 0) CountChip(StateIcons.running, pluralStringResource(R.plurals.night_c_running, c.running, c.running), Cm.actionIcon)
+        if (c.partial > 0) CountChip(StateIcons.partial, pluralStringResource(R.plurals.night_wc_partial, c.partial, c.partial), Cm.briefWarn)
+        if (c.stopped > 0) CountChip(StateIcons.stopped, pluralStringResource(R.plurals.night_c_stopped, c.stopped, c.stopped), Cm.goneDim)
+        if (c.asking > 0) CountChip(StateIcons.question, pluralStringResource(R.plurals.night_c_asking, c.asking, c.asking), Cm.advice)
     }
 }
 
 @Composable
 private fun CountChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, tone: Color) = MarkedText(
     icon, text, tone, MaterialTheme.typography.labelLarge,
-    modifier = Modifier.clip(CircleShape).background(CmColors.surfaceHigh).padding(start = 10.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+    modifier = Modifier.clip(CircleShape).background(Cm.surfaceHigh).padding(start = 10.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
 )
 
 /** «2 ore e 3 minuti»: la durata della finestra. */
@@ -198,16 +197,16 @@ private fun shortDuration(s: Int): String {
 @Composable
 private fun NeedRow(n: NightPage.Need, first: Boolean, onAnswer: (String, Int) -> Unit, onApprove: (String) -> Unit, onSend: (String, String) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surface).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(CmColors.surfaceHigh), contentAlignment = Alignment.Center) {
-            Text(if (n.kind == NightPage.NeedKind.QUESTION) "?" else "!", color = if (n.kind == NightPage.NeedKind.QUESTION) CmColors.advice else CmColors.waiting, fontWeight = FontWeight.Bold)
+        Box(Modifier.size(40.dp).clip(CircleShape).background(Cm.surfaceHigh), contentAlignment = Alignment.Center) {
+            Text(if (n.kind == NightPage.NeedKind.QUESTION) "?" else "!", color = if (n.kind == NightPage.NeedKind.QUESTION) Cm.advice else Cm.waiting, fontWeight = FontWeight.Bold)
         }
         V3Split(Modifier.weight(1f), gap = 14.dp, text = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(n.session, style = MaterialTheme.typography.titleMedium, color = CmColors.text)
-                Text(readableSlash(n.text), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                Text(n.session, style = MaterialTheme.typography.titleMedium, color = Cm.text)
+                Text(readableSlash(n.text), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             }
         }) {
             when (n.kind) {
@@ -248,11 +247,11 @@ private fun NeedButton(label: String, filled: Boolean, onClick: () -> Unit) {
 }
 
 private fun iconColor(i: NightPage.Icon): Color = when (i) {
-    NightPage.Icon.OK -> CmColors.briefGood
-    NightPage.Icon.STOPPED -> CmColors.goneDim
-    NightPage.Icon.RUNNING -> CmColors.actionIcon
-    NightPage.Icon.QUESTION -> CmColors.advice
-    NightPage.Icon.PARTIAL -> CmColors.briefWarn
+    NightPage.Icon.OK -> Cm.briefGood
+    NightPage.Icon.STOPPED -> Cm.goneDim
+    NightPage.Icon.RUNNING -> Cm.actionIcon
+    NightPage.Icon.QUESTION -> Cm.advice
+    NightPage.Icon.PARTIAL -> Cm.briefWarn
 }
 
 /**
@@ -265,13 +264,13 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
     Column(
         // Franz 24/10 08:42: «ogni scheda deve essere cliccabile e portarmi alla sessione che ha lavorato»: il tocco apre la
         // sessione (c.chat); il chevron apre i passi. Senza sessione apribile il tocco apre i passi come prima.
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).handCursor().clickable { val chat = c.chat; val sid = c.sid; when { chat != null -> onChat(chat); sid != null -> onTranscript(c.title, sid); else -> onToggle() } }
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surface).handCursor().clickable { val chat = c.chat; val sid = c.sid; when { chat != null -> onChat(chat); sid != null -> onTranscript(c.title, sid); else -> onToggle() } }
             .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(c.title, style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.weight(1f))
-            if (c.chat != null || c.sid != null) Icon(Icons.AutoMirrored.Rounded.Chat, stringResource(R.string.night_conversation), tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
+            Text(c.title, style = MaterialTheme.typography.titleMedium, color = Cm.text, modifier = Modifier.weight(1f))
+            if (c.chat != null || c.sid != null) Icon(Icons.AutoMirrored.Rounded.Chat, stringResource(R.string.night_conversation), tint = Cm.actionIcon, modifier = Modifier.size(18.dp))
             MarkedText(
                 StateIcons.of(c.icon),
                 stringResource(when (c.icon) {
@@ -283,21 +282,21 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
                 modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = .16f)).padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
             )
             if (c.steps.isNotEmpty()) androidx.compose.material3.IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
-                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = CmColors.text2)
+                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = Cm.text2)
             }
         }
-        Text(stringResource(if (c.queue) R.string.night_kind_job else R.string.night_kind_session) + " · " + times, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-        c.folder?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
-        c.detail?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = CmColors.text) }
+        Text(stringResource(if (c.queue) R.string.night_kind_job else R.string.night_kind_session) + " · " + times, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+        c.folder?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+        c.detail?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = Cm.text) }
         if (c.commits != null) Text(
             listOf(stringResource(R.string.night_count_commits, c.commits!!), stringResource(R.string.night_count_tests, c.tests ?: 0), stringResource(R.string.night_count_prompts, c.prompts ?: 0)).joinToString(" · "),
-            style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+            style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
         )
         if (open) {
             if (c.steps.isNotEmpty()) Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 c.steps.forEach { s -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(t(s.at), style = MonoSmall.copy(color = CmColors.text2))
-                    Text(s.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
+                    Text(t(s.at), style = MonoSmall.copy(color = Cm.text2))
+                    Text(s.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
                 } }
             }
         }
@@ -307,19 +306,19 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
 @Composable
 private fun ProjectRow(p: NightPage.Project) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surface).padding(horizontal = 18.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surface).padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(p.name, style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.weight(1f))
-            Text(if (p.total > 0) stringResource(R.string.night_parts, p.done, p.total) else stringResource(R.string.night_no_parts), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            Text(p.name, style = MaterialTheme.typography.titleMedium, color = Cm.text, modifier = Modifier.weight(1f))
+            Text(if (p.total > 0) stringResource(R.string.night_parts, p.done, p.total) else stringResource(R.string.night_no_parts), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
         }
         if (p.parts.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             p.parts.forEach { st ->
-                Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(3.dp)).background(when (st) { "done" -> CmColors.briefGood; "doing" -> CmColors.actionIcon; else -> CmColors.surfaceHigh }))
+                Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(3.dp)).background(when (st) { "done" -> Cm.briefGood; "doing" -> Cm.actionIcon; else -> Cm.surfaceHigh }))
             }
         }
-        if (p.waiting.isNotEmpty()) Text(stringResource(R.string.night_waiting, p.waiting.map { w -> readableSlashWaiting(w) }.joinToString(" · ")), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-        p.next?.let { Text(stringResource(R.string.night_next, it), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
+        if (p.waiting.isNotEmpty()) Text(stringResource(R.string.night_waiting, p.waiting.map { w -> readableSlashWaiting(w) }.joinToString(" · ")), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+        p.next?.let { Text(stringResource(R.string.night_next, it), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
     }
 }

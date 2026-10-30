@@ -25,7 +25,7 @@ class ReadingPillTest {
     /** La velocità arriva dal parametro: 1,5× e non il valore predefinito del provider. */
     @Test fun rateAndVoice() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Box(Modifier.background(CmColors.bg).padding(12.dp)) {
+            Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                 ReadingPill("fable-director", text, onOpen = {}, onStop = {}, rate = 1.5f, onRate = {}, voice = "it-it-x-itd-local", onVoice = {})
             }
         }
@@ -34,7 +34,7 @@ class ReadingPillTest {
     /** Una colonna stretta del tablet: restano i tasti, la riga del testo si vede già nella colonna. */
     @Test fun narrowColumn() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Box(Modifier.background(CmColors.bg).padding(12.dp).width(260.dp)) {
+            Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp).width(260.dp)) {
                 ReadingPill("fable-director", text, onOpen = {}, onStop = {}, rate = 1.25f, onRate = {}, voice = null, onVoice = {})
             }
         }
@@ -43,7 +43,7 @@ class ReadingPillTest {
     /** Senza voci italiane da scegliere il tasto della voce non c'è. */
     @Test fun noVoices() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Box(Modifier.background(CmColors.bg).padding(12.dp)) {
+            Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                 ReadingPill(null, text, onOpen = null, onStop = {}, rate = 1f, onRate = {}, voice = null, onVoice = null)
             }
         }
@@ -52,7 +52,7 @@ class ReadingPillTest {
     /** In pausa (Franz, 07/10 22:06): barrette ferme, «in pausa» sopra il testo, ▶ pieno per riprendere. */
     @Test fun paused() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Box(Modifier.background(CmColors.bg).padding(12.dp)) {
+            Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                 ReadingPill("fable-director", text, onOpen = {}, onStop = {}, rate = 1.5f, onRate = {}, voice = "it-it-x-itd-local", onVoice = {}, paused = true)
             }
         }
@@ -63,7 +63,7 @@ class ReadingPillTest {
         val overlay = ReadingOverlay().apply { rateOpen = true }
         CmPhoneTheme(still = true) {
             androidx.compose.runtime.CompositionLocalProvider(LocalReadingOverlay provides overlay) {
-                Box(Modifier.background(CmColors.bg).padding(12.dp)) {
+                Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                     ReadingPill("fable-director", text, onOpen = {}, onStop = {}, rate = 1.35f, onRate = {}, voice = "it-it-x-itd-local", onVoice = {})
                 }
             }
@@ -73,14 +73,14 @@ class ReadingPillTest {
     // Il pannello della live (Franz, 08/10 20:03): mentre parla, e in pausa senza auricolari.
     @Test fun liveSpeaking() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Box(Modifier.background(CmColors.bg).padding(12.dp)) {
+            Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                 it.pixelbox.cmwatch.mobile.ui.LivePill("ledger-api ha finito: migrazione committata in locale.", speaking = true, paused = false, noHeadset = false, onlyBlocking = false, onPause = {}, onFilter = {}, onStop = {})
             }
         }
     }
     @Test fun livePausedNoHeadset() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Box(Modifier.background(CmColors.bg).padding(12.dp)) {
+            Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                 it.pixelbox.cmwatch.mobile.ui.LivePill(null, speaking = false, paused = true, noHeadset = true, onlyBlocking = true, onPause = {}, onFilter = {}, onStop = {})
             }
         }
@@ -90,7 +90,7 @@ class ReadingPillTest {
     // risposte con tasto»): da chi arriva, il testo in tre righe al massimo, una risposta per tasto.
     @Test fun liveQuestion() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Box(Modifier.background(CmColors.bg).padding(12.dp)) {
+            Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                 it.pixelbox.cmwatch.mobile.ui.LivePill(
                     "ledger-api chiede: Deploy ready, waiting for the client's ok. Deploy now?", speaking = true, paused = false, noHeadset = false, onlyBlocking = false,
                     onPause = {}, onFilter = {}, onStop = {},
@@ -107,7 +107,7 @@ class ReadingPillTest {
     @Test fun liveOpen() = paparazzi.snapshot {
         val st = it.pixelbox.cmwatch.contract.ContractJson.decodeState(java.io.File("../contract/state-1-question.json").readText())
         CmPhoneTheme(still = true) {
-            Box(Modifier.background(CmColors.bg).padding(12.dp)) {
+            Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                 it.pixelbox.cmwatch.mobile.ui.LivePill("ledger-api chiede: deploy now?", speaking = true, paused = false, noHeadset = false, onlyBlocking = false, onPause = {}, onFilter = {}, onStop = {},
                     rows = it.pixelbox.cmwatch.rules.LivePanel.rows(st, 1_789_210_700L + 12 * 60), startOpen = true)
             }

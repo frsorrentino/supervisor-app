@@ -91,7 +91,6 @@ import it.pixelbox.cmwatch.rules.PhoneOverview
 import it.pixelbox.cmwatch.rules.SessionMeters
 import it.pixelbox.cmwatch.rules.Summary
 import it.pixelbox.cmwatch.rules.Tablet
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -103,12 +102,12 @@ import java.time.format.DateTimeFormatter
  */
 
 /** Monospazio con le cifre tabulari: i numeri non ballano quando cambiano. */
-private val Mono = TextStyle(fontFamily = FontFamily.Monospace, fontFeatureSettings = "tnum", fontSize = 12.sp, color = CmColors.text2)
+private val Mono get() = TextStyle(fontFamily = V3.Mono, fontFeatureSettings = "tnum", fontSize = 12.sp, color = Cm.text2)
 private val MonoLabel = Mono.copy(fontSize = 11.sp, letterSpacing = 1.5.sp)
 
 @Composable
-private fun MiniBar(fraction: Float, modifier: Modifier = Modifier, color: Color = CmColors.briefRing) {
-    Box(modifier.height(4.dp).clip(RoundedCornerShape(2.dp)).background(CmColors.briefTrack)) {
+private fun MiniBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Cm.briefRing) {
+    Box(modifier.height(4.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
         Box(Modifier.fillMaxHeight().fillMaxWidth(fraction.coerceIn(0f, 1f)).background(color))
     }
 }
@@ -123,9 +122,9 @@ private fun rowAge(r: Summary.Row, now: Long): String = when (r.group) {
 }
 
 private fun contextColor(pct: Int): Color = when (SessionMeters.contextTone(pct)) {
-    it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> CmColors.briefAlertRing
-    it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> CmColors.briefWarn
-    else -> CmColors.briefRing
+    it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> Cm.briefAlertRing
+    it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> Cm.briefWarn
+    else -> Cm.briefRing
 }
 
 /**
@@ -141,11 +140,11 @@ fun QuotaRing(ring: PhoneOverview.Ring, size: androidx.compose.ui.unit.Dp = 64.d
                 color, -90f, sweep, false, topLeft = Offset(inset, inset),
                 size = Size(this.size.width - 2 * inset, this.size.height - 2 * inset), style = Stroke(w, cap = StrokeCap.Round),
             )
-            arc(w / 2, CmColors.briefTrack, 360f)
-            ring.h5?.takeIf { !stale }?.let { arc(w / 2, if (it >= 90) CmColors.briefAlertRing else CmColors.briefRing, 360f * it.coerceIn(0, 100) / 100f) }
+            arc(w / 2, Cm.briefTrack, 360f)
+            ring.h5?.takeIf { !stale }?.let { arc(w / 2, if (it >= 90) Cm.briefAlertRing else Cm.briefRing, 360f * it.coerceIn(0, 100) / 100f) }
             val inner = w / 2 + w + 3.dp.toPx()
-            arc(inner, CmColors.briefTrack, 360f)
-            ring.w7?.let { arc(inner, CmColors.briefWeek, 360f * it.coerceIn(0, 100) / 100f) }
+            arc(inner, Cm.briefTrack, 360f)
+            ring.w7?.let { arc(inner, Cm.briefWeek, 360f * it.coerceIn(0, 100) / 100f) }
         }
         AccountMark(ring.personal, size = size * 0.2f)
     }
@@ -158,9 +157,9 @@ fun QuotaRing(ring: PhoneOverview.Ring, size: androidx.compose.ui.unit.Dp = 64.d
  */
 @Composable
 fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = false) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(14.dp)
     Column(
-        Modifier.fillMaxWidth().clip(shape).background(CmColors.surfaceLow).border(1.dp, Color.White.copy(alpha = 0.12f), shape).padding(14.dp),
+        Modifier.fillMaxWidth().clip(shape).background(Cm.surfaceLow).border(1.dp, Cm.line, shape).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -171,13 +170,13 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
                     Text(
                         ring.h5?.takeIf { !ring.stale }?.let { "$it%" } ?: "–",
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum"),
-                        color = if (ring.stale) CmColors.text2 else CmColors.text,
+                        color = if (ring.stale) Cm.text2 else Cm.text,
                     )
                     ring.resetAt?.let { at ->
-                        Text(stringResource(R.string.quota_resets_at, hhmm(at)), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(bottom = 5.dp))
+                        Text(stringResource(R.string.quota_resets_at, hhmm(at)), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(bottom = 5.dp))
                     }
                 }
-                if (ring.stale) Text(stringResource(R.string.quota_old), style = MaterialTheme.typography.bodySmall, color = CmColors.briefWarn)
+                if (ring.stale) Text(stringResource(R.string.quota_old), style = MaterialTheme.typography.bodySmall, color = Cm.briefWarn)
             }
         }
         val reset = ring.resetAt
@@ -194,7 +193,7 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
                     r.points.size < 2 -> stringResource(R.string.tablet_forecast_none, hhmm(reset))
                     else -> stringResource(R.string.tablet_forecast_flat, hhmm(reset))
                 },
-                style = MaterialTheme.typography.bodySmall, color = CmColors.text,
+                style = MaterialTheme.typography.bodySmall, color = Cm.text,
             )
         } else {
             ring.h5?.let { MiniBar(it / 100f, Modifier.fillMaxWidth()) }
@@ -205,10 +204,10 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
                     dataStale || ring.stale -> stringResource(R.string.tablet_forecast_stale, hhmm(reset))
                     else -> stringResource(R.string.tablet_forecast_none, hhmm(reset))
                 },
-                style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
+                style = MaterialTheme.typography.bodySmall, color = Cm.text2,
             )
         }
-        HorizontalDivider(color = CmColors.line, modifier = Modifier.padding(vertical = 2.dp))
+        HorizontalDivider(color = Cm.line, modifier = Modifier.padding(vertical = 2.dp))
         PanelTitle(stringResource(R.string.tablet_week_label), ring.account, ring.w7?.let { "$it%" })
         val wp = ring.weekPoints
         val wr = ring.weekResetAt
@@ -226,11 +225,11 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
             val budget = stringResource(R.string.week_budget, String.format(LocalConfiguration.current.locales[0], "%.1f", Week7.BUDGET))
             Text(
                 stringResource(R.string.week_used, androidx.compose.ui.res.pluralStringResource(R.plurals.week_days, d, d), androidx.compose.ui.res.pluralStringResource(R.plurals.week_hours, h, h)) + " · " + budget,
-                style = MaterialTheme.typography.bodySmall, color = CmColors.text,
+                style = MaterialTheme.typography.bodySmall, color = Cm.text,
             )
             WeekDaysChart(days, Modifier.fillMaxWidth().height(130.dp))
             Week7.samplesFrom(wp)?.let { from ->
-                Text(stringResource(R.string.week_samples_from, dayShortTime(from)), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+                Text(stringResource(R.string.week_samples_from, dayShortTime(from)), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
             }
         } else ring.w7?.let { w ->
             val projected = Tablet.weekProjected(w, ring.weekResetAt, now)
@@ -244,7 +243,7 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
                         projected != null -> stringResource(R.string.tablet_week_forecast, projected, dayTime(at))
                         else -> stringResource(R.string.tablet_week_reset, dayTime(at))
                     },
-                    style = MaterialTheme.typography.bodySmall, color = CmColors.text,
+                    style = MaterialTheme.typography.bodySmall, color = Cm.text,
                 )
             }
         }
@@ -257,11 +256,11 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
  */
 @Composable
 fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>, usage: it.pixelbox.cmwatch.rules.UsageTodayRules.Rows? = null) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(14.dp)
     val total = bars.sumOf { it.count }
     val peak = it.pixelbox.cmwatch.rules.DayBars.peak(bars).coerceAtLeast(1)
     Column(
-        Modifier.fillMaxWidth().clip(shape).background(CmColors.surfaceLow).border(1.dp, Color.White.copy(alpha = 0.12f), shape).padding(14.dp),
+        Modifier.fillMaxWidth().clip(shape).background(Cm.surfaceLow).border(1.dp, Cm.line, shape).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // Contratto 1.84 (Franz 24/10 19:46, B5): con `usage_today` al posto del grafico la quota di oggi per sessione.
@@ -273,7 +272,7 @@ fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>, usage: it.pixe
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.tablet_today_label).uppercase(), style = MonoLabel, modifier = Modifier.weight(1f))
-            Text(total.toString(), style = Mono.copy(color = CmColors.text))
+            Text(total.toString(), style = Mono.copy(color = Cm.text))
         }
         Canvas(Modifier.fillMaxWidth().height(56.dp)) {
             val step = size.width / 24f
@@ -282,12 +281,12 @@ fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>, usage: it.pixe
                 val x = h * step + (step - w) / 2
                 val count = bars.firstOrNull { it.hour == h }?.count
                 if (count == null) {
-                    drawCircle(CmColors.briefTrack, 2.dp.toPx(), Offset(x + w / 2, size.height - 2.dp.toPx()))
+                    drawCircle(Cm.briefTrack, 2.dp.toPx(), Offset(x + w / 2, size.height - 2.dp.toPx()))
                     continue
                 }
                 val tall = if (count == 0) 3.dp.toPx() else size.height * count / peak
                 drawRoundRect(
-                    if (count == 0) CmColors.briefTrack else CmColors.briefRing, Offset(x, size.height - tall), Size(w, tall),
+                    if (count == 0) Cm.briefTrack else Cm.briefRing, Offset(x, size.height - tall), Size(w, tall),
                     androidx.compose.ui.geometry.CornerRadius(w / 2, w / 2),
                 )
             }
@@ -302,9 +301,9 @@ fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>, usage: it.pixe
 @Composable
 private fun UsageBar(name: String, pct: Int, dim: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(name, style = MaterialTheme.typography.bodyMedium, color = CmColors.text, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fillMaxWidth(0.42f))
-        Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(CmColors.briefTrack)) {
-            Box(Modifier.fillMaxWidth((pct.coerceIn(0, 100)) / 100f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(if (dim) CmColors.text2.copy(alpha = 0.5f) else CmColors.briefRing))
+        Text(name, style = MaterialTheme.typography.bodyMedium, color = Cm.text, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fillMaxWidth(0.42f))
+        Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Cm.briefTrack)) {
+            Box(Modifier.fillMaxWidth((pct.coerceIn(0, 100)) / 100f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(if (dim) Cm.text2.copy(alpha = 0.5f) else Cm.briefRing))
         }
         Text("$pct %", style = Mono.copy(fontSize = 12.sp), modifier = Modifier.width(40.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
@@ -315,7 +314,7 @@ private fun UsageBar(name: String, pct: Int, dim: Boolean) {
 internal fun DeskSectionTitle(text: String) {
     Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text.uppercase(), style = Mono.copy(letterSpacing = 1.8.sp))
-        Box(Modifier.weight(1f).height(1.dp).background(CmColors.line))
+        Box(Modifier.weight(1f).height(1.dp).background(Cm.line))
     }
 }
 
@@ -353,7 +352,7 @@ private fun PanelTitle(label: String, account: String, value: String?) {
             Text(label.uppercase(), style = MonoLabel)
             Text("·", style = MonoLabel)
             Text(account.uppercase(), style = MonoLabel)
-            Text(value.orEmpty(), style = Mono.copy(color = CmColors.text))
+            Text(value.orEmpty(), style = Mono.copy(color = Cm.text))
         },
         modifier = Modifier.fillMaxWidth(),
     ) { m, c ->
@@ -385,11 +384,11 @@ private fun PanelTitle(label: String, account: String, value: String?) {
 private fun WeekBar(pct: Int, projected: Int?) {
     Canvas(Modifier.fillMaxWidth().height(10.dp)) {
         val r = androidx.compose.ui.geometry.CornerRadius(size.height / 2)
-        drawRoundRect(CmColors.briefTrack, cornerRadius = r)
-        projected?.let { drawRoundRect(CmColors.briefWeek.copy(alpha = 0.35f), size = Size(size.width * it / 100f, size.height), cornerRadius = r) }
-        drawRoundRect(CmColors.briefWeek, size = Size(size.width * pct.coerceIn(0, 100) / 100f, size.height), cornerRadius = r)
+        drawRoundRect(Cm.briefTrack, cornerRadius = r)
+        projected?.let { drawRoundRect(Cm.briefWeek.copy(alpha = 0.35f), size = Size(size.width * it / 100f, size.height), cornerRadius = r) }
+        drawRoundRect(Cm.briefWeek, size = Size(size.width * pct.coerceIn(0, 100) / 100f, size.height), cornerRadius = r)
         val x80 = size.width * 0.8f
-        drawLine(CmColors.briefWarn, Offset(x80, -2f), Offset(x80, size.height + 2f), strokeWidth = 1.5.dp.toPx())
+        drawLine(Cm.briefWarn, Offset(x80, -2f), Offset(x80, size.height + 2f), strokeWidth = 1.5.dp.toPx())
     }
 }
 
@@ -399,20 +398,20 @@ private fun WeekBar(pct: Int, projected: Int?) {
 private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
     @Composable fun row(label: String, value: Int, track: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(label, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, softWrap = false, modifier = Modifier.width(44.dp))
-            Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(CmColors.briefTrack), content = track)
-            Text("$value%", style = Mono.copy(fontSize = 12.sp, color = CmColors.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.width(40.dp))
+            Text(label, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, softWrap = false, modifier = Modifier.width(44.dp))
+            Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Cm.briefTrack), content = track)
+            Text("$value%", style = Mono.copy(fontSize = 12.sp, color = Cm.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.width(40.dp))
         }
     }
     val e = r.elapsed / 100f
     row(stringResource(R.string.rhythm_time), r.elapsed) {
-        Box(Modifier.fillMaxWidth(e).fillMaxHeight().background(CmColors.text2))
+        Box(Modifier.fillMaxWidth(e).fillMaxHeight().background(Cm.text2))
         Tick(e)
     }
     row(stringResource(R.string.rhythm_quota), r.pct) {
-        Box(Modifier.fillMaxWidth(minOf(r.pct, r.elapsed).coerceIn(0, 100) / 100f).fillMaxHeight().background(CmColors.briefRing))
+        Box(Modifier.fillMaxWidth(minOf(r.pct, r.elapsed).coerceIn(0, 100) / 100f).fillMaxHeight().background(Cm.briefRing))
         if (r.ahead > 0) androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-            Box(Modifier.padding(start = maxWidth * e).width(maxWidth * ((r.pct.coerceAtMost(100) - r.elapsed) / 100f)).fillMaxHeight().background(CmColors.briefWarn))
+            Box(Modifier.padding(start = maxWidth * e).width(maxWidth * ((r.pct.coerceAtMost(100) - r.elapsed) / 100f)).fillMaxHeight().background(Cm.briefWarn))
         }
         Tick(e)
     }
@@ -422,7 +421,7 @@ private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
             r.ahead < 0 -> androidx.compose.ui.res.pluralStringResource(R.plurals.rhythm_behind, -r.ahead, -r.ahead)
             else -> stringResource(R.string.rhythm_even)
         },
-        style = Mono.copy(fontSize = 12.sp, color = if (r.ahead > 0) CmColors.briefWarn else CmColors.text2),
+        style = Mono.copy(fontSize = 12.sp, color = if (r.ahead > 0) Cm.briefWarn else Cm.text2),
     )
 }
 
@@ -430,7 +429,7 @@ private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
 @Composable
 private fun androidx.compose.foundation.layout.BoxScope.Tick(at: Float) {
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-        Box(Modifier.padding(start = (maxWidth * at - 1.dp).coerceAtLeast(0.dp)).width(2.dp).fillMaxHeight().background(CmColors.text))
+        Box(Modifier.padding(start = (maxWidth * at - 1.dp).coerceAtLeast(0.dp)).width(2.dp).fillMaxHeight().background(Cm.text))
     }
 }
 
@@ -442,7 +441,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Tick(at: Float) {
 private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val label = Mono.copy(fontSize = 10.sp)
-    val strong = label.copy(color = CmColors.text)
+    val strong = label.copy(color = Cm.text)
     val resetText = stringResource(R.string.rhythm_reset, hhmm(r.resetAt))
     val hundredText = r.fullAt?.let { stringResource(R.string.rhythm_hundred_at, hhmm(it)) }
     val nowText = stringResource(R.string.rhythm_now, r.pct)
@@ -458,19 +457,19 @@ private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, m
         fun y(p: Int) = y100 + (yb - y100) * (1f - p.coerceIn(0, 100) / 100f)
         val fullX = r.fullAt?.let { x(r.x(it)) }
         if (fullX != null) {
-            drawRect(CmColors.briefAlertRing.copy(alpha = 0.18f), Offset(fullX, y100), Size(xr - fullX, yb - y100))
+            drawRect(Cm.briefAlertRing.copy(alpha = 0.18f), Offset(fullX, y100), Size(xr - fullX, yb - y100))
             idleText?.let { t ->
-                val m = measurer.measure(t, label.copy(color = CmColors.briefAlertRing))
+                val m = measurer.measure(t, label.copy(color = Cm.briefAlertRing))
                 if (xr - fullX >= m.size.height + 2.dp.toPx() && m.size.width <= yb - y100 - 8.dp.toPx()) {
                     val c = Offset((fullX + xr) / 2, (y100 + yb) / 2)
                     rotate(-90f, c) { drawText(m, topLeft = Offset(c.x - m.size.width / 2f, c.y - m.size.height / 2f)) }
                 }
             }
         }
-        drawLine(CmColors.text2.copy(alpha = 0.6f), Offset(xr, y100 - 14.dp.toPx()), Offset(xr, yb), strokeWidth = 1.dp.toPx())
+        drawLine(Cm.text2.copy(alpha = 0.6f), Offset(xr, y100 - 14.dp.toPx()), Offset(xr, yb), strokeWidth = 1.dp.toPx())
         val rt = measurer.measure(resetText, label)
         drawText(rt, topLeft = Offset(xr - rt.size.width, 0f))
-        drawLine(CmColors.text2, Offset(l, y100), Offset(xr, y100), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())))
+        drawLine(Cm.text2, Offset(l, y100), Offset(xr, y100), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())))
         val above = y100 - 4.dp.toPx()
         var leftFree = xr
         if (hundredText != null && fullX != null) {
@@ -482,7 +481,7 @@ private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, m
         val h100 = measurer.measure("100%", label)
         if (l + h100.size.width + 8.dp.toPx() < leftFree) drawText(h100, topLeft = Offset(l, above - h100.size.height))
         val line = Path().apply { r.points.forEachIndexed { i, (px, p) -> if (i == 0) moveTo(x(px), y(p)) else lineTo(x(px), y(p)) } }
-        drawPath(line, CmColors.briefRing, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        drawPath(line, Cm.briefRing, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
         val dot = Offset(x(r.nowX), y(r.pct))
         val proj = when {
             fullX != null -> Offset(fullX, y100)
@@ -490,10 +489,10 @@ private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, m
             else -> null
         }
         proj?.let {
-            drawLine(CmColors.briefRing, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
-            drawCircle(if (fullX != null) CmColors.briefAlertRing else CmColors.briefRing, 4.dp.toPx(), it)
+            drawLine(Cm.briefRing, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
+            drawCircle(if (fullX != null) Cm.briefAlertRing else Cm.briefRing, 4.dp.toPx(), it)
         }
-        drawCircle(CmColors.briefRing, 4.dp.toPx(), dot)
+        drawCircle(Cm.briefRing, 4.dp.toPx(), dot)
         // «62% ora» a sinistra del punto, o a destra se a sinistra non ci sta; sotto se sopra tocca la riga del 100%.
         val n = measurer.measure(nowText, strong)
         val ny = if (dot.y - 8.dp.toPx() - n.size.height > y100 + 4.dp.toPx()) dot.y - 6.dp.toPx() - n.size.height else dot.y + 6.dp.toPx()
@@ -516,7 +515,7 @@ private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, m
 private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val label = Mono.copy(fontSize = 10.sp)
-    val strong = label.copy(color = CmColors.text)
+    val strong = label.copy(color = Cm.text)
     val renewal = stringResource(R.string.week_renewal, dayShortTime(c.resetAt))
     val endText = when {
         c.fullAt != null -> stringResource(R.string.week_hundred_at, dayTime(c.fullAt!!))
@@ -535,10 +534,10 @@ private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier)
         fun y(p: Int) = y100 + (yb - y100) * (1f - p.coerceIn(0, 100) / 100f)
         val rt = measurer.measure(renewal, label)
         drawText(rt, topLeft = Offset(xr - rt.size.width, 0f))
-        drawLine(CmColors.text2.copy(alpha = 0.6f), Offset(xr, y100 - 14.dp.toPx()), Offset(xr, yb), strokeWidth = 1.dp.toPx())
-        drawLine(CmColors.text2, Offset(l, y100), Offset(xr, y100), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())))
+        drawLine(Cm.text2.copy(alpha = 0.6f), Offset(xr, y100 - 14.dp.toPx()), Offset(xr, yb), strokeWidth = 1.dp.toPx())
+        drawLine(Cm.text2, Offset(l, y100), Offset(xr, y100), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())))
         // La diagonale del ritmo pari e la sua scritta, dalla parte opposta alla linea: sotto se la quota è avanti.
-        drawLine(CmColors.text2.copy(alpha = 0.7f), Offset(l, yb), Offset(xr, y100), strokeWidth = 1.dp.toPx())
+        drawLine(Cm.text2.copy(alpha = 0.7f), Offset(l, yb), Offset(xr, y100), strokeWidth = 1.dp.toPx())
         val deg = Math.toDegrees(kotlin.math.atan2((y100 - yb).toDouble(), (xr - l).toDouble())).toFloat()
         val ahead = c.pct > c.nowX * 100
         val e = measurer.measure(even, label)
@@ -570,13 +569,13 @@ private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier)
         if (endBelow || l + h100.size.width + 8.dp.toPx() < leftFree) drawText(h100, topLeft = Offset(l, y100 - 4.dp.toPx() - h100.size.height))
         if (c.points.isNotEmpty()) {
             val line = Path().apply { c.points.forEachIndexed { i, (px, p) -> if (i == 0) moveTo(x(px), y(p)) else lineTo(x(px), y(p)) } }
-            drawPath(line, CmColors.briefWeek, style = Stroke(2.dp.toPx(), join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            drawPath(line, Cm.briefWeek, style = Stroke(2.dp.toPx(), join = androidx.compose.ui.graphics.StrokeJoin.Round))
         }
         proj?.let {
-            drawLine(CmColors.briefWeek, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
-            drawCircle(if (fullX != null) CmColors.briefAlertRing else CmColors.briefWeek, 4.dp.toPx(), it)
+            drawLine(Cm.briefWeek, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
+            drawCircle(if (fullX != null) Cm.briefAlertRing else Cm.briefWeek, 4.dp.toPx(), it)
         }
-        drawCircle(CmColors.briefWeek, 4.dp.toPx(), dot)
+        drawCircle(Cm.briefWeek, 4.dp.toPx(), dot)
         val n = measurer.measure(nowText, strong)
         val ny = if (dot.y - 8.dp.toPx() - n.size.height > y100 + 4.dp.toPx()) dot.y - 6.dp.toPx() - n.size.height else dot.y + 6.dp.toPx()
         val nx = if (dot.x - 7.dp.toPx() - n.size.width >= l) dot.x - 7.dp.toPx() - n.size.width else minOf(dot.x + 7.dp.toPx(), xr - n.size.width)
@@ -596,9 +595,9 @@ private fun WeekOriginsBar(w7: Int, o: it.pixelbox.cmwatch.contract.WeekOrigins)
     Text(stringResource(R.string.week_origins_title, stringResource(if (it.pixelbox.cmwatch.rules.PhoneOverview.elidesArticle(w7)) R.string.week_origins_art_elided else R.string.week_origins_art), w7).uppercase(), style = MonoLabel)
     if (o.sessions + o.automations + o.requests <= 0) return
     val parts = listOf(
-        Triple(o.sessions, CmColors.briefRing, R.string.week_origin_sessions),
-        Triple(o.automations, CmColors.briefAlertRing, R.string.week_origin_automations),
-        Triple(o.requests, CmColors.briefGood, R.string.week_origin_requests),
+        Triple(o.sessions, Cm.briefRing, R.string.week_origin_sessions),
+        Triple(o.automations, Cm.briefAlertRing, R.string.week_origin_automations),
+        Triple(o.requests, Cm.briefGood, R.string.week_origin_requests),
     )
     Row(Modifier.fillMaxWidth().height(10.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         parts.filter { it.first > 0 }.forEach { (v, c, _) -> Box(Modifier.weight(v.toFloat()).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(c)) }
@@ -613,7 +612,7 @@ private fun WeekOriginsBar(w7: Int, o: it.pixelbox.cmwatch.contract.WeekOrigins)
 private fun WeekDaysChart(days: List<Week7.Day>, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val label = Mono.copy(fontSize = 10.sp)
-    val strong = label.copy(color = CmColors.text)
+    val strong = label.copy(color = Cm.text)
     val today = stringResource(R.string.week_today)
     val names = days.map { if (it.today) today else dayShort(it.start) }
     Canvas(modifier) {
@@ -628,18 +627,18 @@ private fun WeekDaysChart(days: List<Week7.Day>, modifier: Modifier) {
             val bx = l + slot * i + (slot - bw) / 2
             val spent = d.spent
             if (d.future) drawRoundRect(
-                CmColors.text2.copy(alpha = 0.6f), Offset(bx, yb), Size(bw, bb - yb), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()),
+                Cm.text2.copy(alpha = 0.6f), Offset(bx, yb), Size(bw, bb - yb), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()),
                 style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx()))),
             ) else if (spent != null) {
                 val ty = y(spent.toDouble())
-                drawRoundRect(if (spent > Week7.BUDGET) CmColors.briefWarn else CmColors.briefRing, Offset(bx, ty), Size(bw, bb - ty), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()))
+                drawRoundRect(if (spent > Week7.BUDGET) Cm.briefWarn else Cm.briefRing, Offset(bx, ty), Size(bw, bb - ty), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()))
                 val v = measurer.measure("$spent", strong)
                 drawText(v, topLeft = Offset(bx + bw / 2 - v.size.width / 2f, ty - 4.dp.toPx() - v.size.height))
             }
             val m = measurer.measure(names[i], if (d.today) strong.copy(fontWeight = FontWeight.Bold) else label)
             drawText(m, topLeft = Offset(bx + bw / 2 - m.size.width / 2f, size.height - 14.dp.toPx()))
         }
-        drawLine(CmColors.text.copy(alpha = 0.8f), Offset(l, yb), Offset(size.width - l, yb), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
+        drawLine(Cm.text.copy(alpha = 0.8f), Offset(l, yb), Offset(size.width - l, yb), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
     }
 }
 
@@ -684,13 +683,13 @@ fun TabletInspector(i: Tablet.Inspector, quotaH5: Int?, loading: Boolean) {
         }
         s.goal?.let { gl ->
             Text(stringResource(R.string.goal).uppercase(), style = MonoLabel, modifier = Modifier.padding(top = 6.dp))
-            Text(gl.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.briefLabel)
+            Text(gl.text, style = MaterialTheme.typography.bodyMedium, color = Cm.briefLabel)
         }
-        Box(Modifier.padding(top = 8.dp)) { RuledLabel(stringResource(R.string.tablet_insp_today), CmColors.text2) }
+        Box(Modifier.padding(top = 8.dp)) { RuledLabel(stringResource(R.string.tablet_insp_today), Cm.text2) }
         when {
             i.today.isNotEmpty() -> i.today.forEach { e -> TimelineRow(e) }
-            loading -> Text(stringResource(R.string.tablet_insp_today_loading), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
-            else -> Text(stringResource(R.string.tablet_insp_today_none), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+            loading -> Text(stringResource(R.string.tablet_insp_today_loading), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
+            else -> Text(stringResource(R.string.tablet_insp_today_none), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
         }
     }
 }
@@ -699,15 +698,15 @@ fun TabletInspector(i: Tablet.Inspector, quotaH5: Int?, loading: Boolean) {
 private fun KeyValue(key: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(key, style = Mono.copy(fontSize = 13.sp))
-        Text(value, style = Mono.copy(fontSize = 13.sp, color = CmColors.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
+        Text(value, style = Mono.copy(fontSize = 13.sp, color = Cm.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
 private fun StatBox(value: String, label: String, modifier: Modifier) {
     val shape = RoundedCornerShape(12.dp)
-    Column(modifier.clip(shape).background(CmColors.surfaceLow).border(1.dp, Color.White.copy(alpha = 0.10f), shape).padding(horizontal = 12.dp, vertical = 10.dp)) {
-        Text(value, style = Mono.copy(fontSize = 22.sp, color = CmColors.text, fontWeight = FontWeight.Medium))
+    Column(modifier.clip(shape).background(Cm.surfaceLow).border(1.dp, Cm.line, shape).padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Text(value, style = Mono.copy(fontSize = 22.sp, color = Cm.text, fontWeight = FontWeight.Medium))
         Text(label.uppercase(), style = MonoLabel.copy(fontSize = 10.sp, letterSpacing = 1.sp, lineBreak = androidx.compose.ui.text.style.LineBreak.Heading))
     }
 }
@@ -716,10 +715,10 @@ private fun StatBox(value: String, label: String, modifier: Modifier) {
 @Composable
 private fun TimelineRow(e: TimelineEvent) {
     val tone = when {
-        e.kind == "test" && e.ok == false -> CmColors.briefAlertRing
-        e.kind == "test" || (e.kind == "task" && e.ok == true) -> CmColors.briefGood
-        e.kind == "outcome" -> CmColors.briefLabel
-        else -> CmColors.briefRing
+        e.kind == "test" && e.ok == false -> Cm.briefAlertRing
+        e.kind == "test" || (e.kind == "task" && e.ok == true) -> Cm.briefGood
+        e.kind == "outcome" -> Cm.briefLabel
+        else -> Cm.briefRing
     }
     val kind = when (e.kind) {
         "commit" -> R.string.tablet_kind_commit
@@ -737,7 +736,7 @@ private fun TimelineRow(e: TimelineEvent) {
         )
         Text(
             if (e.kind == "commit" && e.ref != null) "${e.ref} ${e.text}" else e.text,
-            style = MaterialTheme.typography.bodyMedium, color = CmColors.text, modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium, color = Cm.text, modifier = Modifier.weight(1f),
         )
     }
 }
@@ -764,11 +763,11 @@ private fun dayTime(epoch: Long): String =
 @Composable
 fun TabletColumnHeader(r: Summary.Row, now: Long, onClose: () -> Unit, drag: Modifier = Modifier) {
     val s = r.session
-    Column(Modifier.fillMaxWidth().background(CmColors.bg).then(drag)) {
+    Column(Modifier.fillMaxWidth().background(Cm.bg).then(drag)) {
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SessionBadge(s, 24.dp)
-            Text(s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f))
-            IconButton(onClick = onClose, modifier = Modifier.handCursor()) { Icon(Icons.Rounded.Close, stringResource(R.string.tablet_close_column, s.name), tint = CmColors.text2) }
+            Text(s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, modifier = Modifier.weight(1f))
+            IconButton(onClick = onClose, modifier = Modifier.handCursor()) { Icon(Icons.Rounded.Close, stringResource(R.string.tablet_close_column, s.name), tint = Cm.text2) }
         }
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -776,7 +775,7 @@ fun TabletColumnHeader(r: Summary.Row, now: Long, onClose: () -> Unit, drag: Mod
                 style = MonoLabel.copy(color = groupTone(r.group)),
             )
         }
-        HorizontalDivider(color = CmColors.line)
+        HorizontalDivider(color = Cm.line)
     }
 }
 
@@ -807,7 +806,7 @@ fun TabletDesk(
         val view = androidx.compose.ui.platform.LocalView.current
         val buttons = if (android.os.Build.VERSION.SDK_INT >= 35)
             view.rootWindowInsets?.getBoundingRects(android.view.WindowInsets.Type.captionBar()).orEmpty() else emptyList()
-        Column(Modifier.fillMaxSize().background(CmColors.bg)) {
+        Column(Modifier.fillMaxSize().background(Cm.bg)) {
             BoxWithConstraints(Modifier.fillMaxWidth().height(with(density) { captionPx.toDp() })) {
                 val w = constraints.maxWidth
                 val left = buttons.filter { it.centerX() < w / 2 }.maxOfOrNull { it.right } ?: 0
@@ -833,14 +832,14 @@ internal fun CaptionStrip(modifier: Modifier = Modifier, content: @Composable Ro
 @Composable
 fun CaptionTab(s: Session, onFocus: () -> Unit, onClose: () -> Unit) {
     Row(
-        Modifier.clip(RoundedCornerShape(10.dp)).background(CmColors.surface).handCursor().clickable(onClick = onFocus).handCursor()
+        Modifier.clip(RoundedCornerShape(10.dp)).background(Cm.surface).handCursor().clickable(onClick = onFocus).handCursor()
             .padding(start = 8.dp, end = 2.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         SessionBadge(s, 16.dp)
-        Text(s.name, style = MaterialTheme.typography.labelLarge, color = CmColors.text, maxLines = 1)
+        Text(s.name, style = MaterialTheme.typography.labelLarge, color = Cm.text, maxLines = 1)
         IconButton(onClick = onClose, modifier = Modifier.size(28.dp).handCursor()) {
-            Icon(Icons.Rounded.Close, stringResource(R.string.tablet_close_column, s.name), tint = CmColors.text2, modifier = Modifier.size(16.dp))
+            Icon(Icons.Rounded.Close, stringResource(R.string.tablet_close_column, s.name), tint = Cm.text2, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -861,7 +860,7 @@ private fun DeskBody(
         if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio = 0.86f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow),
         label = "homeSide",
     )
-    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().background(CmColors.bg).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().background(Cm.bg).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
         val homeW = 400.dp
         val handleW = 28.dp
         val detailsW = if (inspector != null) 341.dp else 0.dp
@@ -879,9 +878,9 @@ private fun DeskBody(
         }
         inspector?.let { i ->
             Row(at(total - detailsW, 0.dp).width(detailsW).fillMaxHeight()) {
-                if (!homeRight) VerticalDivider(color = CmColors.line)
+                if (!homeRight) VerticalDivider(color = Cm.line)
                 Box(Modifier.weight(1f).fillMaxHeight()) { i() }
-                if (homeRight) VerticalDivider(color = CmColors.line)
+                if (homeRight) VerticalDivider(color = Cm.line)
             }
         }
         // Le colonne di nuovo uguali, quando non lo sono (Franz, 05/10 12:30: «ci vuole un tasto per resettare le dimensioni»).
@@ -891,7 +890,7 @@ private fun DeskBody(
         Box(
             at(0.dp, total - homeW).width(homeW).fillMaxHeight().zIndex(1f)
                 .graphicsLayer { shadowElevation = 32f * (1f - kotlin.math.abs(side * 2f - 1f)) }
-                .background(CmColors.bg),
+                .background(Cm.bg),
         ) { home() }
     }
 }
@@ -900,17 +899,17 @@ private fun DeskBody(
 @Composable
 private fun HomeSideHandle(homeRight: Boolean, onHomeSide: () -> Unit, onReset: (() -> Unit)? = null) {
     Box(Modifier.width(28.dp).fillMaxHeight()) {
-        Box(Modifier.align(Alignment.Center).width(1.dp).fillMaxHeight().background(CmColors.line))
+        Box(Modifier.align(Alignment.Center).width(1.dp).fillMaxHeight().background(Cm.line))
         Box(
-            Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(28.dp).clip(CircleShape).background(CmColors.surface)
+            Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
                 .handCursor().clickable(onClickLabel = stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), onClick = onHomeSide).handCursor(),
             contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.SwapHoriz, stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), tint = CmColors.text2, modifier = Modifier.size(18.dp)) }
+        ) { Icon(Icons.Rounded.SwapHoriz, stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), tint = Cm.text2, modifier = Modifier.size(18.dp)) }
         if (onReset != null) Box(
-            Modifier.align(Alignment.TopCenter).padding(top = 46.dp).size(28.dp).clip(CircleShape).background(CmColors.surface)
+            Modifier.align(Alignment.TopCenter).padding(top = 46.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
                 .handCursor().clickable(onClickLabel = stringResource(R.string.tablet_reset_widths), onClick = onReset),
             contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.ViewColumn, stringResource(R.string.tablet_reset_widths), tint = CmColors.text2, modifier = Modifier.size(18.dp)) }
+        ) { Icon(Icons.Rounded.ViewColumn, stringResource(R.string.tablet_reset_widths), tint = Cm.text2, modifier = Modifier.size(18.dp)) }
     }
 }
 
@@ -997,8 +996,8 @@ private fun Columns(
                             shadowElevation = 28f * lift
                             alpha = appear.value
                         }
-                        .clip(RoundedCornerShape(18.dp))
-                        .border(1.dp, if (dragging) CmColors.actionIcon.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp)),
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, if (dragging) Cm.actionIcon.copy(alpha = 0.55f) else Cm.line, RoundedCornerShape(14.dp)),
                 ) { column(name, drag) }
             }
         }
@@ -1015,7 +1014,7 @@ private fun Columns(
                         ) { change, amount -> change.consume(); borderPx += amount }
                     },
                 contentAlignment = Alignment.Center,
-            ) { Box(Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(2.dp)).background(if (border == i) CmColors.actionIcon else CmColors.line)) }
+            ) { Box(Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(2.dp)).background(if (border == i) Cm.actionIcon else Cm.line)) }
         }
     }
 }

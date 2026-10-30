@@ -37,7 +37,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.CloseSplash
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -65,30 +64,30 @@ fun CloseSplashOverlay(
     ) {
         Column(
             Modifier.padding(horizontal = 16.dp).widthIn(max = 420.dp).fillMaxWidth()
-                .background(CmColors.surface, RoundedCornerShape(28.dp)).padding(start = 22.dp, end = 22.dp, top = 26.dp, bottom = 16.dp),
+                .background(Cm.surface, RoundedCornerShape(28.dp)).padding(start = 22.dp, end = 22.dp, top = 26.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val closed = phase is CloseSplash.Phase.Closed
-            Icon(Icons.Rounded.PowerSettingsNew, null, tint = if (closed) CmColors.text2 else CmColors.actionIcon, modifier = Modifier.size(44.dp))
+            Icon(Icons.Rounded.PowerSettingsNew, null, tint = if (closed) Cm.text2 else Cm.actionIcon, modifier = Modifier.size(44.dp))
             when (phase) {
                 is CloseSplash.Phase.Closing -> {
-                    Text(stringResource(R.string.splash_closing, phase.name), style = MaterialTheme.typography.titleLarge, color = CmColors.text, textAlign = TextAlign.Center)
-                    Text(stringResource(R.string.splash_sent_at, hm(phase.sentAt)), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                    Text(stringResource(R.string.splash_closing, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.splash_sent_at, hm(phase.sentAt)), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
                     Column(Modifier.fillMaxWidth().padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SplashStep(phase.delivered, stringResource(R.string.splash_step_delivered))
                         SplashStep(false, stringResource(R.string.splash_step_confirmed))
                     }
-                    LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp), color = CmColors.actionIcon, trackColor = CmColors.surfaceHigh)
+                    LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp), color = Cm.actionIcon, trackColor = Cm.surfaceHigh)
                     if (phase.slow) {
-                        Text(stringResource(R.string.splash_slow), style = MaterialTheme.typography.labelMedium, color = CmColors.waiting)
-                        TextButton(onClick = onHome) { Text(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), color = CmColors.actionIcon) }
-                    } else Text(stringResource(R.string.splash_usually), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
+                        Text(stringResource(R.string.splash_slow), style = MaterialTheme.typography.labelMedium, color = Cm.waiting)
+                        TextButton(onClick = onHome) { Text(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), color = Cm.actionIcon) }
+                    } else Text(stringResource(R.string.splash_usually), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                 }
                 is CloseSplash.Phase.Closed -> {
-                    Text(stringResource(R.string.splash_closed, phase.name), style = MaterialTheme.typography.titleLarge, color = CmColors.text, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.splash_closed, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
                     Text(
                         stringResource(if (phase.byMe) R.string.splash_closed_line else R.string.splash_closed_line_other, hm(phase.at)),
-                        style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center,
                     )
                     // La barra si consuma nei 3 s prima del ritorno alla home.
                     val left = remember(phase) { androidx.compose.animation.core.Animatable(1f) }
@@ -96,11 +95,11 @@ fun CloseSplashOverlay(
                         left.animateTo(0f, androidx.compose.animation.core.tween(CloseSplash.CLOSED_SHOW_MS.toInt(), easing = androidx.compose.animation.core.LinearEasing))
                         home()
                     }
-                    LinearProgressIndicator({ left.value }, Modifier.fillMaxWidth().padding(top = 8.dp), color = CmColors.actionIcon, trackColor = CmColors.surfaceHigh, drawStopIndicator = {})
-                    Text(stringResource(if (column) R.string.splash_drop_soon else R.string.splash_back_soon), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
+                    LinearProgressIndicator({ left.value }, Modifier.fillMaxWidth().padding(top = 8.dp), color = Cm.actionIcon, trackColor = Cm.surfaceHigh, drawStopIndicator = {})
+                    Text(stringResource(if (column) R.string.splash_drop_soon else R.string.splash_back_soon), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                     Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        onReopen?.let { TextButton(onClick = it) { Text(stringResource(R.string.splash_reopen), color = CmColors.actionIcon) } }
-                        Button(onClick = onHome, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) {
+                        onReopen?.let { TextButton(onClick = it) { Text(stringResource(R.string.splash_reopen), color = Cm.actionIcon) } }
+                        Button(onClick = onHome, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
                             Text(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home))
                         }
                     }
@@ -112,6 +111,6 @@ fun CloseSplashOverlay(
 
 @Composable
 private fun SplashStep(done: Boolean, text: String) = Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-    Icon(if (done) Icons.Rounded.Check else Icons.Rounded.RadioButtonUnchecked, null, tint = if (done) CmColors.text else CmColors.text2, modifier = Modifier.size(18.dp))
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = if (done) CmColors.text else CmColors.text2)
+    Icon(if (done) Icons.Rounded.Check else Icons.Rounded.RadioButtonUnchecked, null, tint = if (done) Cm.text else Cm.text2, modifier = Modifier.size(18.dp))
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = if (done) Cm.text else Cm.text2)
 }

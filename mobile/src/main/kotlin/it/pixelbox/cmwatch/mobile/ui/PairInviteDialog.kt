@@ -5,7 +5,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import it.pixelbox.cmwatch.mobile.R
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * La conferma dell'invito a zero tocchi (Franz, 04/10 15:48): a quale PC, e se gli altri dispositivi restano (un'aggiunta)
@@ -15,11 +14,11 @@ import it.pixelbox.cmwatch.ui.tokens.CmColors
 fun PairInviteDialog(host: String, add: Boolean, onPair: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CmColors.surfaceHigh,
+        containerColor = Cm.surfaceHigh,
         title = { Text(stringResource(R.string.invite_title, host)) },
         text = { Text(stringResource(if (add) R.string.invite_add else R.string.invite_new, host)) },
         confirmButton = {
-            Button(onPair, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) {
+            Button(onPair, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
                 Text(stringResource(R.string.pair_button))
             }
         },

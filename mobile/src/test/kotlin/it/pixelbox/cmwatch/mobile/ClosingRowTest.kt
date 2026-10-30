@@ -45,7 +45,7 @@ private object Closing {
     })
 
     @Composable fun Page() = CmPhoneTheme(still = true) {
-        Column(Modifier.background(CmColors.bg)) {
+        Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
             SummaryList(
                 Summary.build(state, emptyList(), emptyList(), state.ts, ZoneId.of("Europe/Rome"), emptySet()),
                 {}, { _, _ -> }, { _, _ -> }, {}, {}, canExit = true, closing = NAME, now = state.ts,

@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Elsewhere
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import kotlin.math.abs
 import kotlin.math.roundToInt
 

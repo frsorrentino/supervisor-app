@@ -48,7 +48,6 @@ import it.pixelbox.cmwatch.contract.KpiTurn
 import it.pixelbox.cmwatch.contract.KpiWaits
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Kpi
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -60,11 +59,11 @@ import java.time.format.DateTimeFormatter
 @Composable
 private fun KpiCard(tag: String, title: String, right: @Composable (() -> Unit)?, content: @Composable ColumnScope.() -> Unit) {
     Column(
-        Modifier.testTag(tag).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.testTag(tag).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title.uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = CmColors.text2, modifier = Modifier.padding(end = 12.dp))
+            Text(title.uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = Cm.text2, modifier = Modifier.padding(end = 12.dp))
             right?.invoke()
         }
         content()
@@ -72,7 +71,7 @@ private fun KpiCard(tag: String, title: String, right: @Composable (() -> Unit)?
 }
 
 @Composable
-private fun Right(text: String, color: Color = CmColors.text) = Text(text, style = MonoSmall, color = color)
+private fun Right(text: String, color: Color = Cm.text) = Text(text, style = MonoSmall, color = color)
 
 @Composable
 private fun age(s: Long): String = when {
@@ -103,9 +102,9 @@ private fun DayColumns(days: List<String>, cells: List<Pair<List<Pair<Float, Col
                 label()
                 Column(Modifier.fillMaxWidth().height(height.dp), verticalArrangement = Arrangement.Bottom) {
                     parts.asReversed().forEach { (f, c) -> if (f > 0f) Box(Modifier.fillMaxWidth().height((f * height).dp.coerceAtLeast(2.dp)).clip(RoundedCornerShape(2.dp)).background(c)) }
-                    if (parts.all { it.first <= 0f }) Box(Modifier.fillMaxWidth().height(2.dp).background(CmColors.briefTrack))
+                    if (parts.all { it.first <= 0f }) Box(Modifier.fillMaxWidth().height(2.dp).background(Cm.briefTrack))
                 }
-                Text(weekday(d), style = MonoSmall.copy(fontSize = 10.sp), color = CmColors.text2, maxLines = 1)
+                Text(weekday(d), style = MonoSmall.copy(fontSize = 10.sp), color = Cm.text2, maxLines = 1)
             }
         }
     }
@@ -124,35 +123,35 @@ private fun stateWord(t: KpiTask): String = when {
 }
 
 private fun stateTone(t: KpiTask): Color = when {
-    t.stalled -> CmColors.briefAlertRing
-    t.state == "running" -> CmColors.busy
-    t.state == "paused" -> CmColors.stale
-    else -> CmColors.waiting
+    t.stalled -> Cm.briefAlertRing
+    t.state == "running" -> Cm.busy
+    t.state == "paused" -> Cm.stale
+    else -> Cm.waiting
 }
 
 @Composable
 internal fun Kpi8(t: KpiTasks) {
     Column(Modifier.testTag("kpi-8").fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Figure(t.open.toString(), stringResource(R.string.kpi8_open), if (t.open > 0) CmColors.busy else null, Modifier.weight(1f).fillMaxHeight())
-            Figure(t.waitingYou.toString(), stringResource(R.string.kpi8_waiting_you), if (t.waitingYou > 0) CmColors.waiting else null, Modifier.weight(1f).fillMaxHeight())
+            Figure(t.open.toString(), stringResource(R.string.kpi8_open), if (t.open > 0) Cm.busy else null, Modifier.weight(1f).fillMaxHeight())
+            Figure(t.waitingYou.toString(), stringResource(R.string.kpi8_waiting_you), if (t.waitingYou > 0) Cm.waiting else null, Modifier.weight(1f).fillMaxHeight())
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Figure(t.stalled.toString(), stringResource(R.string.kpi8_stalled_n), if (t.stalled > 0) CmColors.briefAlertRing else null, Modifier.weight(1f).fillMaxHeight())
-            Figure(t.closedToday.toString(), stringResource(R.string.kpi8_closed_today), if (t.closedToday > 0) CmColors.briefGood else null, Modifier.weight(1f).fillMaxHeight())
+            Figure(t.stalled.toString(), stringResource(R.string.kpi8_stalled_n), if (t.stalled > 0) Cm.briefAlertRing else null, Modifier.weight(1f).fillMaxHeight())
+            Figure(t.closedToday.toString(), stringResource(R.string.kpi8_closed_today), if (t.closedToday > 0) Cm.briefGood else null, Modifier.weight(1f).fillMaxHeight())
         }
-        if (t.tasks.isNotEmpty()) KpiCard("kpi-8-tasks", stringResource(R.string.kpi8_title), { Right(stringResource(R.string.kpi8_axis), CmColors.text2) }) {
+        if (t.tasks.isNotEmpty()) KpiCard("kpi-8-tasks", stringResource(R.string.kpi8_title), { Right(stringResource(R.string.kpi8_axis), Cm.text2) }) {
             Kpi.tasksOrder(t).forEach { x ->
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(x.short ?: x.task, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
+                    Text(x.short ?: x.task, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(CmColors.briefTrack)) {
+                        Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Cm.briefTrack)) {
                             Box(Modifier.fillMaxWidth(Kpi.ageFraction(x.ageS).coerceAtLeast(0.02f)).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(stateTone(x)))
                         }
-                        Text(age(x.ageS), style = MonoSmall, color = CmColors.text2, maxLines = 1)
+                        Text(age(x.ageS), style = MonoSmall, color = Cm.text2, maxLines = 1)
                         val tries = pluralStringResource(R.plurals.kpi8_tries, x.attempts, x.attempts, x.attemptsMax)
                         Row(Modifier.semantics { contentDescription = tries }, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                            repeat(x.attemptsMax.coerceIn(0, 6)) { i -> Box(Modifier.size(8.dp).clip(CircleShape).background(if (i < x.attempts) CmColors.briefAlertRing else CmColors.briefTrack)) }
+                            repeat(x.attemptsMax.coerceIn(0, 6)) { i -> Box(Modifier.size(8.dp).clip(CircleShape).background(if (i < x.attempts) Cm.briefAlertRing else Cm.briefTrack)) }
                         }
                     }
                     Text(listOfNotNull(stateWord(x), x.who).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = stateTone(x))
@@ -171,35 +170,35 @@ internal fun Kpi9(days: List<KpiChecksDay>) {
     KpiCard("kpi-9", stringResource(R.string.kpi9_title), {
         Text(
             buildAnnotatedString {
-                withStyle(SpanStyle(color = CmColors.briefGood)) { append(pluralStringResource(R.plurals.kpi9_green, green, green)) }
+                withStyle(SpanStyle(color = Cm.briefGood)) { append(pluralStringResource(R.plurals.kpi9_green, green, green)) }
                 append(" · ")
-                withStyle(SpanStyle(color = if (red > 0) CmColors.briefAlertRing else CmColors.text2)) { append(pluralStringResource(R.plurals.kpi9_red, red, red)) }
+                withStyle(SpanStyle(color = if (red > 0) Cm.briefAlertRing else Cm.text2)) { append(pluralStringResource(R.plurals.kpi9_red, red, red)) }
             },
             style = MonoSmall,
         )
     }) {
         DayColumns(days.map { it.date }, days.map { d ->
-            listOf(d.green / top to CmColors.briefGood, d.red / top to CmColors.briefAlertRing) to @Composable {
+            listOf(d.green / top to Cm.briefGood, d.red / top to Cm.briefAlertRing) to @Composable {
                 Text(
                     buildAnnotatedString {
-                        withStyle(SpanStyle(color = CmColors.text2)) { append(d.green.toString()) }
-                        if (d.red > 0) withStyle(SpanStyle(color = CmColors.briefAlertRing)) { append(" ${d.red}") }
+                        withStyle(SpanStyle(color = Cm.text2)) { append(d.green.toString()) }
+                        if (d.red > 0) withStyle(SpanStyle(color = Cm.briefAlertRing)) { append(" ${d.red}") }
                     },
                     style = MonoSmall.copy(fontSize = 10.sp), maxLines = 1,
                 )
             }
         })
-        Text(stringResource(R.string.kpi9_caption), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+        Text(stringResource(R.string.kpi9_caption), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
     }
 }
 
 // ---- 10 · la striscia dei turni col costo (nella card aperta della sessione, sotto la giornata a fasce) ----
 
 private fun turnTone(o: String): Color = when (o) {
-    "ok" -> CmColors.briefGood
-    "fail" -> CmColors.briefAlertRing
-    "question" -> CmColors.waiting
-    else -> CmColors.busy
+    "ok" -> Cm.briefGood
+    "fail" -> Cm.briefAlertRing
+    "question" -> Cm.waiting
+    else -> Cm.busy
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -207,20 +206,20 @@ private fun turnTone(o: String): Color = when (o) {
 internal fun Kpi10(turns: List<KpiTurn>) {
     val s = Kpi.turnsSummary(turns)
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
-    val label = MonoSmall.copy(fontSize = 10.sp, color = CmColors.briefWeek)
+    val label = MonoSmall.copy(fontSize = 10.sp, color = Cm.briefWeek)
     val first = compact(s.tokensFirst)
     val last = compact(s.tokensLast)
     val aria = stringResource(R.string.kpi10_aria, s.n, s.minutes, first, last)
     Column(Modifier.testTag("kpi-10").fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         // Titolo e sintesi sulla stessa riga se ci stanno, altrimenti la sintesi va sotto: niente tagli a 320 dp.
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(R.string.kpi10_title).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = CmColors.text2, maxLines = 1, modifier = Modifier.padding(end = 12.dp))
+            Text(stringResource(R.string.kpi10_title).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = Cm.text2, maxLines = 1, modifier = Modifier.padding(end = 12.dp))
             Text(
                 buildAnnotatedString {
                     append(pluralStringResource(R.plurals.kpi10_turns, s.n, s.n, s.minutes))
-                    if (s.failed > 0) withStyle(SpanStyle(color = CmColors.briefAlertRing)) { append(" · " + pluralStringResource(R.plurals.kpi10_failed, s.failed, s.failed)) }
+                    if (s.failed > 0) withStyle(SpanStyle(color = Cm.briefAlertRing)) { append(" · " + pluralStringResource(R.plurals.kpi10_failed, s.failed, s.failed)) }
                 },
-                style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2,
+                style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2,
             )
         }
         // La lunghezza di un blocco è la durata del turno, il colore l'esito; sopra, la linea del costo per turno.
@@ -242,8 +241,8 @@ internal fun Kpi10(turns: List<KpiTurn>) {
                 x += w + gap
                 p
             }
-            for (i in 1 until pts.size) drawLine(CmColors.briefWeek, pts[i - 1], pts[i], strokeWidth = 2.dp.toPx())
-            pts.forEach { drawCircle(CmColors.briefWeek, 3.dp.toPx(), it) }
+            for (i in 1 until pts.size) drawLine(Cm.briefWeek, pts[i - 1], pts[i], strokeWidth = 2.dp.toPx())
+            pts.forEach { drawCircle(Cm.briefWeek, 3.dp.toPx(), it) }
             if (pts.isNotEmpty()) {
                 val a = measurer.measure(first, label)
                 drawText(a, topLeft = Offset((pts.first().x - a.size.width / 2f).coerceIn(0f, size.width - a.size.width), (pts.first().y - a.size.height - 3.dp.toPx()).coerceAtLeast(0f)))
@@ -254,7 +253,7 @@ internal fun Kpi10(turns: List<KpiTurn>) {
                 }
             }
         }
-        Text(stringResource(R.string.kpi10_caption), style = MonoSmall.copy(fontSize = 10.sp), color = CmColors.briefWeek)
+        Text(stringResource(R.string.kpi10_caption), style = MonoSmall.copy(fontSize = 10.sp), color = Cm.briefWeek)
     }
 }
 
@@ -270,19 +269,19 @@ internal fun Kpi12(h: KpiHealth) {
             else Figure(
                 stringResource(R.string.kpi12_seconds, String.format(locale, "%.1f", lat.p50S)),
                 lat.maxS?.let { stringResource(R.string.kpi12_latency_max, String.format(locale, "%.1f", it)) } ?: stringResource(R.string.kpi12_latency),
-                if (lat.p50S!! > 5) CmColors.waiting else null, m,
+                if (lat.p50S!! > 5) Cm.waiting else null, m,
             )
         }
         h.sessionsHere?.let { n ->
-            add { m -> Figure(h.sessionsMax?.let { "$n / $it" } ?: n.toString(), stringResource(R.string.kpi12_sessions_here), if (h.sessionsMax != null && n >= h.sessionsMax!!) CmColors.waiting else null, m) }
+            add { m -> Figure(h.sessionsMax?.let { "$n / $it" } ?: n.toString(), stringResource(R.string.kpi12_sessions_here), if (h.sessionsMax != null && n >= h.sessionsMax!!) Cm.waiting else null, m) }
         }
         h.hosts.forEach { x ->
             add { m ->
-                if (!x.up) Figure(stringResource(R.string.kpi12_down), x.name, CmColors.briefAlertRing, m)
+                if (!x.up) Figure(stringResource(R.string.kpi12_down), x.name, Cm.briefAlertRing, m)
                 else Figure(
                     x.ramPct?.let { "$it%" } ?: "–",
                     if (x.ramPct != null) stringResource(R.string.kpi12_ram, x.name) else stringResource(R.string.kpi12_up, x.name),
-                    if ((x.ramPct ?: 0) >= 85) CmColors.waiting else null, m,
+                    if ((x.ramPct ?: 0) >= 85) Cm.waiting else null, m,
                 )
             }
         }
@@ -305,18 +304,18 @@ internal fun Kpi13(s: KpiSuggestions) {
     val total = Kpi.suggestionsTotal(s)
     val rate = Kpi.acceptRate(s)
     val parts = listOf(
-        Triple(s.accepted, R.plurals.kpi13_accepted, CmColors.briefGood), Triple(s.discussed, R.plurals.kpi13_discussed, CmColors.busy),
-        Triple(s.later, R.plurals.kpi13_later, CmColors.briefWeek), Triple(s.never, R.plurals.kpi13_never, CmColors.stale),
-        Triple(s.expired, R.plurals.kpi13_expired, CmColors.briefTrack),
+        Triple(s.accepted, R.plurals.kpi13_accepted, Cm.briefGood), Triple(s.discussed, R.plurals.kpi13_discussed, Cm.busy),
+        Triple(s.later, R.plurals.kpi13_later, Cm.briefWeek), Triple(s.never, R.plurals.kpi13_never, Cm.stale),
+        Triple(s.expired, R.plurals.kpi13_expired, Cm.briefTrack),
     )
-    KpiCard("kpi-13", stringResource(R.string.kpi13_title), rate?.let { { Right(stringResource(R.string.kpi13_rate, it), CmColors.briefGood) } }) {
-        if (total == 0) Text(stringResource(R.string.kpi13_none), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+    KpiCard("kpi-13", stringResource(R.string.kpi13_title), rate?.let { { Right(stringResource(R.string.kpi13_rate, it), Cm.briefGood) } }) {
+        if (total == 0) Text(stringResource(R.string.kpi13_none), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
         else {
             Row(Modifier.fillMaxWidth().height(10.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 parts.forEach { (n, _, c) -> if (n > 0) Box(Modifier.weight(n.toFloat()).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(c)) }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                parts.forEach { (n, res, c) -> if (n > 0) Text(pluralStringResource(res, n, n), style = MaterialTheme.typography.bodySmall, color = if (c == CmColors.briefTrack) CmColors.text2 else c) }
+                parts.forEach { (n, res, c) -> if (n > 0) Text(pluralStringResource(res, n, n), style = MaterialTheme.typography.bodySmall, color = if (c == Cm.briefTrack) Cm.text2 else c) }
             }
         }
     }
@@ -336,18 +335,18 @@ private fun waitKind(k: String): String = when (k) {
 internal fun Kpi17(w: KpiWaits, now: Long) {
     val closed = Kpi.waitsClosed(w)
     val top = Kpi.waitsTop(w).coerceAtLeast(1.0).toFloat()
-    KpiCard("kpi-17", stringResource(R.string.kpi17_title), { Right(pluralStringResource(R.plurals.kpi17_closed, closed, closed), CmColors.text2) }) {
+    KpiCard("kpi-17", stringResource(R.string.kpi17_title), { Right(pluralStringResource(R.plurals.kpi17_closed, closed, closed), Cm.text2) }) {
         w.now.sortedBy { it.since }.forEach { x ->
             Text(
                 stringResource(R.string.kpi17_now, x.session, waitKind(x.kind), maxOf(1L, (now - x.since + 30) / 60)),
-                style = MaterialTheme.typography.bodySmall, color = CmColors.waiting,
+                style = MaterialTheme.typography.bodySmall, color = Cm.waiting,
             )
         }
         DayColumns(w.week.map { it.date }, w.week.map { d ->
-            listOf(((d.medianMin ?: 0.0).toFloat() / top) to CmColors.waiting) to @Composable {
-                Text(d.medianMin?.let { Math.round(it).toString() } ?: "–", style = MonoSmall.copy(fontSize = 10.sp), color = CmColors.text2, maxLines = 1)
+            listOf(((d.medianMin ?: 0.0).toFloat() / top) to Cm.waiting) to @Composable {
+                Text(d.medianMin?.let { Math.round(it).toString() } ?: "–", style = MonoSmall.copy(fontSize = 10.sp), color = Cm.text2, maxLines = 1)
             }
         })
-        Text(stringResource(R.string.kpi17_caption), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+        Text(stringResource(R.string.kpi17_caption), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
     }
 }

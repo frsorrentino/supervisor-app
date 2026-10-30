@@ -46,7 +46,7 @@ class RhythmPanelTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt()))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.fillMaxSize().background(CmColors.bg).padding(16.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxSize().background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
                     TabletQuotaPanel(ring, now)
                 }
             }

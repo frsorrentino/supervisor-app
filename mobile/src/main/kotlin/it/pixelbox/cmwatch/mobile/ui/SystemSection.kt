@@ -42,13 +42,12 @@ import it.pixelbox.cmwatch.contract.CmdOp
 import it.pixelbox.cmwatch.contract.SystemStatus
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.SystemRules
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /** Contratto 1.90: il colore di un livello (green, yellow, red), come le barre del contesto. */
 internal fun systemTone(level: String): Color = when (level) {
-    "red" -> CmColors.briefAlertRing
-    "yellow" -> CmColors.briefWarn
-    else -> CmColors.briefGood
+    "red" -> Cm.briefAlertRing
+    "yellow" -> Cm.briefWarn
+    else -> Cm.briefGood
 }
 
 @Composable
@@ -68,11 +67,11 @@ internal fun SystemHeader(s: SystemStatus, open: Boolean, onToggle: () -> Unit) 
         Modifier.fillMaxWidth().handCursor().clickable(onClick = onToggle).padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(if (open) Icons.Rounded.ExpandMore else Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
-        Text(stringResource(R.string.home_sec_system).uppercase(), style = MonoSmall.copy(color = CmColors.text2, letterSpacing = 1.8.sp))
+        Icon(if (open) Icons.Rounded.ExpandMore else Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Cm.actionIcon, modifier = Modifier.size(18.dp))
+        Text(stringResource(R.string.home_sec_system).uppercase(), style = MonoSmall.copy(color = Cm.text2, letterSpacing = 1.8.sp))
         Box(Modifier.size(8.dp).clip(CircleShape).background(systemTone(s.level)))
-        Box(Modifier.weight(1f).height(1.dp).background(CmColors.line))
-        if (!open) Text(systemSummary(s), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1)
+        Box(Modifier.weight(1f).height(1.dp).background(Cm.line))
+        if (!open) Text(systemSummary(s), style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1)
     }
 }
 
@@ -87,7 +86,7 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
     var ask by remember { mutableStateOf<String?>(null) }
     var sent by remember { mutableStateOf(setOf<String>()) }
     Column(
-        Modifier.fillMaxWidth().testTag("system_advice").clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().testTag("system_advice").clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Meter(stringResource(R.string.system_load), (s.loadPerCore / 3).toFloat(), systemTone(s.loadLevel), stringResource(R.string.system_load_v, SystemRules.num(s.loadPerCore, c)))
@@ -101,25 +100,25 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
                 val name = groups[g.group]?.let { stringResource(it) } ?: g.group
                 "$name${if (g.count > 1) " ×${g.count}" else ""} ${SystemRules.cpu(g.cpu)}% ${SystemRules.size(g.rssMb, c)}"
             }.joinToString(" · ")
-            Text(line, style = MonoSmall, color = CmColors.text2)
+            Text(line, style = MonoSmall, color = Cm.text2)
         }
-        if (s.advice.isEmpty()) Text(stringResource(R.string.system_calm), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+        if (s.advice.isEmpty()) Text(stringResource(R.string.system_calm), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
         s.advice.forEach { a ->
             val op = onAction?.let { SystemRules.opOf(a, ops) }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(CmColors.line))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(Cm.line))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.size(8.dp).clip(CircleShape).background(systemTone(a.level)))
-                V3Split(Modifier.weight(1f), gap = 10.dp, text = { Text(a.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text) }) { if (op != null && ask != a.id) Surface(
-                    onClick = { if (a.id !in sent) ask = a.id }, shape = CircleShape, color = CmColors.surfaceHigh,
-                    contentColor = if (a.id in sent) CmColors.text2 else CmColors.text,
+                V3Split(Modifier.weight(1f), gap = 10.dp, text = { Text(a.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text) }) { if (op != null && ask != a.id) Surface(
+                    onClick = { if (a.id !in sent) ask = a.id }, shape = CircleShape, color = Cm.surfaceHigh,
+                    contentColor = if (a.id in sent) Cm.text2 else Cm.text,
                 ) { Text(a.action!!.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) } }
             }
             if (op != null && ask == a.id) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(stringResource(if (op == CmdOp.SYS_UNIT_STOP) R.string.system_confirm_stop else R.string.system_confirm), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))
-                TextButton(onClick = { ask = null }) { Text(stringResource(R.string.system_keep), color = CmColors.actionIcon) }
+                Text(stringResource(if (op == CmdOp.SYS_UNIT_STOP) R.string.system_confirm_stop else R.string.system_confirm), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
+                TextButton(onClick = { ask = null }) { Text(stringResource(R.string.system_keep), color = Cm.actionIcon) }
                 Button(
                     onClick = { ask = null; sent = sent + a.id; onAction?.invoke(op, a.action!!.arg) },
-                    colors = ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
                 ) { Text(a.action!!.label) }
             }
         }
@@ -129,10 +128,10 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
 @Composable
 private fun Meter(label: String, fraction: Float, tone: Color, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.width(76.dp))
-        Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(CmColors.briefTrack)) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.width(76.dp))
+        Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
             Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().background(tone))
         }
-        Text(value, style = MonoSmall, color = CmColors.text2, maxLines = 1)
+        Text(value, style = MonoSmall, color = Cm.text2, maxLines = 1)
     }
 }

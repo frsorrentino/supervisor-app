@@ -44,7 +44,7 @@ class WeekPanelTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 2800))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.fillMaxSize().background(CmColors.bg).padding(16.dp)) { TabletQuotaPanel(r, start + 114 * 3600L) }
+                Column(Modifier.fillMaxSize().background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp)) { TabletQuotaPanel(r, start + 114 * 3600L) }
             }
         }
     }

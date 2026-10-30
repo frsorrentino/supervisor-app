@@ -295,6 +295,11 @@
     <string name="rate_hint">Anche dalla pillola accanto a ■ mentre legge</string>
     <string name="notifications_sub">Canali e suoni, nelle impostazioni di Android</string>
     <string name="privacy_sub">L\'informativa, sul sito</string>
+    <string name="credits_title">Crediti</string>
+    <string name="credits_author">Francesco Sorrentino · francescosorrentino.com</string>
+    <string name="credits_fonts">Caratteri: Barlow e Geist Mono (OFL), Material Symbols (Apache 2.0)</string>
+    <string name="credits_libs">Librerie: AndroidX, Compose, Kotlin, Firebase, Room (Apache 2.0)</string>
+    <plurals name="settings_devices"><item quantity="one">%d dispositivo</item><item quantity="other">%d dispositivi</item></plurals>
     <string name="version_title">Versione</string>
     <string name="version_value">%1$s · telefono e orologio</string>
     <!-- L'aggiornamento dentro l'app (P6, approvata da Franz il 21/10 alle 23:58): la card in cima alla home e la riga in Impostazioni. -->

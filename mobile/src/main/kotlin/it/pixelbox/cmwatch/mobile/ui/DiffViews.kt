@@ -51,7 +51,6 @@ import it.pixelbox.cmwatch.contract.StepDiff
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.DiffRules
 import it.pixelbox.cmwatch.rules.uniqueKeys
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /*
  * Il diff dal telefono (contratto 1.72, specifica del 15/10 approvata da Franz dalle 22:43 alle 23:11): la riga chiusa sotto
@@ -72,7 +71,7 @@ val LocalDiffOpener = compositionLocalOf { DiffOpener() }
 
 /** Il carattere del diff: larghezza fissa, ogni riga alta 18 sp senza margini del carattere, uguale per numeri e testo. */
 private val DiffText = TextStyle(
-    fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 18.sp,
+    fontFamily = V3.Mono, fontSize = 12.sp, lineHeight = 18.sp,
     lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
     platformStyle = PlatformTextStyle(includeFontPadding = false),
 )
@@ -86,9 +85,9 @@ private val DiffText = TextStyle(
 internal fun DiffBox(hunks: List<Hunk>, modifier: Modifier = Modifier, v3: Boolean = false) {
     val rows = remember(hunks) { DiffRules.rows(hunks) }
     val digits = remember(rows) { DiffRules.gutter(rows) }
-    val add = if (v3) V3.Good else CmColors.briefGood
-    val del = if (v3) V3.Red else CmColors.briefAlertRing
-    val dim = if (v3) V3.Tx2 else CmColors.text2
+    val add = if (v3) V3.Good else Cm.briefGood
+    val del = if (v3) V3.Red else Cm.briefAlertRing
+    val dim = if (v3) V3.Tx2 else Cm.text2
     val more = stringResource(R.string.diff_more_chars)
     val numbers = remember(rows, digits) {
         rows.joinToString("\n") { r -> (r.old?.toString() ?: "").padStart(digits) + " " + (r.new?.toString() ?: "").padStart(digits) }
@@ -119,19 +118,19 @@ internal fun DiffBox(hunks: List<Hunk>, modifier: Modifier = Modifier, v3: Boole
                 when (r.kind) {
                     DiffRules.Kind.ADDED -> drawRect(add.copy(alpha = .14f), Offset(0f, top), Size(size.width, h))
                     DiffRules.Kind.REMOVED -> drawRect(del.copy(alpha = .14f), Offset(0f, top), Size(size.width, h))
-                    DiffRules.Kind.GAP -> drawRect(CmColors.line, Offset(0f, top + h / 2f), Size(size.width, 1.dp.toPx()))
+                    DiffRules.Kind.GAP -> drawRect(Cm.line, Offset(0f, top + h / 2f), Size(size.width, 1.dp.toPx()))
                     else -> Unit
                 }
             }
         }
     }
     val shape = RoundedCornerShape(12.dp)
-    Row(modifier.fillMaxWidth().clip(shape).background(if (v3) V3.Bg else CmColors.surfaceLow).border(1.dp, if (v3) V3.Line else CmColors.line, shape).padding(vertical = 6.dp)) {
+    Row(modifier.fillMaxWidth().clip(shape).background(if (v3) V3.Bg else Cm.surfaceLow).border(1.dp, if (v3) V3.Line else Cm.line, shape).padding(vertical = 6.dp)) {
         Text(numbers, style = DiffText, color = dim, softWrap = false, modifier = Modifier.drawBehind(paint).padding(start = 8.dp, end = 6.dp))
         BoxWithConstraints(Modifier.weight(1f)) {
             val min = maxWidth
             Text(
-                code, style = DiffText, color = CmColors.text, softWrap = false, onTextLayout = { layout = it },
+                code, style = DiffText, color = Cm.text, softWrap = false, onTextLayout = { layout = it },
                 modifier = Modifier.horizontalScroll(rememberScrollState()).widthIn(min = min).drawBehind(paint).padding(end = 12.dp),
             )
         }
@@ -147,26 +146,26 @@ internal fun DiffLine(
     v3: Boolean = false,
 ) {
     val desc = stringResource(if (open) R.string.diff_close else R.string.diff_open, name)
-    Surface(onClick = onClick, color = if (v3) V3.S2 else CmColors.surface, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().semantics { contentDescription = desc }) {
+    Surface(onClick = onClick, color = if (v3) V3.S2 else Cm.surface, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().semantics { contentDescription = desc }) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Rounded.Add, null, tint = if (v3) V3.Tx2 else CmColors.actionIcon, modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.Add, null, tint = if (v3) V3.Tx2 else Cm.actionIcon, modifier = Modifier.size(18.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     buildAnnotatedString {
                         append(name)
                         if (counts) {
-                            withStyle(SpanStyle(color = if (v3) V3.Tx2 else CmColors.text2)) { append(" · ") }
-                            withStyle(SpanStyle(color = if (v3) V3.Good else CmColors.briefGood)) { append("+$added") }
+                            withStyle(SpanStyle(color = if (v3) V3.Tx2 else Cm.text2)) { append(" · ") }
+                            withStyle(SpanStyle(color = if (v3) V3.Good else Cm.briefGood)) { append("+$added") }
                             append(" ")
-                            withStyle(SpanStyle(color = if (v3) V3.Red else CmColors.briefAlertRing)) { append("${DiffRules.MINUS}$removed") }
+                            withStyle(SpanStyle(color = if (v3) V3.Red else Cm.briefAlertRing)) { append("${DiffRules.MINUS}$removed") }
                         }
                     },
-                    style = MaterialTheme.typography.labelLarge, color = if (v3) V3.Tx else CmColors.text,
+                    style = MaterialTheme.typography.labelLarge, color = if (v3) V3.Tx else Cm.text,
                 )
-                folder?.let { Text(it, style = MonoSmall, color = CmColors.text2) }
+                folder?.let { Text(it, style = MonoSmall, color = Cm.text2) }
             }
-            label?.let { Text(it, style = MonoSmall, color = CmColors.text2, modifier = Modifier.clip(CircleShape).background(CmColors.surfaceHigh).padding(horizontal = 8.dp, vertical = 3.dp)) }
-            Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = if (v3) V3.Tx2 else CmColors.text2)
+            label?.let { Text(it, style = MonoSmall, color = Cm.text2, modifier = Modifier.clip(CircleShape).background(Cm.surfaceHigh).padding(horizontal = 8.dp, vertical = 3.dp)) }
+            Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = if (v3) V3.Tx2 else Cm.text2)
         }
     }
 }
@@ -199,7 +198,7 @@ internal fun StepDiffRow(entryId: String, d: StepDiff, startOpen: Boolean = fals
         if (open) {
             if (shown.diff.hunks.isEmpty()) DiffNote(stringResource(R.string.diff_hidden_empty)) else DiffBox(shown.diff.hunks, v3 = true)
             when {
-                shown.showAll && opener.full != null -> TextButton(onClick = { wantAll = true }) { Text(stringResource(R.string.diff_show_all), color = CmColors.actionIcon) }
+                shown.showAll && opener.full != null -> TextButton(onClick = { wantAll = true }) { Text(stringResource(R.string.diff_show_all), color = Cm.actionIcon) }
                 busy -> DiffNote(stringResource(R.string.diff_loading))
                 failed != null -> DiffFailed(failed, onRetry = { full = null })
                 shown.beyond -> DiffNote(stringResource(R.string.diff_beyond))
@@ -210,7 +209,7 @@ internal fun StepDiffRow(entryId: String, d: StepDiff, startOpen: Boolean = fals
 
 @Composable
 private fun DiffNote(text: String, modifier: Modifier = Modifier.padding(horizontal = 4.dp)) =
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = modifier)
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = modifier)
 
 /** Un errore della vista o di «Mostra tutto», in chiaro, con Riprova: mai una vista vuota senza spiegazione. */
 @Composable
@@ -221,8 +220,8 @@ private fun DiffFailed(f: DiffRules.Load.Failed, onRetry: () -> Unit) {
         DiffRules.Why.OTHER -> f.text
     }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = CmColors.goneDim, modifier = Modifier.weight(1f).padding(horizontal = 4.dp))
-        TextButton(onClick = onRetry) { Text(stringResource(R.string.retry), color = CmColors.actionIcon) }
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.goneDim, modifier = Modifier.weight(1f).padding(horizontal = 4.dp))
+        TextButton(onClick = onRetry) { Text(stringResource(R.string.retry), color = Cm.actionIcon) }
     }
 }
 
@@ -271,17 +270,17 @@ internal fun ChangesPanel(
         got = load(null)
         loading = false
     }
-    Column(modifier.fillMaxSize().background(CmColors.bg).navigationBarsPadding()) {
+    Column(modifier.fillMaxSize().background(Cm.bg).navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = CmColors.text) }
+            IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Cm.text) }
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.changes_title), style = MaterialTheme.typography.titleLarge, color = CmColors.text)
-                Text(s.name, style = MaterialTheme.typography.labelMedium, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip)
+                Text(stringResource(R.string.changes_title), style = MaterialTheme.typography.titleLarge, color = Cm.text)
+                Text(s.name, style = MaterialTheme.typography.labelMedium, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip)
             }
-            IconButton(onClick = { asked++ }, enabled = !loading) { Icon(Icons.Rounded.Refresh, stringResource(R.string.refresh), tint = CmColors.actionIcon) }
+            IconButton(onClick = { asked++ }, enabled = !loading) { Icon(Icons.Rounded.Refresh, stringResource(R.string.refresh), tint = Cm.actionIcon) }
         }
         Box(Modifier.fillMaxWidth().height(4.dp).padding(horizontal = 20.dp)) {
-            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = CmColors.actionIcon, trackColor = CmColors.briefTrack)
+            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = Cm.actionIcon, trackColor = Cm.briefTrack)
         }
         when (val g = got) {
             null -> DiffNote(stringResource(R.string.changes_loading), Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
@@ -304,7 +303,7 @@ private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Loa
                 DiffRules.Source.NO_COMMITS -> stringResource(R.string.changes_no_commits)
                 DiffRules.Source.TRANSCRIPT -> stringResource(R.string.changes_outside_git)
             }
-            Text(line, style = MaterialTheme.typography.bodyMedium, color = if (src == DiffRules.Source.TRANSCRIPT) CmColors.waiting else CmColors.text2)
+            Text(line, style = MaterialTheme.typography.bodyMedium, color = if (src == DiffRules.Source.TRANSCRIPT) Cm.waiting else Cm.text2)
         }
         if (v.files.isEmpty()) item(key = "none") {
             DiffNote(stringResource(if (src == DiffRules.Source.TRANSCRIPT) R.string.changes_none_transcript else R.string.changes_none))

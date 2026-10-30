@@ -20,7 +20,6 @@ import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.AttentionQueue
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * «Ti aspettano» (piano 30/09, Task 1): le domande aperte di tutte le sessioni in fila, dalla più vecchia, una per
@@ -35,13 +34,13 @@ fun QueueScreen(
 ) {
     // Aperta dal banner di una chat: la sessione di quella chat non è in fila, come nel conto del banner (web 15/10).
     val items = AttentionQueue.items(state).filter { it.session != skip }
-    Column(Modifier.fillMaxSize().background(CmColors.bg).systemBarsPadding()) {
+    Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding()) {
         Text(
             stringResource(R.string.queue_title), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = CmColors.text, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
+            color = Cm.text, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
         )
         if (items.isEmpty()) {
-            Text(stringResource(R.string.queue_empty), color = CmColors.text2, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 20.dp))
+            Text(stringResource(R.string.queue_empty), color = Cm.text2, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 20.dp))
             return@Column
         }
         val pager = rememberPagerState { items.size }
@@ -61,10 +60,10 @@ fun QueueScreen(
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     QueueHead(s, item.askedAt, now, onSession)
                     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.queue_stop_head), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
-                        Text(item.text, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                        Text(stringResource(R.string.queue_stop_head), style = MaterialTheme.typography.labelLarge, color = Cm.text2)
+                        Text(item.text, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                         // Contratto 1.80: la scadenza di un needs-you e il tasto «Fatto», che chiude la richiesta dal telefono.
-                        item.expiresAt?.let { Text(expiryText(it, now), style = MaterialTheme.typography.labelLarge, color = CmColors.text2) }
+                        item.expiresAt?.let { Text(expiryText(it, now), style = MaterialTheme.typography.labelLarge, color = Cm.text2) }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilledTonalButton(onClick = { onSession(s.name) }) { Text(stringResource(R.string.queue_stop_open)) }
                             item.done?.let { d -> Button(onClick = { onDone(d) }) { Text(stringResource(R.string.attention_done)) } }
@@ -87,7 +86,7 @@ fun QueueScreen(
         }
         Text(
             stringResource(R.string.queue_position, (pager.currentPage + 1).coerceAtMost(items.size), items.size), style = MaterialTheme.typography.labelLarge,
-            color = CmColors.text2, modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 12.dp),
+            color = Cm.text2, modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 12.dp),
         )
     }
 }
@@ -100,7 +99,7 @@ private fun QueueHead(s: Session, askedAt: Long, now: Long, onSession: (String) 
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         SessionBadge(s, size = 26.dp)
-        Text(s.name, style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.weight(1f), maxLines = 1)
-        Text(stringResource(R.string.queue_age, Durations.since(askedAt, now)), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
+        Text(s.name, style = MaterialTheme.typography.titleMedium, color = Cm.text, modifier = Modifier.weight(1f), maxLines = 1)
+        Text(stringResource(R.string.queue_age, Durations.since(askedAt, now)), style = MaterialTheme.typography.labelLarge, color = Cm.text2)
     }
 }

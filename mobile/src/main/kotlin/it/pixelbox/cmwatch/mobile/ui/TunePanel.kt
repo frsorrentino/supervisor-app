@@ -46,7 +46,6 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.MasterService
 import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.Tune
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Il pannello Modello ed effort (bozza approvata da Franz il 07/10 alle 00:06, docs/mockup/2026-10-06-modello-effort/):
@@ -63,7 +62,7 @@ fun TunePanel(
     onDismiss: () -> Unit,
 ) = PanelShell(
     onDismiss,
-    header = { Text(stringResource(R.string.tune_head), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f)) },
+    header = { Text(stringResource(R.string.tune_head), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.weight(1f)) },
     origin = TransformOrigin(0f, 0f),
 ) { close ->
     advice?.let { a ->
@@ -79,7 +78,7 @@ fun TunePanel(
     EffortGroup(choices.efforts, effort, advice?.effort) { close(); onEffort(it) }
     effort?.let { e ->
         Text(
-            listOfNotNull(e, effortSub(e)).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
+            listOfNotNull(e, effortSub(e)).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Cm.text2,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 6.dp),
         )
     }
@@ -99,7 +98,7 @@ private fun AdviceCard(a: MasterService.AdviceView, choices: Choices, model: Str
     val same = go.model == null && go.effort == null
     val m = choices.models.firstOrNull { Tune.sameModel(it.id, a.model) }
     val label = "${m?.label ?: ModelText.short(m) ?: a.model} · ${a.effort}"
-    val tint = if (same) CmColors.briefGood else CmColors.advice
+    val tint = if (same) Cm.briefGood else Cm.advice
     Column(
         Modifier.padding(horizontal = 12.dp, vertical = 2.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
             .background(tint.copy(alpha = .10f)).padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 14.dp),
@@ -110,20 +109,20 @@ private fun AdviceCard(a: MasterService.AdviceView, choices: Choices, model: Str
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(stringResource(R.string.advice_head).uppercase(), style = MonoSmall.copy(color = tint, fontWeight = FontWeight.SemiBold))
-                Text(if (same) stringResource(R.string.advice_same, label) else label, style = MaterialTheme.typography.titleMedium, color = CmColors.text)
-                if (a.reason.isNotBlank()) Text(a.reason, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                Text(if (same) stringResource(R.string.advice_same, label) else label, style = MaterialTheme.typography.titleMedium, color = Cm.text)
+                if (a.reason.isNotBlank()) Text(a.reason, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             }
         }
         if (!same) {
             a.cost?.let { c ->
                 Row(Modifier.padding(start = 54.dp, top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Rounded.WarningAmber, null, tint = CmColors.briefWarn, modifier = Modifier.size(16.dp).offset(y = 1.dp))
-                    Text(stringResource(R.string.advice_cost, MasterService.tokens(c)), style = MaterialTheme.typography.bodySmall, color = CmColors.briefWarn)
+                    Icon(Icons.Rounded.WarningAmber, null, tint = Cm.briefWarn, modifier = Modifier.size(16.dp).offset(y = 1.dp))
+                    Text(stringResource(R.string.advice_cost, MasterService.tokens(c)), style = MaterialTheme.typography.bodySmall, color = Cm.briefWarn)
                 }
             }
             FilledTonalButton(
                 onClick = { onUse(go) }, modifier = Modifier.padding(start = 54.dp, top = 12.dp).handCursor(),
-                colors = ButtonDefaults.filledTonalButtonColors(containerColor = CmColors.advice.copy(alpha = .24f), contentColor = lerp(CmColors.advice, Color.White, .7f)),
+                colors = ButtonDefaults.filledTonalButtonColors(containerColor = Cm.advice.copy(alpha = .24f), contentColor = lerp(Cm.advice, Color.White, .7f)),
             ) { Text(stringResource(R.string.advice_use)) }
         }
     }
@@ -132,28 +131,28 @@ private fun AdviceCard(a: MasterService.AdviceView, choices: Choices, model: Str
 /** «MODELLO», «EFFORT»: come i gruppi di «Vai a». */
 @Composable
 private fun SectionLabel(text: String) = Text(
-    text.uppercase(), style = MonoSmall.copy(color = CmColors.text2), modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 6.dp),
+    text.uppercase(), style = MonoSmall.copy(color = Cm.text2), modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 6.dp),
 )
 
 /** Una voce come quelle del menu dell'app: cerchio con l'iniziale, nome, riga che lo spiega; la scelta su fondo chiaro con ✓. */
 @Composable
 private fun ModelRow(label: String, sub: String?, selected: Boolean, recommended: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).background(if (selected) CmColors.surfaceHigh else Color.Transparent).handCursor()
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).background(if (selected) Cm.surfaceHigh else Color.Transparent).handCursor()
             .selectable(selected, role = Role.RadioButton, onClick = onClick).padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(if (selected) CmColors.accent.copy(alpha = .25f) else CmColors.surfaceHigh), contentAlignment = Alignment.Center) {
-            Text(label.take(1).uppercase(), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = CmColors.actionIcon)
+        Box(Modifier.size(40.dp).clip(CircleShape).background(if (selected) Cm.accent.copy(alpha = .25f) else Cm.surfaceHigh), contentAlignment = Alignment.Center) {
+            Text(label.take(1).uppercase(), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.actionIcon)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(label, style = MaterialTheme.typography.titleMedium, color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
+                Text(label, style = MaterialTheme.typography.titleMedium, color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip)
                 if (recommended) AdviceTag()
             }
-            sub?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip) }
+            sub?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip) }
         }
-        if (selected) Icon(Icons.Rounded.Check, null, tint = CmColors.actionIcon)
+        if (selected) Icon(Icons.Rounded.Check, null, tint = Cm.actionIcon)
     }
 }
 
@@ -163,7 +162,7 @@ private fun ModelRow(label: String, sub: String?, selected: Boolean, recommended
  */
 @Composable
 private fun EffortGroup(efforts: List<String>, effort: String?, recommended: String?, onPick: (String) -> Unit) {
-    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(surfaceContainer = CmColors.surfaceHigh, onSurfaceVariant = CmColors.text)) {
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(surfaceContainer = Cm.surfaceHigh, onSurfaceVariant = Cm.text)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
             efforts.forEachIndexed { i, e ->
                 ToggleButton(
@@ -180,7 +179,7 @@ private fun EffortGroup(efforts: List<String>, effort: String?, recommended: Str
                     Box {
                         Text(e, maxLines = 1, softWrap = false)
                         if (e != effort && e == recommended) {
-                            Box(Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-4).dp).size(7.dp).clip(CircleShape).background(CmColors.advice))
+                            Box(Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-4).dp).size(7.dp).clip(CircleShape).background(Cm.advice))
                         }
                     }
                 }

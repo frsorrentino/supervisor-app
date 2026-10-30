@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.MasterService
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -39,18 +38,18 @@ internal fun clockHm(at: Long): String = DateTimeFormatter.ofPattern("HH:mm").wi
  */
 @Composable
 internal fun CloseDialog(s: Session, onDismiss: () -> Unit, onConfirm: () -> Unit) = AlertDialog(
-    onDismissRequest = onDismiss, containerColor = CmColors.surface,
+    onDismissRequest = onDismiss, containerColor = Cm.surface,
     title = { Text(stringResource(R.string.close_title, s.name)) },
     text = {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(closeStateLine(s), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-            Text(stringResource(R.string.close_what), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            Text(closeStateLine(s), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+            Text(stringResource(R.string.close_what), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
         }
     },
     confirmButton = {
-        Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White)) {
+        Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone)) {
             Text(stringResource(R.string.cleanup_close, s.name))
         }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close_keep), color = CmColors.actionIcon) } },
+    dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) } },
 )

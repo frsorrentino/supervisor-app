@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.contract.CmdResult
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 
@@ -40,12 +39,12 @@ fun RefusalBanner(results: Flow<CmdResult>, modifier: Modifier = Modifier) {
         exit = if (off) ExitTransition.None else fadeOut() + slideOutVertically { it / 2 },
     ) {
         Surface(
-            onClick = { shown = false }, color = CmColors.surfaceHigh, shape = MaterialTheme.shapes.medium, shadowElevation = 6.dp,
+            onClick = { shown = false }, color = Cm.surfaceHigh, shape = MaterialTheme.shapes.medium, shadowElevation = 6.dp,
             modifier = Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                Icon(Icons.Rounded.ErrorOutline, null, tint = CmColors.gone)
-                Text(text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
+                Icon(Icons.Rounded.ErrorOutline, null, tint = Cm.gone)
+                Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
             }
         }
     }

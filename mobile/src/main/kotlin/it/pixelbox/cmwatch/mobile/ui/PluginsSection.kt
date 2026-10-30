@@ -40,7 +40,6 @@ import it.pixelbox.cmwatch.contract.PluginsPage
 import it.pixelbox.cmwatch.contract.PluginsSummary
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Plugins
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import kotlinx.coroutines.launch
 
 /**
@@ -73,27 +72,27 @@ internal fun PluginsCard(
     val count = summary.accounts.sumOf { it.updates.size }
     val hm = remember { java.time.format.DateTimeFormatter.ofPattern("HH:mm").withZone(java.time.ZoneId.systemDefault()) }
     Column(Modifier.testTag("plugins_state").fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (page == null) Text(stringResource(if (loading) R.string.plugins_loading else R.string.plugins_none), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.padding(horizontal = 4.dp))
+        if (page == null) Text(stringResource(if (loading) R.string.plugins_loading else R.string.plugins_none), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
         page?.accounts.orEmpty().forEach { raw ->
             val a = Plugins.account(raw)
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(a.account, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f))
-                    Text(stringResource(R.string.plugins_meta, raw.plugins.size, a.skills), style = MonoSmall, color = CmColors.text2)
+                    Text(a.account, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.plugins_meta, raw.plugins.size, a.skills), style = MonoSmall, color = Cm.text2)
                 }
                 a.updates.forEach { p ->
                     Line()
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text(p.name, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
-                            Text(buildAnnotatedString { append("${p.installed ?: "?"} → "); withStyle(SpanStyle(color = CmColors.briefWarn)) { append(p.latest ?: "") } }, style = MonoSmall, color = CmColors.text2)
+                            Text(p.name, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                            Text(buildAnnotatedString { append("${p.installed ?: "?"} → "); withStyle(SpanStyle(color = Cm.briefWarn)) { append(p.latest ?: "") } }, style = MonoSmall, color = Cm.text2)
                         }
                         if (p.scope == "user") Surface(
                             onClick = { if (p.id !in busy) act(p.id, CmdOp.PLUGIN_UPDATE, Plugins.updateArg(a.account, p), a.account) },
-                            shape = CircleShape, color = CmColors.surfaceHigh, contentColor = if (p.id in busy) CmColors.text2 else CmColors.text,
+                            shape = CircleShape, color = Cm.surfaceHigh, contentColor = if (p.id in busy) Cm.text2 else Cm.text,
                         ) { Text(stringResource(if (p.id in busy) R.string.plugins_updating else R.string.plugins_update), style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) }
                     }
                 }
@@ -101,39 +100,39 @@ internal fun PluginsCard(
                     a.rest.forEach { p ->
                         Line()
                         Column {
-                            Text(p.name, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                            Text(p.name, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                             Text(
                                 buildAnnotatedString {
                                     append(p.installed ?: "?")
-                                    when (p.update) { false -> withStyle(SpanStyle(color = CmColors.briefGood)) { append(" · " + stringResource(R.string.plugins_latest)) }; null -> append(" · " + stringResource(R.string.plugins_unknown)); else -> {} }
+                                    when (p.update) { false -> withStyle(SpanStyle(color = Cm.briefGood)) { append(" · " + stringResource(R.string.plugins_latest)) }; null -> append(" · " + stringResource(R.string.plugins_unknown)); else -> {} }
                                 },
-                                style = MonoSmall, color = CmColors.text2,
+                                style = MonoSmall, color = Cm.text2,
                             )
                         }
                     }
-                    if (a.skillNames.isNotEmpty()) Text(stringResource(R.string.plugins_skills) + ": " + a.skillNames.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+                    if (a.skillNames.isNotEmpty()) Text(stringResource(R.string.plugins_skills) + ": " + a.skillNames.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
                 }
                 if (a.rest.isNotEmpty() || a.skills > 0) Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (a.account in shown) "" else when { a.skills == 0 -> stringResource(R.string.plugins_others_p, a.rest.size); a.rest.isEmpty() -> stringResource(R.string.plugins_others_s, a.skills); else -> stringResource(R.string.plugins_others, a.rest.size, a.skills) }, style = MonoSmall, color = CmColors.text2, modifier = Modifier.weight(1f))
+                    Text(if (a.account in shown) "" else when { a.skills == 0 -> stringResource(R.string.plugins_others_p, a.rest.size); a.rest.isEmpty() -> stringResource(R.string.plugins_others_s, a.skills); else -> stringResource(R.string.plugins_others, a.rest.size, a.skills) }, style = MonoSmall, color = Cm.text2, modifier = Modifier.weight(1f))
                     TextButton(onClick = { shown = if (a.account in shown) shown - a.account else shown + a.account }) {
-                        Text(stringResource(if (a.account in shown) R.string.plugins_hide else R.string.plugins_show), color = CmColors.actionIcon)
+                        Text(stringResource(if (a.account in shown) R.string.plugins_hide else R.string.plugins_show), color = Cm.actionIcon)
                     }
                 }
                 notes[a.account]?.let { r -> Note(r.text + if (r.ok) " · " + stringResource(R.string.plugins_new_sessions) else "", r.ok) }
             }
         }
         if (asking) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(horizontal = 4.dp)) {
-            Text(pluralString(R.plurals.plugins_confirm, count), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.fillMaxWidth())
-            TextButton(onClick = { asking = false }) { Text(stringResource(R.string.plugins_keep), color = CmColors.actionIcon) }
+            Text(pluralString(R.plurals.plugins_confirm, count), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.fillMaxWidth())
+            TextButton(onClick = { asking = false }) { Text(stringResource(R.string.plugins_keep), color = Cm.actionIcon) }
             Button(
                 onClick = { asking = false; scope.launch { summary.accounts.filter { it.updates.isNotEmpty() }.forEach { s -> act("all:${s.account}", CmdOp.PLUGIN_UPDATE_ALL, s.account, s.account).join() } } },
-                colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
             ) { Text(stringResource(R.string.plugins_update_all, count)) }
         } else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp)) {
             val checked = page?.checkedAt ?: summary.checkedAt
-            Text(checked?.let { stringResource(R.string.plugins_checked, hm.format(java.time.Instant.ofEpochSecond(it))) } ?: stringResource(R.string.plugins_never_checked), style = MonoSmall, color = CmColors.text2)
-            TextButton(onClick = { if ("check" !in busy) act("check", CmdOp.PLUGIN_CHECK, null, "_check") }) { Text(stringResource(R.string.plugins_check), color = CmColors.actionIcon) }
-            if (count > 0) Button(onClick = { asking = true }, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(stringResource(R.string.plugins_update_all, count)) }
+            Text(checked?.let { stringResource(R.string.plugins_checked, hm.format(java.time.Instant.ofEpochSecond(it))) } ?: stringResource(R.string.plugins_never_checked), style = MonoSmall, color = Cm.text2)
+            TextButton(onClick = { if ("check" !in busy) act("check", CmdOp.PLUGIN_CHECK, null, "_check") }) { Text(stringResource(R.string.plugins_check), color = Cm.actionIcon) }
+            if (count > 0) Button(onClick = { asking = true }, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(stringResource(R.string.plugins_update_all, count)) }
         }
         notes["_check"]?.let { r -> Note(r.text, r.ok) }
     }
@@ -143,10 +142,10 @@ internal fun PluginsCard(
 private fun pluralString(id: Int, n: Int): String = androidx.compose.ui.res.pluralStringResource(id, n, n)
 
 @Composable
-private fun Line() = Box(Modifier.fillMaxWidth().height(1.dp).background(CmColors.line))
+private fun Line() = Box(Modifier.fillMaxWidth().height(1.dp).background(Cm.line))
 
 @Composable
 private fun Note(text: String, ok: Boolean) = Text(
-    text, style = MaterialTheme.typography.bodySmall, color = CmColors.text,
-    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background((if (ok) CmColors.briefGood else CmColors.briefWarn).copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 8.dp),
+    text, style = MaterialTheme.typography.bodySmall, color = Cm.text,
+    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background((if (ok) Cm.briefGood else Cm.briefWarn).copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 8.dp),
 )

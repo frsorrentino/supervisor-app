@@ -481,7 +481,7 @@ class SessionSheetTest {
         val q = st.sessions.first { it.question != null }
         CmPhoneTheme(still = true) {
             androidx.compose.foundation.layout.Column(
-                androidx.compose.ui.Modifier.background(it.pixelbox.cmwatch.ui.tokens.CmColors.bg).padding(16.dp),
+                androidx.compose.ui.Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp),
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
             ) {
                 AttentionRow(it.pixelbox.cmwatch.rules.MasterHome.Row(it.pixelbox.cmwatch.rules.MasterHome.Kind.QUESTION, q.name, q.question!!.text, session = q.name, at = q.question!!.askedAt),

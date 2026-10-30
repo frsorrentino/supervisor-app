@@ -32,13 +32,12 @@ import it.pixelbox.cmwatch.rules.BriefCards
 import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.SessionMeters
 import it.pixelbox.cmwatch.rules.SessionsText
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 fun stateColor(s: SessionState): Color = when (s) {
-    SessionState.WAITING -> CmColors.waiting
-    SessionState.BUSY, SessionState.AWAITING -> CmColors.busy
-    SessionState.IDLE -> CmColors.stale
-    SessionState.GONE -> CmColors.goneDim
+    SessionState.WAITING -> Cm.waiting
+    SessionState.BUSY, SessionState.AWAITING -> Cm.busy
+    SessionState.IDLE -> Cm.stale
+    SessionState.GONE -> Cm.goneDim
 }
 
 @Composable
@@ -64,14 +63,14 @@ fun StatePill(state: SessionState, age: String, modifier: Modifier = Modifier) {
 @Composable
 fun ContextBar(pct: Int, model: String?) {
     val tone = when (SessionMeters.contextTone(pct)) {
-        BriefCards.Tone.ALERT -> CmColors.briefAlertRing
-        BriefCards.Tone.WARN -> CmColors.briefWarn
-        else -> CmColors.briefRing
+        BriefCards.Tone.ALERT -> Cm.briefAlertRing
+        BriefCards.Tone.WARN -> Cm.briefWarn
+        else -> Cm.briefRing
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.weight(1f).height(6.dp).background(CmColors.briefTrack, CircleShape)) {
+        Box(Modifier.weight(1f).height(6.dp).background(Cm.briefTrack, CircleShape)) {
             Box(Modifier.fillMaxWidth(SessionMeters.contextFraction(pct) ?: 0f).fillMaxHeight().background(tone, CircleShape))
         }
-        Text(listOfNotNull(stringResource(R.string.context_pct, pct), model).joinToString(" · "), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
+        Text(listOfNotNull(stringResource(R.string.context_pct, pct), model).joinToString(" · "), style = MaterialTheme.typography.labelLarge, color = Cm.text2)
     }
 }

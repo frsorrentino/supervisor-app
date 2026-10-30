@@ -1,5 +1,9 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -53,17 +57,34 @@ import it.pixelbox.cmwatch.rules.Rail
  * te, blu lavora, verde fatto, rosso fallito; struttura e azioni neutre, l'unico pieno è bianco. Caratteri OFL in res/font.
  */
 internal object V3 {
-    val Bg = Color(0xFF0B0C0E); val S1 = Color(0xFF121316); val S2 = Color(0xFF1B1D22); val S3 = Color(0xFF272A31); val Line = Color(0xFF25272D)
-    val Tx = Color(0xFFEDEEF0); val Tx2 = Color(0xFF969BA4); val Tx3 = Color(0xFF858A93); val Act = Color.White; val OnAct = Bg
-    val Wait = Color(0xFFFFB23F); val Busy = Color(0xFF5AA2FF); val Good = Color(0xFF34D399); val Red = Color(0xFFFF5A5F)
+    /** Le due versioni, un solo punto: `day` lo decide CmPhoneTheme. Marcatore giorno-b: «Attese in ambra», scelta di Franz del 30/10 21:56. */
+    class Palette(
+        val bg: Color, val s1: Color, val s2: Color, val s3: Color, val line: Color, val tx: Color, val tx2: Color, val tx3: Color, val act: Color, val onAct: Color,
+        val wait: Color, val busy: Color, val good: Color, val red: Color, val waitFill: Color, val waitLine: Color, val redFill: Color,
+    )
+    private val Night = Palette(
+        Color(0xFF0B0C0E), Color(0xFF121316), Color(0xFF1B1D22), Color(0xFF272A31), Color(0xFF25272D), Color(0xFFEDEEF0), Color(0xFF969BA4), Color(0xFF858A93), Color.White, Color(0xFF0B0C0E),
+        Color(0xFFFFB23F), Color(0xFF5AA2FF), Color(0xFF34D399), Color(0xFFFF5A5F), Color(0xFF121316), Color(0xFF25272D), Color(0xFF121316),
+    )
+    private val Day = Palette(
+        Color(0xFFF1F4F8), Color.White, Color.White, Color(0xFFEAEEF4), Color(0xFFDFE4EB), Color(0xFF121418), Color(0xFF565C66), Color(0xFF60666F), Color(0xFF121418), Color.White,
+        Color(0xFF9A5700), Color(0xFF1A64D6), Color(0xFF0B7F55), Color(0xFFC9302F), Color(0xFFFFF6E5), Color(0xFFF2D7A2), Color(0xFFFFF3F2),
+    )
+    var day by mutableStateOf(false)
+    private val p get() = if (day) Day else Night
+    val Bg get() = p.bg; val S1 get() = p.s1; val S2 get() = p.s2; val S3 get() = p.s3; val Line get() = p.line
+    val Tx get() = p.tx; val Tx2 get() = p.tx2; val Tx3 get() = p.tx3; val Act get() = p.act; val OnAct get() = p.onAct
+    val Wait get() = p.wait; val Busy get() = p.busy; val Good get() = p.good; val Red get() = p.red
+    /** Giorno: la zona che aspetta in ambra chiaro e le righe rosse in rosa; di notte le scatole normali. */
+    val WaitFill get() = p.waitFill; val WaitLine get() = p.waitLine; val RedFill get() = p.redFill
     val Sans = FontFamily(Font(R.font.v3_barlow_regular, FontWeight.Normal), Font(R.font.v3_barlow_medium, FontWeight.Medium))
     val Display = FontFamily(Font(R.font.v3_barlow_sc_medium, FontWeight.Medium), Font(R.font.v3_barlow_sc_semibold, FontWeight.SemiBold), Font(R.font.v3_barlow_sc_bold, FontWeight.Bold))
     val Mono = FontFamily(Font(R.font.v3_geist_mono_regular, FontWeight.Normal), Font(R.font.v3_geist_mono_medium, FontWeight.Medium))
-    val Section = TextStyle(fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 22.sp, color = Tx)
-    val Name = TextStyle(fontFamily = Display, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 20.sp, color = Tx)
-    val Body = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Normal, fontSize = 15.5.sp, lineHeight = 21.sp, color = Tx)
-    val Small = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 19.sp, color = Tx2)
-    val Meter = TextStyle(fontFamily = Mono, fontWeight = FontWeight.Normal, fontSize = 12.5.sp, lineHeight = 17.sp, color = Tx2)
+    val Section get() = TextStyle(fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 22.sp, color = Tx)
+    val Name get() = TextStyle(fontFamily = Display, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 20.sp, color = Tx)
+    val Body get() = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Normal, fontSize = 15.5.sp, lineHeight = 21.sp, color = Tx)
+    val Small get() = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 19.sp, color = Tx2)
+    val Meter get() = TextStyle(fontFamily = Mono, fontWeight = FontWeight.Normal, fontSize = 12.5.sp, lineHeight = 17.sp, color = Tx2)
     val RailText = TextStyle(fontFamily = Display, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 16.sp)
     val Rail = 52.dp
     val Shape = RoundedCornerShape(14.dp)
@@ -139,10 +160,13 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
     }
 }
 
+/** Il filetto delle scatole bianche del giorno B; di notte il fondo basta. */
+internal fun Modifier.v3Edge(): Modifier = if (V3.day) border(1.dp, V3.Line, V3.Shape) else this
+
 /** La lista a filo: un fondo solo, con le righe separate dal filo. */
 @Composable
 internal fun V3List(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1)) { content() }
+    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) { content() }
 }
 
 /**
@@ -151,9 +175,9 @@ internal fun V3List(content: @Composable () -> Unit) {
  * `trailing` un testo lungo si misurerebbe per primo e lascerebbe al titolo una lettera per riga (Franz 30/10 16:03).
  */
 @Composable
-internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: @Composable () -> Unit, trailing: @Composable RowScope.() -> Unit = {}, meter: (@Composable () -> Unit)? = null, body: @Composable () -> Unit) {
+internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: @Composable () -> Unit, trailing: @Composable RowScope.() -> Unit = {}, meter: (@Composable () -> Unit)? = null, fill: Color = Color.Transparent, body: @Composable () -> Unit) {
     if (!first) Box(Modifier.fillMaxWidth().padding(start = 0.dp).heightIn(min = 1.dp, max = 1.dp).background(V3.Line))
-    var m = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+    var m = Modifier.fillMaxWidth().background(fill).heightIn(min = 52.dp)
     if (onClick != null) m = m.handCursor().clickable(onClick = onClick)
     Row(m.padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { rail() }

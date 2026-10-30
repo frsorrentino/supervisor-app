@@ -41,7 +41,6 @@ import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.MasterHome
 import it.pixelbox.cmwatch.rules.ModelText
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -54,11 +53,11 @@ private val DOCK_HM = DateTimeFormatter.ofPattern("HH:mm")
  * d'accento #A8C7FA, tinta 273, croma 14; piatti, nessun effetto di luce (Celeste velato, Franz 06/10 21:15-22:27).
  * Gli stessi valori della web app; dal 30/10 i neutri dello stile «Studio e Diretta» (HomeV3.kt), senza velo.
  */
-internal val MasterHighest = V3.S2
-internal val MasterHigh = V3.S1
-internal val MasterContainer = V3.S1
-internal val MasterLow = V3.Bg
-internal val MasterKey = V3.S3
+internal val MasterHighest get() = V3.S2
+internal val MasterHigh get() = V3.S1
+internal val MasterContainer get() = V3.S1
+internal val MasterLow get() = V3.Bg
+internal val MasterKey get() = V3.S3
 
 /**
  * I tasti tondi della master cambiano forma quando li premi, come quelli del Material 3 Expressive: da cerchio a quadrato
@@ -84,7 +83,7 @@ internal fun MasterSpark(state: it.pixelbox.cmwatch.contract.SessionState, size:
         for (i in 0 until 8) {
             val a = Math.toRadians(i * 45.0)
             val inner = r * 0.24f; val dx = kotlin.math.cos(a).toFloat(); val dy = kotlin.math.sin(a).toFloat()
-            drawLine(CmColors.modelOpus, androidx.compose.ui.geometry.Offset(c.x + dx * inner, c.y + dy * inner),
+            drawLine(Cm.modelOpus, androidx.compose.ui.geometry.Offset(c.x + dx * inner, c.y + dy * inner),
                 androidx.compose.ui.geometry.Offset(c.x + dx * (r - w / 2), c.y + dy * (r - w / 2)), strokeWidth = w, cap = androidx.compose.ui.graphics.StrokeCap.Round)
         }
     }
@@ -155,7 +154,7 @@ fun MasterDock(
                 FilledTonalIconButton(onClick = onToggleKey, modifier = Modifier.size(44.dp), shape = rememberMorphShape(toggleSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = toggleSrc) {
                     Icon(
                         if (toggleUp) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                        stringResource(if (toggleUp) R.string.dock_conversation else R.string.dock_collapse), tint = CmColors.text,
+                        stringResource(if (toggleUp) R.string.dock_conversation else R.string.dock_collapse), tint = Cm.text,
                     )
                 }
             }
@@ -164,7 +163,7 @@ fun MasterDock(
             onClose?.let { close ->
                 val closeSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 FilledTonalIconButton(onClick = close, modifier = Modifier.size(44.dp), shape = rememberMorphShape(closeSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = closeSrc) {
-                    Icon(Icons.Rounded.ExpandMore, stringResource(R.string.dock_close), tint = CmColors.text)
+                    Icon(Icons.Rounded.ExpandMore, stringResource(R.string.dock_close), tint = Cm.text)
                 }
             }
             // La firma: l'icona della master con l'anello corallo-lilla (Franz, 05/10 11:30).
@@ -188,7 +187,7 @@ fun MasterDock(
             if (spoken != null) FilledTonalIconButton(onClick = { onSpeak(spoken) }, modifier = Modifier.size(44.dp), shape = rememberMorphShape(speakSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = speakSrc) {
                 Icon(
                     if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                    stringResource(if (reading) R.string.stop_reading else R.string.dock_listen), tint = CmColors.text,
+                    stringResource(if (reading) R.string.stop_reading else R.string.dock_listen), tint = Cm.text,
                 )
             }
             trailing?.invoke(this)

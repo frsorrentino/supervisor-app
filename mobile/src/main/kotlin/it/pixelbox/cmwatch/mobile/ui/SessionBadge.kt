@@ -30,7 +30,6 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Badge
 import it.pixelbox.cmwatch.rules.Lavori
 import it.pixelbox.cmwatch.rules.RecapAgenda
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Il badge della sessione come sul polso e sul desktop (Franz, 30/09 20:31): forma = account (cerchio personale, quadrato
@@ -57,7 +56,7 @@ fun SessionBadge(s: Session, size: Dp = 22.dp, modifier: Modifier = Modifier) {
 
 /** Solo la forma dell'account, vuota: dove c'è l'account ma nessuna sessione (quota, «Lancia», filtro). */
 @Composable
-fun AccountMark(personal: Boolean, modifier: Modifier = Modifier, size: Dp = 14.dp, color: Color = CmColors.text2) {
+fun AccountMark(personal: Boolean, modifier: Modifier = Modifier, size: Dp = 14.dp, color: Color = Cm.text2) {
     val description = stringResource(if (personal) R.string.badge_personal else R.string.badge_work)
     Canvas(modifier.size(size).semantics { contentDescription = description }) {
         val d = this.size.minDimension
@@ -104,8 +103,8 @@ fun WorkBadge(kind: Lavori.Kind, mark: RecapAgenda.Mark, modifier: Modifier = Mo
     val square = mark == RecapAgenda.Mark.AGENCY || mark == RecapAgenda.Mark.DESK
     Canvas(modifier.size(size).semantics { contentDescription = description }) {
         val d = this.size.minDimension
-        if (square) drawRoundRect(CmColors.briefTrack, size = Size(d, d), cornerRadius = CornerRadius(d * 0.23f))
-        else drawCircle(CmColors.briefTrack, radius = d / 2f, center = Offset(d / 2f, d / 2f))
+        if (square) drawRoundRect(Cm.briefTrack, size = Size(d, d), cornerRadius = CornerRadius(d * 0.23f))
+        else drawCircle(Cm.briefTrack, radius = d / 2f, center = Offset(d / 2f, d / 2f))
         glyph(workPaths(kind), d, Color.White)
     }
 }

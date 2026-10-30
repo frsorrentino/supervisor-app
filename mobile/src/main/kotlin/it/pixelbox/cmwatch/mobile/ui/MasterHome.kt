@@ -49,7 +49,6 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.MasterHome
 import it.pixelbox.cmwatch.rules.PhoneOverview
 import it.pixelbox.cmwatch.rules.Summary
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -87,8 +86,8 @@ fun ForYouCard(
                 onAnswer = { n -> onAnswer(s, n) }, onStep = { t -> onStep(s, t) }, onOpen = { act(row) })
         } else ForYouRow(row, act)
     }
-    GlassCard(tint = CmColors.waiting) {
-        RuledLabel(stringResource(R.string.fy_title), CmColors.waiting)
+    GlassCard(tint = Cm.waiting) {
+        RuledLabel(stringResource(R.string.fy_title), Cm.waiting)
         // Prima chi ti aspetta e chi ha finito, poi chi lavora (non toglie posto alle prime), in fondo le righe di servizio.
         val shown = all.take(MasterHome.MAX)
         val (attention, service) = shown.partition { it.kind == MasterHome.Kind.QUESTION || it.kind == MasterHome.Kind.FINISHED }
@@ -96,7 +95,7 @@ fun ForYouCard(
         // «Al lavoro» con l'ultimo esito e le risposte rapide pronte all'invio (Franz, 03/10 09:15): partono subito e la
         // sessione le prende quando finisce il turno.
         if (working.isNotEmpty()) {
-            GroupHeader(stringResource(R.string.fy_working, working.size), CmColors.briefRing)
+            GroupHeader(stringResource(R.string.fy_working, working.size), Cm.briefRing)
             working.forEach { r ->
                 val s = r.session
                 val id = "WORK:" + s.name
@@ -109,11 +108,11 @@ fun ForYouCard(
         }
         service.forEach { row -> item(row, onAction) }
         val more = all.size - MasterHome.MAX
-        if (more > 0) TextButton(onClick = { open = true }) { Text(stringResource(R.string.fy_more, more), color = CmColors.actionIcon) }
+        if (more > 0) TextButton(onClick = { open = true }) { Text(stringResource(R.string.fy_more, more), color = Cm.actionIcon) }
     }
-    if (open) ModalBottomSheet(onDismissRequest = { open = false }, containerColor = CmColors.surface) {
+    if (open) ModalBottomSheet(onDismissRequest = { open = false }, containerColor = Cm.surface) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            RuledLabel(stringResource(R.string.fy_title), CmColors.waiting)
+            RuledLabel(stringResource(R.string.fy_title), Cm.waiting)
             all.forEach { row -> item(row) { open = false; onAction(it) } }
         }
     }
@@ -125,7 +124,7 @@ internal fun GroupHeader(text: String, tone: Color, action: String? = null, onAc
     Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(text.uppercase(), style = MonoSmall.copy(color = tone))
         // Contratto 1.84 (B4): un'azione sul gruppo, «Chiudi le finite (N)».
-        if (action != null) androidx.compose.material3.Surface(onClick = onAction, shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp), color = CmColors.actionIcon.copy(alpha = 0.12f), contentColor = CmColors.actionIcon) {
+        if (action != null) androidx.compose.material3.Surface(onClick = onAction, shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp), color = Cm.actionIcon.copy(alpha = 0.12f), contentColor = Cm.actionIcon) {
             Text(action, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
         }
         Box(Modifier.weight(1f).height(1.dp).background(tone.copy(alpha = 0.25f)))
@@ -155,10 +154,10 @@ internal fun AttentionRow(
 ) {
     val waiting = variant == Summary.Group.WAITING
     val tone = when (variant) {
-        Summary.Group.WAITING -> CmColors.briefWarn
-        Summary.Group.WORKING -> CmColors.briefRing
-        Summary.Group.FINISHED -> CmColors.briefGood
-        Summary.Group.STILL -> CmColors.text2
+        Summary.Group.WAITING -> Cm.briefWarn
+        Summary.Group.WORKING -> Cm.briefRing
+        Summary.Group.FINISHED -> Cm.briefGood
+        Summary.Group.STILL -> Cm.text2
     }
     val parsed = androidx.compose.runtime.remember(row.detail) { it.pixelbox.cmwatch.rules.NextSteps.parse(row.detail.orEmpty()) }
     val body = it.pixelbox.cmwatch.rules.Markdown.parse(parsed.text).text.trim()
@@ -190,20 +189,20 @@ internal fun AttentionRow(
                         pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)); append(row.title); pop()
                         age?.let { pushStyle(androidx.compose.ui.text.SpanStyle(color = tone)); append(" · $it"); pop() }
                     },
-                    style = MaterialTheme.typography.bodyLarge, color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip,
+                    style = MaterialTheme.typography.bodyLarge, color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip,
                 )
                 // Ferme: una riga breve, nome e «da 2 h» (design 03/10).
-                if (!open && variant != Summary.Group.STILL && body.isNotBlank()) Text(body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip)
+                if (!open && variant != Summary.Group.STILL && body.isNotBlank()) Text(body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip)
             }
-            context?.let { Text("$it%", style = MonoSmall.copy(color = if (it >= 75) CmColors.waiting else CmColors.briefRing)) }
+            context?.let { Text("$it%", style = MonoSmall.copy(color = if (it >= 75) Cm.waiting else Cm.briefRing)) }
             androidx.compose.material3.Icon(
                 if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = CmColors.text2,
+                stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = Cm.text2,
             )
         }
         if (open) Column(Modifier.padding(start = 40.dp, end = 8.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (body.isNotBlank()) Text(body, style = MaterialTheme.typography.bodyMedium, color = CmColors.text)
-            details.forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip) }
+            if (body.isNotBlank()) Text(body, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+            details.forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip) }
             // Le stesse opzioni della chat (consulenza del 02/10): colori, etichette e pressione lunga per il rischio alto.
             if (waiting && question != null) {
                 var holdHint by rememberSaveable(question.id) { mutableStateOf(false) }
@@ -212,11 +211,11 @@ internal fun AttentionRow(
             if (!waiting && parsed.steps.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 parsed.steps.forEach { step ->
                     OutlinedButton(onClick = { onStep(step) }, border = androidx.compose.foundation.BorderStroke(1.dp, tone.copy(alpha = 0.5f))) {
-                        Text(step, color = CmColors.text)
+                        Text(step, color = Cm.text)
                     }
                 }
             }
-            TextButton(onClick = onOpen) { Text(stringResource(R.string.fy_open_conversation), color = CmColors.actionIcon) }
+            TextButton(onClick = onOpen) { Text(stringResource(R.string.fy_open_conversation), color = Cm.actionIcon) }
         }
     }
 }
@@ -241,8 +240,8 @@ internal fun ForYouRow(row: MasterHome.Row, onAction: (MasterHome.Row) -> Unit) 
     }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
-            detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 2, overflow = TextOverflow.Clip) }
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+            detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 2, overflow = TextOverflow.Clip) }
         }
         FilledTonalButton(onClick = { onAction(row) }) { Text(stringResource(action)) }
     }
@@ -255,14 +254,14 @@ internal fun ForYouRow(row: MasterHome.Row, onAction: (MasterHome.Row) -> Unit) 
 @Composable
 fun QuadroStrip(model: PhoneOverview.Model, sessions: List<Session>, onOpen: () -> Unit, onSession: (String) -> Unit) {
     GlassCard(Modifier.handCursor().clickable(onClick = onOpen)) {
-        RuledLabel(stringResource(R.string.quadro_title), CmColors.idle, rule = false) {
+        RuledLabel(stringResource(R.string.quadro_title), Cm.idle, rule = false) {
             Led(stale = model.updated.stale)
             Text(
                 if (model.updated.minutes <= 0) stringResource(R.string.ov_updated_now, model.updated.host)
                 else stringResource(R.string.ov_updated_ago, model.updated.minutes, model.updated.host),
                 style = MonoSmall, modifier = Modifier.weight(1f),
             )
-            Text(stringResource(R.string.quadro_all), style = MaterialTheme.typography.labelLarge, color = CmColors.actionIcon)
+            Text(stringResource(R.string.quadro_all), style = MaterialTheme.typography.labelLarge, color = Cm.actionIcon)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             model.rings.forEach { r ->
@@ -270,13 +269,13 @@ fun QuadroStrip(model: PhoneOverview.Model, sessions: List<Session>, onOpen: () 
                     MiniGauge(r.h5, r.w7, r.stale)
                     Column {
                         InstrumentNumber(r.h5?.toString() ?: "–", "%")
-                        Text(stringResource(R.string.quadro_week, r.account, r.w7 ?: 0), style = MaterialTheme.typography.labelSmall, color = CmColors.text2)
+                        Text(stringResource(R.string.quadro_week, r.account, r.w7 ?: 0), style = MaterialTheme.typography.labelSmall, color = Cm.text2)
                         val note = when {
                             r.stale -> stringResource(R.string.quadro_old)
                             r.resetAt != null -> stringResource(R.string.quadro_resets, hm(r.resetAt!!))
                             else -> null
                         }
-                        note?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = if (r.stale) CmColors.waiting else CmColors.text2) }
+                        note?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = if (r.stale) Cm.waiting else Cm.text2) }
                     }
                 }
             }
@@ -291,20 +290,20 @@ fun QuadroStrip(model: PhoneOverview.Model, sessions: List<Session>, onOpen: () 
 @Composable
 private fun SessionChip(s: Session, onClick: () -> Unit) {
     val color = when (s.state) {
-        SessionState.WAITING -> CmColors.waiting
-        SessionState.BUSY, SessionState.AWAITING -> CmColors.busy
-        else -> CmColors.idle
+        SessionState.WAITING -> Cm.waiting
+        SessionState.BUSY, SessionState.AWAITING -> Cm.busy
+        else -> Cm.idle
     }
     val shape = RoundedCornerShape(50)
     val waiting = s.state == SessionState.WAITING
     Row(
-        Modifier.clip(shape).background(if (waiting) CmColors.waiting.copy(alpha = 0.14f) else CmColors.surfaceHigh).handCursor().clickable(onClick = onClick).height(IntrinsicSize.Min),
+        Modifier.clip(shape).background(if (waiting) Cm.waiting.copy(alpha = 0.14f) else Cm.surfaceHigh).handCursor().clickable(onClick = onClick).height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val working = s.state == SessionState.BUSY || s.state == SessionState.AWAITING
         Box(Modifier.width(4.dp).fillMaxHeight().then(if (working) Modifier.shadow(6.dp, ambientColor = color, spotColor = color) else Modifier).background(color))
-        Text(s.name, style = MaterialTheme.typography.labelLarge, color = CmColors.text, modifier = Modifier.padding(start = 8.dp, top = 6.dp, bottom = 6.dp, end = if ((s.context ?: 0) >= 75) 4.dp else 10.dp))
-        s.context?.takeIf { it >= 75 }?.let { Text("$it%", style = MonoSmall.copy(color = CmColors.waiting), modifier = Modifier.padding(end = 10.dp)) }
+        Text(s.name, style = MaterialTheme.typography.labelLarge, color = Cm.text, modifier = Modifier.padding(start = 8.dp, top = 6.dp, bottom = 6.dp, end = if ((s.context ?: 0) >= 75) 4.dp else 10.dp))
+        s.context?.takeIf { it >= 75 }?.let { Text("$it%", style = MonoSmall.copy(color = Cm.waiting), modifier = Modifier.padding(end = 10.dp)) }
     }
 }
 
@@ -316,11 +315,11 @@ private fun MiniGauge(h5: Int?, w7: Int?, stale: Boolean) {
         fun arc(inset: Float, pct: Int?, color: Color) {
             val tl = androidx.compose.ui.geometry.Offset(inset, inset)
             val sz = androidx.compose.ui.geometry.Size(size.width - 2 * inset, size.height - 2 * inset)
-            drawArc(CmColors.briefTrack, 135f, 270f, false, topLeft = tl, size = sz, style = Stroke(w, cap = StrokeCap.Round))
+            drawArc(Cm.briefTrack, 135f, 270f, false, topLeft = tl, size = sz, style = Stroke(w, cap = StrokeCap.Round))
             if (pct != null && pct > 0) drawArc(color, 135f, 270f * (pct.coerceIn(0, 100) / 100f), false, topLeft = tl, size = sz, style = Stroke(w, cap = StrokeCap.Round))
         }
-        arc(w / 2, h5, if (stale) CmColors.text2 else CmColors.briefRing)
-        arc(w / 2 + w * 1.6f, w7, if (stale) CmColors.text2.copy(alpha = 0.6f) else CmColors.briefWeek)
+        arc(w / 2, h5, if (stale) Cm.text2 else Cm.briefRing)
+        arc(w / 2 + w * 1.6f, w7, if (stale) Cm.text2.copy(alpha = 0.6f) else Cm.briefWeek)
     }
 }
 
@@ -328,9 +327,9 @@ private fun MiniGauge(h5: Int?, w7: Int?, stale: Boolean) {
 @Composable
 fun MasterAbsent(onReopen: () -> Unit) {
     GlassCard {
-        Text(stringResource(R.string.master_absent), style = MaterialTheme.typography.titleMedium, color = CmColors.text)
-        Text(stringResource(R.string.master_absent_detail), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-        Button(onClick = onReopen, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(stringResource(R.string.reopen)) }
+        Text(stringResource(R.string.master_absent), style = MaterialTheme.typography.titleMedium, color = Cm.text)
+        Text(stringResource(R.string.master_absent_detail), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+        Button(onClick = onReopen, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(stringResource(R.string.reopen)) }
     }
 }
 
@@ -342,27 +341,27 @@ fun MasterAbsent(onReopen: () -> Unit) {
 @Composable
 fun HeroCard(hero: MasterHome.Hero?, master: Session, onSpeak: () -> Unit, onConversation: () -> Unit, onStep: (String) -> Unit, onSendStep: (String) -> Unit) {
     GlassCard(Modifier.handCursor().clickable(onClick = onConversation)) {
-        RuledLabel(hero?.at?.let { stringResource(R.string.home_last, hm(it)) } ?: stringResource(R.string.home_last_bare), CmColors.idle, rule = false) {
+        RuledLabel(hero?.at?.let { stringResource(R.string.home_last, hm(it)) } ?: stringResource(R.string.home_last_bare), Cm.idle, rule = false) {
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(stateColor(master.state)))
         }
         // Il markdown come nella chat (segnalazione 02/10 18:47: le backtick del percorso si vedevano).
         hero?.let { h ->
-            Text(linked(h.headline), style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = CmColors.text)
-            if (h.body.isNotBlank()) Text(linked(h.body), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 4, overflow = TextOverflow.Clip)
+            Text(linked(h.headline), style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text)
+            if (h.body.isNotBlank()) Text(linked(h.body), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 4, overflow = TextOverflow.Clip)
         }
         // Variante 3 dei mockup (Franz, 02/10 21:56): ▶ tondo per ascoltare, la pillola larga per la conversazione.
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (hero != null) FilledTonalIconButton(onClick = onSpeak, modifier = Modifier.size(44.dp)) {
-                androidx.compose.material3.Icon(Icons.Rounded.PlayArrow, stringResource(R.string.fy_btn_listen), tint = CmColors.actionIcon)
+                androidx.compose.material3.Icon(Icons.Rounded.PlayArrow, stringResource(R.string.fy_btn_listen), tint = Cm.actionIcon)
             }
             FilledTonalButton(onClick = onConversation, modifier = Modifier.weight(1f).height(44.dp)) {
                 Text(stringResource(R.string.fy_open_conversation))
-                androidx.compose.material3.Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.actionIcon, modifier = Modifier.size(20.dp))
+                androidx.compose.material3.Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Cm.actionIcon, modifier = Modifier.size(20.dp))
             }
         }
         if (hero != null && hero.steps.isNotEmpty()) {
-            androidx.compose.material3.HorizontalDivider(color = CmColors.line)
+            androidx.compose.material3.HorizontalDivider(color = Cm.line)
             Text(stringResource(R.string.next_steps), style = MonoSmall)
             // Come sotto l'ultima risposta: tocco = nel campo, pressione lunga = invio subito.
             hero.steps.forEach { step ->
@@ -372,8 +371,8 @@ fun HeroCard(hero: MasterHome.Hero?, master: Session, onSpeak: () -> Unit, onCon
                         .handCursor().combinedClickable(onClick = { onStep(step) }, onLongClick = { onSendStep(step) }).padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (step in hero.blocking) androidx.compose.material3.Icon(Icons.Rounded.LockOpen, null, tint = CmColors.waiting, modifier = Modifier.size(18.dp))
-                    Text(if (step in hero.blocking) step else "↳ $step", style = MaterialTheme.typography.bodyLarge, color = CmColors.actionIcon)
+                    if (step in hero.blocking) androidx.compose.material3.Icon(Icons.Rounded.LockOpen, null, tint = Cm.waiting, modifier = Modifier.size(18.dp))
+                    Text(if (step in hero.blocking) step else "↳ $step", style = MaterialTheme.typography.bodyLarge, color = Cm.actionIcon)
                 }
             }
         }
@@ -397,23 +396,23 @@ fun QuotaLine(all: List<PhoneOverview.Ring>, onOpen: () -> Unit) {
         rings.forEach { r ->
             val pct = (r.h5 ?: 0).coerceIn(0, 100)
             val tone = when {
-                r.stale -> CmColors.text2
-                pct >= 90 -> CmColors.briefAlertRing
-                pct >= 75 -> CmColors.briefWarn
-                else -> CmColors.briefRing
+                r.stale -> Cm.text2
+                pct >= 90 -> Cm.briefAlertRing
+                pct >= 75 -> Cm.briefWarn
+                else -> Cm.briefRing
             }
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AccountMark(r.personal, size = 12.dp, color = if (r.stale) CmColors.text2 else CmColors.text2)
-                Text(stringResource(R.string.quota_line_window), style = MonoSmall.copy(color = CmColors.text2), maxLines = 1)
-                Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(CmColors.briefTrack)) {
+                AccountMark(r.personal, size = 12.dp, color = if (r.stale) Cm.text2 else Cm.text2)
+                Text(stringResource(R.string.quota_line_window), style = MonoSmall.copy(color = Cm.text2), maxLines = 1)
+                Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
                     if (!r.stale) Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().background(tone))
                 }
                 Text(
-                    if (r.stale) stringResource(R.string.quota_line_stale) else "$pct%", style = MonoSmall.copy(color = if (pct >= 75 && !r.stale) tone else CmColors.text2),
+                    if (r.stale) stringResource(R.string.quota_line_stale) else "$pct%", style = MonoSmall.copy(color = if (pct >= 75 && !r.stale) tone else Cm.text2),
                     maxLines = 1, overflow = TextOverflow.Clip,
                 )
                 val reset = r.resetAt?.takeIf { rings.size == 1 && !r.stale && it > Instant.now().epochSecond }
-                if (reset != null) Text("· " + stringResource(R.string.quota_resets_at, hm(reset)), style = MonoSmall.copy(color = CmColors.text2), maxLines = 1)
+                if (reset != null) Text("· " + stringResource(R.string.quota_resets_at, hm(reset)), style = MonoSmall.copy(color = Cm.text2), maxLines = 1)
             }
         }
     }
@@ -426,15 +425,15 @@ fun QuotaBars(rings: List<PhoneOverview.Ring>, onOpen: () -> Unit, stacked: Bool
     // `stacked`: una barra per riga, a tutta larghezza (nel Registro, dentro un blocco che ha già il fondo).
     val cell: @Composable (PhoneOverview.Ring, Modifier) -> Unit = { r, mod ->
             Column(
-                mod.clip(RoundedCornerShape(12.dp)).background(if (stacked) CmColors.bg else CmColors.surfaceLow).handCursor().clickable(onClick = onOpen).padding(horizontal = 10.dp, vertical = 8.dp),
+                mod.clip(RoundedCornerShape(12.dp)).background(if (stacked) Cm.bg else Cm.surfaceLow).handCursor().clickable(onClick = onOpen).padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     if (r.stale) stringResource(R.string.home_quota_old, r.account) else stringResource(R.string.home_quota, r.account, r.h5 ?: 0, r.w7 ?: 0),
-                    style = MaterialTheme.typography.labelMedium, color = if (r.stale) CmColors.waiting else CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip,
+                    style = MaterialTheme.typography.labelMedium, color = if (r.stale) Cm.waiting else Cm.text2, maxLines = 1, overflow = TextOverflow.Clip,
                 )
-                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(CmColors.briefTrack)) {
-                    Box(Modifier.fillMaxWidth(((r.h5 ?: 0).coerceIn(0, 100)) / 100f).fillMaxHeight().background(if (r.stale) CmColors.text2 else CmColors.briefRing))
+                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
+                    Box(Modifier.fillMaxWidth(((r.h5 ?: 0).coerceIn(0, 100)) / 100f).fillMaxHeight().background(if (r.stale) Cm.text2 else Cm.briefRing))
                 }
             }
     }

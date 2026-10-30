@@ -28,7 +28,6 @@ import it.pixelbox.cmwatch.contract.SearchPage
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.ChatSearch
 import it.pixelbox.cmwatch.rules.Sent
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -59,16 +58,16 @@ fun SearchScreen(
         kotlinx.coroutines.delay(700)
         onQuery(q)
     }
-    Column(Modifier.fillMaxSize().background(CmColors.bg).systemBarsPadding().imePadding()) {
+    Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().imePadding()) {
         OutlinedTextField(
             query, { query = it }, singleLine = true, shape = MaterialTheme.shapes.extraLarge,
-            leadingIcon = { Icon(Icons.Rounded.Search, null, tint = CmColors.text2) },
+            leadingIcon = { Icon(Icons.Rounded.Search, null, tint = Cm.text2) },
             placeholder = { Text(stringResource(if (remote) R.string.search_hint_all else R.string.search_hint)) },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).focusRequester(focus),
         )
-        if (loading) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 20.dp), color = CmColors.actionIcon)
+        if (loading) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 20.dp), color = Cm.actionIcon)
         if (query.isNotBlank() && hits.isEmpty() && !loading) {
-            Text(stringResource(R.string.search_none), color = CmColors.text2, modifier = Modifier.padding(horizontal = 20.dp))
+            Text(stringResource(R.string.search_none), color = Cm.text2, modifier = Modifier.padding(horizontal = 20.dp))
         }
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
             items(hits, key = { it.ref }) { h ->
@@ -78,23 +77,23 @@ fun SearchScreen(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(h.session ?: stringResource(R.string.tab_diary), style = MaterialTheme.typography.labelLarge, color = if (canOpen) CmColors.actionIcon else CmColors.text2, maxLines = 1)
-                        if (h.live == false) Text(stringResource(R.string.search_closed), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
+                        Text(h.session ?: stringResource(R.string.tab_diary), style = MaterialTheme.typography.labelLarge, color = if (canOpen) Cm.actionIcon else Cm.text2, maxLines = 1)
+                        if (h.live == false) Text(stringResource(R.string.search_closed), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                         Spacer(Modifier.weight(1f))
-                        Text(WHEN.format(Instant.ofEpochSecond(h.at).atZone(ZoneId.systemDefault())), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
+                        Text(WHEN.format(Instant.ofEpochSecond(h.at).atZone(ZoneId.systemDefault())), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                     }
                     Text(
                         buildAnnotatedString {
                             append(h.line.substring(0, h.start))
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = CmColors.text)) { append(h.line.substring(h.start, h.end)) }
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Cm.text)) { append(h.line.substring(h.start, h.end)) }
                             append(h.line.substring(h.end))
                         },
-                        style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+                        style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
                     )
                 }
             }
             if (remote && page?.more == true) item(key = "more") {
-                Text(stringResource(R.string.search_more), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
+                Text(stringResource(R.string.search_more), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
             }
         }
     }

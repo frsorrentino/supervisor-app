@@ -35,7 +35,6 @@ import it.pixelbox.cmwatch.contract.ElicitField
 import it.pixelbox.cmwatch.contract.Elicitation
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Elicit
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Contratto 1.83 (lavoro mcp-elicitation-lavoro-24-10, approvato da Franz): un server MCP chiede qualcosa a metà di uno
@@ -51,22 +50,22 @@ internal fun ElicitationCard(e: Elicitation, now: Long, onAnswer: (Elicitation, 
         mutableStateMapOf<String, String?>().apply { e.fields.orEmpty().forEach { f -> put(f.key, Elicit.initial(f)) } }
     }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Rounded.Extension, null, tint = CmColors.waiting, modifier = Modifier.size(24.dp))
+            Icon(Icons.Rounded.Extension, null, tint = Cm.waiting, modifier = Modifier.size(24.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(e.server, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
+                Text(e.server, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
                 val left = (e.expiresAt - now).coerceAtLeast(0)
                 Text(stringResource(R.string.elicit_meta, e.session, "%d:%02d".format(left / 60, left % 60)), style = MonoSmall)
             }
         }
-        Text(e.message, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+        Text(e.message, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
         if (e.mode == "url") {
             val uri = androidx.compose.ui.platform.LocalUriHandler.current
-            e.url?.let { u -> Text(u, style = MonoSmall.copy(color = CmColors.text2)) }
-            Text(stringResource(R.string.elicit_link_note), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            e.url?.let { u -> Text(u, style = MonoSmall.copy(color = Cm.text2)) }
+            Text(stringResource(R.string.elicit_link_note), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             e.url?.let { u -> ElicitButton(stringResource(R.string.elicit_open), filled = true) { runCatching { uri.openUri(u) } } }
         } else {
             e.fields.orEmpty().forEach { f -> ElicitFieldRow(f, values[f.key]) { v -> values[f.key] = v } }
@@ -87,8 +86,8 @@ private fun ElicitFieldRow(f: ElicitField, v: String?, onChange: (String?) -> Un
         val title = if (f.required) "${f.title} *" else f.title
         when (f.kind) {
             "choice", "boolean" -> {
-                Text(title, style = MaterialTheme.typography.labelLarge, color = CmColors.text)
-                f.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = CmColors.text2) }
+                Text(title, style = MaterialTheme.typography.labelLarge, color = Cm.text)
+                f.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2) }
                 val opts = if (f.kind == "boolean") listOf("true" to stringResource(R.string.elicit_yes), "false" to stringResource(R.string.elicit_no))
                     else f.options.orEmpty().map { it.value to it.label }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -145,8 +144,8 @@ private fun num(d: Double) = if (d == Math.floor(d)) d.toLong().toString() else 
 private fun ElicitButton(text: String, filled: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
     Surface(
         onClick = onClick, enabled = enabled, shape = CircleShape,
-        color = if (!enabled) CmColors.surfaceHigh.copy(alpha = 0.5f) else if (filled) CmColors.primary else CmColors.surfaceHigh,
-        contentColor = if (!enabled) CmColors.text2 else if (filled) CmColors.onPrimary else CmColors.text,
+        color = if (!enabled) Cm.surfaceHigh.copy(alpha = 0.5f) else if (filled) Cm.primary else Cm.surfaceHigh,
+        contentColor = if (!enabled) Cm.text2 else if (filled) Cm.onPrimary else Cm.text,
     ) { Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) }
 }
 

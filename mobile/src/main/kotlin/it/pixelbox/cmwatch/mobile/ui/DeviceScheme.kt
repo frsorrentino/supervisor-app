@@ -52,7 +52,6 @@ import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.SettingsDevices
 import it.pixelbox.cmwatch.rules.SettingsDevices.Tone
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /** La fascia dei cerchi: i nomi sotto stanno allineati anche se il PC è più grande. */
 private val NODE_BAND = 72.dp
@@ -61,9 +60,9 @@ private val NODE_BAND = 72.dp
 enum class DeviceNode { PHONE, PC, WATCH }
 
 private fun toneColor(t: Tone): Color = when (t) {
-    Tone.LIVE -> CmColors.briefGood
-    Tone.STALE -> CmColors.waiting
-    Tone.OFF -> CmColors.briefTrack
+    Tone.LIVE -> Cm.briefGood
+    Tone.STALE -> Cm.waiting
+    Tone.OFF -> Cm.briefTrack
 }
 
 /**
@@ -74,7 +73,7 @@ private fun toneColor(t: Tone): Color = when (t) {
 @Composable
 fun DeviceScheme(m: SettingsDevices.Model, selected: DeviceNode, onSelect: (DeviceNode) -> Unit, unpaired: @Composable () -> Unit = {}) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surfaceLow).dotGrid()
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).dotGrid()
             .padding(start = 10.dp, end = 10.dp, top = 20.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -103,7 +102,7 @@ fun DeviceScheme(m: SettingsDevices.Model, selected: DeviceNode, onSelect: (Devi
         if (m.paired) {
             DeviceCard(m, selected)
             Text(
-                stringResource(R.string.dev_hint), style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
+                stringResource(R.string.dev_hint), style = MaterialTheme.typography.bodySmall, color = Cm.text2,
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
             )
         } else unpaired()
@@ -126,7 +125,7 @@ private fun Node(
     icon: ImageVector, size: Dp, tone: Tone, selected: Boolean, dashed: Boolean, name: String, status: String,
     enabled: Boolean, onClick: () -> Unit,
 ) = SchemeNode(
-    icon, size, toneColor(tone), if (selected) CmColors.actionIcon else CmColors.line, dashed, name, status,
+    icon, size, toneColor(tone), if (selected) Cm.actionIcon else Cm.line, dashed, name, status,
     stringResource(R.string.dev_details, name), if (enabled) onClick else null,
 )
 
@@ -147,24 +146,24 @@ internal fun SchemeNode(
         Box(Modifier.height(NODE_BAND), contentAlignment = Alignment.Center) { Box(Modifier.requiredSize(size)) {
             Box(
                 Modifier.fillMaxSize().clip(CircleShape)
-                    .background(if (dashed) Color.Transparent else CmColors.surface)
+                    .background(if (dashed) Color.Transparent else Cm.surface)
                     .then(
                         if (dashed) Modifier.drawBehind {
                             val w = 2.dp.toPx()
-                            drawCircle(CmColors.briefTrack, radius = this.size.minDimension / 2 - w / 2, style = Stroke(w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))))
+                            drawCircle(Cm.briefTrack, radius = this.size.minDimension / 2 - w / 2, style = Stroke(w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))))
                         } else Modifier.border(2.dp, ring, CircleShape),
                     )
                     .then(if (onClick != null) Modifier.handCursor().clickable(role = Role.Button, onClick = onClick).semantics { desc?.let { contentDescription = it } } else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, null, tint = if (dashed) CmColors.stale else CmColors.actionIcon, modifier = Modifier.size(size * 0.42f))
+                Icon(icon, null, tint = if (dashed) Cm.stale else Cm.actionIcon, modifier = Modifier.size(size * 0.42f))
             }
             if (!dashed) Box(
                 Modifier.align(Alignment.TopEnd).offset(x = (-3).dp, y = 3.dp).size(14.dp).clip(CircleShape)
-                    .background(CmColors.surfaceLow).padding(3.dp).clip(CircleShape).background(dot),
+                    .background(Cm.surfaceLow).padding(3.dp).clip(CircleShape).background(dot),
             )
         } }
-        val nameColor = if (dashed) CmColors.text2 else CmColors.text
+        val nameColor = if (dashed) Cm.text2 else Cm.text
         if (compact) {
             // In fila stretta un nome lungo («Chromebook») scende di corpo finché entra, invece di tagliarsi.
             val nameStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium)
@@ -174,12 +173,12 @@ internal fun SchemeNode(
                 autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = nameStyle.fontSize, stepSize = 0.5.sp),
             )
             if (status.isNotEmpty()) BasicText(
-                status, style = LocalTextStyle.current.merge(statusStyle).copy(color = CmColors.text2), maxLines = 1,
+                status, style = LocalTextStyle.current.merge(statusStyle).copy(color = Cm.text2), maxLines = 1,
                 autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = statusStyle.fontSize, stepSize = 0.5.sp),
             )
         } else {
             Text(name, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = nameColor, maxLines = 1)
-            if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.labelMedium, color = CmColors.text2, maxLines = 1)
+            if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.labelMedium, color = Cm.text2, maxLines = 1)
         }
     }
 }
@@ -261,21 +260,21 @@ private fun DeviceCard(m: SettingsDevices.Model, selected: DeviceNode) {
         )
     }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surface).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surface).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f), maxLines = 1)
+            Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, modifier = Modifier.weight(1f), maxLines = 1)
             Text(
                 chip, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium), color = toneColor(tone),
                 modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(toneColor(tone).copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
-        if (selected == DeviceNode.WATCH && m.watch.name == null) Text(stringResource(R.string.watch_none_hint), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+        if (selected == DeviceNode.WATCH && m.watch.name == null) Text(stringResource(R.string.watch_none_hint), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
         facts.forEach { (k, v) ->
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(k, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-                Text(v, style = MaterialTheme.typography.bodyMedium, color = CmColors.text, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+                Text(k, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+                Text(v, style = MaterialTheme.typography.bodyMedium, color = Cm.text, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -289,13 +288,13 @@ private fun DeviceCard(m: SettingsDevices.Model, selected: DeviceNode) {
 @Composable
 fun DeviceSchemeB(m: SettingsDevices.Model, linked: List<SettingsDevices.Linked>, now: Long, selected: String, onSelect: (String) -> Unit) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CmColors.surfaceLow).dotGrid()
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).dotGrid()
             .padding(start = 10.dp, end = 10.dp, top = 20.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             SchemeNode(
-                Icons.Rounded.Computer, 84.dp, toneColor(m.pc.tone), if (selected == PC_KEY) CmColors.actionIcon else CmColors.line, dashed = false,
+                Icons.Rounded.Computer, 84.dp, toneColor(m.pc.tone), if (selected == PC_KEY) Cm.actionIcon else Cm.line, dashed = false,
                 m.pc.host ?: stringResource(R.string.dev_pc),
                 listOf(
                     m.pc.ageMinutes?.let { stringResource(R.string.dev_updated_ago, it) } ?: stringResource(R.string.dev_updated_now),
@@ -329,7 +328,7 @@ fun DeviceSchemeB(m: SettingsDevices.Model, linked: List<SettingsDevices.Linked>
                     Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
                         SchemeNode(
                             kindIcon(d.kind), node, toneColor(d.tone),
-                            if (d.self || selected == d.uid) CmColors.actionIcon else CmColors.line, dashed = d.tone == Tone.OFF,
+                            if (d.self || selected == d.uid) Cm.actionIcon else Cm.line, dashed = d.tone == Tone.OFF,
                             stringResource(kindLabel(d.kind)), if (d.self) stringResource(R.string.dev_this) else seenShort(d.seen, now),
                             stringResource(R.string.dev_details, d.name), { onSelect(d.uid) }, labelWidth = col, compact = col < 84.dp,
                         )
@@ -339,7 +338,7 @@ fun DeviceSchemeB(m: SettingsDevices.Model, linked: List<SettingsDevices.Linked>
         }
         val pick = linked.firstOrNull { it.uid == selected }
         if (pick == null) DeviceCard(m, DeviceNode.PC) else LinkedCard(pick, m.pc.host, now)
-        Text(stringResource(R.string.dev_hint), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text(stringResource(R.string.dev_hint), style = MaterialTheme.typography.bodySmall, color = Cm.text2, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -386,11 +385,11 @@ private fun LinkedCard(d: SettingsDevices.Linked, host: String?, now: Long) {
         else -> stringResource(R.string.dev_seen_ago, seenShort(d.seen, now))
     }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surface).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surface).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(d.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f))
+            Text(d.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, modifier = Modifier.weight(1f))
             Text(
                 chip, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium), color = toneColor(d.tone),
                 modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(toneColor(d.tone).copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 4.dp),
@@ -402,8 +401,8 @@ private fun LinkedCard(d: SettingsDevices.Linked, host: String?, now: Long) {
             stringResource(R.string.fact_paired_to) to (host ?: "–"),
         ).forEach { (k, v) ->
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(k, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-                Text(v, style = MaterialTheme.typography.bodyMedium, color = CmColors.text, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+                Text(k, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+                Text(v, style = MaterialTheme.typography.bodyMedium, color = Cm.text, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -437,16 +436,16 @@ fun LinkedList(linked: List<SettingsDevices.Linked>, now: Long, onRevoke: ((Stri
     }
     asking?.let { d ->
         AlertDialog(
-            onDismissRequest = { asking = null }, containerColor = CmColors.surface,
+            onDismissRequest = { asking = null }, containerColor = Cm.surface,
             title = { Text(stringResource(R.string.device_revoke_title, d.name)) },
-            text = { Text(stringResource(R.string.device_revoke_what), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) },
+            text = { Text(stringResource(R.string.device_revoke_what), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) },
             confirmButton = {
                 androidx.compose.material3.Button(
                     onClick = { asking = null; onRevoke?.invoke(d.uid) },
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
                 ) { Text(stringResource(R.string.device_revoke)) }
             },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { asking = null }) { Text(stringResource(R.string.device_keep), color = CmColors.actionIcon) } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { asking = null }) { Text(stringResource(R.string.device_keep), color = Cm.actionIcon) } },
         )
     }
 }

@@ -115,7 +115,6 @@ import it.pixelbox.cmwatch.rules.Sent
 import it.pixelbox.cmwatch.rules.SessionMeters
 import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.ToolText
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 import java.time.ZoneId
@@ -381,7 +380,7 @@ fun SessionSheet(
     }
     // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
     Box(Modifier.fillMaxSize()) {
-    Column(Modifier.fly("card-${s.id}").fillMaxSize().background(CmColors.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
+    Column(Modifier.fly("card-${s.id}").fillMaxSize().background(Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
         // A tutto schermo la master ha una testata sola, la sua (Franz, 08/10 18:15): quella della home rientra mentre il pannello sale.
         if (home == null) appBar?.invoke()
         else appBar?.let { ab ->
@@ -405,7 +404,7 @@ fun SessionSheet(
                 exit = androidx.compose.animation.shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
             ) {
                 SheetHeader(
-                    s, now, choices, canTune, actions, showTerminal = feed == null, model = model, effort = effort, bg = if (home != null) MasterHigh else CmColors.bg,
+                    s, now, choices, canTune, actions, showTerminal = feed == null, model = model, effort = effort, bg = if (home != null) MasterHigh else Cm.bg,
                     canExit = slash?.contains("exit") == true && s.state != SessionState.GONE, quota = accountQuota, lead = headerLead, notesInHeader = notesInHeader,
                     onChanges = if (actions.changes != null) ({ changesOpen = true }) else null,
                 )
@@ -434,7 +433,7 @@ fun SessionSheet(
                 },
             ) { waiting ->
             if (waiting) Box(Modifier.fillMaxSize().padding(vertical = 32.dp), contentAlignment = Alignment.TopCenter) {
-                CircularWavyProgressIndicator(color = CmColors.actionIcon)
+                CircularWavyProgressIndicator(color = Cm.actionIcon)
             } else ZoomedText { LazyColumn(
                 Modifier.fillMaxSize().nestedScroll(reading), state = list,
                 // Con il controller in vista, in fondo lo spazio per leggere l'ultimo messaggio sopra di lui; con un box sopra il
@@ -443,7 +442,7 @@ fun SessionSheet(
             ) {
                 if (feed != null) {
                     if (more) item(key = "older") {
-                        TextButton(onClick = { follow = false; onOlder() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.load_older), color = CmColors.actionIcon) }
+                        TextButton(onClick = { follow = false; onOlder() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.load_older), color = Cm.actionIcon) }
                     }
                     // I passaggi di fila diventano un gruppo (Franz, 01/10 15:59: «Gruppi + righe ricche»).
                     val grouped = groupedFeed.orEmpty()
@@ -480,7 +479,7 @@ fun SessionSheet(
                         item(key = "waiting-pc") {
                             Text(
                                 if (waitSecs != null) stringResource(R.string.chat_waiting_pc, waitSecs) else stringResource(R.string.chat_updating),
-                                style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
+                                style = MaterialTheme.typography.bodySmall, color = Cm.text2,
                                 modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             )
                         }
@@ -488,7 +487,7 @@ fun SessionSheet(
                 } else if (loadingFeed) {
                     item(key = "loading") {
                         Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
-                            CircularWavyProgressIndicator(color = CmColors.actionIcon)
+                            CircularWavyProgressIndicator(color = Cm.actionIcon)
                         }
                     }
                 } else {
@@ -496,7 +495,7 @@ fun SessionSheet(
                     // riga la pagina sembrava rotta.
                     if (chat.isEmpty() && s.outcome == null && s.question == null && s.state != SessionState.BUSY && s.state != SessionState.AWAITING) item(key = "empty") {
                         Text(
-                            stringResource(R.string.chat_empty), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+                            stringResource(R.string.chat_empty), style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
                             modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         )
                     }
@@ -523,7 +522,7 @@ fun SessionSheet(
                     item(key = "resolved-" + r.id) {
                         MarkedText(
                             StateIcons.done, stringResource(R.string.question_resolved_terminal, it.pixelbox.cmwatch.rules.QuestionRules.optionText(r.text)),
-                            CmColors.text2, MaterialTheme.typography.bodyMedium, maxLines = 2,
+                            Cm.text2, MaterialTheme.typography.bodyMedium, maxLines = 2,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                         )
                     }
@@ -535,8 +534,8 @@ fun SessionSheet(
                     .forEach { p ->
                         item(key = "p-" + p.cmd.id) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(stringResource(R.string.not_delivered), color = CmColors.goneDim, modifier = Modifier.weight(1f))
-                                TextButton(onClick = { actions.retry(p.cmd.id) }) { Text(stringResource(R.string.retry), color = CmColors.actionIcon) }
+                                Text(stringResource(R.string.not_delivered), color = Cm.goneDim, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { actions.retry(p.cmd.id) }) { Text(stringResource(R.string.retry), color = Cm.actionIcon) }
                             }
                         }
                     }
@@ -556,7 +555,7 @@ fun SessionSheet(
                         follow = true
                         listScope.launch { list.scrollToEnd(animate = true) }
                     },
-                    containerColor = CmColors.surfaceHigh, contentColor = CmColors.actionIcon,
+                    containerColor = Cm.surfaceHigh, contentColor = Cm.actionIcon,
                 ) { Icon(Icons.Rounded.ArrowDownward, stringResource(R.string.to_latest)) }
             }
             }
@@ -745,7 +744,7 @@ private fun Composer(
     val mode = if (image != null && base != PhonePrimary.Composer.REOPEN && base != PhonePrimary.Composer.SEND && base != PhonePrimary.Composer.SEND_TONAL)
         (if (PhonePrimary.button(s, "x") == PhonePrimary.Button.OPTION) PhonePrimary.Composer.SEND_TONAL else PhonePrimary.Composer.SEND) else base
     // Il campo della master sta sul fondo della master, velato di celeste e piatto (Celeste velato, Franz 06/10 21:23).
-    val bar = Modifier.fillMaxWidth().background(if (toMaster) MasterHigh else CmColors.bg)
+    val bar = Modifier.fillMaxWidth().background(if (toMaster) MasterHigh else Cm.bg)
         .imePadding().padding(horizontal = 12.dp, vertical = 10.dp)
     // Contratto 1.65: anche una sessione chiusa ha il campo; scrivendo, Invia la riapre e le consegna il messaggio.
     Column(bar, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -776,7 +775,7 @@ private fun Composer(
         if (pickTime) actions.sendAt?.let { sendAt ->
             val tp = androidx.compose.material3.rememberTimePickerState(initialHour = (java.time.LocalTime.now().hour + 1) % 24, initialMinute = 0, is24Hour = true)
             AlertDialog(
-                onDismissRequest = { pickTime = false }, containerColor = CmColors.surface,
+                onDismissRequest = { pickTime = false }, containerColor = Cm.surface,
                 title = { Text(stringResource(R.string.send_at_title, s.name)) },
                 text = { androidx.compose.material3.TimePicker(tp) },
                 confirmButton = {
@@ -784,9 +783,9 @@ private fun Composer(
                         pickTime = false
                         sendAt(draft.trim(), it.pixelbox.cmwatch.rules.SendAt.epoch(java.time.LocalTime.of(tp.hour, tp.minute), java.time.ZonedDateTime.now()))
                         onSent()
-                    }) { Text(stringResource(R.string.send_at_ok), color = CmColors.actionIcon) }
+                    }) { Text(stringResource(R.string.send_at_ok), color = Cm.actionIcon) }
                 },
-                dismissButton = { TextButton(onClick = { pickTime = false }) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
+                dismissButton = { TextButton(onClick = { pickTime = false }) { Text(stringResource(R.string.cancel), color = Cm.text2) } },
             )
         }
         val send = {
@@ -825,18 +824,18 @@ private fun Composer(
         val slashHints = it.pixelbox.cmwatch.rules.Slash.suggest(draft, slash).takeIf { s.question == null }.orEmpty()
         if (slashHints.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             slashHints.forEach { c ->
-                AssistChip(onClick = { onDraft("/$c ") }, label = { Text("/$c", fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace) })
+                AssistChip(onClick = { onDraft("/$c ") }, label = { Text("/$c", fontFamily = androidx.compose.ui.text.font.V3.Mono) })
             }
         }
         // /exit passa dalla stessa domanda di ogni chiusura, col nome e lo stato (Franz, 06/10 12:25).
         confirm?.takeIf { it.cmd == "exit" }?.let { c -> CloseDialog(s, onDismiss = { confirm = null }, onConfirm = { confirm = null; actions.slash(c.cmd, c.args); onSent() }) }
         confirm?.takeIf { it.cmd != "exit" }?.let { c ->
             AlertDialog(
-                onDismissRequest = { confirm = null }, containerColor = CmColors.surface,
+                onDismissRequest = { confirm = null }, containerColor = Cm.surface,
                 title = { Text(stringResource(R.string.slash_confirm_title, c.cmd, s.name)) },
                 text = { Text(stringResource(R.string.slash_confirm_clear)) },
-                confirmButton = { TextButton(onClick = { confirm = null; actions.slash(c.cmd, c.args); onSent() }) { Text(stringResource(R.string.slash_confirm_ok), color = CmColors.actionIcon) } },
-                dismissButton = { TextButton(onClick = { confirm = null }) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
+                confirmButton = { TextButton(onClick = { confirm = null; actions.slash(c.cmd, c.args); onSent() }) { Text(stringResource(R.string.slash_confirm_ok), color = Cm.actionIcon) } },
+                dismissButton = { TextButton(onClick = { confirm = null }) { Text(stringResource(R.string.cancel), color = Cm.text2) } },
             )
         }
         // Allegato e invio dentro il campo, centrati sulla sua altezza (Franz, 30/09 22:13).
@@ -852,8 +851,8 @@ private fun Composer(
             Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).handCursor().clickable { onDraft(sug) }.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(sug, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = CmColors.stale, modifier = Modifier.weight(1f))
-            Text(stringResource(R.string.suggestion_use), color = CmColors.actionIcon, style = MaterialTheme.typography.labelLarge)
+            Text(sug, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Cm.stale, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon, style = MaterialTheme.typography.labelLarge)
         }
         val inField = sug.takeIf { !narrow }
         // Scorrendo da una sessione all'altra il cursore segue la pagina che si vede (Franz, 04/10 20:53): chi scorre chiede
@@ -899,7 +898,7 @@ private fun Composer(
                     true
                 },
             placeholder = {
-                if (inField != null) Text(inField, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = CmColors.stale, maxLines = 5)
+                if (inField != null) Text(inField, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Cm.stale, maxLines = 5)
                 // Il destinatario esplicito, «Scrivi a fable-director» (osservazioni del 03/10).
                 else Text(when { s.question != null -> stringResource(R.string.answer_free); toMaster -> stringResource(R.string.master_placeholder); else -> stringResource(if (it.pixelbox.cmwatch.rules.Preposition.ad(s.name)) R.string.write_to_ad else R.string.write_to, s.name) }, maxLines = 2)
             },
@@ -907,8 +906,8 @@ private fun Composer(
             // Il campo della master sul suo fondo velato di celeste, piatto e senza bordo; scrivendo, il bordo chiaro (Franz, 06/10 21:23).
             colors = if (toMaster)
                 androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent, focusedBorderColor = CmColors.text2,
-                    unfocusedContainerColor = MasterContainer, focusedContainerColor = MasterContainer, cursorColor = CmColors.modelOpus,
+                    unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent, focusedBorderColor = Cm.text2,
+                    unfocusedContainerColor = MasterContainer, focusedContainerColor = MasterContainer, cursorColor = Cm.modelOpus,
                 )
             else androidx.compose.material3.OutlinedTextFieldDefaults.colors(),
             // Le azioni ricorrenti della master stanno nel menu del + (Franz, 05/10 07:27: il ⟳ nel campo stringeva troppo).
@@ -916,10 +915,10 @@ private fun Composer(
                 AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring, onDecision = onDecisionNew) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) }
             }) else null,
             trailingIcon = { Row(verticalAlignment = Alignment.CenterVertically) {
-                if (inField != null && draft.isBlank()) TextButton(onClick = { onDraft(inField) }) { Text(stringResource(R.string.suggestion_use), color = CmColors.actionIcon) }
+                if (inField != null && draft.isBlank()) TextButton(onClick = { onDraft(inField) }) { Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon) }
                 // Con una tastiera fisica collegata il campo lo dice, come nel mockup del tablet.
                 else if (hardKeyboard() && mode != PhonePrimary.Composer.STOP && with(density) { fieldW.toDp() } >= 420.dp) Text(stringResource(R.string.enter_sends), style = MonoSmall, modifier = Modifier.padding(end = 10.dp))
-                val filled = IconButtonDefaults.filledIconButtonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)
+                val filled = IconButtonDefaults.filledIconButtonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)
                 // Il cerchio concentrico all'estremità della barra (segnalazione 03/10 19:18, come ChatGPT): 40 dp nella barra da 56,
                 // quindi 8 dp sopra, sotto e a destra.
                 val endPad = with(density) { ((lineH.toDp() - 40.dp) / 2).coerceAtLeast(6.dp) }
@@ -927,7 +926,7 @@ private fun Composer(
                 // Contratto 1.63: «Manda alle…» accanto a Invia, con un testo nel campo e senza allegati.
                 val sendAt = actions.sendAt
                 if (sendAt != null && draft.isNotBlank() && images.isEmpty() && (mode == PhonePrimary.Composer.SEND || mode == PhonePrimary.Composer.SEND_TONAL)) {
-                    IconButton(onClick = { pickTime = true }, modifier = Modifier.size(40.dp).handCursor()) { Icon(Icons.Rounded.Schedule, stringResource(R.string.send_at), tint = CmColors.text2) }
+                    IconButton(onClick = { pickTime = true }, modifier = Modifier.size(40.dp).handCursor()) { Icon(Icons.Rounded.Schedule, stringResource(R.string.send_at), tint = Cm.text2) }
                 }
                 when (mode) {
                     PhonePrimary.Composer.SEND -> FilledIconButton(onClick = send, colors = filled, modifier = size) {
@@ -937,7 +936,7 @@ private fun Composer(
                         Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
                     }
                     PhonePrimary.Composer.REOPEN -> Button(
-                        onClick = actions.reopen, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                        onClick = actions.reopen, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
                         modifier = Modifier.padding(end = if (lineH > 0) endPad else 8.dp).height(40.dp).handCursor(),
                     ) { Text(stringResource(R.string.reopen)) }
                     PhonePrimary.Composer.STOP -> FilledIconButton(onClick = actions.interrupt, colors = filled, modifier = size) {
@@ -965,19 +964,19 @@ private fun hardKeyboard(): Boolean {
  */
 @Composable
 private fun QuotaLine(w: QuotaWarning.Warn, draft: String, canDefer: Boolean, canTonight: Boolean, actions: SheetActions, onDeferred: () -> Unit, night: Boolean = false) {
-    Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(CmColors.briefWarn).handCursor().clickable(onClick = actions.overview).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 2.dp)) {
+    Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(Cm.briefWarn).handCursor().clickable(onClick = actions.overview).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 2.dp)) {
         Text(
             stringResource(if (w.projected) R.string.quota_warn_pace else R.string.quota_warn, w.pct, hhmm(w.resetAt)),
-            style = MaterialTheme.typography.bodyMedium, color = CmColors.briefWarnInk,
+            style = MaterialTheme.typography.bodyMedium, color = Cm.briefWarnInk,
         )
         // Senza testo nel campo, al posto di due bottoni spenti e illeggibili sull'ambra (segnalazione 01/10 21:58) una riga
         // che dice cosa si può fare; scritto il testo, compaiono i bottoni.
         if (draft.isBlank()) Text(
-            stringResource(if (night) R.string.quota_write_hint else R.string.quota_write_hint_reset), style = MaterialTheme.typography.bodySmall, color = CmColors.briefWarnInk,
+            stringResource(if (night) R.string.quota_write_hint else R.string.quota_write_hint_reset), style = MaterialTheme.typography.bodySmall, color = Cm.briefWarnInk,
             modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
         ) else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            if (canDefer) TextButton(onClick = { if (actions.sendAtReset(draft)) onDeferred() }) { Text(stringResource(R.string.send_at_reset), color = CmColors.briefWarnInk, fontWeight = FontWeight.SemiBold) }
-            if (canTonight) TextButton(onClick = { if (actions.sendTonight(draft)) onDeferred() }) { Text(stringResource(R.string.send_tonight), color = CmColors.briefWarnInk, fontWeight = FontWeight.SemiBold) }
+            if (canDefer) TextButton(onClick = { if (actions.sendAtReset(draft)) onDeferred() }) { Text(stringResource(R.string.send_at_reset), color = Cm.briefWarnInk, fontWeight = FontWeight.SemiBold) }
+            if (canTonight) TextButton(onClick = { if (actions.sendTonight(draft)) onDeferred() }) { Text(stringResource(R.string.send_tonight), color = Cm.briefWarnInk, fontWeight = FontWeight.SemiBold) }
         }
     }
 }
@@ -987,7 +986,7 @@ private fun QuotaLine(w: QuotaWarning.Warn, draft: String, canDefer: Boolean, ca
 @Composable
 private fun PhraseChip(text: String, onSend: () -> Unit, onEdit: () -> Unit) {
     Surface(
-        color = CmColors.surfaceHigh, contentColor = CmColors.text, shape = MaterialTheme.shapes.large,
+        color = Cm.surfaceHigh, contentColor = Cm.text, shape = MaterialTheme.shapes.large,
         modifier = Modifier.clip(MaterialTheme.shapes.large).handCursor().combinedClickable(onClick = onSend, onLongClick = onEdit),
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
@@ -1012,8 +1011,8 @@ private fun PromptBox(
 ) {
     var showOld by remember(old) { mutableStateOf(false) }
     Column(
-        modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(CmColors.surfaceLow)
-            .border(1.dp, CmColors.line, RoundedCornerShape(18.dp)),
+        modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow)
+            .border(1.dp, Cm.line, RoundedCornerShape(14.dp)),
     ) {
         val toggle = stringResource(if (open) R.string.box_close else R.string.box_open, title)
         Row(
@@ -1022,18 +1021,18 @@ private fun PromptBox(
         ) {
             Text(stringResource(R.string.box_title, title.uppercase(), rows.size + old.size), style = MonoSmall, modifier = Modifier.weight(1f))
             // Il box sta sopra il campo e si apre verso l'alto: chiuso la freccia sale, aperto scende.
-            Icon(if (open) Icons.Rounded.ExpandMore else Icons.Rounded.ExpandLess, null, tint = CmColors.text2, modifier = Modifier.size(20.dp))
+            Icon(if (open) Icons.Rounded.ExpandMore else Icons.Rounded.ExpandLess, null, tint = Cm.text2, modifier = Modifier.size(20.dp))
         }
         // Con poco spazio (una colonna del tablet con la tastiera aperta) le righe scorrono dentro il box.
         if (open) Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
             (rows + if (showOld) old else emptyList()).forEach { r ->
-                androidx.compose.material3.HorizontalDivider(color = CmColors.line)
+                androidx.compose.material3.HorizontalDivider(color = Cm.line)
                 PromptBoxRow(r, draftBlank, onPick, onSend, onDismiss, faded = r in old)
             }
             if (old.isNotEmpty() && !showOld) {
-                androidx.compose.material3.HorizontalDivider(color = CmColors.line)
+                androidx.compose.material3.HorizontalDivider(color = Cm.line)
                 Text(
-                    androidx.compose.ui.res.pluralStringResource(R.plurals.steps_old, old.size, old.size), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+                    androidx.compose.ui.res.pluralStringResource(R.plurals.steps_old, old.size, old.size), style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
                     modifier = Modifier.fillMaxWidth().handCursor().clickable { showOld = true }.padding(horizontal = 14.dp, vertical = 10.dp),
                 )
             }
@@ -1054,30 +1053,30 @@ private fun PromptBoxRow(
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val row: @Composable () -> Unit = {
         Row(
-            Modifier.fillMaxWidth().background(CmColors.surfaceLow).handCursor()
+            Modifier.fillMaxWidth().background(Cm.surfaceLow).handCursor()
                 .combinedClickable(onClick = { onPick(r) }, onLongClick = onDismiss?.let { d -> { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); d(r) } })
                 .padding(start = 14.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(r.label, style = MaterialTheme.typography.bodyLarge, color = if (faded) CmColors.text2 else CmColors.text, modifier = Modifier.weight(1f, fill = false).padding(vertical = 10.dp))
+                Text(r.label, style = MaterialTheme.typography.bodyLarge, color = if (faded) Cm.text2 else Cm.text, modifier = Modifier.weight(1f, fill = false).padding(vertical = 10.dp))
                 if (r.blocking) Text(
-                    stringResource(R.string.steps_unblock), style = MonoSmall.copy(color = CmColors.text2),
-                    modifier = Modifier.border(1.dp, CmColors.line, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+                    stringResource(R.string.steps_unblock), style = MonoSmall.copy(color = Cm.text2),
+                    modifier = Modifier.border(1.dp, Cm.line, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
                 )
             }
             if (draftBlank && r.direct) IconButton(onClick = { onSend(r) }, modifier = Modifier.handCursor()) {
-                Icon(Icons.Rounded.NorthEast, stringResource(R.string.send), tint = CmColors.actionIcon, modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.NorthEast, stringResource(R.string.send), tint = Cm.actionIcon, modifier = Modifier.size(20.dp))
             } else IconButton(onClick = { onPick(r) }, modifier = Modifier.handCursor()) {
-                Icon(Icons.Rounded.Add, stringResource(R.string.box_append), tint = CmColors.actionIcon, modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.Add, stringResource(R.string.box_append), tint = Cm.actionIcon, modifier = Modifier.size(20.dp))
             }
         }
     }
     if (onDismiss == null) { row(); return }
     val state = rememberSwipeToDismissBoxState(confirmValueChange = { v -> if (v != SwipeToDismissBoxValue.Settled) { onDismiss(r); true } else false })
     SwipeToDismissBox(state, backgroundContent = {
-        Box(Modifier.fillMaxSize().background(CmColors.surface).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
-            Text(stringResource(R.string.steps_dismiss), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
+        Box(Modifier.fillMaxSize().background(Cm.surface).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+            Text(stringResource(R.string.steps_dismiss), style = MaterialTheme.typography.labelLarge, color = Cm.text2)
         }
     }) { row() }
 }
@@ -1109,7 +1108,7 @@ enum class MasterChatStyle { BLACK, FRAME, EDGE, VIOLET, AURORA, FRAME_FIELD, DE
 data class MasterLook(val signature: Boolean = false, val thread: Boolean = false, val voice: Boolean = false)
 val LocalMasterLook = androidx.compose.runtime.staticCompositionLocalOf { MasterLook() }
 /** La sfumatura della master: dal corallo di Claude al lilla. */
-val MasterGradient = androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(CmColors.modelOpus, androidx.compose.ui.graphics.Color(0xFFCDB8FF)))
+val MasterGradient get() = androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Cm.modelOpus, androidx.compose.ui.graphics.Color(0xFFCDB8FF)))
 /** Il filo della master, 2 dp. */
 @Composable
 fun MasterThread(modifier: Modifier = Modifier) = Box(modifier.fillMaxWidth().height(2.dp).background(MasterGradient))
@@ -1120,21 +1119,21 @@ internal val LocalBubble = androidx.compose.runtime.staticCompositionLocalOf<and
 val LocalMasterChatStyle = androidx.compose.runtime.staticCompositionLocalOf { MasterChatStyle.DEPTH }
 
 internal val MasterNight = androidx.compose.ui.graphics.Color(0xFF0E0B18)
-internal val MasterLilac = androidx.compose.ui.graphics.Color(0xFFCDB8FF)
+internal val MasterLilac get() = androidx.compose.ui.graphics.Color(if (V3.day) 0xFF7445D6 else 0xFFC39BFF)
 private val MasterBlue = androidx.compose.ui.graphics.Color(0xFF4C7DFF)
 
 fun Modifier.masterChat(style: MasterChatStyle, shape: androidx.compose.ui.graphics.Shape): Modifier = when (style) {
-    MasterChatStyle.BLACK -> background(CmColors.bg)
+    MasterChatStyle.BLACK -> background(Cm.bg)
     // La conversazione della master su un solo tono, il più scuro del suo celeste velato (Franz, 06/10 21:23).
     MasterChatStyle.DEPTH -> background(MasterLow)
     MasterChatStyle.FRAME, MasterChatStyle.FRAME_FIELD -> background(MasterNight).border(2.dp, MasterLilac.copy(alpha = 0.85f), shape)
-    MasterChatStyle.EDGE -> background(CmColors.bg)
+    MasterChatStyle.EDGE -> background(Cm.bg)
         .drawBehind {
             drawRect(androidx.compose.ui.graphics.Brush.verticalGradient(0f to MasterLilac.copy(alpha = 0.22f), 0.35f to androidx.compose.ui.graphics.Color.Transparent))
         }
         .border(androidx.compose.foundation.BorderStroke(2.dp, androidx.compose.ui.graphics.Brush.sweepGradient(listOf(MasterLilac, MasterBlue, MasterLilac, MasterBlue, MasterLilac))), shape)
     MasterChatStyle.VIOLET -> background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color(0xFF2C1F52), androidx.compose.ui.graphics.Color(0xFF120D22))))
-    MasterChatStyle.AURORA -> background(CmColors.bg).drawBehind {
+    MasterChatStyle.AURORA -> background(Cm.bg).drawBehind {
         drawRect(androidx.compose.ui.graphics.Brush.radialGradient(listOf(MasterLilac.copy(alpha = 0.38f), androidx.compose.ui.graphics.Color.Transparent), center = androidx.compose.ui.geometry.Offset(0f, 0f), radius = size.width * 1.1f))
         drawRect(androidx.compose.ui.graphics.Brush.radialGradient(listOf(MasterBlue.copy(alpha = 0.28f), androidx.compose.ui.graphics.Color.Transparent), center = androidx.compose.ui.geometry.Offset(size.width, size.height), radius = size.width))
     }
@@ -1151,8 +1150,8 @@ private fun NextStep(text: String, onEdit: () -> Unit, onSend: () -> Unit) {
         Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).handCursor().combinedClickable(onClick = onEdit, onLongClick = onSend).padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("↳", style = MaterialTheme.typography.bodyLarge, color = CmColors.stale)
-        Text(text, style = MaterialTheme.typography.bodyLarge, color = CmColors.actionIcon)
+        Text("↳", style = MaterialTheme.typography.bodyLarge, color = Cm.stale)
+        Text(text, style = MaterialTheme.typography.bodyLarge, color = Cm.actionIcon)
     }
 }
 
@@ -1160,11 +1159,11 @@ private fun NextStep(text: String, onEdit: () -> Unit, onSend: () -> Unit) {
 @Composable
 private fun SuggestionPill(text: String, onEdit: () -> Unit) {
     Surface(
-        color = CmColors.surfaceHigh, contentColor = CmColors.text, shape = MaterialTheme.shapes.large,
+        color = Cm.surfaceHigh, contentColor = Cm.text, shape = MaterialTheme.shapes.large,
         modifier = Modifier.clip(MaterialTheme.shapes.large).handCursor().clickable(onClick = onEdit),
     ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Rounded.AutoAwesome, stringResource(R.string.suggested), tint = CmColors.actionIcon, modifier = Modifier.size(16.dp))
+            Icon(Icons.Rounded.AutoAwesome, stringResource(R.string.suggested), tint = Cm.actionIcon, modifier = Modifier.size(16.dp))
             Text(text, style = MaterialTheme.typography.bodyMedium)
         }
     }
@@ -1187,9 +1186,9 @@ private fun UriThumb(uri: Uri, modifier: Modifier) {
                 ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
             }.getOrNull() ?: uri.lastPathSegment.orEmpty()
         }
-        Column(modifier.background(CmColors.surface).padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Icon(Icons.Rounded.Description, null, tint = CmColors.actionIcon, modifier = Modifier.size(22.dp))
-            Text(name, style = MaterialTheme.typography.labelSmall, color = CmColors.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Column(modifier.background(Cm.surface).padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Icon(Icons.Rounded.Description, null, tint = Cm.actionIcon, modifier = Modifier.size(22.dp))
+            Text(name, style = MaterialTheme.typography.labelSmall, color = Cm.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     } else
         androidx.compose.foundation.Image(bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Crop, modifier = modifier)
@@ -1201,7 +1200,7 @@ private fun UriThumb(uri: Uri, modifier: Modifier) {
  */
 @Composable
 private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecurring: (() -> Unit)? = null, onDecision: (() -> Unit)? = null, onPicked: (List<Uri>) -> Unit) {
-    val icon: @Composable () -> Unit = { Icon(Icons.Rounded.Add, stringResource(R.string.attach_image), tint = CmColors.actionIcon) }
+    val icon: @Composable () -> Unit = { Icon(Icons.Rounded.Add, stringResource(R.string.attach_image), tint = Cm.actionIcon) }
     if (androidx.activity.compose.LocalActivityResultRegistryOwner.current == null) { IconButton(onClick = {}, content = icon); return }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     var menu by remember { mutableStateOf(false) }
@@ -1215,7 +1214,7 @@ private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecur
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> shot?.let { u -> if (ok) onPicked(listOf(Uri.parse(u))) }; shot = null }
     Box {
         IconButton(onClick = { menu = true }, modifier = Modifier.handCursor(), content = icon)
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = CmColors.surface) {
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Cm.surface) {
             AttachMenuItems(
                 attach = attach, files = files, onRecurring = onRecurring?.let { r -> { menu = false; r() } },
                 onDecision = onDecision?.let { d -> { menu = false; d() } },
@@ -1243,15 +1242,15 @@ internal fun AttachMenuItems(
     onDecision: (() -> Unit)? = null,
 ) {
     if (attach) {
-        DropdownMenuItem(text = { Text(stringResource(R.string.attach_gallery)) }, leadingIcon = { Icon(Icons.Rounded.Image, null, tint = CmColors.actionIcon) }, onClick = onGallery)
-        DropdownMenuItem(text = { Text(stringResource(R.string.attach_camera)) }, leadingIcon = { Icon(Icons.Rounded.PhotoCamera, null, tint = CmColors.actionIcon) }, onClick = onCamera)
-        if (files) DropdownMenuItem(text = { Text(stringResource(R.string.attach_file)) }, leadingIcon = { Icon(Icons.Rounded.AttachFile, null, tint = CmColors.actionIcon) }, onClick = onFile)
+        DropdownMenuItem(text = { Text(stringResource(R.string.attach_gallery)) }, leadingIcon = { Icon(Icons.Rounded.Image, null, tint = Cm.actionIcon) }, onClick = onGallery)
+        DropdownMenuItem(text = { Text(stringResource(R.string.attach_camera)) }, leadingIcon = { Icon(Icons.Rounded.PhotoCamera, null, tint = Cm.actionIcon) }, onClick = onCamera)
+        if (files) DropdownMenuItem(text = { Text(stringResource(R.string.attach_file)) }, leadingIcon = { Icon(Icons.Rounded.AttachFile, null, tint = Cm.actionIcon) }, onClick = onFile)
     }
     if (onRecurring != null) {
-        if (attach) androidx.compose.material3.HorizontalDivider(color = CmColors.line)
-        DropdownMenuItem(text = { Text(stringResource(R.string.recurring_open)) }, leadingIcon = { Icon(Icons.Rounded.Autorenew, null, tint = CmColors.actionIcon) }, onClick = onRecurring)
+        if (attach) androidx.compose.material3.HorizontalDivider(color = Cm.line)
+        DropdownMenuItem(text = { Text(stringResource(R.string.recurring_open)) }, leadingIcon = { Icon(Icons.Rounded.Autorenew, null, tint = Cm.actionIcon) }, onClick = onRecurring)
     }
-    if (onDecision != null) DropdownMenuItem(text = { Text(stringResource(R.string.decision_new)) }, leadingIcon = { Icon(Icons.Rounded.BookmarkBorder, null, tint = CmColors.actionIcon) }, onClick = onDecision)
+    if (onDecision != null) DropdownMenuItem(text = { Text(stringResource(R.string.decision_new)) }, leadingIcon = { Icon(Icons.Rounded.BookmarkBorder, null, tint = Cm.actionIcon) }, onClick = onDecision)
 }
 
 /** Contratto 1.37: il foglio «Salva come decisione»: il testo da correggere e per quale progetto vale. */
@@ -1260,25 +1259,25 @@ internal fun AttachMenuItems(
 private fun DecisionSheet(draft: String, project: String?, onDismiss: () -> Unit, onSave: (String, String?) -> Unit) {
     var text by remember(draft) { mutableStateOf(draft) }
     var all by remember(project) { mutableStateOf(project == null) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = CmColors.surface) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Cm.surface) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.decision_save), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
-            Text(stringResource(R.string.decision_sub), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            Text(stringResource(R.string.decision_save), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
+            Text(stringResource(R.string.decision_sub), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             androidx.compose.material3.OutlinedTextField(
                 text, { v -> text = v.take(it.pixelbox.cmwatch.rules.MasterService.DECISION_MAX) }, modifier = Modifier.fillMaxWidth(), minLines = 3,
             )
             if (project != null) {
-                Text(stringResource(R.string.decision_for), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
+                Text(stringResource(R.string.decision_for), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     androidx.compose.material3.FilterChip(selected = !all, onClick = { all = false }, label = { Text(project) })
                     androidx.compose.material3.FilterChip(selected = all, onClick = { all = true }, label = { Text(stringResource(R.string.decision_all)) })
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = CmColors.text2) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Cm.text2) }
                 Button(
                     onClick = { onSave(text.trim(), if (all) null else project) }, enabled = text.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
                 ) { Text(stringResource(R.string.decision_ok)) }
             }
         }
@@ -1347,7 +1346,7 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
     // Tutta la larghezza meno un margine a sinistra, non una colonna stretta (Franz, 30/09 22:17).
     Column(Modifier.fillMaxWidth().padding(start = 40.dp), horizontalAlignment = Alignment.End) {
         Surface(
-            color = LocalBubble.current ?: CmColors.surfaceHigh, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
+            color = LocalBubble.current ?: Cm.surfaceHigh, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
             modifier = Modifier,
         ) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1357,13 +1356,13 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
                     m.attachments.forEach { AttachmentThumb(it, maxW = 150.dp, maxH = 150.dp) }
                 }
                 // Pressione lunga = selezione di una parte del testo, con la barra di sistema per copiarla (Franz, 02/10 20:31).
-                if (m.text.isNotBlank()) SelectionContainer { Text(linked(m.text), style = MaterialTheme.typography.bodyLarge, color = CmColors.text) }
+                if (m.text.isNotBlank()) SelectionContainer { Text(linked(m.text), style = MaterialTheme.typography.bodyLarge, color = Cm.text) }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             StatusMark(status, m.scheduledFor ?: m.sentAt.takeIf { status == ChatRules.Status.SCHEDULED })
             // Un programmato dice solo quando parte: l'ora in cui è stato scritto accanto confondeva (provini 01/10).
-            if (status != ChatRules.Status.SCHEDULED) Text(hhmm(m.sentAt), style = MaterialTheme.typography.labelMedium, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))
+            if (status != ChatRules.Status.SCHEDULED) Text(hhmm(m.sentAt), style = MaterialTheme.typography.labelMedium, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
             SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(m.text)) }
             // La matita solo su un messaggio non arrivato, per correggerlo e rimandarlo (Franz, 03/10 21:11): su uno già
             // elaborato non modificava niente, rimetteva solo il testo nel campo come Copia.
@@ -1374,10 +1373,10 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
         if (status == ChatRules.Status.FAILED || status == ChatRules.Status.UNCERTAIN) Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (status == ChatRules.Status.FAILED) (reason ?: stringResource(R.string.chat_no_answer)) else stringResource(R.string.chat_uncertain_hint),
-                style = MaterialTheme.typography.labelMedium, color = if (status == ChatRules.Status.FAILED) CmColors.goneDim else CmColors.waiting,
+                style = MaterialTheme.typography.labelMedium, color = if (status == ChatRules.Status.FAILED) Cm.goneDim else Cm.waiting,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            TextButton(onClick = { actions.retry(m.id) }) { Text(stringResource(R.string.retry), color = CmColors.actionIcon) }
+            TextButton(onClick = { actions.retry(m.id) }) { Text(stringResource(R.string.retry), color = Cm.actionIcon) }
         }
     }
 }
@@ -1388,8 +1387,8 @@ private fun UserBubble(e: TranscriptEntry, onResend: (String) -> Unit) {
     val clip = LocalClipboardManager.current
     val text = e.text.orEmpty()
     Column(Modifier.fillMaxWidth().padding(start = 40.dp), horizontalAlignment = Alignment.End) {
-        Surface(color = LocalBubble.current ?: CmColors.surface, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)) {
-            SelectionContainer { Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = CmColors.text, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) }
+        Surface(color = LocalBubble.current ?: Cm.surface, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)) {
+            SelectionContainer { Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             val from = when (e.origin) {
@@ -1399,9 +1398,9 @@ private fun UserBubble(e: TranscriptEntry, onResend: (String) -> Unit) {
                 "web" -> R.string.origin_web
                 else -> null
             }
-            from?.let { Text(stringResource(it), style = MaterialTheme.typography.labelMedium, color = CmColors.text2) }
-            if (e.queued) Text(" · " + stringResource(R.string.chat_queued), style = MaterialTheme.typography.labelMedium, color = CmColors.stale)
-            e.at?.let { Text(hhmm(it), style = MaterialTheme.typography.labelMedium, color = CmColors.text2, modifier = Modifier.padding(horizontal = 4.dp)) }
+            from?.let { Text(stringResource(it), style = MaterialTheme.typography.labelMedium, color = Cm.text2) }
+            if (e.queued) Text(" · " + stringResource(R.string.chat_queued), style = MaterialTheme.typography.labelMedium, color = Cm.stale)
+            e.at?.let { Text(hhmm(it), style = MaterialTheme.typography.labelMedium, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp)) }
             SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(text)) }
         }
     }
@@ -1416,13 +1415,13 @@ private fun ToolLine(e: TranscriptEntry, files: Boolean = true) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             // Un'icona per tipo di strumento, come nell'app nativa; un passaggio fallito ha la ✗ rossa.
             Icon(if (error) Icons.Rounded.ErrorOutline else toolIcon(ToolText.kind(e.tool)), e.tool,
-                tint = if (error) CmColors.gone else CmColors.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+                tint = if (error) Cm.gone else Cm.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(main, style = MaterialTheme.typography.bodyMedium, color = if (error) CmColors.goneDim else CmColors.text)
+                Text(main, style = MaterialTheme.typography.bodyMedium, color = if (error) Cm.goneDim else Cm.text)
                 // Il comando o la cartella sotto, in monospazio grigio; al massimo tre righe, tagliate senza puntini.
                 detail?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
-                        color = CmColors.stale, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                    Text(it, style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.V3.Mono),
+                        color = Cm.stale, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                 }
             }
         }
@@ -1463,8 +1462,8 @@ private fun FilesGroup(files: List<Pair<TranscriptFile, String>>, v3: Boolean = 
     // Il conto a sinistra e i tasti a destra, come nella web.
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.AutoMirrored.Rounded.InsertDriveFile, null, tint = if (v3) V3.Tx2 else CmColors.actionIcon, modifier = Modifier.size(18.dp))
-            Text(pluralStringResource(R.plurals.files_group, files.size, files.size), style = MaterialTheme.typography.labelLarge, color = CmColors.text, softWrap = false)
+            Icon(Icons.AutoMirrored.Rounded.InsertDriveFile, null, tint = if (v3) V3.Tx2 else Cm.actionIcon, modifier = Modifier.size(18.dp))
+            Text(pluralStringResource(R.plurals.files_group, files.size, files.size), style = MaterialTheme.typography.labelLarge, color = Cm.text, softWrap = false)
         }
         // I due tasti in un solo pezzo: su uno schermo stretto vanno sotto insieme, mai uno per riga.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1505,14 +1504,14 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
     LaunchedEffect(key, autoPreview) { if (autoPreview && opener.local[key] == null && key !in opener.loading) opener.preview(key, f) }
     // Ogni allegato a tutta larghezza della chat (Franz, 12/10 12:27 per immagini e video, 15/10 22:20 per tutti).
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Surface(color = if (v3) V3.S2 else CmColors.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }, modifier = Modifier.fillMaxWidth()) {
+        Surface(color = if (v3) V3.S2 else Cm.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }, modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (key in opener.loading) CircularProgressIndicator(Modifier.size(18.dp), color = CmColors.actionIcon, strokeWidth = 2.dp)
-                else Icon(icon, null, tint = if (v3) V3.Tx2 else CmColors.actionIcon, modifier = Modifier.size(18.dp))
+                if (key in opener.loading) CircularProgressIndicator(Modifier.size(18.dp), color = Cm.actionIcon, strokeWidth = 2.dp)
+                else Icon(icon, null, tint = if (v3) V3.Tx2 else Cm.actionIcon, modifier = Modifier.size(18.dp))
                 // Il nome va a capo nello spazio che resta; il peso sta sempre su una riga (segnalazione 01/10 18:16: con un
                 // nome lungo il peso finiva in colonna, una lettera per riga).
-                Text(f.path.substringAfterLast('/'), style = MaterialTheme.typography.labelLarge, color = CmColors.text, modifier = Modifier.weight(1f, fill = false))
-                f.size?.let { Text(sizeLabel(it), style = MaterialTheme.typography.labelMedium, color = CmColors.text2, softWrap = false) }
+                Text(f.path.substringAfterLast('/'), style = MaterialTheme.typography.labelLarge, color = Cm.text, modifier = Modifier.weight(1f, fill = false))
+                f.size?.let { Text(sizeLabel(it), style = MaterialTheme.typography.labelMedium, color = Cm.text2, softWrap = false) }
             }
         }
         // L'anteprima tra il nome e i tasti (Franz, 13/10 07:16: «l'anteprima del file dovrebbe stare tra nome file e tasti,
@@ -1549,7 +1548,7 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
             ).filterNotNull()) {
                 val desc = stringResource(label)
                 IconButton(onClick = { opener.act(key, f, act) }, modifier = Modifier.size(40.dp).handCursor()) {
-                    Icon(icon, desc, tint = CmColors.text2, modifier = Modifier.size(20.dp))
+                    Icon(icon, desc, tint = Cm.text2, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -1592,7 +1591,7 @@ private fun Modifier.newsTint(isNew: Boolean, done: MutableSet<String>, key: Str
         kotlinx.coroutines.delay(600)
         a.animateTo(0f, androidx.compose.animation.core.tween(2_000))
     }
-    val tint = CmColors.actionIcon
+    val tint = Cm.actionIcon
     return drawBehind {
         if (a.value > 0f) {
             val dx = 6.dp.toPx(); val dy = 4.dp.toPx()
@@ -1609,9 +1608,9 @@ private fun Modifier.newsTint(isNew: Boolean, done: MutableSet<String>, key: Str
 @Composable
 private fun NewsDivider() {
     Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        HorizontalDivider(Modifier.weight(1f), color = CmColors.actionIcon.copy(alpha = .45f))
-        Text(stringResource(R.string.chat_news), style = MaterialTheme.typography.labelMedium, color = CmColors.actionIcon)
-        HorizontalDivider(Modifier.weight(1f), color = CmColors.actionIcon.copy(alpha = .45f))
+        HorizontalDivider(Modifier.weight(1f), color = Cm.actionIcon.copy(alpha = .45f))
+        Text(stringResource(R.string.chat_news), style = MaterialTheme.typography.labelMedium, color = Cm.actionIcon)
+        HorizontalDivider(Modifier.weight(1f), color = Cm.actionIcon.copy(alpha = .45f))
     }
 }
 
@@ -1689,7 +1688,7 @@ private fun StepDots(failed: List<Boolean>) {
         failed.take(MAX_DOTS).forEach { bad ->
             Box(Modifier.size(5.dp).clip(CircleShape).background(if (bad) V3.Red else V3.Tx3))
         }
-        if (failed.size > MAX_DOTS) Text("+${failed.size - MAX_DOTS}", style = MaterialTheme.typography.labelSmall, color = CmColors.text2, modifier = Modifier.padding(start = 2.dp))
+        if (failed.size > MAX_DOTS) Text("+${failed.size - MAX_DOTS}", style = MaterialTheme.typography.labelSmall, color = Cm.text2, modifier = Modifier.padding(start = 2.dp))
     }
 }
 
@@ -1731,9 +1730,9 @@ private fun ClaudeBubble(
                     val cur = LocalSpeakingBlock.current
                     blocks.forEachIndexed { i, b ->
                         Text(
-                            linked(b.text), style = MaterialTheme.typography.bodyLarge, color = if (i == cur) CmColors.text else CmColors.text2,
+                            linked(b.text), style = MaterialTheme.typography.bodyLarge, color = if (i == cur) Cm.text else Cm.text2,
                             modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
-                                .background(if (i == cur) CmColors.surfaceHigh else androidx.compose.ui.graphics.Color.Transparent)
+                                .background(if (i == cur) Cm.surfaceHigh else androidx.compose.ui.graphics.Color.Transparent)
                                 .handCursor().clickable { onSpeakFrom(text, i) }.padding(horizontal = 6.dp, vertical = 4.dp),
                         )
                     }
@@ -1742,12 +1741,12 @@ private fun ClaudeBubble(
                 } else SelectionContainer {
                     val shown = it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(stripped.text, stringResource(R.string.outcome_label))
                     val blocks = remember(shown) { it.pixelbox.cmwatch.rules.MarkdownTable.blocks(shown) }
-                    if (blocks.none { b -> b is it.pixelbox.cmwatch.rules.MarkdownTable.Table }) Text(linked(shown), style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                    if (blocks.none { b -> b is it.pixelbox.cmwatch.rules.MarkdownTable.Table }) Text(linked(shown), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                     // Le tabelle (Franz, 02/10 21:11): griglia se stretta, una scheda per riga se larga.
                     else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         blocks.forEach { b ->
                             when (b) {
-                                is it.pixelbox.cmwatch.rules.MarkdownTable.Text -> Text(linked(b.text), style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                                is it.pixelbox.cmwatch.rules.MarkdownTable.Text -> Text(linked(b.text), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                                 is it.pixelbox.cmwatch.rules.MarkdownTable.Table -> TableBlock(b)
                             }
                         }
@@ -1757,10 +1756,10 @@ private fun ClaudeBubble(
                 stripped.buttons.forEach { b -> SessionButton(b, onOpen = { onOpenSession(b.session) }) }
                 // Variante C: «Prossimi» e i consigli in colonna; tocco = nel campo, pressione lunga = invio.
                 if (withSteps && parsed.steps.isNotEmpty()) Column(Modifier.padding(top = 2.dp)) {
-                    Text(stringResource(R.string.next_steps), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
+                    Text(stringResource(R.string.next_steps), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                     parsed.steps.forEach { step -> NextStep(step, onEdit = { onStep(step) }, onSend = { onSendStep(step) }) }
                 }
-                if (cut) Text(stringResource(R.string.text_cut), style = MaterialTheme.typography.labelMedium, color = CmColors.text2)
+                if (cut) Text(stringResource(R.string.text_cut), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                 // Il costo del turno sull'ultima voce: durata e token scritti (quelli letti comprendono la cache).
                 turn?.let { t ->
                     val secs = (t.ended ?: 0) - (t.started ?: 0)
@@ -1769,7 +1768,7 @@ private fun ClaudeBubble(
                         secs.takeIf { t.started != null && t.ended != null && it > 0 }?.let { d -> if (d < 60) "$d s" else Durations.since(0, d) },
                         t.out?.let { o -> stringResource(R.string.turn_tokens, o) },
                     )
-                    if (parts.isNotEmpty()) Text(parts.joinToString(" · "), style = MaterialTheme.typography.labelMedium, color = CmColors.briefSecondary)
+                    if (parts.isNotEmpty()) Text(parts.joinToString(" · "), style = MaterialTheme.typography.labelMedium, color = Cm.briefSecondary)
                 }
             }
         }
@@ -1782,11 +1781,11 @@ private fun ClaudeBubble(
             FilledTonalIconButton(onClick = { onSpeak(text) }, modifier = Modifier.size(36.dp)) {
                 Icon(
                     if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, stringResource(if (reading) R.string.stop_reading else R.string.read_aloud),
-                    tint = CmColors.actionIcon, modifier = Modifier.size(20.dp),
+                    tint = Cm.actionIcon, modifier = Modifier.size(20.dp),
                 )
             }
             onDecision?.let { d -> SmallAction(Icons.Rounded.BookmarkBorder, stringResource(R.string.decision_save)) { d(text) } }
-            at?.let { Text(hhmm(it), style = MaterialTheme.typography.labelMedium, color = CmColors.text2, modifier = Modifier.padding(start = 4.dp)) }
+            at?.let { Text(hhmm(it), style = MaterialTheme.typography.labelMedium, color = Cm.text2, modifier = Modifier.padding(start = 4.dp)) }
         }
     }
 }
@@ -1800,7 +1799,7 @@ private fun SessionButton(b: it.pixelbox.cmwatch.rules.SessionLinks.Button, onOp
     val uri = androidx.compose.ui.platform.LocalUriHandler.current
     OptionButton(
         stringResource(R.string.open_in_supervisor), filled = false, onClick = onOpen, onLongClick = { runCatching { uri.openUri(b.url) } },
-        modifier = Modifier.wrapContentWidth(), shape = MaterialTheme.shapes.large, tonal = CmColors.surfaceHigh, note = b.session,
+        modifier = Modifier.wrapContentWidth(), shape = MaterialTheme.shapes.large, tonal = Cm.surfaceHigh, note = b.session,
     )
 }
 
@@ -1811,17 +1810,17 @@ private fun SessionButton(b: it.pixelbox.cmwatch.rules.SessionLinks.Button, onOp
 @Composable
 private fun StatusMark(st: ChatRules.Status, scheduledFor: Long? = null) {
     val (icon, tint, label) = when (st) {
-        ChatRules.Status.SCHEDULED -> Triple(Icons.Rounded.Alarm, CmColors.waiting, R.string.chat_scheduled)
-        ChatRules.Status.OFFLINE -> Triple(Icons.Rounded.CloudOff, CmColors.stale, R.string.chat_offline)
-        ChatRules.Status.UPLOADING -> Triple(Icons.Rounded.CloudUpload, CmColors.text2, R.string.chat_uploading)
-        ChatRules.Status.SENDING -> Triple(Icons.Rounded.Schedule, CmColors.text2, R.string.chat_sending)
-        ChatRules.Status.SENT -> Triple(Icons.Rounded.Check, CmColors.text2, R.string.chat_sent)
-        ChatRules.Status.UNCERTAIN -> Triple(Icons.Rounded.HourglassTop, CmColors.waiting, R.string.chat_uncertain)
-        ChatRules.Status.FAILED -> Triple(Icons.Rounded.ErrorOutline, CmColors.gone, R.string.chat_failed)
-        ChatRules.Status.DELIVERED -> Triple(Icons.Rounded.DoneAll, CmColors.text2, R.string.chat_delivered)
-        ChatRules.Status.QUEUED -> Triple(Icons.Rounded.DoneAll, CmColors.stale, R.string.chat_queued)
-        ChatRules.Status.WORKING -> Triple(Icons.Rounded.DoneAll, CmColors.busy, R.string.chat_working)
-        ChatRules.Status.DONE -> Triple(Icons.Rounded.DoneAll, CmColors.actionIcon, R.string.chat_done)
+        ChatRules.Status.SCHEDULED -> Triple(Icons.Rounded.Alarm, Cm.waiting, R.string.chat_scheduled)
+        ChatRules.Status.OFFLINE -> Triple(Icons.Rounded.CloudOff, Cm.stale, R.string.chat_offline)
+        ChatRules.Status.UPLOADING -> Triple(Icons.Rounded.CloudUpload, Cm.text2, R.string.chat_uploading)
+        ChatRules.Status.SENDING -> Triple(Icons.Rounded.Schedule, Cm.text2, R.string.chat_sending)
+        ChatRules.Status.SENT -> Triple(Icons.Rounded.Check, Cm.text2, R.string.chat_sent)
+        ChatRules.Status.UNCERTAIN -> Triple(Icons.Rounded.HourglassTop, Cm.waiting, R.string.chat_uncertain)
+        ChatRules.Status.FAILED -> Triple(Icons.Rounded.ErrorOutline, Cm.gone, R.string.chat_failed)
+        ChatRules.Status.DELIVERED -> Triple(Icons.Rounded.DoneAll, Cm.text2, R.string.chat_delivered)
+        ChatRules.Status.QUEUED -> Triple(Icons.Rounded.DoneAll, Cm.stale, R.string.chat_queued)
+        ChatRules.Status.WORKING -> Triple(Icons.Rounded.DoneAll, Cm.busy, R.string.chat_working)
+        ChatRules.Status.DONE -> Triple(Icons.Rounded.DoneAll, Cm.actionIcon, R.string.chat_done)
     }
     val text = if (st == ChatRules.Status.SCHEDULED && scheduledFor != null) stringResource(label, hhmm(scheduledFor)) else stringResource(label)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1835,7 +1834,7 @@ private val PASSIVE_OPS = setOf(it.pixelbox.cmwatch.contract.CmdOp.SCREEN, it.pi
 
 @Composable
 private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) =
-    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) { Icon(icon, label, tint = CmColors.text2, modifier = Modifier.size(18.dp)) }
+    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) { Icon(icon, label, tint = Cm.text2, modifier = Modifier.size(18.dp)) }
 
 /**
  * L'anteprima dell'immagine allegata, piccola nel fumetto e letta ridotta (con l'immagine intera il fumetto restava vuoto);
@@ -1888,11 +1887,11 @@ private fun TextFirstLines(path: String, onClick: () -> Unit) {
     }
     if (lines.isEmpty()) return
     Box(
-        Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(CmColors.surfaceLow).border(1.dp, CmColors.line, MaterialTheme.shapes.large)
+        Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(Cm.surfaceLow).border(1.dp, Cm.line, MaterialTheme.shapes.large)
             .handCursor().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Text(lines, style = MonoSmall.copy(color = CmColors.text, fontSize = 13.sp, lineHeight = 19.sp))
-        if (more) Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(0.7f to androidx.compose.ui.graphics.Color.Transparent, 1f to CmColors.surfaceLow)))
+        Text(lines, style = MonoSmall.copy(color = Cm.text, fontSize = 13.sp, lineHeight = 19.sp))
+        if (more) Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(0.7f to androidx.compose.ui.graphics.Color.Transparent, 1f to Cm.surfaceLow)))
     }
 }
 
@@ -1922,7 +1921,7 @@ private fun ImageViewer(path: String, onClose: () -> Unit) {
     fun fitted(): Pair<Float, Float> = it.pixelbox.cmwatch.rules.ZoomPan.fit(bmp.width.toFloat(), bmp.height.toFloat(), box.width.toFloat(), box.height.toFloat())
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
-            Modifier.fillMaxSize().background(CmColors.bg).onSizeChanged { box = it }
+            Modifier.fillMaxSize().background(Cm.bg).onSizeChanged { box = it }
                 .pointerInput(bmp) {
                     detectTapGestures(onDoubleTap = { p ->
                         scope.launch { glide.stop() }
@@ -1967,7 +1966,7 @@ private fun ImageViewer(path: String, onClose: () -> Unit) {
                 modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = view.scale; scaleY = view.scale; translationX = view.x; translationY = view.y },
             )
             IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {
-                Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = CmColors.text)
+                Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text)
             }
         }
     }
@@ -1986,7 +1985,7 @@ private fun SheetHeader(
     s: Session, now: Long, choices: Choices?, canTune: Boolean, actions: SheetActions, showTerminal: Boolean,
     model: it.pixelbox.cmwatch.contract.Model? = s.model, effort: String? = s.effort,
     /** Il fondo della testata: il foglio per la master, il nero per le altre. */
-    bg: androidx.compose.ui.graphics.Color = CmColors.bg,
+    bg: androidx.compose.ui.graphics.Color = Cm.bg,
     /** Contratto 1.25: il PC accetta /exit per questa sessione; il menu offre di chiuderla, dopo una conferma. */
     canExit: Boolean = false,
     quota: it.pixelbox.cmwatch.contract.QuotaAccount? = null,
@@ -2027,8 +2026,8 @@ private fun SheetHeader(
                 onChangesInline = { if (changesInline != it) changesInline = it },
             ) {
             Box {
-                IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = CmColors.text2) }
-                if (changesMenu) Box(Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 7.dp).size(10.dp).background(bg, CircleShape).padding(2.dp).background(CmColors.actionIcon, CircleShape))
+                IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = Cm.text2) }
+                if (changesMenu) Box(Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 7.dp).size(10.dp).background(bg, CircleShape).padding(2.dp).background(Cm.actionIcon, CircleShape))
                 // Il menu della sessione come quello dell'app (Franz, 03/10 15:26): pannello, voci spiegate.
                 if (menu) MenuPanel(
                     onDismiss = { menu = false },
@@ -2056,7 +2055,7 @@ private fun SheetHeader(
                 ) {
                     SessionBadge(s, 20.dp)
                     Text(
-                        s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text,
+                        s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text,
                         maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
                     )
                 }
@@ -2071,10 +2070,10 @@ private fun SheetHeader(
             SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered)).takeIf { notesInHeader },
             SessionsText.window(s, stringResource(R.string.no_window)),
         )
-        notes.forEach { Text(it, style = MaterialTheme.typography.labelMedium, color = CmColors.briefLabel, modifier = Modifier.padding(horizontal = 16.dp)) }
+        notes.forEach { Text(it, style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel, modifier = Modifier.padding(horizontal = 16.dp)) }
         // Senza note sotto le pillole lo stesso margine di sopra, così stanno al centro della barra (Franz, 10/10 14:32: «riduci barra»).
         Spacer(Modifier.height(if (notes.isEmpty() && (changes == null || changesMenu || changesInline)) 2.dp else 8.dp))
-        HorizontalDivider(color = CmColors.line)
+        HorizontalDivider(color = Cm.line)
     }
     if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) })
     if (ctxSheet) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false } }
@@ -2086,16 +2085,16 @@ private fun SheetHeader(
 @Composable
 private fun ContextNudge(pct: Int, onGo: () -> Unit, onDismiss: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp).clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceHigh).padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp).clip(RoundedCornerShape(20.dp)).background(Cm.surfaceHigh).padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(Icons.Rounded.Layers, null, tint = CmColors.briefWarn, modifier = Modifier.size(22.dp))
+        Icon(Icons.Rounded.Layers, null, tint = Cm.briefWarn, modifier = Modifier.size(22.dp))
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.ctx_nudge, pct), style = MaterialTheme.typography.labelLarge, color = CmColors.text, maxLines = 1)
-            Text(stringResource(R.string.ctx_nudge_sub), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1)
+            Text(stringResource(R.string.ctx_nudge, pct), style = MaterialTheme.typography.labelLarge, color = Cm.text, maxLines = 1)
+            Text(stringResource(R.string.ctx_nudge_sub), style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1)
         }
         FilledTonalButton(onClick = onGo) { Text(stringResource(R.string.ctx_nudge_go)) }
-        IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = CmColors.text2) }
+        IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2) }
     }
 }
 
@@ -2106,9 +2105,9 @@ private fun ContextNudge(pct: Int, onGo: () -> Unit, onDismiss: () -> Unit) {
 @Composable
 private fun ContextSheet(pct: Int, wider: it.pixelbox.cmwatch.contract.Model?, actions: SheetActions, onClose: () -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    ModalBottomSheet(onDismissRequest = onClose, containerColor = CmColors.surface) {
+    ModalBottomSheet(onDismissRequest = onClose, containerColor = Cm.surface) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.ctx_title, pct), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
+            Text(stringResource(R.string.ctx_title, pct), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
             // Contratto 1.37: «Handoff, poi /clear», pieno dal 60 % (mockup approvato il 05/10 21:07); le voci spiegate sotto.
             val handoff = { actions.handoff?.invoke(); onClose() }
             val two: @Composable (Int, Int) -> Unit = { title, sub ->
@@ -2119,7 +2118,7 @@ private fun ContextSheet(pct: Int, wider: it.pixelbox.cmwatch.contract.Model?, a
             }
             if (actions.handoff == null) Unit
             else if (it.pixelbox.cmwatch.rules.ContextActions.band(pct) != null) {
-                Button(onClick = handoff, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { two(R.string.ctx_handoff_clear, R.string.ctx_handoff_clear_sub) }
+                Button(onClick = handoff, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { two(R.string.ctx_handoff_clear, R.string.ctx_handoff_clear_sub) }
             } else FilledTonalButton(onClick = handoff, modifier = Modifier.fillMaxWidth()) { two(R.string.ctx_handoff_clear, R.string.ctx_handoff_clear_sub) }
             FilledTonalButton(onClick = { actions.send(PhonePrimary.Target.PROMPT, "/compact"); onClose() }, modifier = Modifier.fillMaxWidth()) { two(R.string.ctx_compact, R.string.ctx_compact_sub) }
             wider?.let { m -> FilledTonalButton(onClick = { actions.setModel(m.id); onClose() }, modifier = Modifier.fillMaxWidth()) { two(R.string.ctx_wider, R.string.ctx_wider_sub) } }
@@ -2136,14 +2135,14 @@ private fun ContextSheet(pct: Int, wider: it.pixelbox.cmwatch.contract.Model?, a
 internal fun QuestionOptions(
     q: it.pixelbox.cmwatch.contract.Question, firstFilled: Boolean, holdHint: Boolean, onHold: () -> Unit, onAnswer: (Int) -> Unit,
     /** Il fondo delle opzioni non piene; sulle card del riepilogo un velo del primario, che resta visibile. */
-    tonal: androidx.compose.ui.graphics.Color = CmColors.surface,
+    tonal: androidx.compose.ui.graphics.Color = Cm.surface,
     /** Stile «Studio e Diretta» (30/10): un'opzione per riga col numero, la consigliata a bordo chiaro, mai piena. */
     v3: Boolean = false,
 ) {
     val long = QuestionRules.needsLongPress(q.tier)
     if (long) Text(
         stringResource(if (holdHint) R.string.question_hold else R.string.question_high_risk),
-        style = MaterialTheme.typography.labelLarge, color = if (holdHint) CmColors.waiting else CmColors.briefAlert,
+        style = MaterialTheme.typography.labelLarge, color = if (holdHint) Cm.waiting else Cm.briefAlert,
     )
     // Righe B (Franz, 03/10 15:18: tasti sproporzionati): 44 dp; due o tre opzioni brevi in parti uguali su una riga.
     val inline = !v3 && QuestionRules.inline(q.options)
@@ -2183,9 +2182,9 @@ private fun QuotaLimitCard(e: it.pixelbox.cmwatch.contract.Event, passTargets: L
         java.time.Instant.ofEpochSecond(s).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5)
     }
     var picking by remember(e.key) { mutableStateOf(false) }
-    Surface(color = CmColors.surfaceHigh, shape = MaterialTheme.shapes.extraLarge, border = BorderStroke(2.dp, CmColors.gone)) {
+    Surface(color = Cm.surfaceHigh, shape = MaterialTheme.shapes.extraLarge, border = BorderStroke(2.dp, Cm.gone)) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(e.title, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+            Text(e.title, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
             ways.forEachIndexed { i, w ->
                 OptionButton(w.label, filled = i == 0, onClick = { w.arg?.let(onRoute) ?: run { picking = !picking } }, onLongClick = null)
             }
@@ -2199,9 +2198,9 @@ private fun QuotaLimitCard(e: it.pixelbox.cmwatch.contract.Event, passTargets: L
 /** Contratto 1.61: il turno finito in errore, una riga e «Continua», che manda alla sessione il testo del relay. */
 @Composable
 private fun TurnFailedCard(e: it.pixelbox.cmwatch.contract.Event, onContinue: (String) -> Unit) {
-    Surface(color = CmColors.surfaceHigh, shape = MaterialTheme.shapes.extraLarge, border = BorderStroke(2.dp, CmColors.waiting)) {
+    Surface(color = Cm.surfaceHigh, shape = MaterialTheme.shapes.extraLarge, border = BorderStroke(2.dp, Cm.waiting)) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(e.title, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+            Text(e.title, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
             e.continueText?.takeIf { it.isNotBlank() }?.let { text ->
                 OptionButton(stringResource(R.string.turn_continue), filled = true, onClick = { onContinue(text) }, onLongClick = null)
             }
@@ -2215,13 +2214,13 @@ private fun TurnFailedCard(e: it.pixelbox.cmwatch.contract.Event, onContinue: (S
 private fun OptionButton(
     label: String, filled: Boolean, onClick: () -> Unit, onLongClick: (() -> Unit)?,
     modifier: Modifier = Modifier.fillMaxWidth(), shape: androidx.compose.ui.graphics.Shape = CircleShape, center: Boolean = false,
-    tonal: androidx.compose.ui.graphics.Color = CmColors.surface,
+    tonal: androidx.compose.ui.graphics.Color = Cm.surface,
     /** Contratto 1.53: «consigliata · spiegazione», una riga sotto l'etichetta. */
     note: String? = null, number: Int? = null, outlined: Boolean = false,
 ) {
     Surface(
         border = if (outlined) androidx.compose.foundation.BorderStroke(1.5.dp, V3.Tx.copy(alpha = 0.9f)) else null,
-        color = if (filled) CmColors.primary else tonal, contentColor = if (filled) CmColors.onPrimary else CmColors.text,
+        color = if (filled) Cm.primary else tonal, contentColor = if (filled) Cm.onPrimary else Cm.text,
         shape = shape,
         modifier = modifier.heightIn(min = 44.dp).clip(shape).handCursor().combinedClickable(onClick = onClick, onLongClick = onLongClick),
     ) {
@@ -2233,7 +2232,7 @@ private fun OptionButton(
             }
             Column {
                 Text(label, style = MaterialTheme.typography.labelLarge.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize), maxLines = if (center) 1 else Int.MAX_VALUE, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
-                if (note != null) Text(note, style = MaterialTheme.typography.bodySmall, color = if (filled) CmColors.onPrimary.copy(alpha = 0.8f) else CmColors.text2)
+                if (note != null) Text(note, style = MaterialTheme.typography.bodySmall, color = if (filled) Cm.onPrimary.copy(alpha = 0.8f) else Cm.text2)
             }
         }
     }
@@ -2247,27 +2246,27 @@ private fun OptionButton(
 private fun TableBlock(t: it.pixelbox.cmwatch.rules.MarkdownTable.Table) {
     if (it.pixelbox.cmwatch.rules.MarkdownTable.compact(t)) Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            t.header.forEach { h -> Text(linked(h), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text2, modifier = Modifier.weight(1f)) }
+            t.header.forEach { h -> Text(linked(h), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text2, modifier = Modifier.weight(1f)) }
         }
         t.rows.forEach { r ->
-            HorizontalDivider(color = CmColors.line)
+            HorizontalDivider(color = Cm.line)
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                r.forEach { c -> Text(linked(c), style = MaterialTheme.typography.bodyMedium, color = CmColors.text, modifier = Modifier.weight(1f)) }
+                r.forEach { c -> Text(linked(c), style = MaterialTheme.typography.bodyMedium, color = Cm.text, modifier = Modifier.weight(1f)) }
             }
         }
     } else Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         it.pixelbox.cmwatch.rules.MarkdownTable.cards(t).forEach { c ->
-            Surface(color = CmColors.surface, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+            Surface(color = Cm.surface, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    if (c.title.isNotBlank()) Text(linked(c.title), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
+                    if (c.title.isNotBlank()) Text(linked(c.title), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
                     c.lines.forEach { line ->
                         val head = line.substringBefore(": ")
                         Text(
                             androidx.compose.ui.text.buildAnnotatedString {
-                                pushStyle(androidx.compose.ui.text.SpanStyle(color = CmColors.text2)); append("$head: "); pop()
+                                pushStyle(androidx.compose.ui.text.SpanStyle(color = Cm.text2)); append("$head: "); pop()
                                 append(linked(line.substringAfter(": ")))
                             },
-                            style = MaterialTheme.typography.bodyMedium, color = CmColors.text,
+                            style = MaterialTheme.typography.bodyMedium, color = Cm.text,
                         )
                     }
                 }
@@ -2283,14 +2282,14 @@ internal fun linked(text: String): AnnotatedString = androidx.compose.ui.text.bu
     val md = it.pixelbox.cmwatch.rules.Markdown.parse(text)
     val plain = md.text
     append(plain)
-    val link = androidx.compose.ui.text.TextLinkStyles(androidx.compose.ui.text.SpanStyle(color = CmColors.actionIcon, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+    val link = androidx.compose.ui.text.TextLinkStyles(androidx.compose.ui.text.SpanStyle(color = Cm.actionIcon, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
     val linked = mutableListOf<IntRange>()
     md.spans.forEach { sp ->
         val (a, b) = sp.range.first to sp.range.last + 1
         when (sp.kind) {
             it.pixelbox.cmwatch.rules.Markdown.Kind.BOLD -> addStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.SemiBold), a, b)
             it.pixelbox.cmwatch.rules.Markdown.Kind.ITALIC -> addStyle(androidx.compose.ui.text.SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), a, b)
-            it.pixelbox.cmwatch.rules.Markdown.Kind.CODE -> addStyle(androidx.compose.ui.text.SpanStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, background = CmColors.surfaceHigh), a, b)
+            it.pixelbox.cmwatch.rules.Markdown.Kind.CODE -> addStyle(androidx.compose.ui.text.SpanStyle(fontFamily = androidx.compose.ui.text.font.V3.Mono, background = Cm.surfaceHigh), a, b)
             it.pixelbox.cmwatch.rules.Markdown.Kind.LINK -> { addLink(androidx.compose.ui.text.LinkAnnotation.Url(sp.url!!, link), a, b); linked += sp.range }
         }
     }
@@ -2301,9 +2300,9 @@ internal fun linked(text: String): AnnotatedString = androidx.compose.ui.text.bu
 
 /** Testo con il tasto ▶ accanto (regola di Franz 12/09: testi lunghi, esiti, risposte e domande). */
 @Composable
-fun Speakable(text: String, speak: Boolean, onSpeak: (String) -> Unit, tint: androidx.compose.ui.graphics.Color = CmColors.actionIcon) {
+fun Speakable(text: String, speak: Boolean, onSpeak: (String) -> Unit, tint: androidx.compose.ui.graphics.Color = Cm.actionIcon) {
     Row(verticalAlignment = Alignment.Top) {
-        Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = CmColors.text, modifier = Modifier.weight(1f))
+        Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.weight(1f))
         val reading = LocalSpeaking.current == text
         if (speak && reading) RatePill()
         if (speak) IconButton(onClick = { onSpeak(text) }) {
@@ -2333,7 +2332,7 @@ private fun TunePill(label: String, enabled: Boolean, dot: Boolean = false, mode
             }
         }
         // Contratto 1.37: c'è un consiglio diverso dalla scelta di adesso (mockup approvato il 05/10 21:07).
-        if (dot) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(CmColors.bg, CircleShape).padding(2.dp).background(V3.Tx2, CircleShape))
+        if (dot) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(Cm.bg, CircleShape).padding(2.dp).background(V3.Tx2, CircleShape))
         if (card) androidx.compose.ui.window.Popup(onDismissRequest = { card = false }, offset = androidx.compose.ui.unit.IntOffset(0, 120)) {
             Box(Modifier.width(320.dp)) { PermissionCard(mode) }
         }
@@ -2343,12 +2342,12 @@ private fun TunePill(label: String, enabled: Boolean, dot: Boolean = false, mode
 /** «CONSIGLIATO» accanto al modello che fable-director consiglia (contratto 1.37), nel pannello Modello ed effort. */
 @Composable
 internal fun AdviceTag() = Text(
-    stringResource(R.string.advice_tag).uppercase(), style = MonoSmall.copy(color = CmColors.advice, fontWeight = FontWeight.SemiBold),
-    modifier = Modifier.clip(CircleShape).background(CmColors.advice.copy(alpha = .14f)).padding(horizontal = 9.dp, vertical = 3.dp),
+    stringResource(R.string.advice_tag).uppercase(), style = MonoSmall.copy(color = Cm.advice, fontWeight = FontWeight.SemiBold),
+    modifier = Modifier.clip(CircleShape).background(Cm.advice.copy(alpha = .14f)).padding(horizontal = 9.dp, vertical = 3.dp),
 )
 
 /** Il testo delle pillole della testata: 13 sp, così le tre stanno su una riga di telefono (variante A, 09/10). */
-private val PillText = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp), fontWeight = FontWeight.Medium, letterSpacing = androidx.compose.ui.unit.TextUnit(0.1f, androidx.compose.ui.unit.TextUnitType.Sp))
+private val PillText get() = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp), fontWeight = FontWeight.Medium, letterSpacing = androidx.compose.ui.unit.TextUnit(0.1f, androidx.compose.ui.unit.TextUnitType.Sp))
 
 /**
  * La forma della pillola della quota, dalla più lunga: «5h 4% · 20:00», «5h 4%», «5h 4%» senza anello. «5h» resta sempre,
@@ -2553,11 +2552,11 @@ fun RatePill(rate: Float, onClick: () -> Unit, onLongClick: () -> Unit, interact
     val desc = stringResource(R.string.speech_rate_change, label)
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     Surface(
-        color = CmColors.surface, shape = CircleShape,
+        color = Cm.surface, shape = CircleShape,
         modifier = Modifier.clip(CircleShape).handCursor().semantics { contentDescription = desc }
             .then(if (interactive) Modifier.combinedClickable(onClick = onClick, onLongClick = { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); onLongClick() }) else Modifier),
     ) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = CmColors.text, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = Cm.text, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
     }
 }
 
@@ -2605,12 +2604,12 @@ private fun ActivityLine(s: Session, now: Long) {
             repeat(8) { i ->
                 val ang = Math.toRadians(i * 45.0)
                 val dx = kotlin.math.cos(ang).toFloat(); val dy = kotlin.math.sin(ang).toFloat()
-                drawLine(CmColors.modelOpus, androidx.compose.ui.geometry.Offset(c.x + dx * r * 0.25f, c.y + dy * r * 0.25f), androidx.compose.ui.geometry.Offset(c.x + dx * r, c.y + dy * r), strokeWidth = r * 0.22f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                drawLine(Cm.modelOpus, androidx.compose.ui.geometry.Offset(c.x + dx * r * 0.25f, c.y + dy * r * 0.25f), androidx.compose.ui.geometry.Offset(c.x + dx * r, c.y + dy * r), strokeWidth = r * 0.22f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
             }
         }
         Text(
             listOfNotNull(secs?.let { elapsed(it) }, what).joinToString(" · "),
-            style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+            style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
         )
     }
 }

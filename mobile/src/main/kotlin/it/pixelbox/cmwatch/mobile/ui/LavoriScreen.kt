@@ -75,7 +75,6 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Lavori
 import it.pixelbox.cmwatch.rules.RecapActions
 import it.pixelbox.cmwatch.rules.RecapAgenda
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -127,12 +126,12 @@ fun LavoriScreen(
     val prefs = remember { runCatching { ctx.getSharedPreferences("lavori", android.content.Context.MODE_PRIVATE) }.getOrNull() }
     var timeView by rememberSaveable { mutableStateOf(startView?.let { it == LavoriView.TIME } ?: runCatching { prefs?.getBoolean("time", false) }.getOrNull() ?: false) }
 
-    LazyColumn(Modifier.fillMaxSize().background(CmColors.bg), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp)) {
+    LazyColumn(Modifier.fillMaxSize().background(Cm.bg), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp)) {
         item("head") {
             if (header == LavoriHeader.BAR) Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = CmColors.text) }
-                Text(stringResource(R.string.lavori_title), style = MaterialTheme.typography.titleLarge, color = CmColors.text)
-                Text(stringResource(R.string.lavori_for_you_n, fy.ok.size), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Cm.text) }
+                Text(stringResource(R.string.lavori_title), style = MaterialTheme.typography.titleLarge, color = Cm.text)
+                Text(stringResource(R.string.lavori_for_you_n, fy.ok.size), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             } else if (header == LavoriHeader.DESK) DeskSectionTitle(stringResource(R.string.lavori_title))
         }
         if (left) {
@@ -140,9 +139,9 @@ fun LavoriScreen(
             // Franz 24/10 19:46 (B1): in alto solo quello che blocca adesso, gli ok; il resto in «Più tardi», chiuso.
             item("sec-foryou") { HomeSection(stringResource(R.string.lavori_foryou) + " · " + fy.ok.size, null, true) {} }
             item("expl-foryou") { Expl(stringResource(R.string.lavori_foryou_expl)) }
-            if (fy.total == 0) item("foryou-empty") { Expl(stringResource(R.string.lavori_nothing), CmColors.text) }
+            if (fy.total == 0) item("foryou-empty") { Expl(stringResource(R.string.lavori_nothing), Cm.text) }
             if (fy.ok.isNotEmpty()) {
-                item("grp-ok") { GroupHeader(stringResource(R.string.lavori_ok) + " · " + fy.ok.size, CmColors.primary) }
+                item("grp-ok") { GroupHeader(stringResource(R.string.lavori_ok) + " · " + fy.ok.size, Cm.primary) }
                 fy.ok.forEachIndexed { i, r ->
                     item("fy-ok-$i-${r.approval?.task ?: r.commitment?.task}") { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note, choice -> r.approval?.let { a -> onApprove(a.task, note, choice) } } }
                 }
@@ -150,7 +149,7 @@ fun LavoriScreen(
             val later = fy.outside.size + fy.claude.size
             if (later > 0) item("fold-later") { Fold(stringResource(R.string.lavori_later, later), "later" in open) { toggle("later") } }
             if (fy.outside.isNotEmpty() && "later" in open) {
-                item("grp-outside") { GroupHeader(stringResource(R.string.lavori_outside) + " · " + fy.outside.size, CmColors.waiting) }
+                item("grp-outside") { GroupHeader(stringResource(R.string.lavori_outside) + " · " + fy.outside.size, Cm.waiting) }
                 val shown = if ("outside" in open) fy.outside else fy.outside.take(2)
                 shown.forEachIndexed { i, r ->
                     item("fy-out-$i-${r.agenda?.key ?: r.commitment?.task ?: r.title}") {
@@ -163,7 +162,7 @@ fun LavoriScreen(
                 if (fy.outside.size > 2) item("fold-outside") { Fold(if ("outside" in open) stringResource(R.string.lavori_less) else stringResource(R.string.lavori_more, fy.outside.size - 2), "outside" in open) { toggle("outside") } }
             }
             if (fy.claude.isNotEmpty() && "later" in open) {
-                item("grp-claude") { GroupHeader(stringResource(R.string.lavori_claude) + " · " + fy.claude.size, CmColors.busy) }
+                item("grp-claude") { GroupHeader(stringResource(R.string.lavori_claude) + " · " + fy.claude.size, Cm.busy) }
                 val shown = if ("claude" in open) fy.claude else fy.claude.take(2)
                 shown.forEachIndexed { i, r ->
                     item("fy-cl-$i-${r.agenda?.key ?: r.title}") { ForYouCard(r, zone, stringResource(R.string.lavori_start), filled = false) { _, _ -> r.agenda?.let { onStart(RecapAgenda.doIt(it)) } } }
@@ -181,10 +180,10 @@ fun LavoriScreen(
             }
             // Proposta 8: quattro cifre e, per compito, l'età e i tentativi già spesi.
             kpi?.tasks?.let { t -> item("kpi-8") { Box(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) { Kpi8(t) } } }
-            if (oldRelay) item("progress-old") { Expl(stringResource(R.string.lavori_old_relay), CmColors.text) }
-            else if (ip.total == 0) item("progress-empty") { Expl(stringResource(R.string.lavori_nothing_progress), CmColors.text) }
+            if (oldRelay) item("progress-old") { Expl(stringResource(R.string.lavori_old_relay), Cm.text) }
+            else if (ip.total == 0) item("progress-empty") { Expl(stringResource(R.string.lavori_nothing_progress), Cm.text) }
             val groups = listOf(
-                Triple(ip.working, R.string.lavori_working, CmColors.busy), Triple(ip.you, R.string.lavori_waits_you, CmColors.waiting), Triple(ip.others, R.string.lavori_others, CmColors.text2),
+                Triple(ip.working, R.string.lavori_working, Cm.busy), Triple(ip.you, R.string.lavori_waits_you, Cm.waiting), Triple(ip.others, R.string.lavori_others, Cm.text2),
             )
             if (!timeView) groups.forEach { (lines, label, tone) ->
                 if (lines.isEmpty()) return@forEach
@@ -216,7 +215,7 @@ fun LavoriScreen(
             // ---- Fatto ----
             item("sec-done") { HomeSection(stringResource(R.string.lavori_done), null, true) {} }
             item("expl-done") { Expl(stringResource(R.string.lavori_done_expl)) }
-            if (dn.isEmpty()) item("done-empty") { Expl(stringResource(R.string.lavori_done_empty), CmColors.text) }
+            if (dn.isEmpty()) item("done-empty") { Expl(stringResource(R.string.lavori_done_empty), Cm.text) }
             dn.forEach { day ->
                 val key = "day:${day.date}"
                 val isToday = day.date == today
@@ -234,7 +233,7 @@ fun LavoriScreen(
             }
             // Proposta 9: i controlli verdi e rossi della settimana.
             kpi?.checksWeek?.takeIf { it.isNotEmpty() }?.let { d -> item("kpi-9") { Box(Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) { Kpi9(d) } } }
-            item("quota-note") { Expl(stringResource(R.string.lavori_quota_note), CmColors.briefGoodInk, top = 14.dp) }
+            item("quota-note") { Expl(stringResource(R.string.lavori_quota_note), Cm.briefGoodInk, top = 14.dp) }
         }
         if (!hasOk && left && !right) item("end") { Spacer(Modifier.height(1.dp)) }
     }
@@ -242,7 +241,7 @@ fun LavoriScreen(
 
 /** La riga che spiega il blocco, con parole semplici. */
 @Composable
-private fun Expl(text: String, color: Color = CmColors.text2, top: androidx.compose.ui.unit.Dp = 0.dp) =
+private fun Expl(text: String, color: Color = Cm.text2, top: androidx.compose.ui.unit.Dp = 0.dp) =
     Text(text, style = MaterialTheme.typography.bodyMedium, color = color, modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = top, bottom = 8.dp))
 
 /** Una riga richiusa: «Altre N», «Altri N in pausa», «La notte del …»; `open` null = un rimando, non una piega. */
@@ -252,10 +251,10 @@ private fun Fold(text: String, open: Boolean?, onClick: () -> Unit) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).handCursor().clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.weight(1f))
         Icon(
             when (open) { null -> Icons.AutoMirrored.Rounded.KeyboardArrowRight; true -> Icons.Rounded.ExpandLess; false -> Icons.Rounded.ExpandMore },
-            null, tint = CmColors.actionIcon, modifier = Modifier.size(20.dp),
+            null, tint = Cm.actionIcon, modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -281,24 +280,24 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
     // sotto, che vanno a capo fra loro, come nella home (Franz 24/10 18:35, regola di e8afbe1c).
     val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
     Column(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         when {
             ag != null -> AgendaMark(ag.scope)
-            cm?.paused != null -> Icon(Icons.Rounded.Pause, null, tint = CmColors.text2, modifier = Modifier.size(22.dp))
-            else -> Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(22.dp))
+            cm?.paused != null -> Icon(Icons.Rounded.Pause, null, tint = Cm.text2, modifier = Modifier.size(22.dp))
+            else -> Icon(Icons.Rounded.Verified, null, tint = Cm.advice, modifier = Modifier.size(22.dp))
         }
         V3Split(Modifier.weight(1f), text = {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(r.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
-                sub?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
+                Text(r.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
+                sub?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
             }
         }) {
             if (opts.isEmpty() && button != null) {
                 val click = { if (a != null) ask = true else onClick("", null) }
-                if (filled) Button(onClick = click, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(button) }
+                if (filled) Button(onClick = click, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(button) }
                 else FilledTonalButton(onClick = click) { Text(button) }
             }
         }
@@ -320,7 +319,7 @@ private fun AxisRow(axis: Lavori.Axis, labelWidth: androidx.compose.ui.unit.Dp =
         if (labelWidth > 0.dp) Spacer(Modifier.width(labelWidth))
         Row(Modifier.weight(1f)) {
             axis.days.forEach { (label, _) -> Text(label, style = MonoSmall.copy(fontSize = 11.sp), modifier = Modifier.weight(1f)) }
-            Text(stringResource(R.string.lavori_axis_today), style = MonoSmall.copy(fontSize = 11.sp, color = CmColors.text))
+            Text(stringResource(R.string.lavori_axis_today), style = MonoSmall.copy(fontSize = 11.sp, color = Cm.text))
         }
     }
 }
@@ -330,8 +329,8 @@ private fun AxisRow(axis: Lavori.Axis, labelWidth: androidx.compose.ui.unit.Dp =
 @Composable
 private fun ViewSwitch(time: Boolean, onChange: (Boolean) -> Unit) {
     val colors = SegmentedButtonDefaults.colors(
-        activeContainerColor = CmColors.surfaceHigh, activeContentColor = CmColors.text, activeBorderColor = CmColors.line,
-        inactiveContainerColor = CmColors.bg, inactiveContentColor = CmColors.text2, inactiveBorderColor = CmColors.line,
+        activeContainerColor = Cm.surfaceHigh, activeContentColor = Cm.text, activeBorderColor = Cm.line,
+        inactiveContainerColor = Cm.bg, inactiveContentColor = Cm.text2, inactiveBorderColor = Cm.line,
     )
     SingleChoiceSegmentedButtonRow(Modifier.height(36.dp)) {
         listOf(R.string.lavori_view_list, R.string.lavori_view_time).forEachIndexed { i, label ->
@@ -362,9 +361,9 @@ private fun since(at: Long, today: LocalDate, zone: ZoneId): String {
 @Composable
 private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
     val (icon, tint) = when (l.who) {
-        Lavori.Who.WORKING -> Icons.Rounded.PlayArrow to CmColors.busy
-        Lavori.Who.YOU -> Icons.Rounded.Person to CmColors.waiting
-        Lavori.Who.OTHERS -> Icons.Rounded.HourglassEmpty to CmColors.text2
+        Lavori.Who.WORKING -> Icons.Rounded.PlayArrow to Cm.busy
+        Lavori.Who.YOU -> Icons.Rounded.Person to Cm.waiting
+        Lavori.Who.OTHERS -> Icons.Rounded.HourglassEmpty to Cm.text2
     }
     val a = l.agenda
     val meta = when (l.who) {
@@ -380,7 +379,7 @@ private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
         else -> l.since?.let { since(it, today, zone) }
     }
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+        Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(Modifier.size(32.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
@@ -388,12 +387,12 @@ private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(l.short, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                Text(l.short, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                 if (l.n > 1) Tag(stringResource(R.string.lavori_n_tasks, l.n), tint)
             }
-            meta?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+            meta?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
         }
-        right?.let { Text(it, style = MonoSmall.copy(fontSize = 12.sp), color = CmColors.text2) }
+        right?.let { Text(it, style = MonoSmall.copy(fontSize = 12.sp), color = Cm.text2) }
     }
 }
 
@@ -401,7 +400,7 @@ private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
 @Composable
 private fun GanttRow(l: Lavori.Line, axis: Lavori.Axis) {
     Row(Modifier.fillMaxWidth().height(40.dp).padding(start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(if (l.n > 1) "${l.short} (${l.n})" else l.short, style = MaterialTheme.typography.bodyMedium, color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.width(GANTT_LABEL))
+        Text(if (l.n > 1) "${l.short} (${l.n})" else l.short, style = MaterialTheme.typography.bodyMedium, color = Cm.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.width(GANTT_LABEL))
         if (l.bars.isNotEmpty()) Box(Modifier.weight(1f)) { LavoriBar(l.bars, axis.now) }
         else Text(stringResource(R.string.lavori_agenda_no_date), style = MonoSmall.copy(fontSize = 11.sp), modifier = Modifier.weight(1f))
     }
@@ -410,7 +409,7 @@ private fun GanttRow(l: Lavori.Line, axis: Lavori.Axis) {
 /** La barra dei sette giorni: pista, tratti pieni (al lavoro) o tratteggiati (in pausa o in coda), la riga di adesso. */
 @Composable
 private fun LavoriBar(bars: List<Lavori.Bar>, now: Double) {
-    val solid = CmColors.busy; val dashed = CmColors.text2.copy(alpha = 0.7f); val track = CmColors.briefTrack; val line = CmColors.text
+    val solid = Cm.busy; val dashed = Cm.text2.copy(alpha = 0.7f); val track = Cm.briefTrack; val line = Cm.text
     Canvas(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp).height(16.dp)) {
         val h = 8.dp.toPx(); val y = (size.height - h) / 2; val w = size.width
         drawRoundRect(track, Offset(0f, y), Size(w, h), CornerRadius(h / 2))
@@ -431,9 +430,9 @@ private fun DayHeader(label: String, open: Boolean, onToggle: (() -> Unit)?) {
         Modifier.fillMaxWidth().then(if (onToggle != null) Modifier.clip(RoundedCornerShape(10.dp)).handCursor().clickable(onClick = onToggle) else Modifier).padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(label.uppercase(), style = MonoSmall.copy(color = CmColors.text2, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold))
-        Box(Modifier.weight(1f).height(1.dp).background(CmColors.line))
-        if (onToggle != null) Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
+        Text(label.uppercase(), style = MonoSmall.copy(color = Cm.text2, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold))
+        Box(Modifier.weight(1f).height(1.dp).background(Cm.line))
+        if (onToggle != null) Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = Cm.actionIcon, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -441,25 +440,25 @@ private fun DayHeader(label: String, open: Boolean, onToggle: (() -> Unit)?) {
 @Composable
 private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(18.dp)).background(CmColors.surfaceLow).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+        Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         when (d.outcome) {
-            "failed" -> Icon(Icons.Rounded.Close, null, tint = CmColors.gone, modifier = Modifier.size(18.dp).padding(top = 1.dp))
-            "cancelled" -> Icon(Icons.Rounded.Remove, null, tint = CmColors.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
-            else -> Icon(Icons.Rounded.Check, null, tint = CmColors.briefGoodInk, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+            "failed" -> Icon(Icons.Rounded.Close, null, tint = Cm.gone, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+            "cancelled" -> Icon(Icons.Rounded.Remove, null, tint = Cm.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+            else -> Icon(Icons.Rounded.Check, null, tint = Cm.briefGoodInk, modifier = Modifier.size(18.dp).padding(top = 1.dp))
         }
         Text(hhmm(d.at, zone), style = MonoSmall.copy(fontSize = 12.sp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(d.title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
+            Text(d.title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                d.session?.let { s -> Text(s, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { onSession(s) }) }
+                d.session?.let { s -> Text(s, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { onSession(s) }) }
                 val uri = LocalUriHandler.current
                 val url = d.url
                 Text(
                     // Senza prova l'esito in parole, mai il comando del controllo (Franz 24/10 18:36).
                     (if (d.session != null) "· " else "") + (d.proof ?: stringResource(when (d.outcome) { "failed" -> R.string.lavori_proof_failed; "cancelled" -> R.string.lavori_proof_cancelled; else -> R.string.lavori_proof_check })),
-                    style = MaterialTheme.typography.bodySmall, color = if (d.proof != null) CmColors.actionIcon else CmColors.text2,
+                    style = MaterialTheme.typography.bodySmall, color = if (d.proof != null) Cm.actionIcon else Cm.text2,
                     modifier = if (url != null) Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { runCatching { uri.openUri(url) } } else Modifier,
                 )
             }
@@ -486,25 +485,25 @@ internal fun Tonight(state: State, onAdd: () -> Unit, onRemove: (String) -> Unit
                 RegLabel(stringResource(R.string.reg_tonight))
                 Text(
                     if (state.night.queued > 0) pluralStringResource(R.plurals.reg_queued, state.night.queued, state.night.queued) else stringResource(R.string.reg_queue_empty),
-                    style = MaterialTheme.typography.bodyLarge, color = CmColors.text,
+                    style = MaterialTheme.typography.bodyLarge, color = Cm.text,
                 )
             }
             // Contratto 1.17: senza `items` il relay è precedente e la coda non si tocca dall'app.
             if (items != null) FilledTonalButton(onClick = onAdd) { Text(stringResource(R.string.reg_add)) }
         }
         state.night.running?.let {
-            Text(stringResource(R.string.night_running, it), color = CmColors.busy, style = MaterialTheme.typography.bodyMedium)
-            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = CmColors.busy, trackColor = CmColors.briefTrack)
+            Text(stringResource(R.string.night_running, it), color = Cm.busy, style = MaterialTheme.typography.bodyMedium)
+            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Cm.busy, trackColor = Cm.briefTrack)
         }
-        if (items == null) Text(stringResource(R.string.night_update_pc), color = CmColors.text2, style = MaterialTheme.typography.bodyMedium)
+        if (items == null) Text(stringResource(R.string.night_update_pc), color = Cm.text2, style = MaterialTheme.typography.bodyMedium)
         items?.forEach { job ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(job.name, fontWeight = FontWeight.SemiBold, color = CmColors.text, style = MaterialTheme.typography.bodyMedium)
-                    Text(job.prompt, color = CmColors.text2, style = MaterialTheme.typography.bodySmall)
-                    if (job.started != null) Text(stringResource(R.string.night_started), color = CmColors.busy, style = MaterialTheme.typography.bodySmall)
+                    Text(job.name, fontWeight = FontWeight.SemiBold, color = Cm.text, style = MaterialTheme.typography.bodyMedium)
+                    Text(job.prompt, color = Cm.text2, style = MaterialTheme.typography.bodySmall)
+                    if (job.started != null) Text(stringResource(R.string.night_started), color = Cm.busy, style = MaterialTheme.typography.bodySmall)
                 }
-                TextButton(onClick = { onRemove(job.id) }, enabled = job.started == null) { Text(stringResource(R.string.night_remove), color = CmColors.actionIcon) }
+                TextButton(onClick = { onRemove(job.id) }, enabled = job.started == null) { Text(stringResource(R.string.night_remove), color = Cm.actionIcon) }
             }
         }
     }
@@ -514,11 +513,11 @@ internal fun Tonight(state: State, onAdd: () -> Unit, onRemove: (String) -> Unit
 @Composable
 internal fun RegCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) =
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).smoothSize().then(modifier).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).smoothSize().then(modifier).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp), content = content,
     )
 
 @Composable
-internal fun RegLabel(text: String) = Text(text.uppercase(), style = MonoSmall.copy(color = CmColors.briefLabel, letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp)))
+internal fun RegLabel(text: String) = Text(text.uppercase(), style = MonoSmall.copy(color = Cm.briefLabel, letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp)))
 
 

@@ -47,7 +47,7 @@ class KpiViewsTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 2400))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.fillMaxSize().background(CmColors.bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxSize().background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     // Proposte piccole (compito app-kpi-piccole-25-10): le tre cifre e la quota per sessione.
                     Kpi7(Kpi.head(st, page, now, zone), st, now, {})
                     Kpi.split(st, "personal")?.let { Kpi4(it) }
@@ -71,7 +71,7 @@ class KpiViewsTest {
         val m = Summary.build(st, emptyList(), emptyList(), st.ts, zone, emptySet())
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.background(CmColors.bg)) {
+                Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
                     SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, kpiPage = page.copy(sessions = page.sessions.map { it.copy(events = it.events.map { e -> e.copy(at = e.at - now + st.ts) }) }), kpiState = st)
                 }
             }

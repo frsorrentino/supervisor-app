@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.layout
 import androidx.compose.material.icons.rounded.Reorder
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,7 +42,6 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.AppLanguage
 import it.pixelbox.cmwatch.rules.SettingsDevices
 import it.pixelbox.cmwatch.rules.SpeechRate
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Impostazioni (mockup A, scelto da Franz il 03/10 alle 21:59): come le altre pagine, testata con ← e sezioni per
@@ -65,6 +66,8 @@ fun SettingsScreen(
     onBack: () -> Unit = {},
     /** Il dispositivo con la scheda aperta all'inizio (i provini); di solito il PC. */
     initialDevice: DeviceNode = DeviceNode.PC,
+    /** Le sezioni aperte all'inizio (i provini); nell'app tutte chiuse (Franz, 30/10 21:46). */
+    initialOpen: Set<String> = emptySet(),
     /** Contratto 1.31: un dispositivo in più dal telefono, senza PC; null con un relay che non lo sa fare. */
     onAddDevice: (() -> Unit)? = null,
     /** Il tablet (Franz, 04/10 14:40): i dettagli della sessione a destra, spenti di default; null fuori dal tablet. */
@@ -87,26 +90,33 @@ fun SettingsScreen(
     var choosing by remember { mutableStateOf(false) }
     var choosingVoice by remember { mutableStateOf(false) }
     var device by rememberSaveable { mutableStateOf(initialDevice) }
+    var opened by rememberSaveable { mutableStateOf(initialOpen.toList()) }
+    @Composable fun section(key: String, title: String, icon: ImageVector, right: String?, body: @Composable () -> Unit) {
+        val on = key in opened
+        V3Section(title, icon, right = if (on) null else right, tag = "impostazioni-sezioni-$key", open = on, onToggle = { opened = if (on) opened - key else opened + key })
+        if (on) body()
+    }
     V3Theme { Column(Modifier.fillMaxSize().background(V3.Bg).systemBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.settings_back), tint = CmColors.text) }
-            Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.settings_back), tint = Cm.text) }
+            Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            V3Section(stringResource(R.string.sec_link), Icons.Outlined.Link)
+            val deviceCount = linked?.size
+            section("link", stringResource(R.string.sec_link), Icons.Outlined.Link, deviceCount?.let { pluralStringResource(R.plurals.settings_devices, it, it) } ?: host) {
                         if (linked != null && host != null) {
                 LinkedList(linked, nowSec(), onRevoke)
             }
             else DeviceScheme(devices, device, onSelect = { device = it }) {
                 // Non accoppiati (Demo): accoppiare è l'azione principale, sotto lo schema tratteggiato.
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.connect_pc), style = MaterialTheme.typography.titleLarge, color = CmColors.text)
-                    Text(stringResource(R.string.connect_pc_sub), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+                    Text(stringResource(R.string.connect_pc), style = MaterialTheme.typography.titleLarge, color = Cm.text)
+                    Text(stringResource(R.string.connect_pc_sub), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
                     Button(
-                        onClick = onRepair, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                        onClick = onRepair, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                     ) { Text(stringResource(R.string.pair_button)) }
                 }
@@ -124,15 +134,12 @@ fun SettingsScreen(
                 }
             }
 
-            onHomeOrder?.let {
-                SectionCard { SettingsRow(Icons.Outlined.Reorder, stringResource(R.string.reorder_title), stringResource(R.string.reorder_row_sub), onClick = { reorder = true }) }
             }
-
-            V3Section(stringResource(R.string.sec_reading), Icons.Outlined.GraphicEq)
+            section("reading", stringResource(R.string.sec_reading), Icons.Outlined.GraphicEq, rateLabel(rate)) {
             SectionCard {
                 SettingsRow(Icons.Outlined.GraphicEq, stringResource(R.string.voice), voice ?: stringResource(R.string.voice_default), onClick = { choosingVoice = true })
                 SettingsRow(Icons.Outlined.Speed, stringResource(R.string.speech_rate), stringResource(R.string.rate_hint), onClick = null) {
-                    Text(rateLabel(rate), style = MaterialTheme.typography.titleSmall, color = CmColors.text)
+                    Text(rateLabel(rate), style = MaterialTheme.typography.titleSmall, color = Cm.text)
                 }
                 // Lo stesso slider della barra di lettura (Franz, 07/10, approvato alle 22:06): da 0,5× a 2×, vale al rilascio.
                 var draft by remember(rate) { mutableFloatStateOf(rate) }
@@ -144,32 +151,42 @@ fun SettingsScreen(
                     Icons.Outlined.Headphones, stringResource(R.string.live_recap_setting), stringResource(R.string.live_recap_setting_sub),
                     onClick = { onLiveRecap(it.pixelbox.cmwatch.rules.LiveDesk.nextRecap(liveRecap)) },
                 ) {
-                    Text(if (liveRecap == 0) stringResource(R.string.live_recap_off) else stringResource(R.string.live_recap_every, liveRecap), style = MaterialTheme.typography.titleSmall, color = CmColors.text)
+                    Text(if (liveRecap == 0) stringResource(R.string.live_recap_off) else stringResource(R.string.live_recap_every, liveRecap), style = MaterialTheme.typography.titleSmall, color = Cm.text)
                 }
             }
 
-            V3Section(stringResource(R.string.sec_app), Icons.Outlined.Tune)
+            }
+            section("app", stringResource(R.string.sec_app), Icons.Outlined.Tune, languageName(language)) {
             SectionCard {
                 SettingsRow(Icons.Outlined.Language, stringResource(R.string.language), languageName(language), onClick = { choosing = true })
                 SettingsRow(Icons.Outlined.Notifications, stringResource(R.string.notifications), stringResource(R.string.notifications_sub), onNotifications)
                 SettingsRow(Icons.Outlined.Science, stringResource(R.string.demo_mode), stringResource(R.string.demo_mode_sub), onClick = { onDemo(!demo) }) {
                     Switch(checked = demo, onCheckedChange = onDemo, colors = cmSwitchColors())
                 }
+                onHomeOrder?.let { SettingsRow(Icons.Outlined.Reorder, stringResource(R.string.reorder_title), stringResource(R.string.reorder_row_sub), onClick = { reorder = true }) }
             }
 
-            V3Section(stringResource(R.string.sec_info), Icons.Outlined.Info)
+            }
+            section("info", stringResource(R.string.sec_info), Icons.Outlined.Info, version) {
             SectionCard {
                 SettingsRow(Icons.Outlined.PrivacyTip, stringResource(R.string.privacy), stringResource(R.string.privacy_sub), onPrivacy)
                 SettingsRow(Icons.Outlined.Info, stringResource(R.string.version_title), stringResource(R.string.version_value, version), onClick = null)
                 updateStatus?.let { SettingsRow(Icons.Outlined.SystemUpdate, stringResource(R.string.updates_title), it, onCheckUpdate) }
+                Column(Modifier.testTag("info-crediti").padding(start = V3.Rail + 8.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.credits_title), style = V3.Name)
+                    Text(stringResource(R.string.credits_author), style = V3.Small)
+                    Text(stringResource(R.string.credits_fonts), style = V3.Small)
+                    Text(stringResource(R.string.credits_libs), style = V3.Small)
+                }
+            }
             }
         }
     } }
     if (choosingVoice) {
         AlertDialog(
             onDismissRequest = { choosingVoice = false },
-            confirmButton = { TextButton(onClick = onTryVoice) { Text(stringResource(R.string.voice_try), color = CmColors.actionIcon) } },
-            dismissButton = { TextButton(onClick = { choosingVoice = false }) { Text(stringResource(R.string.close), color = CmColors.actionIcon) } },
+            confirmButton = { TextButton(onClick = onTryVoice) { Text(stringResource(R.string.voice_try), color = Cm.actionIcon) } },
+            dismissButton = { TextButton(onClick = { choosingVoice = false }) { Text(stringResource(R.string.close), color = Cm.actionIcon) } },
             title = { Text(stringResource(R.string.voice)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -179,7 +196,7 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             RadioButton(selected = v == voice, onClick = null)
-                            Text(v ?: stringResource(R.string.voice_default), color = CmColors.text)
+                            Text(v ?: stringResource(R.string.voice_default), color = Cm.text)
                         }
                     }
                 }
@@ -203,7 +220,7 @@ fun SettingsScreen(
                     }
                 }
             },
-            containerColor = CmColors.surface,
+            containerColor = Cm.surface,
         )
     }
 }

@@ -435,7 +435,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             addDevice?.let { ui ->
-                ModalBottomSheet(onDismissRequest = { addDevice = null }, containerColor = it.pixelbox.cmwatch.ui.tokens.CmColors.surface) {
+                ModalBottomSheet(onDismissRequest = { addDevice = null }, containerColor = it.pixelbox.cmwatch.mobile.ui.Cm.surface) {
                     AddDeviceSheet(ui, onRetry = askInvite, onDone = { addDevice = null })
                 }
             }
@@ -1495,7 +1495,7 @@ class MainActivity : ComponentActivity() {
             if (st == null || summary == null) {
                 // Prima del primo stato la rotella: mai un riepilogo vuoto (revisione finale 02/10).
                 Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    androidx.compose.material3.CircularProgressIndicator(color = it.pixelbox.cmwatch.ui.tokens.CmColors.actionIcon)
+                    androidx.compose.material3.CircularProgressIndicator(color = it.pixelbox.cmwatch.mobile.ui.Cm.actionIcon)
                 }
                 return@summaryPage
             }
@@ -1781,7 +1781,7 @@ class MainActivity : ComponentActivity() {
                     }
                     androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
                     st.quota.forEach { (acc, q) ->
-                        q.h5?.let { h -> Text("$acc · " + getString(R.string.quota_h5_short, h), style = it.pixelbox.cmwatch.mobile.ui.MonoSmall, color = if (q.stale) it.pixelbox.cmwatch.ui.tokens.CmColors.waiting else it.pixelbox.cmwatch.ui.tokens.CmColors.text2) }
+                        q.h5?.let { h -> Text("$acc · " + getString(R.string.quota_h5_short, h), style = it.pixelbox.cmwatch.mobile.ui.MonoSmall, color = if (q.stale) it.pixelbox.cmwatch.mobile.ui.Cm.waiting else it.pixelbox.cmwatch.mobile.ui.Cm.text2) }
                     }
                 },
             )
@@ -2042,7 +2042,7 @@ class MainActivity : ComponentActivity() {
         }
         // La conferma di «Scarica» (Franz, 10/10 06:50).
         savedFile?.let { f ->
-            ModalBottomSheet(onDismissRequest = { savedFile = null }, containerColor = it.pixelbox.cmwatch.ui.tokens.CmColors.surface) {
+            ModalBottomSheet(onDismissRequest = { savedFile = null }, containerColor = it.pixelbox.cmwatch.mobile.ui.Cm.surface) {
                 it.pixelbox.cmwatch.mobile.ui.FileSavedContent(
                     f, onOpen = { savedFile = null; openSaved(f) },
                     onFolder = if (f.inDownloads) ({ savedFile = null; openDownloads() }) else null,
@@ -2052,19 +2052,19 @@ class MainActivity : ComponentActivity() {
         }
         // «Chiuse · N» del riepilogo: l'elenco delle chiuse con «Riapri».
         if (closedOpen && summary != null) {
-            ModalBottomSheet(onDismissRequest = { closedOpen = false }, containerColor = it.pixelbox.cmwatch.ui.tokens.CmColors.surface) {
+            ModalBottomSheet(onDismissRequest = { closedOpen = false }, containerColor = it.pixelbox.cmwatch.mobile.ui.Cm.surface) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(resources.getQuantityString(R.plurals.summary_closed, summary.closed.size, summary.closed.size), style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text)
+                    Text(resources.getQuantityString(R.plurals.summary_closed, summary.closed.size, summary.closed.size), style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = it.pixelbox.cmwatch.mobile.ui.Cm.text)
                     summary.closed.forEach { s ->
                         // Contratto 1.84 (B4): lo stato salvato alla chiusura, e «Riprendi» quando c'è l'id della conversazione.
                         Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             SessionBadge(s, 20.dp)
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                Text(s.name, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                                Text(s.name, color = it.pixelbox.cmwatch.mobile.ui.Cm.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                                 val small = androidx.compose.material3.MaterialTheme.typography.bodySmall
-                                s.closed?.outcome?.let { o -> Text(getString(R.string.close_saves_outcome, o), style = small, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text2) }
-                                s.closed?.next?.let { nx -> Text(getString(R.string.close_saves_next, nx), style = small, color = it.pixelbox.cmwatch.ui.tokens.CmColors.text2) }
-                                s.closed?.dirtyN?.takeIf { d -> d > 0 }?.let { n -> Text(getString(R.string.close_dirty, n, s.closed?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = it.pixelbox.cmwatch.ui.tokens.CmColors.briefWarn) }
+                                s.closed?.outcome?.let { o -> Text(getString(R.string.close_saves_outcome, o), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.text2) }
+                                s.closed?.next?.let { nx -> Text(getString(R.string.close_saves_next, nx), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.text2) }
+                                s.closed?.dirtyN?.takeIf { d -> d > 0 }?.let { n -> Text(getString(R.string.close_dirty, n, s.closed?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.briefWarn) }
                             }
                             androidx.compose.material3.FilledTonalButton(onClick = { closedOpen = false; scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, s.name, null) } } }) { Text(getString(if (s.closed?.sessionId != null) R.string.resume_saved else R.string.reopen)) }
                         }

@@ -42,7 +42,7 @@ class PluginsSectionTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 2400))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.fillMaxSize().background(CmColors.bg).padding(12.dp)) {
+                Column(Modifier.fillMaxSize().background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
                     PluginsCard(summary, { page }, { _, _ -> null }, initial = page)
                 }
             }

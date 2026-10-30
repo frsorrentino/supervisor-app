@@ -36,15 +36,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Kpi
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 // I KPI coi dati già nel relay (proposte 6, 11 e 18 del 25/10, compito app-kpi-medie-25-10). Etichette sul grafico, niente
 // legende (Franz 25/10 21:33); ogni vista porta il suo testTag kpi-N per il controllo.
 
 private fun bandColor(b: Kpi.Band) = when (b) {
-    Kpi.Band.WORK -> CmColors.busy
-    Kpi.Band.WAIT -> CmColors.waiting
-    Kpi.Band.STILL -> CmColors.briefTrack
+    Kpi.Band.WORK -> Cm.busy
+    Kpi.Band.WAIT -> Cm.waiting
+    Kpi.Band.STILL -> Cm.briefTrack
 }
 
 /** 6 · sei colonnine, una per ora, l'ultima a destra; l'altezza è il numero di eventi dell'ora. */
@@ -58,7 +57,7 @@ internal fun Kpi6(counts: List<Int>) {
     ) {
         counts.forEach { c ->
             val h = if (c == 0) 2f else maxOf(3f, c * 16f / top)
-            Box(Modifier.width(4.dp).height(h.dp).clip(RoundedCornerShape(1.dp)).background(if (c == 0) CmColors.briefTrack else CmColors.busy))
+            Box(Modifier.width(4.dp).height(h.dp).clip(RoundedCornerShape(1.dp)).background(if (c == 0) Cm.briefTrack else Cm.busy))
         }
     }
 }
@@ -71,8 +70,8 @@ internal fun Kpi11(spans: List<Kpi.Span>, from: Long, now: Long) {
     val h = (work / 3600).toInt(); val m = ((work % 3600) / 60).toInt()
     Column(Modifier.testTag("kpi-11").fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.kpi11_title).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = CmColors.text2, maxLines = 1, modifier = Modifier.weight(1f))
-            Text(if (h > 0) stringResource(R.string.kpi11_work_h, h, m) else stringResource(R.string.kpi11_work_m, m), style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2, maxLines = 1)
+            Text(stringResource(R.string.kpi11_title).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = Cm.text2, maxLines = 1, modifier = Modifier.weight(1f))
+            Text(if (h > 0) stringResource(R.string.kpi11_work_h, h, m) else stringResource(R.string.kpi11_work_m, m), style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2, maxLines = 1)
         }
         Row(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp))) {
             spans.forEach { s -> Box(Modifier.weight(((s.to - s.from) / len).coerceAtLeast(0.001f)).fillMaxHeight().background(bandColor(s.band))) }
@@ -82,7 +81,7 @@ internal fun Kpi11(spans: List<Kpi.Span>, from: Long, now: Long) {
             var hour = 0
             while (from + hour * 3600L <= now) {
                 val x = hour * 3600f / len
-                if (x <= 0.92f) Text("%02d".format(hour), style = MonoSmall.copy(fontSize = 10.sp), color = CmColors.text2, maxLines = 1, modifier = Modifier.offset(x = w * x))
+                if (x <= 0.92f) Text("%02d".format(hour), style = MonoSmall.copy(fontSize = 10.sp), color = Cm.text2, maxLines = 1, modifier = Modifier.offset(x = w * x))
                 hour += 4
             }
         }
@@ -104,32 +103,32 @@ internal fun Kpi18(f: Kpi.DayFigures) {
             Figure(
                 f.waitingNow.toString(),
                 if (f.waitingNow > 0) stringResource(R.string.kpi18_waiting_since, maxOf(1L, ((f.oldestWaitS ?: 0L) + 30) / 60)) else stringResource(R.string.kpi18_none_waiting),
-                if (f.waitingNow > 0) CmColors.waiting else null, Modifier.weight(1f),
+                if (f.waitingNow > 0) Cm.waiting else null, Modifier.weight(1f),
             )
             Figure(tokens, f.topSession?.let { stringResource(R.string.kpi18_tokens, it, Math.round(f.topShare * 100).toInt()) } ?: stringResource(R.string.kpi18_tokens_none), null, Modifier.weight(1f))
         }
         Text(
             buildAnnotatedString {
-                withStyle(SpanStyle(color = CmColors.busy)) { append(stringResource(R.string.kpi18_prompt)) }
+                withStyle(SpanStyle(color = Cm.busy)) { append(stringResource(R.string.kpi18_prompt)) }
                 append(" ${stringResource(R.string.kpi18_and)} ")
-                withStyle(SpanStyle(color = CmColors.idle)) { append(stringResource(R.string.kpi18_commit)) }
+                withStyle(SpanStyle(color = Cm.idle)) { append(stringResource(R.string.kpi18_commit)) }
                 append(" ${stringResource(R.string.kpi18_per_hour)}")
             },
-            style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
+            style = MaterialTheme.typography.bodySmall, color = Cm.text2,
         )
         val top = (f.perHour.maxOfOrNull { it.first + it.second } ?: 0).coerceAtLeast(1)
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Bottom,
         ) {
             f.perHour.forEachIndexed { i, (p, c) ->
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Column(Modifier.fillMaxWidth().height(58.dp), verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.Bottom)) {
-                        if (c > 0) Box(Modifier.fillMaxWidth().height((c * 56f / top).dp).clip(RoundedCornerShape(2.dp)).background(CmColors.idle))
-                        if (p > 0) Box(Modifier.fillMaxWidth().height((p * 56f / top).dp).clip(RoundedCornerShape(2.dp)).background(CmColors.busy))
+                        if (c > 0) Box(Modifier.fillMaxWidth().height((c * 56f / top).dp).clip(RoundedCornerShape(2.dp)).background(Cm.idle))
+                        if (p > 0) Box(Modifier.fillMaxWidth().height((p * 56f / top).dp).clip(RoundedCornerShape(2.dp)).background(Cm.busy))
                     }
                     val hour = f.firstHour + i
-                    Text(if (hour % 4 == 0) hour.toString() else "", style = MonoSmall.copy(fontSize = 10.sp), color = CmColors.text2, maxLines = 1, modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Text(if (hour % 4 == 0) hour.toString() else "", style = MonoSmall.copy(fontSize = 10.sp), color = Cm.text2, maxLines = 1, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
             }
         }
@@ -138,13 +137,13 @@ internal fun Kpi18(f: Kpi.DayFigures) {
 
 @Composable
 internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifier, chevron: Boolean = false) {
-    Column(modifier.clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier.clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(value, style = MaterialTheme.typography.headlineSmall, color = tone ?: CmColors.text, maxLines = 1, modifier = Modifier.weight(1f))
+            Text(value, style = MaterialTheme.typography.headlineSmall, color = tone ?: Cm.text, maxLines = 1, modifier = Modifier.weight(1f))
             // I box della home si aprono (app-box-cliccabili-29-10): la freccina lo dice.
-            if (chevron) androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = CmColors.text2, modifier = Modifier.size(16.dp))
+            if (chevron) androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = Cm.text2, modifier = Modifier.size(16.dp))
         }
-        Text(label, style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = Cm.text2)
     }
 }
 
@@ -156,10 +155,10 @@ internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifi
  */
 @Composable
 internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}) {
-    Column(Modifier.testTag("kpi-7").fillMaxWidth().clip(V3.Shape).background(V3.S1)) {
+    Column(Modifier.testTag("kpi-7").fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
         Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
             val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
-            val box = { b: HomeBox, tag: String, w: Float -> Modifier.weight(w).fillMaxHeight().testTag(tag).handCursor().clickable { onBox(b) } }
+            val box = { b: HomeBox, tag: String, w: Float -> Modifier.weight(w).fillMaxHeight().then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).testTag(tag).handCursor().clickable { onBox(b) } }
             Board(h.waiting.toString(), if (h.waiting > 0) stringResource(R.string.kpi7_waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f))
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f))
@@ -210,16 +209,16 @@ private fun Board(value: String, label: String, tone: Color, red: String?, modif
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun Kpi4(s: Kpi.Split) {
-    val tones = listOf(CmColors.briefRing, CmColors.briefWeek, CmColors.briefGood, CmColors.text2)
+    val tones = listOf(Cm.briefRing, Cm.briefWeek, Cm.briefGood, Cm.text2)
     Column(
-        Modifier.testTag("kpi-4").fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.testTag("kpi-4").fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.kpi4_title, s.account).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = CmColors.text2, modifier = Modifier.weight(1f))
-            Text("${s.h5}%", style = MonoSmall, color = CmColors.text)
+            Text(stringResource(R.string.kpi4_title, s.account).uppercase(), style = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.7.sp), color = Cm.text2, modifier = Modifier.weight(1f))
+            Text("${s.h5}%", style = MonoSmall, color = Cm.text)
         }
-        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(CmColors.briefTrack)) {
+        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Cm.briefTrack)) {
             val parts = s.slices.map { it.pct } + listOfNotNull(s.others.takeIf { it > 0 })
             parts.forEachIndexed { i, p -> if (p > 0) Box(Modifier.fillMaxHeight().weight(p / 100f).background(tones[minOf(i, 3)])) }
             val free = 100 - parts.sum()

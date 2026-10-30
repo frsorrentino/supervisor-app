@@ -32,7 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /*
  * Lo stile «attuale, più tech, deciso» della casa della master (Franz, 02/10 00:16; valori nella spec
@@ -57,11 +56,11 @@ fun Modifier.dotGrid(): Modifier = drawWithCache {
 /** Una card come vetro: bordo chiaro al 14 %, angoli 16 dp, riflesso in alto. `tint` colora bordo e velo (Per te: ambra). */
 @Composable
 fun GlassCard(modifier: Modifier = Modifier, tint: Color? = null, content: @Composable ColumnScope.() -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(14.dp)
     val border = tint?.copy(alpha = 0.75f) ?: Color.White.copy(alpha = 0.14f)
     Column(
         modifier.fillMaxWidth().clip(shape)
-            .background(tint?.copy(alpha = 0.06f) ?: CmColors.surface)
+            .background(tint?.copy(alpha = 0.06f) ?: Cm.surface)
             .background(Brush.verticalGradient(0f to Color.White.copy(alpha = 0.06f), 0.45f to Color.Transparent))
             .border(1.dp, border, shape)
             .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -83,7 +82,7 @@ fun RuledLabel(text: String, color: Color, rule: Boolean = true, trailing: (@Com
 /** Il led: verde con un alone che pulsa in 1,6 s; ambra e fermo con un dato vecchio; fermo nei provini (`LocalStill`). */
 @Composable
 fun Led(stale: Boolean, dot: Dp = 8.dp) {
-    val color = if (stale) CmColors.waiting else CmColors.idle
+    val color = if (stale) Cm.waiting else Cm.idle
     val still = LocalStill.current || stale
     // Calcolato a mano come l'asterisco della riga dal vivo: con la scala delle animazioni a zero (il telefono di Franz)
     // le animazioni di Compose saltano alla fine e il led restava fermo (revisione finale 02/10).
@@ -104,12 +103,12 @@ fun Led(stale: Boolean, dot: Dp = 8.dp) {
 
 /** Un numero da strumento: cifre monospaziate grandi, l'unità piccola e grigia. */
 @Composable
-fun InstrumentNumber(value: String, unit: String, size: Int = 24, color: Color = CmColors.text) {
+fun InstrumentNumber(value: String, unit: String, size: Int = 24, color: Color = Cm.text) {
     Row(verticalAlignment = Alignment.Bottom) {
-        Text(value, style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = size.sp, fontWeight = FontWeight.Medium, color = color))
-        Text(unit, style = TextStyle(fontSize = 12.sp, color = CmColors.text2), modifier = Modifier.padding(start = 1.dp, bottom = 3.dp))
+        Text(value, style = TextStyle(fontFamily = V3.Mono, fontSize = size.sp, fontWeight = FontWeight.Medium, color = color))
+        Text(unit, style = TextStyle(fontSize = 12.sp, color = Cm.text2), modifier = Modifier.padding(start = 1.dp, bottom = 3.dp))
     }
 }
 
 /** Testo piccolo monospaziato per orari e «aggiornato ora · PC». */
-val MonoSmall = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = CmColors.text2)
+val MonoSmall get() = TextStyle(fontFamily = V3.Mono, fontSize = 12.sp, color = Cm.text2)

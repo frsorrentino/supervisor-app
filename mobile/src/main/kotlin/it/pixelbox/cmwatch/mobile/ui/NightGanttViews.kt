@@ -38,7 +38,6 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.NightGantt
 import it.pixelbox.cmwatch.rules.NightGantt.GoalState
 import it.pixelbox.cmwatch.rules.NightGantt.Where
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 import java.time.ZoneId
 
 /*
@@ -47,30 +46,30 @@ import java.time.ZoneId
  * nella vista B anche il tratto (pieno, a righe, tratteggiato).
  */
 
-private val gridLine = Color(0xFF262C34)
-private val markLine = Color(0xFF8AB4F8)
-private val pubFill = Color(0xFFF1F3F4)
-private val ganttCard = Color(0xFF1A1E24)
-private val axisText = Color(0xFF8B929C)
-private val dimText = Color(0xFFA3AAB4)
+private val gridLine get() = V3.Line
+private val markLine get() = V3.Busy
+private val pubFill get() = V3.Tx
+private val ganttCard get() = V3.S1
+private val axisText get() = V3.Tx3
+private val dimText get() = V3.Tx2
 
 /** Barra, fondo e inchiostro della pillola di uno stato del progetto (bozza A). */
 private data class Tone(val bar: Color, val chipBg: Color, val ink: Color)
 
 private fun tone(w: Where): Tone = when (w) {
-    Where.DONE -> Tone(Color(0xFF5F7D69), Color(0xFF1F3326), Color(0xFFA8DAB5))
-    Where.RUNNING -> Tone(Color(0xFF5D7FB8), Color(0xFF1C2A44), Color(0xFFA8C7FA))
-    Where.PARTIAL -> Tone(Color(0xFF8D7A46), Color(0xFF3A3220), Color(0xFFFDE293))
-    Where.STOPPED -> Tone(Color(0xFF8C5752), Color(0xFF3C2224), Color(0xFFF6AEA9))
-    Where.UNKNOWN -> Tone(Color(0xFF5F6670), Color(0xFF262C34), Color(0xFFC4C9D0))
+    Where.DONE -> Tone(V3.Good, V3.S3, V3.Good)
+    Where.RUNNING -> Tone(V3.Busy, V3.S3, V3.Busy)
+    Where.PARTIAL -> Tone(V3.Wait, V3.S3, V3.Wait)
+    Where.STOPPED -> Tone(V3.Red, V3.S3, V3.Red)
+    Where.UNKNOWN -> Tone(V3.Tx3, V3.S3, V3.Tx2)
 }
 
 /** Vista B: pieno se fatto, a righe se in corso, tratteggiato se fermo o in parte. */
-private val goalDone = Color(0xFF6FA57F)
-private val goalRun = Color(0xFF5D7FB8)
-private val goalRunDark = Color(0xFF33476B)
-private val goalPartial = Color(0xFFC9A54A)
-private val goalStopped = Color(0xFFC26A63)
+private val goalDone get() = V3.Good
+private val goalRun get() = V3.Busy
+private val goalRunDark get() = V3.S3
+private val goalPartial get() = V3.Wait
+private val goalStopped get() = V3.Red
 
 @Composable
 private fun whereLabel(w: Where): String = stringResource(when (w) {
@@ -83,8 +82,8 @@ private fun whereLabel(w: Where): String = stringResource(when (w) {
 @Composable
 fun GanttSwitch(byGoal: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val colors = SegmentedButtonDefaults.colors(
-        activeContainerColor = CmColors.surfaceHigh, activeContentColor = CmColors.text, activeBorderColor = CmColors.line,
-        inactiveContainerColor = CmColors.bg, inactiveContentColor = CmColors.text2, inactiveBorderColor = CmColors.line,
+        activeContainerColor = Cm.surfaceHigh, activeContentColor = Cm.text, activeBorderColor = Cm.line,
+        inactiveContainerColor = Cm.bg, inactiveContentColor = Cm.text2, inactiveBorderColor = Cm.line,
     )
     SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
         listOf(R.string.night_view_projects, R.string.night_view_goals).forEachIndexed { i, label ->
@@ -149,7 +148,7 @@ fun ProjectsGantt(g: NightGantt.Projects, zone: ZoneId) {
             val t = tone(r.where)
             Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.width(nameW).padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text(r.name, fontSize = 13.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium, color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
+                    Text(r.name, fontSize = 13.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium, color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip)
                     Text(
                         if (r.total > 0) stringResource(R.string.night_points, r.done, r.total) else stringResource(R.string.night_no_goal),
                         fontSize = 11.sp, lineHeight = 14.sp, color = t.ink, maxLines = 1,
@@ -166,7 +165,7 @@ fun ProjectsGantt(g: NightGantt.Projects, zone: ZoneId) {
                         val cx = size.width * p.toFloat(); val cy = size.height / 2
                         val diamond = Path().apply { moveTo(cx, cy - d); lineTo(cx + d, cy); lineTo(cx, cy + d); lineTo(cx - d, cy); close() }
                         drawPath(diamond, pubFill)
-                        drawPath(diamond, CmColors.bg, style = Stroke(1.dp.toPx()))
+                        drawPath(diamond, Cm.bg, style = Stroke(1.dp.toPx()))
                     }
                 }
             }
@@ -201,12 +200,12 @@ private fun MarkLegend(a: NightGantt.Axis, zone: ZoneId) = Legend({
 fun WhereRow(r: NightGantt.ProjectRow) {
     val t = tone(r.where)
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(ganttCard).padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(ganttCard).padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(r.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = CmColors.text)
-            r.line?.let { Text(readableSlash(it), fontSize = 13.sp, lineHeight = 18.sp, color = Color(0xFFC4C9D0)) }
+            Text(r.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Cm.text)
+            r.line?.let { Text(readableSlash(it), fontSize = 13.sp, lineHeight = 18.sp, color = V3.Tx2) }
         }
         StateChip(StateIcons.of(r.where), whereLabel(r.where) + if (r.needsYou && r.where != Where.STOPPED) stringResource(R.string.night_w_needs_you) else "", t)
     }
@@ -223,8 +222,8 @@ private fun StateChip(icon: androidx.compose.ui.graphics.vector.ImageVector, tex
 fun GoalTotals(t: NightGantt.Totals) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(ganttCard).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(stringResource(R.string.night_goals_reached), fontSize = 15.sp, color = Color(0xFFC4C9D0), modifier = Modifier.weight(1f))
-            Text("${t.done}", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = CmColors.text)
+            Text(stringResource(R.string.night_goals_reached), fontSize = 15.sp, color = V3.Tx2, modifier = Modifier.weight(1f))
+            Text("${t.done}", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Cm.text)
             Text(" " + stringResource(R.string.night_goals_of, t.total), fontSize = 16.sp, color = dimText, modifier = Modifier.padding(bottom = 4.dp))
         }
         val parts = listOf(t.done to goalDone, t.running to goalRun, t.partial to goalPartial, t.todo to goalPartial.copy(alpha = .45f), t.stopped to goalStopped)
@@ -258,26 +257,26 @@ fun GoalTicks(a: NightGantt.Axis) = Box(Modifier.padding(horizontal = 10.dp)) {
 @Composable
 fun GoalGroupCard(g: NightGantt.Group, a: NightGantt.Axis, zone: ZoneId) {
     val t = tone(g.where)
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(ganttCard).padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 8.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(ganttCard).padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 8.dp)) {
         Row(Modifier.fillMaxWidth().heightIn(min = 30.dp).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(g.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = CmColors.text, modifier = Modifier.weight(1f))
+            Text(g.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Cm.text, modifier = Modifier.weight(1f))
             StateChip(StateIcons.of(g.where), whereLabel(g.where) + if (g.needsYou && g.where != Where.STOPPED) stringResource(R.string.night_w_needs_you) else "", t)
         }
-        if (g.goals.isEmpty()) g.line?.let { Text(readableSlash(it), fontSize = 13.sp, color = Color(0xFFC4C9D0), modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) }
+        if (g.goals.isEmpty()) g.line?.let { Text(readableSlash(it), fontSize = 13.sp, color = V3.Tx2, modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) }
         g.goals.forEach { goal ->
             // Il titolo intero sulla sua riga: tagliato a metà parola non si capirebbe (mai «…» nei testi).
-            Text(goal.title, fontSize = 13.sp, lineHeight = 17.sp, color = Color(0xFFC4C9D0), modifier = Modifier.padding(start = 2.dp, top = 4.dp))
+            Text(goal.title, fontSize = 13.sp, lineHeight = 17.sp, color = V3.Tx2, modifier = Modifier.padding(start = 2.dp, top = 4.dp))
             Row(Modifier.fillMaxWidth().heightIn(min = 28.dp), verticalAlignment = Alignment.CenterVertically) {
                 Canvas(Modifier.weight(1f).height(28.dp)) {
                     grid(a.every(if (a.ticks.size > 7) 3 else 1), a.mark)
                     goal.bar?.let { b -> goalBar(goal.state, size.width * b.from.toFloat(), size.width * (b.to - b.from).toFloat()) }
                 }
                 val (end, ink) = when (goal.state) {
-                    GoalState.DONE -> (goal.doneAt?.let { NightGantt.hm(it, zone) } ?: stringResource(R.string.night_g_done)) to Color(0xFFA8DAB5)
-                    GoalState.RUNNING -> stringResource(R.string.night_g_running) to Color(0xFFA8C7FA)
-                    GoalState.PARTIAL -> stringResource(R.string.night_g_partial) to Color(0xFFFDE293)
-                    GoalState.STOPPED -> stringResource(R.string.night_g_stopped) to Color(0xFFF6AEA9)
-                    GoalState.TODO -> stringResource(R.string.night_g_todo) to Color(0xFFFDE293)
+                    GoalState.DONE -> (goal.doneAt?.let { NightGantt.hm(it, zone) } ?: stringResource(R.string.night_g_done)) to V3.Good
+                    GoalState.RUNNING -> stringResource(R.string.night_g_running) to V3.Busy
+                    GoalState.PARTIAL -> stringResource(R.string.night_g_partial) to V3.Wait
+                    GoalState.STOPPED -> stringResource(R.string.night_g_stopped) to V3.Red
+                    GoalState.TODO -> stringResource(R.string.night_g_todo) to V3.Wait
                 }
                 Text(end, fontSize = 11.sp, color = ink, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.width(goalEndW))
             }
@@ -327,11 +326,11 @@ fun GoalLegend(a: NightGantt.Axis, zone: ZoneId) {
 @Composable
 fun NightIndexRow(n: NightIndex, title: String, onOpen: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(CmColors.surface).handCursor().clickable(onClick = onOpen)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surface).handCursor().clickable(onClick = onOpen)
             .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = CmColors.text)
-        Text(n.title ?: stringResource(R.string.night_old_report), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+        Text(title, style = MaterialTheme.typography.titleMedium, color = Cm.text)
+        Text(n.title ?: stringResource(R.string.night_old_report), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     }
 }

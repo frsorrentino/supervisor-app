@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.material3.MaterialTheme
 import it.pixelbox.cmwatch.rules.FileActions
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Franz, 16/10 11:18: «le anteprime html dovrebbero apparire renderizzate e non come codice». HTML e SVG si disegnano in una
@@ -54,7 +53,7 @@ internal fun PagePreview(path: String, mime: String?, fill: Boolean = false) {
     val shape = MaterialTheme.shapes.large
     // Franz 24/10 00:40 (anteprime in app): il riquadro è alto il 60% dello schermo (MediaPreview.pageHeight); a schermo intero riempie tutto.
     val box = if (fill) Modifier.fillMaxSize().background(Color.White)
-    else Modifier.fillMaxWidth().height(MediaPreview.pageHeight(LocalConfiguration.current.screenHeightDp).dp).clip(shape).background(Color.White).border(1.dp, CmColors.line, shape)
+    else Modifier.fillMaxWidth().height(MediaPreview.pageHeight(LocalConfiguration.current.screenHeightDp).dp).clip(shape).background(Color.White).border(1.dp, Cm.line, shape)
     if (LocalInspectionMode.current) { Box(box); return }
     val rules = FileActions.PAGE_VIEW
     AndroidView(
@@ -85,13 +84,13 @@ internal fun PagePreview(path: String, mime: String?, fill: Boolean = false) {
 @Composable
 internal fun PageFullDialog(path: String, mime: String?, name: String, onClose: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        Column(Modifier.fillMaxSize().background(CmColors.bg).safeDrawingPadding()) {
+        Column(Modifier.fillMaxSize().background(Cm.bg).safeDrawingPadding()) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(name, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
-                IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = CmColors.text) }
+                Text(name, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+                IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text) }
             }
             PagePreview(path, mime, fill = true)
         }

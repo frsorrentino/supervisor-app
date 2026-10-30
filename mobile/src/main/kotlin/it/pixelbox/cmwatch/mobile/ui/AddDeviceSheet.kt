@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.sp
 import io.nayuki.qrcodegen.QrCode
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.PairAddText
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /** Contratto 1.31: l'invito per un dispositivo in più, chiesto dal telefono al relay. */
 sealed interface AddDeviceUi {
@@ -51,13 +50,13 @@ fun AddDeviceSheet(ui: AddDeviceUi, onRetry: () -> Unit, onDone: () -> Unit, now
         Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(stringResource(R.string.add_device), style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.fillMaxWidth())
+        Text(stringResource(R.string.add_device), style = MaterialTheme.typography.titleLarge, color = Cm.text, modifier = Modifier.fillMaxWidth())
         val big = Modifier.fillMaxWidth().height(52.dp)
-        val primary = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)
+        val primary = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)
         when (ui) {
             AddDeviceUi.Asking -> {
-                CircularProgressIndicator(color = CmColors.actionIcon, modifier = Modifier.padding(vertical = 24.dp))
-                Text(stringResource(R.string.add_device_asking), style = MaterialTheme.typography.bodyLarge, color = CmColors.text2)
+                CircularProgressIndicator(color = Cm.actionIcon, modifier = Modifier.padding(vertical = 24.dp))
+                Text(stringResource(R.string.add_device_asking), style = MaterialTheme.typography.bodyLarge, color = Cm.text2)
             }
             is AddDeviceUi.Offer -> {
                 val tick by produceState(now ?: (System.currentTimeMillis() / 1000), ui.exp, now) {
@@ -66,28 +65,28 @@ fun AddDeviceSheet(ui: AddDeviceUi, onRetry: () -> Unit, onDone: () -> Unit, now
                 val expired = tick >= ui.exp
                 Text(
                     stringResource(if (ui.qr != null) R.string.add_device_how else R.string.add_device_how_code),
-                    style = MaterialTheme.typography.bodyLarge, color = CmColors.text2, modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyLarge, color = Cm.text2, modifier = Modifier.fillMaxWidth(),
                 )
                 if (ui.qr != null) QrImage(ui.qr, dim = expired, modifier = Modifier.widthIn(max = 300.dp).fillMaxWidth().aspectRatio(1f))
                 Text(
                     stringResource(R.string.add_device_code, ui.code.chunked(3).joinToString(" ")),
-                    style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium, letterSpacing = 1.sp),
-                    color = if (expired) CmColors.text2 else CmColors.text,
+                    style = MaterialTheme.typography.titleLarge.copy(fontFamily = V3.Mono, fontWeight = FontWeight.Medium, letterSpacing = 1.sp),
+                    color = if (expired) Cm.text2 else Cm.text,
                 )
                 Text(
                     if (expired) stringResource(R.string.add_device_expired) else stringResource(R.string.add_device_left, PairAddText.left(ui.exp, tick)),
-                    style = MaterialTheme.typography.bodyMedium, color = if (expired) CmColors.waiting else CmColors.text2,
+                    style = MaterialTheme.typography.bodyMedium, color = if (expired) Cm.waiting else Cm.text2,
                 )
                 if (expired) Button(onRetry, big, colors = primary) { Text(stringResource(R.string.add_device_again)) }
                 else Button(onDone, big, colors = primary) { Text(stringResource(R.string.add_device_done)) }
             }
             is AddDeviceUi.Refused -> {
-                Text(refusalText(ui), style = MaterialTheme.typography.bodyLarge, color = CmColors.text, modifier = Modifier.fillMaxWidth())
+                Text(refusalText(ui), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.fillMaxWidth())
                 Button(onRetry, big, colors = primary) { Text(stringResource(R.string.pair_retry)) }
                 OutlinedButton(onDone, Modifier.fillMaxWidth()) { Text(stringResource(R.string.add_device_close)) }
             }
             AddDeviceUi.Lost -> {
-                Text(stringResource(R.string.add_device_lost), style = MaterialTheme.typography.bodyLarge, color = CmColors.text, modifier = Modifier.fillMaxWidth())
+                Text(stringResource(R.string.add_device_lost), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.fillMaxWidth())
                 Button(onRetry, big, colors = primary) { Text(stringResource(R.string.pair_retry)) }
             }
         }
@@ -111,7 +110,7 @@ private fun refusalText(r: AddDeviceUi.Refused): String = when (r.refusal) {
 private fun QrImage(text: String, dim: Boolean, modifier: Modifier) {
     val qr = remember(text) { QrCode.encodeText(text, QrCode.Ecc.LOW) }
     val desc = stringResource(R.string.add_device_qr)
-    Canvas(modifier.clip(RoundedCornerShape(16.dp)).background(Color.White).semantics { contentDescription = desc }) {
+    Canvas(modifier.clip(RoundedCornerShape(14.dp)).background(Color.White).semantics { contentDescription = desc }) {
         val n = qr.size + 8
         val cell = size.minDimension / n
         val dark = if (dim) Color(0xFFB0B8C4) else Color.Black

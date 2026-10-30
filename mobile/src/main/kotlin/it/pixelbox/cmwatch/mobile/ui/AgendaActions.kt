@@ -52,7 +52,6 @@ import it.pixelbox.cmwatch.rules.ContextActions
 import it.pixelbox.cmwatch.rules.RecapActions
 import it.pixelbox.cmwatch.rules.RecapAgenda
 import it.pixelbox.cmwatch.rules.RecapAgenda.Item
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Le Azioni sulle schede del Recap (piano approvato da Franz il 09/10, «Approvo, prosegui»): quale foglio è aperto. Uno
@@ -160,20 +159,20 @@ internal fun label(i: Item): String = stringResource(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AgendaMenuSheet(r: AgendaRow, items: List<Item>, onDismiss: () -> Unit, onPick: (Item) -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = CmColors.surface) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Cm.surface) {
         Column(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Row(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AgendaMark(r.scope)
-                Text(r.title, style = MaterialTheme.typography.titleMedium, color = CmColors.text)
+                Text(r.title, style = MaterialTheme.typography.titleMedium, color = Cm.text)
             }
             items.forEachIndexed { i, item ->
-                if (i > 0 && item == Item.DONE) androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 24.dp, vertical = 4.dp), color = CmColors.line)
+                if (i > 0 && item == Item.DONE) androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 24.dp, vertical = 4.dp), color = Cm.line)
                 Row(
                     Modifier.fillMaxWidth().handCursor().clickable { onPick(item) }.padding(horizontal = 24.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Icon(icon(item), null, tint = if (item == Item.REMOVE) CmColors.gone else CmColors.actionIcon, modifier = Modifier.size(22.dp))
-                    Text(label(item), style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                    Icon(icon(item), null, tint = if (item == Item.REMOVE) Cm.gone else Cm.actionIcon, modifier = Modifier.size(22.dp))
+                    Text(label(item), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                 }
             }
         }
@@ -187,32 +186,32 @@ private fun AgendaMenuSheet(r: AgendaRow, items: List<Item>, onDismiss: () -> Un
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AgendaDeepenSheet(r: AgendaRow, onDismiss: () -> Unit, onAsk: () -> Unit, onActions: () -> Unit, onSpeak: ((String) -> Unit)? = null) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = CmColors.surface, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Cm.surface, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AgendaMark(r.scope)
-                Text(r.title, style = MaterialTheme.typography.headlineSmall, color = CmColors.text)
+                Text(r.title, style = MaterialTheme.typography.headlineSmall, color = Cm.text)
             }
             val facts = listOfNotNull(
                 r.scope.trim().takeIf { it.isNotEmpty() }, r.state.trim().takeIf { it.isNotEmpty() },
                 r.blocks.trim().takeIf { it.isNotEmpty() }?.let { stringResource(R.string.recap_blocks, it) },
                 r.until?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.agenda_until, untilLabel(it)) },
             ).joinToString(" · ")
-            Text(facts, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            Text(facts, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             if (r.ref.isNotBlank()) {
                 val uri = androidx.compose.ui.platform.LocalUriHandler.current
                 val u = RecapAgenda.url(r.ref)
                 Text(
-                    r.ref.trim(), style = MaterialTheme.typography.bodyMedium, color = if (u != null) CmColors.actionIcon else CmColors.text2,
+                    r.ref.trim(), style = MaterialTheme.typography.bodyMedium, color = if (u != null) Cm.actionIcon else Cm.text2,
                     modifier = if (u != null) Modifier.handCursor().clickable { runCatching { uri.openUri(u) } } else Modifier,
                 )
             }
             val detail = r.detail?.trim().orEmpty()
             if (detail.isNotEmpty()) Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(start = 18.dp, end = 4.dp, top = 14.dp, bottom = 14.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 18.dp, end = 4.dp, top = 14.dp, bottom = 14.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Text(detail, style = MaterialTheme.typography.bodyLarge, color = CmColors.text, modifier = Modifier.weight(1f))
+                Text(detail, style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.weight(1f))
                 // ▶ legge titolo e dettaglio; mentre legge diventa ■, come accanto ai messaggi della chat.
                 onSpeak?.let { speak ->
                     val text = r.title.trim() + ".\n" + detail
@@ -220,16 +219,16 @@ private fun AgendaDeepenSheet(r: AgendaRow, onDismiss: () -> Unit, onAsk: () -> 
                     androidx.compose.material3.IconButton(onClick = { speak(text) }) {
                         Icon(
                             if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                            stringResource(if (reading) R.string.stop_reading else R.string.read_aloud), tint = CmColors.actionIcon,
+                            stringResource(if (reading) R.string.stop_reading else R.string.read_aloud), tint = Cm.actionIcon,
                         )
                     }
                 }
-            } else Text(stringResource(R.string.agenda_no_detail), style = MaterialTheme.typography.bodyLarge, color = CmColors.text2)
+            } else Text(stringResource(R.string.agenda_no_detail), style = MaterialTheme.typography.bodyLarge, color = Cm.text2)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.material3.TextButton(onClick = onActions) { Text(stringResource(R.string.agenda_actions), color = CmColors.actionIcon) }
+                androidx.compose.material3.TextButton(onClick = onActions) { Text(stringResource(R.string.agenda_actions), color = Cm.actionIcon) }
                 if (detail.isEmpty()) androidx.compose.material3.Button(
                     onClick = onAsk,
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
                 ) { Text(stringResource(R.string.agenda_ask_detail)) }
             }
         }
@@ -254,15 +253,15 @@ private fun AgendaPostponeSheet(today: java.time.LocalDate, onDismiss: () -> Uni
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     st.selectedDateMillis?.let { ms -> onPick(java.time.Instant.ofEpochMilli(ms).atZone(zone).toLocalDate()) }
-                }) { Text(stringResource(R.string.agenda_postpone), color = CmColors.actionIcon) }
+                }) { Text(stringResource(R.string.agenda_postpone), color = Cm.actionIcon) }
             },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { calendar = false }) { Text(stringResource(R.string.cancel), color = CmColors.text2) } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { calendar = false }) { Text(stringResource(R.string.cancel), color = Cm.text2) } },
         ) { androidx.compose.material3.DatePicker(st) }
         return
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = CmColors.surface) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Cm.surface) {
         Column(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-            Text(stringResource(R.string.agenda_postpone_title), style = MaterialTheme.typography.titleMedium, color = CmColors.text, modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp))
+            Text(stringResource(R.string.agenda_postpone_title), style = MaterialTheme.typography.titleMedium, color = Cm.text, modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp))
             listOf(
                 Triple(Icons.Rounded.Today, stringResource(R.string.agenda_postpone_tomorrow, untilLabel(RecapAgenda.tomorrow(today).toString()))) { onPick(RecapAgenda.tomorrow(today)) },
                 Triple(Icons.Rounded.Weekend, stringResource(R.string.agenda_postpone_week, untilLabel(RecapAgenda.nextWeek(today).toString()))) { onPick(RecapAgenda.nextWeek(today)) },
@@ -272,8 +271,8 @@ private fun AgendaPostponeSheet(today: java.time.LocalDate, onDismiss: () -> Uni
                     Modifier.fillMaxWidth().handCursor().clickable(onClick = go).padding(horizontal = 24.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Icon(ic, null, tint = CmColors.actionIcon, modifier = Modifier.size(22.dp))
-                    Text(text, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
+                    Icon(ic, null, tint = Cm.actionIcon, modifier = Modifier.size(22.dp))
+                    Text(text, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                 }
             }
         }
@@ -292,22 +291,22 @@ private fun AgendaEditSheet(e: RecapAgenda.Edit, onDismiss: () -> Unit, onConfir
         Item.NIGHT -> Triple(R.string.agenda_night_title, stringResource(R.string.agenda_night_change), R.string.agenda_night)
         else -> Triple(R.string.agenda_pass_me_title, stringResource(R.string.agenda_pass_change, "franz"), R.string.agenda_pass)
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = CmColors.surface) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Cm.surface) {
         Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(stringResource(title), style = MaterialTheme.typography.headlineSmall, color = CmColors.text)
-            Text(stringResource(R.string.agenda_from_scope, e.row.scope.trim()), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            Text(stringResource(title), style = MaterialTheme.typography.headlineSmall, color = Cm.text)
+            Text(stringResource(R.string.agenda_from_scope, e.row.scope.trim()), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             Text(
-                e.row.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = CmColors.text,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmColors.surfaceLow).padding(horizontal = 18.dp, vertical = 14.dp),
+                e.row.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = Cm.text,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 18.dp, vertical = 14.dp),
             )
-            Text(change, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
+            Text(change, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = CmColors.actionIcon) }
+                androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Cm.actionIcon) }
                 androidx.compose.material3.Button(
                     onClick = onConfirm,
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = if (e.item == Item.REMOVE) CmColors.gone else CmColors.primary,
-                        contentColor = if (e.item == Item.REMOVE) androidx.compose.ui.graphics.Color.White else CmColors.onPrimary,
+                        containerColor = if (e.item == Item.REMOVE) Cm.gone else Cm.primary,
+                        contentColor = if (e.item == Item.REMOVE) androidx.compose.ui.graphics.Color.White else Cm.onPrimary,
                     ),
                 ) { Text(stringResource(button)) }
             }
@@ -337,7 +336,7 @@ fun NightAgendaPicker(
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(stringResource(R.string.night_from_recap).uppercase(), style = MonoSmall, modifier = Modifier.padding(bottom = 4.dp))
         if (claude.isNotEmpty()) Text(
-            stringResource(R.string.recap_claude, claude.size), style = MaterialTheme.typography.labelLarge, color = CmColors.text2,
+            stringResource(R.string.recap_claude, claude.size), style = MaterialTheme.typography.labelLarge, color = Cm.text2,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
         )
         claude.forEach { r -> NightPickRow(r, id(r) in picked) { toggle(r) } }
@@ -345,17 +344,17 @@ fun NightAgendaPicker(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).handCursor().clickable { yoursOpen = !yoursOpen }.padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.recap_you, yours.size), style = MaterialTheme.typography.labelLarge, color = CmColors.text2, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.recap_you, yours.size), style = MaterialTheme.typography.labelLarge, color = Cm.text2, modifier = Modifier.weight(1f))
             Icon(
                 if (yoursOpen) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore,
-                null, tint = CmColors.text2, modifier = Modifier.size(20.dp),
+                null, tint = Cm.text2, modifier = Modifier.size(20.dp),
             )
         }
         if (yoursOpen) yours.forEach { r -> NightPickRow(r, id(r) in picked) { toggle(r) } }
         // Tonale: il tasto pieno del foglio resta «Aggiungi alla notte» del progetto (un solo bottone pieno per schermata).
         if (picked.isNotEmpty()) androidx.compose.material3.FilledTonalButton(
             onClick = { onQueue(rows.filter { id(it) in picked }) },
-            colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(containerColor = CmColors.surfaceHigh, contentColor = CmColors.primary),
+            colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(containerColor = Cm.surfaceHigh, contentColor = Cm.primary),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(52.dp),
         ) {
             Icon(Icons.Rounded.Bedtime, null, modifier = Modifier.size(20.dp))
@@ -378,8 +377,8 @@ private fun NightPickRow(r: AgendaRow, on: Boolean, onToggle: () -> Unit) {
     ) {
         AgendaMark(r.scope)
         Column(Modifier.weight(1f).padding(top = 1.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(r.title, style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
-            if (r.ref.isNotBlank()) Text(r.ref.trim(), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+            Text(r.title, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+            if (r.ref.isNotBlank()) Text(r.ref.trim(), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
         }
         androidx.compose.material3.Checkbox(checked = on, onCheckedChange = null)
     }

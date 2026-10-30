@@ -19,7 +19,6 @@ import it.pixelbox.cmwatch.rules.Accounts
 import it.pixelbox.cmwatch.rules.LaunchSuggest
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.rounded.CreateNewFolder
-import it.pixelbox.cmwatch.ui.tokens.CmColors
 
 /**
  * Il contenuto del foglio «Lancia» (design 29/09, schermata 4), usato anche per «Aggiungi alla notte» (`action`). Sotto
@@ -66,7 +65,7 @@ fun LaunchSheet(
         Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(stringResource(action), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
+        Text(stringResource(action), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
         top?.invoke(this)
         if (accounts.size > 1) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             accounts.forEach { a ->
@@ -91,21 +90,21 @@ fun LaunchSheet(
             Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).handCursor().clickable { making = true; confirmPath = null; refusal = null }.padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.CreateNewFolder, null, tint = CmColors.actionIcon)
-            Text(stringResource(R.string.project_new, newName), style = MaterialTheme.typography.bodyLarge, color = CmColors.actionIcon, modifier = Modifier.weight(1f))
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.CreateNewFolder, null, tint = Cm.actionIcon)
+            Text(stringResource(R.string.project_new, newName), style = MaterialTheme.typography.bodyLarge, color = Cm.actionIcon, modifier = Modifier.weight(1f))
         }
         if (making) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.project_new_parent), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
+            Text(stringResource(R.string.project_new_parent), style = MaterialTheme.typography.labelLarge, color = Cm.text2)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 parents.forEach { p ->
                     FilterChip(selected = parent == p, onClick = { parent = p; confirmPath = null }, label = { Text(p.trimEnd('/').substringAfterLast('/').ifEmpty { p }) })
                 }
             }
-            confirmPath?.let { Text(stringResource(R.string.project_new_confirm, it), style = MaterialTheme.typography.bodyMedium, color = CmColors.text) }
-            refusal?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.gone) }
+            confirmPath?.let { Text(stringResource(R.string.project_new_confirm, it), style = MaterialTheme.typography.bodyMedium, color = Cm.text) }
+            refusal?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.gone) }
         }
         if (chosen == null && !making) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            if (typed.isBlank() && found.isNotEmpty()) Text(stringResource(R.string.launch_recent), style = MaterialTheme.typography.labelLarge, color = CmColors.text2)
+            if (typed.isBlank() && found.isNotEmpty()) Text(stringResource(R.string.launch_recent), style = MaterialTheme.typography.labelLarge, color = Cm.text2)
             sessions.forEach { s ->
                 val closed = s.state == it.pixelbox.cmwatch.contract.SessionState.GONE
                 Row(
@@ -113,8 +112,8 @@ fun LaunchSheet(
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     SessionBadge(s, size = 18.dp)
-                    Text(highlight(s.name, typed), style = MaterialTheme.typography.bodyLarge, color = CmColors.text, modifier = Modifier.weight(1f))
-                    Text(stringResource(if (closed) R.string.reopen else R.string.launch_open), style = MaterialTheme.typography.labelLarge, color = CmColors.actionIcon)
+                    Text(highlight(s.name, typed), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.weight(1f))
+                    Text(stringResource(if (closed) R.string.reopen else R.string.launch_open), style = MaterialTheme.typography.labelLarge, color = Cm.actionIcon)
                 }
             }
             found.forEach { p ->
@@ -125,8 +124,8 @@ fun LaunchSheet(
                 ) {
                     AccountMark(personal, size = 14.dp)
                     Column {
-                        Text(highlight(p.name, typed), style = MaterialTheme.typography.bodyLarge, color = CmColors.text)
-                        Text(p.path.substringBeforeLast('/').substringAfterLast('/'), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
+                        Text(highlight(p.name, typed), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                        Text(p.path.substringBeforeLast('/').substringAfterLast('/'), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
                     }
                 }
             }
@@ -150,12 +149,12 @@ fun LaunchSheet(
                 }
             },
             enabled = parent != null && !busy,
-            colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+            colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
             modifier = Modifier.fillMaxWidth().height(56.dp),
         ) { Text(stringResource(if (confirmPath == null) R.string.project_new_go else R.string.project_new_create, newName)) }
         else Button(
             onClick = { chosen?.let { onLaunch(it, first.trim()) } }, enabled = chosen != null,
-            colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary),
+            colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
             modifier = Modifier.fillMaxWidth().height(56.dp),
         ) { Text(stringResource(action)) }
     }
@@ -167,6 +166,6 @@ private fun highlight(name: String, typed: String): androidx.compose.ui.text.Ann
     val i = if (t.isEmpty()) -1 else name.indexOf(t, ignoreCase = true)
     return androidx.compose.ui.text.buildAnnotatedString {
         append(name)
-        if (i >= 0) addStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = CmColors.actionIcon), i, i + t.length)
+        if (i >= 0) addStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = Cm.actionIcon), i, i + t.length)
     }
 }

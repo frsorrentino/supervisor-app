@@ -26,7 +26,7 @@ class SummaryListTest {
     private fun model(state: State) = Summary.build(state, emptyList(), emptyList(), state.ts, ZoneId.of("Europe/Rome"), emptySet())
 
     @Composable private fun page(state: State, open: String? = null) = CmPhoneTheme(still = true) {
-        Column(Modifier.background(CmColors.bg)) {
+        Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
             SummaryList(model(state), {}, { _, _ -> }, { _, _ -> }, {}, {}, initiallyOpen = open)
         }
     }
@@ -46,7 +46,7 @@ class SummaryListTest {
         ), owner = "franz")
         val today = java.time.LocalDate.of(2026, 9, 12)
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.bg)) {
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
                 SummaryList(model(st2), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st2.ts, foryou = it.pixelbox.cmwatch.rules.Lavori.forYou(st2, agenda, st2.ts, today), lavoriLine = "Tutti i lavori · in corso 3 · stanotte 1 · fatto oggi 0")
             }
         }
@@ -61,7 +61,7 @@ class SummaryListTest {
         val st2 = idle.copy(approvals = listOf(inCard, loose), commitments = listOf(Commitment("ledger-release-14", "Layout del checkout", session = live, state = "awaiting_ok")))
         val today = java.time.LocalDate.of(2026, 9, 12)
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.bg)) {
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
                 SummaryList(model(st2), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st2.ts, foryou = it.pixelbox.cmwatch.rules.Lavori.forYou(st2, null, st2.ts, today), lavoriLine = "Tutti i lavori")
             }
         }
@@ -73,7 +73,7 @@ class SummaryListTest {
         val idle = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())
         val now = idle.elicitations[0].askedAt + 18
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.bg)) { SummaryList(model(idle), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = now, elicitations = idle.elicitations) }
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(idle), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = now, elicitations = idle.elicitations) }
         }
     }
 
@@ -87,7 +87,7 @@ class SummaryListTest {
         )
         val withSg = st.copy(suggestions = sg)
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
         }
     }
 
@@ -97,7 +97,7 @@ class SummaryListTest {
         val withSg = st.copy(suggestions = listOf(it.pixelbox.cmwatch.contract.Suggestion("sg-1", "recurring", "r", "Chiedi spesso «com'è andata la CI di atlas-shop»: la aggiungo ai Ricorrenti?", "p", st.ts - 900)))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.background(CmColors.bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+                Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
             }
         }
     }
@@ -111,14 +111,14 @@ class SummaryListTest {
         )
         val withSg = st.copy(suggestions = sg)
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
         }
     }
 
     // Contratto 1.90 (Franz 28/10 13:19): la sezione «Sistema», le altre chiuse perché si veda per intero.
     private val red = ContractJson.decodeState(File("../contract/state-3-stale.json").readText())
     @Composable private fun systemPage(sys: SystemStatus) = CmPhoneTheme(still = true) {
-        Column(Modifier.background(CmColors.bg)) {
+        Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
             SummaryList(model(red), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = red.ts, startOpen = emptySet(), usage = { Text("quota") }, system = sys, ops = red.ops, onSystem = { _, _ -> })
         }
     }
@@ -138,7 +138,7 @@ class SummaryListTest {
         val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("impegni-2026-10-22", "Notte 22/10", st.ts - 2 * 3600 - 300, true, "https://example.com/mobile-release.apk", 68813846, null, "")
         val u = it.pixelbox.cmwatch.mobile.update.AppUpdater.Ui(phase = it.pixelbox.cmwatch.mobile.update.AppUpdater.Phase.Available(r))
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.bg)) { SummaryList(model(st), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, update = u) }
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(st), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, update = u) }
         }
     }
 
@@ -162,7 +162,7 @@ class SummaryListTest {
             ),
             closed = st.sessions.map { it.copy(state = SessionState.GONE) },
         )
-        CmPhoneTheme(still = true) { Column(Modifier.background(CmColors.bg)) { SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, startOpen = setOf("sessions", "other")) } }
+        CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, startOpen = setOf("sessions", "other")) } }
     }
 
     // Mockup approvato da Franz l'08/10 alle 12:57: sezioni richiudibili e in testa il riquadro Notte.
@@ -170,7 +170,7 @@ class SummaryListTest {
         val rep = ContractJson.decodeNightReport(File("../contract/night-report-sample.json").readText())
         val night = it.pixelbox.cmwatch.rules.NightPage.of(rep, java.time.ZoneId.of("Europe/Rome"))
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.bg)) {
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
                 SummaryList(model(st), {}, { _, _ -> }, { _, _ -> }, {}, {}, nightDate = night.day, nightPage = night, usage = { Text("quota") })
             }
         }
@@ -184,7 +184,7 @@ class SummaryListTest {
         val items = st.night.items!!.let { l -> listOf(l[0].copy(started = st.ts - 23 * 60), l[1]) }
         val m = model(one).copy(service = listOf(MasterHome.Row(MasterHome.Kind.NIGHT, "", null, number = 1, at = st.ts)))
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(CmColors.bg)) {
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
                 SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, startOpen = setOf("other"), nightPage = night,
                     tonight = it.pixelbox.cmwatch.rules.TonightCard.of(st.night.copy(items = items), st.ts))
             }
@@ -194,13 +194,13 @@ class SummaryListTest {
     @Test fun dockMaster() = paparazzi.snapshot {
         val m = st.sessions.first { it.state == SessionState.IDLE }.copy(name = "master", question = null)
         val reply = TranscriptEntry("a1", "assistant", "Lanciata claude-master sulla fase 2.2.\n\nEsito: Fase 2.2 avviata su claude-master\nProssimi: distilla il confronto nella kb", st.ts - 600)
-        CmPhoneTheme(still = true) { Column(Modifier.background(CmColors.bg)) { MasterDock(m, it.pixelbox.cmwatch.rules.MasterHome.hero(listOf(reply), m), {}, {}) } }
+        CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { MasterDock(m, it.pixelbox.cmwatch.rules.MasterHome.hero(listOf(reply), m), {}, {}) } }
     }
     // La master espansa a tutta pagina (Franz, 03/10 16:44): la stessa barra in cima, con ▼ per ridurla.
     @Test fun dockMasterExpanded() = paparazzi.snapshot {
         val m = st.sessions.first { it.state == SessionState.IDLE }.copy(name = "master", question = null)
         val reply = TranscriptEntry("a1", "assistant", "Lanciata claude-master sulla fase 2.2.\n\nEsito: Fase 2.2 avviata su claude-master", st.ts - 600)
-        CmPhoneTheme(still = true) { Column(Modifier.background(CmColors.bg)) { MasterDock(m, it.pixelbox.cmwatch.rules.MasterHome.hero(listOf(reply), m), {}, {}, expanded = true) } }
+        CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { MasterDock(m, it.pixelbox.cmwatch.rules.MasterHome.hero(listOf(reply), m), {}, {}, expanded = true) } }
     }
-    @Test fun dockAbsent() = paparazzi.snapshot { CmPhoneTheme(still = true) { Column(Modifier.background(CmColors.bg).padding(16.dp)) { MasterAbsent {} } } }
+    @Test fun dockAbsent() = paparazzi.snapshot { CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp)) { MasterAbsent {} } } }
 }
