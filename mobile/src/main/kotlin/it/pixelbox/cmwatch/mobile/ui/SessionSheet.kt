@@ -2142,7 +2142,7 @@ internal fun QuestionOptions(
     val recommended = stringResource(R.string.option_recommended)
     val button: @Composable (Int, it.pixelbox.cmwatch.contract.Option, Modifier, androidx.compose.ui.graphics.Shape) -> Unit = { i, o, m, shape ->
         OptionButton(
-            QuestionRules.optionLabel(o), filled = i == primary && firstFilled, note = QuestionRules.optionNote(o, recommended),
+            QuestionRules.optionLabel(o).let { l -> if (v3) l.removePrefix("${o.n} · ") else l }, filled = i == primary && firstFilled, note = QuestionRules.optionNote(o, recommended),
             onClick = { if (long) onHold() else onAnswer(o.n) },
             onLongClick = if (long) ({ onAnswer(o.n) }) else null,
             modifier = m, shape = if (v3) RoundedCornerShape(14.dp) else shape, center = inline, tonal = tonal,

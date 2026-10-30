@@ -1,6 +1,7 @@
 package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -169,10 +170,12 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
         if (rings.isNotEmpty()) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             Column(Modifier.fillMaxWidth().handCursor().clickable(onClick = onQuota).padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                rings.forEach { (_, q) ->
+                rings.forEach { (name, q) ->
                     val pct = (q.h5 ?: 0).coerceIn(0, 100)
                     val tone = if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        // Con due account la forma dice quale: tondo personale, quadrato lavoro, come nel badge.
+                        if (rings.size > 1) Box(Modifier.size(10.dp).border(2.dp, V3.Tx2, if (it.pixelbox.cmwatch.rules.Accounts.personal(name, q.kind)) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(3.dp)))
                         Text(stringResource(R.string.kpi7_quota), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
                         BoxWithConstraints(Modifier.weight(1f).height(12.dp), contentAlignment = Alignment.CenterStart) {
                             Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(V3.S3)) {

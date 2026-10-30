@@ -27,17 +27,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.SportsScore
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.PanTool
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.EventNote
+import androidx.compose.material.icons.outlined.DataUsage
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Checklist
-import androidx.compose.material.icons.rounded.DataUsage
-import androidx.compose.material.icons.rounded.EventNote
-import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.Memory
-import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.PanTool
-import androidx.compose.material.icons.rounded.PlayCircle
-import androidx.compose.material.icons.rounded.SportsScore
 import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.Schedule
@@ -287,7 +287,7 @@ fun SummaryList(
             )
         }
         if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
-            item(key = "sec-waiting") { Box(moving()) { V3Section(stringResource(R.string.home_waiting), Icons.Rounded.PanTool, (waitRows.size + looseOk.size).toString(), tag = "home-sez-aspettano") } }
+            item(key = "sec-waiting") { Box(moving()) { V3Section(stringResource(R.string.home_waiting), androidx.compose.material.icons.Icons.Outlined.PanTool, (waitRows.size + looseOk.size).toString(), tag = "home-sez-aspettano") } }
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
             val keys = uniqueKeys(waitRows) { "s-" + it.session.id }
             items(waitRows.size, key = { keys[it] }) { i -> Box(moving()) { card(waitRows[i], true) } }
@@ -303,7 +303,7 @@ fun SummaryList(
         if (restRows.isNotEmpty() || justClosed != null) {
             item(key = "sec-sessions") {
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
-                Box(moving()) { V3Section(stringResource(R.string.home_sec_sessions), Icons.Rounded.PlayCircle, restRows.size.toString(), stringResource(R.string.home_sessions_line, n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)), "home-sez-sessioni", sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
+                Box(moving()) { V3Section(stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, restRows.size.toString(), stringResource(R.string.home_sessions_line, n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)), "home-sez-sessioni", sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
             }
             justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
             // Una lista sola nell'ordine dei gruppi: il glifo dice lo stato al posto delle intestazioni.
@@ -320,7 +320,7 @@ fun SummaryList(
         val closedGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.CLOSED }
         if (showLavori && (foryou != null || outside.isNotEmpty())) {
             val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
-            item(key = "sec-lavori") { Box(moving()) { V3Section(stringResource(R.string.lavori_title), Icons.Rounded.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
+            item(key = "sec-lavori") { Box(moving()) { V3Section(stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
             if (lavoriOpen) {
                 if (laterRows.isNotEmpty()) item(key = "lv-later") {
                     Box(moving()) {
@@ -357,7 +357,7 @@ fun SummaryList(
                                     first = false
                                 }
                             }
-                            if (foryou != null) V3Row(first, onLavori, { Icon(Icons.Rounded.EventNote, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) {
+                            if (foryou != null) V3Row(first, onLavori, { Icon(androidx.compose.material.icons.Icons.Outlined.EventNote, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) {
                                 Text(lavoriLine ?: stringResource(R.string.lavori_all), style = V3.Name)
                             }
                         }
@@ -368,7 +368,7 @@ fun SummaryList(
         // Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box.
         it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.let { out ->
             val liveNames = kpiState?.sessions.orEmpty().filter { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }.map { x -> x.name }.toSet()
-            item(key = "sec-esiti") { Box(moving()) { V3Section(stringResource(R.string.box_outcomes_title), Icons.Rounded.SportsScore, tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
+            item(key = "sec-esiti") { Box(moving()) { V3Section(stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
             if (esitiOpen) item(key = "esiti") {
                 Box(moving()) {
                     V3List {
@@ -398,7 +398,7 @@ fun SummaryList(
         val hasUsage = usage != null && showUsage
         val hasPlugins = plugins != null && onPluginsLoad != null && onPluginCmd != null
         if (hasUsage || system != null || hasPlugins || closedGroup != null) {
-            item(key = "sec-altro") { Box(moving()) { V3Section(stringResource(R.string.home_sec_other), Icons.Rounded.MoreHoriz) } }
+            item(key = "sec-altro") { Box(moving()) { V3Section(stringResource(R.string.home_sec_other), androidx.compose.material.icons.Icons.Outlined.MoreHoriz) } }
             item(key = "sec-usage") {
                 val rowIcon = @Composable { v: androidx.compose.ui.graphics.vector.ImageVector -> Icon(v, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
                 val toggle = @Composable { o: Boolean -> Icon(if (o) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3) }
@@ -408,7 +408,7 @@ fun SummaryList(
                         if (hasUsage) {
                             val weeks = kpiState?.quota.orEmpty().filter { (_, q) -> !q.stale && q.w7 != null }.entries
                             val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "${a.take(5)} ${q.w7}%" }
-                            V3Row(first, { usageOpen = !usageOpen; save("usage", usageOpen) }, { rowIcon(Icons.Rounded.DataUsage) }, {
+                            V3Row(first, { usageOpen = !usageOpen; save("usage", usageOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.DataUsage) }, {
                                 if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, maxLines = 2, modifier = Modifier.padding(end = 4.dp))
                                 toggle(usageOpen)
                             }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
@@ -429,7 +429,7 @@ fun SummaryList(
                         // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
                         system?.let { sys ->
                             val sysOpen = SystemRules.isOpen(sys.level, sysManual)
-                            V3Row(first, { sysManual = SystemRules.Manual(sys.level, !sysOpen) }, { rowIcon(Icons.Rounded.Memory) }, {
+                            V3Row(first, { sysManual = SystemRules.Manual(sys.level, !sysOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Memory) }, {
                                 if (!sysOpen) {
                                     Box(Modifier.padding(end = 6.dp).size(7.dp).clip(CircleShape).background(systemTone(sys.level)))
                                     Text(systemSummary(sys), style = V3.Meter, maxLines = 2, modifier = Modifier.padding(end = 4.dp))
@@ -442,7 +442,7 @@ fun SummaryList(
                         // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
                         if (hasPlugins) {
                             val n = plugins!!.accounts.sumOf { it.updates.size }
-                            V3Row(first, { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }, { rowIcon(Icons.Rounded.Extension) }, {
+                            V3Row(first, { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Extension) }, {
                                 if (!pluginsOpen && n > 0) Text(pluralStringResource(R.plurals.plugins_to_update, n, n), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
                                 toggle(pluginsOpen)
                             }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
@@ -586,7 +586,7 @@ private fun SummaryCard(
         }
         // L'obiettivo della sessione, stabile, sopra l'attività del momento (osservazioni del 03/10): si legge anche dopo ore.
         SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g ->
-            Text(g, style = MaterialTheme.typography.bodySmall, color = CmColors.briefLabel, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+            Text(g, style = V3.Small, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
         }
         // Franz 24/10 19:46 (B2): l'esito di una ferma più vecchio di 6 ore si spegne e dice da quante ore.
         val old = Summary.staleHours(r, now)
