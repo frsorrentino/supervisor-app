@@ -4,9 +4,9 @@
   // la testata fuori dalla griglia, quattro colonne per argomento con la loro cifra in testa (Richiede te, Attività e code,
   // Esiti, Numeri e strumenti) e la master come barra in fondo; a metà o aperta è un pannello a destra alto quanto lo schermo,
   // 420 o 720 px. Le colonne sono quante ne stanno a 320 px l'una; quelle che non stanno scendono in fondo all'ultima.
-  let { width, head, you, work, out, tools, bar, panel = null, panelWide = false }: {
+  let { width, head, you, work, out, tools, bar, panel = null, panelWide = false, panelLeft = false }: {
     width: number; head: Snippet; you: Snippet; work: Snippet; out: Snippet; tools: Snippet; bar: Snippet
-    panel?: Snippet | null; panelWide?: boolean
+    panel?: Snippet | null; panelWide?: boolean; panelLeft?: boolean
   } = $props()
   const PANEL = 420, PANEL_WIDE = 720, COL = 320
   const n = $derived(Math.max(1, Math.min(4, Math.floor((width - (panel ? (panelWide ? PANEL_WIDE : PANEL) : 0)) / COL))))
@@ -15,7 +15,7 @@
   const shownCols = $derived(all.slice(0, n).map((c, i) => (i === n - 1 ? all.slice(i) : [c])))
 </script>
 
-<div class="plancia v3">
+<div class="plancia v3" class:left={panelLeft}>
   <div class="stage">
     {@render head()}
     <div class="cols" style:--n={n}>
@@ -36,4 +36,7 @@
   .col + .col { border-left: 1px solid var(--line); }
   .mpanel { flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); border-left: 1px solid var(--line); }
   .mpanel.wide { width: 720px; }
+  /* Il pannello a sinistra: le colonne si stringono dall'altra parte. */
+  .plancia.left { flex-direction: row-reverse; }
+  .plancia.left .mpanel { border-left: 0; border-right: 1px solid var(--line); }
 </style>

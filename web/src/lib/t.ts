@@ -153,6 +153,7 @@ const it = {
   homeMore: 'Altro', board5h: '5 ore',
   // La plancia (pwa2, Franz 30/10): quattro colonne per argomento con la loro cifra in testa; le sessioni Claude distinte dai
   // compiti del registro.
+  masterMoveLeft: 'Sposta a sinistra', masterMoveRight: 'Sposta a destra',
   appTitle: 'Supervisor', deskTasks: 'Compiti in corso', deskFromRegistry: 'dal registro', deskTaskSince: (s: string) => `in corso da ${s}`, deskAllTasks: 'Tutti i compiti', deskLater: (n: number) => `${n} più tardi`, deskDoneToday: 'Fatto oggi', deskRedToday: 'Rossi di oggi',
   deskYou: 'Richiede te', deskWork: 'Attività e code', deskOut: 'Esiti', deskTools: 'Numeri e strumenti', deskSessions: 'Sessioni Claude',
   deskLastNight: 'La notte scorsa', deskNightEnd: (hm: string) => `finito alle ${hm}`, deskNightAll: 'Tutta la notte', deskHostSessions: 'Sessioni:',
@@ -542,6 +543,7 @@ const en: typeof it = {
   homeCommitments: 'Commitments', commitApprovedAt: (h: string) => `approved at ${h}`, commitAwaiting: 'waits for your ok', commitIdle: (x: string) => `idle for ${x}`, commitYourTurn: 'your turn', commitTurn: (s: string) => `${s}'s turn`, commitPaused: (r: string) => `paused: ${r}`, commitStalled: 'stalled', commitNext: 'Next', commitCheckRed: 'last check red',
   railSpan: (s: { n: number; unit: 'min' | 'h' | 'd' }) => (s.unit === 'min' ? `${s.n}'` : s.unit === 'h' ? `${s.n} h` : `${s.n} d`),
   homeMore: 'More', board5h: '5 hours',
+  masterMoveLeft: 'Move to the left', masterMoveRight: 'Move to the right',
   appTitle: 'Supervisor', deskTasks: 'Tasks in progress', deskFromRegistry: 'from the registry', deskTaskSince: (s: string) => `running for ${s}`, deskAllTasks: 'All tasks', deskLater: (n: number) => `${n} later`, deskDoneToday: 'Done today', deskRedToday: 'Reds today',
   deskYou: 'Needs you', deskWork: 'Activity and queues', deskOut: 'Outcomes', deskTools: 'Numbers and tools', deskSessions: 'Claude sessions',
   deskLastNight: 'Last night', deskNightEnd: (hm: string) => `done at ${hm}`, deskNightAll: 'The whole night', deskHostSessions: 'Sessions:',

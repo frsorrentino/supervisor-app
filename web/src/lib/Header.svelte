@@ -15,7 +15,10 @@
   // La testata della sessione (SheetHeader.kt): una riga con modello · effort in una pillola, la quota delle 5 ore con l'ora
   // dell'azzeramento, il contesto ad anello e il menu ⋮; sotto obiettivo, priorità e finestra. Su desktop a sinistra anche
   // badge e nome, come la plancia del tablet.
-  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null }: {
+  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, menuMove = null }: {
+    /** La voce del menu ⋮ che sposta il pannello della master di lato, nella plancia (Franz 30/10 13:26). */
+    menuMove?: { label: string; onMove: () => void } | null
+
     /** Sul telefono il menu delle sessioni («Vai a») sul nome e il ≡ dell'app, come la testata della sessione nell'app. */
     onGo?: ((name: string | null) => void) | null; onReopen?: ((name: string) => void) | null; appMenu?: import('svelte').Snippet | null
     /** `wide`: badge e nome a sinistra (la testata unica del desktop); in una colonna della plancia li ha la colonna. */
@@ -232,6 +235,12 @@
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
               <span><span class="mt">{t.openInClaude}</span><span class="ms">{t.openInClaudeSub}</span></span>
             </a>
+          {/if}
+          {#if menuMove}
+            <button class="mi" role="menuitem" onclick={() => { menu = false; menuMove.onMove() }}>
+              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M3 12h18" /></svg>
+              <span><span class="mt">{menuMove.label}</span></span>
+            </button>
           {/if}
           {#if canExit}
             <hr />

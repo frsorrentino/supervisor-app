@@ -366,6 +366,9 @@
   const dockCached = dock ? readDockCache<Session, TranscriptEntry>(load(DOCK_CACHE)) : null
   $effect(() => { const e = transcripts[MASTER]; if (dock && master && e) save(DOCK_CACHE, dockCacheOf(master, e)) })
   let masterOpen = $state(linked === MASTER || embed)
+  // Il lato del pannello della master nella plancia, ricordato su questo dispositivo (Franz 30/10 13:26).
+  let masterLeft = $state(load('cm.master_left') === '1')
+  function moveMaster() { smooth(() => { masterLeft = !masterLeft; save('cm.master_left', masterLeft ? '1' : '0') }) }
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
   // Telefono: la sessione aperta, o la home.
@@ -983,7 +986,7 @@
     wide={false} {slots} elsewhere={elsewhereFor(name)} elsewhereAway={embed ? (() => { const a = elsewhereFor(name); return a ? awayOf(a, st.sessions, location.origin) : null })() : null} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, ...alertKeys(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
     inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} onOlder={olderOf[name] ? () => loadOlder(name) : null}
-    onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu}
+    onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu} menuMove={name === MASTER && deskDashboard ? { label: masterLeft ? t.masterMoveRight : t.masterMoveLeft, onMove: moveMaster } : null}
     onDiff={st.ops?.includes('diff') ? (id) => ask(tr, newCmd('diff', name, id), decodeDiff) : null}
     onChanges={st.ops?.includes('changes') ? (f) => ask(tr, newCmd('changes', name, f == null ? null : fileArg(f)), decodeChanges) : null} />
 {/snippet}
@@ -1084,7 +1087,7 @@
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 {#snippet masterBar()}{#if master}<div class="mbar"><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = true })} onSpeak={(x) => toggle(x, MASTER)} /><div class="mquick">{@render masterQuick()}</div><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = true })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
-{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
+{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
   onToggleKey={() => smooth(() => { masterHalf = !masterHalf })} onClose={() => smooth(() => { masterOpen = false })} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
@@ -1097,7 +1100,7 @@
 {:else if embed}
   <div class="embedded">{@render chatOf(MASTER, true)}</div>
 {:else if wide && deskDashboard}
-  <Plancia {width} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf}>
+  <Plancia {width} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf} panelLeft={masterLeft}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />{/snippet}
     {#snippet you()}<DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}{/snippet}
     {#snippet work()}<DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} sub={deskWorkSub} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}{/snippet}

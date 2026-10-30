@@ -15,12 +15,14 @@
   // chiudere non chiede più il trascinamento, ogni gesto ha un tocco che fa lo stesso (WCAG 2.5.1).
   // `onDrag`: il gesto passo per passo (`/embed?dock=1`, dove Studio fa seguire al riquadro il dito), con lo spostamento in
   // px dall'inizio, e `null` alla fine; allora decide `onDrop` invece di `onToggle`.
-  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onDrag, onDrop, bar = false }: {
+  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onDrag, onDrop, bar = false, mirror = false }: {
     master: Session; entries: Entry[]; onToggle: () => void; onSpeak: (text: string) => void; expanded?: boolean
     /** Il pannello a destra della plancia (pwa2, 30/10): il tasto tondo allarga o stringe (frecce di lato), Chiudi è una ×. */
     side?: boolean
     /** La barra in fondo alla plancia (pwa2, 30/10): solo stato, nome ed esito; il tasto che apre sta dopo il campo. */
     bar?: boolean
+    /** Il pannello sta a sinistra: le frecce di lato si invertono, allargare resta verso le colonne. */
+    mirror?: boolean
     screen?: boolean; trailing?: Snippet; toggleUp?: boolean; onToggleKey?: () => void; onClose?: () => void
     onDrag?: (dy: number) => void; onDrop?: (dy: number) => void
   } = $props()
@@ -57,7 +59,7 @@
 
 {#snippet toggleKey()}
   <button class="ib" aria-label={up ? t.dockConversation : t.dockCollapse} title={up ? t.dockConversation : t.dockCollapse} onclick={(e) => { e.stopPropagation(); key() }}>
-    <svg viewBox="0 0 24 24" width="22" height="22"><path d={side ? (up ? 'M14 7l-5 5 5 5' : 'M10 7l5 5-5 5') : up ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    <svg viewBox="0 0 24 24" width="22" height="22"><path d={side ? (up !== mirror ? 'M14 7l-5 5 5 5' : 'M10 7l5 5-5 5') : up ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
   </button>
 {/snippet}
 
