@@ -152,7 +152,8 @@ internal fun DiffLine(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     buildAnnotatedString {
-                        append(name)
+                        // Il nome va a capo ai separatori, non a metà parola (a 360 dp «piano.m / d»).
+                        append(name.replace(Regex("([-_.])"), "$1\u200B"))
                         if (counts) {
                             withStyle(SpanStyle(color = if (v3) V3.Tx2 else Cm.text2)) { append(" · ") }
                             withStyle(SpanStyle(color = if (v3) V3.Good else Cm.briefGood)) { append("+$added") }

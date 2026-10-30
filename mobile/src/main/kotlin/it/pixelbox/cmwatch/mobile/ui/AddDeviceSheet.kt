@@ -113,7 +113,7 @@ private fun QrImage(text: String, dim: Boolean, modifier: Modifier) {
     Canvas(modifier.clip(RoundedCornerShape(14.dp)).background(Color.White).semantics { contentDescription = desc }) {
         val n = qr.size + 8
         val cell = size.minDimension / n
-        val dark = if (dim) Color(0xFFB0B8C4) else Color.Black
+        val dark = if (dim) V3.Tx2 else Color.Black
         for (y in 0 until qr.size) for (x in 0 until qr.size) {
             if (qr.getModule(x, y)) drawRect(dark, Offset((x + 4) * cell, (y + 4) * cell), Size(cell + 0.5f, cell + 0.5f))
         }

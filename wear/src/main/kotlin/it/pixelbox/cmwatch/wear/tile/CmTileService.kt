@@ -61,8 +61,7 @@ import java.time.format.DateTimeFormatter
 open class CmTileService : TileService() {
 
     /**
-     * Ruoli M3 in tema scuro con i valori misurati sulla tile di Gmail (13/09): card #2A313C, oggetto #EBF1FF
-     * (contrasto 11,6:1), mittente #D3E3FD (10,1:1), ora #C2C6D2 (8:1), bottone di bordo #D3E3FD con testo blu notte.
+     * Ruoli M3 nei colori v3 (Franz 30/10 23:31): card #1B1D22, oggetto #EDEEF0, secondario #969BA4 (circa 6:1), bottone di bordo bianco.
      * I grigi di prima stavano a 5,5:1 e si leggevano male (Franz, 13/09 15:31).
      */
     private val scheme = ColorScheme(

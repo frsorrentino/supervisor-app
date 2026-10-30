@@ -88,7 +88,7 @@
   p.msg { color: var(--text); }
   .qr { width: min(300px, 100%); aspect-ratio: 1; border-radius: 16px; }
   .qr path { fill: #000; }
-  .qr.dim path { fill: #B0B8C4; }
+  .qr.dim path { fill: var(--tx2); }
   .code { font-family: var(--mono); font-size: 22px; font-weight: 500; letter-spacing: 1px; }
   .code.dim { color: var(--text2); }
   small { font-size: 14px; color: var(--text2); }
