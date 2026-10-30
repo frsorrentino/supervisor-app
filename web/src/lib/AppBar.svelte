@@ -13,7 +13,8 @@
   // La testata della home (PageHeader dell'app): «Master · N aperte», la lente e il menu ≡; sotto, la quota in una riga
   // (QuotaLine): per ogni account la sua forma, una barra fina delle 5 ore e la percentuale; ambra da 75 %, rossa da 90 %.
   // `menuOnly`: solo il tasto ≡ col suo pannello, nella testata della master a tutto schermo (Franz, 08/10 18:15).
-  let { st, now, openCount, onPage, menuOnly = false }: { st: State; now: number; openCount: number; onPage: (p: Page) => void; menuOnly?: boolean } = $props()
+  // `quota`: falso nella home in stile «Studio e Diretta» (30/10), dove la quota sta nel tabellone.
+  let { st, now, openCount, onPage, menuOnly = false, quota = true }: { st: State; now: number; openCount: number; onPage: (p: Page) => void; menuOnly?: boolean; quota?: boolean } = $props()
   let menu = $state(false)
   // Niente più «N per te» qui: chi aspetta lo dice il primo box della home (app-home-riordino-29-10).
   // Il pannello scende dal tasto ≡, non dal bordo dello schermo: sulla plancia con la home a sinistra resta accanto al tasto.
@@ -45,7 +46,7 @@
 {:else}
 <header>
   <div class="bar">
-    <span class="title"><b>{t.summaryTitle}</b><span class="open">{t.summaryOpen(openCount)}</span></span>
+    <span class="title"><b>{quota ? t.summaryTitle : t.appTitle}</b><span class="open">{t.summaryOpen(openCount)}</span></span>
     <button class="ib" aria-label={t.search} title={t.search} onclick={() => onPage('search')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
     </button>
@@ -53,7 +54,7 @@
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
     </button>
   </div>
-  {#if rings.length}
+  {#if quota && rings.length}
     <button class="quota" onclick={() => onPage('overview')} aria-label={t.menuQuadro}>
       {#each rings as [name, r]}
         {@const pct = Math.min(100, Math.max(0, r.h5 ?? 0))}
@@ -144,4 +145,8 @@
   hr { border: 0; height: 1px; background: var(--line); margin: 4px 0; }
   .foot { display: flex; align-items: center; gap: 20px; width: 100%; padding: 14px 28px; font-size: 16px; color: var(--text2); }
   @media (prefers-reduced-motion: reduce) { .panel, .scrim { animation: none; } }
+  /* Nella home in stile «Studio e Diretta» (30/10): il titolo in Barlow Semi Condensed, le icone chiare. */
+  :global(.v3) .title b { font: 700 22px var(--display); letter-spacing: .005em; }
+  :global(.v3) .open { font-size: 15px; color: var(--tx2); }
+  :global(.v3) header { padding: 4px 4px 2px; }
 </style>

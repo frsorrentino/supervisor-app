@@ -1,5 +1,6 @@
 import { mount } from 'svelte'
 import './app.css'
+import './v3.css'
 import App from './App.svelte'
 import { canonicalUrl, loadRemote } from './lib/remoteAccess'
 import { lang } from './lib/lang'

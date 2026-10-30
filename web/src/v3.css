@@ -1,0 +1,188 @@
+/* Lo stile «Studio e Diretta», terza versione (approvato da Franz il 30/10 alle 09:49, compito app-home-riordino-29-10):
+   per ora solo la superficie home (colonna home, barra e scheda della master) e solo di notte; le altre pagine restano
+   com'erano finché il compito successivo non porta tutta l'app nello stile nuovo, giorno compreso.
+   Barlow Semi Condensed per titoli, nomi e cifre, Barlow per i testi, Geist Mono per misure e comandi; le icone sono
+   Material Symbols Rounded. Tutto in locale (OFL e Apache 2.0, licenze in fonts/): la PWA non dipende da Google Fonts. */
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/barlow-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/barlow-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/barlow-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/barlow-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/barlow-semi-condensed-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/barlow-semi-condensed-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/barlow-semi-condensed-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/barlow-semi-condensed-600-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/barlow-semi-condensed-700-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/barlow-semi-condensed-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/geist-mono-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/geist-mono-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/geist-mono-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/geist-mono-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* Le icone usate dalla home, dalla master e dalla plancia: un sottoinsieme di Material Symbols Rounded (23 KB). Solo dentro
+   .v3: nelle altre pagine la classe .ms è ancora il sottotitolo dei menu (Header.svelte). */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: block;
+  src: url('./fonts/material-symbols-rounded.woff2') format('woff2');
+}
+.v3 .ms { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal;
+  text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'opsz' 20; user-select: none; flex: none; }
+.v3 .ms.f { font-variation-settings: 'FILL' 1, 'wght' 500, 'opsz' 20; }
+
+/* I colori della notte. Il colore appartiene allo stato e parla solo quando serve: ambra aspetta te, blu lavora, verde
+   fatto, rosso fallito; struttura e azioni restano neutre, l'unico pieno è bianco. I nomi vecchi (app.css, CmColors.kt)
+   puntano ai nuovi, così anche i componenti condivisi dentro la home prendono lo stile senza cambiare codice. */
+.v3 {
+  --bg: #0B0C0E; --s1: #121316; --s2: #1B1D22; --s3: #272A31; --line: #25272D;
+  --tx: #EDEEF0; --tx2: #969BA4; --tx3: #858A93; --act: #FFFFFF; --on-act: #0B0C0E;
+  --wait: #FFB23F; --busy: #5AA2FF; --good: #34D399; --red: #FF5A5F;
+  --low: var(--s1); --surface: var(--s2); --high: var(--s3); --text: var(--tx); --text2: var(--tx2); --stale: var(--tx3);
+  --icon: var(--tx2); --primary: var(--act); --on-primary: var(--on-act); --idle: var(--good); --gone: var(--red); --gone-dim: var(--red);
+  --b-warn: var(--wait); --b-good: var(--good); --b-ring: var(--busy); --b-alert: var(--red); --b-track: var(--s3); --b-label: var(--tx2);
+  --b-second: var(--tx2); --b-week: var(--tx2); --advice: var(--tx2); --prod: var(--red);
+  --master-highest: var(--s2); --master-high: var(--s1); --master-container: var(--s1); --master-low: var(--bg); --master-key: var(--s3);
+  --steps-bg: var(--s1); --steps-fail: color-mix(in srgb, var(--red) 12%, var(--s1)); --steps-dot: var(--tx3);
+  --sans: Barlow, system-ui, sans-serif; --display: 'Barlow Semi Condensed', Barlow, system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, monospace;
+  font-family: var(--sans); color: var(--tx); background: var(--bg); -webkit-font-smoothing: antialiased;
+}
+.v3 ::selection { background: color-mix(in srgb, var(--busy) 35%, transparent); }
+
+/* Le primitive della plancia (pwa2, 30/10) per i componenti nuovi (DeskTools, DeskNight): il titolo col binario, la lista a
+   filo, la riga con l'icona nel binario di 52 px, il pallino di stato, la pillola tonale. */
+.v3 .vsec { display: flex; align-items: center; margin: 18px 12px 8px; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
+.v3 .vsec .ic { width: 52px; flex: none; display: flex; justify-content: center; margin-right: 8px; color: var(--tx2); }
+.v3 .vsec small { font: 600 15px var(--display); color: var(--tx2); margin-left: 8px; }
+.v3 .vsec .rt { margin-left: auto; font: 400 14px var(--sans); color: var(--tx2); }
+.v3 .vlist { margin: 0 12px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.v3 .vrow { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 10px 12px 10px 0; border-top: 1px solid var(--line); width: 100%; text-align: left; color: var(--tx); text-decoration: none; }
+.v3 .vrow:first-child { border-top: 0; }
+.v3 button.vrow:hover, .v3 a.vrow:hover { background: var(--s2); }
+.v3 .vrow > .ic { width: 52px; flex: none; display: flex; justify-content: center; color: var(--tx2); }
+.v3 .vrow .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.v3 .vrow .tx b { font: 600 17px/1.2 var(--display); overflow-wrap: anywhere; }
+.v3 .vrow .tx small { font-size: 14px; line-height: 1.35; color: var(--tx2); overflow-wrap: anywhere; }
+.v3 .vrow .tx small.mono, .v3 .vrow > .mono { font: 400 12.5px var(--mono); color: var(--tx2); letter-spacing: 0; }
+.v3 .vrow > .mono { white-space: nowrap; }
+.v3 .vrow .lnk { color: var(--tx); text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; }
+.v3 .vdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--good); margin-right: 6px; vertical-align: 1px; }
+.v3 .vdot.down { background: var(--red); }
+.v3 .vchips { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; }
+.v3 .vchip { min-height: 34px; padding: 0 14px; border-radius: 17px; background: var(--s3); color: var(--tx); font: 600 14.5px var(--display); }
+.v3 .vchip.on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
+.v3 .vbtn { min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font: 600 15px var(--display); letter-spacing: .02em; }
+.v3 .vgo { padding: 0 12px 12px; }

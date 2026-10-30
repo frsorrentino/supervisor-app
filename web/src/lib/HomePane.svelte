@@ -20,7 +20,7 @@
   } = $props()
 </script>
 
-<div class="pane">
+<div class="pane v3">
   {#if master && open && halfStops}
     <!-- La plancia: la home resta sotto e il foglio cresce fino a metà o a tutta altezza; a metà la home sopra si tocca. -->
     <div class="body above" inert={!half}>{@render list()}</div>
@@ -44,11 +44,11 @@
   .pane { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .slide { flex: 1; min-height: 0; display: flex; flex-direction: column; animation: up .45s var(--spring); }
   /* La master chiusa: linguetta e campo su un solo fondo, velato di celeste (Celeste velato, 06/10 21:23). */
-  .closed { border-radius: 26px 26px 0 0; background: var(--master-high); }
+  .closed { border-radius: 18px 18px 0 0; background: var(--master-high); border-top: 1px solid var(--line); }
   .body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .above { overflow: hidden; }
   /* Il foglio della plancia: 55 % della colonna, tutta a schermo intero; cresce dalla barra quando si apre. */
-  .sheet { flex: 0 0 55%; min-height: 0; display: flex; flex-direction: column; border-radius: 26px 26px 0 0; overflow: hidden;
+  .sheet { flex: 0 0 55%; min-height: 0; display: flex; flex-direction: column; border-radius: 18px 18px 0 0; border-top: 1px solid var(--line); overflow: hidden;
     transition: flex-basis .45s var(--spring); animation: grow .45s var(--spring); }
   .sheet.full { flex-basis: 100%; }
   @keyframes grow { from { flex-basis: 64px; } }

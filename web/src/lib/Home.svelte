@@ -14,14 +14,12 @@
   import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
-  import Icon from './Icon.svelte'
   import PermGlyph from './PermGlyph.svelte'
   import { homeGlyph } from './permissionModes'
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
   import { cleanupOf } from './masterService'
-  import { since } from './durations'
   import { details as lavoriDetails, doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, place as lavoriPlace, shortTitle, type ForYou as LavoriRow } from './lavori'
   import { askedFor, attachedTasks, build, MASTER, staleHours, type Group, type Row } from './summary'
   import { doneOf, type Done } from './queue'
@@ -44,13 +42,23 @@
   import { forYou, type ForYouRow, type Scheduled } from './masterHome'
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
+  import StateGlyph from './StateGlyph.svelte'
+  import { glyphOf, span as spanOf, type GlyphKind } from './rail'
+  import { badge as badgeOf, GREY, personal } from './badge'
 
   // La home del telefono (SummaryList.kt): ogni sessione una card nei gruppi del bisogno; il tocco apre la sessione, ▼ la
   // apre sul posto. La domanda ha le opzioni subito, chi ha finito i consigli come tasti, sotto la barretta del contesto.
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, pluginsLoad = null, pluginsRun = null, suggestionsN = 0 }: {
+  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0 }: {
+    /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
+    onQuota?: () => void
+    /** Una colonna della plancia (pwa2, Franz 30/10): «you» le attese e i suggerimenti, «work» sessioni e lavori, «out» gli
+     *  esiti, «tools» Altro; senza, la home intera col tabellone. */
+    part?: 'you' | 'work' | 'out' | 'tools' | null
+    /** Nella colonna «Attività e code» della plancia: i compiti in corso del registro, subito dopo le sessioni Claude. */
+    afterSessions?: Snippet
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
     onClosePreview?: ((names: string[]) => Promise<Preview | null>) | null; onCloseMany?: (names: string[]) => void
     /** Contratto 1.90: il tasto di un consiglio del Sistema; null = sola lettura (demo, relay senza l'op). */
@@ -173,16 +181,36 @@
     }
   }
   let expanded = $state<string | null>(null)
-  const tone: Record<Group, string> = { waiting: 'var(--b-warn)', finished: 'var(--b-good)', working: 'var(--b-ring)', still: 'var(--text2)' }
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
   // Il riordino (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te in cima, in «Ti aspettano»; le altre in «Sessioni».
   const waitRows = $derived(groups.find(([g]) => g === 'waiting')?.[1] ?? [])
   const restGroups = $derived(groups.filter(([g]) => g !== 'waiting'))
-  // Un solo bottone pieno: l'azione della prima che ti aspetta; senza nessuna, il primo ok di un compito.
+  // Al massimo un bottone pieno: «Fatto» della prima che ti aspetta, se la richiesta non si chiude da sola (correzione 2 del
+  // 30/10); senza nessuna, il primo ok di un compito. Le risposte consigliate hanno il bordo chiaro, mai il pieno.
   const primary = $derived(waitRows[0]?.session.name ?? null)
   // Gli esiti di oggi dalla cronologia (null finché non arriva) e le sessioni vive, che una riga può aprire.
   const out = $derived(kpiPage ? kpiOutcomes(kpiPage, now) : null)
   const liveNames = $derived(new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)))
+  // Lo stile «Studio e Diretta» (30/10): a sinistra di ogni riga il glifo e, sotto, da quanto aspetta o lavora (o l'ora
+  // dell'esito, o dell'ultima attività); sulla riga di una sessione l'ora del suo ultimo rosso di oggi.
+  const lastRed = $derived(new Map((out?.red ?? []).slice().sort((a, b) => a.at - b.at).map(d => [d.session, d.at])))
+  function railOf(r: Row): { kind: GlyphKind; text: string | null } {
+    const s = r.session
+    const kind = glyphOf(s, r.group)
+    const w = waitingSince(s)
+    const text = kind === 'waiting' && w != null ? t.railSpan(spanOf(w, now))
+      : kind === 'busy' && s.turn_started != null ? t.railSpan(spanOf(s.turn_started, now))
+      : kind === 'done' && s.outcome?.at ? hhmm(s.outcome.at)
+      : kind === 'still' ? hhmm(s.since) : null
+    return { kind, text }
+  }
+  // Il colore che Franz dà alla sessione resta, piccolo, accanto al nome: il glifo dice lo stato, il segno dice chi è.
+  const idColor = (s: Session) => { const f = badgeOf(s.account, s.color, s.state, s.icon, s.account_kind).fill; return f === GREY ? null : f }
+  const square = (s: Session) => !personal(s.account, s.account_kind)
+  const sessionsLine = $derived.by(() => {
+    const n = (g: Group) => restGroups.find(([x]) => x === g)?.[1].length ?? 0
+    return t.homeSessionsLine(n('working'), n('finished'), n('still'))
+  })
   // Chiusa, «Utilizzo» dice la settimana di ogni account e i token di oggi; la quota 5h sta già nella barra in cima.
   const usageLine = $derived.by(() => {
     const weeks = Object.entries(st.quota).filter(([, q]) => !q.stale && q.w7 != null).map(([a, q]) => `${a.length > 5 ? `${a.slice(0, 4)}.` : a} ${q.w7}%`)
@@ -270,49 +298,63 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && ctx && (ctx = null)} />
 
-{#snippet sec(key: string, title: string, summary: string | null = null, testid: string | null = null)}
-  <button class="sec" aria-expanded={open[key]} data-testid={testid} onclick={() => toggleSec(key)}>
-    <svg viewBox="0 0 24 24" width="16" height="16"><path d={open[key] ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>
-    <span>{title.toUpperCase()}</span><i></i>{#if summary && !open[key]}<small>{summary}</small>{/if}
-  </button>
+<!-- La testata di sezione dello stile «Studio e Diretta» (30/10): l'icona grigia nel binario dei glifi, il titolo allineato ai
+     nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
+{#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null)}
+  {#if part}
+    <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->
+    <div class="sec static" data-testid={testid}><span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
+  {:else}
+    <button class="sec" aria-expanded={open[key]} data-testid={testid} onclick={() => toggleSec(key)}>
+      <span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
+      <span class="sp"></span>{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog">{open[key] ? 'expand_less' : 'expand_more'}</span>
+    </button>
+  {/if}
 {/snippet}
 
-<section class="home">
+<section class="home" class:part={!!part}>
   <!-- Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto. -->
-  {#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}
+  {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
-<Kpi7 h={kpiHead(st, kpiPage, now)} {onBox} />
+{#if !part}<Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} {onBox} {onQuota} />{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
-     Utilizzo, Sistema, Plugin, Notte e Chiuse chiuse col numero in vista. -->
-{#if waitRows.length || looseOk.length || suggestionsN}
-  <div class="sec static wait" data-testid="home-sez-aspettano"><span>{t.homeWaiting.toUpperCase()}</span><i></i>{#if waitRows.length + looseOk.length}<small>{waitRows.length + looseOk.length}</small>{/if}</div>
+     in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
+{#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
+  <div class="sec static" data-testid="home-sez-aspettano"><span class="ic"><span class="ms">pan_tool</span></span><span class="st">{t.homeWaiting}</span><small>{waitRows.length + looseOk.length}</small></div>
   {#each waitRows as r (r.session.name)}<div class="cw" animate:flip={{ duration: 250 }}>{@render card(r, 'waiting')}</div>{/each}
   <!-- Gli ok ai compiti senza una sessione aperta: aspettano te come le domande. -->
   {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
-  <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta. -->
-  {#if suggestions}{@render suggestions()}{/if}
 {/if}
-{#if restGroups.length || justClosed}
-  {@render sec('sessions', t.homeSessions, String(restGroups.reduce((n, [, rows]) => n + rows.length, 0)), 'home-sez-sessioni')}
+<!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta, ma fuori da «Ti aspettano» e dal suo
+     numero, a filo e non pieni: un consiglio non blocca nessuno (correzione 1 del 30/10). -->
+{#if part === 'you' && !waitRows.length && !looseOk.length && !(suggestions && suggestionsN)}<p class="wnote">{t.deskYouEmpty}</p>{/if}
+{#if (!part || part === 'you') && suggestions && suggestionsN}<div class="sugg">{@render suggestions()}</div>{/if}
+{#if (!part || part === 'work') && (restGroups.length || justClosed)}
+  {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(restGroups.reduce((n, [, rows]) => n + rows.length, 0)), 'home-sez-sessioni', sessionsLine)}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
     </div>
   {/if}
-  {#if open.sessions}
-  {#each restGroups as [group, rows] (group)}
-    <h2 class="gh" style="--t:{tone[group]}"><span>{t.summary[group](rows.length).toUpperCase()}</span>{#if group === 'still' && finished.length}<button class="ghact" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button>{/if}<i></i></h2>
-    {#each rows as r (r.session.name)}<div class="cw" animate:flip={{ duration: 250 }}>{@render card(r, group)}</div>{/each}
-  {/each}
+  {#if part || open.sessions}
+    <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
+         intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
+    <div class="list">
+      {#each restGroups as [group, rows] (group)}
+        {#each rows as r (r.session.name)}<div class="cw" animate:flip={{ duration: 250 }}>{@render card(r, group)}</div>{/each}
+      {/each}
+    </div>
+    {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   {/if}
 {/if}
-{#if showLavori && (fy || workGroups.length)}
-  {@render sec('lavori', t.lavoriTitle, lavoriLine, 'home-sez-lavori')}
-  {#if open.lavori}
-    {#if laterRows.length}
-      <button class="all later" aria-expanded={laterOpen} onclick={() => (laterOpen = !laterOpen)}><span>{t.lavoriLater(laterRows.length)}</span>
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d={laterOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+{#if part === 'work' && afterSessions}{@render afterSessions()}{/if}
+{#if (!part || part === 'work') && showLavori && (fy || workGroups.length)}
+  {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', null, 'home-sez-lavori', open.lavori ? null : lavoriLine)}{/if}
+  {#if part || open.lavori}
+    {#if laterRows.length && !part}
+      <button class="all later" aria-expanded={laterOpen} onclick={() => (laterOpen = !laterOpen)}><span class="wic"></span><span class="otext"><b>{t.lavoriLater(laterRows.length)}</b></span>
+        <span class="ms tog">{laterOpen ? 'expand_less' : 'expand_more'}</span></button>
       {#if laterOpen}{#each laterRows as r, i (workKey(r, i))}{@render workCard(r, i, false)}{/each}{/if}
     {/if}
     <!-- Da riprendere, Stanotte, Da sistemare e Programmati, che stavano in «Altro», sono lavori (Franz 29/10 20:32). -->
@@ -321,28 +363,31 @@
         {#each g.rows as r, i (`n-${i}`)}
           {#if r.kind !== 'night'}
             {@const x = serviceText(r)}
-            <div class="card wrows"><div class="wrow"><span class="otext"><b>{x.title}</b>{#if x.detail}<small>{x.detail}</small>{/if}</span><button class="tonal mini" onclick={() => onService(r)}>{x.action}</button></div></div>
+            <div class="card wrows"><div class="wrow"><span class="wic"><span class="ms">bedtime</span></span><span class="otext"><b>{x.title}</b>{#if x.detail}<small>{x.detail}</small>{/if}</span><button class="tonal mini" onclick={() => onService(r)}>{x.action}</button></div></div>
           {:else if tonightCard.items.length}
             {@render tonight(r)}
           {:else}
-            <!-- Stanotte vuota: una riga col tasto, non una scheda di tre (Franz 29/10 20:32: il testo finiva sotto «Aggiungi»). -->
+            <!-- La Notte su una riga (stile «Studio e Diretta», 30/10): la coda di stanotte e com'è andata la notte scorsa, che
+                 prima stava in una sezione chiusa in fondo; il tocco apre la pagina Notte, «Aggiungi» mette in coda. -->
             <div class="card wrows">
-              <div class="wrow"><span class="wic"><svg viewBox="0 0 24 24" width="16" height="16"><path d={CAT_ICON.night} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
-                <span class="otext"><b>{t.tonightEmpty}</b><small>{t.tonightEmptySub}</small></span>
-                <button class="text mini" onclick={() => onService(r)}>{t.fyAdd}</button></div>
+              <div class="wrow orow" role="button" tabindex="0" onclick={onNight} onkeydown={(e) => e.key === 'Enter' && onNight()}><span class="wic"><span class="ms">bedtime</span></span>
+                <span class="otext"><b>{t.homeNight}</b><small class="txt">{t.homeNightRow(0, night ? night.counts.done : null, night ? night.cards.length : null)}</small></span>
+                <button class="tonal mini" onclick={(e) => { e.stopPropagation(); onService(r) }}>{t.fyAdd}</button></div>
             </div>
           {/if}
         {/each}
       {:else}
+        {#if part}<div class="sec static"><span class="ic"><span class="ms">{g.category === 'resume' ? 'replay' : g.category === 'scheduled' ? 'timer' : 'event_list'}</span></span><span class="st">{catLabel(g.category)}</span><small>{outsideCount(g)}</small></div>{:else}
         <h2 class="gh cat" style="--t:{g.category === 'fix' ? 'var(--wait)' : 'var(--text2)'}">
           <svg viewBox="0 0 24 24" width="16" height="16"><path d={CAT_ICON[g.category]} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-          <span>{t.catCount(catLabel(g.category), outsideCount(g)).toUpperCase()}</span>
+          <span>{t.catCount(catLabel(g.category), outsideCount(g))}</span>
           {#if g.category === 'resume'}<small class="note">{t.catResumeNote}</small>{/if}
-        </h2>
+        </h2>{/if}
         <div class="card wrows">
           {#each g.rows as r, i (`${g.category}-${i}`)}
             {@const x = serviceText(r)}
             <div class="wrow">
+              <span class="wic"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d={CAT_ICON[g.category]} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
               <span class="otext"><b>{r.kind === 'context' ? r.title : x.title}</b>{#if r.kind === 'context'}<small>{x.title}. {x.detail}</small>{:else if x.detail}<small>{x.detail}</small>{/if}</span>
               <button class="tonal mini" onclick={() => onService(r)}>{x.action}</button>
             </div>
@@ -350,45 +395,54 @@
         </div>
       {/if}
     {/each}
-    {#if fy}
-      <button class="all" onclick={onLavori}><span>{lavoriLine}</span>
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+    {#if fy && !part}
+      <button class="all" onclick={onLavori}><span class="wic"><span class="ms">event_list</span></span><span class="otext"><b>{lavoriLine}</b></span>
+        <span class="ms chevr">chevron_right</span></button>
     {/if}
   {/if}
 {/if}
-{#if out}
+{#if (!part || part === 'out') && out}
   <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. -->
-  {@render sec('esiti', t.homeOutcomes, out.red.length ? `${t.kpi7Red(out.red.length)} · ${out.done.length}` : String(out.done.length), 'home-sez-esiti')}
-  {#if open.esiti}
+  {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', part && out.red.length ? String(out.red.length) : null, 'home-sez-esiti')}
+  {#if part || open.esiti}
     <div class="card wrows">
       {#each out.red.length ? out.red.slice(0, 3) : out.done.slice(0, 2) as d, i (i)}
         <button class="wrow orow" onclick={() => (liveNames.has(d.session) ? onPick(d.session) : onBox('esiti'))}>
-          <span class="wic" class:red={d.ref != null} class:good={d.ref == null}><Icon name={d.ref != null ? 'x' : 'check'} size={16} /></span>
+          <span class="wic rail"><StateGlyph kind={d.ref != null ? 'red' : 'done'} /><b class="rt" class:red={d.ref != null}>{hhmm(d.at)}</b></span>
           <span class="otext"><b>{d.session}</b><small class="txt">{d.text}</small></span>
-          <span class="mono">{hhmm(d.at)}</span>
         </button>
       {:else}
         <p class="wnote">{t.boxOutcomesNone}</p>
       {/each}
       <button class="wrow orow" onclick={() => onBox('esiti')}>
+        <span class="wic"><StateGlyph kind="done" /></span>
         <span class="otext"><b>{t.homeAllOutcomes}</b></span>
         <span class="mono">{out.red.length > 3 ? `${t.homeMoreRed(out.red.length - 3)} · ` : ''}{out.done.length}</span>
-        <svg class="chevr" viewBox="0 0 24 24" width="20" height="20"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <span class="ms chevr">chevron_right</span>
       </button>
     </div>
   {/if}
 {/if}
-  {#if usage && showUsage}
-    <div bind:this={usageEl}>{@render sec('usage', t.homeUsage, usageLine)}</div>
-    {#if open.usage}<div class="footer" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}{#if kpiData?.kpi_waits}<Kpi17 w={kpiData.kpi_waits} {now} />{/if}{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div>{/if}
-  {/if}
-{#if sys}
-  <button class="sec" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}>
-    <svg viewBox="0 0 24 24" width="16" height="16"><path d={sysOpen ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>
-    <span>{t.homeSystem.toUpperCase()}</span><b class="sysdot" style:background={SYS_TONE[sys.level]}></b><i></i>{#if !sysOpen}<small>{summaryLine(sys, lang)}</small>{/if}
-  </button>
-  {#if sysOpen}
-    <div class="card sys" data-testid="system_advice">
+  {#if (!part || part === 'tools') && ((usage && showUsage) || sys || (pluginsLoad && pluginsRun) || model.closed.length)}
+    <!-- «Altro» (stile «Studio e Diretta», 30/10): Utilizzo, Sistema, Plugin e skill e Chiuse come righe di una lista, col
+         numero in vista; il tocco apre la riga sul posto, Chiuse apre l'elenco. La Notte sta nei Lavori. -->
+    <!-- Nella plancia Utilizzo sta aperto in cima alla colonna col suo grafico (pwa2, 30/10); in «Altro» il resto. -->
+    {#if part && usage && showUsage}
+      <div class="sec static"><span class="ic"><span class="ms">data_usage</span></span><span class="st">{t.homeUsage}</span></div>
+      <div class="card wrows altro"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
+    {/if}
+    <div class="sec static"><span class="ic"><span class="ms">more_horiz</span></span><span class="st">{t.homeMore}</span></div>
+    <div class="card wrows altro">
+      {#if usage && showUsage && !part}
+        <div bind:this={usageEl}>
+          <button class="wrow orow" aria-expanded={open.usage} onclick={() => toggleSec('usage')}><span class="wic"><span class="ms">data_usage</span></span><span class="otext"><b>{t.homeUsage}</b></span>{#if usageLine && !open.usage}<span class="mono">{usageLine}</span>{/if}<span class="ms tog">{open.usage ? 'expand_less' : 'expand_more'}</span></button>
+        </div>
+        {#if open.usage}<div class="footer exp" class:flash={usageFlash}>{@render usage()}{#each Object.keys(st.quota) as a (a)}{@const sp = kpiSplit(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}{#if kpiPage}<Kpi18 f={dayFigures(kpiPage, st, now)} />{/if}{#if kpiData?.kpi_waits}<Kpi17 w={kpiData.kpi_waits} {now} />{/if}{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div>{/if}
+      {/if}
+      {#if sys}
+        <button class="wrow orow" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}><span class="wic"><span class="ms">memory</span></span><span class="otext"><b>{t.homeSystem}</b></span>{#if !sysOpen}<span class="mono"><b class="sysdot" style:background={SYS_TONE[sys.level]}></b>{summaryLine(sys, lang)}</span>{/if}<span class="ms tog">{sysOpen ? 'expand_less' : 'expand_more'}</span></button>
+        {#if sysOpen}
+          <div class="exp sys" data-testid="system_advice">
       <div class="kv sysm">
         <span>{t.sysLoad}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{SYS_TONE[sys.load_level]}"></span></span><span class="ctxv">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></span>
         <span>{t.sysMem}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, (1 - sys.mem_available_mb / Math.max(1, sys.mem_total_mb)) * 100)}%;background:{SYS_TONE[sys.mem_level]}"></span></span><span class="ctxv">{t.sysMemV(sysNum(sys.mem_available_mb / 1024, lang), sysNum(sys.mem_total_mb / 1024, lang))}</span></span>
@@ -416,46 +470,18 @@
           {/each}
         </div>
       {:else}<p class="okt mono2">{t.sysCalm}</p>{/if}
+          </div>
+          {#if kpiData?.kpi_health}<div class="exp"><Kpi12 h={kpiData.kpi_health} /></div>{/if}
+        {/if}
+      {/if}
+      {#if pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} />{/if}
+      {#if model.closed.length}
+        <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
+        <button class="wrow orow" onclick={() => closedDlg?.showModal()}><span class="wic"><span class="ms">inventory_2</span></span><span class="otext"><b>{t.catClosed}</b></span><span class="mono">{model.closed.length}</span><span class="ms chevr">chevron_right</span></button>
+      {/if}
     </div>
-    {#if kpiData?.kpi_health}<Kpi12 h={kpiData.kpi_health} />{/if}
   {/if}
-{/if}
-{#if pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} />{/if}
-  {#if night !== undefined}
-    {@render sec('night', t.homeNight, nightLine)}
-    {#if open.night}
-      <!-- Grammatica unica (Franz 24/10 00:01): la Notte è una scheda come le altre: luna, «Stanotte», la finestra in mono, una riga di testo, «Apri» tonale. -->
-      <button class="card ncard" onclick={onNight}>
-        <div class="top">
-          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="var(--b-track)" /><g transform="translate(4.8 4.8) scale(0.6)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11z" /></g></svg>
-          <span class="nm"><span class="name">{t.catNight}</span></span>
-          {#if night}<span class="mono">{hhmm(night.start)}–{hhmm(night.end)} · {night.cards.length}</span>{/if}
-          <svg class="chevr" viewBox="0 0 24 24" width="22" height="22"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-        </div>
-        {#if night}
-          <p class="body">{t.nightCardBody(nightTitle, night.cards.length)}</p>
-          {#if night.counts.done || night.counts.running || night.counts.partial || night.counts.stopped || night.counts.asking}
-          <span class="nchips">
-            {#if night.counts.done}<span style:color="var(--good)"><Icon name="check" size={14} />{t.nightDone(night.counts.done)}</span>{/if}
-            {#if night.counts.running}<span style:color="var(--icon)"><Icon name="play" size={14} />{t.nightRunningN(night.counts.running)}</span>{/if}
-            {#if night.counts.partial}<span style:color="var(--b-warn)"><Icon name="half" size={14} />{t.nightPartial(night.counts.partial)}</span>{/if}
-            {#if night.counts.stopped}<span style:color="var(--gone-dim)"><Icon name="x" size={14} />{t.nightStopped(night.counts.stopped)}</span>{/if}
-            {#if night.counts.asking}<span style:color="var(--wait)"><Icon name="question" size={14} />{t.nightAsking(night.counts.asking)}</span>{/if}
-          </span>
-          {/if}
-          <div class="oks"><div class="ok"><span class="okt mono2">{night.needs.length ? t.homeNightNeeds(night.needs.length, night.needs[0].session, readable(night.needs[0].text, t.slashPhrases)) : t.nightNoNeeds}</span><span class="tonal mini">{t.homeNightOpen}</span></div></div>
-        {:else}<p class="body">{t.nightLoading}</p>{/if}
-      </button>
-    {/if}
-  {/if}
-  {#if model.closed.length}
-    <!-- «Chiuse · N» (ClosedSheet dell'app): chiusa col numero, il tocco apre l'elenco con «Riapri». -->
-    <button class="sec" onclick={() => closedDlg?.showModal()}>
-      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>
-      <span>{t.catClosed.toUpperCase()}</span><i></i><small>{model.closed.length}</small>
-    </button>
-  {/if}
-  {#if footer}<div class="footer">{@render footer()}</div>{/if}
+  {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
 </section>
 
 <!-- «Chiuse · N» (ClosedSheet dell'app): una riga per sessione chiusa, «Riapri» la riapre e chiude il foglio. -->
@@ -480,7 +506,8 @@
     {@const c = cleanupOf(s, canExit, st.ts)}
     {@const mine = placed?.inCards.get(s.name) ?? []}
     {@const svc = placedOut.inCards.get(s.name) ?? []}
-    <div class="card" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
+    {@const rl = railOf(r)}
+    <div class="card r" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
       role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
       oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
       {#if ctx === s.name}
@@ -489,30 +516,34 @@
           <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
           <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, s.followed ? 'unfollow' : 'follow'); ctx = null }}>
             <svg viewBox="0 0 24 24" width="22" height="22"><path d={s.followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
-            <span><span class="mt">{s.followed ? t.unfollow : t.follow}</span><span class="ms">{s.followed ? t.unfollowSub : t.followSub}</span></span>
+            <span><span class="mt">{s.followed ? t.unfollow : t.follow}</span><span class="msub">{s.followed ? t.unfollowSub : t.followSub}</span></span>
           </button>
           {#if s.name !== MASTER && hasMaster}
             <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, 'prompt', t.askMasterPrompt(s.name)); ctx = null }}>
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
-              <span><span class="mt">{t.askMaster}</span><span class="ms">{t.askMasterSub}</span></span>
+              <span><span class="mt">{t.askMaster}</span><span class="msub">{t.askMasterSub}</span></span>
             </button>
           {/if}
           {#if canExit && s.state !== 'gone'}
             <hr />
             <button class="mi danger" role="menuitem" onclick={() => { ctx = null; confirming = s.name }}>
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
-              <span><span class="mt">{t.menuExit}</span><span class="ms">{t.menuExitSub}</span></span>
+              <span><span class="mt">{t.menuExit}</span><span class="msub">{t.menuExitSub}</span></span>
             </button>
           {/if}
         </div>
       {/if}
+      <!-- Il binario (stile «Studio e Diretta», 30/10): il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora. -->
+      <span class="rail"><StateGlyph kind={rl.kind} ctx={s.context} square={square(s)} label={t.states[s.state]} />{#if rl.text}<b class="rt {rl.kind}">{rl.text}</b>{/if}</span>
+      <div class="cnt">
       <div class="top">
-        <Badge {s} size={24} />
-        <!-- Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2). -->
-        <span class="nm"><span class="name">{s.name}</span><PermGlyph g={homeGlyph(s)} /></span>
+        <!-- Il colore che dai alla sessione, piccolo accanto al nome; il segno della modalità dei permessi dopo il nome, solo
+             se diverso dal solito (mockup del 14/10, schermata 2). -->
+        <span class="nm">{#if idColor(s)}<i class="idc" class:sq={square(s)} style:background={idColor(s)}></i>{/if}<span class="name">{s.name}</span><PermGlyph g={homeGlyph(s)} /></span>
         {#if s.duplicate_of}<span class="dup">{t.cleanupDupTag.toUpperCase()}</span>{/if}
-        <!-- La quota 5h sta una volta sola, nella barra in cima (app-home-riordino-29-10); qui l'età dell'attesa e il contesto. -->
-        {#if group === 'waiting' && waitingSince(s) != null}<span class="mono">{since(waitingSince(s)!, now)}{#if s.context != null} · {t.ctx(s.context)}{/if}</span>{/if}
+        <!-- La quota 5h sta una volta sola, nel tabellone; qui il contesto e l'ora dell'ultimo rosso di oggi. -->
+        {#if s.context != null && (group === 'waiting' || group === 'working')}<span class="mono">{t.ctx(s.context)}</span>{/if}
+        {#if group !== 'waiting' && lastRed.get(s.name)}<span class="redtag"><StateGlyph kind="red" size={14} />{hhmm(lastRed.get(s.name)!)}</span>{/if}
         <button class="chev" aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); expanded = open ? null : s.name }}>
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
@@ -521,13 +552,13 @@
       {#if group === 'working' && !open && s.tool}
         <!-- Chiusa, una sessione al lavoro è una riga: lo strumento, da quanto dura il turno, il contesto (app-home-riordino-29-10). -->
         {@const [tool, ...rest] = s.tool.split(' ')}
-        <p class="meta mono2"><span class="tool">{tool}</span>{rest.length ? ` ${rest.join(' ')}` : ''}{#if s.turn_started != null}{` · ${since(s.turn_started, now)}`}{/if}{#if s.context != null}{` · ${t.ctx(s.context)}`}{/if}</p>
+        <p class="meta mono2"><span class="tool">{tool}</span>{rest.join(' ')}</p>
       {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open && group !== 'waiting'} class:strong={group === 'waiting' || open} class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
       {#if group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
       {#if group === 'waiting' && !s.question}
         {@const d = doneOf(s)}
         <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. -->
-        {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
+        {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
       {/if}
       {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
       {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
@@ -621,6 +652,7 @@
         <!-- Proposta 6 senza contesto letto: le colonnine da sole, sulla riga dove starebbe la barra. -->
         <div class="trackrow"><Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} /></div>
       {/if}
+      </div>
     </div>
 {/snippet}
 
@@ -628,7 +660,7 @@
     {@const k = workKey(r, i)}
     {@const openW = openWork === k}
     {@const ds = lavoriDetails(r)}
-    <div class="card">
+    <div class="card" class:waiting={r.kind === 'ok'}>
       <div class="top">
         <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
         <span class="nm"><span class="name">{fyShort(r)}</span></span>
@@ -743,7 +775,7 @@
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mi > span { display: flex; flex-direction: column; gap: 2px; }
   .mt { font-size: 15.5px; }
-  .ms { font-size: 13px; color: var(--text2); }
+  .msub { font-size: 13px; color: var(--text2); }
   .mi.danger svg { stroke: var(--b-alert); }
   .card { position: relative; -webkit-touch-callout: none; background: var(--low); border-radius: 20px; padding: 8px 10px 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background .15s, box-shadow .15s; outline: none; }
   .card.waiting { background: color-mix(in srgb, var(--low) 94%, var(--b-warn)); }
@@ -909,4 +941,75 @@
   .orow { cursor: pointer; }
   .wnote { font-size: 14px; color: var(--text2); padding: 10px 0; }
   .text.mini { color: var(--icon); font-weight: 500; font-size: 14px; padding: 8px 6px; white-space: nowrap; }
+
+  /* Lo stile «Studio e Diretta», terza versione (approvato da Franz il 30/10 alle 09:49, app-home-riordino-29-10): solo la
+     home e solo di notte, coi token di v3.css. Il binario di 52 px tiene glifi e icone; il pieno è per quello che aspetta te
+     (schede), il resto sta in liste a filo; i tasti sono pillole in Barlow Semi Condensed, uno solo pieno e bianco. */
+  .home { padding: 8px 12px 24px; gap: 8px; }
+  /* La home scorre: i blocchi con overflow nascosto (tabellone, liste) non devono restringersi a una riga. */
+  .home > * { flex-shrink: 0; }
+  /* Nella plancia scorre la colonna, non la home: dopo vengono la notte, il fatto di oggi e gli strumenti. */
+  .home.part { height: auto; overflow: visible; padding-bottom: 0; }
+  .home.part :global(.vsec), .home.part :global(.vlist) { margin-left: 0; margin-right: 0; }
+  /* In «Altro» il titolo non cede mai: è il riepilogo a destra che va a capo, su una colonna stretta. */
+  .altro .otext { flex: 1 0 auto; }
+  .altro .wrow .mono { min-width: 0; white-space: normal; text-align: right; }
+  .sec { gap: 0; margin: 18px 0 2px; padding: 0; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
+  .sec .ic { width: 52px; flex: none; display: flex; justify-content: center; margin-right: 8px; }
+  .sec .ic .ms { color: var(--tx2); }
+  .sec .st { white-space: nowrap; }
+  .sec small { font: 600 15px var(--display); letter-spacing: 0; color: var(--tx2); margin-left: 8px; }
+  .sec .sp { flex: 1; min-width: 8px; }
+  .sec .rt { font: 400 14px var(--sans); color: var(--tx2); white-space: nowrap; overflow: hidden; min-width: 0; }
+  .sec .tog { color: var(--tx3); margin-left: 6px; }
+  .card { background: var(--s1); border-radius: 14px; padding: 12px; gap: 6px; }
+  .card.waiting { background: var(--s2); }
+  .card.r { flex-direction: row; align-items: flex-start; gap: 8px; padding: 12px 12px 12px 0; }
+  .card.r .cnt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .rail { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 1px; }
+  .rt { font: 700 15px/1 var(--display); letter-spacing: .01em; color: var(--tx2); white-space: nowrap; }
+  .rt.waiting { color: var(--wait); } .rt.busy { color: var(--busy); } .rt.red { color: var(--red); }
+  .card.on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 45%, transparent); }
+  .list { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+  .list .card { background: none; border-radius: 0; }
+  .list .cw + .cw .card { border-top: 1px solid var(--line); }
+  .list .card:hover, .list .card:focus-visible { box-shadow: none; background: var(--s2); }
+  .list .card.on { background: var(--s2); box-shadow: none; }
+  .after { display: flex; justify-content: flex-end; }
+  .top { gap: 8px; min-height: 22px; }
+  .name { font: 600 17px/1.2 var(--display); }
+  .idc { width: 8px; height: 8px; border-radius: 50%; flex: none; } .idc.sq { border-radius: 2px; }
+  .card .top .mono { font: 400 12.5px var(--mono); letter-spacing: 0; color: var(--tx2); max-width: none; }
+  .redtag { display: inline-flex; align-items: center; gap: 5px; font: 500 12.5px var(--mono); color: var(--red); white-space: nowrap; flex: none; }
+  .chev { width: 28px; height: 28px; color: var(--tx3); }
+  .body { color: var(--tx2); }
+  .body.strong { color: var(--tx); font-size: 16px; line-height: 1.36; }
+  .meta { font: 400 12.5px var(--mono); color: var(--tx2); }
+  .meta .tool { color: var(--tx2); margin-right: .6em; }
+  .mono2, .okt.mono2 { font-family: var(--mono); }
+  .approve, .tonal, .text.mini, .close, .confirm button, .obtn, .ghact { font: 600 15px var(--display); letter-spacing: .02em; }
+  .approve.mini, .tonal { min-height: 40px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; }
+  .tonal { background: var(--s3); color: var(--tx); }
+  .approve { background: var(--act); color: var(--on-act); }
+  .text.mini { color: var(--tx2); }
+  .chip { background: var(--s3); color: var(--tx); font: 600 14.5px var(--display); min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 18px; }
+  .chip.unblock { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
+  .wrows { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; }
+  .wrow { gap: 8px; min-height: 52px; padding: 10px 12px 10px 0; }
+  .wic { width: 52px; height: auto; border-radius: 0; background: none; flex-direction: column; gap: 4px; display: flex; align-items: center; color: var(--tx2); }
+  .wic .ms, .wic svg { color: var(--tx2); }
+  .wrow .otext b, .all .otext b { font: 600 17px/1.2 var(--display); color: var(--tx); }
+  .wrow .otext small { color: var(--tx2); }
+  .wrow .otext small.txt { font: 400 14px/1.35 var(--sans); color: var(--tx2); }
+  .wrow .mono { font: 400 12.5px var(--mono); color: var(--tx2); }
+  .wrow .mono .sysdot { display: inline-block; margin-right: 6px; vertical-align: 1px; }
+  .chevr, .tog { color: var(--tx3); }
+  .all { gap: 8px; min-height: 52px; padding: 10px 12px 10px 0; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; color: var(--tx); width: 100%; }
+  .all .otext { flex: 1; }
+  .gh.cat { margin: 8px 0 0 60px; font: 400 13.5px var(--sans); letter-spacing: 0; color: var(--tx2); }
+  .gh.cat svg, .gh.cat i { display: none; }
+  .exp { padding: 2px 12px 12px 60px; }
+  .footer.exp { padding: 8px 12px 12px; }
+  .wnote { padding: 12px 12px 12px 60px; }
+  .sugg { margin-top: 10px; }
 </style>

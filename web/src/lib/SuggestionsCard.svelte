@@ -10,7 +10,6 @@
   let { shown, total, at, onAnswer }: { shown: Suggestion[]; total: number; at: string; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', choice?: string) => void } = $props()
   // «Altre risposte» (app-home-riordino-29-10): Parliamone, Non ora e Mai dietro un tocco; prima erano dodici tasti in tre voci.
   let more = $state(new Set<string>())
-  const tone: Record<string, string> = { recurring: 'var(--b-ring)', cleanup: 'var(--good)', deadline: 'var(--b-warn)', quota: 'var(--b-week, #B9A6F5)', choice: 'var(--b-warn)', followup: 'var(--b-ring)', unsaved: 'var(--good)', waiting: 'var(--text2)', idea: 'var(--advice)', proposal: 'var(--advice)', observe: 'var(--b-ring)' }
   const icon: Record<string, string> = {
     recurring: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
     cleanup: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
@@ -29,25 +28,27 @@
   }
 </script>
 
+<!-- Nello stile «Studio e Diretta» (30/10): fuori da «Ti aspettano», una lista a filo col binario; il tipo è l'icona grigia
+     a sinistra e la parola sopra il testo; a destra «Altre risposte» (da cui si rifiuta) e «Accetta» tonale. -->
 <div class="card sugg">
   <div class="top">
-    <span class="badge" aria-hidden="true">✦</span>
+    <span class="rail"><span class="ms" aria-hidden="true">auto_awesome</span></span>
     <span class="nm">{t.sugTitle}</span>
     <span class="mono">{at} · {t.sugCount(shown.length, total)}</span>
   </div>
   {#each shown as s (s.id)}
-    <div class="sug" style="--s:{tone[s.kind] ?? 'var(--text2)'}">
-      <span class="sym"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d={icon[s.kind] ?? icon.other} /></svg></span>
+    <div class="sug">
+      <span class="rail sym"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={icon[s.kind] ?? icon.other} /></svg></span>
       <span class="txt">
         <span class="k">{t.sugKind[s.kind] ?? t.sugKindOther}</span>
         <span class="body">{s.text}</span>
         <span class="btns">
-          {#each options(s) as o (o)}<button class="tonal" onclick={() => onAnswer(s, 'choose', o)}>{o}</button>{:else}<button class="tonal" onclick={() => onAnswer(s, 'accept')}>{t.sugAccept}</button>{/each}
           {#if more.has(s.id)}
             <button class="text" onclick={() => onAnswer(s, 'discuss')}>{t.sugDiscuss}</button>
             <button class="text" onclick={() => onAnswer(s, 'later')}>{t.sugLater}</button>
             <button class="text" onclick={() => onAnswer(s, 'never')}>{t.sugNever}</button>
           {:else}<button class="text" aria-expanded="false" onclick={() => (more = new Set([...more, s.id]))}>{t.sugMore}</button>{/if}
+          {#each options(s) as o (o)}<button class="tonal" onclick={() => onAnswer(s, 'choose', o)}>{o}</button>{:else}<button class="tonal" onclick={() => onAnswer(s, 'accept')}>{t.sugAccept}</button>{/each}
         </span>
       </span>
     </div>
@@ -55,19 +56,21 @@
 </div>
 
 <style>
-  .card { background: color-mix(in srgb, var(--advice) 9%, var(--low)); border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
-  .top { display: flex; align-items: center; gap: 10px; }
-  .badge { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--advice); color: #0b0d10; font-size: 13px; font-weight: 700; }
-  .nm { flex: 1; min-width: 0; font-weight: 600; font-size: 16px; }
-  .mono { font: 12px var(--mono); color: var(--text2); white-space: nowrap; }
-  .sug { display: flex; gap: 10px; padding: 10px 0 2px; border-top: 1px solid color-mix(in srgb, var(--advice) 18%, transparent); }
+  .card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; }
+  .top { display: flex; align-items: center; gap: 8px; padding: 12px 12px 4px 0; }
+  .rail { width: 52px; flex: none; display: flex; justify-content: center; color: var(--tx2); }
+  .nm { flex: 1; min-width: 0; font: 600 17px/1.2 var(--display); }
+  .mono { font: 400 12.5px var(--mono); color: var(--tx2); white-space: nowrap; }
+  .sug { display: flex; gap: 8px; padding: 12px 12px 12px 0; border-top: 1px solid var(--line); }
   .sug:first-of-type { border-top: 0; }
-  .sym { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; background: color-mix(in srgb, var(--s) 20%, transparent); color: var(--s); }
+  .sym { padding-top: 2px; }
   .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }
-  .k { font: 600 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--s); }
-  .body { font-size: 14.5px; line-height: 1.4; }
-  .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-  .btns button { border-radius: 999px; padding: 6px 12px; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
-  .tonal { background: var(--high); } .tonal:hover { filter: brightness(1.2); }
-  .text { color: var(--text2); padding: 6px 8px; } .text:hover { background: var(--surface); }
+  .k { font-size: 13px; color: var(--tx3); }
+  .body { font-size: 15px; line-height: 1.4; color: var(--tx); }
+  .btns { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; margin-top: 8px; }
+  .btns button { font: 600 15px var(--display); letter-spacing: .02em; white-space: nowrap; }
+  .tonal { min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); }
+  .tonal:hover { background: color-mix(in srgb, var(--tx) 8%, var(--s3)); }
+  .text { min-height: 40px; padding: 0 10px; border-radius: 20px; color: var(--tx2); }
+  .text:hover { background: var(--s2); }
 </style>

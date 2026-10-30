@@ -44,9 +44,11 @@
 </script>
 
 {#if count != null}
-  <button class="sec" aria-expanded={open} onclick={toggle}>
-    <svg viewBox="0 0 24 24" width="16" height="16"><path d={open ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>
-    <span>{t.homePlugins.toUpperCase()}</span><i></i>{#if !open}<small>{count ? t.pluginsToUpdate(count) : t.pluginsUpToDate}</small>{/if}
+  <!-- Una riga di «Altro» nella home (stile «Studio e Diretta», 30/10): l'icona nel binario, il numero in vista, la freccina. -->
+  <button class="prow" aria-expanded={open} onclick={toggle}>
+    <span class="wic"><span class="ms">extension</span></span><span class="pt">{t.homePlugins}</span>
+    {#if !open}<span class="pv">{count ? t.pluginsToUpdate(count) : t.pluginsUpToDate}</span>{/if}
+    <span class="ms tog">{open ? 'expand_less' : 'expand_more'}</span>
   </button>
   {#if open}
     <div class="plugins" data-kpi="plugins_state">
@@ -93,12 +95,15 @@
 {/if}
 
 <style>
-  .sec { display: flex; align-items: center; gap: 8px; width: 100%; margin: 14px 0 4px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-align: left; }
-  .sec i { flex: 1; height: 1px; background: var(--line); }
-  .sec small { font: 13px/1 var(--sans, inherit); letter-spacing: 0; }
-  .plugins { display: flex; flex-direction: column; gap: 8px; }
+  .prow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; padding: 10px 12px 10px 0; border-top: 1px solid var(--line); text-align: left; color: var(--tx); }
+  .prow:hover { background: var(--s2); }
+  .prow .wic { width: 52px; flex: none; display: flex; justify-content: center; color: var(--tx2); }
+  .prow .pt { flex: 1; min-width: 0; font: 600 17px/1.2 var(--display); }
+  .prow .pv { font: 400 12.5px var(--mono); color: var(--tx2); white-space: nowrap; }
+  .prow .tog { color: var(--tx3); }
+  .plugins { display: flex; flex-direction: column; gap: 8px; padding: 2px 12px 12px 60px; }
   .dim { color: var(--text2); font-size: 14px; padding: 0 4px; }
-  .card.pl { background: var(--low); border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .card.pl { background: var(--s2); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
   .acct { display: flex; align-items: baseline; gap: 8px; }
   .acct b { flex: 1; font-weight: 600; font-size: 16px; min-width: 0; overflow-wrap: anywhere; }
   .meta { font: 12px var(--mono); color: var(--text2); flex: none; }

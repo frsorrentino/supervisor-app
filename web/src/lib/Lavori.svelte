@@ -133,7 +133,7 @@
   {#if left && suggestions}{@render suggestions()}{/if}
   {#if left}
     <!-- Franz 24/10 19:46 (B1): in alto solo quello che blocca adesso, gli ok; il resto in «Più tardi», chiuso. -->
-    <h3 class="sec"><span>{t.lavoriForYou.toUpperCase()} · {fy.ok.length}</span><i></i></h3>
+    <h3 class="sec"><span>{t.lavoriForYou} · {fy.ok.length}</span><i></i></h3>
     <p class="expl">{t.lavoriForYouExpl}</p>
     {#if !fy.total}<p class="expl bright">{t.lavoriNothing}</p>{/if}
     {#if fy.ok.length}
@@ -154,7 +154,7 @@
   {/if}
 
   {#if right}
-    <h3 class="sec"><span>{t.lavoriProgress.toUpperCase()} · {progressN}</span><i></i>
+    <h3 class="sec"><span>{t.lavoriProgress} · {progressN}</span><i></i>
       <span class="seg" role="group" aria-label={t.lavoriProgress}>
         <button class:on={!timeView} aria-pressed={!timeView} onclick={() => setView(false)}>{t.lavoriViewList}</button>
         <button class:on={timeView} aria-pressed={timeView} onclick={() => setView(true)}>{t.lavoriViewTime}</button>
@@ -184,7 +184,7 @@
   {/if}
 
   {#if left}
-    <h3 class="sec"><span>{t.lavoriTonight.toUpperCase()}</span><i></i></h3>
+    <h3 class="sec"><span>{t.lavoriTonight}</span><i></i></h3>
     <p class="expl">{t.lavoriTonightExpl}</p>
     <div class="card night">
       <div class="trow">
@@ -204,7 +204,7 @@
   {/if}
 
   {#if right}
-    <h3 class="sec"><span>{t.lavoriDone.toUpperCase()}</span><i></i></h3>
+    <h3 class="sec"><span>{t.lavoriDone}</span><i></i></h3>
     <p class="expl">{t.lavoriDoneExpl}</p>
     {#if !dn.length}<p class="expl bright">{t.lavoriDoneEmpty}</p>{/if}
     {#each dn as d (d.date)}
@@ -246,6 +246,7 @@
   .head h2 { font: 500 22px/1 var(--sans, inherit); margin: 0; } .head small { color: var(--text2); font-size: 14px; }
   .back { color: var(--text); padding: 8px; border-radius: 50%; }
   .desk, .sec { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); }
+  .sec span { text-transform: uppercase; }
   .sec i, .desk i, .gh i, .day i { flex: 1; height: 1px; background: var(--line); }
   .gh { display: flex; align-items: center; gap: 8px; margin: 10px 4px 2px; font: 600 11px/1.4 var(--mono); letter-spacing: .1em; color: var(--t); } .gh i { background: color-mix(in srgb, var(--t) 30%, transparent); }
   .expl { margin: 0 6px 6px; color: var(--text2); font-size: 14px; line-height: 1.4; } .expl.bright { color: var(--text); } .expl.quota { margin-top: 14px; color: var(--b-good-ink, #BCE4C7); border-top: 1px solid var(--line); padding-top: 10px; }
@@ -291,4 +292,9 @@
   .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; } .btns .text2 { color: var(--text2); padding: 10px 16px; border-radius: 999px; }
   @media (prefers-reduced-motion: reduce) { .track i { transition: none; } }
   .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  /* Nella plancia in stile «Studio e Diretta» (pwa2, 30/10): i titoli come quelli della home, senza maiuscolo né filetto. */
+  :global(.v3) .sec { margin: 18px 0 6px 60px; padding: 0; gap: 8px; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
+  :global(.v3) .sec span { text-transform: none; }
+  :global(.v3) .sec i { display: none; }
+  :global(.v3) .expl { padding-left: 60px; }
 </style>

@@ -29,6 +29,13 @@
   import Chat from './lib/Chat.svelte'
   import Desk from './lib/Desk.svelte'
   import Dash from './lib/Dash.svelte'
+  import Plancia from './lib/Plancia.svelte'
+  import MasterDock from './lib/MasterDock.svelte'
+  import DeskHead from './lib/DeskHead.svelte'
+  import DeskTools from './lib/DeskTools.svelte'
+  import DeskNight from './lib/DeskNight.svelte'
+  import DeskWork from './lib/DeskWork.svelte'
+  import { inProgress as lavoriInProgress, ymd as lavoriYmd } from './lib/lavori'
   import { dashColumns } from './lib/dash'
   import ColumnHead from './lib/ColumnHead.svelte'
   import { t } from './lib/t'
@@ -71,7 +78,7 @@
   import { askedSession } from './lib/sessionLinks'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
-  import { since as kpiSince } from './lib/kpi'
+  import { since as kpiSince, head as kpiHeadOf, waitingSince as kpiWaitingSince } from './lib/kpi'
   import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
   import { refusalText } from './lib/questionRules'
   import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
@@ -530,6 +537,14 @@
   const canWrite = $derived(!!st.ops?.includes('agenda_set'))
   // Il cruscotto della plancia (variante B): senza colonne né pagine, Recap e Utilizzo stanno a destra e non nella home.
   const deskDashboard = $derived(wide && !cols.length && !page)
+  // La plancia (pwa2, Franz 30/10 10:5x): sotto «Attività e code» le sessioni al lavoro e ferme e i compiti in corso.
+  const deskWorkSub = $derived.by(() => {
+    if (!deskDashboard) return ''
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const live = st.sessions.filter(s => s.state !== 'gone' && s.name !== MASTER && kpiWaitingSince(s) == null)
+    const tasks = st.commitments != null || agenda.page ? lavoriInProgress(st, agenda.page, now, zone, lavoriYmd(now, zone)).total : null
+    return t.deskWorkSub(live.filter(s => s.state === 'busy' || s.state === 'awaiting').length, live.filter(s => s.state === 'idle').length, tasks)
+  })
   // Il cruscotto a tre colonne (21/10) ha sempre il riquadro della notte: il rapporto si chiede appena c'è.
   $effect(() => { if (deskDashboard && st.night?.report && !night.report && !night.loading && !night.error) untrack(() => loadNight()) })
   let masterInject = $state<{ text: string; n: number } | null>(null)
@@ -982,12 +997,8 @@
     {#snippet quick()}{@render masterQuick()}{/snippet}
     {#snippet list()}
       {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
-      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} />
-      <div class="list"><Home st={stShown} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
-        night={nightBoxShown && !deskDashboard ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={deskDashboard ? undefined : sugCard} suggestionsN={deskDashboard ? 0 : sug.shown.length} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
-        onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
-        showLavori={!deskDashboard} showUsage={!deskDashboard} {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
-        {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} /></div>
+      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />
+      <div class="list">{@render homeView(null)}</div>
       {#if !master && ready}
         <!-- Senza master (MasterHome.kt): una card con «Riapri», invece della barra che non c'è. -->
         <div class="nomaster"><span><b>{t.masterAbsent}</b><small>{t.masterAbsentDetail}</small></span>
@@ -999,6 +1010,12 @@
   </HomePane>
 {/snippet}
 
+<!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
+{#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | null)}<Home st={stShown} {part} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
+        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={sugCard} suggestionsN={sug.shown.length} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
+        onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+        {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
+        {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
 {#snippet masterQuick()}
   {@const m = st.sessions.find(x => x.name === MASTER)}
   {#if m}
@@ -1063,6 +1080,13 @@
   onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 {#snippet lavoriRight()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" kpi={kpiData} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
+{#snippet deskTasks()}<DeskWork part="progress" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} />{/snippet}
+<!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
+     schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
+{#snippet masterBar()}{#if master}<div class="mbar"><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = true })} onSpeak={(x) => toggle(x, MASTER)} /><div class="mquick">{@render masterQuick()}</div><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = true })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
+  onToggleKey={() => smooth(() => { masterHalf = !masterHalf })} onClose={() => smooth(() => { masterOpen = false })} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
+
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
 
@@ -1072,6 +1096,15 @@
   </DockEmbed>
 {:else if embed}
   <div class="embedded">{@render chatOf(MASTER, true)}</div>
+{:else if wide && deskDashboard}
+  <Plancia {width} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf}>
+    {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />{/snippet}
+    {#snippet you()}<DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}{/snippet}
+    {#snippet work()}<DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} sub={deskWorkSub} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}{/snippet}
+    {#snippet out()}<DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} />{/snippet}
+    {#snippet tools()}<DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />{/snippet}
+    {#snippet bar()}{@render masterBar()}{/snippet}
+  </Plancia>
 {:else if wide}
   <Desk {cols} {shares} {homeRight} tab={wco ? columnTab : null} onCols={setCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={() => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
@@ -1167,4 +1200,14 @@
   .rbar b { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
   .rbar small { color: var(--text2); font: 500 12px/1 var(--mono); }
   .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
+  /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
+  .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 4px 12px 6px; border-top: 1px solid var(--line); background: var(--s1); }
+  .mbar > :global(.dock) { width: 500px; flex: none; border-radius: 0; padding: 6px 4px 6px 8px; }
+  /* La barra della plancia (pwa2): il campo è una pillola sola, senza il promemoria dei tasti. */
+  .mbar :global(.bar) { padding: 0; }
+  .mbar :global(.keys), .mchat :global(.keys) { display: none; }
+  .mbar :global(.field.master) { min-height: 52px; background: var(--s2); }
+  .mup { flex: none; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; background: var(--s3); color: var(--tx); }
+  .mquick { flex: 1; min-width: 0; }
+  .mchat { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 </style>
