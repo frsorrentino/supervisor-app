@@ -1406,4 +1406,5 @@ It starts at your last message to the master.</string>
     <string name="reorder_drag">Drag %1$s</string>
     <string name="reorder_up">Move %1$s up</string>
     <string name="reorder_down">Move %1$s down</string>
+    <string name="cleanup_close_short">Close</string>
 </resources>

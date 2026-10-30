@@ -109,11 +109,10 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
             Box(Modifier.fillMaxWidth().height(1.dp).background(CmColors.line))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.size(8.dp).clip(CircleShape).background(systemTone(a.level)))
-                Text(a.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text, modifier = Modifier.weight(1f))
-                if (op != null && ask != a.id) Surface(
+                V3Split(Modifier.weight(1f), gap = 10.dp, text = { Text(a.text, style = MaterialTheme.typography.bodyMedium, color = CmColors.text) }) { if (op != null && ask != a.id) Surface(
                     onClick = { if (a.id !in sent) ask = a.id }, shape = CircleShape, color = CmColors.surfaceHigh,
                     contentColor = if (a.id in sent) CmColors.text2 else CmColors.text,
-                ) { Text(a.action!!.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) }
+                ) { Text(a.action!!.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) } }
             }
             if (op != null && ask == a.id) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(if (op == CmdOp.SYS_UNIT_STOP) R.string.system_confirm_stop else R.string.system_confirm), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.padding(end = 4.dp))

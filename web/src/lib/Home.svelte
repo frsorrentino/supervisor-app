@@ -637,7 +637,7 @@
           <span>{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b> · {c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(new Date(s.outcome.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) : t.cleanupFinished}{/if}</span>
           {#if closing !== s.name && c.canClose && confirming !== s.name}
             <button class="close" onclick={(e) => { e.stopPropagation(); confirming = s.name }}>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--b-alert)" stroke-width="2" stroke-linecap="round"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>{t.cleanupClose(s.name)}
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--b-alert)" stroke-width="2" stroke-linecap="round"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>{t.cleanupCloseShort}
             </button>
           {/if}
         </div>
@@ -860,8 +860,9 @@
   .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 14px; }
   .kv span:nth-child(odd) { color: var(--text2); }
   .approve { align-self: stretch; margin-top: 4px; background: var(--primary); color: var(--on-primary); border-radius: 999px; padding: 11px 20px; font-weight: 500; }
-  .clean { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text2); }
-  .clean span { flex: 1; min-width: 0; }
+  /* Testo e tasto: se non ci stanno, il tasto scende sotto; il testo non si schiaccia mai (Franz 30/10 19:46). */
+  .clean { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text2); }
+  .clean span { flex: 1 1 160px; min-width: 0; }
   /* Mandato /exit da una card: la riga lo dice finché la sessione non esce (poi la card «chiusa alle» in cima). */
   .closing { flex: none !important; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--text); font-weight: 500; }
   .closing .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--b-track); border-top-color: var(--icon); animation: turn 1s linear infinite; }
@@ -947,10 +948,10 @@
   .footer.flash { outline: 2px solid color-mix(in srgb, var(--icon) 80%, transparent); outline-offset: 4px; border-radius: 18px; }
   .footer { transition: outline-color .7s; display: flex; flex-direction: column; gap: 12px; padding: 12px 0; }
   .oks { display: flex; flex-direction: column; gap: 6px; }
-  .ok { display: flex; align-items: center; gap: 10px; }
+  .ok { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
   .ok svg { flex: none; }
   .okt.mono2 { font-family: ui-monospace, monospace; font-size: 13px; color: var(--text2); }
-  .okt { flex: 1; min-width: 0; font-size: 14px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .okt { flex: 1 1 140px; min-width: 0; font-size: 14px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   /* Il riordino (app-home-riordino-29-10): «Ti aspettano» ha un'intestazione fissa ambra; le card stanno in un involucro
      per l'animazione; chiuse, le card fuori da «Ti aspettano» tengono una riga; Lavori ed Esiti hanno righe compatte. */
   .sec.static { cursor: default; }
@@ -966,6 +967,8 @@
   .wrow .otext b { font-size: 15px; font-weight: 500; }
   .wrow .otext small { font: 12.5px/1.35 var(--mono); color: var(--text2); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .wrow .otext small.txt { font: 14px/1.35 var(--sans, inherit); color: var(--text); }
+  .wrow { flex-wrap: wrap; }
+  .wrow .otext { flex: 1 1 140px; }
   .wrow .mono { font: 12px var(--mono); color: var(--text2); white-space: nowrap; }
   .wic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--high); color: var(--text2); }
   .wic.red { background: color-mix(in srgb, var(--gone) 20%, transparent); color: var(--gone); }

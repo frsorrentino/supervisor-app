@@ -231,8 +231,7 @@ private fun BoxRow(index: Int, icon: ImageVector, tone: Color, session: String, 
         Box(Modifier.size(30.dp).clip(CircleShape).background(tone.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(icon, null, tint = tone, modifier = Modifier.size(16.dp)) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(session, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, modifier = Modifier.weight(1f))
-                meta?.let { Text(it, style = MonoSmall, maxLines = 1) }
+                V3Split(Modifier.weight(1f), text = { Text(session, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text) }) { meta?.let { Text(it, style = MonoSmall, maxLines = 1) } }
             }
             body()
         }

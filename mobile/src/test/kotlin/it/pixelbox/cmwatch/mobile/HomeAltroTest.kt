@@ -37,6 +37,20 @@ class HomeAltroTest {
         paparazzi.snapshot { CmPhoneTheme(still = true) { HomeOrderScreen(null, {}, {}) } }
     }
 
+    /** Nomi lunghi a 360 dp con caratteri grandi (Franz 30/10 19:46): il testo non va mai in colonna, il tasto scende sotto. */
+    @Test fun longNames360LargeFont() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), fontScale = 1.3f, screenHeight = 5000))
+        val base = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
+        val names = listOf("francescosorrentino-com", "internationalyoungclub-com", "supervisor-app")
+        val sessions = base.sessions.mapIndexed { i, s -> s.copy(name = names[i % names.size], id = "l$i") }
+        val long = base.copy(sessions = sessions + sessions.first().copy(id = "l9", name = "internationalyoungclub-it", state = it.pixelbox.cmwatch.contract.SessionState.IDLE, question = null, needsYou = null, outcome = null, since = base.ts - 3600))
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                SummaryList(Summary.build(long, emptyList(), emptyList(), long.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = long.ts, canExit = true, system = system.copy(advice = emptyList()), kpiState = long)
+            }
+        }
+    }
+
     @Test fun altroSystemClosed() = shot()
 
     /** Utilizzo con due account (state-2-idle): il nome intero, mai tagliato in un'altra parola (master 30/10 16:42). */

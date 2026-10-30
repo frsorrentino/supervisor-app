@@ -1431,4 +1431,5 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="reorder_drag">Trascina %1$s</string>
     <string name="reorder_up">Sposta su %1$s</string>
     <string name="reorder_down">Sposta giù %1$s</string>
+    <string name="cleanup_close_short">Chiudi</string>
 </resources>

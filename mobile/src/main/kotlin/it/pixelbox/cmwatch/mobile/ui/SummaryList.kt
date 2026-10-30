@@ -587,8 +587,7 @@ private fun SummaryCard(
             // Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2).
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    s.name, style = V3.Name,
-                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
+                    s.name, style = V3.Name, modifier = Modifier.weight(1f, fill = false),
                 )
                 PermissionGlyph(it.pixelbox.cmwatch.rules.PermissionModes.homeGlyph(s), 14.dp)
             }
@@ -671,25 +670,29 @@ private fun SummaryCard(
         // Contratto 1.37: compito chiuso o doppione, a sessione ferma; «Chiudi» solo senza finestra. Chi ha finito resta qui e
         // dice di essere aperta; la conferma sta nella card, senza finestre (Franz, 06/10 10:57-12:45).
         it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now)?.let { c ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            run {
                 val detail = when {
                     s.attached -> null
                     c.kind == it.pixelbox.cmwatch.rules.MasterService.Cleanup.Kind.DUPLICATE -> stringResource(R.string.cleanup_duplicate, c.of.orEmpty())
                     else -> s.outcome?.at?.let { stringResource(R.string.cleanup_finished_at, clockHm(it)) } ?: stringResource(R.string.cleanup_finished)
                 }
                 val open = stringResource(R.string.cleanup_open)
-                Text(
-                    if (detail == null) androidx.compose.ui.text.AnnotatedString(stringResource(R.string.cleanup_attached))
-                    else androidx.compose.ui.text.buildAnnotatedString {
-                        withStyle(androidx.compose.ui.text.SpanStyle(color = CmColors.idle, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)) { append("● $open") }
-                        append(" · $detail")
-                    },
-                    style = MaterialTheme.typography.bodySmall, color = CmColors.text2, modifier = Modifier.weight(1f),
-                )
-                if (!closing && c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
-                    Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Rounded.PowerSettingsNew, null, tint = CmColors.briefAlertRing, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.cleanup_close, s.name), style = MaterialTheme.typography.labelLarge)
+                // Il nome sta già in testa alla scheda: il tasto dice solo «Chiudi» (Franz 30/10 19:46).
+                V3Split(Modifier.fillMaxWidth(), gap = 10.dp, text = {
+                    Text(
+                        if (detail == null) androidx.compose.ui.text.AnnotatedString(stringResource(R.string.cleanup_attached))
+                        else androidx.compose.ui.text.buildAnnotatedString {
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = CmColors.idle, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)) { append("● $open") }
+                            append(" · $detail")
+                        },
+                        style = MaterialTheme.typography.bodySmall, color = CmColors.text2,
+                    )
+                }) {
+                    if (!closing && c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = CmColors.surfaceHigh, contentColor = CmColors.text) {
+                        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Rounded.PowerSettingsNew, null, tint = CmColors.briefAlertRing, modifier = Modifier.size(18.dp))
+                            Text(stringResource(R.string.cleanup_close_short), style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
             }
@@ -703,7 +706,7 @@ private fun SummaryCard(
                 androidx.compose.material3.Button(
                     onClick = { closeAsk = false; onClose() },
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
-                ) { Text(stringResource(R.string.cleanup_close, s.name)) }
+                ) { Text(stringResource(R.string.cleanup_close_short)) }
             }
         }
         if (closing && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now) == null) ClosingChip(s.name)
@@ -715,7 +718,7 @@ private fun SummaryCard(
             androidx.compose.material3.Button(
                 onClick = { menuClose = false; onClose() },
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CmColors.gone, contentColor = Color.White),
-            ) { Text(stringResource(R.string.cleanup_close, s.name)) }
+            ) { Text(stringResource(R.string.cleanup_close_short)) }
         }
         if (menu) MenuPanel(
             onDismiss = { menu = false },
@@ -1035,9 +1038,12 @@ private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (S
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(18.dp))
-            Text(a.title, style = MaterialTheme.typography.bodySmall, color = CmColors.text, maxLines = if (withOptions) 4 else 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f))
-            if (a.deploy) Tag(stringResource(R.string.approval_prod), CmColors.prod)
-            if (!withOptions) OkButtons(a, filled = true) { o -> choice = o; ask = true }
+            V3Split(Modifier.weight(1f), gap = 10.dp, text = { Text(a.title, style = MaterialTheme.typography.bodySmall, color = CmColors.text) }) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (a.deploy) Tag(stringResource(R.string.approval_prod), CmColors.prod)
+                    if (!withOptions) OkButtons(a, filled = true) { o -> choice = o; ask = true }
+                }
+            }
         }
         if (withOptions) Box(Modifier.padding(start = 28.dp)) { OkButtons(a, filled = true) { o -> choice = o; ask = true } }
     }
@@ -1235,8 +1241,7 @@ private fun FamilyBadge(icon: androidx.compose.ui.graphics.vector.ImageVector) {
 private fun FamilyTop(icon: androidx.compose.ui.graphics.vector.ImageVector, name: String, meta: String?, chevron: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         FamilyBadge(icon)
-        Text(name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
-        meta?.let { Text(it, style = MonoSmall, color = CmColors.text2, maxLines = 1) }
+        V3Split(Modifier.weight(1f), text = { Text(name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text) }) { meta?.let { Text(it, style = MonoSmall, color = CmColors.text2, maxLines = 1) } }
         if (chevron) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2, modifier = Modifier.size(22.dp))
     }
 }

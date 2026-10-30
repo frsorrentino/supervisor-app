@@ -290,14 +290,17 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
             cm?.paused != null -> Icon(Icons.Rounded.Pause, null, tint = CmColors.text2, modifier = Modifier.size(22.dp))
             else -> Icon(Icons.Rounded.Verified, null, tint = CmColors.advice, modifier = Modifier.size(22.dp))
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(r.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
-            sub?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
-        }
-        if (opts.isEmpty() && button != null) {
-            val click = { if (a != null) ask = true else onClick("", null) }
-            if (filled) Button(onClick = click, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(button) }
-            else FilledTonalButton(onClick = click) { Text(button) }
+        V3Split(Modifier.weight(1f), text = {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(r.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
+                sub?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) }
+            }
+        }) {
+            if (opts.isEmpty() && button != null) {
+                val click = { if (a != null) ask = true else onClick("", null) }
+                if (filled) Button(onClick = click, colors = ButtonDefaults.buttonColors(containerColor = CmColors.primary, contentColor = CmColors.onPrimary)) { Text(button) }
+                else FilledTonalButton(onClick = click) { Text(button) }
+            }
         }
     }
     if (opts.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(

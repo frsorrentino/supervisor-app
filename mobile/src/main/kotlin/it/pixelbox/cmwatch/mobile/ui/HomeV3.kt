@@ -157,12 +157,12 @@ internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: 
     Row(m.padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { rail() }
         Spacer(Modifier.width(8.dp))
-        if (meter == null) Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) { body() }
+        if (meter == null) V3Split(Modifier.weight(1f), text = { Column(verticalArrangement = Arrangement.spacedBy(2.dp)) { body() } }) { Row(verticalAlignment = Alignment.CenterVertically, content = trailing) }
         else {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) { body() }
             Row(Modifier.weight(1f).padding(start = 8.dp, end = 4.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) { meter() }
+            trailing()
         }
-        trailing()
     }
 }
 
@@ -192,4 +192,30 @@ internal fun V3Theme(content: @Composable () -> Unit) {
         ),
         content = content,
     )
+}
+
+/**
+ * Un testo e, a destra, un contenuto senza larghezza fissa (un tasto, un valore, un nome). In una `Row` il contenuto si misura per
+ * primo e al testo può restare una lettera per riga (Franz 30/10 16:03 e 19:46). Qui il testo ha la precedenza: se gli resta meno
+ * di metà riga e non ci sta intero, il contenuto scende sotto, allineato a destra. Mai il testo in colonna.
+ */
+@Composable
+internal fun V3Split(modifier: Modifier = Modifier, gap: Dp = 8.dp, text: @Composable () -> Unit, action: @Composable () -> Unit) {
+    androidx.compose.ui.layout.Layout({ Box { text() }; Box { action() } }, modifier) { ms, c ->
+        val w = c.maxWidth
+        val free = c.copy(minWidth = 0, minHeight = 0)
+        val a = ms[1].measure(free)
+        val g = if (a.width > 0) gap.roundToPx() else 0
+        val room = w - a.width - g
+        val side = a.width == 0 || room >= w / 2 || room >= ms[0].maxIntrinsicWidth(androidx.compose.ui.unit.Constraints.Infinity)
+        if (side) {
+            val t = ms[0].measure(free.copy(maxWidth = room.coerceAtLeast(0)))
+            val h = maxOf(t.height, a.height)
+            // Un testo solo sulla riga occupa tutta la larghezza: il contenuto a destra resta in fondo.
+            layout(w, h) { t.place(0, (h - t.height) / 2); a.place(w - a.width, (h - a.height) / 2) }
+        } else {
+            val t = ms[0].measure(free)
+            layout(w, t.height + g + a.height) { t.place(0, 0); a.place(w - a.width, t.height + g) }
+        }
+    }
 }

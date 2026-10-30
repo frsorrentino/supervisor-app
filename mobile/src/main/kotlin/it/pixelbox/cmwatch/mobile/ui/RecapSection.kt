@@ -72,12 +72,13 @@ internal fun RecapActionChip(a: RecapActions.Action, day: String, sent: Boolean,
     ) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (sent) Icon(Icons.Rounded.Check, null, tint = CmColors.idle, modifier = Modifier.size(16.dp))
-            Text(a.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f, fill = false))
-            // L'etichetta resta su una riga: se manca spazio va a capo il testo dell'azione, non «recap 12/09».
-            Text(
-                if (a.recap) stringResource(R.string.recap_from_recap, day).trim() else a.from,
-                style = MaterialTheme.typography.bodySmall, color = CmColors.text2, softWrap = false, maxLines = 1,
-            )
+            // L'etichetta resta su una riga e, se è un nome lungo, scende sotto: il testo dell'azione non si schiaccia mai.
+            V3Split(Modifier.weight(1f, fill = false), text = { Text(a.text, style = MaterialTheme.typography.bodyLarge) }) {
+                Text(
+                    if (a.recap) stringResource(R.string.recap_from_recap, day).trim() else a.from,
+                    style = MaterialTheme.typography.bodySmall, color = CmColors.text2, softWrap = false, maxLines = 1,
+                )
+            }
         }
     }
 }

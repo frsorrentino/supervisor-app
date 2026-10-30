@@ -129,13 +129,13 @@
   .sec { display: flex; flex-direction: column; gap: 4px; margin: 14px 0 2px; padding: 0 8px; text-align: left; }
   .sec .h2 { display: flex; align-items: center; gap: 6px; font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text2); }
   .sec small { color: var(--text2); font-size: 14px; }
-  .need { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 24px; background: var(--surface); }
+  .need { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 14px; padding: 14px; border-radius: 24px; background: var(--surface); }
   .ni { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--high); font-weight: 700; }
-  .nt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .nt { flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .nt b { font-size: 16px; font-weight: 500; }
   .nt small { color: var(--text2); font-size: 14px; }
   .na { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-  .nb { padding: 10px 16px; border-radius: 22px; background: var(--high); color: var(--icon); font-weight: 500; font-size: 14.5px; white-space: nowrap; }
+  .nb { padding: 10px 16px; border-radius: 22px; background: var(--high); color: var(--icon); font-weight: 500; font-size: 14.5px; white-space: normal; text-align: left; }
   .nb.filled { background: var(--primary); color: var(--on-primary); }
   .nb:hover { filter: brightness(1.12); }
   .card { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 14px 18px; border-radius: 24px; background: var(--surface); text-align: left; }

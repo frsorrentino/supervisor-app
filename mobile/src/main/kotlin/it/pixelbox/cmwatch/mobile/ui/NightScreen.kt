@@ -204,16 +204,19 @@ private fun NeedRow(n: NightPage.Need, first: Boolean, onAnswer: (String, Int) -
         Box(Modifier.size(40.dp).clip(CircleShape).background(CmColors.surfaceHigh), contentAlignment = Alignment.Center) {
             Text(if (n.kind == NightPage.NeedKind.QUESTION) "?" else "!", color = if (n.kind == NightPage.NeedKind.QUESTION) CmColors.advice else CmColors.waiting, fontWeight = FontWeight.Bold)
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(n.session, style = MaterialTheme.typography.titleMedium, color = CmColors.text)
-            Text(readableSlash(n.text), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
-        }
-        when (n.kind) {
-            NightPage.NeedKind.QUESTION -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                n.options.forEachIndexed { k, o -> NeedButton("${o.n} · ${o.label}", filled = first && k == 0) { onAnswer(n.session, o.n) } }
+        V3Split(Modifier.weight(1f), gap = 14.dp, text = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(n.session, style = MaterialTheme.typography.titleMedium, color = CmColors.text)
+                Text(readableSlash(n.text), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2)
             }
-            NightPage.NeedKind.APPROVAL -> NeedButton(stringResource(R.string.night_approve), filled = first) { n.task?.let(onApprove) }
-            NightPage.NeedKind.UNBLOCK -> NeedButton(stringResource(R.string.night_send, n.text), filled = first) { onSend(n.session, n.text) }
+        }) {
+            when (n.kind) {
+                NightPage.NeedKind.QUESTION -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    n.options.forEachIndexed { k, o -> NeedButton("${o.n} · ${o.label}", filled = first && k == 0) { onAnswer(n.session, o.n) } }
+                }
+                NightPage.NeedKind.APPROVAL -> NeedButton(stringResource(R.string.night_approve), filled = first) { n.task?.let(onApprove) }
+                NightPage.NeedKind.UNBLOCK -> NeedButton(stringResource(R.string.night_send, n.text), filled = first) { onSend(n.session, n.text) }
+            }
         }
     }
 }
