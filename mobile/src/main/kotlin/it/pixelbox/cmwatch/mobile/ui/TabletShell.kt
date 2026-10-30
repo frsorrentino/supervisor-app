@@ -593,7 +593,7 @@ private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WeekOriginsBar(w7: Int, o: it.pixelbox.cmwatch.contract.WeekOrigins) {
-    Text(stringResource(R.string.week_origins_title, w7).uppercase(), style = MonoLabel)
+    Text(stringResource(R.string.week_origins_title, stringResource(if (it.pixelbox.cmwatch.rules.PhoneOverview.elidesArticle(w7)) R.string.week_origins_art_elided else R.string.week_origins_art), w7).uppercase(), style = MonoLabel)
     if (o.sessions + o.automations + o.requests <= 0) return
     val parts = listOf(
         Triple(o.sessions, CmColors.briefRing, R.string.week_origin_sessions),

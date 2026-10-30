@@ -1338,7 +1338,9 @@ It starts at your last message to the master.</string>
     <string name="week_renewal">renewal %1$s</string>
     <string name="week_hundred_at">100%% %1$s</string>
     <string name="week_at_renewal">%1$d%% at renewal</string>
-    <string name="week_origins_title">where the %1$d%% comes from</string>
+    <string name="week_origins_title">where %1$s%2$d%% comes from</string>
+    <string name="week_origins_art">"the "</string>
+    <string name="week_origins_art_elided">"the "</string>
     <string name="week_origin_sessions">sessions %1$d</string>
     <string name="week_origin_automations">automations %1$d</string>
     <string name="week_origin_requests">you %1$d</string>

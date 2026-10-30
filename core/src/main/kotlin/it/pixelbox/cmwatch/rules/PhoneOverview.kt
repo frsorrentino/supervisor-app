@@ -9,6 +9,9 @@ import java.time.ZoneId
  * domande, contesto, «Oggi», notte e ora dell'aggiornamento.
  */
 object PhoneOverview {
+    /** «l'8%» e «l'11%», non «il 8%»: come si leggono in italiano le cifre che iniziano per vocale (weekOriginsTitle nella web). */
+    fun elidesArticle(p: Int): Boolean = p == 1 || p == 11 || p.toString().startsWith("8")
+
     /**
      * `pace` null senza almeno due campioni, senza l'ora della ripartenza o con un dato vecchio (si proietterebbe dal
      * passato): l'anello resta, il ritmo no. `weekResetAt`: quando si azzera la settimana, per la pillola come sul polso,

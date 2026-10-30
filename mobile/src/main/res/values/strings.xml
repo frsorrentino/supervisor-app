@@ -618,7 +618,9 @@
     <string name="week_renewal">rinnovo %1$s</string>
     <string name="week_hundred_at">100%% %1$s</string>
     <string name="week_at_renewal">%1$d%% al rinnovo</string>
-    <string name="week_origins_title">da dove viene il %1$d%%</string>
+    <string name="week_origins_title">da dove viene %1$s%2$d%%</string>
+    <string name="week_origins_art">"il "</string>
+    <string name="week_origins_art_elided">l\'</string>
     <string name="week_origin_sessions">sessioni %1$d</string>
     <string name="week_origin_automations">automazioni %1$d</string>
     <string name="week_origin_requests">tu %1$d</string>
