@@ -1116,7 +1116,7 @@
     {#snippet chat()}{@render chatOf(MASTER, true)}{/snippet}
   </DockEmbed>
 {:else if embed}
-  <div class="embedded">{@render chatOf(MASTER, true)}</div>
+  <div class="embedded v3">{@render chatOf(MASTER, true)}</div>
 {:else if wide && deskDashboard}
   <Plancia {width} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf} panelLeft={masterLeft}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />{/snippet}
