@@ -409,9 +409,8 @@ fun SummaryList(
                             val weeks = kpiState?.quota.orEmpty().filter { (_, q) -> !q.stale && q.w7 != null }.entries
                             val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "${a.take(5)} ${q.w7}%" }
                             V3Row(first, { usageOpen = !usageOpen; save("usage", usageOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.DataUsage) }, {
-                                if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, maxLines = 2, modifier = Modifier.padding(end = 4.dp))
                                 toggle(usageOpen)
-                            }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
+                            }, meter = { if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
                             first = false
                             if (usageOpen) {
                                 val glow by androidx.compose.animation.core.animateFloatAsState(if (usageFlash) 1f else 0f, androidx.compose.animation.core.tween(if (usageFlash) 160 else 700), label = "usageFlash")
@@ -430,11 +429,12 @@ fun SummaryList(
                         system?.let { sys ->
                             val sysOpen = SystemRules.isOpen(sys.level, sysManual)
                             V3Row(first, { sysManual = SystemRules.Manual(sys.level, !sysOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Memory) }, {
+                                toggle(sysOpen)
+                            }, meter = {
                                 if (!sysOpen) {
                                     Box(Modifier.padding(end = 6.dp).size(7.dp).clip(CircleShape).background(systemTone(sys.level)))
-                                    Text(systemSummary(sys), style = V3.Meter, maxLines = 2, modifier = Modifier.padding(end = 4.dp))
+                                    Text(systemSummary(sys), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End)
                                 }
-                                toggle(sysOpen)
                             }) { Text(stringResource(R.string.home_sec_system), style = V3.Name) }
                             first = false
                             if (sysOpen) Column(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } }
@@ -443,9 +443,8 @@ fun SummaryList(
                         if (hasPlugins) {
                             val n = plugins!!.accounts.sumOf { it.updates.size }
                             V3Row(first, { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Extension) }, {
-                                if (!pluginsOpen && n > 0) Text(pluralStringResource(R.plurals.plugins_to_update, n, n), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
                                 toggle(pluginsOpen)
-                            }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
+                            }, meter = { if (!pluginsOpen && n > 0) Text(pluralStringResource(R.plurals.plugins_to_update, n, n), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
                             first = false
                             if (pluginsOpen) Box(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) { PluginsCard(plugins, onPluginsLoad!!, onPluginCmd!!, pluginsInitial) }
                         }

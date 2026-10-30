@@ -144,16 +144,24 @@ internal fun V3List(content: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1)) { content() }
 }
 
-/** Una riga della lista col binario: icona o glifo a sinistra, poi il testo, in fondo quello che serve. */
+/**
+ * Una riga della lista col binario: icona o glifo a sinistra, poi il testo, in fondo quello che serve. `meter`: un riepilogo a
+ * destra di un titolo corto; il titolo tiene la sua larghezza e il riepilogo prende quello che avanza, andando a capo. Dentro
+ * `trailing` un testo lungo si misurerebbe per primo e lascerebbe al titolo una lettera per riga (Franz 30/10 16:03).
+ */
 @Composable
-internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: @Composable () -> Unit, trailing: @Composable RowScope.() -> Unit = {}, body: @Composable () -> Unit) {
+internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: @Composable () -> Unit, trailing: @Composable RowScope.() -> Unit = {}, meter: (@Composable () -> Unit)? = null, body: @Composable () -> Unit) {
     if (!first) Box(Modifier.fillMaxWidth().padding(start = 0.dp).heightIn(min = 1.dp, max = 1.dp).background(V3.Line))
     var m = Modifier.fillMaxWidth().heightIn(min = 52.dp)
     if (onClick != null) m = m.handCursor().clickable(onClick = onClick)
     Row(m.padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { rail() }
         Spacer(Modifier.width(8.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) { body() }
+        if (meter == null) Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) { body() }
+        else {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) { body() }
+            Row(Modifier.weight(1f).padding(start = 8.dp, end = 4.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) { meter() }
+        }
         trailing()
     }
 }
