@@ -326,10 +326,9 @@
   <!-- Gli ok ai compiti senza una sessione aperta: aspettano te come le domande. -->
   {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
 {/if}
-<!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta, ma fuori da «Ti aspettano» e dal suo
+<!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo le sessioni, fuori da «Ti aspettano» e dal suo
      numero, a filo e non pieni: un consiglio non blocca nessuno (correzione 1 del 30/10). -->
 {#if part === 'you' && !waitRows.length && !looseOk.length && !(suggestions && suggestionsN)}<p class="wnote">{t.deskYouEmpty}</p>{/if}
-{#if (!part || part === 'you') && suggestions && suggestionsN}<div class="sugg">{@render suggestions()}</div>{/if}
 {#if (!part || part === 'work') && (restGroups.length || justClosed)}
   {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(restGroups.reduce((n, [, rows]) => n + rows.length, 0)), 'home-sez-sessioni', sessionsLine)}
   {#if justClosed}
@@ -348,6 +347,8 @@
     {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   {/if}
 {/if}
+<!-- I suggerimenti dopo le sessioni (Franz 30/10 16:44); nella plancia restano nella colonna «Richiede te». -->
+{#if (!part || part === 'you') && suggestions && suggestionsN}<div class="sugg">{@render suggestions()}</div>{/if}
 {#if part === 'work' && afterSessions}{@render afterSessions()}{/if}
 {#if (!part || part === 'work') && showLavori && (fy || workGroups.length)}
   {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', null, 'home-sez-lavori', open.lavori ? null : lavoriLine)}{/if}

@@ -91,6 +91,17 @@ class SummaryListTest {
         }
     }
 
+    // L'ordine della home (Franz 30/10 16:44): Ti aspettano, Sessioni, suggerimenti, poi il resto; alta per vederlo intero.
+    @Test fun homeOrderSessionsBeforeSuggestions() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 5000))
+        val withSg = st.copy(suggestions = listOf(it.pixelbox.cmwatch.contract.Suggestion("sg-1", "recurring", "r", "Chiedi spesso «com'è andata la CI di atlas-shop»: la aggiungo ai Ricorrenti?", "p", st.ts - 900)))
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                Column(Modifier.background(CmColors.bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+            }
+        }
+    }
+
     // Contratto 1.88 (la coda): una scelta con un tasto per opzione, un lavoro da salvare e un tipo che l'app non conosce, neutro.
     @Test fun summaryWithSuggestionQueue() = paparazzi.snapshot {
         val sg = listOf(

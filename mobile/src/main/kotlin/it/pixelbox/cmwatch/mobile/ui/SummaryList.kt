@@ -296,10 +296,9 @@ fun SummaryList(
                 item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
             }
         }
-        // Contratto 1.84 (scheda A): i suggerimenti dopo chi ti aspetta, fuori dal suo numero: un consiglio non blocca nessuno.
+        // Contratto 1.84 (scheda A): i suggerimenti dopo le sessioni (Franz 30/10 16:44), fuori dal numero di chi aspetta: un consiglio non blocca nessuno.
         val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
         val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(zone)) }
-        if (sug != null) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, sugAt!!, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
         if (restRows.isNotEmpty() || justClosed != null) {
             item(key = "sec-sessions") {
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
@@ -315,6 +314,7 @@ fun SummaryList(
                 }
             }
         }
+        if (sug != null) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, sugAt!!, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
         // La sezione «Lavori»: i compiti da riprendere e la coda di stanotte, «Tutti i lavori» apre la pagina.
         val outside = outsidePlaced.groups.filter { g -> g.category != OutsideSessions.Category.CLOSED }
         val closedGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.CLOSED }
