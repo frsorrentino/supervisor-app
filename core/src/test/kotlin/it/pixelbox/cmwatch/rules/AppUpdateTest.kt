@@ -91,8 +91,8 @@ class AppUpdateTest {
 
     @Test fun checksEveryHalfHourAndAlwaysTheFirstTime() {
         assertTrue(AppUpdate.due(0, 100))
-        assertFalse(AppUpdate.due(1000, 1000 + 29 * 60))
-        assertTrue(AppUpdate.due(1000, 1000 + 30 * 60))
+        assertFalse(AppUpdate.due(1000, 1000 + 4 * 60))
+        assertTrue(AppUpdate.due(1000, 1000 + 5 * 60))
     }
 
     @Test fun labelsAndFileNames() {

@@ -21,7 +21,7 @@ object AppUpdate {
     const val ASSET = "mobile-release.apk"
     const val RELEASES_URL = "https://api.github.com/repos/$REPO/releases?per_page=10"
     /** Da solo l'app controlla al più ogni mezz'ora; «Controlla ora» passa sempre. Anonimo: 60 richieste l'ora. */
-    const val CHECK_EVERY_S = 30 * 60L
+    const val CHECK_EVERY_S = 5 * 60L
 
     data class Release(
         val tag: String, val name: String, val publishedAt: Long, val prerelease: Boolean, val url: String, val size: Long,
