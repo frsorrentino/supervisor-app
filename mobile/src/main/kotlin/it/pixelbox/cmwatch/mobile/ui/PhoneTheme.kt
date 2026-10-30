@@ -59,7 +59,7 @@ val LocalStill = androidx.compose.runtime.staticCompositionLocalOf { false }
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CmPhoneTheme(still: Boolean = false, day: Boolean = !still && !isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    if (V3.day != day) V3.day = day
+    V3.day = day
     androidx.compose.runtime.CompositionLocalProvider(LocalStill provides still) {
         MaterialExpressiveTheme(colorScheme = scheme(day), motionScheme = MotionScheme.expressive(), shapes = cmShapes, typography = cmType) { V3Theme(content) }
     }

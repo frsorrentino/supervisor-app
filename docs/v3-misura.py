@@ -9,8 +9,10 @@ D = sys.argv[1] if len(sys.argv) > 1 else 'mobile/src/test/snapshots/images'
 old = {int(h, 16): n for n, h in re.findall(r'val (\w+) = Color\(0xFF([0-9A-F]{6})\)', open('ui-tokens/src/main/kotlin/it/pixelbox/cmwatch/ui/tokens/CmColors.kt').read())}
 v3 = [0x0B0C0E, 0x121316, 0x1B1D22, 0x272A31, 0x25272D, 0xEDEEF0, 0x969BA4, 0x858A93, 0xFFB23F, 0x5AA2FF, 0x34D399, 0xFF5A5F]
 for h in v3 + [0xFFFFFF]: old.pop(h, None)
+fs = sorted(glob.glob(D + '/*.png'))
+if not fs: sys.exit('nessuna immagine in ' + D)
 bad = 0
-for f in sorted(glob.glob(D + '/*.png')):
+for f in fs:
     name = os.path.basename(f).split('mobile_')[-1][:-4]
     if name.startswith(('GiornoV3Test', 'WidgetConfigScreenTest')): continue
     im = Image.open(f).convert('RGB'); n = im.width * im.height

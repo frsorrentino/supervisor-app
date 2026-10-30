@@ -1,8 +1,6 @@
 package it.pixelbox.cmwatch.mobile.ui
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -70,7 +68,8 @@ internal object V3 {
         Color(0xFFF1F4F8), Color.White, Color.White, Color(0xFFEAEEF4), Color(0xFFDFE4EB), Color(0xFF121418), Color(0xFF565C66), Color(0xFF60666F), Color(0xFF121418), Color.White,
         Color(0xFF9A5700), Color(0xFF1A64D6), Color(0xFF0B7F55), Color(0xFFC9302F), Color(0xFFFFF6E5), Color(0xFFF2D7A2), Color(0xFFFFF3F2),
     )
-    var day by mutableStateOf(false)
+    /** Un valore semplice, non uno stato di Compose: cambia solo col tema del sistema, che ricrea l'activity; scritto in composizione come stato chiudeva le composizioni delle prove successive. */
+    var day = false
     private val p get() = if (day) Day else Night
     val Bg get() = p.bg; val S1 get() = p.s1; val S2 get() = p.s2; val S3 get() = p.s3; val Line get() = p.line
     val Tx get() = p.tx; val Tx2 get() = p.tx2; val Tx3 get() = p.tx3; val Act get() = p.act; val OnAct get() = p.onAct
