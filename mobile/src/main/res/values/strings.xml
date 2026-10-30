@@ -1421,4 +1421,5 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="rail_min">%1$d\'</string>
     <string name="rail_h">%1$d h</string>
     <string name="rail_d">%1$d g</string>
+    <string name="sug_more">Altre risposte</string>
 </resources>
