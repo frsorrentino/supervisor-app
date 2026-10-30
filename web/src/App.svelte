@@ -31,6 +31,8 @@
   import Dash from './lib/Dash.svelte'
   import Plancia from './lib/Plancia.svelte'
   import HomeOrder from './lib/HomeOrder.svelte'
+  import Utilizzo from './lib/Utilizzo.svelte'
+  import UsagePage from './lib/UsagePage.svelte'
   import MasterDock from './lib/MasterDock.svelte'
   import DeskHead from './lib/DeskHead.svelte'
   import DeskTools from './lib/DeskTools.svelte'
@@ -598,12 +600,13 @@
   }
   setContext('agendaNight', { get can() { return canNight }, get rows() { return nightCards(agenda.page, todayIso()) }, queue: queueNight })
   $effect(() => { if (canNight && canAgenda && !agenda.page && !agenda.loading) untrack(() => loadAgenda()) })
-  const pageTitle: Record<PageName, string> = $derived({ homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
+  const pageTitle: Record<PageName, string> = $derived({ usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
   let usageFocus = $state(0)
-  function goUsage() { smooth(() => { page = null; open = null; masterOpen = false }); usageFocus += 1 }
+  // La pagina «Utilizzo e limiti» (scelta D, 30/10 20:11): nella home resta il blocco compatto.
+  function goUsage() { smooth(() => { page = 'usage'; open = null; masterOpen = false }) }
   const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p; if (p !== 'queue') queueSkip = null }) }
   if (asked === 'overview') queueMicrotask(goUsage)
   // La quota per account, come la Panoramica; i campioni del ritmo arrivano col trasporto.
@@ -1024,7 +1027,7 @@
 {/snippet}
 
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
-{#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | null)}<Home st={stShown} {part} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels}
+{#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | null)}<Home st={stShown} {part} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
@@ -1044,7 +1047,7 @@
 {/snippet}
 
 {#snippet pageView(p: PageName)}
-  <Page title={pageTitle[p]} v3={p === 'settings' || p === 'homeorder'} onBack={() => openPage(null)}>
+  <Page title={pageTitle[p]} v3={p === 'settings' || p === 'homeorder' || p === 'usage'} onBack={() => openPage(null)}>
     {#if p === 'launch'}
       <Launch {st} onSession={(n, reopen) => { if (reopen) cmd(n)('reopen'); else { openPage(null); pick(n) } }}
         onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }}
@@ -1059,6 +1062,8 @@
     {:else if p === 'search'}
       <Search {sent} {events} remote onQuery={search} page={searchPage}
         known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('lavori') }} />
+    {:else if p === 'usage'}
+      <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
     {:else if p === 'homeorder'}
       <HomeOrder saved={st.home_order} onSave={saveHomeOrder} />
     {:else if p === 'settings'}
@@ -1078,6 +1083,7 @@
 {/snippet}
 
 <!-- Un account fermo (dato vecchio) non ha il suo riquadro se l'altro è aggiornato, come nella riga in alto (Franz, 08/10 20:32). -->
+{#snippet usageV3()}<Utilizzo rings={overview.rings} st={stShown} page={kpiPage} data={kpiData} {now} onDetails={goUsage} />{/snippet}
 {#snippet quotaPanels()}{#each overview.rings.some(r => !r.stale) ? overview.rings.filter(r => !r.stale) : overview.rings as r (r.account)}<QuotaPanel ring={r} now={now} />{/each}<TodayPanel bars={overview.today} usage={usageRows(st.usage_today)} />{/snippet}
 
 {#snippet inspector()}

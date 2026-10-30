@@ -231,7 +231,9 @@ class MainActivity : ComponentActivity() {
         // illumina; sul tablet senza colonne è già a destra, nel cruscotto.
         var usageFocus by remember { mutableStateOf(0) }
         var usageSeen by remember { mutableStateOf(0) }
-        val goUsage: () -> Unit = { open = null; tab = StartRoute.Tab.OVERVIEW; masterChat = false; usageFocus += 1 }
+        // La pagina «Utilizzo e limiti» (scelta D, 30/10 20:11): nella home resta il blocco compatto.
+        var usageOpen by rememberSaveable { mutableStateOf(false) }
+        val goUsage: () -> Unit = { open = null; masterChat = false; usageOpen = true }
         var searchOpen by rememberSaveable { mutableStateOf(false) }
         var nightOpen by rememberSaveable { mutableStateOf(false) }
         // Contratto 1.82: le conversazioni chiuse aperte dalla Notte, per nome mostrato: si leggono per sid, in sola lettura.
@@ -292,7 +294,7 @@ class MainActivity : ComponentActivity() {
         val elsewhereSeen = remember { mutableStateListOf<String>() }
         LaunchedEffect(sessionAsked) {
             val n = sessionAsked ?: return@LaunchedEffect
-            settingsOpen = false; terminal = null; queueOpen = false; boxOpen = null; searchOpen = false
+            settingsOpen = false; usageOpen = false; terminal = null; queueOpen = false; boxOpen = null; searchOpen = false
             if (n.isEmpty()) { open = null; tab = StartRoute.Tab.OVERVIEW } else { open = n }
             sessionAsked = null
         }
@@ -309,6 +311,7 @@ class MainActivity : ComponentActivity() {
         // I KPI 6, 11 e 18 della home (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni, una lettura
         // passiva ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op. Sta prima delle pagine: la usa anche «Esiti di oggi».
         var kpiPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.TimelinePage?>(null) }
+        var kpiData by remember { mutableStateOf<it.pixelbox.cmwatch.contract.KpiData?>(null) }
         val kpiOk = demo || state?.ops?.contains("timeline") == true
         LaunchedEffect(kpiOk) {
             if (!kpiOk) return@LaunchedEffect
@@ -325,8 +328,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        BackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen || boxOpen != null) {
+        BackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen || boxOpen != null || usageOpen) {
             when {
+                usageOpen -> usageOpen = false
                 nightOpen -> nightOpen = false
                 searchOpen -> searchOpen = false
                 settingsOpen -> settingsOpen = false
@@ -395,7 +399,7 @@ class MainActivity : ComponentActivity() {
         var tabletDetails by remember { mutableStateOf(tabletPrefs.getBoolean("tablet_details", false)) }
         // Le pagine che prendevano lo schermo di colpo entrano da destra (Franz, 10/10 15:59); tornando da una di loro la home
         // rientra da sinistra. `cameBack` vale solo al primo disegno della home dopo la pagina, quando `PageIn` decide.
-        val pageOpen = settingsOpen || terminal != null || nightOpen || searchOpen || (queueOpen && state != null) || (boxOpen != null && state != null)
+        val pageOpen = usageOpen || settingsOpen || terminal != null || nightOpen || searchOpen || (queueOpen && state != null) || (boxOpen != null && state != null)
         val pageWas = remember { booleanArrayOf(false) }
         val cameBack = pageWas[0] && !pageOpen
         pageWas[0] = pageOpen
@@ -683,6 +687,11 @@ class MainActivity : ComponentActivity() {
                     chat = { scope.launch { app.repo.chat(s.name) }; queueOpen = false; open = s.name },
                 )
             }, onSession = { n -> queueOpen = false; open = n }) }
+            return
+        }
+        if (usageOpen) stateShown?.let { st ->
+            val ov = remember(st, events, samples, now, snap.freshness) { PhoneOverview.build(st, events, samples, now, java.time.ZoneId.systemDefault(), stale = snap.freshness is Freshness.Stale) }
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.UsagePage(st, ov, kpiPage, kpiData, now, snap.freshness is Freshness.Stale, onBack = { usageOpen = false }) }
             return
         }
         boxOpen?.let { b -> stateShown?.let { st ->
@@ -1466,7 +1475,6 @@ class MainActivity : ComponentActivity() {
         val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.LAVORI
         // Le proposte 8, 9, 10, 12, 13 e 17 (contratto 1.96, compito app-kpi-dati-relay-25-10): l'op `kpi`, una lettura passiva
         // ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op.
-        var kpiData by remember { mutableStateOf<it.pixelbox.cmwatch.contract.KpiData?>(null) }
         val kpiDataOk = !demo && state?.ops?.contains("kpi") == true
         LaunchedEffect(kpiDataOk) {
             if (!kpiDataOk) return@LaunchedEffect
@@ -1543,7 +1551,12 @@ class MainActivity : ComponentActivity() {
                     onDone = attentionDone,
                     onAgendaEdit = editAgenda, onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     // «Utilizzo» (Franz, 08/10 12:30; unito il 09/10): le schede della quota e «Oggi» in una sezione richiudibile.
-                    usage = { Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { usageContent() } },
+                    usage = {
+                        state?.let { st ->
+                            val ov = remember(st, events, samples, now, snap.freshness) { PhoneOverview.build(st, events, samples, now, java.time.ZoneId.systemDefault(), stale = snap.freshness is Freshness.Stale) }
+                            it.pixelbox.cmwatch.mobile.ui.UtilizzoV3(ov.rings, st, kpiPage, kpiData, now, onDetails = goUsage)
+                        }
+                    },
                     showLavori = !deskDashboard, showUsage = !deskDashboard, usageFocus = usageFocus, usageSeen = usageSeen, onUsageFocused = { n -> usageSeen = n }, scrollMemo = homeScroll,
                     onSpeak = { t -> speech.toggle(t) },
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.

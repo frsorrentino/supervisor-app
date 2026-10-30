@@ -1,0 +1,57 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Utilizzo aperto, v3 notte</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0..1,0" rel="stylesheet">
+<style>
+:root{--bg:#0B0C0E;--s1:#121316;--s2:#1B1D22;--s3:#272A31;--line:#25272D;--tx:#EDEEF0;--tx2:#969BA4;--tx3:#858A93}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;color:var(--tx);font:15px/1.38 Barlow,sans-serif;-webkit-font-smoothing:antialiased;display:flex;gap:24px;padding:24px;width:max-content;align-items:flex-start}
+.ms{font-family:"Material Symbols Rounded";font-size:22px;line-height:1;font-variation-settings:"FILL" 0,"wght" 400,"opsz" 24;color:var(--tx2)}
+.mono{font:400 12.5px/1.35 "Geist Mono",monospace;color:var(--tx2)}
+.phone{width:412px;background:var(--bg);padding:12px 12px 16px;flex:none}
+h1{font:700 20px/1.2 "Barlow Semi Condensed";margin:4px 4px 2px}
+.lead{font-size:14px;color:var(--tx2);margin:0 4px 10px}
+.sec{display:flex;align-items:center;font:700 18px "Barlow Semi Condensed";margin:6px 0 8px}
+.rail{width:52px;flex:none;display:flex;justify-content:center;margin-right:8px}
+.list{background:var(--s1);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.top{display:flex;align-items:center;gap:8px;min-height:52px;padding-right:12px}
+.top b{font:600 17px "Barlow Semi Condensed"}
+.sp{flex:1}
+.blk{border-top:1px solid var(--line);padding:11px 12px 12px 14px}
+.lab{font:600 15px "Barlow Semi Condensed";color:var(--tx)}
+.q{display:grid;grid-template-columns:66px 1fr auto;align-items:center;gap:10px;min-height:24px}
+.meter{position:relative;height:6px;border-radius:3px;background:var(--s3)}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--tx2)}
+.meter u{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(90deg,var(--tx3) 0 4px,transparent 4px 7px);opacity:.75}
+.meter s{position:absolute;top:-3px;width:2px;height:12px;margin-left:-1px;border-radius:1px;background:var(--tx)}
+.val{font:400 12.5px "Geist Mono";color:var(--tx);text-align:right;white-space:nowrap}
+.note{font-size:13.5px;line-height:1.35;color:var(--tx2);margin:2px 0 0 76px}
+.stack{display:flex;gap:2px;height:6px;margin:8px 0 7px}
+.stack i{display:block;border-radius:2px;background:var(--tx2)}
+.who{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:13.5px;color:var(--tx2)}
+.who b{font-weight:500;color:var(--tx)}
+.fig{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:7px}
+.fig b{display:block;font:700 22px/1.1 "Barlow Semi Condensed"}
+.fig small{font-size:12.5px;line-height:1.2;color:var(--tx2)}
+.line{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:2px;font-size:14px;color:var(--tx2)}
+.row{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:9px 12px 9px 14px;border-top:1px solid var(--line);align-items:baseline}
+.row span:first-child{font:600 15px "Barlow Semi Condensed"}
+.row .v{font:400 12.5px/1.45 "Geist Mono";color:var(--tx);text-align:right}
+.row .v em{font-style:normal;color:var(--tx2)}
+.more{display:flex;align-items:center;min-height:48px;border-top:1px solid var(--line);padding:0 8px 0 14px;font:600 15px "Barlow Semi Condensed";color:var(--tx)}
+.more .ms{color:var(--tx3)}
+.wh{margin:14px 4px 6px;font:600 15px "Barlow Semi Condensed"}
+table{width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.3}
+td{padding:5px 4px;border-top:1px solid var(--line);vertical-align:top;color:var(--tx2)}
+td:first-child{color:var(--tx);width:44%}
+svg{display:block}
+.hd{display:grid;grid-template-columns:66px 1fr auto 18px;align-items:center;gap:10px;min-height:44px;padding:0 8px 0 14px;border-top:1px solid var(--line)}
+.hd .ms{font-size:20px;color:var(--tx3)}
+.hd.w{grid-template-columns:1fr auto 18px}
+.open{padding:2px 12px 12px 14px}
+.sub{font-size:13.5px;color:var(--tx2)}
+.q2{display:flex;justify-content:space-between;font:400 12px "Geist Mono";color:var(--tx2);margin-top:2px}
+.rw{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:3px 0;color:var(--tx2)}
+.rw b{font-weight:500;color:var(--tx)}
+.meterw{position:relative;height:6px;border-radius:3px;background:var(--s3);margin-top:1px}
+</style></head><body>
+<div class="phone" id="d1"><h1>D · Tutto chiuso</h1><p class="lead">Si apre come A: una riga per voce, solo i numeri. Un tocco apre la riga.</p><div class="sec"><span class="rail"><span class="ms">more_horiz</span></span>Altro</div><div class="list"><div class="top"><span class="rail"><span class="ms">data_usage</span></span><b>Utilizzo</b><span class="sp"></span><span class="ms" style="color:var(--tx3)">expand_less</span></div><div class="hd"><span class="lab">5 ore</span><span class="meter"><i style="width:34%"></i><u style="left:34%;width:28%"></u><s style="left:42%"></s></span><span class="val">34% → 62%</span><span class="ms">expand_more</span></div><div class="hd"><span class="lab">Settimana</span><span class="meter"><i style="width:41%"></i><s style="left:50%"></s></span><span class="val">41%</span><span class="ms">expand_more</span></div><div class="hd"><span class="lab">Sessioni</span><span class="stack" style="margin:0"><i style="width:46%"></i><i style="width:27%;opacity:.7"></i><i style="width:15%;opacity:.5"></i><i style="width:12%;opacity:.3"></i></span><span class="val">46%</span><span class="ms">expand_more</span></div><div class="hd w"><span class="lab">Oggi</span><span class="val">42 prompt · 9 commit · 537 M</span><span class="ms">expand_more</span></div><div class="more">Tutti i dettagli<span class="sp"></span><span class="ms">chevron_right</span></div></div></div><div class="phone" id="d2"><h1>D · «5 ore» aperta</h1><p class="lead">La curva con la proiezione sotto la sua riga. Una riga aperta per volta.</p><div class="sec"><span class="rail"><span class="ms">more_horiz</span></span>Altro</div><div class="list"><div class="top"><span class="rail"><span class="ms">data_usage</span></span><b>Utilizzo</b><span class="sp"></span><span class="ms" style="color:var(--tx3)">expand_less</span></div><div class="hd"><span class="lab">5 ore</span><span class="meter"><i style="width:34%"></i><u style="left:34%;width:28%"></u><s style="left:42%"></s></span><span class="val">34% → 62%</span><span class="ms">expand_less</span></div><div class="open"><svg viewBox="0 0 356 58" width="100%" height="58"><path d="M0 54 L60 50 L120 44 L170 32 L190 30 L190 56 L0 56Z" fill="#1B1D22"/><path d="M0 54 L60 50 L120 44 L170 32 L190 30" fill="none" stroke="#969BA4" stroke-width="2"/><path d="M190 30 L356 8" fill="none" stroke="#858A93" stroke-width="2" stroke-dasharray="3 4"/><line x1="190" y1="4" x2="190" y2="56" stroke="#EDEEF0" stroke-width="2"/><circle cx="352" cy="9" r="3" fill="none" stroke="#969BA4" stroke-width="1.5"/></svg><div class="q2"><span>18:00</span><span>adesso</span><span>23:00</span></div><div class="sub" style="margin-top:6px">Allo stesso ritmo arrivi al 62% alle 23:00, quando si azzera.</div></div><div class="hd"><span class="lab">Settimana</span><span class="meter"><i style="width:41%"></i><s style="left:50%"></s></span><span class="val">41%</span><span class="ms">expand_more</span></div><div class="hd"><span class="lab">Sessioni</span><span class="stack" style="margin:0"><i style="width:46%"></i><i style="width:27%;opacity:.7"></i><i style="width:15%;opacity:.5"></i><i style="width:12%;opacity:.3"></i></span><span class="val">46%</span><span class="ms">expand_more</span></div><div class="hd w"><span class="lab">Oggi</span><span class="val">42 prompt · 9 commit · 537 M</span><span class="ms">expand_more</span></div><div class="more">Tutti i dettagli<span class="sp"></span><span class="ms">chevron_right</span></div></div></div><div class="phone" id="d3"><h1>D · «Oggi» aperta</h1><p class="lead">Le colonnine per ora e le attese sotto la riga. «Sessioni» apre l’elenco intero.</p><div class="sec"><span class="rail"><span class="ms">more_horiz</span></span>Altro</div><div class="list"><div class="top"><span class="rail"><span class="ms">data_usage</span></span><b>Utilizzo</b><span class="sp"></span><span class="ms" style="color:var(--tx3)">expand_less</span></div><div class="hd"><span class="lab">5 ore</span><span class="meter"><i style="width:34%"></i><u style="left:34%;width:28%"></u><s style="left:42%"></s></span><span class="val">34% → 62%</span><span class="ms">expand_more</span></div><div class="hd"><span class="lab">Settimana</span><span class="meter"><i style="width:41%"></i><s style="left:50%"></s></span><span class="val">41%</span><span class="ms">expand_more</span></div><div class="hd"><span class="lab">Sessioni</span><span class="stack" style="margin:0"><i style="width:46%"></i><i style="width:27%;opacity:.7"></i><i style="width:15%;opacity:.5"></i><i style="width:12%;opacity:.3"></i></span><span class="val">46%</span><span class="ms">expand_more</span></div><div class="hd w"><span class="lab">Oggi</span><span class="val">42 prompt · 9 commit · 537 M</span><span class="ms">expand_less</span></div><div class="open"><svg viewBox="0 0 356 28" width="100%" height="28"><rect x="0" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="15" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="30" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="45" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="60" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="75" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="90" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="105" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="120" y="22" width="11" height="6" rx="1.5" fill="#969BA4"/><rect x="135" y="14" width="11" height="14" rx="1.5" fill="#969BA4"/><rect x="150" y="6" width="11" height="22" rx="1.5" fill="#969BA4"/><rect x="165" y="10" width="11" height="18" rx="1.5" fill="#969BA4"/><rect x="180" y="20" width="11" height="8" rx="1.5" fill="#969BA4"/><rect x="195" y="22" width="11" height="6" rx="1.5" fill="#969BA4"/><rect x="210" y="12" width="11" height="16" rx="1.5" fill="#969BA4"/><rect x="225" y="4" width="11" height="24" rx="1.5" fill="#969BA4"/><rect x="240" y="8" width="11" height="20" rx="1.5" fill="#969BA4"/><rect x="255" y="16" width="11" height="12" rx="1.5" fill="#969BA4"/><rect x="270" y="22" width="11" height="6" rx="1.5" fill="#969BA4"/><rect x="285" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="300" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="315" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="330" y="26" width="11" height="2" rx="1.5" fill="#272A31"/><rect x="345" y="26" width="11" height="2" rx="1.5" fill="#272A31"/></svg><div class="q2"><span>00</span><span>12</span><span>23</span></div><div class="rw" style="margin-top:6px"><span>Prompt e commit per ora</span><span>ora di punta 15:00</span></div><div class="rw"><b>Attesa mediana</b><span>4 min · 12 chiuse in 7 giorni</span></div></div><div class="more">Tutti i dettagli<span class="sp"></span><span class="ms">chevron_right</span></div></div></div></body></html>

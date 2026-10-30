@@ -5,6 +5,9 @@
   import { stop } from './strongAlert'
   import { t } from './t'
   import Badge from './Badge.svelte'
+  import StateGlyph from './StateGlyph.svelte'
+  import { glyphOf } from './rail'
+  import { personal } from './badge'
 
   // Il menu delle sessioni in alto (SessionMenu di AppShell.kt): il nome della sessione aperta con ▾ apre «Vai a», con la
   // home in testa, le sessioni vive nei gruppi e le chiuse contate, ognuna con «Riapri».
@@ -14,7 +17,7 @@
   const model = $derived(menuOf(st.sessions))
   let dlg: HTMLDialogElement | undefined = $state()
   let closedDlg: HTMLDialogElement | undefined = $state()
-  const tone: Record<string, string> = { waiting: 'var(--b-warn)', working: 'var(--b-ring)', still: 'var(--text2)' }
+  const tone: Record<string, string> = { waiting: 'var(--wait)', working: 'var(--busy)', still: 'var(--tx2)' }
   function status(x: Session, g: string) {
     if (g === 'waiting') return t.menuRowWaiting(since(x.question?.asked_at ?? stop(x)?.at ?? x.since, now))
     if (g === 'working') return t.menuRowWorking(since(x.turn_started ?? x.since, now))
@@ -30,18 +33,18 @@
   <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 10l5 5 5-5z" fill="var(--text2)" /></svg>
 </button>
 
-<dialog bind:this={dlg} class="panel" onclick={backdrop} aria-label={t.menuGoto}>
+<dialog bind:this={dlg} class="panel" data-testid="vai-a-v3" onclick={backdrop} aria-label={t.menuGoto}>
   <div class="ph">{t.menuGoto}</div>
   <button class="row" onclick={() => go(null)}>
-    <span class="home"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linejoin="round" /></svg></span>
+    <span class="home"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="none" stroke="var(--tx2)" stroke-width="1.8" stroke-linejoin="round" /></svg></span>
     <span class="col"><b>{t.summaryTitle}</b><small>{t.menuHomeSub}</small></span>
   </button>
   {#each model.groups as [g, list] (g)}
     <div class="gh" style:color={tone[g]}>{(t.summary[g] ?? t.summary.still)(list.length).toUpperCase()}</div>
     {#each list as x (x.name)}
       <button class="row" class:on={x.name === s.name} onclick={() => go(x.name)}>
-        <Badge s={x} size={24} />
-        <span class="col"><b>{x.name}</b><small style:color={g === 'waiting' ? 'var(--b-warn)' : null}>{status(x, g)}</small></span>
+        <span class="glyph"><StateGlyph kind={glyphOf(x)} ctx={x.context} square={!personal(x.account, x.account_kind)} /></span>
+        <span class="col"><b>{x.name}</b><small style:color={g === 'waiting' ? 'var(--wait)' : null}>{status(x, g)}</small></span>
         {#if x.context != null}<span class="ctx mono">{t.ctx(x.context)}</span>{/if}
         {#if x.name === s.name}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>{/if}
       </button>
@@ -50,7 +53,7 @@
   {#if model.closed}
     <hr />
     <button class="row" onclick={() => { dlg?.close(); closedDlg?.showModal() }}>
-      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6 6 18" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
+      <span class="glyph"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--tx2)" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v4H4zM5 9h14v10H5zM10 13h4" /></svg></span>
       <span class="col"><span class="dim">{t.closedCat(model.closed)}</span></span>
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
     </button>
@@ -88,4 +91,20 @@
   .crow { display: flex; align-items: center; gap: 12px; padding: 10px 20px; }
   .crow b { flex: 1; font-weight: 500; }
   .re { padding: 9px 16px; border-radius: 999px; background: var(--high); color: var(--primary); font-size: 14px; font-weight: 500; }
+  /* «Vai a» nella forma della v3 (app-menu-v3-30-10): glifi a contorno come in home, icone grigie nel binario, nessun cerchio. */
+  dialog.panel { padding: 0; }
+  .ph { padding: 14px 16px; border-bottom: 1px solid var(--line); color: var(--tx2); }
+  .row { gap: 8px; min-height: 58px; padding: 9px 12px 9px 0; border-top: 1px solid var(--line); }
+  .ph + .row { border-top: 0; }
+  .row:hover, .row.on { background: var(--s2); }
+  .home, .glyph { width: 52px; height: auto; flex: none; display: flex; justify-content: center; background: none; border-radius: 0; }
+  .col b { font: 600 17px/1.2 var(--display); white-space: normal; overflow-wrap: anywhere; }
+  .col small { font-size: 14px; white-space: normal; }
+  .dim { font: 600 17px var(--display); color: var(--tx); }
+  .ctx { font: 400 12.5px var(--mono); color: var(--tx2); }
+  .gh { padding: 8px 0 2px 60px; font: 400 14px var(--sans); letter-spacing: 0; border-top: 1px solid var(--line); }
+  .gh + .row { border-top: 0; }
+  hr { display: none; }
+  dialog.sheet { background: var(--s1); }
+  .re { background: var(--s3); color: var(--tx); font: 600 15px var(--display); }
 </style>

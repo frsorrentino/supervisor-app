@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
@@ -160,82 +162,58 @@ private fun SessionMenu(
     }
     if (open) {
         val model = androidx.compose.runtime.remember(sessions) { it.pixelbox.cmwatch.rules.SessionsMenu.of(sessions) }
-        // Il pannello nasce dal nome della sessione, in alto a sinistra.
+        // Il pannello nasce dal nome della sessione, in alto a sinistra. Nella forma della v3 (app-menu-v3-30-10): glifi di stato a
+        // contorno come in home, icone grigie nel binario, nessun cerchio pieno.
         PanelShell(onDismiss = { open = false }, header = {
-            Text(stringResource(R.string.menu_goto), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f))
-        }, origin = androidx.compose.ui.graphics.TransformOrigin(0.2f, 0f)) { close ->
+            Text(stringResource(R.string.menu_goto), style = V3.Small, modifier = Modifier.weight(1f))
+        }, origin = androidx.compose.ui.graphics.TransformOrigin(0.2f, 0f), tag = "vai-a-v3") { close ->
             val pick: (String?) -> Unit = { n -> close(); onPick(n) }
             // La home in testa: il riepilogo con la master.
-            Row(
-                Modifier.fillMaxWidth().handCursor().clickable { pick(null) }.padding(horizontal = 20.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                // La firma della master (Franz, 05/10 11:30): l'anello corallo-lilla anche nel menu.
-                val sign = LocalMasterLook.current.signature
-                Box(
-                    Modifier.size(36.dp).clip(CircleShape).background(CmColors.accent.copy(alpha = 0.25f))
-                        .then(if (sign) Modifier.border(2.dp, MasterGradient, CircleShape) else Modifier),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Rounded.Home, null, tint = CmColors.actionIcon, modifier = Modifier.size(20.dp))
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.summary_title), style = MaterialTheme.typography.titleMedium, color = CmColors.text)
-                    Text(stringResource(R.string.menu_home_sub), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip)
-                }
+            V3Row(true, { pick(null) }, { Icon(androidx.compose.material.icons.Icons.Outlined.Home, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }) {
+                Text(stringResource(R.string.summary_title), style = V3.Name)
+                Text(stringResource(R.string.menu_home_sub), style = V3.Small)
             }
             model.groups.forEach { (group, list) ->
                 val tone = when (group) {
-                    it.pixelbox.cmwatch.rules.Summary.Group.WAITING -> CmColors.briefWarn
-                    it.pixelbox.cmwatch.rules.Summary.Group.WORKING -> CmColors.briefRing
-                    else -> CmColors.text2
+                    it.pixelbox.cmwatch.rules.Summary.Group.WAITING -> V3.Wait
+                    it.pixelbox.cmwatch.rules.Summary.Group.WORKING -> V3.Busy
+                    else -> V3.Tx2
                 }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
                 Text(
                     pluralStringResource(when (group) {
                         it.pixelbox.cmwatch.rules.Summary.Group.WAITING -> R.plurals.summary_waiting
                         it.pixelbox.cmwatch.rules.Summary.Group.WORKING -> R.plurals.summary_working
                         else -> R.plurals.summary_still
-                    }, list.size, list.size).uppercase(),
-                    style = MonoSmall.copy(color = tone), modifier = Modifier.padding(start = 20.dp, top = 10.dp, bottom = 2.dp),
+                    }, list.size, list.size),
+                    style = V3.Small.copy(color = tone), modifier = Modifier.padding(start = 60.dp, top = 8.dp, bottom = 2.dp),
                 )
-                list.forEach { s -> SessionMenuRow(s, group, now, s.name == current) { pick(s.name) } }
+                list.forEachIndexed { i, s -> SessionMenuRow(s, group, now, s.name == current, i == 0) { pick(s.name) } }
             }
-            if (model.closed > 0) {
-                HorizontalDivider(color = CmColors.line, modifier = Modifier.padding(vertical = 4.dp))
-                Row(
-                    Modifier.fillMaxWidth().handCursor().clickable { close(); onClosed() }.padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Icon(Icons.Rounded.Close, null, tint = CmColors.text2, modifier = Modifier.size(20.dp))
-                    Text(pluralStringResource(R.plurals.summary_closed, model.closed, model.closed), style = MaterialTheme.typography.bodyLarge, color = CmColors.text2, modifier = Modifier.weight(1f))
-                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2)
-                }
-            }
+            if (model.closed > 0) V3Row(false, { close(); onClosed() }, { Icon(androidx.compose.material.icons.Icons.Outlined.Inventory2, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, {
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3)
+            }) { Text(pluralStringResource(R.plurals.summary_closed, model.closed, model.closed), style = V3.Name) }
         }
     }
 }
 
-/** Una sessione nel menu: badge, nome, «domanda · 5 m» / «al lavoro · 1 m» / «ferma da 1 g», contesto; ✓ sulla aperta. */
+/** Una sessione nel menu: glifo di stato, nome, «domanda · 5 m» / «al lavoro · 1 m» / «ferma da 1 g», contesto; ✓ sulla aperta. */
 @Composable
-private fun SessionMenuRow(s: Session, group: it.pixelbox.cmwatch.rules.Summary.Group, now: Long, current: Boolean, onClick: () -> Unit) {
+private fun SessionMenuRow(s: Session, group: it.pixelbox.cmwatch.rules.Summary.Group, now: Long, current: Boolean, first: Boolean, onClick: () -> Unit) {
     val since: (Long) -> String = { t -> it.pixelbox.cmwatch.contract.Durations.since(t, now) }
     val status = when (group) {
         it.pixelbox.cmwatch.rules.Summary.Group.WAITING -> stringResource(R.string.menu_row_waiting, since(s.question?.askedAt ?: it.pixelbox.cmwatch.rules.StrongAlert.stop(s)?.at ?: s.since))
         it.pixelbox.cmwatch.rules.Summary.Group.WORKING -> stringResource(R.string.menu_row_working, since(s.turnStarted ?: s.since))
         else -> stringResource(R.string.menu_row_still, since(s.since))
     }
-    Row(
-        Modifier.fillMaxWidth().background(if (current) CmColors.primary.copy(alpha = 0.10f) else androidx.compose.ui.graphics.Color.Transparent)
-            .handCursor().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        SessionBadge(s, size = 24.dp)
-        Column(Modifier.weight(1f)) {
-            Text(s.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
-            if (now > 0) Text(status, style = MaterialTheme.typography.bodySmall, color = if (group == it.pixelbox.cmwatch.rules.Summary.Group.WAITING) CmColors.briefWarn else CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip)
+    Box(if (current) Modifier.background(V3.S2) else Modifier) {
+        V3Row(first, onClick, { StateGlyph(it.pixelbox.cmwatch.rules.Rail.glyph(s, group), s.context, square = !it.pixelbox.cmwatch.rules.Accounts.personal(s.account, s.accountKind)) }, {
+            s.context?.let { Text(stringResource(R.string.ctx_short, it), style = V3.Meter, maxLines = 1) }
+            if (current) Icon(Icons.Rounded.Check, null, tint = V3.Tx, modifier = Modifier.padding(start = 6.dp).size(18.dp))
+        }) {
+            Text(s.name, style = V3.Name)
+            if (now > 0) Text(status, style = V3.Small.copy(color = if (group == it.pixelbox.cmwatch.rules.Summary.Group.WAITING) V3.Wait else V3.Tx2))
         }
-        s.context?.let { Text(stringResource(R.string.ctx_short, it), style = MonoSmall) }
-        if (current) Icon(Icons.Rounded.Check, null, tint = CmColors.actionIcon, modifier = Modifier.size(18.dp))
     }
 }
 

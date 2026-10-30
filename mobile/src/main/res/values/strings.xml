@@ -1432,4 +1432,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="reorder_up">Sposta su %1$s</string>
     <string name="reorder_down">Sposta giù %1$s</string>
     <string name="cleanup_close_short">Chiudi</string>
+    <string name="usage_week">Settimana</string>
+    <string name="usage_today">Oggi</string>
+    <string name="usage_details">Tutti i dettagli</string>
+    <string name="usage_now">adesso</string>
+    <string name="usage_projection">Allo stesso ritmo arrivi al %1$d%% alle %2$s, quando si azzera.</string>
+    <string name="usage_below_pace">%1$d punti sotto il ritmo pari</string>
+    <string name="usage_above_pace">%1$d punti sopra il ritmo pari</string>
+    <string name="usage_peak">Prompt e commit per ora, punta alle %1$02d:00</string>
+    <string name="usage_waits">Attesa mediana %1$d min · %2$d chiuse in 7 giorni</string>
 </resources>

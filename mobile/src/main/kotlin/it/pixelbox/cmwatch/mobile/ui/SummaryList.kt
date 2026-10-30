@@ -428,16 +428,7 @@ fun SummaryList(
                             }, meter = { if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
                             first = false
                             if (usageOpen) {
-                                val glow by androidx.compose.animation.core.animateFloatAsState(if (usageFlash) 1f else 0f, androidx.compose.animation.core.tween(if (usageFlash) 160 else 700), label = "usageFlash")
-                                Column(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp).border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp)), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    usage!!()
-                                    // Proposta 4: la quota 5h di ogni account divisa per sessione.
-                                    kpiState?.let { st -> st.quota.keys.forEach { a -> it.pixelbox.cmwatch.rules.Kpi.split(st, a)?.let { sp -> Kpi4(sp) } } }
-                                    // Proposta 18: la giornata in cifre sotto le schede della quota.
-                                    kpiPage?.let { p -> Kpi18(it.pixelbox.cmwatch.rules.Kpi.dayFigures(p, state = kpiState, now = now, zone = zone)) }
-                                    // Proposta 17: quanto aspettano le sessioni, dalla 1.96.
-                                    kpiData?.waits?.let { w -> Kpi17(w, now) }
-                                }
+                                usage!!()
                             }
                         }
                         // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
