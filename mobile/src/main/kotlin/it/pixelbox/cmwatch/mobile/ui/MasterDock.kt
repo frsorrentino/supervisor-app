@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.MasterHome
@@ -51,13 +52,13 @@ private val DOCK_HM = DateTimeFormatter.ofPattern("HH:mm")
  * La master è la superficie più alta dell'app, velata del celeste d'accento come vuole l'elevazione tonale del Material 3:
  * i toni dei ruoli di superficie (T22 più alta, T17 alta, T12 contenitore, T10 bassa, T30 tasti) generati dal celeste
  * d'accento #A8C7FA, tinta 273, croma 14; piatti, nessun effetto di luce (Celeste velato, Franz 06/10 21:15-22:27).
- * Gli stessi valori della web app.
+ * Gli stessi valori della web app; dal 30/10 i neutri dello stile «Studio e Diretta» (HomeV3.kt), senza velo.
  */
-internal val MasterHighest = androidx.compose.ui.graphics.Color(0xFF283549)
-internal val MasterHigh = androidx.compose.ui.graphics.Color(0xFF1D2B3E)
-internal val MasterContainer = androidx.compose.ui.graphics.Color(0xFF122033)
-internal val MasterLow = androidx.compose.ui.graphics.Color(0xFF0E1C2E)
-internal val MasterKey = androidx.compose.ui.graphics.Color(0xFF3B475C)
+internal val MasterHighest = V3.S2
+internal val MasterHigh = V3.S1
+internal val MasterContainer = V3.S1
+internal val MasterLow = V3.Bg
+internal val MasterKey = V3.S3
 
 /**
  * I tasti tondi della master cambiano forma quando li premi, come quelli del Material 3 Expressive: da cerchio a quadrato
@@ -169,16 +170,15 @@ fun MasterDock(
             // La firma: l'icona della master con l'anello corallo-lilla (Franz, 05/10 11:30).
             // Il badge di stato solo quando la master ti aspetta o è chiusa; altrimenti la scintilla di Claude, che gira mentre
             // lavora. Il cerchio rosso era l'elemento più saturo della schermata e nel Material 3 il rosso è «errore» (22:27).
-            if (master.state == it.pixelbox.cmwatch.contract.SessionState.WAITING || master.state == it.pixelbox.cmwatch.contract.SessionState.GONE) SessionBadge(master, 20.dp)
-            else MasterSpark(master.state, 20.dp)
+            // Stile «Studio e Diretta» (30/10): al posto della scintilla e del badge il glifo dello stato, con l'anello del contesto.
+            StateGlyph(it.pixelbox.cmwatch.rules.Rail.glyph(master), master.context, size = 18.dp, square = !it.pixelbox.cmwatch.rules.Accounts.personal(master.account, master.accountKind), label = label)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(label, style = MonoSmall.copy(color = CmColors.text2), maxLines = 1, overflow = TextOverflow.Clip)
-                hero?.let {
-                    Text(
-                        linked(it.headline), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                        color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip,
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.dock_master).lowercase().replaceFirstChar { c -> c.titlecase() }, style = V3.Name.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                    time?.let { Text(it, style = V3.Meter, maxLines = 1) }
+                    if (!expanded) ctx?.let { Text(it, style = V3.Meter, maxLines = 1) }
                 }
+                hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = 1, overflow = TextOverflow.Clip) }
             }
             // Durante la lettura il ▶ diventa ■ e la ferma (Franz, 03/10 17:25), come sotto le risposte della chat.
             val spoken = hero?.let { h -> listOf(h.headline, h.body).filter { it.isNotBlank() }.joinToString("\n") }

@@ -49,7 +49,7 @@ class KpiViewsTest {
             CmPhoneTheme(still = true) {
                 Column(Modifier.fillMaxSize().background(CmColors.bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     // Proposte piccole (compito app-kpi-piccole-25-10): le tre cifre e la quota per sessione.
-                    Kpi7(Kpi.head(st, page, now, zone)) {}
+                    Kpi7(Kpi.head(st, page, now, zone), st, now, {})
                     Kpi.split(st, "personal")?.let { Kpi4(it) }
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) { Text("atlas-shop", color = CmColors.text, modifier = Modifier.weight(1f)); Kpi6(Kpi.hourly(events, now)) }

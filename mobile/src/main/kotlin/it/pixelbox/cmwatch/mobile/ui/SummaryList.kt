@@ -29,6 +29,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.DataUsage
+import androidx.compose.material.icons.rounded.EventNote
+import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.PanTool
+import androidx.compose.material.icons.rounded.PlayCircle
+import androidx.compose.material.icons.rounded.SportsScore
 import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.Schedule
@@ -108,7 +117,7 @@ fun SummaryList(
     /** «Utilizzo»: le schede della quota, nella sua sezione richiudibile. */
     usage: (@Composable () -> Unit)? = null,
     /** Le sezioni aperte la prima volta, prima che tu le apra o chiuda. */
-    startOpen: Set<String> = setOf("night", "sessions", "lavori"),
+    startOpen: Set<String> = setOf("sessions", "lavori", "esiti"),
     /**
      * La sessione appena chiusa dal pannello di chiusura, con la riga «chiusa alle …» (Franz, 08/10 18:59, volo al contrario):
      * la sua card in cima alle sessioni è dove la pagina atterra tornando alla home; poi si richiude da sola.
@@ -163,6 +172,8 @@ fun SummaryList(
     kpiPage: it.pixelbox.cmwatch.contract.TimelinePage? = null, kpiState: it.pixelbox.cmwatch.contract.State? = null,
     /** I tre box in alto aprono la loro pagina (app-box-cliccabili-29-10). */
     onBox: (HomeBox) -> Unit = {},
+    /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
+    onQuota: () -> Unit = {},
     /** Contratto 1.96: le cifre dell'op `kpi` (proposte 10, 12, 13, 17, compito app-kpi-dati-relay-25-10); null finché non arrivano. */
     kpiData: it.pixelbox.cmwatch.contract.KpiData? = null,
     /** Contratto 1.95: la sezione «Plugin e skill»; null = relay senza le op. `pluginsInitial` per i test. */
@@ -173,14 +184,14 @@ fun SummaryList(
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
-    // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura.
+    // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura. File nuovo col
+    // riordino (app-home-riordino-29-10): Utilizzo parte chiusa anche per chi l'aveva aperta, come nella web.
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val prefs = remember { runCatching { ctx.getSharedPreferences("home_sections", android.content.Context.MODE_PRIVATE) }.getOrNull() }
+    val prefs = remember { runCatching { ctx.getSharedPreferences("home_sections_2", android.content.Context.MODE_PRIVATE) }.getOrNull() }
     fun section(key: String) = mutableStateOf(runCatching { prefs?.getBoolean(key, key in startOpen) }.getOrNull() ?: (key in startOpen))
     var sessionsOpen by remember { section("sessions") }
     var usageOpen by remember { section("usage") }
-    var otherOpen by remember { section("other") }
-    var nightOpen by remember { section("night") }
+    var esitiOpen by remember { section("esiti") }
     var lavoriOpen by remember { section("lavori") }
     var pluginsOpen by remember { section("plugins") }
     var laterOpen by remember { mutableStateOf(false) }
@@ -231,7 +242,7 @@ fun SummaryList(
     }
     androidx.compose.foundation.lazy.LazyColumn(
         // In fondo lo spazio del controller della lettura, che si posa sopra la barra della master (09/10 16:50).
-        Modifier.fillMaxSize(), state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp + readingRoom()),
+        Modifier.fillMaxSize().background(V3.Bg), state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp + readingRoom()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }
@@ -245,131 +256,206 @@ fun SummaryList(
         val placed = foryou?.let { Lavori.place(it, model.rows.map { r -> r.session.name }.toSet(), Summary.attachedTasks(model.rows)) }
         // Franz 24/10 00:46: un suggerimento che riguarda una sessione aperta (il contesto alto) sta nella sua scheda; in Altro restano gli altri.
         val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
-        // Franz 24/10 09:36: «L'ordine in home deve essere: Sessioni, Utilizzo, Lavoro, Altro»; la Notte, che non nomina, prima di Altro.
-        // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni.
+        // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, con sotto la quota (stile «Studio e Diretta», 30/10).
         kpiState?.let { st ->
-            item(key = "kpi-7") { Box(moving()) { Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), onBox) } }
+            item(key = "kpi-7") { Box(moving()) { Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, onBox, onQuota) } }
         }
-        item(key = "sec-sessions") {
-            Box(moving()) { HomeSection(stringResource(R.string.home_sec_sessions), model.rows.size.toString().takeIf { !sessionsOpen }, sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
+        // L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi «Altro».
+        val waitRows = model.rows.filter { it.group == Summary.Group.WAITING }
+        val restRows = model.rows.filter { it.group != Summary.Group.WAITING }
+        val looseOk = placed?.loose?.ok.orEmpty()
+        val zone = java.time.ZoneId.systemDefault()
+        // Un solo bottone pieno: «Fatto» della prima che ti aspetta, se la richiesta non si chiude da sola (correzione 2 del 30/10).
+        val primary = waitRows.firstOrNull()?.session?.name
+        val lastRed = it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.red.orEmpty().sortedBy { d -> d.at }.associate { d -> d.session to d.at }
+        val card: @Composable (Summary.Row, Boolean) -> Unit = { r, first ->
+            val s = r.session
+            val id = r.group.name + ":" + s.name
+            SummaryCard(
+                r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
+                onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
+                firstFilled = false, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, now = now,
+                onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
+                onApprove = onApprove, onDone = onDone,
+                works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
+                kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
+                kpiTurns = kpiData?.let { d -> it.pixelbox.cmwatch.rules.Kpi.turnsOf(d, s.name) },
+                todayShare = kpiState?.let { st -> it.pixelbox.cmwatch.rules.Kpi.todayShare(st, s.name) },
+                onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
+                onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
+                doneFilled = s.name == primary && s.needsYou?.until != true, lastRed = lastRed[s.name], firstInList = first,
+            )
         }
-        justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
-        val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
-        val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(java.time.ZoneId.systemDefault())) }
-        // Contratto 1.84 (scheda A): senza nessuno che aspetta, i suggerimenti in cima alle sessioni.
-        if (sessionsOpen && sug != null && model.rows.none { it.group == Summary.Group.WAITING }) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, sugAt!!, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
-        if (sessionsOpen) model.rows.groupBy { it.group }.forEach { (group, rows) ->
-            item(key = "h-${group.name}") {
-                Box(moving()) {
-                    val fin = if (group == Summary.Group.STILL && closePreview != null) it.pixelbox.cmwatch.rules.CloseFinished.candidates(model.rows, now) else emptyList()
-                    GroupHeader(pluralStringResource(groupLabel(group), rows.size, rows.size), groupTone(group),
-                        action = fin.takeIf { f -> f.isNotEmpty() }?.let { f -> stringResource(R.string.close_finished_n, f.size) }) { closeAsk = fin.map { x -> x.name } }
-                }
-            }
+        if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
+            item(key = "sec-waiting") { Box(moving()) { V3Section(stringResource(R.string.home_waiting), Icons.Rounded.PanTool, (waitRows.size + looseOk.size).toString(), tag = "home-sez-aspettano") } }
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
-            val keys = uniqueKeys(rows) { "s-" + it.session.id }
-            items(rows.size, key = { keys[it] }) { i ->
-                val r = rows[i]
-                val s = r.session
-                val id = group.name + ":" + s.name
-                Box(moving()) {
-                    SummaryCard(
-                        r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
-                        onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
-                        firstFilled = foryou?.ok?.none { it.approval != null } ?: true, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, now = now,
-                        onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
-                        onApprove = onApprove, onDone = onDone,
-                        works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
-                        kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
-                        kpiTurns = kpiData?.let { d -> it.pixelbox.cmwatch.rules.Kpi.turnsOf(d, s.name) },
-                        todayShare = kpiState?.let { st -> it.pixelbox.cmwatch.rules.Kpi.todayShare(st, s.name) },
-                        onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
-                        onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
-                    )
-                }
+            val keys = uniqueKeys(waitRows) { "s-" + it.session.id }
+            items(waitRows.size, key = { keys[it] }) { i -> Box(moving()) { card(waitRows[i], true) } }
+            looseOk.forEachIndexed { i, r ->
+                val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
+                item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
             }
-            // Contratto 1.84 (scheda A): i suggerimenti della master dopo quello che ti aspetta, prima delle altre sessioni.
-            if (group == Summary.Group.WAITING && sug != null) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, sugAt!!, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
         }
-        usage?.takeIf { showUsage }?.let { u ->
-            item(key = "sec-usage") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_usage), null, usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) } } }
-            if (usageOpen) item(key = "usage") {
-                val glow by androidx.compose.animation.core.animateFloatAsState(if (usageFlash) 1f else 0f, androidx.compose.animation.core.tween(if (usageFlash) 160 else 700), label = "usageFlash")
-                Box(moving().border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp))) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        u()
-                        // Proposta 4: la quota 5h di ogni account divisa per sessione.
-                        kpiState?.let { st -> st.quota.keys.forEach { a -> it.pixelbox.cmwatch.rules.Kpi.split(st, a)?.let { sp -> Kpi4(sp) } } }
-                        // Proposta 18: la giornata in cifre sotto le schede della quota.
-                        kpiPage?.let { p -> Kpi18(it.pixelbox.cmwatch.rules.Kpi.dayFigures(p, state = kpiState, now = now, zone = java.time.ZoneId.systemDefault())) }
-                        // Proposta 17: quanto aspettano le sessioni, dalla 1.96.
-                        kpiData?.waits?.let { w -> Kpi17(w, now) }
-                    }
+        // Contratto 1.84 (scheda A): i suggerimenti dopo chi ti aspetta, fuori dal suo numero: un consiglio non blocca nessuno.
+        val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
+        val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(zone)) }
+        if (sug != null) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, sugAt!!, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
+        if (restRows.isNotEmpty() || justClosed != null) {
+            item(key = "sec-sessions") {
+                val n = { g: Summary.Group -> restRows.count { it.group == g } }
+                Box(moving()) { V3Section(stringResource(R.string.home_sec_sessions), Icons.Rounded.PlayCircle, restRows.size.toString(), stringResource(R.string.home_sessions_line, n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)), "home-sez-sessioni", sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
+            }
+            justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
+            // Una lista sola nell'ordine dei gruppi: il glifo dice lo stato al posto delle intestazioni.
+            if (sessionsOpen && restRows.isNotEmpty()) item(key = "sessions-list") {
+                val fin = if (closePreview != null) it.pixelbox.cmwatch.rules.CloseFinished.candidates(model.rows, now) else emptyList()
+                Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    V3List { restRows.forEachIndexed { i, r -> androidx.compose.runtime.key(r.session.id, i) { card(r, i == 0) } } }
+                    if (fin.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { V3Pill(stringResource(R.string.close_finished_n, fin.size)) { closeAsk = fin.map { x -> x.name } } }
                 }
             }
         }
-        // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
-        system?.let { sys ->
-            val sysOpen = SystemRules.isOpen(sys.level, sysManual)
-            item(key = "sec-system") { Box(moving()) { SystemHeader(sys, sysOpen) { sysManual = SystemRules.Manual(sys.level, !sysOpen) } } }
-            if (sysOpen) item(key = "system") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } } }
-        }
-        // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
-        if (plugins != null && onPluginsLoad != null && onPluginCmd != null) {
-            val n = plugins.accounts.sumOf { it.updates.size }
-            item(key = "sec-plugins") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_plugins), n.takeIf { it > 0 && !pluginsOpen }?.let { androidx.compose.ui.res.pluralStringResource(R.plurals.plugins_to_update, it, it) }, pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) } } }
-            if (pluginsOpen) item(key = "plugins") { Box(moving()) { PluginsCard(plugins, onPluginsLoad, onPluginCmd, pluginsInitial) } }
-        }
-        // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap. Solo le righe con un tasto.
-        if (showLavori && foryou != null) {
-            item(key = "sec-lavori") { Box(moving()) { HomeSection(stringResource(R.string.lavori_title), stringResource(R.string.lavori_for_you_n, placed?.loose?.ok?.size ?: 0).takeIf { !lavoriOpen }, lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) } } }
+        // La sezione «Lavori»: i compiti da riprendere e la coda di stanotte, «Tutti i lavori» apre la pagina.
+        val outside = outsidePlaced.groups.filter { g -> g.category != OutsideSessions.Category.CLOSED }
+        val closedGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.CLOSED }
+        if (showLavori && (foryou != null || outside.isNotEmpty())) {
+            val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
+            item(key = "sec-lavori") { Box(moving()) { V3Section(stringResource(R.string.lavori_title), Icons.Rounded.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
             if (lavoriOpen) {
-                val zone = java.time.ZoneId.systemDefault()
-                val loose = placed!!.loose
-                // Franz 24/10 19:46 (B1): in alto solo gli ok che fermano un lavoro; il resto in «Più tardi», chiuso.
-                val laterRows = loose.outside + loose.claude
-                val rows = loose.ok + if (laterOpen) laterRows else emptyList()
-                // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli.
-                rows.forEachIndexed { i, r ->
-                    // La chiave dell'agenda è «» con un relay vecchio: mai due schede con la stessa chiave nella lista.
-                    val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
-                    item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
-                }
                 if (laterRows.isNotEmpty()) item(key = "lv-later") {
                     Box(moving()) {
-                        Row(Modifier.fillMaxWidth().handCursor().clickable { laterOpen = !laterOpen }.padding(horizontal = 4.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.lavori_later, laterRows.size), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f))
-                            Icon(if (laterOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = CmColors.text2)
-                        }
+                        V3List { V3Row(first = true, onClick = { laterOpen = !laterOpen }, rail = {}, trailing = { Icon(if (laterOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3) }) { Text(stringResource(R.string.lavori_later, laterRows.size), style = V3.Name) } }
                     }
                 }
-                item(key = "lv-all") {
+                if (laterOpen) laterRows.forEachIndexed { i, r ->
+                    val k = r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
+                    item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
+                }
+                outside.filter { g -> g.category == OutsideSessions.Category.NIGHT && tonight?.items?.isNotEmpty() == true }.forEach { g ->
+                    item(key = "out-${g.category}-card") { Box(moving()) { OutsideCard(g.rows, onService, tonight, nightPage, onNight, g.category) } }
+                }
+                item(key = "lv-list") {
                     Box(moving()) {
-                        Row(Modifier.fillMaxWidth().handCursor().clickable(onClick = onLavori).padding(horizontal = 4.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(lavoriLine ?: stringResource(R.string.lavori_all), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2, modifier = Modifier.weight(1f))
-                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2)
+                        V3List {
+                            var first = true
+                            outside.forEach { g ->
+                                g.rows.forEach { row ->
+                                    if (g.category == OutsideSessions.Category.NIGHT && row.kind == MasterHome.Kind.NIGHT) {
+                                        // La Notte su una riga: la coda di stanotte e com'è andata la notte scorsa; il tocco apre la pagina.
+                                        if (tonight?.items?.isNotEmpty() != true) V3Row(first, onNight, { Icon(Icons.Rounded.Bedtime, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { V3Pill(stringResource(R.string.fy_btn_add)) { onService(row) } }) {
+                                            Text(stringResource(R.string.home_sec_night), style = V3.Name)
+                                            Text(nightPage?.let { p -> stringResource(R.string.home_night_row, p.counts.done, p.cards.size) } ?: stringResource(R.string.fy_night_empty_short), style = V3.Small)
+                                        }
+                                    } else {
+                                        val (title, detail, action) = serviceText(row)
+                                        V3Row(first, null, { Icon(categoryIcon(g.category), null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { V3Pill(stringResource(action)) { onService(row) } }) {
+                                            Text(stringResource(categoryLabel(g.category)), style = V3.Meter)
+                                            Text(if (row.kind == MasterHome.Kind.CONTEXT) row.title else title, style = V3.Name)
+                                            detail?.let { d -> Text(d, style = V3.Small, maxLines = 2, overflow = TextOverflow.Clip) }
+                                        }
+                                    }
+                                    first = false
+                                }
+                            }
+                            if (foryou != null) V3Row(first, onLavori, { Icon(Icons.Rounded.EventNote, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) {
+                                Text(lavoriLine ?: stringResource(R.string.lavori_all), style = V3.Name)
+                            }
                         }
                     }
                 }
             }
         }
-        if (nightDate != null) {
-            item(key = "sec-night") { Box(moving()) { HomeSection(stringResource(R.string.home_sec_night), null, nightOpen) { nightOpen = !nightOpen; save("night", nightOpen) } } }
-            if (nightOpen) item(key = "night-box") { Box(moving()) { NightHomeCard(nightDate, nightPage, onNight) } }
-        }
-        // «Fuori dalle sessioni» (mockup A, Franz 03/10 22:34): un titolo vero che separa le sessioni dal resto, poi le
-        // categorie con icona e conteggio, dalla più urgente; ognuna nella sua card.
-        val outside = outsidePlaced.groups
-        if (outside.isNotEmpty()) {
-            item(key = "out-head") {
+        // Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box.
+        it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.let { out ->
+            val liveNames = kpiState?.sessions.orEmpty().filter { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }.map { x -> x.name }.toSet()
+            item(key = "sec-esiti") { Box(moving()) { V3Section(stringResource(R.string.box_outcomes_title), Icons.Rounded.SportsScore, tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
+            if (esitiOpen) item(key = "esiti") {
                 Box(moving()) {
-                    HomeSection(stringResource(R.string.home_sec_other), outside.joinToString(" · ") { g -> g.rows.size.takeIf { it > 0 }?.toString() ?: g.closed.size.toString() }.takeIf { !otherOpen }, otherOpen) { otherOpen = !otherOpen; save("other", otherOpen) }
+                    V3List {
+                        val shown = if (out.red.isNotEmpty()) out.red.take(3) else out.done.take(2)
+                        if (shown.isEmpty()) V3Row(true, null, {}) { Text(stringResource(R.string.box_outcomes_none), style = V3.Small) }
+                        shown.forEachIndexed { i, d ->
+                            val red = d.ref != null
+                            V3Row(i == 0, { if (d.session in liveNames) onOpen(d.session) else onBox(HomeBox.OUTCOMES) }, {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    StateGlyph(if (red) it.pixelbox.cmwatch.rules.Rail.Glyph.RED else it.pixelbox.cmwatch.rules.Rail.Glyph.DONE)
+                                    Text(hhmmOf(d.at), style = V3.RailText.copy(color = if (red) V3.Red else V3.Tx2))
+                                }
+                            }) {
+                                Text(d.session, style = V3.Name)
+                                Text(d.text, style = V3.Small, maxLines = 2, overflow = TextOverflow.Clip)
+                            }
+                        }
+                        V3Row(shown.isEmpty(), { onBox(HomeBox.OUTCOMES) }, { StateGlyph(it.pixelbox.cmwatch.rules.Rail.Glyph.DONE) }, {
+                            Text(out.done.size.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
+                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3)
+                        }) { Text(stringResource(R.string.home_all_outcomes), style = V3.Name) }
+                    }
                 }
             }
-            if (otherOpen) outside.forEach { g ->
-                item(key = "out-${g.category}") { Box(moving()) { CategoryHeader(g) } }
-                item(key = "out-${g.category}-card") {
-                    Box(moving()) { if (g.category == OutsideSessions.Category.CLOSED) ClosedCard(g.closed, onClosed) else OutsideCard(g.rows, onService, tonight, nightPage, onNight, g.category) }
+        }
+        // «Altro»: Utilizzo, Sistema, Plugin e skill e Chiuse come righe di una lista, col numero in vista; il tocco apre sul posto.
+        val hasUsage = usage != null && showUsage
+        val hasPlugins = plugins != null && onPluginsLoad != null && onPluginCmd != null
+        if (hasUsage || system != null || hasPlugins || closedGroup != null) {
+            item(key = "sec-altro") { Box(moving()) { V3Section(stringResource(R.string.home_sec_other), Icons.Rounded.MoreHoriz) } }
+            item(key = "sec-usage") {
+                val rowIcon = @Composable { v: androidx.compose.ui.graphics.vector.ImageVector -> Icon(v, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
+                val toggle = @Composable { o: Boolean -> Icon(if (o) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3) }
+                Box(moving()) {
+                    V3List {
+                        var first = true
+                        if (hasUsage) {
+                            val weeks = kpiState?.quota.orEmpty().filter { (_, q) -> !q.stale && q.w7 != null }.entries
+                            val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "${a.take(5)} ${q.w7}%" }
+                            V3Row(first, { usageOpen = !usageOpen; save("usage", usageOpen) }, { rowIcon(Icons.Rounded.DataUsage) }, {
+                                if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, maxLines = 2, modifier = Modifier.padding(end = 4.dp))
+                                toggle(usageOpen)
+                            }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
+                            first = false
+                            if (usageOpen) {
+                                val glow by androidx.compose.animation.core.animateFloatAsState(if (usageFlash) 1f else 0f, androidx.compose.animation.core.tween(if (usageFlash) 160 else 700), label = "usageFlash")
+                                Column(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp).border(2.dp, CmColors.actionIcon.copy(alpha = 0.8f * glow), RoundedCornerShape(18.dp)), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    usage!!()
+                                    // Proposta 4: la quota 5h di ogni account divisa per sessione.
+                                    kpiState?.let { st -> st.quota.keys.forEach { a -> it.pixelbox.cmwatch.rules.Kpi.split(st, a)?.let { sp -> Kpi4(sp) } } }
+                                    // Proposta 18: la giornata in cifre sotto le schede della quota.
+                                    kpiPage?.let { p -> Kpi18(it.pixelbox.cmwatch.rules.Kpi.dayFigures(p, state = kpiState, now = now, zone = zone)) }
+                                    // Proposta 17: quanto aspettano le sessioni, dalla 1.96.
+                                    kpiData?.waits?.let { w -> Kpi17(w, now) }
+                                }
+                            }
+                        }
+                        // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
+                        system?.let { sys ->
+                            val sysOpen = SystemRules.isOpen(sys.level, sysManual)
+                            V3Row(first, { sysManual = SystemRules.Manual(sys.level, !sysOpen) }, { rowIcon(Icons.Rounded.Memory) }, {
+                                if (!sysOpen) {
+                                    Box(Modifier.padding(end = 6.dp).size(7.dp).clip(CircleShape).background(systemTone(sys.level)))
+                                    Text(systemSummary(sys), style = V3.Meter, maxLines = 2, modifier = Modifier.padding(end = 4.dp))
+                                }
+                                toggle(sysOpen)
+                            }) { Text(stringResource(R.string.home_sec_system), style = V3.Name) }
+                            first = false
+                            if (sysOpen) Column(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } }
+                        }
+                        // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
+                        if (hasPlugins) {
+                            val n = plugins!!.accounts.sumOf { it.updates.size }
+                            V3Row(first, { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }, { rowIcon(Icons.Rounded.Extension) }, {
+                                if (!pluginsOpen && n > 0) Text(pluralStringResource(R.plurals.plugins_to_update, n, n), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
+                                toggle(pluginsOpen)
+                            }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
+                            first = false
+                            if (pluginsOpen) Box(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) { PluginsCard(plugins, onPluginsLoad!!, onPluginCmd!!, pluginsInitial) }
+                        }
+                        closedGroup?.let { g ->
+                            V3Row(first, onClosed, { rowIcon(Icons.Rounded.Inventory2) }, {
+                                Text(g.closed.size.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
+                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3)
+                            }) { Text(stringResource(R.string.cat_closed), style = V3.Name) }
+                        }
+                    }
                 }
             }
         }
@@ -425,6 +511,8 @@ private fun SummaryCard(
     kpiTurns: List<it.pixelbox.cmwatch.contract.KpiTurn>? = null,
     /** Proposta 5: la parte di token di oggi della sessione sul suo account; null senza dati. */
     todayShare: Int? = null,
+    /** Stile «Studio e Diretta»: il «Fatto» è pieno solo per la prima che aspetta; l'ora dell'ultimo rosso di oggi; `firstInList` senza il filo sopra. */
+    doneFilled: Boolean = false, lastRed: Long? = null, firstInList: Boolean = true,
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -445,22 +533,37 @@ private fun SummaryCard(
     // L'esito per primo e senza l'etichetta «Esito:»; la domanda così com'è.
     val shown = if (waiting) parsed.text else s.outcome?.let { o -> it.pixelbox.cmwatch.rules.OutcomeText.summary(o) } ?: parsed.text
     val body = it.pixelbox.cmwatch.rules.Markdown.parse(shown).text.trim()
-    val fill = if (waiting) androidx.compose.ui.graphics.lerp(CmColors.surfaceLow, CmColors.briefWarn, 0.06f) else CmColors.surfaceLow
-    Column(
+    val glyph = it.pixelbox.cmwatch.rules.Rail.glyph(s, r.group)
+    val sinceWait = it.pixelbox.cmwatch.rules.Kpi.waitingSince(s)
+    val railText = when {
+        glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.WAITING && sinceWait != null -> railSpan(sinceWait, now)
+        glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.BUSY && s.turnStarted != null -> railSpan(s.turnStarted!!, now)
+        glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.DONE && s.outcome?.at != null -> hhmmOf(s.outcome!!.at)
+        glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.STILL -> hhmmOf(s.since)
+        else -> null
+    }
+    val square = !it.pixelbox.cmwatch.rules.Accounts.personal(s.account, s.accountKind)
+    if (!waiting && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    Row(
         // La chat si restringe verso la sua card durante il gesto indietro.
-        Modifier.fly("card-${s.id}").fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(fill).smoothSize()
+        Modifier.fly("card-${s.id}").fillMaxWidth().then(if (waiting) Modifier.clip(V3.Shape).background(V3.S2) else Modifier).smoothSize()
             // Franz, 03/10 17:05: il tocco sulla card porta dritto alla sessione; il tasto ▼ la apre sul posto.
             .handCursor().combinedClickable(onClick = onOpen, onLongClick = { menu = true }).contextClick { menu = true }
-            .padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(end = 10.dp, top = 8.dp, bottom = 10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SessionBadge(s, 24.dp)
+    // Il binario: il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora.
+    Column(Modifier.width(V3.Rail).padding(top = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        StateGlyph(glyph, s.context, square = square)
+        railText?.let { x -> Text(x, style = V3.RailText.copy(color = if (glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.STILL) V3.Tx2 else V3.tone(glyph)), maxLines = 1) }
+    }
+    Spacer(Modifier.width(8.dp))
+    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2).
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    s.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
-                    color = CmColors.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
+                    s.name, style = V3.Name,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
                 )
                 PermissionGlyph(it.pixelbox.cmwatch.rules.PermissionModes.homeGlyph(s), 14.dp)
             }
@@ -468,7 +571,12 @@ private fun SummaryCard(
             // «ctx 17%»: il contesto occupato, non un avanzamento del lavoro (osservazioni del 03/10).
             // La quota delle 5 ore dell'account al posto dell'età della sessione (Franz, 03/10 20:31: «non è un'informazione
             // rilevante»); il dato vecchio nel colore dell'attesa, come nel Quadro.
-            r.quota?.let { q -> q.h5?.let { Text(stringResource(R.string.quota_h5_short, it), style = MonoSmall, color = if (q.stale) CmColors.waiting else CmColors.text2, maxLines = 1) } }
+            // La quota 5h sta una volta sola, nel tabellone; qui il contesto e l'ora dell'ultimo rosso di oggi.
+            if (s.context != null && (waiting || r.group == Summary.Group.WORKING)) Text(stringResource(R.string.ctx_short, s.context!!), style = V3.Meter, maxLines = 1)
+            if (!waiting && lastRed != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                StateGlyph(it.pixelbox.cmwatch.rules.Rail.Glyph.RED, size = 14.dp)
+                Text(hhmmOf(lastRed), style = V3.Meter.copy(color = V3.Red), maxLines = 1)
+            }
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
                 androidx.compose.material3.Icon(
                     if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
@@ -482,14 +590,17 @@ private fun SummaryCard(
         }
         // Franz 24/10 19:46 (B2): l'esito di una ferma più vecchio di 6 ore si spegne e dice da quante ore.
         val old = Summary.staleHours(r, now)
-        if (body.isNotBlank()) Text(
+        // Chiusa, una sessione al lavoro è una riga: lo strumento in mono (app-home-riordino-29-10).
+        val toolLine = s.tool?.takeIf { r.group == Summary.Group.WORKING && !open }
+        if (toolLine != null) Text(toolLine, style = V3.Meter, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+        else if (body.isNotBlank()) Text(
             if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
                 append(body); append("  ")
                 withStyle(androidx.compose.ui.text.SpanStyle(color = CmColors.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
             },
-            style = MaterialTheme.typography.bodyMedium.copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
-            color = if (waiting || open) CmColors.text else if (old != null) CmColors.text2.copy(alpha = 0.75f) else CmColors.text2,
-            maxLines = if (open) Int.MAX_VALUE else 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+            style = (if (waiting || open) V3.Body else V3.Small).copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
+            color = if (waiting || open) V3.Tx else if (old != null) V3.Tx2.copy(alpha = 0.75f) else V3.Tx2,
+            maxLines = if (open) Int.MAX_VALUE else if (waiting) 2 else 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
         )
         // Contratto 1.84: la richiesta di un'altra sessione per un compito di questa dice chi la fa.
         if (waiting) Summary.askedFor(s)?.let { a ->
@@ -514,16 +625,14 @@ private fun SummaryCard(
         if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = CmColors.text2, modifier = Modifier.weight(1f))
-                Surface(onClick = { onDone(d) }, shape = CircleShape, color = CmColors.primary, contentColor = CmColors.onPrimary) {
-                    Text(stringResource(R.string.attention_done), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-                }
+                V3Pill(stringResource(R.string.attention_done), filled = doneFilled) { onDone(d) }
             }
         }
         // Le opzioni della domanda subito, anche a card chiusa: rispondere è il motivo per cui la card è in cima.
         if (waiting) s.question?.let { q ->
             var holdHint by rememberSaveable(q.id) { mutableStateOf(false) }
             // Sul fondo della card il tonale di sempre quasi spariva (provini 03/10): un velo del colore primario.
-            QuestionOptions(q, firstFilled = firstFilled, holdHint = holdHint, onHold = { holdHint = true }, onAnswer = onAnswer, tonal = CmColors.primary.copy(alpha = 0.12f))
+            QuestionOptions(q, firstFilled = firstFilled, holdHint = holdHint, onHold = { holdHint = true }, onAnswer = onAnswer, tonal = V3.S3, v3 = true)
         }
         // I consigli come tasti, sempre visibili (Franz, 03/10 17:27): il tocco li manda subito a quella sessione, che li
         // prende a fine turno se sta lavorando.
@@ -602,7 +711,8 @@ private fun SummaryCard(
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
             )
         }
-        s.context?.let { pct ->
+        // Le barre dei KPI 5 e 6 solo nella card aperta (riordino del 29/10, punto 8).
+        if (open) s.context?.let { pct ->
             val bar = when (it.pixelbox.cmwatch.rules.SessionMeters.contextTone(pct)) {
                 it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> CmColors.briefAlertRing
                 it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> CmColors.briefWarn
@@ -621,7 +731,19 @@ private fun SummaryCard(
                 }
                 Text(stringResource(R.string.ctx_short, pct) + (todayShare?.let { " · " + stringResource(R.string.kpi5_today, it) } ?: ""), style = MonoSmall.copy(fontSize = 11.sp), color = CmColors.text2, maxLines = 1)
             }
-        } ?: run { if (s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) } }
+        } ?: run { if (open && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) } }
+    }
+    }
+}
+
+/** «12'», «3 h», «2 g»: corto come in una diretta. */
+@Composable
+private fun railSpan(from: Long, now: Long): String {
+    val sp = it.pixelbox.cmwatch.rules.Rail.span(from, now)
+    return when (sp.unit) {
+        it.pixelbox.cmwatch.rules.Rail.Unit.MIN -> stringResource(R.string.rail_min, sp.n)
+        it.pixelbox.cmwatch.rules.Rail.Unit.H -> stringResource(R.string.rail_h, sp.n)
+        it.pixelbox.cmwatch.rules.Rail.Unit.D -> stringResource(R.string.rail_d, sp.n)
     }
 }
 
@@ -1097,7 +1219,7 @@ private fun FamilyTop(icon: androidx.compose.ui.graphics.vector.ImageVector, nam
 /** La scheda della famiglia: stesso fondo, raggio e margini della scheda di una sessione. */
 @Composable
 private fun familyCard(onClick: (() -> Unit)? = null): Modifier =
-    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow)
+    Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1)
         .then(if (onClick != null) Modifier.handCursor().clickable(onClick = onClick) else Modifier)
         .padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 12.dp)
 

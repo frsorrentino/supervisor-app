@@ -1429,7 +1429,8 @@ class MainActivity : ComponentActivity() {
                     }
                     QuotaLine(rings, onOpen = goUsage)
                 } },
-                showQuota = !(masterChat && summary?.master != null),
+                // La quota sta nel tabellone della home (stile «Studio e Diretta», 30/10).
+                showQuota = false,
             )
         }
         // «Ha finito» sparisce quando apri la sessione, da qualunque strada: riga, menu in alto, scorrimento, avviso, ricerca.
@@ -1492,7 +1493,7 @@ class MainActivity : ComponentActivity() {
             val masterEntries = master?.let { m -> ChatFeed.pageEntries(m.name, chatName, entriesOwner, entries, feedCache) }.orEmpty()
             val list: @Composable () -> Unit = {
                 SummaryList(
-                    summary,
+                    summary, onQuota = goUsage,
                     update = updateUi.takeIf { BuildConfig.SELF_UPDATE }, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
                     // Contratto 1.68: il banner con le voci di «Serve te» delle altre sessioni; il tocco porta alla prima.
                     attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }.orEmpty(),

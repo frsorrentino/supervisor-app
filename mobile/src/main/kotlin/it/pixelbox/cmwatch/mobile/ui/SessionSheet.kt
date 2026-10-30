@@ -2127,6 +2127,8 @@ internal fun QuestionOptions(
     q: it.pixelbox.cmwatch.contract.Question, firstFilled: Boolean, holdHint: Boolean, onHold: () -> Unit, onAnswer: (Int) -> Unit,
     /** Il fondo delle opzioni non piene; sulle card del riepilogo un velo del primario, che resta visibile. */
     tonal: androidx.compose.ui.graphics.Color = CmColors.surface,
+    /** Stile «Studio e Diretta» (30/10): un'opzione per riga col numero, la consigliata a bordo chiaro, mai piena. */
+    v3: Boolean = false,
 ) {
     val long = QuestionRules.needsLongPress(q.tier)
     if (long) Text(
@@ -2134,7 +2136,7 @@ internal fun QuestionOptions(
         style = MaterialTheme.typography.labelLarge, color = if (holdHint) CmColors.waiting else CmColors.briefAlert,
     )
     // Righe B (Franz, 03/10 15:18: tasti sproporzionati): 44 dp; due o tre opzioni brevi in parti uguali su una riga.
-    val inline = QuestionRules.inline(q.options)
+    val inline = !v3 && QuestionRules.inline(q.options)
     // Contratto 1.53: piena l'opzione consigliata, e sotto ogni tasto la riga che la spiega.
     val primary = QuestionRules.primaryIndex(q.options)
     val recommended = stringResource(R.string.option_recommended)
@@ -2143,7 +2145,8 @@ internal fun QuestionOptions(
             QuestionRules.optionLabel(o), filled = i == primary && firstFilled, note = QuestionRules.optionNote(o, recommended),
             onClick = { if (long) onHold() else onAnswer(o.n) },
             onLongClick = if (long) ({ onAnswer(o.n) }) else null,
-            modifier = m, shape = shape, center = inline, tonal = tonal,
+            modifier = m, shape = if (v3) RoundedCornerShape(14.dp) else shape, center = inline, tonal = tonal,
+            number = if (v3) o.n else null, outlined = v3 && i == primary,
         )
     }
     if (inline) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -2204,14 +2207,20 @@ private fun OptionButton(
     modifier: Modifier = Modifier.fillMaxWidth(), shape: androidx.compose.ui.graphics.Shape = CircleShape, center: Boolean = false,
     tonal: androidx.compose.ui.graphics.Color = CmColors.surface,
     /** Contratto 1.53: «consigliata · spiegazione», una riga sotto l'etichetta. */
-    note: String? = null,
+    note: String? = null, number: Int? = null, outlined: Boolean = false,
 ) {
     Surface(
+        border = if (outlined) androidx.compose.foundation.BorderStroke(1.5.dp, V3.Tx.copy(alpha = 0.9f)) else null,
         color = if (filled) CmColors.primary else tonal, contentColor = if (filled) CmColors.onPrimary else CmColors.text,
         shape = shape,
         modifier = modifier.heightIn(min = 44.dp).clip(shape).handCursor().combinedClickable(onClick = onClick, onLongClick = onLongClick),
     ) {
-        Box(Modifier.padding(horizontal = 18.dp, vertical = 10.dp), contentAlignment = if (center) Alignment.Center else Alignment.CenterStart) {
+        Row(Modifier.padding(horizontal = if (number != null) 14.dp else 18.dp, vertical = 10.dp), horizontalArrangement = if (center) Arrangement.Center else Arrangement.spacedBy(10.dp)) {
+            number?.let { n ->
+                Box(Modifier.size(22.dp).clip(CircleShape).background(if (outlined) V3.Tx else androidx.compose.ui.graphics.Color.Transparent).then(if (outlined) Modifier else Modifier.border(1.5.dp, V3.Tx2, CircleShape)), contentAlignment = Alignment.Center) {
+                    Text(n.toString(), style = V3.Meter.copy(color = if (outlined) V3.Bg else V3.Tx2))
+                }
+            }
             Column {
                 Text(label, style = MaterialTheme.typography.labelLarge.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize), maxLines = if (center) 1 else Int.MAX_VALUE, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                 if (note != null) Text(note, style = MaterialTheme.typography.bodySmall, color = if (filled) CmColors.onPrimary.copy(alpha = 0.8f) else CmColors.text2)

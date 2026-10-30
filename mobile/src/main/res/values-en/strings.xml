@@ -1383,4 +1383,15 @@ It starts at your last message to the master.</string>
     <string name="box_show_more">Show %1$d more</string>
     <string name="box_at_least">The relay sends at most 40 events per session: today the figure is a minimum.</string>
     <string name="box_outcomes_note">A tap on a row opens the session, if it is still open.</string>
+    <string name="home_title">Supervisor</string>
+    <string name="home_waiting">Waiting for you</string>
+    <string name="home_sessions_line">%1$d working, %2$d finished, %3$d idle</string>
+    <string name="home_all_outcomes">All outcomes</string>
+    <string name="home_night_row">Last night %1$d done of %2$d</string>
+    <string name="home_usage_week">week %1$d%%</string>
+    <string name="kpi7_quota">5 h</string>
+    <plurals name="kpi7_red"><item quantity="one">%1$d red</item><item quantity="other">%1$d red</item></plurals>
+    <string name="rail_min">%1$d\'</string>
+    <string name="rail_h">%1$d h</string>
+    <string name="rail_d">%1$d d</string>
 </resources>

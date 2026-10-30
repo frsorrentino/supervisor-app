@@ -149,22 +149,57 @@ internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifi
 
 // ---- Proposte piccole (4, 5, 7; compito app-kpi-piccole-25-10) ----
 
-/** 7 · tre cifre in testa alla home; ognuna apre la sua pagina, anche a zero (app-box-cliccabili-29-10). */
+/**
+ * 7 · il tabellone in testa alla home (stile «Studio e Diretta», 30/10): tre cifre, solo chi ti aspetta in ambra, i rossi in
+ * rosso; ognuna apre la sua pagina, anche a zero. Sotto la quota delle 5 ore, neutra, ambra da 75 % e rossa da 90 %.
+ */
 @Composable
-internal fun Kpi7(h: Kpi.Head, onBox: (HomeBox) -> Unit) {
-    Row(Modifier.testTag("kpi-7").fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min).padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        val m = maxOf(1L, ((h.oldestWaitS ?: 0L) + 30) / 60)
-        val box = { b: HomeBox, tag: String -> Modifier.weight(1f).fillMaxHeight().testTag(tag).handCursor().clickable { onBox(b) } }
-        Figure(
-            h.waiting.toString(), if (h.waiting > 0) stringResource(R.string.kpi7_waiting, m) else stringResource(R.string.kpi7_none_waiting),
-            if (h.waiting > 0) CmColors.waiting else null, box(HomeBox.WAITING, "home-box-aspetta"), chevron = true,
-        )
-        Figure(h.busy.toString(), stringResource(R.string.kpi7_busy), if (h.busy > 0) CmColors.busy else null, box(HomeBox.BUSY, "home-box-lavoro"), chevron = true)
-        Figure(
-            h.outcomes?.toString() ?: "–",
-            when { h.outcomes == null -> stringResource(R.string.kpi7_outcomes_unknown); (h.red ?: 0) > 0 -> pluralStringResource(R.plurals.kpi7_outcomes_red, h.red!!, h.red!!); else -> stringResource(R.string.kpi7_outcomes) },
-            null, box(HomeBox.OUTCOMES, "home-box-esiti"), chevron = true,
-        )
+internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}) {
+    Column(Modifier.testTag("kpi-7").fillMaxWidth().clip(V3.Shape).background(V3.S1)) {
+        Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
+            val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
+            val box = { b: HomeBox, tag: String, w: Float -> Modifier.weight(w).fillMaxHeight().testTag(tag).handCursor().clickable { onBox(b) } }
+            Board(h.waiting.toString(), if (h.waiting > 0) stringResource(R.string.kpi7_waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f))
+            Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
+            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f))
+            Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
+            Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f))
+        }
+        val rings = st.quota.entries.filter { (_, q) -> !q.stale && q.h5 != null }.sortedByDescending { (_, q) -> q.h5 }
+        if (rings.isNotEmpty()) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+            Column(Modifier.fillMaxWidth().handCursor().clickable(onClick = onQuota).padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                rings.forEach { (_, q) ->
+                    val pct = (q.h5 ?: 0).coerceIn(0, 100)
+                    val tone = if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(stringResource(R.string.kpi7_quota), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+                        BoxWithConstraints(Modifier.weight(1f).height(12.dp), contentAlignment = Alignment.CenterStart) {
+                            Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(V3.S3)) {
+                                Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(tone))
+                            }
+                            q.resetH5?.takeIf { it > now }?.let { r ->
+                                val done = (1f - (r - now) / (5f * 3600f)).coerceIn(0f, 1f)
+                                Box(Modifier.offset(x = maxWidth * done).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(V3.Tx))
+                            }
+                        }
+                        Text("$pct%", style = V3.Meter, maxLines = 1)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Board(value: String, label: String, tone: Color, red: String?, modifier: Modifier) {
+    Column(modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.Top) {
+            Text(value, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 38.sp, lineHeight = 40.sp), color = tone, maxLines = 1, modifier = Modifier.weight(1f))
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
+        }
+        Text(label, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp))
+        red?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp, color = V3.Red)) }
     }
 }
 

@@ -35,6 +35,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.mobile.R
@@ -101,7 +102,7 @@ fun AppShell(
                         AppMenu(menu, menuStartOpen)
                     }
                     else -> PageHeader(
-                        current, sessions, openCount, now, onPick, onClosed, menu, quota = quota, showQuota = summary && !masterChat,
+                        current, sessions, openCount, now, onPick, onClosed, menu,
                         menuStartOpen = menuStartOpen, sessionMenuStartOpen = sessionMenuStartOpen,
                     )
                 }
@@ -258,7 +259,7 @@ fun PageHeader(
     /** Contratto 1.66: quante cose servono a Franz (`state.attention` senza le voci della master), e il tocco che porta alla prima. */
     attention: Int = 0, onAttention: () -> Unit = {},
 ) {
-    Column(Modifier.fillMaxWidth().background(CmColors.bg)) {
+    Column(Modifier.fillMaxWidth().background(if (page == null) V3.Bg else CmColors.bg)) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (page != null) {
                 // Dalla pagina di una sessione un tocco riporta al riepilogo, dove sta la master (Franz, 03/10 15:25).
@@ -266,9 +267,9 @@ fun PageHeader(
                 SessionMenu(sessions, page, now, onPick, onClosed, Modifier.weight(1f), startOpen = sessionMenuStartOpen)
             } else {
                 Row(Modifier.weight(1f).padding(start = 12.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.summary_title), style = MaterialTheme.typography.titleLarge, color = CmColors.text)
+                    Text(stringResource(R.string.home_title), style = V3.Section.copy(fontSize = 22.sp, lineHeight = 26.sp), color = V3.Tx)
                     Text(
-                        pluralStringResource(R.plurals.summary_open, openCount, openCount), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2,
+                        pluralStringResource(R.plurals.summary_open, openCount, openCount), style = V3.Small.copy(fontSize = 15.sp), color = V3.Tx2,
                         maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.padding(bottom = 2.dp),
                     )
                 }

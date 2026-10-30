@@ -1408,4 +1408,15 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="box_show_more">Mostra altri %1$d</string>
     <string name="box_at_least">Il relay manda al massimo 40 eventi per sessione: oggi la cifra è un minimo.</string>
     <string name="box_outcomes_note">Un tocco su una riga apre la sessione, se è ancora aperta.</string>
+    <string name="home_title">Supervisor</string>
+    <string name="home_waiting">Ti aspettano</string>
+    <string name="home_sessions_line">%1$d al lavoro, %2$d finite, %3$d ferme</string>
+    <string name="home_all_outcomes">Tutti gli esiti</string>
+    <string name="home_night_row">Ieri %1$d finiti su %2$d</string>
+    <string name="home_usage_week">settimana %1$d%%</string>
+    <string name="kpi7_quota">5 ore</string>
+    <plurals name="kpi7_red"><item quantity="one">%1$d rosso</item><item quantity="other">%1$d rossi</item></plurals>
+    <string name="rail_min">%1$d\'</string>
+    <string name="rail_h">%1$d h</string>
+    <string name="rail_d">%1$d g</string>
 </resources>
