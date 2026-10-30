@@ -64,7 +64,7 @@
   button { padding: 10px 18px; border-radius: 999px; font-weight: 500; font-size: 14px; }
   .tx { color: var(--icon); }
   .tx:hover { background: var(--high); }
-  .fill { background: #D3E3FD; color: #0A2050; }
+  .fill { background: var(--act); color: var(--on-act); }
   .fill:hover { filter: brightness(1.05); }
   @keyframes run { from { translate: -100% 0; } to { translate: 250% 0; } }
   @keyframes left { to { scale: 0 1; } }

@@ -407,7 +407,7 @@
   .grp { margin: 16px 20px 6px; font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text2); }
   .tr { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 64px; padding: 10px 20px; }
   .tr:hover, .tr.on { background: var(--high); }
-  .tr.on .circ { background: color-mix(in srgb, #4C7DFF 25%, transparent); }
+  .tr.on .circ { background: color-mix(in srgb, var(--busy) 25%, transparent); }
   .tt { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; white-space: nowrap; }
   .ts { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; }
   .ok { flex: none; color: var(--icon); }

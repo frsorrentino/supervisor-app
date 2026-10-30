@@ -58,6 +58,8 @@
   const lastSeenLine = (d: Linked) => d.self ? t.devThisDevice : d.seen == null ? t.devNeverSeen : now - d.seen < 120 ? t.devLastSeenNow : t.devLastSeen(seenShort(d.seen))
   let revokeDlg: HTMLDialogElement | undefined = $state()
   let revoking = $state<Linked | null>(null)
+  // Franz 30/10 21:46: le sezioni come nella home, tutte chiuse all'apertura, il riassunto a destra.
+  let opened = $state<Record<string, boolean>>({})
   const rate = (r: number) => `${r.toLocaleString(locale, { maximumFractionDigits: 2 })}×`
 </script>
 
@@ -73,7 +75,8 @@
 {/snippet}
 
 <div class="settings v3">
-  <div class="gh"><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1" /></svg></span><span>{t.secLink}</span></div>
+  <button class="gh" data-testid="impostazioni-sezioni-link" aria-expanded={!!opened.link} onclick={() => (opened = { ...opened, link: !opened.link })}><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1" /></svg></span><span>{t.secLink}</span><span class="grt">{#if !opened.link}{devices.length ? t.devCount(devices.length) : (m.pc.host ?? '')}{/if}</span><svg class="gtog" viewBox="0 0 24 24" width="20" height="20"><path d={opened.link ? "M7 14l5-5 5 5" : "M7 10l5 5 5-5"} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+  {#if opened.link}
   {#if !devices.length}<div class="scheme">
     <div class="pc">{@render node('pc', 84, toneColor(m.pc.tone), selected === PC ? 'var(--icon)' : 'var(--line)', false, m.pc.host ?? t.devPc,
       [m.pc.ageMinutes != null ? t.devUpdatedAgo(m.pc.ageMinutes) : t.devUpdatedNow, t.devCount(devices.length)].join(' · '), () => (selected = PC))}</div>
@@ -133,15 +136,6 @@
     {/if}
   </dialog>
 
-  {#if onHomeOrder}
-    <div class="sec">
-      <button class="srow" onclick={onHomeOrder}>
-        <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg></span>
-        <span class="st"><b>{t.reorderTitle}</b><small>{t.reorderRowSub}</small></span>
-        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
-      </button>
-    </div>
-  {/if}
   {#if onAdd}
     <div class="sec">
       <button class="srow" onclick={onAdd}>
@@ -173,7 +167,10 @@
     </div>
   {/if}
 
-  <div class="gh"><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 6v12" /></svg></span><span>{t.secReading}</span></div>
+  {/if}
+
+  <button class="gh" data-testid="impostazioni-sezioni-reading" aria-expanded={!!opened.reading} onclick={() => (opened = { ...opened, reading: !opened.reading })}><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 6v12" /></svg></span><span>{t.secReading}</span><span class="grt">{#if !opened.reading}{rate(speech.rate)}{/if}</span><svg class="gtog" viewBox="0 0 24 24" width="20" height="20"><path d={opened.reading ? "M7 14l5-5 5 5" : "M7 10l5 5 5-5"} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+  {#if opened.reading}
   <div class="sec">
     <button class="srow" onclick={() => voiceDlg?.showModal()}>
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3" /></svg></span>
@@ -189,7 +186,10 @@
     <div class="rates"><RateSlider value={speech.rate} onDone={onRate} /></div>
   </div>
 
-  <div class="gh"><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M16 5v4M8 15v4" /></svg></span><span>{t.secApp}</span></div>
+  {/if}
+
+  <button class="gh" data-testid="impostazioni-sezioni-app" aria-expanded={!!opened.app} onclick={() => (opened = { ...opened, app: !opened.app })}><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M16 5v4M8 15v4" /></svg></span><span>{t.secApp}</span><span class="grt">{#if !opened.app}{chosenLang === 'it' ? t.languageIt : chosenLang === 'en' ? t.languageEn : t.languageSystem}{/if}</span><svg class="gtog" viewBox="0 0 24 24" width="20" height="20"><path d={opened.app ? "M7 14l5-5 5 5" : "M7 10l5 5 5-5"} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+  {#if opened.app}
   <div class="sec">
     <label class="srow">
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" /></svg></span>
@@ -203,9 +203,19 @@
       <span class="st"><b>{t.demoMode}</b><small>{t.demoModeSub}</small></span>
       <input class="switch" type="checkbox" role="switch" checked={demo} onchange={(e) => location.assign((e.currentTarget as HTMLInputElement).checked ? '/?demo' : '/')} />
     </label>
+    {#if onHomeOrder}
+      <button class="srow" onclick={onHomeOrder}>
+        <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg></span>
+        <span class="st"><b>{t.reorderTitle}</b><small>{t.reorderRowSub}</small></span>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
+      </button>
+    {/if}
   </div>
 
-  <div class="gh"><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8v.5" /></svg></span><span>{t.secInfo}</span></div>
+  {/if}
+
+  <button class="gh" data-testid="impostazioni-sezioni-info" aria-expanded={!!opened.info} onclick={() => (opened = { ...opened, info: !opened.info })}><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8v.5" /></svg></span><span>{t.secInfo}</span><span class="grt">{#if !opened.info}{__APP_VERSION__}{/if}</span><svg class="gtog" viewBox="0 0 24 24" width="20" height="20"><path d={opened.info ? "M7 14l5-5 5 5" : "M7 10l5 5 5-5"} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
+  {#if opened.info}
   <div class="sec">
     <a class="srow" href={PRIVACY} target="_blank" rel="noopener">
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg></span>
@@ -217,6 +227,11 @@
       <span class="st"><b>{t.versionTitle}</b><small>{t.webVersion(__APP_VERSION__)}</small></span>
     </div>
   </div>
+  <div class="srow plain crediti" data-testid="info-crediti">
+    <span class="sic"></span>
+    <span class="st"><b>{t.creditsTitle}</b><small>{t.creditsAuthor}</small><small>{t.creditsFonts}</small><small>{t.creditsLibs}</small></span>
+  </div>
+  {/if}
 </div>
 
 <dialog bind:this={voiceDlg} onclick={(e) => e.target === e.currentTarget && voiceDlg?.close()}>
@@ -297,6 +312,9 @@
   /* Le impostazioni nella forma della v3 (mockup approvato da Franz il 30/10 alle 19:25, compito app-menu-v3-30-10). */
   .settings { gap: 8px; padding: 0 12px 24px; }
   .gh { margin: 12px 0 2px; gap: 8px; font: 700 18px/1.2 var(--display); letter-spacing: 0; color: var(--tx); }
+  .gh { width: 100%; text-align: left; align-items: center; }
+  .grt { margin-left: auto; font: 400 14px var(--sans); color: var(--tx2); }
+  .gtog { flex: none; color: var(--tx3); }
   .gic { width: 52px; display: flex; justify-content: center; color: var(--tx2); flex: none; }
   .sec { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; overflow: hidden; }
   .srow { gap: 8px; min-height: 58px; padding: 9px 12px 9px 0; border-top: 1px solid var(--line); }

@@ -610,7 +610,7 @@ private fun SummaryCard(
         else if (body.isNotBlank()) Text(
             if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
                 append(body); append("  ")
-                withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = androidx.compose.ui.text.font.V3.Mono, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
+                withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = V3.Mono, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
             },
             style = (if (waiting || open) V3.Body else V3.Small).copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
             color = if (waiting || open) V3.Tx else if (old != null) V3.Tx2.copy(alpha = 0.75f) else V3.Tx2,

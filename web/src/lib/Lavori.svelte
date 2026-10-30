@@ -249,7 +249,7 @@
   .sec span { text-transform: uppercase; }
   .sec i, .desk i, .gh i, .day i { flex: 1; height: 1px; background: var(--line); }
   .gh { display: flex; align-items: center; gap: 8px; margin: 10px 4px 2px; font: 600 11px/1.4 var(--mono); letter-spacing: .1em; color: var(--t); } .gh i { background: color-mix(in srgb, var(--t) 30%, transparent); }
-  .expl { margin: 0 6px 6px; color: var(--text2); font-size: 14px; line-height: 1.4; } .expl.bright { color: var(--text); } .expl.quota { margin-top: 14px; color: var(--b-good-ink, #BCE4C7); border-top: 1px solid var(--line); padding-top: 10px; }
+  .expl { margin: 0 6px 6px; color: var(--text2); font-size: 14px; line-height: 1.4; } .expl.bright { color: var(--text); } .expl.quota { margin-top: 14px; color: var(--tx2); border-top: 1px solid var(--line); padding-top: 10px; }
   .row, .card, .done { background: var(--low); border-radius: 20px; }
   .row { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; }
   .row .t, .done .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .row b { font-weight: 600; font-size: 15px; } .row small, .done small { color: var(--text2); font-size: 13px; }

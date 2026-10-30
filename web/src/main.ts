@@ -16,6 +16,9 @@ addEventListener('resize', fit)
 
 // La lingua scelta all'avvio (lang.ts) anche per il browser: lettori di schermo, traduzione, sillabazione.
 document.documentElement.lang = lang
+// Tutta l'app nello stile v3 (Franz 30/10 21:43); `/embed` resta di notte come Studio che lo ospita.
+document.documentElement.classList.add('v3')
+if (/^\/embed(\.html)?$/.test(location.pathname)) document.documentElement.classList.add('night-only')
 
 // Dai nomi di Firebase del sito al dominio, prima di disegnare la pagina (un browser già collegato lì resta lì).
 const store = { get: (k: string) => { try { return localStorage.getItem(k) } catch { return null } }, set() {}, remove() {} }

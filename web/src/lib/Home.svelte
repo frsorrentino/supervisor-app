@@ -423,7 +423,7 @@
   {#if part || open.esiti}
     <div class="card wrows">
       {#each out.red.length ? out.red.slice(0, 3) : out.done.slice(0, 2) as d, i (i)}
-        <button class="wrow orow" onclick={() => (liveNames.has(d.session) ? onPick(d.session) : onBox('esiti'))}>
+        <button class:row-red={d.ref != null} class="wrow orow" onclick={() => (liveNames.has(d.session) ? onPick(d.session) : onBox('esiti'))}>
           <span class="wic rail"><StateGlyph kind={d.ref != null ? 'red' : 'done'} /><b class="rt" class:red={d.ref != null}>{hhmm(d.at)}</b></span>
           <span class="otext"><b>{d.session}</b><small class="txt">{d.text}</small></span>
         </button>
@@ -880,7 +880,7 @@
   dialog.alert { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 22px; width: min(400px, 92vw); border-radius: 28px; }
   dialog.alert::backdrop { background: rgb(0 0 0 / .55); }
   .ccol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow-wrap: anywhere; } .ccol small { color: var(--text2); font-size: 12.5px; } .ccol small.warn { color: var(--b-warn); }
-  .ghact { font: 500 13px Roboto, system-ui, sans-serif; letter-spacing: 0; color: var(--icon); padding: 3px 10px; border-radius: 14px; background: color-mix(in srgb, var(--icon) 12%, transparent); }
+  .ghact { font: 500 13px var(--sans); letter-spacing: 0; color: var(--icon); padding: 3px 10px; border-radius: 14px; background: color-mix(in srgb, var(--icon) 12%, transparent); }
   .ghact:hover { background: color-mix(in srgb, var(--icon) 20%, transparent); }
   .cfl { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; max-height: 50vh; overflow-y: auto; }
   .cf { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; color: var(--text2); overflow-wrap: anywhere; }

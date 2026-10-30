@@ -1047,7 +1047,7 @@
 {/snippet}
 
 {#snippet pageView(p: PageName)}
-  <Page title={pageTitle[p]} v3={p === 'settings' || p === 'homeorder' || p === 'usage'} onBack={() => openPage(null)}>
+  <Page title={pageTitle[p]} v3 onBack={() => openPage(null)}>
     {#if p === 'launch'}
       <Launch {st} onSession={(n, reopen) => { if (reopen) cmd(n)('reopen'); else { openPage(null); pick(n) } }}
         onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }}

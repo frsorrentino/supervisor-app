@@ -12,8 +12,9 @@
      d'accento #A8C7FA, tinta 273, croma 14; piatti, nessun effetto di luce (Celeste velato, Franz 06/10 21:15-22:27).
      --spring approssima la molla del pannello del telefono (CmMotion.panel): parte svelta e si posa senza rimbalzo. */
   --spring: linear(0, .1 3%, .35 9%, .62 17%, .82 27%, .93 38%, .98 52%, 1);
-  color-scheme: dark;
+  color-scheme: light dark;
 }
+html.night-only { color-scheme: dark; }
 /* Niente barre di scorrimento, come nell'app Android (Franz, 05/10 20:47): si scorre con dita, rotella e touchpad. */
 * { box-sizing: border-box; margin: 0; scrollbar-width: none; }
 *::-webkit-scrollbar { display: none; }
@@ -40,7 +41,7 @@ body.wcodesk .desk .home .sheet { app-region: no-drag; -webkit-app-region: no-dr
 body.wcodesk .desk .handle { padding-top: calc(env(titlebar-area-height, 40px) + 8px); }
 /* Con la home a destra sotto i tasti di sistema la home comincia sotto la barra. */
 body.wcodesk .desk.right .home, body.wcodesk .desk .det { padding-top: env(titlebar-area-height, 40px); }
-body { background: var(--bg); color: var(--text); font: 15px/1.45 Roboto, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--text); font: 15px/1.45 Barlow, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 /* `/embed?dock=1` dentro Studio: trasparente, Studio si vede intorno alla barra (color-scheme scuro come Studio, sopra). */
 html.dock, html.dock body { background: transparent; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }

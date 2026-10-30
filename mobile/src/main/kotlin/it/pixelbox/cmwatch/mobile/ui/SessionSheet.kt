@@ -824,7 +824,7 @@ private fun Composer(
         val slashHints = it.pixelbox.cmwatch.rules.Slash.suggest(draft, slash).takeIf { s.question == null }.orEmpty()
         if (slashHints.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             slashHints.forEach { c ->
-                AssistChip(onClick = { onDraft("/$c ") }, label = { Text("/$c", fontFamily = androidx.compose.ui.text.font.V3.Mono) })
+                AssistChip(onClick = { onDraft("/$c ") }, label = { Text("/$c", fontFamily = V3.Mono) })
             }
         }
         // /exit passa dalla stessa domanda di ogni chiusura, col nome e lo stato (Franz, 06/10 12:25).
@@ -1420,7 +1420,7 @@ private fun ToolLine(e: TranscriptEntry, files: Boolean = true) {
                 Text(main, style = MaterialTheme.typography.bodyMedium, color = if (error) Cm.goneDim else Cm.text)
                 // Il comando o la cartella sotto, in monospazio grigio; al massimo tre righe, tagliate senza puntini.
                 detail?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.V3.Mono),
+                    Text(it, style = MaterialTheme.typography.bodySmall.copy(fontFamily = V3.Mono),
                         color = Cm.stale, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                 }
             }
@@ -2289,7 +2289,7 @@ internal fun linked(text: String): AnnotatedString = androidx.compose.ui.text.bu
         when (sp.kind) {
             it.pixelbox.cmwatch.rules.Markdown.Kind.BOLD -> addStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.SemiBold), a, b)
             it.pixelbox.cmwatch.rules.Markdown.Kind.ITALIC -> addStyle(androidx.compose.ui.text.SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), a, b)
-            it.pixelbox.cmwatch.rules.Markdown.Kind.CODE -> addStyle(androidx.compose.ui.text.SpanStyle(fontFamily = androidx.compose.ui.text.font.V3.Mono, background = Cm.surfaceHigh), a, b)
+            it.pixelbox.cmwatch.rules.Markdown.Kind.CODE -> addStyle(androidx.compose.ui.text.SpanStyle(fontFamily = V3.Mono, background = Cm.surfaceHigh), a, b)
             it.pixelbox.cmwatch.rules.Markdown.Kind.LINK -> { addLink(androidx.compose.ui.text.LinkAnnotation.Url(sp.url!!, link), a, b); linked += sp.range }
         }
     }

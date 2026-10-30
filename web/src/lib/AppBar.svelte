@@ -46,7 +46,7 @@
 {:else}
 <header>
   <div class="bar">
-    <span class="title"><b>{quota ? t.summaryTitle : t.appTitle}</b><span class="open">{t.summaryOpen(openCount)}</span></span>
+    <span class="title"><b>{quota ? t.summaryTitle : t.appTitle}</b><span class="ver" data-testid="versione-titolo">{__APP_VERSION__}</span><span class="open">{t.summaryOpen(openCount)}</span></span>
     <button class="ib" aria-label={t.search} title={t.search} onclick={() => onPage('search')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
     </button>
@@ -137,7 +137,7 @@
   .mi { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 64px; padding: 10px 20px; text-align: left; }
   .mi:hover, .foot:hover { background: var(--high); }
   .mic { width: 40px; height: 40px; border-radius: 50%; background: var(--high); display: grid; place-items: center; flex: none; }
-  .mic.accent { background: color-mix(in srgb, #4C7DFF 25%, transparent); }
+  .mic.accent { background: color-mix(in srgb, var(--busy) 25%, transparent); }
   .mt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .mt b { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
   .mt small { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; }
@@ -163,6 +163,9 @@
   .launch svg { stroke: var(--tx); }
   .launch + .mi { border-top: 1px solid var(--line); }
   /* Nella home in stile «Studio e Diretta» (30/10): il titolo in Barlow Semi Condensed, le icone chiare. */
+  .ver { font: 400 12.5px var(--mono); color: var(--tx2); margin-left: 8px; }
+  /* Accanto al titolo solo se c'è spazio (Franz 30/10 22:01). */
+  @media (max-width: 399px) { .ver { display: none; } }
   :global(.v3) .title b { font: 700 22px var(--display); letter-spacing: .005em; }
   :global(.v3) .open { font-size: 15px; color: var(--tx2); }
   :global(.v3) header { padding: 4px 4px 2px; }

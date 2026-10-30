@@ -191,3 +191,19 @@
 .v3 .vchip.on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
 .v3 .vbtn { min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font: 600 15px var(--display); letter-spacing: .02em; }
 .v3 .vgo { padding: 0 12px 12px; }
+
+/* Titoli di tutte le pagine in Barlow Semi Condensed; :where lascia vincere le regole dei componenti sulla misura. */
+:where(.v3) :where(h1, h2, h3, h4) { font-family: var(--display); font-weight: 700; }
+
+/* giorno-b «Attese in ambra» (Franz 30/10 21:56): col sistema in chiaro fondo grigio-azzurro, scatole bianche col filetto, la zona
+   che ti aspetta in ambra chiaro, le righe rosse degli esiti in rosa. La doppia :root vince sui fogli dei componenti. */
+@media (prefers-color-scheme: light) {
+  html.v3:not(.night-only), html:not(.night-only) .v3, html:not(.night-only) dialog {
+    --bg: #F1F4F8; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EAEEF4; --line: #DFE4EB;
+    --tx: #121418; --tx2: #565C66; --tx3: #60666F; --act: #121418; --on-act: #FFFFFF;
+    --wait: #9A5700; --busy: #1A64D6; --good: #0B7F55; --red: #C9302F;
+  }
+  :root:root:not(.night-only) .card { border: 1px solid var(--line); }
+  :root:root:not(.night-only) .card.r.waiting, :root:root:not(.night-only) [data-testid='home-box-aspetta'] { background: #FFF6E5; border-color: #F2D7A2; }
+  :root:root:not(.night-only) .row-red { background: #FFF3F2; }
+}
