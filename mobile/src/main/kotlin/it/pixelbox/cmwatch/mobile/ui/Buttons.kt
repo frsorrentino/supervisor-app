@@ -90,17 +90,31 @@ fun ModalBottomSheet(
     containerColor: androidx.compose.ui.graphics.Color = androidx.compose.material3.BottomSheetDefaults.ContainerColor,
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
+    // Stile «Studio e Diretta» (app-menu-v3-30-10): un fondo solo per tutti i fogli, qualunque colore chieda chi li apre.
     val cfg = androidx.compose.ui.platform.LocalConfiguration.current
     if (cfg.screenWidthDp < 600) {
-        androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier, sheetState = sheetState, containerColor = containerColor, content = content)
+        V3Theme { androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier, sheetState = sheetState, containerColor = V3.S1, shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp), content = content) }
         return
     }
     androidx.compose.ui.window.Dialog(onDismissRequest, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         androidx.compose.material3.Surface(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp), color = containerColor, shadowElevation = 12.dp,
+            shape = V3.Shape, color = V3.S1, shadowElevation = 12.dp,
             modifier = modifier.widthIn(max = 560.dp).fillMaxWidth(0.92f).heightIn(max = (cfg.screenHeightDp * 0.86f).dp),
         ) {
             androidx.compose.foundation.layout.Column(Modifier.padding(top = 16.dp, bottom = 12.dp), content = content)
         }
     }
+}
+
+/** Il dialogo dell'app nello stile «Studio e Diretta» (app-menu-v3-30-10): stessa firma di quello del Material, un fondo solo. */
+@Composable
+fun AlertDialog(
+    onDismissRequest: () -> Unit, confirmButton: @Composable () -> Unit, modifier: Modifier = Modifier, dismissButton: (@Composable () -> Unit)? = null,
+    icon: (@Composable () -> Unit)? = null, title: (@Composable () -> Unit)? = null, text: (@Composable () -> Unit)? = null,
+    @Suppress("UNUSED_PARAMETER") containerColor: androidx.compose.ui.graphics.Color = V3.S1,
+) = V3Theme {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismissRequest, confirmButton = confirmButton, modifier = modifier, dismissButton = dismissButton, icon = icon, title = title, text = text,
+        shape = V3.Shape, containerColor = V3.S1, tonalElevation = 0.dp, titleContentColor = V3.Tx, textContentColor = V3.Tx2,
+    )
 }

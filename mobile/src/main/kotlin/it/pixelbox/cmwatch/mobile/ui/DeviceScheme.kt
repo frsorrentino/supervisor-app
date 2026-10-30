@@ -422,25 +422,21 @@ private fun hhmmDay(epoch: Long): String =
 @Composable
 fun LinkedList(linked: List<SettingsDevices.Linked>, now: Long, onRevoke: ((String) -> Unit)?) {
     var asking by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<SettingsDevices.Linked?>(null) }
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surface).padding(vertical = 6.dp)) {
-        linked.forEach { d ->
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 16.dp, end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Icon(kindIcon(d.kind), null, tint = toneColor(d.tone), modifier = Modifier.size(24.dp))
-                Column(Modifier.weight(1f).padding(vertical = 10.dp)) {
-                    Text(d.name, style = MaterialTheme.typography.titleSmall, color = CmColors.text)
-                    Text(lastSeenLine(d, now), style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
-                }
-                if (onRevoke != null && !d.self) androidx.compose.material3.TextButton(onClick = { asking = d }) {
-                    Text(stringResource(R.string.device_revoke), color = CmColors.gone)
+    V3List {
+        linked.forEachIndexed { i, d ->
+            V3Row(i == 0, null, { Icon(kindIcon(d.kind), null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, {
+                if (onRevoke != null && !d.self) V3Pill(stringResource(R.string.device_revoke)) { asking = d }
+            }) {
+                Text(d.name, style = V3.Name)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(Modifier.size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(toneColor(d.tone)))
+                    Text(lastSeenLine(d, now), style = V3.Small)
                 }
             }
         }
     }
     asking?.let { d ->
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { asking = null }, containerColor = CmColors.surface,
             title = { Text(stringResource(R.string.device_revoke_title, d.name)) },
             text = { Text(stringResource(R.string.device_revoke_what), style = MaterialTheme.typography.bodyMedium, color = CmColors.text2) },

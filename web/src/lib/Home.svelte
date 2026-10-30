@@ -791,6 +791,17 @@
   .cmenu { position: fixed; z-index: 61; width: min(360px, calc(100vw - 24px)); background: var(--surface); border-radius: 20px; padding: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); cursor: default; }
   .cmenu .ph { display: flex; gap: 10px; align-items: center; padding: 8px 12px 10px; }
   .cmenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+  /* Il menu contestuale nella forma della v3 (app-menu-v3-30-10). */
+  .cmenu { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; overflow: hidden; }
+  .cmenu .ph { min-height: 54px; padding: 0 12px 0 16px; border-bottom: 1px solid var(--line); font: 600 17px var(--display); }
+  .cmenu hr { display: none; }
+  .cmenu .mi { align-items: center; gap: 8px; min-height: 58px; padding: 9px 12px 9px 0; border-radius: 0; border-top: 1px solid var(--line); }
+  .cmenu .ph + .mi { border-top: 0; }
+  .cmenu .mi:hover { background: var(--s2); }
+  .cmenu .mi svg { margin: 0 15px; stroke: var(--tx2); }
+  .cmenu .mt { font: 600 17px/1.2 var(--display); }
+  .cmenu .msub { font-size: 14px; line-height: 1.3; color: var(--tx2); }
+  .cmenu .mi.danger .mt { color: var(--red); }
   .mi { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 12px; border-radius: 14px; text-align: left; color: var(--text); }
   .mi:hover { background: var(--high); }
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

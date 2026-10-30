@@ -72,9 +72,9 @@
   </button>
 {/snippet}
 
-<div class="settings">
-  <div class="gh"><span>{t.secLink.toUpperCase()}</span><i></i></div>
-  <div class="scheme">
+<div class="settings v3">
+  <div class="gh"><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1" /></svg></span><span>{t.secLink}</span></div>
+  {#if !devices.length}<div class="scheme">
     <div class="pc">{@render node('pc', 84, toneColor(m.pc.tone), selected === PC ? 'var(--icon)' : 'var(--line)', false, m.pc.host ?? t.devPc,
       [m.pc.ageMinutes != null ? t.devUpdatedAgo(m.pc.ageMinutes) : t.devUpdatedNow, t.devCount(devices.length)].join(' · '), () => (selected = PC))}</div>
     {#if devices.length}
@@ -108,10 +108,9 @@
       {/if}
     </div>
     <p class="hint">{t.devHint}</p>
-  </div>
+  </div>{/if}
 
   {#if devices.length}
-    <div class="gh"><span>{t.devList.toUpperCase()}</span><i></i></div>
     <div class="sec">
       {#each devices as d (d.uid)}
         <div class="srow">
@@ -174,7 +173,7 @@
     </div>
   {/if}
 
-  <div class="gh"><span>{t.secReading.toUpperCase()}</span><i></i></div>
+  <div class="gh"><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 6v12" /></svg></span><span>{t.secReading}</span></div>
   <div class="sec">
     <button class="srow" onclick={() => voiceDlg?.showModal()}>
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3" /></svg></span>
@@ -190,7 +189,7 @@
     <div class="rates"><RateSlider value={speech.rate} onDone={onRate} /></div>
   </div>
 
-  <div class="gh"><span>{t.secApp.toUpperCase()}</span><i></i></div>
+  <div class="gh"><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M16 5v4M8 15v4" /></svg></span><span>{t.secApp}</span></div>
   <div class="sec">
     <label class="srow">
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" /></svg></span>
@@ -206,7 +205,7 @@
     </label>
   </div>
 
-  <div class="gh"><span>{t.secInfo.toUpperCase()}</span><i></i></div>
+  <div class="gh"><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8v.5" /></svg></span><span>{t.secInfo}</span></div>
   <div class="sec">
     <a class="srow" href={PRIVACY} target="_blank" rel="noopener">
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg></span>
@@ -295,4 +294,17 @@
   .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
   .link { color: var(--icon); padding: 10px 14px; border-radius: 20px; font-weight: 500; }
   .link:hover { background: var(--high); }
+  /* Le impostazioni nella forma della v3 (mockup approvato da Franz il 30/10 alle 19:25, compito app-menu-v3-30-10). */
+  .settings { gap: 8px; padding: 0 12px 24px; }
+  .gh { margin: 12px 0 2px; gap: 8px; font: 700 18px/1.2 var(--display); letter-spacing: 0; color: var(--tx); }
+  .gic { width: 52px; display: flex; justify-content: center; color: var(--tx2); flex: none; }
+  .sec { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; overflow: hidden; }
+  .srow { gap: 8px; min-height: 58px; padding: 9px 12px 9px 0; border-top: 1px solid var(--line); }
+  .srow:first-child { border-top: 0; }
+  button.srow:hover, label.srow:hover { background: var(--s2); }
+  .sic { width: 52px; height: auto; background: none; border-radius: 0; }
+  .st b { font: 600 17px/1.2 var(--display); }
+  .st small { font-size: 14px; line-height: 1.3; color: var(--tx2); }
+  .revoke { min-height: 38px; padding: 0 16px; background: var(--s3); color: var(--tx); font: 600 15px var(--display); border-radius: 19px; }
+  .revoke:hover { background: var(--s3); }
 </style>

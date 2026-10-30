@@ -173,3 +173,23 @@ internal fun V3Pill(text: String, filled: Boolean = false, onClick: () -> Unit) 
         Text(text, style = V3.Name.copy(fontSize = 15.sp, color = if (filled) V3.OnAct else V3.Tx), maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
     }
 }
+
+/**
+ * Il tema della v3 per i gusci che portano altro dentro: fogli, dialoghi, pannelli dei menu, Impostazioni (approvato da Franz il
+ * 30/10 alle 19:25, compito app-menu-v3-30-10). Ogni testo del Material prende i caratteri giusti, senza toccare i contenuti.
+ */
+@Composable
+internal fun V3Theme(content: @Composable () -> Unit) {
+    val c = androidx.compose.material3.MaterialTheme.colorScheme
+    val t = androidx.compose.material3.MaterialTheme.typography
+    fun d(x: TextStyle, w: FontWeight = FontWeight.SemiBold) = x.copy(fontFamily = V3.Display, fontWeight = w)
+    fun b(x: TextStyle) = x.copy(fontFamily = V3.Sans)
+    androidx.compose.material3.MaterialTheme(
+        colorScheme = c.copy(surface = V3.S1, surfaceContainer = V3.S2, surfaceContainerHigh = V3.S2, surfaceVariant = V3.S2, onSurface = V3.Tx, onSurfaceVariant = V3.Tx2, outline = V3.Line, primary = V3.Act, onPrimary = V3.OnAct),
+        typography = t.copy(
+            headlineSmall = d(t.headlineSmall, FontWeight.Bold), titleLarge = d(t.titleLarge, FontWeight.Bold), titleMedium = d(t.titleMedium), titleSmall = d(t.titleSmall),
+            bodyLarge = b(t.bodyLarge), bodyMedium = b(t.bodyMedium), bodySmall = b(t.bodySmall), labelLarge = d(t.labelLarge), labelMedium = d(t.labelMedium),
+        ),
+        content = content,
+    )
+}

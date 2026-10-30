@@ -32,7 +32,7 @@
     // La pagina unica «Lavori» (22/10): al posto di Registro e Recap.
     { page: 'lavori', title: t.menuLavori, sub: t.menuLavoriSub, d: ['M13 5h8', 'M13 12h8', 'M13 19h8', 'm3 17 2 2 4-4', 'M3 4h6v6H3z'] },
     { page: 'night', title: t.menuNight, sub: t.menuNightSub, d: ['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z'] },
-    { page: 'overview', title: t.menuQuadro, sub: t.menuQuadroSub, d: ['M3 3h7v9H3z', 'M14 3h7v5h-7z', 'M14 12h7v9h-7z', 'M3 16h7v5H3z'] },
+    { page: 'overview', title: t.menuQuadro, sub: t.menuQuadroSub, d: ['M21 12a9 9 0 1 1-9-9', 'M12 7a5 5 0 1 0 5 5'] },
     { page: 'search', title: t.menuSearch, sub: t.menuSearchSub, d: ['m21 21-4.34-4.34', 'M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0'] },
   ]
 </script>
@@ -79,14 +79,14 @@
 {#if menu}
   <div class="scrim" role="presentation" onclick={(e) => { e.stopPropagation(); menu = false }}></div>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="panel" role="menu" tabindex="-1" style:right="{panelRight}px" onclick={(e) => e.stopPropagation()}>
+  <div class="panel v3" data-testid="menu-v3" role="menu" tabindex="-1" style:right="{panelRight}px" onclick={(e) => e.stopPropagation()}>
     <div class="ph">
       <i class="led" class:stale={fresh.stale}></i>
       <span>{t.menuConnected(st.host || t.menuPc, updated)}</span>
       <button class="ib" aria-label={t.closeWord} onclick={() => (menu = false)}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg></button>
     </div>
     {#each entries as e}
-      <button class="mi" role="menuitem" onclick={() => go(e.page)}>
+      <button class="mi" class:launch={e.accent} role="menuitem" onclick={() => go(e.page)}>
         <span class="mic" class:accent={e.accent}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{#each e.d as d}<path {d} />{/each}</svg></span>
         <span class="mt"><b>{e.title}</b><small>{e.sub}</small></span>
       </button>
@@ -145,6 +145,25 @@
   hr { border: 0; height: 1px; background: var(--line); margin: 4px 0; }
   .foot { display: flex; align-items: center; gap: 20px; width: 100%; padding: 14px 28px; font-size: 16px; color: var(--text2); }
   @media (prefers-reduced-motion: reduce) { .panel, .scrim { animation: none; } }
+  /* Il menu nella forma della v3 (mockup approvato da Franz il 30/10 alle 19:25): icone grigie nel binario senza cerchio, una
+     voce per riga col filo, «Lancia una sessione» unico pieno, bianco. */
+  .panel { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; }
+  .ph { padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); color: var(--tx2); }
+  .led { width: 7px; height: 7px; background: var(--good); }
+  .mi, .foot { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 58px; padding: 9px 12px 9px 0; border-top: 1px solid var(--line); text-align: left; font-size: inherit; color: var(--tx); }
+  .mi:hover, .foot:hover { background: var(--s2); }
+  .mic { width: 52px; height: auto; background: none; border-radius: 0; }
+  .mic.accent { background: none; }
+  .mt b { font: 600 17px/1.2 var(--display); white-space: normal; }
+  .mt small { font-size: 14px; line-height: 1.3; color: var(--tx2); white-space: normal; }
+  .foot svg { margin: 0 15px; }
+  .foot span { font: 600 17px var(--display); }
+  hr { display: none; }
+  .launch { margin: 12px; width: calc(100% - 24px); min-height: 60px; border: 0; border-radius: 14px; background: var(--act); color: var(--on-act); }
+  .launch:hover { background: var(--act); }
+  .launch svg { stroke: var(--on-act); }
+  .launch .mt small { color: #41454C; }
+  .launch + .mi { border-top: 1px solid var(--line); }
   /* Nella home in stile «Studio e Diretta» (30/10): il titolo in Barlow Semi Condensed, le icone chiare. */
   :global(.v3) .title b { font: 700 22px var(--display); letter-spacing: .005em; }
   :global(.v3) .open { font-size: 15px; color: var(--tx2); }

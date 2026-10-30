@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.layout.layout
 import androidx.compose.material.icons.rounded.Reorder
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -85,20 +87,17 @@ fun SettingsScreen(
     var choosing by remember { mutableStateOf(false) }
     var choosingVoice by remember { mutableStateOf(false) }
     var device by rememberSaveable { mutableStateOf(initialDevice) }
-    Column(Modifier.fillMaxSize().background(CmColors.bg).systemBarsPadding()) {
+    V3Theme { Column(Modifier.fillMaxSize().background(V3.Bg).systemBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.settings_back), tint = CmColors.text) }
             Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = CmColors.text)
         }
         Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            GroupHeader(stringResource(R.string.sec_link), CmColors.text2)
-            var linkedPick by rememberSaveable { mutableStateOf(PC_KEY) }
-            if (linked != null && host != null) {
-                DeviceSchemeB(devices, linked, nowSec(), linkedPick) { linkedPick = it }
-                GroupHeader(stringResource(R.string.device_list), CmColors.text2)
+            V3Section(stringResource(R.string.sec_link), Icons.Outlined.Link)
+                        if (linked != null && host != null) {
                 LinkedList(linked, nowSec(), onRevoke)
             }
             else DeviceScheme(devices, device, onSelect = { device = it }) {
@@ -114,58 +113,58 @@ fun SettingsScreen(
             }
             // Una voce della lista, non un bottone pieno: là sembrava «Salva» (Franz, 30/09 20:26).
             if (host != null) SectionCard {
-                SettingsRow(Icons.Rounded.QrCodeScanner, stringResource(R.string.paired_repair), stringResource(R.string.repair_sub), onRepair)
-                onAddDevice?.let { SettingsRow(Icons.Rounded.AddLink, stringResource(R.string.add_device), stringResource(R.string.add_device_sub), it) }
+                SettingsRow(Icons.Outlined.QrCodeScanner, stringResource(R.string.paired_repair), stringResource(R.string.repair_sub), onRepair)
+                onAddDevice?.let { SettingsRow(Icons.Outlined.AddLink, stringResource(R.string.add_device), stringResource(R.string.add_device_sub), it) }
             }
             tabletDetails?.let { on ->
                 SectionCard {
-                    SettingsRow(Icons.Rounded.Info, stringResource(R.string.tablet_details), stringResource(R.string.tablet_details_sub), onClick = { onTabletDetails(!on) }) {
+                    SettingsRow(Icons.Outlined.Info, stringResource(R.string.tablet_details), stringResource(R.string.tablet_details_sub), onClick = { onTabletDetails(!on) }) {
                         androidx.compose.material3.Switch(checked = on, onCheckedChange = onTabletDetails)
                     }
                 }
             }
 
             onHomeOrder?.let {
-                SectionCard { SettingsRow(Icons.Rounded.Reorder, stringResource(R.string.reorder_title), stringResource(R.string.reorder_row_sub), onClick = { reorder = true }) }
+                SectionCard { SettingsRow(Icons.Outlined.Reorder, stringResource(R.string.reorder_title), stringResource(R.string.reorder_row_sub), onClick = { reorder = true }) }
             }
 
-            GroupHeader(stringResource(R.string.sec_reading), CmColors.text2)
+            V3Section(stringResource(R.string.sec_reading), Icons.Outlined.GraphicEq)
             SectionCard {
-                SettingsRow(Icons.Rounded.GraphicEq, stringResource(R.string.voice), voice ?: stringResource(R.string.voice_default), onClick = { choosingVoice = true })
-                SettingsRow(Icons.Rounded.Speed, stringResource(R.string.speech_rate), stringResource(R.string.rate_hint), onClick = null) {
+                SettingsRow(Icons.Outlined.GraphicEq, stringResource(R.string.voice), voice ?: stringResource(R.string.voice_default), onClick = { choosingVoice = true })
+                SettingsRow(Icons.Outlined.Speed, stringResource(R.string.speech_rate), stringResource(R.string.rate_hint), onClick = null) {
                     Text(rateLabel(rate), style = MaterialTheme.typography.titleSmall, color = CmColors.text)
                 }
                 // Lo stesso slider della barra di lettura (Franz, 07/10, approvato alle 22:06): da 0,5× a 2×, vale al rilascio.
                 var draft by remember(rate) { mutableFloatStateOf(rate) }
                 RateSlider(
                     draft, onChange = { draft = it }, onDone = { onRate(draft) },
-                    modifier = Modifier.fillMaxWidth().padding(start = 64.dp, end = 16.dp, bottom = 14.dp),
+                    modifier = Modifier.fillMaxWidth().padding(start = 60.dp, end = 16.dp, bottom = 14.dp),
                 )
                 SettingsRow(
-                    Icons.Rounded.Headphones, stringResource(R.string.live_recap_setting), stringResource(R.string.live_recap_setting_sub),
+                    Icons.Outlined.Headphones, stringResource(R.string.live_recap_setting), stringResource(R.string.live_recap_setting_sub),
                     onClick = { onLiveRecap(it.pixelbox.cmwatch.rules.LiveDesk.nextRecap(liveRecap)) },
                 ) {
                     Text(if (liveRecap == 0) stringResource(R.string.live_recap_off) else stringResource(R.string.live_recap_every, liveRecap), style = MaterialTheme.typography.titleSmall, color = CmColors.text)
                 }
             }
 
-            GroupHeader(stringResource(R.string.sec_app), CmColors.text2)
+            V3Section(stringResource(R.string.sec_app), Icons.Outlined.Tune)
             SectionCard {
-                SettingsRow(Icons.Rounded.Language, stringResource(R.string.language), languageName(language), onClick = { choosing = true })
-                SettingsRow(Icons.Rounded.Notifications, stringResource(R.string.notifications), stringResource(R.string.notifications_sub), onNotifications)
-                SettingsRow(Icons.Rounded.Science, stringResource(R.string.demo_mode), stringResource(R.string.demo_mode_sub), onClick = { onDemo(!demo) }) {
+                SettingsRow(Icons.Outlined.Language, stringResource(R.string.language), languageName(language), onClick = { choosing = true })
+                SettingsRow(Icons.Outlined.Notifications, stringResource(R.string.notifications), stringResource(R.string.notifications_sub), onNotifications)
+                SettingsRow(Icons.Outlined.Science, stringResource(R.string.demo_mode), stringResource(R.string.demo_mode_sub), onClick = { onDemo(!demo) }) {
                     Switch(checked = demo, onCheckedChange = onDemo, colors = cmSwitchColors())
                 }
             }
 
-            GroupHeader(stringResource(R.string.sec_info), CmColors.text2)
+            V3Section(stringResource(R.string.sec_info), Icons.Outlined.Info)
             SectionCard {
-                SettingsRow(Icons.Rounded.PrivacyTip, stringResource(R.string.privacy), stringResource(R.string.privacy_sub), onPrivacy)
-                SettingsRow(Icons.Rounded.Info, stringResource(R.string.version_title), stringResource(R.string.version_value, version), onClick = null)
-                updateStatus?.let { SettingsRow(Icons.Rounded.SystemUpdate, stringResource(R.string.updates_title), it, onCheckUpdate) }
+                SettingsRow(Icons.Outlined.PrivacyTip, stringResource(R.string.privacy), stringResource(R.string.privacy_sub), onPrivacy)
+                SettingsRow(Icons.Outlined.Info, stringResource(R.string.version_title), stringResource(R.string.version_value, version), onClick = null)
+                updateStatus?.let { SettingsRow(Icons.Outlined.SystemUpdate, stringResource(R.string.updates_title), it, onCheckUpdate) }
             }
         }
-    }
+    } }
     if (choosingVoice) {
         AlertDialog(
             onDismissRequest = { choosingVoice = false },
@@ -209,33 +208,31 @@ fun SettingsScreen(
     }
 }
 
-/** Una card di sezione: le righe una sotto l'altra sul fondo basso, angoli da 20 dp. */
+/** Una lista della v3; il filo sopra la prima riga resta fuori. */
 @Composable
 private fun SectionCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmColors.surfaceLow).padding(vertical = 6.dp), content = content)
+    Column(
+        Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).layout { m, c ->
+            val p = m.measure(c); val cut = 1.dp.roundToPx()
+            layout(p.width, p.height - cut) { p.place(0, -cut) }
+        },
+        content = content,
+    )
 }
 
-/** Una riga come nel menu ≡: icona nel tondo, titolo e valore attuale; la freccia se porta altrove, o un controllo a destra. */
+/** Una riga come nel menu ≡: icona grigia a contorno nel binario, titolo e valore attuale; la freccia se porta altrove, o un controllo a destra. */
 @Composable
 private fun SettingsRow(
     icon: ImageVector, title: String, sub: String, onClick: (() -> Unit)?, trailing: (@Composable () -> Unit)? = null,
 ) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).then(if (onClick != null) Modifier.handCursor().clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(CmColors.surface), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = CmColors.actionIcon, modifier = Modifier.size(22.dp))
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
-            Text(sub, style = MaterialTheme.typography.bodySmall, color = CmColors.text2)
-        }
+    V3Row(false, onClick, { Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, {
         when {
             trailing != null -> trailing()
-            onClick != null -> Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = CmColors.text2)
+            onClick != null -> Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3)
         }
+    }) {
+        Text(title, style = V3.Name)
+        Text(sub, style = V3.Small)
     }
 }
 

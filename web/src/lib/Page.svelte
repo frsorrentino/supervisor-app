@@ -3,12 +3,13 @@
   import { t } from './t'
   // Una pagina del menu (Registro, Utilizzo e limiti, Cerca, Impostazioni, Lancia): ← e il titolo, sotto il contenuto che
   // scorre. Sul telefono prende lo schermo, sulla plancia il posto delle colonne, come il Registro sul tablet.
-  let { title, onBack, children, actions = null }: { title: string; onBack: () => void; children: Snippet; actions?: Snippet | null } = $props()
+  // `v3`: Impostazioni e Riordina, già nello stile «Studio e Diretta» (app-menu-v3-30-10); le altre pagine verranno dopo.
+  let { title, onBack, children, actions = null, v3 = false }: { title: string; onBack: () => void; children: Snippet; actions?: Snippet | null; v3?: boolean } = $props()
 </script>
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && !document.querySelector('dialog[open]') && onBack()} />
 
-<section class="page">
+<section class="page" class:v3>
   <header>
     <button class="ib" aria-label={t.back} title={t.back} onclick={onBack}>
       <svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 12H5M12 19l-7-7 7-7" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -27,4 +28,5 @@
   .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; }
   .ib:hover { background: var(--surface); }
   .body { flex: 1; min-height: 0; overflow-y: auto; }
+  .page.v3 h1 { font: 700 22px var(--display); letter-spacing: .005em; }
 </style>

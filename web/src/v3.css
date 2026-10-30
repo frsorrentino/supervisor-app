@@ -146,7 +146,7 @@
 /* I colori della notte. Il colore appartiene allo stato e parla solo quando serve: ambra aspetta te, blu lavora, verde
    fatto, rosso fallito; struttura e azioni restano neutre, l'unico pieno è bianco. I nomi vecchi (app.css, CmColors.kt)
    puntano ai nuovi, così anche i componenti condivisi dentro la home prendono lo stile senza cambiare codice. */
-.v3 {
+.v3, dialog {
   --bg: #0B0C0E; --s1: #121316; --s2: #1B1D22; --s3: #272A31; --line: #25272D;
   --tx: #EDEEF0; --tx2: #969BA4; --tx3: #858A93; --act: #FFFFFF; --on-act: #0B0C0E;
   --wait: #FFB23F; --busy: #5AA2FF; --good: #34D399; --red: #FF5A5F;
@@ -160,6 +160,11 @@
   --mono: 'Geist Mono', ui-monospace, monospace;
   font-family: var(--sans); color: var(--tx); background: var(--bg); -webkit-font-smoothing: antialiased;
 }
+/* I dialoghi, ovunque si aprano (app-menu-v3-30-10): stesso fondo, titoli in Barlow Semi Condensed. La doppia :root vince sui
+   fogli di stile dei componenti, che scrivono solo il loro fondo. */
+:root:root dialog { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; }
+:root:root dialog h2, :root:root dialog h3 { font: 700 20px/1.2 var(--display); }
+:root:root dialog .btns button { font: 600 15px var(--display); }
 .v3 ::selection { background: color-mix(in srgb, var(--busy) 35%, transparent); }
 
 /* Le primitive della plancia (pwa2, 30/10) per i componenti nuovi (DeskTools, DeskNight): il titolo col binario, la lista a

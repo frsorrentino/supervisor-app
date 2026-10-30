@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.SportsScore
 import androidx.compose.material.icons.outlined.PlayCircle
@@ -720,14 +721,14 @@ private fun SummaryCard(
             onDismiss = { menu = false },
             entries = listOfNotNull(
                 MenuEntry(
-                    if (s.followed) Icons.Rounded.NotificationsOff else Icons.Rounded.NotificationsActive,
+                    if (s.followed) Icons.Outlined.NotificationsOff else Icons.Outlined.NotificationsActive,
                     stringResource(if (s.followed) R.string.unfollow else R.string.follow),
                     stringResource(if (s.followed) R.string.unfollow_sub else R.string.follow_sub),
                 ) { onFollow(!s.followed) },
-                onAskMaster?.let { ask -> MenuEntry(Icons.Rounded.SupervisorAccount, stringResource(R.string.ask_master), stringResource(R.string.ask_master_sub), onClick = ask) },
+                onAskMaster?.let { ask -> MenuEntry(Icons.Outlined.SupervisorAccount, stringResource(R.string.ask_master), stringResource(R.string.ask_master_sub), onClick = ask) },
             ),
             footer = if (canExit && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE)
-                MenuEntry(Icons.Rounded.PowerSettingsNew, stringResource(R.string.menu_exit), stringResource(R.string.menu_exit_sub), destructive = true) { menuClose = true } else null,
+                MenuEntry(Icons.Outlined.PowerSettingsNew, stringResource(R.string.menu_exit), stringResource(R.string.menu_exit_sub), destructive = true) { menuClose = true } else null,
         ) {
             SessionBadge(s, 20.dp)
             Text(
@@ -1380,7 +1381,7 @@ internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: Str
     val question = listOfNotNull(a.title.takeIf { it.isNotBlank() }, a.what?.takeIf { it.isNotBlank() }, a.where?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.approve_where, it) }).joinToString(". ")
     val opts = it.pixelbox.cmwatch.rules.Approvals.choices(a)
     val speak = LocalSpeakText.current
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss, containerColor = CmColors.surface,
         title = { Text(if (choice != null) stringResource(R.string.choose_short, choice) else if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_short), style = MaterialTheme.typography.titleLarge) },
         text = {
@@ -1437,7 +1438,7 @@ private fun ClosingChip(name: String) {
 @Composable
 private fun CloseFinishedDialog(p: it.pixelbox.cmwatch.rules.CloseFinished.Preview?, done: Boolean, onDismiss: () -> Unit, onConfirm: (List<String>) -> Unit) {
     val ok = p?.let { pv -> it.pixelbox.cmwatch.rules.CloseFinished.closable(pv) }.orEmpty()
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss, containerColor = CmColors.surface,
         title = { Text(stringResource(R.string.close_finished_title)) },
         text = {

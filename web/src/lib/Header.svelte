@@ -212,28 +212,28 @@
       </button>
       {#if menu}
         <button class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
-        <div class="panel" role="menu">
+        <div class="panel v3" role="menu">
           <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
           {#if changesMenu && changes}
             <button class="mi" role="menuitem" disabled={!onChanges} onclick={() => { menu = false; onChanges?.() }}>
               <Icon name="diff" size={22} color="var(--icon)" />
-              <span><span class="mt">{menuLine(t.changesTitle, t.changesFiles(changes.files), changes)}</span><span class="ms">{t.changesOpen}</span></span>
+              <span><span class="mt">{menuLine(t.changesTitle, t.changesFiles(changes.files), changes)}</span><span class="msub">{t.changesOpen}</span></span>
             </button>
           {/if}
           <button class="mi" role="menuitem" onclick={() => { picked.followed = !followed; onCmd(followed ? 'unfollow' : 'follow'); menu = false }}>
             <svg viewBox="0 0 24 24" width="22" height="22"><path d={followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
-            <span><span class="mt">{followed ? t.unfollow : t.follow}</span><span class="ms">{followed ? t.unfollowSub : t.followSub}</span></span>
+            <span><span class="mt">{followed ? t.unfollow : t.follow}</span><span class="msub">{followed ? t.unfollowSub : t.followSub}</span></span>
           </button>
           {#if s.name !== MASTER && st.sessions.some(x => x.name === MASTER && x.state !== 'gone')}
             <button class="mi" role="menuitem" onclick={() => { onCmd('prompt', t.askMasterPrompt(s.name)); menu = false }}>
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
-              <span><span class="mt">{t.askMaster}</span><span class="ms">{t.askMasterSub}</span></span>
+              <span><span class="mt">{t.askMaster}</span><span class="msub">{t.askMasterSub}</span></span>
             </button>
           {/if}
           {#if s.link?.trim()}
             <a class="mi" role="menuitem" href={s.link} target="_blank" rel="noopener" onclick={() => (menu = false)}>
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
-              <span><span class="mt">{t.openInClaude}</span><span class="ms">{t.openInClaudeSub}</span></span>
+              <span><span class="mt">{t.openInClaude}</span><span class="msub">{t.openInClaudeSub}</span></span>
             </a>
           {/if}
           {#if menuMove}
@@ -246,7 +246,7 @@
             <hr />
             <button class="mi danger" role="menuitem" onclick={() => { menu = false; closer?.ask(s) }}>
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
-              <span><span class="mt">{t.menuExit}</span><span class="ms">{t.menuExitSub}</span></span>
+              <span><span class="mt">{t.menuExit}</span><span class="msub">{t.menuExitSub}</span></span>
             </button>
           {/if}
         </div>
@@ -457,10 +457,20 @@
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mi > span { display: flex; flex-direction: column; gap: 2px; }
   .mt { font-size: 15.5px; }
-  .ms { font-size: 13px; color: var(--text2); }
+  .msub { font-size: 13px; color: var(--text2); }
   .danger svg { stroke: var(--b-alert); }
   .danger .mt { color: var(--b-alert); }
   hr { border: 0; height: 1px; background: var(--line); margin: 4px 8px; }
+  /* Il menu ⋮ nella forma della v3 (app-menu-v3-30-10): icone grigie nel binario, una voce per riga col filo. */
+  .panel { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; overflow: hidden; }
+  .ph { min-height: 54px; padding: 0 12px 0 16px; border-bottom: 1px solid var(--line); font: 600 17px var(--display); }
+  .mi { align-items: center; gap: 8px; min-height: 58px; padding: 9px 12px 9px 0; border-radius: 0; border-top: 1px solid var(--line); }
+  .ph + .mi { border-top: 0; }
+  .mi:hover { background: var(--s2); }
+  .mi > :global(svg) { margin: 0 15px; stroke: var(--tx2); }
+  .mt { font: 600 17px/1.2 var(--display); }
+  .msub { font-size: 14px; line-height: 1.3; color: var(--tx2); }
+  hr { display: none; }
   /* I fogli: in basso sul telefono, una scheda al centro da 600 px (fogli adattivi dell'app). */
   dialog { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 20px 24px; width: min(560px, 100vw); max-height: 85vh; border-radius: 28px; }
   dialog::backdrop { background: rgb(0 0 0 / .55); }

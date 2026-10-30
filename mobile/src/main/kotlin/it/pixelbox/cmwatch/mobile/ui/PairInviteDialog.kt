@@ -1,6 +1,5 @@
 package it.pixelbox.cmwatch.mobile.ui
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable

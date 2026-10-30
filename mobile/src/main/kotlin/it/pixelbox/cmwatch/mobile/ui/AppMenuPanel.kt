@@ -47,6 +47,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.platform.testTag
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.ui.tokens.CmColors
 
@@ -65,22 +67,12 @@ data class MenuEntry(
  */
 @Composable
 fun MenuPanel(
-    onDismiss: () -> Unit, entries: List<MenuEntry>, footer: MenuEntry? = null,
+    onDismiss: () -> Unit, entries: List<MenuEntry>, footer: MenuEntry? = null, tag: String? = null,
     origin: androidx.compose.ui.graphics.TransformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0f),
     header: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
-) = PanelShell(onDismiss, header, origin) { close ->
-    entries.forEach { e -> MenuItem(e.icon, e.title, e.sub, if (e.accent) CmColors.accent.copy(alpha = 0.25f) else CmColors.surfaceHigh) { close(); e.onClick() } }
-    footer?.let { f ->
-        HorizontalDivider(color = CmColors.line, modifier = Modifier.padding(vertical = 4.dp))
-        Row(
-            Modifier.fillMaxWidth().handCursor().clickable { close(); f.onClick() }.padding(horizontal = 28.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            val tone = if (f.destructive) CmColors.briefAlertRing else CmColors.text2
-            Icon(f.icon, null, tint = tone)
-            Text(f.title, style = MaterialTheme.typography.bodyLarge, color = tone)
-        }
-    }
+) = PanelShell(onDismiss, header, origin, tag) { close ->
+    entries.forEachIndexed { i, e -> MenuItem(e.icon, e.title, e.sub, e.accent, i > 0) { close(); e.onClick() } }
+    footer?.let { f -> MenuItem(f.icon, f.title, f.sub, false, true, f.destructive) { close(); f.onClick() } }
 }
 
 /**
@@ -95,7 +87,7 @@ fun MenuPanel(
 @Composable
 fun PanelShell(
     onDismiss: () -> Unit, header: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
-    origin: androidx.compose.ui.graphics.TransformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0f),
+    origin: androidx.compose.ui.graphics.TransformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0f), tag: String? = null,
     content: @Composable androidx.compose.foundation.layout.ColumnScope.(close: () -> Unit) -> Unit,
 ) {
     val off = animationsOff()
@@ -139,17 +131,18 @@ fun PanelShell(
                 else Modifier.statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 56.dp, bottom = 24.dp).fillMaxWidth(),
             ) {
                 Surface(
-                    shape = RoundedCornerShape(28.dp), color = CmColors.surface, shadowElevation = 8.dp,
+                    shape = V3.Shape, color = V3.S1, shadowElevation = 8.dp, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line),
                     // Il tocco dentro il pannello non lo chiude.
-                    modifier = Modifier.fillMaxWidth().clickable(remember { MutableInteractionSource() }, indication = null) {},
+                    modifier = Modifier.fillMaxWidth().then(if (tag != null) Modifier.testTag(tag) else Modifier).clickable(remember { MutableInteractionSource() }, indication = null) {},
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
-                        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    V3Theme { Column {
+                        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             header()
                             IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = CmColors.text2) }
                         }
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
                         Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) { content(close) }
-                    }
+                    } }
                 }
             }
         }
@@ -170,43 +163,50 @@ fun AppMenuPanel(
     MenuPanel(
         onDismiss,
         entries = listOf(
-            MenuEntry(Icons.Rounded.RocketLaunch, stringResource(R.string.menu_launch), stringResource(R.string.menu_launch_sub), accent = true, onClick = onLaunch),
+            MenuEntry(Icons.Outlined.RocketLaunch, stringResource(R.string.menu_launch), stringResource(R.string.menu_launch_sub), accent = true, onClick = onLaunch),
             // La pagina unica «Lavori» (22/10): al posto di Registro e Recap.
-            MenuEntry(Icons.Rounded.Checklist, stringResource(R.string.menu_lavori), stringResource(R.string.menu_lavori_sub), onClick = onLavori),
+            MenuEntry(Icons.Outlined.Checklist, stringResource(R.string.menu_lavori), stringResource(R.string.menu_lavori_sub), onClick = onLavori),
         ) + listOfNotNull(
-            onNight?.let { n -> MenuEntry(Icons.Rounded.Bedtime, stringResource(R.string.night_menu), stringResource(R.string.night_menu_sub), onClick = n) },
+            onNight?.let { n -> MenuEntry(Icons.Outlined.Bedtime, stringResource(R.string.night_menu), stringResource(R.string.night_menu_sub), onClick = n) },
         ) + listOf(
-            MenuEntry(Icons.Rounded.Dashboard, stringResource(R.string.menu_quadro), stringResource(R.string.menu_quadro_sub), onClick = onQuadro),
-            MenuEntry(Icons.Rounded.Search, stringResource(R.string.menu_search), stringResource(R.string.menu_search_sub), onClick = onSearch),
+            MenuEntry(Icons.Outlined.DataUsage, stringResource(R.string.menu_quadro), stringResource(R.string.menu_quadro_sub), onClick = onQuadro),
+            MenuEntry(Icons.Outlined.Search, stringResource(R.string.menu_search), stringResource(R.string.menu_search_sub), onClick = onSearch),
             // Modalità live (specifica 06/10): notiziario in cuffia, comandi dal watch; lo stesso tocco la spegne.
             MenuEntry(
-                Icons.Rounded.Headphones, stringResource(R.string.live_menu),
+                Icons.Outlined.Headphones, stringResource(R.string.live_menu),
                 stringResource(if (live) R.string.live_menu_on else R.string.live_menu_sub),
                 onClick = { it.pixelbox.cmwatch.mobile.live.LiveService.toggle(ctx); onDismiss() },
             ),
         ),
-        footer = MenuEntry(Icons.Rounded.Settings, stringResource(R.string.settings), "", onClick = onSettings),
+        footer = MenuEntry(Icons.Outlined.Settings, stringResource(R.string.settings), "", onClick = onSettings), tag = "menu-v3",
     ) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(if (stale) CmColors.waiting else CmColors.idle))
+        Box(Modifier.size(7.dp).clip(CircleShape).background(if (stale) V3.Wait else V3.Good))
         Text(
-            stringResource(R.string.menu_connected, host ?: stringResource(R.string.menu_pc), updated), style = MaterialTheme.typography.bodyMedium,
-            color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f),
+            stringResource(R.string.menu_connected, host ?: stringResource(R.string.menu_pc), updated), style = V3.Small,
+            color = V3.Tx2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f),
         )
     }
 }
 
+/** Una voce nella forma della v3: icona grigia a contorno nel binario, senza cerchio; la voce d'azione è l'unico pieno, bianco. */
 @Composable
-private fun MenuItem(icon: ImageVector, title: String, sub: String, tone: Color, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).handCursor().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(tone), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = CmColors.actionIcon, modifier = Modifier.size(22.dp))
+private fun MenuItem(icon: ImageVector, title: String, sub: String, accent: Boolean, line: Boolean, destructive: Boolean = false, onClick: () -> Unit) {
+    if (accent) {
+        Row(
+            Modifier.padding(12.dp).fillMaxWidth().heightIn(min = 60.dp).clip(V3.Shape).background(V3.Act).handCursor().clickable(onClick = onClick).padding(top = 9.dp, bottom = 9.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.width(60.dp), contentAlignment = Alignment.Center) { Icon(icon, null, tint = V3.OnAct, modifier = Modifier.size(22.dp)) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(title, style = V3.Name.copy(color = V3.OnAct))
+                if (sub.isNotEmpty()) Text(sub, style = V3.Small.copy(color = Color(0xFF41454C)))
+            }
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = CmColors.text, maxLines = 1, overflow = TextOverflow.Clip)
-            Text(sub, style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 1, overflow = TextOverflow.Clip)
-        }
+        return
+    }
+    val tone = if (destructive) V3.Red else V3.Tx2
+    V3Row(!line, onClick, { Icon(icon, null, tint = tone, modifier = Modifier.size(22.dp)) }) {
+        Text(title, style = V3.Name.copy(color = if (destructive) V3.Red else V3.Tx))
+        if (sub.isNotEmpty()) Text(sub, style = V3.Small)
     }
 }

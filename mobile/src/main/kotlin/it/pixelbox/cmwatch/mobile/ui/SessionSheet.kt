@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.Send
@@ -2025,24 +2026,24 @@ private fun SheetHeader(
                     entries = listOfNotNull(
                         changes?.takeIf { changesMenu }?.let { c ->
                             MenuEntry(
-                                Icons.Rounded.Add,
+                                Icons.Outlined.Add,
                                 DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c),
                                 stringResource(R.string.changes_open),
                             ) { onChanges?.invoke() }
                         },
                         MenuEntry(
-                            if (s.followed) Icons.Rounded.NotificationsOff else Icons.Rounded.NotificationsActive,
+                            if (s.followed) Icons.Outlined.NotificationsOff else Icons.Outlined.NotificationsActive,
                             stringResource(if (s.followed) R.string.unfollow else R.string.follow),
                             stringResource(if (s.followed) R.string.unfollow_sub else R.string.follow_sub),
                         ) { actions.follow(!s.followed) },
-                        actions.askMaster?.let { ask -> MenuEntry(Icons.Rounded.SupervisorAccount, stringResource(R.string.ask_master), stringResource(R.string.ask_master_sub), onClick = ask) },
+                        actions.askMaster?.let { ask -> MenuEntry(Icons.Outlined.SupervisorAccount, stringResource(R.string.ask_master), stringResource(R.string.ask_master_sub), onClick = ask) },
                         s.link.takeIf { it.isNotBlank() }?.let { MenuEntry(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.open_in_claude), stringResource(R.string.open_in_claude_sub), onClick = actions.openInClaude) },
                         // Con la conversazione vera il terminale non serve più dal telefono (Franz, 30/09 20:39).
-                        if (showTerminal) MenuEntry(Icons.Rounded.Terminal, stringResource(R.string.terminal), stringResource(R.string.terminal_sub), onClick = actions.terminal) else null,
+                        if (showTerminal) MenuEntry(Icons.Outlined.Terminal, stringResource(R.string.terminal), stringResource(R.string.terminal_sub), onClick = actions.terminal) else null,
                     ),
                     // Franz, 03/10 16:02: chiudere la sessione dal menu, con la stessa conferma di /exit scritto nel campo; in fondo,
                     // separata e in rosso (osservazioni del 03/10).
-                    footer = if (canExit) MenuEntry(Icons.Rounded.PowerSettingsNew, stringResource(R.string.menu_exit), stringResource(R.string.menu_exit_sub), destructive = true) { exitAsk = true } else null,
+                    footer = if (canExit) MenuEntry(Icons.Outlined.PowerSettingsNew, stringResource(R.string.menu_exit), stringResource(R.string.menu_exit_sub), destructive = true) { exitAsk = true } else null,
                 ) {
                     SessionBadge(s, 20.dp)
                     Text(
