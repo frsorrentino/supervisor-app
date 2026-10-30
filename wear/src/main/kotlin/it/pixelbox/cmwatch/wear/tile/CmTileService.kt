@@ -66,10 +66,10 @@ open class CmTileService : TileService() {
      * I grigi di prima stavano a 5,5:1 e si leggevano male (Franz, 13/09 15:31).
      */
     private val scheme = ColorScheme(
-        primary = 0xFFD3E3FD.toInt().argb, onPrimary = 0xFF0A2050.toInt().argb,
-        primaryContainer = 0xFF2B4A9E.toInt().argb, onPrimaryContainer = 0xFFDCE6FF.toInt().argb,
-        surfaceContainer = 0xFF2A313C.toInt().argb, surfaceContainerLow = 0xFF23272E.toInt().argb,
-        onSurface = 0xFFEBF1FF.toInt().argb, onSurfaceVariant = 0xFFC2C6D2.toInt().argb,
+        primary = 0xFFFFFFFF.toInt().argb, onPrimary = 0xFF0B0C0E.toInt().argb,
+        primaryContainer = 0xFF272A31.toInt().argb, onPrimaryContainer = 0xFFEDEEF0.toInt().argb,
+        surfaceContainer = 0xFF1B1D22.toInt().argb, surfaceContainerLow = 0xFF121316.toInt().argb,
+        onSurface = 0xFFEDEEF0.toInt().argb, onSurfaceVariant = 0xFF969BA4.toInt().argb,
         background = 0xFF000000.toInt().argb, onBackground = 0xFFFFFFFF.toInt().argb,
     )
 
@@ -490,8 +490,8 @@ open class CmTileService : TileService() {
         const val CLOCK = "clock"
         const val MARK_PERSONAL = "mark_personal"
         const val MARK_WORK = "mark_work"
-        private const val AMBER = 0xFFFFB020.toInt()
-        private const val LABEL = 0xFFD3E3FD.toInt()   // mittente di Gmail: 10,1:1 sulla card
+        private const val AMBER = 0xFFFFB23F.toInt()
+        private const val LABEL = 0xFFFFFFFF.toInt()   // mittente di Gmail: 10,1:1 sulla card
         private const val TRACK = 0xFF3C4452.toInt()   // traccia della barra: visibile sulla card #2A313C
         private const val BAR_H = 10f
         private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
