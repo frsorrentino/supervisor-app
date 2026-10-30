@@ -94,16 +94,19 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                 Text(if (proj != null && !r.stale) "$pct% → $proj%" else if (r.stale) stringResource(R.string.quota_line_stale) else "$pct%", style = V3.Meter.copy(color = V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
             }
             if (open == k5) Column(Modifier.padding(bottom = 10.dp)) {
+                // «adesso» sopra il grafico, centrato sulla linea: fra le due ore in fondo non ci sta (Franz 30/10, correzione al mockup D).
+                if (tick != null) Aligned(valW) {
+                    BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
+                        val x = (maxWidth * (tick / 100f) - 30.dp).coerceIn(0.dp, (maxWidth - 60.dp).coerceAtLeast(0.dp))
+                        Text(stringResource(R.string.usage_now), style = V3.Meter.copy(fontSize = 12.sp, color = V3.Tx), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.offset(x = x).width(60.dp))
+                    }
+                }
                 Aligned(valW) { Curve(r, now, Modifier.fillMaxWidth().height(58.dp)) }
                 Aligned(valW) {
                     BoxWithConstraints(Modifier.fillMaxWidth().height(18.dp)) {
-                        val w = maxWidth
                         r.resetAt?.let { reset ->
                             Text(hm.format(Instant.ofEpochSecond(reset - UtilizzoRules.H5_S).atZone(zone)), style = V3.Meter.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.CenterStart))
                             Text(hm.format(Instant.ofEpochSecond(reset).atZone(zone)), style = V3.Meter.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.CenterEnd))
-                            // «adesso» esattamente sotto la tacca, centrato; se non c'è posto fra le due ore resta solo la tacca.
-                            val x = w * ((tick ?: 0f) / 100f)
-                            if (tick != null && x > 70.dp && x < w - 70.dp) Text(stringResource(R.string.usage_now), style = V3.Meter.copy(fontSize = 12.sp, color = V3.Tx), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.offset(x = x - 30.dp).width(60.dp).align(Alignment.CenterStart))
                         }
                     }
                 }

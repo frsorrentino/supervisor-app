@@ -55,12 +55,13 @@
       <div class="open">
         {#if c}
           <div class="col2">
+            {#if tk != null}<div class="nowl"><b style="left:clamp(24px, {tk}%, calc(100% - 24px))">{t.usageNow}</b></div>{/if}
             <svg viewBox="0 0 100 58" preserveAspectRatio="none" width="100%" height="58" aria-hidden="true">
               {#if c.area}<polygon points={c.area} fill="var(--s2)" /><polyline points={c.line} fill="none" stroke="var(--tx2)" stroke-width="2" vector-effect="non-scaling-stroke" />{/if}
               {#if c.last && c.end != null}<line x1={c.last.x} y1={c.last.y} x2="100" y2={c.end} stroke="var(--tx3)" stroke-width="2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" />{/if}
               {#if tk != null}<line x1={tk} y1="0" x2={tk} y2="58" stroke="var(--tx)" stroke-width="2" vector-effect="non-scaling-stroke" />{/if}
             </svg>
-            <div class="axis"><span>{hm(r.resetAt! - H5_S)}</span>{#if tk != null && tk > 22 && tk < 78}<b style="left:{tk}%">{t.usageNow}</b>{/if}<span>{hm(r.resetAt!)}</span></div>
+            <div class="axis"><span>{hm(r.resetAt! - H5_S)}</span><span>{hm(r.resetAt!)}</span></div>
           </div>
         {/if}
         <p class="note">{proj != null && r.resetAt ? t.usageProjection(proj, hm(r.resetAt)) : r.resetAt ? t.quotaResetsAt(hm(r.resetAt)) : t.quotaLineStale}</p>
@@ -131,7 +132,8 @@
   .col2 { margin: 0 calc(var(--val) + 10px) 0 calc(var(--lab) + 10px); }
   .col2 svg { display: block; }
   .axis { position: relative; display: flex; justify-content: space-between; font: 400 12px var(--mono); color: var(--tx2); margin-top: 2px; }
-  .axis b { position: absolute; transform: translateX(-50%); font-weight: 400; color: var(--tx); }
+  .nowl { position: relative; height: 16px; font: 400 12px var(--mono); }
+  .nowl b { position: absolute; transform: translateX(-50%); font-weight: 400; color: var(--tx); white-space: nowrap; }
   .note { margin: 4px 0 0; font-size: 13.5px; line-height: 1.35; color: var(--tx2); }
   .sl { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 14px; color: var(--tx); overflow-wrap: anywhere; }
   .sl b { font: 400 12.5px var(--mono); }
