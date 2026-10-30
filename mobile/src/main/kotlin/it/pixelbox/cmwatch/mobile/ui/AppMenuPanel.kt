@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.foundation.border
 import androidx.compose.ui.platform.testTag
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.ui.tokens.CmColors
@@ -189,18 +190,18 @@ fun AppMenuPanel(
     }
 }
 
-/** Una voce nella forma della v3: icona grigia a contorno nel binario, senza cerchio; la voce d'azione è l'unico pieno, bianco. */
+/** Una voce nella forma della v3: icona grigia a contorno nel binario, senza cerchio; la voce d'azione ha il bordo chiaro (Franz 30/10 20:44: era piena). */
 @Composable
 private fun MenuItem(icon: ImageVector, title: String, sub: String, accent: Boolean, line: Boolean, destructive: Boolean = false, onClick: () -> Unit) {
     if (accent) {
         Row(
-            Modifier.padding(12.dp).fillMaxWidth().heightIn(min = 60.dp).clip(V3.Shape).background(V3.Act).handCursor().clickable(onClick = onClick).padding(top = 9.dp, bottom = 9.dp, end = 12.dp),
+            Modifier.padding(12.dp).fillMaxWidth().heightIn(min = 60.dp).clip(V3.Shape).border(1.5.dp, V3.Tx, V3.Shape).handCursor().clickable(onClick = onClick).padding(top = 9.dp, bottom = 9.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.width(60.dp), contentAlignment = Alignment.Center) { Icon(icon, null, tint = V3.OnAct, modifier = Modifier.size(22.dp)) }
+            Box(Modifier.width(60.dp), contentAlignment = Alignment.Center) { Icon(icon, null, tint = V3.Tx, modifier = Modifier.size(22.dp)) }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(title, style = V3.Name.copy(color = V3.OnAct))
-                if (sub.isNotEmpty()) Text(sub, style = V3.Small.copy(color = Color(0xFF41454C)))
+                Text(title, style = V3.Name)
+                if (sub.isNotEmpty()) Text(sub, style = V3.Small)
             }
         }
         return

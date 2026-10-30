@@ -146,7 +146,7 @@
   .foot { display: flex; align-items: center; gap: 20px; width: 100%; padding: 14px 28px; font-size: 16px; color: var(--text2); }
   @media (prefers-reduced-motion: reduce) { .panel, .scrim { animation: none; } }
   /* Il menu nella forma della v3 (mockup approvato da Franz il 30/10 alle 19:25): icone grigie nel binario senza cerchio, una
-     voce per riga col filo, «Lancia una sessione» unico pieno, bianco. */
+     voce per riga col filo, «Lancia una sessione» col bordo chiaro (Franz 30/10 20:44: era pieno). */
   .panel { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; }
   .ph { padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); color: var(--tx2); }
   .led { width: 7px; height: 7px; background: var(--good); }
@@ -159,10 +159,8 @@
   .foot svg { margin: 0 15px; }
   .foot span { font: 600 17px var(--display); }
   hr { display: none; }
-  .launch { margin: 12px; width: calc(100% - 24px); min-height: 60px; border: 0; border-radius: 14px; background: var(--act); color: var(--on-act); }
-  .launch:hover { background: var(--act); }
-  .launch svg { stroke: var(--on-act); }
-  .launch .mt small { color: #41454C; }
+  .launch { margin: 12px; width: calc(100% - 24px); min-height: 60px; border: 1.5px solid var(--tx); border-radius: 14px; }
+  .launch svg { stroke: var(--tx); }
   .launch + .mi { border-top: 1px solid var(--line); }
   /* Nella home in stile «Studio e Diretta» (30/10): il titolo in Barlow Semi Condensed, le icone chiare. */
   :global(.v3) .title b { font: 700 22px var(--display); letter-spacing: .005em; }
