@@ -41,3 +41,14 @@ __pycache__/
 
 # Cache di firebase deploy: la rigenera ogni deploy (29/10)
 web/.firebase/
+
+# Note e mockup locali: restano sul disco, fuori dal repo (31/10)
+PRODUCT.md
+docs/handoff-2026-10-30-2219.md
+docs/mockup/2026-10-29-home-cinque/
+docs/mockup/2026-10-29-home-direzioni/
+docs/mockup/2026-10-29-home-impeccable/
+docs/mockup/2026-10-29-home-semplice/
+docs/mockup/2026-10-30-home-unione/pwa*
+docs/mockup/2026-10-30-home-unione/studio-diretta-*
+docs/mockup/2026-10-30-utilizzo-v3/utilizzo-aperto-a-notte.png
