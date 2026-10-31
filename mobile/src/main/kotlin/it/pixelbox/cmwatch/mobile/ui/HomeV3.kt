@@ -175,7 +175,7 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
         }
         // Voce 5: la freccina ruota, senza rimbalzo.
         val turn by androidx.compose.animation.core.animateFloatAsState(if (open == true) 180f else 0f, if (animationsOff()) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(200, easing = CmMotion.easing), label = "turn")
-        if (open != null) Icon(Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.graphicsLayer { rotationZ = turn }.padding(start = 6.dp).size(24.dp))
+        if (open != null) Icon(Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp).graphicsLayer { rotationZ = turn })
         else if (nav) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))
     }
 }
