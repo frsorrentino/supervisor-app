@@ -17,8 +17,8 @@ const size = (mb: number, lang: Lang) => (mb < 1024 ? `${Math.round(mb)} MB` : `
 /** La riga dell'intestazione: carico per core e memoria libera; il totale sta nella scheda aperta (a 320 dp andava a capo). */
 export const summaryLine = (s: SystemStatus, lang: Lang): string =>
   lang === 'it'
-    ? `carico ${num(s.load_per_core, lang)} per core · ${num(s.mem_available_mb / 1024, lang)} GB liberi`
-    : `load ${num(s.load_per_core, lang)} per core · ${num(s.mem_available_mb / 1024, lang)} GB free`
+    ? `carico ${num(s.load_per_core, lang)} · ${num(s.mem_available_mb / 1024, lang)} GB`
+    : `load ${num(s.load_per_core, lang)} · ${num(s.mem_available_mb / 1024, lang)} GB`
 
 const GROUP: Record<Lang, Record<string, string>> = {
   it: { claude: 'Claude', chrome_bridge: 'chrome-bridge', relay: 'relay', other: 'altri' },

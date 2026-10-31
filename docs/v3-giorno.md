@@ -32,6 +32,7 @@ Tutti gli snapshot del telefono col giorno: `./gradlew :mobile:recordPaparazziGi
 | HomeAltro · altroSystemClosed360LargeFont | ok |
 | HomeAltro · altroUsageTwoAccounts | ok |
 | HomeAltro · altroUsageTwoAccounts360LargeFont | ok |
+| HomeAltro · altroUsageTwoAccountsArrowsAligned | ok |
 | HomeAltro · longNames360LargeFont | ok |
 | HomeAltro · reorderScreen | ok |
 | HomeAltro · reorderScreen360LargeFont | ok |
@@ -177,6 +178,7 @@ Tutti gli snapshot del telefono col giorno: `./gradlew :mobile:recordPaparazziGi
 | SummaryList · dockMaster | ok |
 | SummaryList · dockMasterExpanded | ok |
 | SummaryList · homeOrderSessionsBeforeSuggestions | ok |
+| SummaryList · homeSectionDrag | ok |
 | SummaryList · summaryClosed | ok |
 | SummaryList · summaryMany | ok |
 | SummaryList · summaryOpen | ok |

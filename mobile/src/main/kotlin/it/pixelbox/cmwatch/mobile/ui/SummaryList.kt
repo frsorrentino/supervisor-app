@@ -400,7 +400,7 @@ fun SummaryList(
                                 }
                             }
                             if (foryou != null) V3Row(first, onLavori, { Icon(androidx.compose.material.icons.Icons.Outlined.EventNote, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) {
-                                Text(lavoriLine ?: stringResource(R.string.lavori_all), style = V3.Name)
+                                Text(stringResource(R.string.lavori_all) + (lavoriLine?.let { " · $it" } ?: ""), style = V3.Name)
                             }
                         }
                     }

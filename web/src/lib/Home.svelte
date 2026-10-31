@@ -458,7 +458,7 @@
       {/if}
     {/each}
     {#if fy && !part}
-      <button class="all" onclick={onLavori}><span class="wic"><span class="ms">event_list</span></span><span class="otext"><b>{lavoriLine}</b></span>
+      <button class="all" onclick={onLavori}><span class="wic"><span class="ms">event_list</span></span><span class="otext"><b>{t.lavoriAll ? `${t.lavoriAll} · ${lavoriLine}` : lavoriLine}</b></span>
         <span class="ms chevr">chevron_right</span></button>
     {/if}
   {/if}

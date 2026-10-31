@@ -21,7 +21,7 @@ class HomeAltroTest {
     private val st = ContractJson.decodeState(File("../contract/state-2-idle.json").readText()).let { it.copy(sessions = emptyList(), approvals = emptyList()) }
     private val system = SystemStatus(at = st.ts, cores = 8, load1 = 2.0, loadPerCore = 0.2, memTotalMb = 16000, memAvailableMb = 4600, level = "green", loadLevel = "green", memLevel = "green")
 
-    private fun shot() = paparazzi.snapshot {
+    private fun shot(st: it.pixelbox.cmwatch.contract.State = this.st) = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
             SummaryList(Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, usage = { Text("") }, system = system, kpiState = st)
         }
@@ -54,7 +54,7 @@ class HomeAltroTest {
     @Test fun altroSystemClosed() = shot()
 
     /** Titoli liberi e blocco insieme: le frecce sulla stessa verticale (Franz 31/10 01:14). */
-    @Test fun altroUsageTwoAccountsArrowsAligned() = shot()
+    @Test fun altroUsageTwoAccountsArrowsAligned() = shot(ContractJson.decodeState(File("../contract/state-2-idle.json").readText()))
 
     /** Utilizzo con due account (state-2-idle): il nome intero, mai tagliato in un'altra parola (master 30/10 16:42). */
     @Test fun altroUsageTwoAccounts() = shot()
