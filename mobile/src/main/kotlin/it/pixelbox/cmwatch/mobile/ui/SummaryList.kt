@@ -1,5 +1,9 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -106,6 +110,7 @@ import it.pixelbox.cmwatch.mobile.update.AppUpdater
  * Il riepilogo unico (design 03/10, tavola 4): ogni sessione una volta, nei gruppi del bisogno, una riga aperta alla
  * volta; aperta mostra anche i dettagli delle vecchie card di Sessioni. Sotto, «Chiuse · N» e le righe di servizio.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun SummaryList(
     model: Summary.Model, onOpen: (String) -> Unit, onAnswer: (String, Int) -> Unit, onStep: (String, String) -> Unit,
@@ -121,6 +126,8 @@ fun SummaryList(
     /** Il menu contestuale della card (pressione lunga, Franz 14/10 20:58): segui, fai controllare alla master. */
     onFollow: (String, Boolean) -> Unit = { _, _ -> }, onAskMaster: ((String) -> Unit)? = null,
     now: Long = System.currentTimeMillis() / 1000,
+    /** Un foglio aperto sopra la home: niente scorrimento automatico (voce 2). */
+    sheetOpen: Boolean = false,
     /** Il riquadro Notte (mockup approvato l'08/10 alle 12:57): il giorno del rapporto, e la pagina quando è arrivata. */
     nightDate: java.time.LocalDate? = null, nightPage: it.pixelbox.cmwatch.rules.NightPage.Page? = null, onNight: () -> Unit = {},
     /** «Utilizzo»: le schede della quota, nella sua sezione richiudibile. */
@@ -263,10 +270,7 @@ fun SummaryList(
         if (off) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null)
         else Modifier.animateItem(
             fadeInSpec = androidx.compose.animation.core.tween(150), fadeOutSpec = androidx.compose.animation.core.tween(150),
-            placementSpec = androidx.compose.animation.core.spring(
-                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
-                visibilityThreshold = androidx.compose.ui.unit.IntOffset.VisibilityThreshold,
-            ),
+            placementSpec = CmMotion.bounce,
         )
     }
     val movingIn: (String) -> @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { sec ->
@@ -332,9 +336,47 @@ fun SummaryList(
             }
         }
     }) {
+    // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando il compito finisce la riga diventa verde per poco.
+    val workingNow = androidx.compose.runtime.remember(kpiState, now) { kpiState?.let { st -> it.pixelbox.cmwatch.rules.Commitments.rows(st, now).filter { r -> !r.yourTurn }.mapNotNull { r -> r.c.session }.toSet() }.orEmpty() }
+    val finishedNow = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateListOf<String>() }
+    val rowAt = androidx.compose.runtime.remember { HashMap<String, Pair<Float, Float>>() }
+    val wasWorking = androidx.compose.runtime.remember { mutableSetOf<String>() }
+    val wasVisible = androidx.compose.runtime.remember { HashMap<String, Boolean>() }
+    val touch = androidx.compose.runtime.remember { longArrayOf(0L, 0L, 0L) } // dito giù (0/1), ultimo tocco, ultimo scorrimento da solo
+    val writing = androidx.compose.foundation.layout.WindowInsets.isImeVisible
+    val currentWriting by androidx.compose.runtime.rememberUpdatedState(writing)
+    val currentSheet by androidx.compose.runtime.rememberUpdatedState(sheetOpen)
+    val viewTop = androidx.compose.runtime.remember { floatArrayOf(0f) }
+    val finishScope = androidx.compose.runtime.rememberCoroutineScope()
+    androidx.compose.runtime.LaunchedEffect(workingNow) {
+        val ended = wasWorking - workingNow
+        fun visible(name: String): Boolean { val (t, b) = rowAt[name] ?: return false; return b > viewTop[0] && t < viewTop[0] + listState.layoutInfo.viewportSize.height }
+        workingNow.forEach { wasVisible[it] = visible(it) }
+        wasWorking.clear(); wasWorking += workingNow
+        val rows = model.rows.associateBy { it.session.name }
+        val done = ended.filter { n -> rows[n]?.group.let { g -> g == Summary.Group.FINISHED || g == Summary.Group.STILL } }
+        if (done.isEmpty()) return@LaunchedEffect
+        finishedNow += done
+        finishScope.launch {
+            // Il posto nuovo arriva con la molla; poi, se tutte le condizioni reggono, un solo scorrimento senza rimbalzo.
+            kotlinx.coroutines.delay(650)
+            val name = done.first()
+            val h = listState.layoutInfo.viewportSize.height.toFloat()
+            val (t, b) = rowAt[name] ?: return@launch
+            val dist = if (t < viewTop[0]) t - viewTop[0] else if (b > viewTop[0] + h) b - (viewTop[0] + h) else 0f
+            val ms = System.currentTimeMillis()
+            if (!off && dist != 0f && it.pixelbox.cmwatch.rules.FinishScroll.allowed(it.pixelbox.cmwatch.rules.FinishScroll.Scene(touch[0] == 1L, listState.isScrollInProgress, ms - touch[1], wasVisible[name] == true, currentWriting, currentSheet, dist, h, ms - touch[2]))) {
+                touch[2] = ms
+                listState.animateScrollBy(dist, androidx.compose.animation.core.spring(androidx.compose.animation.core.Spring.DampingRatioNoBouncy, androidx.compose.animation.core.Spring.StiffnessLow))
+            }
+        }
+        finishScope.launch { kotlinx.coroutines.delay(6_000); finishedNow.removeAll(done.toSet()) }
+    }
     androidx.compose.foundation.lazy.LazyColumn(
         // In fondo lo spazio del controller della lettura, che si posa sopra la barra della master (09/10 16:50).
-        Modifier.fillMaxSize().background(V3.Bg), state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp + readingRoom()),
+        Modifier.fillMaxSize().background(V3.Bg).onGloballyPositioned { c -> viewTop[0] = c.boundsInRoot().top }.pointerInput(Unit) {
+            awaitPointerEventScope { while (true) { val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial); touch[0] = if (e.changes.any { it.pressed }) 1L else 0L; touch[1] = System.currentTimeMillis() } }
+        }, state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp + readingRoom()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }
@@ -406,7 +448,13 @@ fun SummaryList(
             if (sessionsOpen && restRows.isNotEmpty()) item(key = "sessions-list") {
                 val fin = if (closePreview != null) it.pixelbox.cmwatch.rules.CloseFinished.candidates(model.rows, now) else emptyList()
                 Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    V3List { restRows.forEachIndexed { i, r -> androidx.compose.runtime.key(r.session.id, i) { Box(if (V3.day && r.group == Summary.Group.WAITING) Modifier.background(V3.WaitFill) else Modifier) { card(r, i == 0) } } } }
+                    V3List { restRows.forEachIndexed { i, r -> androidx.compose.runtime.key(r.session.id) {
+                        val name = r.session.name
+                        val edge by androidx.compose.animation.animateColorAsState(if (name in finishedNow) V3.Good else androidx.compose.ui.graphics.Color.Transparent, if (off) androidx.compose.animation.core.snap() else CmMotion.slow, label = "finished")
+                        Box((if (V3.day && r.group == Summary.Group.WAITING) Modifier.background(V3.WaitFill) else Modifier).bounceOnMove(i).onGloballyPositioned { c -> rowAt[name] = c.boundsInRoot().let { it.top to it.bottom } }.border(1.5.dp, edge)) {
+                            card(r, i == 0)
+                            if (name in workingNow && r.group == Summary.Group.WORKING) WorkEdgeLine(Modifier.align(Alignment.BottomCenter))
+                        } } } }
                     if (fin.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { V3Pill(stringResource(R.string.close_finished_n, fin.size)) { closeAsk = fin.map { x -> x.name } } }
                 }
             }

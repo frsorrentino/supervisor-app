@@ -441,7 +441,7 @@ class MainActivity : ComponentActivity() {
             }
             it.pixelbox.cmwatch.mobile.ui.PageIn { SettingsScreen(
                 host = host, phoneName = app.phoneName, watchName = r?.watchName, watchPending = r?.watchPending == true, demo = demo,
-                version = version,
+                version = version, commit = BuildConfig.GIT_COMMIT,
                 updateStatus = if (BuildConfig.SELF_UPDATE) updateStatus(updateUi) else null,
                 onCheckUpdate = if (BuildConfig.SELF_UPDATE) ({ app.updater.check(manual = true) }) else null,
                 devices = it.pixelbox.cmwatch.rules.SettingsDevices.build(
@@ -1563,6 +1563,7 @@ class MainActivity : ComponentActivity() {
                     onSpeak = { t -> speech.toggle(t) },
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
                     system = state?.system, ops = state?.ops,
+                    sheetOpen = masterHalf,
                     kpiPage = kpiPage, kpiState = state, kpiData = kpiData,
                     onBox = { b -> boxOpen = b },
                     // Contratto 1.95: «Plugin e skill»; l'elenco è una lettura passiva, gli aggiornamenti mostrano il testo del relay.

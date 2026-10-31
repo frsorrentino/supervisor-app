@@ -2,12 +2,18 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import android.provider.Settings
 import androidx.compose.animation.animateContentSize
-import androidx.compose.ui.Modifier
-import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -17,15 +23,18 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 private fun scheme(day: Boolean) = (if (day) lightColorScheme() else darkColorScheme()).copy(
     primary = V3.Act, onPrimary = V3.OnAct,
@@ -92,6 +101,82 @@ object CmMotion {
         dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
         stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
         visibilityThreshold = androidx.compose.ui.unit.IntOffset.VisibilityThreshold,
+    )
+
+    /** Veloce, per pressione e tasti: svelta e senza rimbalzo (voce 14, docs/plans/2026-10-31-animazioni-app.md). */
+    val fast = androidx.compose.animation.core.spring<Float>(
+        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+        stiffness = androidx.compose.animation.core.Spring.StiffnessMedium,
+    )
+
+    /**
+     * Spaziale, per il posto di una voce (Franz, 31/10 21:15: «aggiungiamo anche un po' di rimbalzo sui movimenti»): circa
+     * 5% di sforamento. Un solo stile: posizione e scala, mai colori, opacità, scorrimento automatico o dati dei push.
+     */
+    val bounce = androidx.compose.animation.core.spring<androidx.compose.ui.unit.IntOffset>(
+        dampingRatio = 0.7f,
+        stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
+        visibilityThreshold = androidx.compose.ui.unit.IntOffset.VisibilityThreshold,
+    )
+
+    /** La stessa molla di [bounce] per la scala e per gli scostamenti in pixel. */
+    val bounceFloat = androidx.compose.animation.core.spring<Float>(
+        dampingRatio = 0.7f,
+        stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
+    )
+
+    /** Lento, per colori e passaggi di sfondo: nessuno sforamento. */
+    val slow = androidx.compose.animation.core.spring<androidx.compose.ui.graphics.Color>(
+        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+        stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+    )
+}
+
+/**
+ * Una voce che cambia posto in una colonna normale, dove `animateItem` non arriva: scivola al posto nuovo con [CmMotion.bounce].
+ * Guarda l'indice e non la posizione: una card che si apre sopra sposta le altre senza farle rimbalzare.
+ */
+@Composable
+fun Modifier.bounceOnMove(index: Int): Modifier {
+    if (animationsOff()) return this
+    val shift = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+    val memo = androidx.compose.runtime.remember { floatArrayOf(Float.NaN, index.toFloat()) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    return this.then(
+        Modifier.placedY { y ->
+            val moved = !memo[0].isNaN() && memo[1] != index.toFloat() && memo[0] != y
+            if (moved) { val from = memo[0] - y; scope.launch { shift.snapTo(shift.value + from); shift.animateTo(0f, CmMotion.bounceFloat) } }
+            memo[0] = y; memo[1] = index.toFloat()
+        },
+    ).graphicsLayer { translationY = shift.value }
+}
+
+private fun Modifier.placedY(onY: (Float) -> Unit): Modifier =
+    this.then(Modifier.onPlaced { c -> onY(c.positionInParent().y) })
+
+/**
+ * Un lavoro approvato in corso (voce 1): una linea blu indeterminata sul bordo basso. Non avanza come una percentuale,
+ * perché il relay non la dà; con le animazioni spente resta ferma, così «in corso» si legge ancora.
+ */
+@Composable
+fun WorkEdgeLine(modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color = V3.Busy) {
+    val off = animationsOff()
+    val fadeIn = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (off) 1f else 0f) }
+    androidx.compose.runtime.LaunchedEffect(off) { if (!off) fadeIn.animateTo(1f, tween(200, easing = CmMotion.easing)) }
+    val at = if (off) 0f else androidx.compose.animation.core.rememberInfiniteTransition(label = "edge").animateFloat(
+        0f, 1f, androidx.compose.animation.core.infiniteRepeatable(tween(1600, easing = androidx.compose.animation.core.LinearEasing)), label = "edge-at",
+    ).value
+    Box(
+        modifier.fillMaxWidth().height(2.dp).drawBehind {
+            val a = fadeIn.value
+            drawRect(color.copy(alpha = 0.22f * a))
+            if (off) drawRect(color.copy(alpha = a))
+            else {
+                val w = size.width * 0.3f
+                val x = -w + (size.width + w) * at
+                drawRect(color.copy(alpha = a), topLeft = androidx.compose.ui.geometry.Offset(x, 0f), size = androidx.compose.ui.geometry.Size(w, size.height))
+            }
+        },
     )
 }
 

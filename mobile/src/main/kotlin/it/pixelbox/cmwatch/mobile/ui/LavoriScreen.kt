@@ -378,8 +378,9 @@ private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
         Lavori.Who.OTHERS -> a?.until?.let { runCatching { LocalDate.parse(it) }.getOrNull() }?.let { stringResource(R.string.lavori_until, dayMonth(it)) }
         else -> l.since?.let { since(it, today, zone) }
     }
+    Box(Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow)) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+        Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(Modifier.size(32.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
@@ -393,6 +394,8 @@ private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
             meta?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
         }
         right?.let { Text(it, style = MonoSmall.copy(fontSize = 12.sp), color = Cm.text2) }
+    }
+    if (l.who == Lavori.Who.WORKING) WorkEdgeLine(Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -493,7 +496,7 @@ internal fun Tonight(state: State, onAdd: () -> Unit, onRemove: (String) -> Unit
         }
         state.night.running?.let {
             Text(stringResource(R.string.night_running, it), color = Cm.busy, style = MaterialTheme.typography.bodyMedium)
-            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Cm.busy, trackColor = Cm.briefTrack)
+            WorkEdgeLine(color = Cm.busy)
         }
         if (items == null) Text(stringResource(R.string.night_update_pc), color = Cm.text2, style = MaterialTheme.typography.bodyMedium)
         items?.forEach { job ->

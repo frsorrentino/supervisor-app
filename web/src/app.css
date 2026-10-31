@@ -12,9 +12,30 @@
      d'accento #A8C7FA, tinta 273, croma 14; piatti, nessun effetto di luce (Celeste velato, Franz 06/10 21:15-22:27).
      --spring approssima la molla del pannello del telefono (CmMotion.panel): parte svelta e si posa senza rimbalzo. */
   --spring: linear(0, .1 3%, .35 9%, .62 17%, .82 27%, .93 38%, .98 52%, 1);
+  /* Tre valori condivisi, gli stessi di CmMotion (voce 14). Curve calcolate dalle molle del telefono, da usare con la durata accanto.
+     --spring-bounce è un solo stile di rimbalzo, circa 5%: posizione e scala, mai colori, opacità, scorrimento o dati (Franz, 31/10 21:15). */
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1);
+  --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1);
+  --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1);
+  --spring-slow-t: 500ms;
   color-scheme: light dark;
 }
 html.night-only { color-scheme: dark; }
+/* Riduzione delle animazioni: nessun rimbalzo, tempi brevi. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+}
+/* Voce 1: la linea del lavoro in corso. Non si riempie: il relay non sa quanto manca. */
+.edge-line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; pointer-events: none; background: color-mix(in srgb, var(--busy) 22%, transparent); animation: edge-in 200ms ease-out; }
+.edge-line::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 30%; background: var(--busy); animation: edge-run 1.6s linear infinite; }
+@keyframes edge-in { from { opacity: 0; } }
+@keyframes edge-run { from { transform: translateX(-100%); } to { transform: translateX(334%); } }
+@media (prefers-reduced-motion: reduce) {
+  .edge-line { animation: none; }
+  .edge-line::after { width: 100%; animation: none; }
+}
 /* Niente barre di scorrimento, come nell'app Android (Franz, 05/10 20:47): si scorre con dita, rotella e touchpad. */
 * { box-sizing: border-box; margin: 0; scrollbar-width: none; }
 *::-webkit-scrollbar { display: none; }

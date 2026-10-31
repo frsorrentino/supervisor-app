@@ -18,6 +18,8 @@
   import { homeGlyph } from './permissionModes'
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
+  import { bounceEase, bounceMs, finishScrollAllowed, reducedMotion } from './motion'
+  import { rows as commitmentRowsOf } from './commitments'
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
   import { cleanupOf } from './masterService'
   import { details as lavoriDetails, doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, place as lavoriPlace, shortTitle, type ForYou as LavoriRow } from './lavori'
@@ -256,6 +258,45 @@
   // Il riordino (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te in cima, in «Ti aspettano»; le altre in «Sessioni».
   const waitRows = $derived(groups.find(([g]) => g === 'waiting')?.[1] ?? [])
   const restGroups = $derived(groups.filter(([g]) => g !== 'waiting'))
+  // Una sola chiave per voce: quando una riga cambia gruppo scivola al posto nuovo invece di sparire e ricomparire.
+  const restFlat = $derived(restGroups.flatMap(([g, rows]) => rows.map(r => [r, g] as const)))
+  // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando il compito finisce la riga diventa verde per poco.
+  const workingNow = $derived(new Set(st.commitments != null ? commitmentRowsOf(st, now).filter(r => !r.yourTurn).map(r => r.c.session) : []))
+  let finishedNow = $state<string[]>([])
+  let prevWorking = new Set<string>()
+  const seenOnScreen = new Map<string, boolean>()
+  let fingerDown = false, lastTouch = 0, lastAuto = 0
+  const rowEl = (name: string) => document.querySelector<HTMLElement>(`.cw[data-row="${CSS.escape(name)}"]`)
+  const onScreen = (name: string) => { const b = rowEl(name)?.getBoundingClientRect(); return !!b && b.bottom > 0 && b.top < innerHeight }
+  $effect(() => {
+    const on = (e: Event) => { fingerDown = e.type === 'pointerdown' ? true : e.type === 'pointerup' || e.type === 'pointercancel' ? false : fingerDown; lastTouch = Date.now() }
+    const types = ['pointerdown', 'pointerup', 'pointercancel', 'wheel', 'scroll', 'touchmove']
+    types.forEach(x => addEventListener(x, on, { capture: true, passive: true }))
+    return () => types.forEach(x => removeEventListener(x, on, { capture: true }))
+  })
+  $effect(() => {
+    const cur = workingNow
+    const ended = [...prevWorking].filter(n => !cur.has(n))
+    const same = ended.length === 0 && [...cur].every(n => prevWorking.has(n))
+    if (same) return
+    cur.forEach(n => seenOnScreen.set(n, onScreen(n)))
+    prevWorking = new Set(cur)
+    const done = ended.filter(n => restFlat.some(([r, g]) => r.session.name === n && g !== 'working'))
+    if (!done.length) return
+    finishedNow = [...finishedNow, ...done]
+    setTimeout(() => { finishedNow = finishedNow.filter(n => !done.includes(n)) }, 6000)
+    setTimeout(() => {
+      const el = rowEl(done[0]); if (!el) return
+      const b = el.getBoundingClientRect()
+      const dist = b.top < 0 ? b.top : b.bottom > innerHeight ? b.bottom - innerHeight : 0
+      const ms = Date.now(), a = document.activeElement
+      if (reducedMotion() || !dist) return
+      if (finishScrollAllowed({ fingerDown, listMoving: false, sinceTouchMs: ms - lastTouch, wasOnScreen: seenOnScreen.get(done[0]) === true, writing: a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement, sheetOpen: !!document.querySelector('[role="dialog"]'), distancePx: dist, viewportPx: innerHeight, sinceLastMs: ms - lastAuto })) {
+        lastAuto = ms
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+    }, 650)
+  })
   // Al massimo un bottone pieno: «Fatto» della prima che ti aspetta, se la richiesta non si chiude da sola (correzione 2 del
   // 30/10); senza nessuna, il primo ok di un compito. Le risposte consigliate hanno il bordo chiaro, mai il pieno.
   const primary = $derived(waitRows[0]?.session.name ?? null)
@@ -403,7 +444,7 @@
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 {#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
   <div class="sec static" data-testid="home-sez-aspettano"><span class="ic"><span class="ms">pan_tool</span></span><span class="st">{t.homeWaiting}</span><small>{waitRows.length + looseOk.length}</small></div>
-  {#each waitRows as r (r.session.name)}<div class="cw" animate:flip={{ duration: 250 }}>{@render card(r, 'waiting')}</div>{/each}
+  {#each waitRows as r (r.session.name)}<div class="cw" animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
   <!-- Gli ok ai compiti senza una sessione aperta: aspettano te come le domande. -->
   {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
 {/if}
@@ -430,9 +471,7 @@
     <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
          intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
     <div class="list">
-      {#each restGroups as [group, rows] (group)}
-        {#each rows as r (r.session.name)}<div class="cw" animate:flip={{ duration: 250 }}>{@render card(r, group)}</div>{/each}
-      {/each}
+      {#each restFlat as [r, group] (r.session.name)}<div class="cw" class:finished={finishedNow.includes(r.session.name)} data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line"></span>{/if}</div>{/each}
     </div>
     {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   {/if}
@@ -1048,7 +1087,8 @@
   .dragg { position: fixed; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px 0 14px; border-radius: 16px; background: var(--s3); box-shadow: 0 6px 20px rgba(0, 0, 0, .35); pointer-events: none; }
   .dragg .ic { flex: 0 0 auto; }
   .sec.wait span, .sec.wait small { color: var(--wait); }
-  .cw { display: flex; flex-direction: column; }
+  .cw { position: relative; display: flex; flex-direction: column; box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow var(--spring-slow-t) var(--spring-slow); }
+  .cw.finished { box-shadow: inset 0 0 0 1.5px var(--good); }
   .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
   .meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .meta .tool { color: var(--busy); }

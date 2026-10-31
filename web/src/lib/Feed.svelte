@@ -1,5 +1,6 @@
 <script lang="ts">
   import { DAY } from './durations'
+  import { popOnChange } from './motion'
   import { locale } from './lang'
   import type { Session, StepDiff, TranscriptEntry, TranscriptFile } from './contract'
   import type { Load } from './diff'
@@ -234,7 +235,7 @@
       {#each it.sent.attachments ?? [] as a}<span class="att"><Icon name="file" size={16} />{a}</span>{/each}
       {#if it.sent.text}{@render bubble(it.sent.text, false)}{/if}
       <div class="mrow">
-        <span class="mark" style="color:{tone}"><Icon name={ic} size={16} color={tone} />{it.status === 'scheduled' ? t.chatStatus.scheduled(hm(it.sent.scheduledFor ?? it.sent.sentAt)) : t.chatStatus[it.status]('')}</span>
+        <span class="mark" style="color:{tone}"><span class="pop" use:popOnChange={it.status}><Icon name={ic} size={16} color={tone} /></span>{it.status === 'scheduled' ? t.chatStatus.scheduled(hm(it.sent.scheduledFor ?? it.sent.sentAt)) : t.chatStatus[it.status]('')}</span>
         {#if it.status !== 'scheduled'}<span class="time">{hm(it.sent.sentAt)}</span>{/if}
         <button class="sm" aria-label={t.copy} title={t.copy} onclick={() => copy(it.sent.text)}><Icon name="copy" /></button>
       </div>
@@ -297,6 +298,7 @@
   .bubble { background: var(--high); border-radius: 20px 20px 6px 20px; padding: 12px 16px; font-size: 16px; letter-spacing: .03em; max-width: 760px; }
   .bubble.low { background: var(--surface); }
   .mrow { display: flex; align-items: center; gap: 2px; }
+  .pop { display: inline-flex; }
   .mark { display: flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 500; }
   .time { font-size: 12.5px; color: var(--text2); padding: 0 4px; font-weight: 500; }
   .meta { font-size: 12.5px; color: var(--text2); font-weight: 500; }

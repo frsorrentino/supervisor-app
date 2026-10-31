@@ -1836,7 +1836,20 @@ private fun StatusMark(st: ChatRules.Status, scheduledFor: Long? = null) {
     }
     val text = if (st == ChatRules.Status.SCHEDULED && scheduledFor != null) stringResource(label, hhmm(scheduledFor)) else stringResource(label)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
+        // Voce 3: si vede che il tocco è stato preso. Scala con rimbalzo, dissolvenza senza; alla prima composizione niente.
+        val off = animationsOff()
+        val scale = remember { androidx.compose.animation.core.Animatable(1f) }
+        val fade = remember { androidx.compose.animation.core.Animatable(1f) }
+        val seen = remember { arrayOf(st) }
+        LaunchedEffect(st) {
+            if (seen[0] != st && !off) {
+                seen[0] = st
+                scale.snapTo(0.9f); fade.snapTo(0.3f)
+                launch { fade.animateTo(1f, androidx.compose.animation.core.tween(180, easing = CmMotion.easing)) }
+                scale.animateTo(1f, CmMotion.bounceFloat)
+            } else seen[0] = st
+        }
+        Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp).graphicsLayer { scaleX = scale.value; scaleY = scale.value; alpha = fade.value })
         Text(text, style = MaterialTheme.typography.labelMedium, color = tint)
     }
 }

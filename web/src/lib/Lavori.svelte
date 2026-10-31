@@ -112,6 +112,7 @@
     <span class="ic" style="--t:{tone}"><Icon name={l.who === 'working' ? 'play' : l.who === 'you' ? 'user' : 'hourglass'} size={16} color={tone} /></span>
     <span class="t"><span class="tt"><b>{l.short}</b>{#if l.n > 1}<span class="tag" style:color={tone}>{t.lavoriNTasks(l.n)}</span>{/if}</span>{#if lineMeta(l)}<small>{lineMeta(l)}</small>{/if}</span>
     {#if lineRight(l)}<span class="when">{lineRight(l)}</span>{/if}
+  {#if l.who === 'working'}<span class="edge-line"></span>{/if}
   </div>
 {/snippet}
 {#snippet gantt(l: Line)}
@@ -262,7 +263,7 @@
   .card { display: flex; flex-direction: column; gap: 4px; padding: 14px; }
   .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; letter-spacing: 0; }
   .seg button { height: 32px; padding: 0 14px; color: var(--text2); font: 500 13px/1 var(--sans, inherit); } .seg button + button { border-left: 1px solid var(--line); } .seg button.on { background: color-mix(in srgb, var(--icon) 16%, transparent); color: var(--text); }
-  .wl { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; background: var(--low); border-radius: 16px; }
+  .wl { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; background: var(--low); border-radius: 16px; }
   .ic { flex: none; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--t) 18%, transparent); display: flex; align-items: center; justify-content: center; }
   .wl .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .tt { display: flex; align-items: center; gap: 8px; min-width: 0; } .tt b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; }
   .wl small { color: var(--text2); font-size: 13px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

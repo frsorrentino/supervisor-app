@@ -1,6 +1,6 @@
-# Animazioni dell'app: proposta
+# Animazioni dell'app
 
-Compito `app-animazioni-proposta-31-10`. Solo proposta: nessun codice. Franz sceglie l'elenco, la costruzione è un compito a parte.
+Tutte approvate: Franz, 31/10 21:34, dopo aver letto le 15 voci: «Approvate tutte». Compiti `app-animazioni-31-10` e `app-animazioni-resto-31-10`.
 
 Riferimento: `video-supervisor/docs/plans/micro-prove/stile-scuro-lavori.mp4`, da 5,33 s a 10 s. Dopo l'ok una barra blu avanza sul bordo basso della card; a lavoro finito la card diventa verde, la pagina scorre e la card atterra in Done.
 
@@ -8,7 +8,7 @@ Criterio per ogni riga: quante volte al giorno si vede, a cosa serve, se resta s
 
 ## Proposte
 
-Tempi e curve: «uscita» è `cubic-bezier(0.23, 1, 0.32, 1)`, in Compose `CubicBezierEasing`; «molla» è senza rimbalzo, `Spring.DampingRatioNoBouncy`, come `moving` in `SummaryList.kt`. Costo su telefono e web insieme: S mezza giornata, M una giornata, L più giorni.
+Tempi e curve: «uscita» è `cubic-bezier(0.23, 1, 0.32, 1)`, in Compose `CubicBezierEasing`; «molla» è `CmMotion.bounce` su telefono (dampingRatio 0,7, `StiffnessMediumLow`, circa 5% di sforamento) e `--spring-bounce` sul web, su posizione e scala: Franz, 31/10 21:15: «ok per le animazioni, aggiungiamo anche un po' di rimbalzo sui movimenti?». Mai su colori, opacità, linea blu, scorrimento automatico, dati dei push. Il pannello della master resta senza rimbalzo: `CmMotion.panel` e `--spring` non si toccano (Franz, 03/10 17:12). Costo su telefono e web insieme: S mezza giornata, M una giornata, L più giorni.
 
 | # | Azione | Dove | Cosa si muove | Durata e curva | Perché serve | Costo |
 |---|---|---|---|---|---|---|
@@ -48,7 +48,8 @@ Altrimenti la card diventa verde dove si trova e basta. Se Franz tocca la lista 
 - **Le azioni ripetute:** apertura della ricerca, invio di un messaggio normale, cambio di scheda frequente, tastiera, apertura di una sessione più volte al minuto. Solo la pressione (6), mai una transizione che fa aspettare.
 - **Grafici di Utilizzo:** niente disegno progressivo, sono da leggere.
 - **I testi della chat in arrivo:** niente comparsa a cascata oltre a quella che c'è già all'apertura (`cascadeIn`, `SessionSheet.kt:1582`).
-- **Rimbalzi** su ciò che non è stato lanciato dal dito, e **ritardi** che bloccano un tocco: ogni animazione si interrompe e il tocco vale subito.
+- **Rimbalzi** fuori da posizione e scala. Il rimbalzo su ciò che non è lanciato dal dito è una scelta di Franz (31/10 21:15: «aggiungiamo anche un po' di rimbalzo sui movimenti»), con un solo stile e con la riduzione delle animazioni che lo toglie.
+- **Ritardi** che bloccano un tocco: ogni animazione si interrompe e il tocco vale subito.
 - **I colori di stato** non diventano decorazione: restano ambra, blu, verde, rosso con i loro significati.
 
 ## Riduzione delle animazioni
@@ -79,4 +80,4 @@ Le altre dopo averle viste al polso e al telefono.
 
 ## Secondo giro: le proposte da 11 a 15
 
-Aggiunte il 31/10 alle 21:27, da un prompt di un'altra IA valutato lo stesso giorno. Franz: «Aggiungi le cinque all'elenco». Sono proposte, non lavori approvati: si scelgono dopo la prova delle prime tre. La 14 viene per prima, perché la 11 e la 12 ne usano i valori.
+Aggiunte il 31/10 alle 21:27, da un prompt di un'altra IA valutato lo stesso giorno. Franz: «Aggiungi le cinque all'elenco». Tutte approvate (Franz, 31/10 21:34: «Approvate tutte»): si scelgono dopo la prova delle prime tre. La 14 viene per prima, perché la 11 e la 12 ne usano i valori.
