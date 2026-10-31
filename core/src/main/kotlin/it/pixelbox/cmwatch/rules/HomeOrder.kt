@@ -5,12 +5,23 @@ package it.pixelbox.cmwatch.rules
  * unico sul relay, `state.home_order`. Tabellone e «Ti aspettano» non hanno chiave: restano fissi in cima.
  */
 object HomeOrder {
-    val DEFAULT = listOf("sessions", "suggestions", "lavori", "esiti", "altro")
+    /** Le righe separabili (Franz 31/10 15:50) sostituiscono `altro`. */
+    val ROWS = listOf("usage", "system", "plugins", "closed")
+    val DEFAULT = listOf("sessions", "suggestions", "lavori", "esiti") + ROWS
 
     /** Le chiavi sconosciute si ignorano e le mancanti si accodano, così una sezione nuova non chiede una release del relay. */
     fun normalize(saved: List<String>?): List<String> {
-        val known = saved.orEmpty().filter { it in DEFAULT }.distinct()
+        // Un ordine salvato prima della separazione: `altro` si espande al suo posto.
+        val known = saved.orEmpty().flatMap { if (it == "altro") ROWS else listOf(it) }.filter { it in DEFAULT }.distinct()
         return known + DEFAULT.filter { it !in known }
+    }
+
+    /** Le righe contigue stanno nella stessa card; una sezione o una riga separata fa gruppo da sola. */
+    fun groups(order: List<String>): List<List<String>> = buildList {
+        order.forEach { k ->
+            val last = lastOrNull()
+            if (k in ROWS && last != null && last.first() in ROWS) set(lastIndex, last + k) else add(listOf(k))
+        }
     }
 
     /** Sposta la voce `from` al posto `to`; fuori dai limiti la lista resta com'è. */

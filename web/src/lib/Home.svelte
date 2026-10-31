@@ -43,7 +43,7 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
-  import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, type HomeSection } from './homeOrder'
+  import { DEFAULT_ORDER, dragTarget, groups as orderGroups, normalize as normalizeOrder, ROWS, orderArg, type HomeSection } from './homeOrder'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
 
@@ -127,7 +127,7 @@
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
   // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
-  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, altro: { icon: 'data_usage', name: t.reorderTools } })
+  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed } })
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
@@ -186,7 +186,7 @@
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
     if (!cancel && o.join() !== order.join()) { sentOrder = { from: savedKey, order: o }; onHomeOrder?.(orderArg(o)) }
   }
-  const altroDrag = $derived(onHomeOrder && !part ? { onpointerdown: (e: PointerEvent) => secDown('altro', e), oncontextmenu: (e: Event) => e.preventDefault() } : {})
+  const rowDrag = (k: HomeSection) => (onHomeOrder && !part ? { onpointerdown: (e: PointerEvent) => secDown(k, e), oncontextmenu: (e: Event) => e.preventDefault() } : {})
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
   $effect(() => {
@@ -516,8 +516,9 @@
   {/if}
 {/if}
 {/snippet}
-{#snippet secAltro()}
-  {#if (!part || part === 'tools') && ((usage && showUsage) || sys || (pluginsLoad && pluginsRun) || model.closed.length)}
+{#snippet secRows(rows: HomeSection[])}
+  {@const shownRows = rows.filter(k => k === 'usage' ? !!(usage && showUsage && !part) : k === 'system' ? !!sys : k === 'plugins' ? !!(pluginsLoad && pluginsRun) : model.closed.length > 0)}
+  {#if !part || part === 'tools'}
     <!-- «Altro» (stile «Studio e Diretta», 30/10): Utilizzo, Sistema, Plugin e skill e Chiuse come righe di una lista, col
          numero in vista; il tocco apre la riga sul posto, Chiuse apre l'elenco. La Notte sta nei Lavori. -->
     <!-- Nella plancia Utilizzo sta aperto in cima alla colonna col suo grafico (pwa2, 30/10); in «Altro» il resto. -->
@@ -526,15 +527,16 @@
       <div class="card wrows altro"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
     {/if}
     <!-- Senza testata (Franz 30/10 21:05): il margine lo tiene staccato dalla sezione di prima. -->
-    <div class="card wrows altro detached" data-sec-head="altro">
-      {#if usage && showUsage && !part}
+    <!-- Le righe contigue in una card sola (Franz 31/10 15:50): ognuna si sposta da sé. -->
+    {#if shownRows.length}<div class="card wrows altro detached">
+      {#each shownRows as k (k)}<div class="arow" class:held={k === dragKey} data-sec-head={k}>
+      {#if k === 'usage'}
         <div bind:this={usageEl}>
-          <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...altroDrag} aria-expanded={open.usage} onclick={() => toggleSec('usage')}><span class="wic"><span class="ms">data_usage</span></span><span class="otext"><b>{t.homeUsage}</b></span>{#if usageLine && !open.usage}<span class="mono">{usageLine}</span>{/if}<span class="ms tog">{open.usage ? 'expand_less' : 'expand_more'}</span></button>
+          <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...rowDrag('usage')} aria-expanded={open.usage} onclick={() => toggleSec('usage')}><span class="wic"><span class="ms">data_usage</span></span><span class="otext"><b>{t.homeUsage}</b></span>{#if usageLine && !open.usage}<span class="mono">{usageLine}</span>{/if}<span class="ms tog">{open.usage ? 'expand_less' : 'expand_more'}</span></button>
         </div>
         {#if open.usage}{@render (usageBlock ?? usage)()}{/if}
-      {/if}
-      {#if sys}
-        <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...altroDrag} aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}><span class="wic"><span class="ms">memory</span></span><span class="otext"><b>{t.homeSystem}</b></span>{#if !sysOpen}<span class="mono"><b class="sysdot" style:background={SYS_TONE[sys.level]}></b>{summaryLine(sys, lang)}</span>{/if}<span class="ms tog">{sysOpen ? 'expand_less' : 'expand_more'}</span></button>
+      {:else if k === 'system' && sys}
+        <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...rowDrag('system')} aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}><span class="wic"><span class="ms">memory</span></span><span class="otext"><b>{t.homeSystem}</b></span>{#if !sysOpen}<span class="mono"><b class="sysdot" style:background={SYS_TONE[sys.level]}></b>{summaryLine(sys, lang)}</span>{/if}<span class="ms tog">{sysOpen ? 'expand_less' : 'expand_more'}</span></button>
         {#if sysOpen}
           <div class="exp sys" data-testid="system_advice">
       <div class="kv sysm">
@@ -567,18 +569,19 @@
           </div>
           {#if kpiData?.kpi_health}<div class="exp"><Kpi12 h={kpiData.kpi_health} /></div>{/if}
         {/if}
-      {/if}
-      {#if pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} rowDrag={altroDrag} />{/if}
-      {#if model.closed.length}
+      {:else if k === 'plugins' && pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} rowDrag={rowDrag('plugins')} />
+      {:else if k === 'closed'}
         <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
-        <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...altroDrag} onclick={() => closedDlg?.showModal()}><span class="wic"><span class="ms">inventory_2</span></span><span class="otext"><b>{t.catClosed}</b></span><span class="mono">{model.closed.length}</span><span class="ms chevr">chevron_right</span></button>
+        <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...rowDrag('closed')} onclick={() => closedDlg?.showModal()}><span class="wic"><span class="ms">inventory_2</span></span><span class="otext"><b>{t.catClosed}</b></span><span class="mono">{model.closed.length}</span><span class="ms chevr">chevron_right</span></button>
       {/if}
-    </div>
+      </div>{/each}
+    </div>{/if}
   {/if}
 {/snippet}
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
-{#each dragOrder ?? order as k (k)}
-  <div class="hsec" class:held={k === dragKey}>{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else}{@render secAltro()}{/if}</div>
+{#each orderGroups(dragOrder ?? order) as g (g.join())}
+  {@const k = g[0]}
+  <div class="hsec" class:held={k === dragKey && !ROWS.includes(k)}>{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else}{@render secRows(g)}{/if}</div>
 {/each}
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
   {#if dragKey && dragGhost}
@@ -1042,6 +1045,9 @@
   .hsec > :global(*) { flex-shrink: 0; }
   .hsec:empty { display: none; }
   .hsec.held { opacity: .35; }
+  .arow.held { opacity: .35; }
+  .arow:not(:first-child) .wrow.orow { border-top: 1px solid var(--line); }
+  .arow:first-child :global(.prow) { border-top: 0; }
   .orow.draggable { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
   .dragg { position: fixed; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px 0 14px; border-radius: 16px; background: var(--s3); box-shadow: 0 6px 20px rgba(0, 0, 0, .35); pointer-events: none; }
   .dragg .ic { flex: 0 0 auto; }

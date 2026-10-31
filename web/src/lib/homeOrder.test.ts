@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_ORDER, dragTarget, move, normalize, orderArg, type HomeSection } from './homeOrder'
+import { DEFAULT_ORDER, dragTarget, groups, move, normalize, orderArg, type HomeSection } from './homeOrder'
 
 describe('homeOrder', () => {
   it('senza un ordine salvato, il predefinito', () => {
@@ -7,15 +7,15 @@ describe('homeOrder', () => {
     expect(normalize([])).toEqual(DEFAULT_ORDER)
   })
   it('ignora sconosciute e doppie, accoda le mancanti', () => {
-    expect(normalize(['esiti', 'nuova', 'esiti', 'sessions'])).toEqual(['esiti', 'sessions', 'suggestions', 'lavori', 'altro'])
+    expect(normalize(['esiti', 'nuova', 'esiti', 'sessions'])).toEqual(['esiti', 'sessions', 'suggestions', 'lavori', 'usage', 'system', 'plugins', 'closed'])
   })
   it('sposta e sposta le altre', () => {
-    expect(move(DEFAULT_ORDER, 0, 2)).toEqual(['suggestions', 'lavori', 'sessions', 'esiti', 'altro'])
+    expect(move(DEFAULT_ORDER, 0, 2)).toEqual(['suggestions', 'lavori', 'sessions', 'esiti', 'usage', 'system', 'plugins', 'closed'])
     expect(move(DEFAULT_ORDER, 0, 9)).toEqual(DEFAULT_ORDER)
   })
   it("l'arg è un array JSON, null per il predefinito", () => {
     expect(orderArg(DEFAULT_ORDER)).toBeNull()
-    expect(orderArg(['esiti', 'sessions', 'suggestions', 'lavori', 'altro'])).toBe('["esiti","sessions","suggestions","lavori","altro"]')
+    expect(orderArg(['esiti', 'sessions', 'suggestions', 'lavori', 'usage', 'system', 'plugins', 'closed'])).toBe('["esiti","sessions","suggestions","lavori","usage","system","plugins","closed"]')
   })
 })
 
@@ -34,5 +34,17 @@ describe('trascinamento sul posto', () => {
   it('dopo lo scambio resta ferma', () => {
     const s: HomeSection[] = ['lavori', 'sessions', 'esiti']
     expect(dragTarget(s, 'sessions', 91, { lavori: 40, sessions: 140, esiti: 260 })).toEqual(s)
+  })
+})
+
+describe('righe separabili (Franz 31/10 15:50)', () => {
+  it('in un ordine già salvato «altro» si espande al suo posto', () => {
+    expect(normalize(['altro', 'sessions', 'suggestions', 'lavori', 'esiti'])).toEqual(['usage', 'system', 'plugins', 'closed', 'sessions', 'suggestions', 'lavori', 'esiti'])
+  })
+  it('le righe già separate restano dove sono, e le mancanti si accodano', () => {
+    expect(normalize(['system', 'sessions', 'usage'])).toEqual(['system', 'sessions', 'usage', 'suggestions', 'lavori', 'esiti', 'plugins', 'closed'])
+  })
+  it('le righe contigue stanno in una card, una separata nella sua', () => {
+    expect(groups(['usage', 'system', 'sessions', 'plugins', 'esiti', 'closed'])).toEqual([['usage', 'system'], ['sessions'], ['plugins'], ['esiti'], ['closed']])
   })
 })

@@ -208,7 +208,7 @@ fun SummaryList(
     val dragZones = remember { mutableMapOf<String, Pair<String, androidx.compose.ui.layout.LayoutCoordinates>>() }
     val dragPresent = remember { mutableSetOf<String>() }
     var dragBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
-    fun sectionDrag(key: String, zone: String = key): Modifier = if (onHomeOrder == null) Modifier else Modifier.onGloballyPositioned { dragZones[zone] = key to it }
+    fun sectionDrag(key: String): Modifier = if (onHomeOrder == null) Modifier else Modifier.onGloballyPositioned { dragZones[key] = key to it }
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura. File nuovo col
@@ -269,14 +269,13 @@ fun SummaryList(
         )
     }
     val movingIn: (String) -> @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { sec ->
-        { moving().graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f } }
+        // La voce presa non scivola: al suo posto c'è già la copia che segue il dito, e scivolando passerebbe sopra le altre.
+        { (if (dragKey == sec) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null) else moving()).graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f } }
     }
     val dragEdge = with(androidx.compose.ui.platform.LocalDensity.current) { 72.dp.toPx() }
-    val dragHead = with(androidx.compose.ui.platform.LocalDensity.current) { 48.dp.toPx() }
     // Vicino ai bordi la lista scorre da sola: il dito è consumato prima che arrivi alla lista, quindi i due scorrimenti non litigano.
     androidx.compose.runtime.LaunchedEffect(dragKey) {
         val held = dragKey ?: return@LaunchedEffect
-        val heads = mapOf("sec-sessions" to "sessions", "sec-suggestions" to "suggestions", "sec-lavori" to "lavori", "sec-esiti" to "esiti", "sec-usage" to "altro")
         var last = 0L
         while (true) {
             val t = androidx.compose.runtime.withFrameNanos { it }
@@ -290,7 +289,9 @@ fun SummaryList(
             if (v != 0f) listState.scrollBy(v)
             val o = dragOrder ?: continue
             if (t - last < 120_000_000L) continue
-            val mids = listState.layoutInfo.visibleItemsInfo.mapNotNull { i -> heads[i.key]?.let { k -> k to i.offset + minOf(i.size.toFloat(), dragHead) / 2 } }.toMap()
+            // Ogni voce ha la sua zona: la testata di una sezione o la riga di una card, anche con più righe nello stesso elemento.
+            val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
+            val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
             val next = it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, dragPresent.toSet())
             if (next != o) { dragOrder = next; last = t }
         }
@@ -503,37 +504,39 @@ fun SummaryList(
             }
         }
         }
-        val renderAltro: () -> Unit = {
-        val moving = movingIn("altro")
+        val renderRows: (List<String>) -> Unit = { keys ->
         // «Altro»: Utilizzo, Sistema, Plugin e skill e Chiuse come righe di una lista, col numero in vista; il tocco apre sul posto.
         val hasUsage = usage != null && showUsage
         val hasPlugins = plugins != null && onPluginsLoad != null && onPluginCmd != null
-        if (hasUsage || system != null || hasPlugins || closedGroup != null) {
+        // Le righe contigue in una card sola (Franz 31/10 15:50): ognuna si sposta da sé e chi la incrocia passa tra l'una e l'altra.
+        val shownRows = keys.filter { k -> when (k) { "usage" -> hasUsage; "system" -> system != null; "plugins" -> hasPlugins; else -> closedGroup != null } }
+        if (shownRows.isNotEmpty()) {
             // Senza testata (Franz 30/10 21:05): il margine lo tiene staccato dalla sezione di prima.
-            dragPresent += "altro"
-            item(key = "sec-usage") {
+            dragPresent += shownRows
+            item(key = if ("usage" in shownRows) "sec-usage" else "rows-${shownRows.first()}") {
                 val rowIcon = @Composable { v: androidx.compose.ui.graphics.vector.ImageVector -> Icon(v, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
                 val toggle = @Composable { o: Boolean -> Icon(if (o) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3) }
                 Box(moving().padding(top = 14.dp)) {
                     V3List {
                         var first = true
-                        if (hasUsage) {
+                        shownRows.forEach { rowKey -> androidx.compose.runtime.key(rowKey) { Column(Modifier.graphicsLayer { alpha = if (dragKey == rowKey) 0.35f else 1f }) { when (rowKey) {
+                        "usage" -> {
                             val weeks = kpiState?.quota.orEmpty().filter { (_, q) -> !q.stale && q.w7 != null }.entries
                             val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "$a ${q.w7}%" }
                             V3Row(first, { usageOpen = !usageOpen; save("usage", usageOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.DataUsage) }, {
                                 toggle(usageOpen)
-                            }, zone = sectionDrag("altro", "altro-usage"), meter = { if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
+                            }, zone = sectionDrag("usage"), meter = { if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
                             first = false
                             if (usageOpen) {
                                 usage!!()
                             }
                         }
                         // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
-                        system?.let { sys ->
+                        "system" -> system?.let { sys ->
                             val sysOpen = SystemRules.isOpen(sys.level, sysManual)
                             V3Row(first, { sysManual = SystemRules.Manual(sys.level, !sysOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Memory) }, {
                                 toggle(sysOpen)
-                            }, zone = sectionDrag("altro", "altro-system"), meter = {
+                            }, zone = sectionDrag("system"), meter = {
                                 if (!sysOpen) {
                                     Box(Modifier.padding(end = 6.dp).size(7.dp).clip(CircleShape).background(systemTone(sys.level)))
                                     Text(systemSummary(sys), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End)
@@ -543,21 +546,22 @@ fun SummaryList(
                             if (sysOpen) Column(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } }
                         }
                         // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
-                        if (hasPlugins) {
+                        "plugins" -> {
                             val runnerState = pluginsRunner?.state?.collectAsState()?.value
                             val n = it.pixelbox.cmwatch.rules.Plugins.pending(runnerState?.page, plugins!!)
                             V3Row(first, { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Extension) }, {
                                 toggle(pluginsOpen)
-                            }, zone = sectionDrag("altro", "altro-plugins"), meter = { if (!pluginsOpen) Text(if (n > 0) pluralStringResource(R.plurals.plugins_to_update, n, n) else stringResource(R.string.plugins_up_to_date), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
+                            }, zone = sectionDrag("plugins"), meter = { if (!pluginsOpen) Text(if (n > 0) pluralStringResource(R.plurals.plugins_to_update, n, n) else stringResource(R.string.plugins_up_to_date), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
                             first = false
                             if (pluginsOpen) Box(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) { PluginsCard(plugins, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
                         }
-                        closedGroup?.let { g ->
+                        else -> closedGroup?.let { g ->
                             V3Row(first, onClosed, { rowIcon(Icons.Rounded.Inventory2) }, {
                                 Text(g.closed.size.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
                                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3)
-                            }, zone = sectionDrag("altro", "altro-closed")) { Text(stringResource(R.string.cat_closed), style = V3.Name) }
+                            }, zone = sectionDrag("closed")) { Text(stringResource(R.string.cat_closed), style = V3.Name) }
                         }
+                        } } } }
                     }
                 }
             }
@@ -565,13 +569,13 @@ fun SummaryList(
         }
         // L'ordine scelto da Franz (Impostazioni › Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra.
         dragPresent.clear()
-        (dragOrder ?: homeOrder).forEach { k ->
-            when (k) {
+        it.pixelbox.cmwatch.rules.HomeOrder.groups(dragOrder ?: homeOrder).forEach { g ->
+            when (g.first()) {
                 "sessions" -> renderSessions()
                 "suggestions" -> renderSuggestions()
                 "lavori" -> renderLavori()
                 "esiti" -> renderEsiti()
-                "altro" -> renderAltro()
+                else -> renderRows(g)
             }
         }
         footer?.let { f -> item(key = "footer") { f() } }
