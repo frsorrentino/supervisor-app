@@ -214,6 +214,10 @@ fun SummaryList(
     var dragKey by remember { mutableStateOf<String?>(null) }
     var dragY by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     var dragGhostShift by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    var ghostFly by remember { mutableStateOf<String?>(null) }
+    val ghostY = remember { androidx.compose.animation.core.Animatable(0f) }
+    val ghostScope = androidx.compose.runtime.rememberCoroutineScope()
+    val flightOff = animationsOff()
     val dragZones = remember { mutableMapOf<String, Pair<String, androidx.compose.ui.layout.LayoutCoordinates>>() }
     val dragPresent = remember { mutableSetOf<String>() }
     var dragBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
@@ -299,7 +303,7 @@ fun SummaryList(
             val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
             val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
             val next = it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, dragPresent.toSet())
-            if (next != o) { dragOrder = next; last = t }
+            if (next != o) { dragOrder = next; last = t; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) }
         }
     }
     Box(if (onHomeOrder == null) Modifier else Modifier.onGloballyPositioned { dragBox = it }.pointerInput(Unit) {
@@ -332,6 +336,13 @@ fun SummaryList(
                 }
             } finally {
                 val o = dragOrder
+                // Voce 8: la copia del titolo vola al posto finale invece di sparire di colpo.
+                val landing = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "sec-$key" }?.offset?.toFloat()
+                if (commit && landing != null && !flightOff) {
+                    val from = dragY + dragGhostShift
+                    ghostFly = key
+                    ghostScope.launch { ghostY.snapTo(from); ghostY.animateTo(landing, CmMotion.bounceFloat); ghostFly = null }
+                }
                 dragOrder = null; dragKey = null
                 if (commit && o != null && o != shownOrder) { sentOrder = o; saveOrder?.invoke(o) }
             }
@@ -339,6 +350,15 @@ fun SummaryList(
     }) {
     // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando il compito finisce la riga diventa verde per poco.
     val workingNow = androidx.compose.runtime.remember(kpiState, now) { kpiState?.let { st -> it.pixelbox.cmwatch.rules.Commitments.rows(st, now).filter { r -> !r.yourTurn }.mapNotNull { r -> r.c.session }.toSet() }.orEmpty() }
+    val seenWait = androidx.compose.runtime.remember { mutableSetOf<Any>() }
+    // Voce 10: la spunta solo alla transizione, da qualcuno che aspetta a nessuno.
+    val waitN = model.rows.count { it.group == Summary.Group.WAITING }
+    val lastWait = androidx.compose.runtime.remember { intArrayOf(waitN) }
+    var allDone by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(waitN) {
+        val was = lastWait[0]; lastWait[0] = waitN
+        if (was > 0 && waitN == 0 && !off) { allDone = true; kotlinx.coroutines.delay(2_500); allDone = false }
+    }
     val finishedNow = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateListOf<String>() }
     val rowAt = androidx.compose.runtime.remember { HashMap<String, Pair<Float, Float>>() }
     val wasWorking = androidx.compose.runtime.remember { mutableSetOf<String>() }
@@ -422,11 +442,12 @@ fun SummaryList(
                 doneFilled = s.name == primary && s.needsYou?.until != true, lastRed = lastRed[s.name], firstInList = first,
             )
         }
+        if (allDone) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
         if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
             item(key = "sec-waiting") { Box(moving()) { V3Section(stringResource(R.string.home_waiting), androidx.compose.material.icons.Icons.Outlined.PanTool, (waitRows.size + looseOk.size).toString(), tag = "home-sez-aspettano") } }
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
             val keys = uniqueKeys(waitRows) { "s-" + it.session.id }
-            items(waitRows.size, key = { keys[it] }) { i -> Box(moving()) { card(waitRows[i], true) } }
+            items(waitRows.size, key = { keys[it] }) { i -> Box(moving().growIn(seenWait.isNotEmpty() && keys[i] !in seenWait)) { androidx.compose.runtime.SideEffect { seenWait += keys[i] }; card(waitRows[i], true) } }
             looseOk.forEachIndexed { i, r ->
                 val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
                 item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
@@ -621,6 +642,7 @@ fun SummaryList(
         footer?.let { f -> item(key = "footer") { f() } }
     }
     dragKey?.let { k -> HomeDragGhost(k, Modifier.offset { androidx.compose.ui.unit.IntOffset(0, (dragY + dragGhostShift).toInt()) }) }
+    if (dragKey == null) ghostFly?.let { k -> HomeDragGhost(k, Modifier.offset { androidx.compose.ui.unit.IntOffset(0, ghostY.value.toInt()) }) }
     }
 }
 

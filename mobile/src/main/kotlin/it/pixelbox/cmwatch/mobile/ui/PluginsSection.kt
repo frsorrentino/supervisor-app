@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -120,10 +121,16 @@ internal fun PluginsCard(
                 notes[a.account]?.let { n -> Note(n.text?.let { t -> t + if (n.ok) " · " + stringResource(R.string.plugins_new_sessions) else "" } ?: stringResource(R.string.plugins_no_answer), n.ok) }
             }
         }
-        if (st.all) Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp).testTag("plugins_updating_all"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Voce 4: niente salto fra tasto, attesa ed esito.
+        val motionOff = animationsOff()
+        androidx.compose.animation.AnimatedContent(if (st.all) 0 else if (asking) 1 else 2, Modifier.fillMaxWidth(), transitionSpec = {
+            if (motionOff) androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
+            else (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200, easing = CmMotion.easing)) + androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(200, easing = CmMotion.easing), initialScale = 0.96f)) togetherWith androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
+        }, label = "plugins-all") { mode ->
+        if (mode == 0) Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp).testTag("plugins_updating_all"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), color = Cm.actionIcon, strokeWidth = 2.dp)
             Text(stringResource(R.string.plugins_updating_all), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
-        } else if (asking) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(horizontal = 4.dp)) {
+        } else if (mode == 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(horizontal = 4.dp)) {
             Text(pluralString(R.plurals.plugins_confirm, count), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.fillMaxWidth())
             TextButton(onClick = { asking = false }) { Text(stringResource(R.string.plugins_keep), color = Cm.actionIcon) }
             Button(
@@ -135,6 +142,7 @@ internal fun PluginsCard(
             Text(checked?.let { stringResource(R.string.plugins_checked, hm.format(java.time.Instant.ofEpochSecond(it))) } ?: stringResource(R.string.plugins_never_checked), style = MonoSmall, color = Cm.text2)
             TextButton(onClick = { r.act("check", CmdOp.PLUGIN_CHECK, null, "_check") }) { Text(stringResource(R.string.plugins_check), color = Cm.actionIcon) }
             if (count > 0) Button(onClick = { asking = true }, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(stringResource(R.string.plugins_update_all, count)) }
+        }
         }
         notes["_check"]?.let { n -> Note(n.text ?: stringResource(R.string.plugins_no_answer), n.ok) }
     }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { reducedMotion } from './motion'
   import { locale } from './lang'
   import type { Snippet } from 'svelte'
   import type { Session } from './contract'
@@ -42,16 +43,19 @@
   // screenY e non clientY: dentro Studio il riquadro si sposta col dito, e le coordinate della pagina con lui.
   let y0: number | null = null
   let dragged = false
+  let pull = $state(0)
   function down(e: PointerEvent) { y0 = e.screenY; dragged = false; if (onDrag) (e.currentTarget as Element).setPointerCapture?.(e.pointerId) }
   function move(e: PointerEvent) {
-    if (y0 == null || !onDrag) return
+    if (y0 == null) return
     const dy = e.screenY - y0
+    // Voce 9: la barra segue il dito 1:1; senza rimbalzo.
+    if (!onDrag) { pull = reducedMotion() ? 0 : expanded ? Math.max(0, dy) : Math.min(0, dy); return }
     if (Math.abs(dy) > 8) { dragged = true; onDrag(dy) }
   }
   function release(e: PointerEvent) {
     if (y0 == null) return
     const dy = e.screenY - y0
-    y0 = null
+    y0 = null; pull = 0
     if (onDrop) { if (dragged) onDrop(dy); return }
     if ((dy < -40 && !expanded) || (dy > 40 && expanded)) { dragged = true; onToggle() }
   }
@@ -63,8 +67,8 @@
   </button>
 {/snippet}
 
-<div class="dock" class:expanded class:screen role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
-  onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={() => { if (y0 != null && dragged) onDrop?.(0); y0 = null }}>
+<div class="dock" class:expanded class:screen style:transform={pull ? `translateY(${pull}px)` : null} role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
+  onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={() => { if (y0 != null && dragged) onDrop?.(0); y0 = null; pull = 0 }}>
   <!-- La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42). -->
   {#if !bar}{@render toggleKey()}{/if}
   {#if onClose}
@@ -103,7 +107,7 @@
   b { font-size: 16px; font-weight: 600; }
   /* Premuti, i tasti cambiano forma come quelli del Material 3 Expressive: da cerchio a quadrato smussato, con la molla. */
   .ib { flex: none; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; background: var(--master-key); color: var(--text);
-    transition: border-radius .35s var(--spring); position: relative; }
+    transition: border-radius .35s var(--spring), transform .3s var(--spring); position: relative; }
   /* Il tocco prende 48 px, il tasto se ne vede 44 (Franz, 09/10 21:02). */
   .ib::after { content: ''; position: absolute; inset: -2px; }
   .ib:active { border-radius: 12px; }

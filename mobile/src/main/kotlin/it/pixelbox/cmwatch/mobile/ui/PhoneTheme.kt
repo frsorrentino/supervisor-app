@@ -1,5 +1,8 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.layout.size
 import android.provider.Settings
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloat
@@ -143,6 +146,36 @@ object CmMotion {
         dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
         stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
     )
+}
+
+/** Voce 7: una card nuova entra da altezza 0, così le altre non saltano sotto il dito. Alla prima composizione della home niente. */
+@Composable
+fun Modifier.growIn(isNew: Boolean): Modifier {
+    val off = animationsOff()
+    val f = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (isNew && !off) 0f else 1f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { f.animateTo(1f, tween(220, easing = CmMotion.easing)) }
+    if (f.value >= 1f) return this
+    return this.clipToBounds().layout { m, c ->
+        val p = m.measure(c)
+        layout(p.width, (p.height * f.value).toInt()) { p.place(0, 0) }
+    }
+}
+
+/** Voce 10: una spunta verde che si disegna, una volta sola, quando non resta nessuno che aspetta. */
+@Composable
+fun AllDoneCheck(modifier: Modifier = Modifier) {
+    val p = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { p.animateTo(1f, tween(400, easing = CmMotion.easing)) }
+    val good = V3.Good
+    androidx.compose.foundation.Canvas(modifier.size(32.dp)) {
+        val a = androidx.compose.ui.geometry.Offset(size.width * .2f, size.height * .52f)
+        val b = androidx.compose.ui.geometry.Offset(size.width * .42f, size.height * .74f)
+        val c = androidx.compose.ui.geometry.Offset(size.width * .82f, size.height * .28f)
+        val w = 3.dp.toPx(); val cap = androidx.compose.ui.graphics.StrokeCap.Round
+        val first = (p.value / .35f).coerceAtMost(1f)
+        drawLine(good, a, a + (b - a) * first, w, cap)
+        if (p.value > .35f) drawLine(good, b, b + (c - b) * ((p.value - .35f) / .65f), w, cap)
+    }
 }
 
 /** Voce 6: il tasto cede subito alla pressione, senza rimbalzo. Quasi invisibile, quindi regge l'uso frequente. */

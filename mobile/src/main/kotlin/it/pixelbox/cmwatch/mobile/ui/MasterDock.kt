@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -130,21 +131,33 @@ fun MasterDock(
         val threshold = with(androidx.compose.ui.platform.LocalDensity.current) { 40.dp.toPx() }
         val up by androidx.compose.runtime.rememberUpdatedState(onUp)
         val down by androidx.compose.runtime.rememberUpdatedState(onDown)
+        // Voce 9: la barra segue il dito 1:1; al rilascio riparte con la velocità del dito, senza rimbalzo (Franz, 03/10 17:12).
+        val motionOff = animationsOff()
+        val pull = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+        val pullScope = androidx.compose.runtime.rememberCoroutineScope()
+        val settle = androidx.compose.animation.core.spring<Float>(androidx.compose.animation.core.Spring.DampingRatioNoBouncy, androidx.compose.animation.core.Spring.StiffnessMediumLow)
         val drag = Modifier.pointerInput(expanded) {
             var total = 0f
+            val speed = androidx.compose.ui.input.pointer.util.VelocityTracker()
             detectVerticalDragGestures(
-                onDragStart = { total = 0f },
+                onDragStart = { total = 0f; speed.resetTracking() },
                 onDragEnd = {
+                    val v = speed.calculateVelocity().y
                     when {
-                        total < -threshold -> up?.invoke() ?: run { if (!expanded) onToggle() }
-                        total > threshold -> down?.invoke() ?: run { if (expanded) onToggle() }
+                        total < -threshold || v < -1200f -> up?.invoke() ?: run { if (!expanded) onToggle() }
+                        total > threshold || v > 1200f -> down?.invoke() ?: run { if (expanded) onToggle() }
                     }
+                    pullScope.launch { pull.animateTo(0f, settle, v) }
                 },
-                onVerticalDrag = { change, dy -> total += dy; change.consume() },
+                onDragCancel = { pullScope.launch { pull.animateTo(0f, settle) } },
+                onVerticalDrag = { change, dy ->
+                    total += dy; speed.addPosition(change.uptimeMillis, change.position); change.consume()
+                    if (!motionOff) pullScope.launch { pull.snapTo(if (expanded) total.coerceAtLeast(0f) else total.coerceAtMost(0f)) }
+                },
             )
         }
         Row(
-            Modifier.fillMaxWidth().clip(shape).background(MasterHighest)
+            Modifier.graphicsLayer { translationY = pull.value }.fillMaxWidth().clip(shape).background(MasterHighest)
                 .then(drag)
                 .handCursor().clickable(onClick = onToggle).padding(start = 8.dp, end = if (screen) 4.dp else 12.dp, top = 10.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),

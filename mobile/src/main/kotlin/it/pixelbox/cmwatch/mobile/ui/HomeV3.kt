@@ -1,6 +1,8 @@
 package it.pixelbox.cmwatch.mobile.ui
 
 
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -171,7 +173,9 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
             dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
             right?.let { Text(it, style = V3.Small, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
         }
-        if (open != null) Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))
+        // Voce 5: la freccina ruota, senza rimbalzo.
+        val turn by androidx.compose.animation.core.animateFloatAsState(if (open == true) 180f else 0f, if (animationsOff()) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(200, easing = CmMotion.easing), label = "turn")
+        if (open != null) Icon(Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.graphicsLayer { rotationZ = turn }.padding(start = 6.dp).size(24.dp))
         else if (nav) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))
     }
 }

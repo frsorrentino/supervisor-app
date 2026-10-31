@@ -18,7 +18,7 @@
   import { homeGlyph } from './permissionModes'
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
-  import { fade } from 'svelte/transition'
+  import { fade, slide } from 'svelte/transition'
   import { bounceEase, bounceMs, finishScrollAllowed, reducedMotion } from './motion'
   import { rows as commitmentRowsOf } from './commitments'
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
@@ -135,6 +135,7 @@
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
   let dragGhost = $state<{ shift: number; left: number; width: number } | null>(null)
+  let flyGhost = $state<{ key: HomeSection; top: number; left: number; width: number } | null>(null)
   let dragStartY = 0, dragTimer: ReturnType<typeof setTimeout> | undefined, dragJustEnded = false, dragEl: HTMLElement | null = null, dragRaf = 0, dragLastSwap = 0
   let dragArmed: HomeSection | null = null
   const noScroll = (e: TouchEvent) => { if (dragOrder) e.preventDefault() }
@@ -184,6 +185,16 @@
     clearTimeout(dragTimer); dragArmed = null; cancelAnimationFrame(dragRaf)
     removeEventListener('touchmove', noScroll); removeEventListener('pointermove', secMove); removeEventListener('pointerup', secEnd); removeEventListener('pointercancel', secCancel)
     if (!dragOrder) return
+    // Voce 8: la copia del titolo vola al posto finale invece di sparire di colpo.
+    if (!cancel && dragGhost && dragKey && !reducedMotion()) {
+      const k = dragKey, g = dragGhost, from = dragY + g.shift
+      flyGhost = { key: k, top: from, left: g.left, width: g.width }
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const r = document.querySelector(`[data-sec-head="${k}"]`)?.getBoundingClientRect()
+        if (r && flyGhost) flyGhost = { ...flyGhost, top: r.top }
+      }))
+      setTimeout(() => { flyGhost = null }, bounceMs())
+    }
     const o = dragOrder; dragOrder = null; dragKey = null; dragGhost = null; dragJustEnded = true
     addEventListener('click', swallowClick, { capture: true, once: true })
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
@@ -266,6 +277,14 @@
   // Voce 11: dopo l'ok il tasto scelto diventa la conferma. Se la card resta (il PC non risponde) i tasti tornano.
   let sentOk = $state<Record<string, string>>({})
   function markSent(task: string, label: string) { sentOk = { ...sentOk, [task]: label }; setTimeout(() => { const { [task]: _, ...rest } = sentOk; sentOk = rest }, 8000) }
+  // Voce 10: la spunta solo alla transizione, da qualcuno che aspetta a nessuno.
+  let allDone = $state(false)
+  let lastWait = -1
+  $effect(() => {
+    const n = waitRows.length, was = lastWait
+    lastWait = n
+    if (was > 0 && n === 0 && !reducedMotion()) { allDone = true; setTimeout(() => { allDone = false }, 2500) }
+  })
   let finishedNow = $state<string[]>([])
   let prevWorking = new Set<string>()
   const seenOnScreen = new Map<string, boolean>()
@@ -440,6 +459,7 @@
 
 <section class="home" class:part={!!part}>
   <!-- Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto. -->
+  {#if allDone && (!part || part === 'you')}<div class="alldone" data-testid="tutto-fatto"><svg viewBox="0 0 24 24" width="32" height="32"><path pathLength="1" d="M5 12.5l5 5L20 7" /></svg></div>{/if}
   {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
@@ -448,7 +468,7 @@
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 {#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
   <div class="sec static" data-testid="home-sez-aspettano"><span class="ic"><span class="ms">pan_tool</span></span><span class="st">{t.homeWaiting}</span><small>{waitRows.length + looseOk.length}</small></div>
-  {#each waitRows as r (r.session.name)}<div class="cw" animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
+  {#each waitRows as r (r.session.name)}<div class="cw" in:slide={{ duration: reducedMotion() ? 0 : 220 }} out:slide={{ duration: reducedMotion() ? 0 : 160 }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
   <!-- Gli ok ai compiti senza una sessione aperta: aspettano te come le domande. -->
   {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
 {/if}
@@ -629,6 +649,9 @@
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
   {#if dragKey && dragGhost}
     <div class="dragg" data-testid="home-sezione-trascina" style:top="{dragY + dragGhost.shift}px" style:left="{dragGhost.left}px" style:width="{dragGhost.width}px"><span class="ic"><span class="ms" aria-hidden="true">{DRAG_SEC[dragKey].icon}</span></span><b>{DRAG_SEC[dragKey].name}</b></div>
+  {/if}
+  {#if flyGhost}
+    <div class="dragg dragfly" style:top="{flyGhost.top}px" style:left="{flyGhost.left}px" style:width="{flyGhost.width}px"><span class="ic"><span class="ms" aria-hidden="true">{DRAG_SEC[flyGhost.key].icon}</span></span><b>{DRAG_SEC[flyGhost.key].name}</b></div>
   {/if}
 </section>
 
@@ -1096,6 +1119,14 @@
   .oksent { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 99px; background: var(--act, var(--tx)); color: var(--onact, var(--bg)); font-weight: 600; transform-origin: right; animation: oksent var(--spring-bounce-t) var(--spring-bounce); }
   .oksent .ms { font-size: 16px; }
   @keyframes oksent { from { transform: scaleX(.45); } }
+  .alldone { display: flex; justify-content: center; padding: 4px 0; }
+  .alldone path { fill: none; stroke: var(--good); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: alldone 400ms cubic-bezier(0.23, 1, 0.32, 1); }
+  @keyframes alldone { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  /* Voce 5: il contenuto entra in dissolvenza, senza cambiare altezza a ogni fotogramma. */
+  .hsec > :not(.sec) { animation: secin 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  @keyframes secin { from { opacity: 0; transform: translateY(-4px); } }
+  @media (prefers-reduced-motion: reduce) { .hsec > :not(.sec) { animation: none; } }
+  .dragfly { transition: top var(--spring-bounce-t) var(--spring-bounce); }
   .cw.finished { box-shadow: inset 0 0 0 1.5px var(--good); }
   .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
   .meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }

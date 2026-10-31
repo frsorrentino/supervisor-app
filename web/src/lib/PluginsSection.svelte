@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition'
+  import { reducedMotion } from './motion'
   import type { Snippet } from 'svelte'
   import type { PluginsPage, State } from './contract'
   import { account, accountsWithUpdates, pending, updateArg } from './plugins'
@@ -82,7 +84,7 @@
           <button class="danger" onclick={updateAll}>{t.pluginsUpdateAll(count ?? 0)}</button>
         </div>
       {:else}
-        <div class="bar">
+        <div class="bar" in:fade={{ duration: reducedMotion() ? 0 : 200 }}>
           <span>{checked ? t.pluginsChecked(hm(checked)) : t.pluginsNeverChecked}</span>
           <button class="text" disabled={busy.check} onclick={() => act('check', 'plugin_check', null, '_check')}>{t.pluginsCheck}</button>
           {#if count}<button class="filled" onclick={() => (asking = true)}>{t.pluginsUpdateAll(count)}</button>{/if}
