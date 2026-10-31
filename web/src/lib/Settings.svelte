@@ -1,7 +1,7 @@
 <script lang="ts">
   import { LANG_KEY } from './lang'
   // L'informativa, la stessa dell'app (privacy_url).
-  const PRIVACY = 'https://github.com/frsorrentino/supervisor-app/blob/master/PRIVACY.md'
+  const PRIVACY = 'https://supervisor.francescosorrentino.com/privacy'
   let chosenLang = $state((() => { try { return localStorage.getItem(LANG_KEY) ?? '' } catch { return '' } })())
   // La lingua vale da subito: la pagina si ricarica, come l'app che ricrea l'attività.
   function setLang(v: string) { chosenLang = v; try { if (v) localStorage.setItem(LANG_KEY, v); else localStorage.removeItem(LANG_KEY) } catch { /* resta questa */ } location.reload() }

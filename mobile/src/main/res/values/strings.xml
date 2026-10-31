@@ -76,7 +76,7 @@
     <string name="notifications">Notifiche</string>
     <string name="privacy">Privacy</string>
     <string name="version">Versione %1$s</string>
-    <string name="privacy_url" translatable="false">https://github.com/frsorrentino/supervisor-app/blob/master/PRIVACY.md</string>
+    <string name="privacy_url" translatable="false">https://supervisor.francescosorrentino.com/privacy</string>
     <string name="channel_questions">Domande</string>
     <string name="channel_quiet">Avvisi silenziosi</string>
     <string name="channel_strong">Serve te</string>

@@ -1,6 +1,6 @@
 # Privacy — Supervisor for phone, Wear OS and the web
 
-_Last updated: 13 October 2026._
+_Last updated: 31 October 2026._
 
 Supervisor — the phone app, the Wear OS app and the web app at <https://supervisor.francescosorrentino.com> — is an
 unofficial companion for Claude Code, not affiliated with Anthropic. They show and steer the Claude Code sessions running on your own computer through the
@@ -11,13 +11,15 @@ supervisor plugin. They have no account of their own, no analytics, no advertisi
 - **Your own Firebase project.** When you pair, the phone reads a QR code shown by your computer. It holds the
   configuration of a Firebase project that you created and own. The app talks only to that project: its Realtime
   Database and Firebase Cloud Messaging. The author never receives anything.
+- **Update check.** The phone app installed from GitHub, not the one from Google Play, asks GitHub for the latest release
+  and downloads it if you agree. GitHub sees that request like any web request (IP address, time). No session data goes with it.
 - **End-to-end encrypted.** Session states, questions, answers, commands, terminal text, diaries and anything you
   share with a session travel as AES-256-GCM ciphertext. The key is agreed with X25519 between your computer and your
   phone at pairing, then passed to your watch encrypted for it alone. Firebase stores only ciphertext; neither Google
   nor the author can read it.
 - **Identifiers.** The Firebase SDK signs the app in anonymously and gives it a user id, an installation id and a
   messaging token. They let your computer allow your devices and wake them up. The device names (for example «Pixel
-  Watch 5») are stored by your computer to list the paired devices.
+  Watch 5») and the last time each device was seen are stored by your computer to list the paired devices.
 
 ## What stays on the device
 

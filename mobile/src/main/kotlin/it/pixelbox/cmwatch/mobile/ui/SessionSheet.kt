@@ -964,7 +964,7 @@ private fun hardKeyboard(): Boolean {
  */
 @Composable
 private fun QuotaLine(w: QuotaWarning.Warn, draft: String, canDefer: Boolean, canTonight: Boolean, actions: SheetActions, onDeferred: () -> Unit, night: Boolean = false) {
-    Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(Cm.briefWarn).handCursor().clickable(onClick = actions.overview).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 2.dp)) {
+    Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(V3.Banner).handCursor().clickable(onClick = actions.overview).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 2.dp)) {
         Text(
             stringResource(if (w.projected) R.string.quota_warn_pace else R.string.quota_warn, w.pct, hhmm(w.resetAt)),
             style = MaterialTheme.typography.bodyMedium, color = Cm.briefWarnInk,
@@ -1122,7 +1122,8 @@ internal val MasterNight = androidx.compose.ui.graphics.Color(0xFF0E0B18)
 internal val MasterLilac get() = androidx.compose.ui.graphics.Color(if (V3.day) 0xFF7445D6 else 0xFFC39BFF)
 private val MasterBlue = androidx.compose.ui.graphics.Color(0xFF4C7DFF)
 
-fun Modifier.masterChat(style: MasterChatStyle, shape: androidx.compose.ui.graphics.Shape): Modifier = when (style) {
+// Le varianti viola e bordate sono solo di notte: di giorno il fondo normale.
+fun Modifier.masterChat(style: MasterChatStyle, shape: androidx.compose.ui.graphics.Shape): Modifier = if (V3.day) background(V3.Bg) else when (style) {
     MasterChatStyle.BLACK -> background(Cm.bg)
     // La conversazione della master su un solo tono, il più scuro del suo celeste velato (Franz, 06/10 21:23).
     MasterChatStyle.DEPTH -> background(MasterLow)

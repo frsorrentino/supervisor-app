@@ -61,14 +61,14 @@ import java.time.format.DateTimeFormatter
 open class CmTileService : TileService() {
 
     /**
-     * Ruoli M3 nei colori v3 (Franz 30/10 23:31): card #1B1D22, oggetto #EDEEF0, secondario #969BA4 (circa 6:1), bottone di bordo bianco.
+     * Ruoli M3 nei colori v3 (Franz 30/10 23:31): card #1B1D22, oggetto #EDEEF0, secondario #ACB1B9 (7,8:1, Franz leggeva male 5,5:1), bottone di bordo bianco.
      * I grigi di prima stavano a 5,5:1 e si leggevano male (Franz, 13/09 15:31).
      */
     private val scheme = ColorScheme(
         primary = 0xFFFFFFFF.toInt().argb, onPrimary = 0xFF0B0C0E.toInt().argb,
         primaryContainer = 0xFF272A31.toInt().argb, onPrimaryContainer = 0xFFEDEEF0.toInt().argb,
         surfaceContainer = 0xFF1B1D22.toInt().argb, surfaceContainerLow = 0xFF121316.toInt().argb,
-        onSurface = 0xFFEDEEF0.toInt().argb, onSurfaceVariant = 0xFF969BA4.toInt().argb,
+        onSurface = 0xFFEDEEF0.toInt().argb, onSurfaceVariant = 0xFFACB1B9.toInt().argb,
         background = 0xFF000000.toInt().argb, onBackground = 0xFFFFFFFF.toInt().argb,
     )
 

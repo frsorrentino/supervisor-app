@@ -45,7 +45,7 @@ import kotlinx.coroutines.launch
 open class KpiTileService : TileService() {
     private val scheme = ColorScheme(
         primary = 0xFFFFFFFF.toInt().argb, onPrimary = 0xFF0B0C0E.toInt().argb,
-        surfaceContainer = 0xFF1B1D22.toInt().argb, onSurface = 0xFFEDEEF0.toInt().argb, onSurfaceVariant = 0xFF969BA4.toInt().argb,
+        surfaceContainer = 0xFF1B1D22.toInt().argb, onSurface = 0xFFEDEEF0.toInt().argb, onSurfaceVariant = 0xFFACB1B9.toInt().argb,
         background = 0xFF000000.toInt().argb, onBackground = 0xFFFFFFFF.toInt().argb,
     )
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)

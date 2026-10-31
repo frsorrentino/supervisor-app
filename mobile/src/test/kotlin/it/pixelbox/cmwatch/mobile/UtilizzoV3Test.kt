@@ -36,7 +36,7 @@ class UtilizzoV3Test {
 
     private fun shot(open: String?) = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
-            Column(Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Color(0xFF121316))) { UtilizzoV3(listOf(ring), st, page, null, now, {}, startOpen = open, zone = zone) }
+            Column(Modifier.fillMaxWidth().background(it.pixelbox.cmwatch.mobile.ui.V3.S1)) { UtilizzoV3(listOf(ring), st, page, null, now, {}, startOpen = open, zone = zone) }
         }
     }
 
@@ -45,6 +45,12 @@ class UtilizzoV3Test {
     @Test fun weekOpen() = shot("w7:$account")
     @Test fun sessionsOpen() = shot("sessions")
     @Test fun todayOpen() = shot("today")
+
+    // Il nome lungo a 360 dp col carattere grande: sotto l'etichetta, mai spezzato a metà parola.
+    @Test fun longNames360LargeFont() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), fontScale = 1.3f))
+        shot("sessions")
+    }
 
     @Test fun longName360LargeFont() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), fontScale = 1.3f))

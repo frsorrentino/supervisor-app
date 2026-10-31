@@ -75,6 +75,8 @@ internal object V3 {
     val Tx get() = p.tx; val Tx2 get() = p.tx2; val Tx3 get() = p.tx3; val Act get() = p.act; val OnAct get() = p.onAct
     val Wait get() = p.wait; val Busy get() = p.busy; val Good get() = p.good; val Red get() = p.red
     /** Giorno: la zona che aspetta in ambra chiaro e le righe rosse in rosa; di notte le scatole normali. */
+    /** Le fasce d'avviso: ambra piena di notte, ambra chiaro di giorno. */
+    val Banner get() = if (day) p.waitFill else p.wait; val BannerInk get() = if (day) p.wait else p.onAct
     val WaitFill get() = p.waitFill; val WaitLine get() = p.waitLine; val RedFill get() = p.redFill
     val Sans = FontFamily(Font(R.font.v3_barlow_regular, FontWeight.Normal), Font(R.font.v3_barlow_medium, FontWeight.Medium))
     val Display = FontFamily(Font(R.font.v3_barlow_sc_medium, FontWeight.Medium), Font(R.font.v3_barlow_sc_semibold, FontWeight.SemiBold), Font(R.font.v3_barlow_sc_bold, FontWeight.Bold))

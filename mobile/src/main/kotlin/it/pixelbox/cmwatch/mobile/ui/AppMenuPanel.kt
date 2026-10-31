@@ -164,7 +164,7 @@ fun AppMenuPanel(
     MenuPanel(
         onDismiss,
         entries = listOf(
-            MenuEntry(Icons.Outlined.RocketLaunch, stringResource(R.string.menu_launch), stringResource(R.string.menu_launch_sub), accent = true, onClick = onLaunch),
+            MenuEntry(Icons.Outlined.RocketLaunch, stringResource(R.string.menu_launch), stringResource(R.string.menu_launch_sub), onClick = onLaunch),
             // La pagina unica «Lavori» (22/10): al posto di Registro e Recap.
             MenuEntry(Icons.Outlined.Checklist, stringResource(R.string.menu_lavori), stringResource(R.string.menu_lavori_sub), onClick = onLavori),
         ) + listOfNotNull(

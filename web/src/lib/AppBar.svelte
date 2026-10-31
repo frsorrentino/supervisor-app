@@ -28,7 +28,7 @@
   function go(p: Page) { menu = false; onPage(p) }
   let liveNote = $state(false)
   const entries: { page: Page; title: string; sub: string; accent?: boolean; d: string[] }[] = [
-    { page: 'launch', title: t.menuLaunch, sub: t.menuLaunchSub, accent: true, d: ['M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z', 'm12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z', 'M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0', 'M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5'] },
+    { page: 'launch', title: t.menuLaunch, sub: t.menuLaunchSub, d: ['M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z', 'm12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z', 'M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0', 'M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5'] },
     // La pagina unica «Lavori» (22/10): al posto di Registro e Recap.
     { page: 'lavori', title: t.menuLavori, sub: t.menuLavoriSub, d: ['M13 5h8', 'M13 12h8', 'M13 19h8', 'm3 17 2 2 4-4', 'M3 4h6v6H3z'] },
     { page: 'night', title: t.menuNight, sub: t.menuNightSub, d: ['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z'] },

@@ -1257,7 +1257,7 @@ private fun NightCount(icon: androidx.compose.ui.graphics.vector.ImageVector, te
 private fun AttentionBanner(items: List<it.pixelbox.cmwatch.contract.Attention>, onClick: () -> Unit) {
     val names = items.mapNotNull { it.session }.distinct().joinToString(", ")
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.briefWarn).handCursor().clickable(onClick = onClick)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(V3.Banner).handCursor().clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

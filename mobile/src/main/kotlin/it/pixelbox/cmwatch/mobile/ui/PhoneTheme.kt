@@ -17,7 +17,9 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -55,13 +57,16 @@ private val cmType = Typography().run {
 /** Negli snapshot tutto fermo allo stato finale: Paparazzi fotografa il primo fotogramma, prima di ogni animazione. */
 val LocalStill = androidx.compose.runtime.staticCompositionLocalOf { false }
 
-/** Notte o giorno B dal sistema (app-giorno-b-30-10), tutto dallo stile v3; negli snapshot la notte, `day` per le prove del giorno. `still` per i test. */
+/** Notte o giorno B dal sistema (app-giorno-b-30-10), tutto dallo stile v3; negli snapshot la notte, `day` per le prove del giorno, -Pv3.day=true per farle tutte di giorno. `still` per i test. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun CmPhoneTheme(still: Boolean = false, day: Boolean = !still && !isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun CmPhoneTheme(still: Boolean = false, day: Boolean = if (still) java.lang.Boolean.getBoolean("v3.day") else !isSystemInDarkTheme(), content: @Composable () -> Unit) {
     V3.day = day
     androidx.compose.runtime.CompositionLocalProvider(LocalStill provides still) {
-        MaterialExpressiveTheme(colorScheme = scheme(day), motionScheme = MotionScheme.expressive(), shapes = cmShapes, typography = cmType) { V3Theme(content) }
+        MaterialExpressiveTheme(colorScheme = scheme(day), motionScheme = MotionScheme.expressive(), shapes = cmShapes, typography = cmType) {
+            // Negli snapshot del giorno la tela chiara: un componente senza fondo finirebbe sulla finestra scura del test.
+            V3Theme { if (still && day) androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(V3.Bg)) { content() } else content() }
+        }
     }
 }
 

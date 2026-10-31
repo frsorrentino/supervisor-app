@@ -139,16 +139,21 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
         val split = top?.let { Kpi.split(st, it.account, 99) }
         split?.slices?.firstOrNull()?.let { first ->
             UseRow(open == "sessions", { toggle("sessions") }) {
-                Text(stringResource(R.string.home_sec_sessions), style = V3.Name.copy(fontSize = 15.sp), modifier = Modifier.width(LAB))
-                Spacer(Modifier.width(GAP))
-                Text(first.session, style = V3.Small.copy(color = V3.Tx), textAlign = TextAlign.End, modifier = Modifier.weight(1f))
-                Spacer(Modifier.width(8.dp))
-                Text("${first.pct}%", style = V3.Meter.copy(color = V3.Tx), maxLines = 1)
+                // Un nome lungo scende sotto l'etichetta e va a capo ai separatori, non a metà parola.
+                V3Split(Modifier.weight(1f), gap = GAP, text = {
+                    Text(stringResource(R.string.home_sec_sessions), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+                }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(first.session.replace("-", "-\u200B"), style = V3.Small.copy(color = V3.Tx), textAlign = TextAlign.End, modifier = Modifier.weight(1f, fill = false))
+                        Spacer(Modifier.width(8.dp))
+                        Text("${first.pct}%", style = V3.Meter.copy(color = V3.Tx), maxLines = 1)
+                    }
+                }
             }
             if (open == "sessions") Column(Modifier.padding(start = 14.dp, end = 12.dp + ARROW, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 split.slices.forEach { s ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(s.session, style = V3.Small.copy(color = V3.Tx), modifier = Modifier.weight(1f))
+                        Text(s.session.replace("-", "-\u200B"), style = V3.Small.copy(color = V3.Tx), modifier = Modifier.weight(1f))
                         Text("${s.pct}%", style = V3.Meter.copy(color = V3.Tx), maxLines = 1)
                     }
                 }

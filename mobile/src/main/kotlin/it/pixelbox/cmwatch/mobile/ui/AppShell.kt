@@ -112,14 +112,14 @@ fun AppShell(
                     Text(
                         stringResource(R.string.stale_banner, staleMinutes), color = Cm.briefWarnInk, style = MaterialTheme.typography.labelLarge,
                         maxLines = 1, overflow = TextOverflow.Clip,
-                        modifier = Modifier.fillMaxWidth().background(Cm.briefWarn).padding(horizontal = 20.dp, vertical = 6.dp),
+                        modifier = Modifier.fillMaxWidth().background(V3.Banner).padding(horizontal = 20.dp, vertical = 6.dp),
                     )
                 }
                 if (demo) {
                     Text(
                         stringResource(R.string.demo_banner), color = Cm.briefWarnInk, style = MaterialTheme.typography.labelLarge,
                         maxLines = 1, overflow = TextOverflow.Clip,
-                        modifier = Modifier.fillMaxWidth().background(Cm.briefWarn).padding(horizontal = 20.dp, vertical = 6.dp),
+                        modifier = Modifier.fillMaxWidth().background(V3.Banner).padding(horizontal = 20.dp, vertical = 6.dp),
                     )
                 }
             }

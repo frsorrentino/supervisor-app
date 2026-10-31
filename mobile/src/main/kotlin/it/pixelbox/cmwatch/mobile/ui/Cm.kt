@@ -13,5 +13,5 @@ internal object Cm {
     val waiting get() = V3.Wait; val busy get() = V3.Busy; val idle get() = V3.Good; val gone get() = V3.Red; val goneDim get() = V3.Red
     val advice get() = V3.Tx2; val prod get() = V3.Red; val modelOpus get() = V3.Tx2
     val briefCard get() = V3.S1; val briefLabel get() = V3.Tx2; val briefBig get() = V3.Tx; val briefSecondary get() = V3.Tx2; val briefRing get() = V3.Busy; val briefTrack get() = V3.S3
-    val briefGood get() = V3.Good; val briefGoodInk get() = V3.OnAct; val briefWarn get() = V3.Wait; val briefWarnInk get() = V3.OnAct; val briefAlert get() = V3.Red; val briefAlertRing get() = V3.Red; val briefWeek get() = V3.Tx2
+    val briefGood get() = V3.Good; val briefGoodInk get() = V3.OnAct; val briefWarn get() = V3.Wait; val briefWarnInk get() = V3.BannerInk; val briefAlert get() = V3.Red; val briefAlertRing get() = V3.Red; val briefWeek get() = V3.Tx2
 }

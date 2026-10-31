@@ -71,6 +71,8 @@ android {
         unitTests.all { t ->
             t.systemProperty("store.shots", project.findProperty("store.shots")?.toString() ?: "false")
             t.systemProperty("store.locale", project.findProperty("store.locale")?.toString() ?: "it")
+            // Tutti gli snapshot di giorno, senza golden da committare: -Pv3.day=true (docs/v3-giorno.md).
+            t.systemProperty("v3.day", project.findProperty("v3.day")?.toString() ?: "false")
         }
     }
 }
