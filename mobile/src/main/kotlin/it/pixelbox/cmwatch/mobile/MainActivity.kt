@@ -76,6 +76,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    /** Un dito è sullo schermo: lo guarda la guardia del volo (Franz 31/10 22:15). Qui, prima di ogni gesto che può cancellarsi. */
+    private val fingerDown = mutableStateOf(false)
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        fingerDown.value = ev.actionMasked != android.view.MotionEvent.ACTION_UP && ev.actionMasked != android.view.MotionEvent.ACTION_CANCEL
+        return super.dispatchTouchEvent(ev)
+    }
+
     private val app get() = application as PhoneApp
     private val speech by lazy { Speech(this) }
     private val readingOverlay = it.pixelbox.cmwatch.mobile.ui.ReadingOverlay()
@@ -346,6 +354,8 @@ class MainActivity : ComponentActivity() {
         var flyTarget by rememberSaveable { mutableStateOf(open) }
         var swipeSet by remember { mutableStateOf(false) }
         val seek = remember { SeekableTransitionState(flyTarget) }
+        val systemBack = remember { mutableStateOf(false) }
+        val flyStale = remember { androidx.compose.runtime.mutableIntStateOf(0) }
         // Transizione C (Franz, 09/10 20:15): fra home e sessione il volo, nei due versi; fra sessioni lo scorrimento. La card
         // vola solo se è sullo schermo; aperta da menu, avviso o ricerca la sessione entra di lato ed esce dallo stesso lato.
         val cardsOnScreen = remember { androidx.compose.runtime.mutableStateMapOf<String, Int>() }
@@ -370,15 +380,29 @@ class MainActivity : ComponentActivity() {
             seek.animateTo(flyTarget, if (seek.fraction == 0f) androidx.compose.animation.core.tween(FLY_MS, easing = androidx.compose.animation.core.LinearEasing) else null)
         }
         PredictiveBackHandler(enabled = open != null && flyTarget != null && !settingsOpen && terminal == null) { progress ->
+            systemBack.value = true
             try {
                 progress.collect { seek.seekTo(it.progress, targetState = null) }
                 open = null
             } catch (e: CancellationException) {
                 withContext(NonCancellable) { seek.animateTo(flyTarget) }
+            } finally {
+                systemBack.value = false
             }
         }
         // Arrivati a una sessione scorrendo dalla home non c'è un volo da ripercorrere: Indietro riporta la pagina alla home.
         BackHandler(enabled = open != null && flyTarget == null && !settingsOpen && terminal == null) { open = null }
+        // La guardia unica (Franz 31/10 22:15, home e sessione ferme a metà): nessun dito, nessun gesto indietro di sistema e una
+        // frazione ferma a metà = la transizione non ha più padrone; va a destinazione, qualunque sia il percorso che l'ha lasciata.
+        val flyGuardTarget by rememberUpdatedState(flyTarget)
+        LaunchedEffect(seek) {
+            androidx.compose.runtime.snapshotFlow { Triple(seek.fraction, fingerDown.value, systemBack.value) }.collectLatest { (f, finger, back) ->
+                if (f <= 0f || f >= 1f || finger || back) return@collectLatest
+                kotlinx.coroutines.delay(400)
+                flyStale.intValue++
+                scope.launch { seek.animateTo(flyGuardTarget) }
+            }
+        }
         val flight = rememberTransition(seek, label = "fly")
         // Il tablet (Franz, 04/10 16:36): da 840 dp una vista sola, la home del telefono di lato e da una a quattro colonne di
         // sessioni. Colonne, larghezze in dodicesimi, lato della home e dettagli a destra stanno nelle preferenze, così
@@ -1864,6 +1888,7 @@ class MainActivity : ComponentActivity() {
                             val widthPx = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() }
                             val stateNow by rememberUpdatedState(state)
                             var pulled by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+                            LaunchedEffect(flyStale.intValue) { pulled = 0f }
                             var first by remember { mutableStateOf<String?>(null) }
                             LaunchedEffect(seek) {
                                 androidx.compose.runtime.snapshotFlow { pulled }.collect { d ->
@@ -1886,10 +1911,16 @@ class MainActivity : ComponentActivity() {
                                     speed.resetTracking()
                                     speed.addPointerInputChange(drag)
                                     pulled = -over
-                                    val done = horizontalDrag(drag.id) { c ->
-                                        speed.addPointerInputChange(c)
-                                        pulled = (pulled - c.positionChange().x).coerceAtLeast(0f)
-                                        c.consume()
+                                    var done = false
+                                    try {
+                                        done = horizontalDrag(drag.id) { c ->
+                                            speed.addPointerInputChange(c)
+                                            pulled = (pulled - c.positionChange().x).coerceAtLeast(0f)
+                                            c.consume()
+                                        }
+                                    } finally {
+                                        // Gesto cancellato (pointerInput che riparte): il rilascio non arriverà, si torna indietro.
+                                        if (!done && pulled > 0f) { pulled = 0f; scope.launch { seek.animateTo(null) } }
                                     }
                                     if (done && pulled > 0f && (pulled / widthPx > 0.33f || speed.calculateVelocity().x < -1200f)) { pulled = 0f; open = f }
                                     else if (pulled > 0f) { pulled = 0f; scope.launch { seek.animateTo(null) } }
@@ -1946,6 +1977,7 @@ class MainActivity : ComponentActivity() {
                         val widthPx = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() }
                         val flyNow by rememberUpdatedState(flyTarget)
                         var dragged by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+                        LaunchedEffect(flyStale.intValue) { dragged = 0f }
                         LaunchedEffect(seek) {
                             androidx.compose.runtime.snapshotFlow { dragged }.collect { d -> if (d > 0f) seek.seekTo((d / widthPx).coerceIn(0f, 0.999f), targetState = null) }
                         }
@@ -1967,7 +1999,7 @@ class MainActivity : ComponentActivity() {
                                     if (dragged <= 0f) return androidx.compose.ui.unit.Velocity.Zero
                                     val home = dragged / widthPx > 0.33f || available.x > 1200f
                                     dragged = 0f
-                                    if (home) open = null else seek.animateTo(flyNow)
+                                    if (home) open = null else scope.launch { seek.animateTo(flyNow) }
                                     return available
                                 }
                             }
