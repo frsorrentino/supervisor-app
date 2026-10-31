@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte'
   import type { PluginsPage, State } from './contract'
   import { account, accountsWithUpdates, pending, updateArg } from './plugins'
   import { pluginsRun } from './pluginsRun'
@@ -8,9 +9,9 @@
   // aggiornare con il loro «Aggiorna», gli altri dietro «Mostra»; in fondo «Controlla ora» e «Aggiorna tutto» con conferma.
   // L'elenco si chiede al relay quando la sezione si apre; il riassunto nello stato basta per il titolo chiuso, che dice
   // sempre un numero o «nessun aggiornamento», come Sistema (app-home-riordino-29-10).
-  let { st, load, run, rowDrag = {} }: {
-    /** La pressione lunga sulla riga sposta il blocco in home (Franz 31/10 14:27). */
-    rowDrag?: Record<string, unknown>
+  let { st, load, run, head }: {
+    /** La testata la disegna la home: è la stessa di tutte le voci (Franz 31/10 17:04). */
+    head: Snippet<[boolean, () => void, string]>
     st: State
     load: () => Promise<PluginsPage | null>
     run: (op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => Promise<{ ok: boolean; text: string } | null>
@@ -45,11 +46,7 @@
 
 {#if count != null}
   <!-- Una riga di «Altro» nella home (stile «Studio e Diretta», 30/10): l'icona nel binario, il numero in vista, la freccina. -->
-  <button class="prow" class:draggable={!!rowDrag.onpointerdown} {...rowDrag} aria-expanded={open} onclick={toggle}>
-    <span class="wic"><span class="ms">extension</span></span><span class="pt">{t.homePlugins}</span>
-    {#if !open}<span class="pv">{count ? t.pluginsToUpdate(count) : t.pluginsUpToDate}</span>{/if}
-    <span class="ms tog">{open ? 'expand_less' : 'expand_more'}</span>
-  </button>
+  {@render head(open, toggle, count ? t.pluginsToUpdate(count) : t.pluginsUpToDate)}
   {#if open}
     <div class="plugins" data-kpi="plugins_state">
       {#if !page}<p class="dim">{loading ? t.pluginsLoading : t.pluginsNone}</p>{/if}
@@ -97,12 +94,6 @@
 {/if}
 
 <style>
-  .prow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; padding: 10px 12px 10px 0; border-top: 1px solid var(--line); text-align: left; color: var(--tx); }
-  .prow:hover { background: var(--s2); }
-  .prow .wic { width: 52px; flex: none; display: flex; justify-content: center; color: var(--tx2); }
-  .prow .pt { flex: 1; min-width: 0; font: 600 17px/1.2 var(--display); }
-  .prow .pv { font: 400 12.5px var(--mono); color: var(--tx2); white-space: nowrap; }
-  .prow .tog { color: var(--tx3); }
   .plugins { display: flex; flex-direction: column; gap: 8px; padding: 2px 12px 12px 60px; }
   .dim { color: var(--text2); font-size: 14px; padding: 0 4px; }
   .card.pl { background: var(--s2); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
@@ -128,5 +119,4 @@
   .confirm button { border-radius: 999px; padding: 8px 14px; font-weight: 500; }
   .confirm .keep { color: var(--icon); }
   .confirm .danger { background: var(--primary); color: var(--on-primary); }
-  .prow.draggable { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
 </style>

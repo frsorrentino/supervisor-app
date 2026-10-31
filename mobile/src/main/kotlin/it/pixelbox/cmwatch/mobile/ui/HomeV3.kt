@@ -145,11 +145,15 @@ private fun DrawScope.waitingMark(u: Float, col: Color) {
 /** Il titolo col binario: l'icona grigia allineata ai glifi, il titolo ai nomi, il numero accanto; a destra il riepilogo e l'apertura. */
 /** La testata che si trascina con la pressione lunga: `drag` per primo, gli altri come sempre. */
 @Composable
-internal fun V3Section(drag: Modifier, title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, onToggle: (() -> Unit)? = null) =
-    V3Section(title, icon, count, right, tag, open, onToggle, drag)
+internal fun V3Section(drag: Modifier, title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, onToggle: (() -> Unit)? = null) =
+    V3Section(title, icon, count, right, tag, open, onToggle, drag, dot, nav)
 
+/**
+ * L'unica struttura delle voci della home (Franz 31/10 17:04): sul fondo pagina, senza card e senza filo. `dot`: il pallino di stato
+ * prima del riepilogo. `nav`: la voce porta altrove, freccina a destra al posto di quella che apre e chiude.
+ */
 @Composable
-internal fun V3Section(title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, onToggle: (() -> Unit)? = null, drag: Modifier = Modifier) {
+internal fun V3Section(title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, onToggle: (() -> Unit)? = null, drag: Modifier = Modifier, dot: Color? = null, nav: Boolean = false) {
     var m = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp)
     if (onToggle != null) m = m.handCursor().clickable(onClick = onToggle)
     if (tag != null) m = m.testTag(tag)
@@ -161,11 +165,13 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
         Spacer(Modifier.width(8.dp))
         Text(title, style = V3.Section, maxLines = 1)
         count?.let { Text(it, style = V3.Section.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = V3.Tx2), modifier = Modifier.padding(start = 8.dp)) }
-        // Il riepilogo prende quello che avanza e va a capo: mai tagliato, mai addosso al numero (Franz 30/10 19:46).
-        Box(Modifier.weight(1f).padding(start = 12.dp), contentAlignment = Alignment.CenterEnd) {
+        // Il riepilogo prende quello che avanza e va a capo solo come ultima risorsa: mai tagliato, mai addosso al numero (Franz 30/10 19:46).
+        Row(Modifier.weight(1f).padding(start = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(CircleShape).background(c)) }
             right?.let { Text(it, style = V3.Small, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
         }
         if (open != null) Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))
+        else if (nav) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))
     }
 }
 
@@ -184,11 +190,11 @@ internal fun V3List(content: @Composable () -> Unit) {
  * `trailing` un testo lungo si misurerebbe per primo e lascerebbe al titolo una lettera per riga (Franz 30/10 16:03).
  */
 @Composable
-internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: @Composable () -> Unit, trailing: @Composable RowScope.() -> Unit = {}, meter: (@Composable () -> Unit)? = null, fill: Color = Color.Transparent, zone: Modifier = Modifier, body: @Composable () -> Unit) {
+internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: @Composable () -> Unit, trailing: @Composable RowScope.() -> Unit = {}, meter: (@Composable () -> Unit)? = null, fill: Color = Color.Transparent, body: @Composable () -> Unit) {
     if (!first) Box(Modifier.fillMaxWidth().padding(start = 0.dp).heightIn(min = 1.dp, max = 1.dp).background(V3.Line))
     var m = Modifier.fillMaxWidth().background(fill).heightIn(min = 52.dp)
     if (onClick != null) m = m.handCursor().clickable(onClick = onClick)
-    Row(m.then(zone).padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(m.padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { rail() }
         Spacer(Modifier.width(8.dp))
         if (meter == null) V3Split(Modifier.weight(1f), text = { Column(verticalArrangement = Arrangement.spacedBy(2.dp)) { body() } }) { Row(verticalAlignment = Alignment.CenterVertically, content = trailing) }

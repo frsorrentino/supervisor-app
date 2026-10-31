@@ -32,10 +32,6 @@ class HomeOrderTest {
         assertEquals(listOf("system", "sessions", "usage", "suggestions", "lavori", "esiti", "plugins", "closed"), HomeOrder.normalize(listOf("system", "sessions", "usage")))
     }
 
-    @Test fun contiguousRowsShareACardASeparateOneHasItsOwn() {
-        assertEquals(listOf(listOf("usage", "system"), listOf("sessions"), listOf("plugins"), listOf("esiti"), listOf("closed")), HomeOrder.groups(listOf("usage", "system", "sessions", "plugins", "esiti", "closed")))
-    }
-
     private val abc = listOf("a", "b", "c")
 
     @Test fun dragPassesTheNextOnlyWhenTheFingerCrossesIt() {

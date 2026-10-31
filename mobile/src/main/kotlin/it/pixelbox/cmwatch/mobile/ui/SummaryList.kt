@@ -398,7 +398,7 @@ fun SummaryList(
             dragPresent += "sessions"
             item(key = "sec-sessions") {
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
-                Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, restRows.size.toString(), stringResource(R.string.home_sessions_line, n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)), "home-sez-sessioni", sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
+                Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, restRows.size.toString(), sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)), "home-sez-sessioni", sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
             }
             justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
             // Una lista sola nell'ordine dei gruppi: il glifo dice lo stato al posto delle intestazioni.
@@ -504,78 +504,67 @@ fun SummaryList(
             }
         }
         }
-        val renderRows: (List<String>) -> Unit = { keys ->
-        // «Altro»: Utilizzo, Sistema, Plugin e skill e Chiuse come righe di una lista, col numero in vista; il tocco apre sul posto.
+        // Utilizzo, Sistema, Plugin e skill e Chiuse: la stessa struttura delle altre voci (Franz 31/10 17:04), una voce per volta.
         val hasUsage = usage != null && showUsage
         val hasPlugins = plugins != null && onPluginsLoad != null && onPluginCmd != null
-        // Le righe contigue in una card sola (Franz 31/10 15:50): ognuna si sposta da sé e chi la incrocia passa tra l'una e l'altra.
-        val shownRows = keys.filter { k -> when (k) { "usage" -> hasUsage; "system" -> system != null; "plugins" -> hasPlugins; else -> closedGroup != null } }
-        if (shownRows.isNotEmpty()) {
-            // Senza testata (Franz 30/10 21:05): il margine lo tiene staccato dalla sezione di prima.
-            dragPresent += shownRows
-            item(key = if ("usage" in shownRows) "sec-usage" else "rows-${shownRows.first()}") {
-                val rowIcon = @Composable { v: androidx.compose.ui.graphics.vector.ImageVector -> Icon(v, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
-                val toggle = @Composable { o: Boolean -> Icon(if (o) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3) }
-                Box(moving().padding(top = 14.dp)) {
-                    V3List {
-                        var first = true
-                        shownRows.forEach { rowKey -> androidx.compose.runtime.key(rowKey) { Column(Modifier.graphicsLayer { alpha = if (dragKey == rowKey) 0.35f else 1f }) { when (rowKey) {
-                        "usage" -> {
-                            val weeks = kpiState?.quota.orEmpty().filter { (_, q) -> !q.stale && q.w7 != null }.entries
-                            val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "$a ${q.w7}%" }
-                            V3Row(first, { usageOpen = !usageOpen; save("usage", usageOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.DataUsage) }, {
-                                toggle(usageOpen)
-                            }, zone = sectionDrag("usage"), meter = { if (!usageOpen && line.isNotEmpty()) Text(line, style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_usage), style = V3.Name) }
-                            first = false
-                            if (usageOpen) {
-                                usage!!()
-                            }
-                        }
-                        // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
-                        "system" -> system?.let { sys ->
-                            val sysOpen = SystemRules.isOpen(sys.level, sysManual)
-                            V3Row(first, { sysManual = SystemRules.Manual(sys.level, !sysOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Memory) }, {
-                                toggle(sysOpen)
-                            }, zone = sectionDrag("system"), meter = {
-                                if (!sysOpen) {
-                                    Box(Modifier.padding(end = 6.dp).size(7.dp).clip(CircleShape).background(systemTone(sys.level)))
-                                    Text(systemSummary(sys), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End)
-                                }
-                            }) { Text(stringResource(R.string.home_sec_system), style = V3.Name) }
-                            first = false
-                            if (sysOpen) Column(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } }
-                        }
-                        // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
-                        "plugins" -> {
-                            val runnerState = pluginsRunner?.state?.collectAsState()?.value
-                            val n = it.pixelbox.cmwatch.rules.Plugins.pending(runnerState?.page, plugins!!)
-                            V3Row(first, { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Extension) }, {
-                                toggle(pluginsOpen)
-                            }, zone = sectionDrag("plugins"), meter = { if (!pluginsOpen) Text(if (n > 0) pluralStringResource(R.plurals.plugins_to_update, n, n) else stringResource(R.string.plugins_up_to_date), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
-                            first = false
-                            if (pluginsOpen) Box(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) { PluginsCard(plugins, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
-                        }
-                        else -> closedGroup?.let { g ->
-                            V3Row(first, onClosed, { rowIcon(Icons.Rounded.Inventory2) }, {
-                                Text(g.closed.size.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
-                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3)
-                            }, zone = sectionDrag("closed")) { Text(stringResource(R.string.cat_closed), style = V3.Name) }
-                        }
-                        } } } }
-                    }
+        val renderUsage: () -> Unit = {
+            val moving = movingIn("usage")
+            if (hasUsage) {
+                dragPresent += "usage"
+                item(key = "sec-usage") {
+                    val weeks = kpiState?.quota.orEmpty().filter { (_, q) -> !q.stale && q.w7 != null }.entries
+                    // Con più account il nome si accorcia: il riepilogo sta su una riga.
+                    val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "${if (a.length > 5) a.take(4) + "." else a} ${q.w7}%" }
+                    Box(moving()) { V3Section(sectionDrag("usage"), stringResource(R.string.home_sec_usage), androidx.compose.material.icons.Icons.Outlined.DataUsage, right = line.takeIf { !usageOpen && it.isNotEmpty() }, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) } }
                 }
+                if (usageOpen) item(key = "usage-body") { Box(moving()) { V3List { usage!!() } } }
             }
         }
+        // Contratto 1.90 (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso; il tocco vale finché il livello non cambia.
+        val renderSystem: () -> Unit = {
+            val moving = movingIn("system")
+            system?.let { sys ->
+                dragPresent += "system"
+                val sysOpen = SystemRules.isOpen(sys.level, sysManual)
+                item(key = "sec-system") {
+                    Box(moving()) { V3Section(sectionDrag("system"), stringResource(R.string.home_sec_system), androidx.compose.material.icons.Icons.Outlined.Memory, right = if (sysOpen) null else systemSummary(sys), tag = "home-sez-sistema", open = sysOpen, dot = if (sysOpen) null else systemTone(sys.level)) { sysManual = SystemRules.Manual(sys.level, !sysOpen) } }
+                }
+                if (sysOpen) item(key = "system-body") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } } }
+            }
+        }
+        // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
+        val renderPlugins: () -> Unit = {
+            val moving = movingIn("plugins")
+            if (hasPlugins) {
+                dragPresent += "plugins"
+                item(key = "sec-plugins") {
+                    val runnerState = pluginsRunner?.state?.collectAsState()?.value
+                    val n = it.pixelbox.cmwatch.rules.Plugins.pending(runnerState?.page, plugins!!)
+                    val line = if (pluginsOpen) null else if (n > 0) pluralStringResource(R.plurals.plugins_to_update, n, n) else stringResource(R.string.plugins_up_to_date)
+                    Box(moving()) { V3Section(sectionDrag("plugins"), stringResource(R.string.home_sec_plugins), androidx.compose.material.icons.Icons.Outlined.Extension, right = line, tag = "home-sez-plugin", open = pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) } }
+                }
+                if (pluginsOpen) item(key = "plugins-body") { Box(moving()) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) } }
+            }
+        }
+        val renderClosed: () -> Unit = {
+            val moving = movingIn("closed")
+            closedGroup?.let { g ->
+                dragPresent += "closed"
+                item(key = "sec-closed") { Box(moving()) { V3Section(sectionDrag("closed"), stringResource(R.string.cat_closed), Icons.Rounded.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) } }
+            }
         }
         // L'ordine scelto da Franz (Impostazioni › Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra.
         dragPresent.clear()
-        it.pixelbox.cmwatch.rules.HomeOrder.groups(dragOrder ?: homeOrder).forEach { g ->
-            when (g.first()) {
+        (dragOrder ?: homeOrder).forEach { k ->
+            when (k) {
                 "sessions" -> renderSessions()
                 "suggestions" -> renderSuggestions()
                 "lavori" -> renderLavori()
                 "esiti" -> renderEsiti()
-                else -> renderRows(g)
+                "usage" -> renderUsage()
+                "system" -> renderSystem()
+                "plugins" -> renderPlugins()
+                "closed" -> renderClosed()
             }
         }
         footer?.let { f -> item(key = "footer") { f() } }
@@ -1270,6 +1259,14 @@ private fun ServiceLine(row: MasterHome.Row, onAction: () -> Unit) {
         MiniButton(stringResource(action), filled = false, onClick = onAction)
     }
 }
+
+/** Il riepilogo di «Sessioni»: al più due voci, senza gli zeri; il totale sta già accanto al titolo. Su una riga a 360 dp. */
+@Composable
+private fun sessionsLine(working: Int, finished: Int, still: Int): String = listOfNotNull(
+    working.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.home_sessions_working, it, it) },
+    finished.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.home_sessions_finished, it, it) },
+    still.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.home_sessions_still, it, it) },
+).take(2).joinToString(" · ")
 
 /** Il riassunto a sezione chiusa (Franz 31/10 01:15): quanti esiti, quanti falliti, l'ora dell'ultimo. */
 @Composable

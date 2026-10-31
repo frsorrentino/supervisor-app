@@ -43,7 +43,7 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
-  import { DEFAULT_ORDER, dragTarget, groups as orderGroups, normalize as normalizeOrder, ROWS, orderArg, type HomeSection } from './homeOrder'
+  import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, type HomeSection } from './homeOrder'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
 
@@ -186,7 +186,6 @@
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
     if (!cancel && o.join() !== order.join()) { sentOrder = { from: savedKey, order: o }; onHomeOrder?.(orderArg(o)) }
   }
-  const rowDrag = (k: HomeSection) => (onHomeOrder && !part ? { onpointerdown: (e: PointerEvent) => secDown(k, e), oncontextmenu: (e: Event) => e.preventDefault() } : {})
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
   $effect(() => {
@@ -291,11 +290,12 @@
     const n = (g: Group) => restGroups.find(([x]) => x === g)?.[1].length ?? 0
     return t.homeSessionsLine(n('working'), n('finished'), n('still'))
   })
-  // Chiusa, «Utilizzo» dice la settimana di ogni account e i token di oggi; la quota 5h sta già nella barra in cima.
+  // Chiusa, «Utilizzo» dice la settimana di ogni account; la quota 5h sta già nella barra in cima.
   const usageLine = $derived.by(() => {
-    const weeks = Object.entries(st.quota).filter(([, q]) => !q.stale && q.w7 != null).map(([a, q]) => `${a.length > 5 ? `${a.slice(0, 4)}.` : a} ${q.w7}%`)
-    const tok = kpiPage ? dayFigures(kpiPage, st, now).tokens : 0
-    return [weeks.length ? `${t.weekShort} ${weeks.join(' · ')}` : null, tok ? t.tokensShort(tok >= 1e6 ? `${Math.round(tok / 1e6)} M` : `${Math.round(tok / 1e3)} k`) : null].filter(Boolean).join(' · ') || null
+    const weeks = Object.entries(st.quota).filter(([, q]) => !q.stale && q.w7 != null)
+    if (weeks.length === 1) return `${t.weekShort} ${weeks[0][1].w7}%`
+    // Con più account il nome si accorcia: il riepilogo sta su una riga.
+    return weeks.map(([a, q]) => `${a.length > 5 ? `${a.slice(0, 4)}.` : a} ${q.w7}%`).join(' · ') || null
   })
   // Chiusa, «Notte» dice com'è andata l'ultima notte.
   const nightLine = $derived(night ? [night.counts.done && t.nightDone(night.counts.done), night.counts.running && t.nightRunningN(night.counts.running), night.counts.partial && t.nightPartial(night.counts.partial), night.counts.stopped && t.nightStopped(night.counts.stopped), night.counts.asking && t.nightAsking(night.counts.asking)].filter(Boolean).join(' · ') || null : null)
@@ -380,14 +380,15 @@
 
 <!-- La testata di sezione dello stile «Studio e Diretta» (30/10): l'icona grigia nel binario dei glifi, il titolo allineato ai
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
-{#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null)}
-  {#if part}
+{#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null } = {})}
+  {#if part && !o.onclick}
     <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->
     <div class="sec static" data-testid={testid}><span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
-    <button class="sec" class:draggable={!!onHomeOrder} data-sec-head={key} aria-expanded={open[key]} data-testid={testid} onclick={() => { if (!dragJustEnded) toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
+    <!-- L'unica struttura delle voci della home (Franz 31/10 17:04). -->
+    <button class="sec" class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
-      <span class="sp"></span>{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog">{open[key] ? 'expand_less' : 'expand_more'}</span>
+      <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog">{o.nav ? 'chevron_right' : (o.isOpen ?? open[key]) ? 'expand_less' : 'expand_more'}</span>
     </button>
   {/if}
 {/snippet}
@@ -516,28 +517,22 @@
   {/if}
 {/if}
 {/snippet}
-{#snippet secRows(rows: HomeSection[])}
-  {@const shownRows = rows.filter(k => k === 'usage' ? !!(usage && showUsage && !part) : k === 'system' ? !!sys : k === 'plugins' ? !!(pluginsLoad && pluginsRun) : model.closed.length > 0)}
-  {#if !part || part === 'tools'}
-    <!-- «Altro» (stile «Studio e Diretta», 30/10): Utilizzo, Sistema, Plugin e skill e Chiuse come righe di una lista, col
-         numero in vista; il tocco apre la riga sul posto, Chiuse apre l'elenco. La Notte sta nei Lavori. -->
-    <!-- Nella plancia Utilizzo sta aperto in cima alla colonna col suo grafico (pwa2, 30/10); in «Altro» il resto. -->
-    {#if part && usage && showUsage}
-      <div class="sec static"><span class="ic"><span class="ms">data_usage</span></span><span class="st">{t.homeUsage}</span></div>
-      <div class="card wrows altro"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
-    {/if}
-    <!-- Senza testata (Franz 30/10 21:05): il margine lo tiene staccato dalla sezione di prima. -->
-    <!-- Le righe contigue in una card sola (Franz 31/10 15:50): ognuna si sposta da sé. -->
-    {#if shownRows.length}<div class="card wrows altro detached">
-      {#each shownRows as k (k)}<div class="arow" class:held={k === dragKey} data-sec-head={k}>
-      {#if k === 'usage'}
-        <div bind:this={usageEl}>
-          <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...rowDrag('usage')} aria-expanded={open.usage} onclick={() => toggleSec('usage')}><span class="wic"><span class="ms">data_usage</span></span><span class="otext"><b>{t.homeUsage}</b></span>{#if usageLine && !open.usage}<span class="mono">{usageLine}</span>{/if}<span class="ms tog">{open.usage ? 'expand_less' : 'expand_more'}</span></button>
-        </div>
-        {#if open.usage}{@render (usageBlock ?? usage)()}{/if}
-      {:else if k === 'system' && sys}
-        <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...rowDrag('system')} aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}><span class="wic"><span class="ms">memory</span></span><span class="otext"><b>{t.homeSystem}</b></span>{#if !sysOpen}<span class="mono"><b class="sysdot" style:background={SYS_TONE[sys.level]}></b>{summaryLine(sys, lang)}</span>{/if}<span class="ms tog">{sysOpen ? 'expand_less' : 'expand_more'}</span></button>
+<!-- Utilizzo, Sistema, Plugin e skill e Chiuse: la stessa struttura delle altre voci (Franz 31/10 17:04), una voce per volta. -->
+{#snippet secUsage()}
+  {#if usage && showUsage && part === 'tools'}
+    <!-- Nella plancia Utilizzo sta aperto in cima alla colonna col suo grafico (pwa2, 30/10). -->
+    <div class="sec static"><span class="ic"><span class="ms">data_usage</span></span><span class="st">{t.homeUsage}</span></div>
+    <div class="card wrows"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
+  {:else if usage && showUsage && !part}
+    <div class="secwrap" bind:this={usageEl}>{@render sec('usage', t.homeUsage, 'data_usage', null, 'home-sez-utilizzo', open.usage ? null : usageLine)}</div>
+    {#if open.usage}<div class="card wrows">{@render (usageBlock ?? usage)()}</div>{/if}
+  {/if}
+{/snippet}
+{#snippet secSystem()}
+  {#if sys && (!part || part === 'tools')}
+    {@render sec('system', t.homeSystem, 'memory', null, 'home-sez-sistema', sysOpen ? null : summaryLine(sys, lang), { isOpen: sysOpen, onclick: () => (sysManual = { level: sys.level, open: !sysOpen }), dot: sysOpen ? null : SYS_TONE[sys.level] })}
         {#if sysOpen}
+          <div class="card wrows">
           <div class="exp sys" data-testid="system_advice">
       <div class="kv sysm">
         <span>{t.sysLoad}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{SYS_TONE[sys.load_level]}"></span></span><span class="ctxv">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></span>
@@ -568,20 +563,25 @@
       {:else}<p class="okt mono2">{t.sysCalm}</p>{/if}
           </div>
           {#if kpiData?.kpi_health}<div class="exp"><Kpi12 h={kpiData.kpi_health} /></div>{/if}
+          </div>
         {/if}
-      {:else if k === 'plugins' && pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} rowDrag={rowDrag('plugins')} />
-      {:else if k === 'closed'}
-        <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
-        <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...rowDrag('closed')} onclick={() => closedDlg?.showModal()}><span class="wic"><span class="ms">inventory_2</span></span><span class="otext"><b>{t.catClosed}</b></span><span class="mono">{model.closed.length}</span><span class="ms chevr">chevron_right</span></button>
-      {/if}
-      </div>{/each}
-    </div>{/if}
+  {/if}
+{/snippet}
+{#snippet pluginsHead(isOpen: boolean, toggle: () => void, line: string)}
+  {@render sec('plugins', t.homePlugins, 'extension', null, 'home-sez-plugin', isOpen ? null : line, { isOpen, onclick: toggle })}
+{/snippet}
+{#snippet secPlugins()}
+  {#if pluginsLoad && pluginsRun && (!part || part === 'tools')}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} head={pluginsHead} />{/if}
+{/snippet}
+{#snippet secClosed()}
+  <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
+  {#if model.closed.length && (!part || part === 'tools')}
+    {@render sec('closed', t.catClosed, 'inventory_2', String(model.closed.length), 'home-sez-chiuse', null, { nav: true, onclick: () => closedDlg?.showModal() })}
   {/if}
 {/snippet}
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
-{#each orderGroups(dragOrder ?? order) as g (g.join())}
-  {@const k = g[0]}
-  <div class="hsec" class:held={k === dragKey && !ROWS.includes(k)}>{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else}{@render secRows(g)}{/if}</div>
+{#each dragOrder ?? order as k (k)}
+  <div class="hsec" class:held={k === dragKey}>{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}</div>
 {/each}
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
   {#if dragKey && dragGhost}
@@ -1045,10 +1045,6 @@
   .hsec > :global(*) { flex-shrink: 0; }
   .hsec:empty { display: none; }
   .hsec.held { opacity: .35; }
-  .arow.held { opacity: .35; }
-  .arow:not(:first-child) .wrow.orow { border-top: 1px solid var(--line); }
-  .arow:first-child :global(.prow) { border-top: 0; }
-  .orow.draggable { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
   .dragg { position: fixed; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px 0 14px; border-radius: 16px; background: var(--s3); box-shadow: 0 6px 20px rgba(0, 0, 0, .35); pointer-events: none; }
   .dragg .ic { flex: 0 0 auto; }
   .sec.wait span, .sec.wait small { color: var(--wait); }
@@ -1083,9 +1079,6 @@
   .home.part { height: auto; overflow: visible; padding-bottom: 0; }
   .home.part :global(.vsec), .home.part :global(.vlist) { margin-left: 0; margin-right: 0; }
   /* In «Altro» il titolo non cede mai: è il riepilogo a destra che va a capo, su una colonna stretta. */
-  .altro .otext { flex: 1 0 auto; }
-  .altro.detached { margin-top: 14px; }
-  .altro .wrow .mono { min-width: 0; white-space: normal; text-align: right; }
   /* A destra come le righe dentro le liste: stessa verticale misurata, 387 a 412 (Franz 31/10 01:14). */
   .sec { gap: 0; margin: 18px 0 2px; padding: 0 13px 0 0; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
   .sec .ic { width: 52px; flex: none; display: flex; justify-content: center; margin-right: 8px; }
@@ -1093,7 +1086,9 @@
   .sec .st { white-space: nowrap; }
   .sec small { font: 600 15px var(--display); letter-spacing: 0; color: var(--tx2); margin-left: 8px; }
   .sec .sp { flex: 1; min-width: 8px; }
-  .sec .rt { font: 400 14px var(--sans); color: var(--tx2); white-space: nowrap; overflow: hidden; min-width: 0; }
+  .sec .rt { font: 400 14px var(--sans); color: var(--tx2); text-align: right; min-width: 0; }
+  .sec .sysdot { flex: none; margin-right: 6px; }
+  .secwrap { display: contents; }
   .sec .tog { color: var(--tx3); margin-left: 6px; }
   .card { background: var(--s1); border-radius: 14px; padding: 12px; gap: 6px; }
   .card.waiting { background: var(--s2); }

@@ -977,7 +977,7 @@ class MainActivity : ComponentActivity() {
         val lavoriLine = remember(state, agenda, now, events, donePages) { state?.let { st ->
             val ip = it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday)
             val doneToday = it.pixelbox.cmwatch.rules.Lavori.doneToday(donePages, events, lavoriZone, lavoriToday)
-            getString(R.string.lavori_home_line, ip.total, st.night.queued, doneToday)
+            getString(R.string.lavori_home_line, resources.getQuantityString(R.plurals.lavori_home_active, ip.total, ip.total), st.night.queued, doneToday)
         } }
         val forYouAction: (it.pixelbox.cmwatch.rules.MasterHome.Row) -> Unit = { row ->
             when (row.kind) {

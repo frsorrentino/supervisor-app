@@ -12,17 +12,6 @@ export function normalize(saved: string[] | null | undefined): HomeSection[] {
   return [...known, ...DEFAULT_ORDER.filter(k => !known.includes(k))]
 }
 
-/** Le righe contigue stanno nella stessa card; una sezione o una riga separata fa gruppo da sola. */
-export function groups(order: HomeSection[]): HomeSection[][] {
-  const out: HomeSection[][] = []
-  for (const k of order) {
-    const last = out[out.length - 1]
-    if (ROWS.includes(k) && last && ROWS.includes(last[0])) last.push(k)
-    else out.push([k])
-  }
-  return out
-}
-
 /** Sposta la voce `from` al posto `to`; fuori dai limiti la lista resta com'è. */
 export function move<T>(list: T[], from: number, to: number): T[] {
   if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list

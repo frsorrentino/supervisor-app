@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_ORDER, dragTarget, groups, move, normalize, orderArg, type HomeSection } from './homeOrder'
+import { DEFAULT_ORDER, dragTarget, move, normalize, orderArg, type HomeSection } from './homeOrder'
 
 describe('homeOrder', () => {
   it('senza un ordine salvato, il predefinito', () => {
@@ -43,8 +43,5 @@ describe('righe separabili (Franz 31/10 15:50)', () => {
   })
   it('le righe già separate restano dove sono, e le mancanti si accodano', () => {
     expect(normalize(['system', 'sessions', 'usage'])).toEqual(['system', 'sessions', 'usage', 'suggestions', 'lavori', 'esiti', 'plugins', 'closed'])
-  })
-  it('le righe contigue stanno in una card, una separata nella sua', () => {
-    expect(groups(['usage', 'system', 'sessions', 'plugins', 'esiti', 'closed'])).toEqual([['usage', 'system'], ['sessions'], ['plugins'], ['esiti'], ['closed']])
   })
 })

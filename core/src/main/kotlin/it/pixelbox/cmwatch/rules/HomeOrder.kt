@@ -16,14 +16,6 @@ object HomeOrder {
         return known + DEFAULT.filter { it !in known }
     }
 
-    /** Le righe contigue stanno nella stessa card; una sezione o una riga separata fa gruppo da sola. */
-    fun groups(order: List<String>): List<List<String>> = buildList {
-        order.forEach { k ->
-            val last = lastOrNull()
-            if (k in ROWS && last != null && last.first() in ROWS) set(lastIndex, last + k) else add(listOf(k))
-        }
-    }
-
     /** Sposta la voce `from` al posto `to`; fuori dai limiti la lista resta com'è. */
     fun move(list: List<String>, from: Int, to: Int): List<String> {
         if (from !in list.indices || to !in list.indices || from == to) return list
