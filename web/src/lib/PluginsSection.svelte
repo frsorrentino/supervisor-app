@@ -7,7 +7,9 @@
   // aggiornare con il loro «Aggiorna», gli altri dietro «Mostra»; in fondo «Controlla ora» e «Aggiorna tutto» con conferma.
   // L'elenco si chiede al relay quando la sezione si apre; il riassunto nello stato basta per il titolo chiuso, che dice
   // sempre un numero o «nessun aggiornamento», come Sistema (app-home-riordino-29-10).
-  let { st, load, run }: {
+  let { st, load, run, rowDrag = {} }: {
+    /** La pressione lunga sulla riga sposta il blocco in home (Franz 31/10 14:27). */
+    rowDrag?: Record<string, unknown>
     st: State
     load: () => Promise<PluginsPage | null>
     run: (op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => Promise<{ ok: boolean; text: string } | null>
@@ -45,7 +47,7 @@
 
 {#if count != null}
   <!-- Una riga di «Altro» nella home (stile «Studio e Diretta», 30/10): l'icona nel binario, il numero in vista, la freccina. -->
-  <button class="prow" aria-expanded={open} onclick={toggle}>
+  <button class="prow" class:draggable={!!rowDrag.onpointerdown} {...rowDrag} aria-expanded={open} onclick={toggle}>
     <span class="wic"><span class="ms">extension</span></span><span class="pt">{t.homePlugins}</span>
     {#if !open}<span class="pv">{count ? t.pluginsToUpdate(count) : t.pluginsUpToDate}</span>{/if}
     <span class="ms tog">{open ? 'expand_less' : 'expand_more'}</span>
@@ -126,4 +128,5 @@
   .confirm button { border-radius: 999px; padding: 8px 14px; font-weight: 500; }
   .confirm .keep { color: var(--icon); }
   .confirm .danger { background: var(--primary); color: var(--on-primary); }
+  .prow.draggable { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
 </style>

@@ -17,5 +17,19 @@ export function move<T>(list: T[], from: number, to: number): T[] {
   return out
 }
 
+/**
+ * Il trascinamento sul posto (Franz 31/10 14:27): la voce presa scavalca la vicina solo quando il puntatore incrocia la metà della
+ * sua testata; dopo lo scambio la condizione opposta è falsa, quindi la voce non rimbalza. HomeOrder.dragTarget nell'app.
+ */
+export function dragTarget(order: HomeSection[], held: HomeSection, y: number, mids: Partial<Record<HomeSection, number>>): HomeSection[] {
+  const i = order.indexOf(held)
+  if (i < 0) return order
+  const next = order.slice(i + 1).find(k => mids[k] !== undefined)
+  if (next && y > mids[next]!) return move(order, i, order.indexOf(next))
+  const prev = order.slice(0, i).reverse().find(k => mids[k] !== undefined)
+  if (prev && y < mids[prev]!) return move(order, i, order.indexOf(prev))
+  return order
+}
+
 /** L'arg dell'op `home_order`: l'array JSON delle chiavi; null = torna al predefinito. */
 export const orderArg = (order: HomeSection[]): string | null => (order.join() === DEFAULT_ORDER.join() ? null : JSON.stringify(order))

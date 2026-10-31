@@ -153,7 +153,7 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
     var m = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp)
     if (onToggle != null) m = m.handCursor().clickable(onClick = onToggle)
     if (tag != null) m = m.testTag(tag)
-    // Dentro il clickable: il rilascio del trascinamento è consumato prima che arrivi al tocco che apre e chiude.
+    // La zona della pressione lunga: il gesto lo legge la lista (SummaryList), qui si dice solo dove sta il titolo.
     m = m.then(drag)
     // Frecce e riassunti sulla stessa verticale di quelli dentro le liste, che hanno 12 dp a destra (Franz 31/10 01:14).
     Row(m.heightIn(min = 36.dp).padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -184,11 +184,11 @@ internal fun V3List(content: @Composable () -> Unit) {
  * `trailing` un testo lungo si misurerebbe per primo e lascerebbe al titolo una lettera per riga (Franz 30/10 16:03).
  */
 @Composable
-internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: @Composable () -> Unit, trailing: @Composable RowScope.() -> Unit = {}, meter: (@Composable () -> Unit)? = null, fill: Color = Color.Transparent, body: @Composable () -> Unit) {
+internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: @Composable () -> Unit, trailing: @Composable RowScope.() -> Unit = {}, meter: (@Composable () -> Unit)? = null, fill: Color = Color.Transparent, zone: Modifier = Modifier, body: @Composable () -> Unit) {
     if (!first) Box(Modifier.fillMaxWidth().padding(start = 0.dp).heightIn(min = 1.dp, max = 1.dp).background(V3.Line))
     var m = Modifier.fillMaxWidth().background(fill).heightIn(min = 52.dp)
     if (onClick != null) m = m.handCursor().clickable(onClick = onClick)
-    Row(m.padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(m.then(zone).padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { rail() }
         Spacer(Modifier.width(8.dp))
         if (meter == null) V3Split(Modifier.weight(1f), text = { Column(verticalArrangement = Arrangement.spacedBy(2.dp)) { body() } }) { Row(verticalAlignment = Alignment.CenterVertically, content = trailing) }

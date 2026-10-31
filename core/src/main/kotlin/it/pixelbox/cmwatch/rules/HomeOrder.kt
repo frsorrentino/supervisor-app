@@ -19,6 +19,22 @@ object HomeOrder {
         return list.toMutableList().apply { add(to, removeAt(from)) }
     }
 
+    /**
+     * Il trascinamento sul posto (Franz 31/10 14:27): la voce presa scavalca la vicina solo quando il dito incrocia la metà della
+     * sua testata. `mids`: le testate sullo schermo; `present`: le sezioni che esistono, quelle vuote non fanno da ostacolo. Una
+     * vicina fuori schermo non si scavalca: ci arriva lo scorrimento automatico. Dopo lo scambio la condizione opposta è falsa,
+     * quindi la voce non rimbalza.
+     */
+    fun dragTarget(order: List<String>, held: String, y: Float, mids: Map<String, Float>, present: Set<String> = mids.keys): List<String> {
+        val i = order.indexOf(held)
+        if (i < 0) return order
+        val next = order.drop(i + 1).firstOrNull { it in present }
+        if (next != null && mids[next]?.let { y > it } == true) return move(order, i, order.indexOf(next))
+        val prev = order.take(i).lastOrNull { it in present }
+        if (prev != null && mids[prev]?.let { y < it } == true) return move(order, i, order.indexOf(prev))
+        return order
+    }
+
     /** L'arg dell'op `home_order`: l'array JSON delle chiavi; null = torna al predefinito. */
     fun arg(order: List<String>): String? = if (order == DEFAULT) null else order.joinToString(",", "[", "]") { "\"$it\"" }
 }

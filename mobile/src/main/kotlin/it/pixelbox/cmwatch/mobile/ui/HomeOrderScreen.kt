@@ -41,7 +41,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -60,23 +59,12 @@ private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
     else -> Icons.Outlined.DataUsage to stringResource(R.string.reorder_tools)
 }
 
-internal val HOME_DRAG_ROW = 56.dp
-
-/** Durante il trascinamento nella home: i soli titoli delle sezioni, quello preso segue il dito. */
+/** La voce presa nella home: la testata che segue il dito, sopra la lista che resta com'è (Franz 31/10 14:27). */
 @Composable
-internal fun HomeDragLayer(order: List<String>, held: String?, dy: Float, modifier: Modifier = Modifier) {
-    Column(modifier.background(V3.Bg).padding(start = 12.dp, end = 12.dp, top = 14.dp).testTag("home-sezione-trascina")) {
-        V3List {
-            order.forEachIndexed { i, key ->
-                androidx.compose.runtime.key(key) {
-                    val (icon, name) = sectionOf(key)
-                    val on = key == held
-                    Box(Modifier.height(HOME_DRAG_ROW).zIndex(if (on) 1f else 0f).graphicsLayer { translationY = if (on) dy else 0f }.background(if (on) V3.S3 else V3.S1)) {
-                        V3Row(i == 0, null, { Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }) { Text(name, style = V3.Name) }
-                    }
-                }
-            }
-        }
+internal fun HomeDragGhost(key: String, modifier: Modifier = Modifier) {
+    val (icon, name) = sectionOf(key)
+    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp).graphicsLayer { shadowElevation = 16f; shape = V3.Shape; clip = true }.testTag("home-sezione-trascina")) {
+        V3Row(true, null, { Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, fill = V3.S3) { Text(name, style = V3.Name) }
     }
 }
 

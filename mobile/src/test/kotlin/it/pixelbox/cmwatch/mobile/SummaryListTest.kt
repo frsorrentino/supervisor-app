@@ -202,8 +202,8 @@ class SummaryListTest {
         CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { MasterDock(m, it.pixelbox.cmwatch.rules.MasterHome.hero(listOf(reply), m), {}, {}, expanded = true) } }
     }
     @Test fun dockAbsent() = paparazzi.snapshot { CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp)) { MasterAbsent {} } } }
-    // La pressione lunga sul titolo: restano i soli titoli, quello preso segue il dito.
+    // La pressione lunga: la copia del titolo che segue il dito.
     @Test fun homeSectionDrag() = paparazzi.snapshot {
-        CmPhoneTheme(still = true) { it.pixelbox.cmwatch.mobile.ui.HomeDragLayer(listOf("sessions", "suggestions", "lavori", "esiti", "altro"), "lavori", 20f) }
+        CmPhoneTheme(still = true) { it.pixelbox.cmwatch.mobile.ui.HomeDragGhost("lavori") }
     }
 }

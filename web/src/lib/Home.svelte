@@ -43,7 +43,7 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
-  import { DEFAULT_ORDER, move as moveOrder, normalize as normalizeOrder, orderArg, type HomeSection } from './homeOrder'
+  import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, type HomeSection } from './homeOrder'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
 
@@ -124,41 +124,69 @@
   let sentOrder = $state<{ from: string; order: HomeSection[] } | null>(null)
   const savedKey = $derived((st.home_order ?? []).join(','))
   const order = $derived(part ? DEFAULT_ORDER : sentOrder && sentOrder.from === savedKey ? sentOrder.order : normalizeOrder(st.home_order))
-  // Il titolo di una sezione si trascina (Franz 31/10 01:01): col mouse subito, al tocco dopo la pressione lunga, senza menu né
-  // selezione. Restano i soli titoli; al rilascio salva e le sezioni tornano com'erano.
-  const DRAG_ROW = 56
+  // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
+  // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
+  // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
   const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, altro: { icon: 'data_usage', name: t.reorderTools } })
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
-  let dragDy = $state(0)
-  let dragLast = 0, dragStartY = 0, dragTimer: ReturnType<typeof setTimeout> | undefined, dragJustEnded = false
+  let dragY = $state(0)
+  let dragGhost = $state<{ shift: number; left: number; width: number } | null>(null)
+  let dragStartY = 0, dragTimer: ReturnType<typeof setTimeout> | undefined, dragJustEnded = false, dragEl: HTMLElement | null = null, dragRaf = 0, dragLastSwap = 0
+  let dragArmed: HomeSection | null = null
   const noScroll = (e: TouchEvent) => { if (dragOrder) e.preventDefault() }
-  function dragBegin(k: HomeSection, y: number) {
-    dragOrder = [...order]; dragKey = k; dragDy = 0; dragLast = y
+  function dragBegin(k: HomeSection) {
+    const r = dragEl!.getBoundingClientRect()
+    dragGhost = { shift: r.top - dragStartY, left: r.left, width: r.width }
+    dragOrder = [...order]; dragKey = k
     navigator.vibrate?.(30)
+    dragRaf = requestAnimationFrame(dragFrame)
+  }
+  // Vicino ai bordi la lista scorre da sola; ogni 120 ms si guarda se il puntatore ha incrociato una testata vicina.
+  function dragFrame(now: number) {
+    const home = dragEl?.closest('.home') as HTMLElement | null
+    if (!dragOrder || !dragKey || !home) return
+    const r = home.getBoundingClientRect(), edge = 72
+    if (dragY < r.top + edge) home.scrollTop -= (r.top + edge - dragY) / edge * 14
+    else if (dragY > r.bottom - edge) home.scrollTop += (dragY - (r.bottom - edge)) / edge * 14
+    if (now - dragLastSwap > 120) {
+      const mids: Partial<Record<HomeSection, number>> = {}
+      for (const k of dragOrder) {
+        const b = home.querySelector(`[data-sec-head="${k}"]`)?.getBoundingClientRect()
+        if (b) mids[k] = b.top + Math.min(b.height, 48) / 2
+      }
+      const next = dragTarget(dragOrder, dragKey, dragY, mids)
+      if (next !== dragOrder) { dragOrder = next; dragLastSwap = now }
+    }
+    dragRaf = requestAnimationFrame(dragFrame)
   }
   function secDown(k: string, e: PointerEvent) {
     if (!onHomeOrder || part || e.button !== 0) return
-    const key = k as HomeSection; dragStartY = e.clientY
-    ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
+    const key = k as HomeSection; dragStartY = dragY = e.clientY; dragEl = e.currentTarget as HTMLElement
+    addEventListener('pointermove', secMove); addEventListener('pointerup', secEnd); addEventListener('pointercancel', secCancel)
     if (e.pointerType === 'mouse') { dragArmed = key; return }
-    dragTimer = setTimeout(() => dragBegin(key, dragStartY), 450)
+    dragTimer = setTimeout(() => dragBegin(key), 450)
     addEventListener('touchmove', noScroll, { passive: false })
   }
-  let dragArmed: HomeSection | null = null
   function secMove(e: PointerEvent) {
-    if (dragArmed && Math.abs(e.clientY - dragStartY) > 6) { dragBegin(dragArmed, dragStartY); dragArmed = null }
+    if (dragArmed && Math.abs(e.clientY - dragStartY) > 6) { dragBegin(dragArmed); dragArmed = null }
     if (!dragOrder) { if (Math.abs(e.clientY - dragStartY) > 10) clearTimeout(dragTimer); return }
-    dragDy += e.clientY - dragLast; dragLast = e.clientY
-    const steps = Math.trunc(dragDy / DRAG_ROW)
-    if (steps && dragKey) { const i = dragOrder.indexOf(dragKey); dragOrder = moveOrder(dragOrder, i, Math.max(0, Math.min(dragOrder.length - 1, i + steps))); dragDy -= steps * DRAG_ROW }
+    dragY = e.clientY
   }
+  const secEnd = () => secUp()
+  const secCancel = () => secUp(true)
+  // Il clic che segue il rilascio non deve aprire o chiudere la voce.
+  const swallowClick = (e: Event) => { e.stopPropagation(); e.preventDefault() }
   function secUp(cancel = false) {
-    clearTimeout(dragTimer); dragArmed = null; removeEventListener('touchmove', noScroll)
+    clearTimeout(dragTimer); dragArmed = null; cancelAnimationFrame(dragRaf)
+    removeEventListener('touchmove', noScroll); removeEventListener('pointermove', secMove); removeEventListener('pointerup', secEnd); removeEventListener('pointercancel', secCancel)
     if (!dragOrder) return
-    const o = dragOrder; dragOrder = null; dragKey = null; dragJustEnded = true; setTimeout(() => (dragJustEnded = false), 50)
+    const o = dragOrder; dragOrder = null; dragKey = null; dragGhost = null; dragJustEnded = true
+    addEventListener('click', swallowClick, { capture: true, once: true })
+    setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
     if (!cancel && o.join() !== order.join()) { sentOrder = { from: savedKey, order: o }; onHomeOrder?.(orderArg(o)) }
   }
+  const altroDrag = $derived(onHomeOrder && !part ? { onpointerdown: (e: PointerEvent) => secDown('altro', e), oncontextmenu: (e: Event) => e.preventDefault() } : {})
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
   $effect(() => {
@@ -357,7 +385,7 @@
     <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->
     <div class="sec static" data-testid={testid}><span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
-    <button class="sec" class:draggable={!!onHomeOrder} aria-expanded={open[key]} data-testid={testid} onclick={() => { if (!dragJustEnded) toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} onpointermove={secMove} onpointerup={() => secUp()} onpointercancel={() => secUp(true)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
+    <button class="sec" class:draggable={!!onHomeOrder} data-sec-head={key} aria-expanded={open[key]} data-testid={testid} onclick={() => { if (!dragJustEnded) toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
       <span class="sp"></span>{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog">{open[key] ? 'expand_less' : 'expand_more'}</span>
     </button>
@@ -498,15 +526,15 @@
       <div class="card wrows altro"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
     {/if}
     <!-- Senza testata (Franz 30/10 21:05): il margine lo tiene staccato dalla sezione di prima. -->
-    <div class="card wrows altro detached">
+    <div class="card wrows altro detached" data-sec-head="altro">
       {#if usage && showUsage && !part}
         <div bind:this={usageEl}>
-          <button class="wrow orow" aria-expanded={open.usage} onclick={() => toggleSec('usage')}><span class="wic"><span class="ms">data_usage</span></span><span class="otext"><b>{t.homeUsage}</b></span>{#if usageLine && !open.usage}<span class="mono">{usageLine}</span>{/if}<span class="ms tog">{open.usage ? 'expand_less' : 'expand_more'}</span></button>
+          <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...altroDrag} aria-expanded={open.usage} onclick={() => toggleSec('usage')}><span class="wic"><span class="ms">data_usage</span></span><span class="otext"><b>{t.homeUsage}</b></span>{#if usageLine && !open.usage}<span class="mono">{usageLine}</span>{/if}<span class="ms tog">{open.usage ? 'expand_less' : 'expand_more'}</span></button>
         </div>
         {#if open.usage}{@render (usageBlock ?? usage)()}{/if}
       {/if}
       {#if sys}
-        <button class="wrow orow" aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}><span class="wic"><span class="ms">memory</span></span><span class="otext"><b>{t.homeSystem}</b></span>{#if !sysOpen}<span class="mono"><b class="sysdot" style:background={SYS_TONE[sys.level]}></b>{summaryLine(sys, lang)}</span>{/if}<span class="ms tog">{sysOpen ? 'expand_less' : 'expand_more'}</span></button>
+        <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...altroDrag} aria-expanded={sysOpen} onclick={() => (sysManual = { level: sys.level, open: !sysOpen })}><span class="wic"><span class="ms">memory</span></span><span class="otext"><b>{t.homeSystem}</b></span>{#if !sysOpen}<span class="mono"><b class="sysdot" style:background={SYS_TONE[sys.level]}></b>{summaryLine(sys, lang)}</span>{/if}<span class="ms tog">{sysOpen ? 'expand_less' : 'expand_more'}</span></button>
         {#if sysOpen}
           <div class="exp sys" data-testid="system_advice">
       <div class="kv sysm">
@@ -540,27 +568,21 @@
           {#if kpiData?.kpi_health}<div class="exp"><Kpi12 h={kpiData.kpi_health} /></div>{/if}
         {/if}
       {/if}
-      {#if pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} />{/if}
+      {#if pluginsLoad && pluginsRun}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} rowDrag={altroDrag} />{/if}
       {#if model.closed.length}
         <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
-        <button class="wrow orow" onclick={() => closedDlg?.showModal()}><span class="wic"><span class="ms">inventory_2</span></span><span class="otext"><b>{t.catClosed}</b></span><span class="mono">{model.closed.length}</span><span class="ms chevr">chevron_right</span></button>
+        <button class="wrow orow" class:draggable={!!onHomeOrder && !part} {...altroDrag} onclick={() => closedDlg?.showModal()}><span class="wic"><span class="ms">inventory_2</span></span><span class="otext"><b>{t.catClosed}</b></span><span class="mono">{model.closed.length}</span><span class="ms chevr">chevron_right</span></button>
       {/if}
     </div>
   {/if}
 {/snippet}
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
-{#each order as k (k)}
-  {#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else}{@render secAltro()}{/if}
+{#each dragOrder ?? order as k (k)}
+  <div class="hsec" class:held={k === dragKey}>{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else}{@render secAltro()}{/if}</div>
 {/each}
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
-  {#if dragOrder}
-    <div class="dragl" data-testid="home-sezione-trascina">
-      <div class="vlist">
-        {#each dragOrder as k (k)}
-          <div class="vrow" class:held={k === dragKey} style:transform={k === dragKey ? `translateY(${dragDy}px)` : null}><span class="ic"><span class="ms" aria-hidden="true">{DRAG_SEC[k].icon}</span></span><span class="tx"><b>{DRAG_SEC[k].name}</b></span></div>
-        {/each}
-      </div>
-    </div>
+  {#if dragKey && dragGhost}
+    <div class="dragg" data-testid="home-sezione-trascina" style:top="{dragY + dragGhost.shift}px" style:left="{dragGhost.left}px" style:width="{dragGhost.width}px"><span class="ic"><span class="ms" aria-hidden="true">{DRAG_SEC[dragKey].icon}</span></span><b>{DRAG_SEC[dragKey].name}</b></div>
   {/if}
 </section>
 
@@ -1015,9 +1037,14 @@
      per l'animazione; chiuse, le card fuori da «Ti aspettano» tengono una riga; Lavori ed Esiti hanno righe compatte. */
   .sec.static { cursor: default; }
   .sec.draggable { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
-  .dragl { position: fixed; inset: 0; z-index: 5; padding-top: 14px; background: var(--bg); }
-  .dragl .vrow { min-height: 56px; height: 56px; }
-  .dragl .vrow.held { position: relative; z-index: 1; background: var(--s3); }
+  /* Una sezione: stessi margini di quando i suoi pezzi stavano nella home. Quella presa resta dov'è, attenuata. */
+  .hsec { display: flex; flex-direction: column; gap: 8px; }
+  .hsec > :global(*) { flex-shrink: 0; }
+  .hsec:empty { display: none; }
+  .hsec.held { opacity: .35; }
+  .orow.draggable { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
+  .dragg { position: fixed; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px 0 14px; border-radius: 16px; background: var(--s3); box-shadow: 0 6px 20px rgba(0, 0, 0, .35); pointer-events: none; }
+  .dragg .ic { flex: 0 0 auto; }
   .sec.wait span, .sec.wait small { color: var(--wait); }
   .cw { display: flex; flex-direction: column; }
   .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }

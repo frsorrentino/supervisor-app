@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_ORDER, move, normalize, orderArg } from './homeOrder'
+import { DEFAULT_ORDER, dragTarget, move, normalize, orderArg, type HomeSection } from './homeOrder'
 
 describe('homeOrder', () => {
   it('senza un ordine salvato, il predefinito', () => {
@@ -16,5 +16,23 @@ describe('homeOrder', () => {
   it("l'arg è un array JSON, null per il predefinito", () => {
     expect(orderArg(DEFAULT_ORDER)).toBeNull()
     expect(orderArg(['esiti', 'sessions', 'suggestions', 'lavori', 'altro'])).toBe('["esiti","sessions","suggestions","lavori","altro"]')
+  })
+})
+
+describe('trascinamento sul posto', () => {
+  const abc: HomeSection[] = ['sessions', 'lavori', 'esiti']
+  const m = { sessions: 10, lavori: 90, esiti: 200 }
+  it('scavalca la vicina solo quando il puntatore la incrocia', () => {
+    expect(dragTarget(abc, 'sessions', 89, m)).toEqual(abc)
+    expect(dragTarget(abc, 'sessions', 91, m)).toEqual(['lavori', 'sessions', 'esiti'])
+    expect(dragTarget(abc, 'esiti', 91, m)).toEqual(abc)
+    expect(dragTarget(abc, 'esiti', 89, m)).toEqual(['sessions', 'esiti', 'lavori'])
+  })
+  it('una sezione assente non fa da ostacolo', () => {
+    expect(dragTarget(abc, 'sessions', 91, { sessions: 10, esiti: 90 })).toEqual(['lavori', 'esiti', 'sessions'])
+  })
+  it('dopo lo scambio resta ferma', () => {
+    const s: HomeSection[] = ['lavori', 'sessions', 'esiti']
+    expect(dragTarget(s, 'sessions', 91, { lavori: 40, sessions: 140, esiti: 260 })).toEqual(s)
   })
 })
