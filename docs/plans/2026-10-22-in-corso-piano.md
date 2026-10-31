@@ -12,7 +12,7 @@ dopo la pre-release `tab-emoji-2026-10-22`, oppure un ramo `lavori/in-corso` da 
      dietro un altro compito): riga sotto = sessione e ora dell'ok, o il motivo della pausa («in coda dopo X»).
    - **ASPETTA TE**: impegni con `waits.on = person` (in pausa o no) e gli approvati che aspettano un ok: riga sotto =
      cosa serve da Franz (il motivo della pausa, o «il tuo ok a: …» da `next`); a destra da quando («dalle 20:50» oggi,
-     «dal 18/10» prima). Stessa sessione e stesso motivo = una riga sola con la pastiglia «N compiti» (Albo Chiaro: 5).
+     «dal 18/10» prima). Stessa sessione e stesso motivo = una riga sola con la pastiglia «N compiti» (Docs online: 5).
    - **FERMI SU ALTRI**: le righe dell'agenda con `blocks = terzi`: riga sotto = `ref` o la prima riga di `detail`;
      a destra la data di ritorno (`until`) se c'è.
 2. Ogni riga: icona del gruppo in un cerchio (play, persona, clessidra), titolo breve su una riga (`short` del contratto
@@ -25,7 +25,7 @@ dopo la pre-release `tab-emoji-2026-10-22`, oppure un ramo `lavori/in-corso` da 
    barre come oggi (piena = al lavoro, tratteggio = in pausa o in coda, riga bianca = adesso), legenda in una riga in
    fondo; le righe dell'agenda senza barra con «dall'agenda, senza data».
 5. Stessa regola sul web (`Lavori.svelte`, `lavori.ts`).
-6. Provini col caso reale di stasera: 2 al lavoro, 7 aspetta te (Albo Chiaro ×5 raggruppato, Lavori leggibile, App del
+6. Provini col caso reale di stasera: 2 al lavoro, 7 aspetta te (Docs online ×5 raggruppato, Lavori leggibile, App del
    03/10), 2 fermi su altri (Chrome Web Store, chrome-bridge #2); titoli lunghi.
 
 ## Task

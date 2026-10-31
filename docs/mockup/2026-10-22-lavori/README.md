@@ -25,7 +25,7 @@ La quota non è nella pagina: resta in «Utilizzo e limiti».
 
 ## Dati veri usati
 
-- Registro (`supervisor task impegni --json`, 07:50): 7 impegni aperti: `mockup-lavori-22-10` al lavoro; i cinque di Docs online (ok del 17/10 alle 22:05) e `phone-fix-0310-sera` (03/10) in pausa; la pausa di Albo aspetta da Franz la casella di posta `docs@`.
+- Registro (`supervisor task impegni --json`, 07:50): 7 impegni aperti: `mockup-lavori-22-10` al lavoro; i cinque di Docs online (ok del 17/10 alle 22:05) e `phone-fix-0310-sera` (03/10) in pausa; la pausa di Docs online aspetta da Franz la casella di posta `docs@`.
 - Ok da dare (`state.attention.approvals` del resoconto della notte): `notte-cc2-1-307-fable-22-10`, chiesto dalla master alle 05:53.
 - Agenda (`~/Desktop/workspaces/.claude/agenda.tsv`): 30 righe aperte, 17 bloccano su Franz, 10 su Claude, 3 su terzi; 1 sospesa (`dev.alfa.example`).
 - Notte (`~/.cc-supervisor/night-report/2026-10-22.json`): «5 progetti: 1 fatti, 3 in parte, 1 fermi», finestra 00:25–06:30, 4 sessioni e 2 lavori della coda; coda di stanotte vuota.

@@ -174,7 +174,7 @@ describe('lavori', () => {
     ]
     const rows: AgendaRow[] = [
       { state: 'aperto', scope: 'personale', blocks: 'terzi', title: 'Revisione Chrome Web Store di chrome-bridge 1.12.0 con move_tab', ref: 'chrome-bridge 1.12.0', key: 'a1', short: 'Revisione Chrome Web Store' },
-      { state: 'aperto', scope: 'personale', blocks: 'terzi', title: 'chrome-bridge, issue #2: risposta di jeet-dhandha', ref: '', detail: 'risposta di jeet-dhandha\nseconda riga', until: '2026-10-25', key: 'a2' },
+      { state: 'aperto', scope: 'personale', blocks: 'terzi', title: 'chrome-bridge, issue #2: risposta di un utente', ref: '', detail: 'risposta di un utente\nseconda riga', until: '2026-10-25', key: 'a2' },
     ]
     const ip = inProgress({ ...idle, commitments: list, approvals: [], ts: now }, { rows, more: false, owner: 'franz' }, now, zone, '2026-10-22')
     expect(ip.working.map(l => l.short)).toEqual(["Niente emoji nell'app", 'con un suggerimento visibile'])

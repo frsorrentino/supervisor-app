@@ -25,9 +25,9 @@ Finché l'op non c'è, l'app ricava «Fatto oggi» dagli eventi `task_check` ver
 
 ## 2. Una pausa che aspetta la persona
 
-Oggi la pausa di Albo Chiaro dice «aspetta da Franz la casella Aruba» solo nel testo del motivo. L'app deve metterla in «Per te» con il tasto Fatto, e non può leggerlo dal testo. Chiesto:
+Oggi la pausa di Docs online dice «aspetta da Franz la casella di posta» solo nel testo del motivo. L'app deve metterla in «Per te» con il tasto Fatto, e non può leggerlo dal testo. Chiesto:
 
-- `task pause ID --reason R --waits person` (o un sinonimo che decide supervisor): nello stato la voce ha `waits = {"who": "<sessione>", "on": "person"}` finché è in pausa, e `paused.at` = l'inizio vero della pausa quando è noto (oggi Albo ha `at` del 22/10 alle 00:36 per una pausa dal 18/10).
+- `task pause ID --reason R --waits person` (o un sinonimo che decide supervisor): nello stato la voce ha `waits = {"who": "<sessione>", "on": "person"}` finché è in pausa, e `paused.at` = l'inizio vero della pausa quando è noto (oggi Docs online ha `at` del 22/10 alle 00:36 per una pausa dal 18/10).
 - `task resume ID` toglie la pausa e riporta `waits` a chi tocca. L'app, su Fatto, manda alla master un `prompt` «Fatto: <motivo>. Riprendi <task>» (nessuna op nuova).
 - Un compito in pausa che aspetta la persona non va in allarme (`stalled` resta false) e non entra in `task_stalled`, come oggi.
 

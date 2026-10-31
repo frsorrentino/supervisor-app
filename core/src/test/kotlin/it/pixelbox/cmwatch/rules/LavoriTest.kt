@@ -214,7 +214,7 @@ class LavoriTest {
         )
         val ag = AgendaPage(listOf(
             AgendaRow("aperto", "personale", "terzi", "Revisione Chrome Web Store di chrome-bridge 1.12.0 con move_tab", "chrome-bridge 1.12.0", key = "a1", short = "Revisione Chrome Web Store"),
-            AgendaRow("aperto", "personale", "terzi", "chrome-bridge, issue #2: risposta di jeet-dhandha", "", detail = "risposta di jeet-dhandha\nseconda riga", until = "2026-10-25", key = "a2"),
+            AgendaRow("aperto", "personale", "terzi", "chrome-bridge, issue #2: risposta di un utente", "", detail = "risposta di un utente\nseconda riga", until = "2026-10-25", key = "a2"),
         ), owner = "franz")
         val state = idle.copy(commitments = list, approvals = emptyList(), ts = now)
         val ip = Lavori.inProgress(state, ag, now, zone, LocalDate.of(2026, 10, 22))

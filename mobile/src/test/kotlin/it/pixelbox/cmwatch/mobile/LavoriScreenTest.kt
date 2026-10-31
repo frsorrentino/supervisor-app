@@ -90,7 +90,7 @@ class LavoriScreenTest {
     }
     private val eveningAgenda = AgendaPage(listOf(
         AgendaRow("aperto", "postazione", "terzi", "Attesa revisione Chrome Web Store per chrome-bridge 1.12.0 con move_tab", "chrome-bridge 1.12.0 con move_tab", key = "a1", short = "Revisione Chrome Web Store"),
-        AgendaRow("aperto", "personale", "terzi", "chrome-bridge, issue #2: risposta di jeet-dhandha sul tab che non si muove", "", detail = "risposta di jeet-dhandha\nseconda riga", until = "2026-10-25", key = "a2"),
+        AgendaRow("aperto", "personale", "terzi", "chrome-bridge, issue #2: risposta di un utente sul tab che non si muove", "", detail = "risposta di un utente\nseconda riga", until = "2026-10-25", key = "a2"),
     ), owner = "franz")
     private val eveningDay: java.time.LocalDate = Instant.ofEpochSecond(eveningNow).atZone(zone).toLocalDate()
 
