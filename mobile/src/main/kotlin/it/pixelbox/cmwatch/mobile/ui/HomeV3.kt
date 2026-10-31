@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Icon
@@ -167,7 +168,7 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
         count?.let { Text(it, style = V3.Section.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = V3.Tx2), modifier = Modifier.padding(start = 8.dp)) }
         // Il riepilogo prende quello che avanza e va a capo solo come ultima risorsa: mai tagliato, mai addosso al numero (Franz 30/10 19:46).
         Row(Modifier.weight(1f).padding(start = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(CircleShape).background(c)) }
+            dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
             right?.let { Text(it, style = V3.Small, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
         }
         if (open != null) Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))
