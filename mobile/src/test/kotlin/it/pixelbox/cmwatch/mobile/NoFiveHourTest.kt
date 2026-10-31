@@ -37,7 +37,7 @@ class NoFiveHourTest {
     private val two = base.copy(quota = mapOf("personal" to personal, "work" to work))
     private val head = Kpi.Head(2, 300, 3, 7, 0)
 
-    private fun rings(st: State) = PhoneOverview.build(st, emptyList(), emptyList(), now, zone, stale = false).rings
+    private fun rings(st: State) = PhoneOverview.build(st, emptyList(), emptyMap(), now, zone, stale = false).rings
 
     @After fun night() { V3.day = false }
 
