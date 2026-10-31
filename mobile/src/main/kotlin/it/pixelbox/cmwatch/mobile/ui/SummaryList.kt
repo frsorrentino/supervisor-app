@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.SportsScore
@@ -550,7 +551,7 @@ fun SummaryList(
             val moving = movingIn("closed")
             closedGroup?.let { g ->
                 dragPresent += "closed"
-                item(key = "sec-closed") { Box(moving()) { V3Section(sectionDrag("closed"), stringResource(R.string.cat_closed), Icons.Rounded.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) } }
+                item(key = "sec-closed") { Box(moving()) { V3Section(sectionDrag("closed"), stringResource(R.string.cat_closed), androidx.compose.material.icons.Icons.Outlined.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) } }
             }
         }
         // L'ordine scelto da Franz (Impostazioni › Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra.
