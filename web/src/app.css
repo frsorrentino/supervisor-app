@@ -27,6 +27,12 @@ html.night-only { color-scheme: dark; }
 @media (prefers-reduced-motion: reduce) {
   :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
 }
+/* Voce 15: le cifre non tremolano quando cambiano. */
+html { font-variant-numeric: tabular-nums; }
+/* Voce 6: il tasto cede alla pressione, non al rilascio. Senza rimbalzo. */
+button.tonal, button.filled, button.approve, button.mini, button.text { transition: transform var(--spring-fast-t) var(--spring-fast); }
+button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active { transform: scale(.97); transition-duration: 100ms; }
+@media (prefers-reduced-motion: reduce) { button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active { transform: none; } }
 /* Voce 1: la linea del lavoro in corso. Non si riempie: il relay non sa quanto manca. */
 .edge-line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; pointer-events: none; background: color-mix(in srgb, var(--busy) 22%, transparent); animation: edge-in 200ms ease-out; }
 .edge-line::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 30%; background: var(--busy); animation: edge-run 1.6s linear infinite; }

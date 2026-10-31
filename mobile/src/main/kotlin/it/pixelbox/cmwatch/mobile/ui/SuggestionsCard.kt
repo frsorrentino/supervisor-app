@@ -38,6 +38,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.getValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -58,8 +61,30 @@ internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, Stri
     // «Altre risposte» (app-home-riordino-29-10): Parliamone, Non ora e Mai dietro un tocco; prima erano dodici tasti in tre voci.
     var more by remember { mutableStateOf(setOf<String>()) }
     // Nello stile «Studio e Diretta» (30/10): una lista a filo col binario; il tipo è l'icona grigia a sinistra e la parola sopra il testo.
+    // Voce 12: la voce esce nel verso della scelta, la successiva sale con la molla. Il tocco vale subito; se la voce resta, torna.
+    val off = animationsOff()
+    val view = androidx.compose.ui.platform.LocalView.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val leaving = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
+    val seen = androidx.compose.runtime.remember { mutableSetOf<String>() }
+    val answer = { s: Suggestion, action: String, opt: String? ->
+        if (action == "accept" || action == "choose") view.confirmHaptic()
+        if (off) onAnswer(s, action, opt)
+        else {
+            leaving[s.id] = action
+            scope.launch { kotlinx.coroutines.delay(160); onAnswer(s, action, opt); kotlinx.coroutines.delay(3_000); leaving.remove(s.id) }
+        }
+        Unit
+    }
     Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
-        v.shown.forEachIndexed { i, s ->
+        v.shown.forEachIndexed { i, s -> androidx.compose.runtime.key(s.id) {
+            val isNew = seen.isNotEmpty() && s.id !in seen
+            androidx.compose.runtime.SideEffect { seen += s.id }
+            val rise = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (isNew && !off) 0.95f else 1f) }
+            androidx.compose.runtime.LaunchedEffect(Unit) { rise.animateTo(1f, CmMotion.bounceFloat) }
+            val how = leaving[s.id]
+            val out by androidx.compose.animation.core.animateFloatAsState(if (how != null) 1f else 0f, androidx.compose.animation.core.tween(160, easing = CmMotion.easing), label = "leave")
+            val down = how == "later" || how == "never"
             if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             val (icon, label) = when (s.kind) {
                 "recurring" -> Icons.Rounded.Repeat to R.string.sug_kind_recurring
@@ -77,7 +102,10 @@ internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, Stri
                 // Un tipo che quest'app non conosce: neutro, non più «Quota» (documento suggerimenti-coda, §8.8).
                 else -> Icons.Rounded.AutoAwesome to R.string.sug_kind_other
             }
-            Row(Modifier.padding(top = 12.dp, end = 12.dp, bottom = 12.dp)) {
+            Row(Modifier.graphicsLayer {
+                scaleX = rise.value; scaleY = rise.value; alpha = 1f - out
+                if (down) translationY = out * size.height * 0.5f else translationX = out * size.width * 0.25f
+            }.padding(top = 12.dp, end = 12.dp, bottom = 12.dp)) {
                 Box(Modifier.width(V3.Rail).padding(top = 2.dp), contentAlignment = Alignment.Center) { Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(20.dp)) }
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -85,23 +113,24 @@ internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, Stri
                     Text(s.text, style = V3.Body)
                     FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (s.id in more) {
-                            SugText(stringResource(R.string.sug_discuss)) { onAnswer(s, "discuss", null) }
-                            SugText(stringResource(R.string.sug_later)) { onAnswer(s, "later", null) }
-                            SugText(stringResource(R.string.sug_never)) { onAnswer(s, "never", null) }
+                            SugText(stringResource(R.string.sug_discuss)) { answer(s, "discuss", null) }
+                            SugText(stringResource(R.string.sug_later)) { answer(s, "later", null) }
+                            SugText(stringResource(R.string.sug_never)) { answer(s, "never", null) }
                         } else SugText(stringResource(R.string.sug_more)) { more = more + s.id }
                         val opts = Suggestions.options(s)
-                        if (opts.isEmpty()) V3Pill(stringResource(R.string.sug_accept)) { onAnswer(s, "accept", null) }
-                        else opts.forEach { o -> V3Pill(o) { onAnswer(s, "choose", o) } }
+                        if (opts.isEmpty()) V3Pill(stringResource(R.string.sug_accept)) { answer(s, "accept", null) }
+                        else opts.forEach { o -> V3Pill(o) { answer(s, "choose", o) } }
                     }
                 }
             }
-        }
+        } }
     }
 }
 
 @Composable
 private fun SugText(text: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = CircleShape, color = Color.Transparent, contentColor = V3.Tx2) {
+    val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    Surface(onClick = onClick, interactionSource = press, modifier = Modifier.pressScale(press), shape = CircleShape, color = Color.Transparent, contentColor = V3.Tx2) {
         Text(text, style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx2), maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp))
     }
 }

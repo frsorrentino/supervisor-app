@@ -26,6 +26,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onPlaced
@@ -54,10 +56,14 @@ private val cmShapes = Shapes(
 )
 
 /** Gerarchia forte: numeri grandi più pesanti, come quota e contatori sul polso; titoli un gradino sopra il corpo. */
+/** Cifre a larghezza fissa: tabellone, quota, carico. */
+const val CM_TNUM = "tnum"
+
 private val cmType = Typography().run {
     copy(
-        displayLarge = displayLarge.copy(fontWeight = FontWeight.SemiBold),
-        displayMedium = displayMedium.copy(fontWeight = FontWeight.SemiBold),
+        // Voce 15: le cifre grandi a larghezza fissa non tremolano quando cambiano.
+        displayLarge = displayLarge.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = CM_TNUM),
+        displayMedium = displayMedium.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = CM_TNUM),
         titleLarge = titleLarge.copy(fontWeight = FontWeight.Medium),
         titleMedium = titleMedium.copy(fontWeight = FontWeight.Medium),
     )
@@ -125,12 +131,31 @@ object CmMotion {
         stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
     )
 
+    /** La stessa molla di [bounce] per le altezze che si adattano. */
+    val bounceSize = androidx.compose.animation.core.spring<androidx.compose.ui.unit.IntSize>(
+        dampingRatio = 0.7f,
+        stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
+        visibilityThreshold = androidx.compose.ui.unit.IntSize.VisibilityThreshold,
+    )
+
     /** Lento, per colori e passaggi di sfondo: nessuno sforamento. */
     val slow = androidx.compose.animation.core.spring<androidx.compose.ui.graphics.Color>(
         dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
         stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
     )
 }
+
+/** Voce 6: il tasto cede subito alla pressione, senza rimbalzo. Quasi invisibile, quindi regge l'uso frequente. */
+@Composable
+fun Modifier.pressScale(source: androidx.compose.foundation.interaction.MutableInteractionSource): Modifier {
+    if (animationsOff()) return this
+    val pressed by source.collectIsPressedAsState()
+    val s by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.97f else 1f, CmMotion.fast, label = "press")
+    return this.graphicsLayer { scaleX = s; scaleY = s }
+}
+
+/** Voce 13: le azioni decisive si sentono, una volta, alla conferma. */
+fun android.view.View.confirmHaptic() { performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM) }
 
 /**
  * Una voce che cambia posto in una colonna normale, dove `animateItem` non arriva: scivola al posto nuovo con [CmMotion.bounce].

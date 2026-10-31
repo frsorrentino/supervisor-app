@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -1214,7 +1215,8 @@ private fun OkButtons(a: it.pixelbox.cmwatch.contract.Approval, filled: Boolean,
 /** Il tasto piccolo delle righe (come l'Approva della scheda): pieno per quello che sblocca una sessione, tonale per l'agenda. */
 @Composable
 private fun MiniButton(text: String, filled: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = CircleShape, color = if (filled) Cm.primary else Cm.surfaceHigh, contentColor = if (filled) Cm.onPrimary else Cm.text) {
+    val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    Surface(onClick = onClick, interactionSource = press, modifier = Modifier.pressScale(press), shape = CircleShape, color = if (filled) Cm.primary else Cm.surfaceHigh, contentColor = if (filled) Cm.onPrimary else Cm.text) {
         Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
 }
@@ -1241,7 +1243,11 @@ private fun WorkCard(
         Lavori.Kind.OUTSIDE -> if (cm != null) who?.let { stringResource(R.string.lavori_unblocks, it) } else who
         Lavori.Kind.CLAUDE -> who
     }
-    Column(familyCard(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    // Voce 11: dopo l'ok il tasto scelto diventa la conferma. Se la card resta (il PC non risponde) i tasti tornano.
+    var sent by rememberSaveable(r.title) { mutableStateOf<String?>(null) }
+    androidx.compose.runtime.LaunchedEffect(sent) { if (sent != null) { kotlinx.coroutines.delay(8_000); sent = null } }
+    val off = animationsOff()
+    Column(familyCard().then(if (off) Modifier else Modifier.animateContentSize(CmMotion.bounceSize)), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             WorkBadge(r.kind, ag?.let { RecapAgenda.mark(it.scope) } ?: RecapAgenda.Mark.NONE)
             Text(Lavori.shortTitle(r.title, ag?.short ?: cm?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
@@ -1260,6 +1266,9 @@ private fun WorkCard(
             }
         }
         val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
+        androidx.compose.animation.Crossfade(sent, Modifier.fillMaxWidth(), if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(150), label = "ok") { done ->
+        if (done != null) OkSent(done)
+        else Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (opts.isNotEmpty()) {
             // Franz 24/10 09:22: con le opzioni, chi chiede su una riga sua e i tasti interi sotto, che vanno a capo fra loro.
             sub?.let { Text(it, style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip) }
@@ -1275,8 +1284,29 @@ private fun WorkCard(
                 Lavori.Kind.CLAUDE -> MiniButton(stringResource(R.string.lavori_start), filled = false) { ag?.let { row -> onStart(RecapAgenda.doIt(row)) } }
             }
         }
+        }
+        }
     }
-    if (ask && a != null) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
+    val okWord = choice ?: stringResource(R.string.approve)
+    if (ask && a != null) ApproveDialog(a, choice, onConfirm = { n -> ask = false; sent = okWord; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
+}
+
+/** La conferma che prende il posto dei tasti: si allarga con la molla, poi la card esce quando il PC risponde. */
+@Composable
+private fun OkSent(text: String) {
+    val off = animationsOff()
+    val w = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (off) 1f else 0.45f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (!off) w.animateTo(1f, CmMotion.bounceFloat) }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(
+            Modifier.fillMaxWidth(w.value.coerceAtMost(1f)).clip(CircleShape).background(Cm.primary).padding(horizontal = 14.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.Check, null, tint = Cm.onPrimary, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(text, style = MaterialTheme.typography.labelLarge, color = Cm.onPrimary, maxLines = 1, softWrap = false)
+        }
+    }
 }
 
 private fun detailLabel(k: Lavori.Detail): Int = when (k) {
@@ -1531,6 +1561,7 @@ internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, S
 /** La conferma dell'ok (contratto 1.37), la stessa in home e nella pagina Lavori: cosa, dove, una nota facoltativa. */
 @Composable
 internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: String? = null, onConfirm: (note: String) -> Unit, onDismiss: () -> Unit) {
+    val hapticView = androidx.compose.ui.platform.LocalView.current
     var note by rememberSaveable(a.task) { mutableStateOf("") }
     // Franz 24/10 09:25: titolo corto, la domanda una volta sola con il tasto ▶, le opzioni con quella scelta evidenziata,
     // la nota facoltativa, poi Annulla e la conferma.
@@ -1557,7 +1588,7 @@ internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: Str
                 androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
             }
         },
-        confirmButton = { androidx.compose.material3.Button(onClick = { onConfirm(note) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(choice ?: stringResource(R.string.approve)) } },
+        confirmButton = { androidx.compose.material3.Button(onClick = { hapticView.confirmHaptic(); onConfirm(note) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(choice ?: stringResource(R.string.approve)) } },
         dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Cm.text2) } },
     )
 }

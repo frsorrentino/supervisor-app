@@ -210,7 +210,8 @@ internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: 
 /** La pillola tonale delle righe (Fatto, Avvia, Aggiungi): mai piena, salvo l'unico bottone pieno della schermata. */
 @Composable
 internal fun V3Pill(text: String, filled: Boolean = false, onClick: () -> Unit) {
-    androidx.compose.material3.Surface(onClick = onClick, shape = androidx.compose.foundation.shape.CircleShape, color = if (filled) V3.Act else V3.S3, contentColor = if (filled) V3.OnAct else V3.Tx) {
+    val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    androidx.compose.material3.Surface(onClick = onClick, interactionSource = press, modifier = Modifier.pressScale(press), shape = androidx.compose.foundation.shape.CircleShape, color = if (filled) V3.Act else V3.S3, contentColor = if (filled) V3.OnAct else V3.Tx) {
         Text(text, style = V3.Name.copy(fontSize = 15.sp, color = if (filled) V3.OnAct else V3.Tx), maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
     }
 }

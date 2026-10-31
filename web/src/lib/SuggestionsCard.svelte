@@ -2,6 +2,7 @@
   import type { Suggestion } from './contract'
   import { t } from './t'
   import { options } from './suggestions'
+  import { bounceEase, bounceMs, reducedMotion } from './motion'
 
   // «Suggerimenti della master» (Franz 24/10 19:46, scheda A del mockup docs/mockup/2026-10-24-suggerimenti-home; contratto
   // 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Parliamone»,
@@ -10,6 +11,15 @@
   let { shown, onAnswer }: { shown: Suggestion[]; onAnswer: (s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', choice?: string) => void } = $props()
   // «Altre risposte» (app-home-riordino-29-10): Parliamone, Non ora e Mai dietro un tocco; prima erano dodici tasti in tre voci.
   let more = $state(new Set<string>())
+  // Voce 12: la voce esce nel verso della scelta, la successiva sale con la molla. Se la voce resta, torna.
+  let leaving = $state<Record<string, string>>({})
+  function answer(s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', option?: string) {
+    if (reducedMotion()) { (onAnswer as (a: Suggestion, b: string, c?: string) => void)(s, action, option); return }
+    leaving = { ...leaving, [s.id]: action }
+    setTimeout(() => (onAnswer as (a: Suggestion, b: string, c?: string) => void)(s, action, option), 160)
+    setTimeout(() => { const { [s.id]: _, ...rest } = leaving; leaving = rest }, 3200)
+  }
+  const rise = () => ({ duration: bounceMs(), easing: bounceEase, css: (u: number) => `transform: scale(${0.95 + 0.05 * u})` })
   const icon: Record<string, string> = {
     recurring: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
     cleanup: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
@@ -32,18 +42,18 @@
      a sinistra e la parola sopra il testo; a destra «Altre risposte» (da cui si rifiuta) e «Accetta» tonale. -->
 <div class="card sugg">
   {#each shown as s (s.id)}
-    <div class="sug">
+    <div class="sug" class:out-fwd={leaving[s.id] === 'accept' || leaving[s.id] === 'choose' || leaving[s.id] === 'discuss'} class:out-down={leaving[s.id] === 'later' || leaving[s.id] === 'never'} in:rise>
       <span class="rail sym"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={icon[s.kind] ?? icon.other} /></svg></span>
       <span class="txt">
         <span class="k">{t.sugKind[s.kind] ?? t.sugKindOther}</span>
         <span class="body">{s.text}</span>
         <span class="btns">
           {#if more.has(s.id)}
-            <button class="text" onclick={() => onAnswer(s, 'discuss')}>{t.sugDiscuss}</button>
-            <button class="text" onclick={() => onAnswer(s, 'later')}>{t.sugLater}</button>
-            <button class="text" onclick={() => onAnswer(s, 'never')}>{t.sugNever}</button>
+            <button class="text" onclick={() => answer(s, 'discuss')}>{t.sugDiscuss}</button>
+            <button class="text" onclick={() => answer(s, 'later')}>{t.sugLater}</button>
+            <button class="text" onclick={() => answer(s, 'never')}>{t.sugNever}</button>
           {:else}<button class="text" aria-expanded="false" onclick={() => (more = new Set([...more, s.id]))}>{t.sugMore}</button>{/if}
-          {#each options(s) as o (o)}<button class="tonal" onclick={() => onAnswer(s, 'choose', o)}>{o}</button>{:else}<button class="tonal" onclick={() => onAnswer(s, 'accept')}>{t.sugAccept}</button>{/each}
+          {#each options(s) as o (o)}<button class="tonal" onclick={() => answer(s, 'choose', o)}>{o}</button>{:else}<button class="tonal" onclick={() => answer(s, 'accept')}>{t.sugAccept}</button>{/each}
         </span>
       </span>
     </div>
@@ -55,6 +65,9 @@
   .rail { width: 52px; flex: none; display: flex; justify-content: center; color: var(--tx2); }
   .sug { display: flex; gap: 8px; padding: 12px 12px 12px 0; border-top: 1px solid var(--line); }
   .sug:first-of-type { border-top: 0; }
+  .sug { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .sug.out-fwd { transform: translateX(25%); opacity: 0; }
+  .sug.out-down { transform: translateY(50%); opacity: 0; }
   .sym { padding-top: 2px; }
   .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }
   .k { font-size: 13px; color: var(--tx3); }

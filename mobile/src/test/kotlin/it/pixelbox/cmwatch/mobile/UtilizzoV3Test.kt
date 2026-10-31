@@ -58,7 +58,7 @@ class UtilizzoV3Test {
         val big = TimelinePage(now - 86400, listOf(TimelineSession("supervisor-app", true, "supervisor-app", List(999) { TimelineEvent(now - it * 30L, "prompt", "x") } + List(999) { TimelineEvent(now - it * 30L, "commit", "x") })))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.fillMaxWidth().background(it.pixelbox.cmwatch.mobile.ui.V3.S1)) { UtilizzoV3(listOf(ring), st, big, null, now, {}, startOpen = "today", zone = zone) }
+                Column(Modifier.fillMaxWidth().background(it.pixelbox.cmwatch.mobile.ui.V3.S1)) { UtilizzoV3(listOf(ring), st.copy(usageToday = listOf(UsageToday(session = "supervisor-app", account = account, tokens = 311_000_000, share = 0.46))), big, null, now, {}, startOpen = "today", zone = zone) }
             }
         }
     }

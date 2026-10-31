@@ -18,6 +18,7 @@
   import { homeGlyph } from './permissionModes'
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
+  import { fade } from 'svelte/transition'
   import { bounceEase, bounceMs, finishScrollAllowed, reducedMotion } from './motion'
   import { rows as commitmentRowsOf } from './commitments'
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
@@ -262,6 +263,9 @@
   const restFlat = $derived(restGroups.flatMap(([g, rows]) => rows.map(r => [r, g] as const)))
   // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando il compito finisce la riga diventa verde per poco.
   const workingNow = $derived(new Set(st.commitments != null ? commitmentRowsOf(st, now).filter(r => !r.yourTurn).map(r => r.c.session) : []))
+  // Voce 11: dopo l'ok il tasto scelto diventa la conferma. Se la card resta (il PC non risponde) i tasti tornano.
+  let sentOk = $state<Record<string, string>>({})
+  function markSent(task: string, label: string) { sentOk = { ...sentOk, [task]: label }; setTimeout(() => { const { [task]: _, ...rest } = sentOk; sentOk = rest }, 8000) }
   let finishedNow = $state<string[]>([])
   let prevWorking = new Set<string>()
   const seenOnScreen = new Map<string, boolean>()
@@ -818,11 +822,12 @@
       {#if openW && ds.length}
         <div class="kv wkv">{#each ds as d (d.kind)}<span>{t.lavoriDetail[d.kind]}</span><span>{d.kind === 'asked_at' ? hhmm(Number(d.value)) : d.value}</span>{/each}</div>
       {/if}
-      <div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
+      {#if r.approval && sentOk[r.approval.task]}<div class="oksent" in:fade={{ duration: 150 }}><span class="ms">check</span>{sentOk[r.approval.task]}</div>
+      {:else}<div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
         <span class="okt mono2">{fySub(r) ?? ''}</span>
         {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval, filled)}{/if}
         {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
-      </div></div>
+      </div></div>{/if}
     </div>
 {/snippet}
 
@@ -894,7 +899,7 @@
 <dialog bind:this={approveDlg} class="alert" onclick={(e) => e.target === e.currentTarget && approveDlg?.close()}>
   {#if pending}
     {#key `${pending.task}:${pendingChoice}`}
-      <ApproveBody a={pending} choice={pendingChoice} {onSpeak} onCancel={() => approveDlg?.close()} onConfirm={(n) => { onApprove(pending!.task, n, pendingChoice ?? undefined); approveDlg?.close() }} />
+      <ApproveBody a={pending} choice={pendingChoice} {onSpeak} onCancel={() => approveDlg?.close()} onConfirm={(n) => { markSent(pending!.task, pendingChoice ?? t.approve); onApprove(pending!.task, n, pendingChoice ?? undefined); approveDlg?.close() }} />
     {/key}
   {/if}
 </dialog>
@@ -1088,6 +1093,9 @@
   .dragg .ic { flex: 0 0 auto; }
   .sec.wait span, .sec.wait small { color: var(--wait); }
   .cw { position: relative; display: flex; flex-direction: column; box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow var(--spring-slow-t) var(--spring-slow); }
+  .oksent { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 99px; background: var(--act, var(--tx)); color: var(--onact, var(--bg)); font-weight: 600; transform-origin: right; animation: oksent var(--spring-bounce-t) var(--spring-bounce); }
+  .oksent .ms { font-size: 16px; }
+  @keyframes oksent { from { transform: scaleX(.45); } }
   .cw.finished { box-shadow: inset 0 0 0 1.5px var(--good); }
   .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
   .meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
