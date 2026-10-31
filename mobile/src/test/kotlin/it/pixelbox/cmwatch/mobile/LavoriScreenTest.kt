@@ -42,7 +42,7 @@ class LavoriScreenTest {
         AgendaRow("aperto", "personale", "franz", "Revocare la chiave API Anthropic trovata in chiaro", "console.anthropic.com → API Keys"),
         AgendaRow("aperto", "agenzia", "franz", "17 client_id residui: 6 con candidato da confermare", ".claude/DA-DECIDERE-client-id.md"),
         AgendaRow("aperto", "agenzia", "franz", "Svuotare i 46 container con Universal Analytics", ".claude/scan/tag-runtime.json"),
-        AgendaRow("aperto", "agenzia", "claude", "Migrare a pixel i 4 siti di produzione con idemedia attivo", "alfa.example beta.example gamma.example"),
+        AgendaRow("aperto", "agenzia", "claude", "Migrare al nuovo host i 4 siti di produzione ancora attivi", "alfa.example beta.example gamma.example"),
         AgendaRow("aperto", "postazione", "claude", "Cancellare le cache orfane dei plugin", "~/.claude*/plugins/cache/"),
         AgendaRow("aperto", "postazione", "terzi", "Attesa revisione Chrome Web Store per chrome-bridge 1.12.0", "blocca la prova delle schede"),
         AgendaRow("fatto", "postazione", "nessuno", "Backups of the workstation every night", "crontab"),
@@ -67,22 +67,22 @@ class LavoriScreenTest {
         LavoriScreen(state, agenda, if (agenda == null) emptyList() else events, now, {}, { _, _, _ -> }, {}, {}, {}, {}, {}, {}, {}, header = header, part = part, today = day, zone = zone, donePages = pages, startOpen = open, startView = view)
     }
 
-    /** Il caso reale della sera del 22/10 (mockup «In corso leggibile»): 2 al lavoro, 7 che aspettano Franz con Albo Chiaro ×5, 2 fermi su terzi, titoli lunghi. */
+    /** Il caso reale della sera del 22/10 (mockup «In corso leggibile»): 2 al lavoro, 7 che aspettano Franz con Docs online ×5, 2 fermi su terzi, titoli lunghi. */
     private val eveningNow = 1792700400L
     private val evening: State by lazy {
         fun c(task: String, title: String, session: String, waitsOn: String, paused: CommitmentPause? = null, approvedAt: Long? = null, next: String? = null, short: String? = null) =
             Commitment(task, title, session = session, state = if (paused != null) "assigned" else "running", approved = true, approvedAt = approvedAt, ageS = 3600, idleS = 600,
                 next = next, waits = CommitmentWaits(if (waitsOn == "person") session else "person", waitsOn), paused = paused, short = short)
-        val albo = CommitmentPause("Albo Chiaro sospeso dal 18/10 a stato pulito: aspetta da Franz la casella Aruba albo@, l'utente con password e le chiavi Gemini e OCR", 1792274400, "master")
+        val docs = CommitmentPause("Docs online sospeso dal 18/10 a stato pulito: aspetta da Franz la casella di posta docs@, l'utente con password e le chiavi API e CDN", 1792274400, "master")
         idle.copy(ts = eveningNow, approvals = emptyList(), commitments = listOf(
             c("niente-emoji-22-10", "supervisor-app: niente emoji nell'app e nelle notifiche, solo icone vettoriali (SVG, vector drawable, Font Awesome)", "supervisor-app", "supervisor-app", approvedAt = eveningNow - 5400, short = "Niente emoji nell'app"),
             c("tab-suggerimento-22-10", "supervisor-app: con un suggerimento visibile nella casella di testo, Tab (web) lo copia nel campo come testo pronto per l'invio", "supervisor-app", "supervisor-app",
                 paused = CommitmentPause("in coda dopo niente-emoji-22-10", eveningNow - 5300, "master"), approvedAt = eveningNow - 5400),
-            c("albo-fase1-20261017", "Albo Chiaro fase 1 (task 1-8): repository e CI, verifiche, database, lettore automatico orario sul server", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 1"),
-            c("albo-fase2-20261017", "Albo Chiaro fase 2 (task 9-15): testo, OCR, pulizia dei dati personali, IA Gemini con controlli", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 2"),
-            c("albo-fase3-20261017", "Albo Chiaro fase 3 (task 16-19): appalti da ANAC, Amministrazione Trasparente e determine", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 3"),
-            c("albo-provincia-20261017", "Albo Chiaro: albo della Provincia di Crotone come secondo ente (colonna ente, lettore per ente)", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro: Provincia"),
-            c("albo-regione-20261017", "Albo Chiaro: provvedimenti della Regione Calabria che nominano Crotone (filtro sull'oggetto prima di PDF e IA)", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro: Regione"),
+            c("docs-fase1-20261017", "Docs online fase 1 (task 1-8): repository e CI, verifiche, database, lettore automatico orario sul server", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online fase 1"),
+            c("docs-fase2-20261017", "Docs online fase 2 (task 9-15): testo, immagini, pulizia dei dati, ricerca con controlli", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online fase 2"),
+            c("docs-fase3-20261017", "Docs online fase 3 (task 16-19): esempi da API, guide e changelog", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online fase 3"),
+            c("docs-api-20261017", "Docs online: pagine API come seconda sezione (colonna sezione, indice per sezione)", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online: API"),
+            c("docs-guide-20261017", "Docs online: guide che citano le API (filtro sull'oggetto prima di PDF e indice)", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online: guide"),
             c("lavori-gerarchia-22-10", "supervisor-app: la sezione In corso di Lavori è un muro di testo: gruppi per chi deve muoversi, titolo breve, Elenco e Tempo", "supervisor-app", "person", next = "l'ok a: il mockup della master", short = "Lavori: In corso leggibile"),
             c("phone-fix-0310-sera", "App telefono: menu che si chiudono, volo card→sessione al tocco, «Avvia» solo senza sessione, quota 5h su card e testata", "claude-master-phone", "person",
                 paused = CommitmentPause("compito del 03/10 dell'app quando si chiamava claude-master-phone; il controllo non gira più (exit 127): da confermare con Franz se è superato e va cancellato", 1792622164, "master"), approvedAt = 1791050000, short = "App telefono del 03/10"),

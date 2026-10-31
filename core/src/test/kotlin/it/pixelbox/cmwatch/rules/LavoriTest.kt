@@ -185,29 +185,29 @@ class LavoriTest {
         assertEquals("Migrations 008-011", Lavori.shortTitle("ledger-api: migrations 008-011 on staging", "Migrations 008-011"))
         assertEquals("con un suggerimento visibile", Lavori.shortTitle("supervisor-app: con un suggerimento visibile nella casella di testo, Tab (web) lo copia nel campo"))
         assertEquals("niente emoji nell'app", Lavori.shortTitle("supervisor-app: niente emoji nell'app e nelle notifiche, solo icone vettoriali"))
-        assertEquals("Albo Chiaro fase 1", Lavori.shortTitle("Albo Chiaro fase 1 (task 1-8): repository e CI, verifiche, database"))
+        assertEquals("Docs online fase 1", Lavori.shortTitle("Docs online fase 1 (task 1-8): repository e CI, verifiche, database"))
         assertEquals("Release 1.4 di ledger-api", Lavori.shortTitle("Release 1.4 di ledger-api"))
         assertEquals("Release 1.4 di ledger-api", Lavori.shortTitle("Release 1.4 di ledger-api", "  "))
         assertEquals("x".repeat(28), Lavori.shortTitle("x".repeat(40)))
         assertEquals("Lavori: In corso leggibile", Lavori.shortTitle("Lavori: In corso leggibile, la sezione è un muro di testo", "Lavori: In corso leggibile"))
     }
 
-    // Il caso reale della sera del 22/10: 2 al lavoro (uno in coda dietro l'altro), 7 che aspettano Franz con Albo Chiaro ×5 in una riga, 2 fermi su terzi.
+    // Il caso reale della sera del 22/10: 2 al lavoro (uno in coda dietro l'altro), 7 che aspettano Franz con Docs online ×5 in una riga, 2 fermi su terzi.
     @Test fun theRealCaseGroupsByWhoHasToMove() {
         val now = 1792700000L // 22/10/2026 ~04:13 UTC: non conta, le date stanno sotto
         fun c(task: String, title: String, session: String, waitsOn: String, paused: CommitmentPause? = null, approvedAt: Long? = null, next: String? = null, short: String? = null) =
             Commitment(task, title, session = session, state = if (paused != null) "assigned" else "running", approved = true, approvedAt = approvedAt, ageS = 3600, idleS = 600,
                 next = next, waits = CommitmentWaits(if (waitsOn == "person") session else "person", waitsOn), paused = paused, short = short)
-        val albo = CommitmentPause("Albo Chiaro sospeso dal 18/10 a stato pulito: aspetta da Franz la casella Aruba albo@, l'utente con password e le chiavi Gemini e OCR", 1792274400, "master")
+        val docs = CommitmentPause("Docs online sospeso dal 18/10 a stato pulito: aspetta da Franz la casella di posta docs@, l'utente con password e le chiavi API e CDN", 1792274400, "master")
         val list = listOf(
             c("niente-emoji-22-10", "supervisor-app: niente emoji nell'app e nelle notifiche", "supervisor-app", "supervisor-app", approvedAt = 1792695060, short = "Niente emoji nell'app"),
             c("tab-suggerimento-22-10", "supervisor-app: con un suggerimento visibile nella casella di testo, Tab", "supervisor-app", "supervisor-app",
                 paused = CommitmentPause("in coda dopo niente-emoji-22-10", 1792695100, "master"), approvedAt = 1792695060),
-            c("albo-fase1-20261017", "Albo Chiaro fase 1 (task 1-8): repository e CI", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 1"),
-            c("albo-fase2-20261017", "Albo Chiaro fase 2 (task 9-15): testo, OCR", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 2"),
-            c("albo-fase3-20261017", "Albo Chiaro fase 3 (task 16-19): appalti", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro fase 3"),
-            c("albo-provincia-20261017", "Albo Chiaro: albo della Provincia di Crotone", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro: Provincia"),
-            c("albo-regione-20261017", "Albo Chiaro: provvedimenti della Regione Calabria", "albo-crotone", "person", paused = albo, approvedAt = 1792200000, short = "Albo Chiaro: Regione"),
+            c("docs-fase1-20261017", "Docs online fase 1 (task 1-8): repository e CI", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online fase 1"),
+            c("docs-fase2-20261017", "Docs online fase 2 (task 9-15): testo, immagini", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online fase 2"),
+            c("docs-fase3-20261017", "Docs online fase 3 (task 16-19): esempi", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online fase 3"),
+            c("docs-api-20261017", "Docs online: pagine API", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online: API"),
+            c("docs-guide-20261017", "Docs online: guide che citano le API", "docs-site", "person", paused = docs, approvedAt = 1792200000, short = "Docs online: guide"),
             c("lavori-gerarchia-22-10", "Lavori: In corso leggibile", "supervisor-app", "person", approvedAt = null, next = "l'ok a: il mockup", short = "Lavori: In corso leggibile"),
             c("phone-fix-0310-sera", "App telefono: menu che si chiudono, volo card", "claude-master-phone", "person",
                 paused = CommitmentPause("compito del 03/10: da confermare con Franz se è superato", 1792622164, "master"), approvedAt = 1791050000, short = "App telefono del 03/10"),
@@ -223,9 +223,9 @@ class LavoriTest {
         assertEquals(listOf(1792695060L, 1792695060L), ip.working.map { it.since })
         assertTrue(ip.working[1].bars.any { it.dashed })
         // Gli ok da dare prima (si fanno con un tocco), poi le pause nell'ordine del relay.
-        assertEquals(listOf("Lavori: In corso leggibile", "Albo Chiaro", "App telefono del 03/10"), ip.you.map { it.short })
+        assertEquals(listOf("Lavori: In corso leggibile", "Docs online", "App telefono del 03/10"), ip.you.map { it.short })
         assertEquals(listOf(1, 5, 1), ip.you.map { it.n })
-        assertEquals(albo.reason, ip.you[1].reason); assertEquals(1792274400L, ip.you[1].since); assertEquals("albo-crotone", ip.you[1].session)
+        assertEquals(docs.reason, ip.you[1].reason); assertEquals(1792274400L, ip.you[1].since); assertEquals("docs-site", ip.you[1].session)
         assertEquals("l'ok a: il mockup", ip.you[0].next); assertNull(ip.you[0].reason)
         assertEquals(listOf("Revisione Chrome Web Store", "chrome-bridge, issue #2"), ip.others.map { it.short })
         assertEquals("2026-10-25", ip.others[1].agenda!!.until)

@@ -29,7 +29,7 @@ class UtilizzoV3Test {
     private val now = base.ts
     private val account = base.quota.keys.first()
     private val st = base.copy(quota = mapOf(account to base.quota.getValue(account).copy(h5 = 34, w7 = 41, stale = false, resetH5 = now + 3 * 3600, resetW7 = now + 3 * 86400)))
-        .copy(usageToday = listOf(UsageToday(session = "internationalyoungclub-com", account = account, share = 0.46), UsageToday(session = "supervisor-app", account = account, share = 0.27)))
+        .copy(usageToday = listOf(UsageToday(session = "storefront-staging-com", account = account, share = 0.46), UsageToday(session = "supervisor-app", account = account, share = 0.27)))
     private val pts = List(5) { QuotaHistory.Sample(now - 7200 + it * 1800L, 10 + it * 6) }
     private val ring = PhoneOverview.Ring(account, true, 34, 41, now + 3 * 3600, QuotaHistory.Pace(pts, 62, now + 3 * 3600), now + 3 * 86400)
     private val page = TimelinePage(now - 86400, listOf(TimelineSession("supervisor-app", true, "supervisor-app", List(12) { TimelineEvent(now - it * 1500L, "prompt", "x") })))

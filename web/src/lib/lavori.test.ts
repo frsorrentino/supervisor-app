@@ -148,27 +148,27 @@ describe('lavori', () => {
     expect(shortTitle('ledger-api: migrations 008-011 on staging', 'Migrations 008-011')).toBe('Migrations 008-011')
     expect(shortTitle('supervisor-app: con un suggerimento visibile nella casella di testo, Tab (web) lo copia nel campo')).toBe('con un suggerimento visibile')
     expect(shortTitle("supervisor-app: niente emoji nell'app e nelle notifiche, solo icone vettoriali")).toBe("niente emoji nell'app")
-    expect(shortTitle('Albo Chiaro fase 1 (task 1-8): repository e CI, verifiche, database')).toBe('Albo Chiaro fase 1')
+    expect(shortTitle('Docs online fase 1 (task 1-8): repository e CI, verifiche, database')).toBe('Docs online fase 1')
     expect(shortTitle('Release 1.4 di ledger-api')).toBe('Release 1.4 di ledger-api')
     expect(shortTitle('Release 1.4 di ledger-api', '  ')).toBe('Release 1.4 di ledger-api')
     expect(shortTitle('x'.repeat(40))).toBe('x'.repeat(28))
     expect(shortTitle('Lavori: In corso leggibile, la sezione è un muro di testo', 'Lavori: In corso leggibile')).toBe('Lavori: In corso leggibile')
   })
 
-  // Il caso reale della sera del 22/10: 2 al lavoro (uno in coda dietro l'altro), 7 che aspettano Franz con Albo Chiaro ×5 in una riga, 2 fermi su terzi.
+  // Il caso reale della sera del 22/10: 2 al lavoro (uno in coda dietro l'altro), 7 che aspettano Franz con Docs online ×5 in una riga, 2 fermi su terzi.
   it('il caso reale si raggruppa per chi deve muoversi', () => {
     const now = 1792700000
     const c = (task: string, title: string, session: string, waitsOn: string, o: Partial<Commitment> = {}): Commitment =>
       ({ task, title, session, state: o.paused ? 'assigned' : 'running', approved: true, approved_at: null, age_s: 3600, idle_s: 600, waits: { who: waitsOn === 'person' ? session : 'person', on: waitsOn }, paused: null, ...o })
-    const albo = { reason: "Albo Chiaro sospeso dal 18/10 a stato pulito: aspetta da Franz la casella Aruba albo@, l'utente con password e le chiavi Gemini e OCR", at: 1792274400, by: 'master' }
+    const docs = { reason: "Docs online sospeso dal 18/10 a stato pulito: aspetta da Franz la casella di posta docs@, l'utente con password e le chiavi API e CDN", at: 1792274400, by: 'master' }
     const list = [
       c('niente-emoji-22-10', "supervisor-app: niente emoji nell'app e nelle notifiche", 'supervisor-app', 'supervisor-app', { approved_at: 1792695060, short: "Niente emoji nell'app" }),
       c('tab-suggerimento-22-10', 'supervisor-app: con un suggerimento visibile nella casella di testo, Tab', 'supervisor-app', 'supervisor-app', { paused: { reason: 'in coda dopo niente-emoji-22-10', at: 1792695100, by: 'master' }, approved_at: 1792695060 }),
-      c('albo-fase1-20261017', 'Albo Chiaro fase 1 (task 1-8): repository e CI', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro fase 1' }),
-      c('albo-fase2-20261017', 'Albo Chiaro fase 2 (task 9-15): testo, OCR', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro fase 2' }),
-      c('albo-fase3-20261017', 'Albo Chiaro fase 3 (task 16-19): appalti', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro fase 3' }),
-      c('albo-provincia-20261017', 'Albo Chiaro: albo della Provincia di Crotone', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro: Provincia' }),
-      c('albo-regione-20261017', 'Albo Chiaro: provvedimenti della Regione Calabria', 'albo-crotone', 'person', { paused: albo, approved_at: 1792200000, short: 'Albo Chiaro: Regione' }),
+      c('docs-fase1-20261017', 'Docs online fase 1 (task 1-8): repository e CI', 'docs-site', 'person', { paused: docs, approved_at: 1792200000, short: 'Docs online fase 1' }),
+      c('docs-fase2-20261017', 'Docs online fase 2 (task 9-15): testo, immagini', 'docs-site', 'person', { paused: docs, approved_at: 1792200000, short: 'Docs online fase 2' }),
+      c('docs-fase3-20261017', 'Docs online fase 3 (task 16-19): esempi', 'docs-site', 'person', { paused: docs, approved_at: 1792200000, short: 'Docs online fase 3' }),
+      c('docs-api-20261017', 'Docs online: pagine API', 'docs-site', 'person', { paused: docs, approved_at: 1792200000, short: 'Docs online: API' }),
+      c('docs-guide-20261017', 'Docs online: guide che citano le API', 'docs-site', 'person', { paused: docs, approved_at: 1792200000, short: 'Docs online: guide' }),
       c('lavori-gerarchia-22-10', 'Lavori: In corso leggibile', 'supervisor-app', 'person', { next: "l'ok a: il mockup", short: 'Lavori: In corso leggibile' }),
       c('phone-fix-0310-sera', 'App telefono: menu che si chiudono, volo card', 'claude-master-phone', 'person', { paused: { reason: 'compito del 03/10: da confermare con Franz se è superato', at: 1792622164, by: 'master' }, approved_at: 1791050000, short: 'App telefono del 03/10' }),
     ]
@@ -182,9 +182,9 @@ describe('lavori', () => {
     expect(ip.working.map(l => l.since)).toEqual([1792695060, 1792695060])
     expect(ip.working[1].bars.some(b => b.dashed)).toBe(true)
     // Gli ok da dare prima (si fanno con un tocco), poi le pause nell'ordine del relay.
-    expect(ip.you.map(l => l.short)).toEqual(['Lavori: In corso leggibile', 'Albo Chiaro', 'App telefono del 03/10'])
+    expect(ip.you.map(l => l.short)).toEqual(['Lavori: In corso leggibile', 'Docs online', 'App telefono del 03/10'])
     expect(ip.you.map(l => l.n)).toEqual([1, 5, 1])
-    expect([ip.you[1].reason, ip.you[1].since, ip.you[1].session]).toEqual([albo.reason, 1792274400, 'albo-crotone'])
+    expect([ip.you[1].reason, ip.you[1].since, ip.you[1].session]).toEqual([docs.reason, 1792274400, 'docs-site'])
     expect([ip.you[0].next, ip.you[0].reason]).toEqual(["l'ok a: il mockup", null])
     expect(ip.others.map(l => l.short)).toEqual(['Revisione Chrome Web Store', 'chrome-bridge, issue #2'])
     expect(ip.others[1].agenda!.until).toBe('2026-10-25')

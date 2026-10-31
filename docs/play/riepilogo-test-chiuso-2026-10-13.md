@@ -31,7 +31,7 @@ Tutto salvato in bozza in Play Console, account personale 6472649933491251229. N
   `s3Conversation.png`, `s4Master.png` (anche in `it/`; sulla scheda ci sono quelli `en`).
 - Screenshot orologio, 456x456, dalla demo: `docs/play/screenshot/watch-store/sessions.png`, `question.png`, `card.png`,
   `quota.png`, `terminal.png`, `liveQuestion.png`.
-- Categoria: Produttività. Contatti: info@francescosorrentino.com, https://supervisor.francescosorrentino.com.
+- Categoria: Produttività. Contatti: indirizzo di contatto della scheda Play, https://supervisor.francescosorrentino.com.
 
 ## Dichiarazioni
 

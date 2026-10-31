@@ -25,7 +25,7 @@ La quota non è nella pagina: resta in «Utilizzo e limiti».
 
 ## Dati veri usati
 
-- Registro (`supervisor task impegni --json`, 07:50): 7 impegni aperti: `mockup-lavori-22-10` al lavoro; i cinque di Albo Chiaro (ok del 17/10 alle 22:05) e `phone-fix-0310-sera` (03/10) in pausa; la pausa di Albo aspetta da Franz la casella Aruba `albo@`.
+- Registro (`supervisor task impegni --json`, 07:50): 7 impegni aperti: `mockup-lavori-22-10` al lavoro; i cinque di Docs online (ok del 17/10 alle 22:05) e `phone-fix-0310-sera` (03/10) in pausa; la pausa di Albo aspetta da Franz la casella di posta `docs@`.
 - Ok da dare (`state.attention.approvals` del resoconto della notte): `notte-cc2-1-307-fable-22-10`, chiesto dalla master alle 05:53.
 - Agenda (`~/Desktop/workspaces/.claude/agenda.tsv`): 30 righe aperte, 17 bloccano su Franz, 10 su Claude, 3 su terzi; 1 sospesa (`dev.alfa.example`).
 - Notte (`~/.cc-supervisor/night-report/2026-10-22.json`): «5 progetti: 1 fatti, 3 in parte, 1 fermi», finestra 00:25–06:30, 4 sessioni e 2 lavori della coda; coda di stanotte vuota.
@@ -35,7 +35,7 @@ La quota non è nella pagina: resta in «Utilizzo e limiti».
 ## Cosa cambia nei dati (nota, niente codice)
 
 - **Fonte unica: il registro dei compiti.** Le righe dell'agenda diventano compiti: `blocca = franz` → compito «per te» con il tasto Fatto; `blocca = claude` → compito proposto, «Avvia» è l'ok di Franz che lo fa partire; `blocca = terzi` → compito in pausa «aspetta terzi». Le righe «prossimo» dei recap entrano nel registro allo stesso modo. Finché l'agenda vive, i tasti restano `agenda_set` (done, pass) e il registro la legge.
-- **Una pausa che aspetta Franz** (il motivo della pausa, come per Albo Chiaro) è una riga «per te» con Fatto, che riprende il compito (`task resume`).
+- **Una pausa che aspetta Franz** (il motivo della pausa, come per Docs online) è una riga «per te» con Fatto, che riprende il compito (`task resume`).
 - **Ok da dare** = `state.approvals` più gli impegni `awaiting_ok` del contratto 1.76: niente di nuovo.
 - **In corso** = `state.commitments` (1.76) con `approved_at`, `last_step`, `idle_s`, `paused`: bastano per la barra a sette giorni. Per «fermi su terzi» serve che l'agenda sia nel registro, oppure `waits.who = "third"`.
 - **Stanotte** = `state.night` con `night_add` e `night_remove`: niente di nuovo.

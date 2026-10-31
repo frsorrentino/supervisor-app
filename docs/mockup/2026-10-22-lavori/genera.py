@@ -68,10 +68,10 @@ PER_TE = """
 <div class=card><div class=row><span class="mark a ok"></span><div class=t><b>fable-director: push su origin/main del lavoro della notte</b><small>chiede la <em>master</em> alle 05:53 · correzione del doppio conteggio: i totali di token del plugin si dimezzano</small></div><span class=fill>Approva</span></div></div>
 <div class=grp style="color:var(--warn)">DA FARE FUORI DALLA CHAT · 18<i></i></div>
 <div class=card><div class=row><span class="mark p"></span><div class=t><b>Revocare la chiave API Anthropic trovata in chiaro</b><small>console.anthropic.com → API Keys · personale</small></div><span class=tonal>Fatto</span></div></div>
-<div class=card><div class=row><span class="mark a"></span><div class=t><b>Albo Chiaro: la casella Aruba albo@, con utente e password</b><small>sblocca <em>albo-crotone</em>: 5 compiti in pausa dal 18/10</small></div><span class=tonal>Fatto</span></div></div>
+<div class=card><div class=row><span class="mark a"></span><div class=t><b>Docs online: la casella di posta docs@, con utente e password</b><small>sblocca <em>docs-site</em>: 5 compiti in pausa dal 18/10</small></div><span class=tonal>Fatto</span></div></div>
 <div class=fold><span>Altre 16 dall'agenda</span><span class=ic>›</span></div>
 <div class=grp style="color:var(--run)">PUÒ FARLO CLAUDE · 10<i></i></div>
-<div class=card><div class=row><span class="mark a"></span><div class=t><b>Migrare a pixel i 4 siti di produzione con idemedia attivo</b><small>alfa.example beta.example gamma.example delta.example</small></div><span class=tonal>Avvia</span></div></div>
+<div class=card><div class=row><span class="mark a"></span><div class=t><b>Migrare al nuovo host i 4 siti di produzione ancora attivi</b><small>alfa.example beta.example gamma.example delta.example</small></div><span class=tonal>Avvia</span></div></div>
 <div class=fold><span>Altre 9 dall'agenda</span><span class=ic>›</span></div>
 """
 
@@ -91,9 +91,9 @@ IN_CORSO = """
 <div class=expl>Un compito per riga: cosa, chi, da quando, il prossimo passo. La barra è il tempo dall'ok a adesso, come nel Gantt della Notte.</div>
 """ + GANTT + f"""
 <div class=card><div class=row><div class=t><b>Mockup della pagina unica «Lavori»</b><small><em>supervisor-app</em> · ok alle 07:48 · prossimo: supervisor-app lavora, chiude con task done</small></div><span class="state st-run">▶ al lavoro</span></div>{bar(sol=(90.3, 0.5))}</div>
-<div class=card><div class=row><div class=t><b>Albo Chiaro fase 1 (task 1-8): repository e CI, verifiche, database, lettore orario, area riservata e deploy</b><small><em>albo-crotone</em> · ok il 17/10 alle 22:05 · in pausa dal 18/10: aspetta da te la casella Aruba</small></div><span class="state st-pa">⏸ in pausa</span></div>{bar(sol=(27.4, 1.2), dash=(28.6, 61.9))}</div>
-<div class=card><div class=row><div class=t><b>Albo Chiaro fase 2 (task 9-15): testo, OCR, dati personali, IA Gemini, lotti, pagine pubbliche</b><small><em>albo-crotone</em> · ok il 17/10 · parte dopo la fase 1</small></div><span class="state st-pa">⏸ in pausa</span></div>{bar(dash=(27.4, 63.1))}</div>
-<div class=fold><span>Altri 4 in pausa: Albo fase 3, Provincia, Regione · App telefono del 03/10</span><span class=ic>›</span></div>
+<div class=card><div class=row><div class=t><b>Docs online fase 1 (task 1-8): repository e CI, verifiche, database, lettore orario, area riservata e deploy</b><small><em>docs-site</em> · ok il 17/10 alle 22:05 · in pausa dal 18/10: aspetta da te la casella di posta</small></div><span class="state st-pa">⏸ in pausa</span></div>{bar(sol=(27.4, 1.2), dash=(28.6, 61.9))}</div>
+<div class=card><div class=row><div class=t><b>Docs online fase 2 (task 9-15): testo, immagini, pulizia dei dati, ricerca, pagine pubbliche</b><small><em>docs-site</em> · ok il 17/10 · parte dopo la fase 1</small></div><span class="state st-pa">⏸ in pausa</span></div>{bar(dash=(27.4, 63.1))}</div>
+<div class=fold><span>Altri 4 in pausa: Docs online fase 3, API, guide · App telefono del 03/10</span><span class=ic>›</span></div>
 <div class=fold><span>3 fermi su altri: Chrome Web Store, dev.alfa.example, chrome-bridge #2</span><span class=ic>›</span></div>
 """
 
@@ -132,7 +132,7 @@ HOME = page("PROPOSTA · HOME: UNA SOLA SEZIONE «LAVORI»", """
 <div class=expl>Al posto di «Da approvare», «Impegni» e «Recap»: qui solo le righe con un tasto, il resto nella pagina.</div>
 <div class=card><div class=row><span class="mark a ok"></span><div class=t><b>fable-director: push su origin/main del lavoro della notte</b><small>chiede la <em>master</em> alle 05:53</small></div><span class=fill>Approva</span></div></div>
 <div class=card><div class=row><span class="mark p"></span><div class=t><b>Revocare la chiave API Anthropic trovata in chiaro</b><small>console.anthropic.com → API Keys</small></div><span class=tonal>Fatto</span></div></div>
-<div class=card><div class=row><span class="mark a"></span><div class=t><b>Albo Chiaro: la casella Aruba albo@, con utente e password</b><small>sblocca <em>albo-crotone</em>: 5 compiti in pausa dal 18/10</small></div><span class=tonal>Fatto</span></div></div>
+<div class=card><div class=row><span class="mark a"></span><div class=t><b>Docs online: la casella di posta docs@, con utente e password</b><small>sblocca <em>docs-site</em>: 5 compiti in pausa dal 18/10</small></div><span class=tonal>Fatto</span></div></div>
 <div class=fold><span>Tutti i lavori · in corso 10 · stanotte vuota · fatto oggi 7</span><span class=ic>›</span></div>
 <div class=sec><span class=chev>▾</span>SESSIONI · 6<span class=ln></span></div>
 <div class=card><div class=row><span style="width:26px;height:26px;border-radius:50%;background:#3B82F6;flex:none"></span><div class=t><b>supervisor-app</b><small>mockup della pagina «Lavori» · al lavoro</small></div></div></div>
