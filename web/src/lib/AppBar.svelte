@@ -27,7 +27,7 @@
   const tone = (pct: number, stale: boolean) => (stale ? 'var(--text2)' : pct >= 90 ? 'var(--b-alert)' : pct >= 75 ? 'var(--b-warn)' : 'var(--b-ring)')
   function go(p: Page) { menu = false; onPage(p) }
   let liveNote = $state(false)
-  const entries: { page: Page; title: string; sub: string; accent?: boolean; d: string[] }[] = [
+  const entries: { page: Page; title: string; sub: string; d: string[] }[] = [
     { page: 'launch', title: t.menuLaunch, sub: t.menuLaunchSub, d: ['M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z', 'm12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z', 'M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0', 'M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5'] },
     // La pagina unica «Lavori» (22/10): al posto di Registro e Recap.
     { page: 'lavori', title: t.menuLavori, sub: t.menuLavoriSub, d: ['M13 5h8', 'M13 12h8', 'M13 19h8', 'm3 17 2 2 4-4', 'M3 4h6v6H3z'] },
@@ -86,8 +86,8 @@
       <button class="ib" aria-label={t.closeWord} onclick={() => (menu = false)}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg></button>
     </div>
     {#each entries as e}
-      <button class="mi" class:launch={e.accent} role="menuitem" onclick={() => go(e.page)}>
-        <span class="mic" class:accent={e.accent}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{#each e.d as d}<path {d} />{/each}</svg></span>
+      <button class="mi" role="menuitem" onclick={() => go(e.page)}>
+        <span class="mic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{#each e.d as d}<path {d} />{/each}</svg></span>
         <span class="mt"><b>{e.title}</b><small>{e.sub}</small></span>
       </button>
     {/each}
@@ -137,7 +137,6 @@
   .mi { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 64px; padding: 10px 20px; text-align: left; }
   .mi:hover, .foot:hover { background: var(--high); }
   .mic { width: 40px; height: 40px; border-radius: 50%; background: var(--high); display: grid; place-items: center; flex: none; }
-  .mic.accent { background: color-mix(in srgb, var(--busy) 25%, transparent); }
   .mt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .mt b { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
   .mt small { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; }
@@ -146,22 +145,18 @@
   .foot { display: flex; align-items: center; gap: 20px; width: 100%; padding: 14px 28px; font-size: 16px; color: var(--text2); }
   @media (prefers-reduced-motion: reduce) { .panel, .scrim { animation: none; } }
   /* Il menu nella forma della v3 (mockup approvato da Franz il 30/10 alle 19:25): icone grigie nel binario senza cerchio, una
-     voce per riga col filo, «Lancia una sessione» col bordo chiaro (Franz 30/10 20:44: era pieno). */
+     voce per riga col filo, «Lancia una sessione» come le altre (Franz 31/10 01:03). */
   .panel { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; }
   .ph { padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); color: var(--tx2); }
   .led { width: 7px; height: 7px; background: var(--good); }
   .mi, .foot { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 58px; padding: 9px 12px 9px 0; border-top: 1px solid var(--line); text-align: left; font-size: inherit; color: var(--tx); }
   .mi:hover, .foot:hover { background: var(--s2); }
   .mic { width: 52px; height: auto; background: none; border-radius: 0; }
-  .mic.accent { background: none; }
   .mt b { font: 600 17px/1.2 var(--display); white-space: normal; }
   .mt small { font-size: 14px; line-height: 1.3; color: var(--tx2); white-space: normal; }
   .foot svg { margin: 0 15px; }
   .foot span { font: 600 17px var(--display); }
   hr { display: none; }
-  .launch { margin: 12px; width: calc(100% - 24px); min-height: 60px; border: 1.5px solid var(--tx); border-radius: 14px; }
-  .launch svg { stroke: var(--tx); }
-  .launch + .mi { border-top: 1px solid var(--line); }
   /* Nella home in stile «Studio e Diretta» (30/10): il titolo in Barlow Semi Condensed, le icone chiare. */
   .ver { font: 400 12.5px var(--mono); color: var(--tx2); margin-left: 8px; }
   /* Accanto al titolo solo se c'è spazio (Franz 30/10 22:01). */

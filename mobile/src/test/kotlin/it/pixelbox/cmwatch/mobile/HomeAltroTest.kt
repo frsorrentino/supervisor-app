@@ -54,7 +54,18 @@ class HomeAltroTest {
     @Test fun altroSystemClosed() = shot()
 
     /** Titoli liberi e blocco insieme: le frecce sulla stessa verticale (Franz 31/10 01:14). */
-    @Test fun altroUsageTwoAccountsArrowsAligned() = shot(ContractJson.decodeState(File("../contract/state-2-idle.json").readText()))
+    @Test fun altroUsageTwoAccountsArrowsAligned() {
+        val full = ContractJson.decodeState(File("../contract/state-3-stale.json").readText())
+        val page = it.pixelbox.cmwatch.contract.TimelinePage(full.ts - 86400, listOf(it.pixelbox.cmwatch.contract.TimelineSession("atlas-shop", true, events = listOf(it.pixelbox.cmwatch.contract.TimelineEvent(full.ts - 60, "outcome", "Migrations applied")))))
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                SummaryList(
+                    Summary.build(full, emptyList(), emptyList(), full.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = full.ts, usage = { Text("") }, system = system, kpiState = full, kpiPage = page,
+                    startOpen = emptySet(), plugins = full.plugins, onPluginsLoad = { null }, onPluginCmd = { _, _ -> null },
+                )
+            }
+        }
+    }
 
     /** Utilizzo con due account (state-2-idle): il nome intero, mai tagliato in un'altra parola (master 30/10 16:42). */
     @Test fun altroUsageTwoAccounts() = shot()

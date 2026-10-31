@@ -65,7 +65,7 @@ internal val HOME_DRAG_ROW = 56.dp
 /** Durante il trascinamento nella home: i soli titoli delle sezioni, quello preso segue il dito. */
 @Composable
 internal fun HomeDragLayer(order: List<String>, held: String?, dy: Float, modifier: Modifier = Modifier) {
-    Column(modifier.background(V3.Bg).padding(top = 14.dp).testTag("home-sezione-trascina")) {
+    Column(modifier.background(V3.Bg).padding(start = 12.dp, end = 12.dp, top = 14.dp).testTag("home-sezione-trascina")) {
         V3List {
             order.forEachIndexed { i, key ->
                 androidx.compose.runtime.key(key) {
