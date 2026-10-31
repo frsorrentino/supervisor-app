@@ -273,6 +273,19 @@ class Repo(
         return command(CmdOp.REPORT, session, shareId, text?.takeIf { it.isNotBlank() }, id = id)
     }
 
+    /**
+     * «Riprova» su un allegato: lo stato «carico» parte al tocco, nello stesso passo, e il secondo tocco trova false: non manda
+     * un altro file (Franz 31/10 16:08: «non avendo feedback ho cliccato di nuovo, quindi è arrivato 2 volte»).
+     */
+    fun beginUpload(id: String): Boolean {
+        var free = false
+        _uploads.update { u -> free = u[id] != ChatRules.Upload.Going; if (free) u + (id to ChatRules.Upload.Going) else u }
+        return free
+    }
+
+    /** Il reinvio si ferma prima di caricare: la voce torna fallita, con il motivo. */
+    fun failUpload(id: String, reason: String) { _uploads.update { it + (id to ChatRules.Upload.Failed(reason)) } }
+
     /** Un allegato di `reportMany`: il tipo, i byte e, per un file che non è un'immagine, il nome. */
     class SharePart(val mime: String, val bytes: ByteArray, val name: String? = null)
 

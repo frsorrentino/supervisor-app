@@ -64,9 +64,10 @@ object ChatRules {
     const val QUEUED_PREFIX = "queued:"
 
     fun status(m: Sent, pending: PendingStatus?, result: CmdResult?, s: Session?, upload: Upload? = null): Status = when {
+        // «Riprova» (Franz 31/10 16:05): il nuovo caricamento si vede sulla stessa voce, anche se era fallita.
+        upload == Upload.Going -> Status.UPLOADING
         m.failed != null || upload is Upload.Failed || result?.ok == false -> Status.FAILED
         waiting(m) -> Status.SCHEDULED
-        upload == Upload.Going -> Status.UPLOADING
         m.doneAt != null -> Status.DONE
         m.startedAt != null -> Status.WORKING
         // Contratto 1.63: il relay lo tiene per l'ora scelta; resta programmato finché un turno non lo prende.

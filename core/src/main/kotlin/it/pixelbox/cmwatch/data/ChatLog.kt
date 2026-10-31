@@ -44,6 +44,18 @@ class ChatLog(private val file: File, private val now: () -> Long) {
         if (next != _messages.value) save(next)
     }
 
+    /** «Riprova»: la voce torna senza motivo di fallimento e resta dov'è, con la sua ora (Franz 31/10 16:05). */
+    @Synchronized fun clearFailed(id: String) {
+        val next = _messages.value.map { if (it.id == id) it.copy(failed = null) else it }
+        if (next != _messages.value) save(next)
+    }
+
+    /** Un testo rifiutato dal PC ripartito con un id nuovo: la voce è la stessa e resta dov'è. */
+    @Synchronized fun resent(id: String, newId: String) {
+        val next = _messages.value.map { if (it.id == id) it.copy(id = newId, failed = null) else it }
+        if (next != _messages.value) save(next)
+    }
+
     /** Il pannello di un comando slash resta sul messaggio: il risultato del PC vive solo in memoria. */
     @Synchronized fun markPanel(id: String, text: String) {
         val next = _messages.value.map { if (it.id == id && it.panel == null) it.copy(panel = text) else it }

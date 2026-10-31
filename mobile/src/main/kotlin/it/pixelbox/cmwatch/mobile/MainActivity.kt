@@ -1236,7 +1236,8 @@ class MainActivity : ComponentActivity() {
                                         m?.file != null -> {
                                             val f = m.file!!
                                             val src = java.io.File(f.path)
-                                            if (src.isFile) app.scope.launch { sendFile(session.name, src.readBytes(), f.name, f.mime, f.text, state?.share) }
+                                            // Stessa voce, stesso id: lo stato parte al tocco e il secondo tocco non manda niente (Franz 31/10 16:08).
+                                            if (src.isFile) { if (app.repo.beginUpload(id)) { app.chatLog.clearFailed(id); app.scope.launch { sendFile(session.name, src.readBytes(), f.name, f.mime, f.text, state?.share, retryId = id) } } }
                                             else android.widget.Toast.makeText(this@MainActivity, getString(R.string.file_gone), android.widget.Toast.LENGTH_LONG).show()
                                         }
                                         // Un file mandato prima del 07/10 sera non ha la copia: rimandare il testo «File: nome» come prompt
@@ -1244,10 +1245,11 @@ class MainActivity : ComponentActivity() {
                                         m != null && m.attachment == null && m.text.startsWith(getString(R.string.attached_file, "")) ->
                                             android.widget.Toast.makeText(this@MainActivity, getString(R.string.file_gone), android.widget.Toast.LENGTH_LONG).show()
                                         // Più immagini mandate insieme si rimandano insieme, dalle loro copie (contratto 1.50).
-                                        m != null && m.attachments.isNotEmpty() -> attachMany(session.name, m.attachments.map { p -> Uri.fromFile(java.io.File(p)) }, m.text, state?.share)
+                                        m != null && m.attachments.isNotEmpty() -> if (app.repo.beginUpload(id)) { app.chatLog.clearFailed(id); attachMany(session.name, m.attachments.map { p -> Uri.fromFile(java.io.File(p)) }, m.text, state?.share, retryId = id) }
                                         // Un'immagine rifiutata si rimanda dalla sua copia locale, con lo stesso testo.
-                                        m?.attachment != null -> attachImage(session.name, Uri.fromFile(java.io.File(m.attachment!!)), m.text, state?.share?.maxBytes ?: 0)
-                                        m != null -> sendAndLog(PhonePrimary.Target.PROMPT, m.text)
+                                        m?.attachment != null -> if (app.repo.beginUpload(id)) { app.chatLog.clearFailed(id); attachImage(session.name, Uri.fromFile(java.io.File(m.attachment!!)), m.text, state?.share?.maxBytes ?: 0, retryId = id) }
+                                        // Un testo rifiutato riparte con un id nuovo: quello vecchio ha già il suo esito sul canale. La voce resta dov'è.
+                                        m != null -> runCatching { app.repo.prompt(session.name, m.text) }.getOrNull()?.let { nid -> app.chatLog.resent(id, nid) }
                                     }
                                 }
                             },
@@ -2203,21 +2205,24 @@ class MainActivity : ComponentActivity() {
      * Un file verso una sessione, con una copia nella cache per «Riprova» (07/10 20:21: senza copia, Riprova rimandava solo
      * il testo «File: nome»). Il messaggio compare subito nella chat; caricamento, invio e rifiuto sono suoi passaggi.
      */
-    private suspend fun sendFile(session: String, bytes: ByteArray, name: String, mime: String, text: String, share: it.pixelbox.cmwatch.contract.Share?) {
+    private suspend fun sendFile(session: String, bytes: ByteArray, name: String, mime: String, text: String, share: it.pixelbox.cmwatch.contract.Share?, retryId: String? = null) {
         val maxBytes = share?.maxBytes ?: 0
         val limit = it.pixelbox.cmwatch.rules.ShareLimits.maxFileBytes(share)
         if (bytes.size > limit) {
+            retryId?.let { r -> app.repo.failUpload(r, getString(R.string.file_too_big, android.text.format.Formatter.formatShortFileSize(this@MainActivity, limit))) }
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 android.widget.Toast.makeText(this@MainActivity, getString(R.string.file_too_big, android.text.format.Formatter.formatShortFileSize(this@MainActivity, limit)), android.widget.Toast.LENGTH_LONG).show()
             }
             return
         }
-        val id = java.util.UUID.randomUUID().toString()
+        val id = retryId ?: java.util.UUID.randomUUID().toString()
+        if (retryId == null) {
         val copy = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             runCatching { java.io.File(java.io.File(cacheDir, "sent-files").apply { mkdirs() }, id).apply { writeBytes(bytes) } }.getOrNull()
         }
         val shown = listOfNotNull(getString(R.string.attached_file, name), text.takeIf { it.isNotBlank() }).joinToString("\n")
         app.chatLog.add(Sent(id, session, shown, System.currentTimeMillis() / 1000, file = copy?.let { c -> it.pixelbox.cmwatch.rules.SentFile(c.path, name, mime, text) }))
+        }
         // Contratto 1.48: a pezzi solo se il relay lo dice nello stato.
         runCatching { app.repo.report(session, text, mime, bytes, maxBytes, id = id, name = name, partsMax = share?.takeIf { it.parts }?.maxPartsBytes) }
     }
@@ -2227,12 +2232,12 @@ class MainActivity : ComponentActivity() {
      * messaggio solo, col testo una volta, a gruppi di `share.multi`. Le immagini ridotte come sempre, con la copia per la
      * bolla e per «Riprova»; gli altri file così come sono, se il relay li accetta, e nella bolla il loro nome.
      */
-    private fun attachMany(session: String, uris: List<Uri>, text: String, share: it.pixelbox.cmwatch.contract.Share?) {
+    private fun attachMany(session: String, uris: List<Uri>, text: String, share: it.pixelbox.cmwatch.contract.Share?, retryId: String? = null) {
         val per = (share?.multi ?: 1).coerceAtLeast(1)
         val limit = it.pixelbox.cmwatch.rules.ShareLimits.maxFileBytes(share)
         app.scope.launch {
             uris.chunked(per).forEachIndexed { k, group ->
-                val id = java.util.UUID.randomUUID().toString()
+                val id = if (k == 0) retryId ?: java.util.UUID.randomUUID().toString() else java.util.UUID.randomUUID().toString()
                 val parts = mutableListOf<it.pixelbox.cmwatch.data.Repo.SharePart>()
                 val copies = mutableListOf<String>()
                 val names = mutableListOf<String>()
@@ -2259,22 +2264,23 @@ class MainActivity : ComponentActivity() {
                         names += name
                     }
                 }
-                if (parts.isEmpty()) return@forEachIndexed
+                if (parts.isEmpty()) { if (k == 0) retryId?.let { r -> app.repo.failUpload(r, getString(R.string.share_unreadable)) }; return@forEachIndexed }
                 val t = if (k == 0) text else ""
                 val shown = (names.map { n -> getString(R.string.attached_file, n) } + listOfNotNull(t.takeIf { x -> x.isNotBlank() })).joinToString("\n")
-                app.chatLog.add(Sent(id, session, shown, System.currentTimeMillis() / 1000, attachments = copies))
+                if (k != 0 || retryId == null) app.chatLog.add(Sent(id, session, shown, System.currentTimeMillis() / 1000, attachments = copies))
                 runCatching { app.repo.reportMany(session, t, parts, share?.maxBytes ?: 0, id = id, partsMax = share?.takeIf { x -> x.parts }?.maxPartsBytes) }
             }
         }
     }
 
-    private fun attachImage(session: String, uri: Uri, text: String, maxBytes: Int) {
+    private fun attachImage(session: String, uri: Uri, text: String, maxBytes: Int, retryId: String? = null) {
         app.scope.launch {
-            val bytes = it.pixelbox.cmwatch.mobile.share.ImageShrink.jpeg(this@MainActivity, uri) ?: return@launch
+            val bytes = it.pixelbox.cmwatch.mobile.share.ImageShrink.jpeg(this@MainActivity, uri)
+            if (bytes == null) { retryId?.let { r -> app.repo.failUpload(r, getString(R.string.share_unreadable)) }; return@launch }
             // Il messaggio compare subito nella chat; caricamento, invio e rifiuto sono suoi passaggi (30/09 22:13).
-            val id = java.util.UUID.randomUUID().toString()
+            val id = retryId ?: java.util.UUID.randomUUID().toString()
             val copy = java.io.File(java.io.File(filesDir, "chat").apply { mkdirs() }, "$id.jpg").apply { writeBytes(bytes) }
-            app.chatLog.add(Sent(id, session, text, System.currentTimeMillis() / 1000, attachment = copy.path))
+            if (retryId == null) app.chatLog.add(Sent(id, session, text, System.currentTimeMillis() / 1000, attachment = copy.path))
             runCatching { app.repo.report(session, text, "image/jpeg", bytes, maxBytes, id = id) }
         }
     }

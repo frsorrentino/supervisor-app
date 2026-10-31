@@ -384,7 +384,7 @@
     <string name="close">Chiudi</string>
     <string name="more">Altro</string>
     <string name="chat_offline">senza rete, parte appena torna</string>
-    <string name="chat_uploading">carico l\'immagine</string>
+    <string name="chat_uploading">carico l\'allegato</string>
     <string name="chat_sent">inviato al PC</string>
     <string name="chat_failed_why">%1$s · tocca per riprovare</string>
     <string name="chat_no_answer">il PC non ha risposto in 20 s</string>

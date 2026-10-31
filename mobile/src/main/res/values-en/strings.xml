@@ -375,7 +375,7 @@
     <string name="close">Close</string>
     <string name="more">More</string>
     <string name="chat_offline">offline, leaves when the network is back</string>
-    <string name="chat_uploading">uploading the image</string>
+    <string name="chat_uploading">uploading the attachment</string>
     <string name="chat_sent">sent to the PC</string>
     <string name="chat_failed_why">%1$s · tap to retry</string>
     <string name="chat_no_answer">the PC did not answer in 20 s</string>

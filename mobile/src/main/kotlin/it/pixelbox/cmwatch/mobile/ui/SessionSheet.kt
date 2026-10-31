@@ -365,6 +365,7 @@ fun SessionSheet(
     val reasons = chat.associate { it.sent.id to it.reason }
     // Alla prima apertura, e quando arriva la prima pagina della conversazione vera, la chat parte dal fondo
     // (Franz, 30/09 22:55: «ancorato alla fine»).
+    var retried by remember(s.id) { mutableStateOf<String?>(null) }
     var anchored by remember(s.id, feed != null) { mutableStateOf(false) }
     LaunchedEffect(chat.size, chat.lastOrNull()?.status, feed?.size, feed?.lastOrNull()) {
         if (chat.isEmpty() && feed.isNullOrEmpty()) return@LaunchedEffect
@@ -377,6 +378,16 @@ fun SessionSheet(
         androidx.compose.runtime.snapshotFlow { list.layoutInfo.totalItemsCount to list.canScrollForward }.collect { (n, below) ->
             if (follow && below && n > 0 && !list.isScrollInProgress) list.scrollToEnd()
         }
+    }
+    // Dopo «Riprova», finito il carico, la chat scorre fino alla voce mandata (Franz 31/10 16:10), anche se nel frattempo è arrivato altro.
+    val retriedStatus = retried?.let { r -> chat.firstOrNull { it.sent.id == r }?.status ?: groupedFeed?.firstNotNullOfOrNull { i -> (i as? ChatFeed.Item.Mine)?.takeIf { it.sent.id == r }?.status } }
+    LaunchedEffect(retried, retriedStatus) {
+        val r = retried ?: return@LaunchedEffect
+        if (retriedStatus !in listOf(ChatRules.Status.SENT, ChatRules.Status.DELIVERED, ChatRules.Status.QUEUED, ChatRules.Status.WORKING, ChatRules.Status.DONE)) return@LaunchedEffect
+        val at = groupedFeed?.indexOfFirst { i -> (i as? ChatFeed.Item.Mine)?.sent?.id == r } ?: -1
+        follow = false
+        if (at >= 0) list.animateScrollToItem(at + if (more) 1 else 0) else list.scrollToEnd(animate = true)
+        retried = null
     }
     // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
     Box(Modifier.fillMaxSize()) {
@@ -458,7 +469,7 @@ fun SessionSheet(
                         when (it) {
                             // Una voce ancora in coda nel turno (scritta mentre Claude lavora) si dice «in coda».
                             is ChatFeed.Item.Mine -> Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                MineBubble(it.sent, if (it.entry?.queued == true && it.status != ChatRules.Status.FAILED) ChatRules.Status.QUEUED else it.status, reasons[it.sent.id], actions, onEdit = { t -> draft = t }, onResend = { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
+                                MineBubble(it.sent, if (it.entry?.queued == true && it.status != ChatRules.Status.FAILED) ChatRules.Status.QUEUED else it.status, reasons[it.sent.id], actions, onRetried = { r -> retried = r }, onEdit = { t -> draft = t }, onResend = { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
                                 // Il pannello che un comando slash ha aperto sul PC (/cost) risponde sotto il comando.
                                 it.sent.panel?.let { p -> ClaudeBubble(p, it.sent.sentAt, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
                             }
@@ -500,7 +511,7 @@ fun SessionSheet(
                         )
                     }
                     items(chat, key = { "c-" + it.sent.id }) { row ->
-                        ChatTurn(row, ttsMinChars, actions, onEdit = { draft = it }, onResend = { actions.send(PhonePrimary.Target.PROMPT, it) })
+                        ChatTurn(row, ttsMinChars, actions, onRetried = { r -> retried = r }, onEdit = { draft = it }, onResend = { actions.send(PhonePrimary.Target.PROMPT, it) })
                     }
                     // L'esito di un turno partito dal PC, che nessun messaggio del telefono ha agganciato.
                     s.outcome?.takeIf { o -> chat.none { it.sent.outcomeFull == o.full } }?.let { o ->
@@ -1332,9 +1343,9 @@ private fun hhmm(epoch: Long) = HHMM.format(Instant.ofEpochSecond(epoch).atZone(
 
 /** Un messaggio mandato (a destra, con lo stato e le azioni) e, se il suo turno è finito con un esito, Claude a sinistra. */
 @Composable
-private fun ChatTurn(row: ChatRow, ttsMinChars: Int, actions: SheetActions, onEdit: (String) -> Unit, onResend: (String) -> Unit) {
+private fun ChatTurn(row: ChatRow, ttsMinChars: Int, actions: SheetActions, onRetried: (String) -> Unit, onEdit: (String) -> Unit, onResend: (String) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MineBubble(row.sent, row.status, row.reason, actions, onEdit, onResend)
+        MineBubble(row.sent, row.status, row.reason, actions, onRetried, onEdit, onResend)
         row.sent.outcomeFull?.let { ClaudeBubble(it, row.sent.doneAt, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
         row.sent.panel?.let { ClaudeBubble(it, row.sent.sentAt, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
     }
@@ -1342,7 +1353,7 @@ private fun ChatTurn(row: ChatRow, ttsMinChars: Int, actions: SheetActions, onEd
 
 /** Un messaggio mandato dal telefono: a destra, con l'anteprima dell'allegato, lo stato, l'ora, Copia e, se non è arrivato, Modifica. */
 @Composable
-private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actions: SheetActions, onEdit: (String) -> Unit, onResend: (String) -> Unit) {
+private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actions: SheetActions, onRetried: (String) -> Unit, onEdit: (String) -> Unit, onResend: (String) -> Unit) {
     val clip = LocalClipboardManager.current
     // Tutta la larghezza meno un margine a sinistra, non una colonna stretta (Franz, 30/09 22:17).
     Column(Modifier.fillMaxWidth().padding(start = 40.dp), horizontalAlignment = Alignment.End) {
@@ -1377,7 +1388,7 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
                 style = MaterialTheme.typography.labelMedium, color = if (status == ChatRules.Status.FAILED) Cm.goneDim else Cm.waiting,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            TextButton(onClick = { actions.retry(m.id) }) { Text(stringResource(R.string.retry), color = Cm.actionIcon) }
+            TextButton(onClick = { onRetried(m.id); actions.retry(m.id) }) { Text(stringResource(R.string.retry), color = Cm.actionIcon) }
         }
     }
 }

@@ -95,6 +95,18 @@ class RepoTest {
         assertTrue(r.text, r.ok); assertTrue(r.text.startsWith("sent to atlas-shop: image saved as "))
     }
 
+    /** Franz 31/10 16:08: due tocchi su Riprova mandavano il file due volte. */
+    @Test fun aSecondRetryWhileUploadingIsRefusedAndTheSameIdGoesOut() = runTest {
+        val tr = fake()
+        val repo = Repo(MemoryStore(), tr, bg(), { clock }, { online }, "test", freshnessTickMs = 0)
+        repo.start(); idle()
+        assertTrue(repo.beginUpload("m1"))
+        assertFalse(repo.beginUpload("m1"))
+        repo.report("atlas-shop", "x", "image/jpeg", byteArrayOf(1), maxBytes = 1_500_000, id = "m1"); idle()
+        assertTrue(repo.resultsById.value.getValue("m1").ok)
+        assertTrue(repo.beginUpload("m1"))
+    }
+
     /** Contratto 1.50 (Franz, 10/10 16:52): due immagini in un report solo, gli id separati da virgola. */
     @Test fun reportManySendsTwoImagesInOneCommand() = runTest {
         val tr = fake()
