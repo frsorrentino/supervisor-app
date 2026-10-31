@@ -21,7 +21,6 @@
   const top = $derived(shown.filter(r => !r.stale && r.h5 != null).sort((a, b) => (b.h5 ?? 0) - (a.h5 ?? 0))[0] ?? null)
   const sp = $derived(top ? split(st, top.account, 99) : null)
   const f = $derived(page ? dayFigures(page, st, now) : null)
-  const tok = (n: number) => (n >= 1e6 ? `${Math.floor(n / 1e6)} M` : `${Math.floor(n / 1e3)} k`)
   const maxHour = $derived(Math.max(1, ...(f?.perHour ?? []).map(([p, c]: [number, number]) => p + c)))
   const waits = $derived(data?.kpi_waits ? waitsLine(data.kpi_waits.week ?? []) : null)
   function curve(r: Ring) {
@@ -100,13 +99,14 @@
   {/if}
   {#if f}
     <button class="row wide" aria-expanded={open === 'today'} onclick={() => toggle('today')}>
-      <span class="lab">{t.usageToday}</span><span class="val grow">{f.prompts} prompt · {f.commits} commit · {tok(f.tokens)}</span>{@render arrow('today')}
+      <span class="lab">{t.usageToday}</span><span class="val grow auto">{f.prompts} prompt · {f.commits} commit</span>{@render arrow('today')}
     </button>
     {#if open === 'today'}
       <div class="open">
         <div class="hours">{#each f.perHour as [p, c], i (i)}<i class:zero={p + c === 0} style="height:{p + c === 0 ? 8 : Math.max(15, ((p + c) / maxHour) * 100)}%"></i>{/each}</div>
         {#if peakHour(f.perHour, f.firstHour) != null}<p class="note">{t.usagePeak(peakHour(f.perHour, f.firstHour)!)}</p>{/if}
         {#if waits}<p class="note">{t.usageWaits(waits.medianMin, waits.closed)}</p>{/if}
+        {#if f.tokens > 0}<p class="note">{t.usageTokens(f.tokens)}</p>{/if}
       </div>
     {/if}
   {/if}

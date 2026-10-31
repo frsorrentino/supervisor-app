@@ -52,6 +52,17 @@ class UtilizzoV3Test {
         shot("sessions")
     }
 
+    // 999 prompt e 999 commit a 360 dp (Franz 31/10 22:06): la riga di «Oggi» resta una, i token per esteso sotto.
+    @Test fun todayBigNumbers360() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt()))
+        val big = TimelinePage(now - 86400, listOf(TimelineSession("supervisor-app", true, "supervisor-app", List(999) { TimelineEvent(now - it * 30L, "prompt", "x") } + List(999) { TimelineEvent(now - it * 30L, "commit", "x") })))
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                Column(Modifier.fillMaxWidth().background(it.pixelbox.cmwatch.mobile.ui.V3.S1)) { UtilizzoV3(listOf(ring), st, big, null, now, {}, startOpen = "today", zone = zone) }
+            }
+        }
+    }
+
     @Test fun longName360LargeFont() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), fontScale = 1.3f))
         shot("h5:$account")

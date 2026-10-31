@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -165,16 +166,21 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
         }
         page?.let { p ->
             val f = Kpi.dayFigures(p, state = st, now = now, zone = zone)
-            val tok = if (f.tokens >= 1_000_000) "${f.tokens / 1_000_000} M" else "${f.tokens / 1_000} k"
             UseRow(open == "today", { toggle("today") }) {
                 Text(stringResource(R.string.usage_today), style = V3.Name.copy(fontSize = 15.sp), modifier = Modifier.width(LAB))
                 Spacer(Modifier.width(GAP))
-                Text("${f.prompts} ${stringResource(R.string.kpi18_prompt)} · ${f.commits} ${stringResource(R.string.kpi18_commit)} · $tok", style = V3.Meter.copy(color = V3.Tx), textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+                Text("${f.prompts} ${stringResource(R.string.kpi18_prompt)} · ${f.commits} ${stringResource(R.string.kpi18_commit)}", style = V3.Meter.copy(color = V3.Tx), textAlign = TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.weight(1f))
             }
             if (open == "today") Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Aligned(0.dp) { Hours(f.perHour, Modifier.fillMaxWidth().height(28.dp)) }
                 UtilizzoRules.peakHour(f.perHour, f.firstHour)?.let { Note(stringResource(R.string.usage_peak, it)) }
                 data?.waits?.let { UtilizzoRules.waits(it.week) }?.let { w -> Note(stringResource(R.string.usage_waits, w.medianMin, w.closed)) }
+                // Per esteso (Franz 31/10 22:06: «cos'è quella lettera M»): niente sigle.
+                if (f.tokens > 0) Note(when {
+                    f.tokens >= 1_000_000 -> (f.tokens / 1_000_000).toInt().let { n -> pluralStringResource(R.plurals.usage_tokens_million, n, n) }
+                    f.tokens >= 1_000 -> (f.tokens / 1_000).toInt().let { n -> pluralStringResource(R.plurals.usage_tokens_thousand, n, n) }
+                    else -> stringResource(R.string.usage_tokens_few, f.tokens.toInt())
+                })
             }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
