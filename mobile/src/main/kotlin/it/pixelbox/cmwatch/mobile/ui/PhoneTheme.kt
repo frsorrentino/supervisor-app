@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.size
@@ -176,6 +177,16 @@ fun AllDoneCheck(modifier: Modifier = Modifier) {
         drawLine(good, a, a + (b - a) * first, w, cap)
         if (p.value > .35f) drawLine(good, b, b + (c - b) * ((p.value - .35f) / .65f), w, cap)
     }
+}
+
+/** Voce 4: un solo passaggio per tutti i tasti che lavorano: tasto, conferma, attesa, esito. Niente rimbalzo sulle dissolvenze. */
+@Composable
+fun <T> ActionPass(state: T, modifier: Modifier = Modifier, content: @Composable (T) -> Unit) {
+    val off = animationsOff()
+    androidx.compose.animation.AnimatedContent(state, modifier, transitionSpec = {
+        if (off) androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
+        else (androidx.compose.animation.fadeIn(tween(200, easing = CmMotion.easing)) + androidx.compose.animation.scaleIn(tween(200, easing = CmMotion.easing), initialScale = 0.96f)) togetherWith androidx.compose.animation.fadeOut(tween(120))
+    }, label = "action") { content(it) }
 }
 
 /** Voce 6: il tasto cede subito alla pressione, senza rimbalzo. Quasi invisibile, quindi regge l'uso frequente. */

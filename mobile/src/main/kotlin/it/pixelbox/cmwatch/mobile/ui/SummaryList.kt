@@ -274,7 +274,8 @@ fun SummaryList(
     val moving: @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = {
         if (off) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null)
         else Modifier.animateItem(
-            fadeInSpec = androidx.compose.animation.core.tween(150), fadeOutSpec = androidx.compose.animation.core.tween(150),
+            // Voce 5: quel che compare aspetta che le sezioni sotto abbiano fatto posto, quel che esce sparisce prima che salgano: mai una sopra l'altra.
+            fadeInSpec = androidx.compose.animation.core.tween(130, delayMillis = 170), fadeOutSpec = androidx.compose.animation.core.tween(80),
             placementSpec = CmMotion.bounce,
         )
     }

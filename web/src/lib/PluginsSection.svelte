@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { fade } from 'svelte/transition'
-  import { reducedMotion } from './motion'
+  import { pass } from './motion'
   import type { Snippet } from 'svelte'
   import type { PluginsPage, State } from './contract'
   import { account, accountsWithUpdates, pending, updateArg } from './plugins'
@@ -76,15 +75,15 @@
         </div>
       {/each}
       {#if rs.all}
-        <p class="note" role="status" data-testid="plugins_updating_all">{t.pluginsUpdatingAll}</p>
+        <p class="note" role="status" data-testid="plugins_updating_all" in:pass>{t.pluginsUpdatingAll}</p>
       {:else if asking}
-        <div class="confirm" role="group" aria-label={t.pluginsUpdateAll(count ?? 0)}>
+        <div class="confirm" role="group" aria-label={t.pluginsUpdateAll(count ?? 0)} in:pass>
           <span>{t.pluginsConfirm(count ?? 0)}</span>
           <button class="keep" onclick={() => (asking = false)}>{t.pluginsKeep}</button>
           <button class="danger" onclick={updateAll}>{t.pluginsUpdateAll(count ?? 0)}</button>
         </div>
       {:else}
-        <div class="bar" in:fade={{ duration: reducedMotion() ? 0 : 200 }}>
+        <div class="bar" in:pass>
           <span>{checked ? t.pluginsChecked(hm(checked)) : t.pluginsNeverChecked}</span>
           <button class="text" disabled={busy.check} onclick={() => act('check', 'plugin_check', null, '_check')}>{t.pluginsCheck}</button>
           {#if count}<button class="filled" onclick={() => (asking = true)}>{t.pluginsUpdateAll(count)}</button>{/if}

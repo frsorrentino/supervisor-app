@@ -34,3 +34,14 @@ export type FinishScene = { fingerDown: boolean; listMoving: boolean; sinceTouch
 export const finishScrollAllowed = (s: FinishScene): boolean =>
   !s.fingerDown && !s.listMoving && s.sinceTouchMs >= FINISH_STILL_MS && s.wasOnScreen && !s.writing && !s.sheetOpen &&
   Math.abs(s.distancePx) <= s.viewportPx && s.sinceLastMs >= FINISH_GAP_MS
+
+const out = (t: number) => 1 - (1 - t) ** 4
+
+/** Voce 4: un solo passaggio per tutti i tasti che lavorano: tasto, conferma, attesa, esito. */
+export const pass = () => ({ duration: reducedMotion() ? 0 : 200, easing: out, css: (t: number) => `opacity: ${t}; transform: scale(${0.96 + 0.04 * t})` })
+
+/** Voce 5: la sezione si apre in altezza, così quel che sta sotto non salta. Con la riduzione delle animazioni, solo dissolvenza. */
+export const fold = (_: Element, { ms = 200 }: { ms?: number } = {}) => ({
+  duration: ms, easing: out,
+  css: (t: number) => (reducedMotion() ? `opacity: ${t}` : `overflow: hidden; grid-template-rows: ${t}fr; opacity: ${t}`),
+})

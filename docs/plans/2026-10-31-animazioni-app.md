@@ -28,6 +28,26 @@ Tempi e curve: «uscita» è `cubic-bezier(0.23, 1, 0.32, 1)`, in Compose `Cubic
 | 14 | Tre valori condivisi | `CmMotion` in `PhoneTheme.kt`; `app.css` accanto a `--spring` | Nessun movimento nuovo. Veloce per pressione e tasti, senza rimbalzo; spaziale per posizione e scala, con `CmMotion.bounce`; lento per colori e passaggi di sfondo, senza sforamento | Molle, sopra `MotionScheme.expressive()` e non accanto | Tutte le animazioni parlano la stessa lingua e si tarano in un punto solo | S |
 | 15 | Cifre a larghezza fissa | Numeri di tabellone, quota e carico. Sul web oggi `tabular-nums` è solo in `Kpi7.svelte` e `QuotaPanel.svelte` | Nessun movimento: `tabular-nums` sul web, `fontFeatureSettings = "tnum"` in Compose, da provare sui caratteri dell'app | Nessuna | Le cifre non tremolano quando cambiano, senza animare i dati | S |
 
+## Cosa fa davvero ogni voce
+
+Costruite tutte il 31/10 e l'1/11. Dove il comportamento si scosta dalla tabella vale questo; la 9 e le altre scelte sono state accettate dalla master.
+
+- **1:** linea blu indeterminata sul bordo basso delle sessioni con un compito approvato al lavoro e nelle righe «al lavoro» di Lavori; con le animazioni spente resta ferma. Il tempo passato è quello già scritto nella riga.
+- **2:** bordo verde per 6 s, la riga scivola al posto nuovo con `CmMotion.bounce`; l'icona è quella dello stato. Scorrimento solo con tutte le condizioni sopra; sul telefono un foglio o un dialogo si riconosce dalla finestra della home senza fuoco.
+- **3:** icona di stato con scala da 0,9 col rimbalzo e dissolvenza di 180 ms.
+- **4:** un solo passaggio, dissolvenza e scala da 0,96 in 200 ms, per Aggiorna tutto e per i tasti delle op di Sistema (`ActionPass`; `pass` sul web). Il tasto non si restringe nell'indicatore.
+- **5:** telefono: la lista fa posto con la molla, il contenuto compare dopo 170 ms ed esce in 80 ms, così le sezioni non gli passano sopra; la freccina ruota. Web: apertura in altezza con `grid-template-rows` da 0fr a 1fr, 200 ms e 150 in chiusura; freccina che ruota; con la riduzione solo dissolvenza.
+- **6:** scala a 0,97 alla pressione, senza rimbalzo.
+- **7:** telefono: entra da altezza 0 in 220 ms ed esce in dissolvenza di 80 ms, le altre salgono con la molla. Web: 220 e 160 ms.
+- **8:** la copia vola al posto con il rimbalzo; vibrazione a ogni scambio solo sul telefono. Se il posto finale è fuori schermo la copia sparisce.
+- **9:** la barra segue il dito 1:1 e riparte con la velocità del dito, senza rimbalzo; si muove la barra, non il foglio intero. Sopra 1200 px/s basta il lancio, solo telefono.
+- **10:** spunta verde quando chi aspetta passa da qualcuno a nessuno, per 2,5 s; non guarda i lavori finiti.
+- **11:** il tasto scelto diventa una pillola con la spunta che si allarga, gli altri sfumano in 150 ms; se il PC non risponde i tasti tornano dopo 8 s.
+- **12:** la voce esce in 160 ms, avanti su Accetta, una scelta e Parliamone, in basso su Non ora e Mai; la risposta parte dopo quei 160 ms. La successiva sale da 0,95 col rimbalzo.
+- **13:** `HapticFeedbackConstants.CONFIRM` su ok, Accetta o una scelta, e «Ferma il ciclo»; solo telefono.
+- **14:** `CmMotion.fast`, `bounce`, `slow` e le loro varianti; `--spring-fast`, `--spring-bounce`, `--spring-slow` con la durata accanto.
+- **15:** `tnum` su cifre grandi e tabellone del telefono; `tabular-nums` su tutta la pagina web.
+
 ## Le due del film, dette onestamente
 
 **Barra sul bordo (1).** Nel film avanza come se sapesse quanto manca. Il relay non dà una percentuale: dà al più l'ora di inizio (`turn_started` per le sessioni, `started` per i lavori di notte), e una barra che si riempie sarebbe un dato inventato: quello che il relay non sa non si mostra. Per questo la proposta è una linea indeterminata col tempo passato scritto accanto. Se poi serve una barra piena davvero, bisogna che il relay mandi i passi fatti e quelli totali: sarebbe una richiesta sul contratto, non ora.

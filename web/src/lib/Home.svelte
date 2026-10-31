@@ -19,7 +19,7 @@
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
   import { fade, slide } from 'svelte/transition'
-  import { bounceEase, bounceMs, finishScrollAllowed, reducedMotion } from './motion'
+  import { bounceEase, bounceMs, finishScrollAllowed, fold, pass, reducedMotion } from './motion'
   import { rows as commitmentRowsOf } from './commitments'
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
   import { cleanupOf } from './masterService'
@@ -452,7 +452,7 @@
     <!-- L'unica struttura delle voci della home (Franz 31/10 17:04). -->
     <button class="sec" class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
-      <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog">{o.nav ? 'chevron_right' : (o.isOpen ?? open[key]) ? 'expand_less' : 'expand_more'}</span>
+      <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span>
     </button>
   {/if}
 {/snippet}
@@ -480,7 +480,7 @@
 {#snippet secSuggestions()}
 {#if (!part || part === 'you') && suggestions && suggestionsN}
   {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti', !part && !open.suggestions && suggestionsAt ? t.homeLastAt(hhmm(suggestionsAt)) : null)}
-  {#if part || open.suggestions}<div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}{/if}
+  {#if part || open.suggestions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div></div>{/if}
 {/if}
 {/snippet}
 {#snippet secSessions()}
@@ -491,21 +491,21 @@
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
     </div>
   {/if}
-  {#if part || open.sessions}
+  {#if part || open.sessions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
          intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
     <div class="list">
       {#each restFlat as [r, group] (r.session.name)}<div class="cw" class:finished={finishedNow.includes(r.session.name)} data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line"></span>{/if}</div>{/each}
     </div>
     {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
-  {/if}
+  </div></div>{/if}
 {/if}
 {#if part === 'work' && afterSessions}{@render afterSessions()}{/if}
 {/snippet}
 {#snippet secLavori()}
 {#if (!part || part === 'work') && showLavori && (fy || workGroups.length)}
   {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', null, 'home-sez-lavori', open.lavori ? null : lavoriLine)}{/if}
-  {#if part || open.lavori}
+  {#if part || open.lavori}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     {#if laterRows.length && !part}
       <button class="all later" aria-expanded={laterOpen} onclick={() => (laterOpen = !laterOpen)}><span class="wic"></span><span class="otext"><b>{t.lavoriLater(laterRows.length)}</b></span>
         <span class="ms tog">{laterOpen ? 'expand_less' : 'expand_more'}</span></button>
@@ -553,14 +553,14 @@
       <button class="all" onclick={onLavori}><span class="wic"><span class="ms">event_list</span></span><span class="otext"><b>{t.lavoriAll ? `${t.lavoriAll} · ${lavoriLine}` : lavoriLine}</b></span>
         <span class="ms chevr">chevron_right</span></button>
     {/if}
-  {/if}
+  </div></div>{/if}
 {/if}
 {/snippet}
 {#snippet secEsiti()}
 {#if (!part || part === 'out') && out}
   <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. -->
   {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', part && out.red.length ? String(out.red.length) : null, 'home-sez-esiti', !part && !open.esiti ? esitiLine : null)}
-  {#if part || open.esiti}
+  {#if part || open.esiti}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     <div class="card wrows">
       {#each out.red.length ? out.red.slice(0, 3) : out.done.slice(0, 2) as d, i (i)}
         <button class:row-red={d.ref != null} class="wrow orow" onclick={() => (liveNames.has(d.session) ? onPick(d.session) : onBox('esiti'))}>
@@ -577,7 +577,7 @@
         <span class="ms chevr">chevron_right</span>
       </button>
     </div>
-  {/if}
+  </div></div>{/if}
 {/if}
 {/snippet}
 <!-- Utilizzo, Sistema, Plugin e skill e Chiuse: la stessa struttura delle altre voci (Franz 31/10 17:04), una voce per volta. -->
@@ -588,7 +588,7 @@
     <div class="card wrows"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
   {:else if usage && showUsage && !part}
     <div class="secwrap" bind:this={usageEl}>{@render sec('usage', t.homeUsage, 'data_usage', null, 'home-sez-utilizzo', open.usage ? null : usageLine)}</div>
-    {#if open.usage}<div class="card wrows">{@render (usageBlock ?? usage)()}</div>{/if}
+    {#if open.usage}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="card wrows">{@render (usageBlock ?? usage)()}</div></div></div>{/if}
   {/if}
 {/snippet}
 {#snippet secSystem()}
@@ -612,10 +612,10 @@
             <div class="ok">
               <b class="sysdot" style:background={SYS_TONE[a.level]}></b>
               <span class="okt">{a.text}</span>
-              {#if act && sysAsk !== a.id}<button class="tonal mini" disabled={sysSent.has(a.id)} onclick={() => (sysAsk = a.id)}>{act.label}</button>{/if}
+              {#if act && sysAsk !== a.id}<button class="tonal mini" in:pass disabled={sysSent.has(a.id)} onclick={() => (sysAsk = a.id)}>{act.label}</button>{/if}
             </div>
             {#if act && sysAsk === a.id}
-              <div class="confirm" role="group" aria-label={act.label}>
+              <div class="confirm" role="group" aria-label={act.label} in:pass>
                 <span>{act.op === 'sys_unit_stop' ? t.sysConfirmStop : t.sysConfirm}</span>
                 <button class="keep" onclick={() => (sysAsk = null)}>{t.sysKeep}</button>
                 <button class="danger" onclick={() => { sysAsk = null; sysSent = new Set([...sysSent, a.id]); onSystem?.(act.op, act.arg) }}>{act.label}</button>
@@ -1122,10 +1122,10 @@
   .alldone { display: flex; justify-content: center; padding: 4px 0; }
   .alldone path { fill: none; stroke: var(--good); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: alldone 400ms cubic-bezier(0.23, 1, 0.32, 1); }
   @keyframes alldone { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-  /* Voce 5: il contenuto entra in dissolvenza, senza cambiare altezza a ogni fotogramma. */
-  .hsec > :not(.sec) { animation: secin 200ms cubic-bezier(0.23, 1, 0.32, 1); }
-  @keyframes secin { from { opacity: 0; transform: translateY(-4px); } }
-  @media (prefers-reduced-motion: reduce) { .hsec > :not(.sec) { animation: none; } }
+  /* Voce 5: la sezione si apre in altezza (fold in motion.ts). */
+  .fold { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; }
+  .foldin { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  .foldin > :global(*) { flex-shrink: 0; }
   .dragfly { transition: top var(--spring-bounce-t) var(--spring-bounce); }
   .cw.finished { box-shadow: inset 0 0 0 1.5px var(--good); }
   .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
@@ -1168,7 +1168,9 @@
   .sec .rt { font: 400 14px var(--sans); color: var(--tx2); text-align: right; min-width: 0; }
   .sec .sysdot { flex: none; margin-right: 6px; }
   .secwrap { display: contents; }
-  .sec .tog { color: var(--tx3); margin-left: 6px; }
+  .sec .tog { color: var(--tx3); margin-left: 6px; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .sec .tog.up { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .sec .tog { transition: none; } }
   .card { background: var(--s1); border-radius: 14px; padding: 12px; gap: 6px; }
   .card.waiting { background: var(--s2); }
   .card.r { flex-direction: row; align-items: flex-start; gap: 8px; padding: 12px 12px 12px 0; }
