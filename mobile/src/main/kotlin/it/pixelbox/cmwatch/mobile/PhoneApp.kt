@@ -35,6 +35,7 @@ import it.pixelbox.cmwatch.settings.Prefs
 import it.pixelbox.cmwatch.settings.Settings
 import it.pixelbox.cmwatch.transport.DemoText
 import it.pixelbox.cmwatch.transport.FakeTransport
+import kotlinx.coroutines.flow.first
 import it.pixelbox.cmwatch.transport.FirebaseAuthToken
 import it.pixelbox.cmwatch.transport.FirebaseTransport
 import it.pixelbox.cmwatch.transport.Rtdb
@@ -81,6 +82,19 @@ class PhoneApp : Application() {
     /** La Demo (design 29/09): le fixture del contratto con i testi della demo, come sull'orologio. */
     /** Le conversazioni già lette, per processo e su disco (piano prestazioni, Task 13). */
     val feeds: it.pixelbox.cmwatch.data.FeedCache by lazy { it.pixelbox.cmwatch.data.FeedCache(java.io.File(cacheDir, "feeds")) }
+    /** «Plugin e skill»: l'elenco è una lettura passiva; un aggiornamento può durare minuti e il suo esito non dipende dalla schermata. */
+    suspend fun pluginsLoad(): it.pixelbox.cmwatch.contract.PluginsPage? {
+        val id = runCatching { repo.command(it.pixelbox.cmwatch.contract.CmdOp.PLUGINS, null, null) }.getOrNull() ?: return null
+        val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { repo.resultsById.first { m -> m.containsKey(id) }[id] }
+        repo.forget(id)
+        return r?.takeIf { x -> x.ok }?.let { x -> runCatching { it.pixelbox.cmwatch.contract.ContractJson.decodePlugins(x.text) }.getOrNull() }
+    }
+    suspend fun pluginsCmd(op: it.pixelbox.cmwatch.contract.CmdOp, arg: String?): it.pixelbox.cmwatch.contract.CmdResult? {
+        val id = runCatching { repo.command(op, null, arg) }.getOrNull() ?: return null
+        return kotlinx.coroutines.withTimeoutOrNull(180_000) { repo.resultsById.first { m -> m.containsKey(id) }[id] }
+    }
+    val pluginsRun by lazy { it.pixelbox.cmwatch.rules.PluginsRun(scope, ::pluginsLoad, ::pluginsCmd) }
+
     val fake: FakeTransport by lazy { FakeTransport(load = { DemoText.dress(assets.open("contract/$it.json").bufferedReader().readText()) }) }
 
     /** Contratto 1.32: che dispositivo è, per lo schema dei collegamenti di tutti (Android del Chromebook, tablet, telefono). */

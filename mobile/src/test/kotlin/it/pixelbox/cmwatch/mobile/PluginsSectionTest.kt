@@ -48,6 +48,19 @@ class PluginsSectionTest {
         }
     }
 
+    // Dopo la conferma: lo stato in corso al posto dei tasti.
+    @Test fun plugins_updatingAll() {
+        val r = it.pixelbox.cmwatch.rules.PluginsRun(kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined), { page }, { _, _ -> kotlinx.coroutines.awaitCancellation() }, page)
+        r.updateAll(listOf("personale"))
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                Column(Modifier.fillMaxSize().background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
+                    PluginsCard(summary, { page }, { _, _ -> null }, initial = page, runner = r)
+                }
+            }
+        }
+    }
+
     @Test fun plugins_state320() = at(320)
     @Test fun plugins_state412() = at(412)
 }

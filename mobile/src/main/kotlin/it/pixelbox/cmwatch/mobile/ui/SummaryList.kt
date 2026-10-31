@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -189,6 +190,7 @@ fun SummaryList(
     plugins: it.pixelbox.cmwatch.contract.PluginsSummary? = null,
     onPluginsLoad: (suspend () -> it.pixelbox.cmwatch.contract.PluginsPage?)? = null,
     onPluginCmd: (suspend (it.pixelbox.cmwatch.contract.CmdOp, String?) -> it.pixelbox.cmwatch.contract.CmdResult?)? = null,
+    pluginsRunner: it.pixelbox.cmwatch.rules.PluginsRun? = null,
     pluginsInitial: it.pixelbox.cmwatch.contract.PluginsPage? = null,
 ) {
     // Pressione lunga su una voce riordinabile (Franz 31/10 14:27, supera la regola delle 01:01): niente si chiude e niente cambia
@@ -542,12 +544,13 @@ fun SummaryList(
                         }
                         // Contratto 1.95: «Plugin e skill», chiusa col numero degli aggiornamenti; l'elenco si chiede all'apertura.
                         if (hasPlugins) {
-                            val n = plugins!!.accounts.sumOf { it.updates.size }
+                            val runnerState = pluginsRunner?.state?.collectAsState()?.value
+                            val n = it.pixelbox.cmwatch.rules.Plugins.pending(runnerState?.page, plugins!!)
                             V3Row(first, { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Extension) }, {
                                 toggle(pluginsOpen)
                             }, zone = sectionDrag("altro", "altro-plugins"), meter = { if (!pluginsOpen) Text(if (n > 0) pluralStringResource(R.plurals.plugins_to_update, n, n) else stringResource(R.string.plugins_up_to_date), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
                             first = false
-                            if (pluginsOpen) Box(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) { PluginsCard(plugins, onPluginsLoad!!, onPluginCmd!!, pluginsInitial) }
+                            if (pluginsOpen) Box(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) { PluginsCard(plugins, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
                         }
                         closedGroup?.let { g ->
                             V3Row(first, onClosed, { rowIcon(Icons.Rounded.Inventory2) }, {

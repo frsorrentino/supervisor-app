@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,9 +27,12 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Accounts
 import it.pixelbox.cmwatch.rules.PhoneBoard
 
+/** L'allegato arrivato con «Condividi», come riga a schermo: `blocked` se non si può mandare, e la riga dice perché. */
+class ShareAttachment(val line: String, val image: Boolean, val blocked: Boolean = false)
+
 /** «Condividi» (design 29/09, schermata 6): la sessione viva a cui mandare, il messaggio, un solo bottone pieno «Manda». */
 @Composable
-fun ShareScreen(state: State, text: String, hasImage: Boolean, sending: Boolean, onSend: (session: String, message: String) -> Unit) {
+fun ShareScreen(state: State, text: String, attached: ShareAttachment?, sending: Boolean, onSend: (session: String, message: String) -> Unit) {
     val alive = PhoneBoard.sections(state).filter { it.group != PhoneBoard.Group.CLOSED }.flatMap { it.sessions }
     var chosen by rememberSaveable { mutableStateOf<String?>(null) }
     var message by rememberSaveable { mutableStateOf(text) }
@@ -40,9 +44,9 @@ fun ShareScreen(state: State, text: String, hasImage: Boolean, sending: Boolean,
                 Text(stringResource(R.string.share_update_pc), color = Cm.text2, style = MaterialTheme.typography.bodyLarge)
                 return@Column
             }
-            if (hasImage) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.Image, null, tint = Cm.actionIcon)
-                Text(stringResource(R.string.share_with_image), color = Cm.text2)
+            if (attached != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(if (attached.image) Icons.Rounded.Image else Icons.Rounded.Description, null, tint = if (attached.blocked) Cm.briefWarn else Cm.actionIcon)
+                Text(attached.line, color = if (attached.blocked) Cm.briefWarn else Cm.text2)
             }
             OutlinedTextField(message, { message = it }, label = { Text(stringResource(R.string.share_message)) }, minLines = 2, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth())
             if (sending) LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Cm.actionIcon, trackColor = Cm.briefTrack)
@@ -65,7 +69,7 @@ fun ShareScreen(state: State, text: String, hasImage: Boolean, sending: Boolean,
         }
         if (state.share != null) Button(
             onClick = { chosen?.let { onSend(it, message.trim()) } },
-            enabled = chosen != null && !sending && (hasImage || message.isNotBlank()),
+            enabled = chosen != null && !sending && attached?.blocked != true && (attached != null || message.isNotBlank()),
             colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).height(56.dp),
         ) { Text(stringResource(R.string.share_send)) }

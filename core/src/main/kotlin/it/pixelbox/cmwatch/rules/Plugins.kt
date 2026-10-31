@@ -26,4 +26,16 @@ object Plugins {
 
     /** L'argomento di `plugin_update`. */
     fun updateArg(account: String, p: Plugin): String = "$account:${p.id}"
+
+    /** Un elenco più vecchio dell'ultimo controllo del PC non conta più. */
+    private fun current(page: it.pixelbox.cmwatch.contract.PluginsPage?, summary: it.pixelbox.cmwatch.contract.PluginsSummary) =
+        page?.takeIf { (it.checkedAt ?: 0) >= (summary.checkedAt ?: 0) }
+
+    /** Quanti da aggiornare: dall'elenco appena riletto se c'è, altrimenti dal riassunto dello stato, che arriva con la push dopo. */
+    fun pending(page: it.pixelbox.cmwatch.contract.PluginsPage?, summary: it.pixelbox.cmwatch.contract.PluginsSummary): Int =
+        current(page, summary)?.accounts?.sumOf { a -> a.plugins.count { it.update == true } } ?: summary.accounts.sumOf { it.updates.size }
+
+    /** Gli account a cui va «Aggiorna tutto», con la stessa precedenza. */
+    fun accountsToUpdate(page: it.pixelbox.cmwatch.contract.PluginsPage?, summary: it.pixelbox.cmwatch.contract.PluginsSummary): List<String> =
+        current(page, summary)?.accounts?.filter { a -> a.plugins.any { it.update == true } }?.map { it.account } ?: summary.accounts.filter { it.updates.isNotEmpty() }.map { it.account }
 }

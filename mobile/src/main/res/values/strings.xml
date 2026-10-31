@@ -146,6 +146,10 @@
     <string name="share_title">Manda a una sessione</string>
     <string name="share_message">Messaggio</string>
     <string name="share_with_image">Con l\'immagine condivisa</string>
+    <string name="share_with_file">%1$s, %2$s (massimo %3$s)</string>
+    <string name="share_file_too_big">%1$s pesa %2$s: il limite è %3$s, non si può mandare</string>
+    <string name="share_file_unsupported">Aggiorna supervisor sul PC per mandare file diversi dalle immagini</string>
+    <string name="share_file_unreadable">File non leggibile: non mandato</string>
     <string name="share_send">Manda</string>
     <string name="share_update_pc">Aggiorna supervisor sul PC per mandare testi e immagini alle sessioni</string>
     <string name="share_sent">Mandato a %1$s</string>
@@ -1030,6 +1034,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="plugins_up_to_date">nessun aggiornamento</string>
     <string name="plugins_update">Aggiorna</string>
     <string name="plugins_updating">Aggiorno</string>
+    <string name="plugins_updating_all">Aggiornamento in corso, può durare un minuto</string>
+    <string name="plugins_no_answer">Il PC non ha risposto in tempo: ricontrolla l\'elenco qui sopra</string>
     <string name="plugins_latest">ultima</string>
     <string name="plugins_unknown">ultima non nota</string>
     <string name="plugins_skills">Skill</string>

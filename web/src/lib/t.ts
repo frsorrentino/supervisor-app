@@ -222,7 +222,7 @@ const it = {
   kpi17Caption: 'Minuti fra la richiesta di una sessione e la tua risposta, mediana per giorno.',
   // Contratto 1.95: la sezione «Plugin e skill» (mockup approvato il 29/10).
   homePlugins: 'Plugin e skill', pluginsToUpdate: (n: number) => (n === 1 ? '1 da aggiornare' : `${n} da aggiornare`), pluginsLoading: 'Chiedo al PC l\'elenco', pluginsNone: 'Il PC non ha risposto.',
-  pluginsMeta: (p: number, s: number) => `${p} plugin · ${s} skill`, pluginsUpdate: 'Aggiorna', pluginsUpdating: 'Aggiorno', pluginsLatest: 'ultima', pluginsUnknown: 'ultima non nota',
+  pluginsMeta: (p: number, s: number) => `${p} plugin · ${s} skill`, pluginsUpdate: 'Aggiorna', pluginsUpdating: 'Aggiorno', pluginsUpdatingAll: 'Aggiornamento in corso, può durare un minuto', pluginsNoAnswer: 'Il PC non ha risposto in tempo: ricontrolla l\'elenco qui sopra', pluginsLatest: 'ultima', pluginsUnknown: 'ultima non nota',
   pluginsSkills: 'Skill', pluginsUpToDate: 'nessun aggiornamento', pluginsShow: 'Mostra', pluginsHide: 'Nascondi',
   pluginsNewSessions: 'vale dalle sessioni nuove', pluginsConfirm: (n: number) => `Aggiorno ${n === 1 ? '1 plugin' : `${n} plugin`}? Le sessioni aperte restano come sono; vale dalle nuove.`,
   pluginsKeep: 'Lascia stare', pluginsUpdateAll: (n: number) => `Aggiorna tutto (${n})`, pluginsChecked: (hm: string) => `controllato alle ${hm}`, pluginsNeverChecked: 'mai controllato', pluginsCheck: 'Controlla ora',
@@ -614,7 +614,7 @@ const en: typeof it = {
   kpi17Now: (s: string, k: string, m: number) => `${s} has waited ${m} min: ${k}`, kpi17Kind: { question: 'question', permission: 'permission', needs_you: 'needs you' } as Record<string, string>,
   kpi17Caption: "Minutes between a session's request and your answer, median per day.",
   homePlugins: 'Plugins and skills', pluginsToUpdate: (n: number) => `${n} to update`, pluginsLoading: 'Asking the PC for the list', pluginsNone: 'The PC did not answer.',
-  pluginsMeta: (p: number, s: number) => `${p} plugins · ${s} skills`, pluginsUpdate: 'Update', pluginsUpdating: 'Updating', pluginsLatest: 'latest', pluginsUnknown: 'latest unknown',
+  pluginsMeta: (p: number, s: number) => `${p} plugins · ${s} skills`, pluginsUpdate: 'Update', pluginsUpdating: 'Updating', pluginsUpdatingAll: 'Update in progress, it can take a minute', pluginsNoAnswer: 'The PC did not answer in time: check the list above again', pluginsLatest: 'latest', pluginsUnknown: 'latest unknown',
   pluginsSkills: 'Skills', pluginsUpToDate: 'up to date', pluginsShow: 'Show', pluginsHide: 'Hide',
   pluginsNewSessions: 'it applies to new sessions', pluginsConfirm: (n: number) => `Update ${n === 1 ? '1 plugin' : `${n} plugins`}? Open sessions stay as they are; it applies to new ones.`,
   pluginsKeep: 'Leave it', pluginsUpdateAll: (n: number) => `Update all (${n})`, pluginsChecked: (hm: string) => `checked at ${hm}`, pluginsNeverChecked: 'never checked', pluginsCheck: 'Check now',

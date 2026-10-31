@@ -12,6 +12,17 @@ object ShareLimits {
     /** Le chiavi e le virgolette del JSON, `mime` e un nome fino a 120 caratteri anche non ASCII (4 byte l'uno in UTF-8). */
     private const val JSON_BYTES = 1024
 
+    /** Cosa fare di un allegato condiviso da un'altra app (Franz 31/10 15:31). */
+    enum class Incoming { IMAGE, FILE, TOO_BIG, NOT_SUPPORTED }
+
+    /** Solo le immagini si riducono; gli altri file passano com'erano. `size` -1: il sistema non lo sa, si controlla leggendo. */
+    fun incoming(mime: String?, size: Long, share: it.pixelbox.cmwatch.contract.Share?): Incoming = when {
+        mime?.startsWith("image/") == true -> Incoming.IMAGE
+        share?.any != true -> Incoming.NOT_SUPPORTED
+        size > maxFileBytes(share) -> Incoming.TOO_BIG
+        else -> Incoming.FILE
+    }
+
     /** Contratto 1.48: con i pezzi vale il tetto sul file intero; senza, quello del nodo unico. */
     fun maxFileBytes(share: it.pixelbox.cmwatch.contract.Share?): Long = when {
         share == null -> 0

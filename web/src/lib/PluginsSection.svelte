@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PluginsPage, State } from './contract'
   import { account, accountsWithUpdates, pending, updateArg } from './plugins'
+  import { pluginsRun } from './pluginsRun'
   import { t } from './t'
   import { locale } from './lang'
   // La sezione «Plugin e skill» (contratto 1.95, mockup approvato da Franz il 29/10 alle 10:39): per account i plugin da
@@ -16,31 +17,28 @@
   } = $props()
   const KEY = 'home-plugins-open'
   let open = $state((() => { try { return localStorage.getItem(KEY) === '1' } catch { return false } })())
-  let page = $state<PluginsPage | null>(null)
-  let loading = $state(false)
+  // Comandi, stato ed esito stanno in pluginsRun: la seconda pressione non manda niente, la lista si rilegge all'esito.
+  const runner = pluginsRun(load, run)
+  let rs = $state(runner.get())
+  runner.sub(v => { rs = v })
+  const page = $derived(rs.page)
+  const loading = $derived(rs.loading)
+  const busy = $derived(rs.busy)
+  const notes = $derived(rs.notes)
   let shown = $state<Record<string, boolean>>({})
-  let busy = $state<Record<string, boolean>>({})
-  let notes = $state<Record<string, { ok: boolean; text: string }>>({})
   let asking = $state(false)
-  const count = $derived(pending(st))
-  async function refresh() { loading = true; page = await load(); loading = false }
+  // Il riassunto dello stato arriva con la push dopo: appena c'è l'elenco, contano i plugin dell'elenco.
+  const count = $derived(page && (page.checked_at ?? 0) >= (st.plugins?.checked_at ?? 0) ? page.accounts.reduce((n, a) => n + a.plugins.filter(p => p.update === true).length, 0) : pending(st))
+  const toUpdate = $derived(page && (page.checked_at ?? 0) >= (st.plugins?.checked_at ?? 0) ? page.accounts.filter(a => a.plugins.some(p => p.update === true)).map(a => a.account) : accountsWithUpdates(st))
+  const refresh = () => runner.refresh()
   function toggle() {
     open = !open
     try { localStorage.setItem(KEY, open ? '1' : '0') } catch { /* resta per questa visita */ }
     if (open && !page) refresh()
   }
   $effect(() => { if (open && !page && !loading) refresh() })
-  async function act(key: string, op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null, note: string) {
-    busy = { ...busy, [key]: true }
-    const r = await run(op, arg)
-    busy = { ...busy, [key]: false }
-    if (r) notes = { ...notes, [note]: { ok: r.ok, text: r.text } }
-    if (r?.ok && op !== 'plugin_check') refresh()
-  }
-  async function updateAll() {
-    asking = false
-    for (const a of accountsWithUpdates(st)) await act(`all:${a}`, 'plugin_update_all', a, a)
-  }
+  const act = runner.act
+  function updateAll() { asking = false; runner.updateAll(toUpdate) }
   const hm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   const checked = $derived(page?.checked_at ?? st.plugins?.checked_at ?? null)
 </script>
@@ -75,10 +73,12 @@
             <!-- Il numero sta già accanto al nome dell'account: qui solo il tasto (Franz, 29/10 20:32: «+ altri…» lo ripeteva). -->
             <div class="foot"><span></span><button class="text" onclick={() => (shown = { ...shown, [a.account]: !shown[a.account] })}>{shown[a.account] ? t.pluginsHide : t.pluginsShow}</button></div>
           {/if}
-          {#if notes[a.account]}<p class="note" class:ko={!notes[a.account].ok}>{notes[a.account].text}{#if notes[a.account].ok} · {t.pluginsNewSessions}{/if}</p>{/if}
+          {#if notes[a.account]}<p class="note" class:ko={!notes[a.account].ok}>{notes[a.account].text ?? t.pluginsNoAnswer}{#if notes[a.account].ok} · {t.pluginsNewSessions}{/if}</p>{/if}
         </div>
       {/each}
-      {#if asking}
+      {#if rs.all}
+        <p class="note" role="status" data-testid="plugins_updating_all">{t.pluginsUpdatingAll}</p>
+      {:else if asking}
         <div class="confirm" role="group" aria-label={t.pluginsUpdateAll(count ?? 0)}>
           <span>{t.pluginsConfirm(count ?? 0)}</span>
           <button class="keep" onclick={() => (asking = false)}>{t.pluginsKeep}</button>
