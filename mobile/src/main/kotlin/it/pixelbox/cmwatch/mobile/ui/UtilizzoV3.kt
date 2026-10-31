@@ -70,6 +70,7 @@ private val GAP = 10.dp
  * Il blocco Utilizzo aperto (scelta D di Franz, 30/10 20:11): righe compatte, un tocco apre il mini-grafico di quella riga, una
  * aperta per volta. Tutte le frecce su una verticale. La barra delle 5 ore e il grafico hanno la stessa colonna, così la tacca e
  * «adesso» cadono nello stesso punto; il resto sta nella pagina «Utilizzo e limiti», da «Tutti i dettagli».
+ * quota-senza-cinque-ore: senza il dato di un account la sua riga delle 5 ore sparisce, e la settimana mostra sempre giorno e ritmo.
  */
 @Composable
 internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: TimelinePage?, data: KpiData?, now: Long, onDetails: () -> Unit, startOpen: String? = null, zone: ZoneId = ZoneId.systemDefault()) {
@@ -80,7 +81,7 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
     val toggle = { k: String -> open = if (open == k) null else k }
     val hm = DateTimeFormatter.ofPattern("HH:mm")
     Column(Modifier.fillMaxWidth().testTag("utilizzo-v3")) {
-        shown.forEach { r ->
+        shown.filter { it.h5 != null }.forEach { r ->
             val many = shown.size > 1
             val pct = (r.h5 ?: 0).coerceIn(0, 100)
             val proj = r.pace?.projected
@@ -117,8 +118,9 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                 })
             }
         }
-        shown.forEach { r ->
+        shown.filter { it.w7 != null }.forEach { r ->
             val w7 = (r.w7 ?: 0).coerceIn(0, 100)
+            val noH5 = r.h5 == null
             val kw = "w7:${r.account}"
             val delta = UtilizzoRules.weekDelta(r.w7, r.weekResetAt, now)
             UseRow(open == kw, { toggle(kw) }) {
@@ -126,16 +128,17 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                 Spacer(Modifier.width(GAP))
                 Meter(w7, null, UtilizzoRules.elapsedPct(r.weekResetAt, UtilizzoRules.W7_S, now), Modifier.weight(1f))
                 Spacer(Modifier.width(GAP))
-                Text("$w7%", style = V3.Meter.copy(color = V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
+                Text(if (r.stale && noH5) stringResource(R.string.quota_line_stale) else "$w7%", style = V3.Meter.copy(color = V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
             }
-            if (open == kw) Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                delta?.let { d -> Note(when { d < 0 -> stringResource(R.string.usage_below_pace, -d); d > 0 -> stringResource(R.string.usage_above_pace, d); else -> stringResource(R.string.week_even) }) }
-                r.weekResetAt?.let { Note(stringResource(R.string.week_renewal, DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(Instant.ofEpochSecond(it).atZone(zone)))) }
-                r.weekOrigins?.let { o -> Note(listOf(stringResource(R.string.week_origin_sessions, Math.round(o.sessions).toInt()), stringResource(R.string.week_origin_automations, Math.round(o.automations).toInt()), stringResource(R.string.week_origin_requests, Math.round(o.requests).toInt())).joinToString(" · ")) }
+            val pace = weekPaceText(delta, if (noH5) UtilizzoRules.weekDay(r.weekResetAt, now) else null)
+            if (open == kw || (noH5 && !r.stale && pace != null)) Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                pace?.let { Note(it) }
+                if (open == kw) r.weekResetAt?.let { Note(stringResource(R.string.week_renewal, DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(Instant.ofEpochSecond(it).atZone(zone)))) }
+                if (open == kw) r.weekOrigins?.let { o -> Note(listOf(stringResource(R.string.week_origin_sessions, Math.round(o.sessions).toInt()), stringResource(R.string.week_origin_automations, Math.round(o.automations).toInt()), stringResource(R.string.week_origin_requests, Math.round(o.requests).toInt())).joinToString(" · ")) }
             }
         }
         // Le sessioni dell'account più carico: accanto al numero il nome intero, che va a capo se è lungo.
-        val top = shown.filter { !it.stale }.maxByOrNull { it.h5 ?: 0 }
+        val top = shown.filter { !it.stale && it.h5 != null }.maxByOrNull { it.h5 ?: 0 }
         val split = top?.let { Kpi.split(st, it.account, 99) }
         split?.slices?.firstOrNull()?.let { first ->
             UseRow(open == "sessions", { toggle("sessions") }) {
@@ -180,6 +183,14 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(ARROW))
         }
     }
+}
+
+/** Il ritmo in parole, col giorno davanti se lo si passa; null senza dati. */
+@Composable
+internal fun weekPaceText(delta: Int?, day: Int?): String? {
+    val d = delta ?: return null
+    val p = when { d < 0 -> stringResource(R.string.usage_below_pace, -d); d > 0 -> stringResource(R.string.usage_above_pace, d); else -> stringResource(R.string.week_even) }
+    return day?.let { stringResource(R.string.week_day_pace, it, p) } ?: p
 }
 
 /** Una riga col filo sopra e la freccia sulla verticale comune. */

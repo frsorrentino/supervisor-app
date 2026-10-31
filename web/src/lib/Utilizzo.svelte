@@ -4,10 +4,11 @@
   import { dayFigures, split } from './kpi'
   import { locale } from './lang'
   import { t } from './t'
-  import { elapsedPct, H5_S, peakHour, W7_S, waitsLine, weekDelta } from './utilizzo'
+  import { elapsedPct, H5_S, paceText, peakHour, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
   // Il blocco Utilizzo aperto (scelta D di Franz, 30/10 20:11; UtilizzoV3.kt nell'app): righe compatte, un tocco apre il mini-grafico
   // di quella riga, una aperta per volta. Tutte le frecce su una verticale. Barra e grafico hanno la stessa colonna, così la tacca e
   // «adesso» cadono nello stesso punto; il resto sta nella pagina «Utilizzo e limiti», da «Tutti i dettagli».
+  // quota-senza-cinque-ore: senza il dato di un account la sua riga delle 5 ore sparisce, e la settimana mostra sempre giorno e ritmo.
   let { rings, st, page, data, now, onDetails, startOpen = null }: { rings: Ring[]; st: State; page: TimelinePage | null; data: KpiData | null; now: number; onDetails: () => void; startOpen?: string | null } = $props()
   let open = $state<string | null>(startOpen)
   const toggle = (k: string) => (open = open === k ? null : k)
@@ -17,7 +18,7 @@
   const dayTime = (s: number) => new Date(s * 1000).toLocaleString(locale, { weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
   const pc = (x: number | null | undefined) => Math.max(0, Math.min(100, Math.round(x ?? 0)))
   const tone = (p: number) => (p >= 90 ? 'var(--red)' : p >= 75 ? 'var(--wait)' : 'var(--tx2)')
-  const top = $derived(shown.filter(r => !r.stale).sort((a, b) => (b.h5 ?? 0) - (a.h5 ?? 0))[0] ?? null)
+  const top = $derived(shown.filter(r => !r.stale && r.h5 != null).sort((a, b) => (b.h5 ?? 0) - (a.h5 ?? 0))[0] ?? null)
   const sp = $derived(top ? split(st, top.account, 99) : null)
   const f = $derived(page ? dayFigures(page, st, now) : null)
   const tok = (n: number) => (n >= 1e6 ? `${Math.floor(n / 1e6)} M` : `${Math.floor(n / 1e3)} k`)
@@ -42,7 +43,7 @@
 {/snippet}
 
 <div class="ut" data-testid="utilizzo-v3">
-  {#each shown as r (r.account)}
+  {#each shown.filter(r => r.h5 != null) as r (r.account)}
     {@const p = pc(r.h5)}
     {@const proj = r.pace?.projected ?? null}
     {@const tk = elapsedPct(r.resetAt, H5_S, now)}
@@ -68,18 +69,21 @@
       </div>
     {/if}
   {/each}
-  {#each shown as r (r.account)}
+  {#each shown.filter(r => r.w7 != null) as r (r.account)}
     {@const p = pc(r.w7)}
-    {@const d = weekDelta(r.w7, r.weekResetAt, now)}
+    {@const noH5 = r.h5 == null}
+    {@const pace = paceText(weekDelta(r.w7, r.weekResetAt, now), noH5 ? weekDay(r.weekResetAt, now) : null)}
     <button class="row" aria-expanded={open === `w7:${r.account}`} onclick={() => toggle(`w7:${r.account}`)}>
       {@render label(t.usageWeek, r.personal)}{@render meter(p, null, elapsedPct(r.weekResetAt, W7_S, now))}
-      <span class="val">{p}%</span>{@render arrow(`w7:${r.account}`)}
+      <span class="val">{r.stale && noH5 ? t.quotaLineStale : `${p}%`}</span>{@render arrow(`w7:${r.account}`)}
     </button>
-    {#if open === `w7:${r.account}`}
+    {#if open === `w7:${r.account}` || (noH5 && !r.stale && pace)}
       <div class="open">
-        {#if d != null}<p class="note">{d < 0 ? t.usageBelowPace(-d) : d > 0 ? t.usageAbovePace(d) : t.weekEven}</p>{/if}
-        {#if r.weekResetAt}<p class="note">{t.weekRenewal(dayTime(r.weekResetAt))}</p>{/if}
-        {#if r.weekOrigins}<p class="note">{t.weekOriginSessions(Math.round(r.weekOrigins.sessions))} · {t.weekOriginAutomations(Math.round(r.weekOrigins.automations))} · {t.weekOriginRequests(Math.round(r.weekOrigins.requests))}</p>{/if}
+        {#if pace}<p class="note">{pace}</p>{/if}
+        {#if open === `w7:${r.account}`}
+          {#if r.weekResetAt}<p class="note">{t.weekRenewal(dayTime(r.weekResetAt))}</p>{/if}
+          {#if r.weekOrigins}<p class="note">{t.weekOriginSessions(Math.round(r.weekOrigins.sessions))} · {t.weekOriginAutomations(Math.round(r.weekOrigins.automations))} · {t.weekOriginRequests(Math.round(r.weekOrigins.requests))}</p>{/if}
+        {/if}
       </div>
     {/if}
   {/each}

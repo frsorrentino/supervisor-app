@@ -1415,6 +1415,8 @@ It starts at your last message to the master.</string>
     <string name="usage_details">All the details</string>
     <string name="usage_now">now</string>
     <string name="usage_projection">At this pace you reach %1$d%% at %2$s, when it resets.</string>
+    <string name="week_day_pace">Day %1$d of 7 · %2$s</string>
+    <string name="quota_line_week">7d</string>
     <string name="usage_below_pace">%1$d points below the even pace</string>
     <string name="usage_above_pace">%1$d points above the even pace</string>
     <string name="usage_peak">Prompts and commits per hour, peak at %1$02d:00</string>

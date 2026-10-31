@@ -20,7 +20,10 @@
     {#if ring.h5 != null && !stale}
       <circle cx={c} cy={c} r={r1} fill="none" stroke={ring.h5 >= 90 ? 'var(--b-alert)' : 'var(--b-ring)'} stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r1, ring.h5)} transform="rotate(-90 {c} {c})" />
     {/if}
-    {#if ring.w7 != null}
+    <!-- quota-senza-cinque-ore: senza il dato l'anello fuori è la settimana, quello dentro resta vuoto. -->
+    {#if ring.h5 == null && ring.w7 != null}
+      <circle cx={c} cy={c} r={r1} fill="none" stroke="var(--b-week)" stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r1, ring.w7)} transform="rotate(-90 {c} {c})" />
+    {:else if ring.w7 != null}
       <circle cx={c} cy={c} r={r2} fill="none" stroke="var(--b-week)" stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r2, ring.w7)} transform="rotate(-90 {c} {c})" />
     {/if}
   </svg>

@@ -19,6 +19,24 @@ object UtilizzoRules {
         return Math.round((w7 ?: return null) - e)
     }
 
+    /** Il giorno della settimana di quota, da 1 a 7; null senza rinnovo o a settimana finita. */
+    fun weekDay(resetAt: Long?, now: Long): Int? {
+        if (resetAt == null || resetAt <= now) return null
+        return (((now - (resetAt - W7_S)) / 86400).toInt() + 1).coerceIn(1, 7)
+    }
+
+    data class Bar(val week: Boolean, val pct: Int, val resetAt: Long?, val windowS: Long, val delta: Int?, val day: Int?)
+
+    /**
+     * quota-senza-cinque-ore: la barra di un account. Anthropic toglie il limite di 5 ore a tappe e per account: conta il dato
+     * assente, mai il nome del piano. Senza `h5` la settimana, col giorno e il ritmo; senza nessuno dei due null, mai uno 0 %.
+     */
+    fun bar(h5: Int?, w7: Int?, resetH5: Long?, resetW7: Long?, now: Long): Bar? = when {
+        h5 != null -> Bar(false, h5.coerceIn(0, 100), resetH5, H5_S, null, null)
+        w7 != null -> Bar(true, w7.coerceIn(0, 100), resetW7, W7_S, weekDelta(w7, resetW7, now), weekDay(resetW7, now))
+        else -> null
+    }
+
     /** L'ora con più prompt e commit, null in una giornata vuota. */
     fun peakHour(perHour: List<Pair<Int, Int>>, firstHour: Int): Int? {
         val i = perHour.indices.maxByOrNull { perHour[it].first + perHour[it].second } ?: return null

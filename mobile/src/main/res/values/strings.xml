@@ -1445,6 +1445,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="usage_details">Tutti i dettagli</string>
     <string name="usage_now">adesso</string>
     <string name="usage_projection">Allo stesso ritmo arrivi al %1$d%% alle %2$s, quando si azzera.</string>
+    <string name="week_day_pace">Giorno %1$d di 7 · %2$s</string>
+    <string name="quota_line_week">7g</string>
     <string name="usage_below_pace">%1$d punti sotto il ritmo pari</string>
     <string name="usage_above_pace">%1$d punti sopra il ritmo pari</string>
     <string name="usage_peak">Prompt e commit per ora, punta alle %1$02d:00</string>

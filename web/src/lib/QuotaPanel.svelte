@@ -3,6 +3,7 @@
   import type { Ring } from './overview'
   import { weekProjected, weekRunsOut } from './tablet'
   import { rhythm, type Rhythm } from './rhythm5h'
+  import { paceText, weekDay, weekDelta } from './utilizzo'
   import { BUDGET, samplesFrom, weekChart, weekDays, type WeekChart, type WeekDay } from './week7'
   import { t } from './t'
   import QuotaRing from './QuotaRing.svelte'
@@ -16,6 +17,9 @@
   // Il ritmo delle cinque ore (1A e 1B, 25/10): solo con la quota letta e non vecchia, altrimenti la frase del perché.
   const r = $derived(ring.resetAt != null && ring.h5 != null && !ring.stale && !dataStale ? rhythm(ring.pace?.points ?? [], ring.h5, ring.resetAt, now) : null)
   const sentence = $derived(!r ? '' : r.fullAt != null ? t.rhythmFullAt(hm(r.fullAt), hm(r.resetAt)) : r.projected != null && r.pct < 100 ? t.rhythmAtReset(r.projected, hm(r.resetAt)) : r.points.length < 2 ? t.tabletForecastNone(hm(r.resetAt)) : t.tabletForecastFlat(hm(r.resetAt)))
+  // quota-senza-cinque-ore: senza il dato la testa è la settimana, col giorno e il ritmo, e la sezione delle 5 ore non c'è.
+  const noH5 = $derived(ring.h5 == null && ring.w7 != null)
+  const pace = $derived(noH5 && !ring.stale && !dataStale ? paceText(weekDelta(ring.w7, ring.weekResetAt, now), weekDay(ring.weekResetAt, now)) : null)
   let cw = $state(0)
   // La settimana ora per ora (2A e 2B, contratto 1.86): solo con i campioni, il rinnovo e la quota non vecchia.
   const wk = $derived(ring.weekPoints && ring.weekResetAt != null && ring.w7 != null && !ring.stale && !dataStale ? weekChart(ring.weekPoints, ring.w7, ring.weekResetAt, now) : null)
@@ -99,12 +103,14 @@
   <div class="head">
     <QuotaRing {ring} stale={ring.stale || dataStale} />
     <div class="hcol">
-      <span class="lab">{t.tabletQuotaLabel.toUpperCase()} · {ring.account.toUpperCase()}</span>
-      <div class="num"><b class:dim={ring.stale}>{ring.h5 != null && !ring.stale ? `${ring.h5}%` : '–'}</b>{#if ring.resetAt}<small>{t.quotaResetsAt(hm(ring.resetAt))}</small>{/if}</div>
+      <span class="lab">{(noH5 ? t.tabletWeekLabel : t.tabletQuotaLabel).toUpperCase()} · {ring.account.toUpperCase()}</span>
+      <div class="num"><b class:dim={ring.stale}>{ring.stale ? '–' : noH5 ? `${ring.w7}%` : ring.h5 != null ? `${ring.h5}%` : '–'}</b>{#if noH5}{#if ring.weekResetAt}<small>{t.weekRenewal(dayTime(ring.weekResetAt))}</small>{/if}{:else if ring.resetAt}<small>{t.quotaResetsAt(hm(ring.resetAt))}</small>{/if}</div>
       {#if ring.stale}<span class="old">{t.quotaOldWord}</span>{/if}
     </div>
   </div>
-  {#if r && ring.resetAt}
+  {#if noH5}
+    {#if pace}<p class="txt">{pace}</p>{/if}
+  {:else if r && ring.resetAt}
     <!-- 1A: tempo e quota sulla stessa scala; il pezzo di quota oltre il tempo è ambra. -->
     <div class="bars">
       <span class="bl">{t.rhythmTime}</span><span class="bar"><i style="width:{r.elapsed}%;background:var(--text2)"></i><span class="tick" style="left:{r.elapsed}%"></span></span><span class="bv">{r.elapsed}%</span>
@@ -144,8 +150,10 @@
     {#if ring.h5 != null}<span class="mini"><i style="width:{Math.min(100, ring.h5)}%"></i></span>{/if}
     <p class="txt dim">{ring.resetAt == null ? t.ovNoQuota : dataStale || ring.stale ? t.tabletForecastStale(hm(ring.resetAt)) : t.tabletForecastNone(hm(ring.resetAt))}</p>
   {/if}
-  <hr />
-  <div class="title"><span class="lab">{t.tabletWeekLabel.toUpperCase()} · {ring.account.toUpperCase()}</span>{#if ring.w7 != null}<b>{ring.w7}%</b>{/if}</div>
+  {#if !noH5}
+    <hr />
+    <div class="title"><span class="lab">{t.tabletWeekLabel.toUpperCase()} · {ring.account.toUpperCase()}</span>{#if ring.w7 != null}<b>{ring.w7}%</b>{/if}</div>
+  {/if}
   {#if wk && wd && ring.weekPoints}
     <!-- 2A: la settimana cumulata contro il ritmo pari, la proiezione al ritmo delle ultime 48 ore; etichette sul grafico. -->
     <div class="chartbox" bind:clientWidth={ww}>

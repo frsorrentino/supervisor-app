@@ -5,16 +5,16 @@
   import { personal } from './badge'
   import { resetLabel } from './header'
   import { shown } from './quotaLine'
+  import { elapsedPct, paceText, quotaBar } from './utilizzo'
   import { t } from './t'
   // Proposta 7 (25/10): tre cifre in testa alla home. Ognuna apre la sua pagina, anche a zero (app-box-cliccabili-29-10).
   // Lo stile «Studio e Diretta» (terza versione, 30/10): il tabellone, con la quota delle 5 ore sotto le cifre al posto della
   // riga nella testata. Si colora solo chi ti aspetta, l'unico avviso della home; i rossi restano rossi. La barra della quota
   // è neutra e diventa ambra da 75 % e rossa da 90 %; la tacca bianca è quanto è passato della finestra delle 5 ore.
+  // quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana col giorno e il ritmo.
   let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {} }: { h: Head; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void } = $props()
-  const rings = $derived(st ? shown(Object.entries(st.quota)) : [])
+  const rings = $derived((st ? shown(Object.entries(st.quota)) : []).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now)] as const).filter(([, r, b]) => b || r.stale))
   const tone = (pct: number) => (pct >= 90 ? 'var(--red)' : pct >= 75 ? 'var(--wait)' : 'var(--tx2)')
-  const WINDOW = 5 * 3600
-  const elapsed = (reset?: number | null) => (reset != null && reset > now ? Math.max(0, Math.min(100, (1 - (reset - now) / WINDOW) * 100)) : null)
 </script>
 
 <div class="board" data-kpi="kpi-7">
@@ -23,21 +23,24 @@
   <button class="cell" data-testid="home-box-esiti" onclick={() => onBox('esiti')}><b class="n">{h.outcomes ?? '–'}</b><span class="l">{#if h.outcomes == null}{t.kpi7OutcomesUnknown}{:else if h.red}{t.kpi7Outcomes}, <em>{t.kpi7Red(h.red)}</em>{:else}{t.kpi7Outcomes}{/if}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
   {#if rings.length}
     <button class="quota" onclick={onQuota} aria-label={t.menuQuadro}>
-      {#each rings as [name, r] (name)}
-        {@const pct = Math.min(100, Math.max(0, r.h5 ?? 0))}
+      {#each rings as [name, r, b] (name)}
+        {@const pct = b?.pct ?? 0}
         {@const stale = !!r.stale}
-        {@const tick = stale ? null : elapsed(r.reset_h5)}
-        {@const reset = rings.length === 1 && !stale ? resetLabel(r.reset_h5, now) : null}
-        <span class="q">
+        {@const week = !!b?.week}
+        {@const tick = stale || !b ? null : elapsedPct(b.resetAt, b.windowS, now)}
+        {@const reset = rings.length === 1 && !stale && !week ? resetLabel(r.reset_h5, now) : null}
+        {@const pace = week && !stale && b ? paceText(b.delta, b.day) : null}
+        <span class="q" data-testid={week ? 'quota-senza-cinque-ore' : null}>
           {#if rings.length > 1}
             <svg viewBox="0 0 14 14" width="12" height="12" role="img" aria-label={personal(name, r.kind) ? t.badgePersonal : t.badgeWork}>
               {#if personal(name, r.kind)}<circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--tx2)" stroke-width="2" />{:else}<rect x="1" y="1" width="12" height="12" rx="3.2" fill="none" stroke="var(--tx2)" stroke-width="2" />{/if}
             </svg>
           {/if}
-          <strong>{rings.length > 1 ? t.quotaLineWindow : t.board5h}</strong>
+          <strong>{week ? (rings.length > 1 ? t.quotaLineWeek : t.usageWeek) : rings.length > 1 ? t.quotaLineWindow : t.board5h}</strong>
           <span class="meter">{#if !stale}<i style="width:{pct}%;background:{tone(pct)}"></i>{/if}{#if tick != null}<b style="left:{tick}%"></b>{/if}</span>
           <span class="pct" style:color={pct >= 75 && !stale ? tone(pct) : null}>{stale ? t.quotaLineStale : `${pct}%`}</span>
           {#if reset}<span class="reset">{t.quotaResetsAt(reset)}</span>{/if}
+          {#if pace}<span class="pace">{pace}</span>{/if}
         </span>
       {/each}
     </button>
@@ -57,7 +60,7 @@
   .chev { position: absolute; top: 12px; right: 8px; color: var(--tx3); }
   .quota { grid-column: 1 / -1; display: flex; gap: 16px; padding: 10px 12px; border-top: 1px solid var(--line); text-align: left; cursor: pointer; min-width: 0; }
   .quota:hover { background: var(--s2); }
-  .q { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 13.5px; color: var(--tx2); }
+  .q { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; font-size: 13.5px; color: var(--tx2); }
   .q svg { flex: none; }
   .q strong { font: 600 15px var(--display); color: var(--tx); white-space: nowrap; }
   .meter { flex: 1; position: relative; height: 6px; min-width: 40px; border-radius: 3px; background: var(--s3); }
@@ -65,4 +68,5 @@
   .meter b { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
   .pct { font: 400 12.5px var(--mono); color: var(--tx); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .reset { white-space: nowrap; }
+  .pace { flex: 1 0 100%; }
 </style>

@@ -150,7 +150,7 @@ const it = {
   // Lo stile «Studio e Diretta» (app-home-riordino-29-10, 30/10): la colonna dei minuti, il riepilogo delle sessioni, la riga
   // Notte che tiene la coda di stanotte e la notte scorsa, la quota delle 5 ore nel tabellone.
   railSpan: (s: { n: number; unit: 'min' | 'h' | 'd' }) => (s.unit === 'min' ? `${s.n}'` : s.unit === 'h' ? `${s.n} h` : `${s.n} g`),
-  homeMore: 'Altro', board5h: '5 ore',
+  homeMore: 'Altro', board5h: '5 ore', quotaLineWeek: '7g', weekDayPace: (d: number, p: string) => `Giorno ${d} di 7 · ${p}`, deskToolsWeek: 'quota della settimana', quotaWeekOnly: (a: string, w7: number) => `${a} · sett. ${w7}%`,
   // La plancia (pwa2, Franz 30/10): quattro colonne per argomento con la loro cifra in testa; le sessioni Claude distinte dai
   // compiti del registro.
   masterMoveLeft: 'Sposta a sinistra', masterMoveRight: 'Sposta a destra',
@@ -546,7 +546,7 @@ const en: typeof it = {
   lavoriDonePrompt: (reason: string, task: string) => `Done: ${reason}. Resume ${task}`,
   homeCommitments: 'Commitments', commitApprovedAt: (h: string) => `approved at ${h}`, commitAwaiting: 'waits for your ok', commitIdle: (x: string) => `idle for ${x}`, commitYourTurn: 'your turn', commitTurn: (s: string) => `${s}'s turn`, commitPaused: (r: string) => `paused: ${r}`, commitStalled: 'stalled', commitNext: 'Next', commitCheckRed: 'last check red',
   railSpan: (s: { n: number; unit: 'min' | 'h' | 'd' }) => (s.unit === 'min' ? `${s.n}'` : s.unit === 'h' ? `${s.n} h` : `${s.n} d`),
-  homeMore: 'More', board5h: '5 hours',
+  homeMore: 'More', board5h: '5 hours', quotaLineWeek: '7d', weekDayPace: (d: number, p: string) => `Day ${d} of 7 · ${p}`, deskToolsWeek: 'weekly quota', quotaWeekOnly: (a: string, w7: number) => `${a} · wk ${w7}%`,
   masterMoveLeft: 'Move to the left', masterMoveRight: 'Move to the right',
   usageWeek: 'Week', usageToday: 'Today', usageDetails: 'All the details', usageNow: 'now', usageProjection: (p: number, h: string) => `At this pace you reach ${p}% at ${h}, when it resets.`, usageBelowPace: (n: number) => `${n} points below the even pace`, usageAbovePace: (n: number) => `${n} points above the even pace`, usagePeak: (h: number) => `Prompts and commits per hour, peak at ${String(h).padStart(2, '0')}:00`, usageWaits: (m: number, n: number) => `Median wait ${m} min · ${n} closed in 7 days`, kpi7Quota: '5 h',
   cleanupCloseShort: 'Close', reorderTitle: 'Reorder the home', reorderRowSub: 'The order of the sections, on phone and web', reorderSub: 'The board and Waiting for you stay on top. The order also applies to the phone.', reorderBoard: 'Board', reorderTools: 'Usage and system', reorderSave: 'Save', reorderReset: 'Restore the default order', reorderDrag: (x: string) => `Drag ${x}`, reorderUp: (x: string) => `Move ${x} up`, reorderDown: (x: string) => `Move ${x} down`,

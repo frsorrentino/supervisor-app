@@ -4,19 +4,19 @@
   import { personal } from './badge'
   import { resetLabel } from './header'
   import { shown } from './quotaLine'
+  import { elapsedPct, paceText, quotaBar } from './utilizzo'
   import { t } from './t'
   // La testa di una colonna della plancia (pwa2, Franz 30/10 10:5x): la cifra del tabellone sopra il suo argomento, e il tocco
   // apre la sua pagina come i tre box della home (stessi data-testid). Si colora solo chi ti aspetta; i rossi restano rossi;
   // la quota delle 5 ore è neutra e diventa ambra da 75 % e rossa da 90 %, con la tacca di quanto è passato della finestra.
   type Kind = 'you' | 'work' | 'out' | 'tools'
   let { kind, h, st, now, sub = null, onOpen = () => {} }: { kind: Kind; h: Head; st: State; now: number; sub?: string | null; onOpen?: () => void } = $props()
-  const rings = $derived(shown(Object.entries(st.quota)))
+  // quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana.
+  const rings = $derived(shown(Object.entries(st.quota)).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now)] as const).filter(([, r, b]) => b || r.stale))
   // In testa la quota più alta fra gli account aggiornati: è quella che ferma il lavoro.
-  const top = $derived(rings.filter(([, r]) => !r.stale).sort((a, b) => (b[1].h5 ?? 0) - (a[1].h5 ?? 0))[0] ?? null)
-  const pctOf = (x: number | null | undefined) => Math.min(100, Math.max(0, Math.round(x ?? 0)))
+  const top = $derived(rings.filter(([, r]) => !r.stale).sort((a, b) => (b[2]?.pct ?? 0) - (a[2]?.pct ?? 0))[0] ?? null)
+  const topPct = $derived(Math.round(top?.[2]?.pct ?? 0))
   const tone = (pct: number) => (pct >= 90 ? 'var(--red)' : pct >= 75 ? 'var(--wait)' : 'var(--tx2)')
-  const WINDOW = 5 * 3600
-  const elapsed = (reset?: number | null) => (reset != null && reset > now ? Math.max(0, Math.min(100, (1 - (reset - now) / WINDOW) * 100)) : null)
   const testid: Record<Kind, string> = { you: 'home-box-aspetta', work: 'home-box-lavoro', out: 'home-box-esiti', tools: 'desk-head-tools' }
   const title: Record<Kind, string> = { you: t.deskYou, work: t.deskWork, out: t.deskOut, tools: t.deskTools }
 </script>
@@ -25,19 +25,19 @@
   {#if kind === 'you'}<b class="n" class:wait={h.waiting > 0}>{h.waiting}</b>
   {:else if kind === 'work'}<b class="n">{h.busy}</b>
   {:else if kind === 'out'}<b class="n">{h.outcomes ?? '–'}</b>
-  {:else}<b class="n" style:color={top && pctOf(top[1].h5) >= 75 ? tone(pctOf(top[1].h5)) : null}>{top ? `${pctOf(top[1].h5)}%` : '–'}</b>{/if}
+  {:else}<b class="n" style:color={top && topPct >= 75 ? tone(topPct) : null}>{top ? `${topPct}%` : '–'}</b>{/if}
   <span class="tt">
     <span class="t">{title[kind]}</span>
     <span class="s">
       {#if kind === 'you'}{h.waiting ? t.kpi7Waiting(Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}
       {:else if kind === 'out'}{t.deskOutSub}{#if h.red}, <em>{t.kpi7Red(h.red)}</em>{/if}
-      {:else if kind === 'tools'}{t.deskToolsSub(top ? resetLabel(top[1].reset_h5, now) : null)}
+      {:else if kind === 'tools'}{#if top?.[2]?.week}{paceText(top[2].delta, top[2].day) ?? t.deskToolsWeek}{:else}{t.deskToolsSub(top ? resetLabel(top[1].reset_h5, now) : null)}{/if}
       {:else}{sub}{/if}
     </span>
     {#if kind === 'tools'}
-      {#each rings as [name, r] (name)}
-        {@const pct = pctOf(r.h5)}
-        {@const tick = r.stale ? null : elapsed(r.reset_h5)}
+      {#each rings as [name, r, b] (name)}
+        {@const pct = Math.round(b?.pct ?? 0)}
+        {@const tick = r.stale || !b ? null : elapsedPct(b.resetAt, b.windowS, now)}
         <span class="q">
           {#if rings.length > 1}
             <svg viewBox="0 0 14 14" width="11" height="11" role="img" aria-label={personal(name, r.kind) ? t.badgePersonal : t.badgeWork}>

@@ -170,8 +170,8 @@
     <div class="quota">
       {#each quota as [name, r]}
         <button class="qcell">
-          <span class="qtext" class:stale={r.stale}>{r.stale ? t.quotaOld(name) : t.quota(name, r.h5 ?? 0, r.w7 ?? 0)}</span>
-          <span class="qtrack"><span style="width:{Math.min(100, Math.max(0, r.h5 ?? 0))}%;background:{r.stale ? 'var(--text2)' : 'var(--b-ring)'}"></span></span>
+          <span class="qtext" class:stale={r.stale}>{r.stale ? t.quotaOld(name) : r.h5 == null ? t.quotaWeekOnly(name, r.w7 ?? 0) : t.quota(name, r.h5, r.w7 ?? 0)}</span>
+          <span class="qtrack"><span style="width:{Math.min(100, Math.max(0, r.h5 ?? r.w7 ?? 0))}%;background:{r.stale ? 'var(--text2)' : r.h5 == null ? 'var(--b-week)' : 'var(--b-ring)'}"></span></span>
         </button>
       {/each}
     </div>

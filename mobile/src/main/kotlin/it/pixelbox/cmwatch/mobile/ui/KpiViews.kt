@@ -152,6 +152,7 @@ internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifi
 /**
  * 7 · il tabellone in testa alla home (stile «Studio e Diretta», 30/10): tre cifre, solo chi ti aspetta in ambra, i rossi in
  * rosso; ognuna apre la sua pagina, anche a zero. Sotto la quota delle 5 ore, neutra, ambra da 75 % e rossa da 90 %.
+ * quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana col giorno e il ritmo.
  */
 @Composable
 internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}) {
@@ -165,28 +166,28 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f))
         }
-        val rings = st.quota.entries.filter { (_, q) -> !q.stale && q.h5 != null }.sortedByDescending { (_, q) -> q.h5 }
+        val rings = st.quota.entries.filter { (_, q) -> !q.stale }.mapNotNull { (name, q) -> it.pixelbox.cmwatch.rules.UtilizzoRules.bar(q.h5, q.w7, q.resetH5, q.resetW7, now)?.let { b -> Triple(name, q, b) } }.sortedByDescending { it.third.pct }
         if (rings.isNotEmpty()) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             Column(Modifier.fillMaxWidth().handCursor().clickable(onClick = onQuota).padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                rings.forEach { (name, q) ->
-                    val pct = (q.h5 ?: 0).coerceIn(0, 100)
+                rings.forEach { (name, q, b) ->
+                    val pct = b.pct
                     val tone = if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(if (b.week) Modifier.testTag("quota-senza-cinque-ore") else Modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         // Con due account la forma dice quale: tondo personale, quadrato lavoro, come nel badge.
                         if (rings.size > 1) Box(Modifier.size(10.dp).border(2.dp, V3.Tx2, if (it.pixelbox.cmwatch.rules.Accounts.personal(name, q.kind)) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(3.dp)))
-                        Text(stringResource(R.string.kpi7_quota), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+                        Text(stringResource(if (b.week) R.string.usage_week else R.string.kpi7_quota), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
                         BoxWithConstraints(Modifier.weight(1f).height(12.dp), contentAlignment = Alignment.CenterStart) {
                             Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(V3.S3)) {
                                 Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(tone))
                             }
-                            q.resetH5?.takeIf { it > now }?.let { r ->
-                                val done = (1f - (r - now) / (5f * 3600f)).coerceIn(0f, 1f)
-                                Box(Modifier.offset(x = maxWidth * done).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(V3.Tx))
+                            it.pixelbox.cmwatch.rules.UtilizzoRules.elapsedPct(b.resetAt, b.windowS, now)?.let { done ->
+                                Box(Modifier.offset(x = maxWidth * (done / 100f)).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(V3.Tx))
                             }
                         }
                         Text("$pct%", style = V3.Meter, maxLines = 1)
                     }
+                    if (b.week) weekPaceText(b.delta, b.day)?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp)) }
                 }
             }
         }

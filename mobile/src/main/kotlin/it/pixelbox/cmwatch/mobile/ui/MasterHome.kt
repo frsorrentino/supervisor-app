@@ -387,14 +387,15 @@ fun HeroCard(hero: MasterHome.Hero?, master: Session, onSpeak: () -> Unit, onCon
 @Composable
 fun QuotaLine(all: List<PhoneOverview.Ring>, onOpen: () -> Unit) {
     // Con un account non aggiornato si vede solo l'altro, a tutta larghezza e con l'ora in cui si azzera (05/10 20:54).
-    val rings = PhoneOverview.lineRings(all)
+    // quota-senza-cinque-ore: senza il dato di un account la sua barra è la settimana; senza nessuno dei due niente barra.
+    val rings = PhoneOverview.lineRings(all).filter { it.stale || it.h5 != null || it.w7 != null }
     if (rings.isEmpty()) return
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).handCursor().clickable(onClick = onOpen).padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         rings.forEach { r ->
-            val pct = (r.h5 ?: 0).coerceIn(0, 100)
+            val pct = (r.h5 ?: r.w7 ?: 0).coerceIn(0, 100)
             val tone = when {
                 r.stale -> Cm.text2
                 pct >= 90 -> Cm.briefAlertRing
@@ -403,7 +404,7 @@ fun QuotaLine(all: List<PhoneOverview.Ring>, onOpen: () -> Unit) {
             }
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AccountMark(r.personal, size = 12.dp, color = if (r.stale) Cm.text2 else Cm.text2)
-                Text(stringResource(R.string.quota_line_window), style = MonoSmall.copy(color = Cm.text2), maxLines = 1)
+                Text(stringResource(if (r.h5 == null) R.string.quota_line_week else R.string.quota_line_window), style = MonoSmall.copy(color = Cm.text2), maxLines = 1)
                 Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
                     if (!r.stale) Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().background(tone))
                 }
@@ -411,7 +412,7 @@ fun QuotaLine(all: List<PhoneOverview.Ring>, onOpen: () -> Unit) {
                     if (r.stale) stringResource(R.string.quota_line_stale) else "$pct%", style = MonoSmall.copy(color = if (pct >= 75 && !r.stale) tone else Cm.text2),
                     maxLines = 1, overflow = TextOverflow.Clip,
                 )
-                val reset = r.resetAt?.takeIf { rings.size == 1 && !r.stale && it > Instant.now().epochSecond }
+                val reset = r.resetAt?.takeIf { rings.size == 1 && !r.stale && r.h5 != null && it > Instant.now().epochSecond }
                 if (reset != null) Text("· " + stringResource(R.string.quota_resets_at, hm(reset)), style = MonoSmall.copy(color = Cm.text2), maxLines = 1)
             }
         }

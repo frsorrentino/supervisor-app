@@ -91,6 +91,7 @@ import it.pixelbox.cmwatch.rules.PhoneOverview
 import it.pixelbox.cmwatch.rules.SessionMeters
 import it.pixelbox.cmwatch.rules.Summary
 import it.pixelbox.cmwatch.rules.Tablet
+import it.pixelbox.cmwatch.rules.UtilizzoRules
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -142,9 +143,11 @@ fun QuotaRing(ring: PhoneOverview.Ring, size: androidx.compose.ui.unit.Dp = 64.d
             )
             arc(w / 2, Cm.briefTrack, 360f)
             ring.h5?.takeIf { !stale }?.let { arc(w / 2, if (it >= 90) Cm.briefAlertRing else Cm.briefRing, 360f * it.coerceIn(0, 100) / 100f) }
+            // quota-senza-cinque-ore: senza il dato l'anello fuori è la settimana, quello dentro resta vuoto.
+            if (ring.h5 == null) ring.w7?.let { arc(w / 2, Cm.briefWeek, 360f * it.coerceIn(0, 100) / 100f) }
             val inner = w / 2 + w + 3.dp.toPx()
             arc(inner, Cm.briefTrack, 360f)
-            ring.w7?.let { arc(inner, Cm.briefWeek, 360f * it.coerceIn(0, 100) / 100f) }
+            if (ring.h5 != null) ring.w7?.let { arc(inner, Cm.briefWeek, 360f * it.coerceIn(0, 100) / 100f) }
         }
         AccountMark(ring.personal, size = size * 0.2f)
     }
@@ -162,17 +165,21 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
         Modifier.fillMaxWidth().clip(shape).background(Cm.surfaceLow).border(1.dp, Cm.line, shape).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // quota-senza-cinque-ore: senza il dato la testa è la settimana, col giorno e il ritmo, e la sezione delle 5 ore non c'è.
+        val noH5 = ring.h5 == null && ring.w7 != null
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             QuotaRing(ring, 64.dp, stale = ring.stale || dataStale)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                PanelTitle(stringResource(R.string.tablet_quota_label), ring.account, null)
+                PanelTitle(stringResource(if (noH5) R.string.tablet_week_label else R.string.tablet_quota_label), ring.account, null)
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        ring.h5?.takeIf { !ring.stale }?.let { "$it%" } ?: "–",
+                        (ring.h5 ?: ring.w7)?.takeIf { !ring.stale }?.let { "$it%" } ?: "–",
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum"),
                         color = if (ring.stale) Cm.text2 else Cm.text,
                     )
-                    ring.resetAt?.let { at ->
+                    if (noH5) ring.weekResetAt?.let { at ->
+                        Text(stringResource(R.string.week_renewal, dayTime(at)), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(bottom = 5.dp))
+                    } else ring.resetAt?.let { at ->
                         Text(stringResource(R.string.quota_resets_at, hhmm(at)), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(bottom = 5.dp))
                     }
                 }
@@ -182,7 +189,11 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
         val reset = ring.resetAt
         val pct = ring.h5
         // Il ritmo delle cinque ore (1A e 1B, 25/10): solo con la quota letta e non vecchia, altrimenti la frase del perché.
-        if (reset != null && pct != null && !ring.stale && !dataStale) {
+        if (noH5) {
+            if (!ring.stale && !dataStale) weekPaceText(UtilizzoRules.weekDelta(ring.w7, ring.weekResetAt, now), UtilizzoRules.weekDay(ring.weekResetAt, now))?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text)
+            }
+        } else if (reset != null && pct != null && !ring.stale && !dataStale) {
             val r = it.pixelbox.cmwatch.rules.Rhythm5h.of(ring.pace?.points.orEmpty(), pct, reset, now)
             RhythmBars(r)
             if (r.points.size >= 2) RhythmChart(r, now, Modifier.fillMaxWidth().height(150.dp))
@@ -207,8 +218,10 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
                 style = MaterialTheme.typography.bodySmall, color = Cm.text2,
             )
         }
-        HorizontalDivider(color = Cm.line, modifier = Modifier.padding(vertical = 2.dp))
-        PanelTitle(stringResource(R.string.tablet_week_label), ring.account, ring.w7?.let { "$it%" })
+        if (!noH5) {
+            HorizontalDivider(color = Cm.line, modifier = Modifier.padding(vertical = 2.dp))
+            PanelTitle(stringResource(R.string.tablet_week_label), ring.account, ring.w7?.let { "$it%" })
+        }
         val wp = ring.weekPoints
         val wr = ring.weekResetAt
         val w7 = ring.w7
