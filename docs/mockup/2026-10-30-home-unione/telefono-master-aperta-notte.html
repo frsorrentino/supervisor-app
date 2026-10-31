@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=412">
+<title>Master aperta, telefono</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add,arrow_drop_down,arrow_upward,auto_awesome,bedtime,bolt,chevron_right,computer,data_usage,event_list,expand_less,expand_more,extension,inventory_2,memory,menu,mic,more_horiz,more_vert,north_east,pan_tool,play_arrow,play_circle,playlist_add,publish,redo,repeat,replay,search,sports_score,task_alt,timer&display=block" rel="stylesheet">
+<style>
+
+  :root { --bg: #0B0C0E; --s1: #121316; --s2: #1B1D22; --s3: #272A31; --line: #25272D; --tx: #EDEEF0; --tx2: #969BA4; --tx3: #858A93;
+    --act: #FFFFFF; --on-act: #0B0C0E; --wait: #FFB23F; --busy: #5AA2FF; --good: #34D399; --red: #FF5A5F; --master: #C39BFF; }
+  .light { color: var(--tx); }
+  .light { --bg: #FFFFFF; --s1: #F6F7F9; --s2: #EEF0F3; --s3: #E1E4E9; --line: #E1E4E9; --tx: #121418; --tx2: #565C66; --tx3: #60666F;
+    --act: #121418; --on-act: #FFFFFF; --wait: #9A5700; --busy: #1A64D6; --good: #0B7F55; --red: #C9302F; --master: #7445D6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 412px; background: var(--bg); color: var(--tx); font: 15px/1.38 Barlow, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  ::selection { background: color-mix(in srgb, var(--busy) 35%, transparent); }
+  .mono { font: 400 12.5px/1.35 "Geist Mono", ui-monospace, monospace; color: var(--tx2); font-variant-numeric: tabular-nums; }
+  .ms { font-family: "Material Symbols Rounded"; font-size: 20px; line-height: 1; font-variation-settings: "FILL" 0, "wght" 400, "opsz" 20; color: var(--tx2); }
+  .ms.f { font-variation-settings: "FILL" 1, "wght" 500, "opsz" 20; color: inherit; }
+  .ms.top { font-size: 24px; color: var(--tx); }
+  .sbar { height: 26px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: 13px; font-weight: 500; }
+  .sbi svg { margin-left: 6px; vertical-align: -2px; }
+  .top { display: flex; align-items: center; gap: 18px; height: 54px; padding: 0 16px; }
+  .top h1 { flex: 1; font: 700 22px "Barlow Semi Condensed", sans-serif; letter-spacing: .005em; }
+  /* Il tabellone: tre cifre che aprono la loro pagina, e sotto la quota delle 5 ore. */
+  .board { display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; margin: 4px 12px 0; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .cell { position: relative; padding: 12px 12px 13px; border-left: 1px solid var(--line); }
+  .cell:first-child { border-left: 0; }
+  .cell .n { display: block; font: 700 42px/1 "Barlow Semi Condensed", sans-serif; letter-spacing: -0.01em; }
+  .cell .l { display: block; font-size: 13.5px; line-height: 1.25; color: var(--tx2); margin-top: 6px; }
+  .cell .l em { font-style: normal; font-weight: 500; color: var(--red); }
+  .cell .chev { position: absolute; top: 12px; right: 8px; }
+  .qrow { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--tx2); }
+  .qrow strong { font: 600 15px "Barlow Semi Condensed", sans-serif; color: var(--tx); }
+  .qrow .mono { color: var(--tx); }
+  .meter { flex: 1; position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
+  .meter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--busy); }
+  .meter b { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
+  /* Le sezioni: l'icona sta nel binario dei minuti, il titolo allineato ai nomi. */
+  .sec { display: flex; align-items: center; margin: 24px 12px 8px 13px; font: 700 18px "Barlow Semi Condensed", sans-serif; }
+  .sec .ic { width: 52px; margin-right: 8px; display: flex; justify-content: center; }
+  .sec small { font: 600 15px "Barlow Semi Condensed", sans-serif; color: var(--tx2); margin-left: 8px; }
+  .sec.wt, .sec.wt small { color: var(--wait); }
+  .sec .live-ic { color: var(--busy); }
+  .sec .r { margin-left: auto; padding-right: 4px; font: 400 14px Barlow, sans-serif; color: var(--tx2); }
+  .pill { font: 600 13px "Barlow Semi Condensed", sans-serif; letter-spacing: .02em; border-radius: 6px; padding: 2px 8px; }
+  .pill.red { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+  /* Il pieno è per quello che aspetta te: schede piene; tutto il resto sta in liste a filo. */
+  .card { margin: 0 12px 8px; background: var(--s2); border-radius: 14px; overflow: hidden; }
+  .list { margin: 0 12px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .m { display: grid; grid-template-columns: 52px 1fr auto; column-gap: 8px; align-items: start; padding: 11px 12px 11px 0; border-top: 1px solid var(--line); }
+  .m:first-child { border-top: 0; }
+  .m.c { align-items: center; min-height: 52px; }
+  .card .m { border-top: 0; padding: 13px 12px 10px 1px; }
+  .min { grid-row: span 2; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 1px; }
+  .min b { font: 700 15px/1 "Barlow Semi Condensed", sans-serif; letter-spacing: .01em; }
+  .wt b { color: var(--wait); } .live b { color: var(--busy); } .end b { color: var(--tx2); } .rd b { color: var(--red); } .mst { color: var(--master); }
+  .nm { display: block; font: 600 17px/1.2 "Barlow Semi Condensed", sans-serif; }
+  .main { min-width: 0; } .main .mono { display: block; margin-top: 2px; }
+  .main p { font-size: 14px; color: var(--tx2); margin-top: 2px; }
+  .main p.ask { font-size: 16px; line-height: 1.36; color: var(--tx); margin-top: 4px; }
+  .main p.sug { font-size: 15px; }
+  .main p.note { font-size: 13.5px; margin-top: 4px; }
+  .r { display: flex; align-items: center; gap: 4px; }
+  .chev { font-size: 20px; color: var(--tx3); }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--good); margin-right: 6px; vertical-align: 1px; }
+  /* La cronaca della giornata: dalle 8 ad adesso, sullo stesso asse per tutte le righe. */
+  .axis { display: grid; grid-template-columns: 52px 1fr; column-gap: 8px; padding: 9px 12px 7px 0; }
+  .ax { position: relative; height: 12px; }
+  .ax span { position: absolute; top: 0; transform: translateX(-50%); font: 400 11px/1 "Geist Mono", monospace; color: var(--tx3); }
+  .ax span:first-child { transform: none; }
+  .inc { grid-column: 2 / 4; position: relative; height: 10px; margin-top: 9px; }
+  .inc::before { content: ""; position: absolute; left: 0; right: 0; top: 4.5px; height: 1px; background: var(--s3); }
+  .inc i { position: absolute; top: 2.5px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--tx2); }
+  .inc i.r { top: .5px; height: 9px; border-radius: 1px; background: var(--red); }
+  .inc i.n { top: 0; width: 2px; height: 10px; margin-left: -1px; border-radius: 1px; background: var(--busy); }
+  .inc i.e { top: 0; width: 2px; height: 10px; margin-left: -1px; border-radius: 1px; background: var(--tx3); }
+  .acts { display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 0 12px 12px; }
+  .btn { height: 40px; padding: 0 16px; border-radius: 20px; font: 600 15px "Barlow Semi Condensed", sans-serif; letter-spacing: .02em; border: 0; background: none; color: var(--tx); display: inline-flex; align-items: center; }
+  .btn.filled { background: var(--act); color: var(--on-act); padding: 0 26px; }
+  .btn.tonal { background: var(--s3); }
+  .btn.text { padding: 0 10px; }
+  .vote { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 2px 12px 12px 61px; }
+  .opt { background: var(--s3); border: 0; border-radius: 10px; padding: 9px 11px 10px; text-align: left; color: var(--tx); font: inherit; }
+  .opt b { display: flex; align-items: baseline; gap: 8px; font: 600 16px "Barlow Semi Condensed", sans-serif; }
+  .opt .k { font: 500 12px "Geist Mono", monospace; color: var(--tx2); }
+  .opt .d { display: block; font-size: 12.5px; line-height: 1.3; color: var(--tx2); margin-top: 2px; }
+  .opt.rec { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 55%, transparent); }
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; width: 412px; background: var(--s1); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; padding: 8px 12px 12px; }
+  .dock .mm { display: flex; align-items: center; gap: 8px; padding: 2px 4px 8px; font-size: 13.5px; }
+  .dock .mm b { font: 700 15px "Barlow Semi Condensed", sans-serif; } .dock .mm .txt { flex: 1; color: var(--tx2); }
+  .compose { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 14px; border-radius: 24px; background: var(--s2); color: var(--tx2); }
+  .compose .ph { flex: 1; }
+  .pad { height: 128px; }
+  /* tavola del sistema */
+  .sheet { padding: 20px 16px 28px; }
+  .sheet h1 { font: 700 30px "Barlow Semi Condensed", sans-serif; }
+  .sheet .lead { color: var(--tx2); margin-top: 6px; }
+  .sheet h2.sh { font: 700 17px "Barlow Semi Condensed", sans-serif; margin: 24px 0 10px; }
+  .sheet .list, .sheet .card { margin-left: 0; margin-right: 0; }
+  .sw { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .sw div { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 11px; }
+  .sw i { display: block; height: 34px; } .sw span { display: block; padding: 4px 6px; color: var(--tx2); line-height: 1.25; }
+  .ts div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .ts .mono { font-size: 12px; text-align: right; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 2px 0; font-size: 13.5px; color: var(--tx2); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { display: inline-block; background: var(--tx2); width: 5px; height: 5px; border-radius: 50%; }
+  .legend i.r { width: 5px; height: 9px; border-radius: 1px; background: var(--red); }
+  .legend i.n { width: 2px; height: 10px; border-radius: 1px; background: var(--busy); }
+  .legend i.e { width: 2px; height: 10px; border-radius: 1px; background: var(--tx3); }
+  .icons { display: flex; gap: 16px; flex-wrap: wrap; } .icons .ms { font-size: 24px; color: var(--tx); }
+  .daypanel { border-radius: 14px; padding: 12px; margin-top: 8px; background: var(--bg); }
+
+  .opts { display: grid; gap: 8px; padding: 2px 12px 12px 61px; }
+  .opt { display: block; width: 100%; min-height: 52px; background: var(--s3); border: 0; border-radius: 12px; padding: 9px 14px 10px; text-align: left; color: var(--tx); font: inherit; }
+  .opt b { display: flex; align-items: baseline; gap: 8px; font: 600 16px "Barlow Semi Condensed", sans-serif; }
+  .opt .k { font: 500 12px "Geist Mono", monospace; color: var(--tx2); }
+  .opt .d { display: block; font-size: 13px; line-height: 1.3; color: var(--tx2); margin-top: 2px; }
+  .opt.filled { background: var(--act); color: var(--on-act); }
+  .opt.filled .k, .opt.filled .d { color: color-mix(in srgb, var(--on-act) 72%, var(--act)); }
+  .list.sugg { margin-top: 16px; }
+  .rc { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .redtag { display: inline-flex; align-items: center; gap: 5px; font: 500 12.5px "Geist Mono", monospace; color: var(--red); }
+
+  .sec.wt { color: var(--tx); } .sec.wt small { color: var(--tx2); }
+  .sec .ic .ms { font-variation-settings: "FILL" 0, "wght" 400, "opsz" 20; color: var(--tx2); }
+  .sec .live-ic { color: var(--tx2); }
+  .meter i { background: var(--tx2); }
+  .btn.text { color: var(--tx2); }
+  .opt b { align-items: center; }
+  .opt .k { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 1.2px var(--tx3); font: 500 11.5px/1 "Geist Mono", monospace; color: var(--tx2); }
+  .opt .d { margin-left: 28px; }
+  .opt.rec { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
+  .opt.rec .k { background: var(--tx); box-shadow: none; color: var(--s3); }
+
+  body.desk { width: 1440px; height: 900px; overflow: hidden; display: grid; grid-template-columns: 420px 1fr; }
+  body.phone { height: 915px; overflow: hidden; display: flex; flex-direction: column; }
+  .hcol { position: relative; height: 900px; border-right: 1px solid var(--line); overflow: hidden; }
+  .hcol .top { height: 60px; }
+  .hcol .dock { position: absolute; width: auto; }
+  .above { height: 45%; overflow: hidden; }
+  /* La plancia: tre colonne con lo stesso binario e le stesse liste della home. */
+  .dash { display: grid; grid-template-columns: repeat(3, 1fr); height: 900px; overflow: hidden; }
+  .dcol { overflow: hidden; padding-bottom: 24px; }
+  .dcol + .dcol { border-left: 1px solid var(--line); }
+  .dh { font: 700 22px "Barlow Semi Condensed", sans-serif; letter-spacing: .005em; padding: 17px 16px 0 25px; height: 60px; }
+  .dcol .sec:first-of-type { margin-top: 6px; }
+  .more { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 12px 14px 61px; }
+  .chip { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--s3); border: 0; color: var(--tx); font: 600 14.5px "Barlow Semi Condensed", sans-serif; display: inline-flex; align-items: center; gap: 6px; }
+  .qchart { padding: 6px 12px 4px 61px; }
+  .qchart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .qchart text { font: 400 11px "Geist Mono", monospace; fill: var(--tx3); }
+  .qchart text.v { fill: var(--tx2); }
+  .qrow2 { display: flex; align-items: center; gap: 10px; padding: 8px 12px 12px 61px; font-size: 13.5px; color: var(--tx2); }
+  .qrow2 strong { font: 600 15px "Barlow Semi Condensed", sans-serif; color: var(--tx); }
+  .qrow2 .mono { color: var(--tx); }
+  /* La master espansa: la barra in cima, i chip, la conversazione, il campo. */
+  .msheet { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; background: var(--s1); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; overflow: hidden; }
+  .msheet.half { height: 55%; }
+  .msheet.full { top: 0; border-radius: 0; border-top: 0; }
+  body.phone .msheet { position: static; flex: 1; border-radius: 0; border: 0; min-height: 0; }
+  .mhead { display: flex; align-items: center; gap: 8px; padding: 10px 10px 8px 10px; }
+  .kb { width: 40px; height: 40px; border-radius: 20px; border: 0; background: var(--s3); display: grid; place-items: center; flex: none; }
+  .kb .ms { color: var(--tx); font-size: 22px; }
+  .kb.plain { background: none; }
+  .mt { flex: 1; min-width: 0; padding-left: 4px; }
+  .mt .mn { display: flex; align-items: center; gap: 7px; }
+  .mt .mn b { font: 600 17px/1.2 "Barlow Semi Condensed", sans-serif; }
+  .mt .last { display: block; font-size: 14px; color: var(--tx2); margin-top: 1px; white-space: nowrap; overflow: hidden; }
+  .mchips { display: flex; align-items: center; gap: 6px; padding: 0 10px 10px 10px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  .mchip { height: 32px; padding: 0 12px; border-radius: 16px; background: var(--s2); display: inline-flex; align-items: center; gap: 6px; font: 600 14px "Barlow Semi Condensed", sans-serif; color: var(--tx); }
+  .mchip .mono { color: var(--tx); font-size: 12.5px; }
+  .mchip .ok { color: var(--good); } .mchip .ko { color: var(--red); }
+  .mchip .ms { font-size: 18px; }
+  .mchips .sp { flex: 1; }
+  .conv { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 14px; padding: 14px 16px 10px; }
+  .me { align-self: flex-end; max-width: 82%; background: var(--s3); border-radius: 18px 18px 6px 18px; padding: 9px 14px 10px; font-size: 15.5px; line-height: 1.4; }
+  .tm { font: 400 11.5px "Geist Mono", monospace; color: var(--tx3); }
+  .me + .tm, .tm.r { align-self: flex-end; margin-top: -8px; }
+  .mm2 { font-size: 15.5px; line-height: 1.45; }
+  .mm2 p + p, .mm2 ul { margin-top: 8px; }
+  .mm2 ul { padding-left: 18px; } .mm2 li + li { margin-top: 3px; }
+  .mm2 code { font: 400 13.5px "Geist Mono", monospace; color: var(--tx); background: var(--s3); border-radius: 5px; padding: 1px 5px; }
+  .acts2 { display: flex; flex-direction: column; gap: 6px; }
+  .act { display: flex; align-items: center; gap: 8px; font: 400 12.5px "Geist Mono", monospace; color: var(--tx2); }
+  .esito { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
+  .esito b { font: 600 15.5px "Barlow Semi Condensed", sans-serif; }
+  .next { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip.rec { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
+  .mfoot { padding: 4px 12px 12px; }
+  .compose .send { width: 36px; height: 36px; border-radius: 18px; background: var(--s3); display: grid; place-items: center; margin-right: -6px; }
+  .compose .send .ms { color: var(--tx); }
+
+</style>
+</head>
+<body class="phone">
+<div class="sbar"><span>20:40</span><span class="sbi"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 13h2V9H1zm4 0h2V6H5zm4 0h2V3H9zm4 0h2V0h-2z"/></svg><svg width="16" height="14" viewBox="0 0 24 20" fill="currentColor"><path d="M12 19 0 6a17 17 0 0 1 24 0z"/></svg><svg width="22" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="1" width="21" height="12" rx="3"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="currentColor" stroke="none"/><path d="M24 5v4"/></svg></span></div><div class="msheet"><div class="mhead"><button class="kb"><span class="ms " aria-hidden="true">expand_more</span></button><span class="mt"><span class="mn"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-opacity=".28" stroke-width="2"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--busy)" stroke-width="2" stroke-linecap="round" stroke-dasharray="15.46 51.52" transform="rotate(-90 10 10)"/><path d="M8.3 6.7 13.6 10 8.3 13.3Z" fill="var(--busy)" stroke="var(--busy)" stroke-width="1.2" stroke-linejoin="round"/></svg><b>Master</b><span class="mono">20:38</span></span><span class="last">CI verde, APK pronto da installare</span></span>
+      <button class="kb"><span class="ms " aria-hidden="true">play_arrow</span></button><button class="kb plain"><span class="ms top" aria-hidden="true">menu</span></button></div>
+    <div class="mchips"><span class="mchip">Opus 5.5 · max<span class="ms " aria-hidden="true">arrow_drop_down</span></span><span class="mchip"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.6" fill="none" stroke="var(--s3)" stroke-width="2"/><circle cx="7" cy="7" r="5.6" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-linecap="round" stroke-dasharray="11.96 35.19" transform="rotate(-90 7 7)"/></svg><span class="mono">5h 34%</span></span><span class="mchip"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.6" fill="none" stroke="var(--s3)" stroke-width="2"/><circle cx="7" cy="7" r="5.6" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-linecap="round" stroke-dasharray="11.26 35.19" transform="rotate(-90 7 7)"/></svg><span class="mono">ctx 32%</span></span>
+      <span class="mchip"><span class="ms " aria-hidden="true">add</span><span class="mono">6 file <span class="ok">+203</span> <span class="ko">−7</span></span></span><span class="sp"></span><span class="ms " aria-hidden="true">more_vert</span></div><div class="conv">
+      <div class="mm2"><p>Buongiorno. Stanotte 3 lavori su 4 sono finiti; la migrazione di atlas-shop si è fermata a una domanda sul formato delle varianti.</p>
+        <p class="esito"><b>Esito</b>&ensp;3 finiti, 1 fermo a una domanda.</p></div>
+      <span class="tm">08:02</span>
+      <div class="me">rispondi tu: varianti come prodotti separati</div><span class="tm r">08:10</span>
+      <div class="mm2"><div class="acts2"><span class="act"><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--good)" stroke-width="1.8"/><path d="M6.4 10.2l2.4 2.4 4.8-5" fill="none" stroke="var(--good)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>supervisor talk atlas-shop</span></div>
+        <p style="margin-top:10px">Girata ad atlas-shop, che ha ripreso la migrazione.</p></div>
+      <span class="tm">08:11</span>
+      <div class="me">com'è andata la CI di supervisor-app?</div><span class="tm r">20:31</span>
+      <div class="mm2">
+        <div class="acts2"><span class="act"><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--good)" stroke-width="1.8"/><path d="M6.4 10.2l2.4 2.4 4.8-5" fill="none" stroke="var(--good)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>gh run view 41022&ensp;&ensp;verde in 9 min</span><span class="act"><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="var(--good)" stroke-width="1.8"/><path d="M6.4 10.2l2.4 2.4 4.8-5" fill="none" stroke="var(--good)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Paparazzi&ensp;&ensp;42 golden uguali</span></div>
+        <p style="margin-top:10px">Verde: il run 41022 è passato in 9 minuti, con i golden di Paparazzi invariati. La pre-release <code>box-home-2026-10-29</code> ha l'APK pronto.</p>
+        <p class="esito"><b>Esito</b>&ensp;CI verde, APK pronto da installare.</p>
+        <div class="next"><button class="chip rec">Installa l'APK</button><button class="chip">Mostrami i test</button><button class="chip">Avvisami alla prossima</button></div>
+      </div>
+      <span class="tm">20:33</span>
+    </div>
+    <div class="mfoot"><div class="compose"><span class="ms " aria-hidden="true">add</span><span class="ph">Scrivi alla master</span><span class="ms " aria-hidden="true">mic</span><span class="send"><span class="ms " aria-hidden="true">arrow_upward</span></span></div></div></div>
+</body>
+</html>
