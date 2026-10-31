@@ -64,6 +64,8 @@ interface Transport {
             // home restava a «fatto oggi 0» fino al cambio di scheda.
             CmdOp.SLASH, CmdOp.DONE -> SLASH_RESULT_TIMEOUT_MS
             CmdOp.FILE -> FILE_RESULT_TIMEOUT_MS
+            // Un allegato grande: il relay ricompone i pezzi prima di rispondere (dal vivo 31/10 15:50: 19 s per 10 MB).
+            CmdOp.REPORT -> FILE_RESULT_TIMEOUT_MS
             // Contratto 1.58: il passaggio di consegne lo scrive la sessione, poi il relay lancia o passa.
             CmdOp.QUOTA_ROUTE -> FILE_RESULT_TIMEOUT_MS
             else -> RESULT_TIMEOUT_MS

@@ -12,6 +12,10 @@ class RetryRulesTest {
         assertEquals(ChatRules.Status.UPLOADING, ChatRules.status(failed, null, null, null, ChatRules.Upload.Going))
     }
 
+    @Test fun aReportWaitsForTheRelayAsLongAsAFile() {
+        assertEquals(it.pixelbox.cmwatch.transport.Transport.FILE_RESULT_TIMEOUT_MS, it.pixelbox.cmwatch.transport.Transport.resultTimeoutMs(it.pixelbox.cmwatch.contract.CmdOp.REPORT))
+    }
+
     private fun log() = ChatLog(java.io.File.createTempFile("chat", ".json").apply { delete() }) { 200 }
 
     @Test fun aClearedFailureStaysInPlaceWithItsTime() {

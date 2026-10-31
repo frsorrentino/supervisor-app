@@ -31,7 +31,7 @@ const SLASH_RESULT_TIMEOUT_MS = 60_000
  * `quota_route` (1.58): la sessione scrive il passaggio di consegne prima del lancio. */
 const FILE_RESULT_TIMEOUT_MS = 180_000
 export const resultTimeoutMs = (op: CmdOp) =>
-  op === 'slash' || op === 'done' ? SLASH_RESULT_TIMEOUT_MS : op === 'file' || op === 'quota_route' ? FILE_RESULT_TIMEOUT_MS : RESULT_TIMEOUT_MS
+  op === 'slash' || op === 'done' ? SLASH_RESULT_TIMEOUT_MS : op === 'file' || op === 'report' || op === 'quota_route' ? FILE_RESULT_TIMEOUT_MS : RESULT_TIMEOUT_MS
 
 export class LocalTransport implements Transport {
   constructor(

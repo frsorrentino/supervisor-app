@@ -145,6 +145,7 @@
     <string name="share_message">Message</string>
     <string name="share_with_image">With the shared image</string>
     <string name="share_with_file">%1$s, %2$s (limit %3$s)</string>
+    <string name="share_with_file_no_size">%1$s (limit %2$s)</string>
     <string name="share_file_too_big">%1$s is %2$s: the limit is %3$s, it cannot be sent</string>
     <string name="share_file_unsupported">Update supervisor on the PC to send files other than images</string>
     <string name="share_file_unreadable">File not readable: not sent</string>

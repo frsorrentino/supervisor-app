@@ -43,7 +43,7 @@ class ShareActivity : ComponentActivity() {
                 val attached = when (kind) {
                     null -> null
                     ShareLimits.Incoming.IMAGE -> ShareAttachment(getString(R.string.share_with_image), true)
-                    ShareLimits.Incoming.FILE -> ShareAttachment(getString(R.string.share_with_file, name, sizeText(size), sizeText(limit)), false)
+                    ShareLimits.Incoming.FILE -> ShareAttachment(if (size >= 0) getString(R.string.share_with_file, name, sizeText(size), sizeText(limit)) else getString(R.string.share_with_file_no_size, name, sizeText(limit)), false)
                     ShareLimits.Incoming.TOO_BIG -> ShareAttachment(getString(R.string.share_file_too_big, name, sizeText(size), sizeText(limit)), false, blocked = true)
                     ShareLimits.Incoming.NOT_SUPPORTED -> ShareAttachment(getString(R.string.share_file_unsupported), false, blocked = true)
                 }
