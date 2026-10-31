@@ -346,7 +346,8 @@ fun SummaryList(
     val touch = androidx.compose.runtime.remember { longArrayOf(0L, 0L, 0L) } // dito giù (0/1), ultimo tocco, ultimo scorrimento da solo
     val writing = androidx.compose.foundation.layout.WindowInsets.isImeVisible
     val currentWriting by androidx.compose.runtime.rememberUpdatedState(writing)
-    val currentSheet by androidx.compose.runtime.rememberUpdatedState(sheetOpen)
+    // Un foglio o un dialogo apre una finestra sua: quella della home perde il fuoco.
+    val currentSheet by androidx.compose.runtime.rememberUpdatedState(sheetOpen || !androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused)
     val viewTop = androidx.compose.runtime.remember { floatArrayOf(0f) }
     val finishScope = androidx.compose.runtime.rememberCoroutineScope()
     androidx.compose.runtime.LaunchedEffect(workingNow) {
