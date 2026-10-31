@@ -52,7 +52,7 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
+  let { suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
     /** Il blocco Utilizzo aperto, scelta D (30/10 20:11); le colonne della plancia tengono le schede (`usage`). */
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
@@ -79,7 +79,7 @@
     pluginsRun?: ((op: 'plugin_check' | 'plugin_update' | 'plugin_update_all', arg: string | null) => Promise<{ ok: boolean; text: string } | null>) | null
     /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto.
      *  `suggestionsN`: quanti ne mostra, perché «Ti aspettano» compaia anche quando ci sono solo loro. */
-    suggestions?: Snippet; suggestionsN?: number; suggestionsTotal?: number
+    suggestions?: Snippet; suggestionsN?: number; suggestionsTotal?: number; suggestionsAt?: number
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -234,6 +234,14 @@
   const primary = $derived(waitRows[0]?.session.name ?? null)
   // Gli esiti di oggi dalla cronologia (null finché non arriva) e le sessioni vive, che una riga può aprire.
   const out = $derived(kpiPage ? kpiOutcomes(kpiPage, now) : null)
+  // Il riassunto a sezione chiusa (Franz 31/10 01:15): quanti esiti, quanti falliti, l'ora dell'ultimo.
+  const esitiLine = $derived.by(() => {
+    if (!out) return null
+    const all = [...out.red, ...out.done]
+    if (!all.length) return null
+    const base = t.homeEsitiLine(all.length, hhmm(Math.max(...all.map(d => d.at))))
+    return out.red.length ? `${t.homeEsitiRed(out.red.length)} · ${base}` : base
+  })
   const liveNames = $derived(new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)))
   // Lo stile «Studio e Diretta» (30/10): a sinistra di ogni riga il glifo e, sotto, da quanto aspetta o lavora (o l'ora
   // dell'esito, o dell'ultima attività); sulla riga di una sessione l'ora del suo ultimo rosso di oggi.
@@ -377,7 +385,7 @@
      Nella plancia restano nella colonna «Richiede te». -->
 {#snippet secSuggestions()}
 {#if (!part || part === 'you') && suggestions && suggestionsN}
-  {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti')}
+  {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti', !part && !open.suggestions && suggestionsAt ? t.homeLastAt(hhmm(suggestionsAt)) : null)}
   {#if part || open.suggestions}<div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}{/if}
 {/if}
 {/snippet}
@@ -459,7 +467,7 @@
 {#snippet secEsiti()}
 {#if (!part || part === 'out') && out}
   <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. -->
-  {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', part && out.red.length ? String(out.red.length) : null, 'home-sez-esiti')}
+  {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', part && out.red.length ? String(out.red.length) : null, 'home-sez-esiti', !part && !open.esiti ? esitiLine : null)}
   {#if part || open.esiti}
     <div class="card wrows">
       {#each out.red.length ? out.red.slice(0, 3) : out.done.slice(0, 2) as d, i (i)}

@@ -355,7 +355,7 @@ fun SummaryList(
         val renderSuggestions: () -> Unit = {
             if (sug != null) {
                 // Una sezione come le altre (Franz 30/10 17:33): titolo, numero, freccina; da chiusa resta il numero, la barra dei 7 giorni sta dentro.
-                item(key = "sec-suggestions") { Box(moving()) { V3Section(sectionDrag("suggestions"), stringResource(R.string.sug_title), androidx.compose.material.icons.Icons.Outlined.AutoAwesome, sug.total.toString(), sugAt.takeIf { suggestionsOpen }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) } } }
+                item(key = "sec-suggestions") { Box(moving()) { V3Section(sectionDrag("suggestions"), stringResource(R.string.sug_title), androidx.compose.material.icons.Icons.Outlined.AutoAwesome, sug.total.toString(), sugAt?.let { at -> if (suggestionsOpen) at else stringResource(R.string.home_last_at, at) }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) } } }
                 if (suggestionsOpen) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
             }
         }
@@ -412,7 +412,7 @@ fun SummaryList(
         // Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box.
         it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.let { out ->
             val liveNames = kpiState?.sessions.orEmpty().filter { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }.map { x -> x.name }.toSet()
-            item(key = "sec-esiti") { Box(moving()) { V3Section(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
+            item(key = "sec-esiti") { Box(moving()) { V3Section(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
             if (esitiOpen) item(key = "esiti") {
                 Box(moving()) {
                     V3List {
@@ -481,7 +481,7 @@ fun SummaryList(
                             val n = plugins!!.accounts.sumOf { it.updates.size }
                             V3Row(first, { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }, { rowIcon(androidx.compose.material.icons.Icons.Outlined.Extension) }, {
                                 toggle(pluginsOpen)
-                            }, meter = { if (!pluginsOpen && n > 0) Text(pluralStringResource(R.plurals.plugins_to_update, n, n), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
+                            }, meter = { if (!pluginsOpen) Text(if (n > 0) pluralStringResource(R.plurals.plugins_to_update, n, n) else stringResource(R.string.plugins_up_to_date), style = V3.Meter, textAlign = androidx.compose.ui.text.style.TextAlign.End) }) { Text(stringResource(R.string.home_sec_plugins), style = V3.Name) }
                             first = false
                             if (pluginsOpen) Box(Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) { PluginsCard(plugins, onPluginsLoad!!, onPluginCmd!!, pluginsInitial) }
                         }
@@ -1197,6 +1197,15 @@ private fun ServiceLine(row: MasterHome.Row, onAction: () -> Unit) {
         }
         MiniButton(stringResource(action), filled = false, onClick = onAction)
     }
+}
+
+/** Il riassunto a sezione chiusa (Franz 31/10 01:15): quanti esiti, quanti falliti, l'ora dell'ultimo. */
+@Composable
+private fun esitiLine(out: it.pixelbox.cmwatch.rules.Kpi.Outcomes): String? {
+    val all = out.red + out.done
+    val last = all.maxOfOrNull { it.at } ?: return null
+    val base = stringResource(R.string.home_esiti_line, all.size, hhmmOf(last))
+    return if (out.red.isEmpty()) base else stringResource(R.string.home_esiti_red, out.red.size) + " · " + base
 }
 
 /** Titolo di sezione della home: si apre e si chiude al tocco; chiusa, a destra un riassunto se c'è. */

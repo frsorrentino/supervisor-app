@@ -1027,6 +1027,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="plugins_loading">Chiedo al PC l\'elenco</string>
     <string name="plugins_none">Il PC non ha risposto.</string>
     <string name="plugins_meta">%1$d plugin · %2$d skill</string>
+    <string name="plugins_up_to_date">nessun aggiornamento</string>
     <string name="plugins_update">Aggiorna</string>
     <string name="plugins_updating">Aggiorno</string>
     <string name="plugins_latest">ultima</string>
@@ -1420,6 +1421,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_sessions_line">%1$d al lavoro, %2$d finite, %3$d ferme</string>
     <string name="home_all_outcomes">Tutti gli esiti</string>
     <string name="home_night_row">Ieri %1$d finiti su %2$d</string>
+    <string name="home_last_at">ultimo alle %1$s</string>
+    <string name="home_esiti_line">%1$d · ultimo alle %2$s</string>
+    <string name="home_esiti_red">%1$d falliti</string>
     <string name="home_usage_week">settimana %1$d%%</string>
     <string name="kpi7_quota">5 ore</string>
     <plurals name="kpi7_red"><item quantity="one">%1$d rosso</item><item quantity="other">%1$d rossi</item></plurals>

@@ -965,6 +965,7 @@ It starts at your last message to the master.</string>
     <string name="plugins_loading">Asking the PC for the list</string>
     <string name="plugins_none">The PC did not answer.</string>
     <string name="plugins_meta">%1$d plugins · %2$d skills</string>
+    <string name="plugins_up_to_date">up to date</string>
     <string name="plugins_update">Update</string>
     <string name="plugins_updating">Updating</string>
     <string name="plugins_latest">latest</string>
@@ -1390,6 +1391,9 @@ It starts at your last message to the master.</string>
     <string name="home_sessions_line">%1$d working, %2$d finished, %3$d idle</string>
     <string name="home_all_outcomes">All outcomes</string>
     <string name="home_night_row">Last night %1$d done of %2$d</string>
+    <string name="home_last_at">last at %1$s</string>
+    <string name="home_esiti_line">%1$d · last at %2$s</string>
+    <string name="home_esiti_red">%1$d failed</string>
     <string name="home_usage_week">week %1$d%%</string>
     <string name="kpi7_quota">5 h</string>
     <plurals name="kpi7_red"><item quantity="one">%1$d red</item><item quantity="other">%1$d red</item></plurals>
