@@ -1274,7 +1274,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="closed_saved">Chiuse, stato salvato</string>
     <string name="close_refused">Il PC non ha chiuso</string>
     <string name="resume_saved">Riprendi</string>
-    <string name="sug_title">Suggerimenti della master</string>
+    <string name="sug_title">Suggerimenti</string>
     <string name="sug_count">%1$d di %2$d</string>
     <string name="sug_kind_recurring">Ricorrente</string>
     <string name="sug_kind_cleanup">Pulizia</string>
@@ -1423,7 +1423,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_night_row">Ieri %1$d finiti su %2$d</string>
     <string name="home_last_at">ultimo alle %1$s</string>
     <string name="home_esiti_line">%1$d · ultimo alle %2$s</string>
-    <string name="home_esiti_red">%1$d falliti</string>
+    <plurals name="home_esiti_red"><item quantity="one">%1$d fallito</item><item quantity="other">%1$d falliti</item></plurals>
     <string name="home_usage_week">settimana %1$d%%</string>
     <string name="kpi7_quota">5 ore</string>
     <plurals name="kpi7_red"><item quantity="one">%1$d rosso</item><item quantity="other">%1$d rossi</item></plurals>
