@@ -1053,8 +1053,8 @@
   .altro .otext { flex: 1 0 auto; }
   .altro.detached { margin-top: 14px; }
   .altro .wrow .mono { min-width: 0; white-space: normal; text-align: right; }
-  /* A destra come le righe dentro le liste: 14 px più il filo (Franz 31/10 01:14). */
-  .sec { gap: 0; margin: 18px 0 2px; padding: 0 15px 0 0; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
+  /* A destra come le righe dentro le liste: stessa verticale misurata, 387 a 412 (Franz 31/10 01:14). */
+  .sec { gap: 0; margin: 18px 0 2px; padding: 0 13px 0 0; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
   .sec .ic { width: 52px; flex: none; display: flex; justify-content: center; margin-right: 8px; }
   .sec .ic .ms { color: var(--tx2); }
   .sec .st { white-space: nowrap; }

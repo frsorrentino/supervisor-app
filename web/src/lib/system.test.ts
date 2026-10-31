@@ -39,10 +39,10 @@ describe('sezione Sistema (contratto 1.90)', () => {
     expect(isOpen('green', { level: 'green', open: true })).toBe(true)
   })
 
-  it('la riga compatta dice carico per core e memoria libera, in italiano e in inglese', () => {
+  it('la riga compatta dice carico e memoria libera, in italiano e in inglese', () => {
     const s = fixture('state-3-stale.json').system!
-    expect(summaryLine(s, 'it')).toBe('carico 2,2 per core · 0,8 GB liberi')
-    expect(summaryLine(s, 'en')).toBe('load 2.2 per core · 0.8 GB free')
+    expect(summaryLine(s, 'it')).toBe('carico 2,2 · 0,8 GB')
+    expect(summaryLine(s, 'en')).toBe('load 2.2 · 0.8 GB')
   })
 
   it('chi consuma: i gruppi con CPU e memoria; vuota senza consumatori (stato tagliato)', () => {
