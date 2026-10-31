@@ -29,6 +29,7 @@ Una riga per voce, versione notte. Telefono: un'immagine di prova per riga, misu
 | HomeAltro · altroSystemClosed360LargeFont | telefono | SummaryList.kt | v3 |
 | HomeAltro · altroUsageTwoAccounts | telefono | SummaryList.kt | v3 |
 | HomeAltro · altroUsageTwoAccounts360LargeFont | telefono | SummaryList.kt | v3 |
+| HomeAltro · altroUsageTwoAccountsArrowsAligned | telefono | SummaryList.kt | v3 |
 | HomeAltro · longNames360LargeFont | telefono | SummaryList.kt | v3 |
 | HomeAltro · reorderScreen | telefono | SummaryList.kt | v3 |
 | HomeAltro · reorderScreen360LargeFont | telefono | SummaryList.kt | v3 |
@@ -174,6 +175,7 @@ Una riga per voce, versione notte. Telefono: un'immagine di prova per riga, misu
 | SummaryList · dockMaster | telefono | SummaryList.kt | v3 |
 | SummaryList · dockMasterExpanded | telefono | SummaryList.kt | v3 |
 | SummaryList · homeOrderSessionsBeforeSuggestions | telefono | SummaryList.kt | v3 |
+| SummaryList · homeSectionDrag | telefono | SummaryList.kt | v3 |
 | SummaryList · summaryClosed | telefono | SummaryList.kt | v3 |
 | SummaryList · summaryMany | telefono | SummaryList.kt | v3 |
 | SummaryList · summaryOpen | telefono | SummaryList.kt | v3 |
@@ -204,6 +206,7 @@ Una riga per voce, versione notte. Telefono: un'immagine di prova per riga, misu
 | UtilizzoV3 · closed | telefono | UtilizzoV3.kt | v3 |
 | UtilizzoV3 · fiveHoursOpen | telefono | UtilizzoV3.kt | v3 |
 | UtilizzoV3 · longName360LargeFont | telefono | UtilizzoV3.kt | v3 |
+| UtilizzoV3 · longNames360LargeFont | telefono | UtilizzoV3.kt | v3 |
 | UtilizzoV3 · sessionsOpen | telefono | UtilizzoV3.kt | v3 |
 | UtilizzoV3 · todayOpen | telefono | UtilizzoV3.kt | v3 |
 | UtilizzoV3 · weekOpen | telefono | UtilizzoV3.kt | v3 |
