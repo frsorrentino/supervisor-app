@@ -52,7 +52,7 @@ import it.pixelbox.cmwatch.rules.SpeechRate
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
-    host: String?, phoneName: String, watchName: String?, watchPending: Boolean, demo: Boolean, version: String, commit: String = "",
+    host: String?, phoneName: String, watchName: String?, watchPending: Boolean, demo: Boolean, version: String,
     onRepair: () -> Unit, onDemo: (Boolean) -> Unit, onNotifications: () -> Unit, onPrivacy: () -> Unit,
     language: AppLanguage.Choice = AppLanguage.Choice.SYSTEM, onLanguage: (AppLanguage.Choice) -> Unit = {},
     /** La voce che legge (Franz, 02/10 00:01): le voci italiane del motore, quella scelta (null = predefinita), la prova. */
@@ -80,6 +80,8 @@ fun SettingsScreen(
     onRevoke: ((String) -> Unit)? = null,
     /** «Riordina la home» (app-riordino-sezioni-30-10): l'ordine salvato e il salvataggio; null = relay senza `home_order`, niente voce. */
     homeOrder: List<String>? = null, onHomeOrder: ((List<String>) -> Unit)? = null,
+    /** Il commit accanto alla versione in Informazioni; nei provini vuoto. */
+    commit: String = "",
 ) {
     var reorder by rememberSaveable { mutableStateOf(false) }
     if (reorder && onHomeOrder != null) {
