@@ -53,6 +53,9 @@ class HomeAltroTest {
 
     @Test fun altroSystemClosed() = shot()
 
+    /** Titoli liberi e blocco insieme: le frecce sulla stessa verticale (Franz 31/10 01:14). */
+    @Test fun altroUsageTwoAccountsArrowsAligned() = shot()
+
     /** Utilizzo con due account (state-2-idle): il nome intero, mai tagliato in un'altra parola (master 30/10 16:42). */
     @Test fun altroUsageTwoAccounts() = shot()
 

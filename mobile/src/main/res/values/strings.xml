@@ -1433,7 +1433,6 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="reorder_board">Tabellone</string>
     <string name="reorder_save">Salva</string>
     <string name="reorder_reset">Ripristina l\'ordine predefinito</string>
-    <string name="reorder_drag">Trascina %1$s</string>
     <string name="reorder_up">Sposta su %1$s</string>
     <string name="reorder_down">Sposta giù %1$s</string>
     <string name="cleanup_close_short">Chiudi</string>

@@ -43,7 +43,7 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
-  import { DEFAULT_ORDER, normalize as normalizeOrder } from './homeOrder'
+  import { DEFAULT_ORDER, move as moveOrder, normalize as normalizeOrder, orderArg, type HomeSection } from './homeOrder'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
 
@@ -52,7 +52,7 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
+  let { onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
     /** Il blocco Utilizzo aperto, scelta D (30/10 20:11); le colonne della plancia tengono le schede (`usage`). */
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
@@ -60,6 +60,8 @@
     /** Una colonna della plancia (pwa2, Franz 30/10): «you» le attese e i suggerimenti, «work» sessioni e lavori, «out» gli
      *  esiti, «tools» Altro; senza, la home intera col tabellone. */
     part?: 'you' | 'work' | 'out' | 'tools' | null
+    /** Contratto 1.97: l'ordine scelto trascinando un titolo di sezione; null = il relay non lo sa fare, o una colonna della plancia. */
+    onHomeOrder?: ((arg: string | null) => void) | null
     /** Nella colonna «Attività e code» della plancia: i compiti in corso del registro, subito dopo le sessioni Claude. */
     afterSessions?: Snippet
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura; null = il relay non le ha. */
@@ -118,7 +120,45 @@
     onSpeak?: ((text: string) => void) | null
   } = $props()
   const today = todayIso()
-  const order = $derived(part ? DEFAULT_ORDER : normalizeOrder(st.home_order))
+  // L'ordine nuovo vale subito, finché il relay non lo conferma.
+  let sentOrder = $state<{ from: string; order: HomeSection[] } | null>(null)
+  const savedKey = $derived((st.home_order ?? []).join(','))
+  const order = $derived(part ? DEFAULT_ORDER : sentOrder && sentOrder.from === savedKey ? sentOrder.order : normalizeOrder(st.home_order))
+  // Il titolo di una sezione si trascina (Franz 31/10 01:01): col mouse subito, al tocco dopo la pressione lunga, senza menu né
+  // selezione. Restano i soli titoli; al rilascio salva e le sezioni tornano com'erano.
+  const DRAG_ROW = 56
+  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, altro: { icon: 'data_usage', name: t.reorderTools } })
+  let dragOrder = $state<HomeSection[] | null>(null)
+  let dragKey = $state<HomeSection | null>(null)
+  let dragDy = $state(0)
+  let dragLast = 0, dragStartY = 0, dragTimer: ReturnType<typeof setTimeout> | undefined, dragJustEnded = false
+  const noScroll = (e: TouchEvent) => { if (dragOrder) e.preventDefault() }
+  function dragBegin(k: HomeSection, y: number) {
+    dragOrder = [...order]; dragKey = k; dragDy = 0; dragLast = y
+    navigator.vibrate?.(30)
+  }
+  function secDown(k: string, e: PointerEvent) {
+    if (!onHomeOrder || part || e.button !== 0) return
+    const key = k as HomeSection; dragStartY = e.clientY
+    ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
+    if (e.pointerType === 'mouse') { dragArmed = key; return }
+    dragTimer = setTimeout(() => dragBegin(key, dragStartY), 450)
+    addEventListener('touchmove', noScroll, { passive: false })
+  }
+  let dragArmed: HomeSection | null = null
+  function secMove(e: PointerEvent) {
+    if (dragArmed && Math.abs(e.clientY - dragStartY) > 6) { dragBegin(dragArmed, dragStartY); dragArmed = null }
+    if (!dragOrder) { if (Math.abs(e.clientY - dragStartY) > 10) clearTimeout(dragTimer); return }
+    dragDy += e.clientY - dragLast; dragLast = e.clientY
+    const steps = Math.trunc(dragDy / DRAG_ROW)
+    if (steps && dragKey) { const i = dragOrder.indexOf(dragKey); dragOrder = moveOrder(dragOrder, i, Math.max(0, Math.min(dragOrder.length - 1, i + steps))); dragDy -= steps * DRAG_ROW }
+  }
+  function secUp(cancel = false) {
+    clearTimeout(dragTimer); dragArmed = null; removeEventListener('touchmove', noScroll)
+    if (!dragOrder) return
+    const o = dragOrder; dragOrder = null; dragKey = null; dragJustEnded = true; setTimeout(() => (dragJustEnded = false), 50)
+    if (!cancel && o.join() !== order.join()) { sentOrder = { from: savedKey, order: o }; onHomeOrder?.(orderArg(o)) }
+  }
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
   $effect(() => {
@@ -309,7 +349,7 @@
     <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->
     <div class="sec static" data-testid={testid}><span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
-    <button class="sec" aria-expanded={open[key]} data-testid={testid} onclick={() => toggleSec(key)}>
+    <button class="sec" class:draggable={!!onHomeOrder} aria-expanded={open[key]} data-testid={testid} onclick={() => { if (!dragJustEnded) toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} onpointermove={secMove} onpointerup={() => secUp()} onpointercancel={() => secUp(true)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
       <span class="sp"></span>{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog">{open[key] ? 'expand_less' : 'expand_more'}</span>
     </button>
@@ -505,6 +545,15 @@
   {#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else}{@render secAltro()}{/if}
 {/each}
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
+  {#if dragOrder}
+    <div class="dragl" data-testid="home-sezione-trascina">
+      <div class="vlist">
+        {#each dragOrder as k (k)}
+          <div class="vrow" class:held={k === dragKey} style:transform={k === dragKey ? `translateY(${dragDy}px)` : null}><span class="ic"><span class="ms" aria-hidden="true">{DRAG_SEC[k].icon}</span></span><span class="tx"><b>{DRAG_SEC[k].name}</b></span></div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 </section>
 
 <!-- «Chiuse · N» (ClosedSheet dell'app): una riga per sessione chiusa, «Riapri» la riapre e chiude il foglio. -->
@@ -957,6 +1006,10 @@
   /* Il riordino (app-home-riordino-29-10): «Ti aspettano» ha un'intestazione fissa ambra; le card stanno in un involucro
      per l'animazione; chiuse, le card fuori da «Ti aspettano» tengono una riga; Lavori ed Esiti hanno righe compatte. */
   .sec.static { cursor: default; }
+  .sec.draggable { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
+  .dragl { position: fixed; inset: 0; z-index: 5; padding-top: 14px; background: var(--bg); }
+  .dragl .vrow { min-height: 56px; height: 56px; }
+  .dragl .vrow.held { position: relative; z-index: 1; background: var(--s3); }
   .sec.wait span, .sec.wait small { color: var(--wait); }
   .cw { display: flex; flex-direction: column; }
   .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
@@ -992,7 +1045,8 @@
   .altro .otext { flex: 1 0 auto; }
   .altro.detached { margin-top: 14px; }
   .altro .wrow .mono { min-width: 0; white-space: normal; text-align: right; }
-  .sec { gap: 0; margin: 18px 0 2px; padding: 0; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
+  /* A destra come le righe dentro le liste: 14 px più il filo (Franz 31/10 01:14). */
+  .sec { gap: 0; margin: 18px 0 2px; padding: 0 15px 0 0; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
   .sec .ic { width: 52px; flex: none; display: flex; justify-content: center; margin-right: 8px; }
   .sec .ic .ms { color: var(--tx2); }
   .sec .st { white-space: nowrap; }

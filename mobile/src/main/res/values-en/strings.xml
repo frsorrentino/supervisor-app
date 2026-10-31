@@ -1403,7 +1403,6 @@ It starts at your last message to the master.</string>
     <string name="reorder_board">Board</string>
     <string name="reorder_save">Save</string>
     <string name="reorder_reset">Restore the default order</string>
-    <string name="reorder_drag">Drag %1$s</string>
     <string name="reorder_up">Move %1$s up</string>
     <string name="reorder_down">Move %1$s down</string>
     <string name="cleanup_close_short">Close</string>

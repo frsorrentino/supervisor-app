@@ -2,7 +2,6 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,9 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -62,12 +60,30 @@ private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
     else -> Icons.Outlined.DataUsage to stringResource(R.string.reorder_tools)
 }
 
-private val ROW = 56.dp
+internal val HOME_DRAG_ROW = 56.dp
+
+/** Durante il trascinamento nella home: i soli titoli delle sezioni, quello preso segue il dito. */
+@Composable
+internal fun HomeDragLayer(order: List<String>, held: String?, dy: Float, modifier: Modifier = Modifier) {
+    Column(modifier.background(V3.Bg).padding(top = 14.dp).testTag("home-sezione-trascina")) {
+        V3List {
+            order.forEachIndexed { i, key ->
+                androidx.compose.runtime.key(key) {
+                    val (icon, name) = sectionOf(key)
+                    val on = key == held
+                    Box(Modifier.height(HOME_DRAG_ROW).zIndex(if (on) 1f else 0f).graphicsLayer { translationY = if (on) dy else 0f }.background(if (on) V3.S3 else V3.S1)) {
+                        V3Row(i == 0, null, { Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }) { Text(name, style = V3.Name) }
+                    }
+                }
+            }
+        }
+    }
+}
 
 /**
  * «Riordina la home» (Franz 30/10 17:22, compito app-riordino-sezioni-30-10), nello stile «Studio e Diretta»: le sezioni chiuse
- * su righe singole, con la maniglia per trascinare e le frecce su e giù, perché trascinare in una lista che scorre è scomodo e
- * con TalkBack non si può. Tabellone e «Ti aspettano» restano fissi in cima. «Salva» è l'unico tasto pieno.
+ * su righe singole, con le frecce su e giù: il trascinamento sta nella home, con la pressione lunga sul titolo (Franz 31/10 01:01),
+ * che non si vede e con TalkBack non si può. Tabellone e «Ti aspettano» restano fissi in cima. «Salva» è l'unico tasto pieno.
  */
 @Composable
 fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<String>) -> Unit) {
@@ -88,7 +104,7 @@ fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<Stri
                 order.forEachIndexed { i, key ->
                     androidx.compose.runtime.key(key) {
                         val (icon, name) = sectionOf(key)
-                        OrderRow(icon, name, i == 0, i, order.size, onMove = { to -> order = HomeOrder.move(order, order.indexOf(key), to) }, indexOf = { order.indexOf(key) })
+                        OrderRow(icon, name, i == 0, i, order.size, onMove = { to -> order = HomeOrder.move(order, order.indexOf(key), to) })
                     }
                 }
             }
@@ -103,22 +119,10 @@ fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<Stri
 }
 
 @Composable
-private fun OrderRow(icon: ImageVector, name: String, first: Boolean, i: Int, size: Int, onMove: (Int) -> Unit, indexOf: () -> Int) {
-    var dy by remember { mutableFloatStateOf(0f) }
-    val rowPx = with(LocalDensity.current) { ROW.toPx() }
+private fun OrderRow(icon: ImageVector, name: String, first: Boolean, i: Int, size: Int, onMove: (Int) -> Unit) {
     val move by rememberUpdatedState(onMove)
-    val at by rememberUpdatedState(indexOf)
-    Box(Modifier.graphicsLayer { translationY = dy }) {
+    Box {
         V3Row(first, null, {
-            // La maniglia: a ogni riga di trascinamento la voce cambia posto e l'offset riparte da lì.
-            Icon(Icons.Outlined.DragIndicator, stringResource(R.string.reorder_drag, name), tint = V3.Tx2, modifier = Modifier.size(28.dp).testTag("riordino-maniglia").pointerInput(Unit) {
-                detectDragGestures(onDragEnd = { dy = 0f }, onDragCancel = { dy = 0f }) { change, drag ->
-                    change.consume()
-                    dy += drag.y
-                    val steps = (dy / rowPx).toInt()
-                    if (steps != 0) { move((at() + steps).coerceIn(0, size - 1)); dy -= steps * rowPx }
-                }
-            })
         }, {
             IconButton(onClick = { move(i - 1) }, enabled = i > 0, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.reorder_up, name), tint = if (i > 0) V3.Tx else V3.S3) }
             IconButton(onClick = { move(i + 1) }, enabled = i < size - 1, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.reorder_down, name), tint = if (i < size - 1) V3.Tx else V3.S3) }

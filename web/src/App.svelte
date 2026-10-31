@@ -563,12 +563,12 @@
   // Contratto 1.47: la scrittura va al relay con `agenda_set`; riuscita, l'agenda si ricarica; «agenda row changed» ricarica
   // e lo dice. Nella demo cambia la riga in memoria, come farebbe il relay.
   // Contratto 1.97: l'ordine delle sezioni della home, unico sul relay; vuoto = il predefinito.
-  async function saveHomeOrder(arg: string | null) {
+  async function saveHomeOrder(arg: string | null, back = true) {
     if (!tr) return
     try {
       const r = await tr.send(newCmd('home_order', null, arg ?? ''))
       if (!r.ok) { say(r.text); return }
-      openPage('settings')
+      if (back) openPage('settings')
     } catch { say(t.noAnswer) }
   }
   async function editAgenda(e: import('./lib/recapAgenda').Edit) {
@@ -1027,7 +1027,7 @@
 {/snippet}
 
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
-{#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | null)}<Home st={stShown} {part} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
+{#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | null)}<Home st={stShown} {part} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}

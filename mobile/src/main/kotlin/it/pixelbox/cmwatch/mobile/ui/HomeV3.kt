@@ -143,12 +143,20 @@ private fun DrawScope.waitingMark(u: Float, col: Color) {
 }
 
 /** Il titolo col binario: l'icona grigia allineata ai glifi, il titolo ai nomi, il numero accanto; a destra il riepilogo e l'apertura. */
+/** La testata che si trascina con la pressione lunga: `drag` per primo, gli altri come sempre. */
 @Composable
-internal fun V3Section(title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, onToggle: (() -> Unit)? = null) {
+internal fun V3Section(drag: Modifier, title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, onToggle: (() -> Unit)? = null) =
+    V3Section(title, icon, count, right, tag, open, onToggle, drag)
+
+@Composable
+internal fun V3Section(title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, onToggle: (() -> Unit)? = null, drag: Modifier = Modifier) {
     var m = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp)
     if (onToggle != null) m = m.handCursor().clickable(onClick = onToggle)
     if (tag != null) m = m.testTag(tag)
-    Row(m.heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
+    // Dentro il clickable: il rilascio del trascinamento è consumato prima che arrivi al tocco che apre e chiude.
+    m = m.then(drag)
+    // Frecce e riassunti sulla stessa verticale di quelli dentro le liste, che hanno 12 dp a destra (Franz 31/10 01:14).
+    Row(m.heightIn(min = 36.dp).padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
         Spacer(Modifier.width(8.dp))
         Text(title, style = V3.Section, maxLines = 1)

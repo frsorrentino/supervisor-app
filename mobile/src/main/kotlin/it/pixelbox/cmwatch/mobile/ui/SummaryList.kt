@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -170,6 +172,8 @@ fun SummaryList(
     system: it.pixelbox.cmwatch.contract.SystemStatus? = null, ops: List<String>? = null,
     onSystem: ((it.pixelbox.cmwatch.contract.CmdOp, String) -> Unit)? = null,
     /** I KPI 6, 11 e 18 (compito app-kpi-medie-25-10): la cronologia di oggi di tutte le sessioni; null finché non c'è. */
+    /** Contratto 1.97: l'ordine scelto trascinando un titolo di sezione; null = il relay non lo sa fare. */
+    onHomeOrder: ((List<String>) -> Unit)? = null,
     kpiPage: it.pixelbox.cmwatch.contract.TimelinePage? = null, kpiState: it.pixelbox.cmwatch.contract.State? = null,
     /** I tre box in alto aprono la loro pagina (app-box-cliccabili-29-10). */
     onBox: (HomeBox) -> Unit = {},
@@ -183,6 +187,33 @@ fun SummaryList(
     onPluginCmd: (suspend (it.pixelbox.cmwatch.contract.CmdOp, String?) -> it.pixelbox.cmwatch.contract.CmdResult?)? = null,
     pluginsInitial: it.pixelbox.cmwatch.contract.PluginsPage? = null,
 ) {
+    // Pressione lunga sul titolo di una sezione (Franz 31/10 01:01): vibrazione, restano i soli titoli, al rilascio salva. La lista
+    // sotto non cambia, così le sezioni tornano com'erano; l'ordine nuovo vale subito, finché il relay non lo conferma.
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val saveOrder by androidx.compose.runtime.rememberUpdatedState(onHomeOrder)
+    var sentOrder by remember(kpiState?.homeOrder) { mutableStateOf<List<String>?>(null) }
+    val homeOrder = sentOrder ?: it.pixelbox.cmwatch.rules.HomeOrder.normalize(kpiState?.homeOrder)
+    val shownOrder by androidx.compose.runtime.rememberUpdatedState(homeOrder)
+    var dragOrder by remember { mutableStateOf<List<String>?>(null) }
+    var dragKey by remember { mutableStateOf<String?>(null) }
+    var dragY by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    val dragRow = with(androidx.compose.ui.platform.LocalDensity.current) { HOME_DRAG_ROW.toPx() }
+    fun sectionDrag(key: String): Modifier = if (onHomeOrder == null) Modifier else Modifier.pointerInput(key) {
+        detectDragGesturesAfterLongPress(
+            onDragStart = { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); dragOrder = shownOrder; dragKey = key; dragY = 0f },
+            onDragEnd = { dragOrder?.let { o -> if (o != shownOrder) { sentOrder = o; saveOrder?.invoke(o) } }; dragOrder = null; dragKey = null },
+            onDragCancel = { dragOrder = null; dragKey = null },
+        ) { change, drag ->
+            change.consume()
+            dragY += drag.y
+            val steps = (dragY / dragRow).toInt()
+            val o = dragOrder
+            if (steps != 0 && o != null) {
+                dragOrder = it.pixelbox.cmwatch.rules.HomeOrder.move(o, o.indexOf(key), (o.indexOf(key) + steps).coerceIn(0, o.size - 1))
+                dragY -= steps * dragRow
+            }
+        }
+    }
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura. File nuovo col
@@ -242,6 +273,7 @@ fun SummaryList(
             ),
         )
     }
+    Box {
     androidx.compose.foundation.lazy.LazyColumn(
         // In fondo lo spazio del controller della lettura, che si posa sopra la barra della master (09/10 16:50).
         Modifier.fillMaxSize().background(V3.Bg), state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp + readingRoom()),
@@ -307,7 +339,7 @@ fun SummaryList(
         if (restRows.isNotEmpty() || justClosed != null) {
             item(key = "sec-sessions") {
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
-                Box(moving()) { V3Section(stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, restRows.size.toString(), stringResource(R.string.home_sessions_line, n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)), "home-sez-sessioni", sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
+                Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, restRows.size.toString(), stringResource(R.string.home_sessions_line, n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)), "home-sez-sessioni", sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
             }
             justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
             // Una lista sola nell'ordine dei gruppi: il glifo dice lo stato al posto delle intestazioni.
@@ -323,14 +355,14 @@ fun SummaryList(
         val renderSuggestions: () -> Unit = {
             if (sug != null) {
                 // Una sezione come le altre (Franz 30/10 17:33): titolo, numero, freccina; da chiusa resta il numero, la barra dei 7 giorni sta dentro.
-                item(key = "sec-suggestions") { Box(moving()) { V3Section(stringResource(R.string.sug_title), androidx.compose.material.icons.Icons.Outlined.AutoAwesome, sug.total.toString(), sugAt.takeIf { suggestionsOpen }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) } } }
+                item(key = "sec-suggestions") { Box(moving()) { V3Section(sectionDrag("suggestions"), stringResource(R.string.sug_title), androidx.compose.material.icons.Icons.Outlined.AutoAwesome, sug.total.toString(), sugAt.takeIf { suggestionsOpen }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) } } }
                 if (suggestionsOpen) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
             }
         }
         val renderLavori: () -> Unit = {
         if (showLavori && (foryou != null || outside.isNotEmpty())) {
             val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
-            item(key = "sec-lavori") { Box(moving()) { V3Section(stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
+            item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
             if (lavoriOpen) {
                 if (laterRows.isNotEmpty()) item(key = "lv-later") {
                     Box(moving()) {
@@ -380,7 +412,7 @@ fun SummaryList(
         // Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box.
         it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.let { out ->
             val liveNames = kpiState?.sessions.orEmpty().filter { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }.map { x -> x.name }.toSet()
-            item(key = "sec-esiti") { Box(moving()) { V3Section(stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
+            item(key = "sec-esiti") { Box(moving()) { V3Section(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
             if (esitiOpen) item(key = "esiti") {
                 Box(moving()) {
                     V3List {
@@ -465,7 +497,7 @@ fun SummaryList(
         }
         }
         // L'ordine scelto da Franz (Impostazioni › Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra.
-        it.pixelbox.cmwatch.rules.HomeOrder.normalize(kpiState?.homeOrder).forEach { k ->
+        homeOrder.forEach { k ->
             when (k) {
                 "sessions" -> renderSessions()
                 "suggestions" -> renderSuggestions()
@@ -475,6 +507,8 @@ fun SummaryList(
             }
         }
         footer?.let { f -> item(key = "footer") { f() } }
+    }
+    dragOrder?.let { o -> HomeDragLayer(o, dragKey, dragY, Modifier.matchParentSize()) }
     }
 }
 

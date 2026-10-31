@@ -1575,6 +1575,7 @@ class MainActivity : ComponentActivity() {
                         val id = runCatching { app.repo.command(op, null, arg) }.getOrNull()
                         id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(180_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
                     },
+                    onHomeOrder = if (state?.ops?.contains("home_order") == true) ({ o -> scope.launch { runCatching { app.repo.command(CmdOp.HOME_ORDER, null, it.pixelbox.cmwatch.rules.HomeOrder.arg(o)) } } }) else null,
                     onSystem = if (!demo) ({ op, arg -> scope.launch {
                         val id = runCatching { app.repo.command(op, null, arg) }.getOrNull()
                         val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
