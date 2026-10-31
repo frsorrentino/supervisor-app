@@ -25,3 +25,6 @@
 - 2026-10-24: Scheda master su telefono e web; barra rapida pubblicata in Studio · prossimo: Correggere la barra in Studio: la chat riparte da zero a ogni swipe
 - 2026-10-27: Icona diff corretta e Supervisor inviato su Play; contratto 1.87 adottato, CI in corso · prossimo: Attendere l'esito della CI Android sul commit 1656ea26, poi scrivere alla master
 - 2026-10-28: Sezione «Sistema» online su web e pre-release telefono; dispositivi abbinati pubblicati · prossimo: Verificare sul telefono la sezione «Sistema» nella pre-release installata
+- 2026-10-29: Box della home cliccabili su telefono e web; pre-release box-home-2026-10-29 pronta · prossimo: Installare sul telefono l'APK della pre-release box-home-2026-10-29
+- 2026-10-30: Riordino home online sul web; README e CHANGELOG su master; menu in CI · prossimo: Spegnere le issue quando supervisor conferma il nuovo instradamento in produzione
+- 2026-10-31: Pre-release ac8eb1a8 con APK firmati; pressione lunga provata su Android · prossimo: Attendere la CI su ca05f2bb, poi commit dei golden e nuova pre-release
