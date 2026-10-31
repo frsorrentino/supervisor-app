@@ -22,6 +22,11 @@ Tempi e curve: «uscita» è `cubic-bezier(0.23, 1, 0.32, 1)`, in Compose `Cubic
 | 8 | Rilascio del trascinamento | Home, dopo la pressione lunga | La copia del titolo vola al posto finale e la sezione torna piena; una lieve vibrazione a ogni scambio | Molla, circa 250 ms | Oggi la copia sparisce di colpo: si perde dove è finita la voce | S |
 | 9 | Foglio della master, tutto aperto e tutto chiuso | `MasterDock` | Segue il dito 1:1 e al rilascio prosegue alla velocità del dito | Molla, risposta 0,3-0,4 s | È il gesto più fisico dell'app. Da guardare prima: può darsi che basti poco | M |
 | 10 | Prima apertura e «tutto fatto» | Home vuota: nessuno ti aspetta, lavori finiti | Una spunta verde che si disegna, una volta sola | 400 ms uscita, solo alla transizione | Lo spazio per il piacere è nei momenti rari, non nei frequenti | S |
+| 11 | Ok nella card | Card con la richiesta (`ApprovalCard`, `SummaryList.kt`; `workCard` in `Home.svelte`) | Il tasto scelto si allarga e diventa la conferma, gli altri sfumano, la card si adatta in altezza | Tasto con molla, dissolvenza 150 ms | È il momento decisivo dell'app: si vede quale scelta è stata presa, e i tasti non spariscono di colpo | M |
+| 12 | Risposta a un suggerimento | `SuggestionsCard.kt`; `SuggestionsCard.svelte` | La card esce nel verso della scelta: avanti su Accetta, in basso su Non ora e Mai. La successiva sale da 0,95 a 1 | Uscita 160 ms, entrata con molla | Si vede che la risposta è presa e che ne arriva un'altra; nelle risposte in fila la mano resta al suo posto | M |
+| 13 | Vibrazione di conferma | Telefono: ok nella card, Accetta, «Ferma il ciclo» | Nessun movimento: `HapticFeedbackConstants.CONFIRM`, una volta, alla conferma | Subito | Le azioni decisive si sentono. Sul telefono la vibrazione c'è in `ReadingPill.kt`, `SessionSheet.kt` e `SummaryList.kt`, mai di conferma. Il web resta fuori | S |
+| 14 | Tre valori condivisi | `CmMotion` in `PhoneTheme.kt`; `app.css` accanto a `--spring` | Nessun movimento nuovo. Veloce per pressione e tasti, senza rimbalzo; spaziale per posizione e scala, con `CmMotion.bounce`; lento per colori e passaggi di sfondo, senza sforamento | Molle, sopra `MotionScheme.expressive()` e non accanto | Tutte le animazioni parlano la stessa lingua e si tarano in un punto solo | S |
+| 15 | Cifre a larghezza fissa | Numeri di tabellone, quota e carico. Sul web oggi `tabular-nums` è solo in `Kpi7.svelte` e `QuotaPanel.svelte` | Nessun movimento: `tabular-nums` sul web, `fontFeatureSettings = "tnum"` in Compose, da provare sui caratteri dell'app | Nessuna | Le cifre non tremolano quando cambiano, senza animare i dati | S |
 
 ## Le due del film, dette onestamente
 
@@ -71,3 +76,7 @@ Altrimenti la card diventa verde dove si trova e basta. Se Franz tocca la lista 
 3. **La 2, fine del lavoro col verde e lo scorrimento prudente:** completa la 1 e dà il momento del film.
 
 Le altre dopo averle viste al polso e al telefono.
+
+## Secondo giro: le proposte da 11 a 15
+
+Aggiunte il 31/10 alle 21:27, da un prompt di un'altra IA valutato lo stesso giorno. Franz: «Aggiungi le cinque all'elenco». Sono proposte, non lavori approvati: si scelgono dopo la prova delle prime tre. La 14 viene per prima, perché la 11 e la 12 ne usano i valori.
