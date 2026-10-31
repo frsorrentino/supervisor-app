@@ -224,7 +224,7 @@
     </a>
     <div class="srow plain">
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg></span>
-      <span class="st"><b>{t.versionTitle}</b><small>{t.webVersion(__APP_VERSION__)}</small></span>
+      <span class="st"><b>{t.versionTitle}</b><small>{t.webVersion(__APP_COMMIT__ ? `${__APP_VERSION__} · ${__APP_COMMIT__}` : __APP_VERSION__)}</small></span>
     </div>
   </div>
   <div class="srow plain crediti" data-testid="info-crediti">

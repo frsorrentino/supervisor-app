@@ -26,6 +26,8 @@ jobs:
       HAS_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
+        # La versione mostrata conta i commit: con la copia superficiale sarebbe 0.2.1.
+        with: { fetch-depth: 0 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       # Il default di `packages` è «tools platform-tools», e «tools» è sparito dall'archivio dell'SDK il 14/09/2026 sera:

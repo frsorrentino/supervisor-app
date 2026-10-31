@@ -21,8 +21,10 @@ android {
         // Stesso pacchetto su Play per telefono e orologio: versionCode = release × 10 + fattore di forma
         // (1 telefono, 2 orologio), unici nella scheda e con l'orologio sempre sopra il telefono.
         versionCode = 21
-        // Il commit nella versione mostrata (30/10, Franz): cambia a ogni pre-release; versionCode resta per Play.
-        versionName = "0.2-" + providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }.standardOutput.asText.get().trim()
+        // Solo numeri in alto (Franz 31/10 21:38): cresce a ogni commit, uguale sul web; il commit resta in Informazioni.
+        // Serve la storia intera: in CI il checkout ha fetch-depth 0. versionCode resta per Play.
+        versionName = "0.2." + providers.exec { commandLine("git", "rev-list", "--count", "HEAD") }.standardOutput.asText.get().trim()
+        buildConfigField("String", "GIT_COMMIT", "\"" + providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }.standardOutput.asText.get().trim() + "\"")
     }
     buildFeatures { compose = true; buildConfig = true }
     // Due distribuzioni (26/10, approvata da Franz alle 14:38 «Solo build Play»): `github` è la build delle release e di

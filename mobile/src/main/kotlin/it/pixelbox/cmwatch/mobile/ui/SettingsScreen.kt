@@ -52,7 +52,7 @@ import it.pixelbox.cmwatch.rules.SpeechRate
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
-    host: String?, phoneName: String, watchName: String?, watchPending: Boolean, demo: Boolean, version: String,
+    host: String?, phoneName: String, watchName: String?, watchPending: Boolean, demo: Boolean, version: String, commit: String = "",
     onRepair: () -> Unit, onDemo: (Boolean) -> Unit, onNotifications: () -> Unit, onPrivacy: () -> Unit,
     language: AppLanguage.Choice = AppLanguage.Choice.SYSTEM, onLanguage: (AppLanguage.Choice) -> Unit = {},
     /** La voce che legge (Franz, 02/10 00:01): le voci italiane del motore, quella scelta (null = predefinita), la prova. */
@@ -170,7 +170,7 @@ fun SettingsScreen(
             section("info", stringResource(R.string.sec_info), Icons.Outlined.Info, version) {
             SectionCard {
                 SettingsRow(Icons.Outlined.PrivacyTip, stringResource(R.string.privacy), stringResource(R.string.privacy_sub), onPrivacy)
-                SettingsRow(Icons.Outlined.Info, stringResource(R.string.version_title), stringResource(R.string.version_value, version), onClick = null)
+                SettingsRow(Icons.Outlined.Info, stringResource(R.string.version_title), stringResource(R.string.version_value, if (commit.isEmpty()) version else "$version · $commit"), onClick = null)
                 updateStatus?.let { SettingsRow(Icons.Outlined.SystemUpdate, stringResource(R.string.updates_title), it, onCheckUpdate) }
                 Column(Modifier.testTag("info-crediti").padding(start = V3.Rail + 8.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.credits_title), style = V3.Name)
