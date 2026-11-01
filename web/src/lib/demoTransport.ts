@@ -1,7 +1,7 @@
 import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
-import { demoSearch, world, type World } from './demo'
+import { demoSearch, pluginsDemo, world, type World } from './demo'
 import { NIGHT_TARGET } from './recapAgenda'
 
 // La demo che risponde, porta di FakeTransport.kt (Franz, 15/10 20:36: «la demo deve rispecchiare al 100% l'app»): i
@@ -166,6 +166,10 @@ export class DemoTransport implements Transport {
           const q = (cmd.arg ?? '').trim().replace(/\s+/g, ' ')
           return !q || q.length > 200 ? ko('bad query: from 1 to 200 characters') : ok(JSON.stringify(demoSearch({ state: s, transcripts: this.world.transcripts }, q)))
         }
+        case 'home_order': { let o: string[]; try { o = JSON.parse(cmd.arg ?? '[]') } catch { return ko('home_order: expected a JSON array') } this.set({ ...s, home_order: o.length ? o : undefined }); return ok('saved') }
+        case 'plugins': return ok(JSON.stringify({ ...pluginsDemo(this.now()), accounts: pluginsDemo(this.now()).accounts.map(a => ({ ...a, plugins: a.plugins.map(p => ({ ...p, update: !!p.update && !!s.plugins?.accounts.some(x => x.updates.includes(p.id)) })) })) }))
+        case 'plugin_check': this.set({ ...s, plugins: s.plugins ? { ...s.plugins, checked_at: this.now() } : s.plugins }); return ok('checked')
+        case 'plugin_update': case 'plugin_update_all': { const id = cmd.op === 'plugin_update' ? (cmd.arg ?? '').split(':').slice(1).join(':') : null; this.set({ ...s, plugins: s.plugins ? { ...s.plugins, accounts: s.plugins.accounts.map(a => ({ ...a, updates: id ? a.updates.filter(u => u !== id) : [] })) } : s.plugins }); return ok('updated') }
         case 'timeline': return ok(JSON.stringify(cmd.session ? { ...this.world.timeline, sessions: this.world.timeline.sessions.filter(x => x.session === cmd.session) } : this.world.timeline))
         case 'night_add': {
           const p = s.projects.find(x => x.path === cmd.arg)

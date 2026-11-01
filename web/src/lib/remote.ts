@@ -1,7 +1,7 @@
 // La strada remota (fase 3 del piano web): lo stesso bus RTDB del telefono, con le buste AES-GCM della chiave del relay,
 // come FirebaseTransport.kt del core Android. Dalla web app si usa quando la pagina non è quella servita dal relay.
 
-import type { Bus, SseEvent } from './bus'
+import { BusError, type Bus, type SseEvent } from './bus'
 import { decodeState, tailKey, type Cmd, type CmdResult, type Event, type State, type Tail } from './contract'
 import { fromB64, openBlob, openBlobBytes, sealBlob, sealBytes, toB64, toHex } from './crypto'
 import { resultTimeoutMs, TransportError, type FileBlob, type Transport } from './transport'
@@ -47,6 +47,11 @@ export class RemoteTransport implements Transport {
 
   /** Contratto 1.20: «ho ricevuto», con l'ora del server; mai d'ostacolo alla lettura. */
   private markSeen() { this.bus.put(`seen/${this.o.uid}`, { '.sv': 'timestamp' }).catch(() => {}) }
+
+  /** Il bus rifiuta questo browser (dispositivo revocato, token non più valido)? La rete giù non è un rifiuto. */
+  async denied(): Promise<boolean> {
+    try { await this.bus.get('state'); return false } catch (e) { return e instanceof BusError && [400, 401, 403].includes(e.status) }
+  }
 
   async fetchState(): Promise<State> {
     const doc = await this.bus.get('state')

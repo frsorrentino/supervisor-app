@@ -7,6 +7,8 @@ import { decodeChanges, decodeState } from './contract'
 import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
+import type { Commitment, PluginsPage, SystemStatus, TimelineEvent } from './contract'
+import { midnight } from './kpi'
 import type { NightReport } from './night'
 import { lang } from './lang'
 
@@ -59,6 +61,13 @@ const WINDOW_LEFT_S = 2 * 3600
 
 const isoDay = (t: number) => new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t * 1000))
 
+/** Il risultato dell'op `plugins`: gli stessi due di `state.plugins`, più gli aggiornati e le skill. */
+export const pluginsDemo = (now: number): PluginsPage => ({ checked_at: now - 2400, accounts: [{ account: 'personal', plugins: [
+  { id: 'docs-helper@demo', name: 'docs-helper', installed: '1.2.0', latest: '1.3.0', update: true },
+  { id: 'release-notes@demo', name: 'release-notes', installed: '0.9.1', latest: '0.9.4', update: true },
+  { id: 'test-runner@demo', name: 'test-runner', installed: '2.0.0', latest: '2.0.0', update: false },
+], skills: [{ name: 'changelog', version: '1.0' }] }] })
+
 export type World = {
   state: State; events: Event[]; transcripts: Record<string, TranscriptEntry[]>; mine: [Sent, Status][]; samples: Record<string, Sample[]>
   night: NightReport; agenda: AgendaPage; timeline: TimelinePage
@@ -88,6 +97,22 @@ export function world(now: number): World {
       if (x.name === 'blog') return { ...x, turn_blocking: stopOk, followed: true, context: 64 }
       return x
     }),
+    // Al lavoro adesso: nella fixture l'unica in turno è ferma su un login, e il tabellone direbbe 0.
+    { id: 'a', name: 'admin-panel', account: 'personal', account_kind: 'personal', project: 'personal/admin-panel', state: 'busy', since: now - 1500, turn_started: now - 1500, context: 41,
+      tool: 'Bash npm test', model: { id: 'claude-sonnet-5', label: 'Sonnet 5' }, goal: { text: en ? 'New users table with filters' : 'Nuova tabella utenti con i filtri', since: now - 1500 } },
+  ]
+  // Lavori: tre aspettano te e tre lavorano, coi nomi della demo.
+  const task = (id: string, title: string, session: string, on: string, extra: Partial<Commitment> = {}): Commitment => ({
+    task: id, title, short: title, session, state: on === 'person' ? 'awaiting_ok' : 'running', approved: on !== 'person', age_s: 3 * 3600, idle_s: 300, stalled: false, waits: { who: on === 'person' ? 'you' : session, on }, ...extra,
+  })
+  const commitments: Commitment[] = [
+    task('demo-login', en ? 'Sandbox login' : 'Login nella sandbox', 'storefront', 'person', { paused: { reason: stopLogin.reason, at: stopLogin.at } }),
+    task('demo-post', en ? 'Publish the post' : 'Pubblica il post', 'blog', 'person', { paused: { reason: stopOk.text, at: stopOk.at } }),
+    // L'ok della fixture appartiene a una sessione aperta: sta nella sua scheda, e «Ti aspettano» dice lo stesso numero del tabellone.
+    ...base.approvals.map(a => task(a.task, en ? 'Deploy 2.8.0' : 'Rilascio 2.8.0', 'payments-api', 'person')),
+    task('demo-docs', en ? 'API pages' : 'Pagine API', 'payments-api', 'session'),
+    task('demo-users', en ? 'Users table' : 'Tabella utenti', 'admin-panel', 'session'),
+    task('demo-cart', en ? 'Cart totals' : 'Totali del carrello', 'storefront', 'session'),
   ]
   const state: State = {
     ...base, ts: now, published_at: now, sessions,
@@ -106,7 +131,13 @@ export function world(now: number): World {
       { kind: 'turn_blocking', session: 'blog', ref: 'blog', title: stopOk.text, since: stopOk.at },
     ].sort((a, b) => a.since - b.since),
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
-    ops: [...(base.ops ?? []), 'suggestion', 'close_preview', 'close'],
+    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
+    commitments,
+    // Contratto 1.90: la macchina tranquilla, così «Sistema» parte chiuso come di solito.
+    system: { at: now - 30, cores: 8, load1: 3.4, load_per_core: 0.42, mem_total_mb: 16000, mem_available_mb: 10100, level: 'green', load_level: 'green', mem_level: 'green',
+      consumers: [{ group: 'node', count: 6, cpu: 1.4, rss_mb: 1800 }, { group: 'chrome', count: 9, cpu: 0.6, rss_mb: 1200 }], advice: [] } satisfies SystemStatus,
+    // Contratto 1.95: lo stesso elenco di `pluginsDemo`, due da aggiornare.
+    plugins: { checked_at: now - 2400, accounts: [{ account: 'personal', updates: ['docs-helper@demo', 'release-notes@demo'] }] },
     // Contratto 1.84 (scheda A): tre suggerimenti della master del giro delle 8 o delle 19, uno per tipo.
     suggestions: [
       { id: 'sg-1', kind: 'recurring', key: 'recurring:ci-storefront', text: en ? 'You often ask «how did the storefront CI go»: add it to Recurring?' : 'Chiedi spesso «com\'è andata la CI di storefront»: la aggiungo ai Ricorrenti?', prompt: 'Add «how did the storefront CI go» to Recurring', at: now - 900 },
@@ -231,6 +262,16 @@ export function world(now: number): World {
     { session: 'storefront', live: true, events: [{ at: d0 + 1200, kind: 'commit', text: 'fix the cart totals', ref: '4be1c2a' }, { at: d0 + 2400, kind: 'prompt', text: 'ok, run the checkout tests', ref: 'storefront' },
       { at: d0 + 6000, kind: 'test', text: 'checkout tests', ok: true }] },
   ] }
+  // Gli esiti di oggi, uno per tipo (contratto 1.98), sempre da mezzanotte in poi: il tabellone non scende a zero di notte.
+  const today = midnight(now)
+  const esito = (ago: number, text: string, type: string | null): TimelineEvent => ({ at: Math.max(today + 1, now - ago), kind: 'outcome', text, ok: null, ref: null, type })
+  const add = (session: string, ...e: TimelineEvent[]) => { timeline.sessions.find(s => s.session === session)?.events.push(...e) }
+  timeline.sessions.push({ session: 'admin-panel', live: true, events: [] }, { session: 'blog', live: true, events: [] })
+  add('payments-api', esito(5400, en ? 'Refund endpoint tests are red on the partial case' : 'I test dei rimborsi sono rossi sul caso parziale', 'problem'), esito(2700, en ? 'Deploy 2.8.0 ready: waiting for your ok' : 'Rilascio 2.8.0 pronto: aspetta il tuo ok', 'waiting'))
+  add('storefront', esito(4800, en ? 'Cart totals fixed, checkout tests green' : 'Totali del carrello corretti, test del checkout verdi', 'done'), esito(600, en ? 'Tests running on the checkout' : 'Test in corso sul checkout', 'running'))
+  add('blog', esito(3600, en ? 'Post published on the staging site' : 'Post pubblicato sul sito di prova', 'shipped'), esito(7200, en ? 'The feed is generated at build time' : 'Il feed si genera al momento della build', 'answer'))
+  add('admin-panel', esito(6300, en ? 'Filters added to the users table' : 'Filtri aggiunti alla tabella utenti', null), esito(300, en ? 'Build running on the new table' : 'Build in corso sulla nuova tabella', 'running'))
+  for (const s of timeline.sessions) s.events.sort((a, b) => a.at - b.at)
 
   return { state, events, transcripts, mine, samples, night, agenda, timeline, fullDiffs }
 }

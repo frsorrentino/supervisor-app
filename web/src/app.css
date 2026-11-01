@@ -54,6 +54,7 @@ html, body { height: 100%; }
 /* Con la barra del titolo nostra (Window Controls Overlay) sul telefono stretto il contenuto comincia sotto; sulla scrivania la
    home e le colonne salgono fin in cima e la scheda di ogni colonna sta nella barra, saldata alla colonna (Franz, 06/10 08:16).
    `?wco=1` la simula a 40 px. Si trascina la finestra dalla testata della home e dai vuoti sopra le colonne. */
+body.demo-on #app { padding-top: calc(env(safe-area-inset-top) + 36px); }
 body.wco #app { padding-top: env(titlebar-area-height, 40px); }
 body.wcodesk #app { padding-top: 0; }
 body.wcodesk .desk .col { top: env(titlebar-area-height, 40px); border-top-left-radius: 0; }

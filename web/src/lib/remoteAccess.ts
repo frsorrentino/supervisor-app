@@ -32,6 +32,19 @@ export function remoteFor(url: URL, store: Store): RemoteConfig | null {
   return url.searchParams.has('demo') ? null : loadRemote(store)
 }
 
+/** Senza nessuno stato dopo tanto, o con l'accesso rifiutato, la demo al posto dell'interfaccia vuota (Franz 01/11 18:21). */
+export const NO_DATA_MS = 15_000
+export const demoFallback = (s: { hasState: boolean; denied: boolean; elapsedMs: number }): boolean => !s.hasState && (s.denied || s.elapsedMs >= NO_DATA_MS)
+
+/** Perché si è finiti nella demo: il collegamento c'è ma non risponde, o è rifiutato; null = demo chiesta con `?demo`. */
+export type DemoReason = 'offline' | 'denied'
+export function demoReason(url: URL): DemoReason | null {
+  const v = url.searchParams.get('demo')
+  return v === 'offline' || v === 'denied' ? v : null
+}
+export const demoLink = (reason: DemoReason, url: URL): string => `${url.pathname}?demo=${reason}`
+export const realLink = (url: URL): string => url.pathname
+
 /** La pagina del relay (strada locale) e il server di sviluppo non si accoppiano; `?demo` mostra i dati di prova. */
 export function wantsPairing(url: URL, remote: RemoteConfig | null): boolean {
   if (remote) return false

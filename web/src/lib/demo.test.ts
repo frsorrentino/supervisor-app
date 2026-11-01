@@ -20,7 +20,7 @@ const live = (st: State) => st.sessions.filter(s => s.state !== 'gone')
 
 describe('i dati della demo', () => {
   it('i nomi della demo Android (DemoText), nessun nome vero', () => {
-    expect(w.state.sessions.map(s => s.name)).toEqual(['master', 'payments-api', 'storefront', 'blog', 'pricing-page'])
+    expect(w.state.sessions.map(s => s.name)).toEqual(['master', 'payments-api', 'storefront', 'blog', 'pricing-page', 'admin-panel'])
     const all = JSON.stringify(w)
     for (const name of ['claude-master', 'team-supervisor', 'franz', 'Franz', 'personali/', 'ledger-api', 'atlas-shop', 'field-notes', 'orbit-docs', 'DEPLOY_TOKEN']) expect(all).not.toContain(name)
   })
@@ -123,19 +123,19 @@ describe('il PC finto della demo (FakeTransport)', () => {
   it('i conti seguono risposte, chiusure e riaperture', async () => {
     const d = tr()
     let c = counts(d)
-    expect(c).toEqual({ banner: ['blog', 'payments-api', 'storefront'], home: ['blog', 'payments-api', 'storefront'], queue: ['blog', 'payments-api', 'storefront'], night: ['question:payments-api', 'unblock:blog'], open: 3 })
+    expect(c).toEqual({ banner: ['blog', 'payments-api', 'storefront'], home: ['blog', 'payments-api', 'storefront'], queue: ['blog', 'payments-api', 'storefront'], night: ['question:payments-api', 'unblock:blog'], open: 4 })
     await d.send(newCmd('answer', 'payments-api', '2', undefined, d.state.sessions.find(s => s.name === 'payments-api')!.question!.id))
     c = counts(d)
-    expect(c).toEqual({ banner: ['blog', 'storefront'], home: ['blog', 'storefront'], queue: ['blog', 'storefront'], night: ['unblock:blog'], open: 3 })
+    expect(c).toEqual({ banner: ['blog', 'storefront'], home: ['blog', 'storefront'], queue: ['blog', 'storefront'], night: ['unblock:blog'], open: 4 })
     await d.send(newCmd('slash', 'blog', 'exit'))
     c = counts(d)
-    expect(c).toEqual({ banner: ['storefront'], home: ['storefront'], queue: ['storefront'], night: [], open: 2 })
+    expect(c).toEqual({ banner: ['storefront'], home: ['storefront'], queue: ['storefront'], night: [], open: 3 })
     await d.send(newCmd('reopen', 'blog'))
     c = counts(d)
-    expect(c).toEqual({ banner: ['storefront'], home: ['storefront'], queue: ['storefront'], night: ['unblock:blog'], open: 3 })
+    expect(c).toEqual({ banner: ['storefront'], home: ['storefront'], queue: ['storefront'], night: ['unblock:blog'], open: 4 })
     await d.send(newCmd('prompt', 'storefront', 'code 4411'))
     c = counts(d)
-    expect(c).toEqual({ banner: [], home: [], queue: [], night: ['unblock:blog'], open: 3 })
+    expect(c).toEqual({ banner: [], home: [], queue: [], night: ['unblock:blog'], open: 4 })
   })
 })
 

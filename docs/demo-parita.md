@@ -12,6 +12,34 @@ Regole coperte da test automatici (`web/src/lib/*.test.ts`): `demo.test.ts` (dat
 home, banner, avviso e coda, PC finto che risponde come FakeTransport), `swipePages.test.ts`, `queue.test.ts`,
 `outside.test.ts`, `sessionsMenu.test.ts`.
 
+## Revisione del 01/11/2026 (compito app-demo-allineata-01-11)
+
+Franz, 18:21: la pagina pubblica mostrava una grafica vuota. Due difetti distinti, entrambi corretti, sul web. Le righe sotto valgono fino al 16/10; da qui in poi vale questa tabella.
+
+| schermata | nell'app di oggi | nella demo | stato |
+|---|---|---|---|
+| Browser collegato senza dati | Stato mai arrivato: resta vuoto per sempre | Dopo 15 s o al rifiuto del bus, la demo con avviso e «Riprova» o «Collega questo browser». Con uno stato già arrivato non cambia niente | ok, solo web |
+| Avviso | Non esiste | Fisso in cima su tutte le pagine, non solo in home | ok |
+| Tabellone | Tre cifre, quota | 3 aspettano, 1 al lavoro (`admin-panel`), 6 esiti di oggi; gli stessi numeri nelle pagine dietro i riquadri (test `demo_allineata`) | ok |
+| Ti aspettano | Schede in attesa più ok senza sessione | 3, come il tabellone: l'ok della fixture sta nella scheda di `payments-api` | ok |
+| Esiti di oggi | Per tipo o per sessione, «In corso» chiuso in fondo | Un esito per tipo, uno senza tipo, due in corso fuori dal numero | ok |
+| Lavori | Impegni dal registro | 3 aspettano te, 3 al lavoro | ok |
+| Utilizzo | Dalla quota | Dalla fixture | ok |
+| Sistema | `state.system` | Macchina tranquilla, win acceso | ok |
+| Plugin e skill | Op `plugins` | Due da aggiornare; «Aggiorna» e «Controlla ora» rispondono | ok |
+| Chiuse | Sessioni chiuse | `pricing-page` | ok |
+| Slot | Voce agganciata col dato in più | Tutte e cinque le voci, più Utilizzo; misura col tocco emulato | ok |
+| Riordino e swipe | Trascinamento, pagine accanto | Provati a 412 px | ok |
+
+Resta diverso:
+
+- **Le cifre delle proposte KPI** (op `kpi`: Kpi8, Kpi12, Kpi13) non ci sono: nella demo l'op non si chiede, e servirebbe inventare una settimana di dati coerenti. Le sezioni si leggono anche senza.
+- **La demo dell'app Android** (`FakeTransport`) non è stata toccata: questo compito riguarda la pagina web. Non ha `admin-panel`, né Sistema, né Plugin nuovi.
+- **Le schermate larghe** (tablet e desktop) non sono state riprovate una per una: la prova dal vivo di questa revisione è a 412 px.
+- **«Collega questo browser» su un dispositivo revocato davvero**: provato con una risposta 401 simulata, non con una revoca reale.
+
+## Inventario del 15-16/10
+
 | area | nell'app | nella demo | stato |
 |---|---|---|---|
 | dati | La demo dell'app (FakeTransport + DemoText): payments-api, storefront, blog, pricing-page, stato portato ad adesso | Stessi nomi e testi; stato, eventi, notte e recap portati ad adesso; in più la master e una conversazione per sessione | ok |

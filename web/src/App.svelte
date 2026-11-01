@@ -21,7 +21,7 @@
   import { advance, prune, status, type PendingStatus, type Sent, type Status, type Upload } from './lib/chatRules'
   import type { Sample } from './lib/quotaHistory'
   import { LocalTransport, localAccess, newCmd, type Transport } from './lib/transport'
-  import { CANONICAL, needsHomeScreen, remoteFor, remoteTransport, wantsPairing } from './lib/remoteAccess'
+  import { CANONICAL, demoFallback, demoLink, demoReason, forget, loadRemote, needsHomeScreen, NO_DATA_MS, realLink, remoteFor, remoteTransport, wantsPairing } from './lib/remoteAccess'
   import { currentSubscription, pushStatus, subscribe, subscriptionDoc } from './lib/push'
   import PairPage from './lib/PairPage.svelte'
   import { approveText, canClear, clearDue, handoffPrompt } from './lib/masterService'
@@ -92,6 +92,7 @@
   const save = (k: string, v: string) => { try { localStorage.setItem(k, v) } catch { /* resta per la sessione */ } }
   const json = <T,>(k: string, d: T): T => { try { return JSON.parse(load(k) ?? '') as T } catch { return d } }
   const nowS = () => Math.round(Date.now() / 1000)
+  const startedAt = Date.now()
 
   // Strada locale (contratto 1.35) sulla pagina servita dal relay; altrove la strada remota del browser collegato (fase 3),
   // e senza collegamento la pagina che lo fa. Il server di sviluppo e `?demo` mostrano i dati di prova.
@@ -165,9 +166,21 @@
       record(s)
       clearsDue(s)
       refreshEvents()
-    }, () => { down = true })
+    }, () => { down = true; if (rt) void noData() })
     setInterval(() => (clock = nowS()), 30_000)
+    if (rt) setTimeout(() => void noData(), NO_DATA_MS)
   }
+  // Mai arrivato uno stato: la demo al posto del vuoto, col suo avviso. Con uno stato già arrivato si resta lì, come oggi.
+  async function noData() {
+    if (ready || !rt) return
+    const denied = await rt.denied()
+    if (demoFallback({ hasState: ready, denied, elapsedMs: Date.now() - startedAt })) location.replace(demoLink(denied ? 'denied' : 'offline', new URL(location.href)))
+  }
+  const demoWhy = demo && loadRemote(store) ? demoReason(new URL(location.href)) : null
+  const demoRetry = () => location.replace(realLink(new URL(location.href)))
+  const demoPair = () => { forget(store); demoRetry() }
+  if (demoWhy === 'offline') addEventListener('online', demoRetry)
+  if (demo) document.body.classList.add('demo-on')
   $effect(() => { if (tr && !demo) save('cm.sent', JSON.stringify(msgs)) })
 
   // Notifiche web push (fase 4), solo sulla strada remota: l'iscrizione si riscrive a ogni avvio, perché il browser può
@@ -1013,7 +1026,6 @@
     {#snippet menu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
     {#snippet quick()}{@render masterQuick()}{/snippet}
     {#snippet list()}
-      {#if demo}<div class="demobar">{t.demoBanner}</div>{/if}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />
       <div class="list">{@render homeView(null)}</div>
       {#if !master && ready}
@@ -1029,7 +1041,7 @@
 
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
 {#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | null)}<Home st={stShown} {part} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
-        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && !demo && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && !demo && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
+        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestionFirst={suggestionInfo(sug.shown)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
@@ -1179,6 +1191,7 @@
     {@render chatOf(reading, true)}
   </div>
 {/if}
+{#if demo}<div class="demobar" data-testid="demo-avviso"><span>{t.demoBanner}</span>{#if demoWhy === 'offline'}<button onclick={demoRetry}>{t.demoRetry}</button>{:else if demoWhy === 'denied'}<button onclick={demoPair}>{t.demoPair}</button>{/if}</div>{/if}
 {#if !demo && (!ready || down)}<span class="demo mono">{ready ? t.relayDown : t.relayConnecting}</span>{/if}
 {#if notice}<div class="notice" role="status">{notice}</div>{/if}
 {/if}
@@ -1196,7 +1209,8 @@
   .list { flex: 1; min-height: 0; }
   .strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
   .strip::-webkit-scrollbar { display: none; }
-  .demobar { flex: none; padding: 6px 16px; background: color-mix(in srgb, var(--wait) 22%, var(--bg)); color: var(--wait); font-size: 13px; font-weight: 500; }
+  .demobar button { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--wait); color: var(--bg); font-weight: 600; font-size: 13px; }
+  .demobar { position: fixed; top: env(safe-area-inset-top); left: 0; right: 0; z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; box-sizing: border-box; padding: 4px 12px; background: color-mix(in srgb, var(--wait) 22%, var(--bg)); color: var(--wait); font-size: 13px; font-weight: 500; }
   .pg { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; }
   .reading:empty { display: none; }
   .nomaster { display: flex; align-items: center; gap: 12px; margin: 8px 16px; padding: 14px 16px; border-radius: 20px; background: var(--low); }
