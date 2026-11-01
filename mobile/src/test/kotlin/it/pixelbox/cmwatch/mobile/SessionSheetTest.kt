@@ -466,6 +466,15 @@ class SessionSheetTest {
         }
     }
 
+    // Il chip col dato delle 5 ore assente: solo la settimana nel testo e nella barra, mai un finto 0%.
+    @Test fun quotaBarsNoFiveHours() = paparazzi.snapshot {
+        val rings = listOf(
+            it.pixelbox.cmwatch.rules.PhoneOverview.Ring("personale", true, null, 11, null, null),
+            it.pixelbox.cmwatch.rules.PhoneOverview.Ring("professionale", false, 34, 63, null, null),
+        )
+        CmPhoneTheme(still = true) { QuotaBars(rings, onOpen = {}) }
+    }
+
     // Le tabelle nel testo (Franz, 02/10 21:11): una stretta resta griglia, una larga diventa una scheda per riga.
     @Test fun sheetTables() = paparazzi.snapshot {
         val s = st.sessions.first { it.state == SessionState.IDLE }

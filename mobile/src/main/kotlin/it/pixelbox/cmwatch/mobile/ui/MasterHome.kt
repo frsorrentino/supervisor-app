@@ -429,12 +429,18 @@ fun QuotaBars(rings: List<PhoneOverview.Ring>, onOpen: () -> Unit, stacked: Bool
                 mod.clip(RoundedCornerShape(12.dp)).background(if (stacked) Cm.bg else Cm.surfaceLow).handCursor().clickable(onClick = onOpen).padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                // Senza il dato delle 5 ore, testo e barra dicono la settimana, come il web: mai un finto 0%.
+                val h5 = r.h5
                 Text(
-                    if (r.stale) stringResource(R.string.home_quota_old, r.account) else stringResource(R.string.home_quota, r.account, r.h5 ?: 0, r.w7 ?: 0),
+                    when {
+                        r.stale -> stringResource(R.string.home_quota_old, r.account)
+                        h5 == null -> stringResource(R.string.quadro_week, r.account, r.w7 ?: 0)
+                        else -> stringResource(R.string.home_quota, r.account, h5, r.w7 ?: 0)
+                    },
                     style = MaterialTheme.typography.labelMedium, color = if (r.stale) Cm.waiting else Cm.text2, maxLines = 1, overflow = TextOverflow.Clip,
                 )
                 Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
-                    Box(Modifier.fillMaxWidth(((r.h5 ?: 0).coerceIn(0, 100)) / 100f).fillMaxHeight().background(if (r.stale) Cm.text2 else Cm.briefRing))
+                    Box(Modifier.fillMaxWidth(((h5 ?: r.w7 ?: 0).coerceIn(0, 100)) / 100f).fillMaxHeight().background(if (r.stale) Cm.text2 else if (h5 == null) Cm.briefWeek else Cm.briefRing))
                 }
             }
     }
