@@ -230,10 +230,10 @@ fun SummaryList(
     val dragZones = remember { mutableMapOf<String, Pair<String, androidx.compose.ui.layout.LayoutCoordinates>>() }
     val dragPresent = remember { mutableSetOf<String>() }
     var dragBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
-    fun overBoard(y: Float): Boolean {
-        val box = dragBox?.takeIf { it.isAttached } ?: return false
-        val board = boardBox?.takeIf { it.isAttached } ?: return false
-        return y < box.localBoundingBoxOf(board, false).bottom
+    fun overSlot(held: String, y: Float): Boolean {
+        val box = dragBox?.takeIf { it.isAttached }
+        val r = boardBox?.takeIf { it.isAttached }?.let { b -> box?.localBoundingBoxOf(b, false) }
+        return it.pixelbox.cmwatch.rules.HomeOrder.overSlot(held, y, r?.top, r?.bottom, alarmNow)
     }
     fun sectionDrag(key: String): Modifier = if (onHomeOrder == null) Modifier else Modifier.onGloballyPositioned { dragZones[key] = key to it }
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
@@ -287,7 +287,10 @@ fun SummaryList(
     // Una lista «pigra» con le card riconosciute dal nome della sessione: quando una sessione cambia gruppo (da «Al lavoro» a
     // «Ha finito») la sua card scivola al posto nuovo e le altre si spostano (osservazioni del 03/10, transizione 4).
     val off = animationsOff()
-    val moving: @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { foldItem() }
+    // Durante il trascinamento niente rimbalzo: i centri delle testate, letti a metà molla, invertivano la scelta del posto.
+    val moving: @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = {
+        if (dragKey != null) Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null, placementSpec = androidx.compose.animation.core.tween(120, easing = CmMotion.easing)) else foldItem()
+    }
     val movingIn: (String) -> @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { sec ->
         // La voce presa non scivola: al suo posto c'è già la copia che segue il dito, e scivolando passerebbe sopra le altre.
         { (if (dragKey == sec) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null) else moving()).graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f } }
@@ -308,9 +311,9 @@ fun SummaryList(
             }
             if (v != 0f) listState.scrollBy(v)
             val o = dragOrder ?: continue
-            if (t - last < 120_000_000L) continue
-            // Sullo slot l'ordine non si tocca: chi aggancia torna dov'era quando esce.
-            if (it.pixelbox.cmwatch.rules.HomeOrder.pinnable(held) && !alarmNow && overBoard(y)) continue
+            if (t - last < 160_000_000L) continue
+            // Sullo slot l'ordine non si tocca: chi aggancia torna dov'era quando esce. Chi esce dallo slot non è in elenco: il suo posto lo decide il rilascio.
+            if (overSlot(held, y) || (held == savedPinNow && !alarmNow)) continue
             // Ogni voce ha la sua zona: la testata di una sezione o la riga di una card, anche con più righe nello stesso elemento.
             val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
             val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
@@ -348,9 +351,10 @@ fun SummaryList(
                 }
             } finally {
                 val o = dragOrder
-                val dropped = it.pixelbox.cmwatch.rules.HomeOrder.pinnable(key) && !alarmNow && overBoard(dragY)
+                val dropped = overSlot(key, dragY)
+                val releaseMids = dragBox?.takeIf { b -> b.isAttached }?.let { b -> dragZones.values.filter { (k, c) -> c.isAttached && k != key }.associate { (k, c) -> k to b.localBoundingBoxOf(c, false).center.y } }.orEmpty().filterKeys { k -> k in dragPresent }
                 // Voce 8: la copia del titolo vola al posto finale invece di sparire di colpo.
-                val landing = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "sec-$key" }?.offset?.toFloat()
+                val landing = if (dropped) null else listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "sec-$key" }?.offset?.toFloat()
                 if (commit && landing != null && !flightOff) {
                     val from = dragY + dragGhostShift
                     ghostFly = key
@@ -358,9 +362,7 @@ fun SummaryList(
                 }
                 dragOrder = null; dragKey = null
                 if (commit && o != null) {
-                    val nextOrder = if (dropped) shownOrder else o
-                    // Una seconda voce prende il posto della prima; chi esce dallo slot torna nel punto del rilascio. Con l'allarme una voce agganciata è solo di passaggio in elenco.
-                    val nextPin = if (dropped) key else if (savedPinNow == key && !alarmNow) null else savedPinNow
+                    val (nextOrder, nextPin) = it.pixelbox.cmwatch.rules.HomeOrder.release(shownOrder, o, key, savedPinNow, alarmNow, dropped, dragY, releaseMids)
                     if (nextOrder != shownOrder || nextPin != savedPinNow) {
                         val full = it.pixelbox.cmwatch.rules.HomeOrder.withPin(nextOrder, nextPin)
                         sentOrder = full; saveOrder?.invoke(full)
@@ -436,7 +438,13 @@ fun SummaryList(
         // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, con sotto la quota (stile «Studio e Diretta», 30/10).
         var slotContent: @Composable () -> Unit = {}
         kpiState?.let { st ->
-            item(key = "kpi-7") { Box(moving().onGloballyPositioned { c -> boardBox = c }) { Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, onBox, onQuota, slot = { slotContent() }) } }
+            item(key = "kpi-7") {
+                Box(moving().onGloballyPositioned { c -> boardBox = c }) {
+                    Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, onBox, onQuota, slot = { slotContent() })
+                    val held = dragKey
+                    if (held != null && it.pixelbox.cmwatch.rules.HomeOrder.pinnable(held) && !weekAlarm) SlotDrop(overSlot(held, dragY))
+                }
+            }
         }
         // L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi «Altro».
         val waitRows = model.rows.filter { it.group == Summary.Group.WAITING }
@@ -480,8 +488,8 @@ fun SummaryList(
         // Contratto 1.84 (scheda A): i suggerimenti dopo le sessioni (Franz 30/10 16:44), fuori dal numero di chi aspetta: un consiglio non blocca nessuno.
         val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
         val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(zone)) }
-        // La voce nello slot sta solo lì; mentre la si trascina fuori torna in elenco, attenuata, come le altre.
-        val listSkip = if (dragKey == pin) null else pin
+        // La voce nello slot sta solo lì, anche mentre la si trascina fuori: torna in elenco al rilascio, così niente cambia altezza.
+        val listSkip = pin
         val renderSessions: () -> Unit = {
         val moving = movingIn("sessions")
         if (restRows.isNotEmpty() || justClosed != null) {
@@ -654,10 +662,7 @@ fun SummaryList(
         val slotDrag: (String) -> Modifier = { k -> if (weekAlarm && k == "usage") Modifier else sectionDrag(k) }
         slotContent = {
             val icons = androidx.compose.material.icons.Icons.Outlined
-            if (dragKey != null && it.pixelbox.cmwatch.rules.HomeOrder.pinnable(dragKey!!) && !weekAlarm) {
-                Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-                SlotDrop()
-            } else when (pin) {
+            when (pin) {
                 "suggestions" -> if (sug != null) {
                     SlotRow(slotDrag("suggestions"), stringResource(R.string.sug_title), icons.AutoAwesome, sug.total.toString(), sugAt?.let { at -> if (suggestionsOpen) at else stringResource(R.string.home_last_at, at) }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) }
                     if (suggestionsOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } }

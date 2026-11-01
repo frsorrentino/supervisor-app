@@ -48,5 +48,23 @@ export const withPin = (order: HomeSection[], pin: HomeSection | null): string[]
 /** Chi sta nello slot adesso: l'allarme della settimana passa davanti, e la voce agganciata riprende il posto quando finisce. */
 export const slotKey = (pin: HomeSection | null, alarm: boolean): HomeSection | null => (alarm ? 'usage' : pin)
 
+/** Il bersaglio dello slot è il riquadro e basta (Franz 01/11 15:43): sopra o sotto, nessun aggancio. */
+export const overSlot = (held: string, y: number, top: number | null, bottom: number | null, alarm: boolean): boolean =>
+  pinnable(held) && !alarm && top != null && bottom != null && y >= top && y <= bottom
+
+/** Dove torna chi esce dallo slot: prima della prima testata sotto il dito, in fondo se non ce n'è. */
+export function dropAt(order: HomeSection[], held: HomeSection, y: number, mids: Partial<Record<HomeSection, number>>): HomeSection[] {
+  const rest = order.filter(k => k !== held)
+  const at = rest.findIndex(k => (mids[k] ?? -Infinity) > y)
+  return at < 0 ? [...rest, held] : [...rest.slice(0, at), held, ...rest.slice(at)]
+}
+
+/** L'esito del rilascio, nel punto del dito: HomeOrder.release nell'app. */
+export function release(shown: HomeSection[], dragged: HomeSection[], held: HomeSection, pin: HomeSection | null, alarm: boolean, over: boolean, y: number, mids: Partial<Record<HomeSection, number>>): { order: HomeSection[]; pin: HomeSection | null } {
+  if (over) return { order: shown, pin: held }
+  if (pin === held && !alarm) return { order: dropAt(shown, held, y, mids), pin: null }
+  return { order: dragged, pin }
+}
+
 /** L'arg dell'op `home_order`: l'array JSON delle chiavi; null = torna al predefinito. */
 export const orderArg = (order: HomeSection[], pin: HomeSection | null = null): string | null => (!pin && order.join() === DEFAULT_ORDER.join() ? null : JSON.stringify(withPin(order, pin)))

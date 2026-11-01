@@ -47,7 +47,7 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
-  import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, pinnable, pinned, slotKey, type HomeSection } from './homeOrder'
+  import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
@@ -146,11 +146,12 @@
   let dragStartY = 0, dragTimer: ReturnType<typeof setTimeout> | undefined, dragJustEnded = false, dragEl: HTMLElement | null = null, dragRaf = 0, dragLastSwap = 0
   let dragArmed: HomeSection | null = null
   const noScroll = (e: TouchEvent) => { if (dragOrder) e.preventDefault() }
-  // La voce nello slot sta solo lì; mentre la si trascina fuori torna in elenco, attenuata, come le altre.
-  const listSkip = $derived(dragKey === pin ? null : pin)
+  // La voce nello slot sta solo lì, anche mentre la si trascina fuori: torna in elenco al rilascio, così niente cambia altezza.
+  const listSkip = $derived(pin)
   const slotOpen = $derived(!!dragKey && pinnable(dragKey) && !weekAlarm)
   let boardEl: HTMLElement | undefined = $state()
-  const overBoard = (y: number) => !!boardEl && y < boardEl.getBoundingClientRect().bottom
+  const inSlot = (k: string, y: number) => { const r = boardEl?.getBoundingClientRect(); return overSlot(k, y, r?.top ?? null, r?.bottom ?? null, weekAlarm) }
+  const slotHot = $derived(!!dragKey && inSlot(dragKey, dragY))
   function dragBegin(k: HomeSection) {
     const r = dragEl!.getBoundingClientRect()
     dragGhost = { shift: r.top - dragStartY, left: r.left, width: r.width }
@@ -166,7 +167,7 @@
     const r = home.getBoundingClientRect(), edge = 72
     if (dragY < r.top + edge) home.scrollTop -= (r.top + edge - dragY) / edge * 14
     else if (dragY > r.bottom - edge) home.scrollTop += (dragY - (r.bottom - edge)) / edge * 14
-    if (now - dragLastSwap > 120 && !(pinnable(dragKey) && !weekAlarm && overBoard(dragY))) {
+    if (now - dragLastSwap > 120 && !inSlot(dragKey, dragY) && !(dragKey === savedPin && !weekAlarm)) {
       const mids: Partial<Record<HomeSection, number>> = {}
       for (const k of dragOrder) {
         if (k === listSkip) continue
@@ -201,7 +202,7 @@
     removeEventListener('touchmove', noScroll); removeEventListener('pointermove', secMove); removeEventListener('pointerup', secEnd); removeEventListener('pointercancel', secCancel)
     if (!dragOrder) return
     // Voce 8: la copia del titolo vola al posto finale invece di sparire di colpo.
-    if (!cancel && dragGhost && dragKey && !reducedMotion()) {
+    if (!cancel && dragGhost && dragKey && !reducedMotion() && !inSlot(dragKey, dragY)) {
       const k = dragKey, g = dragGhost, from = dragY + g.shift
       flyGhost = { key: k, top: from, left: g.left, width: g.width }
       requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -210,14 +211,14 @@
       }))
       setTimeout(() => { flyGhost = null }, bounceMs())
     }
-    const held = dragKey, dropped = !!held && pinnable(held) && !weekAlarm && overBoard(dragY)
+    const held = dragKey, dropped = !!held && inSlot(held, dragY), y = dragY
+    const releaseMids: Partial<Record<HomeSection, number>> = {}
+    for (const k of order) { if (k === held || k === listSkip) continue; const b = document.querySelector(`.hsec [data-sec-head="${k}"]`)?.getBoundingClientRect(); if (b) releaseMids[k] = b.top + b.height / 2 }
     const o = dragOrder; dragOrder = null; dragKey = null; dragGhost = null; dragJustEnded = true
     addEventListener('click', swallowClick, { capture: true, once: true })
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
     if (!cancel) {
-      // Una seconda voce prende il posto della prima; chi esce dallo slot torna nel punto del rilascio. Con l'allarme una voce agganciata è solo di passaggio in elenco.
-      const nextOrder = dropped ? order : o
-      const nextPin = dropped ? held : held === savedPin && !weekAlarm ? null : savedPin
+      const { order: nextOrder, pin: nextPin } = release(order, o, held!, savedPin, weekAlarm, dropped, y, releaseMids)
       if (nextOrder.join() !== order.join() || nextPin !== savedPin) { sentOrder = { from: savedKey, order: nextOrder, pin: nextPin }; onHomeOrder?.(orderArg(nextOrder, nextPin)) }
     }
   }
@@ -483,15 +484,14 @@
 <section class="home" class:part={!!part}>
 {#snippet secOf(k: HomeSection)}{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
-  {#if slotOpen}<div class="slotdrop" data-testid="slot-rilascia">{t.slotDrop}</div>
-  {:else if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
+ {#if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
 {/snippet}
   <!-- Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto. -->
   {#if allDone && (!part || part === 'you')}<div class="alldone" data-testid="tutto-fatto"><svg viewBox="0 0 24 24" width="32" height="32"><path pathLength="1" d="M5 12.5l5 5L20 7" /></svg></div>{/if}
   {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
-{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} {onBox} {onQuota} slot={slotBox} /></div>{/if}
+{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} {onBox} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot} data-testid="slot-rilascia">{t.slotDrop}</div>{/if}</div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 {#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
@@ -1147,8 +1147,9 @@
   .hsec > :global(*) { flex-shrink: 0; }
   .hsec:empty { display: none; }
   .hsec.held { opacity: .35; }
-  .boardwrap { flex: none; }
-  .slotdrop { margin: 8px; min-height: 44px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--tx3); border-radius: 12px; font-size: 14px; color: var(--tx); }
+  .boardwrap { flex: none; position: relative; }
+  .slotdrop { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); pointer-events: none; }
+  .slotdrop.hot { border: 2px solid var(--tx); background: color-mix(in srgb, var(--bg) 55%, transparent); }
   .inslot { gap: 0; border-top: 1px solid var(--line); }
   .inslot :global(.card) { margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
   .ustop { width: 100%; }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_ORDER, dragTarget, move, normalize, orderArg, type HomeSection } from './homeOrder'
-import { orderArg as argWithPin, pinned, slotKey, withPin } from './homeOrder'
+import { dropAt, orderArg as argWithPin, overSlot, pinned, release, slotKey, withPin } from './homeOrder'
 
 describe('homeOrder', () => {
   it('senza un ordine salvato, il predefinito', () => {
@@ -64,5 +64,31 @@ describe('slot del tabellone', () => {
     expect(slotKey('system', true)).toBe('usage')
     expect(slotKey('system', false)).toBe('system')
     expect(slotKey(null, false)).toBeNull()
+  })
+})
+
+describe('slot_rilascio', () => {
+  it('slot_rilascio: solo dentro il riquadro', () => {
+    expect(overSlot('usage', 150, 100, 200, false)).toBe(true)
+    expect(overSlot('usage', 201, 100, 200, false)).toBe(false)
+    expect(overSlot('usage', 99, 100, 200, false)).toBe(false)
+    expect(overSlot('sessions', 150, 100, 200, false)).toBe(false)
+    expect(overSlot('usage', 150, 100, 200, true)).toBe(false)
+  })
+  it('slot_rilascio: chi esce torna sotto il dito', () => {
+    const o: HomeSection[] = ['sessions', 'lavori', 'usage', 'esiti']
+    const mids = { sessions: 100, lavori: 200, esiti: 300 }
+    expect(dropAt(o, 'usage', 50, mids)).toEqual(['usage', 'sessions', 'lavori', 'esiti'])
+    expect(dropAt(o, 'usage', 150, mids)).toEqual(['sessions', 'usage', 'lavori', 'esiti'])
+    expect(dropAt(o, 'usage', 350, mids)).toEqual(['sessions', 'lavori', 'esiti', 'usage'])
+  })
+  it('slot_rilascio: finisce dove lasci il dito', () => {
+    const o: HomeSection[] = ['sessions', 'usage', 'esiti']
+    const moved: HomeSection[] = ['usage', 'sessions', 'esiti']
+    const mids = { sessions: 100, esiti: 300 }
+    expect(release(o, moved, 'usage', null, false, true, 0, mids)).toEqual({ order: o, pin: 'usage' })
+    expect(release(o, o, 'usage', 'usage', false, false, 400, mids)).toEqual({ order: ['sessions', 'esiti', 'usage'], pin: null })
+    expect(release(o, moved, 'usage', null, false, false, 50, mids)).toEqual({ order: moved, pin: null })
+    expect(release(o, moved, 'lavori', 'usage', false, false, 50, mids)).toEqual({ order: moved, pin: 'usage' })
   })
 })

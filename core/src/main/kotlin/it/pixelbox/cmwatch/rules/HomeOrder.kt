@@ -51,6 +51,27 @@ object HomeOrder {
     /** Chi sta nello slot adesso: l'allarme della settimana passa davanti, e la voce agganciata riprende il posto quando finisce. */
     fun slot(pin: String?, alarm: Boolean): String? = if (alarm) "usage" else pin
 
+    /** Il bersaglio dello slot è il riquadro e basta (Franz 01/11 15:43): sopra o sotto, nessun aggancio. */
+    fun overSlot(held: String, y: Float, boardTop: Float?, boardBottom: Float?, alarm: Boolean): Boolean =
+        pinnable(held) && !alarm && boardTop != null && boardBottom != null && y >= boardTop && y <= boardBottom
+
+    /** Dove torna chi esce dallo slot: prima della prima testata sotto il dito, in fondo se non ce n'è. */
+    fun dropAt(order: List<String>, held: String, y: Float, mids: Map<String, Float>): List<String> {
+        val rest = order.filter { it != held }
+        val at = rest.indexOfFirst { k -> mids[k]?.let { it > y } == true }
+        return if (at < 0) rest + held else rest.take(at) + held + rest.drop(at)
+    }
+
+    /**
+     * L'esito del rilascio, nel punto del dito. Sul riquadro la voce si aggancia e l'ordine resta com'era; chi era nello slot e lascia
+     * il riquadro torna in elenco lì; ogni altra voce tiene l'ordine del trascinamento. Con l'allarme l'aggancio salvato non si tocca.
+     */
+    fun release(shown: List<String>, dragged: List<String>, held: String, pin: String?, alarm: Boolean, over: Boolean, y: Float, mids: Map<String, Float>): Pair<List<String>, String?> = when {
+        over -> shown to held
+        pin == held && !alarm -> dropAt(shown, held, y, mids) to null
+        else -> dragged to pin
+    }
+
     /** L'arg dell'op `home_order`: l'array JSON delle chiavi; null = torna al predefinito. */
     fun arg(order: List<String>): String? = if (order == DEFAULT) null else order.joinToString(",", "[", "]") { "\"$it\"" }
 }

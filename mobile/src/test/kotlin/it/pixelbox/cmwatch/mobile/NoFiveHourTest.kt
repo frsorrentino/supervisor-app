@@ -68,7 +68,8 @@ class NoFiveHourTest {
         val w = it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(one.quota, now)!!
         shot {
             Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
-                Kpi7(head, one, now, {}, slot = { SlotDrop() })
+                androidx.compose.foundation.layout.Box { Kpi7(head, one, now, {}); SlotDrop() }
+                androidx.compose.foundation.layout.Box { Kpi7(head, one, now, {}); SlotDrop(hot = true) }
                 Kpi7(head, one, now, {}, slot = { SlotRow(Modifier, "Suggerimenti", androidx.compose.material.icons.Icons.Outlined.AutoAwesome, "2", "ultimo 13:05", open = false) {} })
                 Kpi7(head, one, now, {}, slot = { UsageSlotRow(w, now, Modifier, true) {}; androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalUsageInSlot provides true) { UtilizzoV3(rings(one), one, null, null, now, {}, zone = zone) } })
             }

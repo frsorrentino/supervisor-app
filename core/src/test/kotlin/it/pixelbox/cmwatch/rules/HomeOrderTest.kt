@@ -82,4 +82,32 @@ class HomeOrderTest {
         assertEquals("system", HomeOrder.slot("system", alarm = false))
         assertNull(HomeOrder.slot(null, alarm = false))
     }
+
+    @Test fun slot_rilascio_onlyInsideTheBoard() {
+        assertEquals(true, HomeOrder.overSlot("usage", 150f, 100f, 200f, false))
+        assertEquals(false, HomeOrder.overSlot("usage", 201f, 100f, 200f, false))
+        assertEquals(false, HomeOrder.overSlot("usage", 99f, 100f, 200f, false))
+        assertEquals(false, HomeOrder.overSlot("sessions", 150f, 100f, 200f, false))
+        assertEquals(false, HomeOrder.overSlot("usage", 150f, 100f, 200f, true))
+        assertEquals(false, HomeOrder.overSlot("usage", 150f, null, null, false))
+    }
+
+    @Test fun slot_rilascio_leavingTheSlotLandsUnderTheFinger() {
+        val o = listOf("a", "b", "usage", "c")
+        val mids = mapOf("a" to 100f, "b" to 200f, "c" to 300f)
+        assertEquals(listOf("usage", "a", "b", "c"), HomeOrder.dropAt(o, "usage", 50f, mids))
+        assertEquals(listOf("a", "usage", "b", "c"), HomeOrder.dropAt(o, "usage", 150f, mids))
+        assertEquals(listOf("a", "b", "c", "usage"), HomeOrder.dropAt(o, "usage", 350f, mids))
+    }
+
+    @Test fun slot_rilascio_endsWhereTheFingerIs() {
+        val o = listOf("a", "usage", "b")
+        val moved = listOf("usage", "a", "b")
+        val mids = mapOf("a" to 100f, "b" to 300f)
+        assertEquals(o to "usage", HomeOrder.release(o, moved, "usage", null, false, true, 0f, mids))
+        assertEquals(o to "usage", HomeOrder.release(o, moved, "usage", "usage", false, true, 0f, mids))
+        assertEquals(listOf("a", "b", "usage") to null, HomeOrder.release(o, o, "usage", "usage", false, false, 400f, mids))
+        assertEquals(moved to null, HomeOrder.release(o, moved, "usage", null, false, false, 50f, mids))
+        assertEquals(moved to "usage", HomeOrder.release(o, moved, "a", "usage", false, false, 50f, mids))
+    }
 }

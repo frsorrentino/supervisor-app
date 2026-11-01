@@ -204,19 +204,21 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
 }
 
 @Composable
-private fun Modifier.drawDashedEdge(): Modifier {
-    val c = V3.Tx3
+private fun Modifier.drawDashedEdge(hot: Boolean): Modifier {
+    val c = if (hot) V3.Tx else V3.Tx3
     return then(Modifier.drawBehind {
-        val w = 1.dp.toPx()
-        drawRoundRect(c, cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(w, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))))
+        drawRoundRect(c, cornerRadius = androidx.compose.ui.geometry.CornerRadius(14.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(if (hot) 2.dp.toPx() else 1.dp.toPx(), pathEffect = if (hot) null else androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))))
     })
 }
 
-/** Lo slot aperto dal trascinamento: dice dove lasciare la voce (Franz 01/11 14:25). */
+/**
+ * Il bersaglio dello slot durante il trascinamento (Franz 01/11 15:43): sopra il tabellone, che resta alto uguale e attenuato. Niente
+ * spinge l'elenco, né alla presa né al rilascio. Si accende solo col dito dentro.
+ */
 @Composable
-internal fun SlotDrop() {
-    Box(Modifier.fillMaxWidth().padding(8.dp).testTag("slot-rilascia").heightIn(min = 44.dp).then(Modifier.drawDashedEdge()), contentAlignment = Alignment.Center) {
-        Text(stringResource(R.string.home_slot_drop), style = V3.Small.copy(color = V3.Tx))
+internal fun androidx.compose.foundation.layout.BoxScope.SlotDrop(hot: Boolean = false) {
+    Box(Modifier.matchParentSize().clip(V3.Shape).background(V3.Bg.copy(alpha = if (hot) .55f else .72f)).testTag(if (hot) "slot-rilascia-acceso" else "slot-rilascia").then(Modifier.drawDashedEdge(hot)), contentAlignment = Alignment.Center) {
+        Text(stringResource(R.string.home_slot_drop), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx))
     }
 }
 
