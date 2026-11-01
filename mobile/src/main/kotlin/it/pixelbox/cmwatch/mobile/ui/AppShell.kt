@@ -245,15 +245,15 @@ fun PageHeader(
                 SessionMenu(sessions, page, now, onPick, onClosed, Modifier.weight(1f), startOpen = sessionMenuStartOpen)
             } else {
                 Row(Modifier.weight(1f).padding(start = 12.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.home_title), style = V3.Section.copy(fontSize = 22.sp, lineHeight = 26.sp), color = V3.Tx)
+                    Text(stringResource(R.string.home_title), style = V3.Section.copy(fontSize = 22.sp, lineHeight = 26.sp), color = V3.Tx, modifier = Modifier.alignByBaseline())
                     // Accanto al titolo solo se la larghezza lo permette, mai a schiacciare il resto (Franz 30/10 22:01).
                     if (attention == 0 && androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 400) Text(
                         if (LocalStill.current) "0.2" else it.pixelbox.cmwatch.mobile.BuildConfig.VERSION_NAME, style = V3.Meter, maxLines = 1,
-                        modifier = Modifier.testTag("versione-titolo").padding(bottom = 3.dp),
+                        modifier = Modifier.testTag("versione-titolo").alignByBaseline(),
                     )
                     Text(
                         pluralStringResource(R.plurals.summary_open, openCount, openCount), style = V3.Small.copy(fontSize = 15.sp), color = V3.Tx2,
-                        maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.padding(bottom = 2.dp),
+                        maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.alignByBaseline(),
                     )
                 }
                 if (attention > 0) androidx.compose.material3.Surface(
