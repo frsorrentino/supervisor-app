@@ -29,6 +29,7 @@
   import { doneOf, type Done } from './queue'
   import { expiry, since } from './durations'
   import { lavoriInfo, pluginsInfo, systemInfo } from './slotInfo'
+  import SlotNames from './SlotNames.svelte'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
   import { blockingOf, parseSteps } from './nextSteps'
@@ -58,8 +59,8 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { suggestionFirst = null, suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
-    suggestionFirst?: string | null
+  let { suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
+    suggestionNames?: string[]
     /** Il blocco Utilizzo aperto, scelta D (30/10 20:11); le colonne della plancia tengono le schede (`usage`). */
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
@@ -249,14 +250,14 @@
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const fy = $derived(st.commitments != null || agenda ? lavoriForYou(st, agenda, now, today) : null)
   // Il dato in più di una voce nello slot; Chiuse non c'è: il relay non dice quando si è chiusa (SlotInfo.kt).
-  const slotExtra = $derived.by((): Record<string, { bar?: [number, string][]; number?: string; note?: string | null; two?: boolean } | null> => {
+  const slotExtra = $derived.by((): Record<string, { bar?: [number, string][]; number?: string; note?: string | null; names?: string[] } | null> => {
     const s = sys ? systemInfo(sys, st.hosts_status, st.sessions) : null
     const l = pin === 'lavori' ? lavoriInfo(lavoriProgress(st, agenda, now, zone, today)) : null
     const p = st.plugins ? pluginsInfo(st.plugins) : null
     return {
       system: s && { bar: [[s.barPct, SYS_TONE[s.level as keyof typeof SYS_TONE] ?? SYS_TONE.green]], number: `${s.pct}%`, note: [t.slotRam(s.ramPct), ...s.hosts.map(h => (h.ramPct == null ? t.slotHostOff(h.name) : t.slotHostRam(h.name, h.ramPct))), t.slotSessions(s.sessions)].join(' · ') },
       lavori: l && { bar: l.total ? [[l.youPct, 'var(--wait)'], [100 - l.youPct, 'var(--tx3)']] : [], number: t.slotLavoriOf(l.you, l.total), note: l.last == null ? t.slotLavoriNone : l.lastSince ? t.slotLavoriLastSince(l.last, since(l.lastSince, now)) : t.slotLavoriLast(l.last) },
-      suggestions: { note: suggestionFirst, two: true },
+      suggestions: { names: suggestionNames ?? [] },
       plugins: p && { note: p.names.length ? t.slotPluginsNames(p.names.join(', ')) : p.checkedAt ? t.slotPluginsChecked(hhmm(p.checkedAt)) : null },
     }
   })
@@ -490,7 +491,7 @@
       <span class="ustop"><span class="ms">{icon}</span><b>{title}</b>{#if count}<small>{count}</small>{/if}
         {#if info.bar}<span class="usbar">{#each info.bar as [pct, tone]}<i style="width:{pct}%;background:{tone}"></i>{/each}</span>{:else}<span class="sp"></span>{/if}
         {#if info.number}<span class="uspct">{info.number}</span>{/if}<span class="ms tog" class:up={o.isOpen ?? open[key]}>expand_more</span></span>
-      {#if info.note}<span class="usnote" class:two={info.two}>{info.note}</span>{/if}
+      {#if info.names}<SlotNames names={info.names} />{:else if info.note}<span class="usnote">{info.note}</span>{/if}
     </button>
   {:else if part && !o.onclick}
     <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->
@@ -1189,7 +1190,6 @@
   .usmeter s { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
   .uspct { font: 400 12.5px var(--mono); }
   .usnote { font-size: 13.5px; line-height: 1.3; color: var(--tx2); }
-  .usnote.two { max-height: 2.6em; overflow: hidden; }
   .ustop small { font: 500 13px var(--display); color: var(--tx2); }
   .ustop .sp { flex: 1; }
   .usbar { flex: 1; display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--s3); }

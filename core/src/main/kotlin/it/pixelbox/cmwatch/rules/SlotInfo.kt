@@ -46,8 +46,27 @@ object SlotInfo {
         return LavoriInfo(ip.you.sumOf { it.n }, ip.total, last?.short, last?.since)
     }
 
-    /** La prima proposta nello stesso ordine della card ([Suggestions.visible]). */
-    fun suggestion(shown: List<Suggestion>): String? = shown.firstOrNull()?.text?.takeIf { it.isNotBlank() }
+    const val NAME_MAX = 30
+    private const val NAME_SEP = " · "
+
+    /**
+     * I nomi sotto i Suggerimenti agganciati (Franz 01/11 20:02, «Solo i nomi»): la parte prima dei primi due punti se è lunga al massimo
+     * [NAME_MAX], altrimenti l'etichetta del tipo. Nell'ordine della card, una volta sola.
+     */
+    fun suggestionNames(all: List<Suggestion>, label: (String) -> String): List<String> = all.map { s ->
+        s.text.substringBefore(':', "").trim().takeIf { it.isNotEmpty() && it.length <= NAME_MAX } ?: label(s.kind)
+    }.distinct()
+
+    /** Nomi interi finché stanno in [width], poi «+N» coi nomi non mostrati; se non ci sta neanche il primo, solo «+N». */
+    fun fitNames(names: List<String>, width: Float, measure: (String) -> Float): String? {
+        if (names.isEmpty()) return null
+        for (k in names.size downTo 1) {
+            val rest = names.size - k
+            val line = names.take(k).joinToString(NAME_SEP) + if (rest > 0) "$NAME_SEP+$rest" else ""
+            if (measure(line) <= width) return line
+        }
+        return "+${names.size}"
+    }
 
     /** Sotto Plugin e skill: i nomi da aggiornare, oppure quando è stato il controllo; `null, null` = non c'è niente da dire. */
     data class PluginsInfo(val names: List<String>, val checkedAt: Long?)

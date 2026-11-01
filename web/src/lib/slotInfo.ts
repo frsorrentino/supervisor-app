@@ -31,8 +31,27 @@ export function lavoriInfo(ip: InProgress): LavoriInfo {
   return { you, total: ip.total, youPct: ip.total > 0 ? Math.round(you * 100 / ip.total) : 0, last: last?.short ?? null, lastSince: last?.since ?? null }
 }
 
-/** La prima proposta nello stesso ordine della card (`visible` di suggestions). */
-export const suggestionInfo = (shown: Suggestion[]): string | null => shown[0]?.text?.trim() || null
+export const NAME_MAX = 30
+const NAME_SEP = ' · '
+
+/**
+ * I nomi sotto i Suggerimenti agganciati (Franz 01/11 20:02, «Solo i nomi»): la parte prima dei primi due punti se è lunga al massimo
+ * `NAME_MAX`, altrimenti l'etichetta del tipo. Nell'ordine della card, una volta sola.
+ */
+export function suggestionNames(all: Suggestion[], label: (kind: string) => string): string[] {
+  return [...new Set(all.map(s => { const i = s.text.indexOf(':'), n = i < 0 ? '' : s.text.slice(0, i).trim(); return n && n.length <= NAME_MAX ? n : label(s.kind) }))]
+}
+
+/** Nomi interi finché stanno in `width`, poi «+N» coi nomi non mostrati; se non ci sta neanche il primo, solo «+N». */
+export function fitNames(names: string[], width: number, measure: (x: string) => number): string | null {
+  if (!names.length) return null
+  for (let k = names.length; k >= 1; k--) {
+    const rest = names.length - k
+    const line = names.slice(0, k).join(NAME_SEP) + (rest > 0 ? `${NAME_SEP}+${rest}` : '')
+    if (measure(line) <= width) return line
+  }
+  return `+${names.length}`
+}
 
 /** Sotto Plugin e skill: i nomi da aggiornare, oppure quando è stato il controllo. */
 export type PluginsInfo = { names: string[]; checkedAt: number | null }

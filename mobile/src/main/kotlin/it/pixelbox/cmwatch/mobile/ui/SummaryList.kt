@@ -665,7 +665,7 @@ fun SummaryList(
             val icons = androidx.compose.material.icons.Icons.Outlined
             when (pin) {
                 "suggestions" -> if (sug != null) {
-                    SlotInfoRow(slotDrag("suggestions"), stringResource(R.string.sug_title), icons.AutoAwesome, "home-sez-suggerimenti", count = sug.total.toString(), note = it.pixelbox.cmwatch.rules.SlotInfo.suggestion(sug.shown), noteLines = 2, open = suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) }
+                    SlotInfoRow(slotDrag("suggestions"), stringResource(R.string.sug_title), icons.AutoAwesome, "home-sez-suggerimenti", count = sug.total.toString(), names = slotSuggestionNames(sug.all), open = suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) }
                     if (suggestionsOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } }
                 }
                 "lavori" -> if (showLavori && lavoriInfo != null) LavoriSlotRow(lavoriInfo, now, slotDrag("lavori"), lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
@@ -1754,3 +1754,9 @@ internal class SentOrder(relay: List<String>?) {
 /** Mai `remember` con una chiave: il gesto gira in `pointerInput(Unit)` e cattura l'oggetto della prima volta (Franz 01/11 19:38). */
 @Composable
 internal fun rememberSentOrder(relay: List<String>?): SentOrder = remember { SentOrder(relay) }.also { it.relay = relay }
+
+@Composable
+private fun slotSuggestionNames(all: List<it.pixelbox.cmwatch.contract.Suggestion>): List<String> {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    return remember(all) { it.pixelbox.cmwatch.rules.SlotInfo.suggestionNames(all) { k -> ctx.getString(sugKindLabel(k)) } }
+}

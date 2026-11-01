@@ -248,7 +248,7 @@ internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.gr
  * non c'è più, per non ripetere. Compare al rilascio: durante la presa lo slot resta com'è.
  */
 @Composable
-internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tag: String, count: String? = null, bar: List<Pair<Int, Color>>? = null, number: String? = null, numberTone: Color? = null, note: String? = null, noteLines: Int = Int.MAX_VALUE, open: Boolean, onToggle: () -> Unit) {
+internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tag: String, count: String? = null, bar: List<Pair<Int, Color>>? = null, number: String? = null, numberTone: Color? = null, note: String? = null, names: List<String>? = null, open: Boolean, onToggle: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Column(Modifier.fillMaxWidth().then(drag).handCursor().clickable(onClick = onToggle).testTag(tag).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
         Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -264,7 +264,20 @@ internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.u
             }
             Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
         }
-        note?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), maxLines = noteLines, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+        if (names != null) SlotNames(names)
+        else note?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp)) }
+    }
+}
+
+/** Suggerimenti nello slot: una riga ferma coi nomi; quelli interi che stanno nella larghezza vera, poi «+N». */
+@Composable
+internal fun SlotNames(names: List<String>) {
+    val style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp)
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val width = constraints.maxWidth.toFloat()
+        val line = androidx.compose.runtime.remember(names, width, style) { it.pixelbox.cmwatch.rules.SlotInfo.fitNames(names, width) { s -> measurer.measure(s, style, softWrap = false, maxLines = 1).size.width.toFloat() } }
+        line?.let { Text(it, style = style, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
     }
 }
 

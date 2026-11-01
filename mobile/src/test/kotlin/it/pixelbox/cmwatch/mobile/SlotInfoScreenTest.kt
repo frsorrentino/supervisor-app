@@ -22,8 +22,8 @@ class SlotInfoScreenTest {
 
     private val now = 1_793_500_000L
 
-    private fun shot(locale: String) {
-        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = locale))
+    private fun shot(locale: String, dp: Int = 392, scale: Float = 1f) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = locale, screenWidth = (dp * 2.75).toInt(), fontScale = scale))
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
                 Column(Modifier.fillMaxWidth().background(V3.S1)) {
@@ -31,7 +31,8 @@ class SlotInfoScreenTest {
                     SystemSlotRow(SlotInfo.SystemInfo(160, 100, "red", 88, listOf(SlotInfo.HostRam("win", null)), 1), Modifier, false) {}
                     LavoriSlotRow(SlotInfo.LavoriInfo(21, 29, "Logo ambra", now - 7200), now, Modifier, false) {}
                     LavoriSlotRow(SlotInfo.LavoriInfo(0, 4, null, null), now, Modifier, false) {}
-                    SlotInfoRow(Modifier, stringResource(R.string.sug_title), Icons.Outlined.AutoAwesome, "s", count = "3", note = "Close the demo session on the release branch and publish the note with the pre-release before the next run starts tonight, then archive the old build and check the store listing again.", noteLines = 2, open = false) {}
+                    SlotInfoRow(Modifier, stringResource(R.string.sug_title), Icons.Outlined.AutoAwesome, "s", count = "5", names = listOf("Atlas Shop", "payments-api", "Field Notes", "Orbit Docs", "Storefront release"), open = false) {}
+                    SlotInfoRow(Modifier, stringResource(R.string.sug_title), Icons.Outlined.AutoAwesome, "s2", count = "1", names = listOf("Un nome solo troppo lungo per stare su questa riga intera del telefono, mai"), open = false) {}
                     PluginsSlotRow(SlotInfo.PluginsInfo(listOf("alfa", "beta"), null), ZoneOffset.UTC, Modifier, false) {}
                     PluginsSlotRow(SlotInfo.PluginsInfo(emptyList(), now), ZoneOffset.UTC, Modifier, false) {}
                     SlotRow(Modifier, stringResource(R.string.cat_closed), Icons.Outlined.Inventory2, "4", tag = "c", nav = true) {}
@@ -42,4 +43,6 @@ class SlotInfoScreenTest {
 
     @Test fun slot_info_italiano() = shot("it")
     @Test fun slot_info_inglese() = shot("en")
+    @Test fun slot_info_412Grande() = shot("it", 412, 1.3f)
+    @Test fun slot_info_320Grande() = shot("it", 320, 1.3f)
 }

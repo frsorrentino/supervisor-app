@@ -134,3 +134,19 @@ private fun SugText(text: String, onClick: () -> Unit) {
         Text(text, style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx2), maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp))
     }
 }
+
+/** L'etichetta del tipo, la stessa della card; un tipo che quest'app non conosce è neutro. */
+internal fun sugKindLabel(kind: String): Int = when (kind) {
+    "recurring" -> R.string.sug_kind_recurring
+    "cleanup" -> R.string.sug_kind_cleanup
+    "deadline" -> R.string.sug_kind_deadline
+    "quota" -> R.string.sug_kind_quota
+    "choice" -> R.string.sug_kind_choice
+    "followup" -> R.string.sug_kind_followup
+    "unsaved" -> R.string.sug_kind_unsaved
+    "waiting" -> R.string.sug_kind_waiting
+    "idea" -> R.string.sug_kind_idea
+    "proposal" -> R.string.sug_kind_proposal
+    "observe" -> R.string.sug_kind_observe
+    else -> R.string.sug_kind_other
+}

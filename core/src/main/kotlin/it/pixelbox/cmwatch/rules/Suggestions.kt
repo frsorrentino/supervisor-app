@@ -14,7 +14,7 @@ object Suggestions {
     /** I quattro del 1.84 e i sei della coda (documento suggerimenti-coda, §8.1); un tipo fuori lista si mostra neutro. */
     val KINDS = listOf("recurring", "cleanup", "deadline", "quota", "choice", "followup", "unsaved", "waiting", "idea", "proposal", "observe")
     fun known(kind: String) = kind in KINDS
-    data class Visible(val shown: List<Suggestion>, val total: Int)
+    data class Visible(val shown: List<Suggestion>, val total: Int, val all: List<Suggestion> = shown)
 
     const val MAX_PER_KIND = 2
 
@@ -26,7 +26,7 @@ object Suggestions {
         val shown = mutableListOf<Suggestion>()
         for (s in all) if (shown.size < MAX_SHOWN && shown.count { it.kind == s.kind } < MAX_PER_KIND) shown += s
         for (s in all) if (shown.size < MAX_SHOWN && s !in shown) shown += s
-        return Visible(all.filter { it in shown }, all.size)
+        return Visible(all.filter { it in shown }, all.size, all)
     }
 
     /** I tasti di una `choice`: le sue 2-4 etichette; altrimenti nessuno, e la voce ha Accetta come le altre. */

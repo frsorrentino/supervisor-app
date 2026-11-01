@@ -43,10 +43,37 @@ class SlotInfoTest {
         assertEquals(0, i.you); assertEquals(0, i.youPct); assertNull(i.last); assertNull(i.lastSince)
     }
 
-    @Test fun slot_info_suggerimentiLaPrimaDellaCard() {
-        val s = listOf(Suggestion("1", "idea", text = "prima"), Suggestion("2", "idea", text = "seconda"))
-        assertEquals("prima", SlotInfo.suggestion(s))
-        assertNull(SlotInfo.suggestion(emptyList()))
+    private fun sg(text: String, kind: String = "idea") = Suggestion(text, kind, text = text)
+    private val kinds = { k: String -> "tipo-$k" }
+
+    @Test fun slot_suggerimenti_ilNomePrimaDeiDuePuntiOLEtichettaDelTipo() {
+        assertEquals(listOf("Atlas Shop"), SlotInfo.suggestionNames(listOf(sg("Atlas Shop: rinnova il dominio")), kinds))
+        assertEquals(listOf("tipo-cleanup"), SlotInfo.suggestionNames(listOf(sg("Senza due punti", "cleanup")), kinds))
+        assertEquals(listOf("tipo-idea"), SlotInfo.suggestionNames(listOf(sg(": vuoto prima")), kinds))
+    }
+
+    @Test fun slot_suggerimenti_prefissoDiTrentaSiDiTrentunoNo() {
+        assertEquals(listOf("a".repeat(30)), SlotInfo.suggestionNames(listOf(sg("a".repeat(30) + ": x")), kinds))
+        assertEquals(listOf("tipo-idea"), SlotInfo.suggestionNames(listOf(sg("a".repeat(31) + ": x")), kinds))
+    }
+
+    @Test fun slot_suggerimenti_ordineDellaCardENomiRipetutiUnaVolta() {
+        assertEquals(listOf("B", "A", "tipo-idea"), SlotInfo.suggestionNames(listOf(sg("B: 1"), sg("A: 2"), sg("B: 3"), sg("senza"), sg("altra")), kinds))
+    }
+
+    @Test fun slot_suggerimenti_nomiInteriPoiPiuN() {
+        val len = { x: String -> x.length.toFloat() }
+        val names = listOf("Alfa", "Beta", "Gamma")
+        assertEquals("Alfa · Beta · Gamma", SlotInfo.fitNames(names, 19f, len))
+        assertEquals("Alfa · Beta · +1", SlotInfo.fitNames(names, 18f, len))
+        assertEquals("Alfa · +2", SlotInfo.fitNames(names, 9f, len))
+    }
+
+    @Test fun slot_suggerimenti_senzaPostoNeppureAlPrimoSoloPiuN() {
+        val len = { x: String -> x.length.toFloat() }
+        assertEquals("+3", SlotInfo.fitNames(listOf("Alfa", "Beta", "Gamma"), 8f, len))
+        assertEquals("+1", SlotInfo.fitNames(listOf("Alfa"), 3f, len))
+        assertNull(SlotInfo.fitNames(emptyList(), 100f, len))
     }
 
     @Test fun slot_info_pluginNomiOOraDelControllo() {

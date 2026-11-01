@@ -10,7 +10,7 @@ describe('Suggerimenti della master (contratto 1.84, scheda A)', () => {
     const v = visible(st([sg('a', 10), sg('b', 40), sg('c', 30), sg('d', 20), sg('e', 50, 90), sg('f', 60)]), new Set(['f']), 100)
     expect(v.shown.map(s => s.id)).toEqual(['b', 'c', 'd'])
     expect(v.total).toBe(4)
-    expect(visible(st(), new Set(), 100)).toEqual({ shown: [], total: 0 })
+    expect(visible(st(), new Set(), 100)).toEqual({ shown: [], total: 0, all: [] })
   })
   it('i dieci tipi; un tipo sconosciuto non è fra i noti', () => {
     expect(KINDS.length).toBe(11)
