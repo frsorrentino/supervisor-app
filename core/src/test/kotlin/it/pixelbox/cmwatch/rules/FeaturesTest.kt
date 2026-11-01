@@ -8,7 +8,7 @@ import java.io.File
 
 class FeaturesTest {
     private val c = Features.decode(File("../mobile/src/main/assets/features.json").readText())
-    private val routes = setOf("home", "queue", "box-aspetta", "box-lavoro", "box-esiti", "lavori", "launch", "night", "search", "settings", "homeorder", "usage")
+    private val routes = setOf("queue", "box-aspetta", "box-lavoro", "box-esiti", "lavori", "launch", "night", "search", "settings", "homeorder", "usage")
 
     @Test fun panoramica_ogniSezioneDellaHomeHaLaSuaVoce() {
         assertEquals(emptyList<String>(), Features.missingSections(c, HomeOrder.DEFAULT))
@@ -25,7 +25,7 @@ class FeaturesTest {
     @Test fun panoramica_leDieciDelProgrammaSonoInArrivoESenzaTocco() {
         val coming = c.features.filter { it.state == Features.COMING }
         assertEquals(setOf("banco_prova", "cinque_minuti", "ok_informato", "rimasto_indietro", "stesso_difetto", "promemoria", "rendiconto", "pagella", "panoramica", "prima_raccolta"), coming.map { it.key }.toSet())
-        assertFalse(coming.any(Features::tappable))
+        assertFalse(coming.any(Features::canGo))
     }
 
     @Test fun panoramica_chiaviUnicheRotteConosciuteGruppiSenzaOrfani() {
@@ -35,5 +35,19 @@ class FeaturesTest {
             assertTrue(f.key, c.groups.any { g -> g.key == f.group })
         }
         assertEquals(c.features.size, Features.grouped(c).sumOf { it.second.size })
+    }
+
+    @Test fun panoramica_demo_nessunaVoceTornaAllaHome() {
+        c.features.forEach { f -> assertTrue(f.key, f.route != "home") }
+        assertFalse(Features.canGo(c.features.first().copy(route = "home")))
+        assertFalse(Features.canGo(c.features.first().copy(route = null)))
+        assertTrue(Features.canGo(c.features.first { it.key == "cerca" }))
+    }
+
+    @Test fun panoramica_demo_ogniVoceHaLaSuaPagina() {
+        c.features.forEach { f ->
+            assertTrue(f.key, f.what.it.isNotBlank() && f.what.en.isNotBlank() && f.`when`.it.isNotBlank() && f.`when`.en.isNotBlank())
+            if (f.state == Features.READY) assertTrue(f.key, f.how.it.isNotBlank() && f.how.en.isNotBlank())
+        }
     }
 }

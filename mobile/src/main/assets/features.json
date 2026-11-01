@@ -64,7 +64,15 @@
    },
    "state": "ready",
    "version": "0.2.1523",
-   "route": "home",
+   "when": {
+    "it": "Ti serve quando apri l'app e vuoi capire in un colpo d'occhio se tocca a te.",
+    "en": "Useful when you open the app and want to see at a glance whether it's your turn."
+   },
+   "how": {
+    "it": "Tocca un riquadro per aprire le righe che fanno quel numero.",
+    "en": "Tap a box to open the rows behind that figure."
+   },
+   "route": null,
    "section": null,
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/KpiViews.kt",
@@ -92,6 +100,14 @@
    },
    "state": "ready",
    "version": "0.2.641",
+   "when": {
+    "it": "Ti serve quando più sessioni sono ferme su di te e vuoi smaltirle in fila.",
+    "en": "Useful when several sessions are stopped on you and you want to clear them in a row."
+   },
+   "how": {
+    "it": "Apri il primo riquadro del tabellone, poi passa da una voce all'altra con le frecce.",
+    "en": "Open the scoreboard's first box, then move between items with the arrows."
+   },
    "route": "queue",
    "section": null,
    "phone": {
@@ -120,7 +136,15 @@
    },
    "state": "ready",
    "version": "0.2.572",
-   "route": "home",
+   "when": {
+    "it": "Ti serve quando una sessione si è fermata e non puoi tornare al PC.",
+    "en": "Useful when a session has stopped and you can't get back to the PC."
+   },
+   "how": {
+    "it": "Tocca un'opzione sulla scheda o in chat, oppure scrivi la risposta con parole tue.",
+    "en": "Tap an option on the card or in chat, or type the answer in your own words."
+   },
+   "route": null,
    "section": null,
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SessionSheet.kt",
@@ -148,6 +172,14 @@
    },
    "state": "ready",
    "version": "0.2.961",
+   "when": {
+    "it": "Ti serve prima di una pubblicazione o di un passo che non si annulla.",
+    "en": "Useful before a release or a step that can't be undone."
+   },
+   "how": {
+    "it": "Leggi cosa esce e dove, poi tocca Approva, con una nota se vuoi.",
+    "en": "Read what ships and where, then tap Approve, with a note if you want."
+   },
    "route": "lavori",
    "section": null,
    "phone": {
@@ -176,6 +208,14 @@
    },
    "state": "ready",
    "version": "0.2.31",
+   "when": {
+    "it": "Ti serve per non tenere l'app aperta mentre le sessioni lavorano.",
+    "en": "Useful so you don't have to keep the app open while sessions work."
+   },
+   "how": {
+    "it": "Sul telefono scegli canali e suoni dalle Impostazioni; sul web attivale nelle Impostazioni.",
+    "en": "On the phone pick channels and sounds from Settings; on the web turn them on in Settings."
+   },
    "route": "settings",
    "section": null,
    "phone": {
@@ -204,6 +244,14 @@
    },
    "state": "ready",
    "version": "0.2.739",
+   "when": {
+    "it": "Ti serve quando stai seguendo una sessione e un'altra ha bisogno di te.",
+    "en": "Useful when you're following one session and another one needs you."
+   },
+   "how": {
+    "it": "Tocca l'avviso per andare all'altra sessione, o la × per toglierlo.",
+    "en": "Tap the alert to go to the other session, or the × to dismiss it."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -232,7 +280,15 @@
    },
    "state": "ready",
    "version": "0.2.1092",
-   "route": "home",
+   "when": {
+    "it": "Ti serve per vedere tutto quello che è aperto, non solo ciò che aspetta te.",
+    "en": "Useful to see everything that's open, not only what waits for you."
+   },
+   "how": {
+    "it": "Tocca una sessione per aprire la chat, la freccia per aprire la scheda sul posto.",
+    "en": "Tap a session to open its chat, the arrow to expand its card in place."
+   },
+   "route": null,
    "section": "sessions",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SummaryList.kt",
@@ -260,6 +316,14 @@
    },
    "state": "ready",
    "version": "0.2.1534",
+   "when": {
+    "it": "Ti serve quando vuoi sapere se una sessione sta ancora andando avanti.",
+    "en": "Useful when you want to know whether a session is still moving."
+   },
+   "how": {
+    "it": "Apri il secondo riquadro del tabellone e tocca una riga per aprire la sessione.",
+    "en": "Open the scoreboard's second box and tap a row to open the session."
+   },
    "route": "box-lavoro",
    "section": null,
    "phone": {
@@ -288,7 +352,15 @@
    },
    "state": "ready",
    "version": "0.2.572",
-   "route": "home",
+   "when": {
+    "it": "Ti serve quando vuoi capire cosa ha fatto una sessione e perché.",
+    "en": "Useful when you want to understand what a session did and why."
+   },
+   "how": {
+    "it": "Tocca una sessione nella home; scorri di lato per passare alla successiva.",
+    "en": "Tap a session on the home; swipe sideways to move to the next one."
+   },
+   "route": null,
    "section": null,
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SessionSheet.kt",
@@ -316,6 +388,14 @@
    },
    "state": "ready",
    "version": "0.2.1294",
+   "when": {
+    "it": "Ti serve per controllare un lavoro senza aprire il PC.",
+    "en": "Useful to check a piece of work without opening the PC."
+   },
+   "how": {
+    "it": "Apri il menu della sessione, Modifiche, e tocca un file per vedere il diff.",
+    "en": "Open the session menu, Changes, and tap a file to see its diff."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -344,6 +424,14 @@
    },
    "state": "ready",
    "version": "0.2.1655",
+   "when": {
+    "it": "Ti serve quando torni dopo un po' e vuoi sapere com'è andata.",
+    "en": "Useful when you come back after a while and want to know how things went."
+   },
+   "how": {
+    "it": "Tocca l'interruttore per cambiare vista, una riga per aprire la sessione.",
+    "en": "Tap the switch to change view, a row to open the session."
+   },
    "route": "box-esiti",
    "section": "esiti",
    "phone": {
@@ -372,6 +460,14 @@
    },
    "state": "ready",
    "version": "0.2.1071",
+   "when": {
+    "it": "Ti serve la mattina, per sapere cosa è andato avanti e cosa si è fermato.",
+    "en": "Useful in the morning, to know what moved on and what stopped."
+   },
+   "how": {
+    "it": "Apri Notte dal menu; le righe «Da fare per te» hanno il loro tasto.",
+    "en": "Open Night from the menu; the «To do for you» rows have their own button."
+   },
    "route": "night",
    "section": null,
    "phone": {
@@ -400,6 +496,14 @@
    },
    "state": "ready",
    "version": "0.2.925",
+   "when": {
+    "it": "Ti serve per dare il prossimo passo a una sessione ovunque tu sia.",
+    "en": "Useful to give a session its next step wherever you are."
+   },
+   "how": {
+    "it": "Scrivi nel campo in fondo alla chat e invia; sotto il messaggio vedi se è arrivato.",
+    "en": "Type in the field at the bottom of the chat and send; below the message you see whether it arrived."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -428,6 +532,14 @@
    },
    "state": "ready",
    "version": "0.2.758",
+   "when": {
+    "it": "Ti serve quando non sai a quale sessione chiedere, o riguarda più sessioni.",
+    "en": "Useful when you don't know which session to ask, or it concerns several."
+   },
+   "how": {
+    "it": "Scrivi nella barra in fondo alla home, o trascinala per aprire la conversazione.",
+    "en": "Type in the bar at the bottom of the home, or drag it to open the conversation."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -456,6 +568,14 @@
    },
    "state": "ready",
    "version": "0.2.576",
+   "when": {
+    "it": "Ti serve per far partire un lavoro nuovo senza il PC davanti.",
+    "en": "Useful to start a new job without the PC in front of you."
+   },
+   "how": {
+    "it": "Apri Lancia dal menu, scegli il progetto, scrivi il primo messaggio.",
+    "en": "Open Launch from the menu, pick the project, write the first message."
+   },
    "route": "launch",
    "section": null,
    "phone": {
@@ -484,6 +604,14 @@
    },
    "state": "ready",
    "version": "0.2.691",
+   "when": {
+    "it": "Ti serve per proseguire senza riscrivere quello che la sessione ha già proposto.",
+    "en": "Useful to go on without retyping what the session already proposed."
+   },
+   "how": {
+    "it": "Tocca un passo per metterlo nel campo, o manda subito dal suo tasto.",
+    "en": "Tap a step to put it in the field, or send it straight away with its button."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -512,6 +640,14 @@
    },
    "state": "ready",
    "version": "0.2.644",
+   "when": {
+    "it": "Ti serve quando il messaggio deve partire più tardi, per esempio alla ripartenza della quota.",
+    "en": "Useful when the message must go out later, for instance when the quota resets."
+   },
+   "how": {
+    "it": "Scrivi il messaggio e tocca l'orologio accanto a Invia, poi scegli l'ora.",
+    "en": "Write the message and tap the clock next to Send, then pick the time."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -540,6 +676,14 @@
    },
    "state": "ready",
    "version": "0.2.792",
+   "when": {
+    "it": "Ti serve quando un'immagine o un documento spiega meglio di un testo.",
+    "en": "Useful when an image or a document says it better than text."
+   },
+   "how": {
+    "it": "Tocca «+» nel campo della chat e scegli foto, fotocamera o file.",
+    "en": "Tap «+» in the chat field and pick photo, camera or file."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -568,6 +712,14 @@
    },
    "state": "ready",
    "version": "0.2.586",
+   "when": {
+    "it": "Ti serve la sera, per lasciare lavoro che non chiede risposte.",
+    "en": "Useful in the evening, to leave work that needs no answers."
+   },
+   "how": {
+    "it": "In Lavori, sezione Stanotte, tocca Aggiungi; Togli lo rimuove.",
+    "en": "In Work, Tonight section, tap Add; Remove takes it out."
+   },
    "route": "lavori",
    "section": null,
    "phone": {
@@ -596,6 +748,14 @@
    },
    "state": "ready",
    "version": "0.2.1372",
+   "when": {
+    "it": "Ti serve per vedere a che punto è ogni compito e chi lo sta fermando.",
+    "en": "Useful to see where each task stands and who is holding it up."
+   },
+   "how": {
+    "it": "Apri Lavori e passa da Elenco a Tempo con l'interruttore in «In corso».",
+    "en": "Open Work and move between List and Time with the switch in «In progress»."
+   },
    "route": "lavori",
    "section": "lavori",
    "phone": {
@@ -624,6 +784,14 @@
    },
    "state": "ready",
    "version": "0.2.1136",
+   "when": {
+    "it": "Ti serve a fine giornata o quando riprendi un progetto.",
+    "en": "Useful at the end of the day or when you pick a project up again."
+   },
+   "how": {
+    "it": "In Lavori apri «Più tardi»; ogni riga ha le sue azioni.",
+    "en": "In Work open «Later»; each row has its own actions."
+   },
    "route": "lavori",
    "section": null,
    "phone": {
@@ -652,7 +820,15 @@
    },
    "state": "ready",
    "version": "0.2.1468",
-   "route": "home",
+   "when": {
+    "it": "Ti serve per non perdere quello che la master ha notato per te.",
+    "en": "Useful so you don't miss what the master noticed for you."
+   },
+   "how": {
+    "it": "Tocca Accetta per mandarla alla master, o Altre risposte per più tardi o mai.",
+    "en": "Tap Accept to send it to the master, or Other answers for later or never."
+   },
+   "route": null,
    "section": "suggestions",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SuggestionsCard.kt",
@@ -680,6 +856,14 @@
    },
    "state": "ready",
    "version": "0.2.972",
+   "when": {
+    "it": "Ti serve per non dover rispiegare una scelta già fatta.",
+    "en": "Useful so you don't have to explain again a choice already made."
+   },
+   "how": {
+    "it": "Tocca «+» nella chat della master, o il menu sotto un esito, e Salva una decisione.",
+    "en": "Tap «+» in the master's chat, or the menu under an outcome, and Save a decision."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -708,6 +892,14 @@
    },
    "state": "ready",
    "version": "0.2.1565",
+   "when": {
+    "it": "Ti serve per capire se arriverai alla ripartenza o se devi rallentare.",
+    "en": "Useful to see whether you'll reach the reset or need to slow down."
+   },
+   "how": {
+    "it": "Apri la voce nella home; la pagina intera sta nel menu.",
+    "en": "Open the section on the home; the full page is in the menu."
+   },
    "route": "usage",
    "section": "usage",
    "phone": {
@@ -736,6 +928,14 @@
    },
    "state": "ready",
    "version": "0.2.961",
+   "when": {
+    "it": "Ti serve quando una sessione lunga si avvicina al limite della conversazione.",
+    "en": "Useful when a long session gets close to the conversation limit."
+   },
+   "how": {
+    "it": "Tocca il chip ctx in alto nella chat e scegli cosa fare.",
+    "en": "Tap the ctx chip at the top of the chat and pick what to do."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -764,6 +964,14 @@
    },
    "state": "ready",
    "version": "0.2.620",
+   "when": {
+    "it": "Ti serve quando un lavoro chiede più forza o costa troppo.",
+    "en": "Useful when a job needs more power or costs too much."
+   },
+   "how": {
+    "it": "Tocca il chip del modello in alto nella chat.",
+    "en": "Tap the model chip at the top of the chat."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -792,7 +1000,15 @@
    },
    "state": "ready",
    "version": "0.2.1514",
-   "route": "home",
+   "when": {
+    "it": "Ti serve quando tutto va piano e vuoi sapere perché.",
+    "en": "Useful when everything is slow and you want to know why."
+   },
+   "how": {
+    "it": "Apri la voce nella home; i consigli hanno un tasto con conferma.",
+    "en": "Open the section on the home; the advice has a button with a confirmation."
+   },
+   "route": null,
    "section": "system",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SystemSection.kt",
@@ -820,7 +1036,15 @@
    },
    "state": "ready",
    "version": "0.2.1525",
-   "route": "home",
+   "when": {
+    "it": "Ti serve per tenere aggiornati gli strumenti delle sessioni.",
+    "en": "Useful to keep the sessions' tools up to date."
+   },
+   "how": {
+    "it": "Apri la voce nella home e tocca Aggiorna, o Controlla ora.",
+    "en": "Open the section on the home and tap Update, or Check now."
+   },
+   "route": null,
    "section": "plugins",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SummaryList.kt",
@@ -848,6 +1072,14 @@
    },
    "state": "ready",
    "version": "0.2.645",
+   "when": {
+    "it": "Ti serve quando ricordi una cosa detta ma non in quale sessione.",
+    "en": "Useful when you remember something said but not in which session."
+   },
+   "how": {
+    "it": "Tocca la lente in alto, scrivi, tocca un risultato per aprire la sessione.",
+    "en": "Tap the magnifier on top, type, tap a result to open the session."
+   },
    "route": "search",
    "section": null,
    "phone": {
@@ -876,7 +1108,15 @@
    },
    "state": "ready",
    "version": "0.2.1543",
-   "route": "home",
+   "when": {
+    "it": "Ti serve per riprendere una sessione che hai chiuso.",
+    "en": "Useful to pick up a session you closed."
+   },
+   "how": {
+    "it": "Tocca Chiuse nella home e poi Riapri sulla sessione.",
+    "en": "Tap Closed on the home and then Reopen on the session."
+   },
+   "route": null,
    "section": "closed",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SummaryList.kt",
@@ -904,6 +1144,14 @@
    },
    "state": "ready",
    "version": "0.2.1315",
+   "when": {
+    "it": "Ti serve per vedere o tenere quello che una sessione ha prodotto.",
+    "en": "Useful to see or keep what a session produced."
+   },
+   "how": {
+    "it": "Tocca l'anteprima in chat; sotto ci sono Apri, Scarica e Condividi.",
+    "en": "Tap the preview in the chat; below are Open, Download and Share."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -932,6 +1180,14 @@
    },
    "state": "ready",
    "version": "0.2.1653",
+   "when": {
+    "it": "Ti serve quando controlli spesso la stessa cosa.",
+    "en": "Useful when you often check the same thing."
+   },
+   "how": {
+    "it": "Tieni premuto il titolo di una voce e lascialo sul tabellone; per toglierla, riportala in elenco.",
+    "en": "Long-press a section's title and drop it on the scoreboard; to remove it, bring it back to the list."
+   },
    "route": "homeorder",
    "section": null,
    "phone": {
@@ -960,6 +1216,14 @@
    },
    "state": "ready",
    "version": "0.2.1555",
+   "when": {
+    "it": "Ti serve per avere in alto quello che guardi di più.",
+    "en": "Useful to have on top what you look at most."
+   },
+   "how": {
+    "it": "Tieni premuto il titolo di una voce e trascinala, o usa Riordina la home.",
+    "en": "Long-press a section's title and drag it, or use Reorder the home."
+   },
    "route": "homeorder",
    "section": null,
    "phone": {
@@ -988,6 +1252,14 @@
    },
    "state": "ready",
    "version": "0.2.824",
+   "when": {
+    "it": "Ti serve quando non puoi guardare lo schermo.",
+    "en": "Useful when you can't look at the screen."
+   },
+   "how": {
+    "it": "Tocca ▶ sotto un testo; velocità e voce stanno nelle Impostazioni.",
+    "en": "Tap ▶ under a text; speed and voice are in Settings."
+   },
    "route": "settings",
    "section": null,
    "phone": {
@@ -1016,6 +1288,14 @@
    },
    "state": "ready",
    "version": "0.2.831",
+   "when": {
+    "it": "Ti serve quando cambi telefono o aggiungi un browser.",
+    "en": "Useful when you change phone or add a browser."
+   },
+   "how": {
+    "it": "In Impostazioni, Collegamento, tocca Aggiungi un dispositivo e inquadra il codice.",
+    "en": "In Settings, Connection, tap Add a device and scan the code."
+   },
    "route": "settings",
    "section": null,
    "phone": {
@@ -1044,6 +1324,14 @@
    },
    "state": "ready",
    "version": "0.2.570",
+   "when": {
+    "it": "Ti serve per provare l'app senza un PC collegato, o per cambiare lingua.",
+    "en": "Useful to try the app without a connected PC, or to change language."
+   },
+   "how": {
+    "it": "Trovi entrambe nelle Impostazioni.",
+    "en": "Both are in Settings."
+   },
    "route": "settings",
    "section": null,
    "phone": {
@@ -1072,6 +1360,14 @@
    },
    "state": "ready",
    "version": "0.2.1355",
+   "when": {
+    "it": "Ti serve per avere le correzioni senza passare dallo store.",
+    "en": "Useful to get fixes without going through the store."
+   },
+   "how": {
+    "it": "Tocca Installa sulla card in home, o Controlla nelle Impostazioni.",
+    "en": "Tap Install on the card on the home, or Check in Settings."
+   },
    "route": "settings",
    "section": null,
    "phone": {
@@ -1097,6 +1393,14 @@
    },
    "state": "ready",
    "version": "0.2.827",
+   "when": {
+    "it": "Ti serve quando hai un tablet o un monitor e vuoi più sessioni insieme.",
+    "en": "Useful when you have a tablet or a monitor and want several sessions together."
+   },
+   "how": {
+    "it": "Tocca una scheda per aggiungerla; trascina testate e bordi per ridisporre.",
+    "en": "Tap a card to add it; drag headers and edges to rearrange."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1125,6 +1429,14 @@
    },
    "state": "ready",
    "version": "0.2.1039",
+   "when": {
+    "it": "Ti serve quando non hai il telefono in mano.",
+    "en": "Useful when you don't have the phone in hand."
+   },
+   "how": {
+    "it": "Installa l'app sull'orologio e abbinala dal telefono; aggiungi tile e complicazione al quadrante.",
+    "en": "Install the app on the watch and pair it from the phone; add the tile and the complication to the face."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1150,6 +1462,14 @@
    },
    "state": "ready",
    "version": "0.2.635",
+   "when": {
+    "it": "Ti serve quando sei in giro con le cuffie e vuoi seguire senza guardare.",
+    "en": "Useful when you're out with headphones and want to follow without looking."
+   },
+   "how": {
+    "it": "Avviala dal menu; i comandi passano dall'orologio.",
+    "en": "Start it from the menu; commands go through the watch."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1175,6 +1495,14 @@
    },
    "state": "ready",
    "version": "0.2.647",
+   "when": {
+    "it": "Ti serve per vedere lo stato senza aprire l'app.",
+    "en": "Useful to see the status without opening the app."
+   },
+   "how": {
+    "it": "Tieni premuto sulla schermata del telefono e aggiungi il widget di Supervisor.",
+    "en": "Long-press the phone's home screen and add the Supervisor widget."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1200,6 +1528,14 @@
    },
    "state": "ready",
    "version": "0.2.1234",
+   "when": {
+    "it": "Ti serve al computer o su un dispositivo senza l'app.",
+    "en": "Useful on a computer or a device without the app."
+   },
+   "how": {
+    "it": "Apri l'indirizzo e collega il browser dalle Impostazioni del telefono.",
+    "en": "Open the address and connect the browser from the phone's Settings."
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1225,6 +1561,14 @@
    },
    "state": "ready",
    "version": "0.2.767",
+   "when": {
+    "it": "Ti serve per guardare una sessione la cui conversazione non arriva.",
+    "en": "Useful to look at a session whose conversation doesn't come through."
+   },
+   "how": {
+    "it": "Apri il menu della sessione e tocca Terminale; Aggiorna rilegge lo schermo.",
+    "en": "Open the session menu and tap Terminal; Refresh reads the screen again."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1250,7 +1594,15 @@
    },
    "state": "ready",
    "version": "0.2.1458",
-   "route": "home",
+   "when": {
+    "it": "Ti serve quando una sessione ha bisogno di un dato preciso per andare avanti.",
+    "en": "Useful when a session needs a specific piece of data to go on."
+   },
+   "how": {
+    "it": "Compila il modulo e tocca Invia; per un link, aprilo e torna.",
+    "en": "Fill in the form and tap Send; for a link, open it and come back."
+   },
+   "route": null,
    "section": null,
    "phone": {
     "file": "mobile/src/main/res/values/strings.xml",
@@ -1278,6 +1630,14 @@
    },
    "state": "ready",
    "version": "0.2.767",
+   "when": {
+    "it": "Ti serve per una sessione che ti interessa anche quando non aspetta te.",
+    "en": "Useful for a session you care about even when it isn't waiting for you."
+   },
+   "how": {
+    "it": "Apri il menu della sessione e tocca Segui.",
+    "en": "Open the session menu and tap Follow."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1306,6 +1666,14 @@
    },
    "state": "ready",
    "version": "0.2.602",
+   "when": {
+    "it": "Ti serve per ricordare a cosa sta lavorando una sessione lunga.",
+    "en": "Useful to remember what a long session is working on."
+   },
+   "how": {
+    "it": "Si vede da solo quando la sessione ne ha uno: non c'è niente da toccare.",
+    "en": "It shows by itself when the session has one: there's nothing to tap."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1334,6 +1702,14 @@
    },
    "state": "ready",
    "version": "0.2.694",
+   "when": {
+    "it": "Ti serve quando non vuoi leggerti una conversazione intera.",
+    "en": "Useful when you don't want to read a whole conversation."
+   },
+   "how": {
+    "it": "Apri il menu della sessione e tocca Fai controllare alla master.",
+    "en": "Open the session menu and tap Ask the master to check."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1362,6 +1738,14 @@
    },
    "state": "ready",
    "version": "0.2.620",
+   "when": {
+    "it": "Ti serve quando una sessione ha preso la strada sbagliata.",
+    "en": "Useful when a session has gone the wrong way."
+   },
+   "how": {
+    "it": "Nella chat, durante un turno, tocca il tasto Ferma al posto di Invia.",
+    "en": "In the chat, during a turn, tap Stop in place of Send."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1390,6 +1774,14 @@
    },
    "state": "ready",
    "version": "0.2.590",
+   "when": {
+    "it": "Ti serve quando vedi un difetto e vuoi mandarlo così com'è.",
+    "en": "Useful when you spot a defect and want to send it as it is."
+   },
+   "how": {
+    "it": "Fai lo screenshot, tocca Condividi, scegli Supervisor e la sessione, aggiungi un testo.",
+    "en": "Take the screenshot, tap Share, pick Supervisor and the session, add a text."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1418,6 +1810,14 @@
    },
    "state": "ready",
    "version": "0.2.890",
+   "when": {
+    "it": "Ti serve per i lavori che ripeti spesso, senza riscriverli.",
+    "en": "Useful for jobs you repeat often, without retyping them."
+   },
+   "how": {
+    "it": "Nella chat della master tocca «+» e poi Azioni ricorrenti.",
+    "en": "In the master's chat tap «+» and then Recurring actions."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1446,6 +1846,14 @@
    },
    "state": "ready",
    "version": "0.2.773",
+   "when": {
+    "it": "Ti serve per togliere dalla home quello che ha finito.",
+    "en": "Useful to clear from the home what has finished."
+   },
+   "how": {
+    "it": "Apri il menu della sessione e tocca Chiudi; «Chiudi le finite» sta in Sessioni.",
+    "en": "Open the session menu and tap Close; «Close finished» is in Sessions."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1474,6 +1882,14 @@
    },
    "state": "ready",
    "version": "0.2.1248",
+   "when": {
+    "it": "Ti serve nel momento in cui una sessione si ferma per la quota.",
+    "en": "Useful the moment a session stops because of the quota."
+   },
+   "how": {
+    "it": "Compare da sola in chat: tocca la strada che preferisci.",
+    "en": "It shows up by itself in the chat: tap the way you prefer."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1502,6 +1918,14 @@
    },
    "state": "ready",
    "version": "0.2.972",
+   "when": {
+    "it": "Ti serve per tornare a una risposta importante.",
+    "en": "Useful to get back to an important answer."
+   },
+   "how": {
+    "it": "Tocca il segnalibro sotto la risposta.",
+    "en": "Tap the bookmark under the answer."
+   },
    "route": null,
    "section": null,
    "phone": {
@@ -1527,6 +1951,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà quando più pre-release aspettano la tua prova.",
+    "en": "Useful when several pre-releases wait for your test."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1549,6 +1981,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà quando hai poco tempo e vuoi sbloccare il più possibile.",
+    "en": "Useful when you have little time and want to unblock as much as you can."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1571,6 +2011,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà prima di dare un ok, per sapere cosa rischi.",
+    "en": "Useful before giving an ok, to know what you risk."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1593,6 +2041,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà dopo una release, per non lasciare indietro il resto.",
+    "en": "Useful after a release, so the rest isn't left behind."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1615,6 +2071,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà quando correggi un difetto che può esserci anche altrove.",
+    "en": "Useful when you fix a defect that may be elsewhere too."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1637,6 +2101,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà per le cose da ricordare in un momento preciso.",
+    "en": "Useful for things to remember at a precise time."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1659,6 +2131,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà a fine mese, per dire a un cliente cosa è stato fatto.",
+    "en": "Useful at the end of the month, to tell a client what was done."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1681,6 +2161,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà per scegliere quale modello usare per quale lavoro.",
+    "en": "Useful to choose which model to use for which job."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1703,6 +2191,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti serve per scoprire cosa sa fare l'app.",
+    "en": "Useful to find out what the app can do."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,
@@ -1725,6 +2221,14 @@
    },
    "state": "coming",
    "version": null,
+   "when": {
+    "it": "Ti servirà al primo collegamento, per non partire da una home vuota.",
+    "en": "Useful at the first connection, so you don't start from an empty home."
+   },
+   "how": {
+    "it": "",
+    "en": ""
+   },
    "route": null,
    "section": null,
    "phone": null,

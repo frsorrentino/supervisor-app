@@ -1414,6 +1414,8 @@ It starts at your last message to the master.</string>
     <string name="slot_plugins_checked">Checked at %1$s</string>
     <string name="features_title">What it can do</string>
     <string name="features_sub">All features, by what they are for</string>
+    <string name="features_how">How to use it</string>
+    <string name="features_go">Take me there</string>
     <string name="features_coming">coming</string>
     <string name="box_at_least">The relay sends at most 40 events per session: today the figure is a minimum.</string>
     <string name="box_outcomes_note">A tap on a row opens the session, if it is still open.</string>

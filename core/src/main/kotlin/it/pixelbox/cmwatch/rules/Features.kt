@@ -16,7 +16,7 @@ object Features {
     @Serializable data class Proof(val file: String, val needle: String)
     @Serializable data class Group(val key: String, val it: String, val en: String)
     @Serializable data class Feature(
-        val key: String, val group: String, val name: Text, val what: Text, val where: Text, val state: String,
+        val key: String, val group: String, val name: Text, val what: Text, val where: Text, val state: String, val `when`: Text, val how: Text,
         val version: String? = null, val route: String? = null, val section: String? = null, val phone: Proof? = null, val web: Proof? = null,
     )
     @Serializable data class Catalog(val groups: List<Group>, val features: List<Feature>)
@@ -31,6 +31,6 @@ object Features {
     /** Le sezioni della home senza una voce: devono essere zero. */
     fun missingSections(c: Catalog, sections: List<String>): List<String> = sections.filter { s -> c.features.none { it.section == s } }
 
-    /** Un tocco porta alla funzione solo se c'è e ha dove andare. */
-    fun tappable(f: Feature): Boolean = f.state == READY && f.route != null
+    /** «Portami lì» solo se la funzione c'è e ha un posto suo: la home non conta, dice meno di quello che si vedeva già (Franz 01/11 22:05). */
+    fun canGo(f: Feature): Boolean = f.state == READY && f.route != null && f.route != "home"
 }

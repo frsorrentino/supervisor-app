@@ -3,7 +3,7 @@
 import raw from '../../../mobile/src/main/assets/features.json?raw'
 export type Text = { it: string; en: string }
 export type Proof = { file: string; needle: string }
-export type Feature = { key: string; group: string; name: Text; what: Text; where: Text; state: 'ready' | 'coming'; version: string | null; route: string | null; section: string | null; phone: Proof | null; web: Proof | null }
+export type Feature = { key: string; group: string; name: Text; what: Text; where: Text; when: Text; how: Text; state: 'ready' | 'coming'; version: string | null; route: string | null; section: string | null; phone: Proof | null; web: Proof | null }
 export type Group = { key: string; it: string; en: string }
 export type Catalog = { groups: Group[]; features: Feature[] }
 export const catalog: Catalog = JSON.parse(raw)
@@ -11,5 +11,5 @@ export const catalog: Catalog = JSON.parse(raw)
 export const grouped = (c: Catalog) => c.groups.map(g => ({ group: g, rows: c.features.filter(f => f.group === g.key) })).filter(x => x.rows.length)
 /** Le sezioni della home senza una voce: devono essere zero. */
 export const missingSections = (c: Catalog, sections: readonly string[]) => sections.filter(s => !c.features.some(f => f.section === s))
-/** Un tocco porta alla funzione solo se c'è e ha dove andare. */
-export const tappable = (f: Feature) => f.state === 'ready' && f.route != null
+/** «Portami lì» solo se la funzione c'è e ha un posto suo: la home non conta, dice meno di quello che si vedeva già (Franz 01/11 22:05). */
+export const canGo = (f: Feature) => f.state === 'ready' && f.route != null && f.route !== 'home'

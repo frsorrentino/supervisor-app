@@ -82,6 +82,14 @@ class HomeBoxScreenTest {
         val c = it.pixelbox.cmwatch.rules.Features.decode(File("src/main/assets/features.json").readText())
         paparazzi.snapshot { CmPhoneTheme(still = true) { FeaturesScreen(c.copy(features = c.features.filter { f -> f.group in setOf("you", "next") }), onBack = {}, onRoute = {}) } }
     }
+    private fun page(key: String, locale: String = "it", dp: Int = 412) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = locale, screenWidth = (dp * 2.75).toInt(), screenHeight = 1400))
+        val c = it.pixelbox.cmwatch.rules.Features.decode(File("src/main/assets/features.json").readText())
+        paparazzi.snapshot { CmPhoneTheme(still = true) { FeaturesScreen(c, onBack = {}, startOn = key, onRoute = {}) } }
+    }
+    @Test fun panoramica_demo_paginaConPortamiLi() = page("esiti")
+    @Test fun panoramica_demo_paginaSenzaPortamiLi() = page("orologio")
+    @Test fun panoramica_demo_paginaInArrivo() = page("cinque_minuti", "en", 320)
     @Test fun panoramica_italiano412() = features("it", 412)
     @Test fun panoramica_inglese320Grande() = features("en", 320, 1.3f)
     @Test fun outcomesLoading412() = shot(HomeBox.OUTCOMES, 412, p = null)

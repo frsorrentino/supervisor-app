@@ -1079,7 +1079,7 @@
     {:else if p === 'usage'}
       <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
     {:else if p === 'features'}
-      <Features onRoute={(r) => openPage(r === 'home' ? null : r === 'usage' ? 'overview' : r as PageName)} />
+      <Features onRoute={(r) => openPage(r === 'usage' ? 'overview' : r as PageName)} />
     {:else if p === 'homeorder'}
       <HomeOrder saved={st.home_order} onSave={saveHomeOrder} />
     {:else if p === 'settings'}
