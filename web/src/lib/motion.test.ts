@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bounceEase, finishScrollAllowed, MENU_FROM, pressOrigin, type FinishScene } from './motion'
+import { bounceEase, finishScrollAllowed, growFromPress, MENU_FROM, pressOrigin, type FinishScene } from './motion'
 
 const ok: FinishScene = { fingerDown: false, listMoving: false, sinceTouchMs: 2000, wasOnScreen: true, writing: false, sheetOpen: false, distancePx: 800, viewportPx: 800, sinceLastMs: 10000 }
 
@@ -25,4 +25,21 @@ describe('pressOrigin: i menu crescono dal punto premuto', () => {
     expect(pressOrigin(menu, null, [0.5, 1])).toBe('150px 400px')
   })
   it('non parte mai da zero', () => { expect(MENU_FROM).toBeGreaterThan(0) })
+})
+
+describe('growFromPress: rimbalzo e sfocatura', () => {
+  const box = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) } as unknown as Element
+  it('apre sforando e chiude senza', () => {
+    const open = growFromPress(box)({ direction: 'in' }), close = growFromPress(box)({ direction: 'out' })
+    const peak = (f: (t: number) => number) => Math.max(...Array.from({ length: 101 }, (_, i) => f(i / 100)))
+    expect(peak(open.easing)).toBeGreaterThan(1.02)
+    expect(peak(close.easing)).toBeLessThanOrEqual(1)
+  })
+  it('sfocata in partenza, nitida a metà corsa e oltre, sforamento compreso', () => {
+    const { css } = growFromPress(box)({ direction: 'in' })
+    expect(css(0)).toContain('blur(6.00px)')
+    expect(css(0.5)).toContain('blur(5.00px)')
+    expect(css(1)).toContain('blur(0.00px)')
+    expect(css(1.04)).toContain('blur(0.00px)')
+  })
 })

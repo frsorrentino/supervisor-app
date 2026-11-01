@@ -131,7 +131,7 @@ fun PanelShell(
                 else Modifier.statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 56.dp, bottom = 24.dp).fillMaxWidth(),
             ) {
                 val grow by transition.animateFloat(
-                    transitionSpec = { if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.panelFloat else CmMotion.fast },
+                    transitionSpec = { if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.bounceFloat else CmMotion.fast },
                     label = "menu",
                 ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
                 Surface(
@@ -219,7 +219,7 @@ internal fun GrowPopup(expanded: Boolean, popup: @Composable (@Composable () -> 
             exit = if (off) androidx.compose.animation.ExitTransition.None else androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(90, delayMillis = 90)),
         ) {
             val grow by transition.animateFloat(
-                transitionSpec = { if (off) androidx.compose.animation.core.snap() else if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.panelFloat else CmMotion.fast },
+                transitionSpec = { if (off) androidx.compose.animation.core.snap() else if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.bounceFloat else CmMotion.fast },
                 label = "menu",
             ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
             androidx.compose.foundation.layout.Box(Modifier.growFromPress(androidx.compose.ui.graphics.TransformOrigin(0f, 1f)) { grow }) { content() }

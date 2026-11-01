@@ -49,7 +49,7 @@ export const fold = (_: Element, { ms = 200 }: { ms?: number } = {}) => ({
 // Il cambio forma dei menu (Franz, 01/11: «l'animazione deve riguardare anche il contenuto»; growFromPress in PhoneTheme.kt):
 // pannello e contenuto crescono insieme dal punto premuto, come un solo oggetto, da un quinto della grandezza e mai da zero.
 export const MENU_FROM = 0.2
-const OPEN_MS = 320, CLOSE_MS = 160, PRESS_FRESH_MS = 1000
+const OPEN_MS = T * 1000, CLOSE_MS = 160, BLUR_PX = 6, PRESS_FRESH_MS = 1000
 let lastPress: { x: number; y: number; at: number } | null = null
 if (typeof addEventListener === 'function') addEventListener('pointerdown', (e) => { lastPress = { x: e.clientX, y: e.clientY, at: performance.now() } }, { capture: true, passive: true })
 
@@ -63,8 +63,8 @@ const recentPress = () => (lastPress && performance.now() - lastPress.at < PRESS
 export const growFromPress = (node: Element) => {
   const o = pressOrigin(node.getBoundingClientRect(), recentPress())
   return ({ direction }: { direction?: 'in' | 'out' | 'both' } = {}) => ({
-    duration: reducedMotion() ? 0 : direction === 'out' ? CLOSE_MS : OPEN_MS, easing: out,
-    css: (t: number) => `transform-origin: ${o}; scale: ${MENU_FROM + (1 - MENU_FROM) * t}; opacity: ${Math.min(1, t * 6)}`,
+    duration: reducedMotion() ? 0 : direction === 'out' ? CLOSE_MS : OPEN_MS, easing: direction === 'out' ? out : bounceEase,
+    css: (t: number) => `transform-origin: ${o}; scale: ${MENU_FROM + (1 - MENU_FROM) * t}; opacity: ${Math.min(1, t * 6)}; filter: blur(${(BLUR_PX * Math.min(1, Math.max(0, (1 - t) / 0.6))).toFixed(2)}px)`,
   })
 }
 
@@ -84,7 +84,7 @@ export function installDialogGrow() {
     if (!grows(this)) return
     const transformOrigin = pressOrigin(this.getBoundingClientRect(), recentPress(), [0.5, 1])
     const all = [
-      this.animate([{ scale: MENU_FROM, opacity: 0, transformOrigin }, { opacity: 1, offset: 0.15 }, { scale: 1, opacity: 1, transformOrigin }], { duration: OPEN_MS, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' }),
+      this.animate([{ scale: MENU_FROM, opacity: 0, transformOrigin, filter: `blur(${BLUR_PX}px)` }, { opacity: 1, offset: 0.15 }, { filter: 'blur(0px)', offset: 0.4 }, { scale: 1, opacity: 1, transformOrigin, filter: 'blur(0px)' }], { duration: OPEN_MS, easing: cssCurve('--spring-bounce'), fill: 'backwards' }),
       this.animate({ opacity: [0, 1] }, { duration: OPEN_MS, pseudoElement: '::backdrop', fill: 'backwards' }),
     ]
     runs.set(this, { all, closing: false })

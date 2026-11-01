@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.unit.IntOffset
 
 /**
  * Le pagine che prendevano lo schermo di colpo (Franz, 10/10 15:59: «possiamo introdurre transizioni su ogni passaggio di
@@ -20,10 +19,9 @@ import androidx.compose.ui.unit.IntOffset
 fun PageIn(fromStart: Boolean = false, animate: Boolean = true, content: @Composable () -> Unit) {
     val off = animationsOff()
     val shown = remember { MutableTransitionState(off || !animate).apply { targetState = true } }
-    val ease = tween<IntOffset>(FLY_MS, easing = CmMotion.easing)
     AnimatedVisibility(
         shown,
-        enter = slideInHorizontally(ease) { w -> if (fromStart) -w / 10 else w / 3 } + fadeIn(tween(FLY_MS)),
+        enter = slideInHorizontally(CmMotion.bounce) { w -> if (fromStart) -w / 10 else w / 3 } + fadeIn(tween(FLY_MS)),
         exit = ExitTransition.None,
     ) { content() }
 }

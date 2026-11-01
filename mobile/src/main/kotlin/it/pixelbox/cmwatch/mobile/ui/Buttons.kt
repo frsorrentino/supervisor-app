@@ -99,7 +99,7 @@ fun ModalBottomSheet(
     val density = androidx.compose.ui.platform.LocalDensity.current
     val bottom = with(density) { androidx.compose.ui.geometry.Offset(cfg.screenWidthDp.dp.toPx() / 2, cfg.screenHeightDp.dp.toPx()) }
     val still = with(density) { 8.dp.toPx() }
-    androidx.compose.runtime.LaunchedEffect(Unit) { if (!off) grow.animateTo(1f, CmMotion.panelFloat) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (!off) grow.animateTo(1f, CmMotion.bounceFloat) }
     if (cfg.screenWidthDp < 600) {
         // Si richiude verso il tasto solo se chi chiude non è il dito: chi trascina il foglio lo porta via lui, senza che cambi misura.
         androidx.compose.runtime.LaunchedEffect(sheetState, off) {

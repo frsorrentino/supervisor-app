@@ -103,3 +103,5 @@ Le altre dopo averle viste al polso e al telefono.
 ## Secondo giro: le proposte da 11 a 15
 
 Aggiunte il 31/10 alle 21:27, da un prompt di un'altra IA valutato lo stesso giorno. Franz: «Aggiungi le cinque all'elenco». Tutte approvate (Franz, 31/10 21:34: «Approvate tutte»): si scelgono dopo la prova delle prime tre. La 14 viene per prima, perché la 11 e la 12 ne usano i valori.
+
+**Revisione del 01/11, dopo la prova sul telefono (Franz: «troppo lineari… un piccolo rimbalzo», «una leggera sfocatura mentre appaiono, non saprei»).** Voce 16: in apertura menu, fogli, scheda dei permessi e dialog del web usano la molla col rimbalzo e una sfocatura di 6 px che sparisce a poco più di metà corsa; la chiusura resta rapida e senza rimbalzo. Telefono: anche l'entrata delle pagine usa la molla. Restano senza: il pannello della master (scelta del 03/10, e sforando lascerebbe un vuoto sotto il campo), il volo della card (bordi rimisurati, non provabile senza telefono), colori e opacità. La sfocatura è in prova, da togliere se non convince; sotto Android 12 non c'è.

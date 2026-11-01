@@ -297,10 +297,14 @@ fun Modifier.growFromPress(origin: androidx.compose.ui.graphics.TransformOrigin,
     return this
         .onGloballyPositioned { c -> val o = c.positionOnScreen(); at[0] = o.x; at[1] = o.y }
         .graphicsLayer {
-            val p = progress().coerceIn(0f, 1f)
+            // Sopra 1 è il rimbalzo della molla (Franz, 01/11: «troppo lineari… un piccolo rimbalzo»): la scala lo segue.
+            val p = progress().coerceAtLeast(0f)
             val s = .2f + .8f * p
             scaleX = s; scaleY = s
             alpha = (p / .15f).coerceIn(0f, 1f)
+            // La sfocatura leggera mentre appare (Franz, 01/11): sparisce a poco più di metà corsa. Android la dà da 12 in poi.
+            val blur = 6.dp.toPx() * ((1f - p) / .6f).coerceIn(0f, 1f)
+            renderEffect = if (blur > .5f && android.os.Build.VERSION.SDK_INT >= 31) androidx.compose.ui.graphics.BlurEffect(blur, blur, androidx.compose.ui.graphics.TileMode.Decal) else null
             transformOrigin = if (press != null && !at[0].isNaN() && size.width > 0f && size.height > 0f)
                 androidx.compose.ui.graphics.TransformOrigin((press.x - at[0]) / size.width, (press.y - at[1]) / size.height) else origin
         }
