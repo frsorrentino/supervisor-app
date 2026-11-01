@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RES = ROOT / "wear/src/main/res/drawable"
 RES_PHONE = ROOT / "mobile/src/main/res/drawable"
 THICK = 0.19 * 43   # spessore dell'arco del telefono, in unità u: il 19 % del raggio esterno
-CORAL, TRACK = "#FFD97757", "#FF3A404C"
+AMBER, TRACK = "#FFFFB23F", "#FF3A404C"
 
 def mark(cx, cy, r_out, fg, track, arc_u=5.6):
     """Percorsi del segno con raggio esterno del quadrante r_out. Restituisce una lista di <path> (stringhe).
@@ -46,16 +46,16 @@ def vector(name, comment, size_dp, viewport, paths, res=RES):
 ''')
 
 if __name__ == "__main__":
-    vector("ic_launcher_fg.xml", "Primo piano dell'icona adattiva: «>_» corallo nel quadrante, su sfondo nero (@color/ic_bg). Il segno sta nella zona sicura (66 dp su 108).",
-           108, 108, mark(54, 54, 30, CORAL, TRACK))
+    vector("ic_launcher_fg.xml", "Primo piano dell'icona adattiva: «>_» ambra nel quadrante, su sfondo nero (@color/ic_bg). Il segno sta nella zona sicura (66 dp su 108).",
+           108, 108, mark(54, 54, 30, AMBER, TRACK))
     vector("ic_launcher_mono.xml", "Livello monocromatico dell'icona adattiva (icone a tema): senza traccia, perché la tinta unica chiuderebbe il quadrante.",
            108, 108, mark(54, 54, 30, "#FFFFFFFF", None))
     vector("ic_app_mono.xml", "Glifo monocromo dell'app: notifiche, complication, badge senza icona propria. La traccia è al 35 % di opacità.",
            24, 48, mark(24, 24, 21, "#FFFFFFFF", "#59FFFFFF"))
     vector("ic_tile.xml", "Icona della tile: segno blu notte in un cerchio del colore base, come le tile di sistema (Franz, 13/09 17:38).",
            48, 48, ['<path android:fillColor="#FFD3E3FD" android:pathData="M24,0 A24,24 0 1 1 23.9,0 Z" />'] + mark(24, 24, 16.5, "#FF0A2050", "#400A2050"))
-    vector("ic_launcher_fg.xml", "Primo piano dell'icona adattiva del telefono: «>_» corallo nel quadrante dall'arco spesso, su sfondo nero (@color/ic_bg). Il segno sta nella zona sicura (66 dp su 108).",
-           108, 108, mark(54, 54, 30, CORAL, TRACK, THICK), RES_PHONE)
+    vector("ic_launcher_fg.xml", "Primo piano dell'icona adattiva del telefono: «>_» ambra nel quadrante dall'arco spesso, su sfondo nero (@color/ic_bg). Il segno sta nella zona sicura (66 dp su 108).",
+           108, 108, mark(54, 54, 30, AMBER, TRACK, THICK), RES_PHONE)
     vector("ic_launcher_mono.xml", "Livello monocromatico dell'icona adattiva del telefono (icone a tema): senza traccia, perché la tinta unica chiuderebbe il quadrante.",
            108, 108, mark(54, 54, 30, "#FFFFFFFF", None, THICK), RES_PHONE)
     print("scritti:", *sorted(p.name for p in RES.glob("ic_launcher_*.xml")), "ic_app_mono.xml ic_tile.xml")

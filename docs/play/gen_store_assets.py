@@ -13,12 +13,12 @@ OUT = ROOT / "docs/play"
 WEAR = ROOT / "wear/src/test/snapshots/images"
 PHONE = ROOT / "mobile/src/test/snapshots/images"
 
-CORAL, TRACK = "#D97757", "#3A404C"
+AMBER, TRACK = "#FFB23F", "#3A404C"
 BG, SURFACE, SURFACE_HIGH = "#000000", "#23272E", "#292F3A"
 TEXT, TEXT2, PRIMARY = "#F2F4F7", "#B0B8C4", "#D3E3FD"
 
 
-def mark(cx, cy, r_out, fg=CORAL, track=TRACK):
+def mark(cx, cy, r_out, fg=AMBER, track=TRACK):
     """Il segno in SVG: quadrante aperto in basso, riempito al 70 %, «>» e «_» dentro."""
     u = r_out / 43; g = 0.72 * u; w = 7.2 * g; yc = cy - 2 * u; r = 40.2 * u; aw = 5.6 * u
 
