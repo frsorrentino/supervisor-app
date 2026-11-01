@@ -77,6 +77,11 @@ describe('demo_allineata', () => {
     expect(pinned(st.home_order)).toBe('usage')
     expect(weekSlot(st.quota, NOW)).not.toBeNull()
   })
+  it('demo_allineata: ogni suggerimento ha un progetto della demo prima dei due punti', () => {
+    const names = new Set(st.sessions.map(s => s.name))
+    expect(st.suggestions!.length).toBeGreaterThan(0)
+    for (const s of st.suggestions!) expect(names, s.text).toContain(s.text.split(':')[0])
+  })
   it('demo_allineata: esiti di ogni tipo, «in corso» fuori dal numero', () => {
     expect(new Set(out.done.map(d => d.type))).toEqual(new Set(['problem', 'waiting', 'shipped', 'done', 'answer', 'none', 'running']))
     expect(out.done.length - out.settled).toBe(2)
