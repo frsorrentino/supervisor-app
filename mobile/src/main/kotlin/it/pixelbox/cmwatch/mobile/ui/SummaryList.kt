@@ -207,8 +207,9 @@ fun SummaryList(
     // lista e non la voce: una voce che si sposta sotto il dito falserebbe le proprie coordinate e il suo gesto morirebbe con lei.
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val saveOrder by androidx.compose.runtime.rememberUpdatedState(onHomeOrder)
-    var sentOrder by remember(kpiState?.homeOrder) { mutableStateOf<List<String>?>(null) }
-    val savedOrder = sentOrder ?: kpiState?.homeOrder
+    // Un oggetto solo per tutta la vita della home: il gesto lo cattura una volta sola e non deve restare con uno vecchio.
+    val sentOrder = rememberSentOrder(kpiState?.homeOrder)
+    val savedOrder = sentOrder.shown
     val homeOrder = it.pixelbox.cmwatch.rules.HomeOrder.normalize(savedOrder)
     // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti.
     val savedPin = it.pixelbox.cmwatch.rules.HomeOrder.pinned(savedOrder)
@@ -365,7 +366,7 @@ fun SummaryList(
                     val (nextOrder, nextPin) = it.pixelbox.cmwatch.rules.HomeOrder.release(shownOrder, o, key, savedPinNow, alarmNow, dropped, dragY, releaseMids)
                     if (nextOrder != shownOrder || nextPin != savedPinNow) {
                         val full = it.pixelbox.cmwatch.rules.HomeOrder.withPin(nextOrder, nextPin)
-                        sentOrder = full; saveOrder?.invoke(full)
+                        sentOrder.send(full); saveOrder?.invoke(full)
                     }
                 }
             }
@@ -1742,3 +1743,14 @@ private fun CloseFinishedDialog(p: it.pixelbox.cmwatch.rules.CloseFinished.Previ
     )
 }
 
+/** L'ordine scelto col gesto finché il relay non risponde: lo stesso oggetto per tutta la vita della home (vedi [rememberSentOrder]). */
+internal class SentOrder(relay: List<String>?) {
+    var relay by mutableStateOf(relay)
+    private var sent by mutableStateOf<it.pixelbox.cmwatch.rules.HomeOrder.Sent?>(null)
+    val shown: List<String>? get() = it.pixelbox.cmwatch.rules.HomeOrder.saved(relay, sent)
+    fun send(order: List<String>) { sent = it.pixelbox.cmwatch.rules.HomeOrder.Sent(relay, order) }
+}
+
+/** Mai `remember` con una chiave: il gesto gira in `pointerInput(Unit)` e cattura l'oggetto della prima volta (Franz 01/11 19:38). */
+@Composable
+internal fun rememberSentOrder(relay: List<String>?): SentOrder = remember { SentOrder(relay) }.also { it.relay = relay }

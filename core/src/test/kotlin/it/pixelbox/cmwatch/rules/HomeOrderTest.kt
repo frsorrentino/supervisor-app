@@ -110,4 +110,19 @@ class HomeOrderTest {
         assertEquals(moved to null, HomeOrder.release(o, moved, "usage", null, false, false, 50f, mids))
         assertEquals(moved to "usage", HomeOrder.release(o, moved, "a", "usage", false, false, 50f, mids))
     }
+
+    @org.junit.Test fun slot_subito_lOrdineSceltoValeSenzaLaSpintaDelRelay() {
+        val old = listOf("sessions"); val mine = listOf("sessions", "pin:system")
+        org.junit.Assert.assertEquals(mine, HomeOrder.saved(old, HomeOrder.Sent(old, mine)))
+    }
+
+    @org.junit.Test fun slot_subito_unoStatoVecchioNonLoToglie_ilRelayNuovoSi() {
+        val old = listOf("sessions"); val mine = listOf("sessions", "pin:system"); val other = listOf("esiti")
+        val sent = HomeOrder.Sent(old, mine)
+        org.junit.Assert.assertEquals(mine, HomeOrder.saved(old, sent))
+        org.junit.Assert.assertEquals(mine, HomeOrder.saved(mine, sent))
+        org.junit.Assert.assertEquals(other, HomeOrder.saved(other, sent))
+        org.junit.Assert.assertEquals(old, HomeOrder.saved(old, null))
+        org.junit.Assert.assertEquals(mine, HomeOrder.saved(null, HomeOrder.Sent(null, mine)))
+    }
 }

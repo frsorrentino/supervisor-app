@@ -49,6 +49,15 @@ object HomeOrder {
     /** La lista da salvare: l'ordine e, in fondo, l'aggancio. */
     fun withPin(order: List<String>, pin: String?): List<String> = order.filter { !it.startsWith(PIN) } + listOfNotNull(pin?.takeIf(::pinnable)?.let { PIN + it })
     /** Chi sta nello slot adesso: l'allarme della settimana passa davanti, e la voce agganciata riprende il posto quando finisce. */
+    /** L'ordine appena scelto e quello che il relay diceva allora. */
+    data class Sent(val from: List<String>?, val order: List<String>)
+
+    /**
+     * L'ordine da mostrare (Franz 01/11 19:38): quello scelto vale subito e resta anche se arrivano altri stati con l'ordine di prima;
+     * appena il relay dice altro, conferma o cambio da un altro dispositivo, vale il relay.
+     */
+    fun saved(relay: List<String>?, sent: Sent?): List<String>? = sent?.takeIf { it.from == relay }?.order ?: relay
+
     fun slot(pin: String?, alarm: Boolean): String? = if (alarm) "usage" else pin
 
     /** Il bersaglio dello slot è il riquadro e basta (Franz 01/11 15:43): sopra o sotto, nessun aggancio. */
