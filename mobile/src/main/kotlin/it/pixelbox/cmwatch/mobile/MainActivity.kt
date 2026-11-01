@@ -467,7 +467,17 @@ class MainActivity : ComponentActivity() {
             }
             if (featuresOpen) {
                 BackHandler { featuresOpen = false }
-                it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.FeaturesScreen(remember { it.pixelbox.cmwatch.rules.Features.decode(assets.open("features.json").bufferedReader().use { r -> r.readText() }) }, onBack = { featuresOpen = false }) { route ->
+                it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.FeaturesScreen(remember { it.pixelbox.cmwatch.rules.Features.decode(assets.open("features.json").bufferedReader().use { r -> r.readText() }) }, onBack = { featuresOpen = false }, demo = remember {
+                    val italian = resources.configuration.locales[0].language == "it"
+                    val at = System.currentTimeMillis() / 1000
+                    runCatching {
+                        it.pixelbox.cmwatch.mobile.ui.FeatureDemoData(
+                            it.pixelbox.cmwatch.rules.FeatureDemoState.state(kotlinx.coroutines.runBlocking { app.fake.fetchState() }, at, italian),
+                            it.pixelbox.cmwatch.rules.FeatureDemoState.page(at, java.time.ZoneId.systemDefault(), italian),
+                            runCatching { ContractJson.decodeNightReport(assets.open("contract/night-report-sample.json").bufferedReader().use { r -> r.readText() }) }.getOrNull(), at,
+                        )
+                    }.getOrNull()
+                }) { route ->
                     featuresOpen = false
                     if (route != "settings" && route != "homeorder") {
                         settingsOpen = false

@@ -94,7 +94,7 @@ private fun outcomeTone(t: Kpi.OutcomeType): Color = when (t) {
  * 18:57): il numero spiegato in una frase, sotto le righe che lo fanno. Un tocco su una riga apre la sessione, se è viva.
  */
 @Composable
-fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, onBack: () -> Unit, onSession: (String) -> Unit, zone: ZoneId = ZoneId.systemDefault(), startByType: Boolean? = null) {
+fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, onBack: () -> Unit, onSession: (String) -> Unit, zone: ZoneId = ZoneId.systemDefault(), startByType: Boolean? = null, embedded: Boolean = false) {
     val live = remember(state) { state.sessions.filter { it.state != SessionState.GONE }.map { it.name }.toSet() }
     val hm = { at: Long -> BOX_HM.format(Instant.ofEpochSecond(at).atZone(zone)) }
     var stillAll by rememberSaveable { mutableStateOf(false) }
@@ -104,7 +104,7 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
     val groupOpen = remember { mutableStateMapOf<String, Boolean>() }
     val groupShown = remember { mutableStateMapOf<String, Int>() }
     LazyColumn(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().testTag("home-box-page"), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp)) {
-        item("bar") {
+        if (!embedded) item("bar") {
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Cm.text) }
                 Text(

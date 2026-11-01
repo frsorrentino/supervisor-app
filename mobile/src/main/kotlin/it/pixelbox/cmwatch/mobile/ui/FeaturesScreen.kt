@@ -32,13 +32,13 @@ import it.pixelbox.cmwatch.rules.Features
  * niente): cosa fa e quando serve, come si usa, e «Portami lì» se ha un posto suo.
  */
 @Composable
-fun FeaturesScreen(catalog: Features.Catalog, onBack: () -> Unit, startOn: String? = null, onRoute: (String) -> Unit) {
+fun FeaturesScreen(catalog: Features.Catalog, onBack: () -> Unit, startOn: String? = null, demo: FeatureDemoData? = null, onRoute: (String) -> Unit) {
     val italian = LocalConfiguration.current.locales[0].language == "it"
     var openKey by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(startOn) }
     val opened = catalog.features.firstOrNull { it.key == openKey }
     if (opened != null) {
         androidx.activity.compose.BackHandler { openKey = null }
-        FeaturePage(opened, italian, onBack = { openKey = null }, onRoute = onRoute)
+        FeaturePage(opened, italian, demo, onBack = { openKey = null }, onRoute = onRoute)
         return
     }
     LazyColumn(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().testTag("funzioni"), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp)) {
@@ -79,7 +79,7 @@ fun FeaturesScreen(catalog: Features.Catalog, onBack: () -> Unit, startOn: Strin
 
 /** La pagina di una voce. */
 @Composable
-private fun FeaturePage(f: Features.Feature, italian: Boolean, onBack: () -> Unit, onRoute: (String) -> Unit) {
+private fun FeaturePage(f: Features.Feature, italian: Boolean, demo: FeatureDemoData?, onBack: () -> Unit, onRoute: (String) -> Unit) {
     Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().verticalScroll(androidx.compose.foundation.rememberScrollState()).testTag("funzione-${f.key}").padding(start = 12.dp, end = 12.dp, bottom = 28.dp)) {
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Cm.text) }
@@ -88,6 +88,10 @@ private fun FeaturePage(f: Features.Feature, italian: Boolean, onBack: () -> Uni
         }
         Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(f.what.of(italian) + " " + f.`when`.of(italian), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+            if (demo != null && f.key in Features.DEMO_KEYS) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(R.string.features_try).uppercase(), style = MonoSmall.copy(fontWeight = FontWeight.Medium), color = Cm.text2)
+                FeatureDemoBox(f.key, demo)
+            }
             f.how.of(italian).takeIf { it.isNotEmpty() }?.let { how ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.features_how).uppercase(), style = MonoSmall.copy(fontWeight = FontWeight.Medium), color = Cm.text2)

@@ -87,6 +87,22 @@ class HomeBoxScreenTest {
         val c = it.pixelbox.cmwatch.rules.Features.decode(File("src/main/assets/features.json").readText())
         paparazzi.snapshot { CmPhoneTheme(still = true) { FeaturesScreen(c, onBack = {}, startOn = key, onRoute = {}) } }
     }
+    private fun prova(key: String) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 2000))
+        val c = it.pixelbox.cmwatch.rules.Features.decode(File("src/main/assets/features.json").readText())
+        val d = FeatureDemoData(it.pixelbox.cmwatch.rules.FeatureDemoState.state(q, now, true), it.pixelbox.cmwatch.rules.FeatureDemoState.page(now, zone, true), ContractJson.decodeNightReport(File("../contract/night-report-sample.json").readText()), now)
+        paparazzi.snapshot { CmPhoneTheme(still = true) { FeaturesScreen(c, onBack = {}, startOn = key, demo = d, onRoute = {}) } }
+    }
+    @Test fun panoramica_demo_prova_tabellone() = prova("tabellone")
+    @Test fun panoramica_demo_prova_ti_aspettano() = prova("ti_aspettano")
+    @Test fun panoramica_demo_prova_slot() = prova("slot")
+    @Test fun panoramica_demo_prova_esiti() = prova("esiti")
+    @Test fun panoramica_demo_prova_lavori() = prova("lavori")
+    @Test fun panoramica_demo_prova_suggestions() = prova("suggestions")
+    @Test fun panoramica_demo_prova_master() = prova("master")
+    @Test fun panoramica_demo_prova_system() = prova("system")
+    @Test fun panoramica_demo_prova_notte() = prova("notte_report")
+    @Test fun panoramica_demo_prova_web() = prova("web_app")
     @Test fun panoramica_demo_paginaConPortamiLi() = page("esiti")
     @Test fun panoramica_demo_paginaSenzaPortamiLi() = page("orologio")
     @Test fun panoramica_demo_paginaInArrivo() = page("cinque_minuti", "en", 320)

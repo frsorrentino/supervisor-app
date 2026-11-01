@@ -10,6 +10,9 @@ import kotlinx.serialization.json.Json
  */
 object Features {
     const val READY = "ready"
+
+    /** Le voci col riquadro «Prova», il componente vero coi dati della demo (Franz 01/11 22:13). */
+    val DEMO_KEYS = setOf("tabellone", "ti_aspettano", "slot", "esiti", "lavori", "suggestions", "master", "system", "notte_report", "web_app")
     const val COMING = "coming"
 
     @Serializable data class Text(val it: String, val en: String) { fun of(italian: Boolean) = if (italian) it else en }

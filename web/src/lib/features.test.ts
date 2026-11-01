@@ -45,4 +45,13 @@ describe('panoramica', () => {
       if (f.state === 'ready') expect(f.how.it && f.how.en, f.key).toBeTruthy()
     }
   })
+  it('panoramica_demo: il riquadro Prova solo su voci vere', () => {
+    const src = read('web/src/lib/FeatureDemo.svelte')
+    const keys = /DEMO_KEYS = \[([^\]]+)\]/.exec(src)![1].match(/'([a-z_]+)'/g)!.map(x => x.replaceAll("'", ''))
+    expect(keys.length).toBe(10)
+    for (const k of keys) {
+      expect(catalog.features.find(f => f.key === k)?.state, k).toBe('ready')
+      expect(src, k).toContain(`key === '${k}'`)
+    }
+  })
 })

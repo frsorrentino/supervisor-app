@@ -2,6 +2,7 @@
   import { canGo, catalog, grouped, type Feature } from './features'
   import { lang } from './lang'
   import { t } from './t'
+  import FeatureDemo, { DEMO_KEYS } from './FeatureDemo.svelte'
   // «Cosa sa fare» (Franz 01/11 20:39), porta di FeaturesScreen.kt. Ogni voce apre la sua pagina (22:05: tornare alla home non spiegava niente):
   // cosa fa e quando serve, come si usa, e «Portami lì» se ha un posto suo.
   let { onRoute }: { onRoute: (route: string) => void } = $props()
@@ -15,6 +16,7 @@
     <button class="back" onclick={() => (opened = null)} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg><span>{t.featuresTitle}</span></button>
     <h2>{tx(opened.name)}{#if opened.state === 'coming'} <small>{t.featuresComing}</small>{/if}</h2>
     <p class="about">{tx(opened.what)} {tx(opened.when)}</p>
+    {#if DEMO_KEYS.includes(opened.key)}<h4>{t.featuresTry}</h4><FeatureDemo key={opened.key} />{/if}
     {#if tx(opened.how)}<h4>{t.featuresHow}</h4><p class="how">{tx(opened.how)}</p>{/if}
     {#if tx(opened.where)}<p class="wh">{tx(opened.where)}</p>{/if}
     {#if canGo(opened)}<button class="go" onclick={() => onRoute(opened!.route!)}>{t.featuresGo}</button>{/if}

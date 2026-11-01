@@ -50,4 +50,20 @@ class FeaturesTest {
             if (f.state == Features.READY) assertTrue(f.key, f.how.it.isNotBlank() && f.how.en.isNotBlank())
         }
     }
+
+    @Test fun panoramica_demo_ilRiquadroProvaSoloSuVociVere() {
+        assertEquals(10, Features.DEMO_KEYS.size)
+        Features.DEMO_KEYS.forEach { k -> assertTrue(k, c.features.any { it.key == k && it.state == Features.READY }) }
+    }
+
+    @Test fun panoramica_demo_iDatiDelRiquadroRiempionoIlTabellone() {
+        val zone = java.time.ZoneId.of("Europe/Rome")
+        val now = 1_793_560_000L
+        val base = it.pixelbox.cmwatch.contract.ContractJson.decodeState(File("../contract/state-1-question.json").readText())
+        val st = FeatureDemoState.state(base, now, true)
+        val h = Kpi.head(st, FeatureDemoState.page(now, zone, true), now, zone)
+        assertTrue(h.waiting > 0); assertTrue(h.busy > 0); assertEquals(6, h.outcomes)
+        assertTrue(st.system != null && st.plugins != null && st.sessions.any { it.name == "master" })
+        assertEquals(2, Suggestions.visible(st, emptySet(), now).shown.size)
+    }
 }

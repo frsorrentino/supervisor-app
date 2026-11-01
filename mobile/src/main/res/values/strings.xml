@@ -1446,6 +1446,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="features_sub">Tutte le funzioni, per a cosa servono</string>
     <string name="features_how">Come si usa</string>
     <string name="features_go">Portami lì</string>
+    <string name="features_try">Prova</string>
     <string name="features_coming">in arrivo</string>
     <string name="box_at_least">Il relay manda al massimo 40 eventi per sessione: oggi la cifra è un minimo.</string>
     <string name="box_outcomes_note">Un tocco su una riga apre la sessione, se è ancora aperta.</string>
