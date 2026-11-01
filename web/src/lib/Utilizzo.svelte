@@ -36,19 +36,48 @@
 </script>
 
 {#snippet arrow(k: string)}<span class="ms ar" aria-hidden="true">{open === k ? 'expand_less' : 'expand_more'}</span>{/snippet}
-{#snippet label(text: string, personal: boolean)}<span class="lab">{#if many}<i class="shape" class:sq={!personal}></i>{/if}{text}</span>{/snippet}
+{#snippet label(text: string, indent = false)}<span class="lab" class:indent>{text}</span>{/snippet}
 {#snippet meter(p: number, projected: number | null, tick: number | null, stale: boolean)}
   <span class="meter"><i style="width:{p}%;background:{stale ? 'var(--tx3)' : tone(p)}"></i>{#if projected != null && projected > p}<u style="left:{p}%;width:{projected - p}%"></u>{/if}{#if tick != null}<s style="left:{tick}%"></s>{/if}</span>
 {/snippet}
 
 <div class="ut" data-testid="utilizzo-v3">
-  {#each shown.filter(r => r.h5 != null) as r (r.account)}
+  <!-- Franz 01/11 13:44: «la riga Utilizzo e la riga Settimana» sono ridondanti. Un account: la barra a tutta larghezza, senza riga. Due
+       account: la riga prende il nome dell'account, con «5 ore» rientrata sotto chi ha quel limite. Le origini stanno in «Tutti i dettagli». -->
+  {#each shown as r (r.account)}
+    {@const noH5 = r.h5 == null}
+    {@const pace = paceText(weekDelta(r.w7, r.weekResetAt, now), weekDay(r.weekResetAt, now))}
+    {#if r.w7 != null}
+      {@const w = pc(r.w7)}
+      {#if !many}
+        <div class="one" data-testid="utilizzo-riga-unica">
+          <div class="onehead">
+            {@render meter(w, null, elapsedPct(r.weekResetAt, W7_S, now), r.stale)}
+            {#if r.stale}<p class="note">{t.quotaLineStale}</p>{:else if pace}<p class="note">{pace}</p>{/if}
+          </div>
+          {#if r.weekResetAt}<p class="note renew">{t.weekRenewal(dayTime(r.weekResetAt))}</p>{/if}
+        </div>
+      {:else}
+        <button class="row" aria-expanded={open === `w7:${r.account}`} onclick={() => toggle(`w7:${r.account}`)}>
+          {@render label(shown.filter(x => x.personal === r.personal).length > 1 ? r.account : r.personal ? t.usageAccountPersonal : t.usageAccountWork)}{@render meter(w, null, elapsedPct(r.weekResetAt, W7_S, now), r.stale)}
+          <span class="val" class:dim={r.stale}>{w}%</span>{@render arrow(`w7:${r.account}`)}
+        </button>
+        {#if open === `w7:${r.account}` || r.stale || (noH5 && pace)}
+          <div class="open">
+            {#if r.stale}<p class="note">{t.quotaLineStale}</p>{/if}
+            {#if pace && ((noH5 && !r.stale) || open === `w7:${r.account}`)}<p class="note">{pace}</p>{/if}
+            {#if open === `w7:${r.account}` && r.weekResetAt}<p class="note">{t.weekRenewal(dayTime(r.weekResetAt))}</p>{/if}
+          </div>
+        {/if}
+      {/if}
+    {/if}
+    {#if r.h5 != null}
     {@const p = pc(r.h5)}
     {@const proj = r.pace?.projected ?? null}
     {@const tk = elapsedPct(r.resetAt, H5_S, now)}
     {@const c = curve(r)}
     <button class="row" aria-expanded={open === `h5:${r.account}`} onclick={() => toggle(`h5:${r.account}`)}>
-      {@render label(t.kpi7Quota, r.personal)}{@render meter(p, proj, tk, r.stale)}
+      {@render label(t.kpi7Quota, many)}{@render meter(p, proj, tk, r.stale)}
       <span class="val" class:dim={r.stale}>{proj != null && !r.stale ? `${p}% → ${proj}%` : `${p}%`}</span>{@render arrow(`h5:${r.account}`)}
     </button>
     {#if r.stale}<div class="open"><p class="note">{t.quotaLineStale}</p></div>{/if}
@@ -68,24 +97,6 @@
         <p class="note">{proj != null && r.resetAt ? t.usageProjection(proj, hm(r.resetAt)) : r.resetAt ? t.quotaResetsAt(hm(r.resetAt)) : t.quotaLineStale}</p>
       </div>
     {/if}
-  {/each}
-  {#each shown.filter(r => r.w7 != null) as r (r.account)}
-    {@const p = pc(r.w7)}
-    {@const noH5 = r.h5 == null}
-    {@const pace = paceText(weekDelta(r.w7, r.weekResetAt, now), noH5 ? weekDay(r.weekResetAt, now) : null)}
-    <button class="row" aria-expanded={open === `w7:${r.account}`} onclick={() => toggle(`w7:${r.account}`)}>
-      {@render label(t.usageWeek, r.personal)}{@render meter(p, null, elapsedPct(r.weekResetAt, W7_S, now), r.stale)}
-      <span class="val" class:dim={r.stale}>{p}%</span>{@render arrow(`w7:${r.account}`)}
-    </button>
-    {#if open === `w7:${r.account}` || r.stale || (noH5 && pace)}
-      <div class="open">
-        {#if r.stale}<p class="note">{t.quotaLineStale}</p>{/if}
-        {#if pace && (!r.stale || open === `w7:${r.account}`)}<p class="note">{pace}</p>{/if}
-        {#if open === `w7:${r.account}`}
-          {#if r.weekResetAt}<p class="note">{t.weekRenewal(dayTime(r.weekResetAt))}</p>{/if}
-          {#if r.weekOrigins}<p class="note">{t.weekOriginSessions(Math.round(r.weekOrigins.sessions))} · {t.weekOriginAutomations(Math.round(r.weekOrigins.automations))} · {t.weekOriginRequests(Math.round(r.weekOrigins.requests))}</p>{/if}
-        {/if}
-      </div>
     {/if}
   {/each}
   {#if sp?.slices.length}
@@ -116,14 +127,16 @@
 </div>
 
 <style>
-  .ut { --lab: 92px; --val: 80px; --ar: 24px; }
+  .ut { --lab: 100px; --val: 80px; --ar: 24px; }
   .row { display: grid; grid-template-columns: var(--lab) minmax(0, 1fr) var(--val) var(--ar); column-gap: 10px; align-items: center; width: 100%; min-height: 44px; padding: 6px 12px 6px 14px; border-top: 1px solid var(--line); text-align: left; color: var(--tx); }
   .row:hover { background: var(--s2); }
   .row.wide { grid-template-columns: var(--lab) minmax(0, 1fr) auto var(--ar); }
   .row.more { grid-template-columns: minmax(0, 1fr) var(--ar); }
   .lab { display: flex; align-items: center; gap: 5px; white-space: nowrap; font: 600 15px var(--display); }
-  .shape { width: 9px; height: 9px; border: 2px solid var(--tx2); border-radius: 50%; flex: none; }
-  .shape.sq { border-radius: 3px; }
+  .lab.indent { padding-left: 14px; color: var(--tx2); }
+  .one { padding: 14px 14px 10px; }
+  .one .meter { display: block; margin-bottom: 8px; }
+  .one .renew::first-letter { text-transform: uppercase; }
   .meter { position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
   .meter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; z-index: 1; }
   .meter u { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(90deg, var(--tx3) 0 4px, transparent 4px 7px); }

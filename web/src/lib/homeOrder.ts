@@ -34,5 +34,19 @@ export function dragTarget(order: HomeSection[], held: HomeSection, y: number, m
   return order
 }
 
+// Lo slot del tabellone (Franz 01/11 14:03, «Slot agganciabile»): una voce sola, salvata nella lista stessa come `pin:chiave`, così
+// non serve una release del relay. Resta anche il suo posto nell'ordine: sganciata, torna dov'era. HomeOrder.kt nell'app.
+const PIN = 'pin:'
+const PINNABLE: HomeSection[] = ['usage', 'suggestions', 'system', 'lavori', 'plugins', 'closed']
+export const pinnable = (k: string): k is HomeSection => (PINNABLE as string[]).includes(k)
+export function pinned(saved: string[] | null | undefined): HomeSection | null {
+  const k = (saved ?? []).find(x => x.startsWith(PIN))?.slice(PIN.length)
+  return k && pinnable(k) ? k : null
+}
+/** La lista da salvare: l'ordine e, in fondo, l'aggancio. */
+export const withPin = (order: HomeSection[], pin: HomeSection | null): string[] => [...order, ...(pin && pinnable(pin) ? [PIN + pin] : [])]
+/** Chi sta nello slot adesso: l'allarme della settimana passa davanti, e la voce agganciata riprende il posto quando finisce. */
+export const slotKey = (pin: HomeSection | null, alarm: boolean): HomeSection | null => (alarm ? 'usage' : pin)
+
 /** L'arg dell'op `home_order`: l'array JSON delle chiavi; null = torna al predefinito. */
-export const orderArg = (order: HomeSection[]): string | null => (order.join() === DEFAULT_ORDER.join() ? null : JSON.stringify(order))
+export const orderArg = (order: HomeSection[], pin: HomeSection | null = null): string | null => (!pin && order.join() === DEFAULT_ORDER.join() ? null : JSON.stringify(withPin(order, pin)))

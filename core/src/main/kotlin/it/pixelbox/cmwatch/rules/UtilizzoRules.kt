@@ -35,6 +35,22 @@ object UtilizzoRules {
     fun shownQuota(quota: Map<String, it.pixelbox.cmwatch.contract.QuotaAccount>): List<Map.Entry<String, it.pixelbox.cmwatch.contract.QuotaAccount>> =
         quota.entries.filter { !it.value.stale }.ifEmpty { quota.entries.toList() }
 
+    /**
+     * La settimana nello slot: l'account più carico fra quelli da mostrare. `alarm` (Franz 01/11 14:25): lettura fresca e settimana
+     * dal 75%, o da 10 punti sopra il ritmo; una lettura vecchia non lo fa scattare. `many`: con più account la nota dice quale.
+     */
+    data class WeekSlot(val account: String, val personal: Boolean, val pct: Int, val resetAt: Long?, val delta: Int?, val day: Int?, val stale: Boolean, val alarm: Boolean, val many: Boolean)
+
+    fun weekSlot(quota: Map<String, it.pixelbox.cmwatch.contract.QuotaAccount>, now: Long): WeekSlot? {
+        val shown = shownQuota(quota).filter { it.value.w7 != null }
+        val top = shown.maxByOrNull { it.value.w7 ?: 0 } ?: return null
+        val q = top.value
+        val reset = q.resetW7?.takeIf { it > now }
+        val pct = (q.w7 ?: 0).coerceIn(0, 100)
+        val delta = weekDelta(q.w7, reset, now)
+        return WeekSlot(top.key, Accounts.isPersonalQuota(top.key, q), pct, reset, delta, weekDay(reset, now), q.stale, !q.stale && (pct >= 75 || (delta ?: 0) >= 10), shown.size > 1)
+    }
+
     data class Bar(val week: Boolean, val pct: Int, val resetAt: Long?, val windowS: Long, val delta: Int?, val day: Int?)
 
     /**

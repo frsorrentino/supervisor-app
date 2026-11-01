@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { DEFAULT_ORDER, move, normalize, orderArg, type HomeSection } from './homeOrder'
+  import { DEFAULT_ORDER, move, normalize, orderArg, pinned, type HomeSection } from './homeOrder'
   import { t } from './t'
   // «Riordina la home» (Franz 30/10 17:22, compito app-riordino-sezioni-30-10; HomeOrderScreen.kt nell'app), nello stile «Studio e
   // Diretta»: le sezioni chiuse su righe singole, con le frecce su e giù: il trascinamento sta nella home, con la pressione lunga
@@ -29,7 +29,7 @@
       </div>
     {/each}
   </div>
-  <button class="save" onclick={() => onSave(orderArg(order))}>{t.reorderSave}</button>
+  <button class="save" onclick={() => onSave(orderArg(order, pinned(saved)))}>{t.reorderSave}</button>
   <button class="reset" onclick={() => (order = [...DEFAULT_ORDER])}>{t.reorderReset}</button>
 </div>
 

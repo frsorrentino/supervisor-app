@@ -38,6 +38,19 @@ object HomeOrder {
         return order
     }
 
+    /**
+     * Lo slot del tabellone (Franz 01/11 14:03, «Slot agganciabile»): una voce sola, salvata nella lista stessa come `pin:chiave`,
+     * così non serve una release del relay. Resta anche il suo posto nell'ordine: sganciata, torna dov'era.
+     */
+    const val PIN = "pin:"
+    val PINNABLE = setOf("usage", "suggestions", "system", "lavori", "plugins", "closed")
+    fun pinnable(key: String): Boolean = key in PINNABLE
+    fun pinned(saved: List<String>?): String? = saved.orEmpty().firstOrNull { it.startsWith(PIN) }?.removePrefix(PIN)?.takeIf(::pinnable)
+    /** La lista da salvare: l'ordine e, in fondo, l'aggancio. */
+    fun withPin(order: List<String>, pin: String?): List<String> = order.filter { !it.startsWith(PIN) } + listOfNotNull(pin?.takeIf(::pinnable)?.let { PIN + it })
+    /** Chi sta nello slot adesso: l'allarme della settimana passa davanti, e la voce agganciata riprende il posto quando finisce. */
+    fun slot(pin: String?, alarm: Boolean): String? = if (alarm) "usage" else pin
+
     /** L'arg dell'op `home_order`: l'array JSON delle chiavi; null = torna al predefinito. */
     fun arg(order: List<String>): String? = if (order == DEFAULT) null else order.joinToString(",", "[", "]") { "\"$it\"" }
 }

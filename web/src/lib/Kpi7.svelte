@@ -1,19 +1,20 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte'
   import type { Head } from './kpi'
   import type { Box } from './HomeBox.svelte'
   import type { State } from './contract'
   import { personal } from './badge'
   import { resetLabel } from './header'
   import { shown } from './quotaLine'
-  import { elapsedPct, paceText, quotaBar } from './utilizzo'
+  import { elapsedPct, quotaBar } from './utilizzo'
   import { t } from './t'
   // Proposta 7 (25/10): tre cifre in testa alla home. Ognuna apre la sua pagina, anche a zero (app-box-cliccabili-29-10).
   // Lo stile «Studio e Diretta» (terza versione, 30/10): il tabellone, con la quota delle 5 ore sotto le cifre al posto della
   // riga nella testata. Si colora solo chi ti aspetta, l'unico avviso della home; i rossi restano rossi. La barra della quota
   // è neutra e diventa ambra da 75 % e rossa da 90 %; la tacca bianca è quanto è passato della finestra delle 5 ore.
   // quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana col giorno e il ritmo.
-  let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {} }: { h: Head; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void } = $props()
-  const rings = $derived((st ? shown(Object.entries(st.quota)) : []).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now, r.stale)] as const).filter(([, , b]) => b))
+  let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {}, slot }: { h: Head; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void; slot?: Snippet } = $props()
+  const rings = $derived((st ? shown(Object.entries(st.quota)) : []).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now, r.stale)] as const).filter(([, , b]) => b && !b.week))
   const tone = (pct: number) => (pct >= 90 ? 'var(--red)' : pct >= 75 ? 'var(--wait)' : 'var(--tx2)')
 </script>
 
@@ -29,8 +30,7 @@
         {@const week = !!b?.week}
         {@const tick = stale || !b ? null : elapsedPct(b.resetAt, b.windowS, now)}
         {@const reset = rings.length === 1 && !stale && !week ? resetLabel(r.reset_h5, now) : null}
-        {@const pace = week && !stale && b ? paceText(b.delta, b.day) : null}
-        <span class="q" data-testid={week ? 'quota-senza-cinque-ore' : null}>
+        <span class="q">
           {#if rings.length > 1}
             <svg viewBox="0 0 14 14" width="12" height="12" role="img" aria-label={personal(name, r.kind) ? t.badgePersonal : t.badgeWork}>
               {#if personal(name, r.kind)}<circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--tx2)" stroke-width="2" />{:else}<rect x="1" y="1" width="12" height="12" rx="3.2" fill="none" stroke="var(--tx2)" stroke-width="2" />{/if}
@@ -40,14 +40,17 @@
           <span class="meter"><i style="width:{pct}%;background:{stale ? 'var(--tx3)' : tone(pct)}"></i>{#if tick != null}<b style="left:{tick}%"></b>{/if}</span>
           <span class="pct" style:color={stale ? 'var(--tx3)' : pct >= 75 ? tone(pct) : null}>{pct}%</span>
           {#if reset}<span class="reset">{t.quotaResetsAt(reset)}</span>{/if}
-          {#if stale}<span class="pace">{t.quotaLineStale}</span>{:else if pace}<span class="pace">{pace}</span>{/if}
+          {#if stale}<span class="pace">{t.quotaLineStale}</span>{/if}
         </span>
       {/each}
     </button>
   {/if}
+  {#if slot}<div class="slot">{@render slot()}</div>{/if}
 </div>
 
 <style>
+  .slot { grid-column: 1 / -1; min-width: 0; }
+  .slot:empty { display: none; }
   .board { flex: none; display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; margin: 4px 0 2px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
   .cell { position: relative; padding: 12px 12px 13px; border-left: 1px solid var(--line); text-align: left; color: var(--tx); cursor: pointer; min-width: 0; }
   .cell:first-child { border-left: 0; }

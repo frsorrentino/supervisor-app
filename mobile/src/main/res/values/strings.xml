@@ -1450,6 +1450,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="reorder_up">Sposta su %1$s</string>
     <string name="reorder_down">Sposta giù %1$s</string>
     <string name="cleanup_close_short">Chiudi</string>
+    <string name="home_slot_drop">Rilascia qui per agganciare</string>
+    <string name="usage_account_personal">Personale</string>
+    <string name="usage_account_work">Professionale</string>
     <string name="usage_week">Settimana</string>
     <string name="usage_today">Oggi</string>
     <string name="usage_details">Tutti i dettagli</string>

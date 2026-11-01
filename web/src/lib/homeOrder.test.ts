@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_ORDER, dragTarget, move, normalize, orderArg, type HomeSection } from './homeOrder'
+import { orderArg as argWithPin, pinned, slotKey, withPin } from './homeOrder'
 
 describe('homeOrder', () => {
   it('senza un ordine salvato, il predefinito', () => {
@@ -43,5 +44,25 @@ describe('righe separabili (Franz 31/10 15:50)', () => {
   })
   it('le righe già separate restano dove sono, e le mancanti si accodano', () => {
     expect(normalize(['system', 'sessions', 'usage'])).toEqual(['system', 'sessions', 'usage', 'suggestions', 'lavori', 'esiti', 'plugins', 'closed'])
+  })
+})
+
+describe('slot del tabellone', () => {
+  it("l'aggancio sta nella lista e fuori dall'ordine", () => {
+    const saved = withPin(DEFAULT_ORDER, 'suggestions')
+    expect(saved[saved.length - 1]).toBe('pin:suggestions')
+    expect(normalize(saved)).toEqual(DEFAULT_ORDER)
+    expect(pinned(saved)).toBe('suggestions')
+    expect(JSON.parse(argWithPin(DEFAULT_ORDER, 'suggestions')!)).toEqual(saved)
+  })
+  it('solo le voci ammesse', () => {
+    expect(pinned(['pin:sessions'])).toBeNull()
+    expect(pinned(['pin:esiti'])).toBeNull()
+    expect(withPin(DEFAULT_ORDER, 'sessions')).toEqual(DEFAULT_ORDER)
+  })
+  it("l'allarme prende lo slot e lo rende", () => {
+    expect(slotKey('system', true)).toBe('usage')
+    expect(slotKey('system', false)).toBe('system')
+    expect(slotKey(null, false)).toBeNull()
   })
 })

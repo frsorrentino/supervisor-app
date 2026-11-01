@@ -48,4 +48,28 @@ class UtilizzoRulesTest {
         assertEquals(listOf("a"), UtilizzoRules.shownQuota(mapOf("a" to fresh, "b" to old)).map { it.key })
         assertEquals(listOf("a", "b"), UtilizzoRules.shownQuota(mapOf("a" to old, "b" to old)).map { it.key })
     }
+
+    private fun acc(w7: Int, stale: Boolean = false, reset: Long? = null) = it.pixelbox.cmwatch.contract.QuotaAccount(w7 = w7, stale = stale, resetW7 = reset)
+
+    @Test fun theWeekAlarmStartsAt75() {
+        assertEquals(false, UtilizzoRules.weekSlot(mapOf("a" to acc(74)), 0)!!.alarm)
+        assertEquals(true, UtilizzoRules.weekSlot(mapOf("a" to acc(75)), 0)!!.alarm)
+    }
+
+    @Test fun theWeekAlarmStartsTenPointsAboveThePace() {
+        // A metà settimana il ritmo pari è 50.
+        val half = UtilizzoRules.W7_S / 2
+        assertEquals(false, UtilizzoRules.weekSlot(mapOf("a" to acc(59, reset = half)), 0)!!.alarm)
+        assertEquals(true, UtilizzoRules.weekSlot(mapOf("a" to acc(60, reset = half)), 0)!!.alarm)
+    }
+
+    @Test fun anOldReadingNeverRingsTheAlarm() {
+        assertEquals(false, UtilizzoRules.weekSlot(mapOf("a" to acc(95, stale = true)), 0)!!.alarm)
+    }
+
+    @Test fun withTwoAccountsTheMostLoadedAmongTheFreshCounts() {
+        val s = UtilizzoRules.weekSlot(mapOf("a" to acc(30), "b" to acc(82), "c" to acc(99, stale = true)), 0)!!
+        assertEquals("b", s.account); assertEquals(82, s.pct); assertEquals(true, s.alarm); assertEquals(true, s.many)
+        assertNull(UtilizzoRules.weekSlot(emptyMap(), 0))
+    }
 }

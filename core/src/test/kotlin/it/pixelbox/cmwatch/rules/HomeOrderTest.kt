@@ -57,4 +57,29 @@ class HomeOrderTest {
         val swapped = listOf("b", "a", "c")
         assertEquals(swapped, HomeOrder.dragTarget(swapped, "a", 91f, mapOf("b" to 40f, "a" to 140f, "c" to 260f)))
     }
+
+    @Test fun thePinStaysInTheListAndOutOfTheOrder() {
+        val saved = HomeOrder.withPin(HomeOrder.DEFAULT, "suggestions")
+        assertEquals("pin:suggestions", saved.last())
+        assertEquals(HomeOrder.DEFAULT, HomeOrder.normalize(saved))
+        assertEquals("suggestions", HomeOrder.pinned(saved))
+        assertEquals("""["sessions","suggestions","lavori","esiti","usage","system","plugins","closed","pin:suggestions"]""", HomeOrder.arg(saved))
+    }
+
+    @Test fun onlyTheAllowedVociArePinned() {
+        assertNull(HomeOrder.pinned(listOf("pin:sessions")))
+        assertNull(HomeOrder.pinned(listOf("pin:esiti")))
+        assertEquals(HomeOrder.DEFAULT, HomeOrder.withPin(HomeOrder.DEFAULT, "sessions"))
+    }
+
+    @Test fun aSecondPinTakesThePlaceOfTheFirst() {
+        val first = HomeOrder.withPin(HomeOrder.DEFAULT, "system")
+        assertEquals("usage", HomeOrder.pinned(HomeOrder.withPin(first, "usage")))
+    }
+
+    @Test fun theAlarmTakesTheSlotAndGivesItBack() {
+        assertEquals("usage", HomeOrder.slot("system", alarm = true))
+        assertEquals("system", HomeOrder.slot("system", alarm = false))
+        assertNull(HomeOrder.slot(null, alarm = false))
+    }
 }

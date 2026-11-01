@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -13,6 +14,9 @@ import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.mobile.ui.Kpi7
+import it.pixelbox.cmwatch.mobile.ui.SlotDrop
+import it.pixelbox.cmwatch.mobile.ui.SlotRow
+import it.pixelbox.cmwatch.mobile.ui.UsageSlotRow
 import it.pixelbox.cmwatch.mobile.ui.TabletQuotaPanel
 import it.pixelbox.cmwatch.mobile.ui.UtilizzoV3
 import it.pixelbox.cmwatch.mobile.ui.V3
@@ -49,6 +53,28 @@ class NoFiveHourTest {
 
     @Test fun boardOneAccount() = shot { Kpi7(head, one, now, {}) }
     @Test fun boardTwoAccountsOneWithout() = shot { Kpi7(head, two, now, {}) }
+    /** Franz 01/11 13:44: un account, niente riga «Settimana». Bozza settimana-riga-unica. */
+    @Test fun utilizzo_riga_unica() = shot { UtilizzoV3(rings(one), one, null, null, now, {}, zone = zone) }
+
+    /** Allarme: la settimana all'82% prende lo slot, ambra, con la nota. */
+    @Test fun settimana_torna_in_alto() {
+        val hot = base.copy(quota = mapOf("personal" to personal.copy(w7 = 82)))
+        val w = it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(hot.quota, now)!!
+        shot { Kpi7(head, hot, now, {}, slot = { UsageSlotRow(w, now, Modifier, false) {} }) }
+    }
+
+    /** Lo slot: aperto dal trascinamento, una voce agganciata, Utilizzo agganciata e aperta. */
+    @Test fun slot_in_alto() {
+        val w = it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(one.quota, now)!!
+        shot {
+            Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+                Kpi7(head, one, now, {}, slot = { SlotDrop() })
+                Kpi7(head, one, now, {}, slot = { SlotRow(Modifier, "Suggerimenti", androidx.compose.material.icons.Icons.Outlined.AutoAwesome, "2", "ultimo 13:05", open = false) {} })
+                Kpi7(head, one, now, {}, slot = { UsageSlotRow(w, now, Modifier, true) {}; androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalUsageInSlot provides true) { UtilizzoV3(rings(one), one, null, null, now, {}, zone = zone) } })
+            }
+        }
+    }
+
     /** Segnalazione del 01/11: due account vecchi e le 5 ore scadute. Il numero resta per tutti e due, attenuato, con la nota sotto; la riga delle 5 ore non c'è. */
     @Test fun utilizzo_tutti_vecchi() {
         val old = base.copy(quota = mapOf(

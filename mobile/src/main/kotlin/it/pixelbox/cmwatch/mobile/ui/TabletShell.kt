@@ -245,6 +245,7 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
                 Text(stringResource(R.string.week_samples_from, dayShortTime(from)), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
             }
         } else ring.w7?.let { w ->
+            ring.weekOrigins?.let { WeekOriginsBar(w, it) }
             val projected = Tablet.weekProjected(w, ring.weekResetAt, now)
             WeekBar(w, projected)
             ring.weekResetAt?.let { at ->

@@ -47,7 +47,8 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
-  import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, type HomeSection } from './homeOrder'
+  import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, pinnable, pinned, slotKey, type HomeSection } from './homeOrder'
+  import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
 
@@ -125,9 +126,14 @@
   } = $props()
   const today = todayIso()
   // L'ordine nuovo vale subito, finché il relay non lo conferma.
-  let sentOrder = $state<{ from: string; order: HomeSection[] } | null>(null)
+  let sentOrder = $state<{ from: string; order: HomeSection[]; pin: HomeSection | null } | null>(null)
   const savedKey = $derived((st.home_order ?? []).join(','))
   const order = $derived(part ? DEFAULT_ORDER : sentOrder && sentOrder.from === savedKey ? sentOrder.order : normalizeOrder(st.home_order))
+  // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti. Le colonne della plancia non ce l'hanno.
+  const savedPin = $derived(part ? null : sentOrder && sentOrder.from === savedKey ? sentOrder.pin : pinned(st.home_order))
+  const week = $derived(!part && usage && showUsage ? weekSlot(st.quota, now) : null)
+  const weekAlarm = $derived(!!week?.alarm)
+  const pin = $derived(slotKey(savedPin, weekAlarm))
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
   // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
@@ -140,6 +146,11 @@
   let dragStartY = 0, dragTimer: ReturnType<typeof setTimeout> | undefined, dragJustEnded = false, dragEl: HTMLElement | null = null, dragRaf = 0, dragLastSwap = 0
   let dragArmed: HomeSection | null = null
   const noScroll = (e: TouchEvent) => { if (dragOrder) e.preventDefault() }
+  // La voce nello slot sta solo lì; mentre la si trascina fuori torna in elenco, attenuata, come le altre.
+  const listSkip = $derived(dragKey === pin ? null : pin)
+  const slotOpen = $derived(!!dragKey && pinnable(dragKey) && !weekAlarm)
+  let boardEl: HTMLElement | undefined = $state()
+  const overBoard = (y: number) => !!boardEl && y < boardEl.getBoundingClientRect().bottom
   function dragBegin(k: HomeSection) {
     const r = dragEl!.getBoundingClientRect()
     dragGhost = { shift: r.top - dragStartY, left: r.left, width: r.width }
@@ -149,14 +160,16 @@
   }
   // Vicino ai bordi la lista scorre da sola; ogni 120 ms si guarda se il puntatore ha incrociato una testata vicina.
   function dragFrame(now: number) {
-    const home = dragEl?.closest('.home') as HTMLElement | null
+    // Non dalla voce presa: uscendo dallo slot il suo titolo sparisce dal DOM.
+    const home = boardEl?.closest('.home') as HTMLElement | null
     if (!dragOrder || !dragKey || !home) return
     const r = home.getBoundingClientRect(), edge = 72
     if (dragY < r.top + edge) home.scrollTop -= (r.top + edge - dragY) / edge * 14
     else if (dragY > r.bottom - edge) home.scrollTop += (dragY - (r.bottom - edge)) / edge * 14
-    if (now - dragLastSwap > 120) {
+    if (now - dragLastSwap > 120 && !(pinnable(dragKey) && !weekAlarm && overBoard(dragY))) {
       const mids: Partial<Record<HomeSection, number>> = {}
       for (const k of dragOrder) {
+        if (k === listSkip) continue
         const b = home.querySelector(`[data-sec-head="${k}"]`)?.getBoundingClientRect()
         if (b) mids[k] = b.top + Math.min(b.height, 48) / 2
       }
@@ -167,6 +180,7 @@
   }
   function secDown(k: string, e: PointerEvent) {
     if (!onHomeOrder || part || e.button !== 0) return
+    if (weekAlarm && k === 'usage') return
     const key = k as HomeSection; dragStartY = dragY = e.clientY; dragEl = e.currentTarget as HTMLElement
     addEventListener('pointermove', secMove); addEventListener('pointerup', secEnd); addEventListener('pointercancel', secCancel)
     if (e.pointerType === 'mouse') { dragArmed = key; return }
@@ -196,11 +210,19 @@
       }))
       setTimeout(() => { flyGhost = null }, bounceMs())
     }
+    const held = dragKey, dropped = !!held && pinnable(held) && !weekAlarm && overBoard(dragY)
     const o = dragOrder; dragOrder = null; dragKey = null; dragGhost = null; dragJustEnded = true
     addEventListener('click', swallowClick, { capture: true, once: true })
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
-    if (!cancel && o.join() !== order.join()) { sentOrder = { from: savedKey, order: o }; onHomeOrder?.(orderArg(o)) }
+    if (!cancel) {
+      // Una seconda voce prende il posto della prima; chi esce dallo slot torna nel punto del rilascio. Con l'allarme una voce agganciata è solo di passaggio in elenco.
+      const nextOrder = dropped ? order : o
+      const nextPin = dropped ? held : held === savedPin && !weekAlarm ? null : savedPin
+      if (nextOrder.join() !== order.join() || nextPin !== savedPin) { sentOrder = { from: savedKey, order: nextOrder, pin: nextPin }; onHomeOrder?.(orderArg(nextOrder, nextPin)) }
+    }
   }
+  const slotTone = (w: { pct: number; stale: boolean; alarm: boolean }) => (w.stale ? 'var(--tx3)' : w.pct >= 90 ? 'var(--red)' : w.pct >= 75 || w.alarm ? 'var(--wait)' : 'var(--tx2)')
+  const lowerFirst = (x: string | null) => (x ? x[0].toLowerCase() + x.slice(1) : x)
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
   $effect(() => {
@@ -451,7 +473,7 @@
     <div class="sec static" data-testid={testid}><span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
     <!-- L'unica struttura delle voci della home (Franz 31/10 17:04). -->
-    <button class="sec" class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
+    <button class="sec" class:compact={key === listSkip} class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
       <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span>
     </button>
@@ -459,12 +481,17 @@
 {/snippet}
 
 <section class="home" class:part={!!part}>
+{#snippet secOf(k: HomeSection)}{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet slotBox()}
+  {#if slotOpen}<div class="slotdrop" data-testid="slot-rilascia">{t.slotDrop}</div>
+  {:else if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
+{/snippet}
   <!-- Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto. -->
   {#if allDone && (!part || part === 'you')}<div class="alldone" data-testid="tutto-fatto"><svg viewBox="0 0 24 24" width="32" height="32"><path pathLength="1" d="M5 12.5l5 5L20 7" /></svg></div>{/if}
   {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
-{#if !part}<Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} {onBox} {onQuota} />{/if}
+{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} {onBox} {onQuota} slot={slotBox} /></div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 {#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
@@ -588,7 +615,14 @@
     <div class="sec static"><span class="ic"><span class="ms">data_usage</span></span><span class="st">{t.homeUsage}</span></div>
     <div class="card wrows"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
   {:else if usage && showUsage && !part}
-    <div class="secwrap" bind:this={usageEl}>{@render sec('usage', t.homeUsage, 'data_usage', null, 'home-sez-utilizzo', open.usage ? null : usageLine)}</div>
+    <div class="secwrap" bind:this={usageEl}>{#if week && listSkip === 'usage'}
+      <button class="usageslot" class:draggable={!!onHomeOrder && !weekAlarm} data-sec-head="usage" data-testid="slot-utilizzo" aria-expanded={open.usage} onclick={() => { if (!dragJustEnded) toggleSec('usage') }} onpointerdown={(e) => secDown('usage', e)}>
+        <span class="ustop"><span class="ms" style:color={weekAlarm ? slotTone(week) : null}>data_usage</span><b>{t.homeUsage}</b>
+          <span class="usmeter"><i style="width:{week.pct}%;background:{slotTone(week)}"></i>{#if elapsedPct(week.resetAt, W7_S, now) != null}<s style="left:{elapsedPct(week.resetAt, W7_S, now)}%"></s>{/if}</span>
+          <span class="uspct" style:color={week.stale ? 'var(--tx3)' : weekAlarm ? slotTone(week) : null}>{week.pct}%</span><span class="ms tog" class:up={open.usage}>expand_more</span></span>
+        <span class="usnote">{[week.many ? (week.personal ? t.usageAccountPersonal : t.usageAccountWork) : null, t.usageWeek, week.stale ? t.quotaLineStale : lowerFirst(paceText(week.delta, week.day))].filter(Boolean).join(' · ')}</span>
+      </button>
+    {:else}{@render sec('usage', t.homeUsage, 'data_usage', null, 'home-sez-utilizzo', usageLine)}{/if}</div>
     {#if open.usage}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="card wrows">{@render (usageBlock ?? usage)()}</div></div></div>{/if}
   {/if}
 {/snippet}
@@ -644,8 +678,8 @@
   {/if}
 {/snippet}
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
-{#each dragOrder ?? order as k (k)}
-  <div class="hsec" class:held={k === dragKey}>{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}</div>
+{#each (dragOrder ?? order).filter(k => k !== listSkip) as k (k)}
+  <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
 {/each}
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
   {#if dragKey && dragGhost}
@@ -1113,6 +1147,24 @@
   .hsec > :global(*) { flex-shrink: 0; }
   .hsec:empty { display: none; }
   .hsec.held { opacity: .35; }
+  .boardwrap { flex: none; }
+  .slotdrop { margin: 8px; min-height: 44px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--tx3); border-radius: 12px; font-size: 14px; color: var(--tx); }
+  .inslot { gap: 0; border-top: 1px solid var(--line); }
+  .inslot :global(.card) { margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .ustop { width: 100%; }
+  .inslot :global(.onehead) { display: none; }
+  .inslot :global(.one) { padding-top: 8px; }
+  .sec.compact { margin: 0 !important; min-height: 44px; padding: 6px 12px 6px 14px !important; }
+  .usageslot { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; padding: 8px 12px 10px 14px; text-align: left; color: var(--tx); cursor: pointer; }
+  .usageslot.draggable { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
+  .ustop { display: flex; align-items: center; gap: 8px; }
+  .ustop .ms:first-child { font-size: 18px; color: var(--tx2); }
+  .ustop b { font: 600 15px var(--display); }
+  .usmeter { flex: 1; position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
+  .usmeter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+  .usmeter s { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
+  .uspct { font: 400 12.5px var(--mono); }
+  .usnote { font-size: 13.5px; line-height: 1.3; color: var(--tx2); }
   .dragg { position: fixed; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px 0 14px; border-radius: 16px; background: var(--s3); box-shadow: 0 6px 20px rgba(0, 0, 0, .35); pointer-events: none; }
   .dragg .ic { flex: 0 0 auto; }
   .sec.wait span, .sec.wait small { color: var(--wait); }

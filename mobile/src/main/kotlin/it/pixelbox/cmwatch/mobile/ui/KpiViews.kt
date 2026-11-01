@@ -10,7 +10,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.DataUsage
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -155,7 +162,7 @@ internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifi
  * quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana col giorno e il ritmo.
  */
 @Composable
-internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}) {
+internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}, slot: @Composable () -> Unit = {}) {
     Column(Modifier.testTag("kpi-7").fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
         Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
             val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
@@ -166,17 +173,17 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f))
         }
-        val rings = it.pixelbox.cmwatch.rules.UtilizzoRules.shownQuota(st.quota).mapNotNull { (name, q) -> it.pixelbox.cmwatch.rules.UtilizzoRules.bar(q.h5, q.w7, q.resetH5, q.resetW7, now, q.stale)?.let { b -> Triple(name, q, b) } }.sortedByDescending { it.third.pct }
+        val rings = it.pixelbox.cmwatch.rules.UtilizzoRules.shownQuota(st.quota).mapNotNull { (name, q) -> it.pixelbox.cmwatch.rules.UtilizzoRules.bar(q.h5, q.w7, q.resetH5, q.resetW7, now, q.stale)?.let { b -> Triple(name, q, b) } }.filter { (_, _, b) -> !b.week }.sortedByDescending { it.third.pct }
         if (rings.isNotEmpty()) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             Column(Modifier.fillMaxWidth().handCursor().clickable(onClick = onQuota).padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 rings.forEach { (name, q, b) ->
                     val pct = b.pct
                     val tone = if (q.stale) V3.Tx3 else if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
-                    Row(if (b.week) Modifier.testTag("quota-senza-cinque-ore") else Modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         // Con due account la forma dice quale: tondo personale, quadrato lavoro, come nel badge.
                         if (rings.size > 1) Box(Modifier.size(10.dp).border(2.dp, V3.Tx2, if (it.pixelbox.cmwatch.rules.Accounts.personal(name, q.kind)) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(3.dp)))
-                        Text(stringResource(if (b.week) R.string.usage_week else R.string.kpi7_quota), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+                        Text(stringResource(R.string.kpi7_quota), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
                         BoxWithConstraints(Modifier.weight(1f).height(12.dp), contentAlignment = Alignment.CenterStart) {
                             Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(V3.S3)) {
                                 Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(tone))
@@ -188,10 +195,58 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
                         Text("$pct%", style = if (q.stale) V3.Meter.copy(color = V3.Tx3) else V3.Meter, maxLines = 1)
                     }
                     if (q.stale) Text(stringResource(R.string.quota_line_stale), style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), maxLines = 1)
-                    else if (b.week) weekPaceText(b.delta, b.day)?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp)) }
                 }
             }
         }
+        slot()
+    }
+}
+
+/** Lo slot aperto dal trascinamento: dice dove lasciare la voce (Franz 01/11 14:25). */
+@Composable
+internal fun SlotDrop() {
+    Box(Modifier.fillMaxWidth().padding(8.dp).testTag("slot-rilascia").border(1.dp, V3.Tx3, V3.Shape).heightIn(min = 44.dp), contentAlignment = Alignment.Center) {
+        Text(stringResource(R.string.home_slot_drop), style = V3.Small.copy(color = V3.Tx))
+    }
+}
+
+/** Una voce agganciata: lo stesso riepilogo della riga in elenco, nella misura del tabellone. */
+@Composable
+internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, onToggle: () -> Unit) {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+        count?.let { Text(it, style = V3.Name.copy(fontSize = 13.sp, color = V3.Tx2), modifier = Modifier.padding(start = 6.dp)) }
+        Row(Modifier.weight(1f).padding(start = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
+            right?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp), textAlign = androidx.compose.ui.text.style.TextAlign.End) }
+        }
+        if (open != null) Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
+        else if (nav) Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
+    }
+}
+
+/** Utilizzo nello slot: barra e percentuale in una riga, sotto settimana, giorno e ritmo; con due account anche di chi è. */
+@Composable
+internal fun UsageSlotRow(w: it.pixelbox.cmwatch.rules.UtilizzoRules.WeekSlot, now: Long, drag: Modifier, open: Boolean, onToggle: () -> Unit) {
+    val tone = if (w.stale) V3.Tx3 else if (w.pct >= 90) V3.Red else if (w.pct >= 75 || w.alarm) V3.Wait else V3.Tx2
+    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    Column(Modifier.fillMaxWidth().then(drag).handCursor().clickable(onClick = onToggle).testTag("slot-utilizzo").padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
+        Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(androidx.compose.material.icons.Icons.Outlined.DataUsage, null, tint = if (w.alarm) tone else V3.Tx2, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.home_sec_usage), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+            Spacer(Modifier.width(10.dp))
+            Meter(w.pct, null, it.pixelbox.cmwatch.rules.UtilizzoRules.elapsedPct(w.resetAt, it.pixelbox.cmwatch.rules.UtilizzoRules.W7_S, now), Modifier.weight(1f), stale = w.stale, alarm = w.alarm)
+            Spacer(Modifier.width(10.dp))
+            Text("${w.pct}%", style = V3.Meter.copy(color = if (w.stale) V3.Tx3 else if (w.alarm) tone else V3.Tx), maxLines = 1)
+            Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
+        }
+        val pace = if (w.stale) stringResource(R.string.quota_line_stale) else weekPaceText(w.delta, w.day)?.replaceFirstChar { c -> c.lowercase() }
+        val note = listOfNotNull(if (w.many) usageAccount(w.account, w.personal) else null, stringResource(R.string.usage_week), pace).joinToString(" · ")
+        Text(note, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp))
     }
 }
 

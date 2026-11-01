@@ -104,7 +104,7 @@ fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<Stri
             }
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Surface(onClick = { onSave(order) }, shape = CircleShape, color = V3.Act, contentColor = V3.OnAct, modifier = Modifier.fillMaxWidth()) {
+            Surface(onClick = { onSave(HomeOrder.withPin(order, HomeOrder.pinned(saved))) }, shape = CircleShape, color = V3.Act, contentColor = V3.OnAct, modifier = Modifier.fillMaxWidth()) {
                 Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) { Text(stringResource(R.string.reorder_save), style = V3.Name.copy(color = V3.OnAct)) }
             }
             Text(stringResource(R.string.reorder_reset), style = V3.Small.copy(color = V3.Tx), modifier = Modifier.handCursor().clickable { order = HomeOrder.DEFAULT }.padding(12.dp))

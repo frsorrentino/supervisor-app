@@ -1,3 +1,5 @@
+import { isPersonalQuota } from './briefCards'
+import { shown } from './quotaLine'
 import { t } from './t'
 
 // Il blocco Utilizzo aperto (scelta D di Franz, 30/10 20:11, compito app-utilizzo-d-30-10; UtilizzoRules.kt nell'app).
@@ -42,6 +44,23 @@ export function weekDay(resetAt: number | null | undefined, now: number): number
 export function fiveHourLive(h5: number | null | undefined, resetH5: number | null | undefined, stale: boolean | undefined, now: number): number | null {
   if (h5 == null) return null
   return stale && (resetH5 == null || resetH5 <= now) ? null : h5
+}
+
+/**
+ * La settimana nello slot: l'account più carico fra quelli da mostrare. `alarm` (Franz 01/11 14:25): lettura fresca e settimana dal
+ * 75%, o da 10 punti sopra il ritmo; una lettura vecchia non lo fa scattare. `many`: con più account la nota dice quale.
+ */
+export type WeekSlot = { account: string; personal: boolean; pct: number; resetAt: number | null; delta: number | null; day: number | null; stale: boolean; alarm: boolean; many: boolean }
+type QuotaLike = { w7?: number | null; reset_w7?: number | null; stale?: boolean; kind?: string | null }
+export function weekSlot(quota: Record<string, QuotaLike>, now: number): WeekSlot | null {
+  const list = shown(Object.entries(quota)).filter(([, q]) => q.w7 != null)
+  if (!list.length) return null
+  const [account, q] = list.reduce((a, b) => ((b[1].w7 ?? 0) > (a[1].w7 ?? 0) ? b : a))
+  const resetAt = q.reset_w7 != null && q.reset_w7 > now ? q.reset_w7 : null
+  const pct = Math.max(0, Math.min(100, q.w7 ?? 0))
+  const delta = weekDelta(q.w7, resetAt, now)
+  const stale = !!q.stale
+  return { account, personal: isPersonalQuota(account, q as never), pct, resetAt, delta, day: weekDay(resetAt, now), stale, alarm: !stale && (pct >= 75 || (delta ?? 0) >= 10), many: list.length > 1 }
 }
 
 export type QuotaBar = { week: boolean; pct: number; resetAt: number | null; windowS: number; delta: number | null; day: number | null }

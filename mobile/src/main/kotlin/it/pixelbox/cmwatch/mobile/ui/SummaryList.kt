@@ -208,7 +208,16 @@ fun SummaryList(
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val saveOrder by androidx.compose.runtime.rememberUpdatedState(onHomeOrder)
     var sentOrder by remember(kpiState?.homeOrder) { mutableStateOf<List<String>?>(null) }
-    val homeOrder = sentOrder ?: it.pixelbox.cmwatch.rules.HomeOrder.normalize(kpiState?.homeOrder)
+    val savedOrder = sentOrder ?: kpiState?.homeOrder
+    val homeOrder = it.pixelbox.cmwatch.rules.HomeOrder.normalize(savedOrder)
+    // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti.
+    val savedPin = it.pixelbox.cmwatch.rules.HomeOrder.pinned(savedOrder)
+    val weekSlot = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(st.quota, now) }.takeIf { usage != null && showUsage }
+    val weekAlarm = weekSlot?.alarm == true
+    val pin = it.pixelbox.cmwatch.rules.HomeOrder.slot(savedPin, weekAlarm)
+    val savedPinNow by androidx.compose.runtime.rememberUpdatedState(savedPin)
+    val alarmNow by androidx.compose.runtime.rememberUpdatedState(weekAlarm)
+    var boardBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
     val shownOrder by androidx.compose.runtime.rememberUpdatedState(homeOrder)
     var dragOrder by remember { mutableStateOf<List<String>?>(null) }
     var dragKey by remember { mutableStateOf<String?>(null) }
@@ -221,6 +230,11 @@ fun SummaryList(
     val dragZones = remember { mutableMapOf<String, Pair<String, androidx.compose.ui.layout.LayoutCoordinates>>() }
     val dragPresent = remember { mutableSetOf<String>() }
     var dragBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    fun overBoard(y: Float): Boolean {
+        val box = dragBox?.takeIf { it.isAttached } ?: return false
+        val board = boardBox?.takeIf { it.isAttached } ?: return false
+        return y < box.localBoundingBoxOf(board, false).bottom
+    }
     fun sectionDrag(key: String): Modifier = if (onHomeOrder == null) Modifier else Modifier.onGloballyPositioned { dragZones[key] = key to it }
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
@@ -260,6 +274,8 @@ fun SummaryList(
         usageOpen = true; save("usage", true)
         // La sezione può stare sotto lo schermo: dalla cima si scende finché il suo titolo non entra in vista, poi ci si ferma.
         listState.scrollToItem(0)
+        // Nello slot è già in cima.
+        if (pin == "usage") return@LaunchedEffect
         repeat(30) {
             androidx.compose.runtime.withFrameNanos { }
             val at = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "sec-usage" }
@@ -300,6 +316,8 @@ fun SummaryList(
             if (v != 0f) listState.scrollBy(v)
             val o = dragOrder ?: continue
             if (t - last < 120_000_000L) continue
+            // Sullo slot l'ordine non si tocca: chi aggancia torna dov'era quando esce.
+            if (it.pixelbox.cmwatch.rules.HomeOrder.pinnable(held) && !alarmNow && overBoard(y)) continue
             // Ogni voce ha la sua zona: la testata di una sezione o la riga di una card, anche con più righe nello stesso elemento.
             val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
             val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
@@ -337,6 +355,7 @@ fun SummaryList(
                 }
             } finally {
                 val o = dragOrder
+                val dropped = it.pixelbox.cmwatch.rules.HomeOrder.pinnable(key) && !alarmNow && overBoard(dragY)
                 // Voce 8: la copia del titolo vola al posto finale invece di sparire di colpo.
                 val landing = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "sec-$key" }?.offset?.toFloat()
                 if (commit && landing != null && !flightOff) {
@@ -345,7 +364,15 @@ fun SummaryList(
                     ghostScope.launch { ghostY.snapTo(from); ghostY.animateTo(landing, CmMotion.bounceFloat); ghostFly = null }
                 }
                 dragOrder = null; dragKey = null
-                if (commit && o != null && o != shownOrder) { sentOrder = o; saveOrder?.invoke(o) }
+                if (commit && o != null) {
+                    val nextOrder = if (dropped) shownOrder else o
+                    // Una seconda voce prende il posto della prima; chi esce dallo slot torna nel punto del rilascio. Con l'allarme una voce agganciata è solo di passaggio in elenco.
+                    val nextPin = if (dropped) key else if (savedPinNow == key && !alarmNow) null else savedPinNow
+                    if (nextOrder != shownOrder || nextPin != savedPinNow) {
+                        val full = it.pixelbox.cmwatch.rules.HomeOrder.withPin(nextOrder, nextPin)
+                        sentOrder = full; saveOrder?.invoke(full)
+                    }
+                }
             }
         }
     }) {
@@ -414,8 +441,9 @@ fun SummaryList(
         // Franz 24/10 00:46: un suggerimento che riguarda una sessione aperta (il contesto alto) sta nella sua scheda; in Altro restano gli altri.
         val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
         // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, con sotto la quota (stile «Studio e Diretta», 30/10).
+        var slotContent: @Composable () -> Unit = {}
         kpiState?.let { st ->
-            item(key = "kpi-7") { Box(moving()) { Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, onBox, onQuota) } }
+            item(key = "kpi-7") { Box(moving().onGloballyPositioned { c -> boardBox = c }) { Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, onBox, onQuota, slot = { slotContent() }) } }
         }
         // L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi «Altro».
         val waitRows = model.rows.filter { it.group == Summary.Group.WAITING }
@@ -459,6 +487,8 @@ fun SummaryList(
         // Contratto 1.84 (scheda A): i suggerimenti dopo le sessioni (Franz 30/10 16:44), fuori dal numero di chi aspetta: un consiglio non blocca nessuno.
         val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
         val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(zone)) }
+        // La voce nello slot sta solo lì; mentre la si trascina fuori torna in elenco, attenuata, come le altre.
+        val listSkip = if (dragKey == pin) null else pin
         val renderSessions: () -> Unit = {
         val moving = movingIn("sessions")
         if (restRows.isNotEmpty() || justClosed != null) {
@@ -497,8 +527,8 @@ fun SummaryList(
         val moving = movingIn("lavori")
         if (showLavori && (foryou != null || outside.isNotEmpty())) {
             val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
-            dragPresent += "lavori"
-            item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
+            if (listSkip != "lavori") dragPresent += "lavori"
+            if (listSkip != "lavori") item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
             if (lavoriOpen) {
                 if (laterRows.isNotEmpty()) item(key = "lv-later") {
                     Box(moving()) {
@@ -588,7 +618,7 @@ fun SummaryList(
                     val weeks = it.pixelbox.cmwatch.rules.UtilizzoRules.shownQuota(kpiState?.quota.orEmpty()).filter { it.value.w7 != null }
                     // Con più account il nome si accorcia: il riepilogo sta su una riga.
                     val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "${if (a.length > 5) a.take(4) + "." else a} ${q.w7}%" }
-                    Box(moving()) { V3Section(sectionDrag("usage"), stringResource(R.string.home_sec_usage), androidx.compose.material.icons.Icons.Outlined.DataUsage, right = line.takeIf { !usageOpen && it.isNotEmpty() }, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) } }
+                    Box(moving()) { V3Section(sectionDrag("usage"), stringResource(R.string.home_sec_usage), androidx.compose.material.icons.Icons.Outlined.DataUsage, right = line.takeIf { it.isNotEmpty() }, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) } }
                 }
                 if (usageOpen) item(key = "usage-body") { Box(moving()) { V3List { usage!!() } } }
             }
@@ -628,7 +658,42 @@ fun SummaryList(
         }
         // L'ordine scelto da Franz (Impostazioni › Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra.
         dragPresent.clear()
+        val slotDrag: (String) -> Modifier = { k -> if (weekAlarm && k == "usage") Modifier else sectionDrag(k) }
+        slotContent = {
+            val icons = androidx.compose.material.icons.Icons.Outlined
+            if (dragKey != null && it.pixelbox.cmwatch.rules.HomeOrder.pinnable(dragKey!!) && !weekAlarm) {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+                SlotDrop()
+            } else when (pin) {
+                "suggestions" -> if (sug != null) {
+                    SlotRow(slotDrag("suggestions"), stringResource(R.string.sug_title), icons.AutoAwesome, sug.total.toString(), sugAt?.let { at -> if (suggestionsOpen) at else stringResource(R.string.home_last_at, at) }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) }
+                    if (suggestionsOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } }
+                }
+                "lavori" -> if (showLavori && (foryou != null || outside.isNotEmpty())) SlotRow(slotDrag("lavori"), stringResource(R.string.lavori_title), icons.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
+                "usage" -> if (hasUsage) {
+                    if (weekSlot != null) UsageSlotRow(weekSlot, now, slotDrag("usage"), usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
+                    else SlotRow(slotDrag("usage"), stringResource(R.string.home_sec_usage), icons.DataUsage, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
+                    if (usageOpen) androidx.compose.runtime.CompositionLocalProvider(LocalUsageInSlot provides true) { usage!!() }
+                }
+                "system" -> system?.let { sys ->
+                    val sysOpen = SystemRules.isOpen(sys.level, sysManual)
+                    SlotRow(slotDrag("system"), stringResource(R.string.home_sec_system), icons.Memory, right = if (sysOpen) null else systemSummary(sys), tag = "home-sez-sistema", open = sysOpen, dot = if (sysOpen || sys.level == "green") null else systemTone(sys.level)) { sysManual = SystemRules.Manual(sys.level, !sysOpen) }
+                    if (sysOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } }
+                }
+                "plugins" -> if (hasPlugins) {
+                    val runnerState = pluginsRunner?.state?.collectAsState()?.value
+                    val n = it.pixelbox.cmwatch.rules.Plugins.pending(runnerState?.page, plugins!!)
+                    val line = if (pluginsOpen) null else if (n > 0) pluralStringResource(R.plurals.plugins_to_update, n, n) else stringResource(R.string.plugins_up_to_date)
+                    SlotRow(slotDrag("plugins"), stringResource(R.string.home_sec_plugins), icons.Extension, right = line, tag = "home-sez-plugin", open = pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }
+                    if (pluginsOpen) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
+                }
+                "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }
+            }
+        }
+        // Il corpo di Lavori è fatto di più elementi della lista: agganciata, la testa sta nello slot e il corpo apre subito sotto.
+        if (listSkip == "lavori") renderLavori()
         (dragOrder ?: homeOrder).forEach { k ->
+            if (k == listSkip) return@forEach
             when (k) {
                 "sessions" -> renderSessions()
                 "suggestions" -> renderSuggestions()

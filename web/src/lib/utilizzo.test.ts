@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { elapsedPct, fiveHourLive, H5_S, peakHour, quotaBar, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
+import { elapsedPct, weekSlot, fiveHourLive, H5_S, peakHour, quotaBar, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
 
 describe('utilizzo', () => {
   it('quanto è passato della finestra', () => {
@@ -56,5 +56,23 @@ describe('letture vecchie', () => {
     expect(fiveHourLive(40, 2000, true, 1000)).toBe(40)
     expect(fiveHourLive(40, 900, false, 1000)).toBe(40)
     expect(quotaBar(40, 25, 900, 5000, 1000, true)).toMatchObject({ week: true, pct: 25 })
+  })
+})
+
+describe('allarme della settimana', () => {
+  it('dal 75%', () => {
+    expect(weekSlot({ a: { w7: 74 } }, 0)?.alarm).toBe(false)
+    expect(weekSlot({ a: { w7: 75 } }, 0)?.alarm).toBe(true)
+  })
+  it('da 10 punti sopra il ritmo', () => {
+    expect(weekSlot({ a: { w7: 59, reset_w7: W7_S / 2 } }, 0)?.alarm).toBe(false)
+    expect(weekSlot({ a: { w7: 60, reset_w7: W7_S / 2 } }, 0)?.alarm).toBe(true)
+  })
+  it('mai da una lettura vecchia', () => {
+    expect(weekSlot({ a: { w7: 95, stale: true } }, 0)?.alarm).toBe(false)
+  })
+  it('con due account il più carico fra i freschi', () => {
+    expect(weekSlot({ a: { w7: 30 }, b: { w7: 82 }, c: { w7: 99, stale: true } }, 0)).toMatchObject({ account: 'b', pct: 82, alarm: true, many: true })
+    expect(weekSlot({}, 0)).toBeNull()
   })
 })

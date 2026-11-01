@@ -2,7 +2,6 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -64,7 +62,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /** La colonna dei nomi: «Settimana» col segno dell'account sta su una riga anche coi caratteri di sistema più grandi. */
-@Composable private fun labW(): Dp = 92.dp * LocalDensity.current.fontScale
+@Composable private fun labW(): Dp = 100.dp * LocalDensity.current.fontScale
 private val ARROW = 24.dp
 private val GAP = 10.dp
 
@@ -80,67 +78,81 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
     val shown = PhoneOverview.lineRings(rings)
     // La colonna dei valori si allarga coi caratteri di sistema; barra e grafico restano allineati perché la dividono.
     val valW = 80.dp * LocalDensity.current.fontScale
+    val many = shown.size > 1
     val toggle = { k: String -> open = if (open == k) null else k }
     val hm = DateTimeFormatter.ofPattern("HH:mm")
     Column(Modifier.fillMaxWidth().testTag("utilizzo-v3")) {
-        shown.filter { it.h5 != null }.forEach { r ->
-            val many = shown.size > 1
-            val pct = (r.h5 ?: 0).coerceIn(0, 100)
-            val proj = r.pace?.projected
-            val tick = UtilizzoRules.elapsedPct(r.resetAt, UtilizzoRules.H5_S, now)
-            val k5 = "h5:${r.account}"
-            UseRow(open == k5, { toggle(k5) }) {
-                Label(stringResource(R.string.kpi7_quota), r, many)
-                Spacer(Modifier.width(GAP))
-                Meter(pct, proj, tick, Modifier.weight(1f), stale = r.stale)
-                Spacer(Modifier.width(GAP))
-                Text(if (proj != null && !r.stale) "$pct% → $proj%" else "$pct%", style = V3.Meter.copy(color = if (r.stale) V3.Tx2 else V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
-            }
-            if (open == k5 || r.stale) Column(Modifier.padding(bottom = 10.dp)) {
-                if (r.stale) Note(stringResource(R.string.quota_line_stale))
-                if (open == k5) {
-                // «adesso» sopra il grafico, centrato sulla linea: fra le due ore in fondo non ci sta (Franz 30/10, correzione al mockup D).
-                if (tick != null) Aligned(valW) {
-                    BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
-                        val x = (maxWidth * (tick / 100f) - 30.dp).coerceIn(0.dp, (maxWidth - 60.dp).coerceAtLeast(0.dp))
-                        Text(stringResource(R.string.usage_now), style = V3.Meter.copy(fontSize = 12.sp, color = V3.Tx), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.offset(x = x).width(60.dp))
-                    }
-                }
-                Aligned(valW) { Curve(r, now, Modifier.fillMaxWidth().height(58.dp)) }
-                Aligned(valW) {
-                    BoxWithConstraints(Modifier.fillMaxWidth().height(18.dp)) {
-                        r.resetAt?.let { reset ->
-                            Text(hm.format(Instant.ofEpochSecond(reset - UtilizzoRules.H5_S).atZone(zone)), style = V3.Meter.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.CenterStart))
-                            Text(hm.format(Instant.ofEpochSecond(reset).atZone(zone)), style = V3.Meter.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.CenterEnd))
-                        }
-                    }
-                }
-                Note(when {
-                    proj != null && r.resetAt != null -> stringResource(R.string.usage_projection, proj, hm.format(Instant.ofEpochSecond(r.resetAt!!).atZone(zone)))
-                    r.resetAt != null -> stringResource(R.string.quota_resets_at, hm.format(Instant.ofEpochSecond(r.resetAt!!).atZone(zone)))
-                    else -> stringResource(R.string.quota_old)
-                })
-                }
-            }
-        }
-        shown.filter { it.w7 != null }.forEach { r ->
-            val w7 = (r.w7 ?: 0).coerceIn(0, 100)
+        // Franz 01/11 13:44: «la riga Utilizzo e la riga Settimana» sono ridondanti. Un account: la barra a tutta larghezza, senza riga.
+        // Due account: la riga prende il nome dell'account, con «5 ore» rientrata sotto chi ha quel limite. Le origini stanno in «Tutti i dettagli».
+        shown.forEach { r ->
             val noH5 = r.h5 == null
             val kw = "w7:${r.account}"
-            val delta = UtilizzoRules.weekDelta(r.w7, r.weekResetAt, now)
-            UseRow(open == kw, { toggle(kw) }) {
-                Label(stringResource(R.string.usage_week), r, shown.size > 1)
-                Spacer(Modifier.width(GAP))
-                Meter(w7, null, UtilizzoRules.elapsedPct(r.weekResetAt, UtilizzoRules.W7_S, now), Modifier.weight(1f), stale = r.stale)
-                Spacer(Modifier.width(GAP))
-                Text("$w7%", style = V3.Meter.copy(color = if (r.stale) V3.Tx2 else V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
+            val pace = weekPaceText(UtilizzoRules.weekDelta(r.w7, r.weekResetAt, now), UtilizzoRules.weekDay(r.weekResetAt, now))
+            val renewal = r.weekResetAt?.let { stringResource(R.string.week_renewal, DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(Instant.ofEpochSecond(it).atZone(zone))) }
+            r.w7?.let { raw ->
+                val w7 = raw.coerceIn(0, 100)
+                if (!many) {
+                    val inSlot = LocalUsageInSlot.current
+                    Column(Modifier.fillMaxWidth().testTag("utilizzo-riga-unica").padding(top = if (inSlot) 8.dp else 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        if (!inSlot) {
+                            Meter(w7, null, UtilizzoRules.elapsedPct(r.weekResetAt, UtilizzoRules.W7_S, now), Modifier.padding(start = 14.dp, end = 14.dp, bottom = 6.dp).fillMaxWidth(), stale = r.stale)
+                            if (r.stale) Note(stringResource(R.string.quota_line_stale)) else pace?.let { Note(it) }
+                        }
+                        renewal?.let { Note(it.replaceFirstChar { c -> c.titlecase() }) }
+                    }
+                } else {
+                    UseRow(open == kw, { toggle(kw) }) {
+                        Label(usageAccount(r.account, r.personal, shown.count { it.personal == r.personal } > 1))
+                        Spacer(Modifier.width(GAP))
+                        Meter(w7, null, UtilizzoRules.elapsedPct(r.weekResetAt, UtilizzoRules.W7_S, now), Modifier.weight(1f), stale = r.stale)
+                        Spacer(Modifier.width(GAP))
+                        Text("$w7%", style = V3.Meter.copy(color = if (r.stale) V3.Tx2 else V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
+                    }
+                    if (open == kw || r.stale || (noH5 && pace != null)) Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        if (r.stale) Note(stringResource(R.string.quota_line_stale))
+                        pace?.takeIf { (noH5 && !r.stale) || open == kw }?.let { Note(it) }
+                        if (open == kw) renewal?.let { Note(it) }
+                    }
+                }
             }
-            val pace = weekPaceText(delta, if (noH5) UtilizzoRules.weekDay(r.weekResetAt, now) else null)
-            if (open == kw || r.stale || (noH5 && pace != null)) Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                if (r.stale) Note(stringResource(R.string.quota_line_stale))
-                pace?.takeIf { !r.stale || open == kw }?.let { Note(it) }
-                if (open == kw) r.weekResetAt?.let { Note(stringResource(R.string.week_renewal, DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(Instant.ofEpochSecond(it).atZone(zone)))) }
-                if (open == kw) r.weekOrigins?.let { o -> Note(listOf(stringResource(R.string.week_origin_sessions, Math.round(o.sessions).toInt()), stringResource(R.string.week_origin_automations, Math.round(o.automations).toInt()), stringResource(R.string.week_origin_requests, Math.round(o.requests).toInt())).joinToString(" · ")) }
+            if (r.h5 != null) {
+                val pct = (r.h5 ?: 0).coerceIn(0, 100)
+                val proj = r.pace?.projected
+                val tick = UtilizzoRules.elapsedPct(r.resetAt, UtilizzoRules.H5_S, now)
+                val k5 = "h5:${r.account}"
+                UseRow(open == k5, { toggle(k5) }) {
+                    Label(stringResource(R.string.kpi7_quota), indent = many)
+                    Spacer(Modifier.width(GAP))
+                    Meter(pct, proj, tick, Modifier.weight(1f), stale = r.stale)
+                    Spacer(Modifier.width(GAP))
+                    Text(if (proj != null && !r.stale) "$pct% → $proj%" else "$pct%", style = V3.Meter.copy(color = if (r.stale) V3.Tx2 else V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
+                }
+                if (open == k5 || r.stale) Column(Modifier.padding(bottom = 10.dp)) {
+                    if (r.stale) Note(stringResource(R.string.quota_line_stale))
+                    if (open == k5) {
+                    // «adesso» sopra il grafico, centrato sulla linea: fra le due ore in fondo non ci sta (Franz 30/10, correzione al mockup D).
+                    if (tick != null) Aligned(valW) {
+                        BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
+                            val x = (maxWidth * (tick / 100f) - 30.dp).coerceIn(0.dp, (maxWidth - 60.dp).coerceAtLeast(0.dp))
+                            Text(stringResource(R.string.usage_now), style = V3.Meter.copy(fontSize = 12.sp, color = V3.Tx), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.offset(x = x).width(60.dp))
+                        }
+                    }
+                    Aligned(valW) { Curve(r, now, Modifier.fillMaxWidth().height(58.dp)) }
+                    Aligned(valW) {
+                        BoxWithConstraints(Modifier.fillMaxWidth().height(18.dp)) {
+                            r.resetAt?.let { reset ->
+                                Text(hm.format(Instant.ofEpochSecond(reset - UtilizzoRules.H5_S).atZone(zone)), style = V3.Meter.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.CenterStart))
+                                Text(hm.format(Instant.ofEpochSecond(reset).atZone(zone)), style = V3.Meter.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.CenterEnd))
+                            }
+                        }
+                    }
+                    Note(when {
+                        proj != null && r.resetAt != null -> stringResource(R.string.usage_projection, proj, hm.format(Instant.ofEpochSecond(r.resetAt!!).atZone(zone)))
+                        r.resetAt != null -> stringResource(R.string.quota_resets_at, hm.format(Instant.ofEpochSecond(r.resetAt!!).atZone(zone)))
+                        else -> stringResource(R.string.quota_old)
+                    })
+                    }
+                }
             }
         }
         // Le sessioni dell'account più carico: accanto al numero il nome intero, che va a capo se è lungo.
@@ -225,18 +237,24 @@ private fun Aligned(valW: Dp, content: @Composable () -> Unit) {
 private fun Note(text: String) = Text(text, style = V3.Small.copy(fontSize = 13.5.sp), modifier = Modifier.padding(start = 14.dp, end = 12.dp + ARROW))
 
 @Composable
-private fun Label(text: String, r: PhoneOverview.Ring, many: Boolean) {
-    Row(Modifier.width(labW()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        // Con due account la forma dice quale: tondo personale, quadrato lavoro.
-        if (many) Box(Modifier.size(9.dp).border(2.dp, V3.Tx2, if (r.personal) CircleShape else RoundedCornerShape(3.dp)))
-        Text(text, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1, softWrap = false)
+private fun Label(text: String, indent: Boolean = false) {
+    Row(Modifier.width(labW()).padding(start = if (indent) 14.dp else 0.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(text, style = V3.Name.copy(fontSize = 15.sp, color = if (indent) V3.Tx2 else V3.Tx), maxLines = 1, softWrap = false)
     }
 }
 
+/** Dentro lo slot del tabellone barra e ritmo stanno già nella sua riga. */
+internal val LocalUsageInSlot = androidx.compose.runtime.compositionLocalOf { false }
+
+/** Il nome dell'account a parole; due dello stesso tipo si distinguono col nome vero. */
+@Composable
+internal fun usageAccount(name: String, personal: Boolean, sameKind: Boolean = false): String =
+    if (sameKind) name else stringResource(if (personal) R.string.usage_account_personal else R.string.usage_account_work)
+
 /** La barra: il pieno, la proiezione tratteggiata, la tacca di quanto è passato della finestra. */
 @Composable
-private fun Meter(pct: Int, projected: Int?, tick: Float?, modifier: Modifier, stale: Boolean = false) {
-    val tone = if (stale) V3.Tx3 else if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
+internal fun Meter(pct: Int, projected: Int?, tick: Float?, modifier: Modifier, stale: Boolean = false, alarm: Boolean = false) {
+    val tone = if (stale) V3.Tx3 else if (pct >= 90) V3.Red else if (pct >= 75 || alarm) V3.Wait else V3.Tx2
     Canvas(modifier.height(12.dp)) {
         val h = 6.dp.toPx(); val y = (size.height - h) / 2; val r = androidx.compose.ui.geometry.CornerRadius(h / 2)
         drawRoundRect(V3.S3, Offset(0f, y), androidx.compose.ui.geometry.Size(size.width, h), r)
