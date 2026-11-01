@@ -1209,6 +1209,31 @@
    }
   },
   {
+   "key": "terminale",
+   "group": "follow",
+   "name": {
+    "it": "Terminale",
+    "en": "Terminal"
+   },
+   "what": {
+    "it": "Lo schermo del PC di una sessione, da rileggere; compare solo se la conversazione non si può leggere.",
+    "en": "A session's PC screen, to re-read; it appears only when the conversation can't be read."
+   },
+   "where": {
+    "it": "Menu della sessione",
+    "en": "Session menu"
+   },
+   "state": "ready",
+   "version": "0.2.767",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"terminal_sub\""
+   },
+   "web": null
+  },
+  {
    "key": "moduli",
    "group": "you",
    "name": {
