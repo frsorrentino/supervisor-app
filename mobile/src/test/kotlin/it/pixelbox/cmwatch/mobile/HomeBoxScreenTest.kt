@@ -33,9 +33,25 @@ class HomeBoxScreenTest {
         TimelineSession("watchface", true, events = listOf(TimelineEvent(now - 3600, "outcome", "Quadrante notturno pubblicato su Play"))),
     ))
 
-    private fun shot(box: HomeBox, dp: Int, state: State = st, p: TimelinePage? = page) {
+    /** Solo dati demo: tutti i tipi, un esito vecchio senza tipo e due in corso, che restano chiusi in fondo. */
+    private val typed = TimelinePage(now - 86400, listOf(
+        TimelineSession("atlas-shop", true, events = listOf(
+            TimelineEvent(now - 300, "outcome", "Release 2.4 published, checkout green", type = "shipped"),
+            TimelineEvent(now - 900, "outcome", "Migrations 008-011 applied, tests green", type = "done"),
+            TimelineEvent(now - 1500, "outcome", "Payment suite red on the refund case", type = "problem"),
+            TimelineEvent(now - 200, "outcome", "Build running on the release branch", type = "running"),
+        )),
+        TimelineSession("ledger-api", false, events = listOf(
+            TimelineEvent(now - 600, "outcome", "Invoices endpoint ready: approve the plan?", type = "waiting"),
+            TimelineEvent(now - 1800, "outcome", "The rate limit is per account, not per key", type = "answer"),
+            TimelineEvent(now - 2400, "outcome", "Old outcome written before the types"),
+            TimelineEvent(now - 100, "outcome", "Tests running on the new endpoint", type = "running"),
+        )),
+    ))
+
+    private fun shot(box: HomeBox, dp: Int, state: State = st, p: TimelinePage? = page, byType: Boolean? = null) {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 2400))
-        paparazzi.snapshot { CmPhoneTheme(still = true) { HomeBoxScreen(box, state, p, now, onBack = {}, onSession = {}, zone = zone) } }
+        paparazzi.snapshot { CmPhoneTheme(still = true) { HomeBoxScreen(box, state, p, now, onBack = {}, onSession = {}, zone = zone, startByType = byType) } }
     }
 
     @Test fun waiting412() = shot(HomeBox.WAITING, 412)
@@ -45,5 +61,8 @@ class HomeBoxScreenTest {
     @Test fun busy320() = shot(HomeBox.BUSY, 320)
     @Test fun outcomes412() = shot(HomeBox.OUTCOMES, 412)
     @Test fun outcomes320() = shot(HomeBox.OUTCOMES, 320)
+    @Test fun esiti_tipo_perTipo412() = shot(HomeBox.OUTCOMES, 412, p = typed, byType = true)
+    @Test fun esiti_tipo_perSessione412() = shot(HomeBox.OUTCOMES, 412, p = typed, byType = false)
+    @Test fun esiti_tipo_perTipo320() = shot(HomeBox.OUTCOMES, 320, p = typed, byType = true)
     @Test fun outcomesLoading412() = shot(HomeBox.OUTCOMES, 412, p = null)
 }

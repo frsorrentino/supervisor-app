@@ -134,6 +134,70 @@ class KpiTest {
         assertEquals(emptyList<Kpi.Working>(), Kpi.workingRows(st, st.ts))
     }
 
+    private fun esito(at: Long, type: String?) = TimelineEvent(at, "outcome", "t$at", type = type)
+    private val idleEmpty = State(v = 1, ts = now, host = "pc", sessions = emptyList(), quota = emptyMap())
+
+    @Test fun esiti_tipo_iGruppiHannoLOrdineDatoEIVuotiNonCi() {
+        val all = listOf("running", null, "answer", "done", "shipped", "waiting", "problem").mapIndexed { i, t -> esito(now - i, t) }
+        val o = Kpi.outcomes(TimelinePage(0, listOf(TimelineSession("a", true, events = all))), now, zone)!!
+        assertEquals(listOf(Kpi.OutcomeType.PROBLEM, Kpi.OutcomeType.WAITING, Kpi.OutcomeType.SHIPPED, Kpi.OutcomeType.DONE, Kpi.OutcomeType.ANSWER, Kpi.OutcomeType.NONE, Kpi.OutcomeType.RUNNING), Kpi.groupsByType(o.done).map { it.type })
+        assertEquals(listOf(true), Kpi.groupsByType(o.done).filter { it.startsClosed }.map { it.type == Kpi.OutcomeType.RUNNING })
+        val few = Kpi.outcomes(TimelinePage(0, listOf(TimelineSession("a", true, events = listOf(esito(now - 1, "done"))))), now, zone)!!
+        assertEquals(listOf(Kpi.OutcomeType.DONE), Kpi.groupsByType(few.done).map { it.type })
+    }
+
+    @Test fun esiti_tipo_nullESconosciutoVannoInSenzaTipo() {
+        assertEquals(Kpi.OutcomeType.NONE, Kpi.OutcomeType.of(null))
+        assertEquals(Kpi.OutcomeType.NONE, Kpi.OutcomeType.of("pubblicato"))
+        assertEquals(Kpi.OutcomeType.SHIPPED, Kpi.OutcomeType.of("shipped"))
+        assertEquals(Kpi.OutcomeType.RUNNING, Kpi.OutcomeType.of("running"))
+    }
+
+    @Test fun esiti_tipo_perSessioneInCorsoChiusoInFondoEDiTutte() {
+        val o = Kpi.outcomes(TimelinePage(0, listOf(
+            TimelineSession("a", true, events = listOf(esito(now - 50, "running"), esito(now - 60, null))),
+            TimelineSession("b", true, events = listOf(esito(now - 10, "done"), esito(now - 5, "running"))),
+        )), now, zone)!!
+        val g = Kpi.groupsBySession(o.done)
+        assertEquals(listOf("b", "a", null), g.map { it.session })
+        assertEquals(listOf(false, false, true), g.map { it.startsClosed })
+        assertEquals(listOf(now - 5, now - 50), g.last().rows.map { it.at })
+        assertEquals(listOf(1, 1, 2), g.map { it.rows.size })
+    }
+
+    @Test fun esiti_tipo_ilNumeroNonContaInCorsoEContaISenzaTipo_dagliEventi() {
+        val p = TimelinePage(0, listOf(TimelineSession("a", true, events = listOf(esito(now - 1, "running"), esito(now - 2, null), esito(now - 3, "done")))))
+        assertEquals(2, Kpi.head(idleEmpty, p, now, zone).outcomes)
+        assertEquals(2, Kpi.outcomes(p, now, zone)!!.settled)
+        assertEquals(3, Kpi.outcomes(p, now, zone)!!.done.size)
+        assertEquals(2, Kpi.outcomes(p, now, zone)!!.settledRows.size)
+    }
+
+    @Test fun esiti_tipo_iContiDelRelayValgonoSoloDaMezzanotte() {
+        val today = Kpi.midnight(now, zone)
+        val ev = listOf(TimelineSession("a", true, events = listOf(esito(now - 1, "running"), esito(now - 2, "done"))))
+        // Da mezzanotte: il conto del relay vince, perché gli eventi sono tagliati.
+        val p = TimelinePage(today, ev, more = true, outcomesN = 9, outcomesSettledN = 7)
+        assertEquals(7, Kpi.head(idleEmpty, p, now, zone).outcomes)
+        val o = Kpi.outcomes(p, now, zone)!!
+        assertEquals(7, o.settled); assertTrue(o.cut); assertFalse(o.atLeast)
+        // Prima delle sei la finestra comprende ieri: si conta dagli eventi.
+        val older = p.copy(since = today - 3600)
+        assertEquals(1, Kpi.head(idleEmpty, older, now, zone).outcomes)
+        assertEquals(1, Kpi.outcomes(older, now, zone)!!.settled); assertFalse(Kpi.outcomes(older, now, zone)!!.cut); assertTrue(Kpi.outcomes(older, now, zone)!!.atLeast)
+        // Relay vecchio: niente conti, si conta dagli eventi.
+        val old = TimelinePage(today, ev)
+        assertEquals(1, Kpi.head(idleEmpty, old, now, zone).outcomes)
+        // Conto pieno: niente nota sul taglio.
+        assertFalse(Kpi.outcomes(TimelinePage(today, ev, outcomesN = 2, outcomesSettledN = 1), now, zone)!!.cut)
+    }
+
+    @Test fun esiti_tipo_laPaginaSiLeggeColContratto198() {
+        val p = it.pixelbox.cmwatch.contract.ContractJson.decodeTimeline("""{"since":5,"sessions":[{"session":"a","live":true,"events":[{"at":6,"kind":"outcome","text":"x","ok":null,"ref":null,"type":"problem"}]}],"more":false,"outcomes_n":3,"outcomes_settled_n":2}""")
+        assertEquals("problem", p.sessions[0].events[0].type); assertEquals(3, p.outcomesN); assertEquals(2, p.outcomesSettledN)
+        assertNull(it.pixelbox.cmwatch.contract.ContractJson.decodeTimeline("""{"since":5}""").outcomesN)
+    }
+
     @Test fun boxOutcomes_redsOnTop_newestFirst_onlyToday() {
         val p = TimelinePage(since = 0, sessions = listOf(
             TimelineSession("a", true, events = listOf(TimelineEvent(now - 300, "outcome", "first"), TimelineEvent(now - 200, "task", "check red", ok = false, ref = "t1"), TimelineEvent(now - 100, "task", "check green", ok = true, ref = "t2"))),

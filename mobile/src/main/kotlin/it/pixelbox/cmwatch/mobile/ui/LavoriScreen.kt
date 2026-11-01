@@ -323,13 +323,13 @@ private fun AxisRow(axis: Lavori.Axis, labelWidth: androidx.compose.ui.unit.Dp =
 /** Elenco | Tempo nella testata di «In corso»: il segmented button di Material 3, la scelta resta. */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun ViewSwitch(time: Boolean, onChange: (Boolean) -> Unit) {
+internal fun ViewSwitch(time: Boolean, first: Int = R.string.lavori_view_list, second: Int = R.string.lavori_view_time, onChange: (Boolean) -> Unit) {
     val colors = SegmentedButtonDefaults.colors(
         activeContainerColor = Cm.surfaceHigh, activeContentColor = Cm.text, activeBorderColor = Cm.line,
         inactiveContainerColor = Cm.bg, inactiveContentColor = Cm.text2, inactiveBorderColor = Cm.line,
     )
     SingleChoiceSegmentedButtonRow(Modifier.height(36.dp)) {
-        listOf(R.string.lavori_view_list, R.string.lavori_view_time).forEachIndexed { i, label ->
+        listOf(first, second).forEachIndexed { i, label ->
             SegmentedButton(
                 selected = time == (i == 1), onClick = { onChange(i == 1) },
                 shape = SegmentedButtonDefaults.itemShape(i, 2), colors = colors, modifier = Modifier.handCursor(),

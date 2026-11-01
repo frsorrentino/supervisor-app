@@ -1392,6 +1392,16 @@ It starts at your last message to the master.</string>
     <string name="box_outcomes_none">No outcome since midnight.</string>
     <string name="box_rest">%1$d more</string>
     <string name="box_show_more">Show %1$d more</string>
+    <string name="box_view_type">By type</string>
+    <string name="box_view_session">By session</string>
+    <string name="outcome_type_problem">Problem</string>
+    <string name="outcome_type_waiting">Waiting for you</string>
+    <string name="outcome_type_shipped">Shipped</string>
+    <string name="outcome_type_done">Done</string>
+    <string name="outcome_type_answer">Answer</string>
+    <string name="outcome_type_none">No type</string>
+    <string name="outcome_type_running">Running</string>
+    <string name="box_rows_cut">The list holds only each session\'s latest events: the number above is the right one.</string>
     <string name="box_at_least">The relay sends at most 40 events per session: today the figure is a minimum.</string>
     <string name="box_outcomes_note">A tap on a row opens the session, if it is still open.</string>
     <string name="home_title">Supervisor</string>

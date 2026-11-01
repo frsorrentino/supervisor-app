@@ -4,7 +4,8 @@
 
 <script lang="ts">
   import type { State, TimelinePage } from './contract'
-  import { head, outcomes as outcomesOf, stillRows, waitingRows, workingRows, type WaitKind } from './kpi'
+  import { groupsBySession, groupsByType, head, outcomes as outcomesOf, stillRows, waitingRows, workingRows, type OutcomeType, type WaitKind } from './kpi'
+  import { fold as foldIn } from './motion'
   import { since } from './durations'
   import Icon from './Icon.svelte'
   import { t } from './t'
@@ -19,7 +20,15 @@
   const still = $derived(stillRows(st))
   const out = $derived(outcomesOf(page, now))
   let stillAll = $state(false)
-  let shown = $state(PAGE)
+  const VIEW = 'cm-box-outcomes-view'
+  let byType = $state((() => { try { return localStorage.getItem(VIEW) !== 'session' } catch { return true } })())
+  function setView(type: boolean) { byType = type; try { localStorage.setItem(VIEW, type ? 'type' : 'session') } catch { /* senza memoria resta per questa visita */ } }
+  const groups = $derived(out ? (byType ? groupsByType(out.done) : groupsBySession(out.done)) : [])
+  let groupOpen = $state<Record<string, boolean>>({})
+  let groupShown = $state<Record<string, number>>({})
+  const typeName: Record<OutcomeType, string> = { problem: t.outcomeTypeProblem, waiting: t.outcomeTypeWaiting, shipped: t.outcomeTypeShipped, done: t.outcomeTypeDone, answer: t.outcomeTypeAnswer, none: t.outcomeTypeNone, running: t.outcomeTypeRunning }
+  const typeIcon = { problem: 'x', waiting: 'user', shipped: 'upload', done: 'check', answer: 'message', none: 'circle', running: 'run' } as const
+  const typeTone: Record<OutcomeType, string> = { problem: 'r', waiting: 'w', shipped: 'g', done: 'g', answer: 'n', none: 'n', running: 'b' }
   const live = $derived(new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)))
   const hm = (at: number) => { const d = new Date(at * 1000); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
   const kindText: Record<WaitKind, string> = { question: t.boxKindQuestion, needs_you: t.boxKindNeedsYou, blocking: t.boxKindBlocking }
@@ -101,21 +110,39 @@
         </div>
       {/if}
       {#if out.done.length}
-        <div class="sec"><span>{t.boxOutcomes}</span><i></i><small>{t.boxNewestFirst(out.done.length)}</small></div>
-        <div class="card">
-          {#each out.done.slice(0, shown) as d, i (i)}
-            <button class="row" disabled={!live.has(d.session)} onclick={() => onSession(d.session)}>
-              <span class="ic g"><Icon name="check" size={16} /></span>
-              <span class="bd"><span class="hd"><b>{d.session}</b><span>{hm(d.at)}</span></span><span class="tx">{d.text}</span></span>
-              {#if live.has(d.session)}{@render chevron()}{/if}
-            </button>
-          {/each}
-        </div>
-        {#if out.done.length > shown}<div class="more"><span>{t.boxRest(out.done.length - shown)}</span><button class="tonal" onclick={() => (shown += PAGE)}>{t.boxShowMore(Math.min(PAGE, out.done.length - shown))}</button></div>{/if}
+        <div class="views"><span class="seg" role="group" aria-label={t.boxOutcomesTitle}>
+          <button class:on={byType} aria-pressed={byType} onclick={() => setView(true)}>{t.boxViewType}</button>
+          <button class:on={!byType} aria-pressed={!byType} onclick={() => setView(false)}>{t.boxViewSession}</button>
+        </span></div>
+        {#each groups as g (g.key)}
+          {@const isOpen = groupOpen[g.key] ?? !g.startsClosed}
+          {@const n = groupShown[g.key] ?? PAGE}
+          <button class="sec gh {g.type ? `t-${typeTone[g.type]}` : 'plain'}" aria-expanded={isOpen} onclick={() => (groupOpen = { ...groupOpen, [g.key]: !isOpen })}>
+            <span>{g.session ?? typeName[g.type!]}</span><i></i><small>{g.rows.length}</small>
+            <svg class="turn" class:up={isOpen} viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+          </button>
+          {#if isOpen}<div class="fb" in:foldIn out:foldIn={{ ms: 150 }}><div class="foldin">
+            <div class="card">
+              {#each g.rows.slice(0, n) as d, i (i)}
+                {@const type = d.type ?? 'none'}
+                <button class="row" disabled={!live.has(d.session)} onclick={() => onSession(d.session)}>
+                  <span class="ic {typeTone[type]}"><Icon name={typeIcon[type]} size={16} /></span>
+                  <span class="bd">
+                    {#if g.session == null}<span class="hd"><b>{d.session}</b><span>{hm(d.at)}</span></span>
+                    {:else}<span class="meta">{hm(d.at)}</span>{#if type !== 'none'}<span class="kind {typeTone[type]}">{typeName[type]}</span>{/if}{/if}
+                    <span class="tx">{d.text}</span>
+                  </span>
+                  {#if live.has(d.session)}{@render chevron()}{/if}
+                </button>
+              {/each}
+            </div>
+            {#if g.rows.length > n}<div class="more"><span>{t.boxRest(g.rows.length - n)}</span><button class="tonal" onclick={() => (groupShown = { ...groupShown, [g.key]: n + PAGE })}>{t.boxShowMore(Math.min(PAGE, g.rows.length - n))}</button></div>{/if}
+          </div></div>{/if}
+        {/each}
       {:else}
         <p class="note">{t.boxOutcomesNone}</p>
       {/if}
-      <p class="note">{t.boxOutcomesNote}{#if out.atLeast} {t.boxAtLeast}{/if}</p>
+      <p class="note">{t.boxOutcomesNote}{#if out.atLeast} {t.boxAtLeast}{/if}{#if out.cut} {t.boxRowsCut}{/if}</p>
     {/if}
   {/if}
 </div>
@@ -128,6 +155,20 @@
   .hero p { font-size: 14.5px; line-height: 1.35; color: var(--text2); }
   .sec { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-transform: uppercase; }
   .sec.red span { color: var(--gone); }
+  .views { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg button { height: 32px; padding: 0 14px; color: var(--text2); font-weight: 500; font-size: 13px; line-height: 1; } .seg button + button { border-left: 1px solid var(--line); } .seg button.on { background: color-mix(in srgb, var(--icon) 16%, transparent); color: var(--text); }
+  .gh { width: calc(100% - 8px); box-sizing: content-box; cursor: pointer; }
+  .gh.plain span { text-transform: none; letter-spacing: .04em; }
+  .gh.t-r span { color: var(--gone); } .gh.t-w span { color: var(--wait); } .gh.t-g span { color: var(--idle); } .gh.t-b span { color: var(--busy); }
+  .turn { flex: none; color: var(--text2); transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .turn.up { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .turn { transition: none; } }
+  .fb { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; }
+  .foldin { min-height: 0; display: flex; flex-direction: column; }
+  .foldin > :global(*) { flex-shrink: 0; }
+  .ic.n { background: color-mix(in srgb, var(--text2) 18%, transparent); color: var(--text2); }
+  .kind.g { color: var(--idle); } .kind.b { color: var(--busy); } .kind.n { color: var(--text2); }
   .sec i { flex: 1; height: 1px; background: var(--line); }
   .sec small { font-size: 13px; letter-spacing: 0; text-transform: none; font-family: inherit; }
   .card { background: var(--low); border-radius: 20px; padding: 4px 14px; margin-bottom: 8px; }

@@ -203,9 +203,11 @@ export type SearchHit = { session: string; live: boolean; project?: string | nul
 export type SearchPage = { hits?: SearchHit[]; more?: boolean }
 
 /** Contratto 1.29: la cronologia di oggi; `live` distingue la stessa cartella viva e chiusa. */
-export type TimelineEvent = { at: number; kind: string; text: string; ok?: boolean | null; ref?: string | null }
+/** `type`, contratto 1.98, solo su `outcome`: shipped, done, waiting, running, answer, problem o null. */
+export type TimelineEvent = { at: number; kind: string; text: string; ok?: boolean | null; ref?: string | null; type?: string | null }
 export type TimelineSession = { session: string; live: boolean; project?: string | null; events: TimelineEvent[] }
-export type TimelinePage = { since: number; sessions: TimelineSession[]; more?: boolean }
+/** `outcomes_n` e `outcomes_settled_n`, contratto 1.98: contati prima dei tagli; assenti con un relay vecchio. */
+export type TimelinePage = { since: number; sessions: TimelineSession[]; more?: boolean; outcomes_n?: number; outcomes_settled_n?: number }
 
 export type State = {
   v: number; ts: number; host: string

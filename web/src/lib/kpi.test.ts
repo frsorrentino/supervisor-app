@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type KpiData, type Session, type State, type TimelineEvent, type TimelinePage } from './contract'
-import { acceptRate, ageFraction, cells, checksTotals, day, dayFigures, head, hourly, outcomes, split, stillRows, suggestionsTotal, tasksOrder, todayShare, turnsOf, turnsSummary, waitingRows, waitsClosed, waitsTop, workingRows, workSeconds } from './kpi'
+import { groupsBySession, groupsByType, midnight, outcomeType, acceptRate, ageFraction, cells, checksTotals, day, dayFigures, head, hourly, outcomes, split, stillRows, suggestionsTotal, tasksOrder, todayShare, turnsOf, turnsSummary, waitingRows, waitsClosed, waitsTop, workingRows, workSeconds } from './kpi'
 
 const read = (f: string) => readFileSync(new URL(`../../../contract/${f}`, import.meta.url), 'utf8')
 const sample = JSON.parse(read('cmd-result-sample.json'))
@@ -84,6 +84,48 @@ describe('i box della home aperti (app-box-cliccabili-29-10)', () => {
     expect(workingRows(x, now).map(w => w.session)).toEqual(['b'])
   })
 
+  const esito = (at: number, type: string | null): TimelineEvent => ({ at, kind: 'outcome', text: `t${at}`, type })
+  const zone = 'Europe/Rome'
+  it('esiti_tipo: i gruppi hanno l\'ordine dato, i vuoti non ci sono', () => {
+    const all = ['running', null, 'answer', 'done', 'shipped', 'waiting', 'problem'].map((x, i) => esito(now - i, x))
+    const o = outcomes({ since: 0, sessions: [{ session: 'a', live: true, events: all }] }, now, zone)!
+    expect(groupsByType(o.done).map(g => g.type)).toEqual(['problem', 'waiting', 'shipped', 'done', 'answer', 'none', 'running'])
+    expect(groupsByType(o.done).filter(g => g.startsClosed).map(g => g.type)).toEqual(['running'])
+    const few = outcomes({ since: 0, sessions: [{ session: 'a', live: true, events: [esito(now - 1, 'done')] }] }, now, zone)!
+    expect(groupsByType(few.done).map(g => g.type)).toEqual(['done'])
+  })
+  it('esiti_tipo: null e sconosciuto vanno in Senza tipo', () => {
+    expect([outcomeType(null), outcomeType(undefined), outcomeType('pubblicato'), outcomeType('none'), outcomeType('shipped'), outcomeType('running')]).toEqual(['none', 'none', 'none', 'none', 'shipped', 'running'])
+  })
+  it('esiti_tipo: per sessione «in corso» chiuso in fondo e di tutte', () => {
+    const o = outcomes({ since: 0, sessions: [
+      { session: 'a', live: true, events: [esito(now - 50, 'running'), esito(now - 60, null)] },
+      { session: 'b', live: true, events: [esito(now - 10, 'done'), esito(now - 5, 'running')] },
+    ] }, now, zone)!
+    const g = groupsBySession(o.done)
+    expect(g.map(x => x.session)).toEqual(['b', 'a', null])
+    expect(g.map(x => x.startsClosed)).toEqual([false, false, true])
+    expect(g[2].rows.map(r => r.at)).toEqual([now - 5, now - 50])
+    expect(g.map(x => x.rows.length)).toEqual([1, 1, 2])
+  })
+  it('esiti_tipo: il numero non conta «in corso» e conta i senza tipo, dagli eventi', () => {
+    const p: TimelinePage = { since: 0, sessions: [{ session: 'a', live: true, events: [esito(now - 1, 'running'), esito(now - 2, null), esito(now - 3, 'done')] }] }
+    expect(head(st([]), p, now, zone).outcomes).toBe(2)
+    const o = outcomes(p, now, zone)!
+    expect([o.settled, o.done.length, o.settledRows.length]).toEqual([2, 3, 2])
+  })
+  it('esiti_tipo: i conti del relay valgono solo da mezzanotte', () => {
+    const today = midnight(now, zone)
+    const sessions = [{ session: 'a', live: true, events: [esito(now - 1, 'running'), esito(now - 2, 'done')] }]
+    const p: TimelinePage = { since: today, sessions, more: true, outcomes_n: 9, outcomes_settled_n: 7 }
+    expect(head(st([]), p, now, zone).outcomes).toBe(7)
+    expect(outcomes(p, now, zone)).toMatchObject({ settled: 7, cut: true, atLeast: false })
+    const older = { ...p, since: today - 3600 }
+    expect(head(st([]), older, now, zone).outcomes).toBe(1)
+    expect(outcomes(older, now, zone)).toMatchObject({ settled: 1, cut: false, atLeast: true })
+    expect(head(st([]), { since: today, sessions }, now, zone).outcomes).toBe(1)
+    expect(outcomes({ since: today, sessions, outcomes_n: 2, outcomes_settled_n: 1 }, now, zone)!.cut).toBe(false)
+  })
   it('esiti di oggi: i rossi in cima, il più nuovo prima, solo da mezzanotte', () => {
     const p: TimelinePage = { since: 0, sessions: [
       { session: 'a', live: true, events: [{ at: now - 300, kind: 'outcome', text: 'first' }, { at: now - 200, kind: 'task', text: 'check red', ok: false, ref: 't1' }, { at: now - 100, kind: 'task', text: 'check green', ok: true, ref: 't2' }] },

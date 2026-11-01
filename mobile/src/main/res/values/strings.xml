@@ -1422,6 +1422,16 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="box_outcomes_none">Nessun esito da mezzanotte.</string>
     <string name="box_rest">altri %1$d</string>
     <string name="box_show_more">Mostra altri %1$d</string>
+    <string name="box_view_type">Per tipo</string>
+    <string name="box_view_session">Per sessione</string>
+    <string name="outcome_type_problem">Problema</string>
+    <string name="outcome_type_waiting">Aspetta te</string>
+    <string name="outcome_type_shipped">Pubblicato</string>
+    <string name="outcome_type_done">Fatto</string>
+    <string name="outcome_type_answer">Risposta</string>
+    <string name="outcome_type_none">Senza tipo</string>
+    <string name="outcome_type_running">In corso</string>
+    <string name="box_rows_cut">L\'elenco ha solo gli ultimi eventi di ogni sessione: il numero in alto è quello giusto.</string>
     <string name="box_at_least">Il relay manda al massimo 40 eventi per sessione: oggi la cifra è un minimo.</string>
     <string name="box_outcomes_note">Un tocco su una riga apre la sessione, se è ancora aperta.</string>
     <string name="home_title">Supervisor</string>

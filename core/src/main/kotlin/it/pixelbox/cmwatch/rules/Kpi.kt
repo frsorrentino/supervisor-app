@@ -162,9 +162,10 @@ object Kpi {
         val waits = live.mapNotNull { waitingSince(it) }
         val from = midnight(now, zone)
         val today = page?.sessions?.flatMap { it.events }?.filter { it.at in from..now }
+        val counted = page?.takeIf { it.since == from }?.outcomesSettledN
         return Head(
             waiting = waits.size, oldestWaitS = waits.minOrNull()?.let { now - it }, busy = live.count { it.state == SessionState.BUSY && waitingSince(it) == null },
-            outcomes = today?.count { it.kind == "outcome" }, red = today?.count { it.kind == "task" && it.ok == false },
+            outcomes = counted ?: today?.count { it.kind == "outcome" && OutcomeType.of(it.type) != OutcomeType.RUNNING }, red = today?.count { it.kind == "task" && it.ok == false },
         )
     }
 
@@ -206,20 +207,56 @@ object Kpi {
         .sortedByDescending { it.at ?: -1L }
 
     /** Una riga di «Esiti di oggi»: un esito (`ref` null) o un compito rosso (`ref` = id del compito). */
-    data class Done(val session: String, val text: String, val at: Long, val ref: String?)
+    data class Done(val session: String, val text: String, val at: Long, val ref: String?, val type: OutcomeType = OutcomeType.NONE)
 
-    /** «Esiti di oggi»: i rossi in cima, poi gli esiti, il più nuovo prima; `atLeast` = la cronologia è al tetto. */
-    data class Outcomes(val red: List<Done>, val done: List<Done>, val atLeast: Boolean)
+    /** Il tipo di un esito (contratto 1.98), nell'ordine dei gruppi. Null e valori sconosciuti sono [NONE]: gli esiti vecchi non ce l'hanno. */
+    enum class OutcomeType(val wire: String?) {
+        PROBLEM("problem"), WAITING("waiting"), SHIPPED("shipped"), DONE("done"), ANSWER("answer"), NONE(null), RUNNING("running");
+
+        companion object { fun of(raw: String?): OutcomeType = entries.firstOrNull { it.wire != null && it.wire == raw } ?: NONE }
+    }
+
+    /**
+     * «Esiti di oggi»: i rossi in cima, poi gli esiti, il più nuovo prima, «in corso» compresi. `settled` è il numero da mostrare: non
+     * conta «in corso», conta i senza tipo. `atLeast` = senza i conti del relay il numero può essere un minimo; `cut` = il numero è
+     * giusto ma la cronologia è stata tagliata, quindi le righe sono meno.
+     */
+    data class Outcomes(val red: List<Done>, val done: List<Done>, val atLeast: Boolean, val settled: Int = done.count { it.type != OutcomeType.RUNNING }, val cut: Boolean = false) {
+        val settledRows: List<Done> get() = done.filter { it.type != OutcomeType.RUNNING }
+    }
+
+    /** Un gruppo di «Esiti di oggi»: per tipo ([type]) o per sessione ([session]); «In corso» parte chiuso in entrambe le viste. */
+    data class OutcomeGroup(val type: OutcomeType?, val session: String?, val rows: List<Done>) {
+        val key: String get() = session?.let { "s:$it" } ?: "t:${type?.name}"
+        val startsClosed: Boolean get() = type == OutcomeType.RUNNING
+    }
+
+    /** I gruppi per tipo, nell'ordine di [OutcomeType]; i vuoti non ci sono. */
+    fun groupsByType(done: List<Done>): List<OutcomeGroup> = OutcomeType.entries.mapNotNull { t ->
+        done.filter { it.type == t }.takeIf { it.isNotEmpty() }?.let { OutcomeGroup(t, null, it) }
+    }
+
+    /** I gruppi per sessione, dalla più recente; gli esiti «in corso» di tutte stanno in un solo gruppo in fondo. */
+    fun groupsBySession(done: List<Done>): List<OutcomeGroup> {
+        val running = done.filter { it.type == OutcomeType.RUNNING }
+        val sessions = done.filter { it.type != OutcomeType.RUNNING }.groupBy { it.session }.map { (name, rows) -> OutcomeGroup(null, name, rows) }
+        return if (running.isEmpty()) sessions else sessions + OutcomeGroup(OutcomeType.RUNNING, null, running)
+    }
 
     /** Gli stessi eventi contati da [head]; null senza cronologia. */
     fun outcomes(page: TimelinePage?, now: Long, zone: ZoneId): Outcomes? {
         page ?: return null
         val from = midnight(now, zone)
         val today = page.sessions.flatMap { s -> s.events.filter { it.at in from..now }.map { s.session to it } }.sortedByDescending { it.second.at }
+        val done = today.filter { it.second.kind == "outcome" }.map { (n, e) -> Done(n, e.text, e.at, null, OutcomeType.of(e.type)) }
+        val counted = page.since == from && page.outcomesSettledN != null
         return Outcomes(
             red = today.filter { it.second.kind == "task" && it.second.ok == false }.map { (n, e) -> Done(n, e.text, e.at, e.ref) },
-            done = today.filter { it.second.kind == "outcome" }.map { (n, e) -> Done(n, e.text, e.at, null) },
-            atLeast = page.more == true || page.sessions.any { it.events.size >= EVENTS_CAP },
+            done = done,
+            // I conti del relay valgono solo se la finestra è oggi: prima delle sei la app chiede sei ore e comprendono ieri.
+            atLeast = !counted && (page.more == true || page.sessions.any { it.events.size >= EVENTS_CAP }),
+            settled = page.outcomesSettledN?.takeIf { counted } ?: done.count { it.type != OutcomeType.RUNNING },
+            cut = counted && (page.outcomesN ?: 0) > done.size,
         )
     }
 

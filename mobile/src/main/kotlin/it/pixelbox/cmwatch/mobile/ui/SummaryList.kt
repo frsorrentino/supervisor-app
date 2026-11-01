@@ -585,7 +585,7 @@ fun SummaryList(
             if (esitiOpen) item(key = "esiti") {
                 Box(moving()) {
                     V3List {
-                        val shown = if (out.red.isNotEmpty()) out.red.take(3) else out.done.take(2)
+                        val shown = if (out.red.isNotEmpty()) out.red.take(3) else out.settledRows.take(2)
                         if (shown.isEmpty()) V3Row(true, null, {}) { Text(stringResource(R.string.box_outcomes_none), style = V3.Small) }
                         shown.forEachIndexed { i, d ->
                             val red = d.ref != null
@@ -600,7 +600,7 @@ fun SummaryList(
                             }
                         }
                         V3Row(shown.isEmpty(), { onBox(HomeBox.OUTCOMES) }, { StateGlyph(it.pixelbox.cmwatch.rules.Rail.Glyph.DONE) }, {
-                            Text(out.done.size.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
+                            Text(out.settled.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp))
                             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3)
                         }) { Text(stringResource(R.string.home_all_outcomes), style = V3.Name) }
                     }
@@ -1437,9 +1437,9 @@ private fun sessionsLine(working: Int, finished: Int, still: Int): String = list
 /** Il riassunto a sezione chiusa (Franz 31/10 01:15): quanti esiti, quanti falliti, l'ora dell'ultimo. */
 @Composable
 private fun esitiLine(out: it.pixelbox.cmwatch.rules.Kpi.Outcomes): String? {
-    val all = out.red + out.done
+    val all = out.red + out.settledRows
     val last = all.maxOfOrNull { it.at } ?: return null
-    val base = stringResource(R.string.home_esiti_line, all.size, hhmmOf(last))
+    val base = stringResource(R.string.home_esiti_line, out.red.size + out.settled, hhmmOf(last))
     return if (out.red.isEmpty()) base else pluralStringResource(R.plurals.home_esiti_red, out.red.size, out.red.size) + " · " + base
 }
 

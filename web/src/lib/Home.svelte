@@ -352,9 +352,9 @@
   // Il riassunto a sezione chiusa (Franz 31/10 01:15): quanti esiti, quanti falliti, l'ora dell'ultimo.
   const esitiLine = $derived.by(() => {
     if (!out) return null
-    const all = [...out.red, ...out.done]
+    const all = [...out.red, ...out.settledRows]
     if (!all.length) return null
-    const base = t.homeEsitiLine(all.length, hhmm(Math.max(...all.map(d => d.at))))
+    const base = t.homeEsitiLine(out.red.length + out.settled, hhmm(Math.max(...all.map(d => d.at))))
     return out.red.length ? `${t.homeEsitiRed(out.red.length)} · ${base}` : base
   })
   const liveNames = $derived(new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)))
@@ -590,7 +590,7 @@
   {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', part && out.red.length ? String(out.red.length) : null, 'home-sez-esiti', !part && !open.esiti ? esitiLine : null)}
   {#if part || open.esiti}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     <div class="card wrows">
-      {#each out.red.length ? out.red.slice(0, 3) : out.done.slice(0, 2) as d, i (i)}
+      {#each out.red.length ? out.red.slice(0, 3) : out.settledRows.slice(0, 2) as d, i (i)}
         <button class:row-red={d.ref != null} class="wrow orow" onclick={() => (liveNames.has(d.session) ? onPick(d.session) : onBox('esiti'))}>
           <span class="wic rail"><StateGlyph kind={d.ref != null ? 'red' : 'done'} /><b class="rt" class:red={d.ref != null}>{hhmm(d.at)}</b></span>
           <span class="otext"><b>{d.session}</b><small class="txt">{d.text}</small></span>
@@ -601,7 +601,7 @@
       <button class="wrow orow" onclick={() => onBox('esiti')}>
         <span class="wic"><StateGlyph kind="done" /></span>
         <span class="otext"><b>{t.homeAllOutcomes}</b></span>
-        <span class="mono">{out.red.length > 3 ? `${t.homeMoreRed(out.red.length - 3)} · ` : ''}{out.done.length}</span>
+        <span class="mono">{out.red.length > 3 ? `${t.homeMoreRed(out.red.length - 3)} · ` : ''}{out.settled}</span>
         <span class="ms chevr">chevron_right</span>
       </button>
     </div>

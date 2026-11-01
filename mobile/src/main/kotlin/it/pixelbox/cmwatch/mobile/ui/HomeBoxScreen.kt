@@ -9,12 +9,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.QuestionMark
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.RocketLaunch
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -29,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -53,17 +57,52 @@ enum class HomeBox { WAITING, BUSY, OUTCOMES }
 
 private val BOX_HM = DateTimeFormatter.ofPattern("HH:mm")
 private const val BOX_PAGE = 20
+private const val VIEW_PREFS = "home_box_outcomes"
+private const val VIEW_BY_TYPE = "by_type"
+
+private fun outcomeLabel(t: Kpi.OutcomeType): Int = when (t) {
+    Kpi.OutcomeType.PROBLEM -> R.string.outcome_type_problem
+    Kpi.OutcomeType.WAITING -> R.string.outcome_type_waiting
+    Kpi.OutcomeType.SHIPPED -> R.string.outcome_type_shipped
+    Kpi.OutcomeType.DONE -> R.string.outcome_type_done
+    Kpi.OutcomeType.ANSWER -> R.string.outcome_type_answer
+    Kpi.OutcomeType.NONE -> R.string.outcome_type_none
+    Kpi.OutcomeType.RUNNING -> R.string.outcome_type_running
+}
+
+private fun outcomeIcon(t: Kpi.OutcomeType): ImageVector = when (t) {
+    Kpi.OutcomeType.PROBLEM -> Icons.Rounded.Close
+    Kpi.OutcomeType.WAITING -> Icons.Rounded.Person
+    Kpi.OutcomeType.SHIPPED -> Icons.Rounded.RocketLaunch
+    Kpi.OutcomeType.DONE -> Icons.Rounded.Check
+    Kpi.OutcomeType.ANSWER -> Icons.Rounded.ChatBubbleOutline
+    Kpi.OutcomeType.NONE -> Icons.Rounded.Remove
+    Kpi.OutcomeType.RUNNING -> Icons.Rounded.Terminal
+}
+
+@Composable
+private fun outcomeTone(t: Kpi.OutcomeType): Color = when (t) {
+    Kpi.OutcomeType.PROBLEM -> Cm.gone
+    Kpi.OutcomeType.WAITING -> Cm.waiting
+    Kpi.OutcomeType.SHIPPED, Kpi.OutcomeType.DONE -> Cm.idle
+    Kpi.OutcomeType.RUNNING -> Cm.busy
+    Kpi.OutcomeType.ANSWER, Kpi.OutcomeType.NONE -> Cm.text2
+}
 
 /**
  * Le pagine dietro i tre box in alto della home (compito app-box-cliccabili-29-10, mockup approvato da Franz il 29/10 alle
  * 18:57): il numero spiegato in una frase, sotto le righe che lo fanno. Un tocco su una riga apre la sessione, se è viva.
  */
 @Composable
-fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, onBack: () -> Unit, onSession: (String) -> Unit, zone: ZoneId = ZoneId.systemDefault()) {
+fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, onBack: () -> Unit, onSession: (String) -> Unit, zone: ZoneId = ZoneId.systemDefault(), startByType: Boolean? = null) {
     val live = remember(state) { state.sessions.filter { it.state != SessionState.GONE }.map { it.name }.toSet() }
     val hm = { at: Long -> BOX_HM.format(Instant.ofEpochSecond(at).atZone(zone)) }
     var stillAll by rememberSaveable { mutableStateOf(false) }
-    var shown by rememberSaveable { mutableIntStateOf(BOX_PAGE) }
+    val ctx = LocalContext.current
+    val viewPrefs = remember { runCatching { ctx.getSharedPreferences(VIEW_PREFS, android.content.Context.MODE_PRIVATE) }.getOrNull() }
+    var byType by rememberSaveable { mutableStateOf(startByType ?: viewPrefs?.getBoolean(VIEW_BY_TYPE, true) ?: true) }
+    val groupOpen = remember { mutableStateMapOf<String, Boolean>() }
+    val groupShown = remember { mutableStateMapOf<String, Int>() }
     LazyColumn(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().testTag("home-box-page"), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp)) {
         item("bar") {
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -146,7 +185,7 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
                         out.red.isNotEmpty() -> pluralStringResource(R.plurals.box_outcomes_head, out.red.size, out.red.size)
                         else -> stringResource(R.string.box_outcomes_head_green)
                     }
-                    BoxHero(out?.done?.size?.toString() ?: "–", null, head)
+                    BoxHero(out?.settled?.toString() ?: "–", null, head)
                 }
                 if (out != null) {
                     if (out.red.isNotEmpty()) {
@@ -164,21 +203,37 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
                         }
                     }
                     if (out.done.isNotEmpty()) {
-                        item("done-head") { BoxSection(stringResource(R.string.box_outcomes), stringResource(R.string.box_newest_first, out.done.size), Cm.text2) }
-                        itemsIndexed(out.done.take(shown), key = { i, _ -> "done-$i" }) { i, d ->
-                            BoxCardPart(first = i == 0, last = i == minOf(shown, out.done.size) - 1) {
-                                BoxRow(i, Icons.Rounded.Check, Cm.idle, d.session, hm(d.at), onClick = if (d.session in live) ({ onSession(d.session) }) else null) {
-                                    Text(d.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+                        item("view") {
+                            Row(foldItem().fillMaxWidth().padding(top = 12.dp, bottom = 2.dp), horizontalArrangement = Arrangement.End) {
+                                ViewSwitch(!byType, R.string.box_view_type, R.string.box_view_session) { bySession -> byType = !bySession; viewPrefs?.edit()?.putBoolean(VIEW_BY_TYPE, byType)?.apply() }
+                            }
+                        }
+                        (if (byType) Kpi.groupsByType(out.done) else Kpi.groupsBySession(out.done)).forEach { g ->
+                            val isOpen = groupOpen[g.key] ?: !g.startsClosed
+                            item("g-${g.key}") {
+                                val tone = g.type?.let { outcomeTone(it) } ?: Cm.text2
+                                BoxFold(g.session ?: stringResource(outcomeLabel(g.type!!)).uppercase(), g.rows.size, tone, isOpen, foldItem()) { groupOpen[g.key] = !isOpen }
+                            }
+                            if (isOpen) {
+                                val n = groupShown[g.key] ?: BOX_PAGE
+                                itemsIndexed(g.rows.take(n), key = { i, d -> "r-${g.key}-${d.at}-$i" }) { i, d ->
+                                    BoxCardPart(first = i == 0, last = i == minOf(n, g.rows.size) - 1, modifier = foldItem()) {
+                                        BoxRow(i, outcomeIcon(d.type), outcomeTone(d.type), if (g.session == null) d.session else null, hm(d.at), onClick = if (d.session in live) ({ onSession(d.session) }) else null) {
+                                            // Nella vista per sessione il gruppo non dice il tipo: lo dice la riga, se ce l'ha.
+                                            if (g.session != null && d.type != Kpi.OutcomeType.NONE) Text(stringResource(outcomeLabel(d.type)).uppercase(), style = KindStyle, color = outcomeTone(d.type))
+                                            Text(d.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+                                        }
+                                    }
+                                }
+                                if (g.rows.size > n) item("more-${g.key}") {
+                                    BoxMore(stringResource(R.string.box_rest, g.rows.size - n), foldItem()) {
+                                        FilledTonalButton(onClick = { groupShown[g.key] = n + BOX_PAGE }) { Text(stringResource(R.string.box_show_more, minOf(BOX_PAGE, g.rows.size - n))) }
+                                    }
                                 }
                             }
                         }
-                        if (out.done.size > shown) item("done-more") {
-                            BoxMore(stringResource(R.string.box_rest, out.done.size - shown)) {
-                                FilledTonalButton(onClick = { shown += BOX_PAGE }) { Text(stringResource(R.string.box_show_more, minOf(BOX_PAGE, out.done.size - shown))) }
-                            }
-                        }
                     } else item("none") { BoxNote(stringResource(R.string.box_outcomes_none)) }
-                    item("note") { BoxNote(stringResource(R.string.box_outcomes_note) + if (out.atLeast) " " + stringResource(R.string.box_at_least) else "") }
+                    item("note") { BoxNote(stringResource(R.string.box_outcomes_note) + (if (out.atLeast) " " + stringResource(R.string.box_at_least) else "") + (if (out.cut) " " + stringResource(R.string.box_rows_cut) else ""), foldItem()) }
                 }
             }
         }
@@ -204,6 +259,17 @@ private fun BoxSection(title: String, count: String, tone: Color) {
     }
 }
 
+/** La testata di un gruppo di «Esiti di oggi»: un tocco lo apre e lo chiude, e dice sempre quanti esiti ha. */
+@Composable
+private fun BoxFold(title: String, count: Int, tone: Color, open: Boolean, modifier: Modifier = Modifier, onToggle: () -> Unit) {
+    Row(modifier.fillMaxWidth().handCursor().clickable(onClick = onToggle).padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MonoSmall.copy(letterSpacing = 1.7.sp, fontWeight = FontWeight.Medium), color = tone)
+        Box(Modifier.weight(1f).height(1.dp).background(Cm.line))
+        Text(count.toString(), style = MaterialTheme.typography.bodySmall, color = Cm.text2)
+        TurnArrow(open, Cm.text2, Modifier.size(20.dp))
+    }
+}
+
 @Composable
 private fun BoxCard(content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 4.dp), content = content)
@@ -211,17 +277,17 @@ private fun BoxCard(content: @Composable ColumnScope.() -> Unit) {
 
 /** Un pezzo della scheda per le liste lunghe: gli angoli tondi solo in cima e in fondo, così la lista resta pigra. */
 @Composable
-private fun BoxCardPart(first: Boolean, last: Boolean, content: @Composable ColumnScope.() -> Unit) {
+private fun BoxCardPart(first: Boolean, last: Boolean, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val r = 20.dp
     Column(
-        Modifier.fillMaxWidth().padding(bottom = if (last) 8.dp else 0.dp).clip(RoundedCornerShape(if (first) r else 0.dp, if (first) r else 0.dp, if (last) r else 0.dp, if (last) r else 0.dp))
+        modifier.fillMaxWidth().padding(bottom = if (last) 8.dp else 0.dp).clip(RoundedCornerShape(if (first) r else 0.dp, if (first) r else 0.dp, if (last) r else 0.dp, if (last) r else 0.dp))
             .background(Cm.surfaceLow).padding(start = 14.dp, end = 14.dp, top = if (first) 4.dp else 0.dp, bottom = if (last) 4.dp else 0.dp),
         content = content,
     )
 }
 
 @Composable
-private fun BoxRow(index: Int, icon: ImageVector, tone: Color, session: String, meta: String?, onClick: (() -> Unit)?, body: @Composable ColumnScope.() -> Unit) {
+private fun BoxRow(index: Int, icon: ImageVector, tone: Color, session: String?, meta: String?, onClick: (() -> Unit)?, body: @Composable ColumnScope.() -> Unit) {
     if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Cm.line))
     Row(
         Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 10.dp),
@@ -229,7 +295,8 @@ private fun BoxRow(index: Int, icon: ImageVector, tone: Color, session: String, 
     ) {
         Box(Modifier.size(30.dp).clip(CircleShape).background(tone.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(icon, null, tint = tone, modifier = Modifier.size(16.dp)) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (session == null) meta?.let { Text(it, style = MonoSmall, maxLines = 1) }
+            else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 V3Split(Modifier.weight(1f), text = { Text(session, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text) }) { meta?.let { Text(it, style = MonoSmall, maxLines = 1) } }
             }
             body()
@@ -239,13 +306,13 @@ private fun BoxRow(index: Int, icon: ImageVector, tone: Color, session: String, 
 }
 
 @Composable
-private fun BoxNote(text: String) {
-    Text(text, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp))
+private fun BoxNote(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp))
 }
 
 @Composable
-private fun BoxMore(text: String, action: @Composable () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun BoxMore(text: String, modifier: Modifier = Modifier, action: @Composable () -> Unit) {
+    Row(modifier.fillMaxWidth().padding(start = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(text, style = MonoSmall, modifier = Modifier.weight(1f))
         action()
     }

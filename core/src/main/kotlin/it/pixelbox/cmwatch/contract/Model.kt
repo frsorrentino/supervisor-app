@@ -793,13 +793,17 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
  * (`ref` = hash corto), outcome (la riga «Esito:»), task (`ok` dal controllo rieseguito, `ref` = id del compito). `text`
  * al massimo 160 caratteri su una riga. Stringa, non enum: un kind nuovo del relay non rompe la lettura.
  */
-@Serializable data class TimelineEvent(val at: Long, val kind: String, val text: String, val ok: Boolean? = null, val ref: String? = null)
+@Serializable data class TimelineEvent(val at: Long, val kind: String, val text: String, val ok: Boolean? = null, val ref: String? = null, /** Contratto 1.98, solo su `outcome`: shipped, done, waiting, running, answer, problem o null. */ val type: String? = null)
 
 /** Una sessione della cronologia: `project` relativo come `state.sessions[].project`; `live` distingue la stessa cartella viva e chiusa. */
 @Serializable data class TimelineSession(val session: String, val live: Boolean, val project: String? = null, val events: List<TimelineEvent> = emptyList())
 
 /** Contratto 1.29: le sessioni dalla più recente, al massimo 40 eventi ciascuna; `more` = tagliata oltre 60 KB. */
-@Serializable data class TimelinePage(val since: Long, val sessions: List<TimelineSession> = emptyList(), val more: Boolean = false)
+@Serializable data class TimelinePage(
+    val since: Long, val sessions: List<TimelineSession> = emptyList(), val more: Boolean = false,
+    /** Contratto 1.98: gli esiti nella finestra e quelli non `running`, contati prima dei tagli. Assenti con un relay vecchio. */
+    @SerialName("outcomes_n") val outcomesN: Int? = null, @SerialName("outcomes_settled_n") val outcomesSettledN: Int? = null,
+)
 
 /**
  * Contratto 1.31: l'invito aperto dal relay per un dispositivo in più. `qr` = il documento del QR della 1.30 (con `m`

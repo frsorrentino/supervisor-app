@@ -134,6 +134,11 @@ export const todayShare = (st: State, session: string): number | null => {
   return u ? Math.round(u.share * 100) : null
 }
 
+/** Il tipo di un esito (contratto 1.98), nell'ordine dei gruppi. Null e valori sconosciuti sono `none`: gli esiti vecchi non ce l'hanno. */
+export const OUTCOME_TYPES = ['problem', 'waiting', 'shipped', 'done', 'answer', 'none', 'running'] as const
+export type OutcomeType = typeof OUTCOME_TYPES[number]
+export const outcomeType = (raw: string | null | undefined): OutcomeType => (raw !== 'none' && (OUTCOME_TYPES as readonly string[]).includes(raw ?? '') ? raw as OutcomeType : 'none')
+
 /** 7 · tre cifre in testa alla home: chi ti aspetta (e da quanto la prima), chi lavora, gli esiti di oggi e i rossi. */
 export type Head = { waiting: number; oldestWaitS: number | null; busy: number; outcomes: number | null; red: number | null }
 
@@ -142,9 +147,10 @@ export function head(st: State, page: TimelinePage | null, now: number, timeZone
   const waits = live.map(waitingSince).filter((x): x is number => x != null)
   const from = midnight(now, timeZone)
   const today = page ? page.sessions.flatMap(s => s.events).filter(e => e.at >= from && e.at <= now) : null
+  const counted = page?.since === from ? page.outcomes_settled_n : undefined
   return {
     waiting: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, busy: live.filter(s => s.state === 'busy' && waitingSince(s) == null).length,
-    outcomes: today ? today.filter(e => e.kind === 'outcome').length : null, red: today ? today.filter(e => e.kind === 'task' && e.ok === false).length : null,
+    outcomes: counted ?? (today ? today.filter(e => e.kind === 'outcome' && outcomeType(e.type) !== 'running').length : null), red: today ? today.filter(e => e.kind === 'task' && e.ok === false).length : null,
   }
 }
 
@@ -184,19 +190,47 @@ export const stillRows = (st: State): Still[] => st.sessions.filter(s => s.state
   .sort((a, b) => (b.at ?? -1) - (a.at ?? -1))
 
 /** Una riga di «Esiti di oggi»: un esito (`ref` null) o un compito rosso (`ref` = id del compito). */
-export type Done = { session: string; text: string; at: number; ref: string | null }
-/** «Esiti di oggi»: i rossi in cima, poi gli esiti, il più nuovo prima; `atLeast` = la cronologia è al tetto. */
-export type Outcomes = { red: Done[]; done: Done[]; atLeast: boolean }
+export type Done = { session: string; text: string; at: number; ref: string | null; type?: OutcomeType }
+/**
+ * «Esiti di oggi»: i rossi in cima, poi gli esiti, il più nuovo prima, «in corso» compresi. `settled` è il numero da mostrare: non
+ * conta «in corso», conta i senza tipo. `atLeast` = senza i conti del relay il numero può essere un minimo; `cut` = il numero è
+ * giusto ma la cronologia è stata tagliata, quindi le righe sono meno.
+ */
+export type Outcomes = { red: Done[]; done: Done[]; settledRows: Done[]; settled: number; atLeast: boolean; cut: boolean }
+
+/** Un gruppo di «Esiti di oggi»: per tipo (`type`) o per sessione (`session`); «In corso» parte chiuso in entrambe le viste. */
+export type OutcomeGroup = { key: string; type: OutcomeType | null; session: string | null; rows: Done[]; startsClosed: boolean }
+
+/** I gruppi per tipo, nell'ordine di `OUTCOME_TYPES`; i vuoti non ci sono. */
+export const groupsByType = (done: Done[]): OutcomeGroup[] => OUTCOME_TYPES.flatMap(type => {
+  const rows = done.filter(d => (d.type ?? 'none') === type)
+  return rows.length ? [{ key: `t:${type}`, type, session: null, rows, startsClosed: type === 'running' }] : []
+})
+
+/** I gruppi per sessione, dalla più recente; gli esiti «in corso» di tutte stanno in un solo gruppo in fondo. */
+export function groupsBySession(done: Done[]): OutcomeGroup[] {
+  const by = new Map<string, Done[]>()
+  for (const d of done) if (d.type !== 'running') by.set(d.session, [...(by.get(d.session) ?? []), d])
+  const groups: OutcomeGroup[] = [...by].map(([session, rows]) => ({ key: `s:${session}`, type: null, session, rows, startsClosed: false }))
+  const running = done.filter(d => d.type === 'running')
+  return running.length ? [...groups, { key: 't:running', type: 'running', session: null, rows: running, startsClosed: true }] : groups
+}
 
 /** Gli stessi eventi contati da `head`; null senza cronologia. */
 export function outcomes(page: TimelinePage | null, now: number, timeZone?: string): Outcomes | null {
   if (!page) return null
   const from = midnight(now, timeZone)
   const today = page.sessions.flatMap(s => s.events.filter(e => e.at >= from && e.at <= now).map(e => ({ s: s.session, e }))).sort((a, b) => b.e.at - a.e.at)
+  const done: Done[] = today.filter(x => x.e.kind === 'outcome').map(({ s, e }) => ({ session: s, text: e.text, at: e.at, ref: null, type: outcomeType(e.type) }))
+  const settledRows = done.filter(d => d.type !== 'running')
+  const counted = page.since === from && page.outcomes_settled_n != null
   return {
     red: today.filter(x => x.e.kind === 'task' && x.e.ok === false).map(({ s, e }) => ({ session: s, text: e.text, at: e.at, ref: e.ref ?? null })),
-    done: today.filter(x => x.e.kind === 'outcome').map(({ s, e }) => ({ session: s, text: e.text, at: e.at, ref: null })),
-    atLeast: !!page.more || page.sessions.some(s => s.events.length >= EVENTS_CAP),
+    done, settledRows,
+    settled: counted ? page.outcomes_settled_n! : settledRows.length,
+    // I conti del relay valgono solo se la finestra è oggi: prima delle sei la app chiede sei ore e comprendono ieri.
+    atLeast: !counted && (!!page.more || page.sessions.some(s => s.events.length >= EVENTS_CAP)),
+    cut: counted && (page.outcomes_n ?? 0) > done.length,
   }
 }
 
