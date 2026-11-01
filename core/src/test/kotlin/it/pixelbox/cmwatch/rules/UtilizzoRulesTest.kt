@@ -28,4 +28,24 @@ class UtilizzoRulesTest {
         assertEquals(UtilizzoRules.Waits(4, 12), UtilizzoRules.waits(listOf(KpiWaitDay("a", 9.0, 5), KpiWaitDay("b", 4.2, 7), KpiWaitDay("c", null, 0))))
         assertNull(UtilizzoRules.waits(emptyList()))
     }
+
+    @Test fun anOldReadingOfAFinishedWindowIsNotShown() {
+        assertNull(UtilizzoRules.fiveHourLive(40, 900, stale = true, now = 1000))
+        assertNull(UtilizzoRules.fiveHourLive(40, null, stale = true, now = 1000))
+        assertEquals(40, UtilizzoRules.fiveHourLive(40, 2000, stale = true, now = 1000))
+        assertEquals(40, UtilizzoRules.fiveHourLive(40, 900, stale = false, now = 1000))
+    }
+
+    @Test fun anOldReadingOfAFinishedWindowFallsBackOnTheWeek() {
+        val b = UtilizzoRules.bar(40, 25, 900, 5000, 1000, stale = true)!!
+        assertEquals(true, b.week)
+        assertEquals(25, b.pct)
+    }
+
+    @Test fun shownQuotaKeepsTheFreshOnesOrAllOfThem() {
+        val fresh = it.pixelbox.cmwatch.contract.QuotaAccount(w7 = 20)
+        val old = it.pixelbox.cmwatch.contract.QuotaAccount(w7 = 39, stale = true)
+        assertEquals(listOf("a"), UtilizzoRules.shownQuota(mapOf("a" to fresh, "b" to old)).map { it.key })
+        assertEquals(listOf("a", "b"), UtilizzoRules.shownQuota(mapOf("a" to old, "b" to old)).map { it.key })
+    }
 }

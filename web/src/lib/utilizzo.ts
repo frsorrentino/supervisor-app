@@ -35,15 +35,25 @@ export function weekDay(resetAt: number | null | undefined, now: number): number
   return Math.max(1, Math.min(7, Math.floor((now - (resetAt - W7_S)) / 86400) + 1))
 }
 
+/**
+ * Il dato delle 5 ore che vale ancora: una lettura vecchia a finestra finita non dice più niente, e l'account conta come senza
+ * 5 ore. Una lettura fresca resta com'è. Stessa regola di UtilizzoRules.fiveHourLive nell'app.
+ */
+export function fiveHourLive(h5: number | null | undefined, resetH5: number | null | undefined, stale: boolean | undefined, now: number): number | null {
+  if (h5 == null) return null
+  return stale && (resetH5 == null || resetH5 <= now) ? null : h5
+}
+
 export type QuotaBar = { week: boolean; pct: number; resetAt: number | null; windowS: number; delta: number | null; day: number | null }
 
 /**
  * quota-senza-cinque-ore: la barra di un account. Anthropic toglie il limite di 5 ore a tappe e per account: conta il dato
  * assente, mai il nome del piano. Senza `h5` la settimana, col giorno e il ritmo; senza nessuno dei due null, mai uno 0 %.
  */
-export function quotaBar(h5: number | null | undefined, w7: number | null | undefined, resetH5: number | null | undefined, resetW7: number | null | undefined, now: number): QuotaBar | null {
+export function quotaBar(h5: number | null | undefined, w7: number | null | undefined, resetH5: number | null | undefined, resetW7: number | null | undefined, now: number, stale = false): QuotaBar | null {
   const pc = (x: number) => Math.max(0, Math.min(100, x))
-  if (h5 != null) return { week: false, pct: pc(h5), resetAt: resetH5 ?? null, windowS: H5_S, delta: null, day: null }
+  const live = fiveHourLive(h5, resetH5, stale, now)
+  if (live != null) return { week: false, pct: pc(live), resetAt: resetH5 ?? null, windowS: H5_S, delta: null, day: null }
   if (w7 == null) return null
   return { week: true, pct: pc(w7), resetAt: resetW7 ?? null, windowS: W7_S, delta: weekDelta(w7, resetW7, now), day: weekDay(resetW7, now) }
 }

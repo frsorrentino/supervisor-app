@@ -49,6 +49,15 @@ class NoFiveHourTest {
 
     @Test fun boardOneAccount() = shot { Kpi7(head, one, now, {}) }
     @Test fun boardTwoAccountsOneWithout() = shot { Kpi7(head, two, now, {}) }
+    /** Segnalazione del 01/11: due account vecchi e le 5 ore scadute. Il numero resta per tutti e due, attenuato, con la nota sotto; la riga delle 5 ore non c'è. */
+    @Test fun utilizzo_tutti_vecchi() {
+        val old = base.copy(quota = mapOf(
+            "personal" to personal.copy(w7 = 25, stale = true),
+            "work" to work.copy(h5 = 12, resetH5 = now - 3600, w7 = 39, stale = true),
+        ))
+        shot { UtilizzoV3(rings(old), old, null, null, now, {}, zone = zone) }
+    }
+
     @Test fun usageClosed() = shot { UtilizzoV3(rings(one), one, null, null, now, {}, zone = zone) }
     @Test fun usageWeekOpen() = shot { UtilizzoV3(rings(one), one, null, null, now, {}, startOpen = "w7:personal", zone = zone) }
     @Test fun usageTwoAccountsOneWithout() = shot { UtilizzoV3(rings(two), two, null, null, now, {}, zone = zone) }

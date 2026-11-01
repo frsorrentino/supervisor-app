@@ -166,13 +166,13 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f))
         }
-        val rings = st.quota.entries.filter { (_, q) -> !q.stale }.mapNotNull { (name, q) -> it.pixelbox.cmwatch.rules.UtilizzoRules.bar(q.h5, q.w7, q.resetH5, q.resetW7, now)?.let { b -> Triple(name, q, b) } }.sortedByDescending { it.third.pct }
+        val rings = it.pixelbox.cmwatch.rules.UtilizzoRules.shownQuota(st.quota).mapNotNull { (name, q) -> it.pixelbox.cmwatch.rules.UtilizzoRules.bar(q.h5, q.w7, q.resetH5, q.resetW7, now, q.stale)?.let { b -> Triple(name, q, b) } }.sortedByDescending { it.third.pct }
         if (rings.isNotEmpty()) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             Column(Modifier.fillMaxWidth().handCursor().clickable(onClick = onQuota).padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 rings.forEach { (name, q, b) ->
                     val pct = b.pct
-                    val tone = if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
+                    val tone = if (q.stale) V3.Tx3 else if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
                     Row(if (b.week) Modifier.testTag("quota-senza-cinque-ore") else Modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         // Con due account la forma dice quale: tondo personale, quadrato lavoro, come nel badge.
                         if (rings.size > 1) Box(Modifier.size(10.dp).border(2.dp, V3.Tx2, if (it.pixelbox.cmwatch.rules.Accounts.personal(name, q.kind)) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(3.dp)))
@@ -185,9 +185,10 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
                                 Box(Modifier.offset(x = maxWidth * (done / 100f)).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(V3.Tx))
                             }
                         }
-                        Text("$pct%", style = V3.Meter, maxLines = 1)
+                        Text("$pct%", style = if (q.stale) V3.Meter.copy(color = V3.Tx3) else V3.Meter, maxLines = 1)
                     }
-                    if (b.week) weekPaceText(b.delta, b.day)?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp)) }
+                    if (q.stale) Text(stringResource(R.string.quota_line_stale), style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), maxLines = 1)
+                    else if (b.week) weekPaceText(b.delta, b.day)?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp)) }
                 }
             }
         }

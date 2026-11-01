@@ -24,6 +24,7 @@
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
   import { cleanupOf } from './masterService'
   import { details as lavoriDetails, doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, place as lavoriPlace, shortTitle, type ForYou as LavoriRow } from './lavori'
+  import { shown as shownQuota } from './quotaLine'
   import { askedFor, attachedTasks, build, MASTER, staleHours, type Group, type Row } from './summary'
   import { doneOf, type Done } from './queue'
   import { expiry } from './durations'
@@ -356,7 +357,7 @@
   })
   // Chiusa, «Utilizzo» dice la settimana di ogni account; la quota 5h sta già nella barra in cima.
   const usageLine = $derived.by(() => {
-    const weeks = Object.entries(st.quota).filter(([, q]) => !q.stale && q.w7 != null)
+    const weeks = shownQuota(Object.entries(st.quota)).filter(([, q]) => q.w7 != null)
     if (weeks.length === 1) return `${t.weekShort} ${weeks[0][1].w7}%`
     // Con più account il nome si accorcia: il riepilogo sta su una riga.
     return weeks.map(([a, q]) => `${a.length > 5 ? `${a.slice(0, 4)}.` : a} ${q.w7}%`).join(' · ') || null
@@ -593,7 +594,7 @@
 {/snippet}
 {#snippet secSystem()}
   {#if sys && (!part || part === 'tools')}
-    {@render sec('system', t.homeSystem, 'memory', null, 'home-sez-sistema', sysOpen ? null : summaryLine(sys, lang), { isOpen: sysOpen, onclick: () => (sysManual = { level: sys.level, open: !sysOpen }), dot: sysOpen ? null : SYS_TONE[sys.level] })}
+    {@render sec('system', t.homeSystem, 'memory', null, 'home-sez-sistema', sysOpen ? null : summaryLine(sys, lang), { isOpen: sysOpen, onclick: () => (sysManual = { level: sys.level, open: !sysOpen }), dot: sysOpen || sys.level === 'green' ? null : SYS_TONE[sys.level] })}
         {#if sysOpen}
           <div class="card wrows">
           <div class="exp sys" data-testid="system_advice">

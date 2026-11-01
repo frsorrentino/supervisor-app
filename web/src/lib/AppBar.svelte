@@ -10,6 +10,7 @@
   import { growFromPress } from './motion'
   import { resetLabel } from './header'
   import { shown } from './quotaLine'
+  import { quotaBar } from './utilizzo'
 
   // La testata della home (PageHeader dell'app): «Master · N aperte», la lente e il menu ≡; sotto, la quota in una riga
   // (QuotaLine): per ogni account la sua forma, una barra fina delle 5 ore e la percentuale; ambra da 75 %, rossa da 90 %.
@@ -24,7 +25,7 @@
   const fresh = $derived(freshness(st, now))
   const updated = $derived(fresh.stale ? t.updatedAgo(fresh.minutes) : fresh.slowS != null ? t.updatedSlow(fresh.slowS) : t.updatedNow)
   // Con un account non aggiornato si vede solo l'altro, a tutta larghezza e con l'ora in cui si azzera.
-  const rings = $derived(shown(Object.entries(st.quota)))
+  const rings = $derived(shown(Object.entries(st.quota)).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now, r.stale)] as const).filter(([, , b]) => b))
   const tone = (pct: number, stale: boolean) => (stale ? 'var(--text2)' : pct >= 90 ? 'var(--b-alert)' : pct >= 75 ? 'var(--b-warn)' : 'var(--b-ring)')
   function go(p: Page) { menu = false; onPage(p) }
   let liveNote = $state(false)
@@ -57,17 +58,17 @@
   </div>
   {#if quota && rings.length}
     <button class="quota" onclick={() => onPage('overview')} aria-label={t.menuQuadro}>
-      {#each rings as [name, r]}
-        {@const pct = Math.min(100, Math.max(0, r.h5 ?? 0))}
+      {#each rings as [name, r, b]}
+        {@const pct = b?.pct ?? 0}
         {@const stale = !!r.stale}
-        {@const reset = rings.length === 1 && !stale ? resetLabel(r.reset_h5, now) : null}
+        {@const reset = rings.length === 1 && !stale && !b?.week ? resetLabel(r.reset_h5, now) : null}
         <span class="q">
           <svg viewBox="0 0 14 14" width="12" height="12" aria-label={personal(name, r.kind) ? t.badgePersonal : t.badgeWork}>
             {#if personal(name, r.kind)}<circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--text2)" stroke-width="2" />{:else}<rect x="1" y="1" width="12" height="12" rx="3.2" fill="none" stroke="var(--text2)" stroke-width="2" />{/if}
           </svg>
-          <span class="mono win">{t.quotaLineWindow}</span>
-          <span class="track">{#if !stale}<i style="width:{pct}%;background:{tone(pct, stale)}"></i>{/if}</span>
-          <span class="mono" style="color:{pct >= 75 && !stale ? tone(pct, stale) : 'var(--text2)'}">{stale ? t.quotaLineStale : `${pct}%`}</span>
+          <span class="mono win">{b?.week ? t.quotaLineWeek : t.quotaLineWindow}</span>
+          <span class="track"><i style="width:{pct}%;background:{tone(pct, stale)};opacity:{stale ? .5 : 1}"></i></span>
+          <span class="mono" style="color:{pct >= 75 && !stale ? tone(pct, stale) : 'var(--text2)'};opacity:{stale ? .6 : 1}" title={stale ? t.quotaLineStale : null}>{pct}%</span>
           {#if reset}<span class="mono">· {t.quotaResetsAt(reset)}</span>{/if}
         </span>
       {/each}

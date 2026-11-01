@@ -173,7 +173,7 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
                 PanelTitle(stringResource(if (noH5) R.string.tablet_week_label else R.string.tablet_quota_label), ring.account, null)
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        (ring.h5 ?: ring.w7)?.takeIf { !ring.stale }?.let { "$it%" } ?: "–",
+                        (ring.h5 ?: ring.w7)?.let { "$it%" } ?: "–",
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum"),
                         color = if (ring.stale) Cm.text2 else Cm.text,
                     )

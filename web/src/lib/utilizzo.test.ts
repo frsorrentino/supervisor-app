@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { elapsedPct, H5_S, peakHour, quotaBar, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
+import { elapsedPct, fiveHourLive, H5_S, peakHour, quotaBar, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
 
 describe('utilizzo', () => {
   it('quanto è passato della finestra', () => {
@@ -46,5 +46,15 @@ describe('barra della quota senza il dato delle 5 ore', () => {
     expect(weekDay(now + 7 * 86400, now)).toBe(1)
     expect(weekDay(now + 1, now)).toBe(7)
     expect(weekDay(now, now)).toBeNull()
+  })
+})
+
+describe('letture vecchie', () => {
+  it('a finestra finita le 5 ore non valgono più, e resta la settimana', () => {
+    expect(fiveHourLive(40, 900, true, 1000)).toBeNull()
+    expect(fiveHourLive(40, null, true, 1000)).toBeNull()
+    expect(fiveHourLive(40, 2000, true, 1000)).toBe(40)
+    expect(fiveHourLive(40, 900, false, 1000)).toBe(40)
+    expect(quotaBar(40, 25, 900, 5000, 1000, true)).toMatchObject({ week: true, pct: 25 })
   })
 })

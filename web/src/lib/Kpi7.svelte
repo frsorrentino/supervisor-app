@@ -13,7 +13,7 @@
   // è neutra e diventa ambra da 75 % e rossa da 90 %; la tacca bianca è quanto è passato della finestra delle 5 ore.
   // quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana col giorno e il ritmo.
   let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {} }: { h: Head; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void } = $props()
-  const rings = $derived((st ? shown(Object.entries(st.quota)) : []).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now)] as const).filter(([, r, b]) => b || r.stale))
+  const rings = $derived((st ? shown(Object.entries(st.quota)) : []).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now, r.stale)] as const).filter(([, , b]) => b))
   const tone = (pct: number) => (pct >= 90 ? 'var(--red)' : pct >= 75 ? 'var(--wait)' : 'var(--tx2)')
 </script>
 
@@ -37,10 +37,10 @@
             </svg>
           {/if}
           <strong>{week ? (rings.length > 1 ? t.quotaLineWeek : t.usageWeek) : rings.length > 1 ? t.quotaLineWindow : t.board5h}</strong>
-          <span class="meter">{#if !stale}<i style="width:{pct}%;background:{tone(pct)}"></i>{/if}{#if tick != null}<b style="left:{tick}%"></b>{/if}</span>
-          <span class="pct" style:color={pct >= 75 && !stale ? tone(pct) : null}>{stale ? t.quotaLineStale : `${pct}%`}</span>
+          <span class="meter"><i style="width:{pct}%;background:{stale ? 'var(--tx3)' : tone(pct)}"></i>{#if tick != null}<b style="left:{tick}%"></b>{/if}</span>
+          <span class="pct" style:color={stale ? 'var(--tx3)' : pct >= 75 ? tone(pct) : null}>{pct}%</span>
           {#if reset}<span class="reset">{t.quotaResetsAt(reset)}</span>{/if}
-          {#if pace}<span class="pace">{pace}</span>{/if}
+          {#if stale}<span class="pace">{t.quotaLineStale}</span>{:else if pace}<span class="pace">{pace}</span>{/if}
         </span>
       {/each}
     </button>

@@ -12,7 +12,7 @@
   type Kind = 'you' | 'work' | 'out' | 'tools'
   let { kind, h, st, now, sub = null, onOpen = () => {} }: { kind: Kind; h: Head; st: State; now: number; sub?: string | null; onOpen?: () => void } = $props()
   // quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana.
-  const rings = $derived(shown(Object.entries(st.quota)).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now)] as const).filter(([, r, b]) => b || r.stale))
+  const rings = $derived(shown(Object.entries(st.quota)).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now, r.stale)] as const).filter(([, , b]) => b))
   // In testa la quota più alta fra gli account aggiornati: è quella che ferma il lavoro.
   const top = $derived(rings.filter(([, r]) => !r.stale).sort((a, b) => (b[2]?.pct ?? 0) - (a[2]?.pct ?? 0))[0] ?? null)
   const topPct = $derived(Math.round(top?.[2]?.pct ?? 0))
@@ -44,8 +44,8 @@
               {#if personal(name, r.kind)}<circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--tx2)" stroke-width="2" />{:else}<rect x="1" y="1" width="12" height="12" rx="3.2" fill="none" stroke="var(--tx2)" stroke-width="2" />{/if}
             </svg>
           {/if}
-          <span class="meter">{#if !r.stale}<i style="width:{pct}%;background:{tone(pct)}"></i>{/if}{#if tick != null}<b style="left:{tick}%"></b>{/if}</span>
-          {#if rings.length > 1}<span class="pct">{r.stale ? t.quotaLineStale : `${pct}%`}</span>{/if}
+          <span class="meter"><i style="width:{pct}%;background:{r.stale ? 'var(--tx3)' : tone(pct)}"></i>{#if tick != null}<b style="left:{tick}%"></b>{/if}</span>
+          {#if rings.length > 1}<span class="pct" style:color={r.stale ? 'var(--tx3)' : null} title={r.stale ? t.quotaLineStale : null}>{pct}%</span>{/if}
         </span>
       {/each}
     {/if}

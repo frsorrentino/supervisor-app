@@ -3,6 +3,7 @@ import { isPersonalQuota, type Tone } from './briefCards'
 import { today, type Bar } from './dayBars'
 import { shortModel } from './header'
 import { pace, type Pace, type Sample } from './quotaHistory'
+import { fiveHourLive } from './utilizzo'
 import * as work from './workPanel'
 
 // La Panoramica del telefono, porta di PhoneOverview.kt: anelli per account, «Adesso», domande, contesto, «Oggi», notte
@@ -35,7 +36,7 @@ export function build(state: State, events: Event[], samples: Record<string, Sam
     const q = state.quota[row.account]
     const s = samples[row.account]
     const p = s && s.length >= 2 && row.resetAt != null && !stale && !row.stale ? pace(s, row.resetAt, now) : null
-    return { account: row.account, personal: row.personal, h5: q.h5 ?? null, w7: q.w7 ?? null, resetAt: row.resetAt, pace: p,
+    return { account: row.account, personal: row.personal, h5: fiveHourLive(q.h5, q.reset_h5, row.stale, now), w7: q.w7 ?? null, resetAt: row.resetAt, pace: p,
       weekResetAt: q.reset_w7 != null && q.reset_w7 > now ? q.reset_w7 : null, stale: row.stale, weekPoints: q.w7_points ?? null, weekOrigins: q.w7_origins ?? null }
   })
   const contexts = work.contexts(state).map((c): ContextRow => {

@@ -7,6 +7,7 @@
   import { PATHS } from './badge'
   import { handoffPrompt } from './masterService'
   import { t } from './t'
+  import { fiveHourLive } from './utilizzo'
   import Options from './Options.svelte'
   import NightAgendaPicker from './NightAgendaPicker.svelte'
 
@@ -169,9 +170,11 @@
   {#if quota.length}
     <div class="quota">
       {#each quota as [name, r]}
+        {@const h5 = fiveHourLive(r.h5, r.reset_h5, r.stale, Date.now() / 1000)}
         <button class="qcell">
-          <span class="qtext" class:stale={r.stale}>{r.stale ? t.quotaOld(name) : r.h5 == null ? t.quotaWeekOnly(name, r.w7 ?? 0) : t.quota(name, r.h5, r.w7 ?? 0)}</span>
-          <span class="qtrack"><span style="width:{Math.min(100, Math.max(0, r.h5 ?? r.w7 ?? 0))}%;background:{r.stale ? 'var(--text2)' : r.h5 == null ? 'var(--b-week)' : 'var(--b-ring)'}"></span></span>
+          <span class="qtext">{h5 == null ? (r.w7 == null ? t.quotaOld(name) : t.quotaWeekOnly(name, r.w7)) : t.quota(name, h5, r.w7 ?? 0)}</span>
+          {#if r.stale && (h5 != null || r.w7 != null)}<span class="qtext stale">{t.quotaLineStale}</span>{/if}
+          <span class="qtrack"><span style="width:{Math.min(100, Math.max(0, h5 ?? r.w7 ?? 0))}%;background:{r.stale ? 'var(--text2)' : h5 == null ? 'var(--b-week)' : 'var(--b-ring)'}"></span></span>
         </button>
       {/each}
     </div>

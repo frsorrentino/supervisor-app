@@ -388,7 +388,7 @@ fun HeroCard(hero: MasterHome.Hero?, master: Session, onSpeak: () -> Unit, onCon
 fun QuotaLine(all: List<PhoneOverview.Ring>, onOpen: () -> Unit) {
     // Con un account non aggiornato si vede solo l'altro, a tutta larghezza e con l'ora in cui si azzera (05/10 20:54).
     // quota-senza-cinque-ore: senza il dato di un account la sua barra è la settimana; senza nessuno dei due niente barra.
-    val rings = PhoneOverview.lineRings(all).filter { it.stale || it.h5 != null || it.w7 != null }
+    val rings = PhoneOverview.lineRings(all).filter { it.h5 != null || it.w7 != null }
     if (rings.isEmpty()) return
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).handCursor().clickable(onClick = onOpen).padding(vertical = 4.dp),
@@ -402,18 +402,21 @@ fun QuotaLine(all: List<PhoneOverview.Ring>, onOpen: () -> Unit) {
                 pct >= 75 -> Cm.briefWarn
                 else -> Cm.briefRing
             }
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AccountMark(r.personal, size = 12.dp, color = if (r.stale) Cm.text2 else Cm.text2)
                 Text(stringResource(if (r.h5 == null) R.string.quota_line_week else R.string.quota_line_window), style = MonoSmall.copy(color = Cm.text2), maxLines = 1)
                 Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
-                    if (!r.stale) Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().background(tone))
+                    Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().background(tone.copy(alpha = if (r.stale) .5f else 1f)))
                 }
                 Text(
-                    if (r.stale) stringResource(R.string.quota_line_stale) else "$pct%", style = MonoSmall.copy(color = if (pct >= 75 && !r.stale) tone else Cm.text2),
+                    "$pct%", style = MonoSmall.copy(color = if (r.stale) Cm.text2.copy(alpha = .6f) else if (pct >= 75) tone else Cm.text2),
                     maxLines = 1, overflow = TextOverflow.Clip,
                 )
                 val reset = r.resetAt?.takeIf { rings.size == 1 && !r.stale && r.h5 != null && it > Instant.now().epochSecond }
                 if (reset != null) Text("· " + stringResource(R.string.quota_resets_at, hm(reset)), style = MonoSmall.copy(color = Cm.text2), maxLines = 1)
+            }
+            if (r.stale) Text(stringResource(R.string.quota_line_stale), style = MonoSmall.copy(color = Cm.text2), maxLines = 1, softWrap = false)
             }
         }
     }
@@ -433,12 +436,13 @@ fun QuotaBars(rings: List<PhoneOverview.Ring>, onOpen: () -> Unit, stacked: Bool
                 val h5 = r.h5
                 Text(
                     when {
-                        r.stale -> stringResource(R.string.home_quota_old, r.account)
+                        h5 == null && r.w7 == null -> stringResource(R.string.home_quota_old, r.account)
                         h5 == null -> stringResource(R.string.quadro_week, r.account, r.w7 ?: 0)
                         else -> stringResource(R.string.home_quota, r.account, h5, r.w7 ?: 0)
                     },
-                    style = MaterialTheme.typography.labelMedium, color = if (r.stale) Cm.waiting else Cm.text2, maxLines = 1, overflow = TextOverflow.Clip,
+                    style = MaterialTheme.typography.labelMedium, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip,
                 )
+                if (r.stale && (h5 != null || r.w7 != null)) Text(stringResource(R.string.quota_line_stale), style = MaterialTheme.typography.labelSmall, color = Cm.waiting, maxLines = 1, softWrap = false)
                 Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
                     Box(Modifier.fillMaxWidth(((h5 ?: r.w7 ?: 0).coerceIn(0, 100)) / 100f).fillMaxHeight().background(if (r.stale) Cm.text2 else if (h5 == null) Cm.briefWeek else Cm.briefRing))
                 }

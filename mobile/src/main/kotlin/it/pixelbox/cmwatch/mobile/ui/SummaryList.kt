@@ -585,7 +585,7 @@ fun SummaryList(
             if (hasUsage) {
                 dragPresent += "usage"
                 item(key = "sec-usage") {
-                    val weeks = kpiState?.quota.orEmpty().filter { (_, q) -> !q.stale && q.w7 != null }.entries
+                    val weeks = it.pixelbox.cmwatch.rules.UtilizzoRules.shownQuota(kpiState?.quota.orEmpty()).filter { it.value.w7 != null }
                     // Con più account il nome si accorcia: il riepilogo sta su una riga.
                     val line = weeks.singleOrNull()?.let { (_, q) -> stringResource(R.string.home_usage_week, q.w7!!) } ?: weeks.joinToString(" · ") { (a, q) -> "${if (a.length > 5) a.take(4) + "." else a} ${q.w7}%" }
                     Box(moving()) { V3Section(sectionDrag("usage"), stringResource(R.string.home_sec_usage), androidx.compose.material.icons.Icons.Outlined.DataUsage, right = line.takeIf { !usageOpen && it.isNotEmpty() }, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) } }
@@ -600,7 +600,7 @@ fun SummaryList(
                 dragPresent += "system"
                 val sysOpen = SystemRules.isOpen(sys.level, sysManual)
                 item(key = "sec-system") {
-                    Box(moving()) { V3Section(sectionDrag("system"), stringResource(R.string.home_sec_system), androidx.compose.material.icons.Icons.Outlined.Memory, right = if (sysOpen) null else systemSummary(sys), tag = "home-sez-sistema", open = sysOpen, dot = if (sysOpen) null else systemTone(sys.level)) { sysManual = SystemRules.Manual(sys.level, !sysOpen) } }
+                    Box(moving()) { V3Section(sectionDrag("system"), stringResource(R.string.home_sec_system), androidx.compose.material.icons.Icons.Outlined.Memory, right = if (sysOpen) null else systemSummary(sys), tag = "home-sez-sistema", open = sysOpen, dot = if (sysOpen || sys.level == "green") null else systemTone(sys.level)) { sysManual = SystemRules.Manual(sys.level, !sysOpen) } }
                 }
                 if (sysOpen) item(key = "system-body") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } } }
             }

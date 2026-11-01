@@ -104,7 +104,7 @@
     <QuotaRing {ring} stale={ring.stale || dataStale} />
     <div class="hcol">
       <span class="lab">{(noH5 ? t.tabletWeekLabel : t.tabletQuotaLabel).toUpperCase()} · {ring.account.toUpperCase()}</span>
-      <div class="num"><b class:dim={ring.stale}>{ring.stale ? '–' : noH5 ? `${ring.w7}%` : ring.h5 != null ? `${ring.h5}%` : '–'}</b>{#if noH5}{#if ring.weekResetAt}<small>{t.weekRenewal(dayTime(ring.weekResetAt))}</small>{/if}{:else if ring.resetAt}<small>{t.quotaResetsAt(hm(ring.resetAt))}</small>{/if}</div>
+      <div class="num"><b class:dim={ring.stale}>{noH5 ? `${ring.w7}%` : ring.h5 != null ? `${ring.h5}%` : '–'}</b>{#if noH5}{#if ring.weekResetAt}<small>{t.weekRenewal(dayTime(ring.weekResetAt))}</small>{/if}{:else if ring.resetAt}<small>{t.quotaResetsAt(hm(ring.resetAt))}</small>{/if}</div>
       {#if ring.stale}<span class="old">{t.quotaOldWord}</span>{/if}
     </div>
   </div>

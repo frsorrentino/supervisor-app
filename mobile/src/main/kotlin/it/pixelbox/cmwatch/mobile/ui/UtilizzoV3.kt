@@ -63,7 +63,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val LAB = 84.dp
+/** La colonna dei nomi: «Settimana» col segno dell'account sta su una riga anche coi caratteri di sistema più grandi. */
+@Composable private fun labW(): Dp = 92.dp * LocalDensity.current.fontScale
 private val ARROW = 24.dp
 private val GAP = 10.dp
 
@@ -91,11 +92,13 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
             UseRow(open == k5, { toggle(k5) }) {
                 Label(stringResource(R.string.kpi7_quota), r, many)
                 Spacer(Modifier.width(GAP))
-                Meter(pct, proj, tick, Modifier.weight(1f))
+                Meter(pct, proj, tick, Modifier.weight(1f), stale = r.stale)
                 Spacer(Modifier.width(GAP))
-                Text(if (proj != null && !r.stale) "$pct% → $proj%" else if (r.stale) stringResource(R.string.quota_line_stale) else "$pct%", style = V3.Meter.copy(color = V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
+                Text(if (proj != null && !r.stale) "$pct% → $proj%" else "$pct%", style = V3.Meter.copy(color = if (r.stale) V3.Tx2 else V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
             }
-            if (open == k5) Column(Modifier.padding(bottom = 10.dp)) {
+            if (open == k5 || r.stale) Column(Modifier.padding(bottom = 10.dp)) {
+                if (r.stale) Note(stringResource(R.string.quota_line_stale))
+                if (open == k5) {
                 // «adesso» sopra il grafico, centrato sulla linea: fra le due ore in fondo non ci sta (Franz 30/10, correzione al mockup D).
                 if (tick != null) Aligned(valW) {
                     BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
@@ -117,6 +120,7 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                     r.resetAt != null -> stringResource(R.string.quota_resets_at, hm.format(Instant.ofEpochSecond(r.resetAt!!).atZone(zone)))
                     else -> stringResource(R.string.quota_old)
                 })
+                }
             }
         }
         shown.filter { it.w7 != null }.forEach { r ->
@@ -127,13 +131,14 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
             UseRow(open == kw, { toggle(kw) }) {
                 Label(stringResource(R.string.usage_week), r, shown.size > 1)
                 Spacer(Modifier.width(GAP))
-                Meter(w7, null, UtilizzoRules.elapsedPct(r.weekResetAt, UtilizzoRules.W7_S, now), Modifier.weight(1f))
+                Meter(w7, null, UtilizzoRules.elapsedPct(r.weekResetAt, UtilizzoRules.W7_S, now), Modifier.weight(1f), stale = r.stale)
                 Spacer(Modifier.width(GAP))
-                Text(if (r.stale && noH5) stringResource(R.string.quota_line_stale) else "$w7%", style = V3.Meter.copy(color = V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
+                Text("$w7%", style = V3.Meter.copy(color = if (r.stale) V3.Tx2 else V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
             }
             val pace = weekPaceText(delta, if (noH5) UtilizzoRules.weekDay(r.weekResetAt, now) else null)
-            if (open == kw || (noH5 && !r.stale && pace != null)) Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                pace?.let { Note(it) }
+            if (open == kw || r.stale || (noH5 && pace != null)) Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                if (r.stale) Note(stringResource(R.string.quota_line_stale))
+                pace?.takeIf { !r.stale || open == kw }?.let { Note(it) }
                 if (open == kw) r.weekResetAt?.let { Note(stringResource(R.string.week_renewal, DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(Instant.ofEpochSecond(it).atZone(zone)))) }
                 if (open == kw) r.weekOrigins?.let { o -> Note(listOf(stringResource(R.string.week_origin_sessions, Math.round(o.sessions).toInt()), stringResource(R.string.week_origin_automations, Math.round(o.automations).toInt()), stringResource(R.string.week_origin_requests, Math.round(o.requests).toInt())).joinToString(" · ")) }
             }
@@ -167,7 +172,7 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
         page?.let { p ->
             val f = Kpi.dayFigures(p, state = st, now = now, zone = zone)
             UseRow(open == "today", { toggle("today") }) {
-                Text(stringResource(R.string.usage_today), style = V3.Name.copy(fontSize = 15.sp), modifier = Modifier.width(LAB))
+                Text(stringResource(R.string.usage_today), style = V3.Name.copy(fontSize = 15.sp), modifier = Modifier.width(labW()))
                 Spacer(Modifier.width(GAP))
                 Text("${f.prompts} ${stringResource(R.string.kpi18_prompt)} · ${f.commits} ${stringResource(R.string.kpi18_commit)}", style = V3.Meter.copy(color = V3.Tx), textAlign = TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.weight(1f))
             }
@@ -213,7 +218,7 @@ private fun UseRow(open: Boolean, onToggle: () -> Unit, content: @Composable and
 @Composable
 private fun Aligned(valW: Dp, content: @Composable () -> Unit) {
     val end = 12.dp + ARROW + 4.dp + (if (valW > 0.dp) valW + GAP else 0.dp)
-    Box(Modifier.fillMaxWidth().padding(start = 14.dp + LAB + GAP, end = end)) { content() }
+    Box(Modifier.fillMaxWidth().padding(start = 14.dp + labW() + GAP, end = end)) { content() }
 }
 
 @Composable
@@ -221,17 +226,17 @@ private fun Note(text: String) = Text(text, style = V3.Small.copy(fontSize = 13.
 
 @Composable
 private fun Label(text: String, r: PhoneOverview.Ring, many: Boolean) {
-    Row(Modifier.width(LAB), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    Row(Modifier.width(labW()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         // Con due account la forma dice quale: tondo personale, quadrato lavoro.
         if (many) Box(Modifier.size(9.dp).border(2.dp, V3.Tx2, if (r.personal) CircleShape else RoundedCornerShape(3.dp)))
-        Text(text, style = V3.Name.copy(fontSize = 15.sp))
+        Text(text, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1, softWrap = false)
     }
 }
 
 /** La barra: il pieno, la proiezione tratteggiata, la tacca di quanto è passato della finestra. */
 @Composable
-private fun Meter(pct: Int, projected: Int?, tick: Float?, modifier: Modifier) {
-    val tone = if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
+private fun Meter(pct: Int, projected: Int?, tick: Float?, modifier: Modifier, stale: Boolean = false) {
+    val tone = if (stale) V3.Tx3 else if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
     Canvas(modifier.height(12.dp)) {
         val h = 6.dp.toPx(); val y = (size.height - h) / 2; val r = androidx.compose.ui.geometry.CornerRadius(h / 2)
         drawRoundRect(V3.S3, Offset(0f, y), androidx.compose.ui.geometry.Size(size.width, h), r)
