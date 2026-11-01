@@ -21,14 +21,14 @@ Franz, 18:21: la pagina pubblica mostrava una grafica vuota. Due difetti distint
 | Browser collegato senza dati | Stato mai arrivato: resta vuoto per sempre | Dopo 15 s o al rifiuto del bus, la demo con avviso e «Riprova» o «Collega questo browser». Con uno stato già arrivato non cambia niente | ok, solo web |
 | Avviso | Non esiste | Fisso in cima su tutte le pagine, non solo in home | ok |
 | Tabellone | Tre cifre, quota | 3 aspettano, 1 al lavoro (`admin-panel`), 6 esiti di oggi; gli stessi numeri nelle pagine dietro i riquadri (test `demo_allineata`) | ok |
-| Ti aspettano | Schede in attesa più ok senza sessione | 3, come il tabellone: l'ok della fixture sta nella scheda di `payments-api` | ok |
+| Ti aspettano | Schede in attesa più ok senza sessione | 3, come il tabellone: l'ok della fixture sta nella scheda di `storefront`, la sua; nessuna scheda chiede la stessa cosa due volte | ok |
 | Esiti di oggi | Per tipo o per sessione, «In corso» chiuso in fondo | Un esito per tipo, uno senza tipo, due in corso fuori dal numero | ok |
-| Lavori | Impegni dal registro | 3 aspettano te, 3 al lavoro | ok |
+| Lavori | Impegni dal registro | 2 aspettano te, 3 al lavoro | ok |
 | Utilizzo | Dalla quota | Dalla fixture | ok |
 | Sistema | `state.system` | Macchina tranquilla, win acceso | ok |
 | Plugin e skill | Op `plugins` | Due da aggiornare; «Aggiorna» e «Controlla ora» rispondono | ok |
 | Chiuse | Sessioni chiuse | `pricing-page` | ok |
-| Slot | Voce agganciata col dato in più | Tutte e cinque le voci, più Utilizzo; misura col tocco emulato | ok |
+| Slot | Voce agganciata col dato in più | Parte con Utilizzo agganciato; le altre cinque voci si agganciano; misura col tocco emulato | ok |
 | Riordino e swipe | Trascinamento, pagine accanto | Provati a 412 px | ok |
 
 Resta diverso:

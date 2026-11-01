@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { world } from './demo'
 import { DemoTransport } from './demoTransport'
-import { DEFAULT_ORDER, type HomeSection } from './homeOrder'
+import { DEFAULT_ORDER, pinned, type HomeSection } from './homeOrder'
+import { weekSlot } from './utilizzo'
 import { head, midnight, outcomes, waitingRows, workingRows } from './kpi'
 import { forYou, inProgress, place } from './lavori'
 import { pluginsInfo, systemInfo } from './slotInfo'
@@ -51,6 +52,30 @@ describe('demo_allineata', () => {
     const loose = place(forYou(st, w.agenda, NOW, today), new Set(m.rows.map(r => r.session.name)), attachedTasks(m.rows)).loose.ok
     expect(m.rows.filter(r => r.group === 'waiting').length + loose.length).toBe(h.waiting)
     expect(m.open).toBe(systemInfo(st.system!, st.hosts_status, st.sessions).sessions)
+  })
+  it('demo_allineata: ogni ok sta nella scheda della sua sessione', () => {
+    expect(st.approvals.length).toBeGreaterThan(0)
+    for (const a of st.approvals) {
+      const c = st.commitments!.find(x => x.task === a.task)!
+      expect(c, a.task).toBeDefined()
+      expect(`${a.title} ${a.where}`, a.task).toContain(c.session!)
+    }
+  })
+  it('demo_allineata: nessuna scheda chiede la stessa cosa due volte', () => {
+    const words = (x: string) => new Set(x.toLowerCase().split(/\W+/).filter(w => w.length > 3))
+    for (const s of st.sessions) {
+      const stop = s.needs_you?.reason ?? s.turn_blocking?.text ?? s.question?.text
+      const mine = st.commitments!.filter(c => c.session === s.name && c.waits?.on === 'person')
+      expect(new Set(mine.map(c => c.paused?.reason ?? c.title)).size, s.name).toBe(mine.length)
+      if (stop) for (const c of mine) for (const t of [c.title, c.paused?.reason ?? '']) {
+        const shared = [...words(t)].filter(w => words(stop).has(w))
+        expect(shared, `${s.name}: «${t}» ripete «${stop}»`).toEqual([])
+      }
+    }
+  })
+  it('demo_allineata: parte con Utilizzo agganciato, così il dato dello slot si vede', () => {
+    expect(pinned(st.home_order)).toBe('usage')
+    expect(weekSlot(st.quota, NOW)).not.toBeNull()
   })
   it('demo_allineata: esiti di ogni tipo, «in corso» fuori dal numero', () => {
     expect(new Set(out.done.map(d => d.type))).toEqual(new Set(['problem', 'waiting', 'shipped', 'done', 'answer', 'none', 'running']))

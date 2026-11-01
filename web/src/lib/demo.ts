@@ -8,6 +8,7 @@ import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDi
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
 import type { Commitment, PluginsPage, SystemStatus, TimelineEvent } from './contract'
+import { DEFAULT_ORDER, withPin } from './homeOrder'
 import { midnight } from './kpi'
 import type { NightReport } from './night'
 import { lang } from './lang'
@@ -101,15 +102,14 @@ export function world(now: number): World {
     { id: 'a', name: 'admin-panel', account: 'personal', account_kind: 'personal', project: 'personal/admin-panel', state: 'busy', since: now - 1500, turn_started: now - 1500, context: 41,
       tool: 'Bash npm test', model: { id: 'claude-sonnet-5', label: 'Sonnet 5' }, goal: { text: en ? 'New users table with filters' : 'Nuova tabella utenti con i filtri', since: now - 1500 } },
   ]
-  // Lavori: tre aspettano te e tre lavorano, coi nomi della demo.
+  // Lavori: due aspettano te e tre lavorano. L'ok della fixture è della release di storefront e sta nella sua scheda; la pausa di blog
+  // chiede un'altra cosa rispetto al suo «ok alla pubblicazione», così nessuna scheda chiede la stessa cosa due volte.
   const task = (id: string, title: string, session: string, on: string, extra: Partial<Commitment> = {}): Commitment => ({
     task: id, title, short: title, session, state: on === 'person' ? 'awaiting_ok' : 'running', approved: on !== 'person', age_s: 3 * 3600, idle_s: 300, stalled: false, waits: { who: on === 'person' ? 'you' : session, on }, ...extra,
   })
   const commitments: Commitment[] = [
-    task('demo-login', en ? 'Sandbox login' : 'Login nella sandbox', 'storefront', 'person', { paused: { reason: stopLogin.reason, at: stopLogin.at } }),
-    task('demo-post', en ? 'Publish the post' : 'Pubblica il post', 'blog', 'person', { paused: { reason: stopOk.text, at: stopOk.at } }),
-    // L'ok della fixture appartiene a una sessione aperta: sta nella sua scheda, e «Ti aspettano» dice lo stesso numero del tabellone.
-    ...base.approvals.map(a => task(a.task, en ? 'Deploy 2.8.0' : 'Rilascio 2.8.0', 'payments-api', 'person')),
+    ...base.approvals.map(a => task(a.task, a.title, 'storefront', 'person')),
+    task('demo-cover', en ? 'Cover image' : 'Immagine di copertina', 'blog', 'person', { paused: { reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', at: now - 1200 } }),
     task('demo-docs', en ? 'API pages' : 'Pagine API', 'payments-api', 'session'),
     task('demo-users', en ? 'Users table' : 'Tabella utenti', 'admin-panel', 'session'),
     task('demo-cart', en ? 'Cart totals' : 'Totali del carrello', 'storefront', 'session'),
@@ -133,6 +133,8 @@ export function world(now: number): World {
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
     ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
+    // Utilizzo agganciato: dalla prima schermata si vede il dato in più dello slot.
+    home_order: withPin(DEFAULT_ORDER, 'usage'),
     // Contratto 1.90: la macchina tranquilla, così «Sistema» parte chiuso come di solito.
     system: { at: now - 30, cores: 8, load1: 3.4, load_per_core: 0.42, mem_total_mb: 16000, mem_available_mb: 10100, level: 'green', load_level: 'green', mem_level: 'green',
       consumers: [{ group: 'node', count: 6, cpu: 1.4, rss_mb: 1800 }, { group: 'chrome', count: 9, cpu: 0.6, rss_mb: 1200 }], advice: [] } satisfies SystemStatus,
