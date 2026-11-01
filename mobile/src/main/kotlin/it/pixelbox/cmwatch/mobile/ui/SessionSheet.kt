@@ -2408,7 +2408,7 @@ private fun TunePill(label: String, enabled: Boolean, dot: Boolean = false, mode
         }
         // Contratto 1.37: c'è un consiglio diverso dalla scelta di adesso (mockup approvato il 05/10 21:07).
         if (dot) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(Cm.bg, CircleShape).padding(2.dp).background(V3.Tx2, CircleShape))
-        if (card) androidx.compose.ui.window.Popup(onDismissRequest = { card = false }, offset = androidx.compose.ui.unit.IntOffset(0, 120)) {
+        GrowPopup(card, popup = { c -> androidx.compose.ui.window.Popup(onDismissRequest = { card = false }, offset = androidx.compose.ui.unit.IntOffset(0, 120)) { c() } }) {
             Box(Modifier.width(320.dp)) { PermissionCard(mode) }
         }
     }

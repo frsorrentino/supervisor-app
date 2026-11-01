@@ -135,11 +135,11 @@ fun PanelShell(
                     label = "menu",
                 ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
                 Surface(
-                    shape = V3.Shape, color = V3.S1, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line),
+                    shape = V3.Shape, color = V3.S1, shadowElevation = 8.dp, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line),
                     // Il tocco dentro il pannello non lo chiude.
                     modifier = Modifier.growFromPress(origin) { grow }.fillMaxWidth().then(if (tag != null) Modifier.testTag(tag) else Modifier).clickable(remember { MutableInteractionSource() }, indication = null) {},
                 ) {
-                    V3Theme { Column(Modifier.graphicsLayer { alpha = ((grow - .25f) / .5f).coerceIn(0f, 1f) }) {
+                    V3Theme { Column {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             header()
                             IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2) }
@@ -203,15 +203,36 @@ private fun MenuItem(icon: ImageVector, title: String, sub: String, line: Boolea
 }
 
 /**
- * Il menu piccolo legato a un tasto, come il + del campo: stesso cambio forma di [PanelShell]. Sostituisce il `DropdownMenu`
- * del Material, che ha una sua animazione e non si lascia cambiare. Sta sopra il tasto se sotto non c'è posto.
+ * Una finestra a comparsa che cresce dal tasto e ci torna: resta aperta finché non è finita l'uscita. [popup] è la finestra,
+ * col suo modo di posizionarsi.
  */
 @Composable
-internal fun PressMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+internal fun GrowPopup(expanded: Boolean, popup: @Composable (@Composable () -> Unit) -> Unit, content: @Composable () -> Unit) {
     val off = animationsOff()
     val shown = remember { androidx.compose.animation.core.MutableTransitionState(false) }
     shown.targetState = expanded
     if (!shown.currentState && !shown.targetState) return
+    popup {
+        androidx.compose.animation.AnimatedVisibility(
+            shown,
+            enter = if (off) androidx.compose.animation.EnterTransition.None else androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(60)),
+            exit = if (off) androidx.compose.animation.ExitTransition.None else androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(90, delayMillis = 90)),
+        ) {
+            val grow by transition.animateFloat(
+                transitionSpec = { if (off) androidx.compose.animation.core.snap() else if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.panelFloat else CmMotion.fast },
+                label = "menu",
+            ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
+            androidx.compose.foundation.layout.Box(Modifier.growFromPress(androidx.compose.ui.graphics.TransformOrigin(0f, 1f)) { grow }) { content() }
+        }
+    }
+}
+
+/**
+ * Il menu piccolo legato a un tasto, come il + del campo. Sostituisce il `DropdownMenu` del Material, che ha una sua animazione
+ * e non si lascia cambiare. Sta sotto il tasto se c'è posto, altrimenti sopra.
+ */
+@Composable
+internal fun PressMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     val provider = remember {
         object : androidx.compose.ui.window.PopupPositionProvider {
             override fun calculatePosition(
@@ -224,23 +245,12 @@ internal fun PressMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Compo
             }
         }
     }
-    Popup(popupPositionProvider = provider, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true)) {
-        androidx.compose.animation.AnimatedVisibility(
-            shown,
-            enter = if (off) androidx.compose.animation.EnterTransition.None else androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(60)),
-            exit = if (off) androidx.compose.animation.ExitTransition.None else androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(90, delayMillis = 90)),
-        ) {
-            val grow by transition.animateFloat(
-                transitionSpec = { if (off) androidx.compose.animation.core.snap() else if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.panelFloat else CmMotion.fast },
-                label = "menu",
-            ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
-            Surface(Modifier.growFromPress(androidx.compose.ui.graphics.TransformOrigin(0f, 1f)) { grow }, shape = RoundedCornerShape(14.dp), color = Cm.surface) {
-                Column(
-                    Modifier.graphicsLayer { alpha = ((grow - .25f) / .5f).coerceIn(0f, 1f) }.width(androidx.compose.foundation.layout.IntrinsicSize.Max)
-                        .padding(vertical = 8.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
-                    content = content,
-                )
-            }
+    GrowPopup(expanded, popup = { c -> Popup(popupPositionProvider = provider, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true)) { c() } }) {
+        Surface(shape = RoundedCornerShape(14.dp), color = Cm.surface, shadowElevation = 8.dp) {
+            Column(
+                Modifier.width(androidx.compose.foundation.layout.IntrinsicSize.Max).padding(vertical = 8.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                content = content,
+            )
         }
     }
 }

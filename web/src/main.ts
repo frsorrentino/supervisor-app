@@ -5,6 +5,9 @@ import App from './App.svelte'
 import { canonicalUrl, loadRemote } from './lib/remoteAccess'
 import { lang } from './lib/lang'
 import { dockWanted } from './lib/dockEmbed'
+import { installDialogGrow } from './lib/motion'
+
+installDialogGrow()
 
 // L'altezza dell'area visibile davvero (visualViewport): la usa #app in app.css. Nei browser interni delle app (X,
 // Telegram, Instagram) la barra in basso non è tolta da 100vh né sempre da 100dvh.

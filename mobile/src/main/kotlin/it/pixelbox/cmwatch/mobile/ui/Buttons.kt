@@ -1,6 +1,7 @@
 package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.ButtonColors
@@ -92,14 +93,33 @@ fun ModalBottomSheet(
 ) {
     // Stile «Studio e Diretta» (app-menu-v3-30-10): un fondo solo per tutti i fogli, qualunque colore chieda chi li apre.
     val cfg = androidx.compose.ui.platform.LocalConfiguration.current
+    // Anche i fogli sono menu (Franz, 01/11): crescono col contenuto dal tasto premuto; senza un tocco recente, dal fondo dello schermo.
+    val off = animationsOff()
+    val grow = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (off) 1f else 0f) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val bottom = with(density) { androidx.compose.ui.geometry.Offset(cfg.screenWidthDp.dp.toPx() / 2, cfg.screenHeightDp.dp.toPx()) }
+    val still = with(density) { 8.dp.toPx() }
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (!off) grow.animateTo(1f, CmMotion.panelFloat) }
     if (cfg.screenWidthDp < 600) {
-        V3Theme { androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier, sheetState = sheetState, containerColor = V3.S1, shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp), content = content) }
+        // Si richiude verso il tasto solo se chi chiude non è il dito: chi trascina il foglio lo porta via lui, senza che cambi misura.
+        androidx.compose.runtime.LaunchedEffect(sheetState, off) {
+            if (off) return@LaunchedEffect
+            var rest = Float.NaN
+            var settled: androidx.compose.material3.SheetValue? = null
+            var leaving = false
+            androidx.compose.runtime.snapshotFlow { Triple(sheetState.currentValue, sheetState.targetValue, runCatching { sheetState.requireOffset() }.getOrDefault(Float.NaN)) }.collect { (now, to, y) ->
+                if (now != settled) { settled = now; rest = y }
+                val hidden = androidx.compose.material3.SheetValue.Hidden
+                if (to == hidden && now != hidden && !leaving && kotlin.math.abs(y - rest) < still) { leaving = true; launch { grow.animateTo(0f, CmMotion.fast) } }
+            }
+        }
+        V3Theme { androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier.growFromPress(androidx.compose.ui.graphics.TransformOrigin(.5f, 1f), bottom) { grow.value }, sheetState = sheetState, containerColor = V3.S1, shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp), content = content) }
         return
     }
     androidx.compose.ui.window.Dialog(onDismissRequest, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         androidx.compose.material3.Surface(
             shape = V3.Shape, color = V3.S1, shadowElevation = 12.dp,
-            modifier = modifier.widthIn(max = 560.dp).fillMaxWidth(0.92f).heightIn(max = (cfg.screenHeightDp * 0.86f).dp),
+            modifier = modifier.growFromPress(androidx.compose.ui.graphics.TransformOrigin(.5f, 1f), bottom) { grow.value }.widthIn(max = 560.dp).fillMaxWidth(0.92f).heightIn(max = (cfg.screenHeightDp * 0.86f).dp),
         ) {
             androidx.compose.foundation.layout.Column(Modifier.padding(top = 16.dp, bottom = 12.dp), content = content)
         }

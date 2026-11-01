@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { growDialog } from './motion'
   import type { Session, State } from './contract'
   import { of as menuOf } from './sessionsMenu'
   import { since } from './durations'
@@ -29,7 +28,7 @@
   const backdrop = (e: MouseEvent) => { if (e.target === e.currentTarget) (e.currentTarget as HTMLDialogElement).close() }
 </script>
 
-<button class="who" onclick={() => { dlg?.showModal(); growDialog(dlg) }} aria-haspopup="dialog">
+<button class="who" onclick={() => dlg?.showModal()} aria-haspopup="dialog">
   <Badge {s} size={22} /><b>{s.name}</b>
   <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 10l5 5 5-5z" fill="var(--text2)" /></svg>
 </button>

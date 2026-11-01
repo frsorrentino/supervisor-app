@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { growDialog, growFromPress } from './motion'
+  import { growFromPress } from './motion'
   import CloseDialog from './CloseDialog.svelte'
   import type { CmdOp, Model, Session, State } from './contract'
   import { modelKind, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
@@ -139,7 +139,6 @@
     const left = vw < 600 ? 12 : Math.round(Math.max(12, Math.min((r?.left ?? 12) - 8, vw - w - 12)))
     tunePos = `top:${top}px;left:${left}px;width:${w}px;max-height:calc(100dvh - ${top + 16}px)`
     tune?.showModal()
-    growDialog(tune)
     // Il fuoco sul pannello, non sulla ✕: l'anello attorno alla ✕ sembrava una scelta.
     tune?.querySelector<HTMLElement>('.tpi')?.focus()
   }

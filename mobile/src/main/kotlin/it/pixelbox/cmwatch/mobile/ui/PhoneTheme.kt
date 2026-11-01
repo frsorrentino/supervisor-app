@@ -274,42 +274,34 @@ fun animationsOff(): Boolean {
     return remember { Settings.Global.getFloat(ctx.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f }
 }
 
-private val V3_MENU_CORNER = 14.dp
-
-/** Dove il dito ha toccato per ultimo, sullo schermo: da lì parte il cambio forma dei menu. La scrive `MainActivity`. */
-object LastPress { @Volatile var at: androidx.compose.ui.geometry.Offset? = null }
+/**
+ * Dove il dito ha toccato per ultimo, sullo schermo: da lì crescono i menu. La scrive `MainActivity`. Vale un secondo: un foglio
+ * che si apre da solo, o dalla finestra di un altro menu, non nasce da un tocco vecchio.
+ */
+object LastPress {
+    @Volatile private var where: androidx.compose.ui.geometry.Offset? = null
+    @Volatile private var time = 0L
+    fun set(at: androidx.compose.ui.geometry.Offset) { where = at; time = android.os.SystemClock.uptimeMillis() }
+    val at: androidx.compose.ui.geometry.Offset? get() = where?.takeIf { android.os.SystemClock.uptimeMillis() - time < 1000 }
+}
 
 /**
- * Il cambio forma dei menu (Franz, 01/11): il menu nasce grande come il tasto premuto, nel punto premuto, e il suo contorno
- * cresce fino alla posizione finale. Non è una scala: il testo non si deforma, e non si parte mai da zero. [progress] va da
- * 0 a 1 e può cambiare verso a metà. Senza un tocco noto, per esempio da tastiera, parte dall'angolo [origin].
+ * Il cambio forma dei menu (Franz, 01/11: «l'animazione deve riguardare anche il contenuto»): pannello e contenuto crescono
+ * insieme dal punto premuto, come un solo oggetto, da un quinto della grandezza e mai da zero. [progress] va da 0 a 1 e può
+ * cambiare verso a metà. Senza un tocco recente cresce da [from], un punto dello schermo, o dall'angolo [origin] del menu.
  */
 @Composable
-fun Modifier.growFromPress(origin: androidx.compose.ui.graphics.TransformOrigin, progress: () -> Float): Modifier {
-    val press = androidx.compose.runtime.remember { LastPress.at }
+fun Modifier.growFromPress(origin: androidx.compose.ui.graphics.TransformOrigin, from: androidx.compose.ui.geometry.Offset? = null, progress: () -> Float): Modifier {
+    val press = androidx.compose.runtime.remember { LastPress.at ?: from }
     val at = androidx.compose.runtime.remember { floatArrayOf(Float.NaN, Float.NaN) }
-    val corner = with(androidx.compose.ui.platform.LocalDensity.current) { V3_MENU_CORNER.toPx() }
     return this
         .onGloballyPositioned { c -> val o = c.positionOnScreen(); at[0] = o.x; at[1] = o.y }
         .graphicsLayer {
             val p = progress().coerceIn(0f, 1f)
-            val w = size.width; val h = size.height
-            val side = 44.dp.toPx().coerceAtMost(kotlin.math.min(w, h))
-            // Il rettangolo del tasto, nelle coordinate del menu.
-            val x0 = if (press != null && !at[0].isNaN()) press.x - at[0] - side / 2 else (w - side) * origin.pivotFractionX
-            val y0 = if (press != null && !at[1].isNaN()) press.y - at[1] - side / 2 else (h - side) * origin.pivotFractionY
-            val cw = side + (w - side) * p; val ch = side + (h - side) * p
-            // Il contenuto resta fermo sull'angolo più vicino al tasto, e il contorno si allarga da lì.
-            val fx = (x0 + side / 2 > w / 2).let { if (it) 1f else 0f }
-            val fy = (y0 + side / 2 > h / 2).let { if (it) 1f else 0f }
-            val left = (w - cw) * fx; val top = (h - ch) * fy
-            translationX = x0 * (1 - p) - left
-            translationY = y0 * (1 - p) - top
-            clip = true
-            shadowElevation = 8.dp.toPx() * p
-            shape = object : androidx.compose.ui.graphics.Shape {
-                override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: androidx.compose.ui.unit.LayoutDirection, density: androidx.compose.ui.unit.Density) =
-                    androidx.compose.ui.graphics.Outline.Rounded(androidx.compose.ui.geometry.RoundRect(left, top, left + cw, top + ch, androidx.compose.ui.geometry.CornerRadius(corner)))
-            }
+            val s = .2f + .8f * p
+            scaleX = s; scaleY = s
+            alpha = (p / .15f).coerceIn(0f, 1f)
+            transformOrigin = if (press != null && !at[0].isNaN() && size.width > 0f && size.height > 0f)
+                androidx.compose.ui.graphics.TransformOrigin((press.x - at[0]) / size.width, (press.y - at[1]) / size.height) else origin
         }
 }
