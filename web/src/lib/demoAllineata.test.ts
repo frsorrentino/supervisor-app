@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { replaceNames, splitLabels, taskNames } from './chatLabels'
 import { world } from './demo'
 import { DemoTransport } from './demoTransport'
@@ -87,6 +88,29 @@ describe('demo_allineata', () => {
     const text = w.transcripts.master[0].text ?? ''
     expect(splitLabels(text).map(p => p.kind)).toEqual(['plain', 'you', 'untested', 'plain'])
     expect(replaceNames(text, taskNames(st.commitments))).toContain('](https://task.invalid/demo-cover)')
+  })
+  it('demo_allineata: Da provare, Cinque minuti, ok, Esito e nota hanno i loro dati', async () => {
+    const d = new DemoTransport(() => NOW)
+    const read = async (op: string) => JSON.parse((await d.send(newCmd(op as never, null)))!.text)
+    const p = await read('prove'), g = await read('decisioni')
+    expect(st.prove?.n).toBe(p.n); expect(st.decisions?.n).toBe(g.n); expect(p.n).toBeGreaterThan(0); expect(g.groups.length).toBeGreaterThan(0)
+    expect(st.approvals.every(a => a.untested && a.undo)).toBe(true)
+    expect(w.transcripts.master[0].outcome_type).toBe('waiting')
+    expect(st.sessions.some(s => s.heads_up?.text)).toBe(true)
+    await d.send(newCmd('prova', null, '1,2', undefined, undefined, { result: 'ok' }))
+    expect(d.state.prove).toBeNull()
+    await d.send(newCmd('decisione', null, 'demo-a', undefined, undefined, { action: 'not_now', hours: 24 }))
+    expect(d.state.decisions?.n).toBe(1)
+    expect((await d.send(newCmd('decisione', null, 'demo-b', undefined, undefined, { action: 'drop' })))!.ok).toBe(false)
+  })
+  it('demo_rapporto_inglese: nessuna frase della master resta in italiano', () => {
+    const NIGHT = readFileSync(new URL('./demo.ts', import.meta.url), 'utf8')
+    const report = JSON.parse(readFileSync(new URL('../../../contract/night-report-sample.json', import.meta.url), 'utf8'))
+    const texts = new Set<string>()
+    const walk = (v: unknown): void => { if (typeof v === 'string') { if (/^(Dalla master|sposta il sito)/.test(v)) texts.add(v) } else if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') Object.values(v).forEach(walk) }
+    walk(report)
+    expect(texts.size).toBeGreaterThan(0)
+    for (const x of texts) expect(NIGHT, x).toContain(`'${x}':`)
   })
   it('demo_allineata: esiti di ogni tipo, «in corso» fuori dal numero', () => {
     expect(new Set(out.done.map(d => d.type))).toEqual(new Set(['problem', 'waiting', 'shipped', 'done', 'answer', 'none', 'running']))

@@ -1936,93 +1936,183 @@
   },
   {
    "key": "banco_prova",
-   "group": "next",
+   "group": "you",
    "name": {
-    "it": "Banco prova",
-    "en": "Test bench"
+    "it": "Da provare",
+    "en": "To test"
    },
    "what": {
-    "it": "Quello che aspetta la tua prova, con cosa provare.",
-    "en": "What waits for your test, with what to try."
+    "it": "Le prove delle versioni nuove, una alla volta o tutte insieme, per chiudere più compiti con un tocco.",
+    "en": "Tests of new versions, one by one or all together, to close several tasks with a tap."
    },
    "where": {
-    "it": "",
-    "en": ""
+    "it": "Riga sotto il tabellone",
+    "en": "Row under the scoreboard"
    },
-   "state": "coming",
+   "state": "ready",
    "version": null,
    "when": {
-    "it": "Ti servirà quando più pre-release aspettano la tua prova.",
-    "en": "Useful when several pre-releases wait for your test."
+    "it": "Ti serve dopo una pre-release, per dire in un tocco che va tutto bene.",
+    "en": "Useful after a pre-release, to say with a tap that all is well."
    },
    "how": {
-    "it": "",
-    "en": ""
+    "it": "Tocca Ok o Non va su una prova, o Tutte ok sulla versione; le prove di una versione non installata chiedono di installarla prima.",
+    "en": "Tap Ok or Doesn't work on a test, or All ok on the version; tests of a version not yet installed ask to install it first."
    },
-   "route": null,
+   "route": "prove",
    "section": null,
-   "phone": null,
-   "web": null
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DecideScreens.kt",
+    "needle": "fun DaProvareScreen"
+   },
+   "web": {
+    "file": "web/src/lib/DaProvare.svelte",
+    "needle": "allOk"
+   }
   },
   {
    "key": "cinque_minuti",
-   "group": "next",
+   "group": "you",
    "name": {
     "it": "Cinque minuti",
     "en": "Five minutes"
    },
    "what": {
-    "it": "Le decisioni che aspettano te, raccolte in una volta.",
-    "en": "The decisions waiting for you, gathered in one go."
+    "it": "Le decisioni che aspettano te, raccolte per causa, una alla volta, le più pesanti per prime.",
+    "en": "The decisions waiting for you, grouped by cause, one at a time, the heaviest first."
    },
    "where": {
-    "it": "",
-    "en": ""
+    "it": "Riga sotto il tabellone",
+    "en": "Row under the scoreboard"
    },
-   "state": "coming",
+   "state": "ready",
    "version": null,
    "when": {
-    "it": "Ti servirà quando hai poco tempo e vuoi sbloccare il più possibile.",
+    "it": "Ti serve quando hai poco tempo e vuoi sbloccare il più possibile.",
     "en": "Useful when you have little time and want to unblock as much as you can."
    },
    "how": {
-    "it": "",
-    "en": ""
+    "it": "Scegli quante, poi per ognuna decidi, Non ora o Lascia perdere con la ragione.",
+    "en": "Pick how many, then for each one decide, Not now or Drop it with the reason."
    },
-   "route": null,
+   "route": "decisions",
    "section": null,
-   "phone": null,
-   "web": null
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DecideScreens.kt",
+    "needle": "fun CinqueMinutiScreen"
+   },
+   "web": {
+    "file": "web/src/lib/CinqueMinuti.svelte",
+    "needle": "nextDecisions"
+   }
   },
   {
    "key": "ok_informato",
-   "group": "next",
+   "group": "you",
    "name": {
     "it": "Ok informato",
     "en": "Informed ok"
    },
    "what": {
-    "it": "La card dell'ok dice cosa non è provato e se si può annullare.",
-    "en": "The ok card says what is untested and whether it can be undone."
+    "it": "La card di un ok dice cosa non è provato, se si annulla e quali compiti partono con lui.",
+    "en": "An ok card says what is untested, whether it can be undone and which tasks start with it."
    },
    "where": {
-    "it": "",
-    "en": ""
+    "it": "Card dell'ok",
+    "en": "Ok card"
    },
-   "state": "coming",
+   "state": "ready",
    "version": null,
    "when": {
-    "it": "Ti servirà prima di dare un ok, per sapere cosa rischi.",
+    "it": "Ti serve prima di dare un ok, per sapere cosa rischi.",
     "en": "Useful before giving an ok, to know what you risk."
    },
    "how": {
-    "it": "",
-    "en": ""
+    "it": "Si legge da sola sulla card; quello che la sessione non ha detto è scritto «non dichiarato».",
+    "en": "It reads by itself on the card; what the session didn't say is marked «not declared»."
    },
    "route": null,
    "section": null,
-   "phone": null,
-   "web": null
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DecideScreens.kt",
+    "needle": "fun OkInfo"
+   },
+   "web": {
+    "file": "web/src/lib/OkInfo.svelte",
+    "needle": "okLines"
+   }
+  },
+  {
+   "key": "heads_up",
+   "group": "follow",
+   "name": {
+    "it": "Note di Claude Code",
+    "en": "Claude Code notes"
+   },
+   "what": {
+    "it": "Le note che Claude Code mostra sul terminale, sulla scheda e in chat, con da quanto ci sono.",
+    "en": "The notes Claude Code shows on the terminal, on the card and in chat, with how long they have been there."
+   },
+   "where": {
+    "it": "Scheda e chat della sessione",
+    "en": "Session card and chat"
+   },
+   "state": "ready",
+   "version": null,
+   "when": {
+    "it": "Ti serve per non perdere un avviso che altrimenti vedresti solo al PC.",
+    "en": "Useful so you don't miss a warning you would otherwise see only at the PC."
+   },
+   "how": {
+    "it": "«Cosa proponi?» lo manda alla sessione, «Già lo so» lo nasconde su questo dispositivo.",
+    "en": "«What do you propose?» sends it to the session, «I know» hides it on this device."
+   },
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DecideScreens.kt",
+    "needle": "fun HeadsUpNoteRow"
+   },
+   "web": {
+    "file": "web/src/lib/HeadsUpNote.svelte",
+    "needle": "visibleHeadsUp"
+   }
+  },
+  {
+   "key": "panoramica",
+   "group": "custom",
+   "name": {
+    "it": "Cosa sa fare",
+    "en": "What it can do"
+   },
+   "what": {
+    "it": "Questa pagina: tutte le funzioni, per a cosa servono.",
+    "en": "This page: all features, by what they are for."
+   },
+   "where": {
+    "it": "Impostazioni",
+    "en": "Settings"
+   },
+   "state": "ready",
+   "version": "0.2.1665",
+   "when": {
+    "it": "Ti serve per scoprire cosa sa fare l'app.",
+    "en": "Useful to find out what the app can do."
+   },
+   "how": {
+    "it": "Tocca una voce per aprire la sua pagina.",
+    "en": "Tap an item to open its page."
+   },
+   "route": "settings",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/FeaturesScreen.kt",
+    "needle": "fun FeaturesScreen"
+   },
+   "web": {
+    "file": "web/src/lib/Features.svelte",
+    "needle": "grouped"
+   }
   },
   {
    "key": "rimasto_indietro",
@@ -2164,36 +2254,6 @@
    "when": {
     "it": "Ti servirà per scegliere quale modello usare per quale lavoro.",
     "en": "Useful to choose which model to use for which job."
-   },
-   "how": {
-    "it": "",
-    "en": ""
-   },
-   "route": null,
-   "section": null,
-   "phone": null,
-   "web": null
-  },
-  {
-   "key": "panoramica",
-   "group": "next",
-   "name": {
-    "it": "Panoramica",
-    "en": "Overview"
-   },
-   "what": {
-    "it": "Questa pagina: tutte le funzioni, per a cosa servono.",
-    "en": "This page: all features, by what they are for."
-   },
-   "where": {
-    "it": "",
-    "en": ""
-   },
-   "state": "coming",
-   "version": null,
-   "when": {
-    "it": "Ti serve per scoprire cosa sa fare l'app.",
-    "en": "Useful to find out what the app can do."
    },
    "how": {
     "it": "",

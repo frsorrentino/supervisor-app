@@ -16,7 +16,14 @@ class FakeTransport(
     private val load: (String) -> String,
     private val now: () -> Long = { System.currentTimeMillis() / 1000 },
 ) : Transport {
-    private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))))
+    fun sampleText(op: String): String {
+        val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }
+        fun str(o: kotlinx.serialization.json.JsonElement, k: String) = ((o as kotlinx.serialization.json.JsonObject)[k] as? kotlinx.serialization.json.JsonPrimitive)?.content
+        val id = (root["cmd"] as kotlinx.serialization.json.JsonArray).first { str(it, "op") == op }.let { str(it, "id") }
+        return (root["result"] as kotlinx.serialization.json.JsonArray).first { str(it, "id") == id }.let { str(it, "text") }.orEmpty()
+    }
+
+    private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))).copy(prove = ProveSummary(2, 1), decisions = DecisionsSummary(2, 1, 3)))
 
     /**
      * Contratto 1.68 nella demo (Franz, 15/10 dalla web app): atlas-shop ferma per te con un login, field-notes con un ok
@@ -357,6 +364,10 @@ class FakeTransport(
             // Contratto 1.31: la demo non ha un PC con una chiave a cui aggiungere un dispositivo; risponde come il relay.
             CmdOp.PAIR_ADD -> ko("pair --add: no saved key, nothing to add to — use `relay pair`")
             // Contratto 1.37: i testi del relay; la demo toglie il compito approvato dalla lista.
+            // Contratto 1.99: le pagine e i risultati della fixture del contratto.
+            CmdOp.PROVE, CmdOp.DECISIONI -> ok(sampleText(cmd.op.name.lowercase()))
+            CmdOp.PROVA -> ok(if (cmd.result == "ko") "prova ${cmd.arg}: segnalata alla master" else "prove ok: ${cmd.arg?.split(',')?.size ?: 0}")
+            CmdOp.DECISIONE -> if (cmd.action == "drop" && cmd.reason.isNullOrBlank()) ko("drop: reason required") else ok(if (cmd.action == "drop") "lasciato perdere" else "non ora: torna tra ${cmd.hours ?: 24} ore")
             CmdOp.APPROVE -> {
                 val a = s.approvals.firstOrNull { it.task == cmd.arg }
                 val opts = a?.options.orEmpty()

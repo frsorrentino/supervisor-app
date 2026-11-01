@@ -29,6 +29,7 @@ Franz, 18:21: la pagina pubblica mostrava una grafica vuota. Due difetti distint
 | Plugin e skill | Op `plugins` | Due da aggiornare; «Aggiorna» e «Controlla ora» rispondono | ok |
 | Chiuse | Sessioni chiuse | `pricing-page` | ok |
 | Slot | Voce agganciata col dato in più | Parte con Utilizzo agganciato; le altre cinque voci si agganciano; misura col tocco emulato | ok |
+| Da provare, Cinque minuti, ok informato, Esito col tipo, nota di Claude Code | Contratto 1.99 | Due prove, due decisioni, un ok con le tre righe, un Esito ambra, una nota su `blog`; il PC finto risponde | ok |
 | Riordino e swipe | Trascinamento, pagine accanto | Provati a 412 px | ok |
 
 Resta diverso:

@@ -14,6 +14,7 @@
   import type { Sent, Status } from './chatRules'
   import { toggle } from './speech.svelte'
   import Feed from './Feed.svelte'
+  import HeadsUpNote from './HeadsUpNote.svelte'
   import Changes from './Changes.svelte'
   import ReadingPill from './ReadingPill.svelte'
   import ElsewherePill from './ElsewherePill.svelte'
@@ -28,9 +29,9 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
+  let { onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
-    onTask?: ((code: string) => void) | null
+    onTask?: ((code: string) => void) | null; onHeadsUp?: ((text: string) => void) | null
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
     onCmd: (op: CmdOp, arg?: string, text?: string) => void; wide: boolean; slots: (string | null)[]
     /** Allegati del «+»: prima /share, poi `report` (contratti 1.19 e 1.28). */
@@ -199,6 +200,7 @@
   {#if elsewhere}<ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} away={elsewhereAway} now={st.ts} />{/if}
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
+  {#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}
   <div class="lines" class:dots={home} bind:this={list}>
     {#if home}
       <MasterHome {st} master={s} {entries} onConversation={() => (conversation = true)} onStep={pick} onSendStep={onSend}

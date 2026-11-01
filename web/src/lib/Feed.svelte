@@ -15,7 +15,6 @@
   import { speech, toggle } from './speech.svelte'
   import type { IconName } from './icons'
   import { t } from './t'
-  import Icon from './Icon.svelte'
   import { canCopy, canShare, pageDoc, PAGE_SANDBOX, type FileAct } from './fileActions'
   import { autoPreview, canPreview, fileKey, isImage, isVideo, pageHeight, previewKind } from './media'
   // Franz 24/10 00:40 (anteprime in app): il riquadro di una pagina è alto il 60% della finestra; «Schermo intero» la apre a tutto schermo.
@@ -29,6 +28,10 @@
   let code = $state<Record<string, boolean>>({})
   import Md from './Md.svelte'
   import { replaceNames, splitLabels, taskNames } from './chatLabels'
+  import { splitOutcome } from './decide'
+  import { outcomeType, type OutcomeType } from './kpi'
+  import Icon from './Icon.svelte'
+  const ESITO_ICON: Record<OutcomeType, 'x' | 'user' | 'upload' | 'check' | 'message' | 'circle' | 'run'> = { problem: 'x', waiting: 'user', shipped: 'upload', done: 'check', answer: 'message', none: 'circle', running: 'run' }
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
@@ -132,9 +135,11 @@
   {@const text = parseSteps(e.text ?? '').text}
   {@const sl = stripSessionLinks(outcomeForPhone(text, t.outcomeLabel), sessions)}
   {@const c = cost(e)}
+  {@const typed = outcomeType(e.outcome_type)}
+  {@const es = typed === 'none' ? { body: sl.text, outcome: null } : splitOutcome(sl.text, t.outcomeLabel)}
   <div class="claude">
     <div class="ctext">
-      {#each splitLabels(replaceNames(sl.text, taskNames(commitments))) as part}
+      {#each splitLabels(replaceNames(es.body, taskNames(commitments))) as part}
         {#if part.kind === 'you'}
           <div class="fyou"><div class="fyh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8" /><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" /></svg><b>{part.title}</b></div><p><Md text={part.body} {onTask} /></p></div>
         {:else if part.kind === 'untested'}
@@ -145,6 +150,7 @@
           {/each}
         {/if}
       {/each}
+      {#if es.outcome}<div class="fesito t-{typed}" data-testid="chat-esito"><Icon name={ESITO_ICON[typed]} size={18} /><p><Md text={es.outcome} {onTask} /></p></div>{/if}
       <!-- Un tasto per sessione linkata: il clic apre la sua chat qui; è un link vero, così il tasto destro o la pressione
            lunga danno il link com'era (Copia, Apri in una scheda nuova). Copia e ▶ tengono il testo intero. -->
       {#each sl.buttons as b}
@@ -386,4 +392,7 @@
   .fyh { display: flex; align-items: center; gap: 8px; color: var(--wait); font-weight: 600; margin-bottom: 8px; }
   .funt { display: flex; gap: 8px; color: var(--tx2); }
   .funt svg { flex: none; margin-top: 3px; color: var(--tx3); }
+  .fesito { display: flex; gap: 8px; align-items: flex-start; }
+  .fesito :global(svg) { margin-top: 3px; }
+  .t-problem { color: var(--gone); } .t-waiting { color: var(--wait); } .t-shipped, .t-done { color: var(--idle); } .t-running { color: var(--busy); } .t-answer { color: var(--text2); }
 </style>

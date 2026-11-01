@@ -1,7 +1,8 @@
 import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
-import { demoSearch, pluginsDemo, world, type World } from './demo'
+import { decisionsDemo, demoSearch, pluginsDemo, proveDemo, world, type World } from './demo'
+import type { DecisionsPage, ProvePage } from './contract'
 import { NIGHT_TARGET } from './recapAgenda'
 
 // La demo che risponde, porta di FakeTransport.kt (Franz, 15/10 20:36: «la demo deve rispecchiare al 100% l'app»): i
@@ -17,6 +18,8 @@ export class DemoTransport implements Transport {
   private shared = new Set<string>()
   private results = new Map<string, CmdResult>()
   private agendaSeq = 7
+  private prove: ProvePage | null = null
+  private decisions: DecisionsPage | null = null
 
   constructor(private readonly clock: () => number = () => Math.floor(Date.now() / 1000)) {
     this.world = world(clock())
@@ -165,6 +168,26 @@ export class DemoTransport implements Transport {
         case 'search': {
           const q = (cmd.arg ?? '').trim().replace(/\s+/g, ' ')
           return !q || q.length > 200 ? ko('bad query: from 1 to 200 characters') : ok(JSON.stringify(demoSearch({ state: s, transcripts: this.world.transcripts }, q)))
+        }
+        case 'prove': return ok(JSON.stringify(this.prove ??= proveDemo(this.now())))
+        case 'decisioni': return ok(JSON.stringify(this.decisions ??= decisionsDemo(this.now())))
+        case 'prova': {
+          const p = (this.prove ??= proveDemo(this.now()))
+          const ids = (cmd.arg ?? '').split(',').map(Number)
+          if (cmd.result === 'ko' && !cmd.text?.trim()) return ko('prova: ko needs text')
+          const groups = p.groups.map(g => { const prove = g.prove.filter(x => !ids.includes(x.id)); return { ...g, prove, n: prove.length } }).filter(g => g.prove.length)
+          const n = groups.reduce((a, g) => a + g.n, 0)
+          this.prove = { ...p, groups, n }
+          this.set({ ...s, prove: n ? { n, builds: groups.length, red: 0, ko: 0 } : null })
+          return ok(cmd.result === 'ko' ? `prova ${cmd.arg}: segnalata alla master` : `prove ok: ${ids.length}`)
+        }
+        case 'decisione': {
+          if (cmd.action === 'drop' && !cmd.reason?.trim()) return ko('drop: reason required')
+          const p = (this.decisions ??= decisionsDemo(this.now()))
+          const groups = p.groups.filter(g => g.key !== cmd.arg)
+          this.decisions = { ...p, groups, n: groups.length }
+          this.set({ ...s, decisions: groups.length ? { n: groups.length, here: groups.filter(g => g.where === 'here').length, tasks: groups.reduce((a, g) => a + g.weight, 0), snoozed: 0 } : null })
+          return ok(cmd.action === 'drop' ? 'lasciato perdere' : `non ora: torna tra ${cmd.hours ?? 24} ore`)
         }
         case 'home_order': { let o: string[]; try { o = JSON.parse(cmd.arg ?? '[]') } catch { return ko('home_order: expected a JSON array') } this.set({ ...s, home_order: o.length ? o : undefined }); return ok('saved') }
         case 'plugins': return ok(JSON.stringify({ ...pluginsDemo(this.now()), accounts: pluginsDemo(this.now()).accounts.map(a => ({ ...a, plugins: a.plugins.map(p => ({ ...p, update: !!p.update && !!s.plugins?.accounts.some(x => x.updates.includes(p.id)) })) })) }))

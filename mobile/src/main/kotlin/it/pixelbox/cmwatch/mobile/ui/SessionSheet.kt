@@ -441,6 +441,7 @@ fun SessionSheet(
                 )
             }
             elsewhere?.let { ElsewherePill(it, onElsewhere, onElsewhereDismiss) }
+            Box(Modifier.padding(horizontal = 12.dp)) { HeadsUpNoteRow(s, now) }
             // Nascosto mentre si scrive (con la tastiera la chat e la barra non avrebbero spazio) e mentre si rilegge; mai più
             // alto di 300 dp, con lo scorrimento dentro (revisione finale 02/10).
             top?.let { block ->
@@ -496,7 +497,7 @@ fun SessionSheet(
                             is ChatFeed.Item.User -> UserBubble(it.entry, onResend = { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
                             is ChatFeed.Item.Claude -> ClaudeBubble(
                                 it.entry.text.orEmpty(), it.entry.at, ttsMinChars, actions.speak, cut = it.entry.cut, turn = it.entry.turn,
-                                onSpeakFrom = actions.speakFrom, onDecision = decide, sessions = actions.sessions, onOpenSession = actions.openSession,
+                                onSpeakFrom = actions.speakFrom, onDecision = decide, sessions = actions.sessions, onOpenSession = actions.openSession, outcomeType = it.entry.outcomeType,
                             )
                             is ChatFeed.Item.Tool -> ToolLine(it.entry)
                             is ChatFeed.Item.Steps -> StepsCard(it)
@@ -1760,6 +1761,8 @@ private const val MAX_DOTS = 12
 @Composable
 private fun ClaudeBubble(
     raw: String, at: Long?, ttsMinChars: Int, onSpeak: (String) -> Unit, cut: Boolean = false, turn: TranscriptTurn? = null,
+    /** Contratto 1.99: il tipo dell'esito con cui finisce il messaggio; senza, la riga resta neutra. */
+    outcomeType: String? = null,
     /** Mostra i consigli della riga `Prossimi:` (solo l'ultima risposta); la riga non si vede mai nel testo. */
     withSteps: Boolean = false, onStep: (String) -> Unit = {}, onSendStep: (String) -> Unit = {},
     onSpeakFrom: (String, Int) -> Unit = { _, _ -> },
@@ -1802,7 +1805,7 @@ private fun ClaudeBubble(
                 // il tocco sui paragrafi resta per ripartire da lì.
                 } else SelectionContainer {
                     val shown = it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(stripped.text, stringResource(R.string.outcome_label))
-                    ChatBody(shown)
+                    ChatBody(shown, outcomeType)
                 }
                 // Un tasto per sessione linkata, nell'ordine in cui compare; la pressione lunga apre il link com'era.
                 stripped.buttons.forEach { b -> SessionButton(b, onOpen = { onOpenSession(b.session) }) }
@@ -2346,7 +2349,24 @@ val LocalTaskLinks = staticCompositionLocalOf { TaskLinks(emptyMap()) {} }
 
 /** Il corpo di una risposta: testo, tabelle, il riquadro «Da te» e «Non provato» (Franz 01/11 21:24), coi nomi dei compiti. */
 @Composable
-internal fun ChatBody(source: String) {
+internal fun ChatBody(full: String, outcomeType: String? = null) {
+    val esito = it.pixelbox.cmwatch.rules.Kpi.OutcomeType.of(outcomeType)
+    val label = stringResource(R.string.outcome_label)
+    val cut = remember(full, label, esito) { if (esito == it.pixelbox.cmwatch.rules.Kpi.OutcomeType.NONE) it.pixelbox.cmwatch.rules.ChatEsito.Split(full, null) else it.pixelbox.cmwatch.rules.ChatEsito.split(full, label) }
+    val line = cut.outcome
+    if (line == null) { ChatParts(full); return }
+    // La riga Esito col suo tipo, come in «Esiti di oggi» (Franz 01/11 21:31).
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (cut.body.isNotBlank()) ChatParts(cut.body)
+        Row(Modifier.testTag("chat-esito"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(outcomeIcon(esito), null, tint = outcomeTone(esito), modifier = Modifier.padding(top = 3.dp).size(18.dp))
+            Text(linked(line, LocalTaskLinks.current), style = MaterialTheme.typography.bodyLarge, color = outcomeTone(esito))
+        }
+    }
+}
+
+@Composable
+private fun ChatParts(source: String) {
     val tasks = LocalTaskLinks.current
     val text = remember(source, tasks.names) { it.pixelbox.cmwatch.rules.ChatNames.replace(source, tasks.names) }
     val parts = remember(text) { it.pixelbox.cmwatch.rules.ChatLabels.split(text) }

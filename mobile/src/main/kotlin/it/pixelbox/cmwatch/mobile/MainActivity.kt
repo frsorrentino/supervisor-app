@@ -231,6 +231,11 @@ class MainActivity : ComponentActivity() {
         var queueOpen by rememberSaveable { mutableStateOf(false) }
         // La pagina di uno dei tre box in alto della home (app-box-cliccabili-29-10).
         var boxOpen by rememberSaveable { mutableStateOf<it.pixelbox.cmwatch.mobile.ui.HomeBox?>(null) }
+        // Contratto 1.99: Da provare e Cinque minuti; gli elenchi si chiedono all'apertura e dopo ogni tocco.
+        var proveOpen by rememberSaveable { mutableStateOf(false) }
+        var decisionsOpen by rememberSaveable { mutableStateOf(false) }
+        var provePage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.ProvePage?>(null) }
+        var decisionsPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.DecisionsPage?>(null) }
         // Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno).
         val attentionDone: (it.pixelbox.cmwatch.rules.AttentionQueue.Done) -> Unit = { d -> scope.launch { runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, d.ref, kind = d.kind, since = d.since) } } }
         // La chat dal cui banner si è aperta la coda: non è in fila, come nel conto del banner (23/10, come la web).
@@ -482,6 +487,8 @@ class MainActivity : ComponentActivity() {
                     if (route != "settings" && route != "homeorder") {
                         settingsOpen = false
                         when (route) {
+                            "prove" -> proveOpen = true
+                            "decisions" -> decisionsOpen = true
                             "lavori" -> { open = null; tab = StartRoute.Tab.LAVORI }
                             "queue" -> { queueSkip = null; queueOpen = true }
                             "box-aspetta" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.WAITING
@@ -704,7 +711,8 @@ class MainActivity : ComponentActivity() {
                 onTranscript = { title, sid -> sidOf[title] = sid; nightOpen = false; tab = StartRoute.Tab.OVERVIEW; open = title },
                 onAnswer = { n, x -> scope.launch { runCatching { app.repo.answer(n, x) } } },
                 onApprove = { task -> okPending.add(task); scope.launch {
-                    val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText("")) }.getOrNull()
+                    val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
+                    val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), also = also) }.getOrNull()
                     val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
                     if (r?.ok != true) okPending.remove(task)
                 } },
@@ -986,11 +994,74 @@ class MainActivity : ComponentActivity() {
         // (la master riprende il compito, nessuna op nuova), le righe per te e la riga dei conteggi della home.
         val approveTask: (String, String, String?) -> Unit = { task, note, choice -> okPending.add(task); scope.launch {
             // Contratto 1.81: l'opzione scelta viaggia con l'ok.
-            val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(note), choice = choice) }.getOrNull()
+            val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
+            val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(note), choice = choice, also = also) }.getOrNull()
             val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
             if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(R.string.approved), android.widget.Toast.LENGTH_SHORT).show()
             else { okPending.remove(task); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_LONG).show() }
         } }
+        val readDecide: suspend () -> Unit = {
+            suspend fun read(op: CmdOp): String? {
+                val id = runCatching { app.repo.command(op, null, null) }.getOrNull() ?: return null
+                val r = kotlinx.coroutines.withTimeoutOrNull(PhoneTerminal.LOST_MS) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+                app.repo.forget(id)
+                return r?.takeIf { x -> x.ok }?.text
+            }
+            if (proveOpen) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
+            if (decisionsOpen) read(CmdOp.DECISIONI)?.let { t -> runCatching { ContractJson.decodeDecisions(t) }.onSuccess { p -> decisionsPage = p } }
+        }
+        LaunchedEffect(proveOpen, decisionsOpen) { if (proveOpen || decisionsOpen) readDecide() }
+        val toast = { t: String? -> if (!t.isNullOrBlank()) android.widget.Toast.makeText(this@MainActivity, t, android.widget.Toast.LENGTH_SHORT).show() }
+        val decideCmd: (CmdOp, String, String?, Int?, String?, String?) -> Unit = { op, arg, result, hours, reason, text -> scope.launch {
+            val id = runCatching { app.repo.command(op, null, arg, text = text, action = if (op == CmdOp.DECISIONE) result else null, result = if (op == CmdOp.PROVA) result else null, hours = hours, reason = reason) }.getOrNull()
+            val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+            toast(r?.text); id?.let { x -> app.repo.forget(x) }
+            readDecide()
+        } }
+        if (proveOpen) {
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false },
+                onOk = { ids -> decideCmd(CmdOp.PROVA, ids, "ok", null, null, null) },
+                onKo = { p, text, shot ->
+                    decideCmd(CmdOp.PROVA, p.id.toString(), "ko", null, null, text)
+                    if (shot != null) attachMany(it.pixelbox.cmwatch.rules.ContextActions.MASTER, listOf(shot), getString(R.string.prove_ko_shot_note, p.short ?: p.task), state?.share)
+                },
+                onScreen = { s ->
+                    proveOpen = false
+                    when (s) {
+                        "lavori" -> { open = null; tab = StartRoute.Tab.LAVORI }
+                        "queue" -> { queueSkip = null; queueOpen = true }
+                        "box-aspetta" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.WAITING
+                        "box-lavoro" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.BUSY
+                        "box-esiti" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.OUTCOMES
+                        "launch" -> launching = true
+                        "night" -> nightOpen = true
+                        "search" -> searchOpen = true
+                        "usage" -> goUsage()
+                        "settings", "homeorder" -> settingsOpen = true
+                        else -> { open = null; tab = StartRoute.Tab.OVERVIEW }
+                    }
+                }) }
+            BackHandler { proveOpen = false }
+            return
+        }
+        if (decisionsOpen) {
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiScreen(decisionsPage, onBack = { decisionsOpen = false },
+                onApprove = { task, choice -> scope.launch {
+                    val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
+                    runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), choice = choice, also = also) }
+                    readDecide()
+                } },
+                onDone = { i ->
+                    val c = i.task?.let { t -> state?.commitments?.firstOrNull { x -> x.task == t } }
+                    if (i.kind == "needs_you") scope.launch { i.session?.let { n -> runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, n, kind = "needs_you", since = i.since) } }; readDecide() }
+                    else c?.let { x -> sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, getString(R.string.lavori_done_prompt, x.paused?.reason ?: i.reason.orEmpty(), x.task)) }
+                },
+                onNotNow = { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) },
+                onDrop = { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) },
+            ) }
+            BackHandler { decisionsOpen = false }
+            return
+        }
         // Contratto 1.83: la risposta a un server MCP. La scheda sparisce subito e torna solo se il relay rifiuta, col motivo.
         val elicitSent = remember { mutableStateListOf<String>() }
         val answerElicit: (it.pixelbox.cmwatch.contract.Elicitation, String, Map<String, String?>) -> Unit = { e, action, values -> elicitSent.add(e.id); scope.launch {
@@ -1609,7 +1680,7 @@ class MainActivity : ComponentActivity() {
                     justClosed = justClosed,
                     tonight = st.night.items?.let { _ -> it.pixelbox.cmwatch.rules.TonightCard.of(st.night, now) },
                     // La sezione «Lavori» (22/10): gli ok e le cose da fare fuori dalla chat con il loro tasto; «Tutti i lavori» apre la pagina.
-                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
+                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, onProve = { proveOpen = true }, onDecisions = { decisionsOpen = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
                     onDone = attentionDone,
                     onAgendaEdit = editAgenda, onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     // «Utilizzo» (Franz, 08/10 12:30; unito il 09/10): le schede della quota e «Oggi» in una sezione richiudibile.
@@ -1843,7 +1914,10 @@ class MainActivity : ComponentActivity() {
                 },
             )
         }
+        val headsPrefs = remember { getSharedPreferences("heads_up", MODE_PRIVATE) }
+        var headsSeen by remember { mutableStateOf(headsPrefs.getStringSet("seen", emptySet()).orEmpty().toSet()) }
         CompositionLocalProvider(
+            it.pixelbox.cmwatch.mobile.ui.LocalHeadsUp provides it.pixelbox.cmwatch.mobile.ui.HeadsUpActions(headsSeen, { k -> headsSeen = headsSeen + k; headsPrefs.edit().putStringSet("seen", headsSeen).apply() }, { n, p -> sendPrompt(n, p) }),
             it.pixelbox.cmwatch.mobile.ui.LocalTaskLinks provides it.pixelbox.cmwatch.mobile.ui.TaskLinks(remember(state?.commitments) { it.pixelbox.cmwatch.rules.ChatNames.names(state) }) { open = null; tab = StartRoute.Tab.LAVORI },
             LocalSpeaking provides speaking, LocalSpeakingBlock provides speakingBlock, LocalBlocksOf provides speech::blocksOf,
             it.pixelbox.cmwatch.mobile.ui.LocalSpeakText provides { t: String -> speech.toggle(t) },

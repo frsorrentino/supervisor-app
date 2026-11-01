@@ -58,7 +58,7 @@ fun NightScreen(
     Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Cm.text) }
-            val title = page?.let { p -> stringResource(R.string.night_title, p.dayBefore.dayOfMonth, p.day.dayOfMonth, p.day.month.getDisplayName(TextStyle.FULL_STANDALONE, locale)) }
+            val title = page?.let { p -> nightTitle(p.dayBefore, p.day) }
                 ?: stringResource(R.string.night_menu)
             Text(title, style = MaterialTheme.typography.titleLarge, color = Cm.text, modifier = Modifier.weight(1f))
             IconButton(onClick = onRefresh, enabled = !loading) { Icon(Icons.Rounded.Refresh, stringResource(R.string.night_refresh), tint = Cm.actionIcon) }
@@ -124,7 +124,7 @@ fun NightScreen(
                 items(earlier.size, key = { "n" + earlier[it].date }) { i ->
                     val n = earlier[i]
                     val d = runCatching { java.time.LocalDate.parse(n.date) }.getOrNull()
-                    val title = d?.let { stringResource(R.string.night_title, it.minusDays(1).dayOfMonth, it.dayOfMonth, it.month.getDisplayName(TextStyle.FULL_STANDALONE, locale)) } ?: n.date
+                    val title = d?.let { nightTitle(it.minusDays(1), it) } ?: n.date
                     NightIndexRow(n, title) { onNight(n.date) }
                 }
             }
@@ -321,4 +321,12 @@ private fun ProjectRow(p: NightPage.Project) {
         if (p.waiting.isNotEmpty()) Text(stringResource(R.string.night_waiting, p.waiting.map { w -> readableSlashWaiting(w) }.joinToString(" · ")), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
         p.next?.let { Text(stringResource(R.string.night_next, it), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
     }
+}
+
+/** Il titolo della notte, con due mesi se sta a cavallo di due. */
+@Composable
+internal fun nightTitle(before: java.time.LocalDate, day: java.time.LocalDate): String {
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val p = it.pixelbox.cmwatch.rules.NightTitle.parts(before, day) { m -> m.getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, locale) }
+    return p.monthA?.let { a -> stringResource(R.string.night_title_two, p.dayA, a, p.dayB, p.monthB) } ?: stringResource(R.string.night_title, p.dayA, p.dayB, p.monthB)
 }

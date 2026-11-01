@@ -7,7 +7,7 @@ import { decodeChanges, decodeState } from './contract'
 import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
-import type { Commitment, PluginsPage, SystemStatus, TimelineEvent } from './contract'
+import type { Commitment, DecisionsPage, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
 import { DEFAULT_ORDER, withPin } from './homeOrder'
 import { midnight } from './kpi'
 import type { NightReport } from './night'
@@ -69,6 +69,16 @@ export const pluginsDemo = (now: number): PluginsPage => ({ checked_at: now - 24
   { id: 'test-runner@demo', name: 'test-runner', installed: '2.0.0', latest: '2.0.0', update: false },
 ], skills: [{ name: 'changelog', version: '1.0' }] }] })
 
+/** Contratto 1.99: gli elenchi dietro le due righe della home, solo nomi della demo. */
+export const proveDemo = (now: number): ProvePage => ({ at: now, n: 2, builds: 1, ko: [], red: [], groups: [{ build: 'demo-rc-2', n: 2, at: now - 3600, tasks: ['demo-cart', 'demo-users'], prove: [
+  { id: 1, task: 'demo-cart', short: en ? 'Cart totals' : 'Totali del carrello', build: 'demo-rc-2', dove: 'box-esiti', fai: en ? 'Open today\'s outcomes' : 'Apri gli esiti di oggi', atteso: en ? 'The cart outcome is under Done' : 'L\'esito del carrello sta sotto Fatto', at: now - 3600 },
+  { id: 2, task: 'demo-users', short: en ? 'Users table' : 'Tabella utenti', build: 'demo-rc-2', dove: 'lavori', fai: en ? 'Open Work' : 'Apri Lavori', atteso: en ? 'The users table is in progress' : 'La tabella utenti è in corso', at: now - 3600 },
+] }] })
+export const decisionsDemo = (now: number): DecisionsPage => ({ at: now, n: 2, here: 1, tasks: 3, snoozed: 0, groups: [
+  { key: 'demo-a', title: en ? 'Cover image for the post' : 'Immagine di copertina del post', cause: null, unblocks: ['demo-cover', 'demo-docs'], weight: 2, where: 'here', since: now - 1200, note: null, refs: ['demo-cover'], items: [{ kind: 'pause', task: 'demo-cover', short: en ? 'Cover image' : 'Immagine di copertina', session: 'blog', reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', since: now - 1200, where: 'here' }] },
+  { key: 'demo-b', title: en ? 'Log in to the payment sandbox' : 'Login nella sandbox dei pagamenti', cause: null, unblocks: ['demo-cart'], weight: 1, where: 'pc', since: now - 420, note: null, refs: [], items: [{ kind: 'needs_you', task: null, session: 'storefront', reason: en ? 'Log in to the sandbox' : 'Fai il login nella sandbox', since: now - 420, where: 'pc' }] },
+] })
+
 export type World = {
   state: State; events: Event[]; transcripts: Record<string, TranscriptEntry[]>; mine: [Sent, Status][]; samples: Record<string, Sample[]>
   night: NightReport; agenda: AgendaPage; timeline: TimelinePage
@@ -95,7 +105,7 @@ export function world(now: number): World {
       // Contratto 1.68 nella demo (FakeTransport.stopped): storefront ferma per te con un login, blog con un ok alla fine del
       // turno. Blog è seguita e al 64 % di contesto: si vedono «ha finito» e la proposta «handoff, poi /clear».
       if (x.name === 'storefront') return { ...x, needs_you: stopLogin }
-      if (x.name === 'blog') return { ...x, turn_blocking: stopOk, followed: true, context: 64 }
+      if (x.name === 'blog') return { ...x, turn_blocking: stopOk, followed: true, context: 64, heads_up: { text: en ? 'This conversation is getting long: a handoff would help' : 'Questa conversazione si sta allungando: conviene un handoff', seen_at: now - 780 } }
       return x
     }),
     // Al lavoro adesso: nella fixture l'unica in turno è ferma su un login, e il tabellone direbbe 0.
@@ -121,7 +131,7 @@ export function world(now: number): World {
       return { hosts_status: idle.hosts_status.map(h => ({ ...h, at: now - 40 })), published_today: idle.published_today.map(x => ({ ...x, at: x.at + di })) } })(),
     quota: Object.fromEntries(Object.entries(base.quota).map(([k, q]) => [k, { ...q, reset_h5: q.h5 != null && q.reset_h5 != null ? now + WINDOW_LEFT_S : sh(q.reset_h5), reset_w7: sh(q.reset_w7) }])),
     projects: base.projects.map(p => ({ ...p, last_used: sh(p.last_used) })),
-    approvals: base.approvals.map(a => ({ ...a, requested_at: a.requested_at + d })),
+    approvals: base.approvals.map(a => ({ ...a, requested_at: a.requested_at + d, untested: en ? 'a real phone' : 'un telefono vero', undo: 'in-parte', undo_how: en ? 'pull the build' : 'si ritira la build' })),
     devices: base.devices?.map(x => ({ ...x, seen: sh(x.seen) })) ?? null,
     night: { ...base.night, items: base.night.items?.map(i => ({ ...i, added: i.added + d, started: sh(i.started) })) ?? null },
     // Il recap di oggi, con un progetto senza sessione: così «Da riprendere» propone il suo prossimo passo.
@@ -133,6 +143,8 @@ export function world(now: number): World {
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
     ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
+    // Contratto 1.99: le righe di Da provare e Cinque minuti, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
+    prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 2, here: 1, tasks: 3, snoozed: 0 },
     // Utilizzo agganciato: dalla prima schermata si vede il dato in più dello slot.
     home_order: withPin(DEFAULT_ORDER, 'usage'),
     // Contratto 1.90: la macchina tranquilla, così «Sistema» parte chiuso come di solito.
@@ -186,7 +198,7 @@ export function world(now: number): World {
     master: [
       claude('a0', en
         ? 'demo-cover is ready for you, the other jobs are running.\n\n**For you**\n1. Send the cover image to the blog session.\n2. Log in to the payment sandbox.\n\n**Not tested:** the checkout on a real phone.\n\nEsito: two things wait for you.'
-        : 'demo-cover è pronto per te, gli altri lavori vanno avanti.\n\n**Da te**\n1. Manda l\'immagine di copertina alla sessione del blog.\n2. Fai il login nella sandbox dei pagamenti.\n\n**Non provato:** il checkout su un telefono vero.\n\nEsito: due cose aspettano te.', now - 900),
+        : 'demo-cover è pronto per te, gli altri lavori vanno avanti.\n\n**Da te**\n1. Manda l\'immagine di copertina alla sessione del blog.\n2. Fai il login nella sandbox dei pagamenti.\n\n**Non provato:** il checkout su un telefono vero.\n\nEsito: due cose aspettano te.', now - 900, { outcome_type: 'waiting' }),
       said('u1', en ? 'Launch payments-api on phase 2.2' : 'Lancia payments-api sulla fase 2.2', now - 660, 'phone'),
       claude('a1', en
         ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'
@@ -309,6 +321,9 @@ const NIGHT_EN: Record<string, string> = {
   'Dati del registro dei pagamenti per la pagina mensile.': 'Payment ledger data for the monthly page.',
   'dati fatti e verificati, 3 commit sul ramo notte/registro.': 'data done and checked, 3 commits on the night/ledger branch.',
   'Riordino delle note di campo per cartella e data, con un indice in testa.': 'Sort the field notes by folder and date, with an index at the top.',
+  'Dalla master: sposta il sito della documentazione sul nuovo host, senza cambiare il dominio.': 'From the master: move the documentation site to the new host, without changing the domain.',
+  'sposta il sito della documentazione sul nuovo host, senza cambiare il dominio.': 'move the documentation site to the new host, without changing the domain.',
+  'Dalla master: porta a termine la migrazione del registro e non fare release.': 'From the master: finish the ledger migration and make no release.',
   'Migrazione del registro': 'Ledger migration', 'Pagina mensile': 'Monthly page', 'Esportazione CSV': 'CSV export',
   'Indice delle note per data': 'Index of the notes by date',
 }

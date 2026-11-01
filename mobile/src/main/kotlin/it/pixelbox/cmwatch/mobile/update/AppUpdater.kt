@@ -50,6 +50,9 @@ class AppUpdater(private val ctx: Context, private val scope: CoroutineScope) {
     private val prefs = ctx.getSharedPreferences("update", Context.MODE_PRIVATE)
     private var releases: List<AppUpdate.Release> = emptyList()
 
+    /** Contratto 1.99: se la build di una prova è già su questo telefono; lo decide l'app, il relay non lo sa. */
+    fun buildOf(tag: String): it.pixelbox.cmwatch.rules.BancoProva.Build = it.pixelbox.cmwatch.rules.BancoProva.build(tag, releases, installed().installedAt)
+
     /** Da solo, all'apertura dell'app: non più di una volta ogni mezz'ora. */
     fun checkIfDue(now: Long = System.currentTimeMillis() / 1000) {
         if (!BuildConfig.SELF_UPDATE) return

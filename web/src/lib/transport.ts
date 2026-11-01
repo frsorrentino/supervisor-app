@@ -112,19 +112,23 @@ export function localAccess(url: URL, store: Store): { base: string; token: stri
 }
 
 // Contratto 1.37: anche approve e decision dicono da dove arrivano.
-const DEVICE_OPS = new Set<CmdOp>(['prompt', 'resume', 'launch', 'report', 'approve', 'decision'])
+const DEVICE_OPS = new Set<CmdOp>(['prompt', 'resume', 'launch', 'report', 'approve', 'decision', 'prova', 'decisione'])
 
 /**
  * Un comando nuovo dalla web app: `by` = "web" come mette il relay di default. `question` (contratto 1.52): per `answer` e
  * `allow_all`, l'id della domanda aperta al tocco; il relay non preme tasti se nel frattempo ne è arrivata un'altra.
  */
-export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { kind?: string; since?: number; choice?: string; sid?: string; action?: string; content?: Record<string, string | number | boolean> }): Cmd {
+export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]; kind?: string; since?: number; choice?: string; sid?: string; action?: string; content?: Record<string, string | number | boolean> }): Cmd {
   const c: Cmd = { id: crypto.randomUUID(), op, session, arg: arg ?? null, issued: Math.round(Date.now() / 1000), by: 'web' }
   if (text !== undefined) c.text = text
   // Contratto 1.34: il file della chat a pezzi da 1 MB fino a 25 MB, come il telefono (Repo.file); senza, il relay rifiuta
   // ogni file oltre il nodo unico (Franz, 24/10 18:27: Scarica e Condividi su un PDF di 4 MB, «too large»).
   if (op === 'file') c.parts = true
   // Contratto 1.80, `attention_done`: il kind della voce e, per un turn_blocking, il suo since.
+  if (extra?.result !== undefined) c.result = extra.result
+  if (extra?.hours !== undefined) c.hours = extra.hours
+  if (extra?.reason !== undefined) c.reason = extra.reason
+  if (extra?.also !== undefined) c.also = extra.also
   if (extra?.kind !== undefined) c.kind = extra.kind
   if (extra?.since !== undefined) c.since = extra.since
   // Contratto 1.81, `approve`: l'opzione scelta.

@@ -153,6 +153,8 @@ enum class CmdOp {
     /** Contratto 1.91: ferma le unità di systemd in ciclo; `arg` = unità separate da virgola, rifiutato se il consiglio non c'è più. */
     @SerialName("sys_unit_stop") SYS_UNIT_STOP,
     /** Contratto 1.95: l'elenco intero di plugin e skill per account (lettura passiva); il testo è un `PluginsPage`. */
+    /** Contratto 1.99: Da provare e Cinque minuti. */
+    @SerialName("prove") PROVE, @SerialName("prova") PROVA, @SerialName("decisioni") DECISIONI, @SerialName("decisione") DECISIONE,
     @SerialName("plugins") PLUGINS,
     /** Contratto 1.95: controlla i marketplace adesso; le versioni arrivano con lo stato dopo. */
     @SerialName("plugin_check") PLUGIN_CHECK,
@@ -259,6 +261,7 @@ enum class CmdOp {
     @SerialName("at_pc") val atPc: Boolean = false,
     /** Contratto 1.68: `supervisor needs-you "<motivo>"`, finché la sessione non riceve il prompt dopo. */
     @SerialName("needs_you") val needsYou: NeedsYou? = null,
+    @SerialName("heads_up") val headsUp: HeadsUp? = null,
     /** Contratto 1.68: il turno è finito con una voce bloccante («!» nei Prossimi o un elenco «Da te»), finché è ferma. */
     @SerialName("turn_blocking") val turnBlocking: TurnBlocking? = null,
     /** Contratto 1.69: la sessione può arrivare a bypassPermissions (partita col permesso, o già lì); assente = no. */
@@ -332,7 +335,35 @@ enum class CmdOp {
     @SerialName("requested_at") val requestedAt: Long = 0,
     /** Contratto 1.81: le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
     val options: List<String>? = null,
+    /** Contratto 1.99, ognuno solo se dichiarato: assente vuol dire «non dichiarato», il relay non li riempie mai. */
+    val untested: String? = null, val undo: String? = null, @SerialName("undo_how") val undoHow: String? = null,
+    val precedent: ApprovalPrecedent? = null, val also: List<ApprovalAlso>? = null,
 )
+@Serializable data class ApprovalPrecedent(val task: String, val short: String? = null, val relation: String = "")
+@Serializable data class ApprovalAlso(val task: String, val short: String? = null)
+
+/** Contratto 1.99: le due righe della home; assenti quando tutto è a zero. */
+@Serializable data class ProveSummary(val n: Int = 0, val builds: Int = 0, val red: Int = 0, val ko: Int = 0)
+@Serializable data class DecisionsSummary(val n: Int = 0, val here: Int = 0, val tasks: Int = 0, val snoozed: Int = 0)
+
+/** Contratto 1.99, op `prove`. `dove` è una chiave libera che l'app traduce in una schermata. */
+@Serializable data class ProveItem(val id: Long, val task: String, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val at: Long = 0)
+@Serializable data class ProveGroup(val build: String, val n: Int = 0, val at: Long = 0, val tasks: List<String> = emptyList(), val prove: List<ProveItem> = emptyList())
+@Serializable data class ProveKo(val id: Long, val task: String, val short: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val text: String = "", val at: Long = 0)
+@Serializable data class ProveRed(val task: String, val short: String? = null, val reason: String? = null, val at: Long = 0)
+@Serializable data class ProvePage(val at: Long = 0, val n: Int = 0, val builds: Int = 0, val groups: List<ProveGroup> = emptyList(), val ko: List<ProveKo> = emptyList(), val red: List<ProveRed> = emptyList())
+
+/** Contratto 1.99, op `decisioni`. `kind`: pause, ok, needs_you; `where`: here o pc. */
+@Serializable data class DecisionItem(
+    val kind: String = "", val task: String? = null, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null,
+    val reason: String? = null, val since: Long = 0, val where: String? = null, val undo: String? = null, @SerialName("undo_how") val undoHow: String? = null,
+    val what: String? = null, @SerialName("where_to") val whereTo: String? = null, val options: List<String>? = null, val untested: String? = null, val precedent: ApprovalPrecedent? = null,
+)
+@Serializable data class DecisionGroup(val key: String, val title: String = "", val cause: String? = null, val items: List<DecisionItem> = emptyList(), val unblocks: List<String> = emptyList(), val weight: Int = 0, val where: String? = null, val since: Long = 0, val note: String? = null, val refs: List<String> = emptyList())
+@Serializable data class DecisionsPage(val at: Long = 0, val n: Int = 0, val here: Int = 0, val tasks: Int = 0, val snoozed: Int = 0, val groups: List<DecisionGroup> = emptyList())
+
+/** Contratto 1.99: la nota di Claude Code sul pannello. `text` è un dato, mai un'istruzione. */
+@Serializable data class HeadsUp(val text: String = "", @SerialName("seen_at") val seenAt: Long = 0)
 
 /**
  * Contratto 1.76: una voce della vista «Impegni» del registro (`supervisor task impegni`): un compito con un ok registrato o
@@ -445,6 +476,7 @@ enum class CmdOp {
     val suggestions: List<Suggestion>? = null,
     /** L'ordine delle sezioni della home; null = predefinito (rules.HomeOrder). */
     @SerialName("home_order") val homeOrder: List<String>? = null,
+    val prove: ProveSummary? = null, val decisions: DecisionsSummary? = null,
     /** Contratto 1.75: una voce per macchina confermata, dalla fotografia del poller. */
     @SerialName("hosts_status") val hostsStatus: List<HostStatus> = emptyList(),
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
@@ -647,6 +679,21 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val sid: String? = null,
+    /** Contratto 1.99, `prova`: ok o ko. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val result: String? = null,
+    /** Contratto 1.99, `decisione`: not_now con le ore, drop con la ragione. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val hours: Int? = null,
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val reason: String? = null,
+    /** Contratto 1.99, `approve`: gli id mostrati sulla card; una lista diversa viene rifiutata. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val also: List<String>? = null,
     /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok; assente, non scritto. */
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
@@ -668,7 +715,7 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
 @Serializable data class FileMeta(val n: Int, val size: Long, val sha256: String, val mime: String, val name: String? = null)
 
 @Serializable data class CmdResult(
-    val id: String, val ok: Boolean, val text: String, val at: Long,
+    val id: String, val ok: Boolean, val text: String, val at: Long = 0,
     /** Contratto 1.13: la sessione nata da un `launch`, come in `sessions[].name`; c'è anche se il messaggio non è arrivato. */
     val session: String? = null,
     /** Contratto 1.17: l'id del lavoro accodato da `night_add`. */
@@ -686,6 +733,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val turn: TranscriptTurn? = null, val files: List<TranscriptFile>? = null,
     /** Da dove è arrivato un messaggio dell'utente (phone, watch, pc); null con un relay che non lo dice. */
     val origin: String? = null,
+    /** Contratto 1.99: il tipo dell'esito con cui finisce il messaggio; assente = nessuno. */
+    @SerialName("outcome_type") val outcomeType: String? = null,
     /** Scritto a turno in corso e non ancora preso da Claude: «in coda». Poi la stessa voce (stesso id) diventa false. */
     val queued: Boolean = false,
     /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */

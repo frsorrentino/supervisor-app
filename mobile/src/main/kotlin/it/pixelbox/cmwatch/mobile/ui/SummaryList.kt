@@ -158,7 +158,7 @@ fun SummaryList(
      * un tasto (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
      * `foryou` null = relay senza impegni e senza agenda: la sezione non c'è.
      */
-    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, onLavori: () -> Unit = {},
+    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, onProve: (() -> Unit)? = null, onDecisions: (() -> Unit)? = null, onLavori: () -> Unit = {},
     onAgendaEdit: (RecapAgenda.Edit) -> Unit = {}, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
     onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = {},
     today: java.time.LocalDate = java.time.LocalDate.now(),
@@ -444,6 +444,20 @@ fun SummaryList(
                     Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, onBox, onQuota, slot = { slotContent() })
                     val held = dragKey
                     if (held != null && it.pixelbox.cmwatch.rules.HomeOrder.pinnable(held) && !weekAlarm) SlotDrop(overSlot(held, dragY))
+                }
+            }
+        }
+        // Contratto 1.99: le righe col numero, solo se c'è qualcosa; `onProve` e `onDecisions` aprono le pagine.
+        kpiState?.let { st ->
+            val prove = st.prove?.takeIf { it.n + it.ko + it.red > 0 }
+            val dec = st.decisions?.takeIf { it.n > 0 }
+            if ((prove != null && onProve != null) || (dec != null && onDecisions != null)) item(key = "decide-rows") {
+                Box(moving()) {
+                    V3List {
+                        var first = true
+                        if (prove != null && onProve != null) { V3Row(first, onProve, { Icon(androidx.compose.material.icons.Icons.Outlined.Science, null, tint = V3.Tx2) }, { Text(prove.n.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.prove_title), style = V3.Name) }; first = false }
+                        if (dec != null && onDecisions != null) V3Row(first, onDecisions, { Icon(androidx.compose.material.icons.Icons.Outlined.Timer, null, tint = V3.Tx2) }, { Text(dec.n.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.decisions_title), style = V3.Name) }
+                    }
                 }
             }
         }
@@ -864,6 +878,7 @@ private fun SummaryCard(
         // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
         r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
         // Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok.
+        HeadsUpNoteRow(s, now)
         works.forEach { w -> WorkLine(w, onDone = { onWorkDone(w) }, onStart = { onWorkStart(w) }) }
         services.forEach { row -> ServiceLine(row) { onService(row) } }
         // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto.
@@ -1241,6 +1256,7 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
                 Text(v, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
             }
         }
+        OkInfo(a)
         androidx.compose.material3.Button(
             onClick = { ask = true }, modifier = Modifier.fillMaxWidth(),
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
@@ -1267,6 +1283,7 @@ private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (S
             }
         }
         if (withOptions) Box(Modifier.padding(start = 28.dp)) { OkButtons(a, filled = true) { o -> choice = o; ask = true } }
+        Box(Modifier.padding(start = 28.dp)) { OkInfo(a) }
     }
     if (ask) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
 }
@@ -1466,7 +1483,7 @@ private fun NightHomeCard(date: java.time.LocalDate, page: it.pixelbox.cmwatch.r
     val day = page?.day ?: date
     val before = page?.dayBefore ?: date.minusDays(1)
     val hm = remember { java.time.format.DateTimeFormatter.ofPattern("HH:mm").withZone(java.time.ZoneId.systemDefault()) }
-    val title = stringResource(R.string.night_title, before.dayOfMonth, day.dayOfMonth, day.month.getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, locale))
+    val title = nightTitle(before, day)
     Column(familyCard(onOpen), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FamilyTop(Icons.Rounded.Bedtime, stringResource(R.string.cat_night), page?.let { "${hm.format(java.time.Instant.ofEpochSecond(it.start))}–${hm.format(java.time.Instant.ofEpochSecond(it.end))} · ${it.cards.size}" }, chevron = true)
         if (page == null) Text(stringResource(R.string.night_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
@@ -1661,6 +1678,7 @@ internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: Str
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (speak != null) Speakable(question, speak = true, onSpeak = speak)
                 else Text(question, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                OkInfo(a)
                 if (opts.isNotEmpty()) {
                     @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
                     androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

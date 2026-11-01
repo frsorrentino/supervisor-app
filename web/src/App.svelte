@@ -10,7 +10,10 @@
   import { zipName } from './lib/zip'
   import { DemoTransport } from './lib/demoTransport'
   import Features from './lib/Features.svelte'
+  import DaProvare from './lib/DaProvare.svelte'
+  import CinqueMinuti from './lib/CinqueMinuti.svelte'
   import { suggestionNames as suggestionNamesOf } from './lib/slotInfo'
+  import { nightTitleParts, okAlso } from './lib/decide'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
@@ -244,7 +247,8 @@
   async function approve(task: string, note: string, choice?: string) {
     okPending = new Set([...okPending, task])
     // Contratto 1.81: l'opzione scelta viaggia con l'ok.
-    const r = await run(newCmd('approve', null, task, approveText(note), undefined, choice ? { choice } : undefined))
+    const a = st.approvals.find(x => x.task === task), also = a ? okAlso(a) : undefined
+    const r = await run(newCmd('approve', null, task, approveText(note), undefined, choice || also ? { ...(choice ? { choice } : {}), ...(also ? { also } : {}) } : undefined))
     if (r?.ok) say(`✓ ${t.approved}`)
     else okPending = new Set([...okPending].filter(x => x !== task))
   }
@@ -506,8 +510,8 @@
   const nightModel = $derived(night.report ? nightPage(night.report, nightZone, { live: new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)), pending: new Set((st.approvals ?? []).map(a => a.task)), asking: new Set(st.sessions.filter(s => s.question).map(s => s.name)) }) : null)
   const nightTitle = $derived.by(() => {
     if (!nightModel) return t.menuNight
-    const d = new Date(`${nightModel.day}T12:00:00Z`), b = new Date(`${nightModel.dayBefore}T12:00:00Z`)
-    return t.nightPageTitle(b.getUTCDate(), d.getUTCDate(), new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(d))
+    const p = nightTitleParts(nightModel.dayBefore, nightModel.day, d => new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(d))
+    return p.monthA ? t.nightPageTitleTwo(p.dayA, p.monthA, p.dayB, p.monthB) : t.nightPageTitle(p.dayA, p.dayB, p.monthB)
   })
   async function loadNight() {
     if (!tr) return
@@ -615,7 +619,7 @@
   }
   setContext('agendaNight', { get can() { return canNight }, get rows() { return nightCards(agenda.page, todayIso()) }, queue: queueNight })
   $effect(() => { if (canNight && canAgenda && !agenda.page && !agenda.loading) untrack(() => loadAgenda()) })
-  const pageTitle: Record<PageName, string> = $derived({ features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
+  const pageTitle: Record<PageName, string> = $derived({ prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -1006,7 +1010,7 @@
 
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
-  <Chat onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
+  <Chat onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
@@ -1042,7 +1046,7 @@
 
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
 {#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | null)}<Home st={stShown} {part} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
-        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
+        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} onPage={(p) => openPage(p)} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
@@ -1078,6 +1082,10 @@
         known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('lavori') }} />
     {:else if p === 'usage'}
       <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
+    {:else if p === 'prove'}
+      <DaProvare {run} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />
+    {:else if p === 'decisions'}
+      <CinqueMinuti {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />
     {:else if p === 'features'}
       <Features onRoute={(r) => openPage(r === 'usage' ? 'overview' : r as PageName)} />
     {:else if p === 'homeorder'}

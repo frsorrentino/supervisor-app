@@ -1,0 +1,114 @@
+package it.pixelbox.cmwatch.rules
+
+import it.pixelbox.cmwatch.contract.*
+import org.junit.Assert.*
+import org.junit.Test
+import java.io.File
+
+class DecideTest {
+    private val sample = File("../contract/cmd-result-sample.json").readText()
+    private val root = kotlinx.serialization.json.Json.parseToJsonElement(sample) as kotlinx.serialization.json.JsonObject
+    private fun textOf(op: String): String {
+        val cmds = root["cmd"] as kotlinx.serialization.json.JsonArray
+        val id = cmds.first { (it as kotlinx.serialization.json.JsonObject)["op"].toString() == "\"$op\"" }.let { (it as kotlinx.serialization.json.JsonObject)["id"].toString().trim('"') }
+        val r = (root["result"] as kotlinx.serialization.json.JsonArray).first { (it as kotlinx.serialization.json.JsonObject)["id"].toString().trim('"') == id } as kotlinx.serialization.json.JsonObject
+        return (r["text"] as kotlinx.serialization.json.JsonPrimitive).content
+    }
+
+    private fun rel(tag: String, at: Long) = AppUpdate.Release(tag, tag, at, true, "", 0, null, "")
+
+    @Test fun banco_prova_laBuildSiConfrontaColloInstallato() {
+        val rs = listOf(rel("nuova", 200), rel("vecchia", 100))
+        assertEquals(BancoProva.Build.INSTALLED, BancoProva.build("vecchia", rs, 150))
+        assertEquals(BancoProva.Build.INSTALLED, BancoProva.build("vecchia", rs, 100))
+        assertEquals(BancoProva.Build.TO_INSTALL, BancoProva.build("nuova", rs, 150))
+        assertEquals(BancoProva.Build.UNKNOWN, BancoProva.build("altra", rs, 150))
+    }
+
+    @Test fun banco_prova_laFixtureSiLeggeETutteOkMandaGliIdMostrati() {
+        val p = ContractJson.decodeProve(textOf("prove"))
+        assertEquals(2, p.n)
+        assertEquals("41,42", BancoProva.allOk(p.groups.single()))
+        assertEquals("checkout", p.groups.single().prove[0].dove)
+        assertEquals(38L, p.ko.single().id)
+    }
+
+    @Test fun banco_prova_soloLeSchermateConosciute() {
+        assertEquals("search", BancoProva.screen(" search "))
+        assertNull(BancoProva.screen("checkout"))
+        assertNull(BancoProva.screen(null))
+    }
+
+    @Test fun cinque_minuti_laFixtureNellOrdineDelRelayEQuanteNeVuoi() {
+        val p = ContractJson.decodeDecisions(textOf("decisioni"))
+        val keys = p.groups.map { it.key }
+        assertEquals(keys.take(1), CinqueMinuti.next(p, emptySet(), 1).map { it.key })
+        assertEquals(keys.drop(1), CinqueMinuti.next(p, setOf(keys[0]), 5).map { it.key })
+        assertEquals(emptyList<String>(), CinqueMinuti.next(p, keys.toSet(), 5).map { it.key })
+    }
+
+    @Test fun cinque_minuti_cosaFaIlTasto() {
+        assertEquals(CinqueMinuti.Act.APPROVE, CinqueMinuti.act(DecisionItem(kind = "ok", task = "a")))
+        assertEquals(CinqueMinuti.Act.DONE, CinqueMinuti.act(DecisionItem(kind = "pause", task = "a")))
+        assertEquals(CinqueMinuti.Act.DONE, CinqueMinuti.act(DecisionItem(kind = "needs_you", session = "s")))
+        assertEquals(CinqueMinuti.Act.NONE, CinqueMinuti.act(DecisionItem(kind = "needs_you")))
+        assertEquals(CinqueMinuti.Act.NONE, CinqueMinuti.act(DecisionItem(kind = "altro", task = "a")))
+        assertFalse(CinqueMinuti.canDrop("  ")); assertTrue(CinqueMinuti.canDrop("Fatto a voce"))
+    }
+
+    @Test fun ok_informato_quelloCheMancaNonSiInventa() {
+        val none = OkInformato.lines(Approval("t", "T"))
+        assertNull(none.untested); assertEquals(OkInformato.Undo.UNDECLARED, none.undo); assertNull(none.undoHow); assertNull(none.precedent)
+        assertNull(OkInformato.also(Approval("t", "T")))
+        val st = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())
+        val a = st.approvals.single { it.untested != null }
+        val l = OkInformato.lines(a)
+        assertEquals("a real phone", l.untested); assertEquals(OkInformato.Undo.PARTLY, l.undo); assertEquals("pull the build", l.undoHow)
+        assertEquals(listOf("atlas-seo-pages"), OkInformato.also(a))
+        assertEquals(OkInformato.Undo.YES, OkInformato.lines(Approval("t", "T", undo = "si")).undo)
+        assertEquals(OkInformato.Undo.NO, OkInformato.lines(Approval("t", "T", undo = "no")).undo)
+        assertEquals(OkInformato.Undo.UNDECLARED, OkInformato.lines(Approval("t", "T", undo = "boh")).undo)
+    }
+
+    @Test fun chat_esito_soloLUltimaRigaCheEDavveroLEsito() {
+        assertEquals(ChatEsito.Split("Fatto.\n", "Esito: pubblicato").let { it.copy(body = "Fatto.") }, ChatEsito.split("Fatto.\n\nEsito: pubblicato\n", "Esito"))
+        val mid = "Esito: a metà\nAltro testo"
+        assertEquals(ChatEsito.Split(mid, null), ChatEsito.split(mid, "Esito"))
+        assertEquals(ChatEsito.Split("Esitone", null), ChatEsito.split("Esitone", "Esito"))
+        assertEquals(ChatEsito.Split("", "Esito: solo"), ChatEsito.split("Esito: solo", "Esito"))
+    }
+
+    @Test fun chat_esito_ilTipoDallaVoce() {
+        val e = ContractJson.decodeTranscript("""{"entries":[{"id":"a","role":"assistant","text":"x","outcome_type":"shipped"},{"id":"b","role":"assistant","text":"y"}],"more":false}""")
+        assertEquals(Kpi.OutcomeType.SHIPPED, Kpi.OutcomeType.of(e.entries[0].outcomeType))
+        assertEquals(Kpi.OutcomeType.NONE, Kpi.OutcomeType.of(e.entries[1].outcomeType))
+    }
+
+    private fun session(text: String?) = Session(id = "s", name = "demo", account = "a", project = "p", state = SessionState.IDLE, since = 0, headsUp = text?.let { HeadsUp(it, 5) })
+
+    @Test fun heads_up_giaLoSoLaNascondeUnaNuovaRicompare() {
+        val s = session("Usa un worktree")
+        assertEquals("Usa un worktree", HeadsUpNote.visible(s, emptySet())?.text)
+        val seen = setOf(HeadsUpNote.key("demo", "Usa un worktree"))
+        assertNull(HeadsUpNote.visible(s, seen))
+        assertEquals("Altra nota", HeadsUpNote.visible(session("Altra nota"), seen)?.text)
+        assertNull(HeadsUpNote.visible(session(null), emptySet()))
+        assertNull(HeadsUpNote.visible(session("  "), emptySet()))
+    }
+
+    @Test fun heads_up_dalContratto() {
+        val st = ContractJson.decodeState("""{"v":1,"ts":1,"host":"pc","sessions":[{"id":"s","name":"n","account":"a","project":"p","state":"idle","since":0,"heads_up":{"text":"t","seen_at":9}}],"quota":{}}""")
+        assertEquals(HeadsUp("t", 9), st.sessions[0].headsUp)
+    }
+
+    @Test fun chat_esito_ancheEsitoConLAppInInglese() {
+        assertEquals("Esito: done", ChatEsito.split("x\nEsito: done", "Outcome").outcome)
+        assertEquals("Outcome: done", ChatEsito.split("x\nOutcome: done", "Outcome").outcome)
+    }
+
+    @Test fun notte_due_mesi_ogniGiornoIlSuoMese() {
+        val name = { m: java.time.Month -> m.name.lowercase() }
+        assertEquals(NightTitle.Parts(31, "october", 1, "november"), NightTitle.parts(java.time.LocalDate.of(2026, 10, 31), java.time.LocalDate.of(2026, 11, 1), name))
+        assertEquals(NightTitle.Parts(6, null, 7, "october"), NightTitle.parts(java.time.LocalDate.of(2026, 10, 6), java.time.LocalDate.of(2026, 10, 7), name))
+    }
+}

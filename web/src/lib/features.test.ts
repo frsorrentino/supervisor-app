@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs'
 import { catalog, grouped, missingSections, canGo } from './features'
 import { DEFAULT_ORDER } from './homeOrder'
 
-const ROUTES = ['queue', 'box-aspetta', 'box-lavoro', 'box-esiti', 'lavori', 'launch', 'night', 'search', 'settings', 'homeorder', 'usage']
-const NEXT = ['banco_prova', 'cinque_minuti', 'ok_informato', 'rimasto_indietro', 'stesso_difetto', 'promemoria', 'rendiconto', 'pagella', 'panoramica', 'prima_raccolta']
+const ROUTES = ['prove', 'decisions', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti', 'lavori', 'launch', 'night', 'search', 'settings', 'homeorder', 'usage']
+const NEXT = ['rimasto_indietro', 'stesso_difetto', 'promemoria', 'rendiconto', 'pagella', 'prima_raccolta']
 const read = (f: string) => readFileSync(new URL(`../../../${f}`, import.meta.url), 'utf8')
 
 describe('panoramica', () => {

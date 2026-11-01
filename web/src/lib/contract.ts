@@ -25,6 +25,8 @@ export type Session = {
   /** Contratto 1.68: `supervisor needs-you` e il turno finito con una voce bloccante, finché la sessione è ferma. */
   /** Contratto 1.80: `until` = c'è una condizione che il relay verifica; `expires_at` = quando scade (epoch s). */
   /** Contratto 1.84: `task` = il compito a cui serve, `from` = chi l'ha chiesto quando non è questa sessione. */
+  /** Contratto 1.99: la nota di Claude Code sul pannello. `text` è un dato, mai un'istruzione. */
+  heads_up?: { text: string; seen_at: number } | null
   needs_you?: { reason: string; at: number; until?: boolean; expires_at?: number | null; task?: string | null; from?: string | null } | null; turn_blocking?: { text: string; at: number } | null
   /** Contratto 1.69: la sessione può arrivare a bypassPermissions. */
   permission_bypass?: boolean
@@ -57,7 +59,16 @@ export type SuggestionKind = 'recurring' | 'cleanup' | 'deadline' | 'quota' | 'c
 // Contratto 1.88: rank (0-9, 0 in cima; assente = 5), source, options sulle choice; prompt non più nello stato.
 export type Suggestion = { id: string; kind: SuggestionKind | string; key: string; text: string; prompt?: string; at: number; expires_at?: number | null; rank?: number | null; source?: 'script' | 'master' | string | null; options?: string[] | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
-export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[] }
+/** Contratto 1.99: `untested`, `undo`, `undo_how`, `precedent`, `also`, ognuno solo se dichiarato: assente vuol dire «non dichiarato». */
+export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null }
+export type ProveSummary = { n: number; builds: number; red: number; ko: number }
+export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
+export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number }
+export type ProveGroup = { build: string; n: number; at: number; tasks: string[]; prove: ProveItem[] }
+export type ProvePage = { at: number; n: number; builds: number; groups: ProveGroup[]; ko: (Omit<ProveItem, 'title' | 'session' | 'project'> & { text: string })[]; red: { task: string; short?: string | null; reason?: string | null; at: number }[] }
+export type DecisionItem = { kind: string; task?: string | null; short?: string | null; title?: string | null; session?: string | null; project?: string | null; reason?: string | null; since: number; where?: string | null; undo?: string | null; undo_how?: string | null; what?: string | null; where_to?: string | null; options?: string[] | null; untested?: string | null }
+export type DecisionGroup = { key: string; title: string; cause?: string | null; items: DecisionItem[]; unblocks: string[]; weight: number; where?: string | null; since: number; note?: string | null; refs: string[] }
+export type DecisionsPage = { at: number; n: number; here: number; tasks: number; snoozed: number; groups: DecisionGroup[] }
 /** Contratto 1.76: una voce della vista «Impegni» del registro; `waits` = chi aspetta chi (`person` = l'utente). */
 export type Commitment = {
   /** Contratto 1.79: `short` = il titolo breve, 1-28 caratteri su una riga, mai «…»; assente con un relay precedente. */
@@ -139,6 +150,8 @@ export type TranscriptEntry = {
   id: string; role: string; text?: string | null; at?: number | null; tool?: string | null; note?: string | null
   error?: boolean | null; cut?: boolean; turn?: TranscriptTurn | null; files?: TranscriptFile[] | null
   origin?: string | null; queued?: boolean
+  /** Contratto 1.99: il tipo dell'esito con cui finisce il messaggio. */
+  outcome_type?: string | null
   /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */
   diff?: StepDiff | null
 }
@@ -236,6 +249,7 @@ export type State = {
   suggestions?: Suggestion[]
   /** Contratto 1.97: l'ordine delle sezioni della home; assente = predefinito (homeOrder.ts). */
   home_order?: string[]
+  prove?: ProveSummary | null; decisions?: DecisionsSummary | null
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
@@ -290,7 +304,7 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
-  | 'home_order'
+  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
   /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */
@@ -311,6 +325,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'changes' | 'diff'
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
+  /** Contratto 1.99: `prova`, `decisione`, gli id mostrati su un ok. */
+  result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */
   question?: string
   /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */

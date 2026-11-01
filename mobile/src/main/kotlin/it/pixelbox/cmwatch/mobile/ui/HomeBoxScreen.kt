@@ -70,7 +70,7 @@ private fun outcomeLabel(t: Kpi.OutcomeType): Int = when (t) {
     Kpi.OutcomeType.RUNNING -> R.string.outcome_type_running
 }
 
-private fun outcomeIcon(t: Kpi.OutcomeType): ImageVector = when (t) {
+internal fun outcomeIcon(t: Kpi.OutcomeType): ImageVector = when (t) {
     Kpi.OutcomeType.PROBLEM -> Icons.Rounded.Close
     Kpi.OutcomeType.WAITING -> Icons.Rounded.Person
     Kpi.OutcomeType.SHIPPED -> Icons.Rounded.RocketLaunch
@@ -81,7 +81,7 @@ private fun outcomeIcon(t: Kpi.OutcomeType): ImageVector = when (t) {
 }
 
 @Composable
-private fun outcomeTone(t: Kpi.OutcomeType): Color = when (t) {
+internal fun outcomeTone(t: Kpi.OutcomeType): Color = when (t) {
     Kpi.OutcomeType.PROBLEM -> Cm.gone
     Kpi.OutcomeType.WAITING -> Cm.waiting
     Kpi.OutcomeType.SHIPPED, Kpi.OutcomeType.DONE -> Cm.idle
