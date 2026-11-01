@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -202,10 +203,19 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
     }
 }
 
+@Composable
+private fun Modifier.drawDashedEdge(): Modifier {
+    val c = V3.Tx3
+    return then(Modifier.drawBehind {
+        val w = 1.dp.toPx()
+        drawRoundRect(c, cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(w, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))))
+    })
+}
+
 /** Lo slot aperto dal trascinamento: dice dove lasciare la voce (Franz 01/11 14:25). */
 @Composable
 internal fun SlotDrop() {
-    Box(Modifier.fillMaxWidth().padding(8.dp).testTag("slot-rilascia").border(1.dp, V3.Tx3, V3.Shape).heightIn(min = 44.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(8.dp).testTag("slot-rilascia").heightIn(min = 44.dp).then(Modifier.drawDashedEdge()), contentAlignment = Alignment.Center) {
         Text(stringResource(R.string.home_slot_drop), style = V3.Small.copy(color = V3.Tx))
     }
 }
