@@ -156,8 +156,6 @@
   .sec { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-transform: uppercase; }
   .sec.red span { color: var(--gone); }
   .views { display: flex; justify-content: flex-end; margin-top: 12px; }
-  .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-  .seg button { height: 32px; padding: 0 14px; color: var(--text2); font-weight: 500; font-size: 13px; line-height: 1; } .seg button + button { border-left: 1px solid var(--line); } .seg button.on { background: color-mix(in srgb, var(--icon) 16%, transparent); color: var(--text); }
   .gh { width: calc(100% - 8px); box-sizing: content-box; cursor: pointer; }
   .gh.plain span { text-transform: none; letter-spacing: .04em; }
   .gh.t-r span { color: var(--gone); } .gh.t-w span { color: var(--wait); } .gh.t-g span { color: var(--idle); } .gh.t-b span { color: var(--busy); }

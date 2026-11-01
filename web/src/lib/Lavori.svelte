@@ -268,8 +268,6 @@
   .fb { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; }
   .foldin { min-height: 0; display: flex; flex-direction: column; gap: inherit; }
   .foldin > :global(*) { flex-shrink: 0; }
-  .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; letter-spacing: 0; }
-  .seg button { height: 32px; padding: 0 14px; color: var(--text2); font: 500 13px/1 var(--sans, inherit); } .seg button + button { border-left: 1px solid var(--line); } .seg button.on { background: color-mix(in srgb, var(--icon) 16%, transparent); color: var(--text); }
   .wl { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; background: var(--low); border-radius: 16px; }
   .ic { flex: none; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--t) 18%, transparent); display: flex; align-items: center; justify-content: center; }
   .wl .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .tt { display: flex; align-items: center; gap: 8px; min-width: 0; } .tt b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; }

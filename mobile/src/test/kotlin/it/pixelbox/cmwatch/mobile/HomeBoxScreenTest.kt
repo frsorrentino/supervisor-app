@@ -64,5 +64,18 @@ class HomeBoxScreenTest {
     @Test fun esiti_tipo_perTipo412() = shot(HomeBox.OUTCOMES, 412, p = typed, byType = true)
     @Test fun esiti_tipo_perSessione412() = shot(HomeBox.OUTCOMES, 412, p = typed, byType = false)
     @Test fun esiti_tipo_perTipo320() = shot(HomeBox.OUTCOMES, 320, p = typed, byType = true)
+    /** Il testo grande del telefono di Franz: dal suo screenshot del 01/11 19:39, circa 1,3 volte. */
+    private fun big(dp: Int, byType: Boolean, scale: Float) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 1000, fontScale = scale))
+        paparazzi.snapshot { CmPhoneTheme(still = true) { HomeBoxScreen(HomeBox.OUTCOMES, st, typed, now, onBack = {}, onSession = {}, zone = zone, startByType = byType) } }
+    }
+    @Test fun esiti_interruttore_tipo412() = big(412, true, 1f)
+    @Test fun esiti_interruttore_sessione412() = big(412, false, 1f)
+    @Test fun esiti_interruttore_tipo320() = big(320, true, 1f)
+    @Test fun esiti_interruttore_sessione320() = big(320, false, 1f)
+    @Test fun esiti_interruttore_tipo412Grande() = big(412, true, 1.3f)
+    @Test fun esiti_interruttore_sessione412Grande() = big(412, false, 1.3f)
+    @Test fun esiti_interruttore_sessione320Grande() = big(320, false, 1.3f)
+    @Test fun esiti_interruttore_sessione412Enorme() = big(412, false, 2f)
     @Test fun outcomesLoading412() = shot(HomeBox.OUTCOMES, 412, p = null)
 }

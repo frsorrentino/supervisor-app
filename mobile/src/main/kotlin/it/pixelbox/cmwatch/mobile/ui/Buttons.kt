@@ -1,5 +1,12 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.PaddingValues
@@ -137,4 +144,29 @@ fun AlertDialog(
         onDismissRequest = onDismissRequest, confirmButton = confirmButton, modifier = modifier, dismissButton = dismissButton, icon = icon, title = title, text = text,
         shape = V3.Shape, containerColor = V3.S1, tonalElevation = 0.dp, titleContentColor = V3.Tx, textContentColor = V3.Tx2,
     )
+}
+
+/**
+ * L'interruttore a due voci di tutta l'app (Franz 01/11 19:39, «Per sessione» tagliato col testo grande): due scritte su una riga, mai a
+ * capo, e l'altezza cresce col testo. Niente spunta: la voce scelta si riconosce dal fondo. Il segmented button di Material 3 divide la
+ * larghezza a metà e aggiunge la spunta, e con le scritte grandi le mandava a capo.
+ */
+@androidx.compose.runtime.Composable
+internal fun TwoWaySwitch(second: Boolean, firstLabel: String, secondLabel: String, modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier, fill: Boolean = false, onChange: (Boolean) -> Unit) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
+    androidx.compose.foundation.layout.Row(
+        modifier.then(if (fill) androidx.compose.ui.Modifier.fillMaxWidth() else androidx.compose.ui.Modifier).height(androidx.compose.foundation.layout.IntrinsicSize.Min)
+            .clip(shape).border(1.dp, Cm.line, shape).selectableGroup(),
+    ) {
+        listOf(false to firstLabel, true to secondLabel).forEach { (isSecond, label) ->
+            val on = second == isSecond
+            androidx.compose.foundation.layout.Box(
+                (if (fill) androidx.compose.ui.Modifier.weight(1f) else androidx.compose.ui.Modifier).fillMaxHeight().heightIn(min = 36.dp).background(if (on) Cm.surfaceHigh else Cm.bg)
+                    .handCursor().selectable(selected = on, role = androidx.compose.ui.semantics.Role.RadioButton) { onChange(isSecond) }.padding(horizontal = 14.dp, vertical = 6.dp),
+                contentAlignment = androidx.compose.ui.Alignment.Center,
+            ) {
+                androidx.compose.material3.Text(label, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, color = if (on) Cm.text else Cm.text2, maxLines = 1, softWrap = false)
+            }
+        }
+    }
 }

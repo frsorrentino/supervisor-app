@@ -205,7 +205,7 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
                     if (out.done.isNotEmpty()) {
                         item("view") {
                             Row(foldItem().fillMaxWidth().padding(top = 12.dp, bottom = 2.dp), horizontalArrangement = Arrangement.End) {
-                                ViewSwitch(!byType, R.string.box_view_type, R.string.box_view_session) { bySession -> byType = !bySession; viewPrefs?.edit()?.putBoolean(VIEW_BY_TYPE, byType)?.apply() }
+                                TwoWaySwitch(!byType, stringResource(R.string.box_view_type), stringResource(R.string.box_view_session)) { bySession -> byType = !bySession; viewPrefs?.edit()?.putBoolean(VIEW_BY_TYPE, byType)?.apply() }
                             }
                         }
                         (if (byType) Kpi.groupsByType(out.done) else Kpi.groupsBySession(out.done)).forEach { g ->

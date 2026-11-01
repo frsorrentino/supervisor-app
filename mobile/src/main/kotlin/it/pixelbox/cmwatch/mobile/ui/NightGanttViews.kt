@@ -8,9 +8,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -77,23 +74,10 @@ private fun whereLabel(w: Where): String = stringResource(when (w) {
     Where.STOPPED -> R.string.night_w_stopped; Where.UNKNOWN -> R.string.night_w_unknown
 })
 
-/** Lo switch a due voci, «Progetti» e «Obiettivi»: il segmented button di Material 3, non due bottoni pieni. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Lo switch a due voci, «Progetti» e «Obiettivi». */
 @Composable
-fun GanttSwitch(byGoal: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    val colors = SegmentedButtonDefaults.colors(
-        activeContainerColor = Cm.surfaceHigh, activeContentColor = Cm.text, activeBorderColor = Cm.line,
-        inactiveContainerColor = Cm.bg, inactiveContentColor = Cm.text2, inactiveBorderColor = Cm.line,
-    )
-    SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
-        listOf(R.string.night_view_projects, R.string.night_view_goals).forEachIndexed { i, label ->
-            SegmentedButton(
-                selected = byGoal == (i == 1), onClick = { onChange(i == 1) },
-                shape = SegmentedButtonDefaults.itemShape(i, 2), colors = colors, modifier = Modifier.handCursor(),
-            ) { Text(stringResource(label)) }
-        }
-    }
-}
+fun GanttSwitch(byGoal: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) =
+    TwoWaySwitch(byGoal, stringResource(R.string.night_view_projects), stringResource(R.string.night_view_goals), modifier, fill = true, onChange = onChange)
 
 /** «7 arrivati · 1 in corso · 1 in parte · 1 fermo» con l'icona di stato davanti: dove sono arrivati i progetti, solo gli stati presenti. */
 @Composable
