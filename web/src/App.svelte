@@ -9,6 +9,7 @@
   import { FileStore } from './lib/fileStore'
   import { zipName } from './lib/zip'
   import { DemoTransport } from './lib/demoTransport'
+  import { suggestionInfo } from './lib/slotInfo'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'

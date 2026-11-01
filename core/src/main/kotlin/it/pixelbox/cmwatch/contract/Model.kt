@@ -445,6 +445,8 @@ enum class CmdOp {
     val suggestions: List<Suggestion>? = null,
     /** L'ordine delle sezioni della home; null = predefinito (rules.HomeOrder). */
     @SerialName("home_order") val homeOrder: List<String>? = null,
+    /** Contratto 1.75: una voce per macchina confermata, dalla fotografia del poller. */
+    @SerialName("hosts_status") val hostsStatus: List<HostStatus> = emptyList(),
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
     val commitments: List<Commitment>? = null,
     /** Contratto 1.90: quanto è pesante la macchina e cosa farci; null con un relay precedente o se la lettura fallisce. */
@@ -457,6 +459,9 @@ enum class CmdOp {
  * Contratto 1.90: `level`, `load_level` e `mem_level` sono green, yellow o red; `level` il peggiore dei due. Lo stato
  * tagliato a 8 KB arriva spesso con `consumers` vuoto: il livello e i consigli valgono lo stesso.
  */
+/** Una macchina di `state.hosts_status`: `up` false quando l'ultima lettura è fallita; la RAM è in byte. */
+@Serializable data class HostStatus(val name: String, val up: Boolean = false, @SerialName("ram_used") val ramUsed: Long? = null, @SerialName("ram_total") val ramTotal: Long? = null)
+
 @Serializable data class SystemStatus(
     val at: Long, val cores: Int, val load1: Double,
     @SerialName("load_per_core") val loadPerCore: Double,

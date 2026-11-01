@@ -1402,6 +1402,16 @@ It starts at your last message to the master.</string>
     <string name="outcome_type_none">No type</string>
     <string name="outcome_type_running">Running</string>
     <string name="box_rows_cut">The list holds only each session\'s latest events: the number above is the right one.</string>
+    <string name="slot_ram">RAM %1$d%%</string>
+    <string name="slot_host_ram">%1$s %2$d%%</string>
+    <string name="slot_host_off">%1$s off</string>
+    <plurals name="slot_sessions"><item quantity="one">%1$d session</item><item quantity="other">%1$d sessions</item></plurals>
+    <string name="slot_lavori_of">%1$d of %2$d</string>
+    <string name="slot_lavori_last_since">Latest for you: %1$s, %2$s ago</string>
+    <string name="slot_lavori_last">Latest for you: %1$s</string>
+    <string name="slot_lavori_none">Nothing waits for you</string>
+    <string name="slot_plugins_names">To update: %1$s</string>
+    <string name="slot_plugins_checked">Checked at %1$s</string>
     <string name="box_at_least">The relay sends at most 40 events per session: today the figure is a minimum.</string>
     <string name="box_outcomes_note">A tap on a row opens the session, if it is still open.</string>
     <string name="home_title">Supervisor</string>

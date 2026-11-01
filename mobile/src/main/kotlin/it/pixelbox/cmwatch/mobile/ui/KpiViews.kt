@@ -14,7 +14,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.DataUsage
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Icon
@@ -238,6 +241,74 @@ internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.gr
         if (open != null) Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
         else if (nav) Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
     }
+}
+
+/**
+ * Una voce nello slot (Franz 01/11 17:44): la forma di [UsageSlotRow], titolo, barra e numero, sotto una riga. Il riepilogo a destra
+ * non c'è più, per non ripetere. Compare al rilascio: durante la presa lo slot resta com'è.
+ */
+@Composable
+internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tag: String, count: String? = null, bar: List<Pair<Int, Color>>? = null, number: String? = null, numberTone: Color? = null, note: String? = null, noteLines: Int = Int.MAX_VALUE, open: Boolean, onToggle: () -> Unit) {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    Column(Modifier.fillMaxWidth().then(drag).handCursor().clickable(onClick = onToggle).testTag(tag).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
+        Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+            count?.let { Text(it, style = V3.Name.copy(fontSize = 13.sp, color = V3.Tx2), modifier = Modifier.padding(start = 6.dp)) }
+            Spacer(Modifier.width(10.dp))
+            if (bar != null) SlotBar(bar, Modifier.weight(1f)) else Spacer(Modifier.weight(1f))
+            if (number != null) {
+                Spacer(Modifier.width(10.dp))
+                Text(number, style = V3.Meter.copy(color = numberTone ?: V3.Tx), maxLines = 1)
+            }
+            Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
+        }
+        note?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), maxLines = noteLines, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+    }
+}
+
+/** La barra dello slot: uno o due tratti di fila, in percento della larghezza. */
+@Composable
+private fun SlotBar(parts: List<Pair<Int, Color>>, modifier: Modifier) {
+    Row(modifier.height(6.dp).clip(RoundedCornerShape(3.dp)).background(V3.S3)) {
+        parts.filter { it.first > 0 }.forEach { (pct, tone) -> Box(Modifier.weight(pct.toFloat()).fillMaxHeight().background(tone)) }
+        val rest = 100 - parts.sumOf { it.first }
+        if (rest > 0) Spacer(Modifier.weight(rest.toFloat()))
+    }
+}
+
+/** Sistema nello slot: il carico, sotto la RAM del Chromebook e delle altre macchine, e le sessioni attive. */
+@Composable
+internal fun SystemSlotRow(i: it.pixelbox.cmwatch.rules.SlotInfo.SystemInfo, drag: Modifier, open: Boolean, onToggle: () -> Unit) {
+    val hosts = i.hosts.map { h -> h.ramPct?.let { stringResource(R.string.slot_host_ram, h.name, it) } ?: stringResource(R.string.slot_host_off, h.name) }
+    val note = (listOf(stringResource(R.string.slot_ram, i.ramPct)) + hosts + pluralStringResource(R.plurals.slot_sessions, i.sessions, i.sessions)).joinToString(" · ")
+    SlotInfoRow(drag, stringResource(R.string.home_sec_system), androidx.compose.material.icons.Icons.Outlined.Memory, "home-sez-sistema", bar = listOf(i.barPct to systemTone(i.level)), number = "${i.pct}%", note = note, open = open, onToggle = onToggle)
+}
+
+/** Lavori nello slot: quanti aspettano Franz su quanti, sotto l'ultimo che lo aspetta. */
+@Composable
+internal fun LavoriSlotRow(i: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo, now: Long, drag: Modifier, open: Boolean, onToggle: () -> Unit) {
+    val last = i.last
+    val since = i.lastSince
+    val note = when {
+        last == null -> stringResource(R.string.slot_lavori_none)
+        since != null && since > 0 -> stringResource(R.string.slot_lavori_last_since, last, it.pixelbox.cmwatch.contract.Durations.since(since, now))
+        else -> stringResource(R.string.slot_lavori_last, last)
+    }
+    SlotInfoRow(drag, stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, "home-sez-lavori", bar = if (i.total > 0) listOf(i.youPct to V3.Wait, (100 - i.youPct) to V3.Tx3) else emptyList(), number = stringResource(R.string.slot_lavori_of, i.you, i.total), note = note, open = open, onToggle = onToggle)
+}
+
+/** Plugin e skill nello slot: i nomi da aggiornare, oppure l'ora del controllo. */
+@Composable
+internal fun PluginsSlotRow(i: it.pixelbox.cmwatch.rules.SlotInfo.PluginsInfo, zone: java.time.ZoneId, drag: Modifier, open: Boolean, onToggle: () -> Unit) {
+    val checked = i.checkedAt
+    val note = when {
+        i.names.isNotEmpty() -> stringResource(R.string.slot_plugins_names, i.names.joinToString(", "))
+        checked != null -> stringResource(R.string.slot_plugins_checked, java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(checked).atZone(zone)))
+        else -> null
+    }
+    SlotInfoRow(drag, stringResource(R.string.home_sec_plugins), androidx.compose.material.icons.Icons.Outlined.Extension, "home-sez-plugin", note = note, open = open, onToggle = onToggle)
 }
 
 /** Utilizzo nello slot: barra e percentuale in una riga, sotto settimana, giorno e ritmo; con due account anche di chi è. */

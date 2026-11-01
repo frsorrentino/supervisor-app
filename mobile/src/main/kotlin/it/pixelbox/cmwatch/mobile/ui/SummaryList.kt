@@ -158,7 +158,7 @@ fun SummaryList(
      * un tasto (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
      * `foryou` null = relay senza impegni e senza agenda: la sezione non c'è.
      */
-    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, onLavori: () -> Unit = {},
+    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, onLavori: () -> Unit = {},
     onAgendaEdit: (RecapAgenda.Edit) -> Unit = {}, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
     onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = {},
     today: java.time.LocalDate = java.time.LocalDate.now(),
@@ -664,10 +664,11 @@ fun SummaryList(
             val icons = androidx.compose.material.icons.Icons.Outlined
             when (pin) {
                 "suggestions" -> if (sug != null) {
-                    SlotRow(slotDrag("suggestions"), stringResource(R.string.sug_title), icons.AutoAwesome, sug.total.toString(), sugAt?.let { at -> if (suggestionsOpen) at else stringResource(R.string.home_last_at, at) }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) }
+                    SlotInfoRow(slotDrag("suggestions"), stringResource(R.string.sug_title), icons.AutoAwesome, "home-sez-suggerimenti", count = sug.total.toString(), note = it.pixelbox.cmwatch.rules.SlotInfo.suggestion(sug.shown), noteLines = 2, open = suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) }
                     if (suggestionsOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } }
                 }
-                "lavori" -> if (showLavori && (foryou != null || outside.isNotEmpty())) SlotRow(slotDrag("lavori"), stringResource(R.string.lavori_title), icons.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
+                "lavori" -> if (showLavori && lavoriInfo != null) LavoriSlotRow(lavoriInfo, now, slotDrag("lavori"), lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
+                else if (showLavori && (foryou != null || outside.isNotEmpty())) SlotRow(slotDrag("lavori"), stringResource(R.string.lavori_title), icons.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
                 "usage" -> if (hasUsage) {
                     if (weekSlot != null) UsageSlotRow(weekSlot, now, slotDrag("usage"), usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     else SlotRow(slotDrag("usage"), stringResource(R.string.home_sec_usage), icons.DataUsage, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
@@ -675,14 +676,11 @@ fun SummaryList(
                 }
                 "system" -> system?.let { sys ->
                     val sysOpen = SystemRules.isOpen(sys.level, sysManual)
-                    SlotRow(slotDrag("system"), stringResource(R.string.home_sec_system), icons.Memory, right = if (sysOpen) null else systemSummary(sys), tag = "home-sez-sistema", open = sysOpen, dot = if (sysOpen || sys.level == "green") null else systemTone(sys.level)) { sysManual = SystemRules.Manual(sys.level, !sysOpen) }
+                    SystemSlotRow(it.pixelbox.cmwatch.rules.SlotInfo.system(sys, kpiState?.hostsStatus.orEmpty(), kpiState?.sessions.orEmpty()), slotDrag("system"), sysOpen) { sysManual = SystemRules.Manual(sys.level, !sysOpen) }
                     if (sysOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } }
                 }
                 "plugins" -> if (hasPlugins) {
-                    val runnerState = pluginsRunner?.state?.collectAsState()?.value
-                    val n = it.pixelbox.cmwatch.rules.Plugins.pending(runnerState?.page, plugins!!)
-                    val line = if (pluginsOpen) null else if (n > 0) pluralStringResource(R.plurals.plugins_to_update, n, n) else stringResource(R.string.plugins_up_to_date)
-                    SlotRow(slotDrag("plugins"), stringResource(R.string.home_sec_plugins), icons.Extension, right = line, tag = "home-sez-plugin", open = pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }
+                    PluginsSlotRow(it.pixelbox.cmwatch.rules.SlotInfo.plugins(plugins!!), zone, slotDrag("plugins"), pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }
                     if (pluginsOpen) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
                 }
                 "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }

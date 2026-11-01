@@ -27,7 +27,8 @@
   import { shown as shownQuota } from './quotaLine'
   import { askedFor, attachedTasks, build, MASTER, staleHours, type Group, type Row } from './summary'
   import { doneOf, type Done } from './queue'
-  import { expiry } from './durations'
+  import { expiry, since } from './durations'
+  import { lavoriInfo, pluginsInfo, systemInfo } from './slotInfo'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
   import { blockingOf, parseSteps } from './nextSteps'
@@ -57,7 +58,8 @@
   import type { Snippet } from 'svelte'
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
-  let { suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
+  let { suggestionFirst = null, suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
+    suggestionFirst?: string | null
     /** Il blocco Utilizzo aperto, scelta D (30/10 20:11); le colonne della plancia tengono le schede (`usage`). */
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
@@ -246,6 +248,18 @@
   // (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const fy = $derived(st.commitments != null || agenda ? lavoriForYou(st, agenda, now, today) : null)
+  // Il dato in più di una voce nello slot; Chiuse non c'è: il relay non dice quando si è chiusa (SlotInfo.kt).
+  const slotExtra = $derived.by((): Record<string, { bar?: [number, string][]; number?: string; note?: string | null; two?: boolean } | null> => {
+    const s = sys ? systemInfo(sys, st.hosts_status, st.sessions) : null
+    const l = pin === 'lavori' ? lavoriInfo(lavoriProgress(st, agenda, now, zone, today)) : null
+    const p = st.plugins ? pluginsInfo(st.plugins) : null
+    return {
+      system: s && { bar: [[s.barPct, SYS_TONE[s.level as keyof typeof SYS_TONE] ?? SYS_TONE.green]], number: `${s.pct}%`, note: [t.slotRam(s.ramPct), ...s.hosts.map(h => (h.ramPct == null ? t.slotHostOff(h.name) : t.slotHostRam(h.name, h.ramPct))), t.slotSessions(s.sessions)].join(' · ') },
+      lavori: l && { bar: l.total ? [[l.youPct, 'var(--wait)'], [100 - l.youPct, 'var(--tx3)']] : [], number: t.slotLavoriOf(l.you, l.total), note: l.last == null ? t.slotLavoriNone : l.lastSince ? t.slotLavoriLastSince(l.last, since(l.lastSince, now)) : t.slotLavoriLast(l.last) },
+      suggestions: { note: suggestionFirst, two: true },
+      plugins: p && { note: p.names.length ? t.slotPluginsNames(p.names.join(', ')) : p.checkedAt ? t.slotPluginsChecked(hhmm(p.checkedAt)) : null },
+    }
+  })
   const lavoriLine = $derived.by(() => {
     const ip = lavoriProgress(st, agenda, now, zone, today)
     const doneToday = lavoriDoneToday(donePages, events, zone, today)
@@ -469,7 +483,16 @@
 <!-- La testata di sezione dello stile «Studio e Diretta» (30/10): l'icona grigia nel binario dei glifi, il titolo allineato ai
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
 {#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null } = {})}
-  {#if part && !o.onclick}
+  {@const info = key === listSkip && !part ? slotExtra[key] : null}
+  {#if info}
+    <!-- Una voce nello slot (Franz 01/11 17:44): titolo, barra e numero, sotto una riga; il riepilogo a destra non c'è più. -->
+    <button class="usageslot" class:draggable={!!onHomeOrder} data-sec-head={key} aria-expanded={o.isOpen ?? open[key]} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
+      <span class="ustop"><span class="ms">{icon}</span><b>{title}</b>{#if count}<small>{count}</small>{/if}
+        {#if info.bar}<span class="usbar">{#each info.bar as [pct, tone]}<i style="width:{pct}%;background:{tone}"></i>{/each}</span>{:else}<span class="sp"></span>{/if}
+        {#if info.number}<span class="uspct">{info.number}</span>{/if}<span class="ms tog" class:up={o.isOpen ?? open[key]}>expand_more</span></span>
+      {#if info.note}<span class="usnote" class:two={info.two}>{info.note}</span>{/if}
+    </button>
+  {:else if part && !o.onclick}
     <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->
     <div class="sec static" data-testid={testid}><span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
@@ -1166,6 +1189,11 @@
   .usmeter s { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
   .uspct { font: 400 12.5px var(--mono); }
   .usnote { font-size: 13.5px; line-height: 1.3; color: var(--tx2); }
+  .usnote.two { max-height: 2.6em; overflow: hidden; }
+  .ustop small { font: 500 13px var(--display); color: var(--tx2); }
+  .ustop .sp { flex: 1; }
+  .usbar { flex: 1; display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--s3); }
+  .usbar i { flex: none; }
   .dragg { position: fixed; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px 0 14px; border-radius: 16px; background: var(--s3); box-shadow: 0 6px 20px rgba(0, 0, 0, .35); pointer-events: none; }
   .dragg .ic { flex: 0 0 auto; }
   .sec.wait span, .sec.wait small { color: var(--wait); }
