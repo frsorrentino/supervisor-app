@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
 
     override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
         fingerDown.value = ev.actionMasked != android.view.MotionEvent.ACTION_UP && ev.actionMasked != android.view.MotionEvent.ACTION_CANCEL
+        if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN) it.pixelbox.cmwatch.mobile.ui.LastPress.at = androidx.compose.ui.geometry.Offset(ev.rawX, ev.rawY)
         return super.dispatchTouchEvent(ev)
     }
 

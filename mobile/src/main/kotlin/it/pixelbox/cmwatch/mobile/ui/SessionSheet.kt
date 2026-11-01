@@ -56,6 +56,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -245,6 +246,8 @@ fun SessionSheet(
     bar: (@Composable () -> Unit)? = null,
     /** Con `home`: true la lista della home con `dock` in basso, false la conversazione con `bar` e l'intestazione. */
     homeOpen: Boolean = true,
+    /** Solo per i provini: il pannello della master fermo a questa frazione, come a metà di un trascinamento. */
+    homePull: Float? = null,
     /**
      * Le tre misure della master sul tablet (Franz, 08/10 18:15): `halfStops` le accende, `half` con `homeOpen` false è la
      * misura a metà, con la home sopra e la conversazione sotto. Sul telefono restano due: barra e tutto schermo.
@@ -392,8 +395,25 @@ fun SessionSheet(
     // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fly("card-${s.id}").fillMaxSize().background(Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
+        // Sul telefono la frazione guida tutta l'apertura: 0 la home, 1 la conversazione. La tiene la pagina e non la barra, perché
+        // col dito si muove tutto il pannello e la barra non è che la sua cima (Franz, 01/11).
+        val masterAt = remember { androidx.compose.animation.core.Animatable(homePull ?: if (homeOpen) 0f else 1f) }
+        val appBarPx = remember { intArrayOf(0) }
+        // La testata della home rientra in proporzione: il pannello resta rigido e nessuno lo rimisura mentre si muove.
+        fun headerShown(): Int = kotlin.math.round(appBarPx[0] * (1f - masterAt.value)).toInt()
         // A tutto schermo la master ha una testata sola, la sua (Franz, 08/10 18:15): quella della home rientra mentre il pannello sale.
         if (home == null) appBar?.invoke()
+        else if (!halfStops) appBar?.let { ab ->
+            val covered by remember { androidx.compose.runtime.derivedStateOf { masterAt.value >= 1f } }
+            if (!covered) Box(
+                Modifier.clipToBounds().layout { m, c ->
+                    val p = m.measure(c.copy(minHeight = 0, maxHeight = androidx.compose.ui.unit.Constraints.Infinity))
+                    appBarPx[0] = p.height
+                    val h = headerShown()
+                    layout(p.width, h) { p.place(0, h - p.height) }
+                }.graphicsLayer { alpha = 1f - masterAt.value },
+            ) { ab() }
+        }
         else appBar?.let { ab ->
             androidx.compose.animation.AnimatedVisibility(
                 visible = homeOpen || (halfStops && half),
@@ -597,10 +617,22 @@ fun SessionSheet(
                     else -> full
                 }
                 val height = remember { androidx.compose.animation.core.Animatable(if (homeOpen) 0f else target) }
-                LaunchedEffect(target, off) {
+                var settled by remember { mutableIntStateOf(0) }
+                val fling = remember { floatArrayOf(0f) }
+                LaunchedEffect(target, off, settled) {
                     if (height.value < dockPx && !homeOpen) height.snapTo(dockPx.toFloat())
-                    if (off) height.snapTo(target) else height.animateTo(target, androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow))
+                    if (off) height.snapTo(target) else height.animateTo(target, androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), fling[0])
+                    fling[0] = 0f
                 }
+                // Il foglio segue il dito: si allunga o si accorcia con la sua barra in cima.
+                val pullScope = androidx.compose.runtime.rememberCoroutineScope()
+                val pull = remember(full, dockPx, off) {
+                    MasterPull(
+                        by = { dy -> if (!off) pullScope.launch { height.snapTo((height.value - dy).coerceIn(dockPx.toFloat(), full)) } },
+                        release = { v -> fling[0] = -v; settled++ },
+                    )
+                }
+                androidx.compose.runtime.CompositionLocalProvider(LocalMasterPull provides pull) {
                 // Il foglio c'è finché non è tornato nella barra: solo allora ricompare la barra della home.
                 val sheet = !homeOpen || height.value > dockPx + 1f
                 Column(Modifier.fillMaxSize()) {
@@ -619,6 +651,7 @@ fun SessionSheet(
                             .clip(sh).masterChat(LocalMasterChatStyle.current, sh),
                     ) { chatArea() }
                 }
+                }
             }
         } else {
             // Nella home della master (Franz, 03/10 17:10) si anima solo la parte sopra il campo: la lista con la barra in
@@ -629,52 +662,69 @@ fun SessionSheet(
             // L'altezza della barra ridotta: il pannello si ferma lì, così la sua barra in cima parte e arriva esattamente
             // al posto di quella in basso (dal vivo 03/10 19:01: scendeva sotto il campo di testo e poi «risaliva»).
             var dockPx by remember { mutableIntStateOf(0) }
-            Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
-                androidx.compose.animation.AnimatedContent(
-                    homeOpen, label = "home",
-                    transitionSpec = {
-                        // Il pannello sale opaco dalla barra in basso e la lista dietro arretra (dissolvenza e scala 0,96); alla
-                        // chiusura scende per la stessa strada e resta sopra la lista che torna. Animazioni ridotte: solo
-                        // dissolvenza.
-                        val recede = androidx.compose.animation.core.tween<Float>(250, easing = CmMotion.easing)
-                        when {
-                            off -> androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(150)) togetherWith
-                                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150))
-                            !targetState -> androidx.compose.animation.slideInVertically(CmMotion.panel) { full -> (full - dockPx).coerceAtLeast(0) } togetherWith
-                                (androidx.compose.animation.fadeOut(recede) + androidx.compose.animation.scaleOut(recede, targetScale = 0.96f))
-                            else -> ((androidx.compose.animation.fadeIn(recede) + androidx.compose.animation.scaleIn(recede, initialScale = 0.96f)) togetherWith
-                                androidx.compose.animation.slideOutVertically(CmMotion.panel) { full -> (full - dockPx).coerceAtLeast(0) }).apply { targetContentZIndex = -1f }
-                        }
+            // Il tragitto della barra in pixel: tutta l'altezza, testata della home compresa, meno la barra stessa.
+            val openPx = remember { intArrayOf(0) }
+            var settled by remember { mutableIntStateOf(0) }
+            val fling = remember { floatArrayOf(0f) }
+            LaunchedEffect(homeOpen, settled, off) {
+                if (homePull != null) return@LaunchedEffect
+                val to = if (homeOpen) 0f else 1f
+                if (off) masterAt.snapTo(to) else masterAt.animateTo(to, CmMotion.panelFloat, fling[0])
+                fling[0] = 0f
+            }
+            val pullScope = androidx.compose.runtime.rememberCoroutineScope()
+            val pull = remember(off) {
+                MasterPull(
+                    by = { dy ->
+                        val travel = (openPx[0] - dockPx).coerceAtLeast(1)
+                        if (!off) pullScope.launch { masterAt.snapTo((masterAt.value - dy / travel).coerceIn(0f, 1f)) }
                     },
-                ) { showList ->
-                    // Il pannello della conversazione è opaco e ha gli angoli in alto, come un foglio: copre la lista mentre sale.
+                    release = { v -> fling[0] = -v / (openPx[0] - dockPx).coerceAtLeast(1); settled++ },
+                )
+            }
+            val showList by remember { androidx.compose.runtime.derivedStateOf { masterAt.value < 1f } }
+            val showPanel by remember { androidx.compose.runtime.derivedStateOf { masterAt.value > 0f } }
+            androidx.compose.runtime.CompositionLocalProvider(LocalMasterPull provides pull) {
+            Box(
+                Modifier.weight(1f).fillMaxWidth().clipToBounds().layout { m, c ->
+                    openPx[0] = c.maxHeight + headerShown()
+                    val p = m.measure(c)
+                    layout(p.width, p.height) { p.place(0, 0) }
+                },
+            ) {
+                // La home sta sotto e arretra in proporzione (dissolvenza e scala 0,96); la sua barra resta al posto suo, così il
+                // dito che l'ha presa continua a guidare il pannello che ora la copre.
+                if (showList || homeOpen) Column(Modifier.fillMaxSize()) {
+                    // Il contenuto della home scorre da sé: il riepilogo è una lista «pigra» (transizione 4).
                     Column(
-                        Modifier.fillMaxSize().then(
-                            if (showList) Modifier
-                            else RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp).let { sh -> Modifier.clip(sh).masterChat(LocalMasterChatStyle.current, sh) }
-                        ),
+                        Modifier.weight(1f).fillMaxWidth().graphicsLayer {
+                            val q = masterAt.value
+                            alpha = 1f - q; scaleX = 1f - .04f * q; scaleY = 1f - .04f * q
+                        },
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        if (showList) {
-                            // Il contenuto della home scorre da sé: il riepilogo è una lista «pigra» (transizione 4).
-                            Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                h({ draft = it }, { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
-                            }
-                            // Una barra sola che sale e scende (dal vivo 03/10 17:51: alla riduzione se ne vedevano due, quella del
-                            // pannello che scendeva sopra questa). Salendo sparisce subito: la sostituisce quella del pannello, che parte
-                            // da qui. Scendendo ricompare solo quando il pannello è arrivato in fondo.
-                            val dockAlpha by transition.animateFloat(
-                                transitionSpec = {
-                                    if (targetState == androidx.compose.animation.EnterExitState.Visible) androidx.compose.animation.core.tween(150, delayMillis = if (off) 0 else 200, easing = CmMotion.easing)
-                                    else androidx.compose.animation.core.snap()
-                                },
-                                label = "dock",
-                            ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
-                            // Il controller della lettura si posa sopra la barra, così la barra resta da toccare (09/10 16:50).
-                            ReadingSlot(s.name, overlay = true)
-                            Box(Modifier.onSizeChanged { dockPx = it.height }.graphicsLayer { alpha = dockAlpha }) { dock?.invoke() }
-                        } else chatArea()
+                        h({ draft = it }, { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
                     }
+                    // Il controller della lettura si posa sopra la barra, così la barra resta da toccare (09/10 16:50).
+                    ReadingSlot(s.name, overlay = true)
+                    Box(Modifier.onSizeChanged { dockPx = it.height }) { dock?.invoke() }
                 }
+                // Il pannello della conversazione è opaco e ha gli angoli in alto, come un foglio: rigido, alto come sarà da aperto,
+                // scorre sopra la home con la sua barra in cima.
+                if (showPanel || !homeOpen) {
+                    val sh = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    Column(
+                        Modifier.layout { m, c ->
+                            val open = c.maxHeight + headerShown()
+                            val p = m.measure(androidx.compose.ui.unit.Constraints.fixed(c.maxWidth, open))
+                            layout(c.maxWidth, c.maxHeight) {
+                                val q = 1f - masterAt.value
+                                p.place(0, kotlin.math.round((open - dockPx - appBarPx[0]) * q).toInt())
+                            }
+                        }.clip(sh).masterChat(LocalMasterChatStyle.current, sh),
+                    ) { chatArea() }
+                }
+            }
             }
         }
         // Il posto del mini-controller sopra il campo, come il mini-player delle app di musica (Franz, 03/10 23:00); il
@@ -1226,7 +1276,7 @@ private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecur
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> shot?.let { u -> if (ok) onPicked(listOf(Uri.parse(u))) }; shot = null }
     Box {
         IconButton(onClick = { menu = true }, modifier = Modifier.handCursor(), content = icon)
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Cm.surface) {
+        PressMenu(expanded = menu, onDismiss = { menu = false }) {
             AttachMenuItems(
                 attach = attach, files = files, onRecurring = onRecurring?.let { r -> { menu = false; r() } },
                 onDecision = onDecision?.let { d -> { menu = false; d() } },

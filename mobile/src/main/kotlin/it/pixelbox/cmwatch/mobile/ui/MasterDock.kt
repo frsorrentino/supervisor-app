@@ -1,6 +1,5 @@
 package it.pixelbox.cmwatch.mobile.ui
 
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -91,6 +90,13 @@ internal fun MasterSpark(state: it.pixelbox.cmwatch.contract.SessionState, size:
 }
 
 /**
+ * Il trascinamento della barra lo fa la pagina che la contiene (Franz, 01/11: «si deve muovere il contenuto con la barra del
+ * titolo»). [by] sposta barra e conversazione insieme, in pixel; [release] le lascia andare con la velocità del dito, in px/s.
+ */
+internal class MasterPull(val by: (Float) -> Unit, val release: (Float) -> Unit)
+internal val LocalMasterPull = androidx.compose.runtime.staticCompositionLocalOf<MasterPull?> { null }
+
+/**
  * La master nella home (design 03/10, tavola 4; Franz 16:30-16:44): ridotta è la barra agganciata sopra «Scrivi alla
  * master» (badge, «MASTER · ora · modello · contesto», il titolo dell'ultimo esito, ▶ e ▲); il tocco la espande a tutta
  * pagina, dove la stessa barra sta in cima con ▼, e un altro tocco la riduce; lo stesso col trascinamento in su e in giù.
@@ -131,11 +137,9 @@ fun MasterDock(
         val threshold = with(androidx.compose.ui.platform.LocalDensity.current) { 40.dp.toPx() }
         val up by androidx.compose.runtime.rememberUpdatedState(onUp)
         val down by androidx.compose.runtime.rememberUpdatedState(onDown)
-        // Voce 9: la barra segue il dito 1:1; al rilascio riparte con la velocità del dito, senza rimbalzo (Franz, 03/10 17:12).
-        val motionOff = animationsOff()
-        val pull = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
-        val pullScope = androidx.compose.runtime.rememberCoroutineScope()
-        val settle = androidx.compose.animation.core.spring<Float>(androidx.compose.animation.core.Spring.DampingRatioNoBouncy, androidx.compose.animation.core.Spring.StiffnessMediumLow)
+        // Voce 9: la conversazione segue il dito 1:1 con la sua barra; al rilascio riparte con la velocità del dito, senza rimbalzo.
+        // La posizione è quella del gesto e non del tocco: la barra si muove col dito, e dentro di lei il dito sembrerebbe fermo.
+        val carry by androidx.compose.runtime.rememberUpdatedState(LocalMasterPull.current)
         val drag = Modifier.pointerInput(expanded) {
             var total = 0f
             val speed = androidx.compose.ui.input.pointer.util.VelocityTracker()
@@ -143,21 +147,22 @@ fun MasterDock(
                 onDragStart = { total = 0f; speed.resetTracking() },
                 onDragEnd = {
                     val v = speed.calculateVelocity().y
+                    val flick = kotlin.math.abs(v) > 1200f
                     when {
-                        total < -threshold || v < -1200f -> up?.invoke() ?: run { if (!expanded) onToggle() }
-                        total > threshold || v > 1200f -> down?.invoke() ?: run { if (expanded) onToggle() }
+                        if (flick) v < 0f else total < -threshold -> up?.invoke() ?: run { if (!expanded) onToggle() }
+                        if (flick) v > 0f else total > threshold -> down?.invoke() ?: run { if (expanded) onToggle() }
                     }
-                    pullScope.launch { pull.animateTo(0f, settle, v) }
+                    carry?.release?.invoke(v)
                 },
-                onDragCancel = { pullScope.launch { pull.animateTo(0f, settle) } },
+                onDragCancel = { carry?.release?.invoke(0f) },
                 onVerticalDrag = { change, dy ->
-                    total += dy; speed.addPosition(change.uptimeMillis, change.position); change.consume()
-                    if (!motionOff) pullScope.launch { pull.snapTo(if (expanded) total.coerceAtLeast(0f) else total.coerceAtMost(0f)) }
+                    total += dy; speed.addPosition(change.uptimeMillis, androidx.compose.ui.geometry.Offset(0f, total)); change.consume()
+                    carry?.by?.invoke(dy)
                 },
             )
         }
         Row(
-            Modifier.graphicsLayer { translationY = pull.value }.fillMaxWidth().clip(shape).background(MasterHighest)
+            Modifier.fillMaxWidth().clip(shape).background(MasterHighest)
                 .then(drag)
                 .handCursor().clickable(onClick = onToggle).padding(start = 8.dp, end = if (screen) 4.dp else 12.dp, top = 10.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),

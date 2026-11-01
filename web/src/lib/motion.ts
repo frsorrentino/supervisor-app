@@ -45,3 +45,39 @@ export const fold = (_: Element, { ms = 200 }: { ms?: number } = {}) => ({
   duration: ms, easing: out,
   css: (t: number) => (reducedMotion() ? `opacity: ${t}` : `overflow: hidden; grid-template-rows: ${t}fr; opacity: ${t}`),
 })
+
+// Il cambio forma dei menu (Franz, 01/11; GrowFromPress in PhoneTheme.kt): il menu nasce grande come il tasto premuto, nel punto
+// premuto, e il suo contorno cresce fino alla posizione finale. Non è una scala: il testo non si deforma e non si parte da zero.
+const PRESS_SIDE = 44, MENU_CORNER = 14
+let lastPress: { x: number; y: number } | null = null
+if (typeof addEventListener === 'function') addEventListener('pointerdown', (e) => { lastPress = { x: e.clientX, y: e.clientY } }, { capture: true, passive: true })
+
+type Box = { left: number; top: number; width: number; height: number }
+/** Il contorno a `t` tra 0 (il tasto) e 1 (il menu al suo posto): quanto tagliare da ogni lato e di quanto spostare. */
+export function pressFrame(r: Box, press: { x: number; y: number } | null, t: number) {
+  const side = Math.min(PRESS_SIDE, r.width, r.height)
+  const x0 = press ? press.x - r.left - side / 2 : r.width - side
+  const y0 = press ? press.y - r.top - side / 2 : 0
+  const fx = x0 + side / 2 > r.width / 2 ? 1 : 0, fy = y0 + side / 2 > r.height / 2 ? 1 : 0
+  const cw = side + (r.width - side) * t, ch = side + (r.height - side) * t
+  const left = (r.width - cw) * fx, top = (r.height - ch) * fy
+  return { top, right: r.width - left - cw, bottom: r.height - top - ch, left, dx: x0 * (1 - t) - left, dy: y0 * (1 - t) - top }
+}
+const frameCss = (f: ReturnType<typeof pressFrame>) => `clip-path: inset(${f.top}px ${f.right}px ${f.bottom}px ${f.left}px round ${MENU_CORNER}px); translate: ${f.dx}px ${f.dy}px`
+
+/** Per i menu in `{#if}`: `transition:growFromPress`. Si può invertire a metà, e la chiusura è più rapida dell'apertura. */
+export const growFromPress = (node: Element) => {
+  const r = node.getBoundingClientRect(), press = lastPress
+  return ({ direction }: { direction?: 'in' | 'out' | 'both' } = {}) => ({
+    duration: reducedMotion() ? 0 : direction === 'out' ? 160 : 320, easing: out,
+    css: (t: number) => `${frameCss(pressFrame(r, press, t))}; opacity: ${Math.min(1, t * 6)}`,
+  })
+}
+
+/** Per i menu in `<dialog>`, da chiamare dopo `showModal()`: un dialog non aspetta una transizione per chiudersi, quindi solo l'apertura. */
+export function growDialog(d: Element | null | undefined) {
+  if (!d || reducedMotion() || !d.animate) return
+  const r = d.getBoundingClientRect()
+  const frame = (t: number) => { const f = pressFrame(r, lastPress, t); return { clipPath: `inset(${f.top}px ${f.right}px ${f.bottom}px ${f.left}px round ${MENU_CORNER}px)`, translate: `${f.dx}px ${f.dy}px` } }
+  d.animate([frame(0), frame(1)], { duration: 320, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' })
+}

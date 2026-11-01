@@ -38,7 +38,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -80,8 +82,8 @@ fun MenuPanel(
  * 28 dp, in testa una riga con ✕; il contenuto scorre se è più alto dello schermo. Indietro chiude.
  *
  * Il pannello nasce dal punto toccato ([origin]: ≡ in alto a destra, il nome della sessione in alto a sinistra) e ci torna
- * (osservazioni del 03/10, transizione 1): sfondo in dissolvenza in 150 ms, pannello da 0,96 a 1 con dissolvenza in 200 ms
- * con la curva dell'app, uscita per la stessa strada in 150 ms; [onDismiss] arriva a uscita finita. Con le animazioni
+ * (osservazioni del 03/10, transizione 1): sfondo in dissolvenza in 150 ms; il pannello cambia forma dal tasto premuto fino
+ * al suo posto ([growFromPress], Franz 01/11) e torna per la stessa strada, più in fretta; [onDismiss] arriva a uscita finita. Con le animazioni
  * spente compare e sparisce subito. Il contenuto riceve `close`, che chiude con l'uscita animata.
  */
 @Composable
@@ -98,8 +100,6 @@ fun PanelShell(
     var closing by remember { androidx.compose.runtime.mutableStateOf(false) }
     val close: () -> Unit = { if (off) onDismiss() else { closing = true; shown.targetState = false } }
     androidx.compose.runtime.LaunchedEffect(shown.isIdle, shown.currentState, closing) { if (closing && shown.isIdle && !shown.currentState) onDismiss() }
-    val enter = androidx.compose.animation.core.tween<Float>(200, easing = CmMotion.easing)
-    val exit = androidx.compose.animation.core.tween<Float>(150, easing = CmMotion.easing)
     // Compose misura il popup una volta sola, sulla parte visibile della finestra: aperto con la tastiera su (scrivendo alla
     // master) prendeva l'altezza sopra la tastiera, che il popup stesso chiude, e il menu si fermava a metà e scorreva con
     // lo spazio vuoto sotto (Franz, 12/10 22:11). Prima si chiude la tastiera, poi si apre il pannello; se la tastiera non
@@ -123,19 +123,23 @@ fun PanelShell(
             }
             androidx.compose.animation.AnimatedVisibility(
                 shown,
-                enter = androidx.compose.animation.fadeIn(enter) + androidx.compose.animation.scaleIn(enter, initialScale = 0.96f, transformOrigin = origin),
-                exit = androidx.compose.animation.fadeOut(exit) + androidx.compose.animation.scaleOut(exit, targetScale = 0.96f, transformOrigin = origin),
+                enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(60)),
+                exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(90, delayMillis = 90)),
                 // Su tablet e desktop un menu largo 380 dp dalla parte del tasto che lo apre, non a tutta larghezza (Franz, 05/10 13:10).
                 modifier = if (wide) Modifier.align(if (origin.pivotFractionX > 0.5f) Alignment.TopEnd else Alignment.TopStart)
                     .statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 56.dp, bottom = 24.dp).width(380.dp)
                 else Modifier.statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 56.dp, bottom = 24.dp).fillMaxWidth(),
             ) {
+                val grow by transition.animateFloat(
+                    transitionSpec = { if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.panelFloat else CmMotion.fast },
+                    label = "menu",
+                ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
                 Surface(
-                    shape = V3.Shape, color = V3.S1, shadowElevation = 8.dp, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line),
+                    shape = V3.Shape, color = V3.S1, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line),
                     // Il tocco dentro il pannello non lo chiude.
-                    modifier = Modifier.fillMaxWidth().then(if (tag != null) Modifier.testTag(tag) else Modifier).clickable(remember { MutableInteractionSource() }, indication = null) {},
+                    modifier = Modifier.growFromPress(origin) { grow }.fillMaxWidth().then(if (tag != null) Modifier.testTag(tag) else Modifier).clickable(remember { MutableInteractionSource() }, indication = null) {},
                 ) {
-                    V3Theme { Column {
+                    V3Theme { Column(Modifier.graphicsLayer { alpha = ((grow - .25f) / .5f).coerceIn(0f, 1f) }) {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             header()
                             IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2) }
@@ -195,5 +199,48 @@ private fun MenuItem(icon: ImageVector, title: String, sub: String, line: Boolea
     V3Row(!line, onClick, { Icon(icon, null, tint = tone, modifier = Modifier.size(22.dp)) }) {
         Text(title, style = V3.Name.copy(color = if (destructive) V3.Red else V3.Tx))
         if (sub.isNotEmpty()) Text(sub, style = V3.Small)
+    }
+}
+
+/**
+ * Il menu piccolo legato a un tasto, come il + del campo: stesso cambio forma di [PanelShell]. Sostituisce il `DropdownMenu`
+ * del Material, che ha una sua animazione e non si lascia cambiare. Sta sopra il tasto se sotto non c'è posto.
+ */
+@Composable
+internal fun PressMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val off = animationsOff()
+    val shown = remember { androidx.compose.animation.core.MutableTransitionState(false) }
+    shown.targetState = expanded
+    if (!shown.currentState && !shown.targetState) return
+    val provider = remember {
+        object : androidx.compose.ui.window.PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: androidx.compose.ui.unit.IntRect, windowSize: androidx.compose.ui.unit.IntSize,
+                layoutDirection: androidx.compose.ui.unit.LayoutDirection, popupContentSize: androidx.compose.ui.unit.IntSize,
+            ): androidx.compose.ui.unit.IntOffset {
+                val x = anchorBounds.left.coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0))
+                val below = anchorBounds.bottom + popupContentSize.height <= windowSize.height
+                return androidx.compose.ui.unit.IntOffset(x, if (below) anchorBounds.bottom else (anchorBounds.top - popupContentSize.height).coerceAtLeast(0))
+            }
+        }
+    }
+    Popup(popupPositionProvider = provider, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true)) {
+        androidx.compose.animation.AnimatedVisibility(
+            shown,
+            enter = if (off) androidx.compose.animation.EnterTransition.None else androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(60)),
+            exit = if (off) androidx.compose.animation.ExitTransition.None else androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(90, delayMillis = 90)),
+        ) {
+            val grow by transition.animateFloat(
+                transitionSpec = { if (off) androidx.compose.animation.core.snap() else if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.panelFloat else CmMotion.fast },
+                label = "menu",
+            ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
+            Surface(Modifier.growFromPress(androidx.compose.ui.graphics.TransformOrigin(0f, 1f)) { grow }, shape = RoundedCornerShape(14.dp), color = Cm.surface) {
+                Column(
+                    Modifier.graphicsLayer { alpha = ((grow - .25f) / .5f).coerceIn(0f, 1f) }.width(androidx.compose.foundation.layout.IntrinsicSize.Max)
+                        .padding(vertical = 8.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                    content = content,
+                )
+            }
+        }
     }
 }

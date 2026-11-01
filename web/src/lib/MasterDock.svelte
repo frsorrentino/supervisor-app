@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { reducedMotion } from './motion'
   import { locale } from './lang'
   import type { Snippet } from 'svelte'
   import type { Session } from './contract'
@@ -43,19 +42,19 @@
   // screenY e non clientY: dentro Studio il riquadro si sposta col dito, e le coordinate della pagina con lui.
   let y0: number | null = null
   let dragged = false
-  let pull = $state(0)
-  function down(e: PointerEvent) { y0 = e.screenY; dragged = false; if (onDrag) (e.currentTarget as Element).setPointerCapture?.(e.pointerId) }
+  function down(e: PointerEvent) { y0 = e.screenY; dragged = false }
   function move(e: PointerEvent) {
     if (y0 == null) return
     const dy = e.screenY - y0
-    // Voce 9: la barra segue il dito 1:1; senza rimbalzo.
-    if (!onDrag) { pull = reducedMotion() ? 0 : expanded ? Math.max(0, dy) : Math.min(0, dy); return }
-    if (Math.abs(dy) > 8) { dragged = true; onDrag(dy) }
+    // Voce 9: la barra non si muove mai da sola (Franz, 01/11): chi la contiene sposta anche la conversazione, con `onDrag`.
+    // La cattura solo qui, oltre gli 8 px: presa prima porterebbe alla barra il tocco dei tasti che le stanno dentro.
+    if (!onDrag) return
+    if (dragged || Math.abs(dy) > 8) { if (!dragged) (e.currentTarget as Element).setPointerCapture?.(e.pointerId); dragged = true; onDrag(dy) }
   }
   function release(e: PointerEvent) {
     if (y0 == null) return
     const dy = e.screenY - y0
-    y0 = null; pull = 0
+    y0 = null
     if (onDrop) { if (dragged) onDrop(dy); return }
     if ((dy < -40 && !expanded) || (dy > 40 && expanded)) { dragged = true; onToggle() }
   }
@@ -67,8 +66,8 @@
   </button>
 {/snippet}
 
-<div class="dock" class:expanded class:screen style:transform={pull ? `translateY(${pull}px)` : null} role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
-  onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={() => { if (y0 != null && dragged) onDrop?.(0); y0 = null; pull = 0 }}>
+<div class="dock" class:expanded class:screen role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
+  onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={() => { if (y0 != null && dragged) onDrop?.(0); y0 = null }}>
   <!-- La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42). -->
   {#if !bar}{@render toggleKey()}{/if}
   {#if onClose}

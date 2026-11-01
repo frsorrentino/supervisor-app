@@ -40,13 +40,15 @@ Costruite tutte il 31/10 e l'1/11. Dove il comportamento si scosta dalla tabella
 - **6:** scala a 0,97 alla pressione, senza rimbalzo.
 - **7:** telefono: entra da altezza 0 in 220 ms ed esce in dissolvenza di 80 ms, le altre salgono con la molla. Web: 220 e 160 ms.
 - **8:** la copia vola al posto con il rimbalzo; vibrazione a ogni scambio solo sul telefono. Se il posto finale è fuori schermo la copia sparisce.
-- **9:** la barra segue il dito 1:1 e riparte con la velocità del dito, senza rimbalzo; si muove la barra, non il foglio intero. Sopra 1200 px/s basta il lancio, solo telefono.
+- **9:** rifatta l'1/11 dopo la prova di Franz sulla 0.2.1636 («il drag riguarda solo la barra e il contenuto rimane fermo»). Ora la barra non si muove mai da sola: col dito si sposta tutto il pannello della conversazione, rigido, con la barra in cima, sopra la home che arretra; il campo resta fermo. Sul telefono una frazione guida sia il gesto sia il tocco (molla `CmMotion.panelFloat`, uguale a `panel`, con la velocità del dito), e sul tablet il foglio si allunga col dito. Sul web lo stesso gesto nella colonna unica e nel foglio della plancia; sulla plancia, da chiusa, il gesto apre al rilascio senza muovere nulla, e nel pannello laterale non sposta nulla. Con le animazioni ridotte niente inseguimento: il cambio avviene al rilascio.
 - **10:** spunta verde quando chi aspetta passa da qualcuno a nessuno, per 2,5 s; non guarda i lavori finiti.
 - **11:** il tasto scelto diventa una pillola con la spunta che si allarga, gli altri sfumano in 150 ms; se il PC non risponde i tasti tornano dopo 8 s.
 - **12:** la voce esce in 160 ms, avanti su Accetta, una scelta e Parliamone, in basso su Non ora e Mai; la risposta parte dopo quei 160 ms. La successiva sale da 0,95 col rimbalzo.
 - **13:** `HapticFeedbackConstants.CONFIRM` su ok, Accetta o una scelta, e «Ferma il ciclo»; solo telefono.
 - **14:** `CmMotion.fast`, `bounce`, `slow` e le loro varianti; `--spring-fast`, `--spring-bounce`, `--spring-slow` con la durata accanto.
 - **15:** `tnum` su cifre grandi e tabellone del telefono; `tabular-nums` su tutta la pagina web.
+
+- **16, cambio forma dei menu (Franz, 01/11):** il menu nasce grande come il tasto, 44 punti attorno al punto premuto, e il contorno cresce fino al posto finale: si allarga un ritaglio, quindi il testo non si deforma e non si parte mai da zero. Niente rimbalzo. Telefono: `growFromPress` in `PanelShell` (menu in alto a destra, «Vai a», menu della sessione, Modello ed effort) e `PressMenu`, che sostituisce il `DropdownMenu` del +; apre con `CmMotion.panelFloat`, chiude con `CmMotion.fast`, inverte a metà; spento con `animationsOff()`. Web: `growFromPress` sui menu in `{#if}` (320 ms in apertura, 160 in chiusura) e `growDialog` sui menu in `<dialog>`, che si aprono così ma si chiudono di colpo perché un dialog non aspetta. I fogli dal basso (`ModalBottomSheet`) non sono menu e restano come sono.
 
 ## Le due del film, dette onestamente
 

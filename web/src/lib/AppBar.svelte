@@ -7,6 +7,7 @@
   import { personal } from './badge'
   import { freshness } from './durations'
   import { t } from './t'
+  import { growFromPress } from './motion'
   import { resetLabel } from './header'
   import { shown } from './quotaLine'
 
@@ -79,7 +80,7 @@
 {#if menu}
   <div class="scrim" role="presentation" onclick={(e) => { e.stopPropagation(); menu = false }}></div>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="panel v3" data-testid="menu-v3" role="menu" tabindex="-1" style:right="{panelRight}px" onclick={(e) => e.stopPropagation()}>
+  <div class="panel v3" transition:growFromPress data-testid="menu-v3" role="menu" tabindex="-1" style:right="{panelRight}px" onclick={(e) => e.stopPropagation()}>
     <div class="ph">
       <i class="led" class:stale={fresh.stale}></i>
       <span>{t.menuConnected(st.host || t.menuPc, updated)}</span>
@@ -125,7 +126,7 @@
   .track { flex: 1; height: 3px; border-radius: 2px; background: var(--b-track); overflow: hidden; }
   .track i { display: block; height: 100%; }
   .scrim { position: fixed; inset: 0; z-index: 20; background: rgb(0 0 0 / .55); animation: fade .15s; }
-  .panel { position: fixed; z-index: 21; top: 56px; left: 12px; right: 12px; max-height: calc(100% - 80px); overflow-y: auto; background: var(--surface); border-radius: 28px; padding: 8px 0; box-shadow: 0 12px 40px rgb(0 0 0 / .5); transform-origin: top right; animation: pop .2s cubic-bezier(.2, .8, .2, 1); }
+  .panel { position: fixed; z-index: 21; top: 56px; left: 12px; right: 12px; max-height: calc(100% - 80px); overflow-y: auto; background: var(--surface); border-radius: 28px; padding: 8px 0; box-shadow: 0 12px 40px rgb(0 0 0 / .5); transform-origin: top right; }
   /* Su tablet e desktop largo 380 dalla parte del tasto che lo apre. */
   @media (min-width: 600px) { .panel { left: auto; width: 380px; } }
   @keyframes pop { from { opacity: 0; scale: .96; } }

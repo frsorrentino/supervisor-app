@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { growDialog, growFromPress } from './motion'
   import CloseDialog from './CloseDialog.svelte'
   import type { CmdOp, Model, Session, State } from './contract'
   import { modelKind, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
@@ -138,6 +139,7 @@
     const left = vw < 600 ? 12 : Math.round(Math.max(12, Math.min((r?.left ?? 12) - 8, vw - w - 12)))
     tunePos = `top:${top}px;left:${left}px;width:${w}px;max-height:calc(100dvh - ${top + 16}px)`
     tune?.showModal()
+    growDialog(tune)
     // Il fuoco sul pannello, non sulla ✕: l'anello attorno alla ✕ sembrava una scelta.
     tune?.querySelector<HTMLElement>('.tpi')?.focus()
   }
@@ -213,7 +215,7 @@
       </button>
       {#if menu}
         <button class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
-        <div class="panel v3" role="menu">
+        <div class="panel v3" transition:growFromPress role="menu">
           <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
           {#if changesMenu && changes}
             <button class="mi" role="menuitem" disabled={!onChanges} onclick={() => { menu = false; onChanges?.() }}>
@@ -379,7 +381,7 @@
   /* Il puntino del consiglio, in alto a destra della pillola (mockup 1.37). */
   .dot { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--advice); border: 2px solid var(--bg); }
   /* Il pannello Modello ed effort, come il menu dell'app (AppBar): angoli da 28, voci da 64 con il cerchio da 40. */
-  dialog.tunep { position: fixed; inset: auto; margin: 0; padding: 0; max-width: none; border-radius: 28px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); overflow-y: auto; transform-origin: top left; animation: pop .2s cubic-bezier(.2, .8, .2, 1); }
+  dialog.tunep { position: fixed; inset: auto; margin: 0; padding: 0; max-width: none; border-radius: 28px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); overflow-y: auto; transform-origin: top left; }
   dialog.tunep::backdrop { animation: fade .15s; }
   @media (max-width: 599px) { dialog.tunep { margin: 0; border-radius: 28px; } }
   @media (prefers-reduced-motion: reduce) { dialog.tunep, dialog.tunep::backdrop { animation: none; } }
