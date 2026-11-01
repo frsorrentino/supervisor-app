@@ -96,13 +96,7 @@ fun SettingsScreen(
     @Composable fun section(key: String, title: String, icon: ImageVector, right: String?, body: @Composable () -> Unit) {
         val on = key in opened
         V3Section(title, icon, right = if (on) null else right, tag = "impostazioni-sezioni-$key", open = on, onToggle = { opened = if (on) opened - key else opened + key })
-        // Come le voci della home (voce 5): il corpo si apre in altezza; la freccina ruota già in V3Section.
-        val still = animationsOff()
-        androidx.compose.animation.AnimatedVisibility(
-            on,
-            enter = if (still) androidx.compose.animation.EnterTransition.None else androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(200, easing = CmMotion.easing)) + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200, delayMillis = 60)),
-            exit = if (still) androidx.compose.animation.ExitTransition.None else androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(150, easing = CmMotion.easing)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(80)),
-        ) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { body() } }
+        FoldIn(on) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { body() } }
     }
     V3Theme { Column(Modifier.fillMaxSize().background(V3.Bg).systemBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {

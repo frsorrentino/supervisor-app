@@ -173,12 +173,34 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
             dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
             right?.let { Text(it, style = V3.Small, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
         }
-        // Voce 5: la freccina ruota, senza rimbalzo.
-        val turn by androidx.compose.animation.core.animateFloatAsState(if (open == true) 180f else 0f, if (animationsOff()) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(200, easing = CmMotion.easing), label = "turn")
-        if (open != null) Icon(Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp).graphicsLayer { rotationZ = turn })
+        if (open != null) TurnArrow(open, V3.Tx3, Modifier.padding(start = 6.dp).size(24.dp))
         else if (nav) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))
     }
 }
+
+/** Voce 5: la freccina delle voci richiudibili ruota, senza rimbalzo. Una sola per tutta l'app. */
+@Composable
+internal fun TurnArrow(open: Boolean, tint: Color, modifier: Modifier = Modifier, description: String? = null) {
+    val turn by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, if (animationsOff()) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(200, easing = CmMotion.easing), label = "turn")
+    Icon(Icons.Rounded.ExpandMore, description, tint = tint, modifier = modifier.graphicsLayer { rotationZ = turn })
+}
+
+/** Voce 5, dove il corpo non è un elemento di una lista pigra: si apre in altezza, il contenuto entra quando c'è posto. */
+@Composable
+internal fun FoldIn(visible: Boolean, content: @Composable () -> Unit) {
+    val still = animationsOff()
+    androidx.compose.animation.AnimatedVisibility(
+        visible,
+        enter = if (still) androidx.compose.animation.EnterTransition.None else androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(200, easing = CmMotion.easing)) + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200, delayMillis = 60)),
+        exit = if (still) androidx.compose.animation.ExitTransition.None else androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(150, easing = CmMotion.easing)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(80)),
+    ) { content() }
+}
+
+/** Voce 5, nelle liste pigre: quel che compare aspetta che le sezioni sotto abbiano fatto posto, quel che esce sparisce prima che salgano. */
+@Composable
+internal fun androidx.compose.foundation.lazy.LazyItemScope.foldItem(): Modifier =
+    if (animationsOff()) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null)
+    else Modifier.animateItem(fadeInSpec = androidx.compose.animation.core.tween(130, delayMillis = 170), fadeOutSpec = androidx.compose.animation.core.tween(80), placementSpec = CmMotion.bounce)
 
 /** Il filetto delle scatole bianche del giorno B; di notte il fondo basta. */
 internal fun Modifier.v3Edge(): Modifier = if (V3.day) border(1.dp, V3.Line, V3.Shape) else this

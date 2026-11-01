@@ -2,7 +2,6 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -103,20 +101,22 @@ fun NightScreen(
             }
             if (page.needs.isNotEmpty()) {
                 item(key = "needs") { Section(stringResource(R.string.night_needs_title, page.needs.size), stringResource(R.string.night_needs_expl), needsOpen) { needsOpen = !needsOpen } }
-                if (needsOpen) page.needs.forEachIndexed { i, n -> item(key = "need$i") { NeedRow(n, first = i == 0, onAnswer, onApprove, onSend) } }
+                if (needsOpen) page.needs.forEachIndexed { i, n -> item(key = "need$i") { Box(foldItem()) { NeedRow(n, first = i == 0, onAnswer, onApprove, onSend) } } }
             }
             item(key = "items") { Section(stringResource(R.string.night_items_title, page.cards.size), stringResource(R.string.night_items_expl), itemsOpen) { itemsOpen = !itemsOpen } }
             // Chiavi mai ripetute: una chiave doppia chiude l'app (15/10 23:41, due sessioni con lo stesso nome).
             val cardKeys = uniqueKeys(page.cards) { "c" + it.id }
             if (itemsOpen) items(page.cards.size, key = { cardKeys[it] }) { i ->
+                Box(foldItem()) {
                 val c = page.cards[i]
                 val times = if (c.end == null) stringResource(R.string.night_since, t(c.start)) else "${t(c.start)}–${t(c.end!!)} · ${shortDuration(c.durationS ?: 0)}"
                 CardRow(c, open = open == c.id, times = times, t = ::t, onToggle = { open = if (open == c.id) null else c.id }, onChat = onChat, onTranscript = onTranscript)
             }
+            }
             if (gantt == null && page.projects.isNotEmpty()) {
                 item(key = "projects") { Section(stringResource(R.string.night_projects_title, page.projects.size), stringResource(R.string.night_projects_expl), projectsOpen) { projectsOpen = !projectsOpen } }
                 val projectKeys = uniqueKeys(page.projects) { "p" + it.name }
-                if (projectsOpen) items(page.projects.size, key = { projectKeys[it] }) { i -> ProjectRow(page.projects[i]) }
+                if (projectsOpen) items(page.projects.size, key = { projectKeys[it] }) { i -> Box(foldItem()) { ProjectRow(page.projects[i]) } }
             }
             // Le notti precedenti (op `nights`, contratto 1.74): al tocco il loro rapporto prende il posto di questo.
             if (earlier.isNotEmpty()) {
@@ -149,7 +149,7 @@ private fun Heading(title: String, explain: String?) {
 private fun Section(title: String, explain: String, open: Boolean, onToggle: () -> Unit) {
     Column(Modifier.fillMaxWidth().handCursor().clickable(onClick = onToggle).padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(if (open) Icons.Rounded.ExpandMore else Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Cm.actionIcon, modifier = Modifier.size(18.dp))
+            TurnArrow(open, Cm.actionIcon, Modifier.size(18.dp))
             Text(title.uppercase(), style = MonoSmall.copy(color = Cm.text2, letterSpacing = 1.8.sp))
         }
         Text(explain, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
@@ -282,7 +282,7 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
                 modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = .16f)).padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
             )
             if (c.steps.isNotEmpty()) androidx.compose.material3.IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
-                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = Cm.text2)
+                TurnArrow(open, Cm.text2, description = stringResource(if (open) R.string.steps_close else R.string.steps_open))
             }
         }
         Text(stringResource(if (c.queue) R.string.night_kind_job else R.string.night_kind_session) + " · " + times, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
@@ -292,7 +292,7 @@ private fun CardRow(c: NightPage.Card, open: Boolean, times: String, t: (Long) -
             listOf(stringResource(R.string.night_count_commits, c.commits!!), stringResource(R.string.night_count_tests, c.tests ?: 0), stringResource(R.string.night_count_prompts, c.prompts ?: 0)).joinToString(" · "),
             style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
         )
-        if (open) {
+        FoldIn(open) {
             if (c.steps.isNotEmpty()) Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 c.steps.forEach { s -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(t(s.at), style = MonoSmall.copy(color = Cm.text2))

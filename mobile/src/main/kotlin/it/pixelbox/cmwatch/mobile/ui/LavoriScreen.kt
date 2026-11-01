@@ -24,8 +24,6 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -149,25 +147,25 @@ fun LavoriScreen(
             val later = fy.outside.size + fy.claude.size
             if (later > 0) item("fold-later") { Fold(stringResource(R.string.lavori_later, later), "later" in open) { toggle("later") } }
             if (fy.outside.isNotEmpty() && "later" in open) {
-                item("grp-outside") { GroupHeader(stringResource(R.string.lavori_outside) + " · " + fy.outside.size, Cm.waiting) }
+                item("grp-outside") { Box(foldItem()) { GroupHeader(stringResource(R.string.lavori_outside) + " · " + fy.outside.size, Cm.waiting) } }
                 val shown = if ("outside" in open) fy.outside else fy.outside.take(2)
                 shown.forEachIndexed { i, r ->
-                    item("fy-out-$i-${r.agenda?.key ?: r.commitment?.task ?: r.title}") {
+                    item("fy-out-$i-${r.agenda?.key ?: r.commitment?.task ?: r.title}") { Box(foldItem()) {
                         ForYouCard(r, zone, stringResource(R.string.agenda_done), filled = false) { _, _ ->
                             r.agenda?.let { onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, it)) }
                             r.commitment?.let(onDoneForPerson)
                         }
-                    }
+                    } }
                 }
-                if (fy.outside.size > 2) item("fold-outside") { Fold(if ("outside" in open) stringResource(R.string.lavori_less) else stringResource(R.string.lavori_more, fy.outside.size - 2), "outside" in open) { toggle("outside") } }
+                if (fy.outside.size > 2) item("fold-outside") { Box(foldItem()) { Fold(if ("outside" in open) stringResource(R.string.lavori_less) else stringResource(R.string.lavori_more, fy.outside.size - 2), "outside" in open) { toggle("outside") } } }
             }
             if (fy.claude.isNotEmpty() && "later" in open) {
-                item("grp-claude") { GroupHeader(stringResource(R.string.lavori_claude) + " · " + fy.claude.size, Cm.busy) }
+                item("grp-claude") { Box(foldItem()) { GroupHeader(stringResource(R.string.lavori_claude) + " · " + fy.claude.size, Cm.busy) } }
                 val shown = if ("claude" in open) fy.claude else fy.claude.take(2)
                 shown.forEachIndexed { i, r ->
-                    item("fy-cl-$i-${r.agenda?.key ?: r.title}") { ForYouCard(r, zone, stringResource(R.string.lavori_start), filled = false) { _, _ -> r.agenda?.let { onStart(RecapAgenda.doIt(it)) } } }
+                    item("fy-cl-$i-${r.agenda?.key ?: r.title}") { Box(foldItem()) { ForYouCard(r, zone, stringResource(R.string.lavori_start), filled = false) { _, _ -> r.agenda?.let { onStart(RecapAgenda.doIt(it)) } } } }
                 }
-                if (fy.claude.size > 2) item("fold-claude") { Fold(if ("claude" in open) stringResource(R.string.lavori_less) else stringResource(R.string.lavori_more, fy.claude.size - 2), "claude" in open) { toggle("claude") } }
+                if (fy.claude.size > 2) item("fold-claude") { Box(foldItem()) { Fold(if ("claude" in open) stringResource(R.string.lavori_less) else stringResource(R.string.lavori_more, fy.claude.size - 2), "claude" in open) { toggle("claude") } } }
             }
         }
         if (right) {
@@ -229,7 +227,7 @@ fun LavoriScreen(
                     // Un giorno richiuso con il solo conteggio (1.77) si carica al tocco con `done` di quel giorno.
                     DayHeader(label, shown, if (isToday) null else ({ toggle(key); if (day.rows.isEmpty() && day.n > 0) onLoadDay(day.date.toString()) }))
                 }
-                if (shown) day.rows.forEach { d -> item("dn-${day.date}-${d.task}") { DoneRow(d, zone, onSession) } }
+                if (shown) day.rows.forEach { d -> item("dn-${day.date}-${d.task}") { Box(foldItem()) { DoneRow(d, zone, onSession) } } }
             }
             // Proposta 9: i controlli verdi e rossi della settimana.
             kpi?.checksWeek?.takeIf { it.isNotEmpty() }?.let { d -> item("kpi-9") { Box(Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) { Kpi9(d) } } }
@@ -252,10 +250,8 @@ private fun Fold(text: String, open: Boolean?, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.weight(1f))
-        Icon(
-            when (open) { null -> Icons.AutoMirrored.Rounded.KeyboardArrowRight; true -> Icons.Rounded.ExpandLess; false -> Icons.Rounded.ExpandMore },
-            null, tint = Cm.actionIcon, modifier = Modifier.size(20.dp),
-        )
+        if (open == null) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Cm.actionIcon, modifier = Modifier.size(20.dp))
+        else TurnArrow(open, Cm.actionIcon, Modifier.size(20.dp))
     }
 }
 
@@ -435,7 +431,7 @@ private fun DayHeader(label: String, open: Boolean, onToggle: (() -> Unit)?) {
     ) {
         Text(label.uppercase(), style = MonoSmall.copy(color = Cm.text2, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold))
         Box(Modifier.weight(1f).height(1.dp).background(Cm.line))
-        if (onToggle != null) Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = Cm.actionIcon, modifier = Modifier.size(18.dp))
+        if (onToggle != null) TurnArrow(open, Cm.actionIcon, Modifier.size(18.dp))
     }
 }
 

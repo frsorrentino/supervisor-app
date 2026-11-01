@@ -287,14 +287,7 @@ fun SummaryList(
     // Una lista «pigra» con le card riconosciute dal nome della sessione: quando una sessione cambia gruppo (da «Al lavoro» a
     // «Ha finito») la sua card scivola al posto nuovo e le altre si spostano (osservazioni del 03/10, transizione 4).
     val off = animationsOff()
-    val moving: @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = {
-        if (off) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null)
-        else Modifier.animateItem(
-            // Voce 5: quel che compare aspetta che le sezioni sotto abbiano fatto posto, quel che esce sparisce prima che salgano: mai una sopra l'altra.
-            fadeInSpec = androidx.compose.animation.core.tween(130, delayMillis = 170), fadeOutSpec = androidx.compose.animation.core.tween(80),
-            placementSpec = CmMotion.bounce,
-        )
-    }
+    val moving: @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { foldItem() }
     val movingIn: (String) -> @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { sec ->
         // La voce presa non scivola: al suo posto c'è già la copia che segue il dito, e scivolando passerebbe sopra le altre.
         { (if (dragKey == sec) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null) else moving()).graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f } }

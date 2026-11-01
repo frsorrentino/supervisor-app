@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -173,13 +171,10 @@ internal fun AgendaRowCard(
                 if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             }
             if (items.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { open = !open }, modifier = Modifier.size(40.dp).handCursor()) {
-                Icon(
-                    if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    stringResource(if (open) R.string.agenda_card_close else R.string.agenda_card_open), tint = Cm.text2,
-                )
+                TurnArrow(open, Cm.text2, description = stringResource(if (open) R.string.agenda_card_close else R.string.agenda_card_open))
             }
         }
-        if (open && items.isNotEmpty()) Column(Modifier.padding(end = 10.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        FoldIn(open && items.isNotEmpty()) { Column(Modifier.padding(end = 10.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             androidx.compose.material3.HorizontalDivider(color = Cm.line)
             val detail = row.detail?.trim()?.takeIf { it.isNotEmpty() }
             Text(detail ?: stringResource(R.string.agenda_no_detail), style = MaterialTheme.typography.bodyMedium, color = if (detail != null) Cm.text else Cm.text2)
@@ -208,7 +203,7 @@ internal fun AgendaRowCard(
                     }
                 }
             }
-        }
+        } }
     }
 }
 

@@ -12,6 +12,7 @@
   import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Line } from './lavori'
   import { doIt, mark, type Edit } from './recapAgenda'
   import type { RecapAction } from './recapActions'
+  import { fold as foldIn } from './motion'
   import { t } from './t'
   import Icon from './Icon.svelte'
 
@@ -90,7 +91,7 @@
 
 {#snippet fold(text: string, state: boolean | null, onClick: () => void)}
   <button class="fold" onclick={onClick}><span>{text}</span>
-    <svg viewBox="0 0 24 24" width="20" height="20"><path d={state === null ? 'M10 7l5 5-5 5' : state ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" /></svg>
+    <svg class="turn" class:up={state === true} viewBox="0 0 24 24" width="20" height="20"><path d={state === null ? 'M10 7l5 5-5 5' : 'M6 9l6 6 6-6'} fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" /></svg>
   </button>
 {/snippet}
 
@@ -142,16 +143,16 @@
       {#each fy.ok as r, i (`ok-${i}`)}{@render row(r, r.approval ? t.approve : null, true, () => r.approval && ask(r.approval))}{/each}
     {/if}
     {#if later}{@render fold(t.lavoriLater(later), !!open.later, () => toggle('later'))}{/if}
-    {#if fy.outside.length && open.later}
+    {#if fy.outside.length && open.later}<div class="fb" in:foldIn out:foldIn={{ ms: 150 }}><div class="foldin">
       <h4 class="gh" style="--t:var(--b-warn)"><span>{t.lavoriOutside.toUpperCase()} · {fy.outside.length}</span><i></i></h4>
       {#each open.outside ? fy.outside : fy.outside.slice(0, 2) as r, i (`out-${i}`)}{@render row(r, t.agendaDone, false, () => outsideClick(r))}{/each}
       {#if fy.outside.length > 2}{@render fold(open.outside ? t.lavoriLess : t.lavoriMore(fy.outside.length - 2), !!open.outside, () => toggle('outside'))}{/if}
-    {/if}
-    {#if fy.claude.length && open.later}
+    </div></div>{/if}
+    {#if fy.claude.length && open.later}<div class="fb" in:foldIn out:foldIn={{ ms: 150 }}><div class="foldin">
       <h4 class="gh" style="--t:var(--busy)"><span>{t.lavoriClaude.toUpperCase()} · {fy.claude.length}</span><i></i></h4>
       {#each open.claude ? fy.claude : fy.claude.slice(0, 2) as r, i (`cl-${i}`)}{@render row(r, t.lavoriStart, false, () => r.agenda && onStart(doIt(r.agenda)))}{/each}
       {#if fy.claude.length > 2}{@render fold(open.claude ? t.lavoriLess : t.lavoriMore(fy.claude.length - 2), !!open.claude, () => toggle('claude'))}{/if}
-    {/if}
+    </div></div>{/if}
   {/if}
 
   {#if right}
@@ -213,9 +214,9 @@
       {@const shown = isToday || !!open[`day:${d.date}`]}
       <button class="day" disabled={isToday} onclick={() => { toggle(`day:${d.date}`); if (!d.rows.length && d.n > 0) onLoadDay(d.date) }}>
         <span>{(isToday ? t.lavoriToday(dm(d.date), d.n) : d.date === yesterday ? t.lavoriYesterday(dm(d.date), d.n) : t.lavoriDay(weekday(d.date), d.n)).toUpperCase()}</span><i></i>
-        {#if !isToday}<svg viewBox="0 0 24 24" width="18" height="18"><path d={shown ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" /></svg>{/if}
+        {#if !isToday}<svg class="turn" class:up={shown} viewBox="0 0 24 24" width="18" height="18"><path d="M6 9l6 6 6-6" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" /></svg>{/if}
       </button>
-      {#if shown}
+      {#if shown}<div class="fb" in:foldIn out:foldIn={{ ms: 150 }}><div class="foldin">
         {#each d.rows as x (x.task)}
           <div class="done">
             {#if x.outcome === 'failed'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--gone)" stroke-width="2.4" stroke-linecap="round" /></svg>
@@ -225,7 +226,7 @@
             <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? proofFallback(x)}</a>{:else}<span class="proof" class:plain={!x.proof}>{x.proof ?? proofFallback(x)}</span>{/if}</small></span>
           </div>
         {/each}
-      {/if}
+      </div></div>{/if}
     {/each}
     <!-- Proposta 9: i controlli verdi e rossi della settimana. -->
     {#if kpi?.kpi_checks_week?.length}<div class="kpi"><Kpi9 days={kpi.kpi_checks_week} /></div>{/if}
@@ -261,6 +262,12 @@
   .axis { display: flex; padding: 2px 18px; font: 11px var(--mono); color: var(--b-axis, #8B929C); } .axis span { flex: 1; } .axis b { font-weight: 400; color: var(--text); }
   .key { margin: 0 6px 6px; font: 11px/1.4 var(--mono); color: var(--b-axis, #8B929C); }
   .card { display: flex; flex-direction: column; gap: 4px; padding: 14px; }
+  .turn { flex: none; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .turn.up { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .turn { transition: none; } }
+  .fb { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; }
+  .foldin { min-height: 0; display: flex; flex-direction: column; gap: inherit; }
+  .foldin > :global(*) { flex-shrink: 0; }
   .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; letter-spacing: 0; }
   .seg button { height: 32px; padding: 0 14px; color: var(--text2); font: 500 13px/1 var(--sans, inherit); } .seg button + button { border-left: 1px solid var(--line); } .seg button.on { background: color-mix(in srgb, var(--icon) 16%, transparent); color: var(--text); }
   .wl { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; background: var(--low); border-radius: 16px; }

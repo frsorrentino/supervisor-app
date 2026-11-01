@@ -344,12 +344,9 @@ fun NightAgendaPicker(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(stringResource(R.string.recap_you, yours.size), style = MaterialTheme.typography.labelLarge, color = Cm.text2, modifier = Modifier.weight(1f))
-            Icon(
-                if (yoursOpen) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore,
-                null, tint = Cm.text2, modifier = Modifier.size(20.dp),
-            )
+            TurnArrow(yoursOpen, Cm.text2, Modifier.size(20.dp))
         }
-        if (yoursOpen) yours.forEach { r -> NightPickRow(r, id(r) in picked) { toggle(r) } }
+        FoldIn(yoursOpen) { Column { yours.forEach { r -> NightPickRow(r, id(r) in picked) { toggle(r) } } } }
         // Tonale: il tasto pieno del foglio resta «Aggiungi alla notte» del progetto (un solo bottone pieno per schermata).
         if (picked.isNotEmpty()) androidx.compose.material3.FilledTonalButton(
             onClick = { onQueue(rows.filter { id(it) in picked }) },
