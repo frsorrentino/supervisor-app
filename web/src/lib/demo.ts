@@ -184,6 +184,9 @@ export function world(now: number): World {
   const fullDiffs: Record<string, StepDiff> = { 'blog/w1': { ...benchStep, hunks: [benchHunk(bench.length)], cut: false } }
   const transcripts: Record<string, TranscriptEntry[]> = {
     master: [
+      claude('a0', en
+        ? 'demo-cover is ready for you, the other jobs are running.\n\n**For you**\n1. Send the cover image to the blog session.\n2. Log in to the payment sandbox.\n\n**Not tested:** the checkout on a real phone.\n\nEsito: two things wait for you.'
+        : 'demo-cover è pronto per te, gli altri lavori vanno avanti.\n\n**Da te**\n1. Manda l\'immagine di copertina alla sessione del blog.\n2. Fai il login nella sandbox dei pagamenti.\n\n**Non provato:** il checkout su un telefono vero.\n\nEsito: due cose aspettano te.', now - 900),
       said('u1', en ? 'Launch payments-api on phase 2.2' : 'Lancia payments-api sulla fase 2.2', now - 660, 'phone'),
       claude('a1', en
         ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { replaceNames, splitLabels, taskNames } from './chatLabels'
 import { world } from './demo'
 import { DemoTransport } from './demoTransport'
 import { DEFAULT_ORDER, pinned, type HomeSection } from './homeOrder'
@@ -81,6 +82,11 @@ describe('demo_allineata', () => {
     const names = new Set(st.sessions.map(s => s.name))
     expect(st.suggestions!.length).toBeGreaterThan(0)
     for (const s of st.suggestions!) expect(names, s.text).toContain(s.text.split(':')[0])
+  })
+  it('demo_allineata: in chat si vedono il riquadro, Non provato e il nome di un compito', () => {
+    const text = w.transcripts.master[0].text ?? ''
+    expect(splitLabels(text).map(p => p.kind)).toEqual(['plain', 'you', 'untested', 'plain'])
+    expect(replaceNames(text, taskNames(st.commitments))).toContain('](https://task.invalid/demo-cover)')
   })
   it('demo_allineata: esiti di ogni tipo, «in corso» fuori dal numero', () => {
     expect(new Set(out.done.map(d => d.type))).toEqual(new Set(['problem', 'waiting', 'shipped', 'done', 'answer', 'none', 'running']))

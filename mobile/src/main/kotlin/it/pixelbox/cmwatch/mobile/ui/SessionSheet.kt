@@ -1802,17 +1802,7 @@ private fun ClaudeBubble(
                 // il tocco sui paragrafi resta per ripartire da lì.
                 } else SelectionContainer {
                     val shown = it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(stripped.text, stringResource(R.string.outcome_label))
-                    val blocks = remember(shown) { it.pixelbox.cmwatch.rules.MarkdownTable.blocks(shown) }
-                    if (blocks.none { b -> b is it.pixelbox.cmwatch.rules.MarkdownTable.Table }) Text(linked(shown), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
-                    // Le tabelle (Franz, 02/10 21:11): griglia se stretta, una scheda per riga se larga.
-                    else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        blocks.forEach { b ->
-                            when (b) {
-                                is it.pixelbox.cmwatch.rules.MarkdownTable.Text -> Text(linked(b.text), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
-                                is it.pixelbox.cmwatch.rules.MarkdownTable.Table -> TableBlock(b)
-                            }
-                        }
-                    }
+                    ChatBody(shown)
                 }
                 // Un tasto per sessione linkata, nell'ordine in cui compare; la pressione lunga apre il link com'era.
                 stripped.buttons.forEach { b -> SessionButton(b, onOpen = { onOpenSession(b.session) }) }
@@ -2350,8 +2340,55 @@ private fun TableBlock(t: it.pixelbox.cmwatch.rules.MarkdownTable.Table) {
     }
 }
 
+/** I nomi dei compiti da mostrare in chat e cosa fa il tocco su uno (Franz 01/11 21:31). */
+class TaskLinks(val names: Map<String, String>, val open: (String) -> Unit)
+val LocalTaskLinks = staticCompositionLocalOf { TaskLinks(emptyMap()) {} }
+
+/** Il corpo di una risposta: testo, tabelle, il riquadro «Da te» e «Non provato» (Franz 01/11 21:24), coi nomi dei compiti. */
+@Composable
+internal fun ChatBody(source: String) {
+    val tasks = LocalTaskLinks.current
+    val text = remember(source, tasks.names) { it.pixelbox.cmwatch.rules.ChatNames.replace(source, tasks.names) }
+    val parts = remember(text) { it.pixelbox.cmwatch.rules.ChatLabels.split(text) }
+    val one = parts.singleOrNull() as? it.pixelbox.cmwatch.rules.ChatLabels.Plain
+    if (one != null) ChatPlain(one.text, tasks)
+    else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        parts.forEach { p ->
+            when (p) {
+                is it.pixelbox.cmwatch.rules.ChatLabels.Plain -> ChatPlain(p.text, tasks)
+                is it.pixelbox.cmwatch.rules.ChatLabels.ForYou -> Column(Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)).background(V3.S2).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(androidx.compose.material.icons.Icons.Outlined.PanTool, null, tint = V3.Wait, modifier = Modifier.size(20.dp))
+                        Text(p.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = V3.Wait)
+                    }
+                    Text(linked(p.body, tasks), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                }
+                is it.pixelbox.cmwatch.rules.ChatLabels.NotTested -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(androidx.compose.material.icons.Icons.Outlined.Info, null, tint = V3.Tx3, modifier = Modifier.padding(top = 3.dp).size(18.dp))
+                    Text(linked(p.text, tasks), style = MaterialTheme.typography.bodyLarge, color = Cm.text2)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatPlain(text: String, tasks: TaskLinks) {
+    val blocks = remember(text) { it.pixelbox.cmwatch.rules.MarkdownTable.blocks(text) }
+    if (blocks.none { b -> b is it.pixelbox.cmwatch.rules.MarkdownTable.Table }) Text(linked(text, tasks), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+    // Le tabelle (Franz, 02/10 21:11): griglia se stretta, una scheda per riga se larga.
+    else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        blocks.forEach { b ->
+            when (b) {
+                is it.pixelbox.cmwatch.rules.MarkdownTable.Text -> Text(linked(b.text, tasks), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                is it.pixelbox.cmwatch.rules.MarkdownTable.Table -> TableBlock(b)
+            }
+        }
+    }
+}
+
 /** I link `http(s)://` del testo toccabili, nel colore delle azioni e sottolineati; il tocco apre il browser (Franz, 01/10 20:05). */
-internal fun linked(text: String): AnnotatedString = androidx.compose.ui.text.buildAnnotatedString {
+internal fun linked(text: String, tasks: TaskLinks? = null): AnnotatedString = androidx.compose.ui.text.buildAnnotatedString {
     // La formattazione del markdown (Franz, 01/10 20:17: «**prova**» si vedeva con gli asterischi): il testo senza i
     // segni, poi grassetto, corsivo, codice in monospazio e link con testo; infine i link nudi.
     val md = it.pixelbox.cmwatch.rules.Markdown.parse(text)
@@ -2365,7 +2402,13 @@ internal fun linked(text: String): AnnotatedString = androidx.compose.ui.text.bu
             it.pixelbox.cmwatch.rules.Markdown.Kind.BOLD -> addStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.SemiBold), a, b)
             it.pixelbox.cmwatch.rules.Markdown.Kind.ITALIC -> addStyle(androidx.compose.ui.text.SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), a, b)
             it.pixelbox.cmwatch.rules.Markdown.Kind.CODE -> addStyle(androidx.compose.ui.text.SpanStyle(fontFamily = V3.Mono, background = Cm.surfaceHigh), a, b)
-            it.pixelbox.cmwatch.rules.Markdown.Kind.LINK -> { addLink(androidx.compose.ui.text.LinkAnnotation.Url(sp.url!!, link), a, b); linked += sp.range }
+            it.pixelbox.cmwatch.rules.Markdown.Kind.LINK -> {
+                val url = sp.url!!
+                val prefix = it.pixelbox.cmwatch.rules.ChatNames.TASK_URL
+                if (tasks != null && url.startsWith(prefix)) addLink(androidx.compose.ui.text.LinkAnnotation.Clickable(url, link) { tasks.open(url.removePrefix(prefix)) }, a, b)
+                else addLink(androidx.compose.ui.text.LinkAnnotation.Url(url, link), a, b)
+                linked += sp.range
+            }
         }
     }
     it.pixelbox.cmwatch.rules.Links.find(plain).filter { r -> linked.none { l -> r.first <= l.last && l.first <= r.last } }.forEach { r ->

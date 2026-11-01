@@ -1,9 +1,10 @@
 <script lang="ts">
   import { parse } from './markdown'
   import { findLinks } from './links'
+  import { TASK_URL } from './chatLabels'
   // Il testo con il markdown dell'app (`linked` di SessionSheet.kt): grassetto, corsivo, codice, link con testo, poi i link
   // nudi che non stanno già dentro un link. Pezzi di testo semplice, niente HTML iniettato.
-  let { text }: { text: string } = $props()
+  let { text, onTask = null }: { text: string; onTask?: ((code: string) => void) | null } = $props()
   type Piece = { s: string; bold?: boolean; italic?: boolean; code?: boolean; url?: string }
   const pieces = $derived.by(() => {
     const md = parse(text)
@@ -24,7 +25,7 @@
   })
 </script>
 
-{#each pieces as p}{#if p.url}<a href={p.url} target="_blank" rel="noopener" class:b={p.bold} class:i={p.italic} class:c={p.code}>{p.s}</a>{:else if p.bold || p.italic || p.code}<span class:b={p.bold} class:i={p.italic} class:c={p.code}>{p.s}</span>{:else}{p.s}{/if}{/each}
+{#each pieces as p}{#if p.url?.startsWith(TASK_URL) && onTask}<a href={p.url} onclick={(ev) => { ev.preventDefault(); onTask(p.url!.slice(TASK_URL.length)) }} class:b={p.bold} class:i={p.italic}>{p.s}</a>{:else if p.url}<a href={p.url} target="_blank" rel="noopener" class:b={p.bold} class:i={p.italic} class:c={p.code}>{p.s}</a>{:else if p.bold || p.italic || p.code}<span class:b={p.bold} class:i={p.italic} class:c={p.code}>{p.s}</span>{:else}{p.s}{/if}{/each}
 
 <style>
   a { color: var(--icon); text-decoration: underline; }

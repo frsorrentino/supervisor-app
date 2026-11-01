@@ -28,14 +28,15 @@
   // Le pagine mostrate come sorgente col tasto «Codice», per chiave.
   let code = $state<Record<string, boolean>>({})
   import Md from './Md.svelte'
+  import { replaceNames, splitLabels, taskNames } from './chatLabels'
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
-  let { s, items, now, onFile = () => {}, onFiles = () => {}, onDecision, onDiff = null, sessions = [], onSession = () => {} }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void; onDecision?: (text: string) => void
+  let { s, items, now, onFile = () => {}, onFiles = () => {}, onDecision, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void; onDecision?: (text: string) => void
     /** Contratto 1.72: «Mostra tutto» sotto un passaggio, l'op `diff`; null = il relay non la conosce. */
     onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null
     /** Le sessioni dello stato e l'apertura di una: il link di una di loro nel testo diventa il tasto «Apri in supervisor» (Franz, 21/10 19:04). */
-    sessions?: Session[]; onSession?: (name: string) => void } = $props()
+    sessions?: Session[]; onSession?: (name: string) => void; commitments?: { task: string; short?: string | null }[] | null; onTask?: ((code: string) => void) | null } = $props()
 
   // Un file: sotto il nome i tasti apri, scarica, copia e condividi (condividi solo dove il browser lo sa fare; Franz, 07/10
   // 15:48). Il file si chiede al PC appena il puntatore ci arriva, così il tocco trova i byte pronti.
@@ -133,8 +134,16 @@
   {@const c = cost(e)}
   <div class="claude">
     <div class="ctext">
-      {#each blocks(sl.text) as b}
-        {#if b.type === 'text'}<p><Md text={b.text} /></p>{:else}{@render table(b)}{/if}
+      {#each splitLabels(replaceNames(sl.text, taskNames(commitments))) as part}
+        {#if part.kind === 'you'}
+          <div class="fyou"><div class="fyh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8" /><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" /></svg><b>{part.title}</b></div><p><Md text={part.body} {onTask} /></p></div>
+        {:else if part.kind === 'untested'}
+          <div class="funt"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg><p><Md text={part.text} {onTask} /></p></div>
+        {:else}
+          {#each blocks(part.text) as b}
+            {#if b.type === 'text'}<p><Md text={b.text} {onTask} /></p>{:else}{@render table(b)}{/if}
+          {/each}
+        {/if}
       {/each}
       <!-- Un tasto per sessione linkata: il clic apre la sua chat qui; è un link vero, così il tasto destro o la pressione
            lunga danno il link com'era (Copia, Apri in una scheda nuova). Copia e ▶ tengono il testo intero. -->
@@ -373,4 +382,8 @@
   @keyframes spin { to { rotate: 360deg; } }
   @keyframes pulse { from { scale: .75; opacity: .6; } to { scale: 1.1; opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .star { animation: pulse 1.2s ease-in-out infinite alternate; } }
+  .fyou { background: var(--s2); border-radius: 14px; padding: 12px; margin: 2px 0; }
+  .fyh { display: flex; align-items: center; gap: 8px; color: var(--wait); font-weight: 600; margin-bottom: 8px; }
+  .funt { display: flex; gap: 8px; color: var(--tx2); }
+  .funt svg { flex: none; margin-top: 3px; color: var(--tx3); }
 </style>

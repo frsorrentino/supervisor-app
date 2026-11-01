@@ -1834,6 +1834,7 @@ class MainActivity : ComponentActivity() {
             )
         }
         CompositionLocalProvider(
+            it.pixelbox.cmwatch.mobile.ui.LocalTaskLinks provides it.pixelbox.cmwatch.mobile.ui.TaskLinks(remember(state?.commitments) { it.pixelbox.cmwatch.rules.ChatNames.names(state) }) { open = null; tab = StartRoute.Tab.LAVORI },
             LocalSpeaking provides speaking, LocalSpeakingBlock provides speakingBlock, LocalBlocksOf provides speech::blocksOf,
             it.pixelbox.cmwatch.mobile.ui.LocalSpeakText provides { t: String -> speech.toggle(t) },
             LocalSpeechRate provides speechRate, LocalSetSpeechRate provides speech::setRateNow,
