@@ -1238,7 +1238,7 @@ private fun UriThumb(uri: Uri, modifier: Modifier) {
     val bmp = remember(uri) {
         runCatching {
             val o = android.graphics.BitmapFactory.Options().apply { inSampleSize = 8 }
-            ctx.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, o) }?.asImageBitmap()
+            ctx.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, o) }?.let { b -> it.pixelbox.cmwatch.mobile.share.ImageShrink.turned(b, it.pixelbox.cmwatch.mobile.share.ImageShrink.orientation(ctx, uri)) }?.asImageBitmap()
         }.getOrNull()
     }
     // Un file che non è un'immagine: l'icona e il suo nome (contratto 1.28).
@@ -1966,7 +1966,7 @@ private fun decodeScaled(path: String, max: Int): androidx.compose.ui.graphics.I
     android.graphics.BitmapFactory.decodeFile(path, bounds)
     var sample = 1
     while (maxOf(bounds.outWidth, bounds.outHeight) / sample > max) sample *= 2
-    android.graphics.BitmapFactory.decodeFile(path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
+    android.graphics.BitmapFactory.decodeFile(path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })?.let { b -> it.pixelbox.cmwatch.mobile.share.ImageShrink.turned(b, it.pixelbox.cmwatch.mobile.share.ImageShrink.orientation(path)) }?.asImageBitmap()
 }.getOrNull()
 
 /**
