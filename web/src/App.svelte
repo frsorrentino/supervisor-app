@@ -9,6 +9,7 @@
   import { FileStore } from './lib/fileStore'
   import { zipName } from './lib/zip'
   import { DemoTransport } from './lib/demoTransport'
+  import Features from './lib/Features.svelte'
   import { suggestionNames as suggestionNamesOf } from './lib/slotInfo'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack } from 'svelte'
@@ -614,7 +615,7 @@
   }
   setContext('agendaNight', { get can() { return canNight }, get rows() { return nightCards(agenda.page, todayIso()) }, queue: queueNight })
   $effect(() => { if (canNight && canAgenda && !agenda.page && !agenda.loading) untrack(() => loadAgenda()) })
-  const pageTitle: Record<PageName, string> = $derived({ usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
+  const pageTitle: Record<PageName, string> = $derived({ features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -1077,13 +1078,15 @@
         known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('lavori') }} />
     {:else if p === 'usage'}
       <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
+    {:else if p === 'features'}
+      <Features onRoute={(r) => openPage(r === 'home' ? null : r === 'usage' ? 'overview' : r as PageName)} />
     {:else if p === 'homeorder'}
       <HomeOrder saved={st.home_order} onSave={saveHomeOrder} />
     {:else if p === 'settings'}
       <Settings m={devicesOf(st.host, st, freshness(st, now), now, '', __APP_VERSION__, true, null, false, null)}
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
-        onHomeOrder={st.ops?.includes('home_order') ? () => openPage('homeorder') : null} onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
+        onFeatures={() => openPage('features')} onHomeOrder={st.ops?.includes('home_order') ? () => openPage('homeorder') : null} onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
         onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => run(newCmd('unpair', null, uid)) : null} />
     {:else if p === 'box-aspetta' || p === 'box-lavoro' || p === 'box-esiti'}
       <HomeBox box={p === 'box-aspetta' ? 'aspetta' : p === 'box-lavoro' ? 'lavoro' : 'esiti'} st={stShown} page={kpiPage} {now} onSession={(n) => { openPage(null); pick(n) }} />

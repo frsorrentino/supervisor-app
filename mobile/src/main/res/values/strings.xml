@@ -1442,6 +1442,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="slot_lavori_none">Niente aspetta te</string>
     <string name="slot_plugins_names">Da aggiornare: %1$s</string>
     <string name="slot_plugins_checked">Controllati alle %1$s</string>
+    <string name="features_title">Cosa sa fare</string>
+    <string name="features_sub">Tutte le funzioni, per a cosa servono</string>
+    <string name="features_coming">in arrivo</string>
     <string name="box_at_least">Il relay manda al massimo 40 eventi per sessione: oggi la cifra è un minimo.</string>
     <string name="box_outcomes_note">Un tocco su una riga apre la sessione, se è ancora aperta.</string>
     <string name="home_title">Supervisor</string>

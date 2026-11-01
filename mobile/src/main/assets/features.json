@@ -1,0 +1,1709 @@
+{
+ "groups": [
+  {
+   "key": "you",
+   "it": "Quello che aspetta te",
+   "en": "What waits for you"
+  },
+  {
+   "key": "follow",
+   "it": "Seguire il lavoro",
+   "en": "Follow the work"
+  },
+  {
+   "key": "give",
+   "it": "Dare lavoro",
+   "en": "Give work"
+  },
+  {
+   "key": "organize",
+   "it": "Mettere in ordine",
+   "en": "Keep things in order"
+  },
+  {
+   "key": "resources",
+   "it": "Tenere d'occhio le risorse",
+   "en": "Watch resources"
+  },
+  {
+   "key": "find",
+   "it": "Ritrovare",
+   "en": "Find again"
+  },
+  {
+   "key": "custom",
+   "it": "Su misura",
+   "en": "Make it yours"
+  },
+  {
+   "key": "elsewhere",
+   "it": "Fuori dal telefono",
+   "en": "Beyond the phone"
+  },
+  {
+   "key": "next",
+   "it": "In arrivo",
+   "en": "Coming"
+  }
+ ],
+ "features": [
+  {
+   "key": "tabellone",
+   "group": "you",
+   "name": {
+    "it": "Tabellone",
+    "en": "Scoreboard"
+   },
+   "what": {
+    "it": "Tre cifre in cima alla home: chi ti aspetta, chi lavora, gli esiti di oggi.",
+    "en": "Three figures on top of the home: who waits for you, who works, today's outcomes."
+   },
+   "where": {
+    "it": "Home, in alto",
+    "en": "Home, top"
+   },
+   "state": "ready",
+   "version": "0.2.1523",
+   "route": "home",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/KpiViews.kt",
+    "needle": "fun Kpi7"
+   },
+   "web": {
+    "file": "web/src/lib/Kpi7.svelte",
+    "needle": "home-box-aspetta"
+   }
+  },
+  {
+   "key": "ti_aspettano",
+   "group": "you",
+   "name": {
+    "it": "Ti aspettano",
+    "en": "Waiting for you"
+   },
+   "what": {
+    "it": "Una pagina per voce, dalla più vecchia, per rispondere di fila.",
+    "en": "One page per item, oldest first, to answer in a row."
+   },
+   "where": {
+    "it": "Tabellone, primo riquadro",
+    "en": "Scoreboard, first box"
+   },
+   "state": "ready",
+   "version": "0.2.641",
+   "route": "queue",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"queue_empty\""
+   },
+   "web": {
+    "file": "web/src/lib/queue.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "domande",
+   "group": "you",
+   "name": {
+    "it": "Domande e opzioni",
+    "en": "Questions and options"
+   },
+   "what": {
+    "it": "Rispondi a una sessione da telefono o web; il rischio alto chiede una pressione lunga.",
+    "en": "Answer a session from phone or web; high risk asks for a long press."
+   },
+   "where": {
+    "it": "Scheda della sessione",
+    "en": "Session card"
+   },
+   "state": "ready",
+   "version": "0.2.572",
+   "route": "home",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SessionSheet.kt",
+    "needle": "Question"
+   },
+   "web": {
+    "file": "web/src/lib/Home.svelte",
+    "needle": "onAnswer"
+   }
+  },
+  {
+   "key": "ok_da_dare",
+   "group": "you",
+   "name": {
+    "it": "Ok da dare",
+    "en": "Approvals"
+   },
+   "what": {
+    "it": "Approva un compito del registro vedendo cosa esce e dove.",
+    "en": "Approve a registered task, seeing what ships and where."
+   },
+   "where": {
+    "it": "Scheda della sessione o Lavori",
+    "en": "Session card or Work"
+   },
+   "state": "ready",
+   "version": "0.2.961",
+   "route": "lavori",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/MainActivity.kt",
+    "needle": "approveTask"
+   },
+   "web": {
+    "file": "web/src/App.svelte",
+    "needle": "onApprove"
+   }
+  },
+  {
+   "key": "notifiche",
+   "group": "you",
+   "name": {
+    "it": "Notifiche",
+    "en": "Notifications"
+   },
+   "what": {
+    "it": "Avvisi su domande, esiti e fermi, con le azioni dalla notifica; sul web, le notifiche push.",
+    "en": "Alerts on questions, outcomes and stops, with actions; on the web, push notifications."
+   },
+   "where": {
+    "it": "Impostazioni",
+    "en": "Settings"
+   },
+   "state": "ready",
+   "version": "0.2.31",
+   "route": "settings",
+   "section": null,
+   "phone": {
+    "file": "core/src/main/kotlin/it/pixelbox/cmwatch/rules/NotificationPlan.kt",
+    "needle": "CH_OUTCOMES"
+   },
+   "web": {
+    "file": "web/src/lib/push.ts",
+    "needle": "subscribe"
+   }
+  },
+  {
+   "key": "avvisi_altre",
+   "group": "you",
+   "name": {
+    "it": "Avviso dalle altre sessioni",
+    "en": "Alert from other sessions"
+   },
+   "what": {
+    "it": "Dentro una chat ti dice che un'altra sessione aspetta o ha finito.",
+    "en": "Inside a chat it tells you another session waits or finished."
+   },
+   "where": {
+    "it": "Sopra il campo della chat",
+    "en": "Above the chat field"
+   },
+   "state": "ready",
+   "version": "0.2.739",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "core/src/main/kotlin/it/pixelbox/cmwatch/rules/Elsewhere.kt",
+    "needle": "Waiting"
+   },
+   "web": {
+    "file": "web/src/lib/elsewhere.ts",
+    "needle": "alert"
+   }
+  },
+  {
+   "key": "sessions",
+   "group": "follow",
+   "name": {
+    "it": "Sessioni",
+    "en": "Sessions"
+   },
+   "what": {
+    "it": "Le sessioni aperte, raggruppate per al lavoro, finite e ferme.",
+    "en": "Open sessions, grouped by working, finished and still."
+   },
+   "where": {
+    "it": "Home, Sessioni",
+    "en": "Home, Sessions"
+   },
+   "state": "ready",
+   "version": "0.2.1092",
+   "route": "home",
+   "section": "sessions",
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SummaryList.kt",
+    "needle": "home_sec_sessions"
+   },
+   "web": {
+    "file": "web/src/lib/Home.svelte",
+    "needle": "secSessions"
+   }
+  },
+  {
+   "key": "al_lavoro",
+   "group": "follow",
+   "name": {
+    "it": "Al lavoro adesso",
+    "en": "Working now"
+   },
+   "what": {
+    "it": "Chi lavora, su cosa, con quale strumento e da quanto.",
+    "en": "Who works, on what, with which tool and for how long."
+   },
+   "where": {
+    "it": "Tabellone, secondo riquadro",
+    "en": "Scoreboard, second box"
+   },
+   "state": "ready",
+   "version": "0.2.1534",
+   "route": "box-lavoro",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/HomeBoxScreen.kt",
+    "needle": "HomeBox.BUSY"
+   },
+   "web": {
+    "file": "web/src/lib/HomeBox.svelte",
+    "needle": "workingRows"
+   }
+  },
+  {
+   "key": "chat",
+   "group": "follow",
+   "name": {
+    "it": "Conversazione",
+    "en": "Conversation"
+   },
+   "what": {
+    "it": "La chat di ogni sessione, coi passaggi, il costo del turno e l'esito.",
+    "en": "Each session's chat, with steps, turn cost and outcome."
+   },
+   "where": {
+    "it": "Tocco su una sessione",
+    "en": "Tap on a session"
+   },
+   "state": "ready",
+   "version": "0.2.572",
+   "route": "home",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SessionSheet.kt",
+    "needle": "fun "
+   },
+   "web": {
+    "file": "web/src/lib/chatFeed.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "modifiche",
+   "group": "follow",
+   "name": {
+    "it": "Modifiche",
+    "en": "Changes"
+   },
+   "what": {
+    "it": "I file toccati da una sessione e il diff, passaggio per passaggio.",
+    "en": "Files a session touched and the diff, step by step."
+   },
+   "where": {
+    "it": "Chat, menu della sessione",
+    "en": "Chat, session menu"
+   },
+   "state": "ready",
+   "version": "0.2.1294",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DiffViews.kt",
+    "needle": "fun "
+   },
+   "web": {
+    "file": "web/src/lib/changes.ts",
+    "needle": "ask"
+   }
+  },
+  {
+   "key": "esiti",
+   "group": "follow",
+   "name": {
+    "it": "Esiti di oggi",
+    "en": "Today's outcomes"
+   },
+   "what": {
+    "it": "Quello che le sessioni hanno concluso, per tipo o per sessione, e i controlli rossi.",
+    "en": "What sessions concluded, by type or session, and failed checks."
+   },
+   "where": {
+    "it": "Home e terzo riquadro",
+    "en": "Home and third box"
+   },
+   "state": "ready",
+   "version": "0.2.1655",
+   "route": "box-esiti",
+   "section": "esiti",
+   "phone": {
+    "file": "core/src/main/kotlin/it/pixelbox/cmwatch/rules/Kpi.kt",
+    "needle": "groupsByType"
+   },
+   "web": {
+    "file": "web/src/lib/kpi.ts",
+    "needle": "groupsByType"
+   }
+  },
+  {
+   "key": "notte_report",
+   "group": "follow",
+   "name": {
+    "it": "Rapporto della notte",
+    "en": "Night report"
+   },
+   "what": {
+    "it": "Cosa è successo di notte, progetto per progetto, e cosa serve da te.",
+    "en": "What happened overnight, project by project, and what is needed from you."
+   },
+   "where": {
+    "it": "Menu, Notte",
+    "en": "Menu, Night"
+   },
+   "state": "ready",
+   "version": "0.2.1071",
+   "route": "night",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/NightGanttViews.kt",
+    "needle": "GanttSwitch"
+   },
+   "web": {
+    "file": "web/src/lib/NightPage.svelte",
+    "needle": "segs"
+   }
+  },
+  {
+   "key": "prompt",
+   "group": "give",
+   "name": {
+    "it": "Scrivere a una sessione",
+    "en": "Write to a session"
+   },
+   "what": {
+    "it": "Messaggi con conferma di consegna, anche da riprendere o modificare.",
+    "en": "Messages with delivery status, which you can also edit."
+   },
+   "where": {
+    "it": "Campo in fondo alla chat",
+    "en": "Field at the bottom of the chat"
+   },
+   "state": "ready",
+   "version": "0.2.925",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/MainActivity.kt",
+    "needle": "CmdOp.PROMPT"
+   },
+   "web": {
+    "file": "web/src/lib/composer.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "master",
+   "group": "give",
+   "name": {
+    "it": "La master",
+    "en": "The master"
+   },
+   "what": {
+    "it": "La sessione che coordina le altre, a portata di mano in fondo alla home.",
+    "en": "The session that coordinates the others, at hand at the bottom of the home."
+   },
+   "where": {
+    "it": "Barra in fondo alla home",
+    "en": "Bar at the bottom of the home"
+   },
+   "state": "ready",
+   "version": "0.2.758",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SummaryList.kt",
+    "needle": "MasterHome"
+   },
+   "web": {
+    "file": "web/src/lib/masterHome.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "lancia",
+   "group": "give",
+   "name": {
+    "it": "Lancia una sessione",
+    "en": "Launch a session"
+   },
+   "what": {
+    "it": "Scegli account, progetto e primo messaggio; crea anche un progetto nuovo.",
+    "en": "Pick account, project and first message; can also create a new project."
+   },
+   "where": {
+    "it": "Menu, Lancia",
+    "en": "Menu, Launch"
+   },
+   "state": "ready",
+   "version": "0.2.576",
+   "route": "launch",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/MainActivity.kt",
+    "needle": "launching"
+   },
+   "web": {
+    "file": "web/src/lib/t.ts",
+    "needle": "menuLaunch:"
+   }
+  },
+  {
+   "key": "prossimi",
+   "group": "give",
+   "name": {
+    "it": "Azioni suggerite",
+    "en": "Suggested next steps"
+   },
+   "what": {
+    "it": "I prossimi passi proposti dalla sessione, da mandare con un tocco.",
+    "en": "Next steps the session proposes, one tap to send."
+   },
+   "where": {
+    "it": "Scheda e campo della chat",
+    "en": "Card and chat field"
+   },
+   "state": "ready",
+   "version": "0.2.691",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SessionSheet.kt",
+    "needle": "NextSteps"
+   },
+   "web": {
+    "file": "web/src/lib/nextSteps.ts",
+    "needle": "parseSteps"
+   }
+  },
+  {
+   "key": "manda_alle",
+   "group": "give",
+   "name": {
+    "it": "Manda alle",
+    "en": "Send at"
+   },
+   "what": {
+    "it": "Un messaggio che parte a un'ora scelta.",
+    "en": "A message that goes out at a chosen time."
+   },
+   "where": {
+    "it": "Campo della chat",
+    "en": "Chat field"
+   },
+   "state": "ready",
+   "version": "0.2.644",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"chat_scheduled\""
+   },
+   "web": {
+    "file": "web/src/lib/t.ts",
+    "needle": "scheduled:"
+   }
+  },
+  {
+   "key": "allegati",
+   "group": "give",
+   "name": {
+    "it": "Foto e file",
+    "en": "Photos and files"
+   },
+   "what": {
+    "it": "Allega foto e file a un messaggio; sul telefono anche da «Condividi».",
+    "en": "Attach photos and files to a message; on the phone also from Share."
+   },
+   "where": {
+    "it": "«+» nel campo della chat",
+    "en": "«+» in the chat field"
+   },
+   "state": "ready",
+   "version": "0.2.792",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"attach_gallery\""
+   },
+   "web": {
+    "file": "web/src/lib/t.ts",
+    "needle": "uploadi"
+   }
+  },
+  {
+   "key": "notte_coda",
+   "group": "give",
+   "name": {
+    "it": "Lavori per stanotte",
+    "en": "Jobs for tonight"
+   },
+   "what": {
+    "it": "Metti in coda progetti e schede da far fare di notte.",
+    "en": "Queue projects and cards for the night."
+   },
+   "where": {
+    "it": "Lavori, Stanotte",
+    "en": "Work, Tonight"
+   },
+   "state": "ready",
+   "version": "0.2.586",
+   "route": "lavori",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/MainActivity.kt",
+    "needle": "nightAddi"
+   },
+   "web": {
+    "file": "web/src/App.svelte",
+    "needle": "night_remove"
+   }
+  },
+  {
+   "key": "lavori",
+   "group": "organize",
+   "name": {
+    "it": "Lavori",
+    "en": "Work"
+   },
+   "what": {
+    "it": "I compiti in corso, chi aspetta te e chi altri, con la linea del tempo; il fatto per giorno.",
+    "en": "Tasks in progress, who waits for you or others, with a timeline; what is done by day."
+   },
+   "where": {
+    "it": "Home, Lavori",
+    "en": "Home, Work"
+   },
+   "state": "ready",
+   "version": "0.2.1372",
+   "route": "lavori",
+   "section": "lavori",
+   "phone": {
+    "file": "core/src/main/kotlin/it/pixelbox/cmwatch/rules/Lavori.kt",
+    "needle": "fun inProgress"
+   },
+   "web": {
+    "file": "web/src/lib/lavori.ts",
+    "needle": "inProgress"
+   }
+  },
+  {
+   "key": "recap",
+   "group": "organize",
+   "name": {
+    "it": "Recap e agenda",
+    "en": "Recap and agenda"
+   },
+   "what": {
+    "it": "Cosa è stato fatto, cosa resta, e azioni da mandare alla sessione giusta.",
+    "en": "What was done, what is left, and actions to send to the right session."
+   },
+   "where": {
+    "it": "Lavori",
+    "en": "Work"
+   },
+   "state": "ready",
+   "version": "0.2.1136",
+   "route": "lavori",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/RecapSection.kt",
+    "needle": "fun "
+   },
+   "web": {
+    "file": "web/src/lib/recapAgenda.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "suggestions",
+   "group": "organize",
+   "name": {
+    "it": "Suggerimenti",
+    "en": "Suggestions"
+   },
+   "what": {
+    "it": "Le proposte della master, con accetta, più tardi o mai.",
+    "en": "The master's proposals: accept, later or never."
+   },
+   "where": {
+    "it": "Home, Suggerimenti",
+    "en": "Home, Suggestions"
+   },
+   "state": "ready",
+   "version": "0.2.1468",
+   "route": "home",
+   "section": "suggestions",
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SuggestionsCard.kt",
+    "needle": "fun SuggestionsCard"
+   },
+   "web": {
+    "file": "web/src/lib/SuggestionsCard.svelte",
+    "needle": "sugKind"
+   }
+  },
+  {
+   "key": "decisioni",
+   "group": "organize",
+   "name": {
+    "it": "Decisioni",
+    "en": "Decisions"
+   },
+   "what": {
+    "it": "Salva una decisione dalla chat della master o da un esito.",
+    "en": "Save a decision from the master's chat or from an outcome."
+   },
+   "where": {
+    "it": "Campo della master",
+    "en": "Master's field"
+   },
+   "state": "ready",
+   "version": "0.2.972",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/MainActivity.kt",
+    "needle": "CmdOp.DECISION"
+   },
+   "web": {
+    "file": "web/src/lib/demoTransport.ts",
+    "needle": "decision"
+   }
+  },
+  {
+   "key": "usage",
+   "group": "resources",
+   "name": {
+    "it": "Utilizzo",
+    "en": "Usage"
+   },
+   "what": {
+    "it": "Quota delle 5 ore e della settimana, ritmo, ripartenza e consumo di oggi per sessione.",
+    "en": "5-hour and weekly quota, pace, reset and today's use per session."
+   },
+   "where": {
+    "it": "Home, Utilizzo",
+    "en": "Home, Usage"
+   },
+   "state": "ready",
+   "version": "0.2.1565",
+   "route": "usage",
+   "section": "usage",
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/UtilizzoV3.kt",
+    "needle": "fun Meter"
+   },
+   "web": {
+    "file": "web/src/lib/Utilizzo.svelte",
+    "needle": "<"
+   }
+  },
+  {
+   "key": "contesto",
+   "group": "resources",
+   "name": {
+    "it": "Contesto di una sessione",
+    "en": "Session context"
+   },
+   "what": {
+    "it": "Quanto è piena la conversazione; handoff poi /clear, o compatta.",
+    "en": "How full the conversation is; handoff then /clear, or compact."
+   },
+   "where": {
+    "it": "Chat, chip ctx",
+    "en": "Chat, ctx chip"
+   },
+   "state": "ready",
+   "version": "0.2.961",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"ctx_handoff_clear\""
+   },
+   "web": {
+    "file": "web/src/lib/t.ts",
+    "needle": "ctxHandoffClear"
+   }
+  },
+  {
+   "key": "modello",
+   "group": "resources",
+   "name": {
+    "it": "Modello ed effort",
+    "en": "Model and effort"
+   },
+   "what": {
+    "it": "Cambia modello, effort e permessi di una sessione, con un consiglio.",
+    "en": "Change a session's model, effort and permissions, with a recommendation."
+   },
+   "where": {
+    "it": "Chat, chip del modello",
+    "en": "Chat, model chip"
+   },
+   "state": "ready",
+   "version": "0.2.620",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SessionSheet.kt",
+    "needle": "Effort"
+   },
+   "web": {
+    "file": "web/src/lib/Header.svelte",
+    "needle": "setModel"
+   }
+  },
+  {
+   "key": "system",
+   "group": "resources",
+   "name": {
+    "it": "Sistema",
+    "en": "System"
+   },
+   "what": {
+    "it": "Carico e memoria delle macchine, chi consuma, e consigli con un tasto.",
+    "en": "Machine load and memory, top consumers, and advice with a button."
+   },
+   "where": {
+    "it": "Home, Sistema",
+    "en": "Home, System"
+   },
+   "state": "ready",
+   "version": "0.2.1514",
+   "route": "home",
+   "section": "system",
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SystemSection.kt",
+    "needle": "fun SystemCard"
+   },
+   "web": {
+    "file": "web/src/lib/system.ts",
+    "needle": "summaryLine"
+   }
+  },
+  {
+   "key": "plugins",
+   "group": "resources",
+   "name": {
+    "it": "Plugin e skill",
+    "en": "Plugins and skills"
+   },
+   "what": {
+    "it": "Cosa è installato, cosa va aggiornato, e l'aggiornamento con conferma.",
+    "en": "What is installed, what needs updating, and the update with confirmation."
+   },
+   "where": {
+    "it": "Home, Plugin e skill",
+    "en": "Home, Plugins and skills"
+   },
+   "state": "ready",
+   "version": "0.2.1525",
+   "route": "home",
+   "section": "plugins",
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SummaryList.kt",
+    "needle": "PluginsCard"
+   },
+   "web": {
+    "file": "web/src/lib/PluginsSection.svelte",
+    "needle": "accountsWithUpdates"
+   }
+  },
+  {
+   "key": "cerca",
+   "group": "find",
+   "name": {
+    "it": "Cerca nelle conversazioni",
+    "en": "Search conversations"
+   },
+   "what": {
+    "it": "Cerca in tutte le sessioni degli ultimi 7 giorni, vive e chiuse.",
+    "en": "Search all sessions of the last 7 days, live and closed."
+   },
+   "where": {
+    "it": "Lente in alto",
+    "en": "Magnifier on top"
+   },
+   "state": "ready",
+   "version": "0.2.645",
+   "route": "search",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/MainActivity.kt",
+    "needle": "searchOpen"
+   },
+   "web": {
+    "file": "web/src/lib/search.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "closed",
+   "group": "find",
+   "name": {
+    "it": "Chiuse",
+    "en": "Closed"
+   },
+   "what": {
+    "it": "Le sessioni chiuse, con «Riapri».",
+    "en": "Closed sessions, with Reopen."
+   },
+   "where": {
+    "it": "Home, Chiuse",
+    "en": "Home, Closed"
+   },
+   "state": "ready",
+   "version": "0.2.1543",
+   "route": "home",
+   "section": "closed",
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SummaryList.kt",
+    "needle": "closedGroup"
+   },
+   "web": {
+    "file": "web/src/lib/Home.svelte",
+    "needle": "secClosed"
+   }
+  },
+  {
+   "key": "file",
+   "group": "find",
+   "name": {
+    "it": "File delle sessioni",
+    "en": "Session files"
+   },
+   "what": {
+    "it": "Anteprima, apri, scarica e condividi; più file si salvano insieme.",
+    "en": "Preview, open, download and share; several files save together."
+   },
+   "where": {
+    "it": "Chat",
+    "en": "Chat"
+   },
+   "state": "ready",
+   "version": "0.2.1315",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"files_save_all\""
+   },
+   "web": {
+    "file": "web/src/lib/zip.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "slot",
+   "group": "custom",
+   "name": {
+    "it": "Slot del tabellone",
+    "en": "Scoreboard slot"
+   },
+   "what": {
+    "it": "Aggancia una voce in alto e vedi il suo dato senza scorrere.",
+    "en": "Pin a section on top and see its figure without scrolling."
+   },
+   "where": {
+    "it": "Pressione lunga su una voce",
+    "en": "Long press on a section"
+   },
+   "state": "ready",
+   "version": "0.2.1653",
+   "route": "homeorder",
+   "section": null,
+   "phone": {
+    "file": "core/src/main/kotlin/it/pixelbox/cmwatch/rules/HomeOrder.kt",
+    "needle": "fun overSlot"
+   },
+   "web": {
+    "file": "web/src/lib/homeOrder.ts",
+    "needle": "overSlot"
+   }
+  },
+  {
+   "key": "riordino",
+   "group": "custom",
+   "name": {
+    "it": "Riordina la home",
+    "en": "Reorder the home"
+   },
+   "what": {
+    "it": "Trascina le voci o usa la pagina apposita; l'ordine vale su tutti i dispositivi.",
+    "en": "Drag sections or use the dedicated page; the order holds on all devices."
+   },
+   "where": {
+    "it": "Impostazioni",
+    "en": "Settings"
+   },
+   "state": "ready",
+   "version": "0.2.1555",
+   "route": "homeorder",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/HomeOrderScreen.kt",
+    "needle": "fun "
+   },
+   "web": {
+    "file": "web/src/lib/HomeOrder.svelte",
+    "needle": "<"
+   }
+  },
+  {
+   "key": "voce",
+   "group": "custom",
+   "name": {
+    "it": "Lettura ad alta voce",
+    "en": "Read aloud"
+   },
+   "what": {
+    "it": "Risposte ed esiti letti dal dispositivo, con velocità e pillola sopra le schermate.",
+    "en": "Answers and outcomes read by the device, with speed and an on-screen pill."
+   },
+   "where": {
+    "it": "Tasto ▶ sui testi",
+    "en": "▶ button on texts"
+   },
+   "state": "ready",
+   "version": "0.2.824",
+   "route": "settings",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/ReadingPill.kt",
+    "needle": "fun "
+   },
+   "web": {
+    "file": "web/src/lib/speechRules.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "dispositivi",
+   "group": "custom",
+   "name": {
+    "it": "Dispositivi collegati",
+    "en": "Connected devices"
+   },
+   "what": {
+    "it": "Collega telefono, orologio e browser, e revoca chi non serve più.",
+    "en": "Connect phone, watch and browser, and revoke what is no longer needed."
+   },
+   "where": {
+    "it": "Impostazioni",
+    "en": "Settings"
+   },
+   "state": "ready",
+   "version": "0.2.831",
+   "route": "settings",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"add_device\""
+   },
+   "web": {
+    "file": "web/src/lib/pairing.ts",
+    "needle": "export"
+   }
+  },
+  {
+   "key": "lingua",
+   "group": "custom",
+   "name": {
+    "it": "Lingua e demo",
+    "en": "Language and demo"
+   },
+   "what": {
+    "it": "Italiano o inglese; una demo completa con dati di prova.",
+    "en": "Italian or English; a complete demo with sample data."
+   },
+   "where": {
+    "it": "Impostazioni",
+    "en": "Settings"
+   },
+   "state": "ready",
+   "version": "0.2.570",
+   "route": "settings",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"demo_mode\""
+   },
+   "web": {
+    "file": "web/src/lib/demo.ts",
+    "needle": "export function world"
+   }
+  },
+  {
+   "key": "aggiornamenti",
+   "group": "custom",
+   "name": {
+    "it": "Aggiornamenti dell'app",
+    "en": "App updates"
+   },
+   "what": {
+    "it": "Avvisa di una versione nuova e la installa.",
+    "en": "Tells you about a new version and installs it."
+   },
+   "where": {
+    "it": "Home e Impostazioni",
+    "en": "Home and Settings"
+   },
+   "state": "ready",
+   "version": "0.2.1355",
+   "route": "settings",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"updates_title\""
+   },
+   "web": null
+  },
+  {
+   "key": "plancia",
+   "group": "elsewhere",
+   "name": {
+    "it": "Plancia",
+    "en": "Desk"
+   },
+   "what": {
+    "it": "Sugli schermi larghi home e colonne affiancate, da ridisporre.",
+    "en": "On wide screens the home and side-by-side columns you can rearrange."
+   },
+   "where": {
+    "it": "Tablet e web larghi",
+    "en": "Tablets and wide web"
+   },
+   "state": "ready",
+   "version": "0.2.827",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/TabletShell.kt",
+    "needle": "fun "
+   },
+   "web": {
+    "file": "web/src/lib/Plancia.svelte",
+    "needle": "<"
+   }
+  },
+  {
+   "key": "orologio",
+   "group": "elsewhere",
+   "name": {
+    "it": "Orologio",
+    "en": "Watch"
+   },
+   "what": {
+    "it": "App, tile e complicazione al polso: chi ti aspetta e una risposta veloce.",
+    "en": "App, tile and complication on the wrist: who waits and a quick answer."
+   },
+   "where": {
+    "it": "Pixel Watch",
+    "en": "Pixel Watch"
+   },
+   "state": "ready",
+   "version": "0.2.1039",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "wear/src/main/kotlin/it/pixelbox/cmwatch/wear/ui/screens/LiveScreen.kt",
+    "needle": "HoldButton"
+   },
+   "web": null
+  },
+  {
+   "key": "live",
+   "group": "elsewhere",
+   "name": {
+    "it": "Modalità live",
+    "en": "Live mode"
+   },
+   "what": {
+    "it": "Notiziario in cuffia e comandi dall'orologio.",
+    "en": "News bulletin in headphones and commands from the watch."
+   },
+   "where": {
+    "it": "Menu",
+    "en": "Menu"
+   },
+   "state": "ready",
+   "version": "0.2.635",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"live_"
+   },
+   "web": null
+  },
+  {
+   "key": "widget",
+   "group": "elsewhere",
+   "name": {
+    "it": "Widget",
+    "en": "Widget"
+   },
+   "what": {
+    "it": "Stato delle sessioni sulla schermata del telefono.",
+    "en": "Sessions status on the phone's home screen."
+   },
+   "where": {
+    "it": "Schermata del telefono",
+    "en": "Phone home screen"
+   },
+   "state": "ready",
+   "version": "0.2.647",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/widget/CmWidget.kt",
+    "needle": "seg"
+   },
+   "web": null
+  },
+  {
+   "key": "web_app",
+   "group": "elsewhere",
+   "name": {
+    "it": "Web app",
+    "en": "Web app"
+   },
+   "what": {
+    "it": "La stessa app nel browser, installabile, cifrata come il telefono.",
+    "en": "The same app in the browser, installable, encrypted like the phone."
+   },
+   "where": {
+    "it": "supervisor.francescosorrentino.com",
+    "en": "supervisor.francescosorrentino.com"
+   },
+   "state": "ready",
+   "version": "0.2.1234",
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": {
+    "file": "web/src/lib/remoteAccess.ts",
+    "needle": "CANONICAL"
+   }
+  },
+  {
+   "key": "moduli",
+   "group": "you",
+   "name": {
+    "it": "Moduli delle sessioni",
+    "en": "Session forms"
+   },
+   "what": {
+    "it": "Una sessione ti chiede dei dati con un modulo, o di aprire un link, e aspetta.",
+    "en": "A session asks you for data with a form, or to open a link, and waits."
+   },
+   "where": {
+    "it": "Home, in alto",
+    "en": "Home, top"
+   },
+   "state": "ready",
+   "version": "0.2.1458",
+   "route": "home",
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"elicit_send\""
+   },
+   "web": {
+    "file": "web/src/lib/ElicitationCard.svelte",
+    "needle": "<"
+   }
+  },
+  {
+   "key": "segui",
+   "group": "follow",
+   "name": {
+    "it": "Segui una sessione",
+    "en": "Follow a session"
+   },
+   "what": {
+    "it": "Una notifica quando finisce un turno.",
+    "en": "A notification when a turn ends."
+   },
+   "where": {
+    "it": "Menu della sessione",
+    "en": "Session menu"
+   },
+   "state": "ready",
+   "version": "0.2.767",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"follow_sub\""
+   },
+   "web": {
+    "file": "web/src/lib/t.ts",
+    "needle": "follow"
+   }
+  },
+  {
+   "key": "obiettivo",
+   "group": "follow",
+   "name": {
+    "it": "Obiettivo",
+    "en": "Goal"
+   },
+   "what": {
+    "it": "L'obiettivo che la sessione insegue, visibile sulla scheda e in chat.",
+    "en": "The goal the session is pursuing, shown on the card and in chat."
+   },
+   "where": {
+    "it": "Scheda e testata della sessione",
+    "en": "Session card and header"
+   },
+   "state": "ready",
+   "version": "0.2.602",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"goal\""
+   },
+   "web": {
+    "file": "web/src/lib/Inspector.svelte",
+    "needle": "s.goal"
+   }
+  },
+  {
+   "key": "controlla",
+   "group": "follow",
+   "name": {
+    "it": "Fai controllare alla master",
+    "en": "Ask the master to check"
+   },
+   "what": {
+    "it": "La master legge la sessione e ti dice a che punto è.",
+    "en": "The master reads the session and tells you where it stands."
+   },
+   "where": {
+    "it": "Menu della sessione",
+    "en": "Session menu"
+   },
+   "state": "ready",
+   "version": "0.2.694",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"ask_master\""
+   },
+   "web": {
+    "file": "web/src/lib/t.ts",
+    "needle": "askMaster"
+   }
+  },
+  {
+   "key": "ferma",
+   "group": "follow",
+   "name": {
+    "it": "Ferma un turno",
+    "en": "Stop a turn"
+   },
+   "what": {
+    "it": "Interrompe il turno in corso senza chiudere la sessione.",
+    "en": "Interrupts the running turn without closing the session."
+   },
+   "where": {
+    "it": "Tasto Ferma nella chat",
+    "en": "Stop button in the chat"
+   },
+   "state": "ready",
+   "version": "0.2.620",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"stop\""
+   },
+   "web": {
+    "file": "web/src/lib/demoTransport.ts",
+    "needle": "interrupt"
+   }
+  },
+  {
+   "key": "segnalazione",
+   "group": "give",
+   "name": {
+    "it": "Segnalazione con screenshot",
+    "en": "Report with a screenshot"
+   },
+   "what": {
+    "it": "Da «Condividi» manda uno screenshot e un testo a una sessione; il file resta in docs/segnalazioni del progetto.",
+    "en": "From Share, send a screenshot and a text to a session; the file stays in the project's docs/segnalazioni."
+   },
+   "where": {
+    "it": "Condividi del telefono, «+» nella chat",
+    "en": "Phone's Share, «+» in the chat"
+   },
+   "state": "ready",
+   "version": "0.2.590",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/share/ShareActivity.kt",
+    "needle": "class ShareActivity"
+   },
+   "web": {
+    "file": "web/src/lib/demoTransport.ts",
+    "needle": "report"
+   }
+  },
+  {
+   "key": "ricorrenti",
+   "group": "give",
+   "name": {
+    "it": "Azioni ricorrenti",
+    "en": "Recurring actions"
+   },
+   "what": {
+    "it": "I lavori che chiedi spesso, pronti da mandare.",
+    "en": "The jobs you often ask for, ready to send."
+   },
+   "where": {
+    "it": "«+» nella chat della master",
+    "en": "«+» in the master's chat"
+   },
+   "state": "ready",
+   "version": "0.2.890",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"recurring_open\""
+   },
+   "web": {
+    "file": "web/src/lib/t.ts",
+    "needle": "recurringOpen"
+   }
+  },
+  {
+   "key": "chiudi",
+   "group": "organize",
+   "name": {
+    "it": "Chiudi una sessione",
+    "en": "Close a session"
+   },
+   "what": {
+    "it": "Manda /exit dopo una conferma che dice cosa si salva; anche tutte le finite insieme.",
+    "en": "Sends /exit after a confirmation saying what is saved; also all finished ones together."
+   },
+   "where": {
+    "it": "Menu della sessione, Sessioni",
+    "en": "Session menu, Sessions"
+   },
+   "state": "ready",
+   "version": "0.2.773",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"menu_exit\""
+   },
+   "web": {
+    "file": "web/src/lib/t.ts",
+    "needle": "menuExit"
+   }
+  },
+  {
+   "key": "quota_finita",
+   "group": "resources",
+   "name": {
+    "it": "Quota finita",
+    "en": "Quota used up"
+   },
+   "what": {
+    "it": "Quando la quota finisce propone le strade: un altro account, un altro modello, la ripartenza.",
+    "en": "When the quota runs out it offers the ways on: another account, another model, the reset."
+   },
+   "where": {
+    "it": "Chat",
+    "en": "Chat"
+   },
+   "state": "ready",
+   "version": "0.2.1248",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/res/values/strings.xml",
+    "needle": "name=\"quota_way_other\""
+   },
+   "web": {
+    "file": "web/src/lib/demoTransport.ts",
+    "needle": "quota_route"
+   }
+  },
+  {
+   "key": "segnalibro",
+   "group": "find",
+   "name": {
+    "it": "Segnalibro",
+    "en": "Bookmark"
+   },
+   "what": {
+    "it": "Segna una risposta nella chat per ritrovarla.",
+    "en": "Marks an answer in the chat to find it again."
+   },
+   "where": {
+    "it": "Sotto una risposta",
+    "en": "Under an answer"
+   },
+   "state": "ready",
+   "version": "0.2.972",
+   "route": null,
+   "section": null,
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SessionSheet.kt",
+    "needle": "Bookmark"
+   },
+   "web": null
+  },
+  {
+   "key": "banco_prova",
+   "group": "next",
+   "name": {
+    "it": "Banco prova",
+    "en": "Test bench"
+   },
+   "what": {
+    "it": "Quello che aspetta la tua prova, con cosa provare.",
+    "en": "What waits for your test, with what to try."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "cinque_minuti",
+   "group": "next",
+   "name": {
+    "it": "Cinque minuti",
+    "en": "Five minutes"
+   },
+   "what": {
+    "it": "Le decisioni che aspettano te, raccolte in una volta.",
+    "en": "The decisions waiting for you, gathered in one go."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "ok_informato",
+   "group": "next",
+   "name": {
+    "it": "Ok informato",
+    "en": "Informed ok"
+   },
+   "what": {
+    "it": "La card dell'ok dice cosa non è provato e se si può annullare.",
+    "en": "The ok card says what is untested and whether it can be undone."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "rimasto_indietro",
+   "group": "next",
+   "name": {
+    "it": "Rimasto indietro",
+    "en": "Left behind"
+   },
+   "what": {
+    "it": "Ciò che dipende dal codice e invecchia: demo, scheda store, sito, README.",
+    "en": "What depends on the code and ages: demo, store listing, site, README."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "stesso_difetto",
+   "group": "next",
+   "name": {
+    "it": "Stesso difetto altrove",
+    "en": "Same defect elsewhere"
+   },
+   "what": {
+    "it": "Cerca lo stesso difetto negli altri progetti, in sola lettura.",
+    "en": "Looks for the same defect in other projects, read-only."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "promemoria",
+   "group": "next",
+   "name": {
+    "it": "Promemoria",
+    "en": "Reminders"
+   },
+   "what": {
+    "it": "Scatta una volta e sparisce.",
+    "en": "Fires once and disappears."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "rendiconto",
+   "group": "next",
+   "name": {
+    "it": "Rendiconto cliente",
+    "en": "Client report"
+   },
+   "what": {
+    "it": "Compiti chiusi, commit e uscite di un progetto in un mese.",
+    "en": "A project's closed tasks, commits and releases in a month."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "pagella",
+   "group": "next",
+   "name": {
+    "it": "Pagella",
+    "en": "Scorecard"
+   },
+   "what": {
+    "it": "Come sono andati i compiti per modello ed effort, difetti compresi.",
+    "en": "How tasks went by model and effort, defects included."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "panoramica",
+   "group": "next",
+   "name": {
+    "it": "Panoramica",
+    "en": "Overview"
+   },
+   "what": {
+    "it": "Questa pagina: tutte le funzioni, per a cosa servono.",
+    "en": "This page: all features, by what they are for."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  },
+  {
+   "key": "prima_raccolta",
+   "group": "next",
+   "name": {
+    "it": "Avvio a pieno regime",
+    "en": "Full start"
+   },
+   "what": {
+    "it": "All'abbinamento riempie ogni sezione coi dati veri della macchina.",
+    "en": "On pairing it fills each section with the machine's real data."
+   },
+   "where": {
+    "it": "",
+    "en": ""
+   },
+   "state": "coming",
+   "version": null,
+   "route": null,
+   "section": null,
+   "phone": null,
+   "web": null
+  }
+ ]
+}

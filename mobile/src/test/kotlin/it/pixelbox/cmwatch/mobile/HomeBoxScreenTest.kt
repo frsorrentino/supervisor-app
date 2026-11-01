@@ -77,5 +77,12 @@ class HomeBoxScreenTest {
     @Test fun esiti_interruttore_sessione412Grande() = big(412, false, 1.3f)
     @Test fun esiti_interruttore_sessione320Grande() = big(320, false, 1.3f)
     @Test fun esiti_interruttore_sessione412Enorme() = big(412, false, 2f)
+    private fun features(locale: String, dp: Int, scale: Float = 1f) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = locale, screenWidth = (dp * 2.75).toInt(), screenHeight = 2400, fontScale = scale))
+        val c = it.pixelbox.cmwatch.rules.Features.decode(File("src/main/assets/features.json").readText())
+        paparazzi.snapshot { CmPhoneTheme(still = true) { FeaturesScreen(c.copy(features = c.features.filter { f -> f.group in setOf("you", "next") }), onBack = {}, onRoute = {}) } }
+    }
+    @Test fun panoramica_italiano412() = features("it", 412)
+    @Test fun panoramica_inglese320Grande() = features("en", 320, 1.3f)
     @Test fun outcomesLoading412() = shot(HomeBox.OUTCOMES, 412, p = null)
 }

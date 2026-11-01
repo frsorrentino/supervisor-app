@@ -64,6 +64,8 @@ fun SettingsScreen(
     /** Lo stato dei dispositivi per lo schema; senza, quello che si sa dall'abbinamento. */
     devices: SettingsDevices.Model = SettingsDevices.build(host, null, null, 0, phoneName, version, true, watchName, watchPending, null),
     onBack: () -> Unit = {},
+    /** La pagina «Cosa sa fare» (Franz 01/11 20:39). */
+    onFeatures: (() -> Unit)? = null,
     /** Il dispositivo con la scheda aperta all'inizio (i provini); di solito il PC. */
     initialDevice: DeviceNode = DeviceNode.PC,
     /** Le sezioni aperte all'inizio (i provini); nell'app tutte chiuse (Franz, 30/10 21:46). */
@@ -169,6 +171,7 @@ fun SettingsScreen(
             }
 
             }
+            onFeatures?.let { go -> SectionCard { SettingsRow(Icons.Outlined.AutoAwesome, stringResource(R.string.features_title), stringResource(R.string.features_sub), go) } }
             section("info", stringResource(R.string.sec_info), Icons.Outlined.Info, version) {
             SectionCard {
                 SettingsRow(Icons.Outlined.PrivacyTip, stringResource(R.string.privacy), stringResource(R.string.privacy_sub), onPrivacy)

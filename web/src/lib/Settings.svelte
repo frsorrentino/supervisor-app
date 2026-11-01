@@ -16,7 +16,8 @@
 
   // Impostazioni (SettingsScreen dell'app, mockup A): sezioni con l'etichetta e il filo. Collegamento: lo schema dei
   // dispositivi da toccare (schema B, contratto 1.32); Lettura ad alta voce: voce e velocità; Informazioni: la versione.
-  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, onRevoke = null, demo = false, onHomeOrder = null }: {
+  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, onRevoke = null, demo = false, onHomeOrder = null, onFeatures = null }: {
+    onFeatures?: (() => void) | null
     /** «Riordina la home» (contratto 1.97); null se il relay non ha `home_order`. */
     onHomeOrder?: (() => void) | null
     /** La demo (Modalità demo dell'app): l'interruttore porta dentro e fuori dai dati di prova. */
@@ -215,6 +216,13 @@
 
   </div></div>{/if}
 
+  {#if onFeatures}<div class="sec">
+      <button class="srow" data-testid="impostazioni-cosa-sa-fare" onclick={onFeatures}>
+        <span class="sic"><span class="ms" aria-hidden="true">auto_awesome</span></span>
+        <span class="st"><b>{t.featuresTitle}</b><small>{t.featuresSub}</small></span>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
+      </button>
+  </div>{/if}
   <button class="gh" data-testid="impostazioni-sezioni-info" aria-expanded={!!opened.info} onclick={() => (opened = { ...opened, info: !opened.info })}><span class="gic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8v.5" /></svg></span><span>{t.secInfo}</span><span class="grt">{#if !opened.info}{__APP_VERSION__}{/if}</span><svg class="gtog" class:up={opened.info} viewBox="0 0 24 24" width="20" height="20"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
   {#if opened.info}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
   <div class="sec">

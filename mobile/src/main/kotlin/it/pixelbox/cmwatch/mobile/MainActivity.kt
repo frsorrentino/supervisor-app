@@ -224,6 +224,7 @@ class MainActivity : ComponentActivity() {
         var terminal by rememberSaveable { mutableStateOf<String?>(null) }   // nome della sessione del terminale
         var screenId by rememberSaveable { mutableStateOf<String?>(null) }
         var settingsOpen by rememberSaveable { mutableStateOf(false) }
+        var featuresOpen by rememberSaveable { mutableStateOf(false) }
         var liveRecap by remember { mutableIntStateOf(getSharedPreferences("live", MODE_PRIVATE).getInt("recap_min", it.pixelbox.cmwatch.rules.LiveDesk.RECAP_DEFAULT_MIN)) }
         var launching by rememberSaveable { mutableStateOf(false) }
         var nightAdding by rememberSaveable { mutableStateOf(false) }
@@ -464,7 +465,30 @@ class MainActivity : ComponentActivity() {
                     AddDeviceSheet(ui, onRetry = askInvite, onDone = { addDevice = null })
                 }
             }
+            if (featuresOpen) {
+                BackHandler { featuresOpen = false }
+                it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.FeaturesScreen(remember { it.pixelbox.cmwatch.rules.Features.decode(assets.open("features.json").bufferedReader().use { r -> r.readText() }) }, onBack = { featuresOpen = false }) { route ->
+                    featuresOpen = false
+                    if (route != "settings" && route != "homeorder") {
+                        settingsOpen = false
+                        when (route) {
+                            "lavori" -> { open = null; tab = StartRoute.Tab.LAVORI }
+                            "queue" -> { queueSkip = null; queueOpen = true }
+                            "box-aspetta" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.WAITING
+                            "box-lavoro" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.BUSY
+                            "box-esiti" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.OUTCOMES
+                            "launch" -> launching = true
+                            "night" -> nightOpen = true
+                            "search" -> searchOpen = true
+                            "usage" -> goUsage()
+                            else -> { open = null; tab = StartRoute.Tab.OVERVIEW }
+                        }
+                    }
+                } }
+                return
+            }
             it.pixelbox.cmwatch.mobile.ui.PageIn { SettingsScreen(
+                onFeatures = { featuresOpen = true },
                 host = host, phoneName = app.phoneName, watchName = r?.watchName, watchPending = r?.watchPending == true, demo = demo,
                 version = version, commit = BuildConfig.GIT_COMMIT,
                 updateStatus = if (BuildConfig.SELF_UPDATE) updateStatus(updateUi) else null,
