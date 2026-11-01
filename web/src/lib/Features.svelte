@@ -17,6 +17,7 @@
     <h2>{tx(opened.name)}{#if opened.state === 'coming'} <small>{t.featuresComing}</small>{/if}</h2>
     <p class="about">{tx(opened.what)} {tx(opened.when)}</p>
     {#if DEMO_KEYS.includes(opened.key)}<h4>{t.featuresTry}</h4><FeatureDemo key={opened.key} />{/if}
+    {#if opened.image}<h4>{t.featuresLook}</h4><img class="look" src="/feature-images/{opened.image}" alt={tx(opened.name)} loading="lazy" />{/if}
     {#if tx(opened.how)}<h4>{t.featuresHow}</h4><p class="how">{tx(opened.how)}</p>{/if}
     {#if tx(opened.where)}<p class="wh">{tx(opened.where)}</p>{/if}
     {#if canGo(opened)}<button class="go" onclick={() => onRoute(opened!.route!)}>{t.featuresGo}</button>{/if}
@@ -60,5 +61,6 @@
   .about, .how { font-size: 15.5px; line-height: 1.4; color: var(--text); }
   h4 { margin-top: 4px; font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text2); }
   .how { margin-top: -6px; font-size: 14.5px; }
+  .look { max-width: 100%; max-height: 520px; border: 1px solid var(--line); border-radius: 12px; }
   .go { background: var(--high); color: var(--text); border-radius: 999px; padding: 9px 16px; font-weight: 500; font-size: 14px; }
 </style>

@@ -3,7 +3,7 @@
 import raw from '../../../mobile/src/main/assets/features.json?raw'
 export type Text = { it: string; en: string }
 export type Proof = { file: string; needle: string }
-export type Feature = { key: string; group: string; name: Text; what: Text; where: Text; when: Text; how: Text; state: 'ready' | 'coming'; version: string | null; route: string | null; section: string | null; phone: Proof | null; web: Proof | null }
+export type Feature = { key: string; group: string; name: Text; what: Text; where: Text; when: Text; how: Text; image?: string | null; state: 'ready' | 'coming'; version: string | null; route: string | null; section: string | null; phone: Proof | null; web: Proof | null }
 export type Group = { key: string; it: string; en: string }
 export type Catalog = { groups: Group[]; features: Feature[] }
 export const catalog: Catalog = JSON.parse(raw)

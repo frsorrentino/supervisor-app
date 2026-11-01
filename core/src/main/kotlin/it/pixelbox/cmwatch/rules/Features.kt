@@ -19,7 +19,7 @@ object Features {
     @Serializable data class Proof(val file: String, val needle: String)
     @Serializable data class Group(val key: String, val it: String, val en: String)
     @Serializable data class Feature(
-        val key: String, val group: String, val name: Text, val what: Text, val where: Text, val state: String, val `when`: Text, val how: Text,
+        val key: String, val group: String, val name: Text, val what: Text, val where: Text, val state: String, val `when`: Text, val how: Text, val image: String? = null,
         val version: String? = null, val route: String? = null, val section: String? = null, val phone: Proof? = null, val web: Proof? = null,
     )
     @Serializable data class Catalog(val groups: List<Group>, val features: List<Feature>)

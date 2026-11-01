@@ -1417,6 +1417,7 @@ It starts at your last message to the master.</string>
     <string name="features_sub">All features, by what they are for</string>
     <string name="features_how">How to use it</string>
     <string name="features_go">Take me there</string>
+    <string name="features_look">How it looks</string>
     <string name="features_try">Try it</string>
     <string name="prove_title">To test</string>
     <string name="prove_loading">On its way from the PC.</string>

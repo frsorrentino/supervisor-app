@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -91,6 +92,14 @@ private fun FeaturePage(f: Features.Feature, italian: Boolean, demo: FeatureDemo
             if (demo != null && f.key in Features.DEMO_KEYS) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.features_try).uppercase(), style = MonoSmall.copy(fontWeight = FontWeight.Medium), color = Cm.text2)
                 FeatureDemoBox(f.key, demo)
+            }
+            f.image?.let { name ->
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val img = androidx.compose.runtime.remember(name) { runCatching { ctx.assets.open("feature-images/$name").use { android.graphics.BitmapFactory.decodeStream(it) } }.getOrNull()?.asImageBitmap() }
+                if (img != null) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.features_look).uppercase(), style = MonoSmall.copy(fontWeight = FontWeight.Medium), color = Cm.text2)
+                    androidx.compose.foundation.Image(img, f.name.of(italian), modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).clip(RoundedCornerShape(12.dp)))
+                }
             }
             f.how.of(italian).takeIf { it.isNotEmpty() }?.let { how ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

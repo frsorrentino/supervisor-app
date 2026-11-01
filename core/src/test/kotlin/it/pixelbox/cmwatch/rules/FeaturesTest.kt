@@ -66,4 +66,11 @@ class FeaturesTest {
         assertTrue(st.system != null && st.plugins != null && st.sessions.any { it.name == "master" })
         assertEquals(2, Suggestions.visible(st, emptySet(), now).shown.size)
     }
+
+    @Test fun panoramica_demo_ogniVocePresenteHaRiquadroOImmagine() {
+        c.features.filter { it.state == Features.READY }.forEach { f ->
+            assertTrue("${f.key} senza riquadro né immagine", f.key in Features.DEMO_KEYS || f.image != null)
+            f.image?.let { assertTrue(it, File("../mobile/src/main/assets/feature-images/$it").exists()) }
+        }
+    }
 }

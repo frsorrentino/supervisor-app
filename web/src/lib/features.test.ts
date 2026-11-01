@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { catalog, grouped, missingSections, canGo } from './features'
 import { DEFAULT_ORDER } from './homeOrder'
 
@@ -52,6 +52,14 @@ describe('panoramica', () => {
     for (const k of keys) {
       expect(catalog.features.find(f => f.key === k)?.state, k).toBe('ready')
       expect(src, k).toContain(`key === '${k}'`)
+    }
+  })
+  it('panoramica_demo: ogni voce presente ha riquadro o immagine', () => {
+    const src = read('web/src/lib/FeatureDemo.svelte')
+    const keys = /DEMO_KEYS = \[([^\]]+)\]/.exec(src)![1]
+    for (const f of catalog.features.filter(x => x.state === 'ready')) {
+      expect(keys.includes(`'${f.key}'`) || !!f.image, f.key).toBe(true)
+      if (f.image) expect(existsSync(new URL(`../../public/feature-images/${f.image}`, import.meta.url)), f.image).toBe(true)
     }
   })
 })
