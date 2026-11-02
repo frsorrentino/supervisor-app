@@ -68,9 +68,11 @@ fun QueueScreen(
                         item.expiresAt?.let { Text(expiryText(it, now), style = MaterialTheme.typography.labelLarge, color = Cm.text2) }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilledTonalButton(onClick = { onSession(s.name) }) { Text(stringResource(R.string.queue_stop_open)) }
+                            // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto diventa la conferma; la pagina esce quando il PC chiude la ferma.
+                            var pk by androidx.compose.runtime.saveable.rememberSaveable(item.questionId) { androidx.compose.runtime.mutableStateOf<String?>(null) }
                             val ok = item.ok
-                            if (ok != null) Button(onClick = { onOk(s.name, ok) }) { Text(stringResource(R.string.attention_ok)) }
-                            else item.done?.let { d -> Button(onClick = { onDone(d) }) { Text(stringResource(R.string.attention_done)) } }
+                            if (ok != null) ConfirmButton(stringResource(R.string.attention_ok), confirmed = pk == "ok", enabled = pk == null) { pk = "ok"; onOk(s.name, ok) }
+                            else item.done?.let { d -> ConfirmButton(stringResource(R.string.attention_done), confirmed = pk == "done", enabled = pk == null) { pk = "done"; onDone(d) } }
                         }
                     }
                 }

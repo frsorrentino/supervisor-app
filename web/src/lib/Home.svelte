@@ -27,6 +27,7 @@
   import { shown as shownQuota } from './quotaLine'
   import { askedFor, attachedTasks, build, MASTER, staleHours, type Group, type Row } from './summary'
   import { doneOf, okOf, type Done } from './queue'
+  import { leave } from './leave'
   import { expiry, since } from './durations'
   import { lavoriInfo, pluginsInfo, systemInfo } from './slotInfo'
   import SlotNames from './SlotNames.svelte'
@@ -108,9 +109,9 @@
     /** Contratto 1.37: l'ok a un compito (`approve`) e «Chiudi» per una sessione finita o doppione (/exit). */
     onApprove?: (task: string, note: string, choice?: string) => void; onClose?: (name: string) => void
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
-    onDone?: (d: Done) => void
+    onDone?: (d: Done) => void | Promise<boolean>
     /** L'ok di una ferma nata dal «!» di «Prossimi:»: manda la voce alla sessione (queue.ts, okOf). */
-    onOk?: (session: string, text: string) => void
+    onOk?: (session: string, text: string) => void | Promise<boolean>
     /** Il menu contestuale della card (Franz, 14/10 20:58): segui, fai controllare alla master, come il ⋮ della sessione. */
     onSessionCmd?: (name: string, op: 'follow' | 'unfollow' | 'prompt', arg?: string) => void
     /** Il riquadro Notte (mockup approvato l'08/10 alle 12:57): `undefined` = nascosto, null = rapporto in arrivo. */
@@ -315,7 +316,16 @@
   let expanded = $state<string | null>(null)
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
   // Il riordino (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te in cima, in «Ti aspettano»; le altre in «Sessioni».
-  const waitRows = $derived(groups.find(([g]) => g === 'waiting')?.[1] ?? [])
+  // Franz 02/11 15:38 (app-feedback-azioni-02-11): Fatto e Ok rispondono al tocco (leave.ts): conferma sul tasto, la card esce
+  // senza aspettare lo stato nuovo, le altre salgono; se il PC dice no, torna. La chiave porta il since: una ferma nuova riappare.
+  let wPicked = $state<Record<string, string>>({}), wGone = $state<Record<string, true>>({})
+  const wKey = (s: Session) => `${s.name}@${s.needs_you?.at ?? s.turn_blocking?.at ?? 0}`
+  const wHooks = {
+    pick: (ids: string[], v: string | null) => { const n = { ...wPicked }; for (const i of ids) { if (v) n[i] = v; else delete n[i] } wPicked = n },
+    hide: (ids: string[], v: boolean) => { const n = { ...wGone }; for (const i of ids) { if (v) n[i] = true; else delete n[i] } wGone = n },
+  }
+  const wAct = (s: Session, choice: string, send: () => void | Promise<boolean>) => void leave([wKey(s)], choice, () => Promise.resolve(send()).then(x => x !== false), wHooks)
+  const waitRows = $derived((groups.find(([g]) => g === 'waiting')?.[1] ?? []).filter(r => !wGone[wKey(r.session)]))
   const restGroups = $derived(groups.filter(([g]) => g !== 'waiting'))
   // Una sola chiave per voce: quando una riga cambia gruppo scivola al posto nuovo invece di sparire e ricomparire.
   const restFlat = $derived(restGroups.flatMap(([g, rows]) => rows.map(r => [r, g] as const)))
@@ -821,10 +831,11 @@
       {#if group === 'waiting' && !s.question}
         {@const d = doneOf(s)}
         {@const ok = okOf(s)}
+        {@const wp = wPicked[wKey(s)]}
         <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. Una voce dal «!» di
              «Prossimi:» ha «Ok», che la manda alla sessione (Franz 02/11 11:03). -->
-        {#if ok}<div class="oks"><div class="ok"><span class="okt mono2"></span><button class={s.name === primary ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); onOk(s.name, ok) }}>{t.attentionOk}</button></div></div>
-        {:else if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
+        {#if ok}<div class="oks"><div class="ok"><span class="okt mono2"></span><button class={s.name === primary ? 'approve mini' : 'tonal mini'} class:done={wp === 'ok'} disabled={!!wp} onclick={(e) => { e.stopPropagation(); wAct(s, 'ok', () => onOk(s.name, ok)) }}>{#if wp === 'ok'}✓ {/if}{t.attentionOk}</button></div></div>
+        {:else if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} class:done={wp === 'done'} disabled={!!wp} onclick={(e) => { e.stopPropagation(); wAct(s, 'done', () => onDone(d)) }}>{#if wp === 'done'}✓ {/if}{t.attentionDone}</button></div></div>{/if}
       {/if}
       {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
       {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
@@ -1079,6 +1090,9 @@
   .details { font-size: 12.5px; color: var(--text2); }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .approve.mini { align-self: center; margin: 0; padding: 9px 16px; font-size: 14px; }
+  /* La conferma (voce 11), come in DaProvare: il tasto scelto si accende e cresce un poco. */
+  .approve.mini, .tonal.mini { transition: background-color 150ms, color 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
+  .approve.mini.done, .tonal.mini.done { background: var(--good); color: var(--bg); transform: scale(1.06); }
   .tonal { background: var(--high); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   /* Strada B (23/10): la lista compatta dei lavori senza sessione e la riga di un lavoro nella scheda della sua sessione. */
   .wkv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; overflow-wrap: anywhere; }

@@ -822,6 +822,23 @@ private fun SummaryCard(
         else -> null
     }
     val square = !it.pixelbox.cmwatch.rules.Accounts.personal(s.account, s.accountKind)
+    // Franz 02/11 15:38 (app-feedback-azioni-02-11): Fatto e Ok si accendono al tocco (vibrazione di conferma, voce 13) e dopo la
+    // conferma la card si chiude in altezza senza aspettare lo stato nuovo (Leave.confirmMs); se dopo 15 s lo stato la mostra
+    // ancora, il PC non l'ha chiusa e la card torna.
+    val waitKey = "${s.name}@${s.needsYou?.at ?: s.turnBlocking?.at ?: 0}"
+    var wPick by remember(waitKey) { mutableStateOf<String?>(null) }
+    var wGone by remember(waitKey) { mutableStateOf(false) }
+    val offAnim = animationsOff()
+    val view = androidx.compose.ui.platform.LocalView.current
+    val wScope = androidx.compose.runtime.rememberCoroutineScope()
+    val wAct: (String, () -> Unit) -> Unit = { choice, send ->
+        if (wPick == null) {
+            wPick = choice; view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); send()
+            wScope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(offAnim)); wGone = true; kotlinx.coroutines.delay(15_000); wGone = false; wPick = null }
+        }
+    }
+    androidx.compose.animation.AnimatedVisibility(!wGone, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(if (offAnim) 0 else 160)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (offAnim) 0 else 160))) {
+    Column {
     if (!waiting && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Row(
         // La chat si restringe verso la sua card durante il gesto indietro.
@@ -904,12 +921,12 @@ private fun SummaryCard(
         // «Prossimi:» ha «Ok», che la manda alla sessione come un seguito (Franz 02/11 11:03).
         val okStep = if (waiting && s.question == null) AttentionQueue.okOf(s) else null
         if (okStep != null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
-            V3Pill(stringResource(R.string.attention_ok), filled = doneFilled) { onStep(okStep) }
+            V3Pill(stringResource(R.string.attention_ok), filled = doneFilled, confirmed = wPick == "ok") { wAct("ok") { onStep(okStep) } }
         }
         else if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = Cm.text2, modifier = Modifier.weight(1f))
-                V3Pill(stringResource(R.string.attention_done), filled = doneFilled) { onDone(d) }
+                V3Pill(stringResource(R.string.attention_done), filled = doneFilled, confirmed = wPick == "done") { wAct("done") { onDone(d) } }
             }
         }
         // Le opzioni della domanda subito, anche a card chiusa: rispondere è il motivo per cui la card è in cima.
@@ -1020,6 +1037,8 @@ private fun SummaryCard(
                 Text(stringResource(R.string.ctx_short, pct) + (todayShare?.let { " · " + stringResource(R.string.kpi5_today, it) } ?: ""), style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2, maxLines = 1)
             }
         } ?: run { if (open && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) } }
+    }
+    }
     }
     }
 }

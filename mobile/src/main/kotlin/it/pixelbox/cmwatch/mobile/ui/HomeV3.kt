@@ -235,10 +235,14 @@ internal fun V3Row(first: Boolean = false, onClick: (() -> Unit)? = null, rail: 
 
 /** La pillola tonale delle righe (Fatto, Avvia, Aggiungi): mai piena, salvo l'unico bottone pieno della schermata. */
 @Composable
-internal fun V3Pill(text: String, filled: Boolean = false, onClick: () -> Unit) {
+internal fun V3Pill(text: String, filled: Boolean = false, confirmed: Boolean = false, onClick: () -> Unit) {
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    androidx.compose.material3.Surface(onClick = onClick, interactionSource = press, modifier = Modifier.pressScale(press), shape = androidx.compose.foundation.shape.CircleShape, color = if (filled) V3.Act else V3.S3, contentColor = if (filled) V3.OnAct else V3.Tx) {
-        Text(text, style = V3.Name.copy(fontSize = 15.sp, color = if (filled) V3.OnAct else V3.Tx), maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
+    // `confirmed` (voce 11, Franz 02/11 15:38): il tasto toccato diventa la conferma, verde con la spunta, e cresce un poco.
+    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) V3.Good else if (filled) V3.Act else V3.S3, CmMotion.slow, label = "pill-bg")
+    val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "pill-scale")
+    val fg = if (confirmed) V3.Bg else if (filled) V3.OnAct else V3.Tx
+    androidx.compose.material3.Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press).graphicsLayer { scaleX = scale; scaleY = scale }, shape = androidx.compose.foundation.shape.CircleShape, color = bg, contentColor = fg) {
+        Text(if (confirmed) "✓ $text" else text, style = V3.Name.copy(fontSize = 15.sp, color = fg), maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
     }
 }
 

@@ -4,6 +4,7 @@
   import { expiry, since } from './durations'
   import { CHAT_ARG } from './questionRules'
   import { t } from './t'
+  import { confirmMs } from './leave'
   import Badge from './Badge.svelte'
   import QuestionCard from './QuestionCard.svelte'
 
@@ -14,9 +15,9 @@
     skip?: string | null
     st: State; now: number; onAnswer: (session: string, arg: string, op?: 'answer' | 'allow_all') => void; onSession: (name: string) => void
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
-    onDone?: (d: Done) => void
+    onDone?: (d: Done) => void | Promise<boolean>
     /** L'ok di una ferma nata dal «!» di «Prossimi:»: manda la voce alla sessione (queue.ts, okOf). */
-    onOk?: (session: string, text: string) => void
+    onOk?: (session: string, text: string) => void | Promise<boolean>
   } = $props()
   const expiryText = (x: number) => { const e = expiry(x, now); return e.day === 'today' ? t.expiresAt(e.hm) : e.day === 'tomorrow' ? t.expiresTomorrow(e.hm) : t.expiresOn(e.date ?? '', e.hm) }
 
@@ -31,6 +32,19 @@
     onAnswer(session, arg, op)
     const i = after && after.questionId !== questionId ? pageOf(list, after.questionId) : null
     if (i != null) go(i)
+  }
+  // Franz 02/11 15:38 (app-feedback-azioni-02-11): Fatto e Ok si accendono al tocco e, dopo la conferma, si passa alla pagina
+  // dopo come per una risposta; la pagina esce dalla fila quando il PC la chiude. Se il PC dice no, il tasto si spegne.
+  let picked = $state<Record<string, string>>({})
+  async function act(it: { session: string; questionId: string }, choice: string, send: () => void | Promise<boolean>) {
+    if (picked[it.questionId]) return
+    picked = { ...picked, [it.questionId]: choice }
+    const after = nextOf(st, it.questionId)
+    const sent = Promise.resolve(send()).then(x => x !== false)
+    await new Promise(r => setTimeout(r, confirmMs()))
+    const i = after && after.questionId !== it.questionId ? pageOf(list, after.questionId) : null
+    if (i != null) go(i)
+    if (!(await sent)) { const n = { ...picked }; delete n[it.questionId]; picked = n }
   }
   function key(e: KeyboardEvent) {
     if (e.target instanceof Element && e.target.closest('input, textarea')) return
@@ -65,8 +79,8 @@
               {#if it.expiresAt}<span class="exp">{expiryText(it.expiresAt)}</span>{/if}
               <div class="acts">
                 <button class="go" class:tonal={!!it.done} onclick={() => onSession(s.name)}>{t.queueStopOpen}</button>
-                {#if it.ok}{@const ok = it.ok}<button class="go" onclick={() => onOk(s.name, ok)}>{t.attentionOk}</button>
-                {:else if it.done}{@const d = it.done}<button class="go" onclick={() => onDone(d)}>{t.attentionDone}</button>{/if}
+                {#if it.ok}{@const ok = it.ok}<button class="go" class:done={picked[it.questionId] === 'ok'} disabled={!!picked[it.questionId]} onclick={() => act(it, 'ok', () => onOk(s.name, ok))}>{#if picked[it.questionId] === 'ok'}✓ {/if}{t.attentionOk}</button>
+                {:else if it.done}{@const d = it.done}<button class="go" class:done={picked[it.questionId] === 'done'} disabled={!!picked[it.questionId]} onclick={() => act(it, 'done', () => onDone(d))}>{#if picked[it.questionId] === 'done'}✓ {/if}{t.attentionDone}</button>{/if}
               </div>
             </div>
           </div>
@@ -82,6 +96,9 @@
 </div>
 
 <style>
+  /* La conferma (voce 11), come in DaProvare. */
+  .go { transition: background-color 150ms, color 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
+  .go.done { background: var(--good); color: var(--bg); transform: scale(1.06); }
   .queue { height: 100%; display: flex; flex-direction: column; }
   .empty { color: var(--text2); padding: 0 20px; font-size: 16px; }
   .strip { flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }

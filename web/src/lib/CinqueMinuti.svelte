@@ -4,6 +4,8 @@
   import { buttons, canDrop, card, nextDecisions, viaApprove } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
+  import { confirmMs } from './leave'
+  import { pass } from './motion'
   // «Da decidere» (contratto 1.99, cinque_minuti), porta di CinqueMinutiScreen: quante vuoi, una alla volta, le più pesanti per prime. Niente timer.
   let { run, onApprove, onDone, onAsk }: { st: State; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void } = $props()
   let planOpen = $state(new Set<string>())
@@ -16,7 +18,11 @@
   const g = $derived(page && howMany != null ? nextDecisions(page, touched, Math.max(0, howMany - touched.size))[0] ?? null : null)
   const cardOf = $derived(g ? card(g) : { head: [], items: [] })
   const next = (k: string) => { touched = new Set([...touched, k]) }
-  async function decide(key: string, action: 'not_now' | 'drop', r?: string) { next(key); await run(newCmd('decisione', null, key, undefined, undefined, action === 'drop' ? { action, reason: r } : { action, hours: 24 })) }
+  // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto scelto diventa la conferma e la scheda dopo entra con la sua
+  // transizione, invece del cambio di colpo. Il comando parte subito; la scheda cambia dopo la conferma (leave.ts, confirmMs).
+  let picked = $state<string | null>(null)
+  function act(id: string, key: string, send: () => void) { if (picked) return; picked = id; send(); setTimeout(() => { next(key); picked = null }, confirmMs()) }
+  async function decide(key: string, action: 'not_now' | 'drop', r?: string) { act(action, key, () => {}); await run(newCmd('decisione', null, key, undefined, undefined, action === 'drop' ? { action, reason: r } : { action, hours: 24 })) }
 </script>
 
 <div class="cm" data-testid="cinque-minuti">
@@ -28,7 +34,8 @@
   {:else if !g}<p>{t.decisionsDone}</p>
   {:else}
     <span class="pos">{t.decisionsPosition(touched.size + 1, Math.min(howMany, page.groups.length))}</span>
-    <div class="c">
+    {#key g.key}
+    <div class="c" in:pass>
       <!-- Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte. -->
       {#each cardOf.head as h, n (n)}{#if n === 0}<b>{h}</b>{:else}<p class="m">{h}</p>{/if}{/each}
       <span class="pos" class:pc={g.where === 'pc'}>{g.where === 'pc' ? t.decisionsAtPc : t.decisionsHere}{g.weight > 1 ? ` · ${t.decisionsUnblocks(g.weight)}` : ''}</span>
@@ -41,24 +48,30 @@
         {#if x.plan}{@const k = `${g.key}-${n}`}<p class="plan" class:folded={!planOpen.has(k)}>{x.plan}</p>{#if x.plan.length > 160}<button class="text" onclick={() => { const s = new Set(planOpen); if (s.has(k)) s.delete(k); else s.add(k); planOpen = s }}>{planOpen.has(k) ? t.permissionLess : t.permissionMore}</button>{/if}{/if}
         {#if x.reason}<p class="m">{x.reason}</p>{/if}
         {#if buttons(i).length}<div class="ac">{#each buttons(i) as btn, bi (bi)}
-          {#if btn.kind === 'proceed'}<button class="tonal" onclick={() => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)); next(g.key) }}>{t.decisionsProceed}</button>
-          {:else if btn.kind === 'discuss'}<button class="out" onclick={() => { onAsk(t.sugDiscussPrompt(t.decisionsDiscussAbout(name, ref))); next(g.key) }}>{t.decisionsDiscuss}</button>
-          {:else if btn.kind === 'done'}<button class="tonal" onclick={() => { onDone(i); next(g.key) }}>{t.agendaDone}</button>
-          {:else}<button class="tonal" onclick={() => { if (viaApprove(i)) onApprove(i.task!, '', btn.label); else onAsk(`${t.decisionsChoicePrompt(name, ref)} ${btn.label}`); next(g.key) }}>{btn.label}</button>{/if}
+          {@const id = `${n}-${bi}`}{#if btn.kind === 'proceed'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)) })}>{#if picked === id}✓ {/if}{t.decisionsProceed}</button>
+          {:else if btn.kind === 'discuss'}<button class="out" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.sugDiscussPrompt(t.decisionsDiscussAbout(name, ref))))}>{#if picked === id}✓ {/if}{t.decisionsDiscuss}</button>
+          {:else if btn.kind === 'done'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onDone(i))}>{#if picked === id}✓ {/if}{t.agendaDone}</button>
+          {:else}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, '', btn.label); else onAsk(`${t.decisionsChoicePrompt(name, ref)} ${btn.label}`) })}>{#if picked === id}✓ {/if}{btn.label}</button>{/if}
         {/each}</div>{/if}
       {/each}
       <hr />
-      <div class="ac"><button class="text" onclick={() => decide(g.key, 'not_now')}>{t.decisionsNotNow}</button><button class="text red" onclick={() => (dropping = true)}>{t.decisionsDrop}</button></div>
+      <div class="ac"><button class="text" class:done={picked === 'not_now'} onclick={() => decide(g.key, 'not_now')}>{#if picked === 'not_now'}✓ {/if}{t.decisionsNotNow}</button><button class="text red" onclick={() => (dropping = true)}>{t.decisionsDrop}</button></div>
       {#if dropping}
         <p>{t.decisionsDropTitle}</p>
         <input bind:value={reason} placeholder={t.decisionsDropReason} />
         <div class="ac"><button class="text" onclick={() => (dropping = false)}>{t.cancel}</button><button class="text red" disabled={!canDrop(reason)} onclick={() => { decide(g.key, 'drop', reason.trim()); dropping = false; reason = '' }}>{t.decisionsDrop}</button></div>
       {/if}
     </div>
+    {/key}
   {/if}
 </div>
 
 <style>
+  /* La conferma (voce 11), come in DaProvare: il tasto scelto si accende e cresce un poco, gli altri sfumano. */
+  .tonal, .out, .text { transition: background-color 150ms, color 150ms, opacity 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
+  .tonal.done, .out.done { background: var(--good); color: var(--bg); border-color: transparent; transform: scale(1.06); }
+  .text.done { color: var(--good); }
+  .fade { opacity: .35; }
   .cm { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
   .c b { font-weight: 600; } .i { font-size: 14.5px; }

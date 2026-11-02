@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.togetherWith
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -61,7 +62,7 @@ private fun DecideCard(picked: Boolean = false, content: @Composable ColumnScope
  * con la molla dell'app; `faded` = è stato scelto un altro tasto. Al tocco anche la vibrazione di conferma (voce 13).
  */
 @Composable
-private fun ConfirmButton(label: String, confirmed: Boolean, enabled: Boolean, faded: Boolean = false, onClick: () -> Unit) {
+internal fun ConfirmButton(label: String, confirmed: Boolean, enabled: Boolean, faded: Boolean = false, onClick: () -> Unit) {
     val view = androidx.compose.ui.platform.LocalView.current
     val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "confirm-scale")
     val bg by androidx.compose.animation.animateColorAsState(if (confirmed) V3.Good else Cm.surfaceHigh, CmMotion.slow, label = "confirm-bg")
@@ -232,6 +233,11 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
     var howMany by rememberSaveable { mutableStateOf(startHowMany) }
     var touched by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var dropping by remember { mutableStateOf(false) }
+    // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto scelto diventa la conferma e la scheda dopo entra con la sua
+    // transizione, invece del cambio di colpo. Il comando parte subito; la scheda cambia dopo la conferma (Leave.confirmMs).
+    var picked by remember { mutableStateOf<String?>(null) }
+    val off = animationsOff()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val many = howMany
         when {
@@ -251,7 +257,16 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
                 if (g == null) Text(stringResource(R.string.decisions_done), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.padding(4.dp))
                 else {
                     fun next() { touched = touched + g.key }
+                    fun act(id: String, send: () -> Unit) {
+                        if (picked != null) return
+                        picked = id; send()
+                        scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(off)); next(); picked = null }
+                    }
                     Text(stringResource(R.string.decisions_position, touched.size + 1, minOf(many, page.groups.size)), style = MonoSmall, modifier = Modifier.padding(start = 4.dp))
+                    // La scheda dopo entra da 0,96 a 1 con dissolvenza (voce 12), quella fatta esce in dissolvenza.
+                    androidx.compose.animation.AnimatedContent(g, contentKey = { it.key }, label = "decide-next", transitionSpec = {
+                        (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(if (off) 0 else 200)) + androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(if (off) 0 else 200), initialScale = 0.96f)) togetherWith androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (off) 0 else 120))
+                    }) { g ->
                     DecideCard {
                         // Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte.
                         val c = CinqueMinuti.card(g)
@@ -271,19 +286,20 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
                             if (btns.isNotEmpty()) @OptIn(ExperimentalLayoutApi::class) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 btns.forEach { btn ->
                                     when (btn) {
-                                        CinqueMinuti.Btn.Proceed -> FilledTonalButton(onClick = { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, null) else onAsk(proceed); next() }) { Text(stringResource(R.string.decisions_proceed)) }
-                                        CinqueMinuti.Btn.Discuss -> OutlinedButton(onClick = { onAsk(discuss); next() }) { Text(stringResource(R.string.decisions_discuss)) }
-                                        CinqueMinuti.Btn.Done -> FilledTonalButton(onClick = { onDone(i); next() }) { Text(stringResource(R.string.agenda_done)) }
-                                        is CinqueMinuti.Btn.Choice -> FilledTonalButton(onClick = { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, btn.label) else onAsk(choicePrompt + " " + btn.label); next() }) { Text(btn.label) }
+                                        CinqueMinuti.Btn.Proceed -> "$n-p".let { id -> ConfirmButton(stringResource(R.string.decisions_proceed), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, null) else onAsk(proceed) } } }
+                                        CinqueMinuti.Btn.Discuss -> "$n-d".let { id -> ConfirmButton(stringResource(R.string.decisions_discuss), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { onAsk(discuss) } } }
+                                        CinqueMinuti.Btn.Done -> "$n-f".let { id -> ConfirmButton(stringResource(R.string.agenda_done), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { onDone(i) } } }
+                                        is CinqueMinuti.Btn.Choice -> "$n-c-${btn.label}".let { id -> ConfirmButton(btn.label, confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, btn.label) else onAsk(choicePrompt + " " + btn.label) } } }
                                     }
                                 }
                             }
                         }
                         HorizontalDivider(color = Cm.line)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { onNotNow(g.key); next() }) { Text(stringResource(R.string.decisions_not_now)) }
-                            TextButton(onClick = { dropping = true }) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) }
+                            TextButton(onClick = { act("not_now") { onNotNow(g.key) } }, enabled = picked == null) { Text((if (picked == "not_now") "✓ " else "") + stringResource(R.string.decisions_not_now), color = if (picked == "not_now") V3.Good else androidx.compose.ui.graphics.Color.Unspecified) }
+                            TextButton(onClick = { dropping = true }, enabled = picked == null) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) }
                         }
+                    }
                     }
                     if (dropping) {
                         var reason by rememberSaveable { mutableStateOf("") }
@@ -291,7 +307,7 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
                             onDismissRequest = { dropping = false }, containerColor = Cm.surface,
                             title = { Text(stringResource(R.string.decisions_drop_title), color = Cm.text) },
                             text = { OutlinedTextField(reason, { reason = it }, label = { Text(stringResource(R.string.decisions_drop_reason)) }, modifier = Modifier.fillMaxWidth()) },
-                            confirmButton = { TextButton(enabled = CinqueMinuti.canDrop(reason), onClick = { onDrop(g.key, reason.trim()); dropping = false; reason = ""; next() }) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) } },
+                            confirmButton = { TextButton(enabled = CinqueMinuti.canDrop(reason), onClick = { val r = reason.trim(); dropping = false; reason = ""; act("drop") { onDrop(g.key, r) } }) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) } },
                             dismissButton = { TextButton(onClick = { dropping = false }) { Text(stringResource(R.string.cancel)) } },
                         )
                     }

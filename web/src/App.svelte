@@ -307,7 +307,7 @@
 
   /** Un comando al relay; il rifiuto si mostra in basso. */
   /** Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno). */
-  const attentionDone = (d: { kind: string; ref: string; since?: number }) => run(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since }))
+  const attentionDone = (d: { kind: string; ref: string; since?: number }) => run(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since })).then(r => !!r?.ok)
   async function run(c: Cmd): Promise<CmdResult | null> {
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     try {
@@ -742,11 +742,12 @@
     else if (masterOpen) smooth(() => { masterOpen = false })
   })
   let masterDraft = $state('')
-  async function sendTo(name: string, text: string) {
+  /** Vero se il PC ha preso il messaggio (app-feedback-azioni-02-11: chi ha toccato sa se la scheda può uscire). */
+  async function sendTo(name: string, text: string): Promise<boolean> {
     // Senza trasporto il messaggio resta «inviato al PC».
     const m: Sent = { id: crypto.randomUUID(), session: name, text, sentAt: nowS() }
     msgs = [...msgs, m]
-    if (!tr) return
+    if (!tr) return true
     pend = { ...pend, [m.id]: 'sending' }
     // Contratto 1.65: a una sessione chiusa il relay la riapre e poi consegna.
     const closed = st.sessions.find(x => x.name === name)?.state === 'gone'
@@ -754,7 +755,8 @@
     try {
       const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}) })
       res = { ...res, [m.id]: r }
-    } catch { pend = { ...pend, [m.id]: 'failed' } }
+      return r.ok
+    } catch { pend = { ...pend, [m.id]: 'failed' }; return false }
   }
   // Contratto 1.64: un tocco = un comando; riuscito, si apre la sessione nata.
   async function newProject(parent: string, name: string, first: string, confirm: boolean): Promise<CmdResult | null> {
