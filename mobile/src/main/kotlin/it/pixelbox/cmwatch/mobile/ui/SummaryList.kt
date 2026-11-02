@@ -599,7 +599,7 @@ fun SummaryList(
         it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.let { out ->
             val liveNames = kpiState?.sessions.orEmpty().filter { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }.map { x -> x.name }.toSet()
             dragPresent += "esiti"
-            item(key = "sec-esiti") { Box(moving()) { V3Section(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
+            item(key = "sec-esiti") { Box(moving()) { V3Section(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, (out.red.size + out.settled).takeIf { n -> n > 0 }?.toString(), right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
             if (esitiOpen) item(key = "esiti") {
                 Box(moving()) {
                     V3List {
@@ -673,7 +673,7 @@ fun SummaryList(
             val r = newRow(key) ?: return
             val moving = movingIn(key)
             dragPresent += key
-            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), stringResource(r.title), r.icon, r.count, tag = r.tag, open = r.open.value) { toggleNew(r, key) } } }
+            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(key, kpiState), tag = r.tag, open = r.open.value) { toggleNew(r, key) } } }
             if (r.open.value) item(key = "$key-body") { Box(moving()) { sectionBodies[key]?.invoke() } }
         }
         val renderClosed: () -> Unit = {
@@ -710,7 +710,7 @@ fun SummaryList(
                     if (pluginsOpen) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
                 }
                 "prima_raccolta", "seguiti", "prove", "decisioni" -> newRow(pin)?.let { r ->
-                    SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, tag = r.tag, open = r.open.value) { toggleNew(r, pin) }
+                    SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(pin, kpiState), tag = r.tag, open = r.open.value) { toggleNew(r, pin) }
                     if (r.open.value) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { sectionBodies[pin]?.invoke() }
                 }
                 "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }
@@ -1474,8 +1474,36 @@ private fun sessionsLine(working: Int, finished: Int, still: Int): String = list
 private fun esitiLine(out: it.pixelbox.cmwatch.rules.Kpi.Outcomes): String? {
     val all = out.red + out.settledRows
     val last = all.maxOfOrNull { it.at } ?: return null
-    val base = stringResource(R.string.home_esiti_line, out.red.size + out.settled, hhmmOf(last))
+    // Il numero accanto al nome come nelle altre voci (Franz 02/11 09:41); qui a destra l'ultimo.
+    val base = stringResource(R.string.home_last_at, hhmmOf(last))
     return if (out.red.isEmpty()) base else pluralStringResource(R.plurals.home_esiti_red, out.red.size, out.red.size) + " · " + base
+}
+
+/** Il testo a destra delle voci nuove (Franz 02/11 09:41): quello che il numero non dice, come le altre voci. */
+@Composable
+private fun newRight(key: String, st: it.pixelbox.cmwatch.contract.State?): String? {
+    st ?: return null
+    val bits = when (key) {
+        "prove" -> st.prove?.let { it.pixelbox.cmwatch.rules.HomeRight.prove(it) }
+        "decisioni" -> st.decisions?.let { it.pixelbox.cmwatch.rules.HomeRight.decisions(it) }
+        "seguiti" -> st.seguiti?.let { it.pixelbox.cmwatch.rules.HomeRight.seguiti(it) }
+        "prima_raccolta" -> return st.primaRaccolta?.let { p -> when (p.status) {
+            "ask" -> stringResource(R.string.home_prima_ask); "running" -> stringResource(R.string.home_prima_running)
+            "interrupted" -> stringResource(R.string.home_prima_interrupted); "done" -> stringResource(R.string.home_prima_done); else -> null
+        } }
+        else -> null
+    } ?: return null
+    return bits.map { b ->
+        when (b.part) {
+            it.pixelbox.cmwatch.rules.HomeRight.Part.BUILDS -> pluralStringResource(R.plurals.home_bit_builds, b.n, b.n)
+            it.pixelbox.cmwatch.rules.HomeRight.Part.KO -> pluralStringResource(R.plurals.home_bit_ko, b.n, b.n)
+            it.pixelbox.cmwatch.rules.HomeRight.Part.HERE -> stringResource(R.string.home_bit_here, b.n)
+            it.pixelbox.cmwatch.rules.HomeRight.Part.UNBLOCKS -> stringResource(R.string.home_bit_unblocks, b.n)
+            it.pixelbox.cmwatch.rules.HomeRight.Part.BEHIND -> stringResource(R.string.home_bit_behind, b.n)
+            it.pixelbox.cmwatch.rules.HomeRight.Part.ELSEWHERE -> stringResource(R.string.home_bit_elsewhere, b.n)
+            it.pixelbox.cmwatch.rules.HomeRight.Part.REMINDERS -> pluralStringResource(R.plurals.home_bit_reminders, b.n, b.n)
+        }
+    }.joinToString(" · ").ifEmpty { null }
 }
 
 /** Titolo di sezione della home: si apre e si chiude al tocco; chiusa, a destra un riassunto se c'è. */

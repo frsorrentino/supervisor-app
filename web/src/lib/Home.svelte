@@ -62,6 +62,7 @@
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
   import { total as seguitiTotal } from './seguiti'
+  import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
   let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
@@ -370,11 +371,13 @@
   // Gli esiti di oggi dalla cronologia (null finché non arriva) e le sessioni vive, che una riga può aprire.
   const out = $derived(kpiPage ? kpiOutcomes(kpiPage, now) : null)
   // Il riassunto a sezione chiusa (Franz 31/10 01:15): quanti esiti, quanti falliti, l'ora dell'ultimo.
+  const esitiCount = $derived(part ? (out?.red.length ? String(out.red.length) : null) : out && out.red.length + out.settled > 0 ? String(out.red.length + out.settled) : null)
   const esitiLine = $derived.by(() => {
     if (!out) return null
     const all = [...out.red, ...out.settledRows]
     if (!all.length) return null
-    const base = t.homeEsitiLine(out.red.length + out.settled, hhmm(Math.max(...all.map(d => d.at))))
+    // Il numero accanto al nome come nelle altre voci (Franz 02/11 09:41); qui a destra l'ultimo.
+    const base = t.homeLastAt(hhmm(Math.max(...all.map(d => d.at))))
     return out.red.length ? `${t.homeEsitiRed(out.red.length)} · ${base}` : base
   })
   const liveNames = $derived(new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)))
@@ -483,6 +486,15 @@
     return { body: shown.replace(/\*\*|__|`/g, '').trim(), steps: r.group === 'waiting' ? [] : parsed.steps, blocking: blockingOf(r.session, parsed.blocking) }
   }
   const seguitiN = $derived(seguitiTotal(st.seguiti))
+  // Il testo a destra delle voci nuove (Franz 02/11 09:41): quello che il numero non dice, come le altre voci.
+  const say = (b: Bit[]) => b.map(x => t.homeBit(x.part, x.n)).join(' · ') || null
+  function rightOf(k: string): string | null {
+    if (k === 'prima_raccolta') return st.prima_raccolta ? t.homePrima[st.prima_raccolta.status] ?? null : null
+    if (k === 'seguiti') return st.seguiti ? say(seguitiBits(st.seguiti)) : null
+    if (k === 'prove') return st.prove ? say(proveBits(st.prove)) : null
+    if (k === 'decisioni') return st.decisions ? say(decBits(st.decisions)) : null
+    return null
+  }
 </script>
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && ctx && (ctx = null)} />
@@ -617,7 +629,7 @@
 {#snippet secEsiti()}
 {#if (!part || part === 'out') && out}
   <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. -->
-  {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', part && out.red.length ? String(out.red.length) : null, 'home-sez-esiti', !part && !open.esiti ? esitiLine : null)}
+  {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', esitiCount, 'home-sez-esiti', !part && !open.esiti ? esitiLine : null)}
   {#if part || open.esiti}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     <div class="card wrows">
       {#each out.red.length ? out.red.slice(0, 3) : out.settledRows.slice(0, 2) as d, i (i)}
@@ -704,10 +716,10 @@
 <!-- Le voci del programma del 01/11 (Franz 02/11 08:05): accordion come le altre, si aprono sul posto; ci sono finché hanno qualcosa. -->
 {#snippet secNuove(k: HomeSection)}
   {#if !part && newBody}
-    {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'inventory', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta')}{@render nuovaBody(k)}
-    {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti')}{@render nuovaBody(k)}
-    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare')}{@render nuovaBody(k)}
-    {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere')}{@render nuovaBody(k)}
+    {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'inventory', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', !open['prima_raccolta'] ? rightOf('prima_raccolta') : null)}{@render nuovaBody(k)}
+    {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
+    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null)}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null)}{@render nuovaBody(k)}
     {/if}
   {/if}
 {/snippet}

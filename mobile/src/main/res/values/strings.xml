@@ -1612,4 +1612,15 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="decisions_proceed_prompt">Procedi con %1$s (%2$s).</string>
     <string name="decisions_choice_prompt">Per %1$s (%2$s) scelgo:</string>
     <string name="decisions_discuss_about">%1$s (%2$s).</string>
+    <plurals name="home_bit_builds"><item quantity="one">%1$d versione</item><item quantity="other">%1$d versioni</item></plurals>
+    <plurals name="home_bit_ko"><item quantity="one">%1$d non va</item><item quantity="other">%1$d non vanno</item></plurals>
+    <string name="home_bit_here">%1$d da qui</string>
+    <string name="home_bit_unblocks">sblocca %1$d</string>
+    <string name="home_bit_behind">%1$d indietro</string>
+    <string name="home_bit_elsewhere">%1$d altrove</string>
+    <plurals name="home_bit_reminders"><item quantity="one">%1$d promemoria</item><item quantity="other">%1$d promemoria</item></plurals>
+    <string name="home_prima_ask">aspetta la tua risposta</string>
+    <string name="home_prima_running">in corso</string>
+    <string name="home_prima_interrupted">interrotta</string>
+    <string name="home_prima_done">fatta</string>
 </resources>

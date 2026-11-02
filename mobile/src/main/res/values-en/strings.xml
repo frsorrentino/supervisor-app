@@ -1582,4 +1582,15 @@ It starts at your last message to the master.</string>
     <string name="decisions_proceed_prompt">Go ahead with %1$s (%2$s).</string>
     <string name="decisions_choice_prompt">For %1$s (%2$s) I choose:</string>
     <string name="decisions_discuss_about">%1$s (%2$s).</string>
+    <plurals name="home_bit_builds"><item quantity="one">%1$d build</item><item quantity="other">%1$d builds</item></plurals>
+    <plurals name="home_bit_ko"><item quantity="one">%1$d failing</item><item quantity="other">%1$d failing</item></plurals>
+    <string name="home_bit_here">%1$d from here</string>
+    <string name="home_bit_unblocks">unblocks %1$d</string>
+    <string name="home_bit_behind">%1$d behind</string>
+    <string name="home_bit_elsewhere">%1$d elsewhere</string>
+    <plurals name="home_bit_reminders"><item quantity="one">%1$d reminder</item><item quantity="other">%1$d reminders</item></plurals>
+    <string name="home_prima_ask">waits for your answer</string>
+    <string name="home_prima_running">running</string>
+    <string name="home_prima_interrupted">stopped</string>
+    <string name="home_prima_done">done</string>
 </resources>
