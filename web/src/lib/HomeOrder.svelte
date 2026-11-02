@@ -1,47 +1,95 @@
 <script lang="ts">
-  import { DEFAULT_ORDER, move, normalize, orderArg, pinned, type HomeSection } from './homeOrder'
+  import { DEFAULT_CATS, decode, encode, moveCat, moveSection, toggle, type Cat, type CatId } from './homeCats'
+  import { pinned, type HomeSection } from './homeOrder'
   import { t } from './t'
-  // «Riordina la home» (Franz 30/10 17:22, compito app-riordino-sezioni-30-10; HomeOrderScreen.kt nell'app), nello stile «Studio e
-  // Diretta»: le sezioni chiuse su righe singole, con le frecce su e giù: il trascinamento sta nella home, con la pressione lunga
-  // sul titolo, che con un lettore di schermo non si può. Tabellone e «Ti aspettano» restano fissi in cima. «Salva» è l'unico tasto pieno.
+  import CatIcon from './CatIcon.svelte'
+  // «Riordina la home» per categorie (Franz 02/11 16:44, app-home-categorie-02-11; HomeOrderScreen.kt nell'app; mockup
+  // home-categorie-telefono.png, riquadro 4): si trascinano le categorie e, dentro ognuna, le sue sezioni, dalla maniglia; con la
+  // tastiera la maniglia sposta con le frecce. L'interruttore decide se in home la categoria è in vista o chiusa. Una sezione resta
+  // sempre nella sua categoria. «Salva» è l'unico tasto pieno.
   let { saved, onSave }: { saved?: string[]; onSave: (arg: string | null) => void } = $props()
-  let order = $state<HomeSection[]>(normalize(saved))
-  const SEC: Record<HomeSection, { icon: string; name: string }> = {
+  let cats = $state<Cat[]>(decode(saved))
+  const SEC: Record<string, { icon: string; name: string }> = {
     prima_raccolta: { icon: 'task_alt', name: t.primaTitle }, seguiti: { icon: 'event_list', name: t.seguitiTitle }, prove: { icon: 'checklist', name: t.proveTitle }, decisioni: { icon: 'timer', name: t.decisionsTitle },
     sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle },
-    lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed },
+    lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem },
+    // Le tre sezioni nuove (app-da-guardare-02-11, app-rendiconti-2-02-11): hanno già il loro posto; icone disegnate, non sono nel font.
+    da_guardare: { icon: 'svg:eye', name: t.homeSecWatch }, rendiconti: { icon: 'svg:doc', name: t.homeSecReports }, pagella: { icon: 'svg:medal', name: t.homeSecScorecard },
   }
+
+  // Il trascinamento dalla maniglia: la voce segue il puntatore e scavalca la vicina quando ne passa la metà, come nella home.
+  let held = $state<string | null>(null)
+  let dy = $state(0)
+  let startY = 0
+  function down(e: PointerEvent, key: string) {
+    if (e.button !== 0) return
+    held = key; startY = e.clientY; dy = 0
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+  function drag(e: PointerEvent, key: string, keys: string[], move: (from: number, to: number) => void) {
+    if (held !== key) return
+    dy = e.clientY - startY
+    const i = keys.indexOf(key)
+    const h = (k?: string) => (k ? document.querySelector(`[data-ro="${k}"]`)?.getBoundingClientRect().height ?? 0 : 0)
+    const next = h(keys[i + 1]), prev = h(keys[i - 1])
+    if (next && dy > next / 2) { move(i, i + 1); startY += next; dy -= next }
+    else if (prev && dy < -prev / 2) { move(i, i - 1); startY -= prev; dy += prev }
+  }
+  const up = () => { held = null; dy = 0 }
+  function keys(e: KeyboardEvent, i: number, n: number, move: (from: number, to: number) => void) {
+    if (e.key === 'ArrowUp' && i > 0) { e.preventDefault(); move(i, i - 1) }
+    if (e.key === 'ArrowDown' && i < n - 1) { e.preventDefault(); move(i, i + 1) }
+  }
+  const shift = (k: string) => (held === k ? `translateY(${dy}px)` : undefined)
 </script>
 
+{#snippet handle(key: string, name: string, i: number, list: string[], move: (from: number, to: number) => void)}
+  <button class="hd" aria-label={t.reorderMoveCat(name)} onpointerdown={(e) => down(e, key)} onpointermove={(e) => drag(e, key, list, move)} onpointerup={up} onpointercancel={up} onkeydown={(e) => keys(e, i, list.length, move)}>
+    <CatIcon name="drag" />
+  </button>
+{/snippet}
+
 <div class="v3 ro" data-testid="riordino-sezioni">
-  <p class="sub">{t.reorderSub}</p>
-  <div class="vlist fixed">
-    <div class="vrow"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--tx3)" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v16H3zM9.5 4v11M15 4v11M3 15h18" /></svg></span><span class="tx"><b>{t.reorderBoard}</b></span></div>
-    <div class="vrow"><span class="ic"><span class="ms" aria-hidden="true">pan_tool</span></span><span class="tx"><b>{t.homeWaiting}</b></span></div>
-  </div>
-  <div class="vlist">
-    {#each order as k, i (k)}
-      <div class="vrow">
-        <span class="ic"></span>
-        <span class="ms own" aria-hidden="true">{SEC[k].icon}</span>
-        <span class="tx"><b>{SEC[k].name}</b></span>
-        <button class="ar" disabled={i === 0} aria-label={t.reorderUp(SEC[k].name)} onclick={() => (order = move(order, i, i - 1))}><span class="ms" aria-hidden="true">expand_less</span></button>
-        <button class="ar" disabled={i === order.length - 1} aria-label={t.reorderDown(SEC[k].name)} onclick={() => (order = move(order, i, i + 1))}><span class="ms" aria-hidden="true">expand_more</span></button>
+  {#each cats as c, ci (c.id)}
+    <div class="card" class:held={held === c.id} data-ro={c.id} style:transform={shift(c.id)} data-testid="riordino-cat-{c.id}">
+      <div class="head">
+        {@render handle(c.id, t.catName[c.id], ci, cats.map(x => x.id), (from, to) => (cats = moveCat(cats, from, to)))}
+        <b>{t.catName[c.id]}</b>
+        <span class="state">{c.open ? t.reorderInView : t.reorderCatClosed}</span>
+        <button class="sw" role="switch" aria-checked={c.open} aria-label={t.catName[c.id]} data-testid="riordino-interruttore-{c.id}" onclick={() => (cats = toggle(cats, c.id as CatId))}><span></span></button>
       </div>
-    {/each}
-  </div>
-  <button class="save" onclick={() => onSave(orderArg(order, pinned(saved)))}>{t.reorderSave}</button>
-  <button class="reset" onclick={() => (order = [...DEFAULT_ORDER])}>{t.reorderReset}</button>
+      {#each c.sections as k, si (k)}
+        <div class="row" class:held={held === k} data-ro={k} style:transform={shift(k)}>
+          {@render handle(k, SEC[k].name, si, c.sections, (from, to) => (cats = moveSection(cats, c.id, from, to)))}
+          {#if SEC[k].icon.startsWith('svg:')}<span class="own"><CatIcon name={SEC[k].icon.slice(4)} /></span>{:else}<span class="ms own" aria-hidden="true">{SEC[k].icon}</span>{/if}
+          <span class="tx">{SEC[k].name}</span>
+        </div>
+      {/each}
+    </div>
+  {/each}
+  <p class="sub">{t.reorderFoot}</p>
+  <button class="save" onclick={() => onSave(encode(cats, pinned(saved) as HomeSection | null))}>{t.reorderSave}</button>
+  <button class="reset" onclick={() => (cats = DEFAULT_CATS)}>{t.reorderReset}</button>
 </div>
 
 <style>
-  .ro { display: flex; flex-direction: column; gap: 8px; padding: 8px 0 24px; max-width: 560px; min-height: 100%; }
-  .sub { margin: 0 16px 4px; font-size: 14px; color: var(--tx2); }
-  .fixed b { color: var(--tx2); }
-  .fixed .ms { color: var(--tx3); }
-  .own { color: var(--tx2); }
-  .ar { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 20px; color: var(--tx); }
-  .ar:disabled { color: var(--s3); }
-  .save { margin: 8px 12px 0; min-height: 48px; border-radius: 24px; background: var(--act); color: var(--on-act); font: 600 17px var(--display); }
+  .ro { display: flex; flex-direction: column; gap: 10px; padding: 8px 12px 24px; max-width: 560px; min-height: 100%; }
+  .card { background: var(--s1); border-radius: 14px; overflow: hidden; }
+  .card.held, .row.held { position: relative; z-index: 2; box-shadow: 0 8px 24px rgb(0 0 0 / .45); }
+  .row.held { background: var(--s2); }
+  .head { display: flex; align-items: center; gap: 4px; min-height: 56px; padding: 0 12px 0 4px; }
+  .head b { flex: 1; font: 700 18px/22px var(--display); color: var(--tx); }
+  .state { font-size: 14px; color: var(--tx2); margin-right: 8px; }
+  .row { display: flex; align-items: center; gap: 4px; min-height: 52px; margin: 0 12px; padding: 0 0 0 0; border-top: 1px solid var(--line); background: var(--s1); }
+  .tx { flex: 1; font: 600 17px/20px var(--display); color: var(--tx); }
+  .own { display: grid; place-items: center; width: 34px; color: var(--tx2); }
+  .hd { flex: none; width: 40px; height: 40px; display: grid; place-items: center; color: var(--tx3); cursor: grab; touch-action: none; }
+  .sw { flex: none; position: relative; width: 52px; height: 32px; border-radius: 16px; background: var(--s3); transition: background .2s; }
+  .sw span { position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--tx); transition: transform .2s; }
+  .sw[aria-checked='true'] { background: var(--busy); }
+  .sw[aria-checked='true'] span { transform: translateX(20px); background: #fff; }
+  .sub { margin: 4px 4px 0; font-size: 14px; color: var(--tx2); }
+  .save { margin: 8px 0 0; min-height: 48px; border-radius: 24px; background: var(--act); color: var(--on-act); font: 600 17px var(--display); }
   .reset { align-self: center; padding: 12px; font-size: 14px; color: var(--tx); }
+  @media (prefers-reduced-motion: reduce) { .sw, .sw span { transition: none; } }
 </style>

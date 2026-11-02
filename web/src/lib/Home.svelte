@@ -52,6 +52,8 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
+  import CatIcon from './CatIcon.svelte'
+  import { DEFAULT_CATS, catOf, decode as decodeCats, encode as encodeCats, reorder as reorderCats, type Cat, type CatId } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
@@ -138,9 +140,15 @@
   } = $props()
   const today = todayIso()
   // L'ordine nuovo vale subito, finché il relay non lo conferma.
-  let sentOrder = $state<{ from: string; order: HomeSection[]; pin: HomeSection | null } | null>(null)
+  let sentOrder = $state<{ from: string; cats: Cat[]; pin: HomeSection | null } | null>(null)
   const savedKey = $derived((st.home_order ?? []).join(','))
-  const order = $derived(part ? DEFAULT_ORDER : sentOrder && sentOrder.from === savedKey ? sentOrder.order : normalizeOrder(st.home_order))
+  // La home per categorie (Franz 02/11 16:44, app-home-categorie-02-11; HomeCats.kt nell'app): l'ordine piatto è quello delle
+  // sezioni dentro le categorie; le chiavi senza sezione qui (Da guardare, Rendiconti, Pagella finché non esistono) non si disegnano.
+  const cats = $derived(part ? DEFAULT_CATS : sentOrder && sentOrder.from === savedKey ? sentOrder.cats : decodeCats(st.home_order))
+  const order = $derived(cats.flatMap(c => c.sections).filter(k => (DEFAULT_ORDER as string[]).includes(k)) as HomeSection[])
+  // Le categorie chiuse aperte sul posto: valgono per questa visita, non si salvano (in vista o chiuse si decide in Riordina).
+  let peek = $state<CatId[]>([])
+  const catFor = (k: string): CatId | null => (k === 'closed' ? 'work' : k === 'plugins' ? 'tools' : catOf(k))
   // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti. Le colonne della plancia non ce l'hanno.
   const savedPin = $derived(part ? null : sentOrder && sentOrder.from === savedKey ? sentOrder.pin : pinned(st.home_order))
   const week = $derived(!part && usage && showUsage ? weekSlot(st.quota, now) : null)
@@ -182,7 +190,7 @@
     if (now - dragLastSwap > 120 && !inSlot(dragKey, dragY) && !(dragKey === savedPin && !weekAlarm)) {
       const mids: Partial<Record<HomeSection, number>> = {}
       for (const k of dragOrder) {
-        if (k === listSkip) continue
+        if (k === listSkip || catFor(k) !== catFor(dragKey)) continue
         const b = home.querySelector(`[data-sec-head="${k}"]`)?.getBoundingClientRect()
         if (b) mids[k] = b.top + Math.min(b.height, 48) / 2
       }
@@ -231,8 +239,35 @@
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
     if (!cancel) {
       const { order: nextOrder, pin: nextPin } = release(order, o, held!, savedPin, weekAlarm, dropped, y, releaseMids)
-      if (nextOrder.join() !== order.join() || nextPin !== savedPin) { sentOrder = { from: savedKey, order: nextOrder, pin: nextPin }; onHomeOrder?.(orderArg(nextOrder, nextPin)) }
+      if (nextOrder.join() !== order.join() || nextPin !== savedPin) { const nextCats = reorderCats(cats, nextOrder); sentOrder = { from: savedKey, cats: nextCats, pin: nextPin }; onHomeOrder?.(encodeCats(nextCats, nextPin)) }
     }
+  }
+  const CATS_ICON: Record<CatId, string> = { you: 'pan_tool', work: 'play_circle', out: 'svg:inbox', tools: 'svg:speed' }
+  // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»), come HomeCatsUi.kt: ambra quando c'è qualcosa da
+  // sapere; un fallito è rosso nella riga ma non la fa ambra (mockup, riga 1).
+  function catSignal(id: CatId): { bits: { text: string; red?: boolean }[]; amber: boolean } {
+    const none = [{ text: t.catSigNone }]
+    if (id === 'out') {
+      const red = out?.red.length ?? 0, n = out?.settled ?? 0
+      return { bits: n + red ? [{ text: t.catSigToday(n) }, ...(red ? [{ text: t.catSigFailed(red), red: true }] : [])] : none, amber: false }
+    }
+    if (id === 'tools') {
+      const bits = [...(week ? [{ text: `${week.pct}%` }] : []), ...(sys ? [{ text: t.catSigLoad(sys.load_per_core) }] : [])]
+      return { bits: bits.length ? bits : none, amber: weekAlarm || (!!sys && sys.level !== 'green') }
+    }
+    if (id === 'you') {
+      const d = st.decisions?.n ?? 0, p = st.prove?.n ?? 0
+      const bits = [...(d ? [{ text: `${t.decisionsTitle} ${d}` }] : []), ...(p ? [{ text: `${t.proveTitle} ${p}` }] : [])]
+      return { bits: bits.length ? bits : none, amber: d > 0 }
+    }
+    const n = st.sessions.filter(x => x.state !== 'gone').length
+    return { bits: n ? [{ text: `${t.homeSessions} ${n}` }] : none, amber: false }
+  }
+  // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre sul posto; poi la pagina ci scorre.
+  function openCat(b: import('./HomeBox.svelte').Box) {
+    const id: CatId = b === 'aspetta' ? 'you' : b === 'lavoro' ? 'work' : 'out'
+    if (cats.some(c => c.id === id && !c.open) && !peek.includes(id)) peek = [...peek, id]
+    requestAnimationFrame(() => document.querySelector(`[data-testid="cat-${id}"]`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }))
   }
   const slotTone = (w: { pct: number; stale: boolean; alarm: boolean }) => (w.stale ? 'var(--tx3)' : w.pct >= 90 ? 'var(--red)' : w.pct >= 75 || w.alarm ? 'var(--wait)' : 'var(--tx2)')
   const lowerFirst = (x: string | null) => (x ? x[0].toLowerCase() + x.slice(1) : x)
@@ -540,7 +575,7 @@
 {/snippet}
 
 <section class="home" class:part={!!part}>
-{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if !part && listSkip !== 'closed'}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if !part && listSkip !== 'plugins'}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {#if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
 {/snippet}
@@ -549,7 +584,7 @@
   {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
-{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} {onBox} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot} data-testid="slot-rilascia">{t.slotDrop}</div>{/if}</div>{/if}
+{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} onBox={openCat} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot} data-testid="slot-rilascia">{t.slotDrop}</div>{/if}</div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 {#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
@@ -749,9 +784,29 @@
   {/if}
 {/snippet}
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
-{#each (dragOrder ?? order).filter(k => k !== listSkip) as k (k)}
-  <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
-{/each}
+{#if part}
+  {#each order.filter(k => k !== listSkip) as k (k)}<div class="hsec">{@render secOf(k)}</div>{/each}
+{:else}
+  {#each cats as c (c.id)}
+    {@const inView = c.open || peek.includes(c.id)}
+    <div class="hcat" class:peek={!c.open && inView} data-testid="cat-{c.id}">
+      {#if c.open}<div class="catlabel">{t.catName[c.id]}</div>
+      {:else}
+        {@const sig = catSignal(c.id)}
+        <button class="catrow" class:amber={sig.amber} aria-expanded={inView} onclick={() => (peek = peek.includes(c.id) ? peek.filter(x => x !== c.id) : [...peek, c.id])}>
+          <span class="ic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span><b>{t.catName[c.id]}</b>
+          <span class="catsig">{#each sig.bits as b, i}{#if i}{' · '}{/if}<span class:red={b.red}>{b.text}</span>{/each}</span>
+          <span class="ms arr" class:up={inView} aria-hidden="true">expand_more</span>
+        </button>
+      {/if}
+      {#if inView}
+        {#each (dragOrder ?? order).filter(k => k !== listSkip && catFor(k) === c.id) as k (k)}
+          <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
+        {/each}
+      {/if}
+    </div>
+  {/each}
+{/if}
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
   {#if dragKey && dragGhost}
     <div class="dragg" data-testid="home-sezione-trascina" style:top="{dragY + dragGhost.shift}px" style:left="{dragGhost.left}px" style:width="{dragGhost.width}px"><span class="ic"><span class="ms" aria-hidden="true">{DRAG_SEC[dragKey].icon}</span></span><b>{DRAG_SEC[dragKey].name}</b></div>
@@ -1227,6 +1282,21 @@
   .hsec { display: flex; flex-direction: column; gap: 8px; }
   .hsec > :global(*) { flex-shrink: 0; }
   .hsec:empty { display: none; }
+  /* La home per categorie (app-home-categorie-02-11, mockup home-categorie-telefono.png). */
+  .hcat { display: flex; flex-direction: column; gap: 8px; }
+  .catlabel { display: none; margin: 10px 0 0; padding: 14px 4px 2px; border-top: 1px solid var(--line); font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
+  .hcat:has(.hsec > *) .catlabel { display: block; }
+  .catrow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 6px; padding: 6px 12px 6px 0; border-radius: 14px; text-align: left; color: var(--tx); flex-wrap: wrap; }
+  .catrow .ic { flex: none; width: 52px; display: grid; place-items: center; color: var(--tx2); }
+  .catrow b { font: 700 18px/22px var(--display); white-space: nowrap; }
+  .catsig { flex: 1 1 auto; text-align: right; font-size: 14px; line-height: 19px; color: var(--tx2); }
+  .catsig .red { color: var(--red); }
+  .catrow.amber { background: color-mix(in srgb, var(--wait) 14%, transparent); }
+  .catrow.amber .catsig { color: var(--wait); }
+  .catrow .arr { flex: none; color: var(--tx3); transition: rotate .2s; }
+  .catrow .arr.up { rotate: 180deg; }
+  .hcat.peek { background: var(--s2); border-radius: 18px; padding-bottom: 10px; gap: 8px; }
+  .hcat.peek .catrow { margin-top: 0; }
   .hsec.held { opacity: .35; }
   .newbody { padding-top: 8px; }
   .boardwrap { flex: none; position: relative; }
