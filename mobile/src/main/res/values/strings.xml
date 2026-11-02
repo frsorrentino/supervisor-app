@@ -1543,4 +1543,27 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="permission_asks">Chiede un permesso</string>
     <string name="permission_more">Mostra tutto</string>
     <string name="permission_less">Riduci</string>
+    <string name="prima_title">Prima raccolta</string>
+    <string name="prima_running">Sto raccogliendo: %1$d di %2$d sezioni.</string>
+    <string name="prima_ask">%1$d di %2$d sezioni: manca solo la tua risposta.</string>
+    <string name="prima_interrupted">Interrotta a %1$d di %2$d sezioni.</string>
+    <string name="prima_done">Fatto: la home è piena.</string>
+    <string name="prima_none">La raccolta non è ancora partita.</string>
+    <string name="prima_free">La raccolta costa zero: nessuna chiamata a un modello.</string>
+    <string name="prima_resume">Riprendi</string>
+    <string name="prima_start">Avvia la raccolta</string>
+    <string name="prima_no">No</string>
+    <string name="prima_yes">Sì</string>
+    <string name="prima_first_round">Avvia il primo giro</string>
+    <string name="prima_features">Cosa sa fare</string>
+    <string name="prima_sec_machine">Questa macchina</string>
+    <string name="prima_sec_hosts">Altre macchine</string>
+    <string name="prima_sec_quota">Quota</string>
+    <string name="prima_sec_plugins">Plugin e skill</string>
+    <string name="prima_sec_projects">Progetti</string>
+    <string name="prima_sec_live">Sessioni aperte</string>
+    <string name="prima_sec_sessions">Sessioni passate</string>
+    <string name="prima_sec_suggestions">Suggerimenti</string>
+    <string name="prima_sec_night">Notte</string>
+    <string name="prima_sec_recap">Riepilogo</string>
 </resources>

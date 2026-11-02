@@ -62,7 +62,7 @@
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
   let { onPage = null, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
-    suggestionNames?: string[]; onPage?: ((p: 'prove' | 'decisions') => void) | null
+    suggestionNames?: string[]; onPage?: ((p: 'prima-raccolta' | 'prove' | 'decisions') => void) | null
     /** Il blocco Utilizzo aperto, scelta D (30/10 20:11); le colonne della plancia tengono le schede (`usage`). */
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
@@ -518,8 +518,9 @@
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
 {#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} {onBox} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot} data-testid="slot-rilascia">{t.slotDrop}</div>{/if}</div>{/if}
-{#if !part && onPage}{#if (st.prove && st.prove.n + st.prove.ko + st.prove.red > 0) || st.decisions?.n}
+{#if !part && onPage}{#if st.prima_raccolta || (st.prove && st.prove.n + st.prove.ko + st.prove.red > 0) || st.decisions?.n}
   <div class="card wrows decide">
+    {#if st.prima_raccolta}<button class="wrow orow" data-testid="home-prima-raccolta" onclick={() => onPage('prima-raccolta')}><span class="wic"><span class="ms">inventory</span></span><span class="otext"><b>{t.primaTitle}</b></span><span class="mono">{st.prima_raccolta.done}/{st.prima_raccolta.total}</span><span class="ms chevr">chevron_right</span></button>{/if}
     {#if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<button class="wrow orow" data-testid="home-da-provare" onclick={() => onPage('prove')}><span class="wic"><span class="ms">checklist</span></span><span class="otext"><b>{t.proveTitle}</b></span><span class="mono">{st.prove.n}</span><span class="ms chevr">chevron_right</span></button>{/if}
     {#if st.decisions?.n}<button class="wrow orow" data-testid="home-cinque-minuti" onclick={() => onPage('decisions')}><span class="wic"><span class="ms">timer</span></span><span class="otext"><b>{t.decisionsTitle}</b></span><span class="mono">{st.decisions.n}</span><span class="ms chevr">chevron_right</span></button>{/if}
   </div>

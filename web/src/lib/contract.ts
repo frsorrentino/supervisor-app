@@ -68,6 +68,11 @@ export type Approval = { task: string; title: string; what: string; where: strin
 export type ProveSummary = { n: number; builds: number; red: number; ko: number }
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
 export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number }
+/** Contratto 1.100: `state.prima_raccolta`, assente se non è mai partita e a giro fatto. */
+export type PrimaRaccoltaSummary = { status: string; done: number; total: number; ask?: boolean; first_round_at?: number | null }
+export type PrimaRaccoltaSection = { key: string; dove?: string | null; n: number; text?: string | null; why?: string | null; when?: string | null }
+/** Contratto 1.100, op `prima_raccolta`. */
+export type PrimaRaccoltaPage = { at: number; status: string; done: number; total: number; consent?: boolean | null; ask_text?: string | null; cost: number; sections: PrimaRaccoltaSection[]; first_round?: { at?: number | null; cost?: string | null } | null }
 export type ProveGroup = { build: string; n: number; at: number; tasks: string[]; prove: ProveItem[] }
 export type ProvePage = { at: number; n: number; builds: number; groups: ProveGroup[]; ko: (Omit<ProveItem, 'title' | 'session' | 'project'> & { text: string })[]; red: { task: string; short?: string | null; reason?: string | null; at: number }[] }
 export type DecisionItem = { kind: string; task?: string | null; short?: string | null; title?: string | null; session?: string | null; project?: string | null; reason?: string | null; since: number; where?: string | null; undo?: string | null; undo_how?: string | null; what?: string | null; where_to?: string | null; options?: string[] | null; untested?: string | null }
@@ -254,6 +259,7 @@ export type State = {
   /** Contratto 1.97: l'ordine delle sezioni della home; assente = predefinito (homeOrder.ts). */
   home_order?: string[]
   prove?: ProveSummary | null; decisions?: DecisionsSummary | null
+  prima_raccolta?: PrimaRaccoltaSummary | null
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
@@ -308,7 +314,7 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
-  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione'
+  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
   /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */
@@ -331,6 +337,8 @@ export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
   /** Contratto 1.99: `prova`, `decisione`, gli id mostrati su un ok. */
   result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]
+  /** Contratto 1.100: `prima_raccolta_azione` con `action` consent, si o no. */
+  value?: string
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */
   question?: string
   /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */

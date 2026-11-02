@@ -28,6 +28,7 @@ import it.pixelbox.cmwatch.rules.BancoProva
 import it.pixelbox.cmwatch.rules.CinqueMinuti
 import it.pixelbox.cmwatch.rules.HeadsUpNote
 import it.pixelbox.cmwatch.rules.OkInformato
+import it.pixelbox.cmwatch.rules.PrimaRaccolta
 
 @Composable
 private fun DecideBar(title: String, onBack: () -> Unit) {
@@ -40,6 +41,64 @@ private fun DecideBar(title: String, onBack: () -> Unit) {
 @Composable
 private fun DecideCard(content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+}
+
+/**
+ * «Prima raccolta» (contratto 1.100, funzione 10 del programma del 01/11): cosa si è trovato per ogni sezione, dati veri; una sezione vuota dice perché
+ * e quando si riempie. Il consenso si chiede una volta, il primo giro della master dice il costo prima e parte con un tocco.
+ */
+@Composable
+fun PrimaRaccoltaScreen(page: PrimaRaccoltaPage?, onBack: () -> Unit, onTouch: (String, String?) -> Unit, onScreen: (String) -> Unit, onFeatures: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().verticalScroll(rememberScrollState()).testTag("prima-raccolta").padding(start = 12.dp, end = 12.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        DecideBar(stringResource(R.string.prima_title), onBack)
+        if (page == null) { Text(stringResource(R.string.prove_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp)); return@Column }
+        Text(
+            when (page.status) {
+                PrimaRaccolta.RUNNING -> stringResource(R.string.prima_running, page.done, page.total)
+                PrimaRaccolta.ASK -> stringResource(R.string.prima_ask, page.done, page.total)
+                PrimaRaccolta.INTERRUPTED -> stringResource(R.string.prima_interrupted, page.done, page.total)
+                PrimaRaccolta.DONE -> stringResource(R.string.prima_done)
+                else -> stringResource(R.string.prima_none)
+            },
+            style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        if (page.cost == 0) Text(stringResource(R.string.prima_free), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
+        if (PrimaRaccolta.canStart(page)) FilledTonalButton(onClick = { onTouch("start", null) }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(if (page.status == PrimaRaccolta.INTERRUPTED) R.string.prima_resume else R.string.prima_start))
+        }
+        if (PrimaRaccolta.askConsent(page)) DecideCard {
+            Text(page.askText.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.End)) {
+                OutlinedButton(onClick = { onTouch("consent", "no") }) { Text(stringResource(R.string.prima_no)) }
+                FilledTonalButton(onClick = { onTouch("consent", "si") }) { Text(stringResource(R.string.prima_yes)) }
+            }
+        }
+        page.sections.forEach { s ->
+            DecideCard {
+                Text(primaSection(s.key), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
+                if (PrimaRaccolta.empty(s)) {
+                    s.why?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+                    s.whenFills?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+                } else Text(s.text.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+                BancoProva.screen(s.dove)?.let { d -> TextButton(onClick = { onScreen(d) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.features_go)) } }
+            }
+        }
+        PrimaRaccolta.firstRoundOffer(page)?.let { cost ->
+            DecideCard {
+                Text(cost, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+                FilledTonalButton(onClick = { onTouch("first_round", null) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.prima_first_round)) }
+            }
+        }
+        if (PrimaRaccolta.finished(page)) TextButton(onClick = onFeatures, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.prima_features)) }
+    }
+}
+
+@Composable
+private fun primaSection(key: String): String = when (key) {
+    "machine" -> stringResource(R.string.prima_sec_machine); "hosts" -> stringResource(R.string.prima_sec_hosts); "quota" -> stringResource(R.string.prima_sec_quota)
+    "plugins" -> stringResource(R.string.prima_sec_plugins); "projects" -> stringResource(R.string.prima_sec_projects); "live" -> stringResource(R.string.prima_sec_live)
+    "sessions" -> stringResource(R.string.prima_sec_sessions); "suggestions" -> stringResource(R.string.prima_sec_suggestions); "night" -> stringResource(R.string.prima_sec_night)
+    "recap" -> stringResource(R.string.prima_sec_recap); else -> key
 }
 
 /**

@@ -233,6 +233,9 @@ class MainActivity : ComponentActivity() {
         var boxOpen by rememberSaveable { mutableStateOf<it.pixelbox.cmwatch.mobile.ui.HomeBox?>(null) }
         // Contratto 1.99: Da provare e Cinque minuti; gli elenchi si chiedono all'apertura e dopo ogni tocco.
         var proveOpen by rememberSaveable { mutableStateOf(false) }
+        // Contratto 1.100: la prima raccolta; si apre da sola una volta, all'abbinamento.
+        var primaOpen by rememberSaveable { mutableStateOf(false) }
+        var primaPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.PrimaRaccoltaPage?>(null) }
         var decisionsOpen by rememberSaveable { mutableStateOf(false) }
         var provePage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.ProvePage?>(null) }
         var decisionsPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.DecisionsPage?>(null) }
@@ -488,6 +491,7 @@ class MainActivity : ComponentActivity() {
                         settingsOpen = false
                         when (route) {
                             "prove" -> proveOpen = true
+                            "prima-raccolta" -> primaOpen = true
                             "decisions" -> decisionsOpen = true
                             "lavori" -> { open = null; tab = StartRoute.Tab.LAVORI }
                             "queue" -> { queueSkip = null; queueOpen = true }
@@ -1007,10 +1011,20 @@ class MainActivity : ComponentActivity() {
                 app.repo.forget(id)
                 return r?.takeIf { x -> x.ok }?.text
             }
+            if (primaOpen) read(CmdOp.PRIMA_RACCOLTA)?.let { t -> runCatching { ContractJson.decodePrimaRaccolta(t) }.onSuccess { p -> primaPage = p } }
             if (proveOpen) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
             if (decisionsOpen) read(CmdOp.DECISIONI)?.let { t -> runCatching { ContractJson.decodeDecisions(t) }.onSuccess { p -> decisionsPage = p } }
         }
         LaunchedEffect(proveOpen, decisionsOpen) { if (proveOpen || decisionsOpen) readDecide() }
+        // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
+        LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen) readDecide() }
+        LaunchedEffect(state?.primaRaccolta?.status) {
+            val prefs = getSharedPreferences("prima_raccolta", MODE_PRIVATE)
+            if (it.pixelbox.cmwatch.rules.PrimaRaccolta.autoOpen(state?.primaRaccolta, prefs.getBoolean("seen", false))) {
+                prefs.edit().putBoolean("seen", true).apply()
+                primaOpen = true
+            }
+        }
         val toast = { t: String? -> if (!t.isNullOrBlank()) android.widget.Toast.makeText(this@MainActivity, t, android.widget.Toast.LENGTH_SHORT).show() }
         val decideCmd: (CmdOp, String, String?, Int?, String?, String?) -> Unit = { op, arg, result, hours, reason, text -> scope.launch {
             val id = runCatching { app.repo.command(op, null, arg, text = text, action = if (op == CmdOp.DECISIONE) result else null, result = if (op == CmdOp.PROVA) result else null, hours = hours, reason = reason) }.getOrNull()
@@ -1018,6 +1032,21 @@ class MainActivity : ComponentActivity() {
             toast(r?.text); id?.let { x -> app.repo.forget(x) }
             readDecide()
         } }
+        val goScreen: (String) -> Unit = { s ->
+            when (s) {
+                "lavori" -> { open = null; tab = StartRoute.Tab.LAVORI }
+                "queue" -> { queueSkip = null; queueOpen = true }
+                "box-aspetta" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.WAITING
+                "box-lavoro" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.BUSY
+                "box-esiti" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.OUTCOMES
+                "launch" -> launching = true
+                "night" -> nightOpen = true
+                "search" -> searchOpen = true
+                "usage" -> goUsage()
+                "settings", "homeorder" -> settingsOpen = true
+                else -> { open = null; tab = StartRoute.Tab.OVERVIEW }
+            }
+        }
         if (proveOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false },
                 onOk = { ids -> decideCmd(CmdOp.PROVA, ids, "ok", null, null, null) },
@@ -1025,23 +1054,22 @@ class MainActivity : ComponentActivity() {
                     decideCmd(CmdOp.PROVA, p.id.toString(), "ko", null, null, text)
                     if (shot != null) attachMany(it.pixelbox.cmwatch.rules.ContextActions.MASTER, listOf(shot), getString(R.string.prove_ko_shot_note, p.short ?: p.task), state?.share)
                 },
-                onScreen = { s ->
-                    proveOpen = false
-                    when (s) {
-                        "lavori" -> { open = null; tab = StartRoute.Tab.LAVORI }
-                        "queue" -> { queueSkip = null; queueOpen = true }
-                        "box-aspetta" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.WAITING
-                        "box-lavoro" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.BUSY
-                        "box-esiti" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.OUTCOMES
-                        "launch" -> launching = true
-                        "night" -> nightOpen = true
-                        "search" -> searchOpen = true
-                        "usage" -> goUsage()
-                        "settings", "homeorder" -> settingsOpen = true
-                        else -> { open = null; tab = StartRoute.Tab.OVERVIEW }
-                    }
-                }) }
+                onScreen = { s -> proveOpen = false; goScreen(s) }) }
             BackHandler { proveOpen = false }
+            return
+        }
+        if (primaOpen) {
+            // Il tocco conta: `device` lo mette il Repo. Dopo ogni tocco la pagina si rilegge.
+            val touch: (String, String?) -> Unit = { action, value -> scope.launch {
+                val id = runCatching { app.repo.command(CmdOp.PRIMA_RACCOLTA_AZIONE, null, null, action = action, value = value) }.getOrNull()
+                val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+                if (r?.ok == false) toast(r.text)
+                id?.let { x -> app.repo.forget(x) }
+                readDecide()
+            } }
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaScreen(primaPage, onBack = { primaOpen = false }, onTouch = touch,
+                onScreen = { s -> primaOpen = false; goScreen(s) }, onFeatures = { primaOpen = false; featuresOpen = true }) }
+            BackHandler { primaOpen = false }
             return
         }
         if (decisionsOpen) {
@@ -1680,7 +1708,7 @@ class MainActivity : ComponentActivity() {
                     justClosed = justClosed,
                     tonight = st.night.items?.let { _ -> it.pixelbox.cmwatch.rules.TonightCard.of(st.night, now) },
                     // La sezione «Lavori» (22/10): gli ok e le cose da fare fuori dalla chat con il loro tasto; «Tutti i lavori» apre la pagina.
-                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, onProve = { proveOpen = true }, onDecisions = { decisionsOpen = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
+                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, onPrima = { primaOpen = true }, onProve = { proveOpen = true }, onDecisions = { decisionsOpen = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
                     onDone = attentionDone,
                     onAgendaEdit = editAgenda, onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     // «Utilizzo» (Franz, 08/10 12:30; unito il 09/10): le schede della quota e «Oggi» in una sezione richiudibile.

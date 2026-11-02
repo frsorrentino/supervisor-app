@@ -1513,4 +1513,27 @@ It starts at your last message to the master.</string>
     <string name="permission_asks">Asks for permission</string>
     <string name="permission_more">Show all</string>
     <string name="permission_less">Show less</string>
+    <string name="prima_title">First collection</string>
+    <string name="prima_running">Collecting: %1$d of %2$d sections.</string>
+    <string name="prima_ask">%1$d of %2$d sections: only your answer is missing.</string>
+    <string name="prima_interrupted">Stopped at %1$d of %2$d sections.</string>
+    <string name="prima_done">Done: the home is full.</string>
+    <string name="prima_none">The collection has not started yet.</string>
+    <string name="prima_free">The collection is free: it calls no model.</string>
+    <string name="prima_resume">Resume</string>
+    <string name="prima_start">Start the collection</string>
+    <string name="prima_no">No</string>
+    <string name="prima_yes">Yes</string>
+    <string name="prima_first_round">Start the first round</string>
+    <string name="prima_features">What it can do</string>
+    <string name="prima_sec_machine">This machine</string>
+    <string name="prima_sec_hosts">Other machines</string>
+    <string name="prima_sec_quota">Quota</string>
+    <string name="prima_sec_plugins">Plugins and skills</string>
+    <string name="prima_sec_projects">Projects</string>
+    <string name="prima_sec_live">Open sessions</string>
+    <string name="prima_sec_sessions">Past sessions</string>
+    <string name="prima_sec_suggestions">Suggestions</string>
+    <string name="prima_sec_night">Night</string>
+    <string name="prima_sec_recap">Recap</string>
 </resources>

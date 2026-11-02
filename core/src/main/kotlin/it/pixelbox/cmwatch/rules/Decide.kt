@@ -26,6 +26,20 @@ object BancoProva {
     fun screen(dove: String?): String? = dove?.trim()?.takeIf { it in SCREENS }
 }
 
+/** Contratto 1.100, la prima raccolta (funzione 10 del programma del 01/11): regole pure, i tasti stanno nelle schermate. */
+object PrimaRaccolta {
+    const val RUNNING = "running"; const val ASK = "ask"; const val INTERRUPTED = "interrupted"; const val DONE = "done"; const val NONE = "none"
+
+    /** All'abbinamento la pagina si apre da sola, una volta: `seen` lo tiene il dispositivo. A raccolta finita resta la riga della home. */
+    fun autoOpen(s: PrimaRaccoltaSummary?, seen: Boolean): Boolean = !seen && (s?.status == RUNNING || s?.status == ASK)
+    fun askConsent(p: PrimaRaccoltaPage): Boolean = p.consent == null && !p.askText.isNullOrBlank()
+    fun canStart(p: PrimaRaccoltaPage): Boolean = p.status == NONE || p.status == INTERRUPTED
+    /** Il primo giro consuma quota: prima dice quanto, parte con un tocco e una volta sola. */
+    fun firstRoundOffer(p: PrimaRaccoltaPage): String? = p.firstRound?.takeIf { p.status == DONE && it.at == null }?.cost?.takeIf { it.isNotBlank() }
+    fun finished(p: PrimaRaccoltaPage): Boolean = p.status == DONE
+    fun empty(s: PrimaRaccoltaSection): Boolean = s.n == 0 || s.text.isNullOrBlank()
+}
+
 object CinqueMinuti {
     /** Le prossime decisioni: l'ordine è quello del relay, da qui prima e le più pesanti; quelle già toccate escono. */
     fun next(page: DecisionsPage, touched: Set<String>, howMany: Int): List<DecisionGroup> = page.groups.filter { it.key !in touched }.take(howMany)

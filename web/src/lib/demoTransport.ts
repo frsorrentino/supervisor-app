@@ -1,8 +1,9 @@
 import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
-import { decisionsDemo, demoSearch, pluginsDemo, proveDemo, world, type World } from './demo'
-import type { DecisionsPage, ProvePage } from './contract'
+import { lang } from './lang'
+import { decisionsDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, world, type World } from './demo'
+import type { DecisionsPage, PrimaRaccoltaPage, ProvePage } from './contract'
 import { NIGHT_TARGET } from './recapAgenda'
 
 // La demo che risponde, porta di FakeTransport.kt (Franz, 15/10 20:36: «la demo deve rispecchiare al 100% l'app»): i
@@ -19,6 +20,7 @@ export class DemoTransport implements Transport {
   private results = new Map<string, CmdResult>()
   private agendaSeq = 7
   private prove: ProvePage | null = null
+  private prima: PrimaRaccoltaPage | null = null
   private decisions: DecisionsPage | null = null
 
   constructor(private readonly clock: () => number = () => Math.floor(Date.now() / 1000)) {
@@ -168,6 +170,19 @@ export class DemoTransport implements Transport {
         case 'search': {
           const q = (cmd.arg ?? '').trim().replace(/\s+/g, ' ')
           return !q || q.length > 200 ? ko('bad query: from 1 to 200 characters') : ok(JSON.stringify(demoSearch({ state: s, transcripts: this.world.transcripts }, q)))
+        }
+        case 'prima_raccolta': return ok(JSON.stringify(this.prima ??= primaDemo(this.now())))
+        case 'prima_raccolta_azione': {
+          const p = (this.prima ??= primaDemo(this.now()))
+          if (cmd.action === 'consent') {
+            const yes = cmd.value === 'si'
+            this.prima = { ...p, consent: yes, status: 'done', done: p.total, ask_text: null, sections: p.sections.map(x => x.key === 'sessions' && yes ? { key: x.key, dove: x.dove, n: 12, text: (lang === 'en' ? '12 recent sessions' : '12 sessioni recenti') } : x) }
+            this.set({ ...s, prima_raccolta: { status: 'done', done: p.total, total: p.total, ask: false, first_round_at: null } })
+          } else if (cmd.action === 'first_round') {
+            this.prima = { ...p, first_round: { ...p.first_round, at: this.now() } }
+            this.set({ ...s, prima_raccolta: null })
+          } else return ko(`prima_raccolta_azione: bad action ${cmd.action}`)
+          return ok('ok')
         }
         case 'prove': return ok(JSON.stringify(this.prove ??= proveDemo(this.now())))
         case 'decisioni': return ok(JSON.stringify(this.decisions ??= decisionsDemo(this.now())))

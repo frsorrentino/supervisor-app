@@ -236,6 +236,8 @@ class Repo(
         kind: String? = null, since: Long? = null, choice: String? = null, sid: String? = null,
         /** Contratto 1.99: `prova` e `decisione`, e gli id mostrati sulla card di un ok. */
         result: String? = null, hours: Int? = null, reason: String? = null, also: List<String>? = null,
+        /** Contratto 1.100, `prima_raccolta_azione`: si o no sul consenso. */
+        value: String? = null,
         /** Contratto 1.83, `elicit`: le risposte del modulo di un server MCP. */
         content: kotlinx.serialization.json.JsonObject? = null,
     ): String {
@@ -245,7 +247,7 @@ class Repo(
         val cmd = Cmd(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt, reopen = reopen,
-            kind = kind, since = since, choice = choice, sid = sid, content = content, result = result, hours = hours, reason = reason, also = also,
+            kind = kind, since = since, choice = choice, sid = sid, content = content, result = result, hours = hours, reason = reason, also = also, value = value,
         )
         question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {

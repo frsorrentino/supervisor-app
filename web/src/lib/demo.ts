@@ -4,7 +4,7 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import eventsRaw from '../../../contract/events-sample.json?raw'
 import nightRaw from '../../../contract/night-report-sample.json?raw'
 import { decodeChanges, decodeState } from './contract'
-import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry } from './contract'
+import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry, PrimaRaccoltaPage } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
 import type { Commitment, DecisionsPage, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
@@ -74,6 +74,22 @@ export const proveDemo = (now: number): ProvePage => ({ at: now, n: 2, builds: 1
   { id: 1, task: 'demo-cart', short: en ? 'Cart totals' : 'Totali del carrello', build: 'demo-rc-2', dove: 'box-esiti', fai: en ? 'Open today\'s outcomes' : 'Apri gli esiti di oggi', atteso: en ? 'The cart outcome is under Done' : 'L\'esito del carrello sta sotto Fatto', at: now - 3600 },
   { id: 2, task: 'demo-users', short: en ? 'Users table' : 'Tabella utenti', build: 'demo-rc-2', dove: 'lavori', fai: en ? 'Open Work' : 'Apri Lavori', atteso: en ? 'The users table is in progress' : 'La tabella utenti è in corso', at: now - 3600 },
 ] }] })
+/** Contratto 1.100: la prima raccolta a un passo dalla fine, dati del mondo della demo; manca il sì sulle sessioni passate. */
+export const primaDemo = (now: number): PrimaRaccoltaPage => ({ at: now, status: 'ask', done: 9, total: 10, consent: null, cost: 0,
+  ask_text: en ? 'May I read your past sessions of the last 14 days, to count them and pick up what they left open? The data stays on this machine; it reaches the phone encrypted.' : 'Posso leggere le sessioni passate degli ultimi 14 giorni, per contarle e riprendere quello che hanno lasciato aperto? I dati restano su questa macchina; al telefono arrivano cifrati.',
+  sections: [
+    { key: 'machine', dove: 'usage', n: 1, text: en ? 'This PC: 16 GB, 2 sessions at work' : 'Questo PC: 16 GB, 2 sessioni al lavoro' },
+    { key: 'hosts', dove: 'settings', n: 0, why: en ? 'No other machine is connected.' : 'Nessuna altra macchina collegata.', when: en ? 'It fills when you add one from Settings.' : 'Si riempie quando ne aggiungi una dalle Impostazioni.' },
+    { key: 'quota', dove: 'usage', n: 1, text: en ? '1 account, 22% of the 5 hours' : '1 account, 22% delle 5 ore' },
+    { key: 'plugins', dove: 'settings', n: 12, text: en ? '12 plugins, 2 to update, 30 skills' : '12 plugin, 2 da aggiornare, 30 skill' },
+    { key: 'projects', dove: 'launch', n: 6, text: en ? '6 projects' : '6 progetti' },
+    { key: 'live', dove: 'home', n: 4, text: en ? '4 open sessions' : '4 sessioni aperte' },
+    { key: 'sessions', dove: 'search', n: 0, why: en ? 'Past sessions are read only with your yes.' : 'Le sessioni passate si leggono solo col tuo sì.', when: en ? 'It fills as soon as you answer.' : 'Si riempie appena rispondi.' },
+    { key: 'suggestions', dove: 'home', n: 2, text: en ? '2 suggestions from the master' : '2 suggerimenti della master' },
+    { key: 'night', dove: 'night', n: 1, text: en ? '1 job for tonight' : '1 lavoro per stanotte' },
+    { key: 'recap', dove: 'box-esiti', n: 3, text: en ? '3 outcomes today' : '3 esiti di oggi' },
+  ],
+  first_round: { at: null, cost: en ? "The master's first round uses your plan's quota: usually a small part of the 5 hours. It starts only if you touch it." : 'Il primo giro della master consuma la quota del tuo piano: di solito una piccola parte delle 5 ore. Parte solo se lo tocchi.' } })
 export const decisionsDemo = (now: number): DecisionsPage => ({ at: now, n: 2, here: 1, tasks: 3, snoozed: 0, groups: [
   { key: 'demo-a', title: en ? 'Cover image for the post' : 'Immagine di copertina del post', cause: null, unblocks: ['demo-cover', 'demo-docs'], weight: 2, where: 'here', since: now - 1200, note: null, refs: ['demo-cover'], items: [{ kind: 'pause', task: 'demo-cover', short: en ? 'Cover image' : 'Immagine di copertina', session: 'blog', reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', since: now - 1200, where: 'here' }] },
   { key: 'demo-b', title: en ? 'Log in to the payment sandbox' : 'Login nella sandbox dei pagamenti', cause: null, unblocks: ['demo-cart'], weight: 1, where: 'pc', since: now - 420, note: null, refs: [], items: [{ kind: 'needs_you', task: null, session: 'storefront', reason: en ? 'Log in to the sandbox' : 'Fai il login nella sandbox', since: now - 420, where: 'pc' }] },
@@ -141,10 +157,11 @@ export function world(now: number): World {
       { kind: 'turn_blocking', session: 'blog', ref: 'blog', title: stopOk.text, since: stopOk.at },
     ].sort((a, b) => a.since - b.since),
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
-    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
+    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
     // Contratto 1.99: le righe di Da provare e Cinque minuti, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 2, here: 1, tasks: 3, snoozed: 0 },
+    prima_raccolta: { status: 'ask', done: 9, total: 10, ask: true, first_round_at: null },
     // Utilizzo agganciato: dalla prima schermata si vede il dato in più dello slot.
     home_order: withPin(DEFAULT_ORDER, 'usage'),
     // Contratto 1.90: la macchina tranquilla, così «Sistema» parte chiuso come di solito.

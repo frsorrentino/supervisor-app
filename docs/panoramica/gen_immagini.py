@@ -19,7 +19,7 @@ MAP = {
     'orologio': W % 'ScreensSnapshotTest_card', 'live': W % 'LiveScreenSnapshotTest_liveQuestion', 'widget': M % 'WidgetConfigScreenTest_widgetConfigBoard', 'terminale': M % 'TerminalScreenTest_terminalText',
     'segui': M % 'ShellScreensTest_sessionMenuOpen', 'obiettivo': M % 'SessionSheetTest_sheetBusyWithGoal', 'controlla': M % 'ShellScreensTest_sessionMenuOpen', 'ferma': M % 'SessionSheetTest_sheetBusyStop',
     'segnalazione': M % 'ShareScreenTest_shareImage', 'ricorrenti': M % 'SessionSheetTest_masterRecurring', 'chiudi': M % 'SessionSheetTest_closeSplashClosing', 'quota_finita': M % 'SessionSheetTest_sheetQuotaWarning',
-    'segnalibro': M % 'SessionSheetTest_sheetIdleWithOutcome', 'banco_prova': M % 'DecideScreenTest_banco_prova_installata', 'cinque_minuti': M % 'DecideScreenTest_cinque_minuti_una',
+    'segnalibro': M % 'SessionSheetTest_sheetIdleWithOutcome', 'banco_prova': M % 'DecideScreenTest_banco_prova_installata', 'prima_raccolta': M % 'PrimaRaccoltaScreenTest_prima_raccolta_consenso412', 'cinque_minuti': M % 'DecideScreenTest_cinque_minuti_una',
     'ok_informato': M % 'DecideScreenTest_ok_informato_card', 'heads_up': M % 'DecideScreenTest_heads_up_nota', 'panoramica': M % 'HomeBoxScreenTest_panoramica_italiano412',
 }
 OUT = ['mobile/src/main/assets/feature-images', 'web/public/feature-images']

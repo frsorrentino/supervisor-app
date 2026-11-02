@@ -365,7 +365,8 @@ class FakeTransport(
             CmdOp.PAIR_ADD -> ko("pair --add: no saved key, nothing to add to — use `relay pair`")
             // Contratto 1.37: i testi del relay; la demo toglie il compito approvato dalla lista.
             // Contratto 1.99: le pagine e i risultati della fixture del contratto.
-            CmdOp.PROVE, CmdOp.DECISIONI -> ok(sampleText(cmd.op.name.lowercase()))
+            CmdOp.PROVE, CmdOp.DECISIONI, CmdOp.PRIMA_RACCOLTA -> ok(sampleText(cmd.op.name.lowercase()))
+            CmdOp.PRIMA_RACCOLTA_AZIONE -> ok("ok")
             CmdOp.PROVA -> ok(if (cmd.result == "ko") "prova ${cmd.arg}: segnalata alla master" else "prove ok: ${cmd.arg?.split(',')?.size ?: 0}")
             CmdOp.DECISIONE -> if (cmd.action == "drop" && cmd.reason.isNullOrBlank()) ko("drop: reason required") else ok(if (cmd.action == "drop") "lasciato perdere" else "non ora: torna tra ${cmd.hours ?: 24} ore")
             CmdOp.APPROVE -> {

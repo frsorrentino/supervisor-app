@@ -153,6 +153,8 @@ enum class CmdOp {
     /** Contratto 1.91: ferma le unità di systemd in ciclo; `arg` = unità separate da virgola, rifiutato se il consiglio non c'è più. */
     @SerialName("sys_unit_stop") SYS_UNIT_STOP,
     /** Contratto 1.95: l'elenco intero di plugin e skill per account (lettura passiva); il testo è un `PluginsPage`. */
+    /** Contratto 1.100: la prima raccolta, la pagina (lettura passiva) e il tocco (`action` start, consent con `value` si o no, first_round). */
+    @SerialName("prima_raccolta") PRIMA_RACCOLTA, @SerialName("prima_raccolta_azione") PRIMA_RACCOLTA_AZIONE,
     /** Contratto 1.99: Da provare e Cinque minuti. */
     @SerialName("prove") PROVE, @SerialName("prova") PROVA, @SerialName("decisioni") DECISIONI, @SerialName("decisione") DECISIONE,
     @SerialName("plugins") PLUGINS,
@@ -349,6 +351,18 @@ enum class CmdOp {
 @Serializable data class ApprovalAlso(val task: String, val short: String? = null)
 
 /** Contratto 1.99: le due righe della home; assenti quando tutto è a zero. */
+/** Contratto 1.100, `state.prima_raccolta`: assente se non è mai partita e quando è finita col primo giro fatto. `status`: running, ask, interrupted, done. */
+@Serializable data class PrimaRaccoltaSummary(val status: String = "", val done: Int = 0, val total: Int = 0, val ask: Boolean = false, @SerialName("first_round_at") val firstRoundAt: Long? = null)
+/** Una sezione: con `n` 0 `text` è null e `why` e `when` dicono perché è vuota e quando si riempie. `dove` è una schermata con «Portami lì». */
+@Serializable data class PrimaRaccoltaSection(val key: String, val dove: String? = null, val n: Int = 0, val text: String? = null, val why: String? = null, @SerialName("when") val whenFills: String? = null)
+/** Il primo giro della master: `cost` è la frase da mostrare prima del tocco, `at` quando è partito. */
+@Serializable data class PrimaRaccoltaFirstRound(val at: Long? = null, val cost: String? = null)
+/** Contratto 1.100, op `prima_raccolta`. `status` può anche essere none; `consent` null finché non si risponde a `ask_text`. */
+@Serializable data class PrimaRaccoltaPage(
+    val at: Long = 0, val status: String = "none", val done: Int = 0, val total: Int = 0, val consent: Boolean? = null,
+    @SerialName("ask_text") val askText: String? = null, val cost: Int = 0, val sections: List<PrimaRaccoltaSection> = emptyList(),
+    @SerialName("first_round") val firstRound: PrimaRaccoltaFirstRound? = null,
+)
 @Serializable data class ProveSummary(val n: Int = 0, val builds: Int = 0, val red: Int = 0, val ko: Int = 0)
 @Serializable data class DecisionsSummary(val n: Int = 0, val here: Int = 0, val tasks: Int = 0, val snoozed: Int = 0)
 
@@ -483,6 +497,8 @@ enum class CmdOp {
     /** L'ordine delle sezioni della home; null = predefinito (rules.HomeOrder). */
     @SerialName("home_order") val homeOrder: List<String>? = null,
     val prove: ProveSummary? = null, val decisions: DecisionsSummary? = null,
+    /** Contratto 1.100: la riga della prima raccolta nella home. */
+    @SerialName("prima_raccolta") val primaRaccolta: PrimaRaccoltaSummary? = null,
     /** Contratto 1.75: una voce per macchina confermata, dalla fotografia del poller. */
     @SerialName("hosts_status") val hostsStatus: List<HostStatus> = emptyList(),
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
@@ -700,6 +716,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val also: List<String>? = null,
+    /** Contratto 1.100: `prima_raccolta_azione` con `action` consent, si o no; assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val value: String? = null,
     /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok; assente, non scritto. */
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)

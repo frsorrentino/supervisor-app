@@ -11,6 +11,8 @@
   import { DemoTransport } from './lib/demoTransport'
   import Features from './lib/Features.svelte'
   import DaProvare from './lib/DaProvare.svelte'
+  import PrimaRaccolta from './lib/PrimaRaccolta.svelte'
+  import { autoOpen as primaAutoOpen } from './lib/primaRaccolta'
   import CinqueMinuti from './lib/CinqueMinuti.svelte'
   import { suggestionNames as suggestionNamesOf } from './lib/slotInfo'
   import { nightTitleParts, okAlso } from './lib/decide'
@@ -619,7 +621,15 @@
   }
   setContext('agendaNight', { get can() { return canNight }, get rows() { return nightCards(agenda.page, todayIso()) }, queue: queueNight })
   $effect(() => { if (canNight && canAgenda && !agenda.page && !agenda.loading) untrack(() => loadAgenda()) })
-  const pageTitle: Record<PageName, string> = $derived({ prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
+  // Contratto 1.100: all'abbinamento la prima raccolta si apre da sola, una volta per browser; mai nella demo.
+  $effect(() => {
+    const s = st.prima_raccolta
+    if (demo || !s) return
+    let seen = true
+    try { seen = localStorage.getItem('cm.primaSeen') === '1' } catch { /* senza memoria non si riapre a ogni giro */ }
+    if (primaAutoOpen(s, seen)) { try { localStorage.setItem('cm.primaSeen', '1') } catch { /* come sopra */ } ; untrack(() => openPage('prima-raccolta')) }
+  })
+  const pageTitle: Record<PageName, string> = $derived({ 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -1082,6 +1092,8 @@
         known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('lavori') }} />
     {:else if p === 'usage'}
       <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
+    {:else if p === 'prima-raccolta'}
+      <PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
     {:else if p === 'prove'}
       <DaProvare {run} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />
     {:else if p === 'decisions'}

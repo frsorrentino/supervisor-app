@@ -8,7 +8,7 @@ import java.io.File
 
 class FeaturesTest {
     private val c = Features.decode(File("../mobile/src/main/assets/features.json").readText())
-    private val routes = setOf("prove", "decisions", "queue", "box-aspetta", "box-lavoro", "box-esiti", "lavori", "launch", "night", "search", "settings", "homeorder", "usage")
+    private val routes = setOf("prima-raccolta", "prove", "decisions", "queue", "box-aspetta", "box-lavoro", "box-esiti", "lavori", "launch", "night", "search", "settings", "homeorder", "usage")
 
     @Test fun panoramica_ogniSezioneDellaHomeHaLaSuaVoce() {
         assertEquals(emptyList<String>(), Features.missingSections(c, HomeOrder.DEFAULT))
@@ -24,7 +24,7 @@ class FeaturesTest {
 
     @Test fun panoramica_leDieciDelProgrammaSonoInArrivoESenzaTocco() {
         val coming = c.features.filter { it.state == Features.COMING }
-        assertEquals(setOf("rimasto_indietro", "stesso_difetto", "promemoria", "rendiconto", "pagella", "prima_raccolta"), coming.map { it.key }.toSet())
+        assertEquals(setOf("rimasto_indietro", "stesso_difetto", "promemoria", "rendiconto", "pagella"), coming.map { it.key }.toSet())
         assertFalse(coming.any(Features::canGo))
     }
 
