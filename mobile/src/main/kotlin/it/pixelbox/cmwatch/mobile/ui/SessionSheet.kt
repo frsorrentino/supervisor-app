@@ -1373,8 +1373,8 @@ internal fun QuestionCard(
                 customItem(
                     buttonGroupContent = {
                         val src = remember { MutableInteractionSource() }
-                        OutlinedButton(onClick = actions.chat, interactionSource = src, border = BorderStroke(1.dp, V3.Tx3.copy(alpha = .5f)), modifier = Modifier.weight(1f).animateWidth(src)) {
-                            Text(stringResource(R.string.chat_about_this), color = V3.Tx, maxLines = 1)
+                        OutlinedButton(onClick = actions.chat, interactionSource = src, border = BorderStroke(1.dp, V3.Tx3.copy(alpha = .5f)), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp), modifier = Modifier.weight(1f).animateWidth(src)) {
+                            Text(stringResource(R.string.chat_about_this), color = V3.Tx, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         }
                     },
                     menuContent = { m -> DropdownMenuItem(text = { Text(stringResource(R.string.chat_about_this)) }, onClick = { m.dismiss(); actions.chat() }) },
@@ -1382,8 +1382,8 @@ internal fun QuestionCard(
                 if (allowAll) customItem(
                     buttonGroupContent = {
                         val src = remember { MutableInteractionSource() }
-                        OutlinedButton(onClick = actions.allowAll, interactionSource = src, border = BorderStroke(1.dp, V3.Tx3.copy(alpha = .5f)), modifier = Modifier.weight(1f).animateWidth(src)) {
-                            Text(stringResource(R.string.allow_all), color = V3.Tx, maxLines = 1)
+                        OutlinedButton(onClick = actions.allowAll, interactionSource = src, border = BorderStroke(1.dp, V3.Tx3.copy(alpha = .5f)), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp), modifier = Modifier.weight(1f).animateWidth(src)) {
+                            Text(stringResource(R.string.allow_all), color = V3.Tx, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         }
                     },
                     menuContent = { m -> DropdownMenuItem(text = { Text(stringResource(R.string.allow_all)) }, onClick = { m.dismiss(); actions.allowAll() }) },

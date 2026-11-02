@@ -1547,7 +1547,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="prima_running">Sto raccogliendo: %1$d di %2$d sezioni.</string>
     <string name="prima_ask">%1$d di %2$d sezioni: manca solo la tua risposta.</string>
     <string name="prima_interrupted">Interrotta a %1$d di %2$d sezioni.</string>
-    <string name="prima_done">Fatto: la home è piena.</string>
+    <string name="prima_done">Raccolta finita.</string>
     <string name="prima_none">La raccolta non è ancora partita.</string>
     <string name="prima_free">La raccolta costa zero: nessuna chiamata a un modello.</string>
     <string name="prima_resume">Riprendi</string>

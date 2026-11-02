@@ -1517,7 +1517,7 @@ It starts at your last message to the master.</string>
     <string name="prima_running">Collecting: %1$d of %2$d sections.</string>
     <string name="prima_ask">%1$d of %2$d sections: only your answer is missing.</string>
     <string name="prima_interrupted">Stopped at %1$d of %2$d sections.</string>
-    <string name="prima_done">Done: the home is full.</string>
+    <string name="prima_done">Collection finished.</string>
     <string name="prima_none">The collection has not started yet.</string>
     <string name="prima_free">The collection is free: it calls no model.</string>
     <string name="prima_resume">Resume</string>
