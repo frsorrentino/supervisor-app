@@ -53,4 +53,10 @@ class HomeCategoriesTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (320 * 2.75).toInt(), fontScale = 1.3f, screenHeight = 5000))
         shot(failed = true)
     }
+
+    /** Riordina (mockup, riquadro 4): una card per categoria con maniglia e interruttore, le sezioni sotto con la loro maniglia. */
+    @Test fun reorderByCategories() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 2700))
+        paparazzi.snapshot { CmPhoneTheme(still = true) { it.pixelbox.cmwatch.mobile.ui.HomeOrderScreen(null, {}, {}) } }
+    }
 }

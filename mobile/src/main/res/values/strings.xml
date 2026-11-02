@@ -1633,4 +1633,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <plurals name="cat_sig_failed"><item quantity="one">%1$d fallito</item><item quantity="other">%1$d falliti</item></plurals>
     <string name="cat_sig_none">niente oggi</string>
     <string name="cat_sig_load">carico %1$s</string>
+    <string name="reorder_in_view">in vista</string>
+    <string name="reorder_cat_closed">chiusa</string>
+    <string name="reorder_foot">Ordine e categorie valgono anche per le colonne della PWA.</string>
+    <string name="home_sec_watch">Da guardare</string>
+    <string name="home_sec_reports">Rendiconti</string>
+    <string name="home_sec_scorecard">Pagella</string>
 </resources>
