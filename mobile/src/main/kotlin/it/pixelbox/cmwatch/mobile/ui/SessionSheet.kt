@@ -53,6 +53,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.input.key.isAltPressed
@@ -1964,9 +1965,13 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
     // allo stesso ingrandimento e con lo stesso punto sotto le dita, e lì si continua.
     var thumb by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
     var pinch by remember { mutableStateOf<ThumbPinch?>(null) }
+    // Segnata per lo zoom del testo: un pizzico che comincia qui è dell'immagine (app-zoom-testo-02-11).
+    val images = LocalChatImages.current
+    val me = remember { Any() }
+    androidx.compose.runtime.DisposableEffect(images) { onDispose { images.remove(me) } }
     androidx.compose.foundation.Image(
         bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Crop,
-        modifier = box.onGloballyPositioned { c -> thumb = c.boundsInWindow() }.graphicsLayer { alpha = if (pinch != null) 0f else 1f }
+        modifier = box.onGloballyPositioned { c -> thumb = c.boundsInWindow(); images[me] = thumb.let { r -> it.pixelbox.cmwatch.rules.ChatZoom.Area(r.left, r.top, r.right, r.bottom) } }.graphicsLayer { alpha = if (pinch != null) 0f else 1f }
             .clip(RoundedCornerShape(14.dp)).handCursor().clickable { start = null; full = true }.pointerInput(path) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
@@ -2742,6 +2747,9 @@ val LocalSpeaking = androidx.compose.runtime.staticCompositionLocalOf<String?> {
 /** Franz 24/10 09:25: leggere un testo ad alta voce da dove non arriva un onSpeak (la finestra di conferma di un ok). */
 val LocalSpeakText = androidx.compose.runtime.staticCompositionLocalOf<((String) -> Unit)?> { null }
 
+/** Dove stanno le immagini della chat, per lo zoom del testo (app-zoom-testo-02-11). Fuori dalla chat, un registro che nessuno legge. */
+internal val LocalChatImages = androidx.compose.runtime.staticCompositionLocalOf<MutableMap<Any, it.pixelbox.cmwatch.rules.ChatZoom.Area>> { java.util.concurrent.ConcurrentHashMap() }
+
 /** Lo zoom del testo della conversazione (`ChatZoom`) e come cambiarlo, da `MainActivity`. */
 val LocalChatZoom = androidx.compose.runtime.staticCompositionLocalOf { 1f }
 val LocalSetChatZoom = androidx.compose.runtime.staticCompositionLocalOf<(Float) -> Unit> { {} }
@@ -2756,21 +2764,32 @@ private fun ZoomedText(content: @Composable () -> Unit) {
     val current by androidx.compose.runtime.rememberUpdatedState(zoom)
     val setZoom by androidx.compose.runtime.rememberUpdatedState(LocalSetChatZoom.current)
     val d = androidx.compose.ui.platform.LocalDensity.current
-    Box(Modifier.fillMaxSize().pointerInput(Unit) {
+    // Le immagini della chat, in pixel della finestra (app-zoom-testo-02-11): un pizzico che comincia lì non è del testo.
+    val images = remember { java.util.concurrent.ConcurrentHashMap<Any, it.pixelbox.cmwatch.rules.ChatZoom.Area>() }
+    val at = remember { floatArrayOf(0f, 0f) }
+    Box(Modifier.fillMaxSize().onGloballyPositioned { c -> c.positionInWindow().let { p -> at[0] = p.x; at[1] = p.y } }.pointerInput(Unit) {
         awaitEachGesture {
-            awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+            val first = awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+            val downs = linkedMapOf(first.id to first.position)
+            var mine: Boolean? = null
             do {
                 val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                event.changes.forEach { c -> if (c.pressed && c.id !in downs) downs[c.id] = c.position }
                 if (event.changes.count { it.pressed } >= 2) {
-                    val z = event.calculateZoom()
-                    if (z != 1f) setZoom(it.pixelbox.cmwatch.rules.ChatZoom.clamp(current * z))
-                    event.changes.forEach { c -> c.consume() }
+                    // Si decide una volta, coi punti dove sono scese le dita: il gesto resta di chi l'ha cominciato.
+                    val own = mine ?: it.pixelbox.cmwatch.rules.ChatZoom.textOwns(downs.values.map { p -> (p.x + at[0]) to (p.y + at[1]) }, images.values).also { o -> mine = o }
+                    if (own) {
+                        val z = event.calculateZoom()
+                        if (z != 1f) setZoom(it.pixelbox.cmwatch.rules.ChatZoom.clamp(current * z))
+                        event.changes.forEach { c -> c.consume() }
+                    }
                 }
             } while (event.changes.any { it.pressed })
         }
     }) {
         androidx.compose.runtime.CompositionLocalProvider(
             androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(d.density, d.fontScale * zoom),
+            LocalChatImages provides images,
         ) { content() }
     }
 }
