@@ -327,7 +327,7 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
-  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione'
+  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
   /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */

@@ -161,6 +161,8 @@ enum class CmdOp {
     @SerialName("seguiti") SEGUITI, @SerialName("seguiti_azione") SEGUITI_AZIONE,
     /** Contratto 1.103: i rendiconti e la pagella (fase C), la lettura e il tocco che chiede la bozza alla master. */
     @SerialName("conti") CONTI, @SerialName("conti_azione") CONTI_AZIONE,
+    /** Contratto 1.105: le note di claude-observe, il consenso «sempre anonimo», l'anteprima o l'invio (`hash`), il testo libero che diventa una issue pubblica; solo da un tocco. */
+    @SerialName("feedback_consent") FEEDBACK_CONSENT, @SerialName("feedback_send") FEEDBACK_SEND, @SerialName("feedback_text") FEEDBACK_TEXT,
     /** Contratto 1.99: Da provare e Da decidere. */
     @SerialName("prove") PROVE, @SerialName("prova") PROVA, @SerialName("decisioni") DECISIONI, @SerialName("decisione") DECISIONE,
     @SerialName("plugins") PLUGINS,

@@ -367,7 +367,7 @@ class FakeTransport(
             // Contratto 1.99: le pagine e i risultati della fixture del contratto.
             CmdOp.PROVE, CmdOp.DECISIONI, CmdOp.PRIMA_RACCOLTA, CmdOp.SEGUITI -> ok(sampleText(cmd.op.name.lowercase()))
             CmdOp.PRIMA_RACCOLTA_AZIONE -> ok("ok")
-            CmdOp.CONTI, CmdOp.CONTI_AZIONE -> ko("${cmd.op}: not in this demo yet")
+            CmdOp.CONTI, CmdOp.CONTI_AZIONE, CmdOp.FEEDBACK_CONSENT, CmdOp.FEEDBACK_SEND, CmdOp.FEEDBACK_TEXT -> ko("${cmd.op}: not in this demo yet")
             CmdOp.SEGUITI_AZIONE -> when (cmd.action) {
                 "allinea" -> ok("allinea-${cmd.product}-${cmd.key}")
                 "ok" -> ok("${cmd.key}: marked aligned with this version")
