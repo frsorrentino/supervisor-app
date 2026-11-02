@@ -53,7 +53,7 @@
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
   import CatIcon from './CatIcon.svelte'
-  import { DEFAULT_CATS, EDGE, catFor, catKeys, catOrder, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
+  import { BOARD_MAX, DEFAULT_CATS, EDGE, catFor, catKeys, catOrder, toTop as toBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
@@ -154,7 +154,9 @@
   // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
   const shows = (c: CatId) => !part || part === c || part === 'top'
   // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti. Le colonne della plancia non ce l'hanno.
-  const savedPin = $derived(part ? null : sentOrder && sentOrder.from === savedKey ? sentOrder.pin : pinned(st.home_order))
+  // Lo slot di una voce sola non c'è più: le voci stanno sul tabellone, fino a quattro (app-tabellone-quattro-02-11); nello slot
+  // entra solo Utilizzo con l'allarme della settimana, come prima.
+  const savedPin = null as HomeSection | null
   const week = $derived(!part && usage && showUsage ? weekSlot(st.quota, now) : null)
   const weekAlarm = $derived(!!week?.alarm)
   const pin = $derived(slotKey(savedPin, weekAlarm))
@@ -172,9 +174,12 @@
   const noScroll = (e: TouchEvent) => { if (dragOrder) e.preventDefault() }
   // La voce nello slot sta solo lì, anche mentre la si trascina fuori: torna in elenco al rilascio, così niente cambia altezza.
   const listSkip = $derived(pin)
-  const slotOpen = $derived(!!dragKey && pinnable(dragKey) && !weekAlarm)
+  // Il tabellone è l'unico punto di rilascio (Franz 02/11 20:45): una sezione che non c'è ancora; con quattro voci lo dice.
+  const boardTakes = (k: string) => !!catFor(k) && !(weekAlarm && k === 'usage') && !(up as string[]).includes(k) && up.length < BOARD_MAX
+  const slotOpen = $derived(!!dragKey && !!catFor(dragKey) && !(up as string[]).includes(dragKey) && !(weekAlarm && dragKey === 'usage'))
+  const slotFull = $derived(!!dragKey && slotOpen && !boardTakes(dragKey))
   let boardEl: HTMLElement | undefined = $state()
-  const inSlot = (k: string, y: number) => { const r = boardEl?.getBoundingClientRect(); return overSlot(k, y, r?.top ?? null, r?.bottom ?? null, weekAlarm) }
+  const inSlot = (k: string, y: number) => { const r = boardEl?.getBoundingClientRect(); return !!r && !!catFor(k) && !(up as string[]).includes(k) && y >= r.top && y <= r.bottom }
   const slotHot = $derived(!!dragKey && inSlot(dragKey, dragY))
   function dragBegin(k: HomeSection) {
     const r = dragEl!.getBoundingClientRect()
@@ -191,14 +196,14 @@
     const r = home.getBoundingClientRect(), edge = 72
     if (dragY < r.top + edge) home.scrollTop -= (r.top + edge - dragY) / edge * 14
     else if (dragY > r.bottom - edge) home.scrollTop += (dragY - (r.bottom - edge)) / edge * 14
-    if (now - dragLastSwap > 120 && !inSlot(dragKey, dragY) && !(dragKey === savedPin && !weekAlarm)) {
+    if (now - dragLastSwap > 120 && !inSlot(dragKey, dragY)) {
       const mids: Partial<Record<HomeSection, number>> = {}
       for (const k of dragOrder) {
         if (k === listSkip) continue
         const b = home.querySelector(`[data-sec-head="${k}"]`)?.getBoundingClientRect()
         if (b) mids[k] = b.top + Math.min(b.height, 48) / 2
       }
-      const next = dragCats(dragOrder, dragKey, dragY, mids)
+      const next = dragCats(dragOrder, dragKey, dragY, mids, (up as string[]).includes(dragKey))
       if (next !== dragOrder) { dragOrder = next; dragLastSwap = now }
     }
     dragRaf = requestAnimationFrame(dragFrame)
@@ -242,9 +247,11 @@
     addEventListener('click', swallowClick, { capture: true, once: true })
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
     if (!cancel) {
-      const { order: nextOrder, pin: nextPin } = release(order, o, held!, savedPin, weekAlarm, dropped, y, releaseMids)
-      // Sopra il bordo la voce va in cima; sotto resta nella sua categoria (HomeCats.settle).
-      if (nextOrder.join() !== order.join() || nextPin !== savedPin) { const n = settle(cats, nextOrder); sentOrder = { from: savedKey, cats: n.cats, pin: nextPin, top: n.top }; onHomeOrder?.(encodeCats(n.cats, nextPin, n.top)) }
+      // Sul tabellone la voce sale in fondo alle altre e resta aperta (pieno, torna dov'era); altrove vale l'ordine del puntatore: una
+      // voce del tabellone portata sotto il bordo torna nella sua categoria.
+      const n = dropped ? (boardTakes(held!) ? toBoard(cats, up, held as HomeKey) : { top: up, cats }) : settle(cats, o)
+      if (dropped && n.top !== up) { open = { ...open, [held!]: true }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* resta per questa visita */ } }
+      if (n.top.join() !== up.join() || n.cats !== cats || pinned(st.home_order)) { sentOrder = { from: savedKey, cats: n.cats, pin: null, top: n.top }; onHomeOrder?.(encodeCats(n.cats, null, n.top)) }
     }
   }
   // Le categorie si trascinano fra loro dalla testata (app-categorie-trascina-02-11, come SummaryList.kt): col mouse subito, al
@@ -289,7 +296,7 @@
     if (!cancel) { const moved = catOrder(cats, o); if (moved.map(c => c.id).join() !== cats.map(c => c.id).join()) setCats(moved) }
   }
   // Aperte o chiuse col tocco, come l'interruttore di Riordina: la scelta si salva (app-home-in-cima-02-11).
-  function setCats(next: Cat[]) { sentOrder = { from: savedKey, cats: next, pin: savedPin, top: up }; onHomeOrder?.(encodeCats(next, savedPin, up)) }
+  function setCats(next: Cat[]) { sentOrder = { from: savedKey, cats: next, pin: null, top: up }; onHomeOrder?.(encodeCats(next, null, up)) }
   const CATS_ICON: Record<CatId, string> = { you: 'pan_tool', work: 'play_circle', out: 'svg:inbox', tools: 'svg:speed' }
   // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»), come HomeCatsUi.kt: ambra quando c'è qualcosa da
   // sapere; un fallito è rosso nella riga ma non la fa ambra (mockup, riga 1).
@@ -636,7 +643,7 @@
   {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
-{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} onBox={openCat} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot} data-testid="slot-rilascia">{t.slotDrop}</div>{/if}</div>{/if}
+{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} onBox={openCat} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 {#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
@@ -843,11 +850,13 @@
   {#each cats.flatMap(c => c.sections).filter(k => catFor(k) === part && (DEFAULT_ORDER as string[]).includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
 {:else}
   {@const live = dragOrder ?? order}
+  {#if live.slice(0, edgeAt(live)).some(k => k !== listSkip)}<div class="boardlabel" data-testid="home-tabellone-voci"><span class="ms" aria-hidden="true">push_pin</span>{t.boardLabel}</div>{/if}
   {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip) as k (k)}
     <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
   {/each}
   <!-- Il bordo dello spazio in cima: fermo non si vede, durante il trascinamento di una sezione è la striscia dove lasciarla. -->
-  <div class="topedge" class:on={!!dragKey} class:hot={!!dragKey && live.slice(0, edgeAt(live)).includes(dragKey)} data-sec-head={EDGE} data-testid={dragKey ? 'home-cima-bordo' : undefined}>{#if dragKey}{t.homeTopDrop}{/if}</div>
+  <!-- Il bordo non si vede (app-tabellone-quattro-02-11): serve alle voci del tabellone per uscirne verso la loro categoria. -->
+  <div class="topedge" data-sec-head={EDGE}></div>
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
       {#if c.open}<button class="catlabel cathead" aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
@@ -1349,6 +1358,8 @@
   .hcat:has(.hsec > *) .catlabel { display: flex; }
   /* Lo spazio in cima (app-home-in-cima-02-11): il bordo è una linea vuota; durante il trascinamento la striscia dove lasciare. */
   .topedge { height: 1px; flex: none; }
+  .boardlabel { display: flex; align-items: center; gap: 6px; padding: 10px 4px 2px; font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
+  .boardlabel .ms { font-size: 16px; letter-spacing: 0; }
   .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }
   .topedge.on.hot { border: 2px solid var(--tx); }
   .topband { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 16px; padding: 8px 16px; }

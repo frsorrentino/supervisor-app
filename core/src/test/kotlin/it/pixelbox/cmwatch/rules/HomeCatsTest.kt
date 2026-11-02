@@ -27,8 +27,10 @@ class HomeCatsTest {
     @Test fun aSavedOrderComesBackTheSame() {
         val cats = HomeCats.toggle(HomeCats.moveCat(HomeCats.DEFAULT, 1, 0), "you")
         val saved = HomeCats.encode(cats, "usage")!!
-        assertEquals(cats, HomeCats.decode(saved))
         assertEquals("usage", HomeOrder.pinned(saved))
+        // Lo slot di prima sale sul tabellone (app-tabellone-quattro-02-11): Utilizzo esce da Numeri e strumenti.
+        assertEquals(listOf("usage"), HomeCats.top(saved))
+        assertEquals(cats.map { c -> c.copy(sections = c.sections - "usage") }, HomeCats.decode(saved))
         assertEquals("shut:you,out,tools", saved.single { it.startsWith("shut:") })
     }
 
@@ -39,10 +41,11 @@ class HomeCatsTest {
 
     @Test fun yesterdaysFlatOrderFallsIntoCategories() {
         val d = HomeCats.decode(listOf("sessions", "closed", "usage", "prove", "plugins", "pin:usage"))
-        assertEquals(listOf("work", "tools", "you", "out"), ids(d))
+        // Utilizzo, agganciato allo slot, sale sul tabellone; Numeri e strumenti torna al suo posto predefinito.
+        assertEquals(listOf("work", "you", "out", "tools"), ids(d))
         assertEquals(listOf("prove", "prima_raccolta", "decisioni", "suggestions"), d.single { it.id == "you" }.sections)
         assertTrue(d.flatMap { it.sections }.none { it == "closed" || it == "plugins" })
-        assertEquals(listOf(true, false, true, false), d.map { it.open })
+        assertEquals(listOf(true, true, false, false), d.map { it.open })
     }
 
     @Test fun theSavedListFitsTheRelay() {
@@ -160,5 +163,26 @@ class HomeCatsTest {
         // Già in cima, o fuori dalla cima: niente cambia.
         assertEquals(top to cats, HomeCats.toTop(cats, top, "prove"))
         assertEquals(top2 to cats2, HomeCats.fromTop(cats2, top2, "prove"))
+    }
+
+    // Il tabellone a quattro voci (app-tabellone-quattro-02-11); gli stessi casi in homeCats.test.ts.
+    @Test fun theBoardTakesFourAndTheOldSlotMovesOnIt() {
+        var t = emptyList<String>(); var c = HomeCats.DEFAULT
+        listOf("esiti", "sessions", "usage", "prove", "decisioni").forEach { k -> HomeCats.toTop(c, t, k).let { (a, b) -> t = a; c = b } }
+        assertEquals(listOf("esiti", "sessions", "usage", "prove"), t)
+        assertTrue("decisioni" in c[0].sections)
+        assertEquals(t, HomeCats.top(HomeCats.encode(c, null, t)))
+        // Lo slot di prima diventa la prima voce del tabellone e non si salva più come `pin:`.
+        assertEquals(listOf("usage"), HomeCats.top(listOf("sessions", "pin:usage")))
+        assertEquals(listOf("esiti"), HomeCats.top(listOf("top:esiti", "pin:usage")))
+        assertTrue(HomeCats.encode(HomeCats.decode(listOf("pin:usage")), null, listOf("usage"))!!.none { it.startsWith("pin:") })
+        assertEquals(4, HomeCats.top(listOf("top:esiti", "top:sessions", "top:usage", "top:prove", "top:lavori")).size)
+    }
+
+    @Test fun aSectionTakenInItsCategoryDoesNotCrossTheEdge() {
+        val order = listOf("esiti", HomeCats.EDGE, "sessions", "lavori")
+        val mids = mapOf("esiti" to 10f, HomeCats.EDGE to 30f, "lavori" to 110f)
+        assertEquals(order, HomeCats.dragTarget(order, "sessions", 5f, mids, order.toSet(), fromBoard = false))
+        assertEquals(listOf("sessions", "esiti", HomeCats.EDGE, "lavori"), HomeCats.dragTarget(listOf("esiti", "sessions", HomeCats.EDGE, "lavori"), "sessions", 5f, mapOf("esiti" to 10f, HomeCats.EDGE to 30f), order.toSet(), fromBoard = true))
     }
 }

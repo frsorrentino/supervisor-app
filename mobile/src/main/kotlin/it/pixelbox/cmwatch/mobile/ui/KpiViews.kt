@@ -219,9 +219,10 @@ internal fun Modifier.drawDashedEdge(hot: Boolean): Modifier {
  * spinge l'elenco, né alla presa né al rilascio. Si accende solo col dito dentro.
  */
 @Composable
-internal fun androidx.compose.foundation.layout.BoxScope.SlotDrop(hot: Boolean = false) {
-    Box(Modifier.matchParentSize().clip(V3.Shape).background(V3.Bg.copy(alpha = if (hot) .55f else .72f)).testTag(if (hot) "slot-rilascia-acceso" else "slot-rilascia").then(Modifier.drawDashedEdge(hot)), contentAlignment = Alignment.Center) {
-        Text(stringResource(R.string.home_slot_drop), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx))
+internal fun androidx.compose.foundation.layout.BoxScope.SlotDrop(hot: Boolean = false, full: Boolean = false) {
+    Box(Modifier.matchParentSize().clip(V3.Shape).background(V3.Bg.copy(alpha = if (hot) .55f else .72f)).testTag(if (full) "slot-pieno" else if (hot) "slot-rilascia-acceso" else "slot-rilascia").then(Modifier.drawDashedEdge(hot)), contentAlignment = Alignment.Center) {
+        // Il tabellone a quattro voci (app-tabellone-quattro-02-11): pieno, lo dice invece di prendere la voce.
+        Text(stringResource(if (full) R.string.home_board_full else R.string.home_slot_drop), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx), textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(horizontal = 12.dp))
     }
 }
 

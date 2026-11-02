@@ -67,9 +67,10 @@ object HomeCats {
     fun catFor(key: String): String? = when (key) { "closed" -> "work"; "plugins" -> "tools"; else -> catOf(key) }
 
     /** Il trascinamento sul posto della home, dentro la categoria della voce presa: le vicine di un'altra categoria non contano. */
-    fun dragTarget(order: List<String>, held: String, y: Float, mids: Map<String, Float>, present: Set<String>): List<String> {
-        // Con lo spazio in cima (app-home-in-cima-02-11) contano anche le voci in cima e il bordo, di qualunque categoria siano.
-        val up = order.indexOf(EDGE).let { e -> if (e < 0) emptySet() else order.take(e + 1).toSet() }
+    fun dragTarget(order: List<String>, held: String, y: Float, mids: Map<String, Float>, present: Set<String>, fromBoard: Boolean = true): List<String> {
+        // Una voce del tabellone scavalca le altre voci del tabellone e il bordo, di qualunque categoria siano; una sezione presa in una
+        // categoria resta lì: sul tabellone ci va solo rilasciandola sul riquadro (Franz 02/11 20:45, app-tabellone-quattro-02-11).
+        val up = order.indexOf(EDGE).let { e -> if (e < 0 || !fromBoard) emptySet() else order.take(e + 1).toSet() }
         return HomeOrder.dragTarget(order, held, y, mids, present.filter { it in up || catFor(it) == catFor(held) }.toSet())
     }
 
@@ -77,9 +78,15 @@ object HomeCats {
     // in cima esce dalla sua categoria (Franz 19:26) e si salva come `top:<chiave>` al posto della sua chiave: il conto delle chiavi
     // del relay non cresce. Un'app che non conosce `top:` la ignora e rimette la sezione nella sua categoria.
 
-    /** Le voci in cima, nell'ordine salvato; doppie e sconosciute si ignorano. */
-    fun top(saved: List<String>?): List<String> =
-        saved.orEmpty().filter { it.startsWith(TOP) }.map { it.removePrefix(TOP) }.filter { catOf(it) != null }.distinct()
+    /**
+     * Le voci sul tabellone (Franz 02/11 20:45, app-tabellone-quattro-02-11): al massimo [BOARD_MAX], nell'ordine salvato; doppie e
+     * sconosciute si ignorano. Un ordine di prima con lo slot (`pin:`) e senza voci in cima porta la voce dello slot sul tabellone.
+     */
+    const val BOARD_MAX = 4
+    fun top(saved: List<String>?): List<String> {
+        val list = saved.orEmpty().filter { it.startsWith(TOP) }.map { it.removePrefix(TOP) }.filter { catOf(it) != null }.distinct()
+        return list.ifEmpty { listOfNotNull(HomeOrder.pinned(saved)?.takeIf { catOf(it) != null }) }.take(BOARD_MAX)
+    }
 
     /** L'ordine mostrato e trascinato: la cima, il bordo, le sezioni delle categorie. */
     fun flat(top: List<String>, cats: List<Cat>): List<String> = top + EDGE + cats.flatMap { it.sections }
@@ -100,9 +107,9 @@ object HomeCats {
         return up to reorder(back, below)
     }
 
-    /** Riordina, «Metti in cima»: la voce va in fondo alla cima. */
+    /** Riordina e rilascio sul tabellone: la voce va in fondo al tabellone; pieno, niente cambia. */
     fun toTop(cats: List<Cat>, top: List<String>, key: String): Pair<List<String>, List<Cat>> =
-        if (key in top || catOf(key) == null) top to cats
+        if (key in top || catOf(key) == null || top.size >= BOARD_MAX) top to cats
         else (top + key) to cats.map { c -> c.copy(sections = c.sections - key) }
 
     /** Riordina, «Togli dalla cima»: la voce torna in fondo alla sua categoria. */

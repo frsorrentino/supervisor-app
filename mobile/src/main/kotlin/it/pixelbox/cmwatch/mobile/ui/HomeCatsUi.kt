@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.PanTool
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Speed
@@ -78,6 +79,16 @@ internal fun CatLabel(id: String, modifier: Modifier = Modifier, onToggle: () ->
             Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = V3.Tx3), modifier = Modifier.weight(1f).padding(top = 8.dp, bottom = 2.dp))
             TurnArrow(true, V3.Tx3, Modifier.size(20.dp))
         }
+    }
+}
+
+/** L'etichetta delle voci sul tabellone (app-tabellone-quattro-02-11, mockup richiede-te.png punto 2): la puntina e «In cima». */
+@Composable
+internal fun BoardLabel() {
+    Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 10.dp, bottom = 2.dp).testTag("home-tabellone-voci"), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Outlined.PushPin, null, tint = V3.Tx3, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(stringResource(R.string.home_board_label).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = V3.Tx3))
     }
 }
 

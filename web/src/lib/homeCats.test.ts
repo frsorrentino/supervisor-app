@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CATS, EDGE, catFor, catKeys, catOf, catOrder, dragCats, flat, fromTop, reorder, decode, encode, moveCat, moveSection, settle, toTop, toggle, top, type Cat } from './homeCats'
+import { DEFAULT_CATS, EDGE, catFor, catKeys, catOf, catOrder, dragCats, flat, fromTop, reorder, decode, encode, moveCat, moveSection, settle, toTop, toggle, top, type Cat, type HomeKey } from './homeCats'
 import { pinned } from './homeOrder'
 
 // La home per categorie (compito app-home-categorie-02-11); gli stessi casi in HomeCatsTest.kt.
@@ -16,8 +16,10 @@ describe('homeCats', () => {
   it('un ordine salvato torna uguale, con lo slot', () => {
     const cats = toggle(moveCat(DEFAULT_CATS, 1, 0), 'you')
     const saved = JSON.parse(encode(cats, 'usage')!) as string[]
-    expect(decode(saved)).toEqual(cats)
     expect(pinned(saved)).toBe('usage')
+    // Lo slot di prima sale sul tabellone (app-tabellone-quattro-02-11): Utilizzo esce da Numeri e strumenti.
+    expect(top(saved)).toEqual(['usage'])
+    expect(decode(saved)).toEqual(cats.map(c => ({ ...c, sections: c.sections.filter(k => k !== 'usage') })))
     expect(saved.filter(k => k.startsWith('shut:'))).toEqual(['shut:you,out,tools'])
   })
   it('anche nessuna chiusa si salva', () => {
@@ -26,11 +28,12 @@ describe('homeCats', () => {
   })
   it("l'ordine piatto di ieri cade nelle categorie", () => {
     const d = decode(['sessions', 'closed', 'usage', 'prove', 'plugins', 'pin:usage'])
-    expect(ids(d)).toEqual(['work', 'tools', 'you', 'out'])
+    // Utilizzo, agganciato allo slot, sale sul tabellone; Numeri e strumenti torna al suo posto predefinito.
+    expect(ids(d)).toEqual(['work', 'you', 'out', 'tools'])
     expect(d.find(c => c.id === 'you')!.sections).toEqual(['prove', 'prima_raccolta', 'decisioni', 'suggestions'])
     expect(d.flatMap(c => c.sections)).not.toContain('closed')
     expect(d.flatMap(c => c.sections)).not.toContain('plugins')
-    expect(d.map(c => [c.id, c.open])).toEqual([['work', true], ['tools', false], ['you', true], ['out', false]])
+    expect(d.map(c => [c.id, c.open])).toEqual([['work', true], ['you', true], ['out', false], ['tools', false]])
   })
   it('la lista salvata sta nei limiti del relay', () => {
     const worst = [...DEFAULT_CATS].reverse().map(c => ({ ...c, open: false, sections: [...c.sections].reverse() }))
@@ -125,5 +128,23 @@ describe('homeCats', () => {
     expect(b.cats[0].sections).toEqual(['prima_raccolta', 'decisioni', 'suggestions', 'prove'])
     expect(toTop(a.cats, a.top, 'prove')).toEqual(a)
     expect(fromTop(b.cats, b.top, 'prove')).toEqual(b)
+  })
+
+  // Il tabellone a quattro voci (app-tabellone-quattro-02-11); gli stessi casi in HomeCatsTest.kt.
+  it('il tabellone tiene quattro voci e lo slot di prima ci sale sopra', () => {
+    let t: HomeKey[] = [], c = DEFAULT_CATS
+    for (const k of ['esiti', 'sessions', 'usage', 'prove', 'decisioni'] as HomeKey[]) { const r = toTop(c, t, k); t = r.top; c = r.cats }
+    expect(t).toEqual(['esiti', 'sessions', 'usage', 'prove'])
+    expect(c[0].sections).toContain('decisioni')
+    expect(top(JSON.parse(encode(c, null, t)!))).toEqual(t)
+    expect(top(['sessions', 'pin:usage'])).toEqual(['usage'])
+    expect(top(['top:esiti', 'pin:usage'])).toEqual(['esiti'])
+    expect((JSON.parse(encode(decode(['pin:usage']), null, ['usage'])!) as string[]).some(k => k.startsWith('pin:'))).toBe(false)
+    expect(top(['top:esiti', 'top:sessions', 'top:usage', 'top:prove', 'top:lavori'])).toHaveLength(4)
+  })
+  it('una sezione presa nella sua categoria non passa il bordo', () => {
+    const order = ['esiti', EDGE, 'sessions', 'lavori']
+    expect(dragCats(order as never, 'sessions', 5, { esiti: 10, [EDGE]: 30, lavori: 110 } as never, false)).toEqual(order)
+    expect(dragCats(['esiti', 'sessions', EDGE, 'lavori'] as never, 'sessions', 5, { esiti: 10, [EDGE]: 30 } as never, true)).toEqual(['sessions', 'esiti', EDGE, 'lavori'])
   })
 })

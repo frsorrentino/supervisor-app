@@ -162,7 +162,8 @@ fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<Stri
                                         Icon(icon, null, tint = V3.Tx2, modifier = Modifier.padding(start = 4.dp, end = 12.dp).size(22.dp))
                                         // A capo, mai tagliato: con i caratteri grandi i nomi lunghi non stanno su una riga.
                                         Text(label, style = V3.Name, modifier = Modifier.weight(1f))
-                                        IconButton(onClick = { putTop(key) }, modifier = Modifier.testTag("riordino-in-cima-$key")) { Icon(Icons.Outlined.VerticalAlignTop, stringResource(R.string.reorder_top_in, label), tint = V3.Tx2) }
+                                        // Sul tabellone stanno quattro voci (app-tabellone-quattro-02-11): pieno, la freccia non c'è.
+                                        if (top.size < HomeCats.BOARD_MAX) IconButton(onClick = { putTop(key) }, modifier = Modifier.testTag("riordino-in-cima-$key")) { Icon(Icons.Outlined.VerticalAlignTop, stringResource(R.string.reorder_top_in, label), tint = V3.Tx2) }
                                     }
                                 }
                             }
@@ -173,7 +174,7 @@ fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<Stri
             Text(stringResource(R.string.reorder_foot), style = V3.Small, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Surface(onClick = { onSave(HomeCats.encode(cats, HomeOrder.pinned(saved), top) ?: emptyList()) }, shape = CircleShape, color = V3.Act, contentColor = V3.OnAct, modifier = Modifier.fillMaxWidth()) {
+            Surface(onClick = { onSave(HomeCats.encode(cats, null, top) ?: emptyList()) }, shape = CircleShape, color = V3.Act, contentColor = V3.OnAct, modifier = Modifier.fillMaxWidth()) {
                 Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) { Text(stringResource(R.string.reorder_save), style = V3.Name.copy(color = V3.OnAct)) }
             }
             Text(stringResource(R.string.reorder_reset), style = V3.Small.copy(color = V3.Tx), modifier = Modifier.handCursor().clickable { cats = HomeCats.DEFAULT; top = emptyList() }.padding(12.dp))

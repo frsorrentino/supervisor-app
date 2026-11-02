@@ -222,11 +222,14 @@ fun SummaryList(
     val catHas = remember { mutableMapOf<String, Boolean>() }
     var catFocus by remember { mutableStateOf<String?>(null) }
     // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti.
-    val savedPin = it.pixelbox.cmwatch.rules.HomeOrder.pinned(savedOrder)
+    // Lo slot di una voce sola non c'è più: le voci stanno sul tabellone, fino a quattro (app-tabellone-quattro-02-11); nello slot
+    // entra solo Utilizzo con l'allarme della settimana, come prima.
+    val savedPin: String? = null
     val weekSlot = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(st.quota, now) }.takeIf { usage != null && showUsage }
     val weekAlarm = weekSlot?.alarm == true
     val pin = it.pixelbox.cmwatch.rules.HomeOrder.slot(savedPin, weekAlarm)
     val savedPinNow by androidx.compose.runtime.rememberUpdatedState(savedPin)
+    val savedOrderNow by androidx.compose.runtime.rememberUpdatedState(savedOrder)
     val alarmNow by androidx.compose.runtime.rememberUpdatedState(weekAlarm)
     var boardBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
     val shownOrder by androidx.compose.runtime.rememberUpdatedState(homeOrder)
@@ -241,10 +244,13 @@ fun SummaryList(
     val dragZones = remember { mutableMapOf<String, Pair<String, androidx.compose.ui.layout.LayoutCoordinates>>() }
     val dragPresent = remember { mutableSetOf<String>() }
     var dragBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    // Il tabellone è l'unico punto di rilascio (Franz 02/11 20:45, app-tabellone-quattro-02-11): una sezione di qualsiasi categoria,
+    // finché le voci sono meno di quattro; Utilizzo con l'allarme resta dov'è.
+    fun boardTakes(held: String): Boolean = catFor(held) != null && !(alarmNow && held == "usage") && held !in upNow && upNow.size < it.pixelbox.cmwatch.rules.HomeCats.BOARD_MAX
     fun overSlot(held: String, y: Float): Boolean {
         val box = dragBox?.takeIf { it.isAttached }
-        val r = boardBox?.takeIf { it.isAttached }?.let { b -> box?.localBoundingBoxOf(b, false) }
-        return it.pixelbox.cmwatch.rules.HomeOrder.overSlot(held, y, r?.top, r?.bottom, alarmNow)
+        val r = boardBox?.takeIf { it.isAttached }?.let { b -> box?.localBoundingBoxOf(b, false) } ?: return false
+        return held !in upNow && catFor(held) != null && y >= r.top && y <= r.bottom
     }
     fun sectionDrag(key: String): Modifier = if (onHomeOrder == null) Modifier else Modifier.onGloballyPositioned { dragZones[key] = key to it }
     // Categorie aperte o chiuse, spostate fra loro: si salva subito con la cima e lo slot di adesso (app-home-in-cima-02-11).
@@ -294,6 +300,19 @@ fun SummaryList(
         }
     }
     fun toggleNew(r: NewRow, key: String) { r.open.value = !r.open.value; save(key, r.open.value) }
+    // Rilasciata sul tabellone, la voce resta aperta col suo contenuto in vista (Franz 02/11 20:45).
+    fun openOnBoard(k: String) {
+        when (k) {
+            "sessions" -> sessionsOpen = true
+            "usage" -> usageOpen = true
+            "esiti" -> esitiOpen = true
+            "suggestions" -> suggestionsOpen = true
+            "lavori" -> lavoriOpen = true
+            "system" -> sysManual = system?.let { s -> SystemRules.Manual(s.level, true) }
+            else -> newOpen[k]?.value = true
+        }
+        if (k != "system") save(k, true)
+    }
     // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»): in ambra quando c'è qualcosa da sapere.
     val catBits: @Composable (String) -> Pair<List<CatBit>, Boolean> = { id ->
         val none = listOf(CatBit(stringResource(R.string.cat_sig_none)))
@@ -388,12 +407,12 @@ fun SummaryList(
             val o = dragOrder ?: continue
             if (t - last < 160_000_000L) continue
             // Sullo slot l'ordine non si tocca: chi aggancia torna dov'era quando esce. Chi esce dallo slot non è in elenco: il suo posto lo decide il rilascio.
-            if (overSlot(held, y) || (held == savedPinNow && !alarmNow)) continue
+            if (overSlot(held, y)) continue
             // Ogni voce ha la sua zona: la testata di una sezione o la riga di una card, anche con più righe nello stesso elemento.
             val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
             val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
             // Una categoria (app-categorie-trascina-02-11) scavalca solo le testate delle altre categorie, con tutte le sue sezioni.
-            val next = if (held.startsWith("cat:")) it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, o.toSet()) else it.pixelbox.cmwatch.rules.HomeCats.dragTarget(o, held, y, mids, dragPresent.toSet())
+            val next = if (held.startsWith("cat:")) it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, o.toSet()) else it.pixelbox.cmwatch.rules.HomeCats.dragTarget(o, held, y, mids, dragPresent.toSet(), fromBoard = held in upNow)
             if (next != o) { dragOrder = next; last = t; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) }
         }
     }
@@ -442,11 +461,12 @@ fun SummaryList(
                     val moved = it.pixelbox.cmwatch.rules.HomeCats.catOrder(catsNow, o)
                     if (moved != catsNow) { val full = it.pixelbox.cmwatch.rules.HomeCats.encode(moved, savedPinNow, upNow) ?: emptyList(); sentOrder.send(full); saveOrder?.invoke(full) }
                 } else if (commit && o != null) {
-                    val (nextOrder, nextPin) = it.pixelbox.cmwatch.rules.HomeOrder.release(shownOrder, o, key, savedPinNow, alarmNow, dropped, dragY, releaseMids)
-                    if (nextOrder != shownOrder || nextPin != savedPinNow) {
-                        // Sopra il bordo la voce va in cima; sotto resta nella sua categoria. Chiuse e aperte non cambiano. Il predefinito si manda vuoto.
-                        val (nextTop, nextCats) = it.pixelbox.cmwatch.rules.HomeCats.settle(catsNow, nextOrder)
-                        val full = it.pixelbox.cmwatch.rules.HomeCats.encode(nextCats, nextPin, nextTop) ?: emptyList()
+                    // Sul tabellone la voce sale in fondo alle altre e resta aperta (pieno, torna dov'era); altrove vale l'ordine del dito:
+                    // una voce del tabellone portata sotto il bordo torna nella sua categoria. Chiuse e aperte non cambiano.
+                    val (nextTop, nextCats) = if (dropped) (if (boardTakes(key)) it.pixelbox.cmwatch.rules.HomeCats.toTop(catsNow, upNow, key) else upNow to catsNow) else it.pixelbox.cmwatch.rules.HomeCats.settle(catsNow, o)
+                    if (dropped && nextTop != upNow) openOnBoard(key)
+                    if (nextTop != upNow || nextCats != catsNow || it.pixelbox.cmwatch.rules.HomeOrder.pinned(savedOrderNow) != null) {
+                        val full = it.pixelbox.cmwatch.rules.HomeCats.encode(nextCats, null, nextTop) ?: emptyList()
                         sentOrder.send(full); saveOrder?.invoke(full)
                     }
                 }
@@ -530,7 +550,8 @@ fun SummaryList(
                         catFocus = id
                     }, onQuota, slot = { slotContent() })
                     val held = dragKey
-                    if (held != null && it.pixelbox.cmwatch.rules.HomeOrder.pinnable(held) && !weekAlarm) SlotDrop(overSlot(held, dragY))
+                    // Sul tabellone si rilascia una sezione che non c'è ancora; con quattro voci lo dice, e il rilascio non cambia niente.
+                    if (held != null && catFor(held) != null && held !in up && !(weekAlarm && held == "usage")) SlotDrop(overSlot(held, dragY) && boardTakes(held), full = !boardTakes(held))
                 }
             }
         }
@@ -811,10 +832,11 @@ fun SummaryList(
         val live = if (catDrag) null else dragOrder
         val liveTop = live?.let { o -> o.take(o.indexOf(edge).coerceAtLeast(0)) } ?: up
         val liveBelow = live?.let { o -> o.drop(o.indexOf(edge) + 1) }
+        if (liveTop.any { k -> k != listSkip }) item(key = "top-label") { Box(Modifier.animateItem()) { BoardLabel() } }
         liveTop.forEach(::renderKey)
-        val sectionHeld = dragKey?.takeIf { k -> !k.startsWith("cat:") }
-        if (sectionHeld != null) dragPresent += edge
-        item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(sectionHeld != null, sectionHeld != null && sectionHeld in liveTop, sectionDrag(edge)) } }
+        // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
+        if (dragKey != null && dragKey in up) dragPresent += edge
+        item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
             if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }

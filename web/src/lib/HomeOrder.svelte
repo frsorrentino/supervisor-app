@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { DEFAULT_CATS, decode, encode, fromTop, moveCat, moveSection, toTop, toggle, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
+  import { BOARD_MAX, DEFAULT_CATS, decode, encode, fromTop, moveCat, moveSection, toTop, toggle, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { move, pinned, type HomeSection } from './homeOrder'
   import { t } from './t'
   import CatIcon from './CatIcon.svelte'
@@ -79,13 +79,13 @@
           {@render handle(k, SEC[k].name, si, c.sections, (from, to) => (cats = moveSection(cats, c.id, from, to)))}
           {#if SEC[k].icon.startsWith('svg:')}<span class="own"><CatIcon name={SEC[k].icon.slice(4)} /></span>{:else}<span class="ms own" aria-hidden="true">{SEC[k].icon}</span>{/if}
           <span class="tx">{SEC[k].name}</span>
-          <button class="pin" aria-label={t.reorderTopIn(SEC[k].name)} data-testid="riordino-in-cima-{k}" onclick={() => putTop(k)}><CatIcon name="totop" /></button>
+          {#if top.length < BOARD_MAX}<button class="pin" aria-label={t.reorderTopIn(SEC[k].name)} data-testid="riordino-in-cima-{k}" onclick={() => putTop(k)}><CatIcon name="totop" /></button>{/if}
         </div>
       {/each}
     </div>
   {/each}
   <p class="sub">{t.reorderFoot}</p>
-  <button class="save" onclick={() => onSave(encode(cats, pinned(saved) as HomeSection | null, top))}>{t.reorderSave}</button>
+  <button class="save" onclick={() => onSave(encode(cats, null, top))}>{t.reorderSave}</button>
   <button class="reset" onclick={() => { cats = DEFAULT_CATS; top = [] }}>{t.reorderReset}</button>
 </div>
 

@@ -70,3 +70,17 @@ quello predefinito. Non succede con le categorie di oggi: ognuna ha almeno una c
 3. Una voce in cima agganciata allo slot del tabellone: sta nello slot, e quando si sgancia torna in cima.
 4. Una sezione trascinata oltre una categoria che non è la sua non ci entra.
 5. Chiusa e riaperta dalla testata, una categoria resta così dopo il riavvio dell'app e sull'altro dispositivo.
+
+## Modifica del 02/11 alle 20:45: il tabellone a quattro voci (`app-tabellone-quattro-02-11`)
+
+Franz, sul mockup `richiede-te.png` punto 2: «lascerei il rilascio al tabellone e toglierei l'altro, col rilascio la voce resta
+aperta, metterei fino a 4 voci ordinabili».
+
+- La striscia sparisce: l'unico punto di rilascio è il tabellone (`BOARD_MAX = 4`). Il bordo `EDGE` resta, invisibile, e lo
+  attraversano solo le voci già sul tabellone, per tornare nella loro categoria (`dragTarget(..., fromBoard)`).
+- Le voci sul tabellone stanno subito sotto i tre riquadri, con l'etichetta «In cima» e la puntina, aperte dopo il rilascio.
+- Lo slot di una voce sola non si scrive più: un `pin:k` salvato prima, senza voci `top:`, diventa la prima voce del tabellone.
+- Con quattro voci il tabellone dice «Tabellone pieno: 4 voci» e il rilascio non cambia niente; in Riordina la freccia su sparisce.
+- L'allarme della settimana resta com'era: Utilizzo entra nel riquadro dello slot. Se Utilizzo è già una delle quattro voci, sale
+  nel riquadro e sotto restano le altre tre; se non lo è, le quattro voci restano tutte sotto il riquadro. Con l'allarme Utilizzo
+  non si trascina.

@@ -1,7 +1,7 @@
 // La home per categorie (Franz 02/11 16:44, compito app-home-categorie-02-11; HomeCats.kt nell'app): quattro categorie con le
 // loro sezioni, le stesse su telefono e PWA. Si salva nel `home_order` di sempre: le chiavi di sezione nell'ordine voluto, poi
 // `shut:` con le categorie chiuse, poi lo slot `pin:`. L'ordine delle categorie è quello della loro prima sezione.
-import { dragTarget, move, withPin, type HomeSection } from './homeOrder'
+import { dragTarget, move, pinned, withPin, type HomeSection } from './homeOrder'
 
 export type CatId = 'you' | 'work' | 'out' | 'tools'
 /** Le chiavi di sezione: quelle di oggi più le tre nuove, che si disegnano quando esistono (app-da-guardare-02-11, app-rendiconti-2-02-11). */
@@ -63,10 +63,11 @@ export const reorder = (cats: Cat[], flat: string[]): Cat[] =>
 export const catFor = (k: string): CatId | null => (k === 'closed' ? 'work' : k === 'plugins' ? 'tools' : catOf(k))
 
 /** Il trascinamento sul posto della home, dentro la categoria della voce presa: le vicine di un'altra categoria non contano. */
-export function dragCats(order: HomeSection[], held: HomeSection, y: number, mids: Partial<Record<HomeSection, number>>): HomeSection[] {
-  // Con lo spazio in cima (app-home-in-cima-02-11) contano anche le voci in cima e il bordo, di qualunque categoria siano.
+export function dragCats(order: HomeSection[], held: HomeSection, y: number, mids: Partial<Record<HomeSection, number>>, fromBoard = true): HomeSection[] {
+  // Una voce del tabellone scavalca le altre voci del tabellone e il bordo, di qualunque categoria siano; una sezione presa in una
+  // categoria resta lì: sul tabellone ci va solo rilasciandola sul riquadro (Franz 02/11 20:45, app-tabellone-quattro-02-11).
   const e = (order as string[]).indexOf(EDGE)
-  const up = e < 0 ? [] : (order as string[]).slice(0, e + 1)
+  const up = e < 0 || !fromBoard ? [] : (order as string[]).slice(0, e + 1)
   const mine = Object.fromEntries(Object.entries(mids).filter(([k]) => up.includes(k) || catFor(k) === catFor(held))) as Partial<Record<HomeSection, number>>
   return dragTarget(order, held, y, mine)
 }
@@ -75,9 +76,16 @@ export function dragCats(order: HomeSection[], held: HomeSection, y: number, mid
 // cima esce dalla sua categoria (Franz 19:26) e si salva come `top:<chiave>` al posto della sua chiave: il conto delle chiavi del
 // relay non cresce. Un'app che non conosce `top:` la ignora e rimette la sezione nella sua categoria. HomeCats.kt nell'app.
 
-/** Le voci in cima, nell'ordine salvato; doppie e sconosciute si ignorano. */
-export const top = (saved: string[] | null | undefined): HomeKey[] =>
-  [...new Set((saved ?? []).filter(k => k.startsWith(TOP)).map(k => k.slice(TOP.length)).filter(k => catOf(k)))] as HomeKey[]
+/**
+ * Le voci sul tabellone (Franz 02/11 20:45, app-tabellone-quattro-02-11): al massimo BOARD_MAX, nell'ordine salvato; doppie e
+ * sconosciute si ignorano. Un ordine di prima con lo slot (`pin:`) e senza voci in cima porta la voce dello slot sul tabellone.
+ */
+export const BOARD_MAX = 4
+export function top(saved: string[] | null | undefined): HomeKey[] {
+  const list = [...new Set((saved ?? []).filter(k => k.startsWith(TOP)).map(k => k.slice(TOP.length)).filter(k => catOf(k)))] as HomeKey[]
+  const pin = pinned(saved)
+  return (list.length ? list : pin && catOf(pin) ? [pin as HomeKey] : []).slice(0, BOARD_MAX)
+}
 
 /** L'ordine mostrato e trascinato: la cima, il bordo, le sezioni delle categorie. */
 export const flat = (up: HomeKey[], cats: Cat[]): string[] => [...up, EDGE, ...cats.flatMap(c => c.sections)]
@@ -98,9 +106,9 @@ export function settle(cats: Cat[], list: string[]): { top: HomeKey[]; cats: Cat
   return { top: up, cats: reorder(back, below) }
 }
 
-/** Riordina, «Metti in cima»: la voce va in fondo alla cima. */
+/** Riordina e rilascio sul tabellone: la voce va in fondo al tabellone; pieno, niente cambia. */
 export const toTop = (cats: Cat[], up: HomeKey[], key: HomeKey): { top: HomeKey[]; cats: Cat[] } =>
-  up.includes(key) || !catOf(key) ? { top: up, cats } : { top: [...up, key], cats: cats.map(c => ({ ...c, sections: c.sections.filter(k => k !== key) })) }
+  up.includes(key) || !catOf(key) || up.length >= BOARD_MAX ? { top: up, cats } : { top: [...up, key], cats: cats.map(c => ({ ...c, sections: c.sections.filter(k => k !== key) })) }
 
 /** Riordina, «Togli dalla cima»: la voce torna in fondo alla sua categoria. */
 export const fromTop = (cats: Cat[], up: HomeKey[], key: HomeKey): { top: HomeKey[]; cats: Cat[] } =>

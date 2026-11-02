@@ -1493,7 +1493,7 @@ It starts at your last message to the master.</string>
     <string name="reorder_up">Move %1$s up</string>
     <string name="reorder_down">Move %1$s down</string>
     <string name="cleanup_close_short">Close</string>
-    <string name="home_slot_drop">Drop here to pin</string>
+    <string name="home_slot_drop">Drop here: it stays at the top</string>
     <string name="usage_account_personal">Personal</string>
     <string name="usage_account_work">Work</string>
     <string name="usage_week">Week</string>
@@ -1602,10 +1602,12 @@ It starts at your last message to the master.</string>
     <string name="cat_sig_today">%1$d today</string>
     <plurals name="cat_sig_failed"><item quantity="one">%1$d failed</item><item quantity="other">%1$d failed</item></plurals>
     <string name="home_top_drop">Drop here to keep it at the top</string>
-    <string name="reorder_top">At the top</string>
-    <string name="reorder_top_empty">Nothing at the top. Tap the up arrow next to a section, or drag it up in the home.</string>
-    <string name="reorder_top_in">Move %1$s to the top</string>
-    <string name="reorder_top_out">Take %1$s off the top</string>
+    <string name="reorder_top">On the board, at the top</string>
+    <string name="reorder_top_empty">Nothing on the board. Tap the up arrow next to a section, or drag it onto the board in the home. At most 4.</string>
+    <string name="reorder_top_in">Put %1$s on the board</string>
+    <string name="reorder_top_out">Take %1$s off the board</string>
+    <string name="home_board_full">Board full: 4 items</string>
+    <string name="home_board_label">At the top</string>
     <string name="cat_sig_none">nothing today</string>
     <string name="cat_sig_load">load %1$s</string>
     <string name="reorder_in_view">shown</string>
