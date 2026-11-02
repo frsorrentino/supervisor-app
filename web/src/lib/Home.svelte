@@ -53,7 +53,7 @@
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
   import CatIcon from './CatIcon.svelte'
-  import { DEFAULT_CATS, EDGE, catFor, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
+  import { DEFAULT_CATS, EDGE, catFor, catKeys, catOrder, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
@@ -246,6 +246,47 @@
       // Sopra il bordo la voce va in cima; sotto resta nella sua categoria (HomeCats.settle).
       if (nextOrder.join() !== order.join() || nextPin !== savedPin) { const n = settle(cats, nextOrder); sentOrder = { from: savedKey, cats: n.cats, pin: nextPin, top: n.top }; onHomeOrder?.(encodeCats(n.cats, nextPin, n.top)) }
     }
+  }
+  // Le categorie si trascinano fra loro dalla testata (app-categorie-trascina-02-11, come SummaryList.kt): col mouse subito, al
+  // tocco dopo la pressione lunga; la categoria porta con sé le sue sezioni e il suo interruttore.
+  let catDrag = $state<string[] | null>(null)
+  let catHeld = $state<CatId | null>(null)
+  let catArmed: CatId | null = null, catStartY = 0, catTimer: ReturnType<typeof setTimeout> | undefined, catLast = 0
+  const shownCats = $derived(catDrag ? catOrder(cats, catDrag) : cats)
+  function catDown(id: CatId, e: PointerEvent) {
+    if (!onHomeOrder || part || e.button !== 0) return
+    catStartY = e.clientY
+    addEventListener('pointermove', catMove); addEventListener('pointerup', catEnd); addEventListener('pointercancel', catCancel)
+    if (e.pointerType === 'mouse') { catArmed = id; return }
+    catTimer = setTimeout(() => catBegin(id), 450)
+    addEventListener('touchmove', catNoScroll, { passive: false })
+  }
+  const catNoScroll = (e: TouchEvent) => { if (catDrag) e.preventDefault() }
+  function catBegin(id: CatId) { catDrag = catKeys(cats); catHeld = id; navigator.vibrate?.(30) }
+  function catMove(e: PointerEvent) {
+    if (catArmed && Math.abs(e.clientY - catStartY) > 6) { catBegin(catArmed); catArmed = null }
+    if (!catDrag || !catHeld) { if (Math.abs(e.clientY - catStartY) > 10) clearTimeout(catTimer); return }
+    const now = performance.now()
+    if (now - catLast < 120) return
+    const mids: Record<string, number> = {}
+    for (const k of catDrag) {
+      if (k === `cat:${catHeld}`) continue
+      const b = document.querySelector(`[data-testid="cat-${k.slice(4)}"] > .cathead`)?.getBoundingClientRect()
+      if (b) mids[k] = b.top + b.height / 2
+    }
+    const next = dragTarget(catDrag as HomeSection[], `cat:${catHeld}` as HomeSection, e.clientY, mids as Partial<Record<HomeSection, number>>) as string[]
+    if (next !== catDrag) { catDrag = next; catLast = now }
+  }
+  const catEnd = () => catUp()
+  const catCancel = () => catUp(true)
+  function catUp(cancel = false) {
+    clearTimeout(catTimer); catArmed = null
+    removeEventListener('touchmove', catNoScroll); removeEventListener('pointermove', catMove); removeEventListener('pointerup', catEnd); removeEventListener('pointercancel', catCancel)
+    if (!catDrag) return
+    const o = catDrag; catDrag = null; catHeld = null
+    addEventListener('click', swallowClick, { capture: true, once: true })
+    setTimeout(() => removeEventListener('click', swallowClick, { capture: true }), 50)
+    if (!cancel) { const moved = catOrder(cats, o); if (moved.map(c => c.id).join() !== cats.map(c => c.id).join()) setCats(moved) }
   }
   // Aperte o chiuse col tocco, come l'interruttore di Riordina: la scelta si salva (app-home-in-cima-02-11).
   function setCats(next: Cat[]) { sentOrder = { from: savedKey, cats: next, pin: savedPin, top: up }; onHomeOrder?.(encodeCats(next, savedPin, up)) }
@@ -807,12 +848,12 @@
   {/each}
   <!-- Il bordo dello spazio in cima: fermo non si vede, durante il trascinamento di una sezione è la striscia dove lasciarla. -->
   <div class="topedge" class:on={!!dragKey} class:hot={!!dragKey && live.slice(0, edgeAt(live)).includes(dragKey)} data-sec-head={EDGE} data-testid={dragKey ? 'home-cima-bordo' : undefined}>{#if dragKey}{t.homeTopDrop}{/if}</div>
-  {#each cats as c (c.id)}
-    <div class="hcat" data-testid="cat-{c.id}">
-      {#if c.open}<button class="catlabel" aria-expanded="true" onclick={() => setCats(toggleCat(cats, c.id))}><span>{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
+  {#each shownCats as c (c.id)}
+    <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
+      {#if c.open}<button class="catlabel cathead" aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
       {:else}
         {@const sig = catSignal(c.id)}
-        <button class="catrow" class:amber={sig.amber} aria-expanded="false" onclick={() => setCats(toggleCat(cats, c.id))}>
+        <button class="catrow cathead" class:amber={sig.amber} aria-expanded="false" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
           <span class="ic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span><b>{t.catName[c.id]}</b>
           <span class="catsig">{#each sig.bits as b, i}{#if i}{' · '}{/if}<span class:red={b.red}>{b.text}</span>{/each}</span>
           <span class="ms arr" aria-hidden="true">expand_more</span>
@@ -1320,7 +1361,8 @@
   .catrow.amber .catsig { color: var(--wait); }
   .catrow .arr { flex: none; color: var(--tx3); transition: rotate .2s; }
   .catrow .arr.up { rotate: 180deg; }
-  .hsec.held { opacity: .35; }
+  .hsec.held, .hcat.held { opacity: .35; }
+  .cathead { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
   .newbody { padding-top: 8px; }
   .boardwrap { flex: none; position: relative; }
   .slotdrop { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); pointer-events: none; }
