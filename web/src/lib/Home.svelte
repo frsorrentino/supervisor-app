@@ -1365,7 +1365,7 @@
   /* Lo spazio in cima (app-home-in-cima-02-11): il bordo è una linea vuota; durante il trascinamento la striscia dove lasciare. */
   .topedge { height: 1px; flex: none; }
   .boardlabel { display: flex; align-items: center; gap: 6px; padding: 10px 4px 2px; font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
-  .boardlabel .ms { font-size: 16px; letter-spacing: 0; }
+  .boardlabel .ms { font-size: 16px; letter-spacing: 0; text-transform: none; }
   .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }
   .topedge.on.hot { border: 2px solid var(--tx); }
   .topband { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 16px; padding: 8px 16px; }
@@ -1463,8 +1463,9 @@
   .sec .sysdot { flex: none; margin-right: 6px; }
   .secwrap { display: contents; }
   .sec .tog { color: var(--tx3); margin-left: 6px; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .sec .tog.up { transform: rotate(180deg); }
-  @media (prefers-reduced-motion: reduce) { .sec .tog { transition: none; } }
+  .usageslot .tog { transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .sec .tog.up, .usageslot .tog.up { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .sec .tog, .usageslot .tog { transition: none; } }
   .card { background: var(--s1); border-radius: 14px; padding: 12px; gap: 6px; }
   .card.waiting { background: var(--s2); }
   .card.r { flex-direction: row; align-items: flex-start; gap: 8px; padding: 12px 12px 12px 0; }

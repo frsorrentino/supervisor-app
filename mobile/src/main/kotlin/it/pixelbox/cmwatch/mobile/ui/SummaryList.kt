@@ -855,6 +855,8 @@ fun SummaryList(
                 }
             }
             if (k == "lavori") renderLavori()
+            // Plugin e skill sta dentro Sistema anche sul tabellone, come nella lista.
+            if (k == "system" && listSkip != "plugins" && "plugins" !in liveTop) renderPlugins()
         }
         val shownCats = if (catDrag) it.pixelbox.cmwatch.rules.HomeCats.catOrder(cats, dragOrder.orEmpty()) else cats
         fun moveCatTo(i: Int, to: Int) = setCats(it.pixelbox.cmwatch.rules.HomeCats.moveCat(cats, i, to))
