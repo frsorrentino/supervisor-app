@@ -3,6 +3,7 @@ package it.pixelbox.cmwatch.rules
 import it.pixelbox.cmwatch.Fixtures
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.NeedsYou
+import it.pixelbox.cmwatch.contract.NextStep
 import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.contract.TurnBlocking
@@ -104,5 +105,26 @@ class AttentionQueueTest {
             }
         }) }
         assertEquals(listOf("b" to AttentionQueue.Kind.QUESTION, "a" to AttentionQueue.Kind.QUESTION), AttentionQueue.items(s).map { it.session to it.kind })
+    }
+
+    // Franz 02/11 11:03: «qui dovrebbe essere ok anziché fatto». Gli stessi casi di okOf in queue.test.ts.
+    private val s0 = q.copy(name = "med", question = null, needsYou = null)
+    private val steps = listOf(NextStep("ok deploy e test", blocking = true), NextStep("apri la PR", blocking = false))
+
+    @Test fun aStopFromABlockingNextStepSendsTheStep() {
+        assertEquals("ok deploy e test", AttentionQueue.okOf(s0.copy(turnBlocking = TurnBlocking("ok deploy e test", 50), nextSteps = steps)))
+        assertEquals("ok deploy e test", AttentionQueue.okOf(s0.copy(turnBlocking = TurnBlocking(" Ok deploy e test ", 50), nextSteps = steps)))
+    }
+
+    @Test fun anOutsideStopANonBlockingStepANeedsYouAndAClosedSessionKeepDone() {
+        assertNull(AttentionQueue.okOf(s0.copy(turnBlocking = TurnBlocking("rinnova il certificato sul pannello", 50), nextSteps = steps)))
+        assertNull(AttentionQueue.okOf(s0.copy(turnBlocking = TurnBlocking("apri la PR", 50), nextSteps = steps)))
+        assertNull(AttentionQueue.okOf(s0.copy(needsYou = NeedsYou("ok deploy e test", 50), nextSteps = steps)))
+        assertNull(AttentionQueue.okOf(s0.copy(state = SessionState.GONE, turnBlocking = TurnBlocking("ok deploy e test", 50), nextSteps = steps)))
+    }
+
+    @Test fun theQueueItemCarriesTheOk() {
+        val st = base.copy(sessions = listOf(s0.copy(turnBlocking = TurnBlocking("ok deploy e test", 50), nextSteps = steps)))
+        assertEquals("ok deploy e test", AttentionQueue.items(st).single().ok)
     }
 }

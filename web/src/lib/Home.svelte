@@ -26,7 +26,7 @@
   import { details as lavoriDetails, doneToday as lavoriDoneToday, forYou as lavoriForYou, inProgress as lavoriProgress, place as lavoriPlace, shortTitle, type ForYou as LavoriRow } from './lavori'
   import { shown as shownQuota } from './quotaLine'
   import { askedFor, attachedTasks, build, MASTER, staleHours, type Group, type Row } from './summary'
-  import { doneOf, type Done } from './queue'
+  import { doneOf, okOf, type Done } from './queue'
   import { expiry, since } from './durations'
   import { lavoriInfo, pluginsInfo, systemInfo } from './slotInfo'
   import SlotNames from './SlotNames.svelte'
@@ -63,7 +63,7 @@
   import type { NightPage } from './night'
   import { total as seguitiTotal } from './seguiti'
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
-  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
+  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -109,6 +109,8 @@
     onApprove?: (task: string, note: string, choice?: string) => void; onClose?: (name: string) => void
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone?: (d: Done) => void
+    /** L'ok di una ferma nata dal «!» di «Prossimi:»: manda la voce alla sessione (queue.ts, okOf). */
+    onOk?: (session: string, text: string) => void
     /** Il menu contestuale della card (Franz, 14/10 20:58): segui, fai controllare alla master, come il ⋮ della sessione. */
     onSessionCmd?: (name: string, op: 'follow' | 'unfollow' | 'prompt', arg?: string) => void
     /** Il riquadro Notte (mockup approvato l'08/10 alle 12:57): `undefined` = nascosto, null = rapporto in arrivo. */
@@ -816,8 +818,11 @@
       {#if group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
       {#if group === 'waiting' && !s.question}
         {@const d = doneOf(s)}
-        <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. -->
-        {#if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
+        {@const ok = okOf(s)}
+        <!-- Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. Una voce dal «!» di
+             «Prossimi:» ha «Ok», che la manda alla sessione (Franz 02/11 11:03). -->
+        {#if ok}<div class="oks"><div class="ok"><span class="okt mono2"></span><button class={s.name === primary ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); onOk(s.name, ok) }}>{t.attentionOk}</button></div></div>
+        {:else if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} onclick={(e) => { e.stopPropagation(); onDone(d) }}>{t.attentionDone}</button></div></div>{/if}
       {/if}
       {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
       {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState, type State } from './contract'
-import { items, next, page } from './queue'
+import { items, next, okOf, page } from './queue'
 
 // Gli stessi casi di AttentionQueueTest in Kotlin.
 const base = decodeState(readFileSync(new URL('../../../contract/state-1-question.json', import.meta.url), 'utf8'))
@@ -73,4 +73,22 @@ describe('AttentionQueue', () => {
     st.sessions[3] = { ...st.sessions[3], state: 'gone', needs_you: { reason: 'login', at: 50 } }
     expect(items(st).map(i => [i.session, i.kind])).toEqual([['b', 'question'], ['a', 'question']])
   })
+})
+
+// Franz 02/11 11:03: «qui dovrebbe essere ok anziché fatto». Una ferma nata dal «!» di «Prossimi:» è un prompt da un tocco.
+describe('okOf', () => {
+  const s0 = { ...q, name: 'med', question: null, needs_you: null }
+  const blocking = (text: string) => ({ text, at: 50 })
+  it('la voce del «!» di Prossimi: il tasto manda la voce', () =>
+    expect(okOf({ ...s0, turn_blocking: blocking('ok deploy e test'), next_steps: [{ text: 'ok deploy e test', blocking: true }, { text: 'apri la PR', blocking: false }] })).toBe('ok deploy e test'))
+  it('stessa voce con spazi o maiuscole diverse', () =>
+    expect(okOf({ ...s0, turn_blocking: blocking(' Ok deploy e test '), next_steps: [{ text: 'ok deploy e test', blocking: true }] })).toBe('ok deploy e test'))
+  it('una voce di «Da te» resta «Fatto»: non è tra i seguiti', () =>
+    expect(okOf({ ...s0, turn_blocking: blocking('rinnova il certificato sul pannello'), next_steps: [{ text: 'ok deploy e test', blocking: true }] })).toBeNull())
+  it('un seguito senza «!» non conta', () =>
+    expect(okOf({ ...s0, turn_blocking: blocking('apri la PR'), next_steps: [{ text: 'apri la PR', blocking: false }] })).toBeNull())
+  it('needs-you resta «Fatto»: è un\'azione a mano', () =>
+    expect(okOf({ ...s0, needs_you: { reason: 'ok deploy e test', at: 50 }, turn_blocking: null, next_steps: [{ text: 'ok deploy e test', blocking: true }] })).toBeNull())
+  it('una sessione chiusa non ha tasti', () =>
+    expect(okOf({ ...s0, state: 'gone', turn_blocking: blocking('ok deploy e test'), next_steps: [{ text: 'ok deploy e test', blocking: true }] })).toBeNull())
 })

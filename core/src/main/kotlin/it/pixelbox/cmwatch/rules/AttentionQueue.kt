@@ -17,6 +17,8 @@ object AttentionQueue {
     data class Item(
         val session: String, val questionId: String, val askedAt: Long, val kind: Kind = Kind.QUESTION, val text: String = "",
         val done: Done? = null, val expiresAt: Long? = null,
+        /** L'ok di una ferma nata dal «!» di «Prossimi:» (okOf): il testo da mandare alla sessione. */
+        val ok: String? = null,
     )
 
     /** Il «Fatto» di una ferma: needs_you col nome della sessione; turn_blocking col nome e il since della voce. Una domanda no. */
@@ -26,13 +28,24 @@ object AttentionQueue {
         return s.turnBlocking?.takeIf { it.text.isNotBlank() }?.let { Done("turn_blocking", s.name, it.at) }
     }
 
+    /**
+     * L'ok di una ferma (Franz 02/11 11:03, «qui dovrebbe essere ok anziché fatto»): una voce bloccante nata dal «!» di
+     * «Prossimi:» è un prompt da un tocco, e il tasto la manda alla sessione; il prompt la chiude da sé (1.80, closes = prompt).
+     * Le voci di «Da te» e needs-you sono azioni fuori dalla chat e restano «Fatto». Null se non c'è.
+     */
+    fun okOf(s: Session): String? {
+        if (s.state == SessionState.GONE || !s.needsYou?.reason.isNullOrBlank()) return null
+        val v = s.turnBlocking?.text?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null
+        return s.nextSteps.orEmpty().firstOrNull { it.blocking && it.text.trim().lowercase() == v }?.text?.trim()
+    }
+
     /** Le domande aperte e le ferme per Franz, dalla più vecchia. */
     fun items(state: State): List<Item> = state.sessions
         .filter { it.state != SessionState.GONE }
         .mapNotNull { s ->
             s.question?.let { Item(s.name, it.id, it.askedAt, Kind.QUESTION, it.approves ?: it.text) }
                 ?: StrongAlert.stop(s)?.let {
-                    Item(s.name, "stop:${s.name}@${it.at}", it.at, Kind.STOP, it.text, done = doneOf(s), expiresAt = s.needsYou?.takeIf { n -> n.reason.isNotBlank() }?.expiresAt)
+                    Item(s.name, "stop:${s.name}@${it.at}", it.at, Kind.STOP, it.text, done = doneOf(s), expiresAt = s.needsYou?.takeIf { n -> n.reason.isNotBlank() }?.expiresAt, ok = okOf(s))
                 }
         }
         .sortedBy { it.askedAt }

@@ -31,6 +31,8 @@ fun QueueScreen(
     state: State, now: Long, actionsFor: (Session) -> SheetActions, onSession: (String) -> Unit, skip: String? = null,
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone: (AttentionQueue.Done) -> Unit = {},
+    /** L'ok di una ferma nata dal «!» di «Prossimi:»: manda la voce alla sessione (AttentionQueue.okOf). */
+    onOk: (session: String, text: String) -> Unit = { _, _ -> },
 ) {
     // Aperta dal banner di una chat: la sessione di quella chat non è in fila, come nel conto del banner (web 15/10).
     val items = AttentionQueue.items(state).filter { it.session != skip }
@@ -66,7 +68,9 @@ fun QueueScreen(
                         item.expiresAt?.let { Text(expiryText(it, now), style = MaterialTheme.typography.labelLarge, color = Cm.text2) }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilledTonalButton(onClick = { onSession(s.name) }) { Text(stringResource(R.string.queue_stop_open)) }
-                            item.done?.let { d -> Button(onClick = { onDone(d) }) { Text(stringResource(R.string.attention_done)) } }
+                            val ok = item.ok
+                            if (ok != null) Button(onClick = { onOk(s.name, ok) }) { Text(stringResource(R.string.attention_ok)) }
+                            else item.done?.let { d -> Button(onClick = { onDone(d) }) { Text(stringResource(R.string.attention_done)) } }
                         }
                     }
                 }

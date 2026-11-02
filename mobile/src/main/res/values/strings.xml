@@ -406,6 +406,7 @@
     <string name="queue_stop_head">Ferma per te</string>
     <string name="queue_stop_open">Apri la chat</string>
     <string name="attention_done">Fatto</string>
+    <string name="attention_ok">Ok</string>
     <string name="expires_at">scade alle %1$s</string>
     <string name="expires_tomorrow">scade domani alle %1$s</string>
     <string name="expires_on">scade il %1$s alle %2$s</string>

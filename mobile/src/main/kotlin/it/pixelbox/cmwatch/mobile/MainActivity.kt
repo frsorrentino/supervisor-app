@@ -754,7 +754,9 @@ class MainActivity : ComponentActivity() {
         }
         if (queueOpen && state != null) {
             // La coda usa solo la card della domanda: risposta, «Parliamone», «Consenti tutto» e la lettura a voce.
-            it.pixelbox.cmwatch.mobile.ui.PageIn { QueueScreen(state, now, skip = queueSkip, onDone = attentionDone, actionsFor = { s ->
+            it.pixelbox.cmwatch.mobile.ui.PageIn { QueueScreen(state, now, skip = queueSkip, onDone = attentionDone, onOk = { name, text ->
+                scope.launch { runCatching { app.repo.prompt(name, text) }.getOrNull()?.let { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) } }
+            }, actionsFor = { s ->
                 SheetActions(
                     answer = { n -> scope.launch { app.repo.answer(s.name, n) } },
                     allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, s.name, null) } },

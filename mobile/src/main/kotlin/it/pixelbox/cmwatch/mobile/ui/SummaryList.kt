@@ -900,8 +900,13 @@ private fun SummaryCard(
         HeadsUpNoteRow(s, now)
         works.forEach { w -> WorkLine(w, onDone = { onWorkDone(w) }, onStart = { onWorkStart(w) }) }
         services.forEach { row -> ServiceLine(row) { onService(row) } }
-        // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto.
-        if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
+        // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. Una voce dal «!» di
+        // «Prossimi:» ha «Ok», che la manda alla sessione come un seguito (Franz 02/11 11:03).
+        val okStep = if (waiting && s.question == null) AttentionQueue.okOf(s) else null
+        if (okStep != null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+            V3Pill(stringResource(R.string.attention_ok), filled = doneFilled) { onStep(okStep) }
+        }
+        else if (waiting && s.question == null) AttentionQueue.doneOf(s)?.let { d ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = Cm.text2, modifier = Modifier.weight(1f))
                 V3Pill(stringResource(R.string.attention_done), filled = doneFilled) { onDone(d) }

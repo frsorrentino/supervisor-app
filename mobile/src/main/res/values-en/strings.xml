@@ -397,6 +397,7 @@
     <string name="queue_stop_head">Stopped for you</string>
     <string name="queue_stop_open">Open the chat</string>
     <string name="attention_done">Done</string>
+    <string name="attention_ok">Ok</string>
     <string name="expires_at">expires at %1$s</string>
     <string name="expires_tomorrow">expires tomorrow at %1$s</string>
     <string name="expires_on">expires on %1$s at %2$s</string>

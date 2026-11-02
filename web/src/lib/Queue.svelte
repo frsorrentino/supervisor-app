@@ -9,12 +9,14 @@
 
   // «Ti aspettano» (QueueScreen dell'app): le domande aperte di tutte le sessioni in fila, dalla più vecchia, una per
   // pagina; dopo una risposta si passa alla successiva. Si scorre di lato (trascinando o con le frecce e i tasti ← →).
-  let { st, now, onAnswer, onSession, skip = null, onDone = () => {} }: {
+  let { st, now, onAnswer, onSession, skip = null, onDone = () => {}, onOk = () => {} }: {
     /** Aperta dall'avviso di una chat: la sessione di quella chat non è in fila, come nel conto dell'avviso. */
     skip?: string | null
     st: State; now: number; onAnswer: (session: string, arg: string, op?: 'answer' | 'allow_all') => void; onSession: (name: string) => void
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone?: (d: Done) => void
+    /** L'ok di una ferma nata dal «!» di «Prossimi:»: manda la voce alla sessione (queue.ts, okOf). */
+    onOk?: (session: string, text: string) => void
   } = $props()
   const expiryText = (x: number) => { const e = expiry(x, now); return e.day === 'today' ? t.expiresAt(e.hm) : e.day === 'tomorrow' ? t.expiresTomorrow(e.hm) : t.expiresOn(e.date ?? '', e.hm) }
 
@@ -63,7 +65,8 @@
               {#if it.expiresAt}<span class="exp">{expiryText(it.expiresAt)}</span>{/if}
               <div class="acts">
                 <button class="go" class:tonal={!!it.done} onclick={() => onSession(s.name)}>{t.queueStopOpen}</button>
-                {#if it.done}{@const d = it.done}<button class="go" onclick={() => onDone(d)}>{t.attentionDone}</button>{/if}
+                {#if it.ok}{@const ok = it.ok}<button class="go" onclick={() => onOk(s.name, ok)}>{t.attentionOk}</button>
+                {:else if it.done}{@const d = it.done}<button class="go" onclick={() => onDone(d)}>{t.attentionDone}</button>{/if}
               </div>
             </div>
           </div>
