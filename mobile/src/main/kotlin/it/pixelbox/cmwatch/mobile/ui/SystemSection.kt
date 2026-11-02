@@ -51,7 +51,7 @@ internal fun systemTone(level: String): Color = when (level) {
 }
 
 @Composable
-private fun italian(): Boolean = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "it"
+internal fun italian(): Boolean = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "it"
 
 /** La riga compatta: carico per core e memoria libera sul totale. */
 @Composable

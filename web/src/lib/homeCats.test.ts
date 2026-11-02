@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CATS, catOf, decode, encode, moveCat, moveSection, toggle, type Cat } from './homeCats'
+import { DEFAULT_CATS, catOf, reorder, decode, encode, moveCat, moveSection, toggle, type Cat } from './homeCats'
 import { pinned } from './homeOrder'
 
 // La home per categorie (compito app-home-categorie-02-11); gli stessi casi in HomeCatsTest.kt.
@@ -43,5 +43,11 @@ describe('homeCats', () => {
     expect(moveSection(DEFAULT_CATS, 'you', 2, 0)[0].sections).toEqual(['prove', 'prima_raccolta', 'decisioni', 'suggestions'])
     expect(catOf('rendiconti')).toBe('out')
     expect(catOf('closed')).toBeNull()
+  })
+  it("un ordine piatto trascinato tiene categorie e chiuse", () => {
+    const r = reorder(toggle(DEFAULT_CATS, 'work'), ['prove', 'sessions', 'decisioni', 'esiti'])
+    expect(ids(r)).toEqual(['you', 'work', 'out', 'tools'])
+    expect(r[0].sections).toEqual(['prove', 'decisioni', 'prima_raccolta', 'suggestions'])
+    expect(r.map(c => c.open)).toEqual([true, false, false, false])
   })
 })

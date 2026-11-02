@@ -44,3 +44,6 @@ export const moveCat = (cats: Cat[], from: number, to: number): Cat[] => move(ca
 export const moveSection = (cats: Cat[], id: CatId, from: number, to: number): Cat[] =>
   cats.map(c => (c.id === id ? (move(c.sections, from, to) === c.sections ? c : { ...c, sections: move(c.sections, from, to) }) : c))
 export const toggle = (cats: Cat[], id: CatId): Cat[] => cats.map(c => (c.id === id ? { ...c, open: !c.open } : c))
+/** Dopo un trascinamento sulla home (ordine piatto): ogni categoria riprende le sue sezioni in quell'ordine, aperte e chiuse come prima. */
+export const reorder = (cats: Cat[], flat: string[]): Cat[] =>
+  cats.map(c => { const mine = flat.filter(k => catOf(k) === c.id) as HomeKey[]; return { ...c, sections: [...new Set([...mine, ...c.sections])] } })

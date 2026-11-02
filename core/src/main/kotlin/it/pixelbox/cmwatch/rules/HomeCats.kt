@@ -49,4 +49,8 @@ object HomeCats {
         cats.map { if (it.id == id) it.copy(sections = HomeOrder.move(it.sections, from, to)) else it }
 
     fun toggle(cats: List<Cat>, id: String): List<Cat> = cats.map { if (it.id == id) it.copy(open = !it.open) else it }
+
+    /** Dopo un trascinamento sulla home (ordine piatto): ogni categoria riprende le sue sezioni in quell'ordine, aperte e chiuse come prima. */
+    fun reorder(cats: List<Cat>, flat: List<String>): List<Cat> =
+        cats.map { c -> c.copy(sections = (flat.filter { catOf(it) == c.id } + c.sections).distinct()) }
 }

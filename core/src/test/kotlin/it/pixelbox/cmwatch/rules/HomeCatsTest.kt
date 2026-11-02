@@ -57,4 +57,12 @@ class HomeCatsTest {
         assertEquals(listOf("prove", "prima_raccolta", "decisioni", "suggestions"), HomeCats.moveSection(HomeCats.DEFAULT, "you", 2, 0)[0].sections)
         assertEquals("out", HomeCats.catOf("rendiconti")); assertNull(HomeCats.catOf("closed"))
     }
+
+    @Test fun aDraggedFlatOrderKeepsCategoriesAndClosedOnes() {
+        val cats = HomeCats.toggle(HomeCats.DEFAULT, "work")
+        val r = HomeCats.reorder(cats, listOf("prove", "sessions", "decisioni", "esiti"))
+        assertEquals(listOf("you", "work", "out", "tools"), ids(r))
+        assertEquals(listOf("prove", "decisioni", "prima_raccolta", "suggestions"), r[0].sections)
+        assertEquals(listOf(true, false, false, false), r.map { it.open })
+    }
 }

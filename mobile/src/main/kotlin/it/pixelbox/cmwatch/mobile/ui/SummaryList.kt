@@ -210,7 +210,18 @@ fun SummaryList(
     // Un oggetto solo per tutta la vita della home: il gesto lo cattura una volta sola e non deve restare con uno vecchio.
     val sentOrder = rememberSentOrder(kpiState?.homeOrder)
     val savedOrder = sentOrder.shown
-    val homeOrder = it.pixelbox.cmwatch.rules.HomeOrder.normalize(savedOrder)
+    // La home per categorie (Franz 02/11 16:44, app-home-categorie-02-11): l'ordine piatto è quello delle sezioni dentro le categorie.
+    val cats = it.pixelbox.cmwatch.rules.HomeCats.decode(savedOrder)
+    val homeOrder = cats.flatMap { c -> c.sections }
+    val catsNow by androidx.compose.runtime.rememberUpdatedState(cats)
+    // Le categorie chiuse aperte sul posto: valgono per questa visita, non si salvano (aperte o chiuse si decide in Riordina).
+    var peek by rememberSaveable { mutableStateOf("") }
+    fun peeked(id: String) = id in peek.split(',')
+    fun catFor(k: String): String? = when (k) { "closed" -> "work"; "plugins" -> "tools"; else -> it.pixelbox.cmwatch.rules.HomeCats.catOf(k) }
+    fun inPeek(k: String) = catFor(k)?.let { id -> cats.any { c -> c.id == id && !c.open } && peeked(id) } == true
+    // Le categorie che hanno disegnato qualcosa: l'etichetta di una categoria aperta e vuota non resta da sola.
+    val catHas = remember { mutableMapOf<String, Boolean>() }
+    var catFocus by remember { mutableStateOf<String?>(null) }
     // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti.
     val savedPin = it.pixelbox.cmwatch.rules.HomeOrder.pinned(savedOrder)
     val weekSlot = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(st.quota, now) }.takeIf { usage != null && showUsage }
@@ -279,12 +290,52 @@ fun SummaryList(
         }
     }
     fun toggleNew(r: NewRow, key: String) { r.open.value = !r.open.value; save(key, r.open.value) }
+    // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»): in ambra quando c'è qualcosa da sapere.
+    val catBits: @Composable (String) -> Pair<List<CatBit>, Boolean> = { id ->
+        val none = listOf(CatBit(stringResource(R.string.cat_sig_none)))
+        when (id) {
+            "out" -> {
+                val out = it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, java.time.ZoneId.systemDefault())
+                // Lo stesso numero del riquadro «esiti oggi»; un fallito è rosso nella riga ma non la fa ambra (mockup, riga 1).
+                val red = out?.red?.size ?: 0
+                val n = out?.settled ?: 0
+                if (n + red == 0) none to false
+                else listOfNotNull(CatBit(stringResource(R.string.cat_sig_today, n)), if (red > 0) CatBit(pluralStringResource(R.plurals.cat_sig_failed, red, red), V3.Red) else null) to false
+            }
+            "tools" -> {
+                val bits = listOfNotNull(weekSlot?.let { w -> CatBit("${w.pct}%") }, system?.let { s -> CatBit(stringResource(R.string.cat_sig_load, SystemRules.num(s.loadPerCore, italian()))) })
+                bits.ifEmpty { none } to (weekAlarm || (system != null && system.level != "green"))
+            }
+            "you" -> {
+                val d = kpiState?.decisions?.n ?: 0
+                val p = kpiState?.prove?.n ?: 0
+                listOfNotNull(d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") }, p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") }).ifEmpty { none } to (d > 0)
+            }
+            else -> {
+                val n = kpiState?.sessions.orEmpty().count { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }
+                (if (n > 0) listOf(CatBit("${stringResource(R.string.home_sec_sessions)} $n")) else none) to false
+            }
+        }
+    }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState(scrollMemo?.get(0) ?: 0, scrollMemo?.get(1) ?: 0)
     if (scrollMemo != null) androidx.compose.runtime.LaunchedEffect(listState) {
         androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
             .collect { (i, o) -> scrollMemo[0] = i; scrollMemo[1] = o }
     }
     var usageFlash by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(catFocus) {
+        val id = catFocus ?: return@LaunchedEffect
+        // Come per Utilizzo: dalla cima si scende finché la categoria non entra in vista, poi la si porta in alto.
+        listState.scrollToItem(0)
+        repeat(40) {
+            androidx.compose.runtime.withFrameNanos { }
+            val at = listState.layoutInfo.visibleItemsInfo.firstOrNull { i -> i.key == "cat-$id" }
+            if (at != null) { listState.animateScrollToItem(at.index); catFocus = null; return@LaunchedEffect }
+            if (!listState.canScrollForward) { catFocus = null; return@LaunchedEffect }
+            listState.scrollBy(600f)
+        }
+        catFocus = null
+    }
     androidx.compose.runtime.LaunchedEffect(usageFocus) {
         if (usageFocus == 0 || usageFocus == usageSeen || usage == null || !showUsage) return@LaunchedEffect
         onUsageFocused(usageFocus)
@@ -310,7 +361,7 @@ fun SummaryList(
     }
     val movingIn: (String) -> @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { sec ->
         // La voce presa non scivola: al suo posto c'è già la copia che segue il dito, e scivolando passerebbe sopra le altre.
-        { (if (dragKey == sec) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null) else moving()).graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f } }
+        { (if (dragKey == sec) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null) else moving()).graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f }.then(if (inPeek(sec)) Modifier.background(V3.S2) else Modifier) }
     }
     val dragEdge = with(androidx.compose.ui.platform.LocalDensity.current) { 72.dp.toPx() }
     // Vicino ai bordi la lista scorre da sola: il dito è consumato prima che arrivi alla lista, quindi i due scorrimenti non litigano.
@@ -334,7 +385,7 @@ fun SummaryList(
             // Ogni voce ha la sua zona: la testata di una sezione o la riga di una card, anche con più righe nello stesso elemento.
             val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
             val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
-            val next = it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, dragPresent.toSet())
+            val next = it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, dragPresent.filter { k -> catFor(k) == catFor(held) }.toSet())
             if (next != o) { dragOrder = next; last = t; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) }
         }
     }
@@ -381,7 +432,8 @@ fun SummaryList(
                 if (commit && o != null) {
                     val (nextOrder, nextPin) = it.pixelbox.cmwatch.rules.HomeOrder.release(shownOrder, o, key, savedPinNow, alarmNow, dropped, dragY, releaseMids)
                     if (nextOrder != shownOrder || nextPin != savedPinNow) {
-                        val full = it.pixelbox.cmwatch.rules.HomeOrder.withPin(nextOrder, nextPin)
+                        // Una sezione resta nella sua categoria; chiuse e aperte non cambiano col trascinamento. Il predefinito si manda vuoto.
+                        val full = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.reorder(catsNow, nextOrder), nextPin) ?: emptyList()
                         sentOrder.send(full); saveOrder?.invoke(full)
                     }
                 }
@@ -457,7 +509,12 @@ fun SummaryList(
         kpiState?.let { st ->
             item(key = "kpi-7") {
                 Box(moving().onGloballyPositioned { c -> boardBox = c }) {
-                    Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, onBox, onQuota, slot = { slotContent() })
+                    Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, { b ->
+                        // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre sul posto; poi la lista ci scorre.
+                        val id = when (b) { HomeBox.WAITING -> "you"; HomeBox.BUSY -> "work"; HomeBox.OUTCOMES -> "out" }
+                        if (catsNow.any { c -> c.id == id && !c.open } && !peeked(id)) peek = "$peek,$id"
+                        catFocus = id
+                    }, onQuota, slot = { slotContent() })
                     val held = dragKey
                     if (held != null && it.pixelbox.cmwatch.rules.HomeOrder.pinnable(held) && !weekAlarm) SlotDrop(overSlot(held, dragY))
                 }
@@ -718,22 +775,33 @@ fun SummaryList(
         }
         // Il corpo di Lavori è fatto di più elementi della lista: agganciata, la testa sta nello slot e il corpo apre subito sotto.
         if (listSkip == "lavori") renderLavori()
-        (dragOrder ?: homeOrder).forEach { k ->
-            if (k == listSkip) return@forEach
+        fun renderKey(k: String) {
+            if (k == listSkip) return
             when (k) {
-                "prima_raccolta" -> renderNew("prima_raccolta")
-                "seguiti" -> renderNew("seguiti")
-                "prove" -> renderNew("prove")
-                "decisioni" -> renderNew("decisioni")
-                "sessions" -> renderSessions()
+                "prima_raccolta", "seguiti", "prove", "decisioni" -> renderNew(k)
+                // Chiuse sta dentro Sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
+                "sessions" -> { renderSessions(); if (listSkip != "closed") renderClosed() }
                 "suggestions" -> renderSuggestions()
                 "lavori" -> renderLavori()
                 "esiti" -> renderEsiti()
                 "usage" -> renderUsage()
-                "system" -> renderSystem()
-                "plugins" -> renderPlugins()
-                "closed" -> renderClosed()
+                "system" -> { renderSystem(); if (listSkip != "plugins") renderPlugins() }
             }
+        }
+        cats.forEach { c ->
+            val inView = c.open || peeked(c.id)
+            if (c.open) item(key = "cat-${c.id}") { Box(Modifier.animateItem()) { if (catHas[c.id] == true) CatLabel(c.id) } }
+            else item(key = "cat-${c.id}") {
+                Box(Modifier.animateItem()) {
+                    val (bits, amber) = catBits(c.id)
+                    CatRow(c.id, bits, amber, inView) { peek = if (peeked(c.id)) peek.split(',').filter { x -> x != c.id }.joinToString(",") else "$peek,${c.id}" }
+                }
+            }
+            if (!inView) return@forEach
+            val before = dragPresent.size
+            (dragOrder?.filter { k -> catFor(k) == c.id } ?: c.sections).forEach(::renderKey)
+            catHas[c.id] = dragPresent.size > before
+            if (!c.open) item(key = "cat-end-${c.id}") { Box(Modifier.animateItem()) { CatPeekEnd() } }
         }
         footer?.let { f -> item(key = "footer") { f() } }
     }

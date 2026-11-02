@@ -1594,4 +1594,13 @@ It starts at your last message to the master.</string>
     <string name="home_prima_running">running</string>
     <string name="home_prima_interrupted">stopped</string>
     <string name="home_prima_done">done</string>
+    <!-- La home per categorie (app-home-categorie-02-11). -->
+    <string name="cat_you">Needs you</string>
+    <string name="cat_work">Activity and queues</string>
+    <string name="cat_out">Outcomes</string>
+    <string name="cat_tools">Numbers and tools</string>
+    <string name="cat_sig_today">%1$d today</string>
+    <plurals name="cat_sig_failed"><item quantity="one">%1$d failed</item><item quantity="other">%1$d failed</item></plurals>
+    <string name="cat_sig_none">nothing today</string>
+    <string name="cat_sig_load">load %1$s</string>
 </resources>

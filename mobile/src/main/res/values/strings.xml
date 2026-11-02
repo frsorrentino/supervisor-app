@@ -1624,4 +1624,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_prima_running">in corso</string>
     <string name="home_prima_interrupted">interrotta</string>
     <string name="home_prima_done">fatta</string>
+    <!-- La home per categorie (app-home-categorie-02-11). -->
+    <string name="cat_you">Richiede te</string>
+    <string name="cat_work">Attività e code</string>
+    <string name="cat_out">Esiti</string>
+    <string name="cat_tools">Numeri e strumenti</string>
+    <string name="cat_sig_today">%1$d oggi</string>
+    <plurals name="cat_sig_failed"><item quantity="one">%1$d fallito</item><item quantity="other">%1$d falliti</item></plurals>
+    <string name="cat_sig_none">niente oggi</string>
+    <string name="cat_sig_load">carico %1$s</string>
 </resources>
