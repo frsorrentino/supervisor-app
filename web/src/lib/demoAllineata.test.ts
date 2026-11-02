@@ -4,6 +4,7 @@ import { replaceNames, splitLabels, taskNames } from './chatLabels'
 import { world } from './demo'
 import { DemoTransport } from './demoTransport'
 import { DEFAULT_ORDER, pinned, type HomeSection } from './homeOrder'
+import { DEFAULT_CATS, decode as decodeCats } from './homeCats'
 import { total } from './seguiti'
 import { weekSlot } from './utilizzo'
 import { head, midnight, outcomes, waitingRows, workingRows } from './kpi'
@@ -83,6 +84,9 @@ describe('demo_allineata', () => {
   it('demo_allineata: parte con Utilizzo agganciato, così il dato dello slot si vede', () => {
     expect(pinned(st.home_order)).toBe('usage')
     expect(weekSlot(st.quota, NOW)).not.toBeNull()
+  })
+  it('demo_allineata: la home della demo è quella predefinita per categorie, sezioni nel loro ordine (app-home-categorie-02-11)', () => {
+    expect(decodeCats(st.home_order).map(c => [c.id, c.open, c.sections])).toEqual(DEFAULT_CATS.map(c => [c.id, c.open, c.sections]))
   })
   it('demo_allineata: ogni suggerimento ha un progetto della demo prima dei due punti', () => {
     const names = new Set(st.sessions.map(s => s.name))
