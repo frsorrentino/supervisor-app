@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PanTool
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
@@ -342,7 +343,7 @@ private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
     val (icon, tint) = when (l.who) {
         Lavori.Who.WORKING -> Icons.Rounded.PlayArrow to Cm.busy
         // La mano di Ti aspettano (Franz 02/11): tocca a te è la stessa cosa.
-        Lavori.Who.YOU -> androidx.compose.material.icons.Icons.Outlined.PanTool to Cm.waiting
+        Lavori.Who.YOU -> Icons.Outlined.PanTool to Cm.waiting
         Lavori.Who.OTHERS -> Icons.Rounded.HourglassEmpty to Cm.text2
     }
     val a = l.agenda
