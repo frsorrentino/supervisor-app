@@ -63,7 +63,7 @@ class HomeOrderTest {
         assertEquals("pin:suggestions", saved.last())
         assertEquals(HomeOrder.DEFAULT, HomeOrder.normalize(saved))
         assertEquals("suggestions", HomeOrder.pinned(saved))
-        assertEquals("""["sessions","suggestions","lavori","esiti","usage","system","plugins","closed","pin:suggestions"]""", HomeOrder.arg(saved))
+        assertEquals("""["prima_raccolta","seguiti","prove","decisioni","sessions","suggestions","lavori","esiti","usage","system","plugins","closed","pin:suggestions"]""", HomeOrder.arg(saved))
     }
 
     @Test fun onlyTheAllowedVociArePinned() {
