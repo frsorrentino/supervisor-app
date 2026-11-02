@@ -29,7 +29,7 @@
   <span class="tt">
     <span class="t">{title[kind]}</span>
     <span class="s">
-      {#if kind === 'you'}{h.waiting ? t.kpi7Waiting(Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}
+      {#if kind === 'you'}{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}
       {:else if kind === 'out'}{t.deskOutSub}{#if h.red}, <em>{t.kpi7Red(h.red)}</em>{/if}
       {:else if kind === 'tools'}{#if top?.[2]?.week}{paceText(top[2].delta, top[2].day) ?? t.deskToolsWeek}{:else}{t.deskToolsSub(top ? resetLabel(top[1].reset_h5, now) : null)}{/if}
       {:else}{sub}{/if}

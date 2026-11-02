@@ -10,11 +10,16 @@ object HomeCats {
     data class Cat(val id: String, val open: Boolean, val sections: List<String>)
 
     val DEFAULT = listOf(
-        Cat("you", true, listOf("prima_raccolta", "decisioni", "prove", "suggestions")),
+        Cat("you", true, listOf("decisioni", "prove", "suggestions", "prima_raccolta")),
         Cat("work", true, listOf("sessions", "seguiti", "lavori")),
         Cat("out", false, listOf("esiti", "da_guardare", "rendiconti")),
-        Cat("tools", false, listOf("usage", "pagella", "system")),
+        Cat("tools", false, listOf("usage", "system", "pagella")),
     )
+    /**
+     * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
+     * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
+     */
+    const val REV = "rev:2"
     private const val SHUT = "shut:"
     private const val TOP = "top:"
     /** Il bordo dello spazio in cima nella lista piatta del trascinamento: sopra c'è la cima, sotto le categorie. */
@@ -26,8 +31,9 @@ object HomeCats {
     fun decode(saved: List<String>?): List<Cat> {
         val list = saved.orEmpty()
         val up = top(saved)
-        val keys = list.filter { catOf(it) != null && it !in up }.distinct()
-        val order = (keys.map { catOf(it)!! } + DEFAULT.map { it.id }).distinct()
+        val fresh = list.isNotEmpty() && REV !in list
+        val keys = list.filter { catOf(it) != null && it !in up }.distinct().let { k -> if (fresh) k.filter { catOf(it) != "you" && catOf(it) != "tools" } else k }
+        val order = if (fresh) DEFAULT.map { it.id } else (keys.map { catOf(it)!! } + DEFAULT.map { it.id }).distinct()
         val closed = list.firstOrNull { it.startsWith(SHUT) }?.removePrefix(SHUT)?.split(",")
         return order.map { id ->
             val d = DEFAULT.single { it.id == id }
@@ -40,7 +46,7 @@ object HomeCats {
     fun encode(cats: List<Cat>, pin: String?, top: List<String> = emptyList()): List<String>? {
         if (pin == null && top.isEmpty() && cats == DEFAULT) return null
         val shut = SHUT + cats.filter { !it.open }.joinToString(",") { it.id }
-        return HomeOrder.withPin(top.map { TOP + it } + cats.flatMap { it.sections } + shut, pin)
+        return HomeOrder.withPin(top.map { TOP + it } + cats.flatMap { it.sections } + shut + REV, pin)
     }
 
     fun moveCat(cats: List<Cat>, from: Int, to: Int): List<Cat> {

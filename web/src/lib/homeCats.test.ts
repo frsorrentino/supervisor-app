@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CATS, EDGE, catFor, catKeys, catOf, catOrder, dragCats, flat, fromTop, reorder, decode, encode, moveCat, moveSection, settle, toTop, toggle, top, type Cat, type HomeKey } from './homeCats'
+import { DEFAULT_CATS, EDGE, REV, catFor, catKeys, catOf, catOrder, dragCats, flat, fromTop, reorder, decode, encode, moveCat, moveSection, settle, toTop, toggle, top, type Cat, type HomeKey } from './homeCats'
 import { pinned } from './homeOrder'
 
 // La home per categorie (compito app-home-categorie-02-11); gli stessi casi in HomeCatsTest.kt.
@@ -8,7 +8,7 @@ describe('homeCats', () => {
   it('il predefinito: quattro categorie, due aperte', () => {
     const d = decode(null)
     expect(ids(d)).toEqual(['you', 'work', 'out', 'tools'])
-    expect(d.map(c => c.sections)).toEqual([['prima_raccolta', 'decisioni', 'prove', 'suggestions'], ['sessions', 'seguiti', 'lavori'], ['esiti', 'da_guardare', 'rendiconti'], ['usage', 'pagella', 'system']])
+    expect(d.map(c => c.sections)).toEqual([['decisioni', 'prove', 'suggestions', 'prima_raccolta'], ['sessions', 'seguiti', 'lavori'], ['esiti', 'da_guardare', 'rendiconti'], ['usage', 'system', 'pagella']])
     expect(d.map(c => c.open)).toEqual([true, true, false, false])
     expect(decode([])).toEqual(DEFAULT_CATS)
   })
@@ -28,12 +28,13 @@ describe('homeCats', () => {
   })
   it("l'ordine piatto di ieri cade nelle categorie", () => {
     const d = decode(['sessions', 'closed', 'usage', 'prove', 'plugins', 'pin:usage'])
-    // Utilizzo, agganciato allo slot, sale sul tabellone; Numeri e strumenti torna al suo posto predefinito.
-    expect(ids(d)).toEqual(['work', 'you', 'out', 'tools'])
-    expect(d.find(c => c.id === 'you')!.sections).toEqual(['prove', 'prima_raccolta', 'decisioni', 'suggestions'])
+    // Utilizzo, agganciato allo slot, sale sul tabellone; senza il marcatore le categorie riprendono l'ordine dei riquadri
+    // e Tocca a te quello di partenza (app-home-nomi-02-11).
+    expect(ids(d)).toEqual(['you', 'work', 'out', 'tools'])
+    expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'suggestions', 'prima_raccolta'])
     expect(d.flatMap(c => c.sections)).not.toContain('closed')
     expect(d.flatMap(c => c.sections)).not.toContain('plugins')
-    expect(d.map(c => [c.id, c.open])).toEqual([['work', true], ['you', true], ['out', false], ['tools', false]])
+    expect(d.map(c => [c.id, c.open])).toEqual([['you', true], ['work', true], ['out', false], ['tools', false]])
   })
   it('la lista salvata sta nei limiti del relay', () => {
     const worst = [...DEFAULT_CATS].reverse().map(c => ({ ...c, open: false, sections: [...c.sections].reverse() }))
@@ -43,7 +44,7 @@ describe('homeCats', () => {
   })
   it('una sezione non esce dalla sua categoria', () => {
     expect(moveSection(DEFAULT_CATS, 'you', 1, 9)).toEqual(DEFAULT_CATS)
-    expect(moveSection(DEFAULT_CATS, 'you', 2, 0)[0].sections).toEqual(['prove', 'prima_raccolta', 'decisioni', 'suggestions'])
+    expect(moveSection(DEFAULT_CATS, 'you', 2, 0)[0].sections).toEqual(['suggestions', 'decisioni', 'prove', 'prima_raccolta'])
     expect(catOf('rendiconti')).toBe('out')
     expect(catOf('closed')).toBeNull()
   })
@@ -51,17 +52,17 @@ describe('homeCats', () => {
     const r = reorder(toggle(DEFAULT_CATS, 'work'), ['prove', 'sessions', 'decisioni', 'esiti'])
     expect(ids(r)).toEqual(['you', 'work', 'out', 'tools'])
     // Le chiavi che la lista trascinata non ha (non disegnate) tengono il loro posto.
-    expect(r[0].sections).toEqual(['prima_raccolta', 'prove', 'decisioni', 'suggestions'])
+    expect(r[0].sections).toEqual(['prove', 'decisioni', 'suggestions', 'prima_raccolta'])
     expect(r.map(c => c.open)).toEqual([true, false, false, false])
   })
   it('le chiavi non disegnate tengono il posto dopo un trascinamento', () => {
-    expect(reorder(DEFAULT_CATS, ['system', 'usage']).find(c => c.id === 'tools')!.sections).toEqual(['system', 'pagella', 'usage'])
+    expect(reorder(DEFAULT_CATS, ['system', 'usage']).find(c => c.id === 'tools')!.sections).toEqual(['system', 'usage', 'pagella'])
   })
   it('un trascinamento non esce dalla sua categoria', () => {
     const order = DEFAULT_CATS.flatMap(c => c.sections) as string[]
     const mids = { prove: 100, suggestions: 200, sessions: 300 }
     expect(dragCats(order as never, 'suggestions' as never, 350, mids)).toEqual(order)
-    expect(dragCats(order as never, 'suggestions' as never, 90, mids).slice(0, 4)).toEqual(['prima_raccolta', 'decisioni', 'suggestions', 'prove'])
+    expect(dragCats(order as never, 'suggestions' as never, 90, mids).slice(0, 4)).toEqual(['decisioni', 'suggestions', 'prove', 'prima_raccolta'])
     expect(catFor('closed')).toBe('work')
     expect(catFor('plugins')).toBe('tools')
   })
@@ -84,14 +85,14 @@ describe('homeCats', () => {
     expect(decode(saved)[1].sections).toEqual(['seguiti', 'lavori'])
     expect(saved.length <= 16 && saved.every(k => k.length <= 32)).toBe(true)
     const all = DEFAULT_CATS.flatMap(c => c.sections)
-    expect((JSON.parse(encode(DEFAULT_CATS.map(c => ({ ...c, sections: [] })), 'usage', all)!) as string[]).length).toBe(15)
+    expect((JSON.parse(encode(DEFAULT_CATS.map(c => ({ ...c, sections: [] })), 'usage', all)!) as string[]).length).toBe(16)
     expect(top(['sessions', 'shut:out'])).toEqual([])
     expect(top(['top:esiti', 'top:boh', 'top:esiti'])).toEqual(['esiti'])
     expect(encode(DEFAULT_CATS, null, [])).toBeNull()
   })
   it('la lista trascinata ha il bordo dopo la cima', () => {
     const f = flat(['esiti'], decode(['top:esiti']))
-    expect(f.slice(0, 3)).toEqual(['esiti', EDGE, 'prima_raccolta'])
+    expect(f.slice(0, 3)).toEqual(['esiti', EDGE, 'decisioni'])
     expect(f.length).toBe(14)
   })
   it('settle divide al bordo', () => {
@@ -122,10 +123,10 @@ describe('homeCats', () => {
   it('Riordina mette e toglie dalla cima', () => {
     const a = toTop(DEFAULT_CATS, ['esiti'], 'prove')
     expect(a.top).toEqual(['esiti', 'prove'])
-    expect(a.cats[0].sections).toEqual(['prima_raccolta', 'decisioni', 'suggestions'])
+    expect(a.cats[0].sections).toEqual(['decisioni', 'suggestions', 'prima_raccolta'])
     const b = fromTop(a.cats, a.top, 'prove')
     expect(b.top).toEqual(['esiti'])
-    expect(b.cats[0].sections).toEqual(['prima_raccolta', 'decisioni', 'suggestions', 'prove'])
+    expect(b.cats[0].sections).toEqual(['decisioni', 'suggestions', 'prima_raccolta', 'prove'])
     expect(toTop(a.cats, a.top, 'prove')).toEqual(a)
     expect(fromTop(b.cats, b.top, 'prove')).toEqual(b)
   })
@@ -148,3 +149,22 @@ describe('homeCats', () => {
     expect(dragCats(['esiti', 'sessions', EDGE, 'lavori'] as never, 'sessions', 5, { esiti: 10, [EDGE]: 30 } as never, true)).toEqual(['sessions', 'esiti', EDGE, 'lavori'])
   })
 })
+
+describe("app-home-nomi-02-11: l'ordine nuovo una volta", () => {
+  it("un ordine salvato prima del marcatore riprende l'ordine dei riquadri e quello di partenza", () => {
+    const old = ['top:esiti', 'usage', 'sessions', 'lavori', 'seguiti', 'suggestions', 'prove', 'decisioni', 'prima_raccolta', 'system', 'pagella', 'da_guardare', 'rendiconti', 'shut:tools']
+    const d = decode(old)
+    expect(d.map(c => c.id)).toEqual(['you', 'work', 'out', 'tools'])
+    expect(d[0].sections).toEqual(['decisioni', 'prove', 'suggestions', 'prima_raccolta'])
+    expect(d[1].sections).toEqual(['sessions', 'lavori', 'seguiti'])
+    expect(d[2].sections).toEqual(['da_guardare', 'rendiconti'])
+    expect(d[3].sections).toEqual(['usage', 'system', 'pagella'])
+    expect(d.map(c => c.open)).toEqual([true, true, true, false])
+    expect(top(old)).toEqual(['esiti'])
+    const saved = JSON.parse(encode(moveCat(d, 3, 0), null, ['esiti'])!) as string[]
+    expect(saved).toContain(REV)
+    expect(saved.length).toBeLessThanOrEqual(16)
+    expect(decode(saved).map(c => c.id)).toEqual(['tools', 'you', 'work', 'out'])
+  })
+})
+

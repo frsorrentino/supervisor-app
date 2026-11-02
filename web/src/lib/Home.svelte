@@ -298,11 +298,13 @@
   }
   // Aperte o chiuse col tocco, come l'interruttore di Riordina: la scelta si salva (app-home-in-cima-02-11).
   function setCats(next: Cat[]) { sentOrder = { from: savedKey, cats: next, pin: null, top: up }; onHomeOrder?.(encodeCats(next, null, up)) }
-  const CATS_ICON: Record<CatId, string> = { you: 'pan_tool', work: 'play_circle', out: 'svg:inbox', tools: 'svg:speed' }
+  const CATS_ICON: Record<CatId, string> = { you: 'pending_actions', work: 'play_circle', out: 'svg:inbox', tools: 'svg:speed' }
   // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»), come HomeCatsUi.kt: ambra quando c'è qualcosa da
   // sapere; un fallito è rosso nella riga ma non la fa ambra (mockup, riga 1).
   function catSignal(id: CatId): { bits: { text: string; red?: boolean }[]; amber: boolean } {
     const none = [{ text: t.catSigNone }]
+    // Le voci nella riga chiusa nell'ordine della lista aperta (app-home-nomi-02-11, punto 4).
+    const inOrder = <T,>(parts: [HomeKey, T | null][]) => { const s = (cats.find(c => c.id === id)?.sections ?? []) as string[]; return parts.filter((p): p is [HomeKey, T] => p[1] != null).sort((a, b) => s.indexOf(a[0]) - s.indexOf(b[0])).map(p => p[1]) }
     if (id === 'out') {
       // Una voce in cima esce anche dal segnale della sua categoria (Franz 02/11 19:26).
       const o = up.includes('esiti') ? null : out
@@ -311,12 +313,12 @@
     }
     if (id === 'tools') {
       const w = up.includes('usage') ? null : week, sy = up.includes('system') ? null : sys
-      const bits = [...(w ? [{ text: `${w.pct}%` }] : []), ...(sy ? [{ text: t.catSigLoad(sy.load_per_core) }] : [])]
+      const bits = inOrder<{ text: string }>([['usage', w ? { text: `${w.pct}%` } : null], ['system', sy ? { text: t.catSigLoad(sy.load_per_core) } : null]])
       return { bits: bits.length ? bits : none, amber: !!w?.alarm || (!!sy && sy.level !== 'green') }
     }
     if (id === 'you') {
       const d = up.includes('decisioni') ? 0 : st.decisions?.n ?? 0, p = up.includes('prove') ? 0 : st.prove?.n ?? 0
-      const bits = [...(d ? [{ text: `${t.decisionsTitle} ${d}` }] : []), ...(p ? [{ text: `${t.proveTitle} ${p}` }] : [])]
+      const bits = inOrder<{ text: string }>([['decisioni', d ? { text: `${t.decisionsTitle} ${d}` } : null], ['prove', p ? { text: `${t.proveTitle} ${p}` } : null]])
       return { bits: bits.length ? bits : none, amber: d > 0 }
     }
     const n = up.includes('sessions') ? 0 : st.sessions.filter(x => x.state !== 'gone').length

@@ -12,10 +12,10 @@ class HomeCatsTest {
     @Test fun theDefaultHasFourCategoriesTwoOpen() {
         val d = HomeCats.decode(null)
         assertEquals(listOf("you", "work", "out", "tools"), ids(d))
-        assertEquals(listOf("prima_raccolta", "decisioni", "prove", "suggestions"), d[0].sections)
+        assertEquals(listOf("decisioni", "prove", "suggestions", "prima_raccolta"), d[0].sections)
         assertEquals(listOf("sessions", "seguiti", "lavori"), d[1].sections)
         assertEquals(listOf("esiti", "da_guardare", "rendiconti"), d[2].sections)
-        assertEquals(listOf("usage", "pagella", "system"), d[3].sections)
+        assertEquals(listOf("usage", "system", "pagella"), d[3].sections)
         assertEquals(listOf(true, true, false, false), d.map { it.open })
         assertEquals(HomeCats.DEFAULT, HomeCats.decode(emptyList()))
     }
@@ -41,9 +41,10 @@ class HomeCatsTest {
 
     @Test fun yesterdaysFlatOrderFallsIntoCategories() {
         val d = HomeCats.decode(listOf("sessions", "closed", "usage", "prove", "plugins", "pin:usage"))
-        // Utilizzo, agganciato allo slot, sale sul tabellone; Numeri e strumenti torna al suo posto predefinito.
-        assertEquals(listOf("work", "you", "out", "tools"), ids(d))
-        assertEquals(listOf("prove", "prima_raccolta", "decisioni", "suggestions"), d.single { it.id == "you" }.sections)
+        // Utilizzo, agganciato allo slot, sale sul tabellone; senza il marcatore le categorie riprendono l'ordine dei riquadri
+        // e Tocca a te quello di partenza (app-home-nomi-02-11).
+        assertEquals(listOf("you", "work", "out", "tools"), ids(d))
+        assertEquals(listOf("decisioni", "prove", "suggestions", "prima_raccolta"), d.single { it.id == "you" }.sections)
         assertTrue(d.flatMap { it.sections }.none { it == "closed" || it == "plugins" })
         assertEquals(listOf(true, true, false, false), d.map { it.open })
     }
@@ -57,7 +58,7 @@ class HomeCatsTest {
 
     @Test fun aSectionNeverLeavesItsCategory() {
         assertEquals(HomeCats.DEFAULT, HomeCats.moveSection(HomeCats.DEFAULT, "you", 1, 9))
-        assertEquals(listOf("prove", "prima_raccolta", "decisioni", "suggestions"), HomeCats.moveSection(HomeCats.DEFAULT, "you", 2, 0)[0].sections)
+        assertEquals(listOf("suggestions", "decisioni", "prove", "prima_raccolta"), HomeCats.moveSection(HomeCats.DEFAULT, "you", 2, 0)[0].sections)
         assertEquals("out", HomeCats.catOf("rendiconti")); assertNull(HomeCats.catOf("closed"))
     }
 
@@ -66,22 +67,22 @@ class HomeCatsTest {
         val r = HomeCats.reorder(cats, listOf("prove", "sessions", "decisioni", "esiti"))
         assertEquals(listOf("you", "work", "out", "tools"), ids(r))
         // Le chiavi che la lista trascinata non ha (non disegnate) tengono il loro posto.
-        assertEquals(listOf("prima_raccolta", "prove", "decisioni", "suggestions"), r[0].sections)
+        assertEquals(listOf("prove", "decisioni", "suggestions", "prima_raccolta"), r[0].sections)
         assertEquals(listOf(true, false, false, false), r.map { it.open })
     }
 
     @Test fun keysNotDrawnKeepTheirPlaceAfterADrag() {
         // La web non disegna Pagella finché non esiste: un trascinamento di Sistema sopra Utilizzo non la sposta in fondo.
-        assertEquals(listOf("system", "pagella", "usage"), HomeCats.reorder(HomeCats.DEFAULT, listOf("system", "usage")).single { it.id == "tools" }.sections)
+        assertEquals(listOf("system", "usage", "pagella"), HomeCats.reorder(HomeCats.DEFAULT, listOf("system", "usage")).single { it.id == "tools" }.sections)
     }
 
     @Test fun aDragNeverCrossesItsCategory() {
         val order = HomeCats.DEFAULT.flatMap { it.sections }
-        // Suggerimenti è l'ultima di Richiede te: il dito oltre Sessioni (Attività) non la sposta.
+        // Il dito oltre Sessioni (In corso) non sposta Suggerimenti fuori da Tocca a te.
         val mids = mapOf("prove" to 100f, "suggestions" to 200f, "sessions" to 300f)
         assertEquals(order, HomeCats.dragTarget(order, "suggestions", 350f, mids, mids.keys))
         // Dentro la categoria sì: sopra Da provare scavalca.
-        assertEquals(listOf("prima_raccolta", "decisioni", "suggestions", "prove"), HomeCats.dragTarget(order, "suggestions", 90f, mids, mids.keys).take(4))
+        assertEquals(listOf("decisioni", "suggestions", "prove", "prima_raccolta"), HomeCats.dragTarget(order, "suggestions", 90f, mids, mids.keys).take(4))
         // Chiuse sta in Attività: conta come sezione di Sessioni.
         assertEquals("work", HomeCats.catFor("closed")); assertEquals("tools", HomeCats.catFor("plugins"))
     }
@@ -105,9 +106,9 @@ class HomeCatsTest {
         assertEquals(listOf("sessions"), HomeCats.top(saved))
         assertEquals(listOf("seguiti", "lavori"), HomeCats.decode(saved)[1].sections)
         assertTrue(saved.size <= 16 && saved.all { it.length <= 32 })
-        // Tutte le sezioni in cima stanno ancora nelle 16 chiavi del relay.
+        // Tutte le sezioni in cima stanno ancora nelle 16 chiavi del relay, col marcatore e un `pin:` vecchio.
         val all = HomeCats.DEFAULT.flatMap { it.sections }
-        assertEquals(15, HomeCats.encode(HomeCats.DEFAULT.map { it.copy(sections = emptyList()) }, "usage", all)!!.size)
+        assertEquals(16, HomeCats.encode(HomeCats.DEFAULT.map { it.copy(sections = emptyList()) }, "usage", all)!!.size)
         // Un ordine di ieri non ha cima; chiavi sconosciute o doppie in cima si ignorano.
         assertEquals(emptyList<String>(), HomeCats.top(listOf("sessions", "shut:out")))
         assertEquals(listOf("esiti"), HomeCats.top(listOf("top:esiti", "top:boh", "top:esiti")))
@@ -116,7 +117,7 @@ class HomeCatsTest {
 
     @Test fun theDraggedListHasTheEdgeAfterTheTop() {
         val f = HomeCats.flat(listOf("esiti"), HomeCats.decode(listOf("top:esiti")))
-        assertEquals(listOf("esiti", HomeCats.EDGE, "prima_raccolta"), f.take(3))
+        assertEquals(listOf("esiti", HomeCats.EDGE, "decisioni"), f.take(3))
         assertEquals(1 + 1 + 12, f.size)
     }
 
@@ -156,10 +157,10 @@ class HomeCatsTest {
     @Test fun reorderPageMovesInAndOutOfTheTop() {
         val (top, cats) = HomeCats.toTop(HomeCats.DEFAULT, listOf("esiti"), "prove")
         assertEquals(listOf("esiti", "prove"), top)
-        assertEquals(listOf("prima_raccolta", "decisioni", "suggestions"), cats[0].sections)
+        assertEquals(listOf("decisioni", "suggestions", "prima_raccolta"), cats[0].sections)
         val (top2, cats2) = HomeCats.fromTop(cats, top, "prove")
         assertEquals(listOf("esiti"), top2)
-        assertEquals(listOf("prima_raccolta", "decisioni", "suggestions", "prove"), cats2[0].sections)
+        assertEquals(listOf("decisioni", "suggestions", "prima_raccolta", "prove"), cats2[0].sections)
         // Già in cima, o fuori dalla cima: niente cambia.
         assertEquals(top to cats, HomeCats.toTop(cats, top, "prove"))
         assertEquals(top2 to cats2, HomeCats.fromTop(cats2, top2, "prove"))
@@ -184,5 +185,24 @@ class HomeCatsTest {
         val mids = mapOf("esiti" to 10f, HomeCats.EDGE to 30f, "lavori" to 110f)
         assertEquals(order, HomeCats.dragTarget(order, "sessions", 5f, mids, order.toSet(), fromBoard = false))
         assertEquals(listOf("sessions", "esiti", HomeCats.EDGE, "lavori"), HomeCats.dragTarget(listOf("esiti", "sessions", HomeCats.EDGE, "lavori"), "sessions", 5f, mapOf("esiti" to 10f, HomeCats.EDGE to 30f), order.toSet(), fromBoard = true))
+    }
+
+    /** app-home-nomi-02-11: un ordine salvato prima del marcatore riprende una volta l'ordine dei riquadri e quello di partenza. */
+    @Test fun anOldSavedOrderTakesTheNewOrderOnce() {
+        val old = listOf("top:esiti", "usage", "sessions", "lavori", "seguiti", "suggestions", "prove", "decisioni", "prima_raccolta", "system", "pagella", "da_guardare", "rendiconti", "shut:tools")
+        val d = HomeCats.decode(old)
+        assertEquals(listOf("you", "work", "out", "tools"), ids(d))
+        assertEquals(listOf("decisioni", "prove", "suggestions", "prima_raccolta"), d[0].sections)
+        assertEquals(listOf("sessions", "lavori", "seguiti"), d[1].sections)
+        assertEquals(listOf("da_guardare", "rendiconti"), d[2].sections)
+        assertEquals(listOf("usage", "system", "pagella"), d[3].sections)
+        assertEquals(listOf(true, true, true, false), d.map { it.open })
+        assertEquals(listOf("esiti"), HomeCats.top(old))
+        // Salvato, porta il marcatore: da lì in poi l'ordine di Franz resta com'è, anche fuori da quello dei riquadri.
+        val moved = HomeCats.moveCat(d, 3, 0)
+        val saved = HomeCats.encode(moved, null, listOf("esiti"))!!
+        assertTrue(HomeCats.REV in saved)
+        assertTrue(saved.size <= 16)
+        assertEquals(listOf("tools", "you", "work", "out"), ids(HomeCats.decode(saved)))
     }
 }

@@ -9,11 +9,16 @@ export type HomeKey = Exclude<HomeSection, 'plugins' | 'closed'> | 'da_guardare'
 export type Cat = { id: CatId; open: boolean; sections: HomeKey[] }
 
 export const DEFAULT_CATS: Cat[] = [
-  { id: 'you', open: true, sections: ['prima_raccolta', 'decisioni', 'prove', 'suggestions'] },
+  { id: 'you', open: true, sections: ['decisioni', 'prove', 'suggestions', 'prima_raccolta'] },
   { id: 'work', open: true, sections: ['sessions', 'seguiti', 'lavori'] },
   { id: 'out', open: false, sections: ['esiti', 'da_guardare', 'rendiconti'] },
-  { id: 'tools', open: false, sections: ['usage', 'pagella', 'system'] },
+  { id: 'tools', open: false, sections: ['usage', 'system', 'pagella'] },
 ]
+/**
+ * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
+ * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
+ */
+export const REV = 'rev:2'
 const SHUT = 'shut:'
 const TOP = 'top:'
 /** Il bordo dello spazio in cima nella lista piatta del trascinamento: sopra c'è la cima, sotto le categorie. */
@@ -25,8 +30,9 @@ export const catOf = (key: string): CatId | null => DEFAULT_CATS.find(c => (c.se
 export function decode(saved: string[] | null | undefined): Cat[] {
   const list = saved ?? []
   const up = top(saved) as string[]
-  const keys = [...new Set(list.filter(k => catOf(k) && !up.includes(k)))] as HomeKey[]
-  const order = [...new Set([...keys.map(k => catOf(k)!), ...DEFAULT_CATS.map(c => c.id)])]
+  const fresh = list.length > 0 && !list.includes(REV)
+  const keys = ([...new Set(list.filter(k => catOf(k) && !up.includes(k)))] as HomeKey[]).filter(k => !fresh || (catOf(k) !== 'you' && catOf(k) !== 'tools'))
+  const order = fresh ? DEFAULT_CATS.map(c => c.id) : [...new Set([...keys.map(k => catOf(k)!), ...DEFAULT_CATS.map(c => c.id)])]
   const shut = list.find(k => k.startsWith(SHUT))
   const closed = shut == null ? null : shut.slice(SHUT.length).split(',')
   return order.map(id => {
@@ -40,7 +46,7 @@ export function decode(saved: string[] | null | undefined): Cat[] {
 export function encode(cats: Cat[], pin: HomeSection | null, up: HomeKey[] = []): string | null {
   if (!pin && !up.length && JSON.stringify(cats) === JSON.stringify(DEFAULT_CATS)) return null
   const shut = SHUT + cats.filter(c => !c.open).map(c => c.id).join(',')
-  return JSON.stringify(withPin([...up.map(k => TOP + k), ...cats.flatMap(c => c.sections), shut] as HomeSection[], pin))
+  return JSON.stringify(withPin([...up.map(k => TOP + k), ...cats.flatMap(c => c.sections), shut, REV] as HomeSection[], pin))
 }
 
 export const moveCat = (cats: Cat[], from: number, to: number): Cat[] => move(cats, from, to)

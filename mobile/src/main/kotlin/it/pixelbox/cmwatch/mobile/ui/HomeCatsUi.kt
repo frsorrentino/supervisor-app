@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.outlined.PanTool
+import androidx.compose.material.icons.outlined.PendingActions
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.HorizontalDivider
@@ -49,7 +49,8 @@ import androidx.compose.ui.draw.clip
 internal class CatBit(val text: String, val tone: Color? = null)
 
 internal fun catIcon(id: String): ImageVector = when (id) {
-    "you" -> Icons.Outlined.PanTool
+    // Tocca a te (app-home-nomi-02-11): la cartellina con l'orologio, non più la mano.
+    "you" -> Icons.Outlined.PendingActions
     "work" -> Icons.Outlined.PlayCircle
     "out" -> Icons.Outlined.Inbox
     else -> Icons.Outlined.Speed

@@ -316,6 +316,9 @@ fun SummaryList(
     // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»): in ambra quando c'è qualcosa da sapere.
     val catBits: @Composable (String) -> Pair<List<CatBit>, Boolean> = { id ->
         val none = listOf(CatBit(stringResource(R.string.cat_sig_none)))
+        // Le voci nella riga chiusa nell'ordine della lista aperta (app-home-nomi-02-11, punto 4).
+        val order = cats.firstOrNull { c -> c.id == id }?.sections.orEmpty()
+        fun inOrder(parts: List<Pair<String, CatBit?>>) = parts.filter { p -> p.second != null }.sortedBy { p -> order.indexOf(p.first) }.map { p -> p.second!! }
         when (id) {
             "out" -> {
                 val out = if ("esiti" in up) null else it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, java.time.ZoneId.systemDefault())
@@ -329,13 +332,13 @@ fun SummaryList(
                 // Una voce in cima esce anche dal segnale della sua categoria (Franz 02/11 19:26).
                 val w = weekSlot.takeIf { "usage" !in up }
                 val sy = system.takeIf { "system" !in up }
-                val bits = listOfNotNull(w?.let { x -> CatBit("${x.pct}%") }, sy?.let { s -> CatBit(stringResource(R.string.cat_sig_load, SystemRules.num(s.loadPerCore, italian()))) })
+                val bits = inOrder(listOf("usage" to w?.let { x -> CatBit("${x.pct}%") }, "system" to sy?.let { s -> CatBit(stringResource(R.string.cat_sig_load, SystemRules.num(s.loadPerCore, italian()))) }))
                 bits.ifEmpty { none } to ((w?.alarm == true) || (sy != null && sy.level != "green"))
             }
             "you" -> {
                 val d = if ("decisioni" in up) 0 else kpiState?.decisions?.n ?: 0
                 val p = if ("prove" in up) 0 else kpiState?.prove?.n ?: 0
-                listOfNotNull(d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") }, p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") }).ifEmpty { none } to (d > 0)
+                inOrder(listOf("decisioni" to d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") }, "prove" to p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") })).ifEmpty { none } to (d > 0)
             }
             else -> {
                 val n = if ("sessions" in up) 0 else kpiState?.sessions.orEmpty().count { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }

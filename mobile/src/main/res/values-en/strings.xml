@@ -895,8 +895,8 @@ It starts at your last message to the master.</string>
     <string name="pinned_quota">5h quota %1$d%%</string>
     <string name="pinned_wait">waiting %1$d min</string>
     <string name="pinned_reset">resets %1$s</string>
-    <string name="kpi7_waiting">waiting for you, the first for %1$d min</string>
-    <string name="kpi7_none_waiting">none waiting for you</string>
+    <plurals name="kpi7_waiting"><item quantity="one">stopped session, for %2$d min</item><item quantity="other">stopped sessions, the first for %2$d min</item></plurals>
+    <string name="kpi7_none_waiting">no stopped session</string>
     <string name="kpi7_busy">working now</string>
     <string name="kpi7_outcomes">outcomes today</string>
     <plurals name="kpi7_outcomes_red"><item quantity="one">outcomes today, %1$d red</item><item quantity="other">outcomes today, %1$d red</item></plurals>
@@ -1595,12 +1595,12 @@ It starts at your last message to the master.</string>
     <string name="home_prima_interrupted">stopped</string>
     <string name="home_prima_done">done</string>
     <!-- La home per categorie (app-home-categorie-02-11). -->
-    <string name="cat_you">Needs you</string>
-    <string name="cat_work">Activity and queues</string>
+    <string name="cat_you">Your turn</string>
+    <string name="cat_work">In progress</string>
     <string name="cat_out">Outcomes</string>
-    <string name="cat_tools">Numbers and tools</string>
+    <string name="cat_tools">Resources</string>
     <string name="cat_sig_today">%1$d today</string>
-    <plurals name="cat_sig_failed"><item quantity="one">%1$d failed</item><item quantity="other">%1$d failed</item></plurals>
+    <plurals name="cat_sig_failed"><item quantity="one">%1$d red</item><item quantity="other">%1$d red</item></plurals>
     <string name="home_top_drop">Drop here to keep it at the top</string>
     <string name="reorder_top">On the board, at the top</string>
     <string name="reorder_top_empty">Nothing on the board. Tap the up arrow next to a section, or drag it onto the board in the home. At most 4.</string>

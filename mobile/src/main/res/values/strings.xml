@@ -956,8 +956,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="pinned_quota">quota 5h %1$d%%</string>
     <string name="pinned_wait">attesa %1$d min</string>
     <string name="pinned_reset">riparte %1$s</string>
-    <string name="kpi7_waiting">ti aspettano, la prima da %1$d min</string>
-    <string name="kpi7_none_waiting">nessuna ti aspetta</string>
+    <plurals name="kpi7_waiting"><item quantity="one">sessione ferma da %2$d min</item><item quantity="other">sessioni ferme, la prima da %2$d min</item></plurals>
+    <string name="kpi7_none_waiting">nessuna sessione ferma</string>
     <string name="kpi7_busy">al lavoro adesso</string>
     <string name="kpi7_outcomes">esiti oggi</string>
     <plurals name="kpi7_outcomes_red"><item quantity="one">esiti oggi, %1$d rosso</item><item quantity="other">esiti oggi, %1$d rossi</item></plurals>
@@ -1625,12 +1625,12 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_prima_interrupted">interrotta</string>
     <string name="home_prima_done">fatta</string>
     <!-- La home per categorie (app-home-categorie-02-11). -->
-    <string name="cat_you">Richiede te</string>
-    <string name="cat_work">Attività e code</string>
+    <string name="cat_you">Tocca a te</string>
+    <string name="cat_work">In corso</string>
     <string name="cat_out">Esiti</string>
-    <string name="cat_tools">Numeri e strumenti</string>
+    <string name="cat_tools">Risorse</string>
     <string name="cat_sig_today">%1$d oggi</string>
-    <plurals name="cat_sig_failed"><item quantity="one">%1$d fallito</item><item quantity="other">%1$d falliti</item></plurals>
+    <plurals name="cat_sig_failed"><item quantity="one">%1$d rosso</item><item quantity="other">%1$d rossi</item></plurals>
     <string name="home_top_drop">Trascina qui per tenerla in cima</string>
     <string name="reorder_top">Sul tabellone, in cima</string>
     <string name="reorder_top_empty">Nessuna voce sul tabellone. Tocca la freccia in su accanto a una sezione, o nella home trascinala sul tabellone. Al massimo 4.</string>
