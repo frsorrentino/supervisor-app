@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.outlined.PanTool
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -72,7 +73,8 @@ private fun outcomeLabel(t: Kpi.OutcomeType): Int = when (t) {
 
 internal fun outcomeIcon(t: Kpi.OutcomeType): ImageVector = when (t) {
     Kpi.OutcomeType.PROBLEM -> Icons.Rounded.Close
-    Kpi.OutcomeType.WAITING -> Icons.Rounded.Person
+    // La mano di Ti aspettano (Franz 02/11 07:56): «serve la tua scelta» e «aspetta te» sono la stessa cosa.
+    Kpi.OutcomeType.WAITING -> Icons.Outlined.PanTool
     Kpi.OutcomeType.SHIPPED -> Icons.Rounded.RocketLaunch
     Kpi.OutcomeType.DONE -> Icons.Rounded.Check
     Kpi.OutcomeType.ANSWER -> Icons.Rounded.ChatBubbleOutline

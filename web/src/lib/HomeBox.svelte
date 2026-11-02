@@ -27,7 +27,7 @@
   let groupOpen = $state<Record<string, boolean>>({})
   let groupShown = $state<Record<string, number>>({})
   const typeName: Record<OutcomeType, string> = { problem: t.outcomeTypeProblem, waiting: t.outcomeTypeWaiting, shipped: t.outcomeTypeShipped, done: t.outcomeTypeDone, answer: t.outcomeTypeAnswer, none: t.outcomeTypeNone, running: t.outcomeTypeRunning }
-  const typeIcon = { problem: 'x', waiting: 'user', shipped: 'upload', done: 'check', answer: 'message', none: 'circle', running: 'run' } as const
+  const typeIcon = { problem: 'x', waiting: 'hand', shipped: 'upload', done: 'check', answer: 'message', none: 'circle', running: 'run' } as const
   const typeTone: Record<OutcomeType, string> = { problem: 'r', waiting: 'w', shipped: 'g', done: 'g', answer: 'n', none: 'n', running: 'b' }
   const live = $derived(new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)))
   const hm = (at: number) => { const d = new Date(at * 1000); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }

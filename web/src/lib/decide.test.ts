@@ -90,4 +90,7 @@ describe('chat_esito_allineata', () => {
     expect(rule('.fesito {')).toContain('border-top: 1px solid var(--line)')
     expect(feed).toContain('class="sr"')
   })
+  it('chat_esito_allineata: aspetta te ha la mano di Ti aspettano, in chat e negli esiti', () => {
+    for (const f of ['./Feed.svelte', './HomeBox.svelte']) expect(readFileSync(new URL(f, import.meta.url), 'utf8'), f).toContain("waiting: 'hand'")
+  })
 })

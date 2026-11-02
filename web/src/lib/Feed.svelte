@@ -31,7 +31,7 @@
   import { outcomeText, splitOutcome } from './decide'
   import { outcomeType, type OutcomeType } from './kpi'
   import Icon from './Icon.svelte'
-  const ESITO_ICON: Record<OutcomeType, 'x' | 'user' | 'upload' | 'check' | 'message' | 'circle' | 'run'> = { problem: 'x', waiting: 'user', shipped: 'upload', done: 'check', answer: 'message', none: 'circle', running: 'run' }
+  const ESITO_ICON: Record<OutcomeType, 'x' | 'hand' | 'upload' | 'check' | 'message' | 'circle' | 'run'> = { problem: 'x', waiting: 'hand', shipped: 'upload', done: 'check', answer: 'message', none: 'circle', running: 'run' }
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
