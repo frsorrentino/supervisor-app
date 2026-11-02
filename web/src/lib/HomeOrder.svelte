@@ -7,7 +7,7 @@
   let { saved, onSave }: { saved?: string[]; onSave: (arg: string | null) => void } = $props()
   let order = $state<HomeSection[]>(normalize(saved))
   const SEC: Record<HomeSection, { icon: string; name: string }> = {
-    prima_raccolta: { icon: 'inventory', name: t.primaTitle }, seguiti: { icon: 'event_list', name: t.seguitiTitle }, prove: { icon: 'checklist', name: t.proveTitle }, decisioni: { icon: 'timer', name: t.decisionsTitle },
+    prima_raccolta: { icon: 'task_alt', name: t.primaTitle }, seguiti: { icon: 'event_list', name: t.seguitiTitle }, prove: { icon: 'checklist', name: t.proveTitle }, decisioni: { icon: 'timer', name: t.decisionsTitle },
     sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle },
     lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed },
   }
