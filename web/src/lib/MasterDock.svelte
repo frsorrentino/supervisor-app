@@ -15,7 +15,7 @@
   // chiudere non chiede più il trascinamento, ogni gesto ha un tocco che fa lo stesso (WCAG 2.5.1).
   // `onDrag`: il gesto passo per passo (`/embed?dock=1`, dove Studio fa seguire al riquadro il dito), con lo spostamento in
   // px dall'inizio, e `null` alla fine; allora decide `onDrop` invece di `onToggle`.
-  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onDrag, onDrop, bar = false, mirror = false }: {
+  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false }: {
     master: Session; entries: Entry[]; onToggle: () => void; onSpeak: (text: string) => void; expanded?: boolean
     /** Il pannello a destra della plancia (pwa2, 30/10): il tasto tondo allarga o stringe (frecce di lato), Chiudi è una ×. */
     side?: boolean
@@ -24,6 +24,8 @@
     /** Il pannello sta a sinistra: le frecce di lato si invertono, allargare resta verso le colonne. */
     mirror?: boolean
     screen?: boolean; trailing?: Snippet; toggleUp?: boolean; onToggleKey?: () => void; onClose?: () => void
+    /** Il pannello della plancia passa all'altro lato con un tasto in vista (Franz 02/11 11:11: nel menu ⋮ non lo trovava). */
+    onMove?: () => void; moveLabel?: string
     onDrag?: (dy: number) => void; onDrop?: (dy: number) => void
   } = $props()
   const up = $derived(toggleUp ?? !expanded)
@@ -73,6 +75,11 @@
   {#if onClose}
     <button class="ib" aria-label={t.dockClose} title={t.dockClose} onclick={(e) => { e.stopPropagation(); onClose() }}>
       <svg viewBox="0 0 24 24" width="22" height="22"><path d={side ? 'M7 7l10 10M17 7L7 17' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </button>
+  {/if}
+  {#if onMove}
+    <button class="ib" aria-label={moveLabel} title={moveLabel} data-testid="master-sposta" onclick={(e) => { e.stopPropagation(); onMove() }}>
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 7l-4 4 4 4M4 11h11M16 9l4 4-4 4M20 13H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
     </button>
   {/if}
   <StateGlyph kind={glyphOf(master)} ctx={master.context} size={18} square={!personal(master.account, master.account_kind)} label={attention ? master.state : label} />

@@ -1153,7 +1153,7 @@
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 {#snippet masterBar()}{#if master}<div class="mbar"><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = true })} onSpeak={(x) => toggle(x, MASTER)} /><div class="mquick">{@render masterQuick()}</div><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = true })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
-  onToggleKey={() => smooth(() => { masterHalf = !masterHalf })} onClose={() => smooth(() => { masterOpen = false })} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
+  onToggleKey={() => smooth(() => { masterHalf = !masterHalf })} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={masterLeft ? t.masterMoveRight : t.masterMoveLeft} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}

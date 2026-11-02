@@ -546,7 +546,7 @@
 {/if}
 <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo le sessioni, fuori da «Ti aspettano» e dal suo
      numero, a filo e non pieni: un consiglio non blocca nessuno (correzione 1 del 30/10). -->
-{#if part === 'you' && !waitRows.length && !looseOk.length && !(suggestions && suggestionsN)}<p class="wnote">{t.deskYouEmpty}</p>{/if}
+{#if part === 'you' && !waitRows.length && !looseOk.length && !(suggestions && suggestionsN) && !(newBody && (st.decisions?.n || (st.prove && st.prove.n + st.prove.ko + st.prove.red > 0)))}<p class="wnote">{t.deskYouEmpty}</p>{/if}
 <!-- I suggerimenti come sezione richiudibile (Franz 30/10 17:33), dopo le sessioni (16:44): la barra dei 7 giorni sta dentro.
      Nella plancia restano nella colonna «Richiede te». -->
 {#snippet secSuggestions()}
@@ -717,7 +717,9 @@
 {/snippet}
 <!-- Le voci del programma del 01/11 (Franz 02/11 08:05): accordion come le altre, si aprono sul posto; ci sono finché hanno qualcosa. -->
 {#snippet secNuove(k: HomeSection)}
-  {#if !part && newBody}
+  <!-- Nella plancia larga anche queste, nella loro colonna (Franz 02/11 11:11: «mancano molte sezioni»): Da decidere e Da
+       provare chiedono te, Da seguire e Prima raccolta sono lavoro in corso. -->
+  {#if newBody && (!part || part === (k === 'decisioni' || k === 'prove' ? 'you' : 'work'))}
     {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'inventory', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', !open['prima_raccolta'] ? rightOf('prima_raccolta') : null)}{@render nuovaBody(k)}
     {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
     {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null)}{@render nuovaBody(k)}
