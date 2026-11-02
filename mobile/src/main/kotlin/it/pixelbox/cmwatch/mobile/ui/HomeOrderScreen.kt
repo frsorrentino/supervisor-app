@@ -31,6 +31,8 @@ import androidx.compose.material.icons.outlined.SportsScore
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VerticalAlignBottom
+import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.MilitaryTech
 import androidx.compose.material.icons.outlined.Dashboard
@@ -70,6 +72,8 @@ import androidx.compose.ui.zIndex
 /** Le voci della home sulla schermata: icona e nome, come le testate delle sezioni. */
 @Composable
 private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
+    // La categoria presa nella home (app-categorie-trascina-02-11).
+    "cat:you", "cat:work", "cat:out", "cat:tools" -> catIcon(key.removePrefix("cat:")) to catName(key.removePrefix("cat:"))
     "prima_raccolta" -> Icons.Outlined.Checklist to stringResource(R.string.prima_title)
     "seguiti" -> Icons.Outlined.Update to stringResource(R.string.seguiti_title)
     "prove" -> Icons.Outlined.Science to stringResource(R.string.prove_title)
@@ -106,6 +110,10 @@ internal fun HomeDragGhost(key: String, modifier: Modifier = Modifier) {
 @Composable
 fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<String>) -> Unit) {
     var cats by remember(saved) { mutableStateOf(HomeCats.decode(saved)) }
+    // Lo spazio in cima (app-home-in-cima-02-11): la prima card, con «Togli dalla cima»; ogni sezione ha «Metti in cima».
+    var top by remember(saved) { mutableStateOf(HomeCats.top(saved)) }
+    fun putTop(key: String) { val (t, c) = HomeCats.toTop(cats, top, key); top = t; cats = c }
+    fun dropTop(key: String) { val (t, c) = HomeCats.fromTop(cats, top, key); top = t; cats = c }
     val drag = remember { OrderDrag() }
     Column(Modifier.fillMaxSize().background(V3.Bg).systemBarsPadding().testTag("riordino-sezioni")) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -114,6 +122,24 @@ fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<Stri
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val ids = cats.map { it.id }
+            Column(Modifier.clip(V3.Shape).background(V3.S1).testTag("riordino-cima")) {
+                Text(stringResource(R.string.reorder_top), style = V3.Section, modifier = Modifier.padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 10.dp))
+                if (top.isEmpty()) Text(stringResource(R.string.reorder_top_empty), style = V3.Small, modifier = Modifier.padding(start = 16.dp, end = 12.dp, bottom = 14.dp))
+                top.forEachIndexed { ti, key ->
+                    androidx.compose.runtime.key("top-$key") {
+                        val (icon, label) = sectionOf(key)
+                        Column(drag.item("top-$key").background(V3.S1)) {
+                            androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 12.dp), thickness = 1.dp, color = V3.Line)
+                            Row(Modifier.fillMaxWidth().moveActions(label, ti, top.size) { to -> top = HomeOrder.move(top, ti, to) }.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Handle(drag.handle("top-$key", top.map { k -> "top-$k" }) { from, to -> top = HomeOrder.move(top, from, to) })
+                                Icon(icon, null, tint = V3.Tx2, modifier = Modifier.padding(start = 4.dp, end = 12.dp).size(22.dp))
+                                Text(label, style = V3.Name, modifier = Modifier.weight(1f))
+                                IconButton(onClick = { dropTop(key) }, modifier = Modifier.testTag("riordino-togli-$key")) { Icon(Icons.Outlined.VerticalAlignBottom, stringResource(R.string.reorder_top_out, label), tint = V3.Tx2) }
+                            }
+                        }
+                    }
+                }
+            }
             cats.forEachIndexed { ci, c ->
                 androidx.compose.runtime.key(c.id) {
                     Column(drag.item(c.id).clip(V3.Shape).background(V3.S1).testTag("riordino-cat-${c.id}")) {
@@ -131,11 +157,12 @@ fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<Stri
                                 val (icon, label) = sectionOf(key)
                                 Column(drag.item(key).background(V3.S1)) {
                                     androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 12.dp), thickness = 1.dp, color = V3.Line)
-                                    Row(Modifier.fillMaxWidth().moveActions(label, si, c.sections.size) { to -> cats = HomeCats.moveSection(cats, c.id, si, to) }.padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Row(Modifier.fillMaxWidth().moveActions(label, si, c.sections.size) { to -> cats = HomeCats.moveSection(cats, c.id, si, to) }.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                         Handle(drag.handle(key, c.sections) { from, to -> cats = HomeCats.moveSection(cats, c.id, from, to) })
                                         Icon(icon, null, tint = V3.Tx2, modifier = Modifier.padding(start = 4.dp, end = 12.dp).size(22.dp))
                                         // A capo, mai tagliato: con i caratteri grandi i nomi lunghi non stanno su una riga.
                                         Text(label, style = V3.Name, modifier = Modifier.weight(1f))
+                                        IconButton(onClick = { putTop(key) }, modifier = Modifier.testTag("riordino-in-cima-$key")) { Icon(Icons.Outlined.VerticalAlignTop, stringResource(R.string.reorder_top_in, label), tint = V3.Tx2) }
                                     }
                                 }
                             }
@@ -146,10 +173,10 @@ fun HomeOrderScreen(saved: List<String>?, onBack: () -> Unit, onSave: (List<Stri
             Text(stringResource(R.string.reorder_foot), style = V3.Small, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Surface(onClick = { onSave(HomeCats.encode(cats, HomeOrder.pinned(saved)) ?: emptyList()) }, shape = CircleShape, color = V3.Act, contentColor = V3.OnAct, modifier = Modifier.fillMaxWidth()) {
+            Surface(onClick = { onSave(HomeCats.encode(cats, HomeOrder.pinned(saved), top) ?: emptyList()) }, shape = CircleShape, color = V3.Act, contentColor = V3.OnAct, modifier = Modifier.fillMaxWidth()) {
                 Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) { Text(stringResource(R.string.reorder_save), style = V3.Name.copy(color = V3.OnAct)) }
             }
-            Text(stringResource(R.string.reorder_reset), style = V3.Small.copy(color = V3.Tx), modifier = Modifier.handCursor().clickable { cats = HomeCats.DEFAULT }.padding(12.dp))
+            Text(stringResource(R.string.reorder_reset), style = V3.Small.copy(color = V3.Tx), modifier = Modifier.handCursor().clickable { cats = HomeCats.DEFAULT; top = emptyList() }.padding(12.dp))
         }
     }
 }

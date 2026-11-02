@@ -207,7 +207,7 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
 }
 
 @Composable
-private fun Modifier.drawDashedEdge(hot: Boolean): Modifier {
+internal fun Modifier.drawDashedEdge(hot: Boolean): Modifier {
     val c = if (hot) V3.Tx else V3.Tx3
     return then(Modifier.drawBehind {
         drawRoundRect(c, cornerRadius = androidx.compose.ui.geometry.CornerRadius(14.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(if (hot) 2.dp.toPx() else 1.dp.toPx(), pathEffect = if (hot) null else androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))))

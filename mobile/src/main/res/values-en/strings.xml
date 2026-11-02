@@ -1601,6 +1601,11 @@ It starts at your last message to the master.</string>
     <string name="cat_tools">Numbers and tools</string>
     <string name="cat_sig_today">%1$d today</string>
     <plurals name="cat_sig_failed"><item quantity="one">%1$d failed</item><item quantity="other">%1$d failed</item></plurals>
+    <string name="home_top_drop">Drop here to keep it at the top</string>
+    <string name="reorder_top">At the top</string>
+    <string name="reorder_top_empty">Nothing at the top. Tap the up arrow next to a section, or drag it up in the home.</string>
+    <string name="reorder_top_in">Move %1$s to the top</string>
+    <string name="reorder_top_out">Take %1$s off the top</string>
     <string name="cat_sig_none">nothing today</string>
     <string name="cat_sig_load">load %1$s</string>
     <string name="reorder_in_view">shown</string>

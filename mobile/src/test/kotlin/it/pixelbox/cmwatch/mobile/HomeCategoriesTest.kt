@@ -59,4 +59,16 @@ class HomeCategoriesTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 2700))
         paparazzi.snapshot { CmPhoneTheme(still = true) { it.pixelbox.cmwatch.mobile.ui.HomeOrderScreen(null, {}, {}) } }
     }
+
+    /**
+     * Lo spazio in cima (app-home-in-cima-02-11): Esiti di oggi e Sessioni sopra le categorie, senza testata; Esiti, chiusa, non le
+     * conta più nel segnale e Attività non ripete Sessioni.
+     */
+    @Test fun homeWithTopItems() = shot(full.copy(homeOrder = listOf("top:esiti", "top:sessions")), failed = true)
+
+    /** Riordina con lo spazio in cima: la prima card, con «Togli dalla cima»; le sezioni delle categorie hanno «Metti in cima». */
+    @Test fun reorderWithTop() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 3000))
+        paparazzi.snapshot { CmPhoneTheme(still = true) { it.pixelbox.cmwatch.mobile.ui.HomeOrderScreen(listOf("top:esiti", "top:sessions"), {}, {}) } }
+    }
 }

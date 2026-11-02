@@ -1631,6 +1631,11 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="cat_tools">Numeri e strumenti</string>
     <string name="cat_sig_today">%1$d oggi</string>
     <plurals name="cat_sig_failed"><item quantity="one">%1$d fallito</item><item quantity="other">%1$d falliti</item></plurals>
+    <string name="home_top_drop">Trascina qui per tenerla in cima</string>
+    <string name="reorder_top">In cima</string>
+    <string name="reorder_top_empty">Nessuna voce in cima. Tocca la freccia in su accanto a una sezione, o nella home trascinala in alto.</string>
+    <string name="reorder_top_in">Metti in cima %1$s</string>
+    <string name="reorder_top_out">Togli dalla cima %1$s</string>
     <string name="cat_sig_none">niente oggi</string>
     <string name="cat_sig_load">carico %1$s</string>
     <string name="reorder_in_view">in vista</string>

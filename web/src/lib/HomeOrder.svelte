@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { DEFAULT_CATS, decode, encode, moveCat, moveSection, toggle, type Cat, type CatId } from './homeCats'
-  import { pinned, type HomeSection } from './homeOrder'
+  import { DEFAULT_CATS, decode, encode, fromTop, moveCat, moveSection, toTop, toggle, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
+  import { move, pinned, type HomeSection } from './homeOrder'
   import { t } from './t'
   import CatIcon from './CatIcon.svelte'
   // «Riordina la home» per categorie (Franz 02/11 16:44, app-home-categorie-02-11; HomeOrderScreen.kt nell'app; mockup
@@ -9,6 +9,10 @@
   // sempre nella sua categoria. «Salva» è l'unico tasto pieno.
   let { saved, onSave }: { saved?: string[]; onSave: (arg: string | null) => void } = $props()
   let cats = $state<Cat[]>(decode(saved))
+  // Lo spazio in cima (app-home-in-cima-02-11): la prima card, con «Togli dalla cima»; ogni sezione ha «Metti in cima».
+  let top = $state<HomeKey[]>(topOf(saved))
+  const putTop = (k: HomeKey) => { const r = toTop(cats, top, k); top = r.top; cats = r.cats }
+  const dropTop = (k: HomeKey) => { const r = fromTop(cats, top, k); top = r.top; cats = r.cats }
   const SEC: Record<string, { icon: string; name: string }> = {
     prima_raccolta: { icon: 'task_alt', name: t.primaTitle }, seguiti: { icon: 'event_list', name: t.seguitiTitle }, prove: { icon: 'checklist', name: t.proveTitle }, decisioni: { icon: 'timer', name: t.decisionsTitle },
     sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle },
@@ -50,6 +54,18 @@
 {/snippet}
 
 <div class="v3 ro" data-testid="riordino-sezioni">
+  <div class="card" data-testid="riordino-cima">
+    <div class="head"><b class="toph">{t.reorderTop}</b></div>
+    {#if !top.length}<p class="empty">{t.reorderTopEmpty}</p>{/if}
+    {#each top as k, ti (k)}
+      <div class="row" class:held={held === `top-${k}`} data-ro="top-{k}" style:transform={shift(`top-${k}`)}>
+        {@render handle(`top-${k}`, SEC[k].name, ti, top.map(x => `top-${x}`), (from, to) => (top = move(top, from, to)))}
+        {#if SEC[k].icon.startsWith('svg:')}<span class="own"><CatIcon name={SEC[k].icon.slice(4)} /></span>{:else}<span class="ms own" aria-hidden="true">{SEC[k].icon}</span>{/if}
+        <span class="tx">{SEC[k].name}</span>
+        <button class="pin" aria-label={t.reorderTopOut(SEC[k].name)} data-testid="riordino-togli-{k}" onclick={() => dropTop(k)}><CatIcon name="tobottom" /></button>
+      </div>
+    {/each}
+  </div>
   {#each cats as c, ci (c.id)}
     <div class="card" class:held={held === c.id} data-ro={c.id} style:transform={shift(c.id)} data-testid="riordino-cat-{c.id}">
       <div class="head">
@@ -63,13 +79,14 @@
           {@render handle(k, SEC[k].name, si, c.sections, (from, to) => (cats = moveSection(cats, c.id, from, to)))}
           {#if SEC[k].icon.startsWith('svg:')}<span class="own"><CatIcon name={SEC[k].icon.slice(4)} /></span>{:else}<span class="ms own" aria-hidden="true">{SEC[k].icon}</span>{/if}
           <span class="tx">{SEC[k].name}</span>
+          <button class="pin" aria-label={t.reorderTopIn(SEC[k].name)} data-testid="riordino-in-cima-{k}" onclick={() => putTop(k)}><CatIcon name="totop" /></button>
         </div>
       {/each}
     </div>
   {/each}
   <p class="sub">{t.reorderFoot}</p>
-  <button class="save" onclick={() => onSave(encode(cats, pinned(saved) as HomeSection | null))}>{t.reorderSave}</button>
-  <button class="reset" onclick={() => (cats = DEFAULT_CATS)}>{t.reorderReset}</button>
+  <button class="save" onclick={() => onSave(encode(cats, pinned(saved) as HomeSection | null, top))}>{t.reorderSave}</button>
+  <button class="reset" onclick={() => { cats = DEFAULT_CATS; top = [] }}>{t.reorderReset}</button>
 </div>
 
 <style>
@@ -88,6 +105,9 @@
   .sw span { position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--tx); transition: transform .2s; }
   .sw[aria-checked='true'] { background: var(--busy); }
   .sw[aria-checked='true'] span { transform: translateX(20px); background: #fff; }
+  .toph { padding-left: 12px; }
+  .empty { margin: 0 16px 14px; font-size: 14px; line-height: 19px; color: var(--tx2); }
+  .pin { flex: none; width: 44px; height: 44px; display: grid; place-items: center; color: var(--tx2); }
   .sub { margin: 4px 4px 0; font-size: 14px; color: var(--tx2); }
   .save { margin: 8px 0 0; min-height: 48px; border-radius: 24px; background: var(--act); color: var(--on-act); font: 600 17px var(--display); }
   .reset { align-self: center; padding: 12px; font-size: 14px; color: var(--tx); }

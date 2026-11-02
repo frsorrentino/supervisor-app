@@ -5,8 +5,8 @@
   // Esiti, Numeri e strumenti) e la master come barra in fondo; a metà o aperta è un pannello a destra alto quanto lo schermo,
   // 420 o 720 px. Le colonne sono quante ne stanno a 320 px l'una; quelle che non stanno scendono in fondo all'ultima.
   // L'ordine delle colonne è quello delle categorie della home (app-home-categorie-02-11), lo stesso di Riordina.
-  let { width, head, you, work, out, tools, bar, panel = null, panelWide = false, panelLeft = false, order = ['you', 'work', 'out', 'tools'] }: {
-    width: number; head: Snippet; you: Snippet; work: Snippet; out: Snippet; tools: Snippet; bar: Snippet; order?: string[]
+  let { width, head, you, work, out, tools, bar, top = null, panel = null, panelWide = false, panelLeft = false, order = ['you', 'work', 'out', 'tools'] }: {
+    width: number; head: Snippet; top?: Snippet | null; you: Snippet; work: Snippet; out: Snippet; tools: Snippet; bar: Snippet; order?: string[]
     panel?: Snippet | null; panelWide?: boolean; panelLeft?: boolean
   } = $props()
   const PANEL = 420, PANEL_WIDE = 720, COL = 320
@@ -19,6 +19,8 @@
 <div class="plancia v3" class:left={panelLeft}>
   <div class="stage">
     {@render head()}
+    <!-- Lo spazio in cima della home (app-home-in-cima-02-11): le sue voci, a tutta larghezza sopra le colonne. -->
+    {#if top}<div class="topband">{@render top()}</div>{/if}
     <div class="cols" style:--n={n}>
       {#each shownCols as parts, i (i)}
         <section class="col">{#each parts as p, k (k)}{@render p()}{/each}</section>
@@ -33,6 +35,7 @@
   .plancia { height: 100%; display: flex; min-height: 0; }
   .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   .cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); border-top: 1px solid var(--line); }
+  .topband { flex: none; max-height: 40%; overflow-y: auto; border-top: 1px solid var(--line); }
   .col { min-width: 0; min-height: 0; overflow-y: auto; padding-bottom: 24px; }
   .col + .col { border-left: 1px solid var(--line); }
   .mpanel { flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); border-left: 1px solid var(--line); }

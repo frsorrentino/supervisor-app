@@ -212,13 +212,12 @@ fun SummaryList(
     val savedOrder = sentOrder.shown
     // La home per categorie (Franz 02/11 16:44, app-home-categorie-02-11): l'ordine piatto è quello delle sezioni dentro le categorie.
     val cats = it.pixelbox.cmwatch.rules.HomeCats.decode(savedOrder)
-    val homeOrder = cats.flatMap { c -> c.sections }
+    // Lo spazio in cima (app-home-in-cima-02-11): le voci di qualsiasi categoria che Franz tiene sopra le categorie, poi il bordo.
+    val up = it.pixelbox.cmwatch.rules.HomeCats.top(savedOrder)
+    val homeOrder = it.pixelbox.cmwatch.rules.HomeCats.flat(up, cats)
     val catsNow by androidx.compose.runtime.rememberUpdatedState(cats)
-    // Le categorie chiuse aperte sul posto: valgono per questa visita, non si salvano (aperte o chiuse si decide in Riordina).
-    var peek by rememberSaveable { mutableStateOf("") }
-    fun peeked(id: String) = id in peek.split(',')
+    val upNow by androidx.compose.runtime.rememberUpdatedState(up)
     fun catFor(k: String): String? = it.pixelbox.cmwatch.rules.HomeCats.catFor(k)
-    fun inPeek(k: String) = catFor(k)?.let { id -> cats.any { c -> c.id == id && !c.open } && peeked(id) } == true
     // Le categorie che hanno disegnato qualcosa: l'etichetta di una categoria aperta e vuota non resta da sola.
     val catHas = remember { mutableMapOf<String, Boolean>() }
     var catFocus by remember { mutableStateOf<String?>(null) }
@@ -248,6 +247,11 @@ fun SummaryList(
         return it.pixelbox.cmwatch.rules.HomeOrder.overSlot(held, y, r?.top, r?.bottom, alarmNow)
     }
     fun sectionDrag(key: String): Modifier = if (onHomeOrder == null) Modifier else Modifier.onGloballyPositioned { dragZones[key] = key to it }
+    // Categorie aperte o chiuse, spostate fra loro: si salva subito con la cima e lo slot di adesso (app-home-in-cima-02-11).
+    fun setCats(next: List<it.pixelbox.cmwatch.rules.HomeCats.Cat>) {
+        val full = it.pixelbox.cmwatch.rules.HomeCats.encode(next, savedPinNow, upNow) ?: emptyList()
+        sentOrder.send(full); saveOrder?.invoke(full)
+    }
     var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura. File nuovo col
@@ -295,7 +299,7 @@ fun SummaryList(
         val none = listOf(CatBit(stringResource(R.string.cat_sig_none)))
         when (id) {
             "out" -> {
-                val out = it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, java.time.ZoneId.systemDefault())
+                val out = if ("esiti" in up) null else it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, java.time.ZoneId.systemDefault())
                 // Lo stesso numero del riquadro «esiti oggi»; un fallito è rosso nella riga ma non la fa ambra (mockup, riga 1).
                 val red = out?.red?.size ?: 0
                 val n = out?.settled ?: 0
@@ -303,16 +307,19 @@ fun SummaryList(
                 else listOfNotNull(CatBit(stringResource(R.string.cat_sig_today, n)), if (red > 0) CatBit(pluralStringResource(R.plurals.cat_sig_failed, red, red), V3.Red) else null) to false
             }
             "tools" -> {
-                val bits = listOfNotNull(weekSlot?.let { w -> CatBit("${w.pct}%") }, system?.let { s -> CatBit(stringResource(R.string.cat_sig_load, SystemRules.num(s.loadPerCore, italian()))) })
-                bits.ifEmpty { none } to (weekAlarm || (system != null && system.level != "green"))
+                // Una voce in cima esce anche dal segnale della sua categoria (Franz 02/11 19:26).
+                val w = weekSlot.takeIf { "usage" !in up }
+                val sy = system.takeIf { "system" !in up }
+                val bits = listOfNotNull(w?.let { x -> CatBit("${x.pct}%") }, sy?.let { s -> CatBit(stringResource(R.string.cat_sig_load, SystemRules.num(s.loadPerCore, italian()))) })
+                bits.ifEmpty { none } to ((w?.alarm == true) || (sy != null && sy.level != "green"))
             }
             "you" -> {
-                val d = kpiState?.decisions?.n ?: 0
-                val p = kpiState?.prove?.n ?: 0
+                val d = if ("decisioni" in up) 0 else kpiState?.decisions?.n ?: 0
+                val p = if ("prove" in up) 0 else kpiState?.prove?.n ?: 0
                 listOfNotNull(d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") }, p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") }).ifEmpty { none } to (d > 0)
             }
             else -> {
-                val n = kpiState?.sessions.orEmpty().count { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }
+                val n = if ("sessions" in up) 0 else kpiState?.sessions.orEmpty().count { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }
                 (if (n > 0) listOf(CatBit("${stringResource(R.string.home_sec_sessions)} $n")) else none) to false
             }
         }
@@ -361,7 +368,7 @@ fun SummaryList(
     }
     val movingIn: (String) -> @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { sec ->
         // La voce presa non scivola: al suo posto c'è già la copia che segue il dito, e scivolando passerebbe sopra le altre.
-        { (if (dragKey == sec) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null) else moving()).graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f }.then(if (inPeek(sec)) Modifier.background(V3.S2) else Modifier) }
+        { (if (dragKey == sec) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null) else moving()).graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f } }
     }
     val dragEdge = with(androidx.compose.ui.platform.LocalDensity.current) { 72.dp.toPx() }
     // Vicino ai bordi la lista scorre da sola: il dito è consumato prima che arrivi alla lista, quindi i due scorrimenti non litigano.
@@ -385,7 +392,8 @@ fun SummaryList(
             // Ogni voce ha la sua zona: la testata di una sezione o la riga di una card, anche con più righe nello stesso elemento.
             val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
             val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
-            val next = it.pixelbox.cmwatch.rules.HomeCats.dragTarget(o, held, y, mids, dragPresent.toSet())
+            // Una categoria (app-categorie-trascina-02-11) scavalca solo le testate delle altre categorie, con tutte le sue sezioni.
+            val next = if (held.startsWith("cat:")) it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, o.toSet()) else it.pixelbox.cmwatch.rules.HomeCats.dragTarget(o, held, y, mids, dragPresent.toSet())
             if (next != o) { dragOrder = next; last = t; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) }
         }
     }
@@ -395,7 +403,8 @@ fun SummaryList(
             val down = awaitFirstDown(requireUnconsumed = false, pass = pass)
             val box = dragBox?.takeIf { it.isAttached } ?: return@awaitEachGesture
             val (key, top) = dragZones.values.firstNotNullOfOrNull { (k, c) ->
-                if (!c.isAttached) null else box.localBoundingBoxOf(c, false).takeIf { it.contains(down.position) }?.let { k to it.top }
+                // Il bordo della cima riceve, non si prende.
+                if (!c.isAttached || k == it.pixelbox.cmwatch.rules.HomeCats.EDGE) null else box.localBoundingBoxOf(c, false).takeIf { it.contains(down.position) }?.let { k to it.top }
             } ?: return@awaitEachGesture
             val gaveUp = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
                 var over = false
@@ -407,7 +416,7 @@ fun SummaryList(
             }
             if (gaveUp != null) return@awaitEachGesture
             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-            dragY = down.position.y; dragGhostShift = top - down.position.y; dragOrder = shownOrder; dragKey = key
+            dragY = down.position.y; dragGhostShift = top - down.position.y; dragOrder = if (key.startsWith("cat:")) it.pixelbox.cmwatch.rules.HomeCats.catKeys(catsNow) else shownOrder; dragKey = key
             var commit = false
             try {
                 while (true) {
@@ -429,11 +438,15 @@ fun SummaryList(
                     ghostScope.launch { ghostY.snapTo(from); ghostY.animateTo(landing, CmMotion.bounceFloat); ghostFly = null }
                 }
                 dragOrder = null; dragKey = null
-                if (commit && o != null) {
+                if (commit && o != null && key.startsWith("cat:")) {
+                    val moved = it.pixelbox.cmwatch.rules.HomeCats.catOrder(catsNow, o)
+                    if (moved != catsNow) { val full = it.pixelbox.cmwatch.rules.HomeCats.encode(moved, savedPinNow, upNow) ?: emptyList(); sentOrder.send(full); saveOrder?.invoke(full) }
+                } else if (commit && o != null) {
                     val (nextOrder, nextPin) = it.pixelbox.cmwatch.rules.HomeOrder.release(shownOrder, o, key, savedPinNow, alarmNow, dropped, dragY, releaseMids)
                     if (nextOrder != shownOrder || nextPin != savedPinNow) {
-                        // Una sezione resta nella sua categoria; chiuse e aperte non cambiano col trascinamento. Il predefinito si manda vuoto.
-                        val full = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.reorder(catsNow, nextOrder), nextPin) ?: emptyList()
+                        // Sopra il bordo la voce va in cima; sotto resta nella sua categoria. Chiuse e aperte non cambiano. Il predefinito si manda vuoto.
+                        val (nextTop, nextCats) = it.pixelbox.cmwatch.rules.HomeCats.settle(catsNow, nextOrder)
+                        val full = it.pixelbox.cmwatch.rules.HomeCats.encode(nextCats, nextPin, nextTop) ?: emptyList()
                         sentOrder.send(full); saveOrder?.invoke(full)
                     }
                 }
@@ -510,9 +523,10 @@ fun SummaryList(
             item(key = "kpi-7") {
                 Box(moving().onGloballyPositioned { c -> boardBox = c }) {
                     Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, { b ->
-                        // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre sul posto; poi la lista ci scorre.
+                        // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
+                        // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre.
                         val id = when (b) { HomeBox.WAITING -> "you"; HomeBox.BUSY -> "work"; HomeBox.OUTCOMES -> "out" }
-                        if (catsNow.any { c -> c.id == id && !c.open } && !peeked(id)) peek = "$peek,$id"
+                        if (catsNow.any { c -> c.id == id && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, id))
                         catFocus = id
                     }, onQuota, slot = { slotContent() })
                     val held = dragKey
@@ -788,20 +802,32 @@ fun SummaryList(
                 "system" -> { renderSystem(); if (listSkip != "plugins") renderPlugins() }
             }
         }
-        cats.forEach { c ->
-            val inView = c.open || peeked(c.id)
-            if (c.open) item(key = "cat-${c.id}") { Box(Modifier.animateItem()) { if (catHas[c.id] == true) CatLabel(c.id) } }
+        // Durante il trascinamento di una categoria le categorie seguono l'ordine del dito, ognuna con le sue sezioni.
+        val catDrag = dragKey?.startsWith("cat:") == true
+        val shownCats = if (catDrag) it.pixelbox.cmwatch.rules.HomeCats.catOrder(cats, dragOrder.orEmpty()) else cats
+        fun moveCatTo(i: Int, to: Int) = setCats(it.pixelbox.cmwatch.rules.HomeCats.moveCat(cats, i, to))
+        // Lo spazio in cima e il suo bordo (app-home-in-cima-02-11): durante il trascinamento di una sezione l'ordine è quello del dito.
+        val edge = it.pixelbox.cmwatch.rules.HomeCats.EDGE
+        val live = if (catDrag) null else dragOrder
+        val liveTop = live?.let { o -> o.take(o.indexOf(edge).coerceAtLeast(0)) } ?: up
+        val liveBelow = live?.let { o -> o.drop(o.indexOf(edge) + 1) }
+        liveTop.forEach(::renderKey)
+        val sectionHeld = dragKey?.takeIf { k -> !k.startsWith("cat:") }
+        if (sectionHeld != null) dragPresent += edge
+        item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(sectionHeld != null, sectionHeld != null && sectionHeld in liveTop, sectionDrag(edge)) } }
+        shownCats.forEachIndexed { ci, c ->
+            val catZone = sectionDrag("cat:${c.id}")
+            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
             else item(key = "cat-${c.id}") {
-                Box(Modifier.animateItem()) {
+                Box(movingIn("cat:${c.id}")()) {
                     val (bits, amber) = catBits(c.id)
-                    CatRow(c.id, bits, amber, inView) { peek = if (peeked(c.id)) peek.split(',').filter { x -> x != c.id }.joinToString(",") else "$peek,${c.id}" }
+                    CatRow(c.id, bits, amber, false, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) }
                 }
             }
-            if (!inView) return@forEach
+            if (!c.open) return@forEachIndexed
             val before = dragPresent.size
-            (dragOrder?.filter { k -> catFor(k) == c.id } ?: c.sections).forEach(::renderKey)
+            (liveBelow?.filter { k -> catFor(k) == c.id } ?: c.sections).forEach(::renderKey)
             catHas[c.id] = dragPresent.size > before
-            if (!c.open) item(key = "cat-end-${c.id}") { Box(Modifier.animateItem()) { CatPeekEnd() } }
         }
         footer?.let { f -> item(key = "footer") { f() } }
     }

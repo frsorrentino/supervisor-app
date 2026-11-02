@@ -4,7 +4,7 @@ import { replaceNames, splitLabels, taskNames } from './chatLabels'
 import { world } from './demo'
 import { DemoTransport } from './demoTransport'
 import { DEFAULT_ORDER, pinned, type HomeSection } from './homeOrder'
-import { DEFAULT_CATS, decode as decodeCats } from './homeCats'
+import { DEFAULT_CATS, decode as decodeCats, top as topOf } from './homeCats'
 import { total } from './seguiti'
 import { weekSlot } from './utilizzo'
 import { head, midnight, outcomes, waitingRows, workingRows } from './kpi'
@@ -85,8 +85,10 @@ describe('demo_allineata', () => {
     expect(pinned(st.home_order)).toBe('usage')
     expect(weekSlot(st.quota, NOW)).not.toBeNull()
   })
-  it('demo_allineata: la home della demo è quella predefinita per categorie, sezioni nel loro ordine (app-home-categorie-02-11)', () => {
-    expect(decodeCats(st.home_order).map(c => [c.id, c.open, c.sections])).toEqual(DEFAULT_CATS.map(c => [c.id, c.open, c.sections]))
+  it('demo_allineata: la home della demo è quella predefinita per categorie, con Sessioni nello spazio in cima (app-home-in-cima-02-11)', () => {
+    expect(topOf(st.home_order)).toEqual(['sessions'])
+    const want = DEFAULT_CATS.map(c => [c.id, c.open, c.sections.filter(k => k !== 'sessions')])
+    expect(decodeCats(st.home_order).map(c => [c.id, c.open, c.sections])).toEqual(want)
   })
   it('demo_allineata: ogni suggerimento ha un progetto della demo prima dei due punti', () => {
     const names = new Set(st.sessions.map(s => s.name))

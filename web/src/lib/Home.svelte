@@ -53,7 +53,7 @@
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
   import CatIcon from './CatIcon.svelte'
-  import { DEFAULT_CATS, catFor, decode as decodeCats, dragCats, encode as encodeCats, reorder as reorderCats, type Cat, type CatId } from './homeCats'
+  import { DEFAULT_CATS, EDGE, catFor, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
@@ -76,7 +76,7 @@
     onQuota?: () => void
     /** Una colonna della plancia (pwa2, Franz 30/10): «you» le attese e i suggerimenti, «work» sessioni e lavori, «out» gli
      *  esiti, «tools» Altro; senza, la home intera col tabellone. */
-    part?: 'you' | 'work' | 'out' | 'tools' | null
+    part?: 'you' | 'work' | 'out' | 'tools' | 'top' | null
     /** Contratto 1.97: l'ordine scelto trascinando un titolo di sezione; null = il relay non lo sa fare, o una colonna della plancia. */
     onHomeOrder?: ((arg: string | null) => void) | null
     /** Nella colonna «Attività e code» della plancia: i compiti in corso del registro, subito dopo le sessioni Claude. */
@@ -140,15 +140,19 @@
   } = $props()
   const today = todayIso()
   // L'ordine nuovo vale subito, finché il relay non lo conferma.
-  let sentOrder = $state<{ from: string; cats: Cat[]; pin: HomeSection | null } | null>(null)
+  let sentOrder = $state<{ from: string; cats: Cat[]; pin: HomeSection | null; top: HomeKey[] } | null>(null)
   const savedKey = $derived((st.home_order ?? []).join(','))
   // La home per categorie (Franz 02/11 16:44, app-home-categorie-02-11; HomeCats.kt nell'app): l'ordine piatto è quello delle
   // sezioni dentro le categorie; le chiavi senza sezione qui (Da guardare, Rendiconti, Pagella finché non esistono) non si disegnano.
   // Anche le colonne della plancia seguono l'ordine salvato dentro ogni categoria; aperte o chiuse lì non conta.
   const cats = $derived(sentOrder && sentOrder.from === savedKey && !part ? sentOrder.cats : decodeCats(st.home_order))
-  const order = $derived(cats.flatMap(c => c.sections).filter(k => (DEFAULT_ORDER as string[]).includes(k)) as HomeSection[])
-  // Le categorie chiuse aperte sul posto: valgono per questa visita, non si salvano (in vista o chiuse si decide in Riordina).
-  let peek = $state<CatId[]>([])
+  // Lo spazio in cima (app-home-in-cima-02-11): voci di qualsiasi categoria sopra le categorie, poi il bordo (EDGE) nell'ordine
+  // piatto. Nella plancia larga stanno nella fascia sopra le colonne (part 'top') e le colonne non le ripetono.
+  const up = $derived(sentOrder && sentOrder.from === savedKey && !part ? sentOrder.top : topOf(st.home_order))
+  const order = $derived(flatCats(up, cats).filter(k => k === EDGE || (DEFAULT_ORDER as string[]).includes(k)) as HomeSection[])
+  const edgeAt = (o: string[]) => Math.max(0, o.indexOf(EDGE))
+  // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
+  const shows = (c: CatId) => !part || part === c || part === 'top'
   // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti. Le colonne della plancia non ce l'hanno.
   const savedPin = $derived(part ? null : sentOrder && sentOrder.from === savedKey ? sentOrder.pin : pinned(st.home_order))
   const week = $derived(!part && usage && showUsage ? weekSlot(st.quota, now) : null)
@@ -233,40 +237,47 @@
     }
     const held = dragKey, dropped = !!held && inSlot(held, dragY), y = dragY
     const releaseMids: Partial<Record<HomeSection, number>> = {}
-    for (const k of order) { if (k === held || k === listSkip) continue; const b = document.querySelector(`.hsec [data-sec-head="${k}"]`)?.getBoundingClientRect(); if (b) releaseMids[k] = b.top + b.height / 2 }
+    for (const k of order) { if (k === held || k === listSkip) continue; const b = document.querySelector((k as string) === EDGE ? `[data-sec-head="${EDGE}"]` : `.hsec [data-sec-head="${k}"]`)?.getBoundingClientRect(); if (b) releaseMids[k] = b.top + b.height / 2 }
     const o = dragOrder; dragOrder = null; dragKey = null; dragGhost = null; dragJustEnded = true
     addEventListener('click', swallowClick, { capture: true, once: true })
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
     if (!cancel) {
       const { order: nextOrder, pin: nextPin } = release(order, o, held!, savedPin, weekAlarm, dropped, y, releaseMids)
-      if (nextOrder.join() !== order.join() || nextPin !== savedPin) { const nextCats = reorderCats(cats, nextOrder); sentOrder = { from: savedKey, cats: nextCats, pin: nextPin }; onHomeOrder?.(encodeCats(nextCats, nextPin)) }
+      // Sopra il bordo la voce va in cima; sotto resta nella sua categoria (HomeCats.settle).
+      if (nextOrder.join() !== order.join() || nextPin !== savedPin) { const n = settle(cats, nextOrder); sentOrder = { from: savedKey, cats: n.cats, pin: nextPin, top: n.top }; onHomeOrder?.(encodeCats(n.cats, nextPin, n.top)) }
     }
   }
+  // Aperte o chiuse col tocco, come l'interruttore di Riordina: la scelta si salva (app-home-in-cima-02-11).
+  function setCats(next: Cat[]) { sentOrder = { from: savedKey, cats: next, pin: savedPin, top: up }; onHomeOrder?.(encodeCats(next, savedPin, up)) }
   const CATS_ICON: Record<CatId, string> = { you: 'pan_tool', work: 'play_circle', out: 'svg:inbox', tools: 'svg:speed' }
   // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»), come HomeCatsUi.kt: ambra quando c'è qualcosa da
   // sapere; un fallito è rosso nella riga ma non la fa ambra (mockup, riga 1).
   function catSignal(id: CatId): { bits: { text: string; red?: boolean }[]; amber: boolean } {
     const none = [{ text: t.catSigNone }]
     if (id === 'out') {
-      const red = out?.red.length ?? 0, n = out?.settled ?? 0
+      // Una voce in cima esce anche dal segnale della sua categoria (Franz 02/11 19:26).
+      const o = up.includes('esiti') ? null : out
+      const red = o?.red.length ?? 0, n = o?.settled ?? 0
       return { bits: n + red ? [{ text: t.catSigToday(n) }, ...(red ? [{ text: t.catSigFailed(red), red: true }] : [])] : none, amber: false }
     }
     if (id === 'tools') {
-      const bits = [...(week ? [{ text: `${week.pct}%` }] : []), ...(sys ? [{ text: t.catSigLoad(sys.load_per_core) }] : [])]
-      return { bits: bits.length ? bits : none, amber: weekAlarm || (!!sys && sys.level !== 'green') }
+      const w = up.includes('usage') ? null : week, sy = up.includes('system') ? null : sys
+      const bits = [...(w ? [{ text: `${w.pct}%` }] : []), ...(sy ? [{ text: t.catSigLoad(sy.load_per_core) }] : [])]
+      return { bits: bits.length ? bits : none, amber: !!w?.alarm || (!!sy && sy.level !== 'green') }
     }
     if (id === 'you') {
-      const d = st.decisions?.n ?? 0, p = st.prove?.n ?? 0
+      const d = up.includes('decisioni') ? 0 : st.decisions?.n ?? 0, p = up.includes('prove') ? 0 : st.prove?.n ?? 0
       const bits = [...(d ? [{ text: `${t.decisionsTitle} ${d}` }] : []), ...(p ? [{ text: `${t.proveTitle} ${p}` }] : [])]
       return { bits: bits.length ? bits : none, amber: d > 0 }
     }
-    const n = st.sessions.filter(x => x.state !== 'gone').length
+    const n = up.includes('sessions') ? 0 : st.sessions.filter(x => x.state !== 'gone').length
     return { bits: n ? [{ text: `${t.homeSessions} ${n}` }] : none, amber: false }
   }
-  // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre sul posto; poi la pagina ci scorre.
+  // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco sulla
+  // testata (app-home-in-cima-02-11); poi la pagina ci scorre.
   function openCat(b: import('./HomeBox.svelte').Box) {
     const id: CatId = b === 'aspetta' ? 'you' : b === 'lavoro' ? 'work' : 'out'
-    if (cats.some(c => c.id === id && !c.open) && !peek.includes(id)) peek = [...peek, id]
+    if (cats.some(c => c.id === id && !c.open)) setCats(toggleCat(cats, id))
     requestAnimationFrame(() => document.querySelector(`[data-testid="cat-${id}"]`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }))
   }
   const slotTone = (w: { pct: number; stale: boolean; alarm: boolean }) => (w.stale ? 'var(--tx3)' : w.pct >= 90 ? 'var(--red)' : w.pct >= 75 || w.alarm ? 'var(--wait)' : 'var(--tx2)')
@@ -599,13 +610,13 @@
 <!-- I suggerimenti come sezione richiudibile (Franz 30/10 17:33), dopo le sessioni (16:44): la barra dei 7 giorni sta dentro.
      Nella plancia restano nella colonna «Richiede te». -->
 {#snippet secSuggestions()}
-{#if (!part || part === 'you') && suggestions && suggestionsN}
+{#if shows('you') && suggestions && suggestionsN}
   {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti', !part && !open.suggestions && suggestionsAt ? t.homeLastAt(hhmm(suggestionsAt)) : null)}
   {#if part || open.suggestions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div></div>{/if}
 {/if}
 {/snippet}
 {#snippet secSessions()}
-{#if (!part || part === 'work') && (restGroups.length || justClosed)}
+{#if shows('work') && (restGroups.length || justClosed)}
   {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(restGroups.reduce((n, [, rows]) => n + rows.length, 0)), 'home-sez-sessioni', sessionsLine)}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
@@ -624,7 +635,7 @@
 {#if part === 'work' && afterSessions}{@render afterSessions()}{/if}
 {/snippet}
 {#snippet secLavori()}
-{#if (!part || part === 'work') && showLavori && (fy || workGroups.length)}
+{#if shows('work') && showLavori && (fy || workGroups.length)}
   {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', null, 'home-sez-lavori', open.lavori ? null : lavoriLine)}{/if}
   {#if part || open.lavori}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     {#if laterRows.length && !part}
@@ -678,7 +689,7 @@
 {/if}
 {/snippet}
 {#snippet secEsiti()}
-{#if (!part || part === 'out') && out}
+{#if shows('out') && out}
   <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. -->
   {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', esitiCount, 'home-sez-esiti', !part && !open.esiti ? esitiLine : null)}
   {#if part || open.esiti}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
@@ -703,7 +714,7 @@
 {/snippet}
 <!-- Utilizzo, Sistema, Plugin e skill e Chiuse: la stessa struttura delle altre voci (Franz 31/10 17:04), una voce per volta. -->
 {#snippet secUsage()}
-  {#if usage && showUsage && part === 'tools'}
+  {#if usage && showUsage && (part === 'tools' || part === 'top')}
     <!-- Nella plancia Utilizzo sta aperto in cima alla colonna col suo grafico (pwa2, 30/10). -->
     <div class="sec static"><span class="ic"><span class="ms">data_usage</span></span><span class="st">{t.homeUsage}</span></div>
     <div class="card wrows"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
@@ -720,7 +731,7 @@
   {/if}
 {/snippet}
 {#snippet secSystem()}
-  {#if sys && (!part || part === 'tools')}
+  {#if sys && shows('tools')}
     {@render sec('system', t.homeSystem, 'memory', null, 'home-sez-sistema', sysOpen ? null : summaryLine(sys, lang), { isOpen: sysOpen, onclick: () => (sysManual = { level: sys.level, open: !sysOpen }), dot: sysOpen || sys.level === 'green' ? null : SYS_TONE[sys.level] })}
         {#if sysOpen}
           <div class="card wrows">
@@ -762,7 +773,7 @@
   {@render sec('plugins', t.homePlugins, 'extension', null, 'home-sez-plugin', isOpen ? null : line, { isOpen, onclick: toggle })}
 {/snippet}
 {#snippet secPlugins()}
-  {#if pluginsLoad && pluginsRun && (!part || part === 'tools')}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} head={pluginsHead} />{/if}
+  {#if pluginsLoad && pluginsRun && shows('tools')}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} head={pluginsHead} />{/if}
 {/snippet}
 <!-- Le voci del programma del 01/11 (Franz 02/11 08:05): accordion come le altre, si aprono sul posto; ci sono finché hanno qualcosa. -->
 {#snippet secNuove(k: HomeSection)}
@@ -779,28 +790,36 @@
 {#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="newbody" data-testid={`corpo-${k}`} transition:slide={{ duration: reducedMotion() ? 0 : 200 }}>{@render newBody?.(k)}</div>{/if}{/snippet}
 {#snippet secClosed()}
   <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
-  {#if model.closed.length && (!part || part === 'work')}
+  {#if model.closed.length && shows('work')}
     {@render sec('closed', t.catClosed, 'inventory_2', String(model.closed.length), 'home-sez-chiuse', null, { nav: true, onclick: () => closedDlg?.showModal() })}
   {/if}
 {/snippet}
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
-{#if part}
-  {#each order.filter(k => catFor(k) === part) as k (k)}<div class="hsec">{@render secOf(k)}</div>{/each}
+{#if part === 'top'}
+  <!-- La fascia sopra le colonne della plancia larga: le voci in cima, affiancate. -->
+  <div class="topband" data-testid="home-cima">{#each up.filter(k => (DEFAULT_ORDER as string[]).includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}</div>
+{:else if part}
+  {#each cats.flatMap(c => c.sections).filter(k => catFor(k) === part && (DEFAULT_ORDER as string[]).includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
 {:else}
+  {@const live = dragOrder ?? order}
+  {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip) as k (k)}
+    <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
+  {/each}
+  <!-- Il bordo dello spazio in cima: fermo non si vede, durante il trascinamento di una sezione è la striscia dove lasciarla. -->
+  <div class="topedge" class:on={!!dragKey} class:hot={!!dragKey && live.slice(0, edgeAt(live)).includes(dragKey)} data-sec-head={EDGE} data-testid={dragKey ? 'home-cima-bordo' : undefined}>{#if dragKey}{t.homeTopDrop}{/if}</div>
   {#each cats as c (c.id)}
-    {@const inView = c.open || peek.includes(c.id)}
-    <div class="hcat" class:peek={!c.open && inView} data-testid="cat-{c.id}">
-      {#if c.open}<div class="catlabel">{t.catName[c.id]}</div>
+    <div class="hcat" data-testid="cat-{c.id}">
+      {#if c.open}<button class="catlabel" aria-expanded="true" onclick={() => setCats(toggleCat(cats, c.id))}><span>{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
       {:else}
         {@const sig = catSignal(c.id)}
-        <button class="catrow" class:amber={sig.amber} aria-expanded={inView} onclick={() => (peek = peek.includes(c.id) ? peek.filter(x => x !== c.id) : [...peek, c.id])}>
+        <button class="catrow" class:amber={sig.amber} aria-expanded="false" onclick={() => setCats(toggleCat(cats, c.id))}>
           <span class="ic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span><b>{t.catName[c.id]}</b>
           <span class="catsig">{#each sig.bits as b, i}{#if i}{' · '}{/if}<span class:red={b.red}>{b.text}</span>{/each}</span>
-          <span class="ms arr" class:up={inView} aria-hidden="true">expand_more</span>
+          <span class="ms arr" aria-hidden="true">expand_more</span>
         </button>
       {/if}
-      {#if inView}
-        {#each (dragOrder ?? order).filter(k => k !== listSkip && catFor(k) === c.id) as k (k)}
+      {#if c.open}
+        {#each live.slice(edgeAt(live) + 1).filter(k => k !== listSkip && catFor(k) === c.id) as k (k)}
           <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
         {/each}
       {/if}
@@ -1284,8 +1303,14 @@
   .hsec:empty { display: none; }
   /* La home per categorie (app-home-categorie-02-11, mockup home-categorie-telefono.png). */
   .hcat { display: flex; flex-direction: column; gap: 8px; }
-  .catlabel { display: none; margin: 10px 0 0; padding: 14px 4px 2px; border-top: 1px solid var(--line); font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
-  .hcat:has(.hsec > *) .catlabel { display: block; }
+  .catlabel { display: none; width: 100%; align-items: center; justify-content: space-between; margin: 10px 0 0; padding: 8px 12px 2px 4px; border-top: 1px solid var(--line); font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); text-align: left; cursor: pointer; }
+  .catlabel .arr { font-size: 20px; letter-spacing: 0; rotate: 180deg; }
+  .hcat:has(.hsec > *) .catlabel { display: flex; }
+  /* Lo spazio in cima (app-home-in-cima-02-11): il bordo è una linea vuota; durante il trascinamento la striscia dove lasciare. */
+  .topedge { height: 1px; flex: none; }
+  .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }
+  .topedge.on.hot { border: 2px solid var(--tx); }
+  .topband { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 16px; padding: 8px 16px; }
   .catrow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 6px; padding: 6px 12px 6px 0; border-radius: 14px; text-align: left; color: var(--tx); flex-wrap: wrap; }
   .catrow .ic { flex: none; width: 52px; display: grid; place-items: center; color: var(--tx2); }
   .catrow b { font: 700 18px/22px var(--display); white-space: nowrap; }
@@ -1295,8 +1320,6 @@
   .catrow.amber .catsig { color: var(--wait); }
   .catrow .arr { flex: none; color: var(--tx3); transition: rotate .2s; }
   .catrow .arr.up { rotate: 180deg; }
-  .hcat.peek { background: var(--s2); border-radius: 18px; padding-bottom: 10px; gap: 8px; }
-  .hcat.peek .catrow { margin-top: 0; }
   .hsec.held { opacity: .35; }
   .newbody { padding-top: 8px; }
   .boardwrap { flex: none; position: relative; }

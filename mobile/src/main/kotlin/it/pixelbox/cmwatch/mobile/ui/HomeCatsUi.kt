@@ -35,6 +35,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.mobile.R
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.draw.clip
 
 // La home per categorie (Franz 02/11 16:44, compito app-home-categorie-02-11): l'etichetta di una categoria aperta, la riga di una
 // chiusa col suo segnale, e la card di una chiusa aperta sul posto. L'ordine e le chiavi stanno in HomeCats (core).
@@ -61,12 +66,30 @@ internal fun catName(id: String): String = stringResource(when (id) {
 internal val CatPeekTop = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
 internal val CatPeekEnd = RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp)
 
-/** Categoria aperta: il nome in maiuscoletto sopra le sue sezioni, con il filo che la separa dalla precedente. */
+/**
+ * Categoria aperta: il nome in maiuscoletto sopra le sue sezioni, con il filo che la separa dalla precedente. Il tocco la chiude e la
+ * scelta resta (app-home-in-cima-02-11): la freccia a destra lo dice.
+ */
 @Composable
-internal fun CatLabel(id: String) {
-    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().testTag("home-cat-$id")) {
+internal fun CatLabel(id: String, modifier: Modifier = Modifier, onToggle: () -> Unit = {}) {
+    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().testTag("home-cat-$id").then(modifier).handCursor().clickable(onClick = onToggle)) {
         HorizontalDivider(Modifier.padding(top = 12.dp), thickness = 1.dp, color = V3.Line)
-        Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = V3.Tx3), modifier = Modifier.padding(start = 4.dp, top = 14.dp, bottom = 2.dp))
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 12.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = V3.Tx3), modifier = Modifier.weight(1f).padding(top = 8.dp, bottom = 2.dp))
+            TurnArrow(true, V3.Tx3, Modifier.size(20.dp))
+        }
+    }
+}
+
+/**
+ * Il bordo dello spazio in cima (app-home-in-cima-02-11). Fermo non si vede; durante il trascinamento di una sezione è la striscia
+ * tratteggiata dove lasciarla, accesa quando la voce presa sta già sopra.
+ */
+@Composable
+internal fun TopEdge(dragging: Boolean, hot: Boolean, modifier: Modifier = Modifier) {
+    if (!dragging) { Box(modifier.fillMaxWidth().height(1.dp)); return }
+    Box(modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp).heightIn(min = 48.dp).clip(V3.Shape).background(V3.Bg.copy(alpha = .72f)).drawDashedEdge(hot).testTag(if (hot) "home-cima-acceso" else "home-cima"), contentAlignment = Alignment.Center) {
+        Text(stringResource(R.string.home_top_drop), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx), textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
     }
 }
 
@@ -75,7 +98,7 @@ internal fun CatLabel(id: String) {
  * `open`: aperta sul posto, la riga diventa la testata della card.
  */
 @Composable
-internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolean, onToggle: () -> Unit) {
+internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolean, modifier: Modifier = Modifier, onToggle: () -> Unit) {
     val shape = if (open) CatPeekTop else V3.Shape
     var m = Modifier.fillMaxWidth().padding(top = 6.dp)
     m = when {
@@ -83,7 +106,7 @@ internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolea
         amber -> m.background(V3.Wait.copy(alpha = 0.14f), shape)
         else -> m
     }
-    Row(m.handCursor().clickable(onClick = onToggle).testTag("home-cat-$id").heightIn(min = 52.dp).padding(start = 0.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(m.then(modifier).handCursor().clickable(onClick = onToggle).testTag("home-cat-$id").heightIn(min = 52.dp).padding(start = 0.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(catIcon(id), null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
         Spacer(Modifier.width(8.dp))
         val text = buildAnnotatedString {
@@ -123,3 +146,17 @@ private fun CatTitleLine(modifier: Modifier, content: @Composable () -> Unit) = 
 /** La chiusura della card aperta sul posto. */
 @Composable
 internal fun CatPeekEnd() = Box(Modifier.fillMaxWidth().height(10.dp).background(V3.S2, CatPeekEnd))
+
+/** TalkBack sulla testata di una categoria della home (app-categorie-trascina-02-11): «Sposta su» e «Sposta giù» come in Riordina. */
+@Composable
+internal fun Modifier.catMoveActions(name: String, i: Int, size: Int, onMove: (Int, Int) -> Unit): Modifier {
+    val up = stringResource(R.string.reorder_up, name)
+    val down = stringResource(R.string.reorder_down, name)
+    val move by androidx.compose.runtime.rememberUpdatedState(onMove)
+    return this.then(Modifier.semantics {
+        customActions = listOfNotNull(
+            if (i > 0) CustomAccessibilityAction(up) { move(i, i - 1); true } else null,
+            if (i < size - 1) CustomAccessibilityAction(down) { move(i, i + 1); true } else null,
+        )
+    })
+}
