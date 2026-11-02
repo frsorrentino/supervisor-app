@@ -154,7 +154,7 @@
       <!-- Un tasto per sessione linkata: il clic apre la sua chat qui; è un link vero, così il tasto destro o la pressione
            lunga danno il link com'era (Copia, Apri in una scheda nuova). Copia e ▶ tengono il testo intero. -->
       {#each sl.buttons as b}
-        <a class="sbtn" href={b.url} target="_blank" rel="noopener" title={t.openInSupervisorHint} onclick={(ev) => { ev.preventDefault(); onSession(b.session) }}><span class="sl">{t.openInSupervisor}</span><span class="sn">{b.session}</span></a>
+        <a class="sbtn" href={b.url} target="_blank" rel="noopener" title={t.openInSupervisorHint} onclick={(ev) => { ev.preventDefault(); onSession(b.session) }}><span class="sn">{b.session}</span><span class="sl">{t.openInSupervisor}</span></a>
       {/each}
       {#if e.cut}<span class="meta">{t.textCut}</span>{/if}
       {#if c}<span class="cost">{c}</span>{/if}
@@ -325,8 +325,9 @@
   .cost { font-size: 12.5px; font-weight: 500; color: var(--b-second); }
   .sbtn { align-self: flex-start; display: flex; flex-direction: column; gap: 1px; background: var(--high); color: var(--text); border-radius: 16px; padding: 8px 18px; text-decoration: none; min-height: 44px; justify-content: center; }
   .sbtn:hover { filter: brightness(1.1); }
-  .sbtn .sl { font-size: 15px; font-weight: 500; letter-spacing: .01em; }
-  .sbtn .sn { font-size: 12.5px; color: var(--text2); }
+  /* In evidenza la sessione che si apre, sotto «Apri in supervisor» (Franz 02/11 13:48: «la gerarchia deve essere invertita»). */
+  .sbtn .sn { font-size: 15px; font-weight: 500; letter-spacing: .01em; }
+  .sbtn .sl { font-size: 12.5px; color: var(--text2); }
   .acts { display: flex; align-items: center; gap: 2px; }
   .play { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--high); color: var(--icon); margin-left: 2px; }
   .play:hover, .fchip:hover { filter: brightness(1.15); }

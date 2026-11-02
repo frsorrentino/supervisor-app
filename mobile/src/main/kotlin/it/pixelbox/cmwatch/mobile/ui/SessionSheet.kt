@@ -1887,9 +1887,11 @@ private fun ClaudeBubble(
 @Composable
 private fun SessionButton(b: it.pixelbox.cmwatch.rules.SessionLinks.Button, onOpen: () -> Unit) {
     val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    // In evidenza la sessione che si apre, sotto «Apri in supervisor» (Franz 02/11 13:48: «la gerarchia deve essere invertita»).
     OptionButton(
-        stringResource(R.string.open_in_supervisor), filled = false, onClick = onOpen, onLongClick = { runCatching { uri.openUri(b.url) } },
-        modifier = Modifier.wrapContentWidth(), shape = MaterialTheme.shapes.large, tonal = Cm.surfaceHigh, note = b.session,
+        b.session, filled = false, onClick = onOpen, onLongClick = { runCatching { uri.openUri(b.url) } },
+        modifier = Modifier.wrapContentWidth(), shape = MaterialTheme.shapes.large, tonal = Cm.surfaceHigh,
+        note = stringResource(R.string.open_in_supervisor),
     )
 }
 
