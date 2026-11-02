@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp } from './decide'
-import { decodeState, type Approval, type DecisionsPage, type ProvePage } from './contract'
+import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove } from './decide'
+import { decodeState, type Approval, type DecisionItem, type DecisionsPage, type ProvePage } from './contract'
 import { outcomeType } from './kpi'
 
 const read = (f: string) => readFileSync(new URL(`../../../contract/${f}`, import.meta.url), 'utf8')
@@ -92,5 +92,33 @@ describe('chat_esito_allineata', () => {
   })
   it('chat_esito_allineata: aspetta te ha la mano di Ti aspettano, in chat e negli esiti', () => {
     for (const f of ['./Feed.svelte', './HomeBox.svelte']) expect(readFileSync(new URL(f, import.meta.url), 'utf8'), f).toContain("waiting: 'hand'")
+  })
+})
+
+describe('decisione_spiegata', () => {
+  const p: DecisionsPage = textOf('decisioni')
+  it('decisione_spiegata: la card dice cosa si propone', () => {
+    const g = p.groups[0]
+    expect(g.items[0]).toMatchObject({ title: 'Order mails of atlas-shop', asks: 'ok', plan_start: 'Proposal: move the checkout to the new layout, with the old one kept behind a flag.' })
+    const c = card(g)
+    expect(c.head).toEqual(['With the mailbox the order mails and the receipts start', 'mailbox for the shop'])
+    expect(c.items[0]).toEqual({ title: 'Order mails of atlas-shop', plan: g.items[0].plan_start, reason: "Needs the shop's mailbox" })
+  })
+  it('decisione_spiegata: mai lo stesso testo due volte', () => {
+    const x = "Proposta del 28/10 22:22: aspetta l'ok di Franz"
+    const c = card({ key: 'k', title: x, cause: null, unblocks: [], weight: 1, where: 'here', since: 0, note: null, refs: [], items: [{ kind: 'pause', task: 't', title: 'Logo ambra su Play', reason: x, plan_start: "Cambiare l'icona quando Google approva.", since: 0 }] })
+    expect(c.head).toEqual([x])
+    expect(c.items[0]).toEqual({ title: 'Logo ambra su Play', plan: "Cambiare l'icona quando Google approva.", reason: null })
+  })
+  it('decisione_spiegata: i tasti secondo cosa si aspetta', () => {
+    const it0 = (o: Partial<DecisionItem>): DecisionItem => ({ kind: 'pause', task: 't', since: 0, ...o })
+    expect(buttons(it0({ asks: 'ok' }))).toEqual([{ kind: 'proceed' }, { kind: 'discuss' }])
+    expect(viaApprove(it0({ asks: 'ok' }))).toBe(false)
+    expect(viaApprove(it0({ kind: 'ok', asks: 'ok' }))).toBe(true)
+    expect(buttons(it0({ kind: 'ok', asks: 'choice', options: ['A', 'B'] }))).toEqual([{ kind: 'choice', label: 'A' }, { kind: 'choice', label: 'B' }])
+    expect(buttons(it0({ kind: 'needs_you', task: null, session: 's', asks: 'pc' }))).toEqual([{ kind: 'done' }])
+    expect(buttons(it0({ kind: 'needs_you', task: null, session: 's', asks: 'other' }))).toEqual([{ kind: 'discuss' }])
+    expect(buttons(it0({}))).toEqual([{ kind: 'done' }])
+    expect(buttons(it0({ kind: 'ok' }))).toEqual([{ kind: 'proceed' }])
   })
 })

@@ -28,6 +28,12 @@ class DecideScreenTest {
     @Test fun banco_prova_installata() = prova(BancoProva.Build.INSTALLED)
     @Test fun banco_prova_daInstallare() = prova(BancoProva.Build.TO_INSTALL)
     @Test fun cinque_minuti_quante() = paparazzi.snapshot { CmPhoneTheme(still = true) { CinqueMinutiScreen(dec, onBack = {}, onApprove = { _, _ -> }, onDone = {}, onNotNow = {}, onDrop = { _, _ -> }) } }
+    // Contratto 1.104 (Franz 02/11 08:04): la card dice cosa si propone, con Procedi e Parliamone; il testo ripetuto compare una volta sola.
+    private val proposta = "Proposta del 28/10 22:22: aspetta l'ok di Franz"
+    @Test fun decisione_spiegata_card() = paparazzi.snapshot { CmPhoneTheme(still = true) { CinqueMinutiScreen(dec.copy(groups = listOf(DecisionGroup("k", title = proposta, weight = 1, where = "here", items = listOf(
+        DecisionItem(kind = "pause", task = "logo-ambra-28-10", title = "Logo ambra sulla scheda Play di Supervisor", reason = proposta, asks = "ok",
+            planStart = "Quando Google approva la scheda, si sostituisce l'icona corallo con quella ambra in tutte le dimensioni richieste da Play, si rigenera l'immagine in evidenza e si manda la scheda in revisione; nessuna modifica all'app, solo alla scheda dello store."),
+    )))), onBack = {}, onApprove = { _, _ -> }, onDone = {}, onNotNow = {}, onDrop = { _, _ -> }, startHowMany = 1) } }
     @Test fun cinque_minuti_una() = paparazzi.snapshot { CmPhoneTheme(still = true) { CinqueMinutiScreen(dec, onBack = {}, onApprove = { _, _ -> }, onDone = {}, onNotNow = {}, onDrop = { _, _ -> }, startHowMany = 3) } }
     @Test fun ok_informato_card() {
         val st = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())

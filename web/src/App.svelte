@@ -1056,7 +1056,7 @@
 {/snippet}
 
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
-{#snippet decisionsBody()}<CinqueMinuti {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{/snippet}
+{#snippet decisionsBody()}<CinqueMinuti onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{/snippet}
 <!-- I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto nella home (Franz 02/11 08:05). -->
 {#snippet sectionBody(k: string)}
   {#if k === 'seguiti'}<Seguiti {run} summary={st.seguiti} onLavori={() => openPage('lavori')} onMaster={() => { openPage(null); pick(MASTER) }} />

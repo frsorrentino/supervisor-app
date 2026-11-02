@@ -159,6 +159,8 @@ enum class CmdOp {
     @SerialName("prima_raccolta") PRIMA_RACCOLTA, @SerialName("prima_raccolta_azione") PRIMA_RACCOLTA_AZIONE,
     /** Contratto 1.102: quello che resta fuori dal codice, la pagina (lettura passiva) e il tocco (`action` allinea, ok, remind_remove). */
     @SerialName("seguiti") SEGUITI, @SerialName("seguiti_azione") SEGUITI_AZIONE,
+    /** Contratto 1.103: i rendiconti e la pagella (fase C), la lettura e il tocco che chiede la bozza alla master. */
+    @SerialName("conti") CONTI, @SerialName("conti_azione") CONTI_AZIONE,
     /** Contratto 1.99: Da provare e Da decidere. */
     @SerialName("prove") PROVE, @SerialName("prova") PROVA, @SerialName("decisioni") DECISIONI, @SerialName("decisione") DECISIONE,
     @SerialName("plugins") PLUGINS,
@@ -403,6 +405,8 @@ enum class CmdOp {
     val kind: String = "", val task: String? = null, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null,
     val reason: String? = null, val since: Long = 0, val where: String? = null, val undo: String? = null, @SerialName("undo_how") val undoHow: String? = null,
     val what: String? = null, @SerialName("where_to") val whereTo: String? = null, val options: List<String>? = null, val untested: String? = null, val precedent: ApprovalPrecedent? = null,
+    /** Contratto 1.104: l'inizio del piano (300 caratteri a fine parola, null senza compito) e cosa si aspetta: ok, choice, pc, other. Il `title` è il titolo intero. */
+    @SerialName("plan_start") val planStart: String? = null, val asks: String? = null,
 )
 @Serializable data class DecisionGroup(val key: String, val title: String = "", val cause: String? = null, val items: List<DecisionItem> = emptyList(), val unblocks: List<String> = emptyList(), val weight: Int = 0, val where: String? = null, val since: Long = 0, val note: String? = null, val refs: List<String> = emptyList())
 @Serializable data class DecisionsPage(val at: Long = 0, val n: Int = 0, val here: Int = 0, val tasks: Int = 0, val snoozed: Int = 0, val groups: List<DecisionGroup> = emptyList())

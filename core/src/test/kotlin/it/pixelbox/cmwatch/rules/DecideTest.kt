@@ -120,4 +120,34 @@ class DecideTest {
         assertEquals(5f, ChatEsito.iconTop(28f, 18f), 0f)
         assertEquals(3f, ChatEsito.iconTop(24f, 18f), 0f)
     }
+
+    @Test fun decisione_spiegata_laCardDiceCosaSiPropone() {
+        val g = ContractJson.decodeDecisions(textOf("decisioni")).groups[0]
+        val i = g.items[0]
+        assertEquals("Order mails of atlas-shop", i.title); assertEquals("ok", i.asks)
+        assertEquals("Proposal: move the checkout to the new layout, with the old one kept behind a flag.", i.planStart)
+        val c = CinqueMinuti.card(g)
+        assertEquals(listOf("With the mailbox the order mails and the receipts start", "mailbox for the shop"), c.head)
+        assertEquals(CinqueMinuti.ItemText("Order mails of atlas-shop", i.planStart, "Needs the shop's mailbox"), c.items[0])
+    }
+
+    @Test fun decisione_spiegata_maiLoStessoTestoDueVolte() {
+        val p = "Proposta del 28/10 22:22: aspetta l'ok di Franz"
+        val g = DecisionGroup("k", title = p, items = listOf(DecisionItem(kind = "pause", task = "t", title = "Logo ambra su Play", reason = p, planStart = "Cambiare l'icona quando Google approva.")))
+        val c = CinqueMinuti.card(g)
+        assertEquals(listOf(p), c.head)
+        assertEquals(CinqueMinuti.ItemText("Logo ambra su Play", "Cambiare l'icona quando Google approva.", null), c.items[0])
+    }
+
+    @Test fun decisione_spiegata_iTastiSecondoCosaSiAspetta() {
+        val ok = DecisionItem(kind = "pause", task = "t", asks = "ok")
+        assertEquals(listOf(CinqueMinuti.Btn.Proceed, CinqueMinuti.Btn.Discuss), CinqueMinuti.buttons(ok))
+        assertFalse("una pausa non passa dall'ok del registro", CinqueMinuti.viaApprove(ok))
+        assertTrue(CinqueMinuti.viaApprove(DecisionItem(kind = "ok", task = "t", asks = "ok")))
+        assertEquals(listOf(CinqueMinuti.Btn.Choice("A"), CinqueMinuti.Btn.Choice("B")), CinqueMinuti.buttons(DecisionItem(kind = "ok", task = "t", asks = "choice", options = listOf("A", "B"))))
+        assertEquals(listOf(CinqueMinuti.Btn.Done), CinqueMinuti.buttons(DecisionItem(kind = "needs_you", session = "s", asks = "pc")))
+        assertEquals(listOf(CinqueMinuti.Btn.Discuss), CinqueMinuti.buttons(DecisionItem(kind = "needs_you", session = "s", asks = "other")))
+        assertEquals("senza asks il tasto di prima", listOf(CinqueMinuti.Btn.Done), CinqueMinuti.buttons(DecisionItem(kind = "pause", task = "t")))
+        assertEquals(listOf(CinqueMinuti.Btn.Proceed), CinqueMinuti.buttons(DecisionItem(kind = "ok", task = "t")))
+    }
 }

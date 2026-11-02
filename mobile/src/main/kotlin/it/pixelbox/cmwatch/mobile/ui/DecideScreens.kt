@@ -179,10 +179,10 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
 
 /** «Da decidere» (contratto 1.99, cinque_minuti): Franz sceglie quante, poi una alla volta, le più pesanti per prime. Niente timer. */
 @Composable
-fun CinqueMinutiScreen(page: DecisionsPage?, onBack: () -> Unit, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null) = DecidePage(stringResource(R.string.decisions_title), "cinque-minuti", onBack) { CinqueMinutiBody(page, onApprove, onDone, onNotNow, onDrop, startHowMany) }
+fun CinqueMinutiScreen(page: DecisionsPage?, onBack: () -> Unit, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null, onAsk: (String) -> Unit = {}) = DecidePage(stringResource(R.string.decisions_title), "cinque-minuti", onBack) { CinqueMinutiBody(page, onApprove, onDone, onNotNow, onDrop, startHowMany, onAsk) }
 
 @Composable
-fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null) {
+fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null, onAsk: (String) -> Unit = {}) {
     var howMany by rememberSaveable { mutableStateOf(startHowMany) }
     var touched by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var dropping by remember { mutableStateOf(false) }
@@ -207,21 +207,30 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
                     fun next() { touched = touched + g.key }
                     Text(stringResource(R.string.decisions_position, touched.size + 1, minOf(many, page.groups.size)), style = MonoSmall, modifier = Modifier.padding(start = 4.dp))
                     DecideCard {
-                        Text(g.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
+                        // Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte.
+                        val c = CinqueMinuti.card(g)
+                        c.head.forEachIndexed { n, h -> Text(h, style = if (n == 0) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyMedium, color = if (n == 0) Cm.text else Cm.text2) }
                         Text(stringResource(if (g.where == "pc") R.string.decisions_at_pc else R.string.decisions_here) + if (g.weight > 1) " · " + stringResource(R.string.decisions_unblocks, g.weight) else "", style = MonoSmall, color = if (g.where == "pc") Cm.waiting else Cm.text2)
-                        g.note?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
-                        g.items.forEach { i ->
+                        g.items.forEachIndexed { n, i ->
+                            val x = c.items[n]
+                            val name = i.title ?: i.short ?: i.session ?: i.task.orEmpty()
                             HorizontalDivider(color = Cm.line)
-                            Text(i.short ?: i.title ?: i.session ?: i.task.orEmpty(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = Cm.text)
-                            (i.reason ?: i.what)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
-                            when (CinqueMinuti.act(i)) {
-                                CinqueMinuti.Act.APPROVE -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    val opts = i.options.orEmpty()
-                                    if (opts.isEmpty()) FilledTonalButton(onClick = { onApprove(i.task!!, null); next() }) { Text(stringResource(R.string.approve)) }
-                                    else opts.forEach { o -> FilledTonalButton(onClick = { onApprove(i.task!!, o); next() }) { Text(o) } }
+                            x.title?.let { Text(it, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = Cm.text) }
+                            x.plan?.let { PlanText(it) }
+                            x.reason?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+                            val proceed = stringResource(R.string.decisions_proceed_prompt, name, i.task ?: i.session.orEmpty())
+                            val discuss = stringResource(R.string.sug_discuss_prompt, stringResource(R.string.decisions_discuss_about, name, i.task ?: i.session.orEmpty()))
+                            val choicePrompt = stringResource(R.string.decisions_choice_prompt, name, i.task ?: i.session.orEmpty())
+                            val btns = CinqueMinuti.buttons(i)
+                            if (btns.isNotEmpty()) @OptIn(ExperimentalLayoutApi::class) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                btns.forEach { btn ->
+                                    when (btn) {
+                                        CinqueMinuti.Btn.Proceed -> FilledTonalButton(onClick = { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, null) else onAsk(proceed); next() }) { Text(stringResource(R.string.decisions_proceed)) }
+                                        CinqueMinuti.Btn.Discuss -> OutlinedButton(onClick = { onAsk(discuss); next() }) { Text(stringResource(R.string.decisions_discuss)) }
+                                        CinqueMinuti.Btn.Done -> FilledTonalButton(onClick = { onDone(i); next() }) { Text(stringResource(R.string.agenda_done)) }
+                                        is CinqueMinuti.Btn.Choice -> FilledTonalButton(onClick = { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, btn.label) else onAsk(choicePrompt + " " + btn.label); next() }) { Text(btn.label) }
+                                    }
                                 }
-                                CinqueMinuti.Act.DONE -> FilledTonalButton(onClick = { onDone(i); next() }) { Text(stringResource(R.string.agenda_done)) }
-                                CinqueMinuti.Act.NONE -> Unit
                             }
                         }
                         HorizontalDivider(color = Cm.line)
@@ -244,6 +253,15 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
             }
         }
     }
+}
+
+/** L'inizio del piano, piegato oltre quattro righe col tasto per aprirlo: mai tagliato senza poterlo aprire. */
+@Composable
+private fun PlanText(text: String) {
+    var open by rememberSaveable(text) { mutableStateOf(false) }
+    var cut by remember(text) { mutableStateOf(false) }
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text, maxLines = if (open) Int.MAX_VALUE else 4, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, onTextLayout = { r -> if (!open) cut = r.hasVisualOverflow })
+    if (cut || open) TextButton(onClick = { open = !open }) { Text(stringResource(if (open) R.string.permission_less else R.string.permission_more)) }
 }
 
 /** Le tre righe dell'ok informato (contratto 1.99): quello che manca dice «non dichiarato», non si inventa. Poi i compiti che partono con questo ok. */

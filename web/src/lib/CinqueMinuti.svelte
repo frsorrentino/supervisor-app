@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { CmdResult, DecisionItem, DecisionsPage, State } from './contract'
   import { decodeDecisions } from './decideDecode'
-  import { act, canDrop, nextDecisions } from './decide'
+  import { buttons, canDrop, card, nextDecisions, viaApprove } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
   // «Da decidere» (contratto 1.99, cinque_minuti), porta di CinqueMinutiScreen: quante vuoi, una alla volta, le più pesanti per prime. Niente timer.
-  let { run, onApprove, onDone }: { st: State; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void } = $props()
+  let { run, onApprove, onDone, onAsk }: { st: State; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void } = $props()
+  let planOpen = $state(new Set<string>())
   let page = $state<DecisionsPage | null>(null)
   let howMany = $state<number | null>(null)
   let touched = $state(new Set<string>())
@@ -13,6 +14,7 @@
   async function load() { const r = await run(newCmd('decisioni', null)); if (r?.ok) page = decodeDecisions(r.text) }
   $effect(() => { void load() })
   const g = $derived(page && howMany != null ? nextDecisions(page, touched, Math.max(0, howMany - touched.size))[0] ?? null : null)
+  const cardOf = $derived(g ? card(g) : { head: [], items: [] })
   const next = (k: string) => { touched = new Set([...touched, k]) }
   async function decide(key: string, action: 'not_now' | 'drop', r?: string) { next(key); await run(newCmd('decisione', null, key, undefined, undefined, action === 'drop' ? { action, reason: r } : { action, hours: 24 })) }
 </script>
@@ -27,15 +29,23 @@
   {:else}
     <span class="pos">{t.decisionsPosition(touched.size + 1, Math.min(howMany, page.groups.length))}</span>
     <div class="c">
-      <b>{g.title}</b>
+      <!-- Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte. -->
+      {#each cardOf.head as h, n (n)}{#if n === 0}<b>{h}</b>{:else}<p class="m">{h}</p>{/if}{/each}
       <span class="pos" class:pc={g.where === 'pc'}>{g.where === 'pc' ? t.decisionsAtPc : t.decisionsHere}{g.weight > 1 ? ` · ${t.decisionsUnblocks(g.weight)}` : ''}</span>
-      {#if g.note}<p class="m">{g.note}</p>{/if}
       {#each g.items as i, n (n)}
+        {@const x = cardOf.items[n]}
+        {@const name = i.title ?? i.short ?? i.session ?? i.task ?? ''}
+        {@const ref = i.task ?? i.session ?? ''}
         <hr />
-        <b class="i">{i.short ?? i.title ?? i.session ?? i.task}</b>
-        {#if i.reason ?? i.what}<p class="m">{i.reason ?? i.what}</p>{/if}
-        {#if act(i) === 'approve'}<div class="ac">{#if i.options?.length}{#each i.options as o (o)}<button class="tonal" onclick={() => { onApprove(i.task!, '', o); next(g.key) }}>{o}</button>{/each}{:else}<button class="tonal" onclick={() => { onApprove(i.task!, ''); next(g.key) }}>{t.approve}</button>{/if}</div>
-        {:else if act(i) === 'done'}<div class="ac"><button class="tonal" onclick={() => { onDone(i); next(g.key) }}>{t.agendaDone}</button></div>{/if}
+        {#if x.title}<b class="i">{x.title}</b>{/if}
+        {#if x.plan}{@const k = `${g.key}-${n}`}<p class="plan" class:folded={!planOpen.has(k)}>{x.plan}</p>{#if x.plan.length > 160}<button class="text" onclick={() => { const s = new Set(planOpen); if (s.has(k)) s.delete(k); else s.add(k); planOpen = s }}>{planOpen.has(k) ? t.permissionLess : t.permissionMore}</button>{/if}{/if}
+        {#if x.reason}<p class="m">{x.reason}</p>{/if}
+        {#if buttons(i).length}<div class="ac">{#each buttons(i) as btn, bi (bi)}
+          {#if btn.kind === 'proceed'}<button class="tonal" onclick={() => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)); next(g.key) }}>{t.decisionsProceed}</button>
+          {:else if btn.kind === 'discuss'}<button class="out" onclick={() => { onAsk(t.sugDiscussPrompt(t.decisionsDiscussAbout(name, ref))); next(g.key) }}>{t.decisionsDiscuss}</button>
+          {:else if btn.kind === 'done'}<button class="tonal" onclick={() => { onDone(i); next(g.key) }}>{t.agendaDone}</button>
+          {:else}<button class="tonal" onclick={() => { if (viaApprove(i)) onApprove(i.task!, '', btn.label); else onAsk(`${t.decisionsChoicePrompt(name, ref)} ${btn.label}`); next(g.key) }}>{btn.label}</button>{/if}
+        {/each}</div>{/if}
       {/each}
       <hr />
       <div class="ac"><button class="text" onclick={() => decide(g.key, 'not_now')}>{t.decisionsNotNow}</button><button class="text red" onclick={() => (dropping = true)}>{t.decisionsDrop}</button></div>
@@ -58,5 +68,7 @@
   .ac { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; }
   .text { color: var(--icon); font-weight: 500; font-size: 14px; padding: 8px 4px; } .red { color: var(--gone); }
+  .plan { font-size: 14.5px; white-space: pre-wrap; overflow-wrap: anywhere; } .plan.folded { display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .out { border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; }
   input { width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 8px; font: inherit; }
 </style>

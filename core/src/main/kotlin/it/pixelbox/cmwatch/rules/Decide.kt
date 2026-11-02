@@ -50,6 +50,35 @@ object CinqueMinuti {
     enum class Act { APPROVE, DONE, NONE }
 
     /** Cosa fa il tasto principale di una voce: un ok si approva, una pausa o una richiesta si dicono fatte. */
+    /**
+     * Contratto 1.104 (Franz 02/11 08:04: «non ricordo cosa era stato proposto»): i tasti secondo cosa si aspetta. ok = Procedi e Parliamone; choice = le
+     * opzioni; pc = Fatto, solo per ciò che si fa a mano al PC; other = Parliamone. Senza `asks`, un relay di prima: il tasto di sempre.
+     */
+    sealed class Btn { data object Proceed : Btn(); data object Discuss : Btn(); data object Done : Btn(); data class Choice(val label: String) : Btn() }
+    fun buttons(i: DecisionItem): List<Btn> = when (i.asks) {
+        "ok" -> listOf(Btn.Proceed, Btn.Discuss)
+        "choice" -> i.options.orEmpty().map { Btn.Choice(it) }.ifEmpty { listOf(Btn.Discuss) }
+        "pc" -> listOf(Btn.Done)
+        "other" -> listOf(Btn.Discuss)
+        else -> when (act(i)) {
+            Act.APPROVE -> i.options.orEmpty().map { Btn.Choice(it) }.ifEmpty { listOf(Btn.Proceed) }
+            Act.DONE -> listOf(Btn.Done)
+            Act.NONE -> emptyList()
+        }
+    }
+    /** Procedi e una scelta passano dall'ok del registro solo per una card; per una pausa le dice alla master. */
+    fun viaApprove(i: DecisionItem): Boolean = i.kind == "ok" && i.task != null
+
+    /** Il testo della card, in ordine: la frase della master, la causa, poi per voce titolo intero, inizio del piano e motivo; mai lo stesso testo due volte. */
+    data class ItemText(val title: String?, val plan: String?, val reason: String?)
+    data class Card(val head: List<String>, val items: List<ItemText>)
+    fun card(g: DecisionGroup): Card {
+        val seen = mutableSetOf<String>()
+        fun once(t: String?): String? = t?.trim()?.takeIf { it.isNotEmpty() && seen.add(it.lowercase()) }
+        val head = listOfNotNull(once(g.note), once(g.title))
+        return Card(head, g.items.map { i -> ItemText(once(i.title ?: i.short ?: i.session ?: i.task), once(i.planStart), once(i.reason ?: i.what)) })
+    }
+
     fun act(i: DecisionItem): Act = when (i.kind) {
         "ok" -> if (i.task != null) Act.APPROVE else Act.NONE
         "pause" -> if (i.task != null) Act.DONE else Act.NONE

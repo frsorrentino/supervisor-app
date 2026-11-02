@@ -12,6 +12,32 @@ export const screen = (dove: string | null | undefined): string | null => { cons
 export const nextDecisions = (page: DecisionsPage, touched: Set<string>, howMany: number): DecisionGroup[] => page.groups.filter(g => !touched.has(g.key)).slice(0, howMany)
 export const canDrop = (reason: string) => reason.trim() !== ''
 export type Act = 'approve' | 'done' | 'none'
+/**
+ * Contratto 1.104 (Franz 02/11 08:04: «non ricordo cosa era stato proposto»), porta di CinqueMinuti.buttons: ok = Procedi e Parliamone; choice = le opzioni;
+ * pc = Fatto, solo per ciò che si fa a mano al PC; other = Parliamone. Senza `asks`, un relay di prima: il tasto di sempre.
+ */
+export type Btn = { kind: 'proceed' } | { kind: 'discuss' } | { kind: 'done' } | { kind: 'choice'; label: string }
+export function buttons(i: DecisionItem): Btn[] {
+  const opts = (i.options ?? []).map(label => ({ kind: 'choice', label }) as Btn)
+  switch (i.asks) {
+    case 'ok': return [{ kind: 'proceed' }, { kind: 'discuss' }]
+    case 'choice': return opts.length ? opts : [{ kind: 'discuss' }]
+    case 'pc': return [{ kind: 'done' }]
+    case 'other': return [{ kind: 'discuss' }]
+  }
+  const a = act(i)
+  return a === 'approve' ? (opts.length ? opts : [{ kind: 'proceed' }]) : a === 'done' ? [{ kind: 'done' }] : []
+}
+/** Procedi e una scelta passano dall'ok del registro solo per una card; per una pausa le dice alla master. */
+export const viaApprove = (i: DecisionItem) => i.kind === 'ok' && !!i.task
+/** Il testo della card: la frase della master, la causa, poi per voce titolo intero, inizio del piano e motivo; mai lo stesso testo due volte. */
+export type ItemText = { title: string | null; plan: string | null; reason: string | null }
+export function card(g: DecisionGroup): { head: string[]; items: ItemText[] } {
+  const seen = new Set<string>()
+  const once = (x?: string | null) => { const v = x?.trim(); if (!v || seen.has(v.toLowerCase())) return null; seen.add(v.toLowerCase()); return v }
+  const head = [once(g.note), once(g.title)].filter((x): x is string => !!x)
+  return { head, items: g.items.map(i => ({ title: once(i.title ?? i.short ?? i.session ?? i.task), plan: once(i.plan_start), reason: once(i.reason ?? i.what) })) }
+}
 /** Cosa fa il tasto principale di una voce: un ok si approva, una pausa o una richiesta si dicono fatte. */
 export function act(i: DecisionItem): Act {
   if (i.kind === 'ok') return i.task ? 'approve' : 'none'

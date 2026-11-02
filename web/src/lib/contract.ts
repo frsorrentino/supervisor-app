@@ -84,7 +84,9 @@ export type PrimaRaccoltaSection = { key: string; dove?: string | null; n: numbe
 export type PrimaRaccoltaPage = { at: number; status: string; done: number; total: number; consent?: boolean | null; ask_text?: string | null; cost: number; sections: PrimaRaccoltaSection[]; first_round?: { at?: number | null; cost?: string | null } | null }
 export type ProveGroup = { build: string; n: number; at: number; tasks: string[]; prove: ProveItem[] }
 export type ProvePage = { at: number; n: number; builds: number; groups: ProveGroup[]; ko: (Omit<ProveItem, 'title' | 'session' | 'project'> & { text: string })[]; red: { task: string; short?: string | null; reason?: string | null; at: number }[] }
-export type DecisionItem = { kind: string; task?: string | null; short?: string | null; title?: string | null; session?: string | null; project?: string | null; reason?: string | null; since: number; where?: string | null; undo?: string | null; undo_how?: string | null; what?: string | null; where_to?: string | null; options?: string[] | null; untested?: string | null }
+export type DecisionItem = { kind: string; task?: string | null; short?: string | null; title?: string | null; session?: string | null; project?: string | null; reason?: string | null; since: number; where?: string | null; undo?: string | null; undo_how?: string | null; what?: string | null; where_to?: string | null; options?: string[] | null; untested?: string | null
+  /** Contratto 1.104: l'inizio del piano e cosa si aspetta (ok, choice, pc, other); `title` è il titolo intero. */
+  plan_start?: string | null; asks?: string | null }
 export type DecisionGroup = { key: string; title: string; cause?: string | null; items: DecisionItem[]; unblocks: string[]; weight: number; where?: string | null; since: number; note?: string | null; refs: string[] }
 export type DecisionsPage = { at: number; n: number; here: number; tasks: number; snoozed: number; groups: DecisionGroup[] }
 /** Contratto 1.76: una voce della vista «Impegni» del registro; `waits` = chi aspetta chi (`person` = l'utente). */
@@ -325,7 +327,7 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
-  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione'
+  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
   /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */

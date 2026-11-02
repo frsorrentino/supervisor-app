@@ -1085,6 +1085,8 @@ class MainActivity : ComponentActivity() {
             runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), choice = choice, also = also) }
             readDecide()
         } }
+        // Contratto 1.104: Procedi su una pausa, una scelta e Parliamone arrivano alla master come messaggio; Parliamone spiega senza eseguire.
+        val decAsk: (String) -> Unit = { text -> sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, text) }
         val decDone: (it.pixelbox.cmwatch.contract.DecisionItem) -> Unit = { i ->
             val c = i.task?.let { t -> state?.commitments?.firstOrNull { x -> x.task == t } }
             if (i.kind == "needs_you") scope.launch { i.session?.let { n -> runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, n, kind = "needs_you", since = i.since) } }; readDecide() }
@@ -1099,7 +1101,7 @@ class MainActivity : ComponentActivity() {
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
             "seguiti" to { Inline("seguiti") { it.pixelbox.cmwatch.mobile.ui.SeguitiBody(seguitiPage, seguitiFailed, act, { open = null; tab = StartRoute.Tab.LAVORI }, { open = null; masterChat = true }) } },
             "prove" to { Inline("prove") { it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideCmd(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen) } },
-            "decisioni" to { Inline("decisioni") { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage, decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }) } },
+            "decisioni" to { Inline("decisioni") { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage, decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }, onAsk = decAsk) } },
         )
         if (proveOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false },
@@ -1128,6 +1130,7 @@ class MainActivity : ComponentActivity() {
                 onDone = decDone,
                 onNotNow = { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) },
                 onDrop = { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) },
+                onAsk = decAsk,
             ) }
             BackHandler { decisionsOpen = false }
             return
