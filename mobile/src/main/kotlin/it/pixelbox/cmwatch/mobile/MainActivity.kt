@@ -1041,12 +1041,15 @@ class MainActivity : ComponentActivity() {
             }
         }
         val toast = { t: String? -> if (!t.isNullOrBlank()) android.widget.Toast.makeText(this@MainActivity, t, android.widget.Toast.LENGTH_SHORT).show() }
-        val decideCmd: (CmdOp, String, String?, Int?, String?, String?) -> Unit = { op, arg, result, hours, reason, text -> scope.launch {
+        // Franz 02/11 15:38 (app-feedback-azioni-02-11): l'esito torna a chi ha toccato, così la scheda esce subito e torna se il PC dice no.
+        suspend fun decideRun(op: CmdOp, arg: String, result: String?, hours: Int?, reason: String?, text: String?): Boolean {
             val id = runCatching { app.repo.command(op, null, arg, text = text, action = if (op == CmdOp.DECISIONE) result else null, result = if (op == CmdOp.PROVA) result else null, hours = hours, reason = reason) }.getOrNull()
             val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
             toast(r?.text); id?.let { x -> app.repo.forget(x) }
-            readDecide()
-        } }
+            scope.launch { readDecide() }
+            return r?.ok == true
+        }
+        val decideCmd: (CmdOp, String, String?, Int?, String?, String?) -> Unit = { op, arg, result, hours, reason, text -> scope.launch { decideRun(op, arg, result, hours, reason, text) } }
         val goScreen: (String) -> Unit = { s ->
             when (s) {
                 "lavori" -> { open = null; tab = StartRoute.Tab.LAVORI }
@@ -1078,9 +1081,10 @@ class MainActivity : ComponentActivity() {
             id?.let { x -> app.repo.forget(x) }
             readDecide()
         } }
-        val proveKo: (it.pixelbox.cmwatch.contract.ProveItem, String, android.net.Uri?) -> Unit = { p, text, shot ->
-            decideCmd(CmdOp.PROVA, p.id.toString(), "ko", null, null, text)
-            if (shot != null) attachMany(it.pixelbox.cmwatch.rules.ContextActions.MASTER, listOf(shot), getString(R.string.prove_ko_shot_note, p.short ?: p.task), state?.share)
+        val proveKo: suspend (it.pixelbox.cmwatch.contract.ProveItem, String, android.net.Uri?) -> Boolean = { p, text, shot ->
+            val ok = decideRun(CmdOp.PROVA, p.id.toString(), "ko", null, null, text)
+            if (ok && shot != null) attachMany(it.pixelbox.cmwatch.rules.ContextActions.MASTER, listOf(shot), getString(R.string.prove_ko_shot_note, p.short ?: p.task), state?.share)
+            ok
         }
         val decApprove: (String, String?) -> Unit = { task, choice -> scope.launch {
             val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
@@ -1102,12 +1106,12 @@ class MainActivity : ComponentActivity() {
         val sectionBodies: Map<String, @Composable () -> Unit> = mapOf(
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
             "seguiti" to { Inline("seguiti") { it.pixelbox.cmwatch.mobile.ui.SeguitiBody(seguitiPage, seguitiFailed, act, { open = null; tab = StartRoute.Tab.LAVORI }, { open = null; masterChat = true }) } },
-            "prove" to { Inline("prove") { it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideCmd(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen) } },
+            "prove" to { Inline("prove") { it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen) } },
             "decisioni" to { Inline("decisioni") { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage, decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }, onAsk = decAsk) } },
         )
         if (proveOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false },
-                onOk = { ids -> decideCmd(CmdOp.PROVA, ids, "ok", null, null, null) },
+                onOk = { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) },
                 onKo = proveKo,
                 onScreen = { s -> proveOpen = false; goScreen(s) }) }
             BackHandler { proveOpen = false }

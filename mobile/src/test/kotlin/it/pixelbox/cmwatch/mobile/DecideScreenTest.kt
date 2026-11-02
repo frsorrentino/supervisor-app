@@ -24,7 +24,7 @@ class DecideScreenTest {
     private val prove = ContractJson.decodeProve(textOf("prove"))
     private val dec = ContractJson.decodeDecisions(textOf("decisioni"))
 
-    private fun prova(b: BancoProva.Build) = paparazzi.snapshot { CmPhoneTheme(still = true) { DaProvareScreen(prove, { b }, onBack = {}, onOk = {}, onKo = { _, _, _ -> }, onScreen = {}) } }
+    private fun prova(b: BancoProva.Build) = paparazzi.snapshot { CmPhoneTheme(still = true) { DaProvareScreen(prove, { b }, onBack = {}, onOk = { true }, onKo = { _, _, _ -> true }, onScreen = {}) } }
     @Test fun banco_prova_installata() = prova(BancoProva.Build.INSTALLED)
     @Test fun banco_prova_daInstallare() = prova(BancoProva.Build.TO_INSTALL)
     @Test fun cinque_minuti_quante() = paparazzi.snapshot { CmPhoneTheme(still = true) { CinqueMinutiScreen(dec, onBack = {}, onApprove = { _, _ -> }, onDone = {}, onNotNow = {}, onDrop = { _, _ -> }) } }

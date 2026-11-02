@@ -18,6 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,9 +50,29 @@ private fun DecidePage(title: String, tag: String, onBack: () -> Unit, content: 
 }
 
 @Composable
-private fun DecideCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+private fun DecideCard(picked: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    // La scheda scelta si schiarisce (voce 11), con il passaggio lento dei colori (voce 14).
+    val bg by androidx.compose.animation.animateColorAsState(if (picked) Cm.surfaceHigh else Cm.surfaceLow, CmMotion.slow, label = "decide-card")
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(bg).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
 }
+
+/**
+ * Il tasto che diventa la conferma (voce 11, Franz 02/11 15:38): al tocco si accende di verde con la spunta e cresce un poco
+ * con la molla dell'app; `faded` = è stato scelto un altro tasto. Al tocco anche la vibrazione di conferma (voce 13).
+ */
+@Composable
+private fun ConfirmButton(label: String, confirmed: Boolean, enabled: Boolean, faded: Boolean = false, onClick: () -> Unit) {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "confirm-scale")
+    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) V3.Good else Cm.surfaceHigh, CmMotion.slow, label = "confirm-bg")
+    FilledTonalButton(
+        onClick = { view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); onClick() }, enabled = enabled || confirmed,
+        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(containerColor = bg, contentColor = if (confirmed) Cm.bg else Cm.text, disabledContainerColor = bg, disabledContentColor = if (confirmed) Cm.bg else Cm.text2),
+        modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (faded) 0.35f else 1f },
+    ) { Text(if (confirmed) "✓ $label" else label) }
+}
+
+private fun Modifier.graphicsLayerAlpha(a: Float) = this.graphicsLayer { alpha = a }
 
 /**
  * «Prima raccolta» (contratto 1.100, funzione 10 del programma del 01/11): cosa si è trovato per ogni sezione, dati veri; una sezione vuota dice perché
@@ -117,24 +139,47 @@ private fun primaSection(key: String): String = when (key) {
  * hanno i tasti. «Non va» chiede cosa non va, a voce dalla tastiera, e uno screenshot facoltativo: arrivano alla master.
  */
 @Composable
-fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: (String) -> Unit, onKo: (ProveItem, String, android.net.Uri?) -> Unit, onScreen: (String) -> Unit) = DecidePage(stringResource(R.string.prove_title), "da-provare", onBack) { DaProvareBody(page, buildOf, onOk, onKo, onScreen) }
+fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit) = DecidePage(stringResource(R.string.prove_title), "da-provare", onBack) { DaProvareBody(page, buildOf, onOk, onKo, onScreen) }
 
 @Composable
-fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: (String) -> Unit, onKo: (ProveItem, String, android.net.Uri?) -> Unit, onScreen: (String) -> Unit) {
+fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit) {
     var ko by remember { mutableStateOf<ProveItem?>(null) }
+    // Franz 02/11 15:38: Ok non blocca più e la scheda non sparisce di colpo (Leave): conferma sul tasto, uscita in altezza,
+    // le altre salgono; se il PC dice no, la scheda torna.
+    var picked by remember { mutableStateOf(mapOf<String, String>()) }
+    var gone by remember { mutableStateOf(setOf<String>()) }
+    val off = animationsOff()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val hooks = remember {
+        object : it.pixelbox.cmwatch.rules.Leave.Hooks {
+            override fun pick(ids: List<String>, choice: String?) { picked = if (choice != null) picked + ids.associateWith { choice } else picked - ids.toSet() }
+            override fun hide(ids: List<String>, hidden: Boolean) { gone = if (hidden) gone + ids else gone - ids.toSet() }
+        }
+    }
+    val act: (List<String>, String, suspend () -> Boolean) -> Unit = { ids, choice, send ->
+        scope.launch { it.pixelbox.cmwatch.rules.Leave.run(ids, choice, send, hooks) { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(off)) } }
+    }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (page == null) Text(stringResource(R.string.prove_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp))
         else if (page.groups.isEmpty() && page.ko.isEmpty() && page.red.isEmpty()) Text(stringResource(R.string.prove_none), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp))
         page?.groups?.forEach { g ->
             val b = buildOf(g.build)
+            val ids = g.prove.map { it.id.toString() }
+            val shown = g.prove.filter { it.id.toString() !in gone }
+            androidx.compose.animation.AnimatedVisibility(shown.isNotEmpty(), enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(if (off) 0 else 160)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (off) 0 else 160))) {
             Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(g.build, style = MonoSmall, modifier = Modifier.weight(1f))
-                if (b != BancoProva.Build.TO_INSTALL && g.prove.size > 1) FilledTonalButton(onClick = { onOk(BancoProva.allOk(g)) }) { Text(stringResource(R.string.prove_all_ok)) }
+                val allPicked = ids.all { picked[it] == "ok" }
+                if (b != BancoProva.Build.TO_INSTALL && shown.size > 1) ConfirmButton(stringResource(R.string.prove_all_ok), confirmed = allPicked, enabled = ids.none { it in picked }) { act(ids, "ok") { onOk(BancoProva.allOk(g)) } }
+            }
             }
             if (b == BancoProva.Build.TO_INSTALL) Text(stringResource(R.string.prove_install_first), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, modifier = Modifier.padding(horizontal = 4.dp))
             if (b == BancoProva.Build.UNKNOWN) Text(stringResource(R.string.prove_build_unknown), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
             g.prove.forEach { p ->
-                DecideCard {
+                val id = p.id.toString()
+                val pk = picked[id]
+                androidx.compose.animation.AnimatedVisibility(id !in gone, exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(if (off) 0 else 160)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (off) 0 else 160))) {
+                DecideCard(picked = pk != null) {
                     Text(p.short ?: p.title ?: p.task, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
                     Text(p.fai, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
                     Text(stringResource(R.string.prove_expected, p.atteso), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
@@ -142,10 +187,11 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                         BancoProva.screen(p.dove)?.let { s -> TextButton(onClick = { onScreen(s) }) { Text(stringResource(R.string.features_go)) } }
                         Spacer(Modifier.weight(1f))
                         if (b != BancoProva.Build.TO_INSTALL) {
-                            OutlinedButton(onClick = { ko = p }) { Text(stringResource(R.string.prove_ko)) }
-                            FilledTonalButton(onClick = { onOk(p.id.toString()) }) { Text(stringResource(R.string.prove_ok)) }
+                            OutlinedButton(onClick = { ko = p }, enabled = pk == null, modifier = Modifier.graphicsLayerAlpha(if (pk == "ok") 0.35f else 1f)) { Text(stringResource(R.string.prove_ko)) }
+                            ConfirmButton(stringResource(R.string.prove_ok), confirmed = pk == "ok", enabled = pk == null, faded = pk == "ko") { act(listOf(id), "ok") { onOk(id) } }
                         }
                     }
+                }
                 }
             }
         }
@@ -171,7 +217,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                     TextButton(onClick = { pick.launch("image/*") }) { Text(stringResource(if (shot == null) R.string.prove_ko_shot else R.string.prove_ko_shot_ok)) }
                 }
             },
-            confirmButton = { TextButton(enabled = text.isNotBlank(), onClick = { onKo(p, text.trim(), shot); ko = null }) { Text(stringResource(R.string.prove_ko_send)) } },
+            confirmButton = { TextButton(enabled = text.isNotBlank(), onClick = { val body = text.trim(); val s = shot; ko = null; act(listOf(p.id.toString()), "ko") { onKo(p, body, s) } }) { Text(stringResource(R.string.prove_ko_send)) } },
             dismissButton = { TextButton(onClick = { ko = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
