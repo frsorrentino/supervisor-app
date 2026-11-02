@@ -1,6 +1,7 @@
 import { workingText } from './masterHome'
 import type { Approval, QuotaAccount, Session, State } from './contract'
 import { DAY } from './durations'
+import { approves } from './questionRules'
 import { stop } from './strongAlert'
 
 // Il riepilogo unico della home, porta di Summary.kt: ogni sessione una volta, nell'ordine del bisogno (ti aspetta, ha
@@ -43,7 +44,7 @@ export function build(state: State, sent: Sent[], now: number, read: Set<string>
   const others = live.filter(s => s.name !== MASTER)
   // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
   const waiting: Bare[] = others.flatMap((s): Bare[] => {
-    if (s.question) return [{ group: 'waiting', session: s, text: s.question.text, at: s.question.asked_at }]
+    if (s.question) return [{ group: 'waiting', session: s, text: approves(s.question) ?? s.question.text, at: s.question.asked_at }]
     const x = stop(s)
     return x ? [{ group: 'waiting', session: s, text: x.text, at: x.at }] : []
   }).sort((a, b) => a.at! - b.at!)

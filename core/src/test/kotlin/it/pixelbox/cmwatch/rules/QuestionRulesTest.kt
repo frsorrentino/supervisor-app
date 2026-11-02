@@ -6,6 +6,7 @@ import it.pixelbox.cmwatch.contract.Option
 import it.pixelbox.cmwatch.contract.Question
 import it.pixelbox.cmwatch.contract.QuestionKind
 import it.pixelbox.cmwatch.contract.Tier
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -87,5 +88,52 @@ class QuestionRulesTest {
         assertEquals(r.text, QuestionRules.refusalText(r, null, listOf(solved), word))
         val other = it.pixelbox.cmwatch.contract.CmdResult("c", false, "ledger-api has no open question", 1)
         assertEquals(other.text, QuestionRules.refusalText(other, "q-1789210500-1", listOf(solved), word))
+    }
+
+    // Contratto 1.101, sulla fixture del relay (testo di un dialogo vero). Franz, 02/11 01:22: «Do you want to proceed?» non dice nulla.
+    private val pq = ContractJson.json.parseToJsonElement(Fixtures.read("question-permission.json")).let {
+        ContractJson.json.decodeFromJsonElement(Question.serializer(), it.jsonObject.getValue("session_question"))
+    }
+
+    @Test fun permesso_esplicito_cardSaysWhatIsApproved() = assertEquals(
+        QuestionRules.PermissionCard("Publish the docs: git push origin main", "Do you want to proceed?", null, false),
+        QuestionRules.permissionCard(pq),
+    )
+
+    @Test fun permesso_esplicito_olderRelayKeepsTheQuestion() {
+        assertEquals(QuestionRules.PermissionCard("Do you want to proceed?", null, null, false), QuestionRules.permissionCard(pq.copy(what = null, body = null)))
+        assertNull(QuestionRules.permissionCard(pq.copy(kind = QuestionKind.ASK)))
+        assertNull(pq.copy(kind = QuestionKind.ASK).approves)
+        assertNull(pq.copy(what = "  ").approves)
+    }
+
+    @Test fun permesso_esplicito_longCommandFoldsNeverCut() {
+        val long = "x".repeat(QuestionRules.FOLD_CHARS + 1)
+        val c = QuestionRules.permissionCard(pq.copy(what = long, body = null))!!
+        assertEquals(long, c.main); assertTrue(c.folds)
+        assertFalse(QuestionRules.permissionCard(pq.copy(what = "x".repeat(QuestionRules.FOLD_CHARS), body = null))!!.folds)
+    }
+
+    @Test fun permesso_esplicito_dialogTextOpensOnlyWhenItSaysMore() {
+        val c = QuestionRules.permissionCard(pq.copy(body = "Publish the docs\ngit push origin main\nThis command touches the remote"))!!
+        assertTrue(c.more!!.contains("touches the remote")); assertTrue(c.folds)
+    }
+
+    @Test fun permesso_esplicito_notificationBody() {
+        assertEquals(pq.what, QuestionRules.notificationText(pq, "Chiede un permesso"))
+        assertEquals("Chiede un permesso: Do you want to proceed?", QuestionRules.notificationText(pq.copy(what = null), "Chiede un permesso"))
+        assertEquals("Chiede un permesso", QuestionRules.notificationText(pq.copy(what = null, text = "-: -"), "Chiede un permesso"))
+        assertEquals("Do you want to proceed?", QuestionRules.notificationText(pq.copy(what = null), ""))
+        assertEquals("Deploy?", QuestionRules.notificationText(pq.copy(kind = QuestionKind.ASK, what = null, text = "Deploy?"), "Chiede un permesso"))
+        assertEquals(pq.what, pq.copy(preview = "p").shareable)
+        assertEquals("p", pq.copy(what = null, preview = "p").shareable)
+    }
+
+    @Test fun permesso_esplicito_queueSummaryAndVoice() {
+        val base = ContractJson.decodeState(Fixtures.stateQuestion)
+        val s = base.sessions.first { it.question != null }.copy(question = pq)
+        val st = base.copy(sessions = listOf(s))
+        assertEquals(listOf(pq.what), AttentionQueue.items(st).map { it.text })
+        assertEquals("Publish the docs: git push origin main 1, Yes. 2, No.", SpeechText.question(pq, "%1\$d, %2\$s."))
     }
 }

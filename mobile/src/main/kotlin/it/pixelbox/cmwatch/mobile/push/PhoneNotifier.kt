@@ -82,6 +82,7 @@ class PhoneNotifier(private val ctx: Context) {
         open = "", reply = ctx.getString(R.string.answer_free), retry = ctx.getString(R.string.retry), read = ctx.getString(R.string.read_aloud),
         stop = "", write = ctx.getString(R.string.write_prompt), resume = ctx.getString(R.string.reopen), sent = "", confirmed = "",
         notDelivered = ctx.getString(R.string.not_delivered), sessions = ctx.getString(R.string.tab_sessions),
+        permissionAsks = ctx.getString(R.string.permission_asks),
     )
 
     /** `queue`: il tocco apre la coda «Ti aspettano» invece dell'app dov'era (piano 30/09, Task 1). */
@@ -100,8 +101,9 @@ class PhoneNotifier(private val ctx: Context) {
     fun question(s: Session, mode: PhoneAlert.Mode) {
         val q = s.question ?: return
         val plan = NotificationPlan.question(s, labels, emptyList())
+        val text = Emoji.strip(it.pixelbox.cmwatch.rules.QuestionRules.notificationText(q, labels.permissionAsks))
         val b = NotificationCompat.Builder(ctx, strong(mode)).setSmallIcon(icon(EventKind.QUESTION))
-            .setContentTitle(plan.title).setContentText(Emoji.strip(q.shareable)).setStyle(NotificationCompat.BigTextStyle().bigText(Emoji.strip(q.shareable)))
+            .setContentTitle(plan.title).setContentText(text).setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSubText(plan.subText).setContentIntent(open(openCode(s.name, queue = true), queue = true)).setOnlyAlertOnce(true)
         q.options.take(3).forEach { o ->
             b.addAction(0, it.pixelbox.cmwatch.rules.QuestionRules.optionLabel(o), broadcast(ReplyRoute.OPTION, s.name, o.n, id(s.name) * 10 + o.n))

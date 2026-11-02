@@ -1540,4 +1540,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="usage_tokens_few">%1$d token</string>
     <string name="usage_waits">Attesa mediana %1$d min · %2$d chiuse in 7 giorni</string>
     <string name="reorder_tools">Utilizzo e sistema</string>
+    <string name="permission_asks">Chiede un permesso</string>
+    <string name="permission_more">Mostra tutto</string>
+    <string name="permission_less">Riduci</string>
 </resources>

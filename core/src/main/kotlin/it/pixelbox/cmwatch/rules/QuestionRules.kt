@@ -48,6 +48,37 @@ object QuestionRules {
     /** Caratteri di riquadro e blocchi (U+2500–U+259F). */
     private val DISEGNO = Regex("[\\u2500-\\u259F]")
     private val SPAZI = Regex("\\s+")
+    /** Oltre questa lunghezza un permesso si piega a [FOLD_LINES] righe, con il tasto per aprirlo (design: mai tagliato senza poterlo aprire). */
+    const val FOLD_CHARS = 120
+    const val FOLD_LINES = 4
+
+    /**
+     * Contratto 1.101, la card di un permesso (Franz, 02/11 01:22: «Do you want to proceed?» non dice cosa si approva).
+     * `main` è il testo grande: cosa si approva, o la domanda con un relay precedente. `question` è la domanda generica sotto,
+     * `more` il testo del dialogo se dice più di `main`. `folds`: c'è da aprire, e solo allora il testo può essere piegato.
+     */
+    data class PermissionCard(val main: String, val question: String?, val more: String?, val folds: Boolean)
+
+    fun permissionCard(q: Question): PermissionCard? {
+        if (q.kind != QuestionKind.PERMISSION) return null
+        val main = q.approves ?: q.text
+        val more = q.body?.trim()?.takeIf { it.isNotEmpty() && q.approves != null && words(it) != words(main) }
+        return PermissionCard(main, q.text.takeIf { q.approves != null && words(it) != words(main) && words(it).isNotEmpty() }, more, main.length > FOLD_CHARS || more != null)
+    }
+
+    private fun words(s: String) = s.filter { it.isLetterOrDigit() }
+
+    /**
+     * Il corpo di una notifica di domanda: cosa si approva; con un relay precedente, che è un permesso e non una scelta
+     * ([permissionWord], vuoto dove non serve: resta il testo di sempre).
+     */
+    fun notificationText(q: Question, permissionWord: String, fallback: String = q.shareable): String {
+        q.approves?.let { return it }
+        val text = shownText(q.shareable, fallback)
+        if (q.kind != QuestionKind.PERMISSION || permissionWord.isEmpty()) return text
+        return if (q.shareable.any { it.isLetterOrDigit() }) "$permissionWord: $text" else permissionWord
+    }
+
     /** Contratto 1.10: «Type something.» con il testo scritto al polso; gli a capo diventano spazi. */
     fun textArg(text: String): String = "text:" + text.replace(Regex("\\s*\\n\\s*"), " ").trim()
 

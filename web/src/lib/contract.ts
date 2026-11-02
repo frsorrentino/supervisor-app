@@ -6,7 +6,11 @@ export type SessionState = 'waiting' | 'busy' | 'idle' | 'awaiting' | 'gone'
 export type Option = { n: number; label: string; description?: string | null; recommended?: boolean }
 export type Question = { id: string; kind: 'permission' | 'ask' | 'plan'; text: string; options: Option[]; tier: 'low' | 'medium' | 'high'; asked_at: number
   /** Contratto 1.56: il testo senza segreti, solo quando diverso da `text`. */
-  preview?: string | null }
+  preview?: string | null
+  /** Contratto 1.101, solo per un permesso: cosa si approva, una riga, senza segreti; assente con un relay precedente. */
+  what?: string | null
+  /** Contratto 1.101, solo per un permesso: il testo del dialogo, senza segreti. */
+  body?: string | null }
 /** Contratto 1.55: una domanda risolta al terminale, nello stato per 5 minuti. */
 /** Contratto 1.66: question | turn_failed | quota_limit | task_red. */
 /** Contratto 1.80: `closes` = come si chiude da sola (answer | prompt | check); `expires_at` per needs_you (epoch s). */

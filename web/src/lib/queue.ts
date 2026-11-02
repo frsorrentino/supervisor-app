@@ -1,4 +1,5 @@
 import type { Session, State } from './contract'
+import { approves } from './questionRules'
 import { stop } from './strongAlert'
 
 // La coda «Ti aspettano», porta di AttentionQueue.kt: le domande aperte di tutte le sessioni, da rispondere in fila.
@@ -21,7 +22,7 @@ export function doneOf(s: Session): Done | null {
 export const items = (state: State): QueueItem[] =>
   // Le sessioni chiuse mai, come nel banner (23/10): banner e coda mostrano le stesse voci.
   state.sessions.filter(s => s.state !== 'gone').flatMap((s): QueueItem[] => {
-    if (s.question) return [{ session: s.name, questionId: s.question.id, askedAt: s.question.asked_at, kind: 'question', text: s.question.text, done: null, expiresAt: null }]
+    if (s.question) return [{ session: s.name, questionId: s.question.id, askedAt: s.question.asked_at, kind: 'question', text: approves(s.question) ?? s.question.text, done: null, expiresAt: null }]
     const x = stop(s)
     return x ? [{ session: s.name, questionId: `stop:${s.name}@${x.at}`, askedAt: x.at, kind: 'stop', text: x.text, done: doneOf(s), expiresAt: (s.needs_you?.reason?.trim() ? s.needs_you.expires_at : null) ?? null }] : []
   }).sort((a, b) => a.askedAt - b.askedAt)

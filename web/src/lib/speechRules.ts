@@ -2,7 +2,7 @@ import type { Question } from './contract'
 import { parse as markdown } from './markdown'
 import { outcomeForPhone } from './links'
 import { parseSteps } from './nextSteps'
-import { optionText } from './questionRules'
+import { approves, optionText } from './questionRules'
 
 // La lettura a voce, porte di SpeechText.kt, SpeechRate.kt, VoiceRules.kt e ReadingBar.kt: il testo pulito per la voce,
 // i pezzi tagliati a fine frase, la velocità della pillola, la voce dopo, la prima riga del mini-controller.
@@ -48,7 +48,7 @@ export function chunks(text: string, max = MAX_CHUNK): string[] {
   return out
 }
 /** La domanda con le opzioni numerate: «Deploy now? 1, yes. 2, no.». */
-export const question = (q: Question) => [q.text.trim(), ...q.options.map(o => `${o.n}, ${optionText(o.label)}.`)].join(' ')
+export const question = (q: Question) => [(approves(q) ?? q.text).trim(), ...q.options.map(o => `${o.n}, ${optionText(o.label)}.`)].join(' ')
 
 // La velocità continua (SpeechRate.kt, slider approvato da Franz il 07/10 alle 22:06): da 0,5× a 2× a passi di 0,05,
 // con uno scatto su 1× per ritrovare la velocità normale al tatto.

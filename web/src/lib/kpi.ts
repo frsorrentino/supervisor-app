@@ -1,4 +1,5 @@
 import type { KpiChecksDay, KpiData, KpiSuggestions, KpiTask, KpiTasks, KpiTurn, KpiWaits, Session, State, TimelineEvent, TimelinePage } from './contract'
+import { shareable } from './questionRules'
 import { stop } from './strongAlert'
 
 // I KPI coi dati che il relay ha già (proposte 6, 11, 15 e 18 del 25/10, compito app-kpi-medie-25-10), porta di Kpi.kt:
@@ -163,7 +164,7 @@ export type Waiting = { session: string; kind: WaitKind; text: string; since: nu
 /** «Ti aspettano»: le stesse sessioni contate da `head`, la più vecchia prima. */
 export const waitingRows = (st: State): Waiting[] => st.sessions.filter(s => s.state !== 'gone').flatMap((s): Waiting[] => {
   const q = s.question, n = s.needs_you?.reason?.trim() ? s.needs_you : null, b = s.turn_blocking?.text?.trim() ? s.turn_blocking : null
-  if (q) return [{ session: s.name, kind: 'question', text: q.preview ?? q.text, since: q.asked_at, closesItself: false }]
+  if (q) return [{ session: s.name, kind: 'question', text: shareable(q), since: q.asked_at, closesItself: false }]
   if (n) return [{ session: s.name, kind: 'needs_you', text: n.reason, since: n.at ?? 0, closesItself: !!n.until }]
   if (b) return [{ session: s.name, kind: 'blocking', text: b.text, since: b.at ?? 0, closesItself: false }]
   return []

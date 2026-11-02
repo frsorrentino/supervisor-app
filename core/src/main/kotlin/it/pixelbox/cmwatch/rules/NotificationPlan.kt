@@ -28,6 +28,8 @@ object NotificationPlan {
         val waiting: String = "", val busy: String = "", val idle: String = "", val gone: String = "",
         /** Al posto di un testo di domanda senza parole («-: -» dal relay, Franz 07/10 18:01). */
         val noQuestionText: String = "",
+        /** Contratto 1.101: un permesso da un relay che non dice cosa si approva si legge almeno come permesso. */
+        val permissionAsks: String = "",
     )
 
     sealed class Act {
@@ -66,7 +68,7 @@ object NotificationPlan {
             // l'icona grande, il fumetto ambra.
             // Niente pallino dell'account davanti al nome (Franz, 22/10: niente emoji nelle notifiche); il colore sta nell'icona.
             session = s.name, title = s.name, person = s.name,
-            messages = history.map { "${it.question} → ${it.answer}" } + QuestionRules.shownText(q.shareable, l.noQuestionText), bigText = null,
+            messages = history.map { "${it.question} → ${it.answer}" } + QuestionRules.notificationText(q, l.permissionAsks, l.noQuestionText), bigText = null,
             actions = actions, choices = if (high) emptyList() else q.options.map { optionLabel(it.n, it.label) },
             freeForm = !high, channel = CH_QUESTIONS, whenS = q.askedAt, chronometer = true, subText = s.account,
             autoCancel = false, timeoutMs = null, progress = null, accent = SessionState.WAITING,

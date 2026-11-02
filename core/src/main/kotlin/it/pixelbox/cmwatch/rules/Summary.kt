@@ -53,7 +53,7 @@ object Summary {
             if (oks.isEmpty() && x == null) null else Row(Group.WAITING, m, x?.text, x?.at ?: oks.first().requestedAt)
         }
         val waiting = (others.mapNotNull { s ->
-            s.question?.let { Row(Group.WAITING, s, it.text, it.askedAt) }
+            s.question?.let { Row(Group.WAITING, s, it.approves ?: it.text, it.askedAt) }
                 ?: StrongAlert.stop(s)?.let { Row(Group.WAITING, s, it.text, it.at) }
         } + listOfNotNull(masterRow)).sortedBy { it.at }
         val stopped = waiting.map { it.session.name }.toSet()

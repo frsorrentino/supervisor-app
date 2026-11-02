@@ -177,9 +177,15 @@ enum class CmdOp {
     val tier: Tier, @SerialName("asked_at") val askedAt: Long,
     /** Contratto 1.56: il testo senza segreti, per le notifiche; presente solo quando è diverso da `text`. */
     val preview: String? = null,
+    /** Contratto 1.101, solo per un permesso: cosa si approva, una riga, senza segreti. Assente con un relay precedente. */
+    val what: String? = null,
+    /** Contratto 1.101, solo per un permesso: il testo del dialogo, senza segreti; il primo a cadere se lo stato è grande. */
+    val body: String? = null,
 ) {
-    /** Il testo per una notifica o la schermata di blocco (contratto 1.56). */
-    val shareable: String get() = preview ?: text
+    /** Contratto 1.101: cosa si approva, se è un permesso e il relay lo sa. */
+    val approves: String? get() = what?.trim()?.takeIf { kind == QuestionKind.PERMISSION && it.isNotEmpty() }
+    /** Il testo per una notifica o la schermata di blocco (contratto 1.56); per un permesso, cosa si approva (1.101). */
+    val shareable: String get() = approves ?: preview ?: text
 }
 
 /**

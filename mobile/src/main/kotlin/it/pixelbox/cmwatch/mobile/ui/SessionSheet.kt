@@ -1361,7 +1361,11 @@ internal fun QuestionCard(
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.padding(top = 2.dp)) { StateGlyph(if (q.tier == Tier.HIGH) it.pixelbox.cmwatch.rules.Rail.Glyph.RED else it.pixelbox.cmwatch.rules.Rail.Glyph.WAITING) }
-                Box(Modifier.weight(1f)) { Speakable(q.text, speak = true, actions.speak, tint = V3.Tx2) }
+                Box(Modifier.weight(1f)) {
+                    val card = QuestionRules.permissionCard(q)
+                    if (card == null) Speakable(q.text, speak = true, actions.speak, tint = V3.Tx2)
+                    else PermissionText(card, q.id, actions.speak)
+                }
             }
             QuestionOptions(q, firstFilled = false, holdHint, onHold, actions.answer, tonal = V3.S3, v3 = true)
             val allowAll = QuestionRules.allowAllVisible(q)
@@ -1386,6 +1390,24 @@ internal fun QuestionCard(
                 )
             }
         }
+    }
+}
+
+/**
+ * Contratto 1.101, cosa si approva (Franz, 02/11 01:22): prima che è un permesso, poi il comando per intero, sotto la domanda
+ * generica. Un testo lungo si piega con il tasto per aprirlo, mai tagliato senza poterlo aprire.
+ */
+@Composable
+private fun PermissionText(card: QuestionRules.PermissionCard, id: String, speak: (String) -> Unit) {
+    var open by rememberSaveable(id) { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.permission_asks), style = V3.Small, color = V3.Tx2)
+        Speakable(card.main, speak = true, speak, tint = V3.Tx2, maxLines = if (card.folds && !open) QuestionRules.FOLD_LINES else Int.MAX_VALUE)
+        if (open) card.more?.let { Text(it, style = MonoSmall, color = V3.Tx2) }
+        if (card.folds) TextButton(onClick = { open = !open }, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp)) {
+            Text(stringResource(if (open) R.string.permission_less else R.string.permission_more))
+        }
+        card.question?.let { Text(it, style = V3.Small, color = V3.Tx2) }
     }
 }
 
@@ -2438,9 +2460,9 @@ internal fun linked(text: String, tasks: TaskLinks? = null): AnnotatedString = a
 
 /** Testo con il tasto ▶ accanto (regola di Franz 12/09: testi lunghi, esiti, risposte e domande). */
 @Composable
-fun Speakable(text: String, speak: Boolean, onSpeak: (String) -> Unit, tint: androidx.compose.ui.graphics.Color = Cm.actionIcon) {
+fun Speakable(text: String, speak: Boolean, onSpeak: (String) -> Unit, tint: androidx.compose.ui.graphics.Color = Cm.actionIcon, maxLines: Int = Int.MAX_VALUE) {
     Row(verticalAlignment = Alignment.Top) {
-        Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.weight(1f))
+        Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.weight(1f), maxLines = maxLines, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
         val reading = LocalSpeaking.current == text
         if (speak && reading) RatePill()
         if (speak) IconButton(onClick = { onSpeak(text) }) {

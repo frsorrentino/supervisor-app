@@ -1510,4 +1510,7 @@ It starts at your last message to the master.</string>
     <string name="usage_tokens_few">%1$d tokens</string>
     <string name="usage_waits">Median wait %1$d min · %2$d closed in 7 days</string>
     <string name="reorder_tools">Usage and system</string>
+    <string name="permission_asks">Asks for permission</string>
+    <string name="permission_more">Show all</string>
+    <string name="permission_less">Show less</string>
 </resources>

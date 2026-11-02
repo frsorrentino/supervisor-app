@@ -30,7 +30,7 @@ object AttentionQueue {
     fun items(state: State): List<Item> = state.sessions
         .filter { it.state != SessionState.GONE }
         .mapNotNull { s ->
-            s.question?.let { Item(s.name, it.id, it.askedAt, Kind.QUESTION, it.text) }
+            s.question?.let { Item(s.name, it.id, it.askedAt, Kind.QUESTION, it.approves ?: it.text) }
                 ?: StrongAlert.stop(s)?.let {
                     Item(s.name, "stop:${s.name}@${it.at}", it.at, Kind.STOP, it.text, done = doneOf(s), expiresAt = s.needsYou?.takeIf { n -> n.reason.isNotBlank() }?.expiresAt)
                 }

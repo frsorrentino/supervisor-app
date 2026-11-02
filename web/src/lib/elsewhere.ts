@@ -1,4 +1,5 @@
 import type { Session, State } from './contract'
+import { approves } from './questionRules'
 import { stop } from './strongAlert'
 
 // L'avviso delle altre sessioni nella chat di una sessione, porta di Elsewhere.kt: prima chi ti aspetta, poi un turno
@@ -36,7 +37,7 @@ export type Away = { text: string | null; at: number | null; href: string; more:
 export function away(a: Alert, sessions: Session[], origin: string): Away | null {
   if (a.type !== 'waiting' || !a.sessions.length) return null
   const s = sessions.find(x => x.name === a.sessions[0])
-  const ask = s?.question ? { text: s.question.text, at: s.question.asked_at } : s ? stop(s) : null
+  const ask = s?.question ? { text: approves(s.question) ?? s.question.text, at: s.question.asked_at } : s ? stop(s) : null
   const href = a.sessions.length === 1 ? `${origin}/?s=${encodeURIComponent(a.sessions[0])}` : `${origin}/?page=queue`
   return { text: ask?.text?.trim() || null, at: ask?.at || null, href, more: a.sessions.length - 1 }
 }
