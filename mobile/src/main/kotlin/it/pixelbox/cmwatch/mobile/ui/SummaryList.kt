@@ -217,7 +217,7 @@ fun SummaryList(
     // Le categorie chiuse aperte sul posto: valgono per questa visita, non si salvano (aperte o chiuse si decide in Riordina).
     var peek by rememberSaveable { mutableStateOf("") }
     fun peeked(id: String) = id in peek.split(',')
-    fun catFor(k: String): String? = when (k) { "closed" -> "work"; "plugins" -> "tools"; else -> it.pixelbox.cmwatch.rules.HomeCats.catOf(k) }
+    fun catFor(k: String): String? = it.pixelbox.cmwatch.rules.HomeCats.catFor(k)
     fun inPeek(k: String) = catFor(k)?.let { id -> cats.any { c -> c.id == id && !c.open } && peeked(id) } == true
     // Le categorie che hanno disegnato qualcosa: l'etichetta di una categoria aperta e vuota non resta da sola.
     val catHas = remember { mutableMapOf<String, Boolean>() }
@@ -385,7 +385,7 @@ fun SummaryList(
             // Ogni voce ha la sua zona: la testata di una sezione o la riga di una card, anche con più righe nello stesso elemento.
             val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
             val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
-            val next = it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, dragPresent.filter { k -> catFor(k) == catFor(held) }.toSet())
+            val next = it.pixelbox.cmwatch.rules.HomeCats.dragTarget(o, held, y, mids, dragPresent.toSet())
             if (next != o) { dragOrder = next; last = t; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) }
         }
     }

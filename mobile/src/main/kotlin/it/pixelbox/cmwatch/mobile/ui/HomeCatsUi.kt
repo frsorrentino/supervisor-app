@@ -93,7 +93,8 @@ internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolea
             }
         }
         CatTitleLine(Modifier.weight(1f)) {
-            Text(catName(id), style = V3.Section, maxLines = 1)
+            // A capo se non ci sta (fontScale 1.3 a 320 dp), mai tagliato.
+            Text(catName(id), style = V3.Section)
             Text(text, style = V3.Small, textAlign = TextAlign.End)
         }
         TurnArrow(open, V3.Tx3, Modifier.padding(start = 6.dp).size(24.dp))

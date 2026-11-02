@@ -1,7 +1,7 @@
 // La home per categorie (Franz 02/11 16:44, compito app-home-categorie-02-11; HomeCats.kt nell'app): quattro categorie con le
 // loro sezioni, le stesse su telefono e PWA. Si salva nel `home_order` di sempre: le chiavi di sezione nell'ordine voluto, poi
 // `shut:` con le categorie chiuse, poi lo slot `pin:`. L'ordine delle categorie è quello della loro prima sezione.
-import { move, withPin, type HomeSection } from './homeOrder'
+import { dragTarget, move, withPin, type HomeSection } from './homeOrder'
 
 export type CatId = 'you' | 'work' | 'out' | 'tools'
 /** Le chiavi di sezione: quelle di oggi più le tre nuove, che si disegnano quando esistono (app-da-guardare-02-11, app-rendiconti-2-02-11). */
@@ -44,6 +44,22 @@ export const moveCat = (cats: Cat[], from: number, to: number): Cat[] => move(ca
 export const moveSection = (cats: Cat[], id: CatId, from: number, to: number): Cat[] =>
   cats.map(c => (c.id === id ? (move(c.sections, from, to) === c.sections ? c : { ...c, sections: move(c.sections, from, to) }) : c))
 export const toggle = (cats: Cat[], id: CatId): Cat[] => cats.map(c => (c.id === id ? { ...c, open: !c.open } : c))
-/** Dopo un trascinamento sulla home (ordine piatto): ogni categoria riprende le sue sezioni in quell'ordine, aperte e chiuse come prima. */
+/**
+ * Dopo un trascinamento sulla home (ordine piatto): ogni categoria riprende le sue sezioni in quell'ordine, aperte e chiuse come
+ * prima. Le chiavi che la lista non ha (non disegnate, come Pagella finché non esiste) tengono il loro posto.
+ */
 export const reorder = (cats: Cat[], flat: string[]): Cat[] =>
-  cats.map(c => { const mine = flat.filter(k => catOf(k) === c.id) as HomeKey[]; return { ...c, sections: [...new Set([...mine, ...c.sections])] } })
+  cats.map(c => {
+    const moved = flat.filter(k => (c.sections as string[]).includes(k)) as HomeKey[]
+    let i = 0
+    return { ...c, sections: c.sections.map(k => (moved.includes(k) ? moved[i++] : k)) }
+  })
+
+/** La categoria di una voce della home: Chiuse sta dentro Sessioni, Plugin e skill dentro Sistema. */
+export const catFor = (k: string): CatId | null => (k === 'closed' ? 'work' : k === 'plugins' ? 'tools' : catOf(k))
+
+/** Il trascinamento sul posto della home, dentro la categoria della voce presa: le vicine di un'altra categoria non contano. */
+export function dragCats(order: HomeSection[], held: HomeSection, y: number, mids: Partial<Record<HomeSection, number>>): HomeSection[] {
+  const mine = Object.fromEntries(Object.entries(mids).filter(([k]) => catFor(k) === catFor(held))) as Partial<Record<HomeSection, number>>
+  return dragTarget(order, held, y, mine)
+}

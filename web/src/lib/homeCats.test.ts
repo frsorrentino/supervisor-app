@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CATS, catOf, reorder, decode, encode, moveCat, moveSection, toggle, type Cat } from './homeCats'
+import { DEFAULT_CATS, catFor, catOf, dragCats, reorder, decode, encode, moveCat, moveSection, toggle, type Cat } from './homeCats'
 import { pinned } from './homeOrder'
 
 // La home per categorie (compito app-home-categorie-02-11); gli stessi casi in HomeCatsTest.kt.
@@ -47,7 +47,19 @@ describe('homeCats', () => {
   it("un ordine piatto trascinato tiene categorie e chiuse", () => {
     const r = reorder(toggle(DEFAULT_CATS, 'work'), ['prove', 'sessions', 'decisioni', 'esiti'])
     expect(ids(r)).toEqual(['you', 'work', 'out', 'tools'])
-    expect(r[0].sections).toEqual(['prove', 'decisioni', 'prima_raccolta', 'suggestions'])
+    // Le chiavi che la lista trascinata non ha (non disegnate) tengono il loro posto.
+    expect(r[0].sections).toEqual(['prima_raccolta', 'prove', 'decisioni', 'suggestions'])
     expect(r.map(c => c.open)).toEqual([true, false, false, false])
+  })
+  it('le chiavi non disegnate tengono il posto dopo un trascinamento', () => {
+    expect(reorder(DEFAULT_CATS, ['system', 'usage']).find(c => c.id === 'tools')!.sections).toEqual(['system', 'pagella', 'usage'])
+  })
+  it('un trascinamento non esce dalla sua categoria', () => {
+    const order = DEFAULT_CATS.flatMap(c => c.sections) as string[]
+    const mids = { prove: 100, suggestions: 200, sessions: 300 }
+    expect(dragCats(order as never, 'suggestions' as never, 350, mids)).toEqual(order)
+    expect(dragCats(order as never, 'suggestions' as never, 90, mids).slice(0, 4)).toEqual(['prima_raccolta', 'decisioni', 'suggestions', 'prove'])
+    expect(catFor('closed')).toBe('work')
+    expect(catFor('plugins')).toBe('tools')
   })
 })

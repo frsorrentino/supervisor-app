@@ -53,7 +53,7 @@
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
   import CatIcon from './CatIcon.svelte'
-  import { DEFAULT_CATS, catOf, decode as decodeCats, encode as encodeCats, reorder as reorderCats, type Cat, type CatId } from './homeCats'
+  import { DEFAULT_CATS, catFor, decode as decodeCats, dragCats, encode as encodeCats, reorder as reorderCats, type Cat, type CatId } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
@@ -149,7 +149,6 @@
   const order = $derived(cats.flatMap(c => c.sections).filter(k => (DEFAULT_ORDER as string[]).includes(k)) as HomeSection[])
   // Le categorie chiuse aperte sul posto: valgono per questa visita, non si salvano (in vista o chiuse si decide in Riordina).
   let peek = $state<CatId[]>([])
-  const catFor = (k: string): CatId | null => (k === 'closed' ? 'work' : k === 'plugins' ? 'tools' : catOf(k))
   // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti. Le colonne della plancia non ce l'hanno.
   const savedPin = $derived(part ? null : sentOrder && sentOrder.from === savedKey ? sentOrder.pin : pinned(st.home_order))
   const week = $derived(!part && usage && showUsage ? weekSlot(st.quota, now) : null)
@@ -191,11 +190,11 @@
     if (now - dragLastSwap > 120 && !inSlot(dragKey, dragY) && !(dragKey === savedPin && !weekAlarm)) {
       const mids: Partial<Record<HomeSection, number>> = {}
       for (const k of dragOrder) {
-        if (k === listSkip || catFor(k) !== catFor(dragKey)) continue
+        if (k === listSkip) continue
         const b = home.querySelector(`[data-sec-head="${k}"]`)?.getBoundingClientRect()
         if (b) mids[k] = b.top + Math.min(b.height, 48) / 2
       }
-      const next = dragTarget(dragOrder, dragKey, dragY, mids)
+      const next = dragCats(dragOrder, dragKey, dragY, mids)
       if (next !== dragOrder) { dragOrder = next; dragLastSwap = now }
     }
     dragRaf = requestAnimationFrame(dragFrame)

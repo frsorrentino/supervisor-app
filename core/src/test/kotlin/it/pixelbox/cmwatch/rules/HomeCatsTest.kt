@@ -62,7 +62,24 @@ class HomeCatsTest {
         val cats = HomeCats.toggle(HomeCats.DEFAULT, "work")
         val r = HomeCats.reorder(cats, listOf("prove", "sessions", "decisioni", "esiti"))
         assertEquals(listOf("you", "work", "out", "tools"), ids(r))
-        assertEquals(listOf("prove", "decisioni", "prima_raccolta", "suggestions"), r[0].sections)
+        // Le chiavi che la lista trascinata non ha (non disegnate) tengono il loro posto.
+        assertEquals(listOf("prima_raccolta", "prove", "decisioni", "suggestions"), r[0].sections)
         assertEquals(listOf(true, false, false, false), r.map { it.open })
+    }
+
+    @Test fun keysNotDrawnKeepTheirPlaceAfterADrag() {
+        // La web non disegna Pagella finché non esiste: un trascinamento di Sistema sopra Utilizzo non la sposta in fondo.
+        assertEquals(listOf("system", "pagella", "usage"), HomeCats.reorder(HomeCats.DEFAULT, listOf("system", "usage")).single { it.id == "tools" }.sections)
+    }
+
+    @Test fun aDragNeverCrossesItsCategory() {
+        val order = HomeCats.DEFAULT.flatMap { it.sections }
+        // Suggerimenti è l'ultima di Richiede te: il dito oltre Sessioni (Attività) non la sposta.
+        val mids = mapOf("prove" to 100f, "suggestions" to 200f, "sessions" to 300f)
+        assertEquals(order, HomeCats.dragTarget(order, "suggestions", 350f, mids, mids.keys))
+        // Dentro la categoria sì: sopra Da provare scavalca.
+        assertEquals(listOf("prima_raccolta", "decisioni", "suggestions", "prove"), HomeCats.dragTarget(order, "suggestions", 90f, mids, mids.keys).take(4))
+        // Chiuse sta in Attività: conta come sezione di Sessioni.
+        assertEquals("work", HomeCats.catFor("closed")); assertEquals("tools", HomeCats.catFor("plugins"))
     }
 }

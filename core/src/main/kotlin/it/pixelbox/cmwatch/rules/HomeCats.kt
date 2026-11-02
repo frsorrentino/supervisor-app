@@ -50,7 +50,19 @@ object HomeCats {
 
     fun toggle(cats: List<Cat>, id: String): List<Cat> = cats.map { if (it.id == id) it.copy(open = !it.open) else it }
 
-    /** Dopo un trascinamento sulla home (ordine piatto): ogni categoria riprende le sue sezioni in quell'ordine, aperte e chiuse come prima. */
-    fun reorder(cats: List<Cat>, flat: List<String>): List<Cat> =
-        cats.map { c -> c.copy(sections = (flat.filter { catOf(it) == c.id } + c.sections).distinct()) }
+    /**
+     * Dopo un trascinamento sulla home (ordine piatto): ogni categoria riprende le sue sezioni in quell'ordine, aperte e chiuse come
+     * prima. Le chiavi che la lista non ha (non disegnate, come Pagella finché non esiste) tengono il loro posto.
+     */
+    fun reorder(cats: List<Cat>, flat: List<String>): List<Cat> = cats.map { c ->
+        val moved = flat.filter { it in c.sections }.iterator()
+        c.copy(sections = c.sections.map { k -> if (k in flat) moved.next() else k })
+    }
+
+    /** La categoria di una voce della home: Chiuse sta dentro Sessioni, Plugin e skill dentro Sistema. */
+    fun catFor(key: String): String? = when (key) { "closed" -> "work"; "plugins" -> "tools"; else -> catOf(key) }
+
+    /** Il trascinamento sul posto della home, dentro la categoria della voce presa: le vicine di un'altra categoria non contano. */
+    fun dragTarget(order: List<String>, held: String, y: Float, mids: Map<String, Float>, present: Set<String>): List<String> =
+        HomeOrder.dragTarget(order, held, y, mids, present.filter { catFor(it) == catFor(held) }.toSet())
 }
