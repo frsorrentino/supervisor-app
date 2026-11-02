@@ -2,6 +2,8 @@
 
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.ui.unit.toSize
+import kotlin.math.roundToInt
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -1963,15 +1965,21 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
     // Il pizzico sull'anteprima (Franz 02/11 23:31: «deve essere continuo senza doppio tocco»): l'immagine cresce subito sopra la
     // chat seguendo le dita, in una finestra sovrapposta che non prende i tocchi; al rilascio, se è cresciuta, il visore si apre
     // allo stesso ingrandimento e con lo stesso punto sotto le dita, e lì si continua.
+    // In pixel dello schermo (Franz 03/11 00:41: il punto dello zoom non era quello delle dita): anteprima, finestra sovrapposta e
+    // visore stanno in finestre diverse, e le coordinate della finestra di una non valgono per l'altra.
     var thumb by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
     var pinch by remember { mutableStateOf<ThumbPinch?>(null) }
+    var layerAt by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
     // Segnata per lo zoom del testo: un pizzico che comincia qui è dell'immagine (app-zoom-testo-02-11).
     val images = LocalChatImages.current
     val me = remember { Any() }
     androidx.compose.runtime.DisposableEffect(images) { onDispose { images.remove(me) } }
     androidx.compose.foundation.Image(
         bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Crop,
-        modifier = box.onGloballyPositioned { c -> thumb = c.boundsInWindow(); images[me] = thumb.let { r -> it.pixelbox.cmwatch.rules.ChatZoom.Area(r.left, r.top, r.right, r.bottom) } }.graphicsLayer { alpha = if (pinch != null) 0f else 1f }
+        modifier = box.onGloballyPositioned { c ->
+            thumb = androidx.compose.ui.geometry.Rect(c.localToScreen(androidx.compose.ui.geometry.Offset.Zero), c.size.toSize())
+            images[me] = c.boundsInWindow().let { r -> it.pixelbox.cmwatch.rules.ChatZoom.Area(r.left, r.top, r.right, r.bottom) }
+        }.graphicsLayer { alpha = if (pinch != null) 0f else 1f }
             .clip(RoundedCornerShape(14.dp)).handCursor().clickable { start = null; full = true }.pointerInput(path) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
@@ -1989,17 +1997,12 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
                         }
                     } while (e.changes.any { it.pressed })
                     val done = p
-                    pinch = null
                     if (done != null && done.scale > 1.05f) {
-                        // Il punto dell'anteprima sotto le dita all'inizio, in frazioni dell'immagine (l'anteprima la ritaglia al centro).
-                        val crop = maxOf(thumb.width / bmp.width, thumb.height / bmp.height)
-                        val iw = bmp.width * crop
-                        val ih = bmp.height * crop
-                        val fx = ((done.origin.x - thumb.left - (thumb.width - iw) / 2f) / iw).coerceIn(0f, 1f)
-                        val fy = ((done.origin.y - thumb.top - (thumb.height - ih) / 2f) / ih).coerceIn(0f, 1f)
-                        start = ViewerStart(fx, fy, iw * done.scale, done.finger)
+                        // Dove si vedeva l'immagine intera al rilascio: il visore riparte esattamente da lì. La finestra sovrapposta
+                        // resta ferma finché il visore non è al suo posto (onShown), così fra le due non c'è un fotogramma vuoto.
+                        start = ViewerStart(done.at(thumb, bmp.width.toFloat(), bmp.height.toFloat()))
                         full = true
-                    }
+                    } else pinch = null
                 }
             },
     )
@@ -2007,29 +2010,35 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
         // Sopra tutto, senza prendere i tocchi: le dita restano sull'anteprima, che continua a leggere il gesto.
         androidx.compose.ui.window.Popup(properties = androidx.compose.ui.window.PopupProperties(focusable = false, clippingEnabled = false)) {
             val d = androidx.compose.ui.platform.LocalDensity.current
-            Box(Modifier.fillMaxSize().background(Cm.bg.copy(alpha = ((p.scale - 1f) / 0.6f).coerceIn(0f, 0.92f)))) {
-                androidx.compose.foundation.Image(
+            Box(Modifier.fillMaxSize().onGloballyPositioned { c -> layerAt = c.localToScreen(androidx.compose.ui.geometry.Offset.Zero) }
+                .background(Cm.bg.copy(alpha = ((p.scale - 1f) / 0.6f).coerceIn(0f, 0.92f)))) {
+                // Il riquadro dell'anteprima cresce attorno al punto dove sono cominciate le dita e lo segue (ZoomPan.pinched).
+                val at = layerAt
+                val r = p.box(thumb)
+                if (at != null) androidx.compose.foundation.Image(
                     bmp, null, contentScale = ContentScale.Crop,
-                    modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset(thumb.left.toInt(), thumb.top.toInt()) }
-                        .size(with(d) { thumb.width.toDp() }, with(d) { thumb.height.toDp() })
-                        .graphicsLayer {
-                            // Cresce attorno al punto dove sono cominciate le dita, e lo segue mentre le dita si muovono.
-                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin((p.origin.x - thumb.left) / thumb.width, (p.origin.y - thumb.top) / thumb.height)
-                            scaleX = p.scale; scaleY = p.scale
-                            translationX = p.finger.x - p.origin.x; translationY = p.finger.y - p.origin.y
-                        }.clip(RoundedCornerShape(14.dp)),
+                    modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset((r.left - at.x).roundToInt(), (r.top - at.y).roundToInt()) }
+                        .size(with(d) { r.width.toDp() }, with(d) { r.height.toDp() })
+                        .clip(RoundedCornerShape(14.dp * p.scale)),
                 )
             }
         }
     }
-    if (full) ImageViewer(path, start) { full = false; start = null }
+    if (full) ImageViewer(path, start, onShown = { pinch = null }) { full = false; start = null; pinch = null }
 }
 
-/** Il pizzico in corso sull'anteprima, in coordinate della finestra: dove è cominciato, dove sono le dita, quanto è cresciuta. */
-private data class ThumbPinch(val origin: androidx.compose.ui.geometry.Offset, val finger: androidx.compose.ui.geometry.Offset, val scale: Float)
+/** Il pizzico in corso sull'anteprima, in pixel dello schermo: dove è cominciato, dove sono le dita, quanto è cresciuta. */
+private data class ThumbPinch(val origin: androidx.compose.ui.geometry.Offset, val finger: androidx.compose.ui.geometry.Offset, val scale: Float) {
+    private fun grow(r: it.pixelbox.cmwatch.rules.ZoomPan.Box) = it.pixelbox.cmwatch.rules.ZoomPan.pinched(r, origin.x, origin.y, scale, finger.x, finger.y)
+    /** Il riquadro dell'anteprima, cresciuto. */
+    fun box(thumb: androidx.compose.ui.geometry.Rect) = grow(it.pixelbox.cmwatch.rules.ZoomPan.Box(thumb.left, thumb.top, thumb.width, thumb.height))
+    /** L'immagine intera dietro il riquadro (che la ritaglia al centro), cresciuta: quella che il visore riprende. */
+    fun at(thumb: androidx.compose.ui.geometry.Rect, imageW: Float, imageH: Float) =
+        grow(it.pixelbox.cmwatch.rules.ZoomPan.cropped(it.pixelbox.cmwatch.rules.ZoomPan.Box(thumb.left, thumb.top, thumb.width, thumb.height), imageW, imageH))
+}
 
-/** Lo stato da cui il visore riparte dopo il pizzico: il punto dell'immagine (in frazioni), la larghezza vista, le dita nella finestra. */
-private data class ViewerStart(val fx: Float, val fy: Float, val shownW: Float, val finger: androidx.compose.ui.geometry.Offset)
+/** Lo stato da cui il visore riparte dopo il pizzico: dove si vedeva l'immagine intera, in pixel dello schermo. */
+private data class ViewerStart(val image: it.pixelbox.cmwatch.rules.ZoomPan.Box)
 
 /** La prima pagina di un PDF a tutta larghezza (PdfRenderer); un PDF che non si apre lascia solo la scheda. */
 @Composable
@@ -2092,9 +2101,11 @@ private fun decodeScaled(path: String, max: Int, maxPixels: Long = Long.MAX_VALU
  * l'inerzia. Il calcolo sta in ZoomPan, con i test. Decodifica fino a 3072 px per lato (prima 2048).
  */
 @Composable
-private fun ImageViewer(path: String, start: ViewerStart? = null, onClose: () -> Unit) {
+private fun ImageViewer(path: String, start: ViewerStart? = null, onShown: () -> Unit = {}, onClose: () -> Unit) {
     // Fino a 8192 px per lato e 16 milioni di pixel (64 MB): oltre, la scheda grafica non disegna la bitmap.
-    val bmp = remember(path) { decodeScaled(path, 8192, 16_000_000L) } ?: return
+    val bmp = remember(path) { decodeScaled(path, 8192, 16_000_000L) }
+    // Senza immagine niente visore, ma la finestra del pizzico va tolta lo stesso.
+    if (bmp == null) { androidx.compose.runtime.SideEffect { onShown() }; return }
     var view by remember { mutableStateOf(it.pixelbox.cmwatch.rules.ZoomPan.View()) }
     var box by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     // Dal pizzico sull'anteprima: alla prima misura il visore si mette dove il pizzico ha lasciato l'immagine.
@@ -2103,14 +2114,32 @@ private fun ImageViewer(path: String, start: ViewerStart? = null, onClose: () ->
     val glide = remember { androidx.compose.animation.core.Animatable(androidx.compose.ui.geometry.Offset.Zero, androidx.compose.ui.geometry.Offset.VectorConverter) }
     val decay = androidx.compose.animation.splineBasedDecay<androidx.compose.ui.geometry.Offset>(androidx.compose.ui.platform.LocalDensity.current)
     fun fitted(): Pair<Float, Float> = it.pixelbox.cmwatch.rules.ZoomPan.fit(bmp.width.toFloat(), bmp.height.toFloat(), box.width.toFloat(), box.height.toFloat())
-    androidx.compose.ui.window.Dialog(onDismissRequest = onClose, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+    // Fuori dai bordi o sotto 1x (dopo il passaggio) a fine gesto si torna allo stato valido più vicino, animando.
+    val settling = remember { androidx.compose.animation.core.Animatable(0f) }
+    fun settleIfNeeded() {
+        val (cw, ch) = fitted()
+        val from = view
+        val to = it.pixelbox.cmwatch.rules.ZoomPan.settle(from, cw, ch, box.width.toFloat(), box.height.toFloat(), it.pixelbox.cmwatch.rules.ZoomPan.maxScale(cw, box.width.toFloat()))
+        if (to == from) return
+        scope.launch {
+            settling.snapTo(0f)
+            settling.animateTo(1f, androidx.compose.animation.core.tween(260)) {
+                view = it.pixelbox.cmwatch.rules.ZoomPan.View(from.scale + (to.scale - from.scale) * value, from.x + (to.x - from.x) * value, from.y + (to.y - from.y) * value)
+            }
+        }
+    }
+    // A tutto schermo sotto le barre e senza l'animazione d'apertura del dialog: l'immagine compare dove il pizzico l'ha lasciata.
+    androidx.compose.ui.window.Dialog(onDismissRequest = onClose, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        val dialogWindow = (androidx.compose.ui.platform.LocalView.current.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+        androidx.compose.runtime.SideEffect { dialogWindow?.setWindowAnimations(0); dialogWindow?.setDimAmount(0f) }
         Box(
             Modifier.fillMaxSize().background(Cm.bg).onSizeChanged { box = it }.onGloballyPositioned { c ->
                 if (!started && start != null && box.width > 0) {
                     started = true
-                    val at = c.boundsInWindow().topLeft
+                    val at = c.localToScreen(androidx.compose.ui.geometry.Offset.Zero)
                     val (cw, ch) = fitted()
-                    view = it.pixelbox.cmwatch.rules.ZoomPan.handOff(start.fx, start.fy, start.shownW, start.finger.x - at.x, start.finger.y - at.y, cw, ch, box.width.toFloat(), box.height.toFloat())
+                    view = it.pixelbox.cmwatch.rules.ZoomPan.handOff(start.image, at.x, at.y, cw, ch, box.width.toFloat(), box.height.toFloat())
+                    onShown()
                 }
             }
                 .pointerInput(bmp) {
@@ -2123,7 +2152,7 @@ private fun ImageViewer(path: String, start: ViewerStart? = null, onClose: () ->
                 .pointerInput(bmp) {
                     awaitEachGesture {
                         awaitFirstDown(requireUnconsumed = false)
-                        scope.launch { glide.stop() }
+                        scope.launch { glide.stop(); settling.stop() }
                         val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
                         do {
                             val e = awaitPointerEvent()
@@ -2138,7 +2167,9 @@ private fun ImageViewer(path: String, start: ViewerStart? = null, onClose: () ->
                             }
                             e.changes.firstOrNull()?.let { tracker.addPointerInputChange(it) }
                         } while (e.changes.any { it.pressed })
-                        if (view.scale > 1f) {
+                        val (cw0, ch0) = fitted()
+                        if (it.pixelbox.cmwatch.rules.ZoomPan.settle(view, cw0, ch0, box.width.toFloat(), box.height.toFloat(), it.pixelbox.cmwatch.rules.ZoomPan.maxScale(cw0, box.width.toFloat())) != view) settleIfNeeded()
+                        else if (view.scale > 1f) {
                             val v = tracker.calculateVelocity()
                             val from = view
                             scope.launch {
