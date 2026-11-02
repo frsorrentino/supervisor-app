@@ -1989,8 +1989,8 @@
     "en": "Tests of new versions, one by one or all together, to close several tasks with a tap."
    },
    "where": {
-    "it": "Riga nella home, la sposti dove vuoi",
-    "en": "Row in the home, move it where you like"
+    "it": "Voce della home: si apre sul posto, la sposti dove vuoi",
+    "en": "Home section: it opens in place, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2026,8 +2026,8 @@
     "en": "The decisions waiting for you, grouped by cause, one at a time, the heaviest first."
    },
    "where": {
-    "it": "Riga nella home, la sposti dove vuoi",
-    "en": "Row in the home, move it where you like"
+    "it": "Voce della home: si apre sul posto, la sposti dove vuoi",
+    "en": "Home section: it opens in place, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2174,8 +2174,8 @@
     "en": "What depends on the code and ages: demo, store listing, site, README."
    },
    "where": {
-    "it": "Riga «Fuori dal codice» nella home, la sposti dove vuoi",
-    "en": "«Outside the code» row in the home, move it where you like"
+    "it": "Voce «Da seguire» della home: si apre sul posto, la sposti dove vuoi",
+    "en": "«To follow up» home section: it opens in place, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2211,8 +2211,8 @@
     "en": "Looks for the same defect in other projects, read-only."
    },
    "where": {
-    "it": "Riga «Fuori dal codice» nella home, la sposti dove vuoi",
-    "en": "«Outside the code» row in the home, move it where you like"
+    "it": "Voce «Da seguire» della home: si apre sul posto, la sposti dove vuoi",
+    "en": "«To follow up» home section: it opens in place, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2248,8 +2248,8 @@
     "en": "Fires once and disappears."
    },
    "where": {
-    "it": "Riga «Fuori dal codice» nella home, la sposti dove vuoi",
-    "en": "«Outside the code» row in the home, move it where you like"
+    "it": "Voce «Da seguire» della home: si apre sul posto, la sposti dove vuoi",
+    "en": "«To follow up» home section: it opens in place, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2345,8 +2345,8 @@
     "en": "On pairing it fills each section with the machine's real data and says what it found; an empty section says why."
    },
    "where": {
-    "it": "Riga nella home, la sposti dove vuoi",
-    "en": "Row in the home, move it where you like"
+    "it": "Voce della home: si apre sul posto, la sposti dove vuoi",
+    "en": "Home section: it opens in place, move it where you like"
    },
    "state": "ready",
    "version": null,

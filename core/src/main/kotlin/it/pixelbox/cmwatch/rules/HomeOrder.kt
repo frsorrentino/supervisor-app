@@ -8,8 +8,7 @@ object HomeOrder {
     /** Le righe separabili (Franz 31/10 15:50) sostituiscono `altro`. */
     val ROWS = listOf("usage", "system", "plugins", "closed")
     /**
-     * Le righe del programma del 01/11 (Franz 02/11 07:20): voci come le altre, si spostano col gesto e nella pagina dell'ordine. Nello slot no: spariscono
-     * quando sono vuote e il riquadro resterebbe senza niente. Le voci nuove nascono qui.
+     * Le voci del programma del 01/11 (Franz 02/11 07:20 e 08:05): come le altre, accordion, gesto, pagina dell'ordine e slot. Le voci nuove nascono qui.
      */
     val TOP = listOf("prima_raccolta", "seguiti", "prove", "decisioni")
     val DEFAULT = TOP + listOf("sessions", "suggestions", "lavori", "esiti") + ROWS
@@ -48,7 +47,7 @@ object HomeOrder {
      * così non serve una release del relay. Resta anche il suo posto nell'ordine: sganciata, torna dov'era.
      */
     const val PIN = "pin:"
-    val PINNABLE = setOf("usage", "suggestions", "system", "lavori", "plugins", "closed")
+    val PINNABLE = setOf("usage", "suggestions", "system", "lavori", "plugins", "closed") + TOP
     fun pinnable(key: String): Boolean = key in PINNABLE
     fun pinned(saved: List<String>?): String? = saved.orEmpty().firstOrNull { it.startsWith(PIN) }?.removePrefix(PIN)?.takeIf(::pinnable)
     /** La lista da salvare: l'ordine e, in fondo, l'aggancio. */

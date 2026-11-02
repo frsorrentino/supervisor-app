@@ -4,7 +4,7 @@
   import { age, canAccept, canAlign, changedPaths, clean, fired, ordered, whenText } from './seguiti'
   import { newCmd } from './transport'
   import { t } from './t'
-  // «Fuori dal codice» (contratto 1.102), porta di SeguitiScreen: rimasto_indietro, stesso_difetto e promemoria in una pagina; quello che non si sa resta detto come non saputo.
+  // «Da seguire» (contratto 1.102), porta di SeguitiScreen: rimasto_indietro, stesso_difetto e promemoria in una pagina; quello che non si sa resta detto come non saputo.
   let { run, summary, onLavori, onMaster }: { run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; summary: SeguitiSummary | null | undefined; onLavori: () => void; onMaster: () => void } = $props()
   let page = $state<SeguitiPage | null>(null)
   let failed = $state(false)
@@ -27,6 +27,7 @@
 </script>
 
 <div class="pr" data-testid="seguiti">
+  <p class="m">{t.seguitiIntro}</p>
   {#if note}<p class="m" data-testid="seguiti-note">{note}</p>{/if}
   {#if failed}<p class="m">{t.seguitiReadFailed}</p>{/if}
   {#if !page}{#if !failed}<p class="m">{t.proveLoading}</p>{/if}

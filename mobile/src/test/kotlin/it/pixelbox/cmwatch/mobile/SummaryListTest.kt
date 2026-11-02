@@ -85,7 +85,8 @@ class SummaryListTest {
         )
         CmPhoneTheme(still = true) {
             Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-                SummaryList(model(idle), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = idle.ts, kpiState = idle, onPrima = {}, onSeguiti = {}, onProve = {}, onDecisions = {}, onHomeOrder = {})
+                SummaryList(model(idle), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = idle.ts, kpiState = idle, onHomeOrder = {}, startOpen = setOf("seguiti"),
+                    sectionBodies = mapOf("prima_raccolta" to { }, "prove" to { }, "decisioni" to { }, "seguiti" to { androidx.compose.material3.Text("Corpo di Da seguire, aperto sul posto") }))
             }
         }
     }

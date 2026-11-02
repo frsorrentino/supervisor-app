@@ -524,7 +524,7 @@ enum class CmdOp {
     val prove: ProveSummary? = null, val decisions: DecisionsSummary? = null,
     /** Contratto 1.100: la riga della prima raccolta nella home. */
     @SerialName("prima_raccolta") val primaRaccolta: PrimaRaccoltaSummary? = null,
-    /** Contratto 1.102: la riga «Fuori dal codice» nella home. */
+    /** Contratto 1.102: la voce «Da seguire» nella home. */
     val seguiti: SeguitiSummary? = null,
     /** Contratto 1.75: una voce per macchina confermata, dalla fotografia del poller. */
     @SerialName("hosts_status") val hostsStatus: List<HostStatus> = emptyList(),

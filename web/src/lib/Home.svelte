@@ -62,8 +62,10 @@
   import { candidates as finishedOf, closable as closableOf, type Preview } from './closeFinished'
   import type { NightPage } from './night'
   import { total as seguitiTotal } from './seguiti'
-  let { onPage = null, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
-    suggestionNames?: string[]; onPage?: ((p: 'seguiti' | 'prima-raccolta' | 'prove' | 'decisions') => void) | null
+  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
+    suggestionNames?: string[]
+    /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
+    newBody?: Snippet<[string]>
     /** Il blocco Utilizzo aperto, scelta D (30/10 20:11); le colonne della plancia tengono le schede (`usage`). */
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
@@ -699,16 +701,17 @@
 {#snippet secPlugins()}
   {#if pluginsLoad && pluginsRun && (!part || part === 'tools')}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} head={pluginsHead} />{/if}
 {/snippet}
-<!-- Le righe del programma del 01/11 (Franz 02/11 07:20): la testata di tutte, che si trascina; ci sono finché hanno qualcosa. -->
+<!-- Le voci del programma del 01/11 (Franz 02/11 08:05): accordion come le altre, si aprono sul posto; ci sono finché hanno qualcosa. -->
 {#snippet secNuove(k: HomeSection)}
-  {#if !part && onPage}
-    {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'inventory', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', null, { nav: true, onclick: () => onPage('prima-raccolta') })}
-    {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', null, { nav: true, onclick: () => onPage('seguiti') })}
-    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', null, { nav: true, onclick: () => onPage('prove') })}
-    {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere', null, { nav: true, onclick: () => onPage('decisions') })}
+  {#if !part && newBody}
+    {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'inventory', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta')}{@render nuovaBody(k)}
+    {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti')}{@render nuovaBody(k)}
+    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare')}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere')}{@render nuovaBody(k)}
     {/if}
   {/if}
 {/snippet}
+{#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="newbody" data-testid={`corpo-${k}`} transition:slide={{ duration: reducedMotion() ? 0 : 200 }}>{@render newBody?.(k)}</div>{/if}{/snippet}
 {#snippet secClosed()}
   <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
   {#if model.closed.length && (!part || part === 'tools')}
@@ -1188,6 +1191,7 @@
   .hsec > :global(*) { flex-shrink: 0; }
   .hsec:empty { display: none; }
   .hsec.held { opacity: .35; }
+  .newbody { padding-top: 8px; }
   .boardwrap { flex: none; position: relative; }
   .slotdrop { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); pointer-events: none; }
   .slotdrop.hot { border: 2px solid var(--tx); background: color-mix(in srgb, var(--bg) 55%, transparent); }

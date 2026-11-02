@@ -38,6 +38,15 @@ private fun DecideBar(title: String, onBack: () -> Unit) {
     }
 }
 
+/** Una pagina intera col corpo di una voce: da «Cosa sa fare», e all'abbinamento per la prima raccolta. In home lo stesso corpo si apre sul posto. */
+@Composable
+private fun DecidePage(title: String, tag: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().verticalScroll(rememberScrollState()).testTag(tag).padding(start = 12.dp, end = 12.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        DecideBar(title, onBack)
+        content()
+    }
+}
+
 @Composable
 private fun DecideCard(content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
@@ -48,9 +57,11 @@ private fun DecideCard(content: @Composable ColumnScope.() -> Unit) {
  * e quando si riempie. Il consenso si chiede una volta, il primo giro della master dice il costo prima e parte con un tocco.
  */
 @Composable
-fun PrimaRaccoltaScreen(page: PrimaRaccoltaPage?, onBack: () -> Unit, onTouch: (String, String?) -> Unit, onScreen: (String) -> Unit, onFeatures: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().verticalScroll(rememberScrollState()).testTag("prima-raccolta").padding(start = 12.dp, end = 12.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        DecideBar(stringResource(R.string.prima_title), onBack)
+fun PrimaRaccoltaScreen(page: PrimaRaccoltaPage?, onBack: () -> Unit, onTouch: (String, String?) -> Unit, onScreen: (String) -> Unit, onFeatures: () -> Unit) = DecidePage(stringResource(R.string.prima_title), "prima-raccolta", onBack) { PrimaRaccoltaBody(page, onTouch, onScreen, onFeatures) }
+
+@Composable
+fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Unit, onScreen: (String) -> Unit, onFeatures: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (page == null) { Text(stringResource(R.string.prove_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp)); return@Column }
         Text(
             when (page.status) {
@@ -106,10 +117,12 @@ private fun primaSection(key: String): String = when (key) {
  * hanno i tasti. «Non va» chiede cosa non va, a voce dalla tastiera, e uno screenshot facoltativo: arrivano alla master.
  */
 @Composable
-fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: (String) -> Unit, onKo: (ProveItem, String, android.net.Uri?) -> Unit, onScreen: (String) -> Unit) {
+fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: (String) -> Unit, onKo: (ProveItem, String, android.net.Uri?) -> Unit, onScreen: (String) -> Unit) = DecidePage(stringResource(R.string.prove_title), "da-provare", onBack) { DaProvareBody(page, buildOf, onOk, onKo, onScreen) }
+
+@Composable
+fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: (String) -> Unit, onKo: (ProveItem, String, android.net.Uri?) -> Unit, onScreen: (String) -> Unit) {
     var ko by remember { mutableStateOf<ProveItem?>(null) }
-    Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().verticalScroll(rememberScrollState()).testTag("da-provare").padding(start = 12.dp, end = 12.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        DecideBar(stringResource(R.string.prove_title), onBack)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (page == null) Text(stringResource(R.string.prove_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp))
         else if (page.groups.isEmpty() && page.ko.isEmpty() && page.red.isEmpty()) Text(stringResource(R.string.prove_none), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp))
         page?.groups?.forEach { g ->
@@ -166,12 +179,14 @@ fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onB
 
 /** «Da decidere» (contratto 1.99, cinque_minuti): Franz sceglie quante, poi una alla volta, le più pesanti per prime. Niente timer. */
 @Composable
-fun CinqueMinutiScreen(page: DecisionsPage?, onBack: () -> Unit, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null) {
+fun CinqueMinutiScreen(page: DecisionsPage?, onBack: () -> Unit, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null) = DecidePage(stringResource(R.string.decisions_title), "cinque-minuti", onBack) { CinqueMinutiBody(page, onApprove, onDone, onNotNow, onDrop, startHowMany) }
+
+@Composable
+fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null) {
     var howMany by rememberSaveable { mutableStateOf(startHowMany) }
     var touched by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var dropping by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().background(Cm.bg).systemBarsPadding().verticalScroll(rememberScrollState()).testTag("cinque-minuti").padding(start = 12.dp, end = 12.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DecideBar(stringResource(R.string.decisions_title), onBack)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val many = howMany
         when {
             page == null -> Text(stringResource(R.string.prove_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp))

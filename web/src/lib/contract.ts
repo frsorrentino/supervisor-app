@@ -269,7 +269,7 @@ export type State = {
   home_order?: string[]
   prove?: ProveSummary | null; decisions?: DecisionsSummary | null
   prima_raccolta?: PrimaRaccoltaSummary | null
-  /** Contratto 1.102: la riga «Fuori dal codice» nella home. */
+  /** Contratto 1.102: la voce «Da seguire» nella home. */
   seguiti?: SeguitiSummary | null
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null

@@ -158,7 +158,7 @@ fun SummaryList(
      * un tasto (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
      * `foryou` null = relay senza impegni e senza agenda: la sezione non c'è.
      */
-    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, onPrima: (() -> Unit)? = null, onSeguiti: (() -> Unit)? = null, onProve: (() -> Unit)? = null, onDecisions: (() -> Unit)? = null, onLavori: () -> Unit = {},
+    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, /** I corpi delle voci del programma del 01/11, per chiave: si aprono sul posto (Franz 02/11 08:05). */ sectionBodies: Map<String, @Composable () -> Unit> = emptyMap(), onLavori: () -> Unit = {},
     onAgendaEdit: (RecapAgenda.Edit) -> Unit = {}, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
     onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = {},
     today: java.time.LocalDate = java.time.LocalDate.now(),
@@ -263,6 +263,22 @@ fun SummaryList(
         CloseFinishedDialog(preview, previewDone, onDismiss = { closeAsk = null; preview = null }) { ok -> closeAsk = null; preview = null; onCloseMany(ok) }
     }
     fun save(key: String, v: Boolean) { runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
+    class NewRow(val title: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val count: String, val tag: String, val open: androidx.compose.runtime.MutableState<Boolean>)
+    val newOpen = remember { it.pixelbox.cmwatch.rules.HomeOrder.TOP.associateWith { k -> section(k) } }
+    fun newRow(key: String): NewRow? {
+        if (key !in sectionBodies) return null
+        val icons = androidx.compose.material.icons.Icons.Outlined
+        val st = kpiState ?: return null
+        val open = newOpen[key] ?: return null
+        return when (key) {
+            "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open) }
+            "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.seguiti_title, icons.Update, n.toString(), "home-seguiti", open) }
+            "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> NewRow(R.string.prove_title, icons.Science, p.n.toString(), "home-da-provare", open) }
+            "decisioni" -> st.decisions?.takeIf { d -> d.n > 0 }?.let { d -> NewRow(R.string.decisions_title, icons.Timer, d.n.toString(), "home-da-decidere", open) }
+            else -> null
+        }
+    }
+    fun toggleNew(r: NewRow, key: String) { r.open.value = !r.open.value; save(key, r.open.value) }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState(scrollMemo?.get(0) ?: 0, scrollMemo?.get(1) ?: 0)
     if (scrollMemo != null) androidx.compose.runtime.LaunchedEffect(listState) {
         androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
@@ -652,17 +668,14 @@ fun SummaryList(
                 if (pluginsOpen) item(key = "plugins-body") { Box(moving()) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) } }
             }
         }
-        // Le righe del programma del 01/11 (Franz 02/11 07:20): la testata di tutte, che si trascina; ci sono finché hanno qualcosa.
-        fun renderRow(key: String, on: Boolean, title: @Composable () -> String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String, tag: String, onToggle: (() -> Unit)?) {
-            if (!on || onToggle == null) return
+        // Le voci del programma del 01/11 (Franz 02/11 08:05): accordion come le altre, si aprono sul posto; ci sono finché hanno qualcosa.
+        fun renderNew(key: String) {
+            val r = newRow(key) ?: return
             val moving = movingIn(key)
             dragPresent += key
-            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), title(), icon, count, tag = tag, nav = true, onToggle = onToggle) } }
+            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), stringResource(r.title), r.icon, r.count, tag = r.tag, open = r.open.value) { toggleNew(r, key) } } }
+            if (r.open.value) item(key = "$key-body") { Box(moving()) { sectionBodies[key]?.invoke() } }
         }
-        val renderPrima: () -> Unit = { val p = kpiState?.primaRaccolta; renderRow("prima_raccolta", p != null, { stringResource(R.string.prima_title) }, androidx.compose.material.icons.Icons.Outlined.Checklist, "${p?.done}/${p?.total}", "home-prima-raccolta", onPrima) }
-        val renderSeguiti: () -> Unit = { val n = it.pixelbox.cmwatch.rules.Seguiti.total(kpiState?.seguiti); renderRow("seguiti", n > 0, { stringResource(R.string.seguiti_title) }, androidx.compose.material.icons.Icons.Outlined.Update, n.toString(), "home-seguiti", onSeguiti) }
-        val renderProve: () -> Unit = { val p = kpiState?.prove; renderRow("prove", p != null && p.n + p.ko + p.red > 0, { stringResource(R.string.prove_title) }, androidx.compose.material.icons.Icons.Outlined.Science, p?.n.toString(), "home-da-provare", onProve) }
-        val renderDecisioni: () -> Unit = { val d = kpiState?.decisions; renderRow("decisioni", d != null && d.n > 0, { stringResource(R.string.decisions_title) }, androidx.compose.material.icons.Icons.Outlined.Timer, d?.n.toString(), "home-da-decidere", onDecisions) }
         val renderClosed: () -> Unit = {
             val moving = movingIn("closed")
             closedGroup?.let { g ->
@@ -696,6 +709,10 @@ fun SummaryList(
                     PluginsSlotRow(it.pixelbox.cmwatch.rules.SlotInfo.plugins(plugins!!), zone, slotDrag("plugins"), pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }
                     if (pluginsOpen) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
                 }
+                "prima_raccolta", "seguiti", "prove", "decisioni" -> newRow(pin)?.let { r ->
+                    SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, tag = r.tag, open = r.open.value) { toggleNew(r, pin) }
+                    if (r.open.value) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { sectionBodies[pin]?.invoke() }
+                }
                 "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }
             }
         }
@@ -704,10 +721,10 @@ fun SummaryList(
         (dragOrder ?: homeOrder).forEach { k ->
             if (k == listSkip) return@forEach
             when (k) {
-                "prima_raccolta" -> renderPrima()
-                "seguiti" -> renderSeguiti()
-                "prove" -> renderProve()
-                "decisioni" -> renderDecisioni()
+                "prima_raccolta" -> renderNew("prima_raccolta")
+                "seguiti" -> renderNew("seguiti")
+                "prove" -> renderNew("prove")
+                "decisioni" -> renderNew("decisioni")
                 "sessions" -> renderSessions()
                 "suggestions" -> renderSuggestions()
                 "lavori" -> renderLavori()

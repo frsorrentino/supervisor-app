@@ -1537,7 +1537,8 @@ It starts at your last message to the master.</string>
     <string name="prima_sec_night">Night</string>
     <string name="prima_sec_recap">Recap</string>
     <string name="sug_kind_reminder">Reminder</string>
-    <string name="seguiti_title">Outside the code</string>
+    <string name="seguiti_title">To follow up</string>
+    <string name="seguiti_intro">What was left behind, the same defect elsewhere, reminders.</string>
     <string name="seguiti_read_failed">Can\'t read it: the PC isn\'t answering or the relay needs updating.</string>
     <string name="seguiti_task_opened">Task opened: %1$s</string>
     <string name="seguiti_rimasto">Left behind</string>

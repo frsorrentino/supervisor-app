@@ -4,8 +4,7 @@ export type HomeSection = 'prima_raccolta' | 'seguiti' | 'prove' | 'decisioni' |
 /** Le righe separabili (Franz 31/10 15:50) sostituiscono `altro`. */
 export const ROWS: HomeSection[] = ['usage', 'system', 'plugins', 'closed']
 /**
- * Le righe del programma del 01/11 (Franz 02/11 07:20): voci come le altre, si spostano col gesto e nella pagina dell'ordine. Nello slot no: spariscono
- * quando sono vuote e il riquadro resterebbe senza niente. Le voci nuove nascono qui.
+ * Le voci del programma del 01/11 (Franz 02/11 07:20 e 08:05): come le altre, accordion, gesto, pagina dell'ordine e slot. Le voci nuove nascono qui.
  */
 export const TOP: HomeSection[] = ['prima_raccolta', 'seguiti', 'prove', 'decisioni']
 export const DEFAULT_ORDER: HomeSection[] = [...TOP, 'sessions', 'suggestions', 'lavori', 'esiti', 'usage', 'system', 'plugins', 'closed']
@@ -42,7 +41,7 @@ export function dragTarget(order: HomeSection[], held: HomeSection, y: number, m
 // Lo slot del tabellone (Franz 01/11 14:03, «Slot agganciabile»): una voce sola, salvata nella lista stessa come `pin:chiave`, così
 // non serve una release del relay. Resta anche il suo posto nell'ordine: sganciata, torna dov'era. HomeOrder.kt nell'app.
 const PIN = 'pin:'
-const PINNABLE: HomeSection[] = ['usage', 'suggestions', 'system', 'lavori', 'plugins', 'closed']
+const PINNABLE: HomeSection[] = ['usage', 'suggestions', 'system', 'lavori', 'plugins', 'closed', ...TOP]
 export const pinnable = (k: string): k is HomeSection => (PINNABLE as string[]).includes(k)
 export function pinned(saved: string[] | null | undefined): HomeSection | null {
   const k = (saved ?? []).find(x => x.startsWith(PIN))?.slice(PIN.length)

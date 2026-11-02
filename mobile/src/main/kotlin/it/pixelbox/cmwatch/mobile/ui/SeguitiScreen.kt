@@ -23,7 +23,7 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Seguiti
 
 /**
- * «Fuori dal codice» (contratto 1.102, fase B del programma del 01/11): rimasto_indietro, stesso_difetto e promemoria in una pagina. `onAction` è il tocco
+ * «Da seguire» (contratto 1.102, fase B del programma del 01/11): rimasto_indietro, stesso_difetto e promemoria in una pagina. `onAction` è il tocco
  * (`action`, `product`, `key`): allinea e ok su una voce, remind_remove su un promemoria. Quello che non si sa resta detto come non saputo.
  */
 @Composable
@@ -33,6 +33,15 @@ fun SeguitiScreen(page: SeguitiPage?, failed: Boolean, onBack: () -> Unit, onAct
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Cm.text) }
             Text(stringResource(R.string.seguiti_title), style = MaterialTheme.typography.titleLarge, color = Cm.text)
         }
+        SeguitiBody(page, failed, onAction, onLavori, onMaster)
+    }
+}
+
+/** Il corpo, in home si apre sul posto. */
+@Composable
+fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?, String) -> Unit, onLavori: () -> Unit, onMaster: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Note(stringResource(R.string.seguiti_intro))
         if (failed) Note(stringResource(R.string.seguiti_read_failed))
         if (page == null) { if (!failed) Note(stringResource(R.string.prove_loading)); return@Column }
         Heading(stringResource(R.string.seguiti_rimasto))

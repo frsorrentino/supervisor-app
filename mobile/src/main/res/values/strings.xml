@@ -1567,7 +1567,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="prima_sec_night">Notte</string>
     <string name="prima_sec_recap">Riepilogo</string>
     <string name="sug_kind_reminder">Promemoria</string>
-    <string name="seguiti_title">Fuori dal codice</string>
+    <string name="seguiti_title">Da seguire</string>
+    <string name="seguiti_intro">Ciò che è rimasto indietro, lo stesso difetto altrove, i promemoria.</string>
     <string name="seguiti_read_failed">Non riesco a leggere: il PC non risponde o il relay va aggiornato.</string>
     <string name="seguiti_task_opened">Compito aperto: %1$s</string>
     <string name="seguiti_rimasto">Rimasto indietro</string>

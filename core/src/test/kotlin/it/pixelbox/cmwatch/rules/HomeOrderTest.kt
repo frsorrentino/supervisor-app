@@ -143,6 +143,6 @@ class HomeOrderTest {
 
     @org.junit.Test fun voci_nuove_trascinabili_relayESlot() {
         org.junit.Assert.assertTrue(HomeOrder.withPin(HomeOrder.DEFAULT, "usage").size <= 16)
-        nuove.forEach { org.junit.Assert.assertFalse(it, HomeOrder.pinnable(it)) }
+        nuove.forEach { org.junit.Assert.assertTrue(it, HomeOrder.pinnable(it)) }
     }
 }

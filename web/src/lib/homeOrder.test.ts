@@ -105,15 +105,17 @@ describe('slot_rilascio', () => {
     expect(normalize(['esiti', 'sessions']).slice(0, 6)).toEqual([...NUOVE, 'esiti', 'sessions'])
     expect(normalize(['sessions', 'prove']).slice(0, 5)).toEqual(['prima_raccolta', 'seguiti', 'decisioni', 'sessions', 'prove'])
   })
-  it('voci_nuove_trascinabili: nel relay ci stanno, col posto per lo slot; nello slot no, perché spariscono quando sono vuote', () => {
+  it('voci_nuove_trascinabili: nel relay ci stanno, e vanno nello slot come le altre', () => {
     expect(withPin(DEFAULT_ORDER, 'usage').length).toBeLessThanOrEqual(16)
-    for (const k of NUOVE) expect(pinnable(k)).toBe(false)
+    for (const k of NUOVE) expect(pinnable(k)).toBe(true)
   })
   it('voci_nuove_trascinabili: la home le disegna con la testata di tutte, e la pagina dell\'ordine e la copia al dito hanno il nome', () => {
     const read = (f: string) => readFileSync(new URL(f, import.meta.url), 'utf8')
     const home = read('./Home.svelte')
     const order = read('./HomeOrder.svelte')
     expect(home).not.toContain('card wrows decide')
+    expect(home, 'si aprono sul posto, niente pagina').not.toContain('onPage(')
+    expect(home).toContain('{@render newBody?.(k)}')
     for (const k of NUOVE) {
       expect(home, k).toContain(`sec('${k}'`)
       expect(home, k).toContain(`${k}: { icon:`)

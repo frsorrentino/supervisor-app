@@ -1009,6 +1009,8 @@ class MainActivity : ComponentActivity() {
             if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(R.string.approved), android.widget.Toast.LENGTH_SHORT).show()
             else { okPending.remove(task); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_LONG).show() }
         } }
+        // Le voci aperte sul posto nella home (Franz 02/11 08:05): il corpo si segna qui, così si legge come la pagina.
+        val inlineOpen = remember { mutableStateListOf<String>() }
         val readDecide: suspend () -> Unit = {
             suspend fun read(op: CmdOp): String? {
                 val id = runCatching { app.repo.command(op, null, null) }.getOrNull() ?: return null
@@ -1016,16 +1018,19 @@ class MainActivity : ComponentActivity() {
                 app.repo.forget(id)
                 return r?.takeIf { x -> x.ok }?.text
             }
-            if (primaOpen) read(CmdOp.PRIMA_RACCOLTA)?.let { t -> runCatching { ContractJson.decodePrimaRaccolta(t) }.onSuccess { p -> primaPage = p } }
+            if (primaOpen || "prima_raccolta" in inlineOpen) read(CmdOp.PRIMA_RACCOLTA)?.let { t -> runCatching { ContractJson.decodePrimaRaccolta(t) }.onSuccess { p -> primaPage = p } }
             // Il tasto da «Cosa sa fare» c'è anche con un relay vecchio: la pagina dice che non riesce a leggere, non carica per sempre.
-            if (seguitiOpen) { val t = read(CmdOp.SEGUITI); seguitiFailed = t == null; t?.let { x -> runCatching { ContractJson.decodeSeguiti(x) }.onSuccess { p -> seguitiPage = p } } }
-            if (proveOpen) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
-            if (decisionsOpen) read(CmdOp.DECISIONI)?.let { t -> runCatching { ContractJson.decodeDecisions(t) }.onSuccess { p -> decisionsPage = p } }
+            if (seguitiOpen || "seguiti" in inlineOpen) { val t = read(CmdOp.SEGUITI); seguitiFailed = t == null; t?.let { x -> runCatching { ContractJson.decodeSeguiti(x) }.onSuccess { p -> seguitiPage = p } } }
+            if (proveOpen || "prove" in inlineOpen) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
+            if (decisionsOpen || "decisioni" in inlineOpen) read(CmdOp.DECISIONI)?.let { t -> runCatching { ContractJson.decodeDecisions(t) }.onSuccess { p -> decisionsPage = p } }
         }
-        LaunchedEffect(proveOpen, decisionsOpen) { if (proveOpen || decisionsOpen) readDecide() }
+        val inlineKey = inlineOpen.toList()
+        LaunchedEffect(proveOpen, decisionsOpen, inlineKey) { if (proveOpen || decisionsOpen || inlineKey.isNotEmpty()) readDecide() }
         // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
-        LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen) readDecide() }
-        LaunchedEffect(seguitiOpen, state?.seguiti) { if (seguitiOpen) readDecide() }
+        LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen || "prima_raccolta" in inlineOpen) readDecide() }
+        LaunchedEffect(seguitiOpen, state?.seguiti) { if (seguitiOpen || "seguiti" in inlineOpen) readDecide() }
+        // Il numero della voce è cambiato: anche il corpo aperto.
+        LaunchedEffect(state?.prove, state?.decisions) { if ("prove" in inlineOpen || "decisioni" in inlineOpen) readDecide() }
         LaunchedEffect(state?.primaRaccolta?.status) {
             val prefs = getSharedPreferences("prima_raccolta", MODE_PRIVATE)
             if (it.pixelbox.cmwatch.rules.PrimaRaccolta.autoOpen(state?.primaRaccolta, prefs.getBoolean("seen", false))) {
@@ -1055,40 +1060,62 @@ class MainActivity : ComponentActivity() {
                 else -> { open = null; tab = StartRoute.Tab.OVERVIEW }
             }
         }
+        // Il tocco conta: `device` lo mette il Repo. Dopo ogni tocco la pagina si rilegge.
+        val touch: (String, String?) -> Unit = { action, value -> scope.launch {
+            val id = runCatching { app.repo.command(CmdOp.PRIMA_RACCOLTA_AZIONE, null, null, action = action, value = value) }.getOrNull()
+            val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+            if (r?.ok == false) toast(r.text)
+            id?.let { x -> app.repo.forget(x) }
+            readDecide()
+        } }
+        // Il tocco conta: `device` lo mette il Repo. «Allinea» risponde con l'id del compito aperto.
+        val act: (String, String?, String) -> Unit = { action, product, key -> scope.launch {
+            val id = runCatching { app.repo.command(CmdOp.SEGUITI_AZIONE, null, null, action = action, product = product, key = key) }.getOrNull()
+            val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+            toast(if (r == null) getString(R.string.seguiti_read_failed) else if (r.ok && action == "allinea") getString(R.string.seguiti_task_opened, r.text) else r.text)
+            id?.let { x -> app.repo.forget(x) }
+            readDecide()
+        } }
+        val proveKo: (it.pixelbox.cmwatch.contract.ProveItem, String, android.net.Uri?) -> Unit = { p, text, shot ->
+            decideCmd(CmdOp.PROVA, p.id.toString(), "ko", null, null, text)
+            if (shot != null) attachMany(it.pixelbox.cmwatch.rules.ContextActions.MASTER, listOf(shot), getString(R.string.prove_ko_shot_note, p.short ?: p.task), state?.share)
+        }
+        val decApprove: (String, String?) -> Unit = { task, choice -> scope.launch {
+            val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
+            runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), choice = choice, also = also) }
+            readDecide()
+        } }
+        val decDone: (it.pixelbox.cmwatch.contract.DecisionItem) -> Unit = { i ->
+            val c = i.task?.let { t -> state?.commitments?.firstOrNull { x -> x.task == t } }
+            if (i.kind == "needs_you") scope.launch { i.session?.let { n -> runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, n, kind = "needs_you", since = i.since) } }; readDecide() }
+            else c?.let { x -> sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, getString(R.string.lavori_done_prompt, x.paused?.reason ?: i.reason.orEmpty(), x.task)) }
+        }
+        // I corpi delle voci nuove, gli stessi delle pagine: si aprono sul posto nella home.
+        @Composable fun Inline(key: String, content: @Composable () -> Unit) {
+            androidx.compose.runtime.DisposableEffect(key) { inlineOpen.add(key); onDispose { inlineOpen.remove(key) } }
+            content()
+        }
+        val sectionBodies: Map<String, @Composable () -> Unit> = mapOf(
+            "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
+            "seguiti" to { Inline("seguiti") { it.pixelbox.cmwatch.mobile.ui.SeguitiBody(seguitiPage, seguitiFailed, act, { open = null; tab = StartRoute.Tab.LAVORI }, { open = null; masterChat = true }) } },
+            "prove" to { Inline("prove") { it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideCmd(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen) } },
+            "decisioni" to { Inline("decisioni") { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage, decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }) } },
+        )
         if (proveOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false },
                 onOk = { ids -> decideCmd(CmdOp.PROVA, ids, "ok", null, null, null) },
-                onKo = { p, text, shot ->
-                    decideCmd(CmdOp.PROVA, p.id.toString(), "ko", null, null, text)
-                    if (shot != null) attachMany(it.pixelbox.cmwatch.rules.ContextActions.MASTER, listOf(shot), getString(R.string.prove_ko_shot_note, p.short ?: p.task), state?.share)
-                },
+                onKo = proveKo,
                 onScreen = { s -> proveOpen = false; goScreen(s) }) }
             BackHandler { proveOpen = false }
             return
         }
         if (primaOpen) {
-            // Il tocco conta: `device` lo mette il Repo. Dopo ogni tocco la pagina si rilegge.
-            val touch: (String, String?) -> Unit = { action, value -> scope.launch {
-                val id = runCatching { app.repo.command(CmdOp.PRIMA_RACCOLTA_AZIONE, null, null, action = action, value = value) }.getOrNull()
-                val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
-                if (r?.ok == false) toast(r.text)
-                id?.let { x -> app.repo.forget(x) }
-                readDecide()
-            } }
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaScreen(primaPage, onBack = { primaOpen = false }, onTouch = touch,
                 onScreen = { s -> primaOpen = false; goScreen(s) }, onFeatures = { primaOpen = false; featuresOpen = true }) }
             BackHandler { primaOpen = false }
             return
         }
         if (seguitiOpen) {
-            // Il tocco conta: `device` lo mette il Repo. «Allinea» risponde con l'id del compito aperto.
-            val act: (String, String?, String) -> Unit = { action, product, key -> scope.launch {
-                val id = runCatching { app.repo.command(CmdOp.SEGUITI_AZIONE, null, null, action = action, product = product, key = key) }.getOrNull()
-                val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
-                toast(if (r == null) getString(R.string.seguiti_read_failed) else if (r.ok && action == "allinea") getString(R.string.seguiti_task_opened, r.text) else r.text)
-                id?.let { x -> app.repo.forget(x) }
-                readDecide()
-            } }
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.SeguitiScreen(seguitiPage, seguitiFailed, onBack = { seguitiOpen = false }, onAction = act,
                 onLavori = { seguitiOpen = false; open = null; tab = StartRoute.Tab.LAVORI },
                 onMaster = { seguitiOpen = false; open = null; masterChat = true }) }
@@ -1097,16 +1124,8 @@ class MainActivity : ComponentActivity() {
         }
         if (decisionsOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiScreen(decisionsPage, onBack = { decisionsOpen = false },
-                onApprove = { task, choice -> scope.launch {
-                    val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
-                    runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), choice = choice, also = also) }
-                    readDecide()
-                } },
-                onDone = { i ->
-                    val c = i.task?.let { t -> state?.commitments?.firstOrNull { x -> x.task == t } }
-                    if (i.kind == "needs_you") scope.launch { i.session?.let { n -> runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, n, kind = "needs_you", since = i.since) } }; readDecide() }
-                    else c?.let { x -> sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, getString(R.string.lavori_done_prompt, x.paused?.reason ?: i.reason.orEmpty(), x.task)) }
-                },
+                onApprove = decApprove,
+                onDone = decDone,
                 onNotNow = { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) },
                 onDrop = { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) },
             ) }
@@ -1731,7 +1750,7 @@ class MainActivity : ComponentActivity() {
                     justClosed = justClosed,
                     tonight = st.night.items?.let { _ -> it.pixelbox.cmwatch.rules.TonightCard.of(st.night, now) },
                     // La sezione «Lavori» (22/10): gli ok e le cose da fare fuori dalla chat con il loro tasto; «Tutti i lavori» apre la pagina.
-                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, onPrima = { primaOpen = true }, onSeguiti = { seguitiOpen = true }, onProve = { proveOpen = true }, onDecisions = { decisionsOpen = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
+                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, sectionBodies = sectionBodies, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
                     onDone = attentionDone,
                     onAgendaEdit = editAgenda, onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     // «Utilizzo» (Franz, 08/10 12:30; unito il 09/10): le schede della quota e «Oggi» in una sezione richiudibile.
