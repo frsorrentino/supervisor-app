@@ -1484,9 +1484,9 @@ private fun esitiLine(out: it.pixelbox.cmwatch.rules.Kpi.Outcomes): String? {
 private fun newRight(key: String, st: it.pixelbox.cmwatch.contract.State?): String? {
     st ?: return null
     val bits = when (key) {
-        "prove" -> st.prove?.let { it.pixelbox.cmwatch.rules.HomeRight.prove(it) }
-        "decisioni" -> st.decisions?.let { it.pixelbox.cmwatch.rules.HomeRight.decisions(it) }
-        "seguiti" -> st.seguiti?.let { it.pixelbox.cmwatch.rules.HomeRight.seguiti(it) }
+        "prove" -> st.prove?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.prove(x) }
+        "decisioni" -> st.decisions?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.decisions(x) }
+        "seguiti" -> st.seguiti?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.seguiti(x) }
         "prima_raccolta" -> return st.primaRaccolta?.let { p -> when (p.status) {
             "ask" -> stringResource(R.string.home_prima_ask); "running" -> stringResource(R.string.home_prima_running)
             "interrupted" -> stringResource(R.string.home_prima_interrupted); "done" -> stringResource(R.string.home_prima_done); else -> null
