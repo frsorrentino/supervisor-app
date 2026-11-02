@@ -103,8 +103,10 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
         if (PrimaRaccolta.askConsent(page)) DecideCard {
             Text(page.askText.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.End)) {
-                OutlinedButton(onClick = { onTouch("consent", "no") }) { Text(stringResource(R.string.prima_no)) }
-                FilledTonalButton(onClick = { onTouch("consent", "si") }) { Text(stringResource(R.string.prima_yes)) }
+                // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato diventa la conferma finché la scheda cambia.
+                var tapped by remember(page.status, page.done) { mutableStateOf<String?>(null) }
+                ConfirmButton(stringResource(R.string.prima_no), confirmed = tapped == "no", enabled = tapped == null, faded = tapped == "si") { tapped = "no"; onTouch("consent", "no") }
+                ConfirmButton(stringResource(R.string.prima_yes), confirmed = tapped == "si", enabled = tapped == null, faded = tapped == "no") { tapped = "si"; onTouch("consent", "si") }
             }
         }
         page.sections.forEach { s ->
@@ -120,7 +122,8 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
         PrimaRaccolta.firstRoundOffer(page)?.let { cost ->
             DecideCard {
                 Text(cost, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
-                FilledTonalButton(onClick = { onTouch("first_round", null) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.prima_first_round)) }
+                var tappedRound by remember(page.status, page.done) { mutableStateOf(false) }
+                Box(Modifier.align(Alignment.End)) { ConfirmButton(stringResource(R.string.prima_first_round), confirmed = tappedRound, enabled = !tappedRound) { tappedRound = true; onTouch("first_round", null) } }
             }
         }
         if (PrimaRaccolta.finished(page)) TextButton(onClick = onFeatures, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.prima_features)) }

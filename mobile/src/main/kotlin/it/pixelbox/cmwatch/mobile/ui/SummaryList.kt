@@ -1342,8 +1342,13 @@ private fun WorkLine(w: Lavori.ForYou, onDone: () -> Unit, onStart: () -> Unit) 
             val sub = if (outside) (w.at?.let { stringResource(R.string.lavori_you_at, hhmmOf(it)) } ?: stringResource(R.string.lavori_you)) else stringResource(R.string.lavori_can_start)
             Text(sub, style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip)
         }
-        if (outside) MiniButton(stringResource(R.string.agenda_done), filled = true, onClick = onDone)
-        else MiniButton(stringResource(R.string.lavori_start), filled = false, onClick = onStart)
+        // Franz 02/11 15:38 (app-feedback-azioni-02-11): Fatto e Avvia si accendono al tocco e restano accesi finché la riga cambia;
+        // il Fatto di una voce d'agenda apre il suo editor, che è già il segno, e non si accende.
+        var tapped by remember(w.title, w.at, w.kind) { mutableStateOf(false) }
+        val view = androidx.compose.ui.platform.LocalView.current
+        val tap = { send: () -> Unit -> if (!tapped) { if (!(outside && w.agenda != null)) { tapped = true; view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM) }; send() } }
+        if (outside) MiniButton(stringResource(R.string.agenda_done), filled = true, confirmed = tapped) { tap(onDone) }
+        else MiniButton(stringResource(R.string.lavori_start), filled = false, confirmed = tapped) { tap(onStart) }
     }
 }
 
@@ -1360,10 +1365,13 @@ private fun OkButtons(a: it.pixelbox.cmwatch.contract.Approval, filled: Boolean,
 
 /** Il tasto piccolo delle righe (come l'Approva della scheda): pieno per quello che sblocca una sessione, tonale per l'agenda. */
 @Composable
-private fun MiniButton(text: String, filled: Boolean, onClick: () -> Unit) {
+private fun MiniButton(text: String, filled: Boolean, confirmed: Boolean = false, onClick: () -> Unit) {
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    Surface(onClick = onClick, interactionSource = press, modifier = Modifier.pressScale(press), shape = CircleShape, color = if (filled) Cm.primary else Cm.surfaceHigh, contentColor = if (filled) Cm.onPrimary else Cm.text) {
-        Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+    // `confirmed` (voce 11, app-feedback-azioni-02-11): il tasto toccato diventa la conferma, verde con la spunta.
+    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) V3.Good else if (filled) Cm.primary else Cm.surfaceHigh, CmMotion.slow, label = "mini-bg")
+    val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "mini-scale")
+    Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press).graphicsLayer { scaleX = scale; scaleY = scale }, shape = CircleShape, color = bg, contentColor = if (confirmed) V3.Bg else if (filled) Cm.onPrimary else Cm.text) {
+        Text(if (confirmed) "✓ $text" else text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
 }
 

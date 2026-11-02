@@ -11,7 +11,9 @@
   async function load() { const r = await run(newCmd('prima_raccolta', null)); if (r?.ok) page = decodePrima(r.text) }
   // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
   $effect(() => { void summary?.done; void summary?.status; void load() })
-  async function touch(action: string, value?: string) { await run(newCmd('prima_raccolta_azione', null, null, undefined, undefined, { action, value })); await load() }
+  // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato si accende subito e resta acceso finché la scheda cambia.
+  let busy = $state<string | null>(null)
+  async function touch(action: string, value?: string) { if (busy) return; busy = `${action}${value ?? ''}`; try { await run(newCmd('prima_raccolta_azione', null, null, undefined, undefined, { action, value })); await load() } finally { busy = null } }
   const head = (p: PrimaRaccoltaPage) => p.status === 'running' ? t.primaRunning(p.done, p.total) : p.status === 'ask' ? t.primaAsk(p.done, p.total) : p.status === 'interrupted' ? t.primaInterrupted(p.done, p.total) : p.status === 'done' ? t.primaDone : t.primaNone
 </script>
 
@@ -20,9 +22,9 @@
   {:else}
     <p>{head(page)}</p>
     {#if page.cost === 0}<p class="m">{t.primaFree}</p>{/if}
-    {#if canStart(page)}<button class="tonal wide" onclick={() => touch('start')}>{page.status === 'interrupted' ? t.primaResume : t.primaStart}</button>{/if}
+    {#if canStart(page)}<button class="tonal wide" class:done={busy === 'start'} disabled={!!busy} onclick={() => touch('start')}>{#if busy === 'start'}✓ {/if}{page.status === 'interrupted' ? t.primaResume : t.primaStart}</button>{/if}
     {#if askConsent(page)}
-      <div class="c"><p>{page.ask_text}</p><div class="ac"><span class="sp"></span><button class="out" onclick={() => touch('consent', 'no')}>{t.primaNo}</button><button class="tonal" onclick={() => touch('consent', 'si')}>{t.primaYes}</button></div></div>
+      <div class="c"><p>{page.ask_text}</p><div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentno'} disabled={!!busy} onclick={() => touch('consent', 'no')}>{#if busy === 'consentno'}✓ {/if}{t.primaNo}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{t.primaYes}</button></div></div>
     {/if}
     {#each page.sections as s (s.key)}
       <div class="c" data-testid={`prima-${s.key}`}>
@@ -32,13 +34,16 @@
       </div>
     {/each}
     {#if firstRoundOffer(page)}
-      <div class="c"><p>{firstRoundOffer(page)}</p><div class="ac"><span class="sp"></span><button class="tonal" onclick={() => touch('first_round')}>{t.primaFirstRound}</button></div></div>
+      <div class="c"><p>{firstRoundOffer(page)}</p><div class="ac"><span class="sp"></span><button class="tonal" class:done={busy === 'first_round'} disabled={!!busy} onclick={() => touch('first_round')}>{#if busy === 'first_round'}✓ {/if}{t.primaFirstRound}</button></div></div>
     {/if}
     {#if finished(page)}<div class="ac"><span class="sp"></span><button class="text" onclick={onFeatures}>{t.primaFeatures}</button></div>{/if}
   {/if}
 </div>
 
 <style>
+  /* La conferma (voce 11), come in DaProvare. */
+  .tonal, .out { transition: background-color 150ms, color 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
+  .tonal.done, .out.done { background: var(--good); color: var(--bg); border-color: transparent; transform: scale(1.06); }
   .pr { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .c b { font-weight: 600; }

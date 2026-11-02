@@ -434,6 +434,10 @@
   const laterRows = $derived(placed ? [...placed.loose.outside, ...placed.loose.claude] : [])
   const fyShort = (r: LavoriRow) => shortTitle(r.title, r.agenda?.short ?? r.commitment?.short)
   function fyAct(r: LavoriRow) { if (r.kind === 'outside') fyOutside(r); else if (r.kind === 'claude' && r.agenda) onStart(doIt(r.agenda)) }
+  // Franz 02/11 15:38 (app-feedback-azioni-02-11): Fatto e Avvia si accendono al tocco e restano accesi finché la riga cambia;
+  // il Fatto di una voce d'agenda apre il suo editor, che è già il segno, e non si accende.
+  let fyPicked = $state<Record<string, true>>({})
+  function fyTap(r: LavoriRow, k: string) { if (fyPicked[k]) return; if (!(r.kind === 'outside' && r.agenda)) fyPicked = { ...fyPicked, [k]: true }; fyAct(r) }
   const canExit = $derived(!!st.slash?.includes('exit'))
   let pending = $state<Approval | null>(null)
   let pendingChoice = $state<string | null>(null)
@@ -958,7 +962,7 @@
       {:else}<div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
         <span class="okt mono2">{fySub(r) ?? ''}</span>
         {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval, filled)}{/if}
-        {:else}<button class="tonal mini" onclick={() => fyAct(r)}>{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
+        {:else}<button class="tonal mini" class:done={!!fyPicked[workKey(r, i)]} disabled={!!fyPicked[workKey(r, i)]} onclick={() => fyTap(r, workKey(r, i))}>{#if fyPicked[workKey(r, i)]}✓ {/if}{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
       </div></div>{/if}
     </div>
 {/snippet}

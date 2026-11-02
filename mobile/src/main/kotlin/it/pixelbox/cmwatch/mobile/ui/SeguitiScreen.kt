@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,7 +62,8 @@ fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?,
                     else -> stringResource(R.string.seguiti_until)
                 }, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
                 p.expiresAt?.let { Text(stringResource(R.string.seguiti_expires, Seguiti.whenText(it)), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
-                TextButton(onClick = { onAction("remind_remove", null, p.id) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.seguiti_remove)) }
+                var gone by androidx.compose.runtime.remember(p.id) { androidx.compose.runtime.mutableStateOf(false) }
+                TextButton(onClick = { gone = true; onAction("remind_remove", null, p.id) }, enabled = !gone, modifier = Modifier.align(Alignment.End)) { Text((if (gone) "✓ " else "") + stringResource(R.string.seguiti_remove)) }
             }
         }
         Note(stringResource(R.string.seguiti_add_hint))
@@ -103,8 +106,10 @@ private fun RimastoCard(i: RimastoItem, onAction: (String, String?, String) -> U
     Text(if (i.alignedVersion != null || i.alignedAt != null) stringResource(R.string.seguiti_last_aligned, listOfNotNull(i.alignedVersion, i.alignedAt?.let { Seguiti.whenText(it) }).joinToString(", ")) else stringResource(R.string.seguiti_never_aligned), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     i.task?.let { Text(stringResource(R.string.seguiti_task, it), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
     if (Seguiti.canAccept(i) || Seguiti.canAlign(i)) FlowRow(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (Seguiti.canAccept(i)) OutlinedButton(onClick = { onAction("ok", i.product, i.key) }) { Text(stringResource(R.string.seguiti_accept)) }
-        if (Seguiti.canAlign(i)) FilledTonalButton(onClick = { onAction("allinea", i.product, i.key) }) { Text(stringResource(R.string.seguiti_align)) }
+        // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato diventa la conferma finché la scheda cambia.
+        var tapped by androidx.compose.runtime.remember(i.product, i.key, i.alignedAt, i.task) { androidx.compose.runtime.mutableStateOf<String?>(null) }
+        if (Seguiti.canAccept(i)) ConfirmButton(stringResource(R.string.seguiti_accept), confirmed = tapped == "ok", enabled = tapped == null, faded = tapped == "allinea") { tapped = "ok"; onAction("ok", i.product, i.key) }
+        if (Seguiti.canAlign(i)) ConfirmButton(stringResource(R.string.seguiti_align), confirmed = tapped == "allinea", enabled = tapped == null, faded = tapped == "ok") { tapped = "allinea"; onAction("allinea", i.product, i.key) }
     }
 }
 
