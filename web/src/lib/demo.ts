@@ -113,7 +113,7 @@ export function world(now: number): World {
     { id: 'm', name: 'master', account: 'personal', account_kind: 'personal', project: 'personal/control-room', state: 'idle', since: now - 3600, context: 34, attached: true,
       model: { id: 'claude-opus-5[1m]', label: 'Opus 5' }, effort: 'high', suggestion: 'commit the README changes and open a PR', handoff: '/supervisor:handoff --here' },
     ...base.sessions.map((s): Session => {
-      const x: Session = { ...s, since: s.since + d, turn_started: sh(s.turn_started), question: s.question ? { ...s.question, asked_at: s.question.asked_at + d } : s.question,
+      const x: Session = { ...s, since: s.since + d, turn_started: sh(s.turn_started), question: s.question ? { ...s.question, asked_at: s.question.asked_at + d, kind: 'permission', what: en ? 'Publish the 2.8.0 deploy: ./deploy.sh --env production' : 'Pubblica il deploy 2.8.0: ./deploy.sh --env production', text: 'Do you want to proceed?' } : s.question,
         outcome: s.outcome ? { ...s.outcome, at: s.outcome.at + d } : s.outcome, goal: s.goal ? { ...s.goal, since: s.goal.since + d } : s.goal,
         advice: s.advice ? { ...s.advice, at: s.advice.at + d } : s.advice,
         // Contratto 1.72: i conteggi della pillola sono di due minuti fa (nella fixture `at` non segue `ts`).
