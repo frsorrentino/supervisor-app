@@ -31,11 +31,11 @@ class HomeCategoriesTest {
         if (failed) TimelineEvent(full.ts - 30, "task", "Release 1.4", ok = false, ref = "ledger-release-14") else null,
     ))))
 
-    private fun shot(st: State = full, failed: Boolean = false) = paparazzi.snapshot {
+    private fun shot(st: State = full, failed: Boolean = false, open: Set<String> = emptySet()) = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
             SummaryList(
                 Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts,
-                usage = { Text("") }, system = system, kpiState = st, kpiPage = page(failed), startOpen = emptySet(),
+                usage = { Text("") }, system = system, kpiState = st, kpiPage = page(failed), startOpen = open,
                 plugins = st.plugins, onPluginsLoad = { null }, onPluginCmd = { _, _ -> null },
             )
         }
@@ -67,6 +67,15 @@ class HomeCategoriesTest {
     @Test fun homeWithTopItems() = shot(full.copy(homeOrder = listOf("top:esiti", "top:sessions")), failed = true)
 
     /** Riordina con lo spazio in cima: la prima card, con «Togli dalla cima»; le sezioni delle categorie hanno «Metti in cima». */
+    /**
+     * app-tabellone-aperte-02-11 (Franz 02/11 21:41): le voci rilasciate sul tabellone compaiono aperte, con la riga dello slot
+     * (Utilizzo con la barra della settimana, Sistema col carico), subito sotto i tre riquadri; Ti aspettano viene dopo.
+     */
+    @Test fun homeBoardItemsWithExtra() {
+        val asking = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
+        shot(asking.copy(homeOrder = listOf("top:usage", "top:system")), open = setOf("usage"))
+    }
+
     @Test fun reorderWithTop() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 3000))
         paparazzi.snapshot { CmPhoneTheme(still = true) { it.pixelbox.cmwatch.mobile.ui.HomeOrderScreen(listOf("top:esiti", "top:sessions"), {}, {}) } }

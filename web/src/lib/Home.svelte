@@ -250,6 +250,7 @@
       // Sul tabellone la voce sale in fondo alle altre e resta aperta (pieno, torna dov'era); altrove vale l'ordine del puntatore: una
       // voce del tabellone portata sotto il bordo torna nella sua categoria.
       const n = dropped ? (boardTakes(held!) ? toBoard(cats, up, held as HomeKey) : { top: up, cats }) : settle(cats, o)
+      if (dropped && n.top !== up && held === 'system' && sys) sysManual = { level: sys.level, open: true }
       if (dropped && n.top !== up) { open = { ...open, [held!]: true }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* resta per questa visita */ } }
       if (n.top.join() !== up.join() || n.cats !== cats || pinned(st.home_order)) { sentOrder = { from: savedKey, cats: n.cats, pin: null, top: n.top }; onHomeOrder?.(encodeCats(n.cats, null, n.top)) }
     }
@@ -355,7 +356,7 @@
   // Il dato in più di una voce nello slot; Chiuse non c'è: il relay non dice quando si è chiusa (SlotInfo.kt).
   const slotExtra = $derived.by((): Record<string, { bar?: [number, string][]; number?: string; note?: string | null; names?: string[] } | null> => {
     const s = sys ? systemInfo(sys, st.hosts_status, st.sessions) : null
-    const l = pin === 'lavori' ? lavoriInfo(lavoriProgress(st, agenda, now, zone, today)) : null
+    const l = pin === 'lavori' || (up as string[]).includes('lavori') ? lavoriInfo(lavoriProgress(st, agenda, now, zone, today)) : null
     const p = st.plugins ? pluginsInfo(st.plugins) : null
     return {
       system: s && { bar: [[s.barPct, SYS_TONE[s.level as keyof typeof SYS_TONE] ?? SYS_TONE.green]], number: `${s.pct}%`, note: [t.slotRam(s.ramPct), ...s.hosts.map(h => (h.ramPct == null ? t.slotHostOff(h.name) : t.slotHostRam(h.name, h.ramPct))), t.slotSessions(s.sessions)].join(' · ') },
@@ -612,7 +613,7 @@
 <!-- La testata di sezione dello stile «Studio e Diretta» (30/10): l'icona grigia nel binario dei glifi, il titolo allineato ai
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
 {#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null } = {})}
-  {@const info = key === listSkip && !part ? slotExtra[key] : null}
+  {@const info = (key === listSkip || (up as string[]).includes(key)) && !part ? slotExtra[key] : null}
   {#if info}
     <!-- Una voce nello slot (Franz 01/11 17:44): titolo, barra e numero, sotto una riga; il riepilogo a destra non c'è più. -->
     <button class="usageslot" class:draggable={!!onHomeOrder} data-sec-head={key} aria-expanded={o.isOpen ?? !!open[key]} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
@@ -646,12 +647,16 @@
 {#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} onBox={openCat} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
+<!-- Ti aspettano sta sotto il tabellone (app-tabellone-aperte-02-11): le voci rilasciate compaiono attaccate ai tre riquadri. -->
+{#snippet waitingBlock()}
 {#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
   <div class="sec static" data-testid="home-sez-aspettano"><span class="ic"><span class="ms">pan_tool</span></span><span class="st">{t.homeWaiting}</span><small>{waitRows.length + looseOk.length}</small></div>
   {#each waitRows as r (r.session.name)}<div class="cw" in:slide={{ duration: reducedMotion() ? 0 : 220 }} out:slide={{ duration: reducedMotion() ? 0 : 160 }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
   <!-- Gli ok ai compiti senza una sessione aperta: aspettano te come le domande. -->
   {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
 {/if}
+{/snippet}
+{#if part === 'you'}{@render waitingBlock()}{/if}
 <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo le sessioni, fuori da «Ti aspettano» e dal suo
      numero, a filo e non pieni: un consiglio non blocca nessuno (correzione 1 del 30/10). -->
 {#if part === 'you' && !waitRows.length && !looseOk.length && !(suggestions && suggestionsN) && !(newBody && (st.decisions?.n || (st.prove && st.prove.n + st.prove.ko + st.prove.red > 0)))}<p class="wnote">{t.deskYouEmpty}</p>{/if}
@@ -767,7 +772,7 @@
     <div class="sec static"><span class="ic"><span class="ms">data_usage</span></span><span class="st">{t.homeUsage}</span></div>
     <div class="card wrows"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
   {:else if usage && showUsage && !part}
-    <div class="secwrap" bind:this={usageEl}>{#if week && listSkip === 'usage'}
+    <div class="secwrap" bind:this={usageEl}>{#if week && (listSkip === 'usage' || (up as string[]).includes('usage'))}
       <button class="usageslot" class:draggable={!!onHomeOrder && !weekAlarm} data-sec-head="usage" data-testid="slot-utilizzo" aria-expanded={open.usage} onclick={() => { if (!dragJustEnded) toggleSec('usage') }} onpointerdown={(e) => secDown('usage', e)}>
         <span class="ustop"><span class="ms" style:color={weekAlarm ? slotTone(week) : null}>data_usage</span><b>{t.homeUsage}</b>
           <span class="usmeter"><i style="width:{week.pct}%;background:{slotTone(week)}"></i>{#if elapsedPct(week.resetAt, W7_S, now) != null}<s style="left:{elapsedPct(week.resetAt, W7_S, now)}%"></s>{/if}</span>
@@ -852,11 +857,12 @@
   {@const live = dragOrder ?? order}
   {#if live.slice(0, edgeAt(live)).some(k => k !== listSkip)}<div class="boardlabel" data-testid="home-tabellone-voci"><span class="ms" aria-hidden="true">push_pin</span>{t.boardLabel}</div>{/if}
   {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip) as k (k)}
-    <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
+    <div class="hsec onboard" class:held={k === dragKey}>{@render secOf(k)}</div>
   {/each}
   <!-- Il bordo dello spazio in cima: fermo non si vede, durante il trascinamento di una sezione è la striscia dove lasciarla. -->
   <!-- Il bordo non si vede (app-tabellone-quattro-02-11): serve alle voci del tabellone per uscirne verso la loro categoria. -->
   <div class="topedge" data-sec-head={EDGE}></div>
+  {@render waitingBlock()}
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
       {#if c.open}<button class="catlabel cathead" aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
@@ -1373,6 +1379,8 @@
   .catrow .arr { flex: none; color: var(--tx3); transition: rotate .2s; }
   .catrow .arr.up { rotate: 180deg; }
   .hsec.held, .hcat.held { opacity: .35; }
+  /* Una voce del tabellone con la riga dello slot: nel suo riquadro, come i tre numeri (app-tabellone-aperte-02-11). */
+  .onboard > :global(.usageslot), .onboard > :global(.secwrap > .usageslot) { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; }
   .cathead { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
   .newbody { padding-top: 8px; }
   .boardwrap { flex: none; position: relative; }

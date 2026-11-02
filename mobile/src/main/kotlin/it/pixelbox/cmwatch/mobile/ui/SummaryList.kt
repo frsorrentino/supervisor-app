@@ -583,7 +583,8 @@ fun SummaryList(
             )
         }
         if (allDone) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
-        if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
+        // Ti aspettano sta sotto il tabellone (app-tabellone-aperte-02-11): le voci rilasciate compaiono attaccate ai tre riquadri.
+        val renderWaiting: () -> Unit = { if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
             item(key = "sec-waiting") { Box(moving()) { V3Section(stringResource(R.string.home_waiting), androidx.compose.material.icons.Icons.Outlined.PanTool, (waitRows.size + looseOk.size).toString(), tag = "home-sez-aspettano") } }
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
             val keys = uniqueKeys(waitRows) { "s-" + it.session.id }
@@ -592,7 +593,7 @@ fun SummaryList(
                 val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
                 item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
             }
-        }
+        } }
         val outside = outsidePlaced.groups.filter { g -> g.category != OutsideSessions.Category.CLOSED }
         val closedGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.CLOSED }
         // Contratto 1.84 (scheda A): i suggerimenti dopo le sessioni (Franz 30/10 16:44), fuori dal numero di chi aspetta: un consiglio non blocca nessuno.
@@ -600,6 +601,13 @@ fun SummaryList(
         val sugAt = sug?.let { java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(it.shown.first().at).atZone(zone)) }
         // La voce nello slot sta solo lì, anche mentre la si trascina fuori: torna in elenco al rilascio, così niente cambia altezza.
         val listSkip = pin
+        // Durante il trascinamento di una categoria le categorie seguono l'ordine del dito, ognuna con le sue sezioni.
+        val catDrag = dragKey?.startsWith("cat:") == true
+        // Lo spazio in cima e il suo bordo (app-home-in-cima-02-11): durante il trascinamento di una sezione l'ordine è quello del dito.
+        val edge = it.pixelbox.cmwatch.rules.HomeCats.EDGE
+        val live = if (catDrag) null else dragOrder
+        val liveTop = live?.let { o -> o.take(o.indexOf(edge).coerceAtLeast(0)) } ?: up
+        val liveBelow = live?.let { o -> o.drop(o.indexOf(edge) + 1) }
         val renderSessions: () -> Unit = {
         val moving = movingIn("sessions")
         if (restRows.isNotEmpty() || justClosed != null) {
@@ -639,7 +647,7 @@ fun SummaryList(
         if (showLavori && (foryou != null || outside.isNotEmpty())) {
             val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
             if (listSkip != "lavori") dragPresent += "lavori"
-            if (listSkip != "lavori") item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
+            if (listSkip != "lavori" && "lavori" !in liveTop) item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
             if (lavoriOpen) {
                 if (laterRows.isNotEmpty()) item(key = "lv-later") {
                     Box(moving()) {
@@ -778,7 +786,8 @@ fun SummaryList(
         // L'ordine scelto da Franz (Impostazioni › Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra.
         dragPresent.clear()
         val slotDrag: (String) -> Modifier = { k -> if (weekAlarm && k == "usage") Modifier else sectionDrag(k) }
-        slotContent = {
+        // La riga dello slot, col suo dato in più: nello slot dell'allarme e per ogni voce del tabellone (app-tabellone-aperte-02-11).
+        val slotFor: @Composable (String) -> Unit = { pin ->
             val icons = androidx.compose.material.icons.Icons.Outlined
             when (pin) {
                 "suggestions" -> if (sug != null) {
@@ -808,6 +817,7 @@ fun SummaryList(
                 "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }
             }
         }
+        slotContent = { pin?.let { k -> slotFor(k) } }
         // Il corpo di Lavori è fatto di più elementi della lista: agganciata, la testa sta nello slot e il corpo apre subito sotto.
         if (listSkip == "lavori") renderLavori()
         fun renderKey(k: String) {
@@ -823,20 +833,37 @@ fun SummaryList(
                 "system" -> { renderSystem(); if (listSkip != "plugins") renderPlugins() }
             }
         }
-        // Durante il trascinamento di una categoria le categorie seguono l'ordine del dito, ognuna con le sue sezioni.
-        val catDrag = dragKey?.startsWith("cat:") == true
+        // Una voce del tabellone: la riga dello slot nel suo riquadro, aperta col suo corpo; Sessioni ed Esiti non hanno un dato in
+        // più e restano con la loro testata. Lavori ha il corpo fatto di più elementi: la riga qui, il corpo subito sotto.
+        fun renderBoard(k: String) {
+            if (k == listSkip) return
+            val has = when (k) {
+                "suggestions" -> sug != null
+                "lavori" -> showLavori && (foryou != null || outside.isNotEmpty())
+                "usage" -> hasUsage
+                "system" -> system != null
+                "plugins" -> hasPlugins
+                "closed" -> closedGroup != null
+                "prima_raccolta", "seguiti", "prove", "decisioni" -> newRow(k) != null
+                else -> false
+            }
+            if (!has) { renderKey(k); return }
+            dragPresent += k
+            item(key = "sec-$k") {
+                Column(movingIn(k)().fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
+                    androidx.compose.runtime.CompositionLocalProvider(LocalSlotLine provides false) { slotFor(k) }
+                }
+            }
+            if (k == "lavori") renderLavori()
+        }
         val shownCats = if (catDrag) it.pixelbox.cmwatch.rules.HomeCats.catOrder(cats, dragOrder.orEmpty()) else cats
         fun moveCatTo(i: Int, to: Int) = setCats(it.pixelbox.cmwatch.rules.HomeCats.moveCat(cats, i, to))
-        // Lo spazio in cima e il suo bordo (app-home-in-cima-02-11): durante il trascinamento di una sezione l'ordine è quello del dito.
-        val edge = it.pixelbox.cmwatch.rules.HomeCats.EDGE
-        val live = if (catDrag) null else dragOrder
-        val liveTop = live?.let { o -> o.take(o.indexOf(edge).coerceAtLeast(0)) } ?: up
-        val liveBelow = live?.let { o -> o.drop(o.indexOf(edge) + 1) }
         if (liveTop.any { k -> k != listSkip }) item(key = "top-label") { Box(Modifier.animateItem()) { BoardLabel() } }
-        liveTop.forEach(::renderKey)
+        liveTop.forEach(::renderBoard)
         // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
         if (dragKey != null && dragKey in up) dragPresent += edge
         item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
+        renderWaiting()
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
             if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }

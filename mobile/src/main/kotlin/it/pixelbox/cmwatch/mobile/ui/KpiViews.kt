@@ -226,10 +226,13 @@ internal fun androidx.compose.foundation.layout.BoxScope.SlotDrop(hot: Boolean =
     }
 }
 
+/** La riga di separazione sopra una voce dello slot: nel riquadro dei tre numeri sì, in un riquadro suo del tabellone no. */
+internal val LocalSlotLine = androidx.compose.runtime.compositionLocalOf { true }
+
 /** Una voce agganciata: lo stesso riepilogo della riga in elenco, nella misura del tabellone. */
 @Composable
 internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, onToggle: () -> Unit) {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
@@ -250,7 +253,7 @@ internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.gr
  */
 @Composable
 internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tag: String, count: String? = null, bar: List<Pair<Int, Color>>? = null, number: String? = null, numberTone: Color? = null, note: String? = null, names: List<String>? = null, open: Boolean, onToggle: () -> Unit) {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Column(Modifier.fillMaxWidth().then(drag).handCursor().clickable(onClick = onToggle).testTag(tag).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
         Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(18.dp))
@@ -329,7 +332,7 @@ internal fun PluginsSlotRow(i: it.pixelbox.cmwatch.rules.SlotInfo.PluginsInfo, z
 @Composable
 internal fun UsageSlotRow(w: it.pixelbox.cmwatch.rules.UtilizzoRules.WeekSlot, now: Long, drag: Modifier, open: Boolean, onToggle: () -> Unit) {
     val tone = if (w.stale) V3.Tx3 else if (w.pct >= 90) V3.Red else if (w.pct >= 75 || w.alarm) V3.Wait else V3.Tx2
-    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Column(Modifier.fillMaxWidth().then(drag).handCursor().clickable(onClick = onToggle).testTag("slot-utilizzo").padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
         Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(androidx.compose.material.icons.Icons.Outlined.DataUsage, null, tint = if (w.alarm) tone else V3.Tx2, modifier = Modifier.size(18.dp))
