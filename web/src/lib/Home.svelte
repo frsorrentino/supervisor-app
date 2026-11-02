@@ -144,7 +144,8 @@
   const savedKey = $derived((st.home_order ?? []).join(','))
   // La home per categorie (Franz 02/11 16:44, app-home-categorie-02-11; HomeCats.kt nell'app): l'ordine piatto è quello delle
   // sezioni dentro le categorie; le chiavi senza sezione qui (Da guardare, Rendiconti, Pagella finché non esistono) non si disegnano.
-  const cats = $derived(part ? DEFAULT_CATS : sentOrder && sentOrder.from === savedKey ? sentOrder.cats : decodeCats(st.home_order))
+  // Anche le colonne della plancia seguono l'ordine salvato dentro ogni categoria; aperte o chiuse lì non conta.
+  const cats = $derived(sentOrder && sentOrder.from === savedKey && !part ? sentOrder.cats : decodeCats(st.home_order))
   const order = $derived(cats.flatMap(c => c.sections).filter(k => (DEFAULT_ORDER as string[]).includes(k)) as HomeSection[])
   // Le categorie chiuse aperte sul posto: valgono per questa visita, non si salvano (in vista o chiuse si decide in Riordina).
   let peek = $state<CatId[]>([])
@@ -575,7 +576,7 @@
 {/snippet}
 
 <section class="home" class:part={!!part}>
-{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if !part && listSkip !== 'closed'}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if !part && listSkip !== 'plugins'}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed'}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins'}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {#if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
 {/snippet}
@@ -768,7 +769,7 @@
 {#snippet secNuove(k: HomeSection)}
   <!-- Nella plancia larga anche queste, nella loro colonna (Franz 02/11 11:11: «mancano molte sezioni»): Da decidere e Da
        provare chiedono te, Da seguire e Prima raccolta sono lavoro in corso. -->
-  {#if newBody && (!part || part === (k === 'decisioni' || k === 'prove' ? 'you' : 'work'))}
+  {#if newBody && (!part || part === catFor(k))}
     {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'task_alt', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', !open['prima_raccolta'] ? rightOf('prima_raccolta') : null)}{@render nuovaBody(k)}
     {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
     {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null)}{@render nuovaBody(k)}
@@ -779,13 +780,13 @@
 {#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="newbody" data-testid={`corpo-${k}`} transition:slide={{ duration: reducedMotion() ? 0 : 200 }}>{@render newBody?.(k)}</div>{/if}{/snippet}
 {#snippet secClosed()}
   <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
-  {#if model.closed.length && (!part || part === 'tools')}
+  {#if model.closed.length && (!part || part === 'work')}
     {@render sec('closed', t.catClosed, 'inventory_2', String(model.closed.length), 'home-sez-chiuse', null, { nav: true, onclick: () => closedDlg?.showModal() })}
   {/if}
 {/snippet}
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
 {#if part}
-  {#each order.filter(k => k !== listSkip) as k (k)}<div class="hsec">{@render secOf(k)}</div>{/each}
+  {#each order.filter(k => catFor(k) === part) as k (k)}<div class="hsec">{@render secOf(k)}</div>{/each}
 {:else}
   {#each cats as c (c.id)}
     {@const inView = c.open || peek.includes(c.id)}

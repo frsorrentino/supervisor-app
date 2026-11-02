@@ -36,6 +36,7 @@
   import Home from './lib/Home.svelte'
   import Chat from './lib/Chat.svelte'
   import Desk from './lib/Desk.svelte'
+  import { decode as decodeCats } from './lib/homeCats'
   import Dash from './lib/Dash.svelte'
   import Plancia from './lib/Plancia.svelte'
   import HomeOrder from './lib/HomeOrder.svelte'
@@ -1167,7 +1168,7 @@
 {:else if embed}
   <div class="embedded v3">{@render chatOf(MASTER, true)}</div>
 {:else if wide && deskDashboard}
-  <Plancia {width} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf} panelLeft={masterLeft}>
+  <Plancia {width} order={decodeCats(st.home_order).map(c => c.id)} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf} panelLeft={masterLeft}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />{/snippet}
     {#snippet you()}<DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}{/snippet}
     {#snippet work()}<DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} sub={deskWorkSub} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}{/snippet}

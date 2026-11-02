@@ -4,13 +4,14 @@
   // la testata fuori dalla griglia, quattro colonne per argomento con la loro cifra in testa (Richiede te, Attività e code,
   // Esiti, Numeri e strumenti) e la master come barra in fondo; a metà o aperta è un pannello a destra alto quanto lo schermo,
   // 420 o 720 px. Le colonne sono quante ne stanno a 320 px l'una; quelle che non stanno scendono in fondo all'ultima.
-  let { width, head, you, work, out, tools, bar, panel = null, panelWide = false, panelLeft = false }: {
-    width: number; head: Snippet; you: Snippet; work: Snippet; out: Snippet; tools: Snippet; bar: Snippet
+  // L'ordine delle colonne è quello delle categorie della home (app-home-categorie-02-11), lo stesso di Riordina.
+  let { width, head, you, work, out, tools, bar, panel = null, panelWide = false, panelLeft = false, order = ['you', 'work', 'out', 'tools'] }: {
+    width: number; head: Snippet; you: Snippet; work: Snippet; out: Snippet; tools: Snippet; bar: Snippet; order?: string[]
     panel?: Snippet | null; panelWide?: boolean; panelLeft?: boolean
   } = $props()
   const PANEL = 420, PANEL_WIDE = 720, COL = 320
   const n = $derived(Math.max(1, Math.min(4, Math.floor((width - (panel ? (panelWide ? PANEL_WIDE : PANEL) : 0)) / COL))))
-  const all = $derived([you, work, out, tools])
+  const all = $derived(order.map(id => ({ you, work, out, tools } as Record<string, Snippet>)[id]).filter(Boolean))
   // Le colonne che non stanno: in fondo all'ultima che si vede.
   const shownCols = $derived(all.slice(0, n).map((c, i) => (i === n - 1 ? all.slice(i) : [c])))
 </script>
