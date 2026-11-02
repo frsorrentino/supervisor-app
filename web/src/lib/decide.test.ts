@@ -92,6 +92,8 @@ describe('chat_esito_allineata', () => {
   })
   it('chat_esito_allineata: aspetta te ha la mano di Ti aspettano, in chat e negli esiti', () => {
     for (const f of ['./Feed.svelte', './HomeBox.svelte']) expect(readFileSync(new URL(f, import.meta.url), 'utf8'), f).toContain("waiting: 'hand'")
+    expect(readFileSync(new URL('./HomeBox.svelte', import.meta.url), 'utf8')).toContain("needs_you: 'hand'")
+    expect(readFileSync(new URL('./Lavori.svelte', import.meta.url), 'utf8')).toContain("l.who === 'you' ? 'hand'")
   })
 })
 

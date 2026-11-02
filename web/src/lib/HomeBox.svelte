@@ -32,7 +32,7 @@
   const live = $derived(new Set(st.sessions.filter(s => s.state !== 'gone').map(s => s.name)))
   const hm = (at: number) => { const d = new Date(at * 1000); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
   const kindText: Record<WaitKind, string> = { question: t.boxKindQuestion, needs_you: t.boxKindNeedsYou, blocking: t.boxKindBlocking }
-  const kindIcon = { question: 'question', needs_you: 'user', blocking: 'hourglass' } as const
+  const kindIcon = { question: 'question', needs_you: 'hand', blocking: 'hourglass' } as const
 </script>
 
 {#snippet chevron()}<svg class="chev" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>{/snippet}

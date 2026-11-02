@@ -341,7 +341,8 @@ private fun since(at: Long, today: LocalDate, zone: ZoneId): String {
 private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
     val (icon, tint) = when (l.who) {
         Lavori.Who.WORKING -> Icons.Rounded.PlayArrow to Cm.busy
-        Lavori.Who.YOU -> Icons.Rounded.Person to Cm.waiting
+        // La mano di Ti aspettano (Franz 02/11): tocca a te è la stessa cosa.
+        Lavori.Who.YOU -> androidx.compose.material.icons.Icons.Outlined.PanTool to Cm.waiting
         Lavori.Who.OTHERS -> Icons.Rounded.HourglassEmpty to Cm.text2
     }
     val a = l.agenda

@@ -126,7 +126,7 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
                             rows.forEachIndexed { i, w ->
                                 val kind = stringResource(when (w.kind) { Kpi.WaitKind.QUESTION -> R.string.box_kind_question; Kpi.WaitKind.NEEDS_YOU -> R.string.box_kind_needs_you; Kpi.WaitKind.BLOCKING -> R.string.box_kind_blocking })
                                 BoxRow(
-                                    i, when (w.kind) { Kpi.WaitKind.QUESTION -> Icons.Rounded.QuestionMark; Kpi.WaitKind.NEEDS_YOU -> Icons.Rounded.Person; Kpi.WaitKind.BLOCKING -> Icons.Rounded.HourglassEmpty }, Cm.waiting,
+                                    i, when (w.kind) { Kpi.WaitKind.QUESTION -> Icons.Rounded.QuestionMark; Kpi.WaitKind.NEEDS_YOU -> Icons.Outlined.PanTool; Kpi.WaitKind.BLOCKING -> Icons.Rounded.HourglassEmpty }, Cm.waiting,
                                     w.session, stringResource(R.string.queue_age, Durations.since(w.since, now)), onClick = { onSession(w.session) },
                                 ) {
                                     Text(if (w.closesItself) "$kind · ${stringResource(R.string.box_closes_itself)}" else kind, style = KindStyle, color = Cm.waiting)
