@@ -775,6 +775,24 @@ fun SessionSheet(
 }
 
 /**
+ * Il campo e la sua bozza, sincronizzati nei due versi: il testo che si vede nel campo è quello che parte (Franz 02/11 09:02, app-invio-dopo-clear-02-11).
+ * La bozza cambia con l'id della sessione e con la domanda (dopo /clear, dopo un passaggio di consegne): il collettore scrive sempre in quella di adesso,
+ * e il campo mostra quella di adesso. Prima il collettore teneva l'onDraft della prima composizione e scriveva nella bozza vecchia: Invia restava spento.
+ */
+@Composable
+internal fun rememberDraftField(draftState: androidx.compose.runtime.State<String>, onDraft: (String) -> Unit): androidx.compose.foundation.text.input.TextFieldState {
+    val draft = draftState.value
+    val fieldState = androidx.compose.foundation.text.input.rememberTextFieldState(draft)
+    val currentDraft by androidx.compose.runtime.rememberUpdatedState(draft)
+    val write by androidx.compose.runtime.rememberUpdatedState(onDraft)
+    LaunchedEffect(draftState, draft) { if (fieldState.text.toString() != draft) fieldState.setTextAndPlaceCursorAtEnd(draft) }
+    LaunchedEffect(fieldState) {
+        androidx.compose.runtime.snapshotFlow { fieldState.text.toString() }.collect { t -> if (t != currentDraft) write(t) }
+    }
+    return fieldState
+}
+
+/**
  * La barra di scrittura (design 30/09, parti 1 e 7): sopra la tastiera, «+» per un'immagine, il tasto a destra.
  * L'immagine scelta resta in attesa sopra il campo, con la sua anteprima e la ×, e parte con Invia insieme al testo
  * (Franz, 30/09 22:03: prima partiva subito).
@@ -928,12 +946,7 @@ private fun Composer(
         // Il campo a stato (TextFieldState): riceve anche immagini e file incollati, dalla tastiera o trascinati da un'altra
         // app (Franz, 05/10 22:29), che vanno fra gli allegati come dal +. La bozza resta sincronizzata nei due versi.
         val ctx = androidx.compose.ui.platform.LocalContext.current
-        val fieldState = androidx.compose.foundation.text.input.rememberTextFieldState(draft)
-        val currentDraft by androidx.compose.runtime.rememberUpdatedState(draft)
-        LaunchedEffect(draft) { if (fieldState.text.toString() != draft) fieldState.setTextAndPlaceCursorAtEnd(draft) }
-        LaunchedEffect(fieldState) {
-            androidx.compose.runtime.snapshotFlow { fieldState.text.toString() }.collect { t -> if (t != currentDraft) onDraft(t) }
-        }
+        val fieldState = rememberDraftField(draftState, onDraft)
         // Il suggerimento attenuato resta un'indicazione: un tocco nel campo vuoto ci entra e basta, lo mette nel campo solo
         // «Usa» (sugg-focus, Franz 26/10 19:56: la superficie che lo accettava al tocco copriva tutto il campo vuoto).
         OutlinedTextField(
