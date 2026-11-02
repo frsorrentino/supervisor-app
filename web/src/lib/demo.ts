@@ -179,7 +179,7 @@ export function world(now: number): World {
     // Contratto 1.99: le righe di Da provare e Cinque minuti, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 2, here: 1, tasks: 3, snoozed: 0 },
     prima_raccolta: { status: 'ask', done: 9, total: 10, ask: true, first_round_at: null },
-    seguiti: { rimasto: 1, altrove: 1, promemoria: 2 },
+    seguiti: { rimasto: 1, altrove: 0, promemoria: 2 },
     // Utilizzo agganciato: dalla prima schermata si vede il dato in più dello slot.
     home_order: withPin(DEFAULT_ORDER, 'usage'),
     // Contratto 1.90: la macchina tranquilla, così «Sistema» parte chiuso come di solito.
