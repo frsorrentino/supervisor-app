@@ -1589,7 +1589,7 @@ It starts at your last message to the master.</string>
     <string name="home_bit_behind">%1$d behind</string>
     <string name="home_bit_elsewhere">%1$d elsewhere</string>
     <plurals name="home_bit_reminders"><item quantity="one">%1$d reminder</item><item quantity="other">%1$d reminders</item></plurals>
-    <string name="home_prima_ask">waits for your answer</string>
+    <string name="home_prima_ask">waits for you</string>
     <string name="home_prima_running">running</string>
     <string name="home_prima_interrupted">stopped</string>
     <string name="home_prima_done">done</string>

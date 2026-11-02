@@ -1619,7 +1619,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_bit_behind">%1$d indietro</string>
     <string name="home_bit_elsewhere">%1$d altrove</string>
     <plurals name="home_bit_reminders"><item quantity="one">%1$d promemoria</item><item quantity="other">%1$d promemoria</item></plurals>
-    <string name="home_prima_ask">aspetta la tua risposta</string>
+    <string name="home_prima_ask">aspetta te</string>
     <string name="home_prima_running">in corso</string>
     <string name="home_prima_interrupted">interrotta</string>
     <string name="home_prima_done">fatta</string>
