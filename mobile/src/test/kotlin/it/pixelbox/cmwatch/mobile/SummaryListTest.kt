@@ -76,6 +76,20 @@ class SummaryListTest {
         }
     }
 
+    // Franz 02/11 07:20: le righe del programma sono testate come le altre, nell'ordine scelto; una sta in mezzo alle sezioni di sempre.
+    @Test fun voci_nuove_trascinabili_home() = paparazzi.snapshot {
+        val idle = ContractJson.decodeState(File("../contract/state-3-stale.json").readText()).copy(
+            prove = ProveSummary(2, 1, 0, 0), decisions = DecisionsSummary(2, 1, 3, 0), seguiti = SeguitiSummary(2, 1, 1),
+            primaRaccolta = PrimaRaccoltaSummary("ask", 7, 8, true, null),
+            homeOrder = listOf("seguiti", "prima_raccolta", "esiti", "decisioni", "prove", "sessions", "suggestions", "lavori", "usage", "system", "plugins", "closed"),
+        )
+        CmPhoneTheme(still = true) {
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
+                SummaryList(model(idle), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = idle.ts, kpiState = idle, onPrima = {}, onSeguiti = {}, onProve = {}, onDecisions = {}, onHomeOrder = {})
+            }
+        }
+    }
+
     // Contratto 1.84 (scheda A, Franz 24/10 19:46): i suggerimenti della master dopo chi ti aspetta, tre di quattro.
     @Test fun summaryWithSuggestions() = paparazzi.snapshot {
         val sg = listOf(
