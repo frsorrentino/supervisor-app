@@ -1953,7 +1953,16 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
     val box = if (fill) Modifier.fillMaxWidth().aspectRatio((bmp.width.toFloat() / bmp.height).coerceAtLeast(.5f)) else Modifier.widthIn(max = maxW).heightIn(max = maxH)
     androidx.compose.foundation.Image(
         bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Crop,
-        modifier = box.clip(RoundedCornerShape(14.dp)).handCursor().clickable { full = true },
+        // Due dita sull'anteprima aprono il visore (app-chat-zoom-02-11): lo zoom si fa lì, la chat resta ferma.
+        modifier = box.clip(RoundedCornerShape(14.dp)).handCursor().clickable { full = true }.pointerInput(path) {
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false)
+                do {
+                    val e = awaitPointerEvent()
+                    if (e.changes.count { it.pressed } >= 2) { full = true; e.changes.forEach { it.consume() }; break }
+                } while (e.changes.any { it.pressed })
+            }
+        },
     )
     if (full) ImageViewer(path) { full = false }
 }
@@ -2000,12 +2009,15 @@ private fun TextFirstLines(path: String, onClick: () -> Unit) {
     }
 }
 
-/** Decodifica un file immagine riducendolo fino a stare entro `max` pixel sul lato lungo. */
-private fun decodeScaled(path: String, max: Int): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
+/**
+ * Decodifica un file immagine riducendolo fino a stare entro `max` pixel sul lato lungo e, se dato, entro `maxPixels` in tutto
+ * (il visore: un mockup alto 824×6652 resta intero, prima diventava largo 206 px e ingrandito non si leggeva).
+ */
+private fun decodeScaled(path: String, max: Int, maxPixels: Long = Long.MAX_VALUE): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
     val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
     android.graphics.BitmapFactory.decodeFile(path, bounds)
     var sample = 1
-    while (maxOf(bounds.outWidth, bounds.outHeight) / sample > max) sample *= 2
+    while (maxOf(bounds.outWidth, bounds.outHeight) / sample > max || bounds.outWidth.toLong() / sample * (bounds.outHeight / sample) > maxPixels) sample *= 2
     android.graphics.BitmapFactory.decodeFile(path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })?.let { b -> it.pixelbox.cmwatch.mobile.share.ImageShrink.turned(b, it.pixelbox.cmwatch.mobile.share.ImageShrink.orientation(path)) }?.asImageBitmap()
 }.getOrNull()
 
@@ -2017,7 +2029,8 @@ private fun decodeScaled(path: String, max: Int): androidx.compose.ui.graphics.I
  */
 @Composable
 private fun ImageViewer(path: String, onClose: () -> Unit) {
-    val bmp = remember(path) { decodeScaled(path, 3072) } ?: return
+    // Fino a 8192 px per lato e 16 milioni di pixel (64 MB): oltre, la scheda grafica non disegna la bitmap.
+    val bmp = remember(path) { decodeScaled(path, 8192, 16_000_000L) } ?: return
     var view by remember { mutableStateOf(it.pixelbox.cmwatch.rules.ZoomPan.View()) }
     var box by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val scope = rememberCoroutineScope()
@@ -2047,7 +2060,7 @@ private fun ImageViewer(path: String, onClose: () -> Unit) {
                             if (zoom != 1f || (view.scale > 1f && pan != androidx.compose.ui.geometry.Offset.Zero)) {
                                 val c = e.calculateCentroid(useCurrent = false)
                                 val (cw, ch) = fitted()
-                                view = it.pixelbox.cmwatch.rules.ZoomPan.step(view, zoom, pan.x, pan.y, c.x, c.y, cw, ch, box.width.toFloat(), box.height.toFloat())
+                                view = it.pixelbox.cmwatch.rules.ZoomPan.step(view, zoom, pan.x, pan.y, c.x, c.y, cw, ch, box.width.toFloat(), box.height.toFloat(), it.pixelbox.cmwatch.rules.ZoomPan.maxScale(cw, box.width.toFloat()))
                                 e.changes.forEach { ch -> if (ch.positionChanged()) ch.consume() }
                             }
                             e.changes.firstOrNull()?.let { tracker.addPointerInputChange(it) }

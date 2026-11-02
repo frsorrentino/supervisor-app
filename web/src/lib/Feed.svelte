@@ -5,6 +5,7 @@
   import type { Session, StepDiff, TranscriptEntry, TranscriptFile } from './contract'
   import type { Load } from './diff'
   import StepDiffRow from './StepDiffRow.svelte'
+  import ImageViewer from './ImageViewer.svelte'
   import { counts, type Item } from './chatFeed'
   import type { Status } from './chatRules'
   import { blocks, cards, compact, type Table } from './markdown'
@@ -21,6 +22,8 @@
   let vh = $state(typeof window !== 'undefined' ? window.innerHeight : 800)
   $effect(() => { const on = () => (vh = window.innerHeight); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on) })
   let full = $state<{ key: string; name: string } | null>(null)
+  // L'immagine aperta nel visore con lo zoom (app-chat-zoom-02-11); prima si apriva in una scheda nuova.
+  let zoomed = $state<{ src: string; name: string } | null>(null)
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
   import { failed, media, pages, texts } from './mediaCache.svelte'
@@ -182,7 +185,7 @@
       <div class="fcard" role="group" aria-label={f.path.split('/').pop()} use:preview={{ f, key }} onpointerenter={() => onFile(f.path, 'prepare', key)} onfocusin={() => onFile(f.path, 'prepare', key)}>
         <button class="fchip" title={f.path} onclick={() => onFile(f.path, 'open', key)}><Icon name={fileIcon(f)} color="var(--icon)" /><span class="fname">{f.path.split('/').pop()}</span>{#if f.size != null}<span class="fsize">{size(f.size)}</span>{/if}</button>
         <!-- L'anteprima tra il nome e i tasti, come nell'app (Franz, 13/10 07:16). -->
-        {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><img src={url} alt="" /></button>{/if}
+        {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={t.fileOpen} onclick={() => { if (kind === 'pdf') onFile(f.path, 'open', key); else zoomed = { src: url, name: f.path.split('/').pop() ?? '' } }}><img src={url} alt="" /></button>{/if}
         {#if pages[key] && !code[key]}
           <!-- Franz, 16/10 11:18: HTML e SVG come pagina, in un riquadro isolato (PAGE_SANDBOX: origine opaca, niente token). -->
           <iframe class="fpage" style="height:{pageHeight(vh)}px" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>
@@ -284,6 +287,7 @@
   </div>
 {/if}
 
+{#if zoomed}<ImageViewer src={zoomed.src} name={zoomed.name} onClose={() => (zoomed = null)} />{/if}
 {#if full && pages[full.key]}
   <div class="pagefull" role="dialog" aria-modal="true" aria-label={full.name}>
     <div class="pfbar"><span class="pfname">{full.name}</span><button class="pfclose" aria-label={t.closeWord} onclick={() => (full = null)}>✕</button></div>

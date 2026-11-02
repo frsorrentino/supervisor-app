@@ -25,8 +25,8 @@ object ZoomPan {
      * Un passo del gesto: `zoom` attorno a `cx, cy` (le dita, in pixel della vista), poi lo spostamento delle dita, 1:1.
      * Il punto dell'immagine sotto le dita resta sotto le dita.
      */
-    fun step(v: View, zoom: Float, panX: Float, panY: Float, cx: Float, cy: Float, contentW: Float, contentH: Float, viewW: Float, viewH: Float): View {
-        val s = (v.scale * zoom).coerceIn(1f, MAX)
+    fun step(v: View, zoom: Float, panX: Float, panY: Float, cx: Float, cy: Float, contentW: Float, contentH: Float, viewW: Float, viewH: Float, max: Float = MAX): View {
+        val s = (v.scale * zoom).coerceIn(1f, max)
         val k = s / v.scale
         // Il centro dello strato è il centro della vista: un punto a distanza d dal centro, con lo spostamento v.x, sta a
         // centro + v.x + d·scale. Tenere fermo il punto sotto le dita dà x' = c - (c - x)·k, con c misurato dal centro.
@@ -36,9 +36,17 @@ object ZoomPan {
         return clamp(moved, contentW, contentH, viewW, viewH)
     }
 
-    /** Il doppio tocco: da 1x ingrandisce sul punto toccato, altrimenti torna a 1x. */
+    /**
+     * La misura che porta l'immagine a tutta larghezza (app-chat-zoom-02-11): un mockup alto, adattato, è una striscia stretta;
+     * il pizzico arriva fino al triplo di questa, e mai sotto [MAX].
+     */
+    fun fillWidth(contentW: Float, viewW: Float): Float = if (contentW <= 0f) 1f else (viewW / contentW).coerceAtLeast(1f)
+    fun maxScale(contentW: Float, viewW: Float): Float = maxOf(MAX, 3f * fillWidth(contentW, viewW))
+
+    /** Il doppio tocco: da 1x ingrandisce sul punto toccato, almeno fino a tutta larghezza; altrimenti torna a 1x. */
     fun doubleTap(v: View, tx: Float, ty: Float, contentW: Float, contentH: Float, viewW: Float, viewH: Float): View =
-        if (v.scale > 1.01f) View() else step(View(), DOUBLE_TAP, 0f, 0f, tx, ty, contentW, contentH, viewW, viewH)
+        if (v.scale > 1.01f) View()
+        else maxOf(DOUBLE_TAP, fillWidth(contentW, viewW)).let { z -> step(View(), z, 0f, 0f, tx, ty, contentW, contentH, viewW, viewH, maxScale(contentW, viewW)) }
 
     /** La misura dell'immagine adattata alla vista (ContentScale.Fit). */
     fun fit(imageW: Float, imageH: Float, viewW: Float, viewH: Float): Pair<Float, Float> {

@@ -51,4 +51,22 @@ class ZoomPanTest {
         assertEquals(1000f to 600f, ZoomPan.fit(2000f, 1200f, 1000f, 2000f))
         assertEquals(500f to 2000f, ZoomPan.fit(1000f, 4000f, 1000f, 2000f))
     }
+
+    /**
+     * app-chat-zoom-02-11 (Franz 02/11 22:24): un mockup alto 824×6652 su un telefono 1080×2400 sta adattato largo 297 px.
+     * Il doppio tocco lo porta a tutta larghezza, e il pizzico va oltre fino al triplo di quella misura.
+     */
+    @Test fun aTallImageFillsTheWidthOnDoubleTapAndZoomsFurther() {
+        val (tw, th) = ZoomPan.fit(824f, 6652f, 1080f, 2400f)
+        val z = ZoomPan.doubleTap(ZoomPan.View(), 540f, 300f, tw, th, 1080f, 2400f)
+        assertEquals(1080f / tw, z.scale, 0.001f)
+        assertEquals(0f, z.x, 0.01f)
+        val max = ZoomPan.maxScale(tw, 1080f)
+        assertEquals(3f * 1080f / tw, max, 0.001f)
+        assertEquals(max, ZoomPan.step(z, 20f, 0f, 0f, 540f, 300f, tw, th, 1080f, 2400f, max).scale, 0.001f)
+    }
+
+    @Test fun aWideImageKeepsTheOldLimits() {
+        assertEquals(ZoomPan.MAX, ZoomPan.maxScale(cw, w), 0.001f)
+    }
 }
