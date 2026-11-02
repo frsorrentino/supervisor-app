@@ -1471,6 +1471,7 @@ It starts at your last message to the master.</string>
     <string name="home_waiting">Waiting for you</string>
     <plurals name="home_sessions_working"><item quantity="one">%1$d working</item><item quantity="other">%1$d working</item></plurals>
     <plurals name="home_sessions_finished"><item quantity="one">%1$d finished</item><item quantity="other">%1$d finished</item></plurals>
+    <string name="home_sessions_others">The others</string>
     <plurals name="home_sessions_waiting"><item quantity="one">%1$d waiting for you</item><item quantity="other">%1$d waiting for you</item></plurals>
     <plurals name="home_sessions_still"><item quantity="one">%1$d idle</item><item quantity="other">%1$d idle</item></plurals>
     <string name="home_all_outcomes">All outcomes</string>

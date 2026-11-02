@@ -83,6 +83,19 @@ internal fun CatLabel(id: String, modifier: Modifier = Modifier, onToggle: () ->
     }
 }
 
+/**
+ * I due gruppi dentro Sessioni (Franz 02/11 23:57: «aspettano te sia un sottoinsieme di sessioni»): «Ti aspettano N» in ambra sopra
+ * le sessioni che aspettano Franz, «Le altre» in grigio sopra il resto. Piccolo, come l'etichetta di una categoria.
+ */
+@Composable
+internal fun WaitGroupLabel(text: String, n: Int?) {
+    Row(Modifier.fillMaxWidth().padding(start = 6.dp, top = 2.dp).testTag(if (n != null) "home-sessioni-aspettano" else "home-sessioni-altre"), verticalAlignment = Alignment.CenterVertically) {
+        val tone = if (n != null) V3.Wait else V3.Tx3
+        Text(text.uppercase(), style = V3.Small.copy(fontSize = 12.sp, letterSpacing = 1.1.sp, color = tone))
+        n?.let { Text(it.toString(), style = V3.Small.copy(fontSize = 12.sp, color = tone), modifier = Modifier.padding(start = 6.dp)) }
+    }
+}
+
 /** L'etichetta delle voci sul tabellone (app-tabellone-quattro-02-11, mockup richiede-te.png punto 2): la puntina e «In cima». */
 @Composable
 internal fun BoardLabel() {

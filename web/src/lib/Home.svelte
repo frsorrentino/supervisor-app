@@ -656,11 +656,13 @@
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 <!-- Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda e gli ok senza
      sessione stanno in cima alla lista di Sessioni, con la loro card ambra; la riga Sessioni si accende quando ce n'è una. -->
+<!-- Franz 02/11 23:57: «aspettano te sia un sottoinsieme di sessioni»: un gruppo in cima a Sessioni con le sole sessioni che
+     aspettano Franz, poi «Le altre». Gli ok senza sessione stanno in cima a Lavori: sono ok a dei compiti. -->
 {#snippet waitingBlock()}
-{#if waitRows.length || looseOk.length}
+{#if waitRows.length}
+  <div class="sgroup wait" data-testid="home-sessioni-aspettano">{t.homeWaiting}<small>{waitRows.length}</small></div>
   {#each waitRows as r (r.session.name)}<div class="cw" in:slide={{ duration: reducedMotion() ? 0 : 220 }} out:slide={{ duration: reducedMotion() ? 0 : 160 }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
-  <!-- Gli ok ai compiti senza una sessione aperta: aspettano te come le domande. -->
-  {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
+  {#if restFlat.length}<div class="sgroup" data-testid="home-sessioni-altre">{t.homeSessionsOthers}</div>{/if}
 {/if}
 {/snippet}
 <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo le sessioni, fuori da «Ti aspettano» e dal suo
@@ -675,10 +677,10 @@
 {/if}
 {/snippet}
 {#snippet secSessions()}
-{#if shows('work') && (restGroups.length || justClosed || waitRows.length || looseOk.length)}
+{#if shows('work') && (restGroups.length || justClosed || waitRows.length)}
   <!-- Lo stesso numero di «N aperte» in testata: le sessioni vive, senza la master (app-home-nomi-02-11, punto 6). -->
   {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
-  {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length || looseOk.length ? 'var(--wait)' : null })}
+  {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length ? 'var(--wait)' : null })}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
@@ -698,8 +700,10 @@
 {/snippet}
 {#snippet secLavori()}
 {#if shows('work') && showLavori && (fy || workGroups.length)}
-  {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', null, 'home-sez-lavori', open.lavori ? null : lavoriLine)}{/if}
+  {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', null, 'home-sez-lavori', open.lavori ? null : lavoriLine, { dot: looseOk.length ? 'var(--wait)' : null })}{/if}
   {#if part || open.lavori}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
+    <!-- Gli ok ai compiti senza una sessione aperta (Franz 02/11 23:57): in cima ai lavori, con la loro card ambra. -->
+    {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
     {#if laterRows.length && !part}
       <button class="all later" aria-expanded={laterOpen} onclick={() => (laterOpen = !laterOpen)}><span class="wic"></span><span class="otext"><b>{t.lavoriLater(laterRows.length)}</b></span>
         <span class="ms tog">{laterOpen ? 'expand_less' : 'expand_more'}</span></button>
@@ -1372,6 +1376,9 @@
   .hcat:has(.hsec > *) .catlabel { display: flex; }
   /* Lo spazio in cima (app-home-in-cima-02-11): il bordo è una linea vuota; durante il trascinamento la striscia dove lasciare. */
   .topedge { height: 1px; flex: none; }
+  /* I due gruppi dentro Sessioni: «Ti aspettano N» in ambra, «Le altre» in grigio. */
+  .sgroup { display: flex; align-items: baseline; gap: 6px; padding: 2px 6px 0; font: 500 12px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
+  .sgroup.wait { color: var(--wait); }
   .boardlabel { display: flex; align-items: center; gap: 6px; padding: 10px 4px 2px; font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
   .boardlabel .ms { font-size: 16px; letter-spacing: 0; text-transform: none; }
   .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }

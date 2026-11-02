@@ -1501,6 +1501,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_waiting">Ti aspettano</string>
     <plurals name="home_sessions_working"><item quantity="one">%1$d al lavoro</item><item quantity="other">%1$d al lavoro</item></plurals>
     <plurals name="home_sessions_finished"><item quantity="one">%1$d finita</item><item quantity="other">%1$d finite</item></plurals>
+    <string name="home_sessions_others">Le altre</string>
     <plurals name="home_sessions_waiting"><item quantity="one">%1$d ti aspetta</item><item quantity="other">%1$d ti aspettano</item></plurals>
     <plurals name="home_sessions_still"><item quantity="one">%1$d ferma</item><item quantity="other">%1$d ferme</item></plurals>
     <string name="home_all_outcomes">Tutti gli esiti</string>

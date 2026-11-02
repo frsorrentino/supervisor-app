@@ -590,17 +590,17 @@ fun SummaryList(
             )
         }
         if (allDone) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
-        // Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda e gli ok
-        // senza sessione stanno in cima alla lista di Sessioni, con la loro card ambra; la riga Sessioni si accende quando ce n'è una.
-        val renderWaiting: () -> Unit = { if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
+        // Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda stanno in
+        // cima alla lista di Sessioni, con la loro card ambra; la riga Sessioni si accende quando ce n'è una.
+        // Franz 02/11 23:57: «aspettano te sia un sottoinsieme di sessioni»: un gruppo in cima a Sessioni con le sole sessioni che
+        // aspettano Franz, poi le altre. Gli ok senza sessione stanno in cima a Lavori: sono ok a dei compiti.
+        val renderWaiting: () -> Unit = { if (waitRows.isNotEmpty()) {
             val moving = movingIn("sessions")
+            item(key = "wait-group") { Box(moving()) { WaitGroupLabel(stringResource(R.string.home_waiting), waitRows.size) } }
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
             val keys = uniqueKeys(waitRows) { "s-" + it.session.id }
             items(waitRows.size, key = { keys[it] }) { i -> Box(moving().growIn(seenWait.isNotEmpty() && keys[i] !in seenWait)) { androidx.compose.runtime.SideEffect { seenWait += keys[i] }; card(waitRows[i], true) } }
-            looseOk.forEachIndexed { i, r ->
-                val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
-                item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
-            }
+            if (restRows.isNotEmpty()) item(key = "rest-group") { Box(moving()) { WaitGroupLabel(stringResource(R.string.home_sessions_others), null) } }
         } }
         val outside = outsidePlaced.groups.filter { g -> g.category != OutsideSessions.Category.CLOSED }
         val closedGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.CLOSED }
@@ -618,7 +618,7 @@ fun SummaryList(
         val liveBelow = live?.let { o -> o.drop(o.indexOf(edge) + 1) }
         val renderSessions: () -> Unit = {
         val moving = movingIn("sessions")
-        if (restRows.isNotEmpty() || justClosed != null || waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
+        if (restRows.isNotEmpty() || justClosed != null || waitRows.isNotEmpty()) {
             dragPresent += "sessions"
             item(key = "sec-sessions") {
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
@@ -626,7 +626,7 @@ fun SummaryList(
                 val waitN = waitRows.count { r -> r.session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER }
                 // Al massimo due parti, su una riga: prima chi aspetta Franz (con tre andava a capo).
                 val line = (listOfNotNull(waitN.takeIf { w -> w > 0 }?.let { w -> pluralStringResource(R.plurals.home_sessions_waiting, w, w) }) + sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)).split(" · ").filter { x -> x.isNotEmpty() }).take(2).joinToString(" · ")
-                Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) V3.Wait else null) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
+                Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
             }
             if (sessionsOpen) renderWaiting()
             justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
@@ -660,8 +660,13 @@ fun SummaryList(
         if (showLavori && (foryou != null || outside.isNotEmpty())) {
             val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
             if (listSkip != "lavori") dragPresent += "lavori"
-            if (listSkip != "lavori" && "lavori" !in liveTop) item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
+            if (listSkip != "lavori" && "lavori" !in liveTop) item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, dot = if (looseOk.isNotEmpty()) V3.Wait else null, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
             if (lavoriOpen) {
+                // Gli ok ai compiti senza una sessione aperta (Franz 02/11 23:57): in cima ai lavori, con la loro card ambra.
+                looseOk.forEachIndexed { i, r ->
+                    val k = r.approval?.task ?: r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
+                    item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
+                }
                 if (laterRows.isNotEmpty()) item(key = "lv-later") {
                     Box(moving()) {
                         V3List { V3Row(first = true, onClick = { laterOpen = !laterOpen }, rail = {}, trailing = { Icon(if (laterOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3) }) { Text(stringResource(R.string.lavori_later, laterRows.size), style = V3.Name) } }
