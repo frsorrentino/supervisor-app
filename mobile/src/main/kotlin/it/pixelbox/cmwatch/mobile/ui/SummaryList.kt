@@ -624,7 +624,8 @@ fun SummaryList(
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
                 // Lo stesso numero di «N aperte» in testata: le sessioni vive, senza la master (app-home-nomi-02-11, punto 6).
                 val waitN = waitRows.count { r -> r.session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER }
-                val line = listOfNotNull(waitN.takeIf { w -> w > 0 }?.let { w -> pluralStringResource(R.plurals.home_sessions_waiting, w, w) }, sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)).ifEmpty { null }).joinToString(" · ")
+                // Al massimo due parti, su una riga: prima chi aspetta Franz (con tre andava a capo).
+                val line = (listOfNotNull(waitN.takeIf { w -> w > 0 }?.let { w -> pluralStringResource(R.plurals.home_sessions_waiting, w, w) }) + sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)).split(" · ").filter { x -> x.isNotEmpty() }).take(2).joinToString(" · ")
                 Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) V3.Wait else null) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
             }
             if (sessionsOpen) renderWaiting()

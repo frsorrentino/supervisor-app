@@ -678,7 +678,7 @@
 {#if shows('work') && (restGroups.length || justClosed || waitRows.length || looseOk.length)}
   <!-- Lo stesso numero di «N aperte» in testata: le sessioni vive, senza la master (app-home-nomi-02-11, punto 6). -->
   {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
-  {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', sessionsLine].filter(Boolean).join(' · ') || null, { dot: waitRows.length || looseOk.length ? 'var(--wait)' : null })}
+  {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length || looseOk.length ? 'var(--wait)' : null })}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
