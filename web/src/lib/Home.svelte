@@ -321,13 +321,18 @@
       const bits = inOrder<{ text: string }>([['decisioni', d ? { text: `${t.decisionsTitle} ${d}` } : null], ['prove', p ? { text: `${t.proveTitle} ${p}` } : null]])
       return { bits: bits.length ? bits : none, amber: d > 0 }
     }
-    const n = up.includes('sessions') ? 0 : st.sessions.filter(x => x.state !== 'gone').length
-    return { bits: n ? [{ text: `${t.homeSessions} ${n}` }] : none, amber: false }
+    // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).
+    const n = up.includes('sessions') ? 0 : model.open
+    const w = up.includes('sessions') ? 0 : waitRows.filter(r => r.session.name !== 'master').length
+    const bits = [...(w ? [{ text: t.homeSessionsWaiting(w) }] : []), ...(n ? [{ text: `${t.homeSessions} ${n}` }] : [])]
+    return { bits: bits.length ? bits : none, amber: w > 0 }
   }
   // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco sulla
   // testata (app-home-in-cima-02-11); poi la pagina ci scorre.
   function openCat(b: import('./HomeBox.svelte').Box) {
-    const id: CatId = b === 'aspetta' ? 'you' : b === 'lavoro' ? 'work' : 'out'
+    // Il primo riquadro conta le sessioni ferme, che stanno in Sessioni (app-home-nomi-02-11): apre In corso e Sessioni.
+    const id: CatId = b === 'aspetta' || b === 'lavoro' ? 'work' : 'out'
+    if (b === 'aspetta' && !open.sessions) toggleSec('sessions')
     if (cats.some(c => c.id === id && !c.open)) setCats(toggleCat(cats, id))
     requestAnimationFrame(() => document.querySelector(`[data-testid="cat-${id}"]`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }))
   }
@@ -649,19 +654,18 @@
 {#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} onBox={openCat} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
-<!-- Ti aspettano sta sotto il tabellone (app-tabellone-aperte-02-11): le voci rilasciate compaiono attaccate ai tre riquadri. -->
+<!-- Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda e gli ok senza
+     sessione stanno in cima alla lista di Sessioni, con la loro card ambra; la riga Sessioni si accende quando ce n'è una. -->
 {#snippet waitingBlock()}
-{#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
-  <div class="sec static" data-testid="home-sez-aspettano"><span class="ic"><span class="ms">pan_tool</span></span><span class="st">{t.homeWaiting}</span><small>{waitRows.length + looseOk.length}</small></div>
+{#if waitRows.length || looseOk.length}
   {#each waitRows as r (r.session.name)}<div class="cw" in:slide={{ duration: reducedMotion() ? 0 : 220 }} out:slide={{ duration: reducedMotion() ? 0 : 160 }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
   <!-- Gli ok ai compiti senza una sessione aperta: aspettano te come le domande. -->
   {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
 {/if}
 {/snippet}
-{#if part === 'you'}{@render waitingBlock()}{/if}
 <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo le sessioni, fuori da «Ti aspettano» e dal suo
      numero, a filo e non pieni: un consiglio non blocca nessuno (correzione 1 del 30/10). -->
-{#if part === 'you' && !waitRows.length && !looseOk.length && !(suggestions && suggestionsN) && !(newBody && (st.decisions?.n || (st.prove && st.prove.n + st.prove.ko + st.prove.red > 0)))}<p class="wnote">{t.deskYouEmpty}</p>{/if}
+{#if part === 'you' && !(suggestions && suggestionsN) && !(newBody && (st.decisions?.n || (st.prove && st.prove.n + st.prove.ko + st.prove.red > 0)))}<p class="wnote">{t.deskYouEmpty}</p>{/if}
 <!-- I suggerimenti come sezione richiudibile (Franz 30/10 17:33), dopo le sessioni (16:44): la barra dei 7 giorni sta dentro.
      Nella plancia restano nella colonna «Richiede te». -->
 {#snippet secSuggestions()}
@@ -671,14 +675,17 @@
 {/if}
 {/snippet}
 {#snippet secSessions()}
-{#if shows('work') && (restGroups.length || justClosed)}
-  {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(restGroups.reduce((n, [, rows]) => n + rows.length, 0)), 'home-sez-sessioni', sessionsLine)}
+{#if shows('work') && (restGroups.length || justClosed || waitRows.length || looseOk.length)}
+  <!-- Lo stesso numero di «N aperte» in testata: le sessioni vive, senza la master (app-home-nomi-02-11, punto 6). -->
+  {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
+  {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', sessionsLine].filter(Boolean).join(' · ') || null, { dot: waitRows.length || looseOk.length ? 'var(--wait)' : null })}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
     </div>
   {/if}
   {#if part || open.sessions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
+    {@render waitingBlock()}
     <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
          intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
     <div class="list">
@@ -864,7 +871,6 @@
   <!-- Il bordo dello spazio in cima: fermo non si vede, durante il trascinamento di una sezione è la striscia dove lasciarla. -->
   <!-- Il bordo non si vede (app-tabellone-quattro-02-11): serve alle voci del tabellone per uscirne verso la loro categoria. -->
   <div class="topedge" data-sec-head={EDGE}></div>
-  {@render waitingBlock()}
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
       {#if c.open}<button class="catlabel cathead" aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>

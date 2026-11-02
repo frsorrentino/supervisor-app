@@ -341,8 +341,10 @@ fun SummaryList(
                 inOrder(listOf("decisioni" to d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") }, "prove" to p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") })).ifEmpty { none } to (d > 0)
             }
             else -> {
-                val n = if ("sessions" in up) 0 else kpiState?.sessions.orEmpty().count { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }
-                (if (n > 0) listOf(CatBit("${stringResource(R.string.home_sec_sessions)} $n")) else none) to false
+                // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).
+                val n = if ("sessions" in up) 0 else model.open
+                val w = if ("sessions" in up) 0 else model.rows.count { r -> r.group == Summary.Group.WAITING && r.session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER }
+                (listOfNotNull(w.takeIf { x -> x > 0 }?.let { x -> CatBit(pluralStringResource(R.plurals.home_sessions_waiting, x, x), V3.Wait) }, n.takeIf { x -> x > 0 }?.let { x -> CatBit("${stringResource(R.string.home_sec_sessions)} $x") }).ifEmpty { none }) to (w > 0)
             }
         }
     }
@@ -548,7 +550,9 @@ fun SummaryList(
                     Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, { b ->
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
                         // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre.
-                        val id = when (b) { HomeBox.WAITING -> "you"; HomeBox.BUSY -> "work"; HomeBox.OUTCOMES -> "out" }
+                        // Il primo riquadro conta le sessioni ferme, che stanno in Sessioni (app-home-nomi-02-11): apre In corso e Sessioni.
+                        val id = when (b) { HomeBox.WAITING -> "work"; HomeBox.BUSY -> "work"; HomeBox.OUTCOMES -> "out" }
+                        if (b == HomeBox.WAITING && !sessionsOpen) { sessionsOpen = true; save("sessions", true) }
                         if (catsNow.any { c -> c.id == id && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, id))
                         catFocus = id
                     }, onQuota, slot = { slotContent() })
@@ -586,9 +590,10 @@ fun SummaryList(
             )
         }
         if (allDone) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
-        // Ti aspettano sta sotto il tabellone (app-tabellone-aperte-02-11): le voci rilasciate compaiono attaccate ai tre riquadri.
+        // Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda e gli ok
+        // senza sessione stanno in cima alla lista di Sessioni, con la loro card ambra; la riga Sessioni si accende quando ce n'è una.
         val renderWaiting: () -> Unit = { if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
-            item(key = "sec-waiting") { Box(moving()) { V3Section(stringResource(R.string.home_waiting), androidx.compose.material.icons.Icons.Outlined.PanTool, (waitRows.size + looseOk.size).toString(), tag = "home-sez-aspettano") } }
+            val moving = movingIn("sessions")
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
             val keys = uniqueKeys(waitRows) { "s-" + it.session.id }
             items(waitRows.size, key = { keys[it] }) { i -> Box(moving().growIn(seenWait.isNotEmpty() && keys[i] !in seenWait)) { androidx.compose.runtime.SideEffect { seenWait += keys[i] }; card(waitRows[i], true) } }
@@ -613,12 +618,16 @@ fun SummaryList(
         val liveBelow = live?.let { o -> o.drop(o.indexOf(edge) + 1) }
         val renderSessions: () -> Unit = {
         val moving = movingIn("sessions")
-        if (restRows.isNotEmpty() || justClosed != null) {
+        if (restRows.isNotEmpty() || justClosed != null || waitRows.isNotEmpty() || looseOk.isNotEmpty()) {
             dragPresent += "sessions"
             item(key = "sec-sessions") {
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
-                Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, restRows.size.toString(), sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)), "home-sez-sessioni", sessionsOpen) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
+                // Lo stesso numero di «N aperte» in testata: le sessioni vive, senza la master (app-home-nomi-02-11, punto 6).
+                val waitN = waitRows.count { r -> r.session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER }
+                val line = listOfNotNull(waitN.takeIf { w -> w > 0 }?.let { w -> pluralStringResource(R.plurals.home_sessions_waiting, w, w) }, sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)).ifEmpty { null }).joinToString(" · ")
+                Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty() || looseOk.isNotEmpty()) V3.Wait else null) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
             }
+            if (sessionsOpen) renderWaiting()
             justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
             // Una lista sola nell'ordine dei gruppi: il glifo dice lo stato al posto delle intestazioni.
             if (sessionsOpen && restRows.isNotEmpty()) item(key = "sessions-list") {
@@ -868,7 +877,6 @@ fun SummaryList(
         // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
         if (dragKey != null && dragKey in up) dragPresent += edge
         item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
-        renderWaiting()
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
             if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
