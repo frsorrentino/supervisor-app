@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, visibleHeadsUp } from './decide'
+import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp } from './decide'
 import { decodeState, type Approval, type DecisionsPage, type ProvePage } from './contract'
 import { outcomeType } from './kpi'
 
@@ -71,5 +71,23 @@ describe('notte_due_mesi', () => {
   it('notte_due_mesi: ogni giorno il suo mese', () => {
     expect(nightTitleParts('2026-10-31', '2026-11-01', name)).toEqual({ dayA: 31, monthA: 'ott', dayB: 1, monthB: 'nov' })
     expect(nightTitleParts('2026-10-06', '2026-10-07', name)).toEqual({ dayA: 6, monthA: null, dayB: 7, monthB: 'ott' })
+  })
+})
+
+describe('chat_esito_allineata', () => {
+  it('chat_esito_allineata: il prefisso non si vede, lo dice l\'icona', () => {
+    expect(outcomeText('Esito: fase B uscita', 'Esito')).toBe('fase B uscita')
+    expect(outcomeText('Esito: fase B uscita', 'Outcome')).toBe('fase B uscita')
+    expect(outcomeText('Outcome: done', 'Outcome')).toBe('done')
+    expect(outcomeText('Esito fatto', 'Esito')).toBe('Esito fatto')
+  })
+  it('chat_esito_allineata: colore solo sull\'icona, centrata sulla prima riga, linea sopra', () => {
+    const feed = readFileSync(new URL('./Feed.svelte', import.meta.url), 'utf8')
+    const rule = (sel: string) => feed.split('\n').filter(l => l.includes(sel)).join(' ')
+    expect(rule('.fesito p')).toContain('color: var(--text)')
+    expect(rule('.fesito .gl')).toContain('height: 1lh')
+    expect(rule('.fesito .gl')).toContain('align-items: center')
+    expect(rule('.fesito {')).toContain('border-top: 1px solid var(--line)')
+    expect(feed).toContain('class="sr"')
   })
 })

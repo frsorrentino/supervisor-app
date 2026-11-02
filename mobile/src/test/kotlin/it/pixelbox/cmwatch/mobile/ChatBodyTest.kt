@@ -30,6 +30,10 @@ class ChatBodyTest {
 
     private val full = "demo-cover è pronto per te; `git log demo-cover` resta com'è.\n\n**Da te**\n1. Manda l'immagine al blog.\n2. Fai il login nella sandbox.\n\n**Non provato:** il checkout su un telefono vero, con il testo intero leggibile su più righe, senza pieghe.\n\nEsito: due cose aspettano te."
 
+    private val long = "Fatto.\n\nEsito: fase B uscita; fase C passata a supervisor; 42 prove su `seguiti-2026-11-02`, e questa riga va avanti per tre righe di testo sul telefono."
+    @Test fun chat_esito_allineata_treRighe() = shot(long, type = "shipped")
+    @Test fun chat_esito_allineata_treRigheGrande() = shot(long, big = true, type = "shipped")
+    @Test fun chat_esito_allineata_aspetta() = shot("Fatto.\n\nEsito: serve la tua scelta sul brano.", type = "waiting")
     @Test fun chat_esito_problema() = shot(full, type = "problem")
     @Test fun chat_esito_pubblicato() = shot(full, type = "shipped")
     @Test fun chat_etichette_riquadroENonProvato() = shot(full)

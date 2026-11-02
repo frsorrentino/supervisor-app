@@ -28,6 +28,12 @@ export function okLines(a: Approval) {
 /** Gli id da mandare con l'ok: quelli mostrati. Undefined se la card non ne ha, così il comando resta com'era. */
 export const okAlso = (a: Approval): string[] | undefined => (a.also?.length ? a.also.map(x => x.task) : undefined)
 
+/** Il testo a schermo (forma A, Franz 02/11): il prefisso lo dice l'icona; resta nel copia, che prende il testo intero. */
+export function outcomeText(line: string, label: string): string {
+  const x = [label, 'Esito'].find(k => line.startsWith(`${k}:`))
+  return x ? line.slice(x.length + 1).trim() : line
+}
+
 /** Il testo sopra e l'ultima riga, se è l'esito. Solo l'ultima riga piena conta, scritta con l'etichetta. */
 export function splitOutcome(text: string, label: string): { body: string; outcome: string | null } {
   const lines = text.trimEnd().split('\n')

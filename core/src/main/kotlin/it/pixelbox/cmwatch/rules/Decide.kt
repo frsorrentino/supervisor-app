@@ -81,6 +81,12 @@ object ChatEsito {
         if (listOf(label, "Esito").none { last.startsWith("$it:") || last.startsWith("$it ") }) return Split(text, null)
         return Split(lines.dropLast(1).joinToString("\n").trimEnd(), last)
     }
+
+    /** Il testo a schermo (forma A, Franz 02/11): il prefisso lo dice l'icona; resta nel copia, che prende il testo intero. */
+    fun text(line: String, label: String): String = listOf(label, "Esito").firstOrNull { line.startsWith("$it:") }?.let { line.removePrefix("$it:").trim() } ?: line
+
+    /** Dove parte l'icona perché stia al centro della prima riga. */
+    fun iconTop(lineHeight: Float, icon: Float): Float = (lineHeight - icon) / 2
 }
 
 /** Il titolo della notte (Franz 01/11): a cavallo di due mesi ogni giorno dice il suo, non «November 31-1». */

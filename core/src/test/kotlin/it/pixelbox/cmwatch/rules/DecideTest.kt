@@ -111,4 +111,13 @@ class DecideTest {
         assertEquals(NightTitle.Parts(31, "october", 1, "november"), NightTitle.parts(java.time.LocalDate.of(2026, 10, 31), java.time.LocalDate.of(2026, 11, 1), name))
         assertEquals(NightTitle.Parts(6, null, 7, "october"), NightTitle.parts(java.time.LocalDate.of(2026, 10, 6), java.time.LocalDate.of(2026, 10, 7), name))
     }
+
+    @Test fun chat_esito_allineata_senzaPrefissoEIconaAlCentroDellaRiga() {
+        assertEquals("fase B uscita", ChatEsito.text("Esito: fase B uscita", "Esito"))
+        assertEquals("fase B uscita", ChatEsito.text("Esito: fase B uscita", "Outcome"))
+        assertEquals("done", ChatEsito.text("Outcome: done", "Outcome"))
+        assertEquals("Esito fatto", ChatEsito.text("Esito fatto", "Esito"))
+        assertEquals(5f, ChatEsito.iconTop(28f, 18f), 0f)
+        assertEquals(3f, ChatEsito.iconTop(24f, 18f), 0f)
+    }
 }

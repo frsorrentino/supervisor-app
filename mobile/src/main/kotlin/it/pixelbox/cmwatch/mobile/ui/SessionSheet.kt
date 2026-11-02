@@ -2380,9 +2380,15 @@ internal fun ChatBody(full: String, outcomeType: String? = null) {
     // La riga Esito col suo tipo, come in «Esiti di oggi» (Franz 01/11 21:31).
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (cut.body.isNotBlank()) ChatParts(cut.body)
-        Row(Modifier.testTag("chat-esito"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(outcomeIcon(esito), null, tint = outcomeTone(esito), modifier = Modifier.padding(top = 3.dp).size(18.dp))
-            Text(linked(line, LocalTaskLinks.current), style = MaterialTheme.typography.bodyLarge, color = outcomeTone(esito))
+        // Forma A (mockup scelto il 02/11): linea sopra, colore del tipo solo sull'icona, centrata sulla prima riga; le righe dopo stanno sotto il testo.
+        val style = MaterialTheme.typography.bodyLarge
+        val lineDp = with(androidx.compose.ui.platform.LocalDensity.current) { (if (style.lineHeight.isSp) style.lineHeight else style.fontSize * 1.4f).toDp() }
+        Column(Modifier.testTag("chat-esito"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(outcomeIcon(esito), label, tint = outcomeTone(esito), modifier = Modifier.padding(top = it.pixelbox.cmwatch.rules.ChatEsito.iconTop(lineDp.value, 18f).dp).size(18.dp))
+                Text(linked(it.pixelbox.cmwatch.rules.ChatEsito.text(line, label), LocalTaskLinks.current), style = style, color = Cm.text)
+            }
         }
     }
 }

@@ -28,7 +28,7 @@
   let code = $state<Record<string, boolean>>({})
   import Md from './Md.svelte'
   import { replaceNames, splitLabels, taskNames } from './chatLabels'
-  import { splitOutcome } from './decide'
+  import { outcomeText, splitOutcome } from './decide'
   import { outcomeType, type OutcomeType } from './kpi'
   import Icon from './Icon.svelte'
   const ESITO_ICON: Record<OutcomeType, 'x' | 'user' | 'upload' | 'check' | 'message' | 'circle' | 'run'> = { problem: 'x', waiting: 'user', shipped: 'upload', done: 'check', answer: 'message', none: 'circle', running: 'run' }
@@ -150,7 +150,7 @@
           {/each}
         {/if}
       {/each}
-      {#if es.outcome}<div class="fesito t-{typed}" data-testid="chat-esito"><Icon name={ESITO_ICON[typed]} size={18} /><p><Md text={es.outcome} {onTask} /></p></div>{/if}
+      {#if es.outcome}<div class="fesito t-{typed}" data-testid="chat-esito"><span class="gl"><Icon name={ESITO_ICON[typed]} size={18} /></span><p><span class="sr">{t.outcomeLabel}: </span><Md text={outcomeText(es.outcome, t.outcomeLabel)} {onTask} /></p></div>{/if}
       <!-- Un tasto per sessione linkata: il clic apre la sua chat qui; è un link vero, così il tasto destro o la pressione
            lunga danno il link com'era (Copia, Apri in una scheda nuova). Copia e ▶ tengono il testo intero. -->
       {#each sl.buttons as b}
@@ -392,7 +392,10 @@
   .fyh { display: flex; align-items: center; gap: 8px; color: var(--wait); font-weight: 600; margin-bottom: 8px; }
   .funt { display: flex; gap: 8px; color: var(--tx2); }
   .funt svg { flex: none; margin-top: 3px; color: var(--tx3); }
-  .fesito { display: flex; gap: 8px; align-items: flex-start; }
-  .fesito :global(svg) { margin-top: 3px; }
+  /* Forma A (mockup scelto il 02/11): linea sopra, colore del tipo solo sull'icona, centrata sulla prima riga. */
+  .fesito { display: flex; gap: 10px; align-items: flex-start; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
+  .fesito p { flex: 1; min-width: 0; color: var(--text); }
+  .fesito .gl { flex: none; display: flex; align-items: center; height: 1lh; }
+  .fesito .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .t-problem { color: var(--gone); } .t-waiting { color: var(--wait); } .t-shipped, .t-done { color: var(--idle); } .t-running { color: var(--busy); } .t-answer { color: var(--text2); }
 </style>
