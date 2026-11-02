@@ -396,6 +396,9 @@
   .fesito { display: flex; gap: 10px; align-items: flex-start; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
   .fesito p { flex: 1; min-width: 0; color: var(--text); }
   .fesito .gl { flex: none; display: flex; align-items: center; height: 1lh; }
+  /* Lo span per i lettori di schermo resta dentro la sua riga (Franz 02/11 10:10, PWA): con il riferimento in .chat sporgeva
+     fino in fondo alla conversazione, rendeva scorrevoli .col e .sheet (overflow hidden) e un focus o una selezione alzava tutta l'app. */
+  .fesito { position: relative; }
   .fesito .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .t-problem { color: var(--gone); } .t-waiting { color: var(--wait); } .t-shipped, .t-done { color: var(--idle); } .t-running { color: var(--busy); } .t-answer { color: var(--text2); }
 </style>
