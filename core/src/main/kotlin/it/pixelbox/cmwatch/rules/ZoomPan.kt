@@ -48,6 +48,20 @@ object ZoomPan {
         if (v.scale > 1.01f) View()
         else maxOf(DOUBLE_TAP, fillWidth(contentW, viewW)).let { z -> step(View(), z, 0f, 0f, tx, ty, contentW, contentH, viewW, viewH, maxScale(contentW, viewW)) }
 
+    /**
+     * Il passaggio dal pizzico sull'anteprima al visore (app-zoom-continuo-02-11, Franz 02/11 23:31: «deve essere continuo»):
+     * il punto dell'immagine che stava sotto le dite resta sotto le dita, e l'immagine resta larga quanto la si vedeva.
+     * `fx, fy`: il punto in frazioni dell'immagine; `shownW`: la larghezza a cui la si vedeva; `px, py`: le dita nella vista.
+     */
+    fun handOff(fx: Float, fy: Float, shownW: Float, px: Float, py: Float, contentW: Float, contentH: Float, viewW: Float, viewH: Float): View {
+        if (contentW <= 0f) return View()
+        val s = (shownW / contentW).coerceIn(1f, maxScale(contentW, viewW))
+        // A 1x il punto sta a centro + (f - ½)·content; a scala s, spostato di (x, y), a centro + x + (f - ½)·content·s.
+        val x = px - viewW / 2f - (fx - 0.5f) * contentW * s
+        val y = py - viewH / 2f - (fy - 0.5f) * contentH * s
+        return clamp(View(s, x, y), contentW, contentH, viewW, viewH)
+    }
+
     /** La misura dell'immagine adattata alla vista (ContentScale.Fit). */
     fun fit(imageW: Float, imageH: Float, viewW: Float, viewH: Float): Pair<Float, Float> {
         if (imageW <= 0f || imageH <= 0f) return viewW to viewH

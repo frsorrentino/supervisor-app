@@ -69,4 +69,16 @@ class ZoomPanTest {
     @Test fun aWideImageKeepsTheOldLimits() {
         assertEquals(ZoomPan.MAX, ZoomPan.maxScale(cw, w), 0.001f)
     }
+
+    /** app-zoom-continuo-02-11: dal pizzico al visore senza scatto. */
+    @Test fun theHandOffKeepsThePointUnderTheFingersAndTheWidth() {
+        // Immagine adattata 1000×600 in 1000×2000; la si vedeva larga 2000 col punto (¼, ½) sotto le dita a (400, 900).
+        val v = ZoomPan.handOff(0.25f, 0.5f, 2000f, 400f, 900f, cw, ch, w, h)
+        assertEquals(2f, v.scale, 0.001f)
+        assertEquals(400f, w / 2f + v.x + (0.25f - 0.5f) * cw * v.scale, 0.01f)
+        // In altezza 1200 in 2000 non si sposta: il bordo tiene.
+        assertEquals(0f, v.y, 0.01f)
+        // Più piccola dell'adattata: torna intera.
+        assertEquals(ZoomPan.View(), ZoomPan.handOff(0.5f, 0.5f, 500f, 500f, 1000f, cw, ch, w, h))
+    }
 }
