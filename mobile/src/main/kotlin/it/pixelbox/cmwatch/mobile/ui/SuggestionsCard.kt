@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Redo
 import androidx.compose.material.icons.rounded.AltRoute
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.DataUsage
 import androidx.compose.material.icons.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -99,6 +100,8 @@ internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, Stri
                 "proposal" -> Icons.Rounded.TipsAndUpdates to R.string.sug_kind_proposal
                 // Contratto 1.94: le note di claude-observe di un plugin, da smistare nella sua sessione.
                 "observe" -> Icons.Rounded.StickyNote2 to R.string.sug_kind_observe
+                // Contratto 1.102: un promemoria scattato; il suo prompt arriva alla master solo con Accetta.
+                "reminder" -> Icons.Rounded.NotificationsActive to R.string.sug_kind_reminder
                 // Un tipo che quest'app non conosce: neutro, non più «Quota» (documento suggerimenti-coda, §8.8).
                 else -> Icons.Rounded.AutoAwesome to R.string.sug_kind_other
             }
@@ -148,5 +151,6 @@ internal fun sugKindLabel(kind: String): Int = when (kind) {
     "idea" -> R.string.sug_kind_idea
     "proposal" -> R.string.sug_kind_proposal
     "observe" -> R.string.sug_kind_observe
+    "reminder" -> R.string.sug_kind_reminder
     else -> R.string.sug_kind_other
 }

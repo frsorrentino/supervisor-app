@@ -4,7 +4,7 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import eventsRaw from '../../../contract/events-sample.json?raw'
 import nightRaw from '../../../contract/night-report-sample.json?raw'
 import { decodeChanges, decodeState } from './contract'
-import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry, PrimaRaccoltaPage } from './contract'
+import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry, PrimaRaccoltaPage, SeguitiPage } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
 import type { Commitment, DecisionsPage, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
@@ -90,6 +90,23 @@ export const primaDemo = (now: number): PrimaRaccoltaPage => ({ at: now, status:
     { key: 'recap', dove: 'box-esiti', n: 3, text: en ? '3 outcomes today' : '3 esiti di oggi' },
   ],
   first_round: { at: null, cost: en ? "The master's first round uses your plan's quota: usually a small part of the 5 hours. It starts only if you touch it." : 'Il primo giro della master consuma la quota del tuo piano: di solito una piccola parte delle 5 ore. Parte solo se lo tocchi.' } })
+/** Contratto 1.102: quello che resta fuori dal codice, dati del mondo della demo. */
+export const seguitiDemo = (now: number): SeguitiPage => ({ at: now,
+  rimasto: [
+    { product: 'storefront', key: 'demo', title: en ? 'Site demo' : 'Demo del sito', where: en ? 'the demo on the site' : 'la demo sul sito', stale: true, why: 'paths:3', session: 'storefront', aligned_version: 'v2.3.0', aligned_at: now - 12 * 86400, task: null },
+    { product: 'storefront', key: 'store', title: en ? 'Store listing' : 'Scheda dello store', where: en ? 'the store page' : 'la pagina dello store', stale: null, why: 'no_git', session: null, aligned_version: null, aligned_at: null, task: null },
+    { product: 'blog', key: 'readme', title: 'README', where: 'README.md', stale: false, why: null, session: 'blog', aligned_version: 'v1.8.0', aligned_at: now - 2 * 86400, task: null },
+  ],
+  altrove: [
+    { id: 'demo-dump', text: en ? 'Public dumps in the web root' : 'Dump pubblici nella cartella del sito', complete: true, at: now - 3600, total: 6, done: 6, positive: ['blog'], errors: [], running: false, task: 'altrove-demo-dump' },
+    { id: 'demo-log', text: en ? 'Debug log left on' : 'Log di debug rimasto acceso', complete: false, at: now - 7200, total: 6, done: 4, positive: [], errors: ['admin-panel'], running: true, task: null },
+  ],
+  promemoria: [
+    { id: 'demo-store', text: en ? 'When the store approves, the amber icon' : "Quando lo store approva, l'icona ambra", created_at: now - 86400, expires_at: null, at_time: null },
+    { id: 'demo-domain', text: en ? 'Renew the domain' : 'Rinnova il dominio', created_at: now - 86400, expires_at: null, at_time: now + 5 * 86400 },
+  ],
+  promemoria_scattati: [{ id: 'demo-cert', text: en ? 'Renew the certificate' : 'Rinnova il certificato', outcome: 'fired', at: now - 7200 }],
+})
 export const decisionsDemo = (now: number): DecisionsPage => ({ at: now, n: 2, here: 1, tasks: 3, snoozed: 0, groups: [
   { key: 'demo-a', title: en ? 'Cover image for the post' : 'Immagine di copertina del post', cause: null, unblocks: ['demo-cover', 'demo-docs'], weight: 2, where: 'here', since: now - 1200, note: null, refs: ['demo-cover'], items: [{ kind: 'pause', task: 'demo-cover', short: en ? 'Cover image' : 'Immagine di copertina', session: 'blog', reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', since: now - 1200, where: 'here' }] },
   { key: 'demo-b', title: en ? 'Log in to the payment sandbox' : 'Login nella sandbox dei pagamenti', cause: null, unblocks: ['demo-cart'], weight: 1, where: 'pc', since: now - 420, note: null, refs: [], items: [{ kind: 'needs_you', task: null, session: 'storefront', reason: en ? 'Log in to the sandbox' : 'Fai il login nella sandbox', since: now - 420, where: 'pc' }] },
@@ -157,11 +174,12 @@ export function world(now: number): World {
       { kind: 'turn_blocking', session: 'blog', ref: 'blog', title: stopOk.text, since: stopOk.at },
     ].sort((a, b) => a.since - b.since),
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
-    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
+    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
     // Contratto 1.99: le righe di Da provare e Cinque minuti, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 2, here: 1, tasks: 3, snoozed: 0 },
     prima_raccolta: { status: 'ask', done: 9, total: 10, ask: true, first_round_at: null },
+    seguiti: { rimasto: 1, altrove: 1, promemoria: 2 },
     // Utilizzo agganciato: dalla prima schermata si vede il dato in più dello slot.
     home_order: withPin(DEFAULT_ORDER, 'usage'),
     // Contratto 1.90: la macchina tranquilla, così «Sistema» parte chiuso come di solito.

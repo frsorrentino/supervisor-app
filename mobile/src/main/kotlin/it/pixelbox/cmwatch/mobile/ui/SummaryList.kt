@@ -158,7 +158,7 @@ fun SummaryList(
      * un tasto (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
      * `foryou` null = relay senza impegni e senza agenda: la sezione non c'è.
      */
-    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, onPrima: (() -> Unit)? = null, onProve: (() -> Unit)? = null, onDecisions: (() -> Unit)? = null, onLavori: () -> Unit = {},
+    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, onPrima: (() -> Unit)? = null, onSeguiti: (() -> Unit)? = null, onProve: (() -> Unit)? = null, onDecisions: (() -> Unit)? = null, onLavori: () -> Unit = {},
     onAgendaEdit: (RecapAgenda.Edit) -> Unit = {}, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
     onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = {},
     today: java.time.LocalDate = java.time.LocalDate.now(),
@@ -453,11 +453,14 @@ fun SummaryList(
             val dec = st.decisions?.takeIf { it.n > 0 }
             // Contratto 1.100: la prima raccolta, fatte su quante, finché il relay la manda.
             val prima = st.primaRaccolta
-            if ((prima != null && onPrima != null) || (prove != null && onProve != null) || (dec != null && onDecisions != null)) item(key = "decide-rows") {
+            // Contratto 1.102: quello che resta fuori dal codice, finché c'è qualcosa.
+            val seguiti = it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }
+            if ((prima != null && onPrima != null) || (seguiti != null && onSeguiti != null) || (prove != null && onProve != null) || (dec != null && onDecisions != null)) item(key = "decide-rows") {
                 Box(moving()) {
                     V3List {
                         var first = true
                         if (prima != null && onPrima != null) { V3Row(first, onPrima, { Icon(androidx.compose.material.icons.Icons.Outlined.Checklist, null, tint = V3.Tx2) }, { Text("${prima.done}/${prima.total}", style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.prima_title), style = V3.Name) }; first = false }
+                        if (seguiti != null && onSeguiti != null) { V3Row(first, onSeguiti, { Icon(androidx.compose.material.icons.Icons.Outlined.Update, null, tint = V3.Tx2) }, { Text(seguiti.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.seguiti_title), style = V3.Name) }; first = false }
                         if (prove != null && onProve != null) { V3Row(first, onProve, { Icon(androidx.compose.material.icons.Icons.Outlined.Science, null, tint = V3.Tx2) }, { Text(prove.n.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.prove_title), style = V3.Name) }; first = false }
                         if (dec != null && onDecisions != null) V3Row(first, onDecisions, { Icon(androidx.compose.material.icons.Icons.Outlined.Timer, null, tint = V3.Tx2) }, { Text(dec.n.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.decisions_title), style = V3.Name) }
                     }

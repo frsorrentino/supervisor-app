@@ -33,6 +33,8 @@
     proposal: 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6',
     // Contratto 1.94: le note di claude-observe di un plugin, un foglietto con l'angolo piegato.
     observe: 'M15 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10zM15 21v-4a2 2 0 0 1 2-2h4M7 8h10M7 12h6',
+    // Contratto 1.102: un promemoria scattato, una campanella; il suo prompt arriva alla master solo con Accetta.
+    reminder: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
     // Un tipo che quest'app non conosce: una stella neutra, non più l'icona della quota (documento suggerimenti-coda, §8.8).
     other: 'M12 3l1.9 4.6L19 9l-4 3.4L16 18l-4-2.8L8 18l1-5.6L5 9l5.1-1.4z',
   }

@@ -59,7 +59,7 @@ export type NextStep = { text: string; blocking: boolean }
 export type Advice = { model: string; effort: string; reason: string; switch_cost_tokens: number; at: number; source: string; when: 'now' | 'next_task'; differs: boolean }
 /** Contratto 1.37: un compito che aspetta l'ok; `deploy` = esce in produzione. */
 /** Contratto 1.81: `options` = le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
-export type SuggestionKind = 'recurring' | 'cleanup' | 'deadline' | 'quota' | 'choice' | 'followup' | 'unsaved' | 'waiting' | 'idea' | 'proposal'
+export type SuggestionKind = 'recurring' | 'cleanup' | 'deadline' | 'quota' | 'choice' | 'followup' | 'unsaved' | 'waiting' | 'idea' | 'proposal' | 'reminder'
 // Contratto 1.88: rank (0-9, 0 in cima; assente = 5), source, options sulle choice; prompt non più nello stato.
 export type Suggestion = { id: string; kind: SuggestionKind | string; key: string; text: string; prompt?: string; at: number; expires_at?: number | null; rank?: number | null; source?: 'script' | 'master' | string | null; options?: string[] | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
@@ -68,6 +68,15 @@ export type Approval = { task: string; title: string; what: string; where: strin
 export type ProveSummary = { n: number; builds: number; red: number; ko: number }
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
 export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number }
+/** Contratto 1.102: `state.seguiti`, assente quando è tutto a zero. */
+export type SeguitiSummary = { rimasto: number; altrove: number; promemoria: number }
+/** `stale` null: non si sa, `why` dice perché; con `stale` vero `why` è `paths:N` o `check`. */
+export type RimastoItem = { product: string; key: string; title: string; where?: string | null; stale: boolean | null; why?: string | null; session?: string | null; aligned_version?: string | null; aligned_at?: number | null; task?: string | null }
+export type AltroveRun = { id: string; text: string; complete: boolean; at?: number | null; total: number; done: number; positive: string[]; errors: string[]; running: boolean; task?: string | null }
+export type Promemoria = { id: string; text: string; created_at?: number | null; expires_at?: number | null; at_time?: number | null }
+export type PromemoriaFired = { id: string; text: string; outcome: string; at?: number | null }
+/** Contratto 1.102, op `seguiti`. */
+export type SeguitiPage = { at: number; rimasto: RimastoItem[]; altrove: AltroveRun[]; promemoria: Promemoria[]; promemoria_scattati: PromemoriaFired[] }
 /** Contratto 1.100: `state.prima_raccolta`, assente se non è mai partita e a giro fatto. */
 export type PrimaRaccoltaSummary = { status: string; done: number; total: number; ask?: boolean; first_round_at?: number | null }
 export type PrimaRaccoltaSection = { key: string; dove?: string | null; n: number; text?: string | null; why?: string | null; when?: string | null }
@@ -137,7 +146,7 @@ export type DoneRow = { task: string; title: string; short?: string | null; proj
 export type DonePage = { date: string; rows: DoneRow[]; days: { date: string; n: number }[]; more: boolean }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
-export type EventKind = 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder' | 'task_stalled' | 'elicitation'
+export type EventKind = 'reminder' | 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder' | 'task_stalled' | 'elicitation'
 export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null
   /** Contratto 1.56: titolo e corpo senza segreti. */
   preview?: { title: string; body?: string } | null
@@ -260,6 +269,8 @@ export type State = {
   home_order?: string[]
   prove?: ProveSummary | null; decisions?: DecisionsSummary | null
   prima_raccolta?: PrimaRaccoltaSummary | null
+  /** Contratto 1.102: la riga «Fuori dal codice» nella home. */
+  seguiti?: SeguitiSummary | null
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
@@ -314,7 +325,7 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
-  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione'
+  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
   /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */
@@ -339,6 +350,8 @@ export type Cmd = {
   result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]
   /** Contratto 1.100: `prima_raccolta_azione` con `action` consent, si o no. */
   value?: string
+  /** Contratto 1.102: `seguiti_azione`, il prodotto e la voce o l'id del promemoria. */
+  product?: string; key?: string
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */
   question?: string
   /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */

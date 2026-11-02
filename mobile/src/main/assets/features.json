@@ -2164,7 +2164,7 @@
   },
   {
    "key": "rimasto_indietro",
-   "group": "next",
+   "group": "organize",
    "name": {
     "it": "Rimasto indietro",
     "en": "Left behind"
@@ -2174,27 +2174,34 @@
     "en": "What depends on the code and ages: demo, store listing, site, README."
    },
    "where": {
-    "it": "",
-    "en": ""
+    "it": "Riga «Fuori dal codice» sotto il tabellone",
+    "en": "«Outside the code» row under the scoreboard"
    },
-   "state": "coming",
+   "state": "ready",
    "version": null,
    "when": {
     "it": "Ti servirà dopo una release, per non lasciare indietro il resto.",
     "en": "Useful after a release, so the rest isn't left behind."
    },
    "how": {
-    "it": "",
-    "en": ""
+    "it": "Dice cosa è indietro e perché. «Allinea» apre un compito alla sessione giusta, «Va bene così» segna allineata questa versione.",
+    "en": "It says what is behind and why. Align opens a task for the right session; It's fine marks this version as aligned."
    },
-   "route": null,
+   "route": "seguiti",
    "section": null,
-   "phone": null,
-   "web": null
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SeguitiScreen.kt",
+    "needle": "fun RimastoCard"
+   },
+   "web": {
+    "file": "web/src/lib/Seguiti.svelte",
+    "needle": "act('allinea'"
+   },
+   "image": "rimasto_indietro.webp"
   },
   {
    "key": "stesso_difetto",
-   "group": "next",
+   "group": "organize",
    "name": {
     "it": "Stesso difetto altrove",
     "en": "Same defect elsewhere"
@@ -2204,27 +2211,34 @@
     "en": "Looks for the same defect in other projects, read-only."
    },
    "where": {
-    "it": "",
-    "en": ""
+    "it": "Riga «Fuori dal codice» sotto il tabellone",
+    "en": "«Outside the code» row under the scoreboard"
    },
-   "state": "coming",
+   "state": "ready",
    "version": null,
    "when": {
     "it": "Ti servirà quando correggi un difetto che può esserci anche altrove.",
     "en": "Useful when you fix a defect that may be elsewhere too."
    },
    "how": {
-    "it": "",
-    "en": ""
+    "it": "Leggi dove si è trovato, cosa non si è potuto controllare e la correzione proposta: aspetta il tuo ok in Lavori.",
+    "en": "Read where it was found, what couldn't be checked and the proposed fix: it waits for your ok in Work."
    },
-   "route": null,
+   "route": "seguiti",
    "section": null,
-   "phone": null,
-   "web": null
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SeguitiScreen.kt",
+    "needle": "fun AltroveCard"
+   },
+   "web": {
+    "file": "web/src/lib/Seguiti.svelte",
+    "needle": "clean(r)"
+   },
+   "image": "stesso_difetto.webp"
   },
   {
    "key": "promemoria",
-   "group": "next",
+   "group": "organize",
    "name": {
     "it": "Promemoria",
     "en": "Reminders"
@@ -2234,23 +2248,30 @@
     "en": "Fires once and disappears."
    },
    "where": {
-    "it": "",
-    "en": ""
+    "it": "Riga «Fuori dal codice» sotto il tabellone",
+    "en": "«Outside the code» row under the scoreboard"
    },
-   "state": "coming",
+   "state": "ready",
    "version": null,
    "when": {
     "it": "Ti servirà per le cose da ricordare in un momento preciso.",
     "en": "Useful for things to remember at a precise time."
    },
    "how": {
-    "it": "",
-    "en": ""
+    "it": "Dillo alla master; allo scatto arriva una notifica e un suggerimento. Il prompt parte solo se tocchi Accetta.",
+    "en": "Tell the master; when it fires you get a notification and a suggestion. The prompt starts only if you touch Accept."
    },
-   "route": null,
+   "route": "seguiti",
    "section": null,
-   "phone": null,
-   "web": null
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SeguitiScreen.kt",
+    "needle": "remind_remove"
+   },
+   "web": {
+    "file": "web/src/lib/Seguiti.svelte",
+    "needle": "act('remind_remove'"
+   },
+   "image": "promemoria.webp"
   },
   {
    "key": "rendiconto",

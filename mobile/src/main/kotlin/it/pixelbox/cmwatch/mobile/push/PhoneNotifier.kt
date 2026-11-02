@@ -193,6 +193,12 @@ class PhoneNotifier(private val ctx: Context) {
             .setContentTitle(e.shareTitle).setContentIntent(openSession(e.session)).setAutoCancel(true))
     }
 
+    /** Contratto 1.102: un promemoria scattato, una volta; non è un'interruzione, il suggerimento con Accetta sta nella home. */
+    fun promemoria(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
+        post(("promemoria-" + (e.ref ?: e.key)).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else channel(mode)).setSmallIcon(icon(e.kind))
+            .setContentTitle(e.shareTitle).setContentIntent(openSession(null)).setAutoCancel(true))
+    }
+
     /** Contratto 1.76: impegni fermi da più di due ore senza un passo; l'avviso forte con una riga per compito. */
     fun stalled(e: it.pixelbox.cmwatch.contract.Event, mode: PhoneAlert.Mode) {
         post(("stalled-" + (e.ref ?: e.key)).hashCode(), NotificationCompat.Builder(ctx, if (e.quiet) CH_QUIET else strong(mode)).setSmallIcon(icon(e.kind))

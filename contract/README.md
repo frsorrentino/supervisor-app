@@ -309,4 +309,6 @@ Contratto 1.99 (01/11/2026, da supervisor 0.8.92, fase A del programma approvato
 
 Contratto 1.100 (02/11/2026, da supervisor 0.8.93, l'avvio a pieno regime, funzione 10 del programma approvato; `v` resta 1; testo nel blocco «Contract 1.100» di `details/relay.md` di supervisor): `state.prima_raccolta`, op `prima_raccolta` e `prima_raccolta_azione`. Il relay manda `at` su ogni risultato: i sei campioni della 1.99 non l'avevano, la fixture era sbagliata.
 
+Contratto 1.102 (02/11/2026, da supervisor 0.8.96, fase B del programma del 01/11; `v` resta 1; testo nel blocco «Contract 1.102» di `details/relay.md` di supervisor): `state.seguiti`, op `seguiti` e `seguiti_azione` (con `product` e `key`), suggerimento di kind `reminder`, evento `reminder`. Fixture: `state-3-stale.json`, `cmd-result-sample.json`.
+
 Contratto 1.101 (02/11/2026, da supervisor 0.8.94, segnalazione di Franz delle 01:22; `v` resta 1; testo nel blocco «Contract 1.101» di `details/relay.md` di supervisor): `question.what` e `question.body` su un permesso; il corpo dell'evento `question` e il titolo di `attention[]` sono `what` quando c'è. Fixture nuova: `question-permission.json`.

@@ -19,7 +19,7 @@ class SuggestionsTest {
     }
 
     @Test fun knownKinds() {
-        assertEquals(11, Suggestions.KINDS.size)
+        assertEquals(12, Suggestions.KINDS.size)
         // Contratto 1.94: le note di claude-observe di un plugin, nella fixture dopo l'attesa esterna.
         assertEquals(true, Suggestions.known("observe"))
         assertEquals("observe:chrome-bridge:2026-W38", ContractJson.decodeState(it.pixelbox.cmwatch.Fixtures.stateStale).suggestions!!.single { it.kind == "observe" }.key)

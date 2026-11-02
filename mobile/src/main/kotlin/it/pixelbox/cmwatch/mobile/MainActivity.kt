@@ -236,6 +236,10 @@ class MainActivity : ComponentActivity() {
         // Contratto 1.100: la prima raccolta; si apre da sola una volta, all'abbinamento.
         var primaOpen by rememberSaveable { mutableStateOf(false) }
         var primaPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.PrimaRaccoltaPage?>(null) }
+        // Contratto 1.102: quello che resta fuori dal codice.
+        var seguitiOpen by rememberSaveable { mutableStateOf(false) }
+        var seguitiPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.SeguitiPage?>(null) }
+        var seguitiFailed by remember { mutableStateOf(false) }
         var decisionsOpen by rememberSaveable { mutableStateOf(false) }
         var provePage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.ProvePage?>(null) }
         var decisionsPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.DecisionsPage?>(null) }
@@ -492,6 +496,7 @@ class MainActivity : ComponentActivity() {
                         when (route) {
                             "prove" -> proveOpen = true
                             "prima-raccolta" -> primaOpen = true
+                            "seguiti" -> seguitiOpen = true
                             "decisions" -> decisionsOpen = true
                             "lavori" -> { open = null; tab = StartRoute.Tab.LAVORI }
                             "queue" -> { queueSkip = null; queueOpen = true }
@@ -1012,12 +1017,15 @@ class MainActivity : ComponentActivity() {
                 return r?.takeIf { x -> x.ok }?.text
             }
             if (primaOpen) read(CmdOp.PRIMA_RACCOLTA)?.let { t -> runCatching { ContractJson.decodePrimaRaccolta(t) }.onSuccess { p -> primaPage = p } }
+            // Il tasto da «Cosa sa fare» c'è anche con un relay vecchio: la pagina dice che non riesce a leggere, non carica per sempre.
+            if (seguitiOpen) { val t = read(CmdOp.SEGUITI); seguitiFailed = t == null; t?.let { x -> runCatching { ContractJson.decodeSeguiti(x) }.onSuccess { p -> seguitiPage = p } } }
             if (proveOpen) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
             if (decisionsOpen) read(CmdOp.DECISIONI)?.let { t -> runCatching { ContractJson.decodeDecisions(t) }.onSuccess { p -> decisionsPage = p } }
         }
         LaunchedEffect(proveOpen, decisionsOpen) { if (proveOpen || decisionsOpen) readDecide() }
         // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
         LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen) readDecide() }
+        LaunchedEffect(seguitiOpen, state?.seguiti) { if (seguitiOpen) readDecide() }
         LaunchedEffect(state?.primaRaccolta?.status) {
             val prefs = getSharedPreferences("prima_raccolta", MODE_PRIVATE)
             if (it.pixelbox.cmwatch.rules.PrimaRaccolta.autoOpen(state?.primaRaccolta, prefs.getBoolean("seen", false))) {
@@ -1070,6 +1078,21 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaScreen(primaPage, onBack = { primaOpen = false }, onTouch = touch,
                 onScreen = { s -> primaOpen = false; goScreen(s) }, onFeatures = { primaOpen = false; featuresOpen = true }) }
             BackHandler { primaOpen = false }
+            return
+        }
+        if (seguitiOpen) {
+            // Il tocco conta: `device` lo mette il Repo. «Allinea» risponde con l'id del compito aperto.
+            val act: (String, String?, String) -> Unit = { action, product, key -> scope.launch {
+                val id = runCatching { app.repo.command(CmdOp.SEGUITI_AZIONE, null, null, action = action, product = product, key = key) }.getOrNull()
+                val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+                toast(if (r == null) getString(R.string.seguiti_read_failed) else if (r.ok && action == "allinea") getString(R.string.seguiti_task_opened, r.text) else r.text)
+                id?.let { x -> app.repo.forget(x) }
+                readDecide()
+            } }
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.SeguitiScreen(seguitiPage, seguitiFailed, onBack = { seguitiOpen = false }, onAction = act,
+                onLavori = { seguitiOpen = false; open = null; tab = StartRoute.Tab.LAVORI },
+                onMaster = { seguitiOpen = false; open = null; masterChat = true }) }
+            BackHandler { seguitiOpen = false }
             return
         }
         if (decisionsOpen) {
@@ -1708,7 +1731,7 @@ class MainActivity : ComponentActivity() {
                     justClosed = justClosed,
                     tonight = st.night.items?.let { _ -> it.pixelbox.cmwatch.rules.TonightCard.of(st.night, now) },
                     // La sezione «Lavori» (22/10): gli ok e le cose da fare fuori dalla chat con il loro tasto; «Tutti i lavori» apre la pagina.
-                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, onPrima = { primaOpen = true }, onProve = { proveOpen = true }, onDecisions = { decisionsOpen = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
+                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, onPrima = { primaOpen = true }, onSeguiti = { seguitiOpen = true }, onProve = { proveOpen = true }, onDecisions = { decisionsOpen = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
                     onDone = attentionDone,
                     onAgendaEdit = editAgenda, onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     // «Utilizzo» (Franz, 08/10 12:30; unito il 09/10): le schede della quota e «Oggi» in una sezione richiudibile.

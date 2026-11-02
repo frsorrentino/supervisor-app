@@ -2,8 +2,8 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
 import { lang } from './lang'
-import { decisionsDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, world, type World } from './demo'
-import type { DecisionsPage, PrimaRaccoltaPage, ProvePage } from './contract'
+import { decisionsDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, seguitiDemo, world, type World } from './demo'
+import type { DecisionsPage, PrimaRaccoltaPage, ProvePage, SeguitiPage } from './contract'
 import { NIGHT_TARGET } from './recapAgenda'
 
 // La demo che risponde, porta di FakeTransport.kt (Franz, 15/10 20:36: «la demo deve rispecchiare al 100% l'app»): i
@@ -21,6 +21,7 @@ export class DemoTransport implements Transport {
   private agendaSeq = 7
   private prove: ProvePage | null = null
   private prima: PrimaRaccoltaPage | null = null
+  private seguiti: SeguitiPage | null = null
   private decisions: DecisionsPage | null = null
 
   constructor(private readonly clock: () => number = () => Math.floor(Date.now() / 1000)) {
@@ -183,6 +184,25 @@ export class DemoTransport implements Transport {
             this.set({ ...s, prima_raccolta: null })
           } else return ko(`prima_raccolta_azione: bad action ${cmd.action}`)
           return ok('ok')
+        }
+        case 'seguiti': return ok(JSON.stringify(this.seguiti ??= seguitiDemo(this.now())))
+        case 'seguiti_azione': {
+          const p = (this.seguiti ??= seguitiDemo(this.now()))
+          const same = (i: { product: string; key: string }) => i.product === cmd.product && i.key === cmd.key
+          let text: string
+          if (cmd.action === 'allinea') {
+            text = `allinea-${cmd.product}-${cmd.key}`
+            this.seguiti = { ...p, rimasto: p.rimasto.map(i => same(i) ? { ...i, task: text } : i) }
+          } else if (cmd.action === 'ok') {
+            text = lang === 'en' ? 'marked aligned with this version' : 'segnata allineata a questa versione'
+            this.seguiti = { ...p, rimasto: p.rimasto.map(i => same(i) ? { ...i, stale: false, why: null, aligned_at: this.now() } : i) }
+          } else if (cmd.action === 'remind_remove') {
+            text = lang === 'en' ? 'reminder removed' : 'promemoria tolto'
+            this.seguiti = { ...p, promemoria: p.promemoria.filter(x => x.id !== cmd.key) }
+          } else return ko(`seguiti_azione: bad action ${cmd.action}`)
+          const q = this.seguiti
+          this.set({ ...s, seguiti: { rimasto: q.rimasto.filter(i => i.stale === true).length, altrove: q.altrove.filter(r => r.positive.length > 0 && !r.task).length, promemoria: q.promemoria.length } })
+          return ok(text)
         }
         case 'prove': return ok(JSON.stringify(this.prove ??= proveDemo(this.now())))
         case 'decisioni': return ok(JSON.stringify(this.decisions ??= decisionsDemo(this.now())))

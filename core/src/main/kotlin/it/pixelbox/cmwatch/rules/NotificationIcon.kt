@@ -19,7 +19,7 @@ object NotificationIcon {
         EventKind.TURN_FAILED, EventKind.RESTART_FAILED, EventKind.RELAY_STALE -> Icon.WARN
         EventKind.WEEK_UNUSED, EventKind.WEEK_PACE -> Icon.WEEK
         EventKind.NEEDS_YOU, EventKind.TURN_BLOCKING -> Icon.HAND
-        EventKind.ATTENTION_REMINDER -> Icon.BELL
+        EventKind.ATTENTION_REMINDER, EventKind.REMINDER -> Icon.BELL
         EventKind.TASK_STALLED -> Icon.CLOCK
         EventKind.RECAP, EventKind.NIGHT_REPORT -> Icon.NIGHT
         EventKind.ANSWERED, EventKind.LAUNCHED, EventKind.RESUMED -> Icon.APP

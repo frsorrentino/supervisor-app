@@ -42,6 +42,8 @@ enum class EventKind {
     @SerialName("elicitation") ELICITATION,
     /** Contratto 1.76: impegni fermi da più di `tasks.stall_hours` senza un passo; `ref` = il primo compito, `session` = a chi tocca, una riga per compito nel body. */
     @SerialName("task_stalled") TASK_STALLED,
+    /** Contratto 1.102: un promemoria scattato, una volta sola; title = il testo, ref = l'id del suggerimento. */
+    @SerialName("reminder") REMINDER,
 }
 
 @Serializable
@@ -155,6 +157,8 @@ enum class CmdOp {
     /** Contratto 1.95: l'elenco intero di plugin e skill per account (lettura passiva); il testo è un `PluginsPage`. */
     /** Contratto 1.100: la prima raccolta, la pagina (lettura passiva) e il tocco (`action` start, consent con `value` si o no, first_round). */
     @SerialName("prima_raccolta") PRIMA_RACCOLTA, @SerialName("prima_raccolta_azione") PRIMA_RACCOLTA_AZIONE,
+    /** Contratto 1.102: quello che resta fuori dal codice, la pagina (lettura passiva) e il tocco (`action` allinea, ok, remind_remove). */
+    @SerialName("seguiti") SEGUITI, @SerialName("seguiti_azione") SEGUITI_AZIONE,
     /** Contratto 1.99: Da provare e Cinque minuti. */
     @SerialName("prove") PROVE, @SerialName("prova") PROVA, @SerialName("decisioni") DECISIONI, @SerialName("decisione") DECISIONE,
     @SerialName("plugins") PLUGINS,
@@ -351,6 +355,27 @@ enum class CmdOp {
 @Serializable data class ApprovalAlso(val task: String, val short: String? = null)
 
 /** Contratto 1.99: le due righe della home; assenti quando tutto è a zero. */
+/** Contratto 1.102, `state.seguiti`: voci indietro, positivi senza compito, promemoria in attesa; assente quando sono tutti a zero. */
+@Serializable data class SeguitiSummary(val rimasto: Int = 0, val altrove: Int = 0, val promemoria: Int = 0)
+/** `stale` null: non si sa, `why` dice perché (no_git, no_project, check_timeout); con `stale` vero `why` è `paths:N` o `check`. */
+@Serializable data class RimastoItem(
+    val product: String, val key: String, val title: String = "", val where: String? = null, val stale: Boolean? = null, val why: String? = null,
+    val session: String? = null, @SerialName("aligned_version") val alignedVersion: String? = null, @SerialName("aligned_at") val alignedAt: Long? = null, val task: String? = null,
+)
+/** Un giro di `supervisor altrove`: un errore non è un negativo, un parziale non sostituisce un completo, `running` dice che ne gira uno. */
+@Serializable data class AltroveRun(
+    val id: String, val text: String = "", val complete: Boolean = false, val at: Long? = null, val total: Int = 0, val done: Int = 0,
+    val positive: List<String> = emptyList(), val errors: List<String> = emptyList(), val running: Boolean = false, val task: String? = null,
+)
+@Serializable data class Promemoria(val id: String, val text: String = "", @SerialName("created_at") val createdAt: Long? = null, @SerialName("expires_at") val expiresAt: Long? = null, @SerialName("at_time") val atTime: Long? = null)
+/** `outcome` fired o expired. */
+@Serializable data class PromemoriaFired(val id: String, val text: String = "", val outcome: String = "", val at: Long? = null)
+/** Contratto 1.102, op `seguiti`. */
+@Serializable data class SeguitiPage(
+    val at: Long = 0, val rimasto: List<RimastoItem> = emptyList(), val altrove: List<AltroveRun> = emptyList(), val promemoria: List<Promemoria> = emptyList(),
+    @SerialName("promemoria_scattati") val promemoriaScattati: List<PromemoriaFired> = emptyList(),
+)
+
 /** Contratto 1.100, `state.prima_raccolta`: assente se non è mai partita e quando è finita col primo giro fatto. `status`: running, ask, interrupted, done. */
 @Serializable data class PrimaRaccoltaSummary(val status: String = "", val done: Int = 0, val total: Int = 0, val ask: Boolean = false, @SerialName("first_round_at") val firstRoundAt: Long? = null)
 /** Una sezione: con `n` 0 `text` è null e `why` e `when` dicono perché è vuota e quando si riempie. `dove` è una schermata con «Portami lì». */
@@ -499,6 +524,8 @@ enum class CmdOp {
     val prove: ProveSummary? = null, val decisions: DecisionsSummary? = null,
     /** Contratto 1.100: la riga della prima raccolta nella home. */
     @SerialName("prima_raccolta") val primaRaccolta: PrimaRaccoltaSummary? = null,
+    /** Contratto 1.102: la riga «Fuori dal codice» nella home. */
+    val seguiti: SeguitiSummary? = null,
     /** Contratto 1.75: una voce per macchina confermata, dalla fotografia del poller. */
     @SerialName("hosts_status") val hostsStatus: List<HostStatus> = emptyList(),
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
@@ -720,6 +747,13 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val value: String? = null,
+    /** Contratto 1.102: `seguiti_azione`, il prodotto e la voce (allinea, ok) o l'id del promemoria (remind_remove); assenti, non scritti. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val product: String? = null,
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val key: String? = null,
     /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok; assente, non scritto. */
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
