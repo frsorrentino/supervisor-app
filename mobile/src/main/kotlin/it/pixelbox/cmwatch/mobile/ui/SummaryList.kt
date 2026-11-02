@@ -448,25 +448,6 @@ fun SummaryList(
             }
         }
         // Contratto 1.99: le righe col numero, solo se c'è qualcosa; `onProve` e `onDecisions` aprono le pagine.
-        kpiState?.let { st ->
-            val prove = st.prove?.takeIf { it.n + it.ko + it.red > 0 }
-            val dec = st.decisions?.takeIf { it.n > 0 }
-            // Contratto 1.100: la prima raccolta, fatte su quante, finché il relay la manda.
-            val prima = st.primaRaccolta
-            // Contratto 1.102: quello che resta fuori dal codice, finché c'è qualcosa.
-            val seguiti = it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }
-            if ((prima != null && onPrima != null) || (seguiti != null && onSeguiti != null) || (prove != null && onProve != null) || (dec != null && onDecisions != null)) item(key = "decide-rows") {
-                Box(moving()) {
-                    V3List {
-                        var first = true
-                        if (prima != null && onPrima != null) { V3Row(first, onPrima, { Icon(androidx.compose.material.icons.Icons.Outlined.Checklist, null, tint = V3.Tx2) }, { Text("${prima.done}/${prima.total}", style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.prima_title), style = V3.Name) }; first = false }
-                        if (seguiti != null && onSeguiti != null) { V3Row(first, onSeguiti, { Icon(androidx.compose.material.icons.Icons.Outlined.Update, null, tint = V3.Tx2) }, { Text(seguiti.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.seguiti_title), style = V3.Name) }; first = false }
-                        if (prove != null && onProve != null) { V3Row(first, onProve, { Icon(androidx.compose.material.icons.Icons.Outlined.Science, null, tint = V3.Tx2) }, { Text(prove.n.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.prove_title), style = V3.Name) }; first = false }
-                        if (dec != null && onDecisions != null) V3Row(first, onDecisions, { Icon(androidx.compose.material.icons.Icons.Outlined.Timer, null, tint = V3.Tx2) }, { Text(dec.n.toString(), style = V3.Meter, modifier = Modifier.padding(end = 4.dp)); Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3) }) { Text(stringResource(R.string.decisions_title), style = V3.Name) }
-                    }
-                }
-            }
-        }
         // L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi «Altro».
         val waitRows = model.rows.filter { it.group == Summary.Group.WAITING }
         val restRows = model.rows.filter { it.group != Summary.Group.WAITING }
@@ -671,6 +652,17 @@ fun SummaryList(
                 if (pluginsOpen) item(key = "plugins-body") { Box(moving()) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) } }
             }
         }
+        // Le righe del programma del 01/11 (Franz 02/11 07:20): la testata di tutte, che si trascina; ci sono finché hanno qualcosa.
+        fun renderRow(key: String, on: Boolean, title: @Composable () -> String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String, tag: String, onToggle: (() -> Unit)?) {
+            if (!on || onToggle == null) return
+            val moving = movingIn(key)
+            dragPresent += key
+            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), title(), icon, count, tag = tag, nav = true, onToggle = onToggle) } }
+        }
+        val renderPrima: () -> Unit = { val p = kpiState?.primaRaccolta; renderRow("prima_raccolta", p != null, { stringResource(R.string.prima_title) }, androidx.compose.material.icons.Icons.Outlined.Checklist, "${p?.done}/${p?.total}", "home-prima-raccolta", onPrima) }
+        val renderSeguiti: () -> Unit = { val n = it.pixelbox.cmwatch.rules.Seguiti.total(kpiState?.seguiti); renderRow("seguiti", n > 0, { stringResource(R.string.seguiti_title) }, androidx.compose.material.icons.Icons.Outlined.Update, n.toString(), "home-seguiti", onSeguiti) }
+        val renderProve: () -> Unit = { val p = kpiState?.prove; renderRow("prove", p != null && p.n + p.ko + p.red > 0, { stringResource(R.string.prove_title) }, androidx.compose.material.icons.Icons.Outlined.Science, p?.n.toString(), "home-da-provare", onProve) }
+        val renderDecisioni: () -> Unit = { val d = kpiState?.decisions; renderRow("decisioni", d != null && d.n > 0, { stringResource(R.string.decisions_title) }, androidx.compose.material.icons.Icons.Outlined.Timer, d?.n.toString(), "home-da-decidere", onDecisions) }
         val renderClosed: () -> Unit = {
             val moving = movingIn("closed")
             closedGroup?.let { g ->
@@ -712,6 +704,10 @@ fun SummaryList(
         (dragOrder ?: homeOrder).forEach { k ->
             if (k == listSkip) return@forEach
             when (k) {
+                "prima_raccolta" -> renderPrima()
+                "seguiti" -> renderSeguiti()
+                "prove" -> renderProve()
+                "decisioni" -> renderDecisioni()
                 "sessions" -> renderSessions()
                 "suggestions" -> renderSuggestions()
                 "lavori" -> renderLavori()

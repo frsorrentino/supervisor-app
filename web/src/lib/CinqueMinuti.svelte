@@ -4,7 +4,7 @@
   import { act, canDrop, nextDecisions } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
-  // «Cinque minuti» (contratto 1.99, cinque_minuti), porta di CinqueMinutiScreen: quante vuoi, una alla volta, le più pesanti per prime. Niente timer.
+  // «Da decidere» (contratto 1.99, cinque_minuti), porta di CinqueMinutiScreen: quante vuoi, una alla volta, le più pesanti per prime. Niente timer.
   let { run, onApprove, onDone }: { st: State; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void } = $props()
   let page = $state<DecisionsPage | null>(null)
   let howMany = $state<number | null>(null)

@@ -159,7 +159,7 @@ enum class CmdOp {
     @SerialName("prima_raccolta") PRIMA_RACCOLTA, @SerialName("prima_raccolta_azione") PRIMA_RACCOLTA_AZIONE,
     /** Contratto 1.102: quello che resta fuori dal codice, la pagina (lettura passiva) e il tocco (`action` allinea, ok, remind_remove). */
     @SerialName("seguiti") SEGUITI, @SerialName("seguiti_azione") SEGUITI_AZIONE,
-    /** Contratto 1.99: Da provare e Cinque minuti. */
+    /** Contratto 1.99: Da provare e Da decidere. */
     @SerialName("prove") PROVE, @SerialName("prova") PROVA, @SerialName("decisioni") DECISIONI, @SerialName("decisione") DECISIONE,
     @SerialName("plugins") PLUGINS,
     /** Contratto 1.95: controlla i marketplace adesso; le versioni arrivano con lo stato dopo. */

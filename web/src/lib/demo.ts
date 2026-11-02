@@ -176,7 +176,7 @@ export function world(now: number): World {
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
     ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
-    // Contratto 1.99: le righe di Da provare e Cinque minuti, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
+    // Contratto 1.99: le righe di Da provare e Da decidere, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 2, here: 1, tasks: 3, snoozed: 0 },
     prima_raccolta: { status: 'ask', done: 9, total: 10, ask: true, first_round_at: null },
     seguiti: { rimasto: 1, altrove: 0, promemoria: 2 },

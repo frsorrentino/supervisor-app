@@ -1436,7 +1436,7 @@ It starts at your last message to the master.</string>
     <string name="prove_ko_shot_ok">Screenshot attached</string>
     <string name="prove_ko_send">Send</string>
     <string name="prove_ko_shot_note">Screenshot of the report on %1$s</string>
-    <string name="decisions_title">Five minutes</string>
+    <string name="decisions_title">To decide</string>
     <string name="decisions_none">No decision waits for you.</string>
     <string name="decisions_head">%1$d decisions, %2$d can be done from here, they unblock %3$d tasks.</string>
     <string name="decisions_how_many">How many do you want to do?</string>

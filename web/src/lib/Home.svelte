@@ -143,7 +143,7 @@
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
   // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
-  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed } })
+  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ prima_raccolta: { icon: 'inventory', name: t.primaTitle }, seguiti: { icon: 'event_list', name: t.seguitiTitle }, prove: { icon: 'checklist', name: t.proveTitle }, decisioni: { icon: 'timer', name: t.decisionsTitle }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed } })
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
@@ -510,7 +510,7 @@
 {/snippet}
 
 <section class="home" class:part={!!part}>
-{#snippet secOf(k: HomeSection)}{#if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {#if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
 {/snippet}
@@ -520,14 +520,6 @@
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
 {#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} {onBox} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot} data-testid="slot-rilascia">{t.slotDrop}</div>{/if}</div>{/if}
-{#if !part && onPage}{#if st.prima_raccolta || seguitiN > 0 || (st.prove && st.prove.n + st.prove.ko + st.prove.red > 0) || st.decisions?.n}
-  <div class="card wrows decide">
-    {#if st.prima_raccolta}<button class="wrow orow" data-testid="home-prima-raccolta" onclick={() => onPage('prima-raccolta')}><span class="wic"><span class="ms">inventory</span></span><span class="otext"><b>{t.primaTitle}</b></span><span class="mono">{st.prima_raccolta.done}/{st.prima_raccolta.total}</span><span class="ms chevr">chevron_right</span></button>{/if}
-    {#if seguitiN > 0}<button class="wrow orow" data-testid="home-seguiti" onclick={() => onPage('seguiti')}><span class="wic"><span class="ms">event_list</span></span><span class="otext"><b>{t.seguitiTitle}</b></span><span class="mono">{seguitiN}</span><span class="ms chevr">chevron_right</span></button>{/if}
-    {#if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<button class="wrow orow" data-testid="home-da-provare" onclick={() => onPage('prove')}><span class="wic"><span class="ms">checklist</span></span><span class="otext"><b>{t.proveTitle}</b></span><span class="mono">{st.prove.n}</span><span class="ms chevr">chevron_right</span></button>{/if}
-    {#if st.decisions?.n}<button class="wrow orow" data-testid="home-cinque-minuti" onclick={() => onPage('decisions')}><span class="wic"><span class="ms">timer</span></span><span class="otext"><b>{t.decisionsTitle}</b></span><span class="mono">{st.decisions.n}</span><span class="ms chevr">chevron_right</span></button>{/if}
-  </div>
-{/if}{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 {#if (!part || part === 'you') && (waitRows.length || looseOk.length)}
@@ -706,6 +698,16 @@
 {/snippet}
 {#snippet secPlugins()}
   {#if pluginsLoad && pluginsRun && (!part || part === 'tools')}<PluginsSection {st} load={pluginsLoad} run={pluginsRun} head={pluginsHead} />{/if}
+{/snippet}
+<!-- Le righe del programma del 01/11 (Franz 02/11 07:20): la testata di tutte, che si trascina; ci sono finché hanno qualcosa. -->
+{#snippet secNuove(k: HomeSection)}
+  {#if !part && onPage}
+    {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'inventory', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', null, { nav: true, onclick: () => onPage('prima-raccolta') })}
+    {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', null, { nav: true, onclick: () => onPage('seguiti') })}
+    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', null, { nav: true, onclick: () => onPage('prove') })}
+    {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere', null, { nav: true, onclick: () => onPage('decisions') })}
+    {/if}
+  {/if}
 {/snippet}
 {#snippet secClosed()}
   <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->

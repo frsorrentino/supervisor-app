@@ -1989,8 +1989,8 @@
     "en": "Tests of new versions, one by one or all together, to close several tasks with a tap."
    },
    "where": {
-    "it": "Riga sotto il tabellone",
-    "en": "Row under the scoreboard"
+    "it": "Riga nella home, la sposti dove vuoi",
+    "en": "Row in the home, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2003,7 +2003,7 @@
     "en": "Tap Ok or Doesn't work on a test, or All ok on the version; tests of a version not yet installed ask to install it first."
    },
    "route": "prove",
-   "section": null,
+   "section": "prove",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DecideScreens.kt",
     "needle": "fun DaProvareScreen"
@@ -2018,16 +2018,16 @@
    "key": "cinque_minuti",
    "group": "you",
    "name": {
-    "it": "Cinque minuti",
-    "en": "Five minutes"
+    "it": "Da decidere",
+    "en": "To decide"
    },
    "what": {
     "it": "Le decisioni che aspettano te, raccolte per causa, una alla volta, le più pesanti per prime.",
     "en": "The decisions waiting for you, grouped by cause, one at a time, the heaviest first."
    },
    "where": {
-    "it": "Riga sotto il tabellone",
-    "en": "Row under the scoreboard"
+    "it": "Riga nella home, la sposti dove vuoi",
+    "en": "Row in the home, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2040,7 +2040,7 @@
     "en": "Pick how many, then for each one decide, Not now or Drop it with the reason."
    },
    "route": "decisions",
-   "section": null,
+   "section": "decisioni",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DecideScreens.kt",
     "needle": "fun CinqueMinutiScreen"
@@ -2174,8 +2174,8 @@
     "en": "What depends on the code and ages: demo, store listing, site, README."
    },
    "where": {
-    "it": "Riga «Fuori dal codice» sotto il tabellone",
-    "en": "«Outside the code» row under the scoreboard"
+    "it": "Riga «Fuori dal codice» nella home, la sposti dove vuoi",
+    "en": "«Outside the code» row in the home, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2188,7 +2188,7 @@
     "en": "It says what is behind and why. Align opens a task for the right session; It's fine marks this version as aligned."
    },
    "route": "seguiti",
-   "section": null,
+   "section": "seguiti",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SeguitiScreen.kt",
     "needle": "fun RimastoCard"
@@ -2211,8 +2211,8 @@
     "en": "Looks for the same defect in other projects, read-only."
    },
    "where": {
-    "it": "Riga «Fuori dal codice» sotto il tabellone",
-    "en": "«Outside the code» row under the scoreboard"
+    "it": "Riga «Fuori dal codice» nella home, la sposti dove vuoi",
+    "en": "«Outside the code» row in the home, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2248,8 +2248,8 @@
     "en": "Fires once and disappears."
    },
    "where": {
-    "it": "Riga «Fuori dal codice» sotto il tabellone",
-    "en": "«Outside the code» row under the scoreboard"
+    "it": "Riga «Fuori dal codice» nella home, la sposti dove vuoi",
+    "en": "«Outside the code» row in the home, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2345,8 +2345,8 @@
     "en": "On pairing it fills each section with the machine's real data and says what it found; an empty section says why."
    },
    "where": {
-    "it": "Riga sotto il tabellone",
-    "en": "Row under the scoreboard"
+    "it": "Riga nella home, la sposti dove vuoi",
+    "en": "Row in the home, move it where you like"
    },
    "state": "ready",
    "version": null,
@@ -2359,7 +2359,7 @@
     "en": "It opens by itself on pairing. Answer once about past sessions; the master's first round starts only from your touch."
    },
    "route": "prima-raccolta",
-   "section": null,
+   "section": "prima_raccolta",
    "phone": {
     "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DecideScreens.kt",
     "needle": "fun PrimaRaccoltaScreen"

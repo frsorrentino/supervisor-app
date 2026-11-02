@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_ORDER, dragTarget, move, normalize, orderArg, type HomeSection } from './homeOrder'
+import { readFileSync } from 'node:fs'
+import { DEFAULT_ORDER, dragTarget, move, normalize, orderArg, pinnable, type HomeSection } from './homeOrder'
 import { dropAt, orderArg as argWithPin, overSlot, pinned, release, slotKey, withPin } from './homeOrder'
 
 describe('homeOrder', () => {
@@ -8,11 +9,11 @@ describe('homeOrder', () => {
     expect(normalize([])).toEqual(DEFAULT_ORDER)
   })
   it('ignora sconosciute e doppie, accoda le mancanti', () => {
-    expect(normalize(['esiti', 'nuova', 'esiti', 'sessions'])).toEqual(['esiti', 'sessions', 'suggestions', 'lavori', 'usage', 'system', 'plugins', 'closed'])
+    expect(normalize(['esiti', 'nuova', 'esiti', 'sessions'])).toEqual(['prima_raccolta', 'seguiti', 'prove', 'decisioni', 'esiti', 'sessions', 'suggestions', 'lavori', 'usage', 'system', 'plugins', 'closed'])
   })
   it('sposta e sposta le altre', () => {
-    expect(move(DEFAULT_ORDER, 0, 2)).toEqual(['suggestions', 'lavori', 'sessions', 'esiti', 'usage', 'system', 'plugins', 'closed'])
-    expect(move(DEFAULT_ORDER, 0, 9)).toEqual(DEFAULT_ORDER)
+    expect(move(DEFAULT_ORDER, 0, 2)).toEqual(['seguiti', 'prove', 'prima_raccolta', 'decisioni', 'sessions', 'suggestions', 'lavori', 'esiti', 'usage', 'system', 'plugins', 'closed'])
+    expect(move(DEFAULT_ORDER, 0, 99)).toEqual(DEFAULT_ORDER)
   })
   it("l'arg è un array JSON, null per il predefinito", () => {
     expect(orderArg(DEFAULT_ORDER)).toBeNull()
@@ -40,10 +41,10 @@ describe('trascinamento sul posto', () => {
 
 describe('righe separabili (Franz 31/10 15:50)', () => {
   it('in un ordine già salvato «altro» si espande al suo posto', () => {
-    expect(normalize(['altro', 'sessions', 'suggestions', 'lavori', 'esiti'])).toEqual(['usage', 'system', 'plugins', 'closed', 'sessions', 'suggestions', 'lavori', 'esiti'])
+    expect(normalize(['altro', 'sessions', 'suggestions', 'lavori', 'esiti'])).toEqual(['prima_raccolta', 'seguiti', 'prove', 'decisioni', 'usage', 'system', 'plugins', 'closed', 'sessions', 'suggestions', 'lavori', 'esiti'])
   })
   it('le righe già separate restano dove sono, e le mancanti si accodano', () => {
-    expect(normalize(['system', 'sessions', 'usage'])).toEqual(['system', 'sessions', 'usage', 'suggestions', 'lavori', 'esiti', 'plugins', 'closed'])
+    expect(normalize(['system', 'sessions', 'usage'])).toEqual(['prima_raccolta', 'seguiti', 'prove', 'decisioni', 'system', 'sessions', 'usage', 'suggestions', 'lavori', 'esiti', 'plugins', 'closed'])
   })
 })
 
@@ -90,5 +91,33 @@ describe('slot_rilascio', () => {
     expect(release(o, o, 'usage', 'usage', false, false, 400, mids)).toEqual({ order: ['sessions', 'esiti', 'usage'], pin: null })
     expect(release(o, moved, 'usage', null, false, false, 50, mids)).toEqual({ order: moved, pin: null })
     expect(release(o, moved, 'lavori', 'usage', false, false, 50, mids)).toEqual({ order: moved, pin: 'usage' })
+  })
+  // Le voci arrivate col programma del 01/11 sono voci come le altre: le prossime nascono qui.
+  const NUOVE = ['prima_raccolta', 'seguiti', 'prove', 'decisioni'] as HomeSection[]
+  it('voci_nuove_trascinabili: stanno nell\'ordine e si spostano col gesto', () => {
+    for (const k of NUOVE) expect(DEFAULT_ORDER).toContain(k)
+    const o = normalize(null)
+    expect(o.slice(0, 4)).toEqual(NUOVE)
+    expect(dragTarget(o, 'prove', 100, { prove: 50, decisioni: 90 }).indexOf('prove')).toBe(o.indexOf('decisioni'))
+    expect(JSON.parse(orderArg(move(o, 2, 7))!)).toContain('prove')
+  })
+  it('voci_nuove_trascinabili: un ordine salvato prima le tiene dove stavano, in cima, e uno salvato dopo le tiene dove sono', () => {
+    expect(normalize(['esiti', 'sessions']).slice(0, 6)).toEqual([...NUOVE, 'esiti', 'sessions'])
+    expect(normalize(['sessions', 'prove']).slice(0, 5)).toEqual(['prima_raccolta', 'seguiti', 'decisioni', 'sessions', 'prove'])
+  })
+  it('voci_nuove_trascinabili: nel relay ci stanno, col posto per lo slot; nello slot no, perché spariscono quando sono vuote', () => {
+    expect(withPin(DEFAULT_ORDER, 'usage').length).toBeLessThanOrEqual(16)
+    for (const k of NUOVE) expect(pinnable(k)).toBe(false)
+  })
+  it('voci_nuove_trascinabili: la home le disegna con la testata di tutte, e la pagina dell\'ordine e la copia al dito hanno il nome', () => {
+    const read = (f: string) => readFileSync(new URL(f, import.meta.url), 'utf8')
+    const home = read('./Home.svelte')
+    const order = read('./HomeOrder.svelte')
+    expect(home).not.toContain('card wrows decide')
+    for (const k of NUOVE) {
+      expect(home, k).toContain(`sec('${k}'`)
+      expect(home, k).toContain(`${k}: { icon:`)
+      expect(order, k).toContain(`${k}: { icon:`)
+    }
   })
 })

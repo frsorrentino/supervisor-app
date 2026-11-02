@@ -4,6 +4,7 @@ import { replaceNames, splitLabels, taskNames } from './chatLabels'
 import { world } from './demo'
 import { DemoTransport } from './demoTransport'
 import { DEFAULT_ORDER, pinned, type HomeSection } from './homeOrder'
+import { total } from './seguiti'
 import { weekSlot } from './utilizzo'
 import { head, midnight, outcomes, waitingRows, workingRows } from './kpi'
 import { forYou, inProgress, place } from './lavori'
@@ -21,6 +22,10 @@ const today = new Date(NOW * 1000).toISOString().slice(0, 10)
 
 // Una sezione nuova della home senza una riga qui fa fallire il test: è quello che evita un altro disallineamento.
 const SECTIONS: Record<HomeSection, () => number> = {
+  prima_raccolta: () => (st.prima_raccolta ? 1 : 0),
+  seguiti: () => total(st.seguiti),
+  prove: () => st.prove?.n ?? 0,
+  decisioni: () => st.decisions?.n ?? 0,
   sessions: () => build(st, [], NOW, new Set()).rows.length,
   suggestions: () => visible(st, new Set(), NOW).shown.length,
   lavori: () => inProgress(st, w.agenda, NOW, 'Europe/Rome', today).total,
@@ -89,7 +94,7 @@ describe('demo_allineata', () => {
     expect(splitLabels(text).map(p => p.kind)).toEqual(['plain', 'you', 'untested', 'plain'])
     expect(replaceNames(text, taskNames(st.commitments))).toContain('](https://task.invalid/demo-cover)')
   })
-  it('demo_allineata: Da provare, Cinque minuti, ok, Esito e nota hanno i loro dati', async () => {
+  it('demo_allineata: Da provare, Da decidere, ok, Esito e nota hanno i loro dati', async () => {
     const d = new DemoTransport(() => NOW)
     const read = async (op: string) => JSON.parse((await d.send(newCmd(op as never, null)))!.text)
     const p = await read('prove'), g = await read('decisioni')

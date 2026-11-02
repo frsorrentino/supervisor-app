@@ -1,15 +1,20 @@
 // L'ordine delle sezioni della home (Franz 30/10 17:22, compito app-riordino-sezioni-30-10; HomeOrder.kt nell'app): un ordine
 // unico sul relay, `state.home_order`. Tabellone e «Ti aspettano» non hanno chiave: restano fissi in cima.
-export type HomeSection = 'sessions' | 'suggestions' | 'lavori' | 'esiti' | 'usage' | 'system' | 'plugins' | 'closed'
+export type HomeSection = 'prima_raccolta' | 'seguiti' | 'prove' | 'decisioni' | 'sessions' | 'suggestions' | 'lavori' | 'esiti' | 'usage' | 'system' | 'plugins' | 'closed'
 /** Le righe separabili (Franz 31/10 15:50) sostituiscono `altro`. */
 export const ROWS: HomeSection[] = ['usage', 'system', 'plugins', 'closed']
-export const DEFAULT_ORDER: HomeSection[] = ['sessions', 'suggestions', 'lavori', 'esiti', 'usage', 'system', 'plugins', 'closed']
+/**
+ * Le righe del programma del 01/11 (Franz 02/11 07:20): voci come le altre, si spostano col gesto e nella pagina dell'ordine. Nello slot no: spariscono
+ * quando sono vuote e il riquadro resterebbe senza niente. Le voci nuove nascono qui.
+ */
+export const TOP: HomeSection[] = ['prima_raccolta', 'seguiti', 'prove', 'decisioni']
+export const DEFAULT_ORDER: HomeSection[] = [...TOP, 'sessions', 'suggestions', 'lavori', 'esiti', 'usage', 'system', 'plugins', 'closed']
 
-/** Le chiavi sconosciute si ignorano e le mancanti si accodano, così una sezione nuova non chiede una release del relay. */
+/** Le chiavi sconosciute si ignorano e le mancanti si accodano, così una sezione nuova non chiede una release del relay; quelle di TOP vanno in cima, dove stavano. */
 export function normalize(saved: string[] | null | undefined): HomeSection[] {
   // Un ordine salvato prima della separazione: `altro` si espande al suo posto.
   const known = [...new Set((saved ?? []).flatMap(k => (k === 'altro' ? ROWS as string[] : [k])).filter((k): k is HomeSection => (DEFAULT_ORDER as string[]).includes(k)))]
-  return [...known, ...DEFAULT_ORDER.filter(k => !known.includes(k))]
+  return [...TOP.filter(k => !known.includes(k)), ...known, ...DEFAULT_ORDER.filter(k => !known.includes(k) && !TOP.includes(k))]
 }
 
 /** Sposta la voce `from` al posto `to`; fuori dai limiti la lista resta com'è. */

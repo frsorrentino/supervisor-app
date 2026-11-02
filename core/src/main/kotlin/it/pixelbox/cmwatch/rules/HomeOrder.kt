@@ -7,13 +7,18 @@ package it.pixelbox.cmwatch.rules
 object HomeOrder {
     /** Le righe separabili (Franz 31/10 15:50) sostituiscono `altro`. */
     val ROWS = listOf("usage", "system", "plugins", "closed")
-    val DEFAULT = listOf("sessions", "suggestions", "lavori", "esiti") + ROWS
+    /**
+     * Le righe del programma del 01/11 (Franz 02/11 07:20): voci come le altre, si spostano col gesto e nella pagina dell'ordine. Nello slot no: spariscono
+     * quando sono vuote e il riquadro resterebbe senza niente. Le voci nuove nascono qui.
+     */
+    val TOP = listOf("prima_raccolta", "seguiti", "prove", "decisioni")
+    val DEFAULT = TOP + listOf("sessions", "suggestions", "lavori", "esiti") + ROWS
 
-    /** Le chiavi sconosciute si ignorano e le mancanti si accodano, così una sezione nuova non chiede una release del relay. */
+    /** Le chiavi sconosciute si ignorano e le mancanti si accodano, così una sezione nuova non chiede una release del relay; quelle di [TOP] vanno in cima, dove stavano. */
     fun normalize(saved: List<String>?): List<String> {
         // Un ordine salvato prima della separazione: `altro` si espande al suo posto.
         val known = saved.orEmpty().flatMap { if (it == "altro") ROWS else listOf(it) }.filter { it in DEFAULT }.distinct()
-        return known + DEFAULT.filter { it !in known }
+        return TOP.filter { it !in known } + known + DEFAULT.filter { it !in known && it !in TOP }
     }
 
     /** Sposta la voce `from` al posto `to`; fuori dai limiti la lista resta com'è. */

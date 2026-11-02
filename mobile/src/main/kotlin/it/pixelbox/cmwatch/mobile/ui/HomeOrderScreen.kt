@@ -26,7 +26,10 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.PanTool
 import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.SportsScore
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
@@ -55,6 +58,10 @@ import it.pixelbox.cmwatch.rules.HomeOrder
 /** Le voci della home sulla schermata: icona e nome, come le testate delle sezioni. */
 @Composable
 private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
+    "prima_raccolta" -> Icons.Outlined.Checklist to stringResource(R.string.prima_title)
+    "seguiti" -> Icons.Outlined.Update to stringResource(R.string.seguiti_title)
+    "prove" -> Icons.Outlined.Science to stringResource(R.string.prove_title)
+    "decisioni" -> Icons.Outlined.Timer to stringResource(R.string.decisions_title)
     "sessions" -> Icons.Outlined.PlayCircle to stringResource(R.string.home_sec_sessions)
     "suggestions" -> Icons.Outlined.AutoAwesome to stringResource(R.string.sug_title)
     "lavori" -> Icons.Outlined.Checklist to stringResource(R.string.lavori_title)

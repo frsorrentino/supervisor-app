@@ -11,12 +11,12 @@ class HomeOrderTest {
     }
 
     @Test fun unknownAndDoubleKeysAreDroppedMissingOnesAppended() {
-        assertEquals(listOf("esiti", "sessions", "suggestions", "lavori", "usage", "system", "plugins", "closed"), HomeOrder.normalize(listOf("esiti", "nuova", "esiti", "sessions")))
+        assertEquals(listOf("prima_raccolta", "seguiti", "prove", "decisioni", "esiti", "sessions", "suggestions", "lavori", "usage", "system", "plugins", "closed"), HomeOrder.normalize(listOf("esiti", "nuova", "esiti", "sessions")))
     }
 
     @Test fun moveShiftsTheOthers() {
-        assertEquals(listOf("suggestions", "lavori", "sessions", "esiti", "usage", "system", "plugins", "closed"), HomeOrder.move(HomeOrder.DEFAULT, 0, 2))
-        assertEquals(HomeOrder.DEFAULT, HomeOrder.move(HomeOrder.DEFAULT, 0, 9))
+        assertEquals(listOf("seguiti", "prove", "prima_raccolta", "decisioni", "sessions", "suggestions", "lavori", "esiti", "usage", "system", "plugins", "closed"), HomeOrder.move(HomeOrder.DEFAULT, 0, 2))
+        assertEquals(HomeOrder.DEFAULT, HomeOrder.move(HomeOrder.DEFAULT, 0, 99))
     }
 
     @Test fun theArgIsAJsonArrayOrNullForTheDefault() {
@@ -25,11 +25,11 @@ class HomeOrderTest {
     }
 
     @Test fun aSavedAltroExpandsInItsPlace() {
-        assertEquals(listOf("usage", "system", "plugins", "closed", "sessions", "suggestions", "lavori", "esiti"), HomeOrder.normalize(listOf("altro", "sessions", "suggestions", "lavori", "esiti")))
+        assertEquals(listOf("prima_raccolta", "seguiti", "prove", "decisioni", "usage", "system", "plugins", "closed", "sessions", "suggestions", "lavori", "esiti"), HomeOrder.normalize(listOf("altro", "sessions", "suggestions", "lavori", "esiti")))
     }
 
     @Test fun rowsAlreadyApartStayPutAndMissingOnesAreAppended() {
-        assertEquals(listOf("system", "sessions", "usage", "suggestions", "lavori", "esiti", "plugins", "closed"), HomeOrder.normalize(listOf("system", "sessions", "usage")))
+        assertEquals(listOf("prima_raccolta", "seguiti", "prove", "decisioni", "system", "sessions", "usage", "suggestions", "lavori", "esiti", "plugins", "closed"), HomeOrder.normalize(listOf("system", "sessions", "usage")))
     }
 
     private val abc = listOf("a", "b", "c")
@@ -124,5 +124,25 @@ class HomeOrderTest {
         org.junit.Assert.assertEquals(other, HomeOrder.saved(other, sent))
         org.junit.Assert.assertEquals(old, HomeOrder.saved(old, null))
         org.junit.Assert.assertEquals(mine, HomeOrder.saved(null, HomeOrder.Sent(null, mine)))
+    }
+
+    /** Le voci arrivate col programma del 01/11 sono voci come le altre: le prossime nascono qui. */
+    private val nuove = listOf("prima_raccolta", "seguiti", "prove", "decisioni")
+
+    @org.junit.Test fun voci_nuove_trascinabili_nellOrdineEColGesto() {
+        org.junit.Assert.assertEquals(nuove, HomeOrder.normalize(null).take(4))
+        val o = HomeOrder.DEFAULT
+        org.junit.Assert.assertEquals(o.indexOf("decisioni"), HomeOrder.dragTarget(o, "prove", 100f, mapOf("prove" to 50f, "decisioni" to 90f)).indexOf("prove"))
+        org.junit.Assert.assertTrue(HomeOrder.arg(HomeOrder.move(o, 2, 7))!!.contains("\"prove\""))
+    }
+
+    @org.junit.Test fun voci_nuove_trascinabili_unOrdineSalvato() {
+        org.junit.Assert.assertEquals(nuove + listOf("esiti", "sessions"), HomeOrder.normalize(listOf("esiti", "sessions")).take(6))
+        org.junit.Assert.assertEquals(listOf("prima_raccolta", "seguiti", "decisioni", "sessions", "prove"), HomeOrder.normalize(listOf("sessions", "prove")).take(5))
+    }
+
+    @org.junit.Test fun voci_nuove_trascinabili_relayESlot() {
+        org.junit.Assert.assertTrue(HomeOrder.withPin(HomeOrder.DEFAULT, "usage").size <= 16)
+        nuove.forEach { org.junit.Assert.assertFalse(it, HomeOrder.pinnable(it)) }
     }
 }

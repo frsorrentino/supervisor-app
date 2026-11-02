@@ -1466,7 +1466,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="prove_ko_shot_ok">Screenshot allegato</string>
     <string name="prove_ko_send">Manda</string>
     <string name="prove_ko_shot_note">Screenshot del «Non va» su %1$s</string>
-    <string name="decisions_title">Cinque minuti</string>
+    <string name="decisions_title">Da decidere</string>
     <string name="decisions_none">Nessuna decisione ti aspetta.</string>
     <string name="decisions_head">%1$d decisioni, %2$d si fanno da qui, sbloccano %3$d compiti.</string>
     <string name="decisions_how_many">Quante ne vuoi fare?</string>

@@ -164,7 +164,7 @@ fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onB
     }
 }
 
-/** «Cinque minuti» (contratto 1.99, cinque_minuti): Franz sceglie quante, poi una alla volta, le più pesanti per prime. Niente timer. */
+/** «Da decidere» (contratto 1.99, cinque_minuti): Franz sceglie quante, poi una alla volta, le più pesanti per prime. Niente timer. */
 @Composable
 fun CinqueMinutiScreen(page: DecisionsPage?, onBack: () -> Unit, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null) {
     var howMany by rememberSaveable { mutableStateOf(startHowMany) }

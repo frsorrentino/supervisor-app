@@ -231,7 +231,7 @@ class MainActivity : ComponentActivity() {
         var queueOpen by rememberSaveable { mutableStateOf(false) }
         // La pagina di uno dei tre box in alto della home (app-box-cliccabili-29-10).
         var boxOpen by rememberSaveable { mutableStateOf<it.pixelbox.cmwatch.mobile.ui.HomeBox?>(null) }
-        // Contratto 1.99: Da provare e Cinque minuti; gli elenchi si chiedono all'apertura e dopo ogni tocco.
+        // Contratto 1.99: Da provare e Da decidere; gli elenchi si chiedono all'apertura e dopo ogni tocco.
         var proveOpen by rememberSaveable { mutableStateOf(false) }
         // Contratto 1.100: la prima raccolta; si apre da sola una volta, all'abbinamento.
         var primaOpen by rememberSaveable { mutableStateOf(false) }
