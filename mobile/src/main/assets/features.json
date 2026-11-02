@@ -2346,7 +2346,8 @@
       "web": {
         "file": "web/src/lib/PrimaRaccolta.svelte",
         "needle": "firstRoundOffer"
-      }
+      },
+      "image": "prima_raccolta.webp"
     }
   ]
 }
