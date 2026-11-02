@@ -108,7 +108,7 @@ private fun RimastoCard(i: RimastoItem, onAction: (String, String?, String) -> U
     if (Seguiti.canAccept(i) || Seguiti.canAlign(i)) FlowRow(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato diventa la conferma finché la scheda cambia.
         var tapped by androidx.compose.runtime.remember(i.product, i.key, i.alignedAt, i.task) { androidx.compose.runtime.mutableStateOf<String?>(null) }
-        if (Seguiti.canAccept(i)) ConfirmButton(stringResource(R.string.seguiti_accept), confirmed = tapped == "ok", enabled = tapped == null, faded = tapped == "allinea") { tapped = "ok"; onAction("ok", i.product, i.key) }
+        if (Seguiti.canAccept(i)) ConfirmButton(stringResource(R.string.seguiti_accept), confirmed = tapped == "ok", enabled = tapped == null, faded = tapped == "allinea", outlined = true) { tapped = "ok"; onAction("ok", i.product, i.key) }
         if (Seguiti.canAlign(i)) ConfirmButton(stringResource(R.string.seguiti_align), confirmed = tapped == "allinea", enabled = tapped == null, faded = tapped == "ok") { tapped = "allinea"; onAction("allinea", i.product, i.key) }
     }
 }

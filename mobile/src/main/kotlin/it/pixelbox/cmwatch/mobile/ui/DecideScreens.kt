@@ -62,15 +62,16 @@ private fun DecideCard(picked: Boolean = false, content: @Composable ColumnScope
  * con la molla dell'app; `faded` = è stato scelto un altro tasto. Al tocco anche la vibrazione di conferma (voce 13).
  */
 @Composable
-internal fun ConfirmButton(label: String, confirmed: Boolean, enabled: Boolean, faded: Boolean = false, onClick: () -> Unit) {
+internal fun ConfirmButton(label: String, confirmed: Boolean, enabled: Boolean, faded: Boolean = false, outlined: Boolean = false, onClick: () -> Unit) {
     val view = androidx.compose.ui.platform.LocalView.current
     val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "confirm-scale")
-    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) V3.Good else Cm.surfaceHigh, CmMotion.slow, label = "confirm-bg")
-    FilledTonalButton(
-        onClick = { view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); onClick() }, enabled = enabled || confirmed,
-        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(containerColor = bg, contentColor = if (confirmed) Cm.bg else Cm.text, disabledContainerColor = bg, disabledContentColor = if (confirmed) Cm.bg else Cm.text2),
-        modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (faded) 0.35f else 1f },
-    ) { Text(if (confirmed) "✓ $label" else label) }
+    val mod = Modifier.graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (faded) 0.35f else 1f }
+    val tap = { view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); onClick() }
+    // A riposo il tasto è quello di sempre (tonale o a contorno, con i colori del tema); solo la conferma lo fa verde.
+    if (confirmed) FilledTonalButton(onClick = {}, enabled = false, modifier = mod,
+        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(disabledContainerColor = V3.Good, disabledContentColor = Cm.bg)) { Text("✓ $label") }
+    else if (outlined) OutlinedButton(onClick = tap, enabled = enabled, modifier = mod) { Text(label) }
+    else FilledTonalButton(onClick = tap, enabled = enabled, modifier = mod) { Text(label) }
 }
 
 private fun Modifier.graphicsLayerAlpha(a: Float) = this.graphicsLayer { alpha = a }
@@ -105,7 +106,7 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.End)) {
                 // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato diventa la conferma finché la scheda cambia.
                 var tapped by remember(page.status, page.done) { mutableStateOf<String?>(null) }
-                ConfirmButton(stringResource(R.string.prima_no), confirmed = tapped == "no", enabled = tapped == null, faded = tapped == "si") { tapped = "no"; onTouch("consent", "no") }
+                ConfirmButton(stringResource(R.string.prima_no), confirmed = tapped == "no", enabled = tapped == null, faded = tapped == "si", outlined = true) { tapped = "no"; onTouch("consent", "no") }
                 ConfirmButton(stringResource(R.string.prima_yes), confirmed = tapped == "si", enabled = tapped == null, faded = tapped == "no") { tapped = "si"; onTouch("consent", "si") }
             }
         }
@@ -290,7 +291,7 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
                                 btns.forEach { btn ->
                                     when (btn) {
                                         CinqueMinuti.Btn.Proceed -> "$n-p".let { id -> ConfirmButton(stringResource(R.string.decisions_proceed), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, null) else onAsk(proceed) } } }
-                                        CinqueMinuti.Btn.Discuss -> "$n-d".let { id -> ConfirmButton(stringResource(R.string.decisions_discuss), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { onAsk(discuss) } } }
+                                        CinqueMinuti.Btn.Discuss -> "$n-d".let { id -> ConfirmButton(stringResource(R.string.decisions_discuss), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id, outlined = true) { act(id) { onAsk(discuss) } } }
                                         CinqueMinuti.Btn.Done -> "$n-f".let { id -> ConfirmButton(stringResource(R.string.agenda_done), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { onDone(i) } } }
                                         is CinqueMinuti.Btn.Choice -> "$n-c-${btn.label}".let { id -> ConfirmButton(btn.label, confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, btn.label) else onAsk(choicePrompt + " " + btn.label) } } }
                                     }

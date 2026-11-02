@@ -837,8 +837,8 @@ private fun SummaryCard(
             wScope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(offAnim)); wGone = true; kotlinx.coroutines.delay(15_000); wGone = false; wPick = null }
         }
     }
-    androidx.compose.animation.AnimatedVisibility(!wGone, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(if (offAnim) 0 else 160)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (offAnim) 0 else 160))) {
-    Column {
+    // Solo le card in attesa escono: le altre restano nel loro posto senza contenitori in più (stessa impaginazione di prima).
+    val cardBody: @Composable () -> Unit = {
     if (!waiting && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Row(
         // La chat si restringe verso la sua card durante il gesto indietro.
@@ -1040,7 +1040,8 @@ private fun SummaryCard(
     }
     }
     }
-    }
+    if (waiting) androidx.compose.animation.AnimatedVisibility(!wGone, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(if (offAnim) 0 else 160)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (offAnim) 0 else 160))) { Column { cardBody() } }
+    else cardBody()
 }
 
 /** «12'», «3 h», «2 g»: corto come in una diretta. */
