@@ -236,6 +236,12 @@
   /* Luce più discreta (Franz 03/11 17:46: «troppo forte»). */
   :root:root .plancia.v3 { background: radial-gradient(75% 70% at 50% 0%, #181C24 0%, #101218 60%, #0A0B0E 100%); }
 }
+/* 5. Plancia larga, una regola sola (app-pwa-coerenza-03-11, mockup del 03/11, scelta «Righe, schede azioni» di Franz): le colonne
+   sono pannelli e solo loro hanno il riflesso; dentro, ogni voce è una riga col suo filetto, senza riquadro (Suggerimenti, Esiti di
+   oggi, La notte scorsa, Utilizzo); resta una scheda piena, senza riflesso, solo per ciò che chiede un'azione (Fatto, Approva). */
+:root:root .plancia .col .il, :root:root .plancia .col .card.wrows, :root:root .plancia .col .vlist, :root:root .plancia .col .panel { background: none; border: 0; box-shadow: none; }
+:root:root .plancia .col .lit:not(.col) { background: var(--lit-bg, var(--s2)); border: 1px solid var(--line); }
+:root:root .plancia .col .il.lit { background: none; border: 0; }
 @media (prefers-color-scheme: light) {
   :root:root:not(.night-only) .lit, :root:root:not(.night-only) .onboard > .usageslot { background: var(--lit-bg, var(--s1)); border: 1px solid var(--line); }
   :root:root:not(.night-only) .col.lit { background: var(--s1); }
