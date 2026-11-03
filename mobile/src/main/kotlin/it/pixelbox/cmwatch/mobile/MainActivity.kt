@@ -1026,7 +1026,7 @@ class MainActivity : ComponentActivity() {
                 app.repo.forget(id)
                 return r?.takeIf { x -> x.ok }?.text
             }
-            if (primaOpen || "prima_raccolta" in inlineOpen) read(CmdOp.PRIMA_RACCOLTA)?.let { t -> runCatching { ContractJson.decodePrimaRaccolta(t) }.onSuccess { p -> primaPage = p } }
+            if (primaOpen || "prima_raccolta" in inlineOpen || "decisioni" in inlineOpen) read(CmdOp.PRIMA_RACCOLTA)?.let { t -> runCatching { ContractJson.decodePrimaRaccolta(t) }.onSuccess { p -> primaPage = p } }
             // Il tasto da «Cosa sa fare» c'è anche con un relay vecchio: la pagina dice che non riesce a leggere, non carica per sempre.
             if (seguitiOpen || "seguiti" in inlineOpen) { val t = read(CmdOp.SEGUITI); seguitiFailed = t == null; t?.let { x -> runCatching { ContractJson.decodeSeguiti(x) }.onSuccess { p -> seguitiPage = p } } }
             if (proveOpen || "prove" in inlineOpen) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
@@ -1035,7 +1035,7 @@ class MainActivity : ComponentActivity() {
         val inlineKey = inlineOpen.toList()
         LaunchedEffect(proveOpen, decisionsOpen, inlineKey) { if (proveOpen || decisionsOpen || inlineKey.isNotEmpty()) readDecide() }
         // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
-        LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen || "prima_raccolta" in inlineOpen) readDecide() }
+        LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen || "prima_raccolta" in inlineOpen || "decisioni" in inlineOpen) readDecide() }
         LaunchedEffect(seguitiOpen, state?.seguiti) { if (seguitiOpen || "seguiti" in inlineOpen) readDecide() }
         // Da guardare: la pagina dei risultati si legge con la voce aperta, la pagina, un risultato o una sessione aperta (la riga
         // «Risultati» della chat), e di nuovo quando cambia quello che non è visto.
@@ -1208,7 +1208,11 @@ class MainActivity : ComponentActivity() {
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
             "seguiti" to { Inline("seguiti") { it.pixelbox.cmwatch.mobile.ui.SeguitiBody(seguitiPage, seguitiFailed, act, { open = null; tab = StartRoute.Tab.LAVORI }, { open = null; masterChat = true }) } },
             "prove" to { Inline("prove") { it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen) } },
-            "decisioni" to { Inline("decisioni") { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage, decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }, onAsk = decAsk, rows = true) } },
+            // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
+            "decisioni" to { Inline("decisioni") { androidx.compose.foundation.layout.Column {
+                if (state?.primaRaccolta != null) it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true }
+                if ((state?.decisions?.n ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage, decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }, onAsk = decAsk, rows = true)
+            } } },
         )
         resultOpen?.let { r ->
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.ResultViewer(fullResult(r), guardare, onBack = { resultOpen = null }) }

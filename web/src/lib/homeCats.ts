@@ -9,16 +9,20 @@ export type HomeKey = Exclude<HomeSection, 'plugins' | 'closed'> | 'da_guardare'
 export type Cat = { id: CatId; open: boolean; sections: HomeKey[] }
 
 export const DEFAULT_CATS: Cat[] = [
-  { id: 'you', open: true, sections: ['decisioni', 'prove', 'suggestions', 'prima_raccolta'] },
-  { id: 'work', open: true, sections: ['sessions', 'seguiti', 'lavori'] },
-  { id: 'out', open: false, sections: ['esiti', 'da_guardare', 'rendiconti'] },
+  // Tocca a te accorpa le voci che chiedono Franz (Franz 03/11 16:02, app-sezioni-accorpate-03-11, scelta A): Prova, Decidi,
+  // Guarda e Segui. Prima raccolta non è più una voce: sta dentro Decidi finché c'è.
+  { id: 'you', open: true, sections: ['prove', 'decisioni', 'da_guardare', 'seguiti', 'suggestions'] },
+  { id: 'work', open: true, sections: ['sessions', 'lavori'] },
+  { id: 'out', open: false, sections: ['esiti', 'rendiconti'] },
   { id: 'tools', open: false, sections: ['usage', 'system', 'pagella'] },
 ]
 /**
  * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
  * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
  */
-export const REV = 'rev:2'
+export const REV = 'rev:3'
+/** Un ordine `rev:2` (prima delle voci accorpate) tiene categorie, chiuse e cima; dentro Tocca a te riprende una volta l'ordine di partenza. */
+const REV2 = 'rev:2'
 const SHUT = 'shut:'
 const TOP = 'top:'
 /** Il bordo dello spazio in cima nella lista piatta del trascinamento: sopra c'è la cima, sotto le categorie. */
@@ -30,9 +34,11 @@ export const catOf = (key: string): CatId | null => DEFAULT_CATS.find(c => (c.se
 export function decode(saved: string[] | null | undefined): Cat[] {
   const list = saved ?? []
   const up = top(saved) as string[]
-  const fresh = list.length > 0 && !list.includes(REV)
-  const keys = ([...new Set(list.filter(k => catOf(k) && !up.includes(k)))] as HomeKey[]).filter(k => !fresh || (catOf(k) !== 'you' && catOf(k) !== 'tools'))
-  const order = fresh ? DEFAULT_CATS.map(c => c.id) : [...new Set([...keys.map(k => catOf(k)!), ...DEFAULT_CATS.map(c => c.id)])]
+  const fresh = list.length > 0 && !list.includes(REV) && !list.includes(REV2)
+  const youOld = !list.includes(REV) && list.includes(REV2)
+  const all = [...new Set(list.filter(k => catOf(k) && !up.includes(k)))] as HomeKey[]
+  const keys = all.filter(k => (!fresh || (catOf(k) !== 'you' && catOf(k) !== 'tools')) && !(youOld && catOf(k) === 'you'))
+  const order = fresh ? DEFAULT_CATS.map(c => c.id) : [...new Set([...all.map(k => catOf(k)!), ...DEFAULT_CATS.map(c => c.id)])]
   const shut = list.find(k => k.startsWith(SHUT))
   const closed = shut == null ? null : shut.slice(SHUT.length).split(',')
   return order.map(id => {

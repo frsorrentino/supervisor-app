@@ -12,7 +12,8 @@ describe('voci_nuove_testo', () => {
   it('voci_nuove_testo: la home dà a ogni voce nuova il suo testo, e il numero di Esiti sta accanto al nome', async () => {
     const { readFileSync } = await import('node:fs')
     const home = readFileSync(new URL('./Home.svelte', import.meta.url), 'utf8')
-    for (const k of ['prima_raccolta', 'seguiti', 'prove', 'decisioni']) expect(home, k).toContain(`rightOf('${k}')`)
+    // Prima raccolta sta dentro Decidi e il suo stato apre il testo di Decidi (app-sezioni-accorpate-03-11).
+    for (const k of ['seguiti', 'prove', 'decisioni']) expect(home, k).toContain(`rightOf('${k}')`)
     expect(home).toContain("sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', esitiCount,")
   })
 })

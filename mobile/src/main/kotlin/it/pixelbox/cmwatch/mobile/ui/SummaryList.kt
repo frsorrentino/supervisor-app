@@ -307,11 +307,12 @@ fun SummaryList(
         return when (key) {
             // Con la domanda aperta chiede Franz: in ambra come le altre voci di Tocca a te (master 02/11 02:08, app-bug-notte-03-11).
             "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open, p.status == "ask") }
-            "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.seguiti_title, icons.Update, n.toString(), "home-seguiti", open) }
-            "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> NewRow(R.string.prove_title, icons.Science, p.n.toString(), "home-da-provare", open, p.n > 0) }
-            "decisioni" -> st.decisions?.takeIf { d -> d.n > 0 }?.let { d -> NewRow(R.string.decisions_title, icons.Timer, d.n.toString(), "home-da-decidere", open, true) }
+            "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.home_sec_follow, icons.Update, n.toString(), "home-seguiti", open) }
+            "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> NewRow(R.string.home_sec_test, icons.Science, p.n.toString(), "home-da-provare", open, p.n > 0) }
+            // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
+            "decisioni" -> (st.decisions?.n ?: 0).takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.home_sec_decide, icons.Timer, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }
             // Contratto 1.106 (app-da-guardare-02-11): c'è finché qualcosa di consegnato non è ancora visto.
-            "da_guardare" -> st.results?.takeIf { x -> x.nUnseen > 0 }?.let { x -> NewRow(R.string.home_sec_watch, icons.Visibility, x.nUnseen.toString(), "home-da-guardare", open) }
+            "da_guardare" -> st.results?.takeIf { x -> x.nUnseen > 0 }?.let { x -> NewRow(R.string.home_sec_look, icons.Visibility, x.nUnseen.toString(), "home-da-guardare", open) }
             else -> null
         }
     }
@@ -390,7 +391,7 @@ fun SummaryList(
                 val p = if ("prove" in up) 0 else kpiState?.prove?.n ?: 0
                 val s = if ("suggestions" in up) 0 else suggestions?.takeIf { x -> x.shown.isNotEmpty() }?.total ?: 0
                 // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
-                val pr = kpiState?.primaRaccolta?.takeIf { x -> x.status == "ask" && "prima_raccolta" !in up }
+                val pr = kpiState?.primaRaccolta?.takeIf { x -> x.status == "ask" && "decisioni" !in up }
                 // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e
                 // per ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
                 listOfNotNull(
@@ -1786,7 +1787,13 @@ private fun newRight(key: String, st: it.pixelbox.cmwatch.contract.State?): Stri
     st ?: return null
     val bits = when (key) {
         "prove" -> st.prove?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.prove(x) }
-        "decisioni" -> st.decisions?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.decisions(x) }
+        // Prima raccolta sta dentro Decidi: finché non è fatta, il suo stato apre il riassunto (app-sezioni-accorpate-03-11).
+        "decisioni" -> {
+            val p = if (st.primaRaccolta?.status.let { x -> x != null && x != "done" }) newRight("prima_raccolta", st)?.let { s -> "${stringResource(R.string.prima_title)} $s" } else null
+            val d = if (st.decisions != null) newRight("decisioni_only", st) else null
+            return listOfNotNull(p, d).joinToString(" · ").ifEmpty { null }
+        }
+        "decisioni_only" -> st.decisions?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.decisions(x) }
         "seguiti" -> st.seguiti?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.seguiti(x) }
         // Da guardare, chiusa: l'ultimo consegnato, come la riga Risultati della chat.
         "da_guardare" -> return st.results?.items?.firstOrNull()?.let { r -> it.pixelbox.cmwatch.rules.Guardare.line(r).let { l -> l.version?.let { v -> stringResource(R.string.watch_title_version, l.title, v) } ?: l.title } }

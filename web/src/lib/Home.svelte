@@ -173,7 +173,7 @@
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
   // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
-  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ prima_raccolta: { icon: 'task_alt', name: t.primaTitle }, seguiti: { icon: 'event_list', name: t.seguitiTitle }, prove: { icon: 'checklist', name: t.proveTitle }, decisioni: { icon: 'timer', name: t.decisionsTitle }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch } })
+  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecTest }, decisioni: { icon: 'timer', name: t.homeSecDecide }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch } })
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
@@ -343,7 +343,7 @@
       const d = up.includes('decisioni') ? 0 : st.decisions?.n ?? 0, p = up.includes('prove') ? 0 : st.prove?.n ?? 0
       const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
       // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
-      const pr = !up.includes('prima_raccolta') && st.prima_raccolta?.status === 'ask'
+      const pr = !up.includes('decisioni') && st.prima_raccolta?.status === 'ask'
       // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e per
       // ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
       const bits: { text: string; mute?: boolean }[] = [...(d ? [{ text: t.catSigDecide(d) }] : []), ...(p ? [{ text: t.catSigTest(p) }] : []), ...(pr ? [{ text: `${t.primaTitle} ${t.homePrima.ask}` }] : []), ...(s ? [{ text: t.catSigSuggestions(s), mute: true }] : [])]
@@ -642,7 +642,8 @@
     if (k === 'prima_raccolta') return st.prima_raccolta ? t.homePrima[st.prima_raccolta.status] ?? null : null
     if (k === 'seguiti') return st.seguiti ? say(seguitiBits(st.seguiti)) : null
     if (k === 'prove') return st.prove ? say(proveBits(st.prove)) : null
-    if (k === 'decisioni') return st.decisions ? say(decBits(st.decisions)) : null
+    // Prima raccolta sta dentro Decidi (app-sezioni-accorpate-03-11): finché non è fatta, il suo stato apre il riassunto.
+    if (k === 'decisioni') { const p = st.prima_raccolta && st.prima_raccolta.status !== 'done' ? `${t.primaTitle} ${t.homePrima[st.prima_raccolta.status] ?? ''}`.trim() : null; return [p, st.decisions ? say(decBits(st.decisions)) : null].filter(Boolean).join(' · ') || null }
     // Da guardare, chiusa: l'ultimo consegnato.
     if (k === 'da_guardare') { const r = st.results?.items[0]; if (!r) return null; const l = watchLine(r); return l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title }
     return null
@@ -892,11 +893,10 @@
   <!-- Nella plancia larga anche queste, nella loro colonna (Franz 02/11 11:11: «mancano molte sezioni»): Da decidere e Da
        provare chiedono te, Da seguire e Prima raccolta sono lavoro in corso. -->
   {#if newBody && (!part || part === catFor(k))}
-    {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'task_alt', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', !open['prima_raccolta'] ? rightOf('prima_raccolta') : null, { hot: st.prima_raccolta.status === 'ask' })}{@render nuovaBody(k)}
-    {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
-    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: st.prove.n > 0 })}{@render nuovaBody(k)}
+    {#if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.homeSecFollow, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
+    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.homeSecTest, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: st.prove.n > 0 })}{@render nuovaBody(k)}
     {:else if (k as string) === 'da_guardare' && st.results?.n_unseen}{@render sec(k, t.homeSecWatch, 'svg:eye', String(st.results.n_unseen), 'home-da-guardare', !open[k] ? rightOf(k) : null)}{@render nuovaBody(k)}
-    {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && (st.decisions?.n || st.prima_raccolta)}{@render sec('decisioni', t.homeSecDecide, 'timer', st.decisions?.n ? String(st.decisions.n) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
     {/if}
   {/if}
 {/snippet}

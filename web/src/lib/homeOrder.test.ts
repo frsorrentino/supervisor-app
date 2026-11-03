@@ -116,7 +116,8 @@ describe('slot_rilascio', () => {
     expect(home).not.toContain('card wrows decide')
     expect(home, 'si aprono sul posto, niente pagina').not.toContain('onPage(')
     expect(home).toContain('{@render newBody?.(k)}')
-    for (const k of NUOVE) {
+    // Prima raccolta non è più una voce: sta dentro Decidi (app-sezioni-accorpate-03-11).
+    for (const k of NUOVE.filter(x => x !== 'prima_raccolta')) {
       expect(home, k).toContain(`sec('${k}'`)
       expect(home, k).toContain(`${k}: { icon:`)
       expect(order, k).toContain(`${k}: { icon:`)

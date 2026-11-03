@@ -74,16 +74,15 @@ import androidx.compose.ui.zIndex
 private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
     // La categoria presa nella home (app-categorie-trascina-02-11).
     "cat:you", "cat:work", "cat:out", "cat:tools" -> catIcon(key.removePrefix("cat:")) to catName(key.removePrefix("cat:"))
-    "prima_raccolta" -> Icons.Outlined.Checklist to stringResource(R.string.prima_title)
-    "seguiti" -> Icons.Outlined.Update to stringResource(R.string.seguiti_title)
-    "prove" -> Icons.Outlined.Science to stringResource(R.string.prove_title)
-    "decisioni" -> Icons.Outlined.Timer to stringResource(R.string.decisions_title)
+    "seguiti" -> Icons.Outlined.Update to stringResource(R.string.home_sec_follow)
+    "prove" -> Icons.Outlined.Science to stringResource(R.string.home_sec_test)
+    "decisioni" -> Icons.Outlined.Timer to stringResource(R.string.home_sec_decide)
     "sessions" -> Icons.Outlined.PlayCircle to stringResource(R.string.home_sec_sessions)
     "suggestions" -> Icons.Outlined.AutoAwesome to stringResource(R.string.sug_title)
     "lavori" -> Icons.Outlined.Checklist to stringResource(R.string.lavori_title)
     "esiti" -> Icons.Outlined.SportsScore to stringResource(R.string.box_outcomes_title)
     // Le tre sezioni nuove (app-da-guardare-02-11, app-rendiconti-2-02-11): in Riordina hanno già il loro posto.
-    "da_guardare" -> Icons.Outlined.Visibility to stringResource(R.string.home_sec_watch)
+    "da_guardare" -> Icons.Outlined.Visibility to stringResource(R.string.home_sec_look)
     "rendiconti" -> Icons.Outlined.Description to stringResource(R.string.home_sec_reports)
     "pagella" -> Icons.Outlined.MilitaryTech to stringResource(R.string.home_sec_scorecard)
     "system" -> Icons.Outlined.Memory to stringResource(R.string.home_sec_system)
