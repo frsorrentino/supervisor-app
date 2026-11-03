@@ -47,7 +47,6 @@
   import DeskTools from './lib/DeskTools.svelte'
   import DeskNight from './lib/DeskNight.svelte'
   import DeskWork from './lib/DeskWork.svelte'
-  import { inProgress as lavoriInProgress, ymd as lavoriYmd } from './lib/lavori'
   import { dashColumns } from './lib/dash'
   import ColumnHead from './lib/ColumnHead.svelte'
   import { t } from './lib/t'
@@ -92,7 +91,7 @@
   import { askedSession } from './lib/sessionLinks'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
-  import { since as kpiSince, head as kpiHeadOf, waitingSince as kpiWaitingSince } from './lib/kpi'
+  import { since as kpiSince, head as kpiHeadOf } from './lib/kpi'
   import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
   import { refusalText } from './lib/questionRules'
   import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
@@ -573,14 +572,6 @@
   const canWrite = $derived(!!st.ops?.includes('agenda_set'))
   // Il cruscotto della plancia (variante B): senza colonne né pagine, Recap e Utilizzo stanno a destra e non nella home.
   const deskDashboard = $derived(wide && !cols.length && !page)
-  // La plancia (pwa2, Franz 30/10 10:5x): sotto «Attività e code» le sessioni al lavoro e ferme e i compiti in corso.
-  const deskWorkSub = $derived.by(() => {
-    if (!deskDashboard) return ''
-    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
-    const live = st.sessions.filter(s => s.state !== 'gone' && s.name !== MASTER && kpiWaitingSince(s) == null)
-    const tasks = st.commitments != null || agenda.page ? lavoriInProgress(st, agenda.page, now, zone, lavoriYmd(now, zone)).total : null
-    return t.deskWorkSub(live.filter(s => s.state === 'busy' || s.state === 'awaiting').length, live.filter(s => s.state === 'idle').length, tasks)
-  })
   // Il cruscotto a tre colonne (21/10) ha sempre il riquadro della notte: il rapporto si chiede appena c'è.
   $effect(() => { if (deskDashboard && st.night?.report && !night.report && !night.loading && !night.error) untrack(() => loadNight()) })
   let masterInject = $state<{ text: string; n: number } | null>(null)
@@ -1191,7 +1182,7 @@
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
     {#snippet you()}<DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}{/snippet}
-    {#snippet work()}<DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} sub={deskWorkSub} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}{/snippet}
+    {#snippet work()}<DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}{/snippet}
     {#snippet out()}<DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} />{/snippet}
     {#snippet tools()}<DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />{/snippet}
     {#snippet bar()}{@render masterBar()}{/snippet}

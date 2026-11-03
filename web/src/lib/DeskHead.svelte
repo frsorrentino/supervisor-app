@@ -18,7 +18,8 @@
   const topPct = $derived(Math.round(top?.[2]?.pct ?? 0))
   const tone = (pct: number) => (pct >= 90 ? 'var(--red)' : pct >= 75 ? 'var(--wait)' : 'var(--tx2)')
   const testid: Record<Kind, string> = { you: 'home-box-aspetta', work: 'home-box-lavoro', out: 'home-box-esiti', tools: 'desk-head-tools' }
-  const title: Record<Kind, string> = { you: t.deskYou, work: t.deskWork, out: t.deskOut, tools: t.deskTools }
+  // I nomi delle categorie della home (Franz 03/11 13:30, app-plancia-nomi-03-11): Tocca a te, In corso, Esiti, Risorse.
+  const title: Record<Kind, string> = t.catName
 </script>
 
 <button class="chead" data-testid={testid[kind]} onclick={onOpen}>
@@ -32,7 +33,7 @@
       {#if kind === 'you'}{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}
       {:else if kind === 'out'}{t.deskOutSub}{#if h.red}, <em>{t.kpi7Red(h.red)}</em>{/if}
       {:else if kind === 'tools'}{#if top?.[2]?.week}{paceText(top[2].delta, top[2].day) ?? t.deskToolsWeek}{:else}{t.deskToolsSub(top ? resetLabel(top[1].reset_h5, now) : null)}{/if}
-      {:else}{sub}{/if}
+      {:else}{t.kpi7Busy}{/if}
     </span>
     {#if kind === 'tools'}
       {#each rings as [name, r, b] (name)}
