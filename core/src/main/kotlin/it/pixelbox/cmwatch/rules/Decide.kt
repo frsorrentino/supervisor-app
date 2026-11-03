@@ -144,3 +144,35 @@ object HeadsUpNote {
 
     fun key(session: String, text: String): String = "$session|$text"
 }
+
+/**
+ * Contratto 1.107 (Franz 03/11 15:32 e 17:12, app-sezioni-accorpate-03-11, scelta A): una pausa con `prova` aspetta che Franz
+ * provi qualcosa. Escono da Decidi e si fondono per progetto in una scheda sola, quella della pre-release più nuova, che contiene
+ * le precedenti: una riga per cosa, «Tutto va» manda `provato` per ogni gruppo. Gli stessi casi in decide.ts.
+ */
+object ProveFuse {
+    data class Row(val key: String, val task: String?, val text: String, val since: Long)
+    data class Card(val project: String, val release: String?, val web: String?, val since: Long, val rows: List<Row>)
+    /** Un gruppo di prova: solo pause con `prova`. Un gruppo misto resta in Decidi: `provato` toccherebbe anche le altre pause. */
+    private fun isTestGroup(g: DecisionGroup) = g.items.isNotEmpty() && g.items.all { it.kind == "pause" && it.prova != null }
+
+    fun cards(page: DecisionsPage): List<Card> = page.groups.filter(::isTestGroup)
+        .flatMap { g -> g.items.map { g to it } }
+        .groupBy { (_, i) -> i.prova?.project ?: i.project ?: "" }
+        .map { (project, l) ->
+            val s = l.sortedByDescending { it.second.since }
+            Card(project, s.firstNotNullOfOrNull { it.second.prova?.release }, s.firstNotNullOfOrNull { it.second.prova?.web }, s.first().second.since,
+                s.map { (g, i) -> Row(g.key, i.task, i.short ?: i.title ?: i.task ?: i.reason.orEmpty(), i.since) })
+        }
+        .sortedByDescending { it.since }
+
+    /** Le chiavi da mandare con `provato` o `non_va`: una decisione per gruppo. */
+    fun keys(c: Card): List<String> = c.rows.map { it.key }.distinct()
+
+    /** Decidi senza i gruppi di prova; conti rifatti sui gruppi rimasti. */
+    fun withoutTests(page: DecisionsPage): DecisionsPage {
+        val groups = page.groups.filterNot(::isTestGroup)
+        val gone = page.groups.filter(::isTestGroup).sumOf { it.unblocks.size }
+        return page.copy(groups = groups, n = groups.size, here = groups.count { it.where == "here" }, tasks = (page.tasks - gone).coerceAtLeast(0))
+    }
+}

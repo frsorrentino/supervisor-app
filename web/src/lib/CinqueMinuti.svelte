@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CmdResult, DecisionGroup, DecisionItem, DecisionsPage, State } from './contract'
   import { decodeDecisions, readPage } from './decideDecode'
-  import { buttons, canDrop, card as cardText, chooseAt, nextDecisions, viaApprove } from './decide'
+  import { buttons, canDrop, card as cardText, chooseAt, nextDecisions, viaApprove, withoutTests } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
   import LoadFailed from './LoadFailed.svelte'
@@ -21,7 +21,8 @@
   let broken = $state<string | null>(null), what = $state('')
   // Senza risposta in tempo la pagina lo dice e offre Riprova, invece di restare «In arrivo dal PC» (app-pwa-decisioni-03-11).
   let failed = $state(false)
-  async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('decisioni', null)), decodeDecisions, page)) }
+  // Contratto 1.107: le pause di prova stanno in Prova, fuse nella pre-release più nuova (app-sezioni-accorpate-03-11).
+  async function load() { failed = false; let p: DecisionsPage | null = page; ({ page: p, failed } = readPage(await run(newCmd('decisioni', null)), decodeDecisions, page)); page = p ? withoutTests(p) : p }
   $effect(() => { void load() })
   const g = $derived(page && howMany != null ? nextDecisions(page, touched, Math.max(0, howMany - touched.size))[0] ?? null : null)
   const next = (k: string) => { touched = new Set([...touched, k]) }

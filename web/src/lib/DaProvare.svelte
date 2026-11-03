@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { CmdResult, ProvePage } from './contract'
-  import { decodeProve, readPage } from './decideDecode'
-  import { allOk, screen } from './decide'
+  import type { CmdResult, DecisionsPage, ProvePage } from './contract'
+  import { decodeDecisions, decodeProve, readPage } from './decideDecode'
+  import { allOk, cardKeys, screen, testCards, type TestCard } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
   import LoadFailed from './LoadFailed.svelte'
@@ -19,6 +19,22 @@
   let failed = $state(false)
   async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('prove', null)), decodeProve, page)) }
   $effect(() => { void load() })
+  // Contratto 1.107 (app-sezioni-accorpate-03-11, scelta A): sopra il banco, le prove che aspettano Franz fuse per progetto nella
+  // pre-release più nuova. «Tutto va» manda `provato` per ogni gruppo, «Una non va» chiede quale e perché (`non_va`).
+  let dec = $state<DecisionsPage | null>(null)
+  async function loadDec() { ({ page: dec } = readPage(await run(newCmd('decisioni', null)), decodeDecisions, dec)) }
+  $effect(() => { void loadDec() })
+  const cards = $derived(dec ? testCards(dec) : [])
+  let doneKeys = $state<Record<string, true>>({}), sentKeys = $state<Record<string, true>>({}), more = $state<Record<string, true>>({})
+  let koCard = $state<TestCard | null>(null), koWhich = $state<string | null>(null), koWhy = $state('')
+  const decide = (key: string, action: 'provato' | 'non_va', reason?: string) => run(newCmd('decisione', null, key, undefined, undefined, reason ? { action, reason } : { action })).then(r => !!r?.ok)
+  async function allGood(c: TestCard) {
+    const ks = cardKeys(c); for (const k of ks) sentKeys[k] = true
+    const ok = (await Promise.all(ks.map(k => decide(k, 'provato')))).every(Boolean)
+    for (const k of ks) { if (ok) doneKeys[k] = true; else delete sentKeys[k] }
+  }
+  async function sendKoCard() { const k = koWhich!, why = koWhy.trim(); koCard = null; koWhy = ''; sentKeys[k] = true; if (await decide(k, 'non_va', why)) doneKeys[k] = true; else delete sentKeys[k] }
+  const rowsOf = (c: TestCard) => c.rows.filter(r => !doneKeys[r.key])
   // Franz 02/11 15:38: Ok non blocca più e la scheda non sparisce di colpo (leave.ts): conferma sul tasto, uscita in altezza,
   // le altre salgono; la pagina si ricarica dopo, in silenzio. Se il PC dice no, la scheda torna.
   let picked = $state<Record<string, string>>({})
@@ -35,6 +51,24 @@
 </script>
 
 <div class="dp" data-testid="da-provare">
+  {#each cards.filter(c => rowsOf(c).length) as c (c.project)}
+    {@const rows = rowsOf(c)}{@const busy = cardKeys(c).some(k => sentKeys[k])}
+    <div class="c fuse" data-testid="prova-fusa" out:slide={{ duration: outMs() }}>
+      <b>{t.proveCardTitle(c.release ?? (c.web ? `web ${c.web}` : c.project.split('/').pop() ?? ''))}</b>
+      <p class="m">{t.proveCardContains(rows.length)}</p>
+      {#each more[c.project] ? rows : rows.slice(0, 3) as r (r.key)}<p class="row">{r.text}</p>{/each}
+      {#if !more[c.project] && rows.length > 3}<button class="text" onclick={() => (more[c.project] = true)}>{t.proveCardMore(rows.length - 3)}</button>{/if}
+      <div class="ac"><button class="out" disabled={busy} onclick={() => { koCard = c; koWhich = rows.length === 1 ? rows[0].key : null }}>{t.proveCardKo}</button><span class="sp"></span><button class="tonal" class:done={busy} disabled={busy} onclick={() => allGood(c)}>{#if busy}✓ {/if}{t.proveCardAll}</button></div>
+    </div>
+  {/each}
+  {#if koCard}
+    <div class="c ko">
+      <b>{t.proveCardKoWhich}</b>
+      {#each rowsOf(koCard) as r (r.key)}<label class="pick"><input type="radio" name="kowhich" checked={koWhich === r.key} onchange={() => (koWhich = r.key)} /> {r.text}</label>{/each}
+      <textarea bind:value={koWhy} maxlength="300" rows="3" placeholder={t.proveKoHint}></textarea>
+      <div class="ac"><span class="sp"></span><button class="text" onclick={() => (koCard = null)}>{t.cancel}</button><button class="tonal" disabled={!koWhich || !koWhy.trim()} onclick={sendKoCard}>{t.proveKoSend}</button></div>
+    </div>
+  {/if}
   {#if !page}{#if failed}<LoadFailed onRetry={() => void load()} />{:else}<p class="m">{t.proveLoading}</p>{/if}
   {:else if !page.groups.length && !page.ko.length && !page.red.length}<p class="m">{t.proveNone}</p>{/if}
   {#each (page?.groups ?? []).filter(g => shown(g).length) as g (g.build)}
@@ -68,6 +102,7 @@
   .h { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 0; font: 12px var(--mono); color: var(--text2); }
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .c b { font-weight: 600; }
+  .fuse .row { margin: 0 0 0 4px; } .fuse b { font-size: 17px; } .pick { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
   p { font-size: 14.5px; }
   .m { color: var(--text2); } .r { color: var(--gone); } .small { font-size: 13px; }
   .ac { display: flex; align-items: center; gap: 8px; } .sp { flex: 1; }

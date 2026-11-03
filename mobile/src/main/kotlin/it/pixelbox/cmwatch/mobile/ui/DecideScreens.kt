@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -225,6 +226,64 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                 }
             },
             confirmButton = { TextButton(enabled = text.isNotBlank(), onClick = { val body = text.trim(); val s = shot; ko = null; act(listOf(p.id.toString()), "ko") { onKo(p, body, s) } }) { Text(stringResource(R.string.prove_ko_send)) } },
+            dismissButton = { TextButton(onClick = { ko = null }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+}
+
+/**
+ * Contratto 1.107 (Franz 03/11 15:32 e 17:12, app-sezioni-accorpate-03-11, scelta A): le prove che aspettano Franz fuse per
+ * progetto nella pre-release più nuova. Una riga per cosa (le prime tre, poi «altre N»); «Tutto va» manda `provato` per ogni
+ * gruppo, «Una non va» chiede quale e perché e manda `non_va` per quel gruppo. La scheda sparisce quando il PC dice sì.
+ */
+@Composable
+fun ProveFuseBody(cards: List<it.pixelbox.cmwatch.rules.ProveFuse.Card>, onAll: suspend (List<String>) -> Boolean, onKo: suspend (String, String) -> Boolean) {
+    var done by remember { mutableStateOf(setOf<String>()) }
+    var sent by remember { mutableStateOf(setOf<String>()) }
+    var ko by remember { mutableStateOf<it.pixelbox.cmwatch.rules.ProveFuse.Card?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        cards.forEach { c ->
+            val keys = it.pixelbox.cmwatch.rules.ProveFuse.keys(c)
+            val rows = c.rows.filter { r -> r.key !in done }
+            if (rows.isEmpty()) return@forEach
+            var more by remember(c.project) { mutableStateOf(false) }
+            DecideCard {
+                val name = c.release ?: c.web?.let { w -> stringResource(R.string.prove_card_web, w) } ?: c.project.substringAfterLast('/')
+                Text(stringResource(R.string.prove_card_title, name), style = MaterialTheme.typography.titleMedium, color = Cm.text)
+                Text(androidx.compose.ui.res.pluralStringResource(R.plurals.prove_card_contains, rows.size, rows.size), style = V3.Small)
+                (if (more) rows else rows.take(3)).forEach { r -> Text(r.text, style = V3.Body, modifier = Modifier.padding(start = 4.dp)) }
+                if (!more && rows.size > 3) TextButton(onClick = { more = true }) { Text(stringResource(R.string.prove_card_more, rows.size - 3)) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val busy = keys.any { k -> k in sent }
+                    OutlinedButton(onClick = { ko = c }, enabled = !busy) { Text(stringResource(R.string.prove_card_ko)) }
+                    Spacer(Modifier.weight(1f))
+                    ConfirmButton(stringResource(R.string.prove_card_all), confirmed = busy, enabled = !busy) {
+                        sent = sent + keys
+                        scope.launch { if (onAll(keys)) done = done + keys else sent = sent - keys.toSet() }
+                    }
+                }
+            }
+        }
+    }
+    ko?.let { c ->
+        var which by remember(c.project) { mutableStateOf<String?>(c.rows.singleOrNull()?.key) }
+        var text by rememberSaveable(c.project) { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { ko = null }, containerColor = Cm.surface,
+            title = { Text(stringResource(R.string.prove_card_ko_which), color = Cm.text) },
+            text = {
+                Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    c.rows.filter { r -> r.key !in done }.forEach { r ->
+                        Row(Modifier.fillMaxWidth().clickable { which = r.key }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.RadioButton(selected = which == r.key, onClick = { which = r.key })
+                            Text(r.text, style = V3.Body)
+                        }
+                    }
+                    OutlinedTextField(text, { text = it.take(300) }, label = { Text(stringResource(R.string.prove_ko_hint)) }, modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = { TextButton(enabled = which != null && text.isNotBlank(), onClick = { val k = which!!; val why = text.trim(); ko = null; sent = sent + k; scope.launch { if (onKo(k, why)) done = done + k else sent = sent - k } }) { Text(stringResource(R.string.prove_ko_send)) } },
             dismissButton = { TextButton(onClick = { ko = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }

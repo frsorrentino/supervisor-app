@@ -432,7 +432,10 @@ enum class CmdOp {
     val what: String? = null, @SerialName("where_to") val whereTo: String? = null, val options: List<String>? = null, val untested: String? = null, val precedent: ApprovalPrecedent? = null,
     /** Contratto 1.104: l'inizio del piano (300 caratteri a fine parola, null senza compito) e cosa si aspetta: ok, choice, pc, other. Il `title` è il titolo intero. */
     @SerialName("plan_start") val planStart: String? = null, val asks: String? = null,
+    /** Contratto 1.107: la pausa aspetta che la persona provi qualcosa; `release` il tag della pre-release, `web` la versione web. */
+    val prova: Prova? = null,
 )
+@Serializable data class Prova(val project: String? = null, val release: String? = null, val web: String? = null)
 @Serializable data class DecisionGroup(val key: String, val title: String = "", val cause: String? = null, val items: List<DecisionItem> = emptyList(), val unblocks: List<String> = emptyList(), val weight: Int = 0, val where: String? = null, val since: Long = 0, val note: String? = null, val refs: List<String> = emptyList())
 @Serializable data class DecisionsPage(val at: Long = 0, val n: Int = 0, val here: Int = 0, val tasks: Int = 0, val snoozed: Int = 0, val groups: List<DecisionGroup> = emptyList())
 

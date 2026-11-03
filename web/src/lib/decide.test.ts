@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove, chooseAt } from './decide'
+import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove, chooseAt, testCards, withoutTests, cardKeys } from './decide'
 import { decodeState, type Approval, type DecisionItem, type DecisionsPage, type ProvePage } from './contract'
 import { outcomeType } from './kpi'
 
@@ -142,5 +142,37 @@ describe('decisione_spiegata', () => {
     expect(chooseAt(noOpts)).toBe('s')
     expect(chooseAt(pause('Aspetta la scelta', 'choice', ['A']))).toBeNull()
     expect(chooseAt(pause('Rimandato'))).toBeNull()
+  })
+})
+
+// Contratto 1.107 (app-sezioni-accorpate-03-11): le pause di prova escono da Decidi e si fondono per progetto nella
+// pre-release più nuova; gli stessi casi in DecideTest.kt.
+describe('prove_fuse', () => {
+  const p: DecisionsPage = textOf('decisioni')
+  const P = (key: string, task: string, project: string, release: string | null, since: number, web: string | null = null) =>
+    ({ key, title: task, items: [{ kind: 'pause', task, short: task, project, since, prova: { project, release, web } }], unblocks: [task], weight: 1, where: 'here', since, refs: [task] })
+  it('prove_fuse: la fixture dà una scheda e Decidi resta senza la prova', () => {
+    const c = testCards(p)
+    expect(c).toHaveLength(1)
+    expect(c[0]).toMatchObject({ project: 'personal/orbit-app', release: 'home-2026-09-12', web: '0.2.1663' })
+    expect(c[0].rows.map(r => [r.key, r.text])).toEqual([['5be07a3c9e42', 'New home']])
+    expect(cardKeys(c[0])).toEqual(['5be07a3c9e42'])
+    const d = withoutTests(p)
+    expect(d.groups.map(g => g.key)).toEqual(['3f2a91c07d11', 'a81c55e20b34'])
+    expect([d.n, d.here]).toEqual([2, 1])
+  })
+  it('prove_fuse: le prove superate stanno nella pre-release più nuova dello stesso progetto, gli altri progetti a parte', () => {
+    const page = { ...p, groups: [P('k1', 'a', 'x/app', 'r-1', 100), P('k2', 'b', 'x/app', 'r-2', 300, '0.2.9'), P('k3', 'c', 'y/web', null, 200, '1.0.1'), ...p.groups] } as DecisionsPage
+    const c = testCards(page)
+    // La scheda più recente per prima: quella della fixture ha `since` più alto.
+    expect(c.map(x => [x.project, x.release, x.web])).toEqual([['personal/orbit-app', 'home-2026-09-12', '0.2.1663'], ['x/app', 'r-2', '0.2.9'], ['y/web', null, '1.0.1']])
+    expect(c[1].rows.map(r => r.key)).toEqual(['k2', 'k1'])
+    expect(cardKeys(c[1])).toEqual(['k2', 'k1'])
+  })
+  it('prove_fuse: un gruppo misto resta in Decidi e non entra in una scheda', () => {
+    const mixed = { ...P('m', 'a', 'x/app', 'r-1', 100), items: [P('m', 'a', 'x/app', 'r-1', 100).items[0], { kind: 'pause', task: 'z', since: 50, prova: null }] }
+    const page = { ...p, groups: [mixed] } as DecisionsPage
+    expect(testCards(page)).toEqual([])
+    expect(withoutTests(page).groups.map(g => g.key)).toEqual(['m'])
   })
 })

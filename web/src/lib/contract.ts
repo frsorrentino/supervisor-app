@@ -99,7 +99,10 @@ export type ProveGroup = { build: string; n: number; at: number; tasks: string[]
 export type ProvePage = { at: number; n: number; builds: number; groups: ProveGroup[]; ko: (Omit<ProveItem, 'title' | 'session' | 'project'> & { text: string })[]; red: { task: string; short?: string | null; reason?: string | null; at: number }[] }
 export type DecisionItem = { kind: string; task?: string | null; short?: string | null; title?: string | null; session?: string | null; project?: string | null; reason?: string | null; since: number; where?: string | null; undo?: string | null; undo_how?: string | null; what?: string | null; where_to?: string | null; options?: string[] | null; untested?: string | null
   /** Contratto 1.104: l'inizio del piano e cosa si aspetta (ok, choice, pc, other); `title` è il titolo intero. */
-  plan_start?: string | null; asks?: string | null }
+  plan_start?: string | null; asks?: string | null
+  /** Contratto 1.107: la pausa aspetta che la persona provi qualcosa; `release` il tag della pre-release, `web` la versione web. */
+  prova?: Prova | null }
+export type Prova = { project?: string | null; release?: string | null; web?: string | null }
 export type DecisionGroup = { key: string; title: string; cause?: string | null; items: DecisionItem[]; unblocks: string[]; weight: number; where?: string | null; since: number; note?: string | null; refs: string[] }
 export type DecisionsPage = { at: number; n: number; here: number; tasks: number; snoozed: number; groups: DecisionGroup[] }
 /** Contratto 1.76: una voce della vista «Impegni» del registro; `waits` = chi aspetta chi (`person` = l'utente). */

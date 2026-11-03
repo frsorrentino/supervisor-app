@@ -172,4 +172,37 @@ class DecideTest {
         assertEquals(null, CinqueMinuti.chooseAt(pause("Aspetta la scelta", asks = "choice", options = listOf("A"))))
         assertEquals(null, CinqueMinuti.chooseAt(pause("Rimandato")))
     }
+
+    // Contratto 1.107 (app-sezioni-accorpate-03-11): gli stessi casi in decide.test.ts.
+    private fun pv(key: String, task: String, project: String, release: String?, since: Long, web: String? = null) =
+        DecisionGroup(key, task, items = listOf(DecisionItem("pause", task, task, project = project, since = since, prova = Prova(project, release, web))), unblocks = listOf(task), weight = 1, where = "here", since = since, refs = listOf(task))
+
+    @Test fun prove_fuse_laFixtureDaUnaSchedaEDecidiRestaSenzaLaProva() {
+        val p = ContractJson.decodeDecisions(textOf("decisioni"))
+        val c = ProveFuse.cards(p)
+        assertEquals(1, c.size)
+        assertEquals(Triple("personal/orbit-app", "home-2026-09-12", "0.2.1663"), Triple(c[0].project, c[0].release, c[0].web))
+        assertEquals(listOf("5be07a3c9e42" to "New home"), c[0].rows.map { it.key to it.text })
+        assertEquals(listOf("5be07a3c9e42"), ProveFuse.keys(c[0]))
+        val d = ProveFuse.withoutTests(p)
+        assertEquals(listOf("3f2a91c07d11", "a81c55e20b34"), d.groups.map { it.key })
+        assertEquals(2 to 1, d.n to d.here)
+    }
+
+    @Test fun prove_fuse_leProveSuperateStannoNellaPreReleasePiuNuova() {
+        val p = ContractJson.decodeDecisions(textOf("decisioni"))
+        val page = p.copy(groups = listOf(pv("k1", "a", "x/app", "r-1", 100), pv("k2", "b", "x/app", "r-2", 300, "0.2.9"), pv("k3", "c", "y/web", null, 200, "1.0.1")) + p.groups)
+        val c = ProveFuse.cards(page)
+        assertEquals(listOf(Triple("personal/orbit-app", "home-2026-09-12", "0.2.1663"), Triple("x/app", "r-2", "0.2.9"), Triple<String, String?, String?>("y/web", null, "1.0.1")), c.map { Triple(it.project, it.release, it.web) })
+        assertEquals(listOf("k2", "k1"), c[1].rows.map { it.key })
+        assertEquals(listOf("k2", "k1"), ProveFuse.keys(c[1]))
+    }
+
+    @Test fun prove_fuse_unGruppoMistoRestaInDecidi() {
+        val base = pv("m", "a", "x/app", "r-1", 100)
+        val mixed = base.copy(items = base.items + DecisionItem("pause", "z", since = 50))
+        val page = DecisionsPage(groups = listOf(mixed))
+        assertEquals(emptyList<ProveFuse.Card>(), ProveFuse.cards(page))
+        assertEquals(listOf("m"), ProveFuse.withoutTests(page).groups.map { it.key })
+    }
 }

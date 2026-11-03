@@ -1030,10 +1030,11 @@ class MainActivity : ComponentActivity() {
             // Il tasto da «Cosa sa fare» c'è anche con un relay vecchio: la pagina dice che non riesce a leggere, non carica per sempre.
             if (seguitiOpen || "seguiti" in inlineOpen) { val t = read(CmdOp.SEGUITI); seguitiFailed = t == null; t?.let { x -> runCatching { ContractJson.decodeSeguiti(x) }.onSuccess { p -> seguitiPage = p } } }
             if (proveOpen || "prove" in inlineOpen) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
-            if (decisionsOpen || "decisioni" in inlineOpen) read(CmdOp.DECISIONI)?.let { t -> runCatching { ContractJson.decodeDecisions(t) }.onSuccess { p -> decisionsPage = p } }
+            // Sempre (app-sezioni-accorpate-03-11): il numero di Decidi e le prove fuse vengono dalla pagina, senza le pause di prova.
+            read(CmdOp.DECISIONI)?.let { t -> runCatching { ContractJson.decodeDecisions(t) }.onSuccess { p -> decisionsPage = p } }
         }
         val inlineKey = inlineOpen.toList()
-        LaunchedEffect(proveOpen, decisionsOpen, inlineKey) { if (proveOpen || decisionsOpen || inlineKey.isNotEmpty()) readDecide() }
+        LaunchedEffect(proveOpen, decisionsOpen, inlineKey, state?.decisions?.n) { if (state?.decisions != null || proveOpen || decisionsOpen || inlineKey.isNotEmpty()) readDecide() }
         // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
         LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen || "prima_raccolta" in inlineOpen || "decisioni" in inlineOpen) readDecide() }
         LaunchedEffect(seguitiOpen, state?.seguiti) { if (seguitiOpen || "seguiti" in inlineOpen) readDecide() }
@@ -1207,11 +1208,15 @@ class MainActivity : ComponentActivity() {
             "da_guardare" to { Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } } },
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
             "seguiti" to { Inline("seguiti") { it.pixelbox.cmwatch.mobile.ui.SeguitiBody(seguitiPage, seguitiFailed, act, { open = null; tab = StartRoute.Tab.LAVORI }, { open = null; masterChat = true }) } },
-            "prove" to { Inline("prove") { it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen) } },
+            // Contratto 1.107: sopra il banco, le prove che aspettano Franz fuse nella pre-release più nuova (app-sezioni-accorpate-03-11).
+            "prove" to { Inline("prove") { androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+                decisionsPage?.let { p -> it.pixelbox.cmwatch.mobile.ui.ProveFuseBody(it.pixelbox.cmwatch.rules.ProveFuse.cards(p), { keys -> keys.map { k -> decideRun(CmdOp.DECISIONE, k, "provato", null, null, null) }.all { ok -> ok } }, { k, why -> decideRun(CmdOp.DECISIONE, k, "non_va", null, why, null) }) }
+                it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen)
+            } } },
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             "decisioni" to { Inline("decisioni") { androidx.compose.foundation.layout.Column {
                 if (state?.primaRaccolta != null) it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true }
-                if ((state?.decisions?.n ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage, decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }, onAsk = decAsk, rows = true)
+                if ((state?.decisions?.n ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage?.let(it.pixelbox.cmwatch.rules.ProveFuse::withoutTests), decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }, onAsk = decAsk, rows = true)
             } } },
         )
         resultOpen?.let { r ->
@@ -1840,7 +1845,7 @@ class MainActivity : ComponentActivity() {
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
                     system = state?.system, ops = state?.ops,
                     sheetOpen = masterHalf,
-                    kpiPage = kpiPage, kpiState = state, kpiData = kpiData,
+                    kpiPage = kpiPage, kpiState = state?.let { s -> decisionsPage?.let { p -> it.pixelbox.cmwatch.rules.ProveFuse.withoutTests(p) }?.let { d -> s.copy(decisions = s.decisions?.copy(n = d.n, here = d.here, tasks = d.tasks)) } ?: s }, kpiData = kpiData,
                     onBox = { b -> boxOpen = b },
                     // Contratto 1.95: «Plugin e skill»; l'elenco è una lettura passiva, gli aggiornamenti mostrano il testo del relay.
                     plugins = state?.plugins?.takeIf { !demo && state.ops?.contains("plugins") == true && state.ops?.contains("plugin_update") == true },

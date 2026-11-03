@@ -1676,6 +1676,17 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_sec_decide">Decidi</string>
     <string name="home_sec_look">Guarda</string>
     <string name="home_sec_follow">Segui</string>
+    <!-- Contratto 1.107: le prove fuse nella pre-release più nuova (app-sezioni-accorpate-03-11). -->
+    <string name="prove_card_title">Prova %1$s</string>
+    <string name="prove_card_web">web %1$s</string>
+    <plurals name="prove_card_contains">
+        <item quantity="one">Una cosa da guardare.</item>
+        <item quantity="other">La più nuova: contiene le precedenti. %1$d cose da guardare, una riga ciascuna.</item>
+    </plurals>
+    <string name="prove_card_all">Tutto va</string>
+    <string name="prove_card_ko">Una non va</string>
+    <string name="prove_card_ko_which">Quale non va?</string>
+    <string name="prove_card_more">altre %1$d</string>
     <string name="watch_file_failed">Il file non è arrivato dal PC.</string>
     <string name="watch_retry">Riprova</string>
     <string name="watch_seen">Visto</string>

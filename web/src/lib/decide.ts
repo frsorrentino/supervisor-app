@@ -87,3 +87,33 @@ export function nightTitleParts(before: string, day: string, name: (d: Date) => 
   const a = new Date(`${before}T12:00:00Z`), b = new Date(`${day}T12:00:00Z`)
   return { dayA: a.getUTCDate(), monthA: a.getUTCMonth() !== b.getUTCMonth() ? name(a) : null, dayB: b.getUTCDate(), monthB: name(b) }
 }
+
+// Contratto 1.107 (Franz 03/11 15:32 e 17:12, app-sezioni-accorpate-03-11, scelta A): una pausa con `prova` aspetta che Franz
+// provi qualcosa. Escono da Decidi e si fondono per progetto in una scheda sola, quella della pre-release più nuova, che contiene
+// le precedenti: una riga per cosa, «Tutto va» manda `provato` per ogni gruppo. Gli stessi casi in Decide.kt (ProveFuse).
+export type TestRow = { key: string; task: string | null; text: string; since: number }
+export type TestCard = { project: string; release: string | null; web: string | null; since: number; rows: TestRow[] }
+/** Un gruppo di prova: solo pause con `prova`. Un gruppo misto resta in Decidi: `provato` toccherebbe anche le altre pause. */
+const isTestGroup = (g: DecisionGroup) => g.items.length > 0 && g.items.every(i => i.kind === 'pause' && !!i.prova)
+export function testCards(page: DecisionsPage): TestCard[] {
+  const by = new Map<string, { g: DecisionGroup; i: DecisionItem }[]>()
+  for (const g of page.groups.filter(isTestGroup)) for (const i of g.items) {
+    const p = i.prova?.project ?? i.project ?? ''
+    by.set(p, [...(by.get(p) ?? []), { g, i }])
+  }
+  return [...by.entries()].map(([project, l]) => {
+    const s = [...l].sort((a, b) => b.i.since - a.i.since)
+    const release = s.find(x => x.i.prova?.release)?.i.prova?.release ?? null
+    const web = s.find(x => x.i.prova?.web)?.i.prova?.web ?? null
+    const rows = s.map(x => ({ key: x.g.key, task: x.i.task ?? null, text: x.i.short ?? x.i.title ?? x.i.task ?? x.i.reason ?? '', since: x.i.since }))
+    return { project, release, web, since: s[0].i.since, rows }
+  }).sort((a, b) => b.since - a.since)
+}
+/** Le chiavi da mandare con `provato` o `non_va`: una decisione per gruppo. */
+export const cardKeys = (c: TestCard): string[] => [...new Set(c.rows.map(r => r.key))]
+/** Decidi senza i gruppi di prova; conti rifatti sui gruppi rimasti. */
+export function withoutTests(page: DecisionsPage): DecisionsPage {
+  const groups = page.groups.filter(g => !isTestGroup(g))
+  const gone = page.groups.filter(isTestGroup).reduce((n, g) => n + g.unblocks.length, 0)
+  return { ...page, groups, n: groups.length, here: groups.filter(g => g.where === 'here').length, tasks: Math.max(0, page.tasks - gone) }
+}

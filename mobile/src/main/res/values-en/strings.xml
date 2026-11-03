@@ -1643,6 +1643,16 @@ It starts at your last message to the master.</string>
     <string name="home_sec_decide">Decide</string>
     <string name="home_sec_look">Look</string>
     <string name="home_sec_follow">Follow</string>
+    <string name="prove_card_title">Test %1$s</string>
+    <string name="prove_card_web">web %1$s</string>
+    <plurals name="prove_card_contains">
+        <item quantity="one">One thing to look at.</item>
+        <item quantity="other">The newest one: it holds the earlier ones. %1$d things to look at, one row each.</item>
+    </plurals>
+    <string name="prove_card_all">It all works</string>
+    <string name="prove_card_ko">One doesn\'t work</string>
+    <string name="prove_card_ko_which">Which one doesn\'t work?</string>
+    <string name="prove_card_more">%1$d more</string>
     <string name="watch_file_failed">The file didn\'t arrive from the PC.</string>
     <string name="watch_retry">Try again</string>
     <string name="watch_seen">Seen</string>
