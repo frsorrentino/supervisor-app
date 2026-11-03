@@ -29,9 +29,12 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
+  import { reducedMotion } from './motion'
+  let { focus = null, onFocused = () => {}, resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
     /** Contratto 1.106: la riga «Risultati» in cima alla chat. */
     resultsRow?: import('svelte').Snippet | null
+    /** La voce da portare in vista, da Cerca (app-cerca-pagina-03-11). */
+    focus?: string | null; onFocused?: () => void
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onTask?: ((code: string) => void) | null; onHeadsUp?: ((text: string) => void) | null
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
@@ -157,6 +160,18 @@
   // quando arriva qualcosa di nuovo, ma solo se si era già in fondo: chi sta rileggendo più su resta dov'è (Franz, 06/10 10:03).
   let settled = false
   let atEnd = $state(true)
+  // Da Cerca: la voce trovata al centro, con un lampo giallo; la chat smette di seguire la fine finché non si torna giù.
+  $effect(() => {
+    if (!focus || !list) return
+    const el = list.querySelector<HTMLElement>(`[data-entry="${CSS.escape(focus)}"]`)
+    if (!el) return
+    atEnd = false
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' })
+      el.classList.add('found'); setTimeout(() => el.classList.remove('found'), 2200)
+    })
+    onFocused()
+  })
   let auto = false
   // Solo un cambio vero di sessione riporta in fondo: `s` è un oggetto nuovo a ogni stato del relay (Franz, 07/10 14:53).
   let shownName: string | undefined

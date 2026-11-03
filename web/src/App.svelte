@@ -353,6 +353,17 @@
     transcripts = { ...transcripts, [name]: o.entries }
     olderOf = { ...olderOf, [name]: o.more }
   }
+  // Un risultato di Cerca apre la conversazione nel punto trovato (app-cerca-pagina-03-11): si caricano le pagine più vecchie
+  // finché la voce non c'è, al massimo 8 da 50; poi la chat la porta in vista e la fa lampeggiare.
+  let focusOf = $state<Record<string, string>>({})
+  async function jumpTo(name: string, entry: string) {
+    for (let i = 0; i < 40 && !untrack(() => transcripts[name])?.length; i++) await new Promise(r => setTimeout(r, 250))
+    for (let i = 0; i < 8; i++) {
+      if (untrack(() => transcripts[name])?.some(e => e.id === entry)) { focusOf = { ...focusOf, [name]: entry }; return }
+      if (!untrack(() => olderOf[name])) return
+      await loadOlder(name)
+    }
+  }
   /** Vero quando la lettura è arrivata, anche senza voci nuove. */
   // Contratto 1.82: una conversazione chiusa aperta dalla Notte si legge per sid, in sola lettura.
   let sidOf = $state<Record<string, string>>({})
@@ -1209,7 +1220,7 @@
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
   {#snippet resultsRow()}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} onOpen={() => { watchSession = name; watchOpenId = null; openPage('guardare') }} />{/if}{/snippet}
-  <Chat {resultsRow} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
+  <Chat {resultsRow} focus={focusOf[name] ?? null} onFocused={() => { const { [name]: _, ...rest } = focusOf; focusOf = rest }} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
@@ -1295,7 +1306,7 @@
         onApprove={(task) => approve(task, '')} onSend={(n, text) => sendTo(n, text)} />
     {:else if p === 'search'}
       <Search {sent} {events} remote onQuery={search} page={searchPage}
-        known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('lavori') }} />
+        known={new Set(st.sessions.map(x => x.name))} sessions={st.sessions} now={st.ts} onOpen={(n, entry) => { if (n) { openPage(null); pick(n); if (entry) jumpTo(n, entry) } else openPage('lavori') }} />
     {:else if p === 'usage'}
       <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
     {:else if p === 'guardare'}

@@ -244,7 +244,7 @@
 
 {#each items as it, i (itemKey(it))}
   {@const m = motion(it, i, items.length)}
-  <div class="it {m.cls}" class:fresh={newsFrom != null && i >= newsFrom && it.type !== 'mine'} style="--rank:{m.rank}">
+  <div class="it {m.cls}" class:fresh={newsFrom != null && i >= newsFrom && it.type !== 'mine'} style="--rank:{m.rank}" data-entry={it.type === 'steps' ? it.entries[0].id : it.type === 'mine' ? it.entry?.id : it.entry.id}>
   {#if i === newsFrom}<div class="news"><span>{t.chatNews}</span></div>{/if}
   {#if it.type === 'mine'}
     {@const [ic, tone] = status[it.status]}
@@ -304,6 +304,10 @@
   .pfframe { flex: 1; width: 100%; border: 0; background: #fff; }
   p { white-space: pre-wrap; overflow-wrap: anywhere; }
   .it { display: flex; flex-direction: column; border-radius: 14px; }
+  /* Il passaggio trovato da Cerca: un lampo giallo che si spegne (app-cerca-pagina-03-11). */
+  .it:global(.found) { animation: found 2.2s ease-out; }
+  @keyframes found { from { background: rgba(255, 178, 63, .22); } to { background: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .it:global(.found) { animation: none; background: rgba(255, 178, 63, .14); } }
   .rise { animation: rise 200ms cubic-bezier(0.3, 0, 0.2, 1) both; animation-delay: calc(var(--rank) * 30ms); }
   @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
   .fresh { animation: fresh 2s ease-out 600ms both; }

@@ -18,6 +18,8 @@ object ChatSearch {
     data class Hit(
         val session: String?, val at: Long, val line: String, val start: Int, val end: Int, val kind: Kind, val ref: String = "",
         val live: Boolean? = null,
+        /** Contratto 1.27: l'id della voce in `transcript`, per aprire la conversazione lì (app-cerca-pagina-03-11). */
+        val entry: String? = null,
     )
 
     /**
@@ -28,7 +30,7 @@ object ChatSearch {
         val remote = page.hits.mapIndexed { i, h ->
             val start = (h.match.getOrNull(0) ?: 0).coerceIn(0, h.snippet.length)
             val end = (h.match.getOrNull(1) ?: start).coerceIn(start, h.snippet.length)
-            Hit(h.session, h.at ?: 0, h.snippet, start, end, Kind.CONVERSATION, "CONV-${h.session}-${h.entry ?: i}-$i", h.live)
+            Hit(h.session, h.at ?: 0, h.snippet, start, end, Kind.CONVERSATION, "CONV-${h.session}-${h.entry ?: i}-$i", h.live, h.entry)
         }
         return (remote + local.filter { it.kind == Kind.EVENT && it.session == null }).sortedByDescending { it.at }
     }
