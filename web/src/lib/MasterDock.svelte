@@ -15,7 +15,7 @@
   // chiudere non chiede più il trascinamento, ogni gesto ha un tocco che fa lo stesso (WCAG 2.5.1).
   // `onDrag`: il gesto passo per passo (`/embed?dock=1`, dove Studio fa seguire al riquadro il dito), con lo spostamento in
   // px dall'inizio, e `null` alla fine; allora decide `onDrop` invece di `onToggle`.
-  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false, keys = true, places = null }: {
+  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false, keys = true, places = null, onPlace }: {
     master: Session; entries: Entry[]; onToggle: () => void; onSpeak: (text: string) => void; expanded?: boolean
     /** Il pannello a destra della plancia (pwa2, 30/10): il tasto tondo allarga o stringe (frecce di lato), Chiudi è una ×. */
     side?: boolean
@@ -31,6 +31,8 @@
     /** Il pannello della plancia passa all'altro lato con un tasto in vista (Franz 02/11 11:11: nel menu ⋮ non lo trovava). */
     onMove?: () => void; moveLabel?: string
     onDrag?: (dy: number) => void; onDrop?: (dy: number) => void
+    /** Il trascinamento libero nella plancia (app-master-trascina-03-11): dove sta il dito, e alla fine dove si è lasciata. */
+    onPlace?: (phase: 'move' | 'end' | 'cancel', x: number, y: number) => void
   } = $props()
   const up = $derived(toggleUp ?? !expanded)
   const key = $derived(onToggleKey ?? onToggle)
@@ -48,10 +50,15 @@
   // screenY e non clientY: dentro Studio il riquadro si sposta col dito, e le coordinate della pagina con lui.
   let y0: number | null = null
   let dragged = false
-  function down(e: PointerEvent) { y0 = e.screenY; dragged = false }
+  let x0 = 0, cy0 = 0
+  function down(e: PointerEvent) { y0 = e.screenY; x0 = e.clientX; cy0 = e.clientY; dragged = false }
   function move(e: PointerEvent) {
     if (y0 == null) return
     const dy = e.screenY - y0
+    if (onPlace) {
+      if (dragged || Math.hypot(e.clientX - x0, e.clientY - cy0) > 8) { if (!dragged) (e.currentTarget as Element).setPointerCapture?.(e.pointerId); dragged = true; onPlace('move', e.clientX, e.clientY) }
+      return
+    }
     // Voce 9: la barra non si muove mai da sola (Franz, 01/11): chi la contiene sposta anche la conversazione, con `onDrag`.
     // La cattura solo qui, oltre gli 8 px: presa prima porterebbe alla barra il tocco dei tasti che le stanno dentro.
     if (!onDrag) return
@@ -61,6 +68,7 @@
     if (y0 == null) return
     const dy = e.screenY - y0
     y0 = null
+    if (onPlace) { if (dragged) onPlace('end', e.clientX, e.clientY); return }
     if (onDrop) { if (dragged) onDrop(dy); return }
     if ((dy < -40 && !expanded) || (dy > 40 && expanded)) { dragged = true; onToggle() }
   }
@@ -74,7 +82,7 @@
 {/snippet}
 
 <div class="dock" class:expanded class:screen class:nokeys={!keys} role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
-  onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={() => { if (y0 != null && dragged) onDrop?.(0); y0 = null }}>
+  onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={(e) => { if (y0 != null && dragged) { onDrop?.(0); onPlace?.('cancel', e.clientX, e.clientY) } y0 = null }}>
   <!-- La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42). -->
   {#if !bar && keys}{@render toggleKey()}{/if}
   {#if onClose && keys}

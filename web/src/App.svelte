@@ -3,6 +3,7 @@
   import * as files from './lib/fileActions'
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
+  import { current, landingAt, zones, type Landing, type Zone } from './lib/masterLanding'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -443,6 +444,26 @@
   // La misura del pannello, stretto o a metà schermo, ricordata come il lato (app-pwa-master-tasti-03-11).
   const masterNarrow = () => load('cm.master_wide') !== '1'
   function masterSize() { masterHalf = !masterHalf; save('cm.master_wide', masterHalf ? '0' : '1') }
+  // Trascinare la master nella plancia (Franz 03/11 18:50, app-master-trascina-03-11): mentre la si porta, le zone di atterraggio
+  // (masterLanding.ts); al rilascio la master va in quella sotto il dito, e la scelta si ricorda come col tasto Posizione.
+  let landing = $state<{ zones: Zone[]; on: Zone | null; now: Landing } | null>(null)
+  function placeDrag(phase: 'move' | 'end' | 'cancel', x: number, y: number) {
+    if (phase === 'cancel') { landing = null; return }
+    const zs = landing?.zones ?? zones(window.innerWidth, window.innerHeight, !deskDashboard)
+    const on = landingAt(zs, x, y)
+    if (phase === 'move') { landing = { zones: zs, on, now: landing?.now ?? current({ open: masterOpen, left: masterLeft, under: masterUnder, half: masterHalf }) }; return }
+    landing = null
+    if (on) smooth(() => land(on))
+  }
+  function land(z: Landing) {
+    if (z.place === 'bar') { masterOpen = false; return }
+    masterOpen = true
+    masterLeft = z.side === 'left'; save('cm.master_left', masterLeft ? '1' : '0')
+    masterUnder = z.place === 'under'; save('cm.master_under', masterUnder ? '1' : '0')
+    if (z.place === 'under') { stackH = 'half'; save('cm.master_stack_h', 'half') }
+    // La misura della zona disegnata: la colonna esterna è stretta (anche sotto la home), metà schermo è larga.
+    masterHalf = z.place !== 'half'; save('cm.master_wide', masterHalf ? '0' : '1')
+  }
   // Telefono: la sessione aperta, o la home.
   let open = $state<string | null>(linked != null && known(linked) && linked !== MASTER ? linked : null)
   // Chiusa una sessione, la sua pagina non sparisce (Franz, 08/10 18:06): resta com'era l'ultima volta, chiusa, sotto il
@@ -1218,8 +1239,8 @@
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
-{#snippet masterBar()}{#if master}<div class="mbar"><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
-{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
+{#snippet masterBar()}{#if master}<div class="mbar"><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? placeDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} onPlace={wide ? placeDrag : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
   onToggleKey={() => smooth(masterSize)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
@@ -1246,6 +1267,17 @@
   <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
   <div class="deskwrap" class:left={masterLeft} class:stacked>
+  {#if landing}
+    <!-- I punti di atterraggio della master trascinata (app-master-trascina-03-11): acceso quello sotto il dito, segnato quello attuale. -->
+    <div class="landing" aria-hidden="true">
+      {#each landing.zones as z (z.side + z.place)}
+        {@const on = landing.on === z}
+        {@const now = landing.now.side === z.side && landing.now.place === z.place}
+        <div class="lz" class:on class:now style="left:{z.rect.x}px; top:{z.rect.y}px; width:{z.rect.w}px; height:{z.rect.h}px"><span>{t.masterLand[z.place]}</span></div>
+      {/each}
+      {#if !landing.on}<p class="lhint">{t.masterLandHint}</p>{/if}
+    </div>
+  {/if}
   <div class="dstage">
   <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
        accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
@@ -1355,6 +1387,17 @@
   .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
   /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
   .deskwrap { height: 100%; display: flex; min-height: 0; }
+  /* I punti di atterraggio (app-master-trascina-03-11): un velo su tutta la pagina, le zone tratteggiate; quella sotto il dito
+     piena e chiara, quella dove la master sta già col bordo pieno. */
+  .landing { position: fixed; inset: 0; z-index: 60; pointer-events: none; background: rgb(11 12 14 / .78); backdrop-filter: blur(3px); }
+  .lz { position: absolute; box-sizing: border-box; padding: 6px; display: grid; place-items: center; }
+  .lz::before { content: ''; position: absolute; inset: 6px; border: 2px dashed color-mix(in srgb, var(--tx2) 55%, transparent); border-radius: 16px; transition: background .12s, border-color .12s; }
+  .lz.now::before { border-style: solid; border-color: var(--tx3); }
+  .lz.on::before { background: color-mix(in srgb, var(--busy) 22%, transparent); border: 2px solid var(--busy); }
+  .lz span { position: relative; font: 600 16px var(--display); color: var(--tx2); background: var(--s1); padding: 6px 12px; border-radius: 14px; }
+  .lz.on span { color: var(--tx); background: var(--s3); }
+  .lhint { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); margin: 0; font: 600 18px var(--display); color: var(--tx); background: var(--s2); padding: 10px 18px; border-radius: 20px; }
+  @media (prefers-reduced-motion: reduce) { .lz::before { transition: none; } }
   .deskwrap.left { flex-direction: row-reverse; }
   .dstage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   .dstage > :global(:first-child) { flex: 1; min-height: 0; }
