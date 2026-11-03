@@ -36,16 +36,18 @@ fun ToccaClosedRow(today: ToccaToday, modifier: Modifier = Modifier) {
     val off = animationsOff()
     Column(modifier.fillMaxWidth().then(if (off) Modifier else Modifier.animateContentSize()).testTag("tocca-chiuse-oggi")) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { open = !open }.padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
+            // Icona e testo sulle colonne delle testate di sezione (V3Section): binario V3.Rail, poi 8 dp.
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { open = !open }.padding(end = 12.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Outlined.CleaningServices, null, tint = V3.Tx2, modifier = Modifier.size(20.dp))
+            Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.CleaningServices, null, tint = V3.Tx2, modifier = Modifier.size(20.dp)) }
+            Spacer(Modifier.width(8.dp))
             Text(pluralStringResource(R.plurals.tocca_closed_today, today.n, today.n), style = V3.Small, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
-            Icon(Icons.Rounded.ExpandMore, null, tint = V3.Tx2, modifier = Modifier.size(20.dp).rotate(if (open) 180f else 0f))
+            Icon(Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp).rotate(if (open) 180f else 0f))
         }
         if (open) {
             val fmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-            Column(Modifier.fillMaxWidth().padding(start = 48.dp, end = 16.dp, bottom = 8.dp)) {
+            Column(Modifier.fillMaxWidth().padding(start = V3.Rail + 8.dp, end = 12.dp, bottom = 8.dp)) {
                 today.items.forEachIndexed { i, x ->
                     if (i > 0) HorizontalDivider(color = V3.Line)
                     Column(Modifier.padding(vertical = 6.dp)) {

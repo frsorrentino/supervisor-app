@@ -31,12 +31,12 @@
 
 <style>
   .tc { color: var(--text2); }
-  .row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 12px; background: none; border: 0; color: inherit; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+  .row { display: flex; align-items: center; gap: 22px; width: 100%; min-height: 44px; padding: 8px 12px 8px 14px; background: none; border: 0; color: inherit; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
   .ic { font-size: 20px; width: 24px; text-align: center; }
   .tx { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .arr { font-size: 20px; transition: transform .2s; }
   .arr.up { transform: rotate(180deg); }
-  ul { list-style: none; margin: 0; padding: 0 12px 8px 48px; }
+  ul { list-style: none; margin: 0; padding: 0 12px 8px 60px; }
   li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; font-size: 13px; border-top: 1px solid var(--line); }
   li:first-child { border-top: 0; }
   .what { color: var(--text); }
