@@ -247,4 +247,24 @@ class SummaryListTest {
     @Test fun giro5_home_320Grande() = sweep("320") { page(st, open = "WAITING:ledger-api") }
     @Test fun giro5_home_en() = sweep("en") { page(st, open = "WAITING:ledger-api") }
     @Test fun giro5_home_orizzontale() = sweep("land") { page(st, open = "WAITING:ledger-api") }
+
+    // Il riassunto a destra su una riga (app-riassunti-una-riga-03-11, variante 1): categorie chiuse con i numeri di stamattina,
+    // 22 da decidere, 50 da provare, 5 suggerimenti; a 360 e a 320 dp col testo grande, in italiano e in inglese.
+    private fun unaRiga(locale: String, dp: Int, font: Float) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = locale, screenWidth = (dp * 2.75).toInt(), fontScale = font))
+        val shut = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.decode(null).map { c -> c.copy(open = false) }, null)
+        val sg = (1..5).map { i -> it.pixelbox.cmwatch.contract.Suggestion("sg-$i", "cleanup", "c$i", "Suggerimento $i", "p", st.ts - 900) }
+        val x = st.copy(decisions = DecisionsSummary(22, 4, 9, 0), prove = ProveSummary(50, 0, 0, 0), suggestions = sg, homeOrder = shut)
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
+                    SummaryList(model(x), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = x.ts, kpiState = x, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(x, emptySet(), x.ts))
+                }
+            }
+        }
+    }
+    @Test fun unaRiga_360() = unaRiga("it", 360, 1f)
+    @Test fun unaRiga_320Grande() = unaRiga("it", 320, 1.3f)
+    @Test fun unaRiga_360_en() = unaRiga("en", 360, 1f)
+    @Test fun unaRiga_320Grande_en() = unaRiga("en", 320, 1.3f)
 }

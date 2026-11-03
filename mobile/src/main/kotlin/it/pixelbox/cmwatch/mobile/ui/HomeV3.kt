@@ -193,10 +193,11 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
         Spacer(Modifier.width(8.dp))
         Text(title, style = V3.Section, maxLines = 1)
         count?.let { SectionCount(it, hot, V3.Section.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp), Modifier.padding(start = 8.dp)) }
-        // Il riepilogo prende quello che avanza e va a capo solo come ultima risorsa: mai tagliato, mai addosso al numero (Franz 30/10 19:46).
+        // Il riepilogo prende quello che avanza, mai addosso al numero (Franz 30/10 19:46), e sta su una riga: le parti che non entrano
+        // cadono intere dall'ultima (app-riassunti-una-riga-03-11).
         Row(Modifier.weight(1f).padding(start = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
-            right?.let { Text(it, style = V3.Small, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
+            right?.let { OneLineText(it, V3.Small, Modifier.weight(1f, fill = false)) }
         }
         if (open != null) TurnArrow(open, V3.Tx3, Modifier.padding(start = 6.dp).size(24.dp))
         else if (nav) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))

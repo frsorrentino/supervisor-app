@@ -240,7 +240,7 @@ internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.gr
         count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 13.sp), Modifier.padding(start = 6.dp)) }
         Row(Modifier.weight(1f).padding(start = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
-            right?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp), textAlign = androidx.compose.ui.text.style.TextAlign.End) }
+            right?.let { OneLineText(it, V3.Small.copy(fontSize = 13.5.sp), Modifier.weight(1f, fill = false)) }
         }
         if (open != null) Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
         else if (nav) Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))

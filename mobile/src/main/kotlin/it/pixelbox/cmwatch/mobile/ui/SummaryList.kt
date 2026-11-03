@@ -346,12 +346,14 @@ fun SummaryList(
                 val s = if ("suggestions" in up) 0 else suggestions?.takeIf { x -> x.shown.isNotEmpty() }?.total ?: 0
                 // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
                 val pr = kpiState?.primaRaccolta?.takeIf { x -> x.status == "ask" && "prima_raccolta" !in up }
-                inOrder(listOf(
-                    "prima_raccolta" to pr?.let { CatBit("${stringResource(R.string.prima_title)} ${stringResource(R.string.home_prima_ask)}") },
-                    "decisioni" to d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") },
-                    "prove" to p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") },
-                    "suggestions" to s.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.sug_title)} $n") },
-                )).ifEmpty { none } to (d + p + s > 0 || pr != null)
+                // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e
+                // per ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
+                listOfNotNull(
+                    d.takeIf { n -> n > 0 }?.let { n -> CatBit(stringResource(R.string.cat_sig_decide, n)) },
+                    p.takeIf { n -> n > 0 }?.let { n -> CatBit(stringResource(R.string.cat_sig_test, n)) },
+                    pr?.let { CatBit("${stringResource(R.string.prima_title)} ${stringResource(R.string.home_prima_ask)}") },
+                    s.takeIf { n -> n > 0 }?.let { n -> CatBit(pluralStringResource(R.plurals.cat_sig_suggestions, n, n), V3.Tx2) },
+                ).ifEmpty { none } to (d + p + s > 0 || pr != null)
             }
             else -> {
                 // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).

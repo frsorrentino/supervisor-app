@@ -1,4 +1,6 @@
 <script lang="ts">
+  import OneLine from './OneLine.svelte'
+  import { parts as oneLineParts } from './oneLine'
   import { lang, locale } from './lang'
   import Kpi6 from './Kpi6.svelte'
   import Kpi11 from './Kpi11.svelte'
@@ -305,7 +307,7 @@
   const CATS_ICON: Record<CatId, string> = { you: 'pending_actions', work: 'play_circle', out: 'svg:inbox', tools: 'svg:speed' }
   // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»), come HomeCatsUi.kt: ambra quando c'è qualcosa da
   // sapere; un fallito è rosso nella riga ma non la fa ambra (mockup, riga 1).
-  function catSignal(id: CatId): { bits: { text: string; red?: boolean }[]; amber: boolean } {
+  function catSignal(id: CatId): { bits: { text: string; red?: boolean; mute?: boolean }[]; amber: boolean } {
     const none = [{ text: t.catSigNone }]
     // Le voci nella riga chiusa nell'ordine della lista aperta (app-home-nomi-02-11, punto 4).
     const inOrder = <T,>(parts: [HomeKey, T | null][]) => { const s = (cats.find(c => c.id === id)?.sections ?? []) as string[]; return parts.filter((p): p is [HomeKey, T] => p[1] != null).sort((a, b) => s.indexOf(a[0]) - s.indexOf(b[0])).map(p => p[1]) }
@@ -326,7 +328,9 @@
       const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
       // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
       const pr = !up.includes('prima_raccolta') && st.prima_raccolta?.status === 'ask'
-      const bits = inOrder<{ text: string }>([['decisioni', d ? { text: `${t.decisionsTitle} ${d}` } : null], ['prove', p ? { text: `${t.proveTitle} ${p}` } : null], ['suggestions', s ? { text: `${t.sugTitle} ${s}` } : null], ['prima_raccolta', pr ? { text: `${t.primaTitle} ${t.homePrima.ask}` } : null]])
+      // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e per
+      // ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
+      const bits: { text: string; mute?: boolean }[] = [...(d ? [{ text: t.catSigDecide(d) }] : []), ...(p ? [{ text: t.catSigTest(p) }] : []), ...(pr ? [{ text: `${t.primaTitle} ${t.homePrima.ask}` }] : []), ...(s ? [{ text: t.catSigSuggestions(s), mute: true }] : [])]
       return { bits: bits.length ? bits : none, amber: d + p + s > 0 || pr }
     }
     // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).
@@ -648,7 +652,7 @@
     <!-- L'unica struttura delle voci della home (Franz 31/10 17:04). -->
     <button class="sec" class:hot={o.hot} class:compact={key === listSkip} class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? !!open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ic">{#if icon.startsWith('svg:')}<CatIcon name={icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{icon}</span>{/if}</span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
-      <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span>
+      <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt"><OneLine parts={oneLineParts(right).map(text => ({ text }))} /></span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span>
     </button>
   {/if}
 {/snippet}
@@ -895,7 +899,7 @@
         {@const sig = catSignal(c.id)}
         <button class="catrow cathead" class:amber={sig.amber} aria-expanded="false" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
           <span class="ic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span><b>{t.catName[c.id]}</b>
-          <span class="catsig">{#each sig.bits as b, i}{#if i}{' · '}{/if}<span class:red={b.red}>{b.text}</span>{/each}</span>
+          <span class="catsig"><OneLine parts={sig.bits.map(b => ({ text: b.text, tone: b.red ? 'red' as const : b.mute ? 'mute' as const : undefined }))} /></span>
           <span class="ms arr" aria-hidden="true">expand_more</span>
         </button>
       {/if}
@@ -1411,12 +1415,12 @@
   .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }
   .topedge.on.hot { border: 2px solid var(--tx); }
   .topband { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 16px; padding: 8px 16px; }
-  .catrow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 6px; padding: 6px 12px 6px 0; border-radius: 14px; text-align: left; color: var(--tx); flex-wrap: wrap; }
+  .catrow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 6px; padding: 6px 12px 6px 0; border-radius: 14px; text-align: left; color: var(--tx); }
   .catrow .ic { flex: none; width: 52px; display: grid; place-items: center; color: var(--tx2); }
   .catrow b { font: 700 18px/22px var(--display); white-space: nowrap; }
-  .catsig { flex: 1 1 auto; text-align: right; font-size: 14px; line-height: 19px; color: var(--tx2); }
-  .catsig .red { color: var(--red); }
-  .catrow.amber { background: color-mix(in srgb, var(--wait) 14%, transparent); }
+  /* Su una riga (app-riassunti-una-riga-03-11): prende lo spazio che avanza, le parti che non entrano cadono (OneLine). */
+  .catsig { flex: 1 1 0; min-width: 0; text-align: right; font-size: 14px; line-height: 19px; color: var(--tx2); }
+    .catrow.amber { background: color-mix(in srgb, var(--wait) 14%, transparent); }
   .catrow.amber .catsig { color: var(--wait); }
   .catrow .arr { flex: none; color: var(--tx3); transition: rotate .2s; }
   .catrow .arr.up { rotate: 180deg; }
@@ -1510,7 +1514,7 @@
   .catlabel .catic { display: inline-flex; vertical-align: -3px; margin-right: 6px; color: var(--wait); }
   .catlabel .catic .ms { font-size: 16px; letter-spacing: 0; }
   .sec .sp { flex: 1; min-width: 8px; }
-  .sec .rt { font: 400 14px var(--sans); color: var(--tx2); text-align: right; min-width: 0; }
+  .sec .rt { flex: 0 1 auto; font: 400 14px var(--sans); color: var(--tx2); text-align: right; min-width: 0; }
   .sec .sysdot { flex: none; margin-right: 6px; }
   .secwrap { display: contents; }
   .sec .tog { color: var(--tx3); margin-left: 6px; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }

@@ -1653,6 +1653,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_board_label">In cima</string>
     <string name="cat_sig_none">niente oggi</string>
     <string name="cat_sig_load">carico %1$s</string>
+    <string name="cat_sig_decide">%1$d da decidere</string>
+    <string name="cat_sig_test">%1$d da provare</string>
+    <plurals name="cat_sig_suggestions"><item quantity="one">%1$d suggerimento</item><item quantity="other">%1$d suggerimenti</item></plurals>
     <string name="reorder_in_view">in vista</string>
     <string name="reorder_cat_closed">chiusa</string>
     <string name="reorder_foot">Ordine e categorie valgono anche per le colonne della PWA.</string>

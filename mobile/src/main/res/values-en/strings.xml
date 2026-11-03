@@ -1621,6 +1621,9 @@ It starts at your last message to the master.</string>
     <string name="home_board_label">At the top</string>
     <string name="cat_sig_none">nothing today</string>
     <string name="cat_sig_load">load %1$s</string>
+    <string name="cat_sig_decide">%1$d to decide</string>
+    <string name="cat_sig_test">%1$d to test</string>
+    <plurals name="cat_sig_suggestions"><item quantity="one">%1$d suggestion</item><item quantity="other">%1$d suggestions</item></plurals>
     <string name="reorder_in_view">shown</string>
     <string name="reorder_cat_closed">closed</string>
     <string name="reorder_foot">Order and categories also apply to the web app columns.</string>

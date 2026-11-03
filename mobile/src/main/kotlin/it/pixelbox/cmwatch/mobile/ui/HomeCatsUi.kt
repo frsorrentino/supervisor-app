@@ -45,8 +45,36 @@ import androidx.compose.ui.draw.clip
 // La home per categorie (Franz 02/11 16:44, compito app-home-categorie-02-11): l'etichetta di una categoria aperta, la riga di una
 // chiusa col suo segnale, e la card di una chiusa aperta sul posto. L'ordine e le chiavi stanno in HomeCats (core).
 
-/** Un pezzo del segnale: `tone` null = grigio, altrimenti il colore (rosso per un fallito, ambra per quel che chiede attenzione). */
+/** Un pezzo del segnale: `tone` null = il colore della riga, altrimenti il suo (rosso per un fallito, grigio per i Suggerimenti). */
 internal class CatBit(val text: String, val tone: Color? = null)
+
+/**
+ * Il riassunto a destra su una riga (Franz 03/11 08:07, variante 1, app-riassunti-una-riga-03-11): le parti in ordine di
+ * importanza; quelle che non entrano nella larghezza vera cadono intere, dall'ultima; se non entra nemmeno la prima resta il suo
+ * numero (OneLine in core). Mai a capo, mai puntini.
+ */
+@Composable
+internal fun OneLineParts(bits: List<CatBit>, style: androidx.compose.ui.text.TextStyle, base: Color, modifier: Modifier = Modifier) {
+    if (bits.isEmpty()) return
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier, contentAlignment = Alignment.CenterEnd) {
+        fun line(k: Int) = buildAnnotatedString {
+            bits.take(k).forEachIndexed { i, b ->
+                if (i > 0) withStyle(SpanStyle(color = base)) { append(it.pixelbox.cmwatch.rules.OneLine.SEP) }
+                withStyle(SpanStyle(color = b.tone ?: base)) { append(b.text) }
+            }
+        }
+        val max = constraints.maxWidth.toFloat()
+        val k = it.pixelbox.cmwatch.rules.OneLine.count(bits.size, max) { n -> measurer.measure(line(n), style, softWrap = false, maxLines = 1).size.width.toFloat() }
+        val shown = if (k > 0) line(k) else buildAnnotatedString { withStyle(SpanStyle(color = bits[0].tone ?: base)) { append(it.pixelbox.cmwatch.rules.OneLine.short(bits[0].text)) } }
+        Text(shown, style = style, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, textAlign = TextAlign.End)
+    }
+}
+
+/** Un riassunto già scritto coi separatori, nella stessa regola. */
+@Composable
+internal fun OneLineText(text: String, style: androidx.compose.ui.text.TextStyle, modifier: Modifier = Modifier) =
+    OneLineParts(it.pixelbox.cmwatch.rules.OneLine.parts(text).map { p -> CatBit(p) }, style, style.color, modifier)
 
 internal fun catIcon(id: String): ImageVector = when (id) {
     // Tocca a te (app-home-nomi-02-11): la cartellina con l'orologio, non più la mano.
@@ -136,37 +164,10 @@ internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolea
     Row(m.then(modifier).handCursor().clickable(onClick = onToggle).testTag("home-cat-$id").heightIn(min = 52.dp).padding(start = 0.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(catIcon(id), null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
         Spacer(Modifier.width(8.dp))
-        val text = buildAnnotatedString {
-            bits.forEachIndexed { i, b ->
-                if (i > 0) append(" · ")
-                withStyle(SpanStyle(color = b.tone ?: (if (amber) V3.Wait else V3.Tx2))) { append(b.text) }
-            }
-        }
-        CatTitleLine(Modifier.weight(1f)) {
-            // A capo se non ci sta (fontScale 1.3 a 320 dp), mai tagliato.
-            Text(catName(id), style = V3.Section)
-            Text(text, style = V3.Small, textAlign = TextAlign.End)
-        }
+        // Nome e segnale sulla stessa riga; il segnale prende quello che avanza (app-riassunti-una-riga-03-11).
+        Text(catName(id), style = V3.Section, maxLines = 1, softWrap = false)
+        OneLineParts(bits, V3.Small, if (amber) V3.Wait else V3.Tx2, Modifier.weight(1f).padding(start = 12.dp))
         TurnArrow(open, V3.Tx3, Modifier.padding(start = 6.dp).size(24.dp))
-    }
-}
-
-/**
- * Nome e segnale: sulla stessa riga se ci stanno, il segnale a destra; altrimenti il segnale va intero sulla riga sotto, sotto il
- * nome, mai in colonna (regole di larghezza, Franz 12/09).
- */
-@Composable
-private fun CatTitleLine(modifier: Modifier, content: @Composable () -> Unit) = androidx.compose.ui.layout.Layout(content, modifier) { ms, c ->
-    val gap = 12.dp.roundToPx()
-    val name = ms[0].measure(c.copy(minWidth = 0))
-    val want = ms[1].maxIntrinsicWidth(c.maxHeight)
-    if (name.width + gap + want <= c.maxWidth) {
-        val sig = ms[1].measure(c.copy(minWidth = 0, maxWidth = want))
-        val h = maxOf(name.height, sig.height)
-        layout(c.maxWidth, h) { name.place(0, (h - name.height) / 2); sig.place(c.maxWidth - sig.width, (h - sig.height) / 2) }
-    } else {
-        val sig = ms[1].measure(c.copy(minWidth = 0))
-        layout(c.maxWidth, name.height + sig.height) { name.place(0, 0); sig.place(0, name.height) }
     }
 }
 
