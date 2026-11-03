@@ -43,5 +43,15 @@ class GuardareScreenTest {
     @Test fun guardare_home_en() = shot(locale = "en") { Column(Modifier.background(Cm.bg).padding(12.dp)) { GuardareBody(listOf(v3, mock, long), GuardareActions()) {} } }
     @Test fun guardare_vuota_en() = shot(locale = "en") { GuardareScreen(ResultsPage(), false, null, GuardareActions()) {} }
     @Test fun guardare_riga_chat320_grande() = shot(320, 1.3f) { Column(Modifier.background(Cm.bg).padding(12.dp)) { ResultsChatRow(Guardare.ofSession(page, "orbit-docs")) {} } }
+    // Terzo giro (app-bug-notte-03-11): il video che non arriva dal PC dice perché e offre Riprova, invece della rotella per sempre.
+    @Test fun guardare_non_arrivato412() = shot { ResultViewer(v3, GuardareActions(file = { _, _, _, ready -> ready(null) })) {} }
+    // Telefono in orizzontale (840 × 412 dp) e tablet in verticale (800 dp).
+    private fun wide(w: Int, h: Int, content: @androidx.compose.runtime.Composable () -> Unit) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (w * 2.75).toInt(), screenHeight = (h * 2.75).toInt()))
+        paparazzi.snapshot { CmPhoneTheme(still = true) { content() } }
+    }
+    @Test fun guardare_orizzontale_home() = wide(840, 412) { Column(Modifier.background(Cm.bg).padding(12.dp)) { GuardareBody(listOf(v3, mock, doc), GuardareActions()) {} } }
+    @Test fun guardare_orizzontale_aperto() = wide(840, 412) { ResultViewer(doc.copy(version = 2, versions = 2, changed = "aggiunto l'effetto zoom"), GuardareActions()) {} }
+    @Test fun guardare_tablet_pagina() = wide(800, 1280) { GuardareScreen(two, false, null, GuardareActions()) {} }
     @Test fun guardare_riga_chat() = shot { Column(Modifier.background(Cm.bg).padding(12.dp)) { ResultsChatRow(Guardare.ofSession(page, "orbit-docs")) {} } }
 }
