@@ -1,6 +1,7 @@
 <script lang="ts">
   import { locale } from './lib/lang'
   import * as files from './lib/fileActions'
+  import { seenByPath } from './lib/guardare'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -848,8 +849,12 @@
     return { blob, name: f.name ?? path.split('/').pop() ?? 'file', mime: f.mime, text: files.copyKind(f.mime) === 'text' ? await blob.text() : undefined }
   }
   const getFile = (name: string, path: string, key: string, quiet = false) => fileStore.get(key, loadFile(name, path, quiet))
-  function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview', key: string) {
+  // Un file aperto in chat è visto anche in Risultati (app-risultati-visti-03-11, Franz: «rimangono presenti anche se li vedo altrove»).
+  function seenPath(path: string) { for (const id of seenByPath(st.results?.items ?? [], path)) void run(newCmd('result_seen', null, id)) }
+  function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) {
     if (!tr) return
+    if (act !== 'prepare') seenPath(path)
+    if (act === 'seen') return
     if (act === 'prepare') { void getFile(name, path, key, true); return }
     if (act === 'preview') { void preview(name, path, key); return }
     // Niente await prima dell'azione quando il file è pronto: condividi e copia vogliono il tocco ancora vivo.

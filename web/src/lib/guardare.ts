@@ -33,6 +33,19 @@ export function ofSession(page: ResultsPage | null | undefined, session: string)
 
 export const older = (g: ResultGroup): ResultItem[] => g.items.slice(1)
 
+/**
+ * app-risultati-visti-03-11 (Franz 03/11 15:26: «dovrebbero rimanere solo se effettivamente non li ho visti»), porta di Guardare.splitSeen:
+ * in elenco i lavori con l'ultima versione non vista; quelli visti, dal relay o qui (`local`), in fondo e chiusi.
+ */
+export function splitSeen(groups: ResultGroup[], local: Set<string>): { fresh: ResultGroup[]; seen: ResultGroup[] } {
+  const isFresh = (g: ResultGroup) => !!g.items[0] && g.items[0].seen_at == null && !local.has(g.items[0].id)
+  return { fresh: groups.filter(isFresh), seen: groups.filter(g => !isFresh(g)) }
+}
+
+/** Un file aperto altrove nell'app (la chat): i risultati non visti che lo consegnano, da segnare visti. */
+export const seenByPath = (items: ResultItem[], path: string): string[] =>
+  items.filter(i => i.seen_at == null && (i.path === path || (i.files ?? []).some(f => f.path === path))).map(i => i.id)
+
 /** «36,7 s», «6 s», «1:05». */
 export function pos(s: number): string {
   const t = Math.round(s * 10) / 10

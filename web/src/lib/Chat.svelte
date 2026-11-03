@@ -39,7 +39,7 @@
     /** Allegati del «+»: prima /share, poi `report` (contratti 1.19 e 1.28). */
     onAttach: (files: File[], text: string) => void
     /** Un file della conversazione (contratto 1.24): il PC lo manda e si apre in una scheda. */
-    onFile: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void
+    onFile: (path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) => void
     onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void
     /** Contratto 1.37: «Handoff, poi /clear» (prompt e /clear a turno finito, li gestisce App) e «Salva come decisione». */
     onHandoff: () => void; onDecision: (text: string, project: string | null) => void

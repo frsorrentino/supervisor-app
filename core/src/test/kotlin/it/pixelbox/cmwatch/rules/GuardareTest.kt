@@ -65,4 +65,21 @@ class GuardareTest {
     @Test fun aNoteIsNeverEmptyNorTooLong() {
         assertNull(Guardare.note("  ")); assertEquals(2000, Guardare.note("x".repeat(2500))!!.length)
     }
+
+    // app-risultati-visti-03-11 (Franz 03/11 15:26): in Risultati solo quello che non ha visto; Visto lo toglie; aperto altrove conta come visto.
+    private fun grp(id: String, seen: Long?, old: String? = null) = ResultGroup(title = id, items = listOfNotNull(ResultItem(id, seenAt = seen), old?.let { ResultItem(it, seenAt = 5) }))
+
+    @Test fun risultatiVisti_inElencoSoloINonVisti() {
+        val s = Guardare.splitSeen(listOf(grp("a", null), grp("b", 9), grp("c", null, old = "c0")), setOf("c"))
+        assertEquals(listOf("a"), s.fresh.map { it.title })
+        assertEquals("visto qui o dal relay: in fondo", listOf("b", "c"), s.seen.map { it.title })
+    }
+
+    @Test fun risultatiVisti_unFileApertoAltroveLoSegna() {
+        val png = TranscriptFile("/m/a.png", "image/png", 10)
+        val items = listOf(ResultItem("m", path = "/m/a.html", files = listOf(png)), ResultItem("i", path = "/i/b.jpg"), ResultItem("v", path = "/m/a.png", seenAt = 3))
+        assertEquals(listOf("m"), Guardare.seenByPath(items, "/m/a.png"))
+        assertEquals(listOf("i"), Guardare.seenByPath(items, "/i/b.jpg"))
+        assertTrue(Guardare.seenByPath(items, "/x").isEmpty())
+    }
 }

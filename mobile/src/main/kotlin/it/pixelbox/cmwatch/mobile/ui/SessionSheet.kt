@@ -1626,7 +1626,8 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
         }
         // L'anteprima tra il nome e i tasti (Franz, 13/10 07:16: «l'anteprima del file dovrebbe stare tra nome file e tasti,
         // con i tasti sotto e nome sopra»).
-        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.IMAGE) AttachmentThumb(local, fill = true)
+        val seenPath = LocalSeenPath.current
+        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.IMAGE) AttachmentThumb(local, fill = true) { seenPath(f.path) }
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.VIDEO) VideoPreview(local)
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.PDF) PdfFirstPage(local) { opener.open(key, f) }
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.TEXT) TextFirstLines(local) { opener.open(key, f) }
@@ -1958,8 +1959,10 @@ private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, l
  * tocco = visore a tutto schermo con lo zoom. Niente se il file non c'è più.
  */
 @Composable
-private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 240.dp, maxH: androidx.compose.ui.unit.Dp = 180.dp, fill: Boolean = false) {
+private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 240.dp, maxH: androidx.compose.ui.unit.Dp = 180.dp, fill: Boolean = false, onFull: () -> Unit = {}) {
     var full by remember { mutableStateOf(false) }
+    // Aperta a tutto schermo: chi la mostra lo sa (un risultato con questo file diventa visto, app-risultati-visti-03-11).
+    androidx.compose.runtime.LaunchedEffect(full) { if (full) onFull() }
     // Il visore apre allo stato in cui il pizzico ha lasciato l'immagine (app-zoom-continuo-02-11); null = intera.
     var start by remember { mutableStateOf<ViewerStart?>(null) }
     val bmp = remember(path, fill) { decodeScaled(path, if (fill) 1080 else 720) } ?: return

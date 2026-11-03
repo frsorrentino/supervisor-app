@@ -45,6 +45,18 @@ object Guardare {
     /** Le versioni prima dell'ultima, che si aprono sotto «Versioni precedenti N». */
     fun older(g: ResultGroup): List<ResultItem> = g.items.drop(1)
 
+    /**
+     * app-risultati-visti-03-11 (Franz 03/11 15:26: «dovrebbero rimanere solo se effettivamente non li ho visti»): in elenco i lavori con
+     * l'ultima versione non vista; quelli visti, dal relay o qui (`local`, il tocco su Visto prima della risposta), in fondo e chiusi.
+     */
+    data class Split(val fresh: List<ResultGroup>, val seen: List<ResultGroup>)
+    fun splitSeen(groups: List<ResultGroup>, local: Set<String>): Split =
+        groups.partition { g -> g.items.firstOrNull()?.let { it.seenAt == null && it.id !in local } == true }.let { (a, b) -> Split(a, b) }
+
+    /** Un file aperto altrove nell'app (la chat): i risultati non visti che lo consegnano, da segnare visti. */
+    fun seenByPath(items: List<ResultItem>, path: String): List<String> =
+        items.filter { i -> i.seenAt == null && (i.path == path || i.files.orEmpty().any { f -> f.path == path }) }.map { it.id }
+
     /** La posizione di una nota: «36,7 s» col decimale solo se serve, «1:05» oltre il minuto. */
     fun pos(s: Double): String {
         val t = Math.round(s * 10) / 10.0

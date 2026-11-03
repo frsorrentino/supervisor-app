@@ -1686,6 +1686,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="watch_version">Versione %1$d</string>
     <string name="watch_version_of">Versione %1$d di %2$d</string>
     <string name="watch_older">Versioni precedenti</string>
+    <string name="watch_seen_groups">Già visti</string>
+    <string name="watch_all_seen">Hai visto tutto.</string>
     <string name="watch_changed">Cosa è cambiato:</string>
     <string name="watch_open_session">Apri la sessione</string>
     <string name="watch_note_hint">Scrivi una nota a %1$s</string>

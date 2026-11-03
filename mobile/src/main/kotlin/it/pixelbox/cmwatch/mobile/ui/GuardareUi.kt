@@ -56,6 +56,9 @@ class GuardareActions(
     val external: (ResultItem) -> Unit = {},
 )
 
+/** Un file aperto altrove nell'app (la chat): chi lo apre lo dice, e i risultati con quel file diventano visti (app-risultati-visti-03-11). */
+internal val LocalSeenPath = androidx.compose.runtime.compositionLocalOf<(String) -> Unit> { {} }
+
 /** La riga sotto il titolo: «video-supervisor · video, 40 s · 06:38». */
 @Composable
 private fun sub(l: Guardare.Line, withSession: Boolean = true): String {
@@ -188,12 +191,25 @@ fun GuardareScreen(page: ResultsPage?, failed: Boolean, session: String?, a: Gua
             Text(session?.let { stringResource(R.string.watch_results) + " · " + it } ?: stringResource(R.string.home_sec_watch), style = MaterialTheme.typography.titleLarge, color = Cm.text)
         }
         val groups = page?.groups.orEmpty().filter { session == null || it.session == session }
+        // In elenco solo i lavori non visti; i visti in fondo, chiusi (app-risultati-visti-03-11). Visto e l'apertura li tolgono
+        // subito, senza aspettare la lettura dopo la risposta del PC.
+        var local by remember { mutableStateOf(emptySet<String>()) }
+        val seenNow: (ResultItem) -> Unit = { r -> if (r.id !in local) { local = local + r.id; a.seen(r) } }
+        val acts = GuardareActions(a.file, seenNow, a.note, { r -> if (r.seenAt == null) seenNow(r); a.open(r) }, a.session, a.external)
+        val split = Guardare.splitSeen(groups, local)
+        var seenOpen by rememberSaveable { mutableStateOf(false) }
         when {
             failed && page == null -> Text(stringResource(R.string.watch_read_failed), style = V3.Small)
             page == null -> Text(stringResource(R.string.prove_loading), style = V3.Small)
             groups.isEmpty() -> Text(stringResource(R.string.watch_empty), style = V3.Small)
+            split.fresh.isEmpty() -> Text(stringResource(R.string.watch_all_seen), style = V3.Small)
         }
-        groups.forEach { g -> GroupBlock(g, a) }
+        split.fresh.forEach { g -> androidx.compose.runtime.key(g.title, g.session) { GroupBlock(g, acts) } }
+        if (split.seen.isNotEmpty()) Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { seenOpen = !seenOpen }.testTag("risultati-visti").padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(if (seenOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx2)
+            Text(stringResource(R.string.watch_seen_groups) + "  " + split.seen.size, style = V3.Small)
+        }
+        if (seenOpen) split.seen.forEach { g -> androidx.compose.runtime.key(g.title, g.session) { GroupBlock(g, acts) } }
     }
 }
 

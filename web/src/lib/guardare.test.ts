@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import type { ResultItem, ResultsPage, State } from './contract'
-import { line, note, ofSession, older, pos, thumb } from './guardare'
+import type { ResultGroup, ResultItem, ResultsPage, State } from './contract'
+import { line, note, ofSession, older, pos, seenByPath, splitSeen, thumb } from './guardare'
 
 // Gemello di GuardareTest.kt (contratto 1.106, app-da-guardare-02-11), con le fixture vere.
 const fixture = (n: string) => JSON.parse(readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8'))
@@ -40,5 +40,19 @@ describe('guardare', () => {
   it('posizioni e note', () => {
     expect([pos(36.7), pos(6), pos(65.2)]).toEqual(['36,7 s', '6 s', '1:05'])
     expect(note('  ')).toBeNull(); expect(note('x'.repeat(2500))!.length).toBe(2000)
+  })
+  // app-risultati-visti-03-11 (Franz 03/11 15:26): in Risultati solo quello che non ha visto; Visto lo toglie; aperto altrove conta come visto.
+  it('risultati visti: in elenco solo i non visti', () => {
+    const grp = (id: string, seen: number | null, old?: string) => ({ title: id, items: [item({ id, seen_at: seen }), ...(old ? [item({ id: old, seen_at: 5 })] : [])] }) as ResultGroup
+    const s = splitSeen([grp('a', null), grp('b', 9), grp('c', null, 'c0')], new Set(['c']))
+    expect(s.fresh.map(g => g.title)).toEqual(['a'])
+    expect(s.seen.map(g => g.title)).toEqual(['b', 'c'])
+  })
+  it('risultati visti: un file aperto altrove lo segna', () => {
+    const png = { path: '/m/a.png', mime: 'image/png', size: 10 }
+    const items = [item({ id: 'm', path: '/m/a.html', files: [png] }), item({ id: 'i', path: '/i/b.jpg' }), item({ id: 'v', path: '/m/a.png', seen_at: 3 })]
+    expect(seenByPath(items, '/m/a.png')).toEqual(['m'])
+    expect(seenByPath(items, '/i/b.jpg')).toEqual(['i'])
+    expect(seenByPath(items, '/x')).toEqual([])
   })
 })

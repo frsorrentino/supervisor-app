@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CmdResult, ResultItem, ResultsPage, ResultsSummary, TranscriptFile } from './contract'
-  import { line, note as cleanNote, NOTE_MAX, older, pos, thumb, type Line } from './guardare'
+  import { line, note as cleanNote, NOTE_MAX, older, pos, splitSeen, thumb, type Line } from './guardare'
   import { newCmd } from './transport'
   import { t } from './t'
   import CatIcon from './CatIcon.svelte'
@@ -56,7 +56,10 @@
   const sub = (l: Line, withSession = true) => [withSession ? l.session : null, l.seconds != null ? `${t.watchKind[l.kind]}, ${t.watchSeconds(l.seconds)}` : t.watchKind[l.kind], hm(l.at)].filter(Boolean).join(' · ')
   const hm = (s: number) => new Date(s * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   const titleOf = (l: Line) => (l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title)
-  function open(r: ResultItem) { if (mode === 'body') onOpen(full(r)); else { opened = r.id; fromList = true } }
+  // Aprire un risultato è vederlo (app-risultati-visti-03-11): esce dall'elenco dei non visti anche senza il tocco su Visto.
+  function open(r: ResultItem) { if (r.seen_at == null) void seen(r); if (mode === 'body') onOpen(full(r)); else { opened = r.id; fromList = true } }
+  const split = $derived(splitSeen(groups, seenIds))
+  let seenOpen = $state(false)
   let olderOpen = $state<Record<string, boolean>>({})
   let text = $state(''), at = $state<number | null>(null), sent = $state<string | null>(null)
   async function sendNote(r: ResultItem) {
@@ -76,6 +79,23 @@
     {#if r.seen_at == null}<button class="pill" class:done={seenIds.has(r.id)} disabled={seenIds.has(r.id)} onclick={(e) => { e.stopPropagation(); void seen(r) }}><span class="ms" aria-hidden="true">check</span>{t.watchSeen}</button>{/if}
     <button class="pill" onclick={(e) => { e.stopPropagation(); open(r) }}><CatIcon name="pencil" size={18} />{t.watchNote}</button>
   </span>
+{/snippet}
+{#snippet grp(g: import('./contract').ResultGroup)}
+      {@const k = g.title + '|' + g.session}
+  <section class="grp lit">
+    <h3>{g.title}</h3>
+    {#each [g.items[0], ...(olderOpen[k] ? older(g) : [])].filter(Boolean) as r (r.id)}
+      {@const l = line(r)}
+      <div class="row" role="button" tabindex="0" onclick={() => open(r)} onkeydown={(e) => e.key === 'Enter' && open(r)}>
+        {@render thumbOf(r)}
+        <span class="col"><b class="t">{#if l.unseen}<i class="dot"></i>{/if}{t.watchVersion(r.version)}</b>
+          <span class="sub">{[hm(r.at), r.changed?.trim() || null, l.unseen ? null : t.watchSeenWord].filter(Boolean).join(' · ')}</span>
+          {#if l.unseen}{@render seenNote(r)}{/if}</span>
+      </div>
+      {#each r.notes ?? [] as n, i (i)}{@render noteLine(n)}{/each}
+    {/each}
+    {#if older(g).length}<button class="older" onclick={() => (olderOpen = { ...olderOpen, [k]: !olderOpen[k] })}><span class="ms" aria-hidden="true">{olderOpen[k] ? 'expand_less' : 'expand_more'}</span>{t.watchOlder}&nbsp;&nbsp;{older(g).length}</button>{/if}
+  </section>
 {/snippet}
 {#snippet noteLine(n: { text: string; pos_s?: number | null })}
   <p class="note"><CatIcon name="pencil" size={18} />{n.pos_s != null ? t.watchYourNoteAt(pos(n.pos_s), n.text) : t.watchYourNote(n.text)}</p>
@@ -125,23 +145,11 @@
 {:else}
   <div class="pg" data-testid="da-guardare">
     {#if failed && !page}<p class="sub">{t.watchReadFailed}</p>{:else if !page}<p class="sub">{t.watchLoading}</p>{:else if !groups.length}<p class="sub">{t.watchEmpty}</p>{/if}
-    {#each groups as g (g.title + g.session)}
-      {@const k = g.title + '|' + g.session}
-      <section class="grp lit">
-        <h3>{g.title}</h3>
-        {#each [g.items[0], ...(olderOpen[k] ? older(g) : [])].filter(Boolean) as r (r.id)}
-          {@const l = line(r)}
-          <div class="row" role="button" tabindex="0" onclick={() => open(r)} onkeydown={(e) => e.key === 'Enter' && open(r)}>
-            {@render thumbOf(r)}
-            <span class="col"><b class="t">{#if l.unseen}<i class="dot"></i>{/if}{t.watchVersion(r.version)}</b>
-              <span class="sub">{[hm(r.at), r.changed?.trim() || null, l.unseen ? null : t.watchSeenWord].filter(Boolean).join(' · ')}</span>
-              {#if l.unseen}{@render seenNote(r)}{/if}</span>
-          </div>
-          {#each r.notes ?? [] as n, i (i)}{@render noteLine(n)}{/each}
-        {/each}
-        {#if older(g).length}<button class="older" onclick={() => (olderOpen = { ...olderOpen, [k]: !olderOpen[k] })}><span class="ms" aria-hidden="true">{olderOpen[k] ? 'expand_less' : 'expand_more'}</span>{t.watchOlder}&nbsp;&nbsp;{older(g).length}</button>{/if}
-      </section>
-    {/each}
+    <!-- In elenco solo i lavori non visti; i visti in fondo, chiusi (app-risultati-visti-03-11). -->
+    {#if page && groups.length && !split.fresh.length}<p class="sub">{t.watchAllSeen}</p>{/if}
+    {#each split.fresh as g (g.title + g.session)}{@render grp(g)}{/each}
+    {#if split.seen.length}<button class="older" data-testid="risultati-visti" onclick={() => (seenOpen = !seenOpen)}><span class="ms" aria-hidden="true">{seenOpen ? 'expand_less' : 'expand_more'}</span>{t.watchSeenGroups}&nbsp;&nbsp;{split.seen.length}</button>{/if}
+    {#if seenOpen}{#each split.seen as g (g.title + g.session)}{@render grp(g)}{/each}{/if}
   </div>
 {/if}
 

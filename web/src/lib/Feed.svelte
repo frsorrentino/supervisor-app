@@ -38,7 +38,7 @@
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
-  let { s, items, now, onFile = () => {}, onFiles = () => {}, onDecision, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void; onDecision?: (text: string) => void
+  let { s, items, now, onFile = () => {}, onFiles = () => {}, onDecision, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void; onDecision?: (text: string) => void
     /** Contratto 1.72: «Mostra tutto» sotto un passaggio, l'op `diff`; null = il relay non la conosce. */
     onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null
     /** Le sessioni dello stato e l'apertura di una: il link di una di loro nel testo diventa il tasto «Apri in supervisor» (Franz, 21/10 19:04). */
@@ -185,7 +185,7 @@
       <div class="fcard" role="group" aria-label={f.path.split('/').pop()} use:preview={{ f, key }} onpointerenter={() => onFile(f.path, 'prepare', key)} onfocusin={() => onFile(f.path, 'prepare', key)}>
         <button class="fchip" title={f.path} onclick={() => onFile(f.path, 'open', key)}><Icon name={fileIcon(f)} color="var(--icon)" /><span class="fname">{f.path.split('/').pop()}</span>{#if f.size != null}<span class="fsize">{size(f.size)}</span>{/if}</button>
         <!-- L'anteprima tra il nome e i tasti, come nell'app (Franz, 13/10 07:16). -->
-        {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={t.fileOpen} onclick={() => { if (kind === 'pdf') onFile(f.path, 'open', key); else zoomed = { src: url, name: f.path.split('/').pop() ?? '' } }}><img src={url} alt="" /></button>{/if}
+        {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={t.fileOpen} onclick={() => { if (kind === 'pdf') onFile(f.path, 'open', key); else { zoomed = { src: url, name: f.path.split('/').pop() ?? '' }; onFile(f.path, 'seen', key) } }}><img src={url} alt="" /></button>{/if}
         {#if pages[key] && !code[key]}
           <!-- Franz, 16/10 11:18: HTML e SVG come pagina, in un riquadro isolato (PAGE_SANDBOX: origine opaca, niente token). -->
           <iframe class="fpage" style="height:{pageHeight(vh)}px" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>
