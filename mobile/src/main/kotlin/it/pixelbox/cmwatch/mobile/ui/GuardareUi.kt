@@ -216,8 +216,8 @@ fun GuardareScreen(page: ResultsPage?, failed: Boolean, session: String?, a: Gua
 /** Nella chat, in cima: «Risultati N» e l'ultimo consegnato; il tocco apre la pagina della sessione. */
 @Composable
 fun ResultsChatRow(line: Guardare.SessionLine, onOpen: () -> Unit) {
-    val latest = line.latest ?: return
-    val l = Guardare.line(latest)
+    if (line.groups.isEmpty()) return
+    val l = line.latest?.let { Guardare.line(it) }
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(V3.Shape).background(V3.S2).clickable(onClick = onOpen).padding(horizontal = 14.dp, vertical = 10.dp).testTag("chat-risultati"),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -228,7 +228,7 @@ fun ResultsChatRow(line: Guardare.SessionLine, onOpen: () -> Unit) {
         // Il titolo prende tutto lo spazio a destra (con uno Spacer a metà andava a capo e restava «Docs tour,»).
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
             if (line.groups.any { it.unseen }) Box(Modifier.size(8.dp).clip(CircleShape).background(V3.Wait))
-            Text(titleOf(l), style = V3.Small, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false))
+            if (l != null) Text(titleOf(l), style = V3.Small, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false))
         }
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx2)
     }

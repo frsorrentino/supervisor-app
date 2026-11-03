@@ -39,7 +39,8 @@ object Guardare {
     data class SessionLine(val groups: List<ResultGroup>, val latest: ResultItem?)
     fun ofSession(page: ResultsPage?, session: String): SessionLine {
         val gs = page?.groups.orEmpty().filter { it.session == session }
-        return SessionLine(gs, gs.maxByOrNull { it.at }?.items?.firstOrNull())
+        // Solo un lavoro non visto fa da anteprima (Franz 03/11 19:54: «anche se visto tutto è rimasto Icona di Progress Bars»).
+        return SessionLine(gs, gs.filter { it.unseen }.maxByOrNull { it.at }?.items?.firstOrNull())
     }
 
     /** Le versioni prima dell'ultima, che si aprono sotto «Versioni precedenti N». */

@@ -37,6 +37,14 @@ describe('guardare', () => {
     expect(ofSession(page, 'atlas-shop').groups).toEqual([])
     expect(ofSession(null, 'x').latest).toBeNull()
   })
+  it('app-risultati-visti-03-11: in cima alla chat solo un lavoro non visto, altrimenti nessuna anteprima', () => {
+    const seen = { ...page!, groups: page!.groups.map(g => ({ ...g, unseen: false })) }
+    expect(ofSession(seen, 'orbit-docs').latest).toBeNull()
+    expect(ofSession(seen, 'orbit-docs').groups.length).toBeGreaterThan(0)
+    const g0 = page!.groups.find(g => g.session === 'orbit-docs')!
+    const mixed = { ...page!, groups: [{ ...g0, unseen: false, at: g0.at + 100, title: 'vecchio visto' }, { ...g0, unseen: true }] }
+    expect(ofSession(mixed, 'orbit-docs').latest).toEqual(g0.items[0])
+  })
   it('posizioni e note', () => {
     expect([pos(36.7), pos(6), pos(65.2)]).toEqual(['36,7 s', '6 s', '1:05'])
     expect(note('  ')).toBeNull(); expect(note('x'.repeat(2500))!.length).toBe(2000)

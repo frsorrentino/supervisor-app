@@ -1622,7 +1622,7 @@ class MainActivity : ComponentActivity() {
                             effort = tunePicks[session.name + "/effort"].let { p -> Tune.effort(session, p, p?.let { results[it.cmd] }, now) },
                             home = home, grid = home != null && homeOpen, header = header, dock = dock, bar = bar, homeOpen = homeOpen, appBar = appBar, halfStops = home != null && wide, half = masterHalf,
                             headerLead = lead, draftState = drafts.state(session),
-                            results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> l.latest != null }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l) { watchSession = session.name; watchOpen = true } } },
+                            results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> l.groups.isNotEmpty() }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l) { watchSession = session.name; watchOpen = true } } },
                             // Con l'ispettore obiettivo e bassa priorità stanno lì: in testata non si ripetono (revisione della master, 04/10).
                             notesInHeader = lead == null || !inspectorOn,
                             canAttachFiles = state?.share?.any == true,

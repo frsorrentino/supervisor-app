@@ -58,6 +58,15 @@ class GuardareTest {
         assertNull(Guardare.ofSession(null, "x").latest)
     }
 
+    @Test fun onlyAnUnseenWorkIsThePreviewOnTopOfTheChat() {
+        // app-risultati-visti-03-11: tutto visto, nessuna anteprima; con un visto più recente, l'anteprima è il non visto.
+        val seen = page.copy(groups = page.groups.map { it.copy(unseen = false) })
+        assertNull(Guardare.ofSession(seen, "orbit-docs").latest); assertTrue(Guardare.ofSession(seen, "orbit-docs").groups.isNotEmpty())
+        val g0 = page.groups.first { it.session == "orbit-docs" }
+        val mixed = page.copy(groups = listOf(g0.copy(unseen = false, at = g0.at + 100, title = "vecchio visto"), g0.copy(unseen = true)))
+        assertEquals(g0.items.first(), Guardare.ofSession(mixed, "orbit-docs").latest)
+    }
+
     @Test fun positionsReadLikeTheMockup() {
         assertEquals("36,7 s", Guardare.pos(36.7)); assertEquals("6 s", Guardare.pos(6.0)); assertEquals("1:05", Guardare.pos(65.2))
     }

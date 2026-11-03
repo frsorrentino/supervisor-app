@@ -27,7 +27,8 @@ export function thumb(i: ResultItem): TranscriptFile | null {
 /** Nella sessione, la riga «Risultati»: i suoi lavori e l'ultima versione consegnata. */
 export function ofSession(page: ResultsPage | null | undefined, session: string): { groups: ResultGroup[]; latest: ResultItem | null } {
   const groups = (page?.groups ?? []).filter(g => g.session === session)
-  const top = groups.reduce<ResultGroup | null>((a, g) => (!a || g.at > a.at ? g : a), null)
+  // Solo un lavoro non visto fa da anteprima (Franz 03/11 19:54: «anche se visto tutto è rimasto Icona di Progress Bars»).
+  const top = groups.filter(g => g.unseen).reduce<ResultGroup | null>((a, g) => (!a || g.at > a.at ? g : a), null)
   return { groups, latest: top?.items[0] ?? null }
 }
 

@@ -12,12 +12,12 @@
   const mine = $derived(ofSession(page, session))
 </script>
 
-{#if mine.latest}
-  {@const l = line(mine.latest)}
+{#if mine.groups.length}
+  {@const l = mine.latest ? line(mine.latest) : null}
   <button class="rr" data-testid="chat-risultati" onclick={onOpen}>
     <CatIcon name="eye" size={22} /><b>{t.watchResults}</b><small>{mine.groups.length}</small>
     <span class="sp"></span>{#if mine.groups.some(g => g.unseen)}<i class="dot"></i>{/if}
-    <span class="last">{l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title}</span><span class="ms" aria-hidden="true">chevron_right</span>
+    {#if l}<span class="last">{l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title}</span>{/if}<span class="ms" aria-hidden="true">chevron_right</span>
   </button>
 {/if}
 
