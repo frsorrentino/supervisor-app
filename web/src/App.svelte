@@ -453,6 +453,14 @@
   // ingrandisce e porta l'etichetta.
   type Mark = { x: number; y: number; v: boolean; on: boolean; text: string }
   let marks = $state<Mark[]>([])
+  // La calamita (Franz 03/11 23:01): dove sta il dito; un segno vicino si allunga e gli scivola incontro lungo il suo bordo.
+  let ptr = $state({ x: 0, y: 0 })
+  const pullOf = (m: Mark) => Math.max(0, 1 - Math.hypot(m.x - ptr.x, m.y - ptr.y) / 240)
+  function markStyle(m: Mark) {
+    const p = m.on ? Math.max(pullOf(m), 0.6) : pullOf(m), len = 48 + p * 88
+    const dx = m.v ? 0 : (ptr.x - m.x) * p * 0.3, dy = m.v ? (ptr.y - m.y) * p * 0.3 : 0
+    return `left:${m.x + dx}px; top:${m.y + dy}px; ${m.v ? `height:${len}px` : `width:${len}px`}; opacity:${0.45 + p * 0.55}`
+  }
   let resizing = $state(false)
   // La larghezza libera, in px; null = quella del tasto Allarga/Stringi (420 o 720).
   let masterW = $state<number | null>(Number(load('cm.master_w')) || null)
@@ -478,10 +486,12 @@
     if (phase === 'cancel') { smooth(revert); return }
     if (phase === 'end') { commit(); return }
     begin()
-    const on = sideAt(window.innerWidth, x), W = window.innerWidth, H = window.innerHeight
+    const W = window.innerWidth, H = window.innerHeight
+    // Un margine di 48 px intorno al centro: il lato non sfarfalla mentre il dito passa sul confine.
+    const on: Side = Math.abs(x - W / 2) < 48 ? (masterLeft ? 'left' : 'right') : sideAt(W, x)
+    ptr = { x, y }
     if ((on === 'left') !== masterLeft) smooth(() => { masterLeft = on === 'left' })
     marks = [{ x: 14, y: H / 2, v: true, on: on === 'left', text: t.masterPosLeft }, { x: W - 14, y: H / 2, v: true, on: on === 'right', text: t.masterPosRight }]
-    void y
   }
   // La maniglia della testata: il gesto continua sulla finestra, dopo 6 px.
   function sideGrip(e: PointerEvent) {
@@ -502,6 +512,7 @@
     wFrame = requestAnimationFrame(() => {
       wFrame = 0
       const W = window.innerWidth, H = window.innerHeight, px = widthOf(wX), snapped = snapWidth(px, W)
+      ptr = { x: wX, y: H / 2 }
       masterW = px
       const at = (w: number) => (masterLeft ? w : W - w)
       marks = [{ x: at(COLUMN), y: H / 2, v: true, on: snapped === COLUMN, text: t.masterLand.column }, { x: W / 2, y: H / 2, v: true, on: snapped === Math.round(W / 2), text: t.masterHalfScreen }]
@@ -524,11 +535,16 @@
     const apply = (e: PointerEvent) => {
       if (!moved && Math.abs(e.clientY - y0) < 8) return
       moved = true; begin()
-      const on = heightAt(heightZones(col(e.clientX), !deskDashboard), e.clientY)
+      const zs = heightZones(col(e.clientX), !deskDashboard)
+      // Il margine anche qui: la banda di adesso tiene finché il dito non la supera di 28 px.
+      const now0: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
+      const near = [heightAt(zs, e.clientY - 28), heightAt(zs, e.clientY), heightAt(zs, e.clientY + 28)]
+      const on = moved && near.includes(now0) && near[1] !== now0 && (near[0] === now0 || near[2] === now0) ? now0 : near[1]
       const left = side ? sideAt(window.innerWidth, e.clientX) === 'left' : masterLeft
       const now: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
       if (on !== now || left !== masterLeft) smooth(() => { masterLeft = left; setHeight(on) })
       const c = col(e.clientX), H = window.innerHeight, cx = c.x + c.w / 2
+      ptr = { x: e.clientX, y: e.clientY }
       const ys: [Height, number][] = deskDashboard ? [['column', 24], ['bar', H - 36]] : [['column', 24], ['half', H / 2], ['compact', H - 150], ['bar', H - 36]]
       marks = ys.map(([k, y]) => ({ x: cx, y, v: false, on: k === on, text: t.masterLand[k] }))
     }
@@ -1334,7 +1350,7 @@
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
-{#snippet masterBar()}{#if master}<div class="mbar">{#if wide}<button class="hgrip bargrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientX, e.clientY, true) }}><i></i></button>{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+{#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}<button class="hgrip bargrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientX, e.clientY, true) }}><i></i></button>{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} grip={wide ? sideGrip : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
   onToggleKey={() => smooth(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
@@ -1365,7 +1381,7 @@
   {#if marks.length}
     <!-- I punti di rilascio della master (app-master-trascina-03-11): segni, quello di arrivo grande e con l'etichetta. -->
     <div class="marks" aria-hidden="true">
-      {#each marks as m (m.text)}<i class="mk" class:v={m.v} class:on={m.on} class:r={m.x > window.innerWidth / 2} style="left:{m.x}px; top:{m.y}px">{#if m.on}<b class:v={m.v}>{m.text}</b>{/if}</i>{/each}
+      {#each marks as m (m.text)}<i class="mk" class:v={m.v} class:on={m.on} class:r={m.x > window.innerWidth / 2} style={markStyle(m)}>{#if m.on}<b class:v={m.v}><span class="dot"></span>{m.text}</b>{/if}</i>{/each}
     </div>
   {/if}
   <div class="dstage">
@@ -1396,9 +1412,9 @@
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
   {#if cols.length && !stacked && !page}<SwapPills shown={cols} current={cols.at(-1) ?? null} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols([...cols, n]) }} onSwap={(n) => setCols(cols.length ? [...cols.slice(0, -1), n] : [n])} />{/if}
   </div>
-  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
+  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button><div class="dpanel under" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
   </div>
 {:else}
   <div class="phone">
@@ -1481,15 +1497,14 @@
      piena e chiara, quella dove la master sta già col bordo pieno. */
   /* I segni di rilascio della master: tacche gialle tenui, quella di arrivo piena, più grande e con l'etichetta. */
   .marks { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
-  .mk { position: absolute; width: 44px; height: 6px; transform: translate(-50%, -50%); border-radius: 3px; background: var(--wait); opacity: .45; transition: width .15s, height .15s, opacity .15s; }
-  .mk.v { width: 6px; height: 44px; }
-  .mk.on { width: 72px; height: 8px; opacity: 1; box-shadow: 0 0 0 4px color-mix(in srgb, var(--wait) 25%, transparent); }
-  .mk.v.on { width: 8px; height: 72px; }
-  .mk b { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); white-space: nowrap; padding: 6px 12px; border-radius: 14px; background: var(--wait); color: #0B0C0E; font: 600 14px var(--display); }
+  .mk { position: absolute; width: 48px; height: 4px; transform: translate(-50%, -50%); border-radius: 2px; background: var(--tx3); transition: left .12s ease-out, top .12s ease-out, width .12s ease-out, height .12s ease-out, background .15s; }
+  .mk.v { width: 4px; height: 48px; }
+  .mk.on { background: var(--wait); box-shadow: 0 0 12px color-mix(in srgb, var(--wait) 45%, transparent); }
+  .mk b { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 6px 12px; border-radius: 14px; background: var(--s2); border: 1px solid var(--line); color: var(--tx); font: 600 14px var(--display); box-shadow: 0 8px 24px rgb(0 0 0 / .4); }
+  .mk b .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--wait); }
   .mk b.v { left: auto; bottom: auto; top: 50%; transform: translateY(-50%); }
-  .mk:not(.v) b { bottom: 16px; }
-  .mk.v b.v { left: 18px; }
-  .mk.v.r b.v { left: auto; right: 18px; }
+  .mk.v b.v { left: 16px; }
+  .mk.v.r b.v { left: auto; right: 16px; }
   @media (prefers-reduced-motion: reduce) { .mk { transition: none; } }
   /* Il bordo della master si trascina senza transizioni sotto: le colonne seguono il dito subito. */
   .deskwrap.resizing :global(.col), .deskwrap.resizing :global(.tabslot), .deskwrap.resizing :global(.dpanel) { transition: none !important; }
