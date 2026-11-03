@@ -45,6 +45,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -189,7 +190,7 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
     m = m.then(drag)
     // Frecce e riassunti sulla stessa verticale di quelli dentro le liste, che hanno 12 dp a destra (Franz 31/10 01:14).
     Row(m.heightIn(min = 36.dp).padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.size(22.dp)) }
+        Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.capAlign(V3.Section).size(22.dp)) }
         Spacer(Modifier.width(8.dp))
         Text(title, style = V3.Section, maxLines = 1)
         count?.let { SectionCount(it, hot, V3.Section.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp), Modifier.padding(start = 8.dp)) }
@@ -202,6 +203,17 @@ internal fun V3Section(title: String, icon: ImageVector, count: String? = null, 
         if (open != null) TurnArrow(open, V3.Tx3, Modifier.padding(start = 6.dp).size(24.dp))
         else if (nav) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 6.dp).size(24.dp))
     }
+}
+
+/**
+ * Le icone a sinistra di un titolo stanno sul centro delle sue maiuscole, non sul centro della riga (Franz 03/11 12:15,
+ * app-suggerimenti-icone-03-11): in Barlow le maiuscole stanno 0,042 em sotto il centro della riga (ascesa 1,0, discesa 0,2,
+ * maiuscole 0,7 em), quindi l'icona scende di tanto. Segue il testo grande, perché si misura dal corpo del titolo.
+ */
+@Composable
+internal fun Modifier.capAlign(title: TextStyle): Modifier {
+    val d = androidx.compose.ui.platform.LocalDensity.current
+    return this.then(Modifier.offset(y = with(d) { (title.fontSize * 0.042f).toDp() }))
 }
 
 /** Voce 5: la freccina delle voci richiudibili ruota, senza rimbalzo. Una sola per tutta l'app. */

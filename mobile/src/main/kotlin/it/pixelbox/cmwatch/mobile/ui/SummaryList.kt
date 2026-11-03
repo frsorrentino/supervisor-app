@@ -1093,8 +1093,11 @@ private fun SummaryCard(
             .padding(end = 10.dp, top = 8.dp, bottom = 10.dp),
     ) {
     // Il binario: il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora.
-    Column(Modifier.width(V3.Rail).padding(top = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        StateGlyph(glyph, s.context, square = square)
+    // Il glifo sul centro delle maiuscole del nome (app-suggerimenti-icone-03-11): la riga del nome è alta quanto il tasto ▼ (32 dp)
+    // o quanto il nome col testo grande, e il nome ci sta al centro; prima il glifo partiva da 4 dp e restava 2 dp più in alto.
+    val nameRow = with(androidx.compose.ui.platform.LocalDensity.current) { maxOf(32.dp, V3.Name.lineHeight.toDp()) }
+    Column(Modifier.width(V3.Rail).padding(top = nameRow / 2 - 10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Box(Modifier.capAlign(V3.Name)) { StateGlyph(glyph, s.context, square = square) }
         railText?.let { x -> Text(x, style = V3.RailText.copy(color = if (glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.STILL) V3.Tx2 else V3.tone(glyph)), maxLines = 1) }
     }
     Spacer(Modifier.width(8.dp))

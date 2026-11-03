@@ -1556,7 +1556,8 @@
   .card.waiting { background: var(--s2); }
   .card.r { flex-direction: row; align-items: flex-start; gap: 8px; padding: 12px 12px 12px 0; }
   .card.r .cnt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-  .rail { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 1px; }
+  /* Il glifo sul centro delle maiuscole del nome (app-suggerimenti-icone-03-11): misurato 2,4 px più in alto con 1 px di margine. */
+  .rail { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 3.4px; }
   .rt { font: 700 15px/1 var(--display); letter-spacing: .01em; color: var(--tx2); white-space: nowrap; }
   .rt.waiting { color: var(--wait); } .rt.busy { color: var(--busy); } .rt.red { color: var(--red); }
   .card.on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 45%, transparent); }

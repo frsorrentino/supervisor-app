@@ -197,7 +197,7 @@ internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolea
         else -> m
     }
     Row(m.then(modifier).handCursor().clickable(onClick = onToggle).testTag("home-cat-$id").heightIn(min = 52.dp).padding(start = 0.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(catIcon(id), null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
+        Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(catIcon(id), null, tint = V3.Tx2, modifier = Modifier.capAlign(V3.Section).size(22.dp)) }
         Spacer(Modifier.width(8.dp))
         // Nome e segnale sulla stessa riga; il segnale prende quello che avanza (app-riassunti-una-riga-03-11).
         Text(catName(id), style = V3.Section, maxLines = 1, softWrap = false)

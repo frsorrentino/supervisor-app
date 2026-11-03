@@ -246,7 +246,7 @@ internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.gr
     if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Column(Modifier.fillMaxWidth().hotEdge(hot).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
         Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.size(18.dp))
+            Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.capAlign(V3.Name.copy(fontSize = 15.sp)).size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
             count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 13.sp), Modifier.padding(start = 6.dp)) }
@@ -269,7 +269,7 @@ internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.u
     if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Column(Modifier.fillMaxWidth().then(drag).handCursor().clickable(onClick = onToggle).testTag(tag).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
         Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(18.dp))
+            Icon(icon, null, tint = V3.Tx2, modifier = Modifier.capAlign(V3.Name.copy(fontSize = 15.sp)).size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
             count?.let { Text(it, style = V3.Name.copy(fontSize = 13.sp, color = V3.Tx2), modifier = Modifier.padding(start = 6.dp)) }

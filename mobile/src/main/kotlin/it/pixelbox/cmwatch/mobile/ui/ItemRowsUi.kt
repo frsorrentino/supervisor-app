@@ -82,8 +82,8 @@ internal fun ItemRowView(r: ItemRows.Row, right: String, first: Boolean, open: B
         // Il segno al centro della riga del titolo (20 sp come V3.Name); per un suggerimento l'icona del suo tipo (app-suggerimenti-icone-03-11).
         Box(Modifier.width(V3.Rail).height(with(androidx.compose.ui.platform.LocalDensity.current) { V3.Name.lineHeight.toDp() }), contentAlignment = Alignment.Center) {
             val icon = r.icon
-            if (icon != null) androidx.compose.material3.Icon(sugKindIcon(icon), null, tint = itemTone(r.tone), modifier = Modifier.size(18.dp))
-            else Box(Modifier.size(8.dp).clip(CircleShape).background(itemTone(r.tone)))
+            if (icon != null) androidx.compose.material3.Icon(sugKindIcon(icon), null, tint = itemTone(r.tone), modifier = Modifier.capAlign(V3.Name).size(18.dp))
+            else Box(Modifier.capAlign(V3.Name).size(8.dp).clip(CircleShape).background(itemTone(r.tone)))
         }
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
