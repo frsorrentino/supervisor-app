@@ -15,7 +15,7 @@
   // chiudere non chiede più il trascinamento, ogni gesto ha un tocco che fa lo stesso (WCAG 2.5.1).
   // `onDrag`: il gesto passo per passo (`/embed?dock=1`, dove Studio fa seguire al riquadro il dito), con lo spostamento in
   // px dall'inizio, e `null` alla fine; allora decide `onDrop` invece di `onToggle`.
-  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false, keys = true, places = null, onPlace }: {
+  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false, keys = true, places = null, onPlace, grip }: {
     master: Session; entries: Entry[]; onToggle: () => void; onSpeak: (text: string) => void; expanded?: boolean
     /** Il pannello a destra della plancia (pwa2, 30/10): il tasto tondo allarga o stringe (frecce di lato), Chiudi è una ×. */
     side?: boolean
@@ -33,6 +33,8 @@
     onDrag?: (dy: number) => void; onDrop?: (dy: number) => void
     /** Il trascinamento libero nella plancia (app-master-trascina-03-11): dove sta il dito, e alla fine dove si è lasciata. */
     onPlace?: (phase: 'move' | 'end' | 'cancel', x: number, y: number) => void
+    /** La maniglia per trascinare la master da un lato all'altro (Franz 03/11 22:54: «serve punto chiaro di aggancio»). */
+    grip?: (e: PointerEvent) => void
   } = $props()
   const up = $derived(toggleUp ?? !expanded)
   const key = $derived(onToggleKey ?? onToggle)
@@ -95,6 +97,11 @@
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 7l-4 4 4 4M4 11h11M16 9l4 4-4 4M20 13H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
     </button>
   {/if}
+  {#if grip}
+    <button class="grab" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={(e) => { e.stopPropagation(); e.preventDefault(); grip(e) }} onclick={(e) => e.stopPropagation()}>
+      <svg viewBox="0 0 24 24" width="20" height="20"><g fill="currentColor"><circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" /><circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" /><circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" /></g></svg>
+    </button>
+  {/if}
   <StateGlyph kind={glyphOf(master)} ctx={master.context} size={18} square={!personal(master.account, master.account_kind)} label={attention ? master.state : label} />
   <span class="col">
     {#if expanded}
@@ -131,6 +138,9 @@
 <svelte:window onclick={() => (placeOpen = false)} />
 
 <style>
+  .grab { flex: none; display: grid; place-items: center; width: 32px; height: 40px; margin-right: -4px; border-radius: 10px; color: var(--tx2); cursor: grab; touch-action: none; user-select: none; }
+  .grab:hover { background: var(--s3); color: var(--tx); }
+  .grab:active { cursor: grabbing; }
   /* La master è la superficie più alta dell'app, velata del celeste d'accento, piatta come il resto (Celeste velato, Franz
      06/10 21:23). Aperta resta una linguetta col verso di quando è chiusa, angoli tondi in alto (08:48). */
   .dock { touch-action: none; display: flex; align-items: center; gap: 12px; padding: 10px 12px 8px 8px; border-radius: 26px 26px 0 0; cursor: pointer; outline: none; background: var(--master-highest); }
