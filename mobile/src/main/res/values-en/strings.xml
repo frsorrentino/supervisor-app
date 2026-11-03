@@ -1655,4 +1655,14 @@ It starts at your last message to the master.</string>
     <string name="watch_at_pos">at %1$s</string>
     <string name="home_sec_reports">Reports</string>
     <string name="home_sec_scorecard">Scorecard</string>
+    <!-- Traduzioni mancanti trovate nel giro difetti della notte (app-bug-notte-03-11): in inglese comparivano in italiano. -->
+    <string name="credits_title">Credits</string>
+    <string name="credits_author">Francesco Sorrentino · francescosorrentino.com</string>
+    <string name="credits_fonts">Fonts: Barlow and Geist Mono (OFL), Material Symbols (Apache 2.0)</string>
+    <string name="credits_libs">Libraries: AndroidX, Compose, Kotlin, Firebase, Room (Apache 2.0)</string>
+    <plurals name="settings_devices"><item quantity="one">%d device</item><item quantity="other">%d devices</item></plurals>
+    <string name="home_last">Last outcome · %1$s</string>
+    <string name="home_last_bare">Last outcome</string>
+    <string name="home_quota">%1$s %2$d%% · week %3$d%%</string>
+    <string name="home_quota_old">%1$s · not updated</string>
 </resources>
