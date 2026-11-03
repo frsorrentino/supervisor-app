@@ -101,7 +101,10 @@
     {:else}
       <!-- Dove atterra la colonna presa, tratteggiato come il posto della master (Franz 03/11 22:39, come le icone di Android). -->
       {#if dragged >= 0 && over >= 0}<div class="landslot" aria-hidden="true" style="left:{lefts[over]}px;width:{live[over] ?? 0}px"></div>{/if}
-      {#each cols as name, i (name)}
+      <!-- In ordine stabile (per nome): spostare i nodi nel DOM fermerebbe la transizione di `left` al rilascio (Franz 03/11 22:50).
+           Le colonne stanno in posizione assoluta, conta solo l'indice in `cols`. -->
+      {#each [...cols].sort() as name (name)}
+        {@const i = cols.indexOf(name)}
         {@const k = slot(i)}
         <div class="col" class:dragging={dragged === i}
           style="left:{dragged === i ? lefts[i] + draggedPx : lefts[k]}px;width:{live[k] ?? 0}px">

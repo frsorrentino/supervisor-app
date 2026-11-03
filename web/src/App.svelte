@@ -622,6 +622,9 @@
     for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
   }
   function setCols(c: string[]) { smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }) }
+  // Dal trascinamento niente View Transition: sfumerebbe due fotografie della plancia invece di far scorrere la colonna lasciata
+  // fino al suo posto (Franz 03/11 22:50: «al rilascio c'è uno scatto»); il movimento lo fa la transizione di `left` in Desk.
+  function dropCols(c: string[]) { pinned = c; save('cm.columns', columnsPref(c)) }
   function setShares(s: number[]) { shares = s; save('cm.shares', sharesPref(s)) }
   // Aprire una sessione (da «Per te», da una ricerca, dal controller della lettura): la master si espande nella home,
   // le altre entrano in colonna sulla plancia o diventano la pagina sul telefono.
@@ -1340,7 +1343,7 @@
   <div class="dstage">
   <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
        accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
-  <Desk {cols} {shares} homeRight={master ? !masterLeft : homeRight} tab={wco ? columnTab : null} onCols={setCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
+  <Desk {cols} {shares} homeRight={master ? !masterLeft : homeRight} tab={wco ? columnTab : null} onCols={dropCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={master ? null : () => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
     {#snippet home()}{#if !stacked}{@render homePane()}{/if}{/snippet}
     {#snippet column(name, grab)}
