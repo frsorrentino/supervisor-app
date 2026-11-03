@@ -15,7 +15,7 @@
   // chiudere non chiede più il trascinamento, ogni gesto ha un tocco che fa lo stesso (WCAG 2.5.1).
   // `onDrag`: il gesto passo per passo (`/embed?dock=1`, dove Studio fa seguire al riquadro il dito), con lo spostamento in
   // px dall'inizio, e `null` alla fine; allora decide `onDrop` invece di `onToggle`.
-  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false, keys = true }: {
+  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false, keys = true, places = null }: {
     master: Session; entries: Entry[]; onToggle: () => void; onSpeak: (text: string) => void; expanded?: boolean
     /** Il pannello a destra della plancia (pwa2, 30/10): il tasto tondo allarga o stringe (frecce di lato), Chiudi è una ×. */
     side?: boolean
@@ -23,6 +23,8 @@
     bar?: boolean
     /** false: niente tasti tondi, stanno nel menu ⋮ della master (app-master-tasti-compatti-03-11). */
     keys?: boolean
+    /** Il tasto tondo Posizione accanto al ▶ (Franz 03/11 17:23): apre le posizioni, la misura e Chiudi. */
+    places?: { label: string; onMove: () => void; on?: boolean; icon?: string }[] | null
     /** Il pannello sta a sinistra: le frecce di lato si invertono, allargare resta verso le colonne. */
     mirror?: boolean
     screen?: boolean; trailing?: Snippet; toggleUp?: boolean; onToggleKey?: () => void; onClose?: () => void
@@ -62,6 +64,7 @@
     if (onDrop) { if (dragged) onDrop(dy); return }
     if ((dy < -40 && !expanded) || (dy > 40 && expanded)) { dragged = true; onToggle() }
   }
+  let placeOpen = $state(false)
 </script>
 
 {#snippet toggleKey()}
@@ -98,8 +101,26 @@
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
     </button>
   {/if}
+  {#if places?.length}
+    <span class="pl">
+      <button class="ib" aria-label={t.masterPlace} title={t.masterPlace} aria-expanded={placeOpen} data-testid="master-posizione" onclick={(e) => { e.stopPropagation(); placeOpen = !placeOpen }}>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 5h16v14H4zM14 5v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg>
+      </button>
+      {#if placeOpen}
+        <span class="pm" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.key === 'Escape' && (placeOpen = false)}>
+          {#each places as p (p.label)}
+            <button class="pi" role="menuitemradio" aria-checked={p.on ?? false} onclick={() => { placeOpen = false; p.onMove() }}>
+              <svg viewBox="0 0 24 24" width="20" height="20"><path d={p.icon ?? 'M4 5h16v14H4z'} fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" /></svg>
+              <span>{p.label}</span>{#if p.on}<span class="ok" aria-hidden="true">✓</span>{/if}
+            </button>
+          {/each}
+        </span>
+      {/if}
+    </span>
+  {/if}
   {@render trailing?.()}
 </div>
+<svelte:window onclick={() => (placeOpen = false)} />
 
 <style>
   /* La master è la superficie più alta dell'app, velata del celeste d'accento, piatta come il resto (Celeste velato, Franz
@@ -120,6 +141,12 @@
   .ib::after { content: ''; position: absolute; inset: -2px; }
   .ib:active { border-radius: 12px; }
   .ib:hover { filter: brightness(1.15); }
+  .pl { position: relative; flex: none; }
+  .pm { position: absolute; top: 50px; right: 0; z-index: 20; min-width: 230px; display: flex; flex-direction: column; padding: 6px; border-radius: 18px; background: var(--s3, var(--s2)); border: 1px solid var(--line); box-shadow: 0 10px 30px rgb(0 0 0 / .45); cursor: default; }
+  .pi { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; color: var(--text); font-size: 15px; text-align: left; }
+  .pi:hover { background: var(--s2); }
+  .pi svg { flex: none; color: var(--icon, var(--text2)); }
+  .pi .ok { margin-left: auto; color: var(--accent); }
   /* Nella home in stile «Studio e Diretta» (30/10): la barra sta sul fondo della home, senza velo; il nome in Barlow Semi
      Condensed, l'ultimo esito in grigio, l'ora in mono; i tasti tondi tonali. */
   :global(.v3) .dock { background: transparent; gap: 10px; }

@@ -412,8 +412,8 @@
   function placeMaster(p: 'right' | 'under' | 'left') {
     smooth(() => { masterUnder = p === 'under'; masterLeft = p === 'left'; save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0') })
   }
-  // Il menu ⋮ della master (Franz 03/11 17:05, scelta C, app-master-tasti-compatti-03-11): le posizioni, la misura e Chiudi al
-  // posto dei tre tasti tondi. «Sotto la dashboard» solo con le sessioni aperte: sul cruscotto la master sta di lato.
+  // Il tasto tondo Posizione accanto al ▶ della master (Franz 03/11 17:23, al posto del menu ⋮ della scelta C delle 17:05,
+  // app-master-tasti-compatti-03-11): le posizioni, la misura e Chiudi al posto dei tre tasti tondi. «Sotto la dashboard» solo con le sessioni aperte: sul cruscotto la master sta di lato.
   const masterMenu = $derived([
     { label: t.masterPosRight, on: !masterLeft && !masterUnder, icon: 'M3 5h18v14H3zM15 5v14', onMove: () => placeMaster('right') },
     ...(deskDashboard ? [] : [{ label: t.masterPosUnder, on: masterUnder, icon: 'M3 5h18v14H3zM3 12h18', onMove: () => placeMaster('under') }]),
@@ -1061,7 +1061,7 @@
     wide={false} {slots} elsewhere={elsewhereFor(name)} elsewhereAway={embed ? (() => { const a = elsewhereFor(name); return a ? awayOf(a, st.sessions, location.origin) : null })() : null} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, ...alertKeys(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
     inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} onOlder={olderOf[name] ? () => loadOlder(name) : null}
-    onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu} menuMove={name === MASTER && wide ? masterMenu : null}
+    onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu} menuMove={null}
     onDiff={st.ops?.includes('diff') ? (id) => ask(tr, newCmd('diff', name, id), decodeDiff) : null}
     onChanges={st.ops?.includes('changes') ? (f) => ask(tr, newCmd('changes', name, f == null ? null : fileArg(f)), decodeChanges) : null} />
 {/snippet}
@@ -1196,7 +1196,7 @@
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
 {#snippet masterBar()}{#if master}<div class="mbar"><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
-{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
+{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
   onToggleKey={() => smooth(masterSize)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
