@@ -98,6 +98,7 @@
     <string name="video_fullscreen_exit">Exit full screen</string>
     <string name="file_no_app">No app can open this file</string>
     <string name="file_open">Open</string>
+    <string name="image_open_full">Open the image full screen</string>
     <string name="file_download">Download</string>
     <string name="file_copy">Copy</string>
     <string name="file_share">Share</string>

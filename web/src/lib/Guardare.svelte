@@ -4,6 +4,7 @@
   import { newCmd } from './transport'
   import { t } from './t'
   import CatIcon from './CatIcon.svelte'
+  import ImageViewer from './ImageViewer.svelte'
   // «Da guardare» (app-da-guardare-02-11, mockup della master delle 08:16; contratto 1.106), porta di GuardareUi.kt: in home le
   // ultime versioni non viste con Visto e Nota; la pagina coi lavori e le versioni precedenti (anche di una sessione sola); il
   // risultato aperto col lettore della chat e la nota che va alla sessione col secondo in cui si è.
@@ -16,6 +17,8 @@
   let page = $state<ResultsPage | null>(null)
   let failed = $state(false)
   let opened = $state<string | null>(null)
+  // Un tocco sull'immagine la apre a tutto schermo, dove si ingrandisce (app-immagini-ingrandibili-03-11: dal telefono non si leggeva).
+  let zoomed = $state<{ src: string; name: string } | null>(null)
   // Aperto dall'elenco della pagina: la sua freccia torna all'elenco; aperto dalla home, la freccia della pagina torna alla home.
   let fromList = $state(false)
   $effect(() => { opened = openId; fromList = false })
@@ -86,7 +89,7 @@
   <div class="viewer" data-testid="risultato-aperto">
     <div class="vh">{#if fromList}<button class="back" aria-label={t.back} onclick={() => { opened = null; fromList = false }}><CatIcon name="back" size={24} /></button>{/if}<h2>{l.title}</h2></div>
     {#if u && l.kind === 'video'}<!-- svelte-ignore a11y_media_has_caption --><video src={u} controls playsinline ontimeupdate={(e) => (at = (e.currentTarget as HTMLVideoElement).currentTime)}></video>
-    {:else if u}<img class="full" src={u} alt={l.title} />
+    {:else if u}<button class="zoom" aria-label={t.imageOpenFull} data-testid="risultato-immagine" onclick={() => (zoomed = { src: u, name: l.title })}><img class="full" src={u} alt={l.title} /></button>
     {:else if show && failedFiles[`${r.id}:${show.path}`]}<div class="ph fail" data-testid="risultato-non-arrivato"><p>{t.watchFileFailed}</p><button class="pill" onclick={() => retry(r, show)}>{t.watchRetry}</button></div>
     {:else if show}<div class="ph"></div>{/if}
     {#if l.kind !== 'video' && l.kind !== 'image'}<button class="pill" onclick={() => onExternal(r)}>{t.watchOpenFile}</button>{/if}
@@ -142,6 +145,8 @@
   </div>
 {/if}
 
+{#if zoomed}<ImageViewer src={zoomed.src} name={zoomed.name} onClose={() => (zoomed = null)} />{/if}
+
 <style>
   .list, .pg { display: flex; flex-direction: column; gap: 4px; }
   .pg { gap: 12px; padding: 8px 16px 24px; }
@@ -177,6 +182,7 @@
   .vh h2 { margin: 0; font-size: 20px; color: var(--tx); }
   .back { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 20px; color: var(--tx); }
   video, .full { width: 100%; border-radius: 12px; background: #000; }
+  .zoom { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
   .ph { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: var(--s2); }
   .ph.fail { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--tx2); text-align: center; padding: 16px; box-sizing: border-box; }
   .ph.fail p { margin: 0; }

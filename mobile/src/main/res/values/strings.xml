@@ -100,6 +100,7 @@
     <string name="video_fullscreen_exit">Esci dallo schermo intero</string>
     <string name="file_no_app">Nessuna app per aprire questo file</string>
     <string name="file_open">Apri</string>
+    <string name="image_open_full">Apri l\'immagine a tutto schermo</string>
     <string name="file_download">Scarica</string>
     <string name="file_copy">Copia</string>
     <string name="file_share">Condividi</string>

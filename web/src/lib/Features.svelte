@@ -3,12 +3,15 @@
   import { lang } from './lang'
   import { t } from './t'
   import FeatureDemo, { DEMO_KEYS } from './FeatureDemo.svelte'
+  import ImageViewer from './ImageViewer.svelte'
   // «Cosa sa fare» (Franz 01/11 20:39), porta di FeaturesScreen.kt. Ogni voce apre la sua pagina (22:05: tornare alla home non spiegava niente):
   // cosa fa e quando serve, come si usa, e «Portami lì» se ha un posto suo.
   let { onRoute }: { onRoute: (route: string) => void } = $props()
   const it = lang === 'it'
   const tx = (x: { it: string; en: string }) => (it ? x.it : x.en)
   let opened = $state<Feature | null>(null)
+  // Un tocco sull'immagine la apre a tutto schermo, dove si ingrandisce (app-immagini-ingrandibili-03-11).
+  let zoomed = $state<{ src: string; name: string } | null>(null)
 </script>
 
 {#if opened}
@@ -17,7 +20,7 @@
     <h2>{tx(opened.name)}{#if opened.state === 'coming'} <small>{t.featuresComing}</small>{/if}</h2>
     <p class="about">{tx(opened.what)} {tx(opened.when)}</p>
     {#if DEMO_KEYS.includes(opened.key)}<h4>{t.featuresTry}</h4><FeatureDemo key={opened.key} />{/if}
-    {#if opened.image}<h4>{t.featuresLook}</h4><img class="look" src="/feature-images/{opened.image}" alt={tx(opened.name)} loading="lazy" />{/if}
+    {#if opened.image}<h4>{t.featuresLook}</h4><button class="zoom" aria-label={t.imageOpenFull} onclick={() => (zoomed = { src: `/feature-images/${opened!.image}`, name: tx(opened!.name) })}><img class="look" src="/feature-images/{opened.image}" alt={tx(opened.name)} loading="lazy" /></button>{/if}
     {#if tx(opened.how)}<h4>{t.featuresHow}</h4><p class="how">{tx(opened.how)}</p>{/if}
     {#if tx(opened.where)}<p class="wh">{tx(opened.where)}</p>{/if}
     {#if canGo(opened)}<button class="go" onclick={() => onRoute(opened!.route!)}>{t.featuresGo}</button>{/if}
@@ -42,6 +45,8 @@
 </div>
 {/if}
 
+{#if zoomed}<ImageViewer src={zoomed.src} name={zoomed.name} onClose={() => (zoomed = null)} />{/if}
+
 <style>
   .fx { padding: 0 12px 24px; max-width: 720px; }
   h3 { margin: 16px 4px 6px; font-size: 14px; font-weight: 600; color: var(--text2); }
@@ -61,6 +66,7 @@
   .about, .how { font-size: 15.5px; line-height: 1.4; color: var(--text); }
   h4 { margin-top: 4px; font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text2); }
   .how { margin-top: -6px; font-size: 14.5px; }
+  .zoom { display: block; padding: 0; border: 0; background: none; cursor: zoom-in; max-width: 100%; }
   .look { max-width: 100%; max-height: 520px; border: 1px solid var(--line); border-radius: 12px; }
   .go { background: var(--high); color: var(--text); border-radius: 999px; padding: 9px 16px; font-weight: 500; font-size: 14px; }
 </style>

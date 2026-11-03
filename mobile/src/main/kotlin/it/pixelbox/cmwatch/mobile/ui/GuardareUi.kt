@@ -245,7 +245,10 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
             kind == Guardare.Kind.VIDEO && p != null -> VideoPreview(p) { s -> pos = s }
             p != null -> {
                 val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, p) { value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { decodeScaled(p, 2048, 12_000_000) } }
-                bmp?.let { b -> Image(b, null, Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.FillWidth) }
+                // Un tocco la apre a tutto schermo, dove si ingrandisce (app-immagini-ingrandibili-03-11: dal telefono non si leggeva).
+                var full by remember(p) { mutableStateOf(false) }
+                bmp?.let { b -> Image(b, stringResource(R.string.image_open_full), Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { full = true }.testTag("risultato-immagine"), contentScale = ContentScale.FillWidth) }
+                if (full) FileImageViewer(p) { full = false }
             }
             // Senza rete o col file sparito dal PC: lo dice, e «Riprova» lo richiede (app-bug-notte-03-11, prima girava per sempre).
             show != null && failed -> Column(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp)).background(V3.S2).padding(16.dp).testTag("risultato-non-arrivato"), verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {

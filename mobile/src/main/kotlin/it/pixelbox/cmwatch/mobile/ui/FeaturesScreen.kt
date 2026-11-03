@@ -98,7 +98,10 @@ private fun FeaturePage(f: Features.Feature, italian: Boolean, demo: FeatureDemo
                 val img = androidx.compose.runtime.remember(name) { runCatching { ctx.assets.open("feature-images/$name").use { android.graphics.BitmapFactory.decodeStream(it) } }.getOrNull()?.asImageBitmap() }
                 if (img != null) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(stringResource(R.string.features_look).uppercase(), style = MonoSmall.copy(fontWeight = FontWeight.Medium), color = Cm.text2)
-                    androidx.compose.foundation.Image(img, f.name.of(italian), modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).clip(RoundedCornerShape(12.dp)))
+                    // Un tocco la apre a tutto schermo, dove si ingrandisce (app-immagini-ingrandibili-03-11).
+                    var full by androidx.compose.runtime.remember(name) { androidx.compose.runtime.mutableStateOf(false) }
+                    androidx.compose.foundation.Image(img, f.name.of(italian), modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).clip(RoundedCornerShape(12.dp)).clickable { full = true })
+                    if (full) BitmapImageViewer(img) { full = false }
                 }
             }
             f.how.of(italian).takeIf { it.isNotEmpty() }?.let { how ->

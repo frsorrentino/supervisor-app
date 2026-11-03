@@ -2109,6 +2109,22 @@ private fun ImageViewer(path: String, start: ViewerStart? = null, onShown: () ->
     val bmp = remember(path) { decodeScaled(path, 8192, 16_000_000L) }
     // Senza immagine niente visore, ma la finestra del pizzico va tolta lo stesso.
     if (bmp == null) { androidx.compose.runtime.SideEffect { onShown() }; return }
+    ImageViewer(bmp, start, onShown, onClose)
+}
+
+/** Lo stesso visore per un file (Risultati, app-immagini-ingrandibili-03-11): decodifica fuori dal thread dell'interfaccia, poi a tutto schermo. */
+@Composable
+internal fun FileImageViewer(path: String, onClose: () -> Unit) {
+    val bmp by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, path) { value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { decodeScaled(path, 8192, 16_000_000L) } }
+    bmp?.let { ImageViewer(it, null, {}, onClose) }
+}
+
+/** Lo stesso visore per una bitmap già in memoria (le immagini di Funzioni, app-immagini-ingrandibili-03-11). */
+@Composable
+internal fun BitmapImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, onClose: () -> Unit) = ImageViewer(bmp, null, {}, onClose)
+
+@Composable
+private fun ImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, start: ViewerStart?, onShown: () -> Unit, onClose: () -> Unit) {
     var view by remember { mutableStateOf(it.pixelbox.cmwatch.rules.ZoomPan.View()) }
     var box by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     // Dal pizzico sull'anteprima: alla prima misura il visore si mette dove il pizzico ha lasciato l'immagine.
