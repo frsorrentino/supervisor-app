@@ -163,13 +163,15 @@
   // Da Cerca: la voce trovata al centro, con un lampo giallo; la chat smette di seguire la fine finché non si torna giù, e il primo
   // assestamento in fondo dell'apertura non la riporta giù (`held`). Si riprova a ogni voce nuova finché la voce non è disegnata.
   let held = false
+  // Una volta per istanza: la chat può essere rimontata subito dopo l'apertura, e la nuova deve rifare il salto.
+  let handled: string | null = null
   let flash = $state<string | null>(null)
   $effect(() => {
     items.length
-    if (!focus || !list) return
+    if (!focus || !list || focus === handled) return
     const el = list.querySelector<HTMLElement>(`[data-entry="${CSS.escape(focus)}"]`)
     if (!el) return
-    held = true; settled = true; atEnd = false
+    held = true; settled = true; atEnd = false; handled = focus
     const id = focus
     requestAnimationFrame(() => {
       el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' })

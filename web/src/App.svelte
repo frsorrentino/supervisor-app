@@ -359,7 +359,12 @@
   async function jumpTo(name: string, entry: string) {
     for (let i = 0; i < 40 && !untrack(() => transcripts[name])?.length; i++) await new Promise(r => setTimeout(r, 250))
     for (let i = 0; i < 8; i++) {
-      if (untrack(() => transcripts[name])?.some(e => e.id === entry)) { focusOf = { ...focusOf, [name]: entry }; return }
+      if (untrack(() => transcripts[name])?.some(e => e.id === entry)) {
+        // Resta per 3 s: la chat aperta può essere rimontata e la nuova istanza deve trovarlo.
+        focusOf = { ...focusOf, [name]: entry }
+        setTimeout(() => { if (focusOf[name] === entry) { const { [name]: _, ...rest } = focusOf; focusOf = rest } }, 3000)
+        return
+      }
       if (!untrack(() => olderOf[name])) return
       await loadOlder(name)
     }
@@ -1220,7 +1225,7 @@
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
   {#snippet resultsRow()}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} onOpen={() => { watchSession = name; watchOpenId = null; openPage('guardare') }} />{/if}{/snippet}
-  <Chat {resultsRow} focus={focusOf[name] ?? null} onFocused={() => { const { [name]: _, ...rest } = focusOf; focusOf = rest }} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
+  <Chat {resultsRow} focus={focusOf[name] ?? null} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
