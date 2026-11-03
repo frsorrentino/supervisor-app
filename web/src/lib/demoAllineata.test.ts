@@ -1,3 +1,4 @@
+import { parseSteps } from './nextSteps'
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { replaceNames, splitLabels, taskNames } from './chatLabels'
@@ -99,6 +100,12 @@ describe('demo_allineata', () => {
     const text = w.transcripts.master[0].text ?? ''
     expect(splitLabels(text).map(p => p.kind)).toEqual(['plain', 'you', 'untested', 'plain'])
     expect(replaceNames(text, taskNames(st.commitments))).toContain('](https://task.invalid/demo-cover)')
+  })
+  it("demo_allineata: ogni messaggio che chiude con «Esito:» ha il suo tipo, così la chat lo mostra con l'icona (app-bug-notte-03-11)", () => {
+    // Come la chat: prima si toglie la riga «Prossimi:», poi conta l'ultima riga.
+    const closing = Object.values(w.transcripts).flat().filter(e => e.role === 'assistant' && /^Esito:/.test(parseSteps(e.text ?? '').text.trim().split('\n').pop() ?? ''))
+    expect(closing.length).toBeGreaterThan(1)
+    for (const e of closing) expect(e.outcome_type, e.id).toBeTruthy()
   })
   it('demo_allineata: Da provare, Da decidere, ok, Esito e nota hanno i loro dati', async () => {
     const d = new DemoTransport(() => NOW)

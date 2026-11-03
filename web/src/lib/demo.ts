@@ -268,7 +268,7 @@ export function world(now: number): World {
       said('u1', en ? 'Launch payments-api on phase 2.2' : 'Lancia payments-api sulla fase 2.2', now - 660, 'phone'),
       claude('a1', en
         ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'
-        : 'Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Fase 2.2 avviata su payments-api\nProssimi: rivedi il flusso dei rimborsi · prova il checkout dal vivo', now - 600),
+        : 'Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Fase 2.2 avviata su payments-api\nProssimi: rivedi il flusso dei rimborsi · prova il checkout dal vivo', now - 600, { outcome_type: 'running' }),
     ],
     'payments-api': [
       said('u1', 'Prepare the 2.8.0 deploy of the refund endpoint and wait for my ok', t0 - 300),
@@ -292,7 +292,8 @@ export function world(now: number): World {
       tool('a0', 'Write', 'posts/edge-caching.md', t0 - 120, { files: [{ path: '/w/blog/posts/edge-caching.md', mime: 'text/markdown', size: 547 }, { path: '/w/blog/bench/bench-data.zip', mime: 'application/zip', size: 166 }, { path: '/w/blog/posts/edge-caching-preview.html', mime: 'text/html', size: 868 }] }),
       said('u1', numbers, t0, 'phone'),
       tool('w1', 'Write', 'bench/results.csv', t0 + 20, { diff: benchStep }),
-      claude('a1', table, t0 + 60, { turn: { started: t0 + 5, ended: t0 + 60, out: 288 } }),
+      // La riga Esito tipizzata come la manda il relay (app-chat-esito-01-11): nella demo mancava e l'Esito restava testo.
+      claude('a1', table, t0 + 60, { turn: { started: t0 + 5, ended: t0 + 60, out: 288 }, outcome_type: 'done' }),
     ],
   }
   const mine: [Sent, Status][] = [
