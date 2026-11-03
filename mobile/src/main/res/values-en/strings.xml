@@ -1201,7 +1201,7 @@ It starts at your last message to the master.</string>
     <string name="close_finished_n">Close the finished (%1$d)</string>
     <string name="close_finished_title">Close the finished?</string>
     <string name="close_finished_sub">Before closing, each session saves its last state: resume it from «Closed».</string>
-    <string name="close_finished_loading">Asking the PC what it saves…</string>
+    <string name="close_finished_loading">Asking the PC what it saves</string>
     <string name="close_finished_no_preview">The PC did not answer: nothing closed.</string>
     <string name="close_finished_go">Close %1$d</string>
     <string name="close_saves_outcome">outcome: %1$s</string>

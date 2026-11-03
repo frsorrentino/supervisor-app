@@ -1270,7 +1270,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="close_finished_n">Chiudi le finite (%1$d)</string>
     <string name="close_finished_title">Chiudere le finite?</string>
     <string name="close_finished_sub">Prima di chiudere, ogni sessione salva il suo ultimo stato: si riprende da «Chiuse».</string>
-    <string name="close_finished_loading">Chiedo al PC cosa salva…</string>
+    <string name="close_finished_loading">Chiedo al PC cosa salva</string>
     <string name="close_finished_no_preview">Il PC non ha risposto: non chiudo niente.</string>
     <string name="close_finished_go">Chiudi %1$d</string>
     <string name="close_saves_outcome">esito: %1$s</string>
