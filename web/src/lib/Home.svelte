@@ -636,13 +636,14 @@
 <!-- La testata di sezione dello stile «Studio e Diretta» (30/10): l'icona grigia nel binario dei glifi, il titolo allineato ai
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
 {#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null; hot?: boolean } = {})}
-  {@const info = (key === listSkip || (up as string[]).includes(key)) && !part ? slotExtra[key] : null}
+  <!-- In cima ogni voce ha la stessa scheda (Franz 03/11 08:25, app-in-cima-uguali-03-11): senza un dato in più, il riassunto sotto. -->
+  {@const info = (key === listSkip || (up as string[]).includes(key)) && !part ? (slotExtra[key] ?? { note: right }) : null}
   {#if info}
     <!-- Una voce nello slot (Franz 01/11 17:44): titolo, barra e numero, sotto una riga; il riepilogo a destra non c'è più. -->
     <button class="usageslot" class:draggable={!!onHomeOrder} data-sec-head={key} aria-expanded={o.isOpen ?? !!open[key]} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
-      <span class="ustop"><span class="ms">{icon}</span><b>{title}</b>{#if count}<small>{count}</small>{/if}
+      <span class="ustop">{#if icon.startsWith('svg:')}<CatIcon name={icon.slice(4)} />{:else}<span class="ms">{icon}</span>{/if}<b>{title}</b>{#if count}<small class:hot={o.hot}>{count}</small>{/if}
         {#if info.bar}<span class="usbar">{#each info.bar as [pct, tone]}<i style="width:{pct}%;background:{tone}"></i>{/each}</span>{:else}<span class="sp"></span>{/if}
-        {#if info.number}<span class="uspct">{info.number}</span>{/if}<span class="ms tog" class:up={o.isOpen ?? open[key]}>expand_more</span></span>
+        {#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if info.number}<span class="uspct">{info.number}</span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span></span>
       {#if info.names}<SlotNames names={info.names} />{:else if info.note}<span class="usnote">{info.note}</span>{/if}
     </button>
   {:else if part && !o.onclick}
@@ -1449,6 +1450,9 @@
   .uspct { font: 400 12.5px var(--mono); }
   .usnote { font-size: 13.5px; line-height: 1.3; color: var(--tx2); }
   .ustop small { font: 500 13px var(--display); color: var(--tx2); }
+  /* Una voce che chiede Franz, In cima: il numero nella pillola ambra come nella sua riga (app-in-cima-uguali-03-11). */
+  .ustop small.hot { color: var(--wait); background: color-mix(in srgb, var(--wait) 16%, transparent); border-radius: 999px; padding: 1px 8px; }
+  .ustop :global(svg) { flex: none; width: 18px; height: 18px; color: var(--tx2); }
   .ustop .sp { flex: 1; }
   .usbar { flex: 1; display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--s3); }
   .usbar i { flex: none; }

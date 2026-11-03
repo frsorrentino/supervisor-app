@@ -641,7 +641,10 @@ fun SummaryList(
                 val waitN = waitRows.count { r -> r.session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER }
                 // Al massimo due parti, su una riga: prima chi aspetta Franz (con tre andava a capo).
                 val line = (listOfNotNull(waitN.takeIf { w -> w > 0 }?.let { w -> pluralStringResource(R.plurals.home_sessions_waiting, w, w) }) + sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)).split(" · ").filter { x -> x.isNotEmpty() }).take(2).joinToString(" · ")
-                Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null) { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) } }
+                val toggle = { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) }
+                // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).
+                if ("sessions" in liveTop) BoardCard(moving()) { SlotRow(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, onToggle = toggle) }
+                else Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, onToggle = toggle) }
             }
             if (sessionsOpen) renderWaiting()
             justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
@@ -732,7 +735,11 @@ fun SummaryList(
         it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.let { out ->
             val liveNames = kpiState?.sessions.orEmpty().filter { x -> x.state != it.pixelbox.cmwatch.contract.SessionState.GONE }.map { x -> x.name }.toSet()
             dragPresent += "esiti"
-            item(key = "sec-esiti") { Box(moving()) { V3Section(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, (out.red.size + out.settled).takeIf { n -> n > 0 }?.toString(), right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) } }
+            item(key = "sec-esiti") {
+                // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).
+                if ("esiti" in liveTop) BoardCard(moving()) { SlotRow(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, (out.red.size + out.settled).takeIf { n -> n > 0 }?.toString(), right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) }
+                else Box(moving()) { V3Section(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, (out.red.size + out.settled).takeIf { n -> n > 0 }?.toString(), right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) }
+            }
             if (esitiOpen) item(key = "esiti") {
                 Box(moving()) {
                     V3List {
@@ -866,8 +873,9 @@ fun SummaryList(
                 "system" -> { renderSystem(); if (listSkip != "plugins") renderPlugins() }
             }
         }
-        // Una voce del tabellone: la riga dello slot nel suo riquadro, aperta col suo corpo; Sessioni ed Esiti non hanno un dato in
-        // più e restano con la loro testata. Lavori ha il corpo fatto di più elementi: la riga qui, il corpo subito sotto.
+        // Una voce del tabellone: la riga dello slot nel suo riquadro, aperta col suo corpo. Sessioni ed Esiti non hanno un dato in più:
+        // disegnano da sé la stessa scheda quando stanno in cima (app-in-cima-uguali-03-11). Lavori ha il corpo fatto di più elementi:
+        // la riga qui, il corpo subito sotto.
         fun renderBoard(k: String) {
             if (k == listSkip) return
             val has = when (k) {
@@ -883,9 +891,7 @@ fun SummaryList(
             if (!has) { renderKey(k); return }
             dragPresent += k
             item(key = "sec-$k") {
-                Column(movingIn(k)().fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
-                    androidx.compose.runtime.CompositionLocalProvider(LocalSlotLine provides false) { slotFor(k) }
-                }
+                BoardCard(movingIn(k)()) { slotFor(k) }
             }
             if (k == "lavori") renderLavori()
             // Plugin e skill sta dentro Sistema anche sul tabellone, come nella lista.

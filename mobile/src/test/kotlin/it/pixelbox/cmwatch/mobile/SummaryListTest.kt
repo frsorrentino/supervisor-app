@@ -267,4 +267,25 @@ class SummaryListTest {
     @Test fun unaRiga_320Grande() = unaRiga("it", 320, 1.3f)
     @Test fun unaRiga_360_en() = unaRiga("en", 360, 1f)
     @Test fun unaRiga_320Grande_en() = unaRiga("en", 320, 1.3f)
+
+    // In cima ogni voce ha la stessa scheda col bordo acceso (Franz 03/11 08:25, app-in-cima-uguali-03-11): Sessioni insieme alle
+    // voci che l'avevano già, alta per vederle tutte.
+    private fun inCima(dp: Int, font: Float) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 4000, fontScale = font))
+        val top = listOf("sessions", "suggestions", "decisioni", "prove", "seguiti", "prima_raccolta")
+        val order = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.decode(null), null, top)
+        val sg = (1..3).map { i -> it.pixelbox.cmwatch.contract.Suggestion("sg-$i", "cleanup", "c$i", "Suggerimento $i", "p", st.ts - 900) }
+        val x = st.copy(decisions = DecisionsSummary(12, 8, 32, 0), prove = ProveSummary(50, 9, 0, 0), seguiti = SeguitiSummary(2, 1, 1),
+            primaRaccolta = PrimaRaccoltaSummary("ask", 7, 8, true, null), suggestions = sg, homeOrder = order)
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
+                    SummaryList(model(x), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = x.ts, kpiState = x, onHomeOrder = {}, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(x, emptySet(), x.ts),
+                        sectionBodies = mapOf("prima_raccolta" to { }, "prove" to { }, "decisioni" to { }, "seguiti" to { }))
+                }
+            }
+        }
+    }
+    @Test fun inCima_360() = inCima(360, 1f)
+    @Test fun inCima_320Grande() = inCima(320, 1.3f)
 }

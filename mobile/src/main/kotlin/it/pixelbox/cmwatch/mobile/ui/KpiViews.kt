@@ -229,6 +229,13 @@ internal fun androidx.compose.foundation.layout.BoxScope.SlotDrop(hot: Boolean =
 /** La riga di separazione sopra una voce dello slot: nel riquadro dei tre numeri sì, in un riquadro suo del tabellone no. */
 internal val LocalSlotLine = androidx.compose.runtime.compositionLocalOf { true }
 
+/** La scheda di una voce In cima, uguale per tutte (app-in-cima-uguali-03-11): fondo S1 e il bordo acceso delle luci. */
+@Composable
+internal fun BoardCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) =
+    androidx.compose.foundation.layout.Column(modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalSlotLine provides false) { content() }
+    }
+
 /** Una voce agganciata: lo stesso riepilogo della riga in elenco, nella misura del tabellone. */
 @Composable
 internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, hot: Boolean = false, onToggle: () -> Unit) {
