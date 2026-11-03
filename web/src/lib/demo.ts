@@ -205,6 +205,12 @@ export function world(now: number): World {
     commitments,
     // Contratto 1.99: le righe di Da provare e Da decidere, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 3, here: 2, tasks: 4, snoozed: 0 },
+    // Contratto 1.113 (app-pulizia-tocca-03-11): lo stesso conto delle righe qui sopra e tre voci uscite da sole stamattina.
+    tocca: { n: 5, prove: 2, decidi: 3, today: { n: 3, items: [
+      { task: 'shop-banner', short: en ? 'Banner on the home' : 'Banner in home', kind: 'prova', rule: 1, at: now - 5400 },
+      { task: 'blog-feed', short: en ? 'RSS feed' : 'Feed RSS', kind: 'pause', rule: 2, at: now - 9000 },
+      { task: 'storefront-login', short: en ? 'Login to the shop' : 'Accesso al negozio', kind: 'needs_you', rule: 3, at: now - 12600 },
+    ] } },
     prima_raccolta: { status: 'ask', done: 9, total: 10, ask: true, first_round_at: null },
     seguiti: { rimasto: 1, altrove: 0, promemoria: 2 },
     // Contratto 1.106 (app-da-guardare-02-11): tre consegne da guardare, l'ultima versione di ogni lavoro.

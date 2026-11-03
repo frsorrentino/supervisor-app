@@ -1732,4 +1732,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="watch_at_pos">a %1$s</string>
     <string name="home_sec_reports">Rendiconti</string>
     <string name="home_sec_scorecard">Pagella</string>
+    <!-- Le voci uscite da sole da Tocca a te oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113). -->
+    <plurals name="tocca_closed_today"><item quantity="one">%1$d chiusa da sola oggi</item><item quantity="other">%1$d chiuse da sole oggi</item></plurals>
+    <string name="tocca_rule_1">superata da una build più nuova</string>
+    <string name="tocca_rule_2">il compito è già chiuso</string>
+    <string name="tocca_rule_3">richiesta doppia, resta la più recente</string>
+    <string name="tocca_rule_4">ferma da 7 giorni, in archivio</string>
+    <string name="tocca_kind_pause">Pausa</string>
+    <string name="tocca_kind_prova">Prova</string>
+    <string name="tocca_kind_needs_you">Richiesta</string>
 </resources>

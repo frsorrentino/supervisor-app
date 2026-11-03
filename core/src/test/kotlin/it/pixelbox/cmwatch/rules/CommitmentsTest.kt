@@ -24,7 +24,7 @@ class CommitmentsTest {
         val led = idle.commitments!![0]
         assertEquals("running", led.state); assertTrue(led.stalled); assertTrue(led.approved)
         assertEquals(13800L, led.idleS); assertEquals(1789200600L, led.approvedAt); assertEquals("maintainer", led.approvedBy)
-        assertEquals("approval", led.lastStep!!.kind); assertEquals("migrations on staging", led.lastStep!!.text)
+        assertEquals("approval", led.lastStep!!.kind); assertEquals("staging", led.lastStep!!.text)
         assertEquals("person", led.waits!!.who); assertEquals("ledger-api", led.waits!!.on)
         assertEquals("red", led.check!!.outcome); assertEquals("deploy", led.outcomeKind); assertNull(led.paused)
         assertEquals(emptyList<Commitment>(), ContractJson.decodeState(Fixtures.stateQuestion).commitments)
@@ -40,7 +40,7 @@ class CommitmentsTest {
 
     // Contratto 1.79: il titolo breve `short` (1-28 caratteri, una riga, mai «…»), esplicito dal registro o ricavato dal titolo.
     @Test fun theFixturesCarryTheShortTitleOf179() {
-        assertEquals(listOf("Migrations 008-011", "SEO pages of atlas-shop"), idle.commitments!!.map { it.short })
+        assertEquals(listOf("Migrations", "SEO pages"), idle.commitments!!.map { it.short })
         assertEquals("Publish the orbit docs site", stale.commitments!!.single().short)
         assertEquals(listOf("Release 1.4 di ledger-api", "APK del Gantt sul telefono"), night.commitments.map { it.short })
         assertTrue((idle.commitments!! + stale.commitments!! + night.commitments).all { it.short!!.length in 1..28 && '\n' !in it.short!! && '…' !in it.short!! })

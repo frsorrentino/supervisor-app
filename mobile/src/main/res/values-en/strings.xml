@@ -1708,4 +1708,12 @@ It starts at your last message to the master.</string>
     <string name="home_last_bare">Last outcome</string>
     <string name="home_quota">%1$s %2$d%% · week %3$d%%</string>
     <string name="home_quota_old">%1$s · not updated</string>
+    <plurals name="tocca_closed_today"><item quantity="one">%1$d closed by itself today</item><item quantity="other">%1$d closed by themselves today</item></plurals>
+    <string name="tocca_rule_1">superseded by a newer build</string>
+    <string name="tocca_rule_2">the task is already closed</string>
+    <string name="tocca_rule_3">repeated request, the newest stays</string>
+    <string name="tocca_rule_4">idle for 7 days, archived</string>
+    <string name="tocca_kind_pause">Pause</string>
+    <string name="tocca_kind_prova">Test</string>
+    <string name="tocca_kind_needs_you">Request</string>
 </resources>

@@ -15,12 +15,12 @@ describe('impegni', () => {
     expect(idle.commitments!.map(c => c.task)).toEqual(['ledger-migrations-011', 'atlas-seo-pages'])
     const led = idle.commitments![0]
     expect(led).toMatchObject({ state: 'running', stalled: true, approved: true, idle_s: 13800, approved_at: 1789200600, approved_by: 'maintainer', outcome_kind: 'deploy', paused: null })
-    expect(led.last_step).toEqual({ at: 1789200600, kind: 'approval', text: 'migrations on staging' })
+    expect(led.last_step).toEqual({ at: 1789200600, kind: 'approval', text: 'staging' })
     expect(led.waits).toEqual({ who: 'person', on: 'ledger-api' })
     expect(led.check).toEqual({ outcome: 'red', at: 1789199760 })
     expect(decodeState(fixture('state-1-question.json')).commitments).toEqual([])
     // Contratto 1.79: il titolo breve `short` (1-28 caratteri, una riga, mai «…»).
-    expect(idle.commitments!.map(c => c.short)).toEqual(['Migrations 008-011', 'SEO pages of atlas-shop'])
+    expect(idle.commitments!.map(c => c.short)).toEqual(['Migrations', 'SEO pages'])
     expect(night.commitments.map(c => c.short)).toEqual(['Release 1.4 di ledger-api', 'APK del Gantt sul telefono'])
     const paused = stale.commitments![0]
     expect(paused.paused).toEqual({ reason: "after the client's review", at: 1789100000, by: 'master' })

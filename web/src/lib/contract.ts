@@ -69,6 +69,9 @@ export type UsageToday = { session: string; account: string; tokens: number; sha
 export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null }
 export type ProveSummary = { n: number; builds: number; red: number; ko: number }
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
+/** Contratto 1.113: il conto unico di Tocca a te; `today` le voci chiuse da sole oggi (`kind` pause, prova, needs_you; `rule` 1-4). */
+export type ToccaClosed = { task: string; short?: string | null; kind: string; rule: number; at: number }
+export type ToccaState = { n: number; prove: number; decidi: number; today?: { n: number; items: ToccaClosed[] } | null }
 export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number }
 /** Contratto 1.106: un file consegnato da una sessione con SendUserFile; `caption`, `files`, `notes`, `replaced` solo nell'op `results`. */
 export type ResultItem = {
@@ -288,6 +291,8 @@ export type State = {
   /** Contratto 1.97: l'ordine delle sezioni della home; assente = predefinito (homeOrder.ts). */
   home_order?: string[]
   prove?: ProveSummary | null; decisions?: DecisionsSummary | null
+  /** Contratto 1.113: il conto unico di Tocca a te e le chiusure di oggi; assente con un relay precedente. */
+  tocca?: ToccaState | null
   prima_raccolta?: PrimaRaccoltaSummary | null
   /** Contratto 1.102: la voce «Da seguire» nella home. */
   seguiti?: SeguitiSummary | null

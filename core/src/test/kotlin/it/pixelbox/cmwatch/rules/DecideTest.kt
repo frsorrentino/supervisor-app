@@ -63,7 +63,7 @@ class DecideTest {
         val st = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())
         val a = st.approvals.single { it.untested != null }
         val l = OkInformato.lines(a)
-        assertEquals("a real phone", l.untested); assertEquals(OkInformato.Undo.PARTLY, l.undo); assertEquals("pull the build", l.undoHow)
+        assertEquals("phone", l.untested); assertEquals(OkInformato.Undo.PARTLY, l.undo); assertEquals("revert", l.undoHow)
         assertEquals(listOf("atlas-seo-pages"), OkInformato.also(a))
         assertEquals(OkInformato.Undo.YES, OkInformato.lines(Approval("t", "T", undo = "si")).undo)
         assertEquals(OkInformato.Undo.NO, OkInformato.lines(Approval("t", "T", undo = "no")).undo)

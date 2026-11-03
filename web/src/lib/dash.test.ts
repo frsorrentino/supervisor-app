@@ -35,7 +35,7 @@ describe('il cruscotto a tre colonne (Franz, 21/10 13:02)', () => {
   it('pubblicazioni di oggi (1.75): l\'ordine del relay, col nome corto del progetto', () => {
     const rows = publishedRows(fixture('state-2-idle.json').published_today)
     expect(rows.map(r => [r.kind, r.name, r.text])).toEqual([
-      ['deploy', 'orbit-docs', 'hosting orbit-docs'], ['release', 'atlas-shop', '2.3.1'], ['push', 'atlas-shop', 'origin/feature/checkout'],
+      ['deploy', 'orbit-docs', 'orbit-docs'], ['release', 'atlas-shop', '2.3.1'], ['push', 'atlas-shop', 'origin/checkout'],
     ])
     expect(publishedRows(undefined)).toEqual([])
   })

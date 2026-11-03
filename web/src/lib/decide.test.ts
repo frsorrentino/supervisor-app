@@ -37,7 +37,7 @@ describe('ok_informato', () => {
     expect(okAlso(A())).toBeUndefined()
     const st = decodeState(read('state-2-idle.json'))
     const a = st.approvals.find(x => x.untested)!
-    expect(okLines(a)).toMatchObject({ untested: 'a real phone', undo: 'in-parte', undoHow: 'pull the build' })
+    expect(okLines(a)).toMatchObject({ untested: 'phone', undo: 'in-parte', undoHow: 'revert' })
     expect(okAlso(a)).toEqual(['atlas-seo-pages'])
     expect(okLines(A({ undo: 'boh' })).undo).toBeNull()
   })

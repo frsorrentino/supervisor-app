@@ -423,6 +423,15 @@ enum class CmdOp {
 @Serializable data class ProveSummary(val n: Int = 0, val builds: Int = 0, val red: Int = 0, val ko: Int = 0)
 @Serializable data class DecisionsSummary(val n: Int = 0, val here: Int = 0, val tasks: Int = 0, val snoozed: Int = 0)
 
+/**
+ * Contratto 1.113: `state.tocca`, un solo conto di Tocca a te per home, menu e registro. `prove` = le prove più le decisioni con
+ * `prova`; `decidi` = le altre decisioni; `n` la somma. `today`: le voci chiuse da sole dal riordino del relay da mezzanotte.
+ */
+@Serializable data class ToccaState(val n: Int = 0, val prove: Int = 0, val decidi: Int = 0, val today: ToccaToday? = null)
+@Serializable data class ToccaToday(val n: Int = 0, val items: List<ToccaClosed> = emptyList())
+/** `kind` = pause, prova o needs_you; `rule` 1-4: build più nuova, compito chiuso, richiesta doppia, ferma da 7 giorni. */
+@Serializable data class ToccaClosed(val task: String, val short: String? = null, val kind: String = "", val rule: Int = 0, val at: Long = 0)
+
 /** Contratto 1.99, op `prove`. `dove` è una chiave libera che l'app traduce in una schermata. */
 @Serializable data class ProveItem(val id: Long, val task: String, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val at: Long = 0)
 @Serializable data class ProveGroup(val build: String, val n: Int = 0, val at: Long = 0, val tasks: List<String> = emptyList(), val prove: List<ProveItem> = emptyList())
@@ -559,6 +568,8 @@ enum class CmdOp {
     /** L'ordine delle sezioni della home; null = predefinito (rules.HomeOrder). */
     @SerialName("home_order") val homeOrder: List<String>? = null,
     val prove: ProveSummary? = null, val decisions: DecisionsSummary? = null,
+    /** Contratto 1.113: il conto unico di Tocca a te e le chiusure di oggi; null con un relay precedente. */
+    val tocca: ToccaState? = null,
     /** Contratto 1.100: la riga della prima raccolta nella home. */
     @SerialName("prima_raccolta") val primaRaccolta: PrimaRaccoltaSummary? = null,
     /** Contratto 1.102: la voce «Da seguire» nella home. */

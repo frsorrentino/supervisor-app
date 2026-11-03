@@ -313,9 +313,9 @@ fun SummaryList(
             // Con la domanda aperta chiede Franz: in ambra come le altre voci di Tocca a te (master 02/11 02:08, app-bug-notte-03-11).
             "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open, p.status == "ask") }
             "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.home_sec_follow, icons.Update, n.toString(), "home-seguiti", open) }
-            "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> NewRow(R.string.home_sec_test, icons.Science, p.n.toString(), "home-da-provare", open, p.n > 0) }
+            "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> val n = it.pixelbox.cmwatch.rules.ToccaRules.counts(st).prove; NewRow(R.string.home_sec_test, icons.Science, n.toString(), "home-da-provare", open, n > 0) }
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
-            "decisioni" -> (st.decisions?.n ?: 0).takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.home_sec_decide, icons.Timer, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }
+            "decisioni" -> it.pixelbox.cmwatch.rules.ToccaRules.counts(st).decidi.takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.home_sec_decide, icons.Timer, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }
             // Contratto 1.106 (app-da-guardare-02-11): c'è finché qualcosa di consegnato non è ancora visto.
             "da_guardare" -> st.results?.takeIf { x -> x.nUnseen > 0 }?.let { x -> NewRow(R.string.home_sec_look, icons.Visibility, x.nUnseen.toString(), "home-da-guardare", open) }
             else -> null
@@ -392,8 +392,10 @@ fun SummaryList(
             }
             "you" -> {
                 // Le voci che la accendono (app-richiede-te-righe-02-11): Da decidere, Da provare e, con voci, Suggerimenti (Franz 20:52).
-                val d = if ("decisioni" in up) 0 else kpiState?.decisions?.n ?: 0
-                val p = if ("prove" in up) 0 else kpiState?.prove?.n ?: 0
+                // Contratto 1.113: lo stesso conto del menu e del registro, dal relay (app-pulizia-tocca-03-11).
+                val tc = kpiState?.let(it.pixelbox.cmwatch.rules.ToccaRules::counts)
+                val d = if ("decisioni" in up) 0 else tc?.decidi ?: 0
+                val p = if ("prove" in up) 0 else tc?.prove ?: 0
                 val s = if ("suggestions" in up) 0 else suggestions?.takeIf { x -> x.shown.isNotEmpty() }?.total ?: 0
                 // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
                 val pr = kpiState?.primaRaccolta?.takeIf { x -> x.status == "ask" && "decisioni" !in up }
@@ -985,6 +987,8 @@ fun SummaryList(
             // (Franz 03/11 18:54, app-risorse-categoria-03-11).
             if (c.id == "tools" && "system" in liveTop && listSkip != "plugins" && "plugins" !in liveTop) renderPlugins()
             if (c.id == "work" && "sessions" in liveTop && listSkip != "closed" && "closed" !in liveTop) renderClosed()
+            // Le voci uscite da sole oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113).
+            if (c.id == "you") kpiState?.let(it.pixelbox.cmwatch.rules.ToccaRules::closedToday)?.let { td -> item(key = "tocca-closed") { ToccaClosedRow(td, Modifier.animateItem()) } }
             catHas[c.id] = dragPresent.size > before
         }
         footer?.let { f -> item(key = "footer") { f() } }

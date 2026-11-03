@@ -72,6 +72,8 @@
   import type { NightPage } from './night'
   import { total as seguitiTotal } from './seguiti'
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
+  import { closedToday, toccaCounts } from './toccaRules'
+  import ToccaClosed from './ToccaClosed.svelte'
   let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
@@ -343,7 +345,7 @@
     }
     if (id === 'you') {
       // Le voci che la accendono (app-richiede-te-righe-02-11): Da decidere, Da provare e, con voci, Suggerimenti (Franz 20:52).
-      const d = up.includes('decisioni') ? 0 : st.decisions?.n ?? 0, p = up.includes('prove') ? 0 : st.prove?.n ?? 0
+      const tc = toccaCounts(st), d = up.includes('decisioni') ? 0 : tc.decidi, p = up.includes('prove') ? 0 : tc.prove
       const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
       // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
       const pr = !up.includes('decisioni') && st.prima_raccolta?.status === 'ask'
@@ -900,9 +902,9 @@
        provare chiedono te, Da seguire e Prima raccolta sono lavoro in corso. -->
   {#if newBody && (!part || part === catFor(k))}
     {#if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.homeSecFollow, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
-    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.homeSecTest, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: st.prove.n > 0 })}{@render nuovaBody(k)}
+    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.homeSecTest, 'checklist', String(toccaCounts(st).prove), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: toccaCounts(st).prove > 0 })}{@render nuovaBody(k)}
     {:else if (k as string) === 'da_guardare' && st.results?.n_unseen}{@render sec(k, t.homeSecWatch, 'svg:eye', String(st.results.n_unseen), 'home-da-guardare', !open[k] ? rightOf(k) : null)}{@render nuovaBody(k)}
-    {:else if k === 'decisioni' && (st.decisions?.n || st.prima_raccolta)}{@render sec('decisioni', t.homeSecDecide, 'timer', st.decisions?.n ? String(st.decisions.n) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && (st.decisions?.n || st.prima_raccolta)}{@render sec('decisioni', t.homeSecDecide, 'timer', toccaCounts(st).decidi ? String(toccaCounts(st).decidi) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
     {/if}
   {/if}
 {/snippet}
@@ -921,6 +923,7 @@
   <!-- Le voci In cima nella PWA larga stanno aperte in cima alla colonna della loro categoria, senza fascia sopra (Franz 03/11
        17:49, app-in-cima-largo-03-11): la schermata si presenta come se non fossero scelte. -->
   {#each [...up.filter(k => catFor(k) === part), ...cats.flatMap(c => c.sections).filter(k => catFor(k) === part)].filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
+  {#if part === 'you' && closedToday(st)}<ToccaClosed today={closedToday(st)!} />{/if}
 {:else}
   {@const live = dragOrder ?? order}
   <!-- La fascia «In cima» non c'è più: le sue voci stanno nel tabellone (slotBox, app-utilizzo-una-barra-03-11). -->
@@ -948,6 +951,8 @@
              (Franz 03/11 18:54, app-risorse-categoria-03-11). -->
         {#if c.id === 'tools' && up.includes('system')}<div class="hsec">{@render secPlugins()}</div>{/if}
         {#if c.id === 'work' && up.includes('sessions')}<div class="hsec">{@render secClosed()}</div>{/if}
+        <!-- Le voci uscite da sole oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113). -->
+        {#if c.id === 'you' && closedToday(st)}<ToccaClosed today={closedToday(st)!} />{/if}
       {/if}
     </div>
   {/each}
