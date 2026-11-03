@@ -23,7 +23,8 @@ object ItemRows {
     enum class Kind { HERE, AT_PC, UNBLOCKS, BUILD, TO_INSTALL, REPORTED, RED, PRODUCT, CHECKED, AT_TIME, UNTIL, FILLED, EMPTY, KIND }
     data class Right(val kind: Kind, val text: String? = null, val n: Int = 0)
 
-    data class Row(val key: String, val name: String, val sub: String?, val tone: Tone, val right: List<Right>)
+    /** `icon`: il tipo di voce che sceglie l'icona al posto del pallino (Suggerimenti, app-suggerimenti-icone-03-11); null = pallino. */
+    data class Row(val key: String, val name: String, val sub: String?, val tone: Tone, val right: List<Right>, val icon: String? = null)
 
     /** Quante righe si vedono prima di «altre N»: il resto si apre col tocco. */
     const val SHOWN = 3
@@ -71,7 +72,7 @@ object ItemRows {
     /** Suggerimenti: tutti in ambra (chiedono una risposta); a destra il tipo. */
     fun suggestion(s: Suggestion): Row {
         val (name, rest) = split(s.text)
-        return Row(s.id, name ?: s.kind, rest, Tone.WAIT, listOf(Right(Kind.KIND, s.kind)))
+        return Row(s.id, name ?: s.kind, rest, Tone.WAIT, listOf(Right(Kind.KIND, s.kind)), icon = s.kind)
     }
 
     /** Un testo in nome e resto: la prima riga o la prima frase (fino a «. », «: » o «? »); il resto, se c'è, va sotto. */

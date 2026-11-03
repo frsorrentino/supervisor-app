@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.outlined.*
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.ItemRows
 
@@ -41,6 +42,15 @@ internal fun itemTone(t: ItemRows.Tone): Color = when (t) {
     ItemRows.Tone.GOOD -> V3.Good
     ItemRows.Tone.RED -> V3.Red
     ItemRows.Tone.STILL -> V3.Tx3
+}
+
+/** L'icona di ogni tipo di suggerimento, al posto del pallino (Franz 03/11 10:06, app-suggerimenti-icone-03-11); le stesse in sugIcons.ts. */
+internal fun sugKindIcon(kind: String): androidx.compose.ui.graphics.vector.ImageVector = with(androidx.compose.material.icons.Icons.Outlined) {
+    when (kind) {
+        "unsaved" -> Save; "followup" -> Update; "observe" -> Extension; "choice" -> AltRoute; "idea" -> Lightbulb; "proposal" -> EditNote
+        "reminder" -> Notifications; "recurring" -> Repeat; "cleanup" -> CleaningServices; "deadline" -> Event; "quota" -> DataUsage
+        "waiting" -> HourglassEmpty; else -> AutoAwesome
+    }
 }
 
 /** Il dato a destra in parole, le parti separate da « · ». `kindLabel`: il nome del tipo di un suggerimento. */
@@ -69,7 +79,11 @@ internal fun ItemRowView(r: ItemRows.Row, right: String, first: Boolean, open: B
     var m = Modifier.fillMaxWidth().heightIn(min = 52.dp).handCursor().clickable(onClick = onClick)
     if (tag != null) m = m.testTag(tag)
     Row(m.padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.Top) {
-        Box(Modifier.width(V3.Rail).padding(top = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.size(8.dp).clip(CircleShape).background(itemTone(r.tone))) }
+        // Il segno al centro della riga del titolo (20 sp come V3.Name); per un suggerimento l'icona del suo tipo (app-suggerimenti-icone-03-11).
+        Box(Modifier.width(V3.Rail).height(with(androidx.compose.ui.platform.LocalDensity.current) { V3.Name.lineHeight.toDp() }), contentAlignment = Alignment.Center) {
+            if (r.icon != null) androidx.compose.material3.Icon(sugKindIcon(r.icon), null, tint = itemTone(r.tone), modifier = Modifier.size(18.dp))
+            else Box(Modifier.size(8.dp).clip(CircleShape).background(itemTone(r.tone)))
+        }
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             // Nome e dato: il dato a destra se ci sta, altrimenti sotto il nome, mai in colonna (V3Split).

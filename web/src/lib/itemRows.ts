@@ -8,7 +8,8 @@ import { emptySection } from './primaRaccolta'
 export type Tone = 'wait' | 'busy' | 'good' | 'red' | 'still'
 export type Kind = 'here' | 'at_pc' | 'unblocks' | 'build' | 'to_install' | 'reported' | 'red' | 'product' | 'checked' | 'at_time' | 'until' | 'filled' | 'empty' | 'kind'
 export type Right = { kind: Kind; text?: string | null; n?: number }
-export type Row = { key: string; name: string; sub: string | null; tone: Tone; right: Right[] }
+// `icon`: il tipo di voce che sceglie l'icona al posto del pallino (Suggerimenti, app-suggerimenti-icone-03-11); assente = pallino.
+export type Row = { key: string; name: string; sub: string | null; tone: Tone; right: Right[]; icon?: string }
 
 /** Quante righe si vedono prima di «altre N»: con una sola in più si vedono tutte. */
 export const SHOWN = 3
@@ -65,7 +66,7 @@ export function split(text: string): [string | null, string | null] {
 /** Suggerimenti: tutti in ambra (chiedono una risposta); a destra il tipo. */
 export function suggestion(s: Suggestion): Row {
   const [name, rest] = split(s.text)
-  return { key: s.id, name: name ?? s.kind, sub: rest, tone: 'wait', right: [{ kind: 'kind', text: s.kind }] }
+  return { key: s.id, name: name ?? s.kind, sub: rest, tone: 'wait', right: [{ kind: 'kind', text: s.kind }], icon: s.kind }
 }
 
 /** Il dato a destra in parole, le parti separate da « · »; il tipo di un suggerimento col suo nome. */
