@@ -1619,6 +1619,9 @@ It starts at your last message to the master.</string>
     <string name="reorder_top_out">Take %1$s off the board</string>
     <string name="home_board_full">Board full: 4 items</string>
     <string name="home_board_label">At the top</string>
+    <string name="home_reset">Reset</string>
+    <string name="home_reset_ask">Put the home back as it was at the start? The top empties and the sections go back to their order.</string>
+    <string name="home_off_top">Drop here to take it off the top</string>
     <string name="cat_sig_none">nothing today</string>
     <string name="cat_sig_load">load %1$s</string>
     <string name="cat_sig_decide">%1$d to decide</string>

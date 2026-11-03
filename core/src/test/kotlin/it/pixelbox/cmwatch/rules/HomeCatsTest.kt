@@ -160,7 +160,8 @@ class HomeCatsTest {
         assertEquals(listOf("decisioni", "suggestions", "prima_raccolta"), cats[0].sections)
         val (top2, cats2) = HomeCats.fromTop(cats, top, "prove")
         assertEquals(listOf("esiti"), top2)
-        assertEquals(listOf("decisioni", "suggestions", "prima_raccolta", "prove"), cats2[0].sections)
+        // Torna al suo posto, non in fondo (app-cima-rilascio-reset-03-11).
+        assertEquals(listOf("decisioni", "prove", "suggestions", "prima_raccolta"), cats2[0].sections)
         // Già in cima, o fuori dalla cima: niente cambia.
         assertEquals(top to cats, HomeCats.toTop(cats, top, "prove"))
         assertEquals(top2 to cats2, HomeCats.fromTop(cats2, top2, "prove"))

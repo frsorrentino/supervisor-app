@@ -1651,6 +1651,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="reorder_top_out">Togli %1$s dal tabellone</string>
     <string name="home_board_full">Tabellone pieno: 4 voci</string>
     <string name="home_board_label">In cima</string>
+    <string name="home_reset">Reset</string>
+    <string name="home_reset_ask">Riportare la home alla disposizione iniziale? In cima si svuota e le sezioni tornano nel loro ordine.</string>
+    <string name="home_off_top">Rilascia qui per toglierla da In cima</string>
     <string name="cat_sig_none">niente oggi</string>
     <string name="cat_sig_load">carico %1$s</string>
     <string name="cat_sig_decide">%1$d da decidere</string>

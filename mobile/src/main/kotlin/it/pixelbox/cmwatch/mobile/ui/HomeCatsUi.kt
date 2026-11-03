@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -132,11 +133,39 @@ internal fun WaitGroupLabel(text: String, n: Int?) {
 
 /** L'etichetta delle voci sul tabellone (app-tabellone-quattro-02-11, mockup richiede-te.png punto 2): la puntina e «In cima». */
 @Composable
-internal fun BoardLabel() {
+internal fun BoardLabel(onReset: (() -> Unit)? = null) {
+    var ask by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 10.dp, bottom = 2.dp).testTag("home-tabellone-voci"), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Outlined.PushPin, null, tint = V3.Tx3, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Text(stringResource(R.string.home_board_label).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = V3.Tx3))
+        Text(stringResource(R.string.home_board_label).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = V3.Tx3), modifier = Modifier.weight(1f))
+        // Reset (app-cima-rilascio-reset-03-11): chiede prima, poi In cima vuota e l'ordine iniziale.
+        if (onReset != null) Box(Modifier.heightIn(min = 48.dp).handCursor().clickable { ask = true }.padding(horizontal = 12.dp).testTag("home-reset"), contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.home_reset), style = V3.Small.copy(fontSize = 13.sp, color = V3.Tx2))
+        }
+    }
+    if (ask && onReset != null) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { ask = false },
+        text = { Text(stringResource(R.string.home_reset_ask)) },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { ask = false; onReset() }) { Text(stringResource(R.string.home_reset)) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { ask = false }) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/**
+ * Il bersaglio unico sotto In cima (Franz 03/11 10:5x, app-cima-rilascio-reset-03-11): mentre si trascina una voce di In cima, dal
+ * bordo al fondo dello schermo; rilasciata lì, la voce torna al suo posto. `top`: il bordo, nelle coordinate della lista.
+ */
+@Composable
+internal fun androidx.compose.foundation.layout.BoxScope.OffTopDrop(top: Float, hot: Boolean) {
+    // Bordo ancora sotto lo schermo: niente bersaglio finché non compare; già passato in alto: tutto lo schermo.
+    if (top == Float.POSITIVE_INFINITY) return
+    val d = androidx.compose.ui.platform.LocalDensity.current
+    val y = if (top.isFinite()) with(d) { top.coerceAtLeast(0f).toDp() } else 0.dp
+    Box(Modifier.matchParentSize().padding(top = y + 8.dp, start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+        Box(Modifier.fillMaxWidth().fillMaxHeight().clip(V3.Shape).background(V3.Bg.copy(alpha = if (hot) .6f else .8f)).drawDashedEdge(hot).testTag(if (hot) "cima-togli-acceso" else "cima-togli"), contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.home_off_top), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx), textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
+        }
     }
 }
 

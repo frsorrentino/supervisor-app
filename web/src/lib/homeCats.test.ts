@@ -126,7 +126,8 @@ describe('homeCats', () => {
     expect(a.cats[0].sections).toEqual(['decisioni', 'suggestions', 'prima_raccolta'])
     const b = fromTop(a.cats, a.top, 'prove')
     expect(b.top).toEqual(['esiti'])
-    expect(b.cats[0].sections).toEqual(['decisioni', 'suggestions', 'prima_raccolta', 'prove'])
+    // Torna al suo posto, non in fondo (app-cima-rilascio-reset-03-11).
+    expect(b.cats[0].sections).toEqual(['decisioni', 'prove', 'suggestions', 'prima_raccolta'])
     expect(toTop(a.cats, a.top, 'prove')).toEqual(a)
     expect(fromTop(b.cats, b.top, 'prove')).toEqual(b)
   })

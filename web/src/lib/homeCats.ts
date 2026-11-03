@@ -116,9 +116,24 @@ export function settle(cats: Cat[], list: string[]): { top: HomeKey[]; cats: Cat
 export const toTop = (cats: Cat[], up: HomeKey[], key: HomeKey): { top: HomeKey[]; cats: Cat[] } =>
   up.includes(key) || !catOf(key) || up.length >= BOARD_MAX ? { top: up, cats } : { top: [...up, key], cats: cats.map(c => ({ ...c, sections: c.sections.filter(k => k !== key) })) }
 
-/** Riordina, «Togli dalla cima»: la voce torna in fondo alla sua categoria. */
-export const fromTop = (cats: Cat[], up: HomeKey[], key: HomeKey): { top: HomeKey[]; cats: Cat[] } =>
-  !up.includes(key) ? { top: up, cats } : { top: up.filter(k => k !== key), cats: cats.map(c => (c.id === catOf(key) ? { ...c, sections: [...c.sections, key] } : c)) }
+/**
+ * «Togli dalla cima» (Riordina, e il rilascio sotto la cima nella home): la voce torna al suo posto nella sua categoria, cioè prima
+ * della prima sezione che nell'ordine iniziale la segue (app-cima-rilascio-reset-03-11); se non ce n'è, in fondo.
+ */
+export function fromTop(cats: Cat[], up: HomeKey[], key: HomeKey): { top: HomeKey[]; cats: Cat[] } {
+  if (!up.includes(key)) return { top: up, cats }
+  const def = (DEFAULT_CATS.find(c => c.id === catOf(key))?.sections ?? []) as string[]
+  const after = def.slice(def.indexOf(key) + 1)
+  return {
+    top: up.filter(k => k !== key),
+    cats: cats.map(c => {
+      if (c.id !== catOf(key)) return c
+      const s = c.sections.filter(k => k !== key)
+      const i = s.findIndex(k => after.includes(k))
+      return { ...c, sections: i < 0 ? [...s, key] : [...s.slice(0, i), key, ...s.slice(i)] }
+    }),
+  }
+}
 
 // Le categorie si trascinano anche nella home (Franz 02/11 19:00, app-categorie-trascina-02-11): nella lista del trascinamento
 // una categoria è `cat:<id>`, così non si confonde con le chiavi di sezione.

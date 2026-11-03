@@ -57,7 +57,7 @@
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
   import CatIcon from './CatIcon.svelte'
-  import { BOARD_MAX, DEFAULT_CATS, EDGE, catFor, catKeys, catOrder, toTop as toBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
+  import { BOARD_MAX, DEFAULT_CATS, EDGE, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
@@ -173,6 +173,11 @@
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
+  // Una voce di In cima presa (app-cima-rilascio-reset-03-11): sotto il bordo tutta la zona è un solo bersaglio che la rimette al suo
+  // posto; sopra, si riordina solo fra le voci di In cima. `edgeY`: dove comincia il bersaglio, letto a ogni fotogramma.
+  let edgeY = $state(Infinity)
+  const topDrag = $derived(!!dragKey && (up as string[]).includes(dragKey))
+  const offHot = $derived(topDrag && dragY > edgeY)
   let dragGhost = $state<{ shift: number; left: number; width: number } | null>(null)
   let flyGhost = $state<{ key: HomeSection; top: number; left: number; width: number } | null>(null)
   let dragStartY = 0, dragTimer: ReturnType<typeof setTimeout> | undefined, dragJustEnded = false, dragEl: HTMLElement | null = null, dragRaf = 0, dragLastSwap = 0
@@ -202,10 +207,14 @@
     const r = home.getBoundingClientRect(), edge = 72
     if (dragY < r.top + edge) home.scrollTop -= (r.top + edge - dragY) / edge * 14
     else if (dragY > r.bottom - edge) home.scrollTop += (dragY - (r.bottom - edge)) / edge * 14
-    if (now - dragLastSwap > 120 && !inSlot(dragKey, dragY)) {
+    const fromUp = (up as string[]).includes(dragKey)
+    if (fromUp) edgeY = home.querySelector(`[data-sec-head="${EDGE}"]`)?.getBoundingClientRect().top ?? Infinity
+    if (now - dragLastSwap > 120 && !inSlot(dragKey, dragY) && !(fromUp && dragY > edgeY)) {
       const mids: Partial<Record<HomeSection, number>> = {}
       for (const k of dragOrder) {
         if (k === listSkip) continue
+        // Da In cima si riordina solo fra le voci di In cima: niente scivola per sbaglio in una categoria.
+        if (fromUp && !(up as string[]).includes(k)) continue
         const b = home.querySelector(`[data-sec-head="${k}"]`)?.getBoundingClientRect()
         if (b) mids[k] = b.top + Math.min(b.height, 48) / 2
       }
@@ -246,16 +255,16 @@
       }))
       setTimeout(() => { flyGhost = null }, bounceMs())
     }
-    const held = dragKey, dropped = !!held && inSlot(held, dragY), y = dragY
+    const held = dragKey, dropped = !!held && inSlot(held, dragY), y = dragY, off = offHot
     const releaseMids: Partial<Record<HomeSection, number>> = {}
     for (const k of order) { if (k === held || k === listSkip) continue; const b = document.querySelector((k as string) === EDGE ? `[data-sec-head="${EDGE}"]` : `.hsec [data-sec-head="${k}"]`)?.getBoundingClientRect(); if (b) releaseMids[k] = b.top + b.height / 2 }
-    const o = dragOrder; dragOrder = null; dragKey = null; dragGhost = null; dragJustEnded = true
+    const o = dragOrder; dragOrder = null; dragKey = null; dragGhost = null; dragJustEnded = true; edgeY = Infinity
     addEventListener('click', swallowClick, { capture: true, once: true })
     setTimeout(() => { dragJustEnded = false; removeEventListener('click', swallowClick, { capture: true }) }, 50)
     if (!cancel) {
       // Sul tabellone la voce sale in fondo alle altre e resta aperta (pieno, torna dov'era); altrove vale l'ordine del puntatore: una
       // voce del tabellone portata sotto il bordo torna nella sua categoria.
-      const n = dropped ? (boardTakes(held!) ? toBoard(cats, up, held as HomeKey) : { top: up, cats }) : settle(cats, o)
+      const n = off ? offBoard(cats, up, held as HomeKey) : dropped ? (boardTakes(held!) ? toBoard(cats, up, held as HomeKey) : { top: up, cats }) : settle(cats, o)
       if (dropped && n.top !== up && held === 'system' && sys) sysManual = { level: sys.level, open: true }
       if (dropped && n.top !== up) { open = { ...open, [held!]: true }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* resta per questa visita */ } }
       if (n.top.join() !== up.join() || n.cats !== cats || pinned(st.home_order)) { sentOrder = { from: savedKey, cats: n.cats, pin: null, top: n.top }; onHomeOrder?.(encodeCats(n.cats, null, n.top)) }
@@ -303,6 +312,8 @@
     if (!cancel) { const moved = catOrder(cats, o); if (moved.map(c => c.id).join() !== cats.map(c => c.id).join()) setCats(moved) }
   }
   // Aperte o chiuse col tocco, come l'interruttore di Riordina: la scelta si salva (app-home-in-cima-02-11).
+  // Il tasto Reset (app-cima-rilascio-reset-03-11): In cima vuota e l'ordine iniziale, come «Ripristina» in Riordina; chiede prima.
+  function resetHome() { if (!confirm(t.homeResetAsk)) return; sentOrder = { from: savedKey, cats: DEFAULT_CATS, pin: null, top: [] }; onHomeOrder?.(encodeCats(DEFAULT_CATS, null, [])) }
   function setCats(next: Cat[]) { sentOrder = { from: savedKey, cats: next, pin: null, top: up }; onHomeOrder?.(encodeCats(next, null, up)) }
   const CATS_ICON: Record<CatId, string> = { you: 'pending_actions', work: 'play_circle', out: 'svg:inbox', tools: 'svg:speed' }
   // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»), come HomeCatsUi.kt: ambra quando c'è qualcosa da
@@ -888,7 +899,7 @@
   {#each cats.flatMap(c => c.sections).filter(k => catFor(k) === part && SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
 {:else}
   {@const live = dragOrder ?? order}
-  {#if live.slice(0, edgeAt(live)).some(k => k !== listSkip)}<div class="boardlabel" data-testid="home-tabellone-voci"><span class="ms" aria-hidden="true">push_pin</span>{t.boardLabel}</div>{/if}
+  {#if live.slice(0, edgeAt(live)).some(k => k !== listSkip)}<div class="boardlabel" data-testid="home-tabellone-voci"><span class="ms" aria-hidden="true">push_pin</span>{t.boardLabel}{#if onHomeOrder}<button class="reset" data-testid="home-reset" onclick={resetHome}>{t.homeReset}</button>{/if}</div>{/if}
   {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip) as k (k)}
     <div class="hsec onboard" class:held={k === dragKey}>{@render secOf(k)}</div>
   {/each}
@@ -896,6 +907,7 @@
   <!-- Il bordo non si vede (app-tabellone-quattro-02-11): serve alle voci del tabellone per uscirne verso la loro categoria. -->
   <!-- Con delle voci In cima, il filo le separa dalle categorie anche quando la prima è chiusa (Franz 03/11 10:3x, app-in-cima-uguali-03-11). -->
   <div class="topedge" class:line={live.slice(0, edgeAt(live)).some(k => k !== listSkip)} data-sec-head={EDGE}></div>
+  {#if topDrag}<div class="offdrop" class:hot={offHot} style:top="{Math.max(0, edgeY)}px" data-testid={offHot ? 'cima-togli-acceso' : 'cima-togli'}>{t.homeOffTop}</div>{/if}
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
       {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
@@ -1419,6 +1431,10 @@
   .sgroup.wait { color: var(--wait); }
   .boardlabel { display: flex; align-items: center; gap: 6px; padding: 10px 4px 2px; font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
   .boardlabel .ms { font-size: 16px; letter-spacing: 0; text-transform: none; }
+  .boardlabel .reset { margin-left: auto; min-height: 32px; padding: 0 4px 0 12px; font: 500 13px var(--sans, inherit); letter-spacing: 0; text-transform: none; color: var(--tx2); cursor: pointer; }
+  /* Il bersaglio unico sotto In cima: dal bordo al fondo dello schermo, sopra le categorie. */
+  .offdrop { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); text-align: center; background: color-mix(in srgb, var(--bg) 80%, transparent); pointer-events: none; }
+  .offdrop.hot { border: 2px solid var(--tx); background: color-mix(in srgb, var(--bg) 60%, transparent); }
   .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }
   .topedge.on.hot { border: 2px solid var(--tx); }
   .topband { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 16px; padding: 8px 16px; }

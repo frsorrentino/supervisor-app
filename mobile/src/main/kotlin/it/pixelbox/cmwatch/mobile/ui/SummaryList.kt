@@ -252,6 +252,15 @@ fun SummaryList(
         val r = boardBox?.takeIf { it.isAttached }?.let { b -> box?.localBoundingBoxOf(b, false) } ?: return false
         return held !in upNow && catFor(held) != null && y >= r.top && y <= r.bottom
     }
+    // Una voce di In cima presa (app-cima-rilascio-reset-03-11): sotto il bordo tutta la zona è un solo bersaglio che la rimette al suo
+    // posto; sopra si riordina solo fra le voci di In cima. `offEdge`: dove comincia il bersaglio, nelle coordinate della lista.
+    var offEdge by remember { androidx.compose.runtime.mutableFloatStateOf(Float.POSITIVE_INFINITY) }
+    fun edgeTop(): Float {
+        val box = dragBox?.takeIf { b -> b.isAttached } ?: return Float.POSITIVE_INFINITY
+        dragZones.values.firstOrNull { (k, c) -> k == it.pixelbox.cmwatch.rules.HomeCats.EDGE && c.isAttached }?.let { (_, c) -> return box.localBoundingBoxOf(c, false).top }
+        // Il bordo fuori schermo: sotto se si vede ancora una voce di In cima, altrimenti è già passato in alto.
+        return if (dragZones.values.any { (k, c) -> k in upNow && c.isAttached }) Float.POSITIVE_INFINITY else Float.NEGATIVE_INFINITY
+    }
     fun sectionDrag(key: String): Modifier = if (onHomeOrder == null) Modifier else Modifier.onGloballyPositioned { dragZones[key] = key to it }
     // Categorie aperte o chiuse, spostate fra loro: si salva subito con la cima e lo slot di adesso (app-home-in-cima-02-11).
     fun setCats(next: List<it.pixelbox.cmwatch.rules.HomeCats.Cat>) {
@@ -428,9 +437,13 @@ fun SummaryList(
             if (t - last < 160_000_000L) continue
             // Sullo slot l'ordine non si tocca: chi aggancia torna dov'era quando esce. Chi esce dallo slot non è in elenco: il suo posto lo decide il rilascio.
             if (overSlot(held, y)) continue
+            val fromUp = held in upNow
+            if (fromUp) offEdge = edgeTop()
+            if (fromUp && y > offEdge) continue
             // Ogni voce ha la sua zona: la testata di una sezione o la riga di una card, anche con più righe nello stesso elemento.
             val box = dragBox?.takeIf { b -> b.isAttached } ?: continue
-            val mids = dragZones.values.filter { (_, c) -> c.isAttached }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
+            // Da In cima si riordina solo fra le voci di In cima: niente scivola per sbaglio in una categoria.
+            val mids = dragZones.values.filter { (k, c) -> c.isAttached && (!fromUp || k in upNow) }.associate { (k, c) -> k to box.localBoundingBoxOf(c, false).center.y }
             // Una categoria (app-categorie-trascina-02-11) scavalca solo le testate delle altre categorie, con tutte le sue sezioni.
             val next = if (held.startsWith("cat:")) it.pixelbox.cmwatch.rules.HomeOrder.dragTarget(o, held, y, mids, o.toSet()) else it.pixelbox.cmwatch.rules.HomeCats.dragTarget(o, held, y, mids, dragPresent.toSet(), fromBoard = held in upNow)
             if (next != o) { dragOrder = next; last = t; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) }
@@ -456,6 +469,7 @@ fun SummaryList(
             if (gaveUp != null) return@awaitEachGesture
             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             dragY = down.position.y; dragGhostShift = top - down.position.y; dragOrder = if (key.startsWith("cat:")) it.pixelbox.cmwatch.rules.HomeCats.catKeys(catsNow) else shownOrder; dragKey = key
+            if (key in upNow) offEdge = edgeTop()
             var commit = false
             try {
                 while (true) {
@@ -468,6 +482,7 @@ fun SummaryList(
             } finally {
                 val o = dragOrder
                 val dropped = overSlot(key, dragY)
+                val off = key in upNow && dragY > edgeTop()
                 val releaseMids = dragBox?.takeIf { b -> b.isAttached }?.let { b -> dragZones.values.filter { (k, c) -> c.isAttached && k != key }.associate { (k, c) -> k to b.localBoundingBoxOf(c, false).center.y } }.orEmpty().filterKeys { k -> k in dragPresent }
                 // Voce 8: la copia del titolo vola al posto finale invece di sparire di colpo.
                 val landing = if (dropped) null else listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "sec-$key" }?.offset?.toFloat()
@@ -476,14 +491,14 @@ fun SummaryList(
                     ghostFly = key
                     ghostScope.launch { ghostY.snapTo(from); ghostY.animateTo(landing, CmMotion.bounceFloat); ghostFly = null }
                 }
-                dragOrder = null; dragKey = null
+                dragOrder = null; dragKey = null; offEdge = Float.POSITIVE_INFINITY
                 if (commit && o != null && key.startsWith("cat:")) {
                     val moved = it.pixelbox.cmwatch.rules.HomeCats.catOrder(catsNow, o)
                     if (moved != catsNow) { val full = it.pixelbox.cmwatch.rules.HomeCats.encode(moved, savedPinNow, upNow) ?: emptyList(); sentOrder.send(full); saveOrder?.invoke(full) }
                 } else if (commit && o != null) {
                     // Sul tabellone la voce sale in fondo alle altre e resta aperta (pieno, torna dov'era); altrove vale l'ordine del dito:
                     // una voce del tabellone portata sotto il bordo torna nella sua categoria. Chiuse e aperte non cambiano.
-                    val (nextTop, nextCats) = if (dropped) (if (boardTakes(key)) it.pixelbox.cmwatch.rules.HomeCats.toTop(catsNow, upNow, key) else upNow to catsNow) else it.pixelbox.cmwatch.rules.HomeCats.settle(catsNow, o)
+                    val (nextTop, nextCats) = if (off) it.pixelbox.cmwatch.rules.HomeCats.fromTop(catsNow, upNow, key) else if (dropped) (if (boardTakes(key)) it.pixelbox.cmwatch.rules.HomeCats.toTop(catsNow, upNow, key) else upNow to catsNow) else it.pixelbox.cmwatch.rules.HomeCats.settle(catsNow, o)
                     if (dropped && nextTop != upNow) openOnBoard(key)
                     if (nextTop != upNow || nextCats != catsNow || it.pixelbox.cmwatch.rules.HomeOrder.pinned(savedOrderNow) != null) {
                         val full = it.pixelbox.cmwatch.rules.HomeCats.encode(nextCats, null, nextTop) ?: emptyList()
@@ -901,7 +916,15 @@ fun SummaryList(
         }
         val shownCats = if (catDrag) it.pixelbox.cmwatch.rules.HomeCats.catOrder(cats, dragOrder.orEmpty()) else cats
         fun moveCatTo(i: Int, to: Int) = setCats(it.pixelbox.cmwatch.rules.HomeCats.moveCat(cats, i, to))
-        if (liveTop.any { k -> k != listSkip }) item(key = "top-label") { Box(Modifier.animateItem()) { BoardLabel() } }
+        if (liveTop.any { k -> k != listSkip }) item(key = "top-label") {
+            Box(Modifier.animateItem()) {
+                // Reset (app-cima-rilascio-reset-03-11): In cima vuota e l'ordine iniziale, come «Ripristina» in Riordina.
+                BoardLabel(onReset = if (onHomeOrder == null) null else ({
+                    val full = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.DEFAULT, null, emptyList()) ?: emptyList()
+                    sentOrder.send(full); saveOrder?.invoke(full)
+                }))
+            }
+        }
         liveTop.forEach(::renderBoard)
         // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
         if (dragKey != null && dragKey in up) dragPresent += edge
@@ -923,6 +946,7 @@ fun SummaryList(
         }
         footer?.let { f -> item(key = "footer") { f() } }
     }
+    if (dragKey != null && dragKey in up) OffTopDrop(offEdge, dragY > offEdge)
     dragKey?.let { k -> HomeDragGhost(k, Modifier.offset { androidx.compose.ui.unit.IntOffset(0, (dragY + dragGhostShift).toInt()) }) }
     if (dragKey == null) ghostFly?.let { k -> HomeDragGhost(k, Modifier.offset { androidx.compose.ui.unit.IntOffset(0, ghostY.value.toInt()) }) }
     }

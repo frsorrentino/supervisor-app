@@ -118,10 +118,23 @@ object HomeCats {
         if (key in top || catOf(key) == null || top.size >= BOARD_MAX) top to cats
         else (top + key) to cats.map { c -> c.copy(sections = c.sections - key) }
 
-    /** Riordina, «Togli dalla cima»: la voce torna in fondo alla sua categoria. */
-    fun fromTop(cats: List<Cat>, top: List<String>, key: String): Pair<List<String>, List<Cat>> =
-        if (key !in top) top to cats
-        else (top - key) to cats.map { c -> if (c.id == catOf(key)) c.copy(sections = c.sections + key) else c }
+    /**
+     * «Togli dalla cima» (Riordina, e il rilascio sotto la cima nella home): la voce torna al suo posto nella sua categoria, cioè prima
+     * della prima sezione che nell'ordine iniziale la segue (app-cima-rilascio-reset-03-11); se non ce n'è, in fondo.
+     */
+    fun fromTop(cats: List<Cat>, top: List<String>, key: String): Pair<List<String>, List<Cat>> {
+        if (key !in top) return top to cats
+        val def = DEFAULT.firstOrNull { it.id == catOf(key) }?.sections.orEmpty()
+        val after = def.drop(def.indexOf(key) + 1)
+        return (top - key) to cats.map { c ->
+            if (c.id != catOf(key)) c
+            else {
+                val s = c.sections - key
+                val i = s.indexOfFirst { it in after }
+                c.copy(sections = if (i < 0) s + key else s.take(i) + key + s.drop(i))
+            }
+        }
+    }
 
     // Le categorie si trascinano anche nella home (Franz 02/11 19:00, app-categorie-trascina-02-11): nella lista del trascinamento
     // una categoria è `cat:<id>`, così non si confonde con le chiavi di sezione.

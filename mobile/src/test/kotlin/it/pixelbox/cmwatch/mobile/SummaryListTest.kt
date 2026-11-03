@@ -286,6 +286,21 @@ class SummaryListTest {
             }
         }
     }
+    // Trascinando una voce di In cima, sotto il bordo un solo bersaglio (app-cima-rilascio-reset-03-11); l'etichetta col tasto Reset.
+    @Test fun cimaRilascio() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 1400))
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                androidx.compose.foundation.layout.Box(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp)) {
+                    Column {
+                        BoardLabel(onReset = {})
+                        androidx.compose.foundation.layout.Spacer(Modifier.padding(200.dp))
+                    }
+                    OffTopDrop(140f, true)
+                }
+            }
+        }
+    }
     @Test fun inCima_360() = inCima(360, 1f)
     @Test fun inCima_320Grande() = inCima(320, 1.3f)
 }
