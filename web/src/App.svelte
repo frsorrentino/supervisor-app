@@ -1372,7 +1372,10 @@
   /* Uno stacco netto fra home e master nella stessa colonna (app-master-tasti-compatti-03-11): un vuoto e la master come scheda. */
   .hstack { gap: 12px; background: var(--bg); }
   .dpanel.under { flex: 1; width: auto; border: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgb(0 0 0 / .4); }
-  .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 4px 12px 6px; border-top: 1px solid var(--line); background: var(--s1); }
+  .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 5px 12px; border-top: 1px solid var(--line); background: var(--s1); }
+  /* Il campo centrato in altezza con il testo della master e la freccia (Franz 03/11 18:01): niente margine in basso qui. */
+  .mbar .mquick { padding: 0; align-self: center; }
+  .mbar .mquick :global(.bar) { margin-top: 0; margin-bottom: 0; }
   .mbar > :global(.dock) { width: 500px; flex: none; border-radius: 0; padding: 6px 4px 6px 8px; }
   /* La barra della plancia (pwa2): il campo è una pillola sola, senza il promemoria dei tasti. */
   .mbar :global(.bar) { padding: 0; }
