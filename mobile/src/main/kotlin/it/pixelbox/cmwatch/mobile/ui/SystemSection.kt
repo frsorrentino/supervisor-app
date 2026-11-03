@@ -44,6 +44,9 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.SystemRules
 
 /** Contratto 1.90: il colore di un livello (green, yellow, red), come le barre del contesto. */
+/** Le barre sono grigie e passano al rosso solo oltre la soglia d'allarme, il livello rosso (Franz 03/11 17:40, app-sistema-barra-kpi-03-11). */
+internal fun barTone(level: String): Color = if (level == "red") Cm.briefAlertRing else Cm.text2
+
 internal fun systemTone(level: String): Color = when (level) {
     "red" -> Cm.briefAlertRing
     "yellow" -> Cm.briefWarn
@@ -89,9 +92,9 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
         Modifier.fillMaxWidth().testTag("system_advice").clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Meter(stringResource(R.string.system_load), (s.loadPerCore / 3).toFloat(), systemTone(s.loadLevel), stringResource(R.string.system_load_v, SystemRules.num(s.loadPerCore, c)))
+        Meter(stringResource(R.string.system_load), (s.loadPerCore / 3).toFloat(), barTone(s.loadLevel), stringResource(R.string.system_load_v, SystemRules.num(s.loadPerCore, c)))
         Meter(
-            stringResource(R.string.system_mem), 1f - s.memAvailableMb.toFloat() / s.memTotalMb.coerceAtLeast(1), systemTone(s.memLevel),
+            stringResource(R.string.system_mem), 1f - s.memAvailableMb.toFloat() / s.memTotalMb.coerceAtLeast(1), barTone(s.memLevel),
             stringResource(R.string.system_mem_v, SystemRules.num(s.memAvailableMb / 1024.0, c), SystemRules.num(s.memTotalMb / 1024.0, c)),
         )
         if (s.consumers.isNotEmpty()) {

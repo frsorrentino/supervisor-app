@@ -601,6 +601,8 @@
   let sysAsk = $state<string | null>(null)
   let sysSent = $state(new Set<string>())
   const SYS_TONE = { green: 'var(--good)', yellow: 'var(--b-warn)', red: 'var(--b-alert)' } as const
+  // Le barre di Sistema sono grigie e passano al rosso solo oltre la soglia d'allarme, il livello rosso (Franz 03/11 17:40, app-sistema-barra-kpi-03-11).
+  const barTone = (l: string) => (l === 'red' ? 'var(--b-alert)' : 'var(--text2)')
   // Il menu contestuale della sessione sulla card (Franz, 14/10 20:58: «il menu contestuale di una sessione non lo vedo»):
   // tasto destro, o pressione lunga sul telefono; le voci del ⋮ della sessione, «Chiudi» con la conferma nella card.
   let ctx = $state<string | null>(null)
@@ -850,8 +852,8 @@
           <div class="card wrows">
           <div class="exp sys" data-testid="system_advice">
       <div class="kv sysm">
-        <span>{t.sysLoad}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{SYS_TONE[sys.load_level]}"></span></span><span class="ctxv">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></span>
-        <span>{t.sysMem}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, (1 - sys.mem_available_mb / Math.max(1, sys.mem_total_mb)) * 100)}%;background:{SYS_TONE[sys.mem_level]}"></span></span><span class="ctxv">{t.sysMemV(sysNum(sys.mem_available_mb / 1024, lang), sysNum(sys.mem_total_mb / 1024, lang))}</span></span>
+        <span>{t.sysLoad}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{barTone(sys.load_level)}"></span></span><span class="ctxv">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></span>
+        <span>{t.sysMem}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, (1 - sys.mem_available_mb / Math.max(1, sys.mem_total_mb)) * 100)}%;background:{barTone(sys.mem_level)}"></span></span><span class="ctxv">{t.sysMemV(sysNum(sys.mem_available_mb / 1024, lang), sysNum(sys.mem_total_mb / 1024, lang))}</span></span>
       </div>
       <!-- Lo stato tagliato a 8 KB arriva spesso senza consumatori: allora niente riga, il livello e i consigli restano.
            Un consumatore per riga: in una riga sola il testo era tagliato a metà altezza (app-home-riordino-29-10). -->

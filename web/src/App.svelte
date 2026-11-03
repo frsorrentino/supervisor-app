@@ -410,10 +410,10 @@
   // Home sopra e master sotto non è un lato (Franz 03/11 17:30 e 17:31): la colonna con home e master prende il lato e la larghezza
   // che la master ha in quel momento; le sessioni occupano il resto.
   function placeMaster(p: 'right' | 'left') { smooth(() => { masterLeft = p === 'left'; save('cm.master_left', masterLeft ? '1' : '0') }) }
-  // Tre altezze fisse della master sotto la home (Franz 03/11 17:38, app-master-compatta-03-11): compatta (l'ultimo messaggio, il
-  // ▶ e il campo), metà colonna, intera (della home resta la testata). Il tocco sulla testata o sulla maniglia passa alla
+  // Due altezze fisse della master sotto la home (Franz 03/11 17:38 e 17:41, app-master-compatta-03-11): compatta (l'ultimo
+  // messaggio, il ▶ e il campo) e metà colonna; intera c'è già la colonna sua. Il tocco sulla testata o sulla maniglia passa alla
   // successiva; la maniglia trascinata si ferma sullo scatto più vicino nel verso del gesto. Di base metà, finché Franz non sceglie.
-  const STACK_H = ['compact', 'half', 'full'] as const
+  const STACK_H = ['compact', 'half'] as const
   let stackH = $state<(typeof STACK_H)[number]>((STACK_H as readonly string[]).includes(load('cm.master_stack_h') ?? '') ? (load('cm.master_stack_h') as (typeof STACK_H)[number]) : 'half')
   function setStack(h: (typeof STACK_H)[number]) { smooth(() => { stackH = h; save('cm.master_stack_h', h) }) }
   function stepStack(d: 1 | -1, wrap = true) {
@@ -1359,7 +1359,6 @@
   .deskwrap.stacked :global(.desk > .home), .deskwrap.stacked :global(.desk > .handle) { display: none; }
   .dpanel.stackcol { background: var(--bg); }
   .hstack[data-h='compact'] > .dpanel.under { flex: none; }
-  .hstack[data-h='full'] > .hs-top { flex: none; height: 84px; overflow: hidden; }
   .hstack .grip { flex: none; height: 14px; margin: -8px 0 -6px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
   .hstack .grip i { width: 44px; height: 4px; border-radius: 2px; background: var(--line); }
   .hstack .grip:hover i { background: var(--text2); }

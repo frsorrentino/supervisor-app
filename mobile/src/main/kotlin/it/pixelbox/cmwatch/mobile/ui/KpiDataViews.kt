@@ -285,6 +285,10 @@ internal fun Kpi12(h: KpiHealth) {
                 )
             }
         }
+        // Il carico di ogni macchina accesa accanto alla RAM (Franz 03/11 17:40, app-sistema-barra-kpi-03-11): quattro riquadri, niente buco.
+        h.hosts.filter { x -> x.up && x.cpu != null }.forEach { x ->
+            add { m -> Figure("${Math.round(x.cpu!!)}%", stringResource(R.string.kpi12_cpu, x.name), if (x.cpu!! >= 85) Cm.waiting else null, m) }
+        }
     }
     Column(Modifier.testTag("kpi-12").fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         figures.chunked(2).forEach { row ->

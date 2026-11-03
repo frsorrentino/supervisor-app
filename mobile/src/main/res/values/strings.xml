@@ -1015,6 +1015,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="kpi12_sessions_here">sessioni su questo computer</string>
     <string name="kpi12_ram">RAM usata su %1$s</string>
     <string name="kpi12_up">%1$s acceso</string>
+    <string name="kpi12_cpu">CPU usata su %1$s</string>
     <string name="kpi12_down">spento</string>
     <string name="kpi13_title">Suggerimenti · 7 giorni</string>
     <string name="kpi13_rate">%1$d%% accettati</string>
