@@ -8,7 +8,7 @@
   // colonne si trascinano a scatti di un dodicesimo (la colonna che cresce prende da tutte le altre).
   let { cols, shares, homeRight, onCols, onShares, onHomeSide, home, column, empty, override = null, details = null, tab = null }: {
     cols: string[]; shares: number[]; homeRight: boolean
-    onCols: (c: string[]) => void; onShares: (s: number[]) => void; onHomeSide: () => void
+    onCols: (c: string[]) => void; onShares: (s: number[]) => void; onHomeSide?: (() => void) | null
     home: Snippet; column: Snippet<[string, (e: PointerEvent) => void]>; empty: Snippet
     /** Al posto delle colonne, per esempio il Registro aperto dal menu della home (TabletDesk.override). */
     override?: Snippet | null
@@ -81,9 +81,10 @@
   <aside class="home">{@render home()}</aside>
   <div class="handle">
     <i></i>
-    <button class="hb" aria-label={homeRight ? t.tabletHomeLeft : t.tabletHomeRight} title={homeRight ? t.tabletHomeLeft : t.tabletHomeRight} onclick={onHomeSide}>
+    <!-- Senza `onHomeSide` la home segue la master (app-pwa-master-tasti-03-11, proposta 1): niente secondo tasto di posizione. -->
+    {#if onHomeSide}<button class="hb" aria-label={homeRight ? t.tabletHomeLeft : t.tabletHomeRight} title={homeRight ? t.tabletHomeLeft : t.tabletHomeRight} onclick={onHomeSide}>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16" /></svg>
-    </button>
+    </button>{/if}
     {#if unequal}
       <button class="hb" aria-label={t.tabletResetWidths} title={t.tabletResetWidths} onclick={() => onShares(equal(cols.length))}>
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16M15 4v16" /></svg>
