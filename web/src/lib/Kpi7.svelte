@@ -52,13 +52,15 @@
   .slot { grid-column: 1 / -1; min-width: 0; }
   .slot:empty { display: none; }
   .board { flex: none; display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; margin: 4px 0 2px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-  .cell { position: relative; padding: 12px 12px 13px; border-left: 1px solid var(--line); text-align: left; color: var(--tx); cursor: pointer; min-width: 0; }
+  /* In alto, non al centro come fa un button: i tre numeri sulla stessa linea; l'etichetta ha sempre due righe (Franz 03/11 09:38,
+     app-tabellone-numeri-03-11). */
+  .cell { position: relative; display: flex; flex-direction: column; justify-content: flex-start; padding: 12px 12px 13px; border-left: 1px solid var(--line); text-align: left; color: var(--tx); cursor: pointer; min-width: 0; }
   .cell:first-child { border-left: 0; }
   .cell:hover { background: var(--s2); }
   .cell:focus-visible, .quota:focus-visible { outline: 2px solid var(--tx); outline-offset: -2px; }
   .n { display: block; font: 700 42px/1 var(--display); letter-spacing: -0.01em; }
   .n.wait { color: var(--wait); }
-  .l { display: block; font-size: 13.5px; line-height: 1.25; color: var(--tx2); margin-top: 6px; overflow-wrap: anywhere; }
+  .l { display: block; min-height: 2.5em; font-size: 13.5px; line-height: 1.25; color: var(--tx2); margin-top: 6px; overflow-wrap: anywhere; }
   .l em { font-style: normal; font-weight: 500; color: var(--red); }
   .chev { position: absolute; top: 12px; right: 8px; color: var(--tx3); }
   .quota { grid-column: 1 / -1; display: flex; gap: 16px; padding: 10px 12px; border-top: 1px solid var(--line); text-align: left; cursor: pointer; min-width: 0; }

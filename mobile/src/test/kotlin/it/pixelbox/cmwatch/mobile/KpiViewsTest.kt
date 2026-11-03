@@ -64,6 +64,22 @@ class KpiViewsTest {
     @Test fun kpi360() = at(360)
     @Test fun kpi412() = at(412)
 
+    // I numeri del tabellone sulla stessa linea e due righe di etichetta per tutte (Franz 03/11 09:38, app-tabellone-numeri-03-11):
+    // la schermata della segnalazione, «sessione ferma da 48 min» su due righe e «esiti oggi» su una; poi col rosso e col testo grande.
+    private fun tabellone(dp: Int, font: Float) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 1400, fontScale = font))
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                Column(Modifier.fillMaxSize().background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Kpi7(Kpi.Head(1, 48 * 60, 0, 32, null), st.copy(quota = emptyMap()), now, {})
+                    Kpi7(Kpi.Head(0, null, 3, 12, 2), st.copy(quota = emptyMap()), now, {})
+                }
+            }
+        }
+    }
+    @Test fun tabellone_360() = tabellone(360, 1f)
+    @Test fun tabellone_320Grande() = tabellone(320, 1.3f)
+
     // La home a 320 dp con la cronologia: le colonnine sulla riga del contesto, il nome intero.
     @Test fun kpiHome320() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = 880, screenHeight = 2400))

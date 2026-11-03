@@ -364,7 +364,9 @@ private fun Board(value: String, label: String, tone: Color, red: String?, modif
             Text(value, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 38.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = tone, maxLines = 1, modifier = Modifier.weight(1f))
             androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
         }
-        Text(label, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp))
+        // Due righe per tutte, anche quando il testo ne occupa una: i tre numeri e le etichette stanno sulle stesse linee (Franz 03/11
+        // 09:38, app-tabellone-numeri-03-11). Il rosso degli esiti è la seconda riga.
+        Text(label, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), minLines = if (red != null) 1 else 2)
         red?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp, color = V3.Red)) }
     }
 }
