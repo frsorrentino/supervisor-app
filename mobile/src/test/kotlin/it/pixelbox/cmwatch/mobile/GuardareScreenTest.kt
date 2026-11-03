@@ -26,8 +26,8 @@ class GuardareScreenTest {
     private val mock = ResultItem("m", "master", "Riga Esito, quattro forme", "mockup", "text/html", "/home/dev/p/esito.html", 24000, v3.at - 3600)
     private val doc = ResultItem("d", "video-supervisor", "Effetti del video di Google", "document", "text/markdown", "/home/dev/v/effetti.md", 8000, v3.at - 7200)
     private val two = page.copy(groups = page.groups + ResultGroup("Riga Esito, quattro forme", "personal/master", "master", "mockup", mock.at, 1, true, listOf(mock)))
-    private fun shot(dp: Int = 412, scale: Float = 1f, content: @androidx.compose.runtime.Composable () -> Unit) {
-        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), fontScale = scale))
+    private fun shot(dp: Int = 412, scale: Float = 1f, locale: String = "it", content: @androidx.compose.runtime.Composable () -> Unit) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = locale, screenWidth = (dp * 2.75).toInt(), fontScale = scale))
         paparazzi.snapshot { CmPhoneTheme(still = true) { content() } }
     }
     @Test fun guardare_home412() = shot { Column(Modifier.background(Cm.bg).padding(12.dp)) { GuardareBody(listOf(v3, mock, doc), GuardareActions()) {} } }
@@ -36,5 +36,12 @@ class GuardareScreenTest {
     @Test fun guardare_sessione412() = shot { GuardareScreen(two, false, "orbit-docs", GuardareActions()) {} }
     @Test fun guardare_vuota() = shot { GuardareScreen(ResultsPage(), false, null, GuardareActions()) {} }
     @Test fun guardare_aperto412() = shot { ResultViewer(doc.copy(version = 2, versions = 2, changed = "aggiunto l'effetto zoom", notes = listOf(ResultNote(doc.at + 60, "Manca la fonte", null))), GuardareActions()) {} }
+    // Secondo giro della notte (app-bug-notte-03-11): larghezze strette col testo grande, inglese, titolo lungo.
+    private val long = doc.copy(id = "l", title = "Rendiconto trimestrale del cliente con le pagine dei costi e la pagella")
+    @Test fun guardare_pagina320_grande() = shot(320, 1.3f) { GuardareScreen(two, false, null, GuardareActions()) {} }
+    @Test fun guardare_aperto320_grande() = shot(320, 1.3f) { ResultViewer(long.copy(version = 2, versions = 3, changed = "aggiunte le pagine dei costi e tolto il riepilogo vecchio"), GuardareActions()) {} }
+    @Test fun guardare_home_en() = shot(locale = "en") { Column(Modifier.background(Cm.bg).padding(12.dp)) { GuardareBody(listOf(v3, mock, long), GuardareActions()) {} } }
+    @Test fun guardare_vuota_en() = shot(locale = "en") { GuardareScreen(ResultsPage(), false, null, GuardareActions()) {} }
+    @Test fun guardare_riga_chat320_grande() = shot(320, 1.3f) { Column(Modifier.background(Cm.bg).padding(12.dp)) { ResultsChatRow(Guardare.ofSession(page, "orbit-docs")) {} } }
     @Test fun guardare_riga_chat() = shot { Column(Modifier.background(Cm.bg).padding(12.dp)) { ResultsChatRow(Guardare.ofSession(page, "orbit-docs")) {} } }
 }

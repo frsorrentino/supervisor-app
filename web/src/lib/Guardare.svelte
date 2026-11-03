@@ -146,7 +146,8 @@
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--wait); flex: none; }
   .sub { color: var(--tx2); font-size: 13.5px; margin: 0; }
   .sub.warn { color: var(--wait); }
-  .th { width: 118px; height: 74px; flex: none; border-radius: 10px; background: var(--s3); position: relative; overflow: hidden; display: grid; place-items: center; }
+  /* Sugli schermi stretti la miniatura cede spazio ai tasti (app-bug-notte-03-11). */
+  .th { width: min(118px, 28%); aspect-ratio: 118 / 74; height: auto; flex: none; border-radius: 10px; background: var(--s3); position: relative; overflow: hidden; display: grid; place-items: center; }
   .th img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
   .th .play { position: relative; font-size: 34px; color: var(--tx); }
   .th .doc { color: var(--tx2); display: grid; }

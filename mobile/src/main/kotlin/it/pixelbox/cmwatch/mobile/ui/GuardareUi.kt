@@ -85,10 +85,12 @@ private fun Thumb(i: ResultItem, a: GuardareActions, modifier: Modifier) {
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun SeenNote(i: ResultItem, a: GuardareActions, seenFilled: Boolean = false) {
     var done by remember(i.id) { mutableStateOf(false) }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // A capo interi quando non ci stanno (a 320 dp col testo grande «Nota» diventava «✎ I», app-bug-notte-03-11).
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (i.seenAt == null) V3Pill("✓ " + stringResource(R.string.watch_seen), filled = seenFilled, confirmed = done) { if (!done) { done = true; a.seen(i) } }
         V3Pill("✎ " + stringResource(R.string.watch_note)) { a.open(i) }
     }
@@ -99,7 +101,8 @@ private fun SeenNote(i: ResultItem, a: GuardareActions, seenFilled: Boolean = fa
 internal fun ResultRow(i: ResultItem, a: GuardareActions, withSession: Boolean = true, title: String? = null) {
     val l = Guardare.line(i)
     Row(Modifier.fillMaxWidth().clickable { a.open(i) }.padding(vertical = 8.dp).testTag("risultato-${i.id}"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Thumb(i, a, Modifier.width(118.dp).height(74.dp))
+        // La miniatura cede spazio sugli schermi stretti: al massimo 118 dp, mai più di un terzo della riga.
+        Thumb(i, a, Modifier.fillMaxWidth(0.3f).widthIn(max = 118.dp).aspectRatio(118f / 74f))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (l.unseen) Box(Modifier.size(9.dp).clip(CircleShape).background(V3.Wait))
@@ -150,7 +153,7 @@ private fun VersionRow(i: ResultItem, a: GuardareActions) {
     val l = Guardare.line(i)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth().clickable { a.open(i) }.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Thumb(i, a, Modifier.width(112.dp).height(70.dp))
+            Thumb(i, a, Modifier.fillMaxWidth(0.3f).widthIn(max = 112.dp).aspectRatio(112f / 70f))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (l.unseen) Box(Modifier.size(9.dp).clip(CircleShape).background(V3.Wait))
