@@ -399,6 +399,9 @@
   function moveMaster() { smooth(() => { masterLeft = !masterLeft; save('cm.master_left', masterLeft ? '1' : '0') }) }
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
+  // La misura del pannello, stretto o a metà schermo, ricordata come il lato (app-pwa-master-tasti-03-11).
+  const masterNarrow = () => load('cm.master_wide') !== '1'
+  function masterSize() { masterHalf = !masterHalf; save('cm.master_wide', masterHalf ? '0' : '1') }
   // Telefono: la sessione aperta, o la home.
   let open = $state<string | null>(linked != null && known(linked) && linked !== MASTER ? linked : null)
   // Chiusa una sessione, la sua pagina non sparisce (Franz, 08/10 18:06): resta com'era l'ultima volta, chiusa, sotto il
@@ -1045,7 +1048,9 @@
 {#snippet appMenu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
 
 {#snippet homePane()}
-  <HomePane {master} entries={transcripts[MASTER] ?? []} open={masterOpen} onToggle={(o) => smooth(() => { masterOpen = o; masterHalf = o && wide })} onSpeak={(x) => toggle(x, MASTER)}
+  <!-- Larga con le sessioni aperte la master non sta più nella colonna della home: ha il pannello e la barra della plancia
+       (Franz 03/11 13:10, variante A, app-pwa-master-tasti-03-11). -->
+  <HomePane master={wide ? null : master} entries={transcripts[MASTER] ?? []} open={masterOpen} onToggle={(o) => smooth(() => { masterOpen = o; masterHalf = o && wide })} onSpeak={(x) => toggle(x, MASTER)}
     halfStops={wide} half={masterHalf} onHalf={(h) => (masterHalf = h)}>
     {#snippet menu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
     {#snippet quick()}{@render masterQuick()}{/snippet}
@@ -1167,9 +1172,9 @@
 {#snippet deskTasks()}<DeskWork part="progress" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} />{/snippet}
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
-{#snippet masterBar()}{#if master}<div class="mbar"><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = true })} onSpeak={(x) => toggle(x, MASTER)} /><div class="mquick">{@render masterQuick()}</div><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = true })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+{#snippet masterBar()}{#if master}<div class="mbar"><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><div class="mquick">{@render masterQuick()}</div><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
-  onToggleKey={() => smooth(() => { masterHalf = !masterHalf })} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={masterLeft ? t.masterMoveRight : t.masterMoveLeft} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
+  onToggleKey={() => smooth(masterSize)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={masterLeft ? t.masterMoveRight : t.masterMoveLeft} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
@@ -1192,6 +1197,10 @@
     {#snippet bar()}{@render masterBar()}{/snippet}
   </Plancia>
 {:else if wide}
+  <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
+       aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
+  <div class="deskwrap" class:left={masterLeft}>
+  <div class="dstage">
   <Desk {cols} {shares} {homeRight} tab={wco ? columnTab : null} onCols={setCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={() => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
     {#snippet home()}{@render homePane()}{/snippet}
@@ -1213,6 +1222,10 @@
         onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />
     {/snippet}
   </Desk>
+  {#if master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
+  </div>
+  {#if master && masterOpen && !cols.includes(MASTER)}<aside class="dpanel" class:wide={!masterHalf}>{@render masterPanel()}</aside>{/if}
+  </div>
 {:else}
   <div class="phone">
     <InAppBar />
@@ -1289,6 +1302,13 @@
   .rbar small { color: var(--text2); font: 500 12px/1 var(--mono); }
   .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
   /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
+  .deskwrap { height: 100%; display: flex; min-height: 0; }
+  .deskwrap.left { flex-direction: row-reverse; }
+  .dstage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+  .dstage > :global(:first-child) { flex: 1; min-height: 0; }
+  .dpanel { flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); border-left: 1px solid var(--line); }
+  .dpanel.wide { width: 720px; }
+  .deskwrap.left .dpanel { border-left: 0; border-right: 1px solid var(--line); }
   .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 4px 12px 6px; border-top: 1px solid var(--line); background: var(--s1); }
   .mbar > :global(.dock) { width: 500px; flex: none; border-radius: 0; padding: 6px 4px 6px 8px; }
   /* La barra della plancia (pwa2): il campo è una pillola sola, senza il promemoria dei tasti. */
