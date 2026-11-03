@@ -232,4 +232,19 @@ class SummaryListTest {
     @Test fun homeSectionDrag() = paparazzi.snapshot {
         CmPhoneTheme(still = true) { it.pixelbox.cmwatch.mobile.ui.HomeDragGhost("lavori") }
     }
+
+    // Quinto giro della notte (app-bug-notte-03-11): la home a 320 dp col testo grande, in inglese e in orizzontale.
+    private fun sweep(kind: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+        val base = DeviceConfig.PIXEL_5
+        val cfg = when (kind) {
+            "320" -> base.copy(locale = "it", screenWidth = (320 * 2.75).toInt(), fontScale = 1.3f)
+            "en" -> base.copy(locale = "en")
+            else -> base.copy(locale = "it", screenWidth = base.screenHeight, screenHeight = base.screenWidth)
+        }
+        paparazzi.unsafeUpdateConfig(deviceConfig = cfg)
+        paparazzi.snapshot { content() }
+    }
+    @Test fun giro5_home_320Grande() = sweep("320") { page(st, open = "WAITING:ledger-api") }
+    @Test fun giro5_home_en() = sweep("en") { page(st, open = "WAITING:ledger-api") }
+    @Test fun giro5_home_orizzontale() = sweep("land") { page(st, open = "WAITING:ledger-api") }
 }

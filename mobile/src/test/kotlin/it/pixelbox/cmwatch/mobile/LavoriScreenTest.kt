@@ -102,4 +102,19 @@ class LavoriScreenTest {
     // Contratto 1.77: il blocco Fatto dall'op `done`, con la prova, gli esiti e i giorni prima richiusi col conteggio.
     @Test fun lavoriDoneFromTheOp() = paparazzi.snapshot { page(st, agenda, part = LavoriPart.RIGHT, header = LavoriHeader.NONE, pages = mapOf(donePage.date to donePage)) }
     @Test fun lavoriOldRelay() = paparazzi.snapshot { page(idle.copy(commitments = null, approvals = emptyList(), night = Night()), null) }
+
+    // Quinto giro della notte (app-bug-notte-03-11): la stessa schermata a 320 dp col testo grande, in inglese e in orizzontale.
+    private fun sweep(kind: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+        val base = DeviceConfig.PIXEL_5
+        val cfg = when (kind) {
+            "320" -> base.copy(locale = "it", screenWidth = (320 * 2.75).toInt(), fontScale = 1.3f)
+            "en" -> base.copy(locale = "en")
+            else -> base.copy(locale = "it", screenWidth = base.screenHeight, screenHeight = base.screenWidth)
+        }
+        paparazzi.unsafeUpdateConfig(deviceConfig = cfg)
+        paparazzi.snapshot { content() }
+    }
+    @Test fun giro5_lavori_320Grande() = sweep("320") { page(st, agenda) }
+    @Test fun giro5_lavori_en() = sweep("en") { page(st, agenda) }
+    @Test fun giro5_lavori_orizzontale() = sweep("land") { page(st, agenda) }
 }

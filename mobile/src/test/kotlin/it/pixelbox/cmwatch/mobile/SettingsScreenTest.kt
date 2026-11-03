@@ -63,6 +63,21 @@ class SettingsScreenTest {
     }
 
     @Test fun settingsDemo() = paparazzi.snapshot { CmPhoneTheme(still = true) { SettingsScreen(null, "Pixel 9", null, false, true, "0.2", {}, {}, {}, {}, initialOpen = ALL_SECTIONS) } }
+
+    // Quinto giro della notte (app-bug-notte-03-11): la stessa schermata a 320 dp col testo grande, in inglese e in orizzontale.
+    private fun sweep(kind: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+        val base = DeviceConfig.PIXEL_5
+        val cfg = when (kind) {
+            "320" -> base.copy(locale = "it", screenWidth = (320 * 2.75).toInt(), fontScale = 1.3f)
+            "en" -> base.copy(locale = "en")
+            else -> base.copy(locale = "it", screenWidth = base.screenHeight, screenHeight = base.screenWidth)
+        }
+        paparazzi.unsafeUpdateConfig(deviceConfig = cfg)
+        paparazzi.snapshot { content() }
+    }
+    @Test fun giro5_impostazioni_320Grande() = sweep("320") { CmPhoneTheme(still = true) { SettingsScreen("penguin", "Pixel 9", "Pixel Watch 5", false, false, "0.2", {}, {}, {}, {}, devices = devices(), linked = SettingsDevices.linked(st, "phoneUid00000000000000000000", st.ts)) } }
+    @Test fun giro5_impostazioni_en() = sweep("en") { CmPhoneTheme(still = true) { SettingsScreen("penguin", "Pixel 9", "Pixel Watch 5", false, false, "0.2", {}, {}, {}, {}, devices = devices(), linked = SettingsDevices.linked(st, "phoneUid00000000000000000000", st.ts)) } }
+    @Test fun giro5_impostazioni_orizzontale() = sweep("land") { CmPhoneTheme(still = true) { SettingsScreen("penguin", "Pixel 9", "Pixel Watch 5", false, false, "0.2", {}, {}, {}, {}, devices = devices(), linked = SettingsDevices.linked(st, "phoneUid00000000000000000000", st.ts)) } }
 }
 
 private val ALL_SECTIONS = setOf("link", "reading", "app", "info")
