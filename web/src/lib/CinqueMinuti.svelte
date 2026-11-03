@@ -50,7 +50,8 @@
   {@const cardOf = cardText(g)}
       <!-- Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte. -->
       {#each cardOf.head as h, n (n)}{#if head}{#if n === 0}<b>{h}</b>{:else}<p class="m">{h}</p>{/if}{:else if h !== g.title.trim()}<p class="m">{h}</p>{/if}{/each}
-      <span class="pos" class:pc={g.where === 'pc'}>{g.where === 'pc' ? t.decisionsAtPc : t.decisionsHere}{g.weight > 1 ? ` · ${t.decisionsUnblocks(g.weight)}` : ''}</span>
+      <!-- Nella riga aperta dove e quanto sblocca stanno già sulla riga. -->
+      {#if head}<span class="pos" class:pc={g.where === 'pc'}>{g.where === 'pc' ? t.decisionsAtPc : t.decisionsHere}{g.weight > 1 ? ` · ${t.decisionsUnblocks(g.weight)}` : ''}</span>{/if}
       {#each g.items as i, n (n)}
         {@const x = cardOf.items[n]}
         {@const name = i.title ?? i.short ?? i.session ?? i.task ?? ''}

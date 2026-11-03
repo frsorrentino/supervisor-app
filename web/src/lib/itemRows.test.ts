@@ -4,7 +4,7 @@ import type { DecisionGroup, ProveItem } from './contract'
 
 // app-richiede-te-righe-02-11: gli stessi casi di ItemRowsTest.kt.
 const g = (o: Partial<DecisionGroup>): DecisionGroup => ({ key: 'k', title: '', items: [], unblocks: [], weight: 0, since: 0, refs: [], ...o })
-const p: ProveItem = { id: 7, task: 'app-x', short: 'Zoom', build: 'zoom-punto', fai: "Pizzica un'immagine", atteso: '', at: 0 }
+const p: ProveItem = { id: 7, task: 'app-x', short: 'Zoom', session: 'supervisor-app', build: 'zoom-punto', fai: "Pizzica un'immagine", atteso: '', at: 0 }
 
 describe('le voci delle sezioni come righe', () => {
   it('una decisione da qui è ambra e dice cosa sblocca', () => {
@@ -22,9 +22,10 @@ describe('le voci delle sezioni come righe', () => {
   it('una prova è ambra solo con la versione installata', () => {
     expect(prove(p, true).tone).toBe('wait')
     expect(prove(p, true).sub).toBe("Pizzica un'immagine")
-    expect(prove(p, true).right).toEqual([{ kind: 'build', text: 'zoom-punto' }])
+    // A destra la sessione, non la versione: quella è la testata del gruppo.
+    expect(prove(p, true).right).toEqual([{ kind: 'product', text: 'supervisor-app' }])
     expect(prove(p, false).tone).toBe('still')
-    expect(prove(p, false).right[0].kind).toBe('to_install')
+    expect(prove(p, false).right.map(x => x.kind)).toEqual(['to_install', 'product'])
     expect(proveKo({ id: 8, task: 'app-y', build: '', fai: '', atteso: '', at: 0, text: 'Non si apre' }).tone).toBe('red')
   })
   it('da seguire prende il colore dal suo stato', () => {

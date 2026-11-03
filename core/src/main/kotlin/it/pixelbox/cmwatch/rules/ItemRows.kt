@@ -39,9 +39,12 @@ object ItemRows {
         return Row(g.key, name, sub, if (pc) Tone.STILL else Tone.WAIT, listOfNotNull(Right(if (pc) Kind.AT_PC else Kind.HERE), if (g.weight > 1) Right(Kind.UNBLOCKS, n = g.weight) else null))
     }
 
-    /** Da provare: la prova e cosa fare; in ambra se la versione c'è già, grigia se va prima installata. */
+    /**
+     * Da provare: la prova e cosa fare; in ambra se la versione c'è già, grigia se va prima installata. A destra la sessione: la
+     * versione è già la testata del gruppo.
+     */
     fun prove(p: ProveItem, installed: Boolean): Row =
-        Row(p.id.toString(), p.short.clean() ?: p.title.clean() ?: p.task, p.fai.clean(), if (installed) Tone.WAIT else Tone.STILL, listOf(if (installed) Right(Kind.BUILD, p.build) else Right(Kind.TO_INSTALL, p.build)))
+        Row(p.id.toString(), p.short.clean() ?: p.title.clean() ?: p.task, p.fai.clean(), if (installed) Tone.WAIT else Tone.STILL, listOfNotNull(if (installed) null else Right(Kind.TO_INSTALL), (p.session.clean() ?: p.project.clean())?.let { Right(Kind.PRODUCT, it) }))
     fun proveKo(k: ProveKo): Row = Row("ko-${k.id}", k.short.clean() ?: k.task, k.text.clean(), Tone.RED, listOf(Right(Kind.REPORTED)))
     fun proveRed(r: ProveRed): Row = Row("red-${r.task}", r.short.clean() ?: r.task, r.reason.clean(), Tone.RED, listOf(Right(Kind.RED)))
 

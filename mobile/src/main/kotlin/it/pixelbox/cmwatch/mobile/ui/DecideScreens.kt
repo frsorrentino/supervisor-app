@@ -300,7 +300,8 @@ private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> 
         val c = CinqueMinuti.card(g)
         if (head) c.head.forEachIndexed { n, h -> Text(h, style = if (n == 0) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyMedium, color = if (n == 0) Cm.text else Cm.text2) }
         else c.head.filter { it != g.title.trim() }.forEach { h -> Text(h, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
-        Text(stringResource(if (g.where == "pc") R.string.decisions_at_pc else R.string.decisions_here) + if (g.weight > 1) " · " + stringResource(R.string.decisions_unblocks, g.weight) else "", style = MonoSmall, color = if (g.where == "pc") Cm.waiting else Cm.text2)
+        // Nella riga aperta dove e quanto sblocca stanno già sulla riga.
+        if (head) Text(stringResource(if (g.where == "pc") R.string.decisions_at_pc else R.string.decisions_here) + if (g.weight > 1) " · " + stringResource(R.string.decisions_unblocks, g.weight) else "", style = MonoSmall, color = if (g.where == "pc") Cm.waiting else Cm.text2)
         g.items.forEachIndexed { n, i ->
             val x = c.items[n]
             val name = i.title ?: i.short ?: i.session ?: i.task.orEmpty()

@@ -32,12 +32,13 @@ class ItemRowsTest {
     }
 
     @Test fun aTestIsAmberOnlyWhenItsBuildIsInstalled() {
-        val p = ProveItem(7, "app-x", short = "Zoom", build = "zoom-punto", fai = "Pizzica un'immagine")
+        val p = ProveItem(7, "app-x", short = "Zoom", session = "supervisor-app", build = "zoom-punto", fai = "Pizzica un'immagine")
         assertEquals(Tone.WAIT, ItemRows.prove(p, installed = true).tone)
         assertEquals("Pizzica un'immagine", ItemRows.prove(p, true).sub)
-        assertEquals(ItemRows.Right(Kind.BUILD, "zoom-punto"), ItemRows.prove(p, true).right.single())
+        // A destra la sessione, non la versione: quella è la testata del gruppo.
+        assertEquals(ItemRows.Right(Kind.PRODUCT, "supervisor-app"), ItemRows.prove(p, true).right.single())
         assertEquals(Tone.STILL, ItemRows.prove(p, installed = false).tone)
-        assertEquals(Kind.TO_INSTALL, ItemRows.prove(p, false).right.single().kind)
+        assertEquals(listOf(Kind.TO_INSTALL, Kind.PRODUCT), ItemRows.prove(p, false).right.map { it.kind })
         assertEquals(Tone.RED, ItemRows.proveKo(ProveKo(8, "app-y", text = "Non si apre")).tone)
     }
 

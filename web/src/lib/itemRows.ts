@@ -24,9 +24,11 @@ export function decision(g: DecisionGroup): Row {
   return { key: g.key, name, sub, tone: pc ? 'still' : 'wait', right: [{ kind: pc ? 'at_pc' : 'here' }, ...(g.weight > 1 ? [{ kind: 'unblocks' as const, n: g.weight }] : [])] }
 }
 
-/** Da provare: in ambra se la versione c'è già, grigia se va prima installata. */
-export const prove = (p: ProveItem, installed: boolean): Row =>
-  ({ key: String(p.id), name: clean(p.short) ?? clean(p.title) ?? p.task, sub: clean(p.fai), tone: installed ? 'wait' : 'still', right: [{ kind: installed ? 'build' : 'to_install', text: p.build }] })
+/** Da provare: in ambra se la versione c'è già, grigia se va prima installata; a destra la sessione (la versione è la testata del gruppo). */
+export function prove(p: ProveItem, installed: boolean): Row {
+  const who = clean(p.session) ?? clean(p.project)
+  return { key: String(p.id), name: clean(p.short) ?? clean(p.title) ?? p.task, sub: clean(p.fai), tone: installed ? 'wait' : 'still', right: [...(installed ? [] : [{ kind: 'to_install' as const }]), ...(who ? [{ kind: 'product' as const, text: who }] : [])] }
+}
 export const proveKo = (k: ProvePage['ko'][number]): Row => ({ key: `ko-${k.id}`, name: clean(k.short) ?? k.task, sub: clean(k.text), tone: 'red', right: [{ kind: 'reported' }] })
 export const proveRed = (r: ProvePage['red'][number]): Row => ({ key: `red-${r.task}`, name: clean(r.short) ?? r.task, sub: clean(r.reason), tone: 'red', right: [{ kind: 'red' }] })
 
