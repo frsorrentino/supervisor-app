@@ -1422,7 +1422,7 @@
   /* I punti di atterraggio (app-master-trascina-03-11): un velo su tutta la pagina, le zone tratteggiate; quella sotto il dito
      piena e chiara, quella dove la master sta già col bordo pieno. */
   .landing { position: fixed; inset: 0; z-index: 60; pointer-events: none; background: rgb(11 12 14 / .35); }
-  .pv { position: absolute; box-sizing: border-box; display: grid; place-items: center; border: 2px solid var(--busy); border-radius: 18px; background: color-mix(in srgb, var(--busy) 16%, transparent); box-shadow: 0 0 0 1px rgb(0 0 0 / .4), 0 18px 48px rgb(0 0 0 / .45); transition: left .18s cubic-bezier(.2, .8, .2, 1), top .18s cubic-bezier(.2, .8, .2, 1), width .18s cubic-bezier(.2, .8, .2, 1), height .18s cubic-bezier(.2, .8, .2, 1); }
+  .pv { position: absolute; box-sizing: border-box; display: grid; place-items: center; border: 2px solid var(--wait); border-radius: 18px; background: color-mix(in srgb, var(--wait) 16%, transparent); box-shadow: 0 0 0 1px rgb(0 0 0 / .4), 0 18px 48px rgb(0 0 0 / .45); transition: left .18s cubic-bezier(.2, .8, .2, 1), top .18s cubic-bezier(.2, .8, .2, 1), width .18s cubic-bezier(.2, .8, .2, 1), height .18s cubic-bezier(.2, .8, .2, 1); }
   .pv span { font: 600 16px var(--display); color: var(--tx); background: var(--s3); padding: 6px 14px; border-radius: 14px; }
   @media (prefers-reduced-motion: reduce) { .pv { transition: none; } }
   .deskwrap.left { flex-direction: row-reverse; }
