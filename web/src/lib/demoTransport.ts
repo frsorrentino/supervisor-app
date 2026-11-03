@@ -2,8 +2,8 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
 import { lang } from './lang'
-import { decisionsDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, seguitiDemo, world, type World } from './demo'
-import type { DecisionsPage, PrimaRaccoltaPage, ProvePage, SeguitiPage } from './contract'
+import { decisionsDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, resultsDemo, seguitiDemo, world, type World } from './demo'
+import type { DecisionsPage, PrimaRaccoltaPage, ProvePage, ResultsPage, SeguitiPage } from './contract'
 import { NIGHT_TARGET } from './recapAgenda'
 
 // La demo che risponde, porta di FakeTransport.kt (Franz, 15/10 20:36: «la demo deve rispecchiare al 100% l'app»): i
@@ -22,6 +22,7 @@ export class DemoTransport implements Transport {
   private prove: ProvePage | null = null
   private prima: PrimaRaccoltaPage | null = null
   private seguiti: SeguitiPage | null = null
+  private resultsPage: ResultsPage | null = null
   private decisions: DecisionsPage | null = null
 
   constructor(private readonly clock: () => number = () => Math.floor(Date.now() / 1000)) {
@@ -186,6 +187,25 @@ export class DemoTransport implements Transport {
           return ok('ok')
         }
         case 'seguiti': return ok(JSON.stringify(this.seguiti ??= seguitiDemo(this.now())))
+        // Contratto 1.106: Visto segna la versione e quelle prima; il lavoro esce da Da guardare; la nota si salva come fa il relay.
+        case 'results': return ok(JSON.stringify(this.resultsPage ??= resultsDemo(this.now())))
+        case 'result_seen': case 'result_note': {
+          const p = (this.resultsPage ??= resultsDemo(this.now()))
+          const g = p.groups.find(x => x.items.some(i => i.id === cmd.arg))
+          const it = g?.items.find(i => i.id === cmd.arg)
+          if (!g || !it) return ko(`no result ${cmd.arg}`)
+          if (cmd.op === 'result_note') {
+            if (!cmd.text?.trim()) return ko('empty note')
+            it.notes = [...(it.notes ?? []), { at: this.now(), text: cmd.text.trim(), pos_s: cmd.pos_s ?? null }]
+            return ok(`note sent to ${g.session}`)
+          }
+          for (const i of g.items) if (i.version <= it.version && i.seen_at == null) i.seen_at = this.now()
+          g.unseen = g.items.some(i => i.seen_at == null && i.version === g.versions)
+          const left = p.groups.filter(x => x.unseen)
+          p.n_unseen = left.length
+          this.set({ ...this.st, results: left.length ? { n_unseen: left.length, items: left.map(x => { const { caption: _c, files: _f, notes: _n, replaced: _r, ...i } = x.items[0]; return i }) } : null })
+          return ok('seen')
+        }
         case 'seguiti_azione': {
           const p = (this.seguiti ??= seguitiDemo(this.now()))
           const same = (i: { product: string; key: string }) => i.product === cmd.product && i.key === cmd.key

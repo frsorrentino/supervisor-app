@@ -68,6 +68,19 @@ export type Approval = { task: string; title: string; what: string; where: strin
 export type ProveSummary = { n: number; builds: number; red: number; ko: number }
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
 export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number }
+/** Contratto 1.106: un file consegnato da una sessione con SendUserFile; `caption`, `files`, `notes`, `replaced` solo nell'op `results`. */
+export type ResultItem = {
+  id: string; session?: string | null; title: string; kind: 'video' | 'mockup' | 'image' | 'document' | 'other' | string; mime?: string | null
+  path: string; size?: number | null; at: number; duration_s?: number | null; version: number; versions: number; changed?: string | null; seen_at?: number | null
+  caption?: string | null; files?: TranscriptFile[]; notes?: ResultNote[]; replaced?: boolean | null
+}
+export type ResultNote = { at: number; text: string; pos_s?: number | null }
+/** Contratto 1.106, `state.results`: l'ultima versione di ogni lavoro non visto, al massimo 10; assente a indice vuoto. */
+export type ResultsSummary = { n_unseen: number; items: ResultItem[] }
+export type ResultGroup = { title: string; project?: string | null; session?: string | null; kind: string; at: number; versions: number; unseen: boolean; items: ResultItem[] }
+/** Contratto 1.106, op `results`. */
+export type ResultsPage = { groups: ResultGroup[]; n_unseen: number; more: boolean }
+
 /** Contratto 1.102: `state.seguiti`, assente quando è tutto a zero. */
 export type SeguitiSummary = { rimasto: number; altrove: number; promemoria: number }
 /** `stale` null: non si sa, `why` dice perché; con `stale` vero `why` è `paths:N` o `check`. */
@@ -273,6 +286,8 @@ export type State = {
   prima_raccolta?: PrimaRaccoltaSummary | null
   /** Contratto 1.102: la voce «Da seguire» nella home. */
   seguiti?: SeguitiSummary | null
+  /** Contratto 1.106: «Da guardare». */
+  results?: ResultsSummary | null
   /** Contratto 1.76: null o assente con un relay precedente, [] senza impegni. */
   commitments?: Commitment[] | null
   /** Contratto 1.75: gli host remoti e le pubblicazioni di oggi; [] con un relay precedente. Firebase ne porta al massimo 5. */
@@ -327,7 +342,7 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
-  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text'
+  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text' | 'results' | 'result_seen' | 'result_note'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
   /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */
@@ -354,6 +369,8 @@ export type Cmd = {
   value?: string
   /** Contratto 1.102: `seguiti_azione`, il prodotto e la voce o l'id del promemoria. */
   product?: string; key?: string
+  /** Contratto 1.106, `result_note`: il secondo del video. */
+  pos_s?: number
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */
   question?: string
   /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */

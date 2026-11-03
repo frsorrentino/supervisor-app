@@ -31,7 +31,7 @@ class SessionsTextTest {
     }
 
     @Test fun goalLineSaysTheGoalWhole() {
-        assertEquals("Obiettivo: All checkout tests green and the release tagged", SessionsText.goalLine(s.sessions[1], "Obiettivo"))
+        assertEquals("Obiettivo: Checkout tests green, release tagged", SessionsText.goalLine(s.sessions[1], "Obiettivo"))
         assertNull(SessionsText.goalLine(s.sessions[0], "Obiettivo"))
         assertNull(SessionsText.goalLine(s.sessions[1].copy(goal = s.sessions[1].goal!!.copy(text = "  ")), "Obiettivo"))
     }

@@ -23,7 +23,8 @@ class FakeTransport(
         return (root["result"] as kotlinx.serialization.json.JsonArray).first { str(it, "id") == id }.let { str(it, "text") }.orEmpty()
     }
 
-    private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))).copy(prove = ProveSummary(2, 1), decisions = DecisionsSummary(2, 1, 3)))
+    // Contratto 1.106: Da guardare con il risultato della fixture state-3, così la demo e gli screenshot lo mostrano.
+    private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))).copy(prove = ProveSummary(2, 1), decisions = DecisionsSummary(2, 1, 3), results = ContractJson.decodeState(load("state-3-stale")).results))
 
     /**
      * Contratto 1.68 nella demo (Franz, 15/10 dalla web app): atlas-shop ferma per te con un login, field-notes con un ok
@@ -367,6 +368,13 @@ class FakeTransport(
             // Contratto 1.99: le pagine e i risultati della fixture del contratto.
             CmdOp.PROVE, CmdOp.DECISIONI, CmdOp.PRIMA_RACCOLTA, CmdOp.SEGUITI -> ok(sampleText(cmd.op.name.lowercase()))
             CmdOp.PRIMA_RACCOLTA_AZIONE -> ok("ok")
+            // Contratto 1.106: la pagina dei risultati della fixture; «Visto» toglie il lavoro da Da guardare, la nota risponde come il relay.
+            CmdOp.RESULTS -> ok(sampleText("results"))
+            CmdOp.RESULT_SEEN -> {
+                current.value = current.value.let { st -> st.copy(results = st.results?.items?.filterNot { it.id == cmd.arg }?.takeIf { it.isNotEmpty() }?.let { ResultsSummary(it.size, it) }) }
+                ok("seen")
+            }
+            CmdOp.RESULT_NOTE -> ok("note sent to ${current.value.results?.items?.firstOrNull { it.id == cmd.arg }?.session ?: "the session"}")
             CmdOp.CONTI, CmdOp.CONTI_AZIONE, CmdOp.FEEDBACK_CONSENT, CmdOp.FEEDBACK_SEND, CmdOp.FEEDBACK_TEXT -> ko("${cmd.op}: not in this demo yet")
             CmdOp.SEGUITI_AZIONE -> when (cmd.action) {
                 "allinea" -> ok("allinea-${cmd.product}-${cmd.key}")

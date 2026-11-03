@@ -2163,6 +2163,43 @@
    "image": "panoramica.webp"
   },
   {
+   "key": "da_guardare",
+   "group": "follow",
+   "name": {
+    "it": "Da guardare",
+    "en": "To look at"
+   },
+   "what": {
+    "it": "I file che le sessioni ti consegnano (video, mockup, immagini, documenti), con le versioni e le tue note.",
+    "en": "The files the sessions deliver to you (videos, mockups, images, documents), with their versions and your notes."
+   },
+   "where": {
+    "it": "Voce «Da guardare» della home, nella categoria Esiti; nella chat di una sessione la riga «Risultati»",
+    "en": "«To look at» home section, in the Outcomes category; in a session's chat the «Results» row"
+   },
+   "state": "ready",
+   "version": null,
+   "when": {
+    "it": "Ti servirà quando una sessione ti manda qualcosa da vedere e vuoi dirle cosa ne pensi.",
+    "en": "Useful when a session sends you something to look at and you want to tell it what you think."
+   },
+   "how": {
+    "it": "Tocca la voce per aprirla: il video parte col lettore della chat. «Visto» la toglie da Da guardare; la nota arriva alla sessione col secondo del video in cui sei.",
+    "en": "Tap the item to open it: the video plays in the chat player. Seen takes it off the list; the note reaches the session with the second of the video you are at."
+   },
+   "route": null,
+   "section": "da_guardare",
+   "phone": {
+    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/GuardareUi.kt",
+    "needle": "fun ResultViewer"
+   },
+   "web": {
+    "file": "web/src/lib/Guardare.svelte",
+    "needle": "result_note"
+   },
+   "image": "da_guardare.webp"
+  },
+  {
    "key": "rimasto_indietro",
    "group": "organize",
    "name": {

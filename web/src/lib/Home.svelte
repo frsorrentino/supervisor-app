@@ -28,6 +28,7 @@
   import { askedFor, attachedTasks, build, MASTER, staleHours, type Group, type Row } from './summary'
   import { doneOf, okOf, type Done } from './queue'
   import { detailOf } from './sessionDetail'
+  import { line as watchLine } from './guardare'
   import { leave } from './leave'
   import { expiry, since } from './durations'
   import { lavoriInfo, pluginsInfo, systemInfo } from './slotInfo'
@@ -150,7 +151,9 @@
   // Lo spazio in cima (app-home-in-cima-02-11): voci di qualsiasi categoria sopra le categorie, poi il bordo (EDGE) nell'ordine
   // piatto. Nella plancia larga stanno nella fascia sopra le colonne (part 'top') e le colonne non le ripetono.
   const up = $derived(sentOrder && sentOrder.from === savedKey && !part ? sentOrder.top : topOf(st.home_order))
-  const order = $derived(flatCats(up, cats).filter(k => k === EDGE || (DEFAULT_ORDER as string[]).includes(k)) as HomeSection[])
+  // Le sezioni che la home sa disegnare: l'ordine salvato di sempre più Da guardare, che esiste dal contratto 1.106.
+  const SHOWN: string[] = [...DEFAULT_ORDER, 'da_guardare']
+  const order = $derived(flatCats(up, cats).filter(k => k === EDGE || SHOWN.includes(k)) as HomeSection[])
   const edgeAt = (o: string[]) => Math.max(0, o.indexOf(EDGE))
   // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
   const shows = (c: CatId) => !part || part === c || part === 'top'
@@ -164,7 +167,7 @@
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
   // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
-  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ prima_raccolta: { icon: 'task_alt', name: t.primaTitle }, seguiti: { icon: 'event_list', name: t.seguitiTitle }, prove: { icon: 'checklist', name: t.proveTitle }, decisioni: { icon: 'timer', name: t.decisionsTitle }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed } })
+  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ prima_raccolta: { icon: 'task_alt', name: t.primaTitle }, seguiti: { icon: 'event_list', name: t.seguitiTitle }, prove: { icon: 'checklist', name: t.proveTitle }, decisioni: { icon: 'timer', name: t.decisionsTitle }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch } })
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
@@ -616,6 +619,8 @@
     if (k === 'seguiti') return st.seguiti ? say(seguitiBits(st.seguiti)) : null
     if (k === 'prove') return st.prove ? say(proveBits(st.prove)) : null
     if (k === 'decisioni') return st.decisions ? say(decBits(st.decisions)) : null
+    // Da guardare, chiusa: l'ultimo consegnato.
+    if (k === 'da_guardare') { const r = st.results?.items[0]; if (!r) return null; const l = watchLine(r); return l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title }
     return null
   }
 </script>
@@ -636,18 +641,18 @@
     </button>
   {:else if part && !o.onclick}
     <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->
-    <div class="sec static" data-testid={testid}><span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
+    <div class="sec static" data-testid={testid}><span class="ic">{#if icon.startsWith('svg:')}<CatIcon name={icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{icon}</span>{/if}</span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
     <!-- L'unica struttura delle voci della home (Franz 31/10 17:04). -->
     <button class="sec" class:hot={o.hot} class:compact={key === listSkip} class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? !!open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
-      <span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
+      <span class="ic">{#if icon.startsWith('svg:')}<CatIcon name={icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{icon}</span>{/if}</span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
       <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span>
     </button>
   {/if}
 {/snippet}
 
 <section class="home" class:part={!!part}>
-{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed'}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins'}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed'}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins'}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {#if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
 {/snippet}
@@ -854,6 +859,7 @@
     {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'task_alt', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', !open['prima_raccolta'] ? rightOf('prima_raccolta') : null)}{@render nuovaBody(k)}
     {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
     {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: st.prove.n > 0 })}{@render nuovaBody(k)}
+    {:else if (k as string) === 'da_guardare' && st.results?.n_unseen}{@render sec(k, t.homeSecWatch, 'svg:eye', String(st.results.n_unseen), 'home-da-guardare', !open[k] ? rightOf(k) : null)}{@render nuovaBody(k)}
     {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
     {/if}
   {/if}
@@ -868,9 +874,9 @@
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
 {#if part === 'top'}
   <!-- La fascia sopra le colonne della plancia larga: le voci in cima, affiancate. -->
-  <div class="topband" data-testid="home-cima">{#each up.filter(k => (DEFAULT_ORDER as string[]).includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}</div>
+  <div class="topband" data-testid="home-cima">{#each up.filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}</div>
 {:else if part}
-  {#each cats.flatMap(c => c.sections).filter(k => catFor(k) === part && (DEFAULT_ORDER as string[]).includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
+  {#each cats.flatMap(c => c.sections).filter(k => catFor(k) === part && SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
 {:else}
   {@const live = dragOrder ?? order}
   {#if live.slice(0, edgeAt(live)).some(k => k !== listSkip)}<div class="boardlabel" data-testid="home-tabellone-voci"><span class="ms" aria-hidden="true">push_pin</span>{t.boardLabel}</div>{/if}
@@ -901,10 +907,10 @@
 {/if}
   {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
   {#if dragKey && dragGhost}
-    <div class="dragg" data-testid="home-sezione-trascina" style:top="{dragY + dragGhost.shift}px" style:left="{dragGhost.left}px" style:width="{dragGhost.width}px"><span class="ic"><span class="ms" aria-hidden="true">{DRAG_SEC[dragKey].icon}</span></span><b>{DRAG_SEC[dragKey].name}</b></div>
+    <div class="dragg" data-testid="home-sezione-trascina" style:top="{dragY + dragGhost.shift}px" style:left="{dragGhost.left}px" style:width="{dragGhost.width}px"><span class="ic">{#if DRAG_SEC[dragKey].icon.startsWith('svg:')}<CatIcon name={DRAG_SEC[dragKey].icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{DRAG_SEC[dragKey].icon}</span>{/if}</span><b>{DRAG_SEC[dragKey].name}</b></div>
   {/if}
   {#if flyGhost}
-    <div class="dragg dragfly" style:top="{flyGhost.top}px" style:left="{flyGhost.left}px" style:width="{flyGhost.width}px"><span class="ic"><span class="ms" aria-hidden="true">{DRAG_SEC[flyGhost.key].icon}</span></span><b>{DRAG_SEC[flyGhost.key].name}</b></div>
+    <div class="dragg dragfly" style:top="{flyGhost.top}px" style:left="{flyGhost.left}px" style:width="{flyGhost.width}px"><span class="ic">{#if DRAG_SEC[flyGhost.key].icon.startsWith('svg:')}<CatIcon name={DRAG_SEC[flyGhost.key].icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{DRAG_SEC[flyGhost.key].icon}</span>{/if}</span><b>{DRAG_SEC[flyGhost.key].name}</b></div>
   {/if}
 </section>
 

@@ -163,6 +163,8 @@ enum class CmdOp {
     @SerialName("conti") CONTI, @SerialName("conti_azione") CONTI_AZIONE,
     /** Contratto 1.105: le note di claude-observe, il consenso «sempre anonimo», l'anteprima o l'invio (`hash`), il testo libero che diventa una issue pubblica; solo da un tocco. */
     @SerialName("feedback_consent") FEEDBACK_CONSENT, @SerialName("feedback_send") FEEDBACK_SEND, @SerialName("feedback_text") FEEDBACK_TEXT,
+    /** Contratto 1.106: i risultati consegnati dalle sessioni (lettura passiva), «Visto» su una versione, la nota alla sessione. */
+    @SerialName("results") RESULTS, @SerialName("result_seen") RESULT_SEEN, @SerialName("result_note") RESULT_NOTE,
     /** Contratto 1.99: Da provare e Da decidere. */
     @SerialName("prove") PROVE, @SerialName("prova") PROVA, @SerialName("decisioni") DECISIONI, @SerialName("decisione") DECISIONE,
     @SerialName("plugins") PLUGINS,
@@ -374,6 +376,27 @@ enum class CmdOp {
 @Serializable data class Promemoria(val id: String, val text: String = "", @SerialName("created_at") val createdAt: Long? = null, @SerialName("expires_at") val expiresAt: Long? = null, @SerialName("at_time") val atTime: Long? = null)
 /** `outcome` fired o expired. */
 @Serializable data class PromemoriaFired(val id: String, val text: String = "", val outcome: String = "", val at: Long? = null)
+/**
+ * Contratto 1.106: un risultato è un file che una sessione ha mandato con SendUserFile. `kind` video, mockup, image, document,
+ * other; `version` di `versions` del lavoro (stesso titolo); `changed` = cosa è cambiato, solo dalla versione 2.
+ */
+@Serializable data class ResultItem(
+    val id: String, val session: String? = null, val title: String = "", val kind: String = "other", val mime: String? = null,
+    val path: String = "", val size: Long? = null, val at: Long = 0, @SerialName("duration_s") val durationS: Double? = null,
+    val version: Int = 1, val versions: Int = 1, val changed: String? = null, @SerialName("seen_at") val seenAt: Long? = null,
+    /** Solo op `results`. */
+    val caption: String? = null, val files: List<TranscriptFile> = emptyList(), val notes: List<ResultNote> = emptyList(), val replaced: Boolean? = null,
+)
+@Serializable data class ResultNote(val at: Long = 0, val text: String = "", @SerialName("pos_s") val posS: Double? = null)
+/** Contratto 1.106, `state.results`: al massimo 10 voci, la più recente prima; `n_unseen` le conta tutte. */
+@Serializable data class ResultsSummary(@SerialName("n_unseen") val nUnseen: Int = 0, val items: List<ResultItem> = emptyList())
+/** Contratto 1.106, op `results`: i lavori dal più toccato, le versioni dalla più nuova. */
+@Serializable data class ResultGroup(
+    val title: String = "", val project: String? = null, val session: String? = null, val kind: String = "other", val at: Long = 0,
+    val versions: Int = 1, val unseen: Boolean = false, val items: List<ResultItem> = emptyList(),
+)
+@Serializable data class ResultsPage(val groups: List<ResultGroup> = emptyList(), @SerialName("n_unseen") val nUnseen: Int = 0, val more: Boolean = false)
+
 /** Contratto 1.102, op `seguiti`. */
 @Serializable data class SeguitiPage(
     val at: Long = 0, val rimasto: List<RimastoItem> = emptyList(), val altrove: List<AltroveRun> = emptyList(), val promemoria: List<Promemoria> = emptyList(),
@@ -532,6 +555,8 @@ enum class CmdOp {
     @SerialName("prima_raccolta") val primaRaccolta: PrimaRaccoltaSummary? = null,
     /** Contratto 1.102: la voce «Da seguire» nella home. */
     val seguiti: SeguitiSummary? = null,
+    /** Contratto 1.106: «Da guardare», l'ultima versione di ogni lavoro consegnato non ancora visto; assente a indice vuoto. */
+    val results: ResultsSummary? = null,
     /** Contratto 1.75: una voce per macchina confermata, dalla fotografia del poller. */
     @SerialName("hosts_status") val hostsStatus: List<HostStatus> = emptyList(),
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
@@ -760,6 +785,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val key: String? = null,
+    /** Contratto 1.106, `result_note`: il secondo del video a cui si riferisce la nota; assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    @SerialName("pos_s") val posS: Double? = null,
     /** Contratto 1.81: `approve`, l'opzione scelta fra `options` dell'ok; assente, non scritto. */
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)

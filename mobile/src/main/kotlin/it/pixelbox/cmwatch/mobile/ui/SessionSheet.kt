@@ -238,6 +238,8 @@ fun SessionSheet(
     model: it.pixelbox.cmwatch.contract.Model? = s.model, effort: String? = s.effort,
     /** La casa della master: «Per te» e il Quadro sopra la chat; si chiudono quando si scorre indietro per rileggere. */
     top: (@Composable () -> Unit)? = null,
+    /** Contratto 1.106 (app-da-guardare-02-11): la riga «Risultati» fissa in cima alla chat, con quello che la sessione ha consegnato. */
+    results: (@Composable () -> Unit)? = null,
     /** La griglia di puntini dello stile tech dietro la chat (casa della master). */
     grid: Boolean = false,
     /**
@@ -451,6 +453,7 @@ fun SessionSheet(
             }
             elsewhere?.let { ElsewherePill(it, onElsewhere, onElsewhereDismiss) }
             Box(Modifier.padding(horizontal = 12.dp)) { HeadsUpNoteRow(s, now) }
+            results?.let { r -> Box(Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp)) { r() } }
             // Nascosto mentre si scrive (con la tastiera la chat e la barra non avrebbero spazio) e mentre si rilegge; mai più
             // alto di 300 dp, con lo scorrimento dentro (revisione finale 02/10).
             top?.let { block ->
@@ -2086,7 +2089,7 @@ private fun TextFirstLines(path: String, onClick: () -> Unit) {
  * Decodifica un file immagine riducendolo fino a stare entro `max` pixel sul lato lungo e, se dato, entro `maxPixels` in tutto
  * (il visore: un mockup alto 824×6652 resta intero, prima diventava largo 206 px e ingrandito non si leggeva).
  */
-private fun decodeScaled(path: String, max: Int, maxPixels: Long = Long.MAX_VALUE): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
+internal fun decodeScaled(path: String, max: Int, maxPixels: Long = Long.MAX_VALUE): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
     val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
     android.graphics.BitmapFactory.decodeFile(path, bounds)
     var sample = 1

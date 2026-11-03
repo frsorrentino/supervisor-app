@@ -17,6 +17,10 @@
     <path d="M6 3.5h8l4 4V20.5H6z" /><path d="M14 3.5v4h4M9 12h6M9 16h6" />
   {:else if name === 'medal'}
     <circle cx="12" cy="9" r="5" /><path d="M9 13.5L7.5 21l4.5-2.5 4.5 2.5-1.5-7.5" />
+  {:else if name === 'pencil'}
+    <path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" />
+  {:else if name === 'back'}
+    <path d="M19 12H5M11 6l-6 6 6 6" />
   {:else if name === 'totop'}
     <path d="M5 4h14M12 20V8M7 13l5-5 5 5" />
   {:else if name === 'tobottom'}

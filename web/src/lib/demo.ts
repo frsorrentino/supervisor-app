@@ -5,7 +5,7 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import eventsRaw from '../../../contract/events-sample.json?raw'
 import nightRaw from '../../../contract/night-report-sample.json?raw'
 import { decodeChanges, decodeState } from './contract'
-import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry, PrimaRaccoltaPage, SeguitiPage } from './contract'
+import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry, PrimaRaccoltaPage, SeguitiPage, ResultItem, ResultsPage } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
 import type { Commitment, DecisionsPage, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
@@ -124,6 +124,24 @@ const blogOutcome = (now: number) => en
   ? { short: 'post ready, only publishing is left', at: now - 240, full: 'I re-read the post and fixed the links: the draft is in content/posts/release-2-8.md and the cover is already in the repo.\nShall I publish it now, or schedule it for tomorrow morning when the newsletter goes out?\nEsito: post ready, only publishing is left\nProssimi: !ok to publish the post · schedule it for tomorrow 9:00 · send me the preview first' }
   : { short: 'post pronto, manca solo la pubblicazione', at: now - 240, full: "Ho riletto il post e sistemato i link: la bozza è in content/posts/release-2-8.md e la copertina è già nel repo.\nLo pubblico adesso o lo programmo per domattina, quando parte la newsletter?\nEsito: post pronto, manca solo la pubblicazione\nProssimi: !ok alla pubblicazione del post · programmalo per domani alle 9 · mandami prima l'anteprima" }
 
+/** Da guardare nella demo (contratto 1.106): una schermata in due versioni con la nota di Franz, una pagina e un rapporto in PDF. */
+export function resultsDemo(now: number): ResultsPage {
+  const img = { path: '/home/dev/storefront/checkout-before.png', mime: 'image/png', size: 182000 }
+  const item = (x: Partial<ResultItem> & Pick<ResultItem, 'id' | 'session' | 'title' | 'kind' | 'path' | 'at'>): ResultItem => ({ mime: null, size: null, duration_s: null, version: 1, versions: 1, changed: null, seen_at: null, caption: null, files: [], notes: [], replaced: false, ...x })
+  return { n_unseen: 3, more: false, groups: [
+    { title: en ? 'Checkout page' : 'Pagina del checkout', project: 'work/storefront', session: 'storefront', kind: 'image', at: now - 900, versions: 2, unseen: true, items: [
+      item({ id: 'demo-r2', session: 'storefront', title: en ? 'Checkout page' : 'Pagina del checkout', kind: 'image', ...img, at: now - 900, version: 2, versions: 2, changed: en ? 'Pay button above the fold' : 'il tasto Paga sale sopra la piega', caption: en ? 'Checkout page, version 2: Pay button above the fold' : 'Pagina del checkout, versione 2: il tasto Paga sale sopra la piega' }),
+      item({ id: 'demo-r1', session: 'storefront', title: en ? 'Checkout page' : 'Pagina del checkout', kind: 'image', ...img, at: now - 7200, version: 1, versions: 2, seen_at: now - 6000, notes: [{ at: now - 5900, text: en ? 'The Pay button is too low' : 'Il tasto Paga è troppo in basso', pos_s: null }] }),
+    ] },
+    { title: en ? 'Cache preview' : 'Anteprima della cache', project: 'personal/blog', session: 'blog', kind: 'mockup', at: now - 1800, versions: 1, unseen: true, items: [
+      item({ id: 'demo-r3', session: 'blog', title: en ? 'Cache preview' : 'Anteprima della cache', kind: 'mockup', path: '/home/dev/blog/edge-caching-preview.html', mime: 'text/html', size: 24000, at: now - 1800, files: [img] }),
+    ] },
+    { title: en ? 'Payments test report' : 'Rapporto dei test dei pagamenti', project: 'work/payments-api', session: 'payments-api', kind: 'document', at: now - 3000, versions: 1, unseen: true, items: [
+      item({ id: 'demo-r4', session: 'payments-api', title: en ? 'Payments test report' : 'Rapporto dei test dei pagamenti', kind: 'document', path: '/home/dev/payments-api/checkout-tests.pdf', mime: 'application/pdf', size: 88000, at: now - 3000 }),
+    ] },
+  ] }
+}
+
 /** Il mondo della demo all'istante `now` (epoch s). */
 export function world(now: number): World {
   const base = decodeState(dress(stateRaw))
@@ -182,12 +200,14 @@ export function world(now: number): World {
       { kind: 'turn_blocking', session: 'blog', ref: 'blog', title: stopOk.text, since: stopOk.at },
     ].sort((a, b) => a.since - b.since),
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
-    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
+    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'results', 'result_seen', 'result_note', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
     // Contratto 1.99: le righe di Da provare e Da decidere, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 2, here: 1, tasks: 3, snoozed: 0 },
     prima_raccolta: { status: 'ask', done: 9, total: 10, ask: true, first_round_at: null },
     seguiti: { rimasto: 1, altrove: 0, promemoria: 2 },
+    // Contratto 1.106 (app-da-guardare-02-11): tre consegne da guardare, l'ultima versione di ogni lavoro.
+    results: (() => { const g = resultsDemo(now).groups.filter(x => x.unseen); return { n_unseen: g.length, items: g.map(x => { const { caption: _c, files: _f, notes: _n, replaced: _r, ...i } = x.items[0]; return i }) } })(),
     // Utilizzo agganciato: dalla prima schermata si vede il dato in più dello slot.
     // La home per categorie (app-home-categorie-02-11), con Utilizzo agganciato allo slot e Sessioni nello spazio in cima
     // (app-home-in-cima-02-11), così la prima schermata mostra anche quello.

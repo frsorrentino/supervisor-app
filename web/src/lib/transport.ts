@@ -118,7 +118,7 @@ const DEVICE_OPS = new Set<CmdOp>(['prompt', 'resume', 'launch', 'report', 'appr
  * Un comando nuovo dalla web app: `by` = "web" come mette il relay di default. `question` (contratto 1.52): per `answer` e
  * `allow_all`, l'id della domanda aperta al tocco; il relay non preme tasti se nel frattempo ne è arrivata un'altra.
  */
-export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { product?: string; key?: string; value?: string; result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]; kind?: string; since?: number; choice?: string; sid?: string; action?: string; content?: Record<string, string | number | boolean> }): Cmd {
+export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { product?: string; key?: string; value?: string; result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]; kind?: string; since?: number; choice?: string; sid?: string; action?: string; content?: Record<string, string | number | boolean>; pos_s?: number }): Cmd {
   const c: Cmd = { id: crypto.randomUUID(), op, session, arg: arg ?? null, issued: Math.round(Date.now() / 1000), by: 'web' }
   if (text !== undefined) c.text = text
   // Contratto 1.34: il file della chat a pezzi da 1 MB fino a 25 MB, come il telefono (Repo.file); senza, il relay rifiuta
@@ -141,6 +141,8 @@ export function newCmd(op: CmdOp, session: string | null, arg?: string | null, t
   if (extra?.product !== undefined) c.product = extra.product
   if (extra?.key !== undefined) c.key = extra.key
   if (extra?.content !== undefined) c.content = extra.content
+  // Contratto 1.106, `result_note`: il secondo del video.
+  if (extra?.pos_s !== undefined) c.pos_s = extra.pos_s
   if (question !== undefined && (op === 'answer' || op === 'allow_all')) c.question = question
   // Contratto 1.36: il relay scrive «via web app» e la trascrizione dà origin "web".
   if (DEVICE_OPS.has(op)) c.device = 'web'

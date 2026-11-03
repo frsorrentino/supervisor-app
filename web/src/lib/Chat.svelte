@@ -29,7 +29,9 @@
   import { t } from './t'
   import { waitingPc } from './durations'
   import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
-  let { onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
+  let { resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null }: {
+    /** Contratto 1.106: la riga «Risultati» in cima alla chat. */
+    resultsRow?: import('svelte').Snippet | null
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
     onTask?: ((code: string) => void) | null; onHeadsUp?: ((text: string) => void) | null
     onPick: (name: string) => void; onAnswer: (session: string, n: number) => void
@@ -201,6 +203,7 @@
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
   {#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}
+  {#if resultsRow}{@render resultsRow()}{/if}
   <div class="lines" class:dots={home} bind:this={list}>
     {#if home}
       <MasterHome {st} master={s} {entries} onConversation={() => (conversation = true)} onStep={pick} onSendStep={onSend}

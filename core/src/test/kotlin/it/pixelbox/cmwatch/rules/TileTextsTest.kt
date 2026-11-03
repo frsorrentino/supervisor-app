@@ -53,7 +53,7 @@ class TileTextsTest {
     // Contratto 1.16: con un obiettivo dato con /goal la riga sotto l'attività della tile è lui, non l'esito vecchio.
     @Test fun extraPrefersTheGoalWhileWorking() {
         val atlas = q.sessions.single { it.name == "atlas-shop" }
-        assertEquals("Obiettivo: All checkout tests green and the release tagged", TileTexts.extra(atlas, busy = true, now = now, goal = "Obiettivo"))
+        assertEquals("Obiettivo: Checkout tests green, release tagged", TileTexts.extra(atlas, busy = true, now = now, goal = "Obiettivo"))
         assertEquals(TileTexts.extra(atlas, busy = true, now = now), TileTexts.extra(atlas.copy(goal = null), busy = true, now = now, goal = "Obiettivo"))
         assertEquals(null, TileTexts.extra(atlas, busy = false, now = now, goal = "Obiettivo"))
     }

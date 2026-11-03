@@ -58,6 +58,8 @@
   import { NIGHT_TARGET, night as nightCards, setCmd, todayIso } from './lib/recapAgenda'
   import NightAgendaPicker from './lib/NightAgendaPicker.svelte'
   import Composer from './lib/Composer.svelte'
+  import Guardare from './lib/Guardare.svelte'
+  import ResultsRow from './lib/ResultsRow.svelte'
   import AppBar, { type Page as PageName } from './lib/AppBar.svelte'
   import HomeBox from './lib/HomeBox.svelte'
   import Page from './lib/Page.svelte'
@@ -505,6 +507,8 @@
   const asked = new URLSearchParams(location.search).get('page')
   // «diary» e «recap» nei link vecchi aprono la pagina unica Lavori (22/10).
   const askedPage = asked === 'diary' || asked === 'recap' ? 'lavori' : asked
+  // Da guardare (contratto 1.106): la pagina di tutti i risultati o di una sessione, e il risultato da aprire.
+  let watchSession = $state<string | null>(null), watchOpenId = $state<string | null>(null)
   let page = $state<PageName | null>(askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'homeorder', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
   // La pagina Notte (specifica del 07/10, approvata alle 21:50): il rapporto si chiede al PC con l'op `night` (contratto 1.44)
   // quando la pagina si apre e col tasto aggiorna; nella demo è la fixture inventata.
@@ -631,7 +635,7 @@
     try { seen = localStorage.getItem('cm.primaSeen') === '1' } catch { /* senza memoria non si riapre a ogni giro */ }
     if (primaAutoOpen(s, seen)) { try { localStorage.setItem('cm.primaSeen', '1') } catch { /* come sopra */ } ; untrack(() => openPage('prima-raccolta')) }
   })
-  const pageTitle: Record<PageName, string> = $derived({ seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle })
+  const pageTitle: Record<PageName, string> = $derived({ seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.homeSecWatch })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -1024,7 +1028,8 @@
 
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
-  <Chat onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
+  {#snippet resultsRow()}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} onOpen={() => { watchSession = name; watchOpenId = null; openPage('guardare') }} />{/if}{/snippet}
+  <Chat {resultsRow} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
@@ -1065,8 +1070,14 @@
   {#if k === 'seguiti'}<Seguiti {run} summary={st.seguiti} onLavori={() => openPage('lavori')} onMaster={() => { openPage(null); pick(MASTER) }} />
   {:else if k === 'prima_raccolta'}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
   {:else if k === 'prove'}<DaProvare {run} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />
-  {:else if k === 'decisioni'}{@render decisionsBody(true)}{/if}
+  {:else if k === 'decisioni'}{@render decisionsBody(true)}
+  {:else if k === 'da_guardare'}{@render guardare('body')}{/if}
 {/snippet}
+<!-- Contratto 1.106 (app-da-guardare-02-11): i file consegnati dalle sessioni; i file arrivano con l'op `file`, a nome della sessione. -->
+{#snippet guardare(mode: 'body' | 'page')}<Guardare {run} summary={st.results} {mode} session={mode === 'page' ? watchSession : null} openId={mode === 'page' ? watchOpenId : null}
+  getFile={(r, f, quiet) => getFile(r.session ?? '', f.path, `result:${r.id}:${f.path}`, quiet).then(x => x?.blob ?? null)}
+  onExternal={(r) => fileAction(r.session ?? '', r.path, 'open', `result:${r.id}:${r.path}`)} onSession={(n) => { openPage(null); pick(n) }}
+  onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
 {#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
@@ -1104,6 +1115,8 @@
         known={new Set(st.sessions.map(x => x.name))} onOpen={(n) => { if (n) { openPage(null); pick(n) } else openPage('lavori') }} />
     {:else if p === 'usage'}
       <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
+    {:else if p === 'guardare'}
+      {@render guardare('page')}
     {:else if p === 'seguiti'}
       <Seguiti {run} summary={st.seguiti} onLavori={() => openPage('lavori')} onMaster={() => { openPage(null); pick(MASTER) }} />
     {:else if p === 'prima-raccolta'}

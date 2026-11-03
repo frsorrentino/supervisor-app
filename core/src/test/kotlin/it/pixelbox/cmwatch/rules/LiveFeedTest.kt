@@ -273,7 +273,7 @@ class LiveFeedTest {
         val atlas = q.sessions.single { it.name == "atlas-shop" }.copy(lowPriority = null, outcome = null)
         val state = q.copy(sessions = listOf(atlas), approvals = emptyList())
         assertEquals(
-            listOf("atlas shop lavora da 12 minuti, ora: Run the test suite. Obiettivo: All checkout tests green and the release tagged."),
+            listOf("atlas shop lavora da 12 minuti, ora: Run the test suite. Obiettivo: Checkout tests green, release tagged."),
             LiveFeed.round(state, IT, now = 1_789_210_700L + 12 * 60),
         )
         // Senza nota dello strumento, senza obiettivo: il prossimo passo detto, e «pensa».

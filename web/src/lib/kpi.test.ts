@@ -72,7 +72,7 @@ describe('i box della home aperti (app-box-cliccabili-29-10)', () => {
   })
 
   it('al lavoro: obiettivo, strumento, turno; poi le ferme senza niente per te', () => {
-    expect(workingRows(q, q.ts)).toEqual([{ session: 'atlas-shop', goal: 'All checkout tests green and the release tagged', tool: 'Bash pytest -q tests', toolNote: 'Run the test suite', turnS: 100, model: 'Sonnet 5', context: 18 }])
+    expect(workingRows(q, q.ts)).toEqual([{ session: 'atlas-shop', goal: 'Checkout tests green, release tagged', tool: 'Bash pytest -q tests', toolNote: 'Run the test suite', turnS: 100, model: 'Sonnet 5', context: 18 }])
     expect(workingRows(q, q.ts).length).toBe(head(q, null, q.ts).busy)
     expect(stillRows(q)).toEqual([{ session: 'field-notes', outcome: 'README rewritten', at: 1789121000 }])
   })

@@ -71,7 +71,7 @@ class NotificationPlanTest {
     @Test fun outcomeGoneQuota() {
         val o = NotificationPlan.outcome(s.sessions[1], l)
         assertEquals("atlas-shop", o.title); assertEquals("Migrations 008-011 applied, tests green", o.messages.first())
-        assertEquals("Esito: migrations 008-011 applied, tests green.\nSeeds still to review.", o.bigText)
+        assertEquals("Esito: migrations 008-011 applied, tests green.", o.bigText)
         assertEquals(listOf(Act.Read, Act.Write, Act.Open), o.actions); assertTrue(o.autoCancel); assertEquals(12 * 3600_000L, o.timeoutMs)
         val g = NotificationPlan.gone("orbit-docs", "agenzia", l)
         assertEquals("orbit-docs", g.title); assertEquals(listOf(Act.Resume), g.actions)

@@ -72,12 +72,12 @@ import kotlinx.coroutines.withContext
  * pausa, la barra, l'audio e lo schermo intero.
  */
 @Composable
-internal fun VideoPreview(path: String) {
+internal fun VideoPreview(path: String, onPosition: ((Double) -> Unit)? = null) {
     var playing by remember(path) { mutableStateOf(false) }
     val meta by produceState<VideoMeta?>(null, path) { value = withContext(Dispatchers.IO) { videoMeta(path) } }
     val ratio = meta?.ratio ?: (16f / 9f)
     if (!playing) VideoPoster(meta?.poster, meta?.durationMs, ratio) { playing = true }
-    else VideoPlayer(path, ratio)
+    else VideoPlayer(path, ratio, onPosition)
 }
 
 internal class VideoMeta(val poster: ImageBitmap?, val durationMs: Long?, val ratio: Float?)
@@ -139,7 +139,7 @@ internal fun VideoPoster(poster: ImageBitmap?, durationMs: Long?, ratio: Float, 
  * passa da un riquadro all'altro senza ricominciare. Si ferma quando l'app va in secondo piano e si chiude con la card.
  */
 @Composable
-private fun VideoPlayer(path: String, ratio: Float) {
+private fun VideoPlayer(path: String, ratio: Float, onPosition: ((Double) -> Unit)? = null) {
     val context = LocalContext.current
     val player = remember(path) {
         ExoPlayer.Builder(context).build().apply {
@@ -150,6 +150,10 @@ private fun VideoPlayer(path: String, ratio: Float) {
         }
     }
     DisposableEffect(player) { onDispose { player.release() } }
+    // Da guardare (contratto 1.106): la nota va alla sessione col secondo in cui si è; si legge ogni mezzo secondo.
+    if (onPosition != null) androidx.compose.runtime.LaunchedEffect(player) {
+        while (true) { onPosition(player.currentPosition / 1000.0); kotlinx.coroutines.delay(500) }
+    }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle, player) {
         val pause = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_PAUSE) player.pause() }

@@ -286,7 +286,7 @@ fun SummaryList(
     fun save(key: String, v: Boolean) { runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
     /** `hot`: ha qualcosa per Franz, filo e numero in ambra (app-richiede-te-righe-02-11). */
     class NewRow(val title: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val count: String, val tag: String, val open: androidx.compose.runtime.MutableState<Boolean>, val hot: Boolean = false)
-    val newOpen = remember { it.pixelbox.cmwatch.rules.HomeOrder.TOP.associateWith { k -> section(k) } }
+    val newOpen = remember { (it.pixelbox.cmwatch.rules.HomeOrder.TOP + "da_guardare").associateWith { k -> section(k) } }
     fun newRow(key: String): NewRow? {
         if (key !in sectionBodies) return null
         val icons = androidx.compose.material.icons.Icons.Outlined
@@ -297,6 +297,8 @@ fun SummaryList(
             "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.seguiti_title, icons.Update, n.toString(), "home-seguiti", open) }
             "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> NewRow(R.string.prove_title, icons.Science, p.n.toString(), "home-da-provare", open, p.n > 0) }
             "decisioni" -> st.decisions?.takeIf { d -> d.n > 0 }?.let { d -> NewRow(R.string.decisions_title, icons.Timer, d.n.toString(), "home-da-decidere", open, true) }
+            // Contratto 1.106 (app-da-guardare-02-11): c'è finché qualcosa di consegnato non è ancora visto.
+            "da_guardare" -> st.results?.takeIf { x -> x.nUnseen > 0 }?.let { x -> NewRow(R.string.home_sec_watch, icons.Visibility, x.nUnseen.toString(), "home-da-guardare", open) }
             else -> null
         }
     }
@@ -835,7 +837,7 @@ fun SummaryList(
                     PluginsSlotRow(it.pixelbox.cmwatch.rules.SlotInfo.plugins(plugins!!), zone, slotDrag("plugins"), pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }
                     if (pluginsOpen) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
                 }
-                "prima_raccolta", "seguiti", "prove", "decisioni" -> newRow(pin)?.let { r ->
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> newRow(pin)?.let { r ->
                     SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(pin, kpiState), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, pin) }
                     if (r.open.value) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { sectionBodies[pin]?.invoke() }
                 }
@@ -848,7 +850,7 @@ fun SummaryList(
         fun renderKey(k: String) {
             if (k == listSkip) return
             when (k) {
-                "prima_raccolta", "seguiti", "prove", "decisioni" -> renderNew(k)
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> renderNew(k)
                 // Chiuse sta dentro Sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
                 "sessions" -> { renderSessions(); if (listSkip != "closed") renderClosed() }
                 "suggestions" -> renderSuggestions()
@@ -869,7 +871,7 @@ fun SummaryList(
                 "system" -> system != null
                 "plugins" -> hasPlugins
                 "closed" -> closedGroup != null
-                "prima_raccolta", "seguiti", "prove", "decisioni" -> newRow(k) != null
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> newRow(k) != null
                 else -> false
             }
             if (!has) { renderKey(k); return }
@@ -1711,6 +1713,8 @@ private fun newRight(key: String, st: it.pixelbox.cmwatch.contract.State?): Stri
         "prove" -> st.prove?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.prove(x) }
         "decisioni" -> st.decisions?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.decisions(x) }
         "seguiti" -> st.seguiti?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.seguiti(x) }
+        // Da guardare, chiusa: l'ultimo consegnato, come la riga Risultati della chat.
+        "da_guardare" -> return st.results?.items?.firstOrNull()?.let { r -> it.pixelbox.cmwatch.rules.Guardare.line(r).let { l -> l.version?.let { v -> stringResource(R.string.watch_title_version, l.title, v) } ?: l.title } }
         "prima_raccolta" -> return st.primaRaccolta?.let { p -> when (p.status) {
             "ask" -> stringResource(R.string.home_prima_ask); "running" -> stringResource(R.string.home_prima_running)
             "interrupted" -> stringResource(R.string.home_prima_interrupted); "done" -> stringResource(R.string.home_prima_done); else -> null

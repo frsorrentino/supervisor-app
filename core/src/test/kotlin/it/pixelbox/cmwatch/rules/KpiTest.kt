@@ -118,7 +118,7 @@ class KpiTest {
 
     @Test fun boxWorking_busySessionsWithGoalToolAndTurn_thenTheStillOnes() {
         val q = ContractJson.decodeState(Fixtures.stateQuestion)
-        assertEquals(listOf(Kpi.Working("atlas-shop", "All checkout tests green and the release tagged", "Bash pytest -q tests", "Run the test suite", 100L, "Sonnet 5", 18)), Kpi.workingRows(q, q.ts))
+        assertEquals(listOf(Kpi.Working("atlas-shop", "Checkout tests green, release tagged", "Bash pytest -q tests", "Run the test suite", 100L, "Sonnet 5", 18)), Kpi.workingRows(q, q.ts))
         assertEquals(Kpi.head(q, null, q.ts, zone).busy, Kpi.workingRows(q, q.ts).size)
         // Ferme senza niente per Franz: non chi aspetta (ledger-api), non le sparite.
         assertEquals(listOf(Kpi.Still("field-notes", "README rewritten", 1_789_121_000L)), Kpi.stillRows(q))

@@ -240,6 +240,12 @@ class MainActivity : ComponentActivity() {
         var seguitiOpen by rememberSaveable { mutableStateOf(false) }
         var seguitiPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.SeguitiPage?>(null) }
         var seguitiFailed by remember { mutableStateOf(false) }
+        // Contratto 1.106 (app-da-guardare-02-11): la pagina di Da guardare (tutta, o di una sessione) e il risultato aperto.
+        var watchOpen by rememberSaveable { mutableStateOf(false) }
+        var watchSession by rememberSaveable { mutableStateOf<String?>(null) }
+        var resultsPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.ResultsPage?>(null) }
+        var resultsFailed by remember { mutableStateOf(false) }
+        var resultOpen by remember { mutableStateOf<it.pixelbox.cmwatch.contract.ResultItem?>(null) }
         var decisionsOpen by rememberSaveable { mutableStateOf(false) }
         var provePage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.ProvePage?>(null) }
         var decisionsPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.DecisionsPage?>(null) }
@@ -1031,6 +1037,17 @@ class MainActivity : ComponentActivity() {
         // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
         LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen || "prima_raccolta" in inlineOpen) readDecide() }
         LaunchedEffect(seguitiOpen, state?.seguiti) { if (seguitiOpen || "seguiti" in inlineOpen) readDecide() }
+        // Da guardare: la pagina dei risultati si legge con la voce aperta, la pagina, un risultato o una sessione aperta (la riga
+        // «Risultati» della chat), e di nuovo quando cambia quello che non è visto.
+        val readResults: suspend () -> Unit = {
+            val id = runCatching { app.repo.command(CmdOp.RESULTS, null, null) }.getOrNull()
+            val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(PhoneTerminal.LOST_MS) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+            id?.let { x -> app.repo.forget(x) }
+            resultsFailed = r?.ok != true
+            r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeResults(x.text) }.onSuccess { p -> resultsPage = p } }
+        }
+        val wantResults = watchOpen || resultOpen != null || open != null || "da_guardare" in inlineOpen
+        LaunchedEffect(wantResults, open, state?.results) { if (wantResults && state?.ops?.contains("results") == true) readResults() }
         // Il numero della voce è cambiato: anche il corpo aperto.
         LaunchedEffect(state?.prove, state?.decisions) { if ("prove" in inlineOpen || "decisioni" in inlineOpen) readDecide() }
         LaunchedEffect(state?.primaRaccolta?.status) {
@@ -1103,12 +1120,100 @@ class MainActivity : ComponentActivity() {
             androidx.compose.runtime.DisposableEffect(key) { inlineOpen.add(key); onDispose { inlineOpen.remove(key) } }
             content()
         }
+        // Contratto 1.24: i file della chat si aprono dal telefono. Scaricati restano nella cache dell'app: un'immagine
+        // compare come miniatura sotto il suo chip, gli altri file vanno all'app di sistema (Franz, 02/10 10:48).
+        // Chiavi di `FileCache`: lo stesso percorso riscritto sul PC è un altro file.
+        val fileLocal = remember { mutableStateMapOf<String, String>() }
+        val fileLoading = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+        // Il file in memoria o sul disco se c'è, se no chiesto al PC; poi `ready` con il file locale e il suo tipo. Il disco
+        // conta dal 12/10: chiusa e riaperta la conversazione, un video di 12 MB si riscaricava ogni volta.
+        // `quiet`: l'anteprima che nasce da sola (10/10 09:54) non avvisa se il file non arriva.
+        val withFile: (String, String, it.pixelbox.cmwatch.contract.TranscriptFile, Boolean, (java.io.File, String?) -> Unit) -> Unit = { name, key, f, quiet, ready ->
+            val known = fileLocal[key]
+            if (known != null) ready(java.io.File(known), f.mime)
+            else if (key !in fileLoading) {
+                fileLoading.add(key)
+                scope.launch {
+                    val dir = java.io.File(cacheDir, "files")
+                    val kept = java.io.File(dir, it.pixelbox.cmwatch.rules.FileCache.name(key, f.path))
+                    val onDisk = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        kept.isFile.also { found -> if (found) kept.setLastModified(System.currentTimeMillis()) }
+                    }
+                    if (onDisk) {
+                        fileLoading.remove(key)
+                        fileLocal[key] = kept.path
+                        ready(kept, f.mime)
+                        return@launch
+                    }
+                    val r = app.repo.openFile(name, f.path)
+                    fileLoading.remove(key)
+                    when (r) {
+                        is it.pixelbox.cmwatch.data.Repo.Opened.Ok -> {
+                            val inUse = fileLocal.values.map { p -> java.io.File(p).name }.toSet() + kept.name
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                dir.mkdirs()
+                                // Scritto a parte e poi rinominato: un'app chiusa a metà non lascia un video troncato col nome buono.
+                                val part = java.io.File(dir, kept.name + ".part")
+                                part.writeBytes(r.file.bytes)
+                                if (!part.renameTo(kept)) { part.copyTo(kept, overwrite = true); part.delete() }
+                                val all = dir.listFiles().orEmpty().map { x -> it.pixelbox.cmwatch.rules.FileCache.Entry(x.name, x.length(), x.lastModified()) }
+                                it.pixelbox.cmwatch.rules.FileCache.evict(all, keep = inUse).forEach { x -> java.io.File(dir, x).delete() }
+                            }
+                            fileLocal[key] = kept.path
+                            ready(kept, r.file.mime)
+                        }
+                        is it.pixelbox.cmwatch.data.Repo.Opened.Refused -> if (!quiet) {
+                            // «too large: <byte>» in chiaro (Franz, 04/10 21:55): la misura del file e, se il PC lo dice, il limite.
+                            val size = { b: Long -> android.text.format.Formatter.formatShortFileSize(this@MainActivity, b) }
+                            val big = it.pixelbox.cmwatch.rules.FileRefusal.tooLarge(r.reason)
+                            val msg = big?.let { b -> b.max?.let { m -> getString(R.string.file_refused_large_max, size(b.bytes), size(m)) } ?: getString(R.string.file_refused_large, size(b.bytes)) }
+                                ?: getString(R.string.file_refused, r.reason)
+                            android.widget.Toast.makeText(this@MainActivity, msg, android.widget.Toast.LENGTH_LONG).show()
+                        }
+                        it.pixelbox.cmwatch.data.Repo.Opened.Failed -> if (!quiet) android.widget.Toast.makeText(this@MainActivity, getString(R.string.file_failed), android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+        // Il risultato con quello che sa la pagina (didascalia, file, note): lo stato porta solo l'essenziale.
+        val fullResult = { r: it.pixelbox.cmwatch.contract.ResultItem -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { x -> x.id == r.id } ?: r }
+        val guardare = it.pixelbox.cmwatch.mobile.ui.GuardareActions(
+            file = { r, f, quiet, ready -> withFile(r.session.orEmpty(), "result:${r.id}:${f.path}", f, quiet) { file, _ -> ready(file.path) } },
+            seen = { r -> scope.launch {
+                val id = runCatching { app.repo.command(CmdOp.RESULT_SEEN, null, r.id) }.getOrNull()
+                val x = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                id?.let { i -> app.repo.forget(i) }
+                if (x?.ok != true) toast(x?.text ?: getString(R.string.file_failed))
+                readResults()
+            } },
+            note = { r, text, pos -> scope.launch {
+                val id = runCatching { app.repo.command(CmdOp.RESULT_NOTE, null, r.id, text = text, posS = pos) }.getOrNull()
+                val x = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                id?.let { i -> app.repo.forget(i) }
+                toast(x?.text ?: getString(R.string.file_failed))
+                readResults()
+            } },
+            open = { r -> resultOpen = fullResult(r) },
+            session = { name -> resultOpen = null; watchOpen = false; open = name },
+            external = { r -> val f = it.pixelbox.cmwatch.rules.Guardare.main(r); withFile(r.session.orEmpty(), "result:${r.id}:${f.path}", f, false) { file, mime -> viewFile(file, mime ?: f.mime) } },
+        )
         val sectionBodies: Map<String, @Composable () -> Unit> = mapOf(
+            "da_guardare" to { Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } } },
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
             "seguiti" to { Inline("seguiti") { it.pixelbox.cmwatch.mobile.ui.SeguitiBody(seguitiPage, seguitiFailed, act, { open = null; tab = StartRoute.Tab.LAVORI }, { open = null; masterChat = true }) } },
             "prove" to { Inline("prove") { it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen) } },
             "decisioni" to { Inline("decisioni") { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage, decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }, onAsk = decAsk, rows = true) } },
         )
+        resultOpen?.let { r ->
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.ResultViewer(fullResult(r), guardare, onBack = { resultOpen = null }) }
+            BackHandler { resultOpen = null }
+            return
+        }
+        if (watchOpen) {
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.GuardareScreen(resultsPage, resultsFailed, watchSession, guardare, onBack = { watchOpen = false }) }
+            BackHandler { watchOpen = false }
+            return
+        }
         if (proveOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false },
                 onOk = { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) },
@@ -1216,61 +1321,6 @@ class MainActivity : ComponentActivity() {
         }
         // La pagina di una sessione (scheda e chat), usata dallo scorrimento fra le sessioni e dalla casa della master,
         // che le aggiunge «Per te» e il Quadro in cima (`top`).
-        // Contratto 1.24: i file della chat si aprono dal telefono. Scaricati restano nella cache dell'app: un'immagine
-        // compare come miniatura sotto il suo chip, gli altri file vanno all'app di sistema (Franz, 02/10 10:48).
-        // Chiavi di `FileCache`: lo stesso percorso riscritto sul PC è un altro file.
-        val fileLocal = remember { mutableStateMapOf<String, String>() }
-        val fileLoading = remember { androidx.compose.runtime.mutableStateListOf<String>() }
-        // Il file in memoria o sul disco se c'è, se no chiesto al PC; poi `ready` con il file locale e il suo tipo. Il disco
-        // conta dal 12/10: chiusa e riaperta la conversazione, un video di 12 MB si riscaricava ogni volta.
-        // `quiet`: l'anteprima che nasce da sola (10/10 09:54) non avvisa se il file non arriva.
-        val withFile: (String, String, it.pixelbox.cmwatch.contract.TranscriptFile, Boolean, (java.io.File, String?) -> Unit) -> Unit = { name, key, f, quiet, ready ->
-            val known = fileLocal[key]
-            if (known != null) ready(java.io.File(known), f.mime)
-            else if (key !in fileLoading) {
-                fileLoading.add(key)
-                scope.launch {
-                    val dir = java.io.File(cacheDir, "files")
-                    val kept = java.io.File(dir, it.pixelbox.cmwatch.rules.FileCache.name(key, f.path))
-                    val onDisk = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        kept.isFile.also { found -> if (found) kept.setLastModified(System.currentTimeMillis()) }
-                    }
-                    if (onDisk) {
-                        fileLoading.remove(key)
-                        fileLocal[key] = kept.path
-                        ready(kept, f.mime)
-                        return@launch
-                    }
-                    val r = app.repo.openFile(name, f.path)
-                    fileLoading.remove(key)
-                    when (r) {
-                        is it.pixelbox.cmwatch.data.Repo.Opened.Ok -> {
-                            val inUse = fileLocal.values.map { p -> java.io.File(p).name }.toSet() + kept.name
-                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                dir.mkdirs()
-                                // Scritto a parte e poi rinominato: un'app chiusa a metà non lascia un video troncato col nome buono.
-                                val part = java.io.File(dir, kept.name + ".part")
-                                part.writeBytes(r.file.bytes)
-                                if (!part.renameTo(kept)) { part.copyTo(kept, overwrite = true); part.delete() }
-                                val all = dir.listFiles().orEmpty().map { x -> it.pixelbox.cmwatch.rules.FileCache.Entry(x.name, x.length(), x.lastModified()) }
-                                it.pixelbox.cmwatch.rules.FileCache.evict(all, keep = inUse).forEach { x -> java.io.File(dir, x).delete() }
-                            }
-                            fileLocal[key] = kept.path
-                            ready(kept, r.file.mime)
-                        }
-                        is it.pixelbox.cmwatch.data.Repo.Opened.Refused -> if (!quiet) {
-                            // «too large: <byte>» in chiaro (Franz, 04/10 21:55): la misura del file e, se il PC lo dice, il limite.
-                            val size = { b: Long -> android.text.format.Formatter.formatShortFileSize(this@MainActivity, b) }
-                            val big = it.pixelbox.cmwatch.rules.FileRefusal.tooLarge(r.reason)
-                            val msg = big?.let { b -> b.max?.let { m -> getString(R.string.file_refused_large_max, size(b.bytes), size(m)) } ?: getString(R.string.file_refused_large, size(b.bytes)) }
-                                ?: getString(R.string.file_refused, r.reason)
-                            android.widget.Toast.makeText(this@MainActivity, msg, android.widget.Toast.LENGTH_LONG).show()
-                        }
-                        it.pixelbox.cmwatch.data.Repo.Opened.Failed -> if (!quiet) android.widget.Toast.makeText(this@MainActivity, getString(R.string.file_failed), android.widget.Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
         // Il tocco sul chip: un'immagine o un video si vedono sotto il chip (il video con il suo lettore, 10/10 15:24), gli altri
         // file vanno all'app di sistema.
         val openFile: (String, String, it.pixelbox.cmwatch.contract.TranscriptFile) -> Unit = { name, key, f ->
@@ -1555,6 +1605,7 @@ class MainActivity : ComponentActivity() {
                             effort = tunePicks[session.name + "/effort"].let { p -> Tune.effort(session, p, p?.let { results[it.cmd] }, now) },
                             home = home, grid = home != null && homeOpen, header = header, dock = dock, bar = bar, homeOpen = homeOpen, appBar = appBar, halfStops = home != null && wide, half = masterHalf,
                             headerLead = lead, draftState = drafts.state(session),
+                            results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> l.latest != null }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l) { watchSession = session.name; watchOpen = true } } },
                             // Con l'ispettore obiettivo e bassa priorità stanno lì: in testata non si ripetono (revisione della master, 04/10).
                             notesInHeader = lead == null || !inspectorOn,
                             canAttachFiles = state?.share?.any == true,

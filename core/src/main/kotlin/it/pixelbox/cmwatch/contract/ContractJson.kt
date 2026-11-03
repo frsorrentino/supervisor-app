@@ -16,6 +16,7 @@ object ContractJson {
     fun decodeDiff(raw: String): StepDiff = json.decodeFromString(StepDiff.serializer(), raw)
     /** Contratto 1.44: il rapporto della notte, il `text` dell'op `night`. */
     fun decodeSeguiti(raw: String): SeguitiPage = json.decodeFromString(SeguitiPage.serializer(), raw)
+    fun decodeResults(raw: String): ResultsPage = json.decodeFromString(ResultsPage.serializer(), raw)
     fun decodePrimaRaccolta(raw: String): PrimaRaccoltaPage = json.decodeFromString(PrimaRaccoltaPage.serializer(), raw)
     fun decodeProve(raw: String): ProvePage = json.decodeFromString(ProvePage.serializer(), raw)
     fun decodeDecisions(raw: String): DecisionsPage = json.decodeFromString(DecisionsPage.serializer(), raw)
