@@ -9,6 +9,15 @@ import it.pixelbox.cmwatch.contract.TranscriptPage
  * nella trascrizione si mette al suo orario.
  */
 object ChatFeed {
+    /** La voce della trascrizione di un elemento, per aprire la chat dove Cerca l'ha trovata (app-cerca-pagina-03-11). */
+    fun entryOf(i: Item): String? = when (i) {
+        is Item.Mine -> i.entry?.id
+        is Item.User -> i.entry.id
+        is Item.Claude -> i.entry.id
+        is Item.Tool -> i.entry.id
+        is Item.Steps -> i.entries.firstOrNull()?.id
+    }
+
     sealed interface Item {
         /** Un messaggio mandato dal telefono; `entry` = la sua voce nella trascrizione, null finché non c'è. */
         data class Mine(val sent: Sent, val status: ChatRules.Status, val entry: TranscriptEntry?) : Item

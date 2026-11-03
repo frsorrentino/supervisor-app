@@ -1741,4 +1741,19 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="tocca_kind_pause">Pausa</string>
     <string name="tocca_kind_prova">Prova</string>
     <string name="tocca_kind_needs_you">Richiesta</string>
+    <!-- La pagina Cerca come il mockup scelto (app-cerca-pagina-03-11). -->
+    <string name="search_recent">Recenti</string>
+    <string name="search_all">Tutte</string>
+    <string name="search_today">Oggi</string>
+    <string name="search_week">7 giorni</string>
+    <string name="search_closed_too">anche chiuse</string>
+    <string name="search_open_one">aperta</string>
+    <string name="search_help">Cerca nelle conversazioni, negli esiti e nel registro. Un tocco su un risultato apre la conversazione in quel punto.</string>
+    <string name="search_forget">Togli «%1$s» dalle recenti</string>
+    <string name="search_clear">Cancella</string>
+    <string name="search_yesterday">ieri</string>
+    <plurals name="search_foot_results"><item quantity="one">%1$d risultato</item><item quantity="other">%1$d risultati</item></plurals>
+    <plurals name="search_foot_sessions"><item quantity="one">in %1$d sessione</item><item quantity="other">in %1$d sessioni</item></plurals>
+    <string name="search_foot_today">oggi</string>
+    <string name="search_foot_week">ultimi 7 giorni</string>
 </resources>

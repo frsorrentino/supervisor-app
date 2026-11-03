@@ -263,6 +263,8 @@ class MainActivity : ComponentActivity() {
         var usageOpen by rememberSaveable { mutableStateOf(false) }
         val goUsage: () -> Unit = { open = null; masterChat = false; usageOpen = true }
         var searchOpen by rememberSaveable { mutableStateOf(false) }
+        // Da Cerca: sessione e voce su cui aprire la chat (app-cerca-pagina-03-11).
+        var searchFocus by remember { mutableStateOf<Pair<String, String>?>(null) }
         var nightOpen by rememberSaveable { mutableStateOf(false) }
         // Contratto 1.82: le conversazioni chiuse aperte dalla Notte, per nome mostrato: si leggono per sid, in sola lettura.
         val sidOf = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
@@ -746,9 +748,9 @@ class MainActivity : ComponentActivity() {
             val searchResult = searchId?.let { results[it] }
             val searchPage = searchResult?.takeIf { it.ok }?.let { r -> runCatching { ContractJson.decodeSearch(r.text) }.getOrNull() }
             it.pixelbox.cmwatch.mobile.ui.PageIn { SearchScreen(
-                chatLog, events, onOpen = { n -> searchOpen = false; if (n != null) { open = n } else { open = null; tab = StartRoute.Tab.LAVORI } },
+                chatLog, events, onOpen = { n, entry -> searchOpen = false; if (n != null) { open = n; searchFocus = entry?.let { e -> n to e } } else { open = null; tab = StartRoute.Tab.LAVORI } },
                 remote = state?.ops?.contains("search") == true, page = searchPage, loading = searchId != null && searchResult == null,
-                known = state?.sessions?.map { it.name }?.toSet().orEmpty(),
+                known = state?.sessions?.map { it.name }?.toSet().orEmpty(), sessions = state?.sessions.orEmpty(),
                 onQuery = { q ->
                     scope.launch {
                         searchId?.let { app.repo.forget(it) }
@@ -1668,6 +1670,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onElsewhereDismiss = { elsewhere?.let { a -> elsewhereSeen += it.pixelbox.cmwatch.rules.Elsewhere.run { a.seenKeys } } },
+                            // Da Cerca (app-cerca-pagina-03-11): la chat si apre sul passaggio trovato.
+                            focus = searchFocus?.takeIf { f -> f.first == session.name }?.second, onFocused = { searchFocus = null },
                             onOlder = {
                                 val first = entries.firstOrNull()?.id
                                 if (first != null && olderId == null) scope.launch { olderId = runCatching { transcriptSid(session.name).let { sid -> app.repo.command(CmdOp.TRANSCRIPT, session.name.takeIf { sid == null }, ChatFeed.olderArg(first), sid = sid) } }.getOrNull() }

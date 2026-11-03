@@ -218,6 +218,8 @@ fun SessionSheet(
     slash: List<String>? = null,
     /** Contratto 1.22: la conversazione vera; null = relay senza `transcript`, resta la chat dei messaggi mandati. */
     feed: List<ChatFeed.Item>? = null, more: Boolean = false, onOlder: () -> Unit = {},
+    /** Da Cerca (app-cerca-pagina-03-11): la voce da portare in vista; [onFocused] quando è fatto o non si trova. */
+    focus: String? = null, onFocused: () -> Unit = {},
     /** La conversazione vera sta arrivando: niente chat di ripiego nel frattempo, che poi salterebbe (dal vivo 30/09 23:36). */
     loadingFeed: Boolean = false,
     /** Da quando (ms) una lettura della conversazione aspetta il PC; null se nessuna è in volo (piano prestazioni, Task 7). */
@@ -397,6 +399,24 @@ fun SessionSheet(
             if (follow && below && n > 0 && !list.isScrollInProgress) list.scrollToEnd()
         }
     }
+    // Da Cerca: si caricano le pagine più vecchie finché la voce non c'è (al massimo 8), poi la chat la porta in vista con un lampo
+    // giallo e smette di seguire la fine (app-cerca-pagina-03-11).
+    var flash by remember(s.id) { mutableStateOf<String?>(null) }
+    var olderTries by remember(focus) { mutableIntStateOf(0) }
+    LaunchedEffect(flash) { if (flash != null) { kotlinx.coroutines.delay(2_200); flash = null } }
+    LaunchedEffect(focus, groupedFeed?.size, more) {
+        val f = focus ?: return@LaunchedEffect
+        follow = false
+        val at = groupedFeed?.indexOfFirst { ChatFeed.entryOf(it) == f } ?: -1
+        when {
+            at >= 0 -> {
+                list.animateScrollToItem(at + if (more) 1 else 0, -list.layoutInfo.viewportSize.height / 4)
+                flash = f; onFocused()
+            }
+            more && olderTries < 8 -> { olderTries++; onOlder() }
+            groupedFeed != null && !loadingFeed -> onFocused()
+        }
+    }
     // Dopo «Riprova», finito il carico, la chat scorre fino alla voce mandata (Franz 31/10 16:10), anche se nel frattempo è arrivato altro.
     val retriedStatus = retried?.let { r -> chat.firstOrNull { it.sent.id == r }?.status ?: groupedFeed?.firstNotNullOfOrNull { i -> (i as? ChatFeed.Item.Mine)?.takeIf { it.sent.id == r }?.status } }
     LaunchedEffect(retried, retriedStatus) {
@@ -500,6 +520,7 @@ fun SessionSheet(
                         val opening = android.os.SystemClock.uptimeMillis() - openedAt < 1_000
                         Column(
                             Modifier.fillMaxWidth().cascadeIn(ChatNews.rank(index, grouped.size), opening, cascaded, k)
+                                .then(if (flash != null && ChatFeed.entryOf(it) == flash) Modifier.background(androidx.compose.ui.graphics.Color(0x38FFB23F), MaterialTheme.shapes.medium) else Modifier)
                                 .newsTint(newsFrom != null && index >= newsFrom && it !is ChatFeed.Item.Mine, tinted, k),
                         ) {
                         if (index == newsFrom) NewsDivider()

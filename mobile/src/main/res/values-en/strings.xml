@@ -1716,4 +1716,18 @@ It starts at your last message to the master.</string>
     <string name="tocca_kind_pause">Pause</string>
     <string name="tocca_kind_prova">Test</string>
     <string name="tocca_kind_needs_you">Request</string>
+    <string name="search_recent">Recent</string>
+    <string name="search_all">All</string>
+    <string name="search_today">Today</string>
+    <string name="search_week">7 days</string>
+    <string name="search_closed_too">closed too</string>
+    <string name="search_open_one">open</string>
+    <string name="search_help">Search conversations, outcomes and the register. Tap a result to open the conversation at that point.</string>
+    <string name="search_forget">Remove «%1$s» from recent</string>
+    <string name="search_clear">Clear</string>
+    <string name="search_yesterday">yesterday</string>
+    <plurals name="search_foot_results"><item quantity="one">%1$d result</item><item quantity="other">%1$d results</item></plurals>
+    <plurals name="search_foot_sessions"><item quantity="one">in %1$d session</item><item quantity="other">in %1$d sessions</item></plurals>
+    <string name="search_foot_today">today</string>
+    <string name="search_foot_week">last 7 days</string>
 </resources>

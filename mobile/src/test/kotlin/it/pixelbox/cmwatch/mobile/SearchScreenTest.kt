@@ -13,12 +13,16 @@ import org.junit.Test
 class SearchScreenTest {
     @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar")
     private val t = 1789210800L
+    /** L'ora fissa delle prove: «oggi», «ieri» e i giorni non cambiano col giorno in cui gira la CI. */
+    private val NOW = t + 600
     private val sent = listOf(
         Sent("a", "ledger-api", "Perché il deploy fallisce in staging?", t - 7200, outcomeFull = "Il deploy ora passa: mancava una variabile.", doneAt = t - 7000),
     )
     private val events = listOf(Event("e", EventKind.RECAP, ts = t - 600, title = "Diario", body = "Oggi: deploy di atlas-shop e test di ledger-api"))
 
-    @Test fun searchResults() = paparazzi.snapshot { CmPhoneTheme(still = true) { SearchScreen(sent, events, {}, initial = "deploy") } }
+    // app-cerca-pagina-03-11: prima di scrivere, filtri e aiuto (le recenti stanno nelle preferenze del telefono).
+    @Test fun searchEmpty() = paparazzi.snapshot { CmPhoneTheme(still = true) { SearchScreen(sent, events, { _, _ -> }, now = NOW, remote = true, sessions = it.pixelbox.cmwatch.contract.ContractJson.decodeState(java.io.File("../contract/state-2-idle.json").readText()).sessions) } }
+    @Test fun searchResults() = paparazzi.snapshot { CmPhoneTheme(still = true) { SearchScreen(sent, events, { _, _ -> }, initial = "deploy", now = NOW) } }
 
     // Contratto 1.27: i risultati del relay nelle conversazioni di tutte le sessioni, con una sessione chiusa.
     @Test fun searchConversations() = paparazzi.snapshot {
@@ -27,7 +31,7 @@ class SearchScreenTest {
             it.pixelbox.cmwatch.contract.SearchHit("orbit-docs", false, entry = "c5.0", role = "user", at = t - 5400, snippet = "move the review to tuesday", match = listOf(19, 26)),
             it.pixelbox.cmwatch.contract.SearchHit("orbit-docs", false, entry = "c1.0", role = "user", at = t - 7200, snippet = "Perché la riunione di Tuesday è saltata?", match = listOf(22, 29)),
         ), more = true)
-        CmPhoneTheme(still = true) { SearchScreen(emptyList(), events, {}, initial = "tuesday", remote = true, page = page, known = setOf("atlas-shop")) }
+        CmPhoneTheme(still = true) { SearchScreen(emptyList(), events, { _, _ -> }, initial = "tuesday", now = NOW, remote = true, page = page, known = setOf("atlas-shop")) }
     }
 
     // Quinto giro della notte (app-bug-notte-03-11): la stessa schermata a 320 dp col testo grande, in inglese e in orizzontale.
@@ -41,7 +45,7 @@ class SearchScreenTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = cfg)
         paparazzi.snapshot { content() }
     }
-    @Test fun giro5_ricerca_320Grande() = sweep("320") { CmPhoneTheme(still = true) { SearchScreen(sent, events, {}, initial = "deploy") } }
-    @Test fun giro5_ricerca_en() = sweep("en") { CmPhoneTheme(still = true) { SearchScreen(sent, events, {}, initial = "deploy") } }
-    @Test fun giro5_ricerca_orizzontale() = sweep("land") { CmPhoneTheme(still = true) { SearchScreen(sent, events, {}, initial = "deploy") } }
+    @Test fun giro5_ricerca_320Grande() = sweep("320") { CmPhoneTheme(still = true) { SearchScreen(sent, events, { _, _ -> }, initial = "deploy", now = NOW) } }
+    @Test fun giro5_ricerca_en() = sweep("en") { CmPhoneTheme(still = true) { SearchScreen(sent, events, { _, _ -> }, initial = "deploy", now = NOW) } }
+    @Test fun giro5_ricerca_orizzontale() = sweep("land") { CmPhoneTheme(still = true) { SearchScreen(sent, events, { _, _ -> }, initial = "deploy", now = NOW) } }
 }
