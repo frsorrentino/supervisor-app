@@ -32,6 +32,17 @@ class SummaryListTest {
 
     @Test fun summaryClosed() = paparazzi.snapshot { page(st) }
     @Test fun summaryOpen() = paparazzi.snapshot { page(st, open = "WAITING:ledger-api") }
+    // app-attesa-dettagli-02-11: aperta, una ferma dice la proposta e mette tutte le scelte come tasti (secondo giro della notte).
+    @Test fun summaryOpenWaitingProposal() = paparazzi.snapshot {
+        val full = "Ho riletto il post e sistemato i link.\nLo pubblico adesso o domattina, quando parte la newsletter?\nEsito: post pronto, manca la pubblicazione\nProssimi: !ok alla pubblicazione · programmalo per domani · mandami l'anteprima"
+        val w = st.sessions.first { s -> s.name == "field-notes" }.let { s -> s.copy(
+            state = it.pixelbox.cmwatch.contract.SessionState.IDLE,
+            outcome = it.pixelbox.cmwatch.contract.Outcome("post pronto, manca la pubblicazione", full, st.ts - 240),
+            nextSteps = listOf(it.pixelbox.cmwatch.contract.NextStep("ok alla pubblicazione", true), it.pixelbox.cmwatch.contract.NextStep("programmalo per domani"), it.pixelbox.cmwatch.contract.NextStep("mandami l'anteprima")),
+            turnBlocking = it.pixelbox.cmwatch.contract.TurnBlocking("ok alla pubblicazione", st.ts - 240),
+        ) }
+        page(st.copy(sessions = st.sessions.map { s -> if (s.name == "field-notes") w else s }), open = "WAITING:field-notes")
+    }
 
     // La sezione «Lavori» (22/10): al posto di Da approvare, Impegni e Recap, le righe con un tasto e «Tutti i lavori».
     @Test fun summaryWithLavori() = paparazzi.snapshot {
