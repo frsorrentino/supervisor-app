@@ -219,7 +219,7 @@ const it = {
   kpi10Caption: 'token per turno', kpi10Aria: (n: number, m: number, a: string, b: string) => `${n} turni oggi, ${m} minuti; il costo va da ${a} a ${b} token per turno`,
   kpi12Latency: "dalla push al telefono, mediana dell'ultima ora", kpi12LatencyMax: (s: string) => `dalla push al telefono, mediana; picco ${s} s`, kpi12LatencyP95: (p: string, m: string | null) => `dalla push al telefono, mediana; p95 ${p} s${m ? `, picco ${m} s` : ''}`,
   kpi12LatencyNone: "dalla push al telefono: nessuna misura nell'ultima ora", kpi12SessionsHere: 'sessioni su questo computer',
-  kpi12Ram: (h: string) => `RAM usata su ${h}`, kpi12Up: (h: string) => `${h} acceso`, kpi12Cpu: (h: string) => `CPU usata su ${h}`, kpi12Commands: (m: string) => `risposta ai comandi oggi, p95; mediana ${m} s`, kpi12Down: 'spento',
+  kpi12Ram: (h: string) => `RAM usata su ${h}`, kpi12Up: (h: string) => `${h} acceso`, kpi12Cpu: (h: string) => `CPU usata su ${h}`, kpi12Commands: (m: string) => `risposta ai comandi oggi, p95; mediana ${m} s`, kpi12Down: 'spento', kpi12DiskHere: (n: string) => `liberi sul disco del PC, di ${n} GB`,
   kpi13Title: 'Suggerimenti · 7 giorni', kpi13Rate: (p: number) => `${p}% accettati`, kpi13None: 'Nessun suggerimento negli ultimi 7 giorni.',
   kpi13Parts: {
     accepted: (n: number) => `${n} ${n === 1 ? 'accettato' : 'accettati'}`, discussed: (n: number) => `${n} parliamone`, later: (n: number) => `${n} più tardi`,
@@ -643,7 +643,7 @@ const en: typeof it = {
   kpi10Caption: 'tokens per turn', kpi10Aria: (n: number, m: number, a: string, b: string) => `${n} turns today, ${m} minutes; the cost goes from ${a} to ${b} tokens per turn`,
   kpi12Latency: 'from the push to the phone, median of the last hour', kpi12LatencyMax: (s: string) => `from the push to the phone, median; peak ${s} s`, kpi12LatencyP95: (p: string, m: string | null) => `push to phone, median; p95 ${p} s${m ? `, peak ${m} s` : ''}`,
   kpi12LatencyNone: 'from the push to the phone: no sample in the last hour', kpi12SessionsHere: 'sessions on this computer',
-  kpi12Ram: (h: string) => `RAM used on ${h}`, kpi12Up: (h: string) => `${h} on`, kpi12Cpu: (h: string) => `CPU used on ${h}`, kpi12Commands: (m: string) => `reply to commands today, p95; median ${m} s`, kpi12Down: 'off',
+  kpi12Ram: (h: string) => `RAM used on ${h}`, kpi12Up: (h: string) => `${h} on`, kpi12Cpu: (h: string) => `CPU used on ${h}`, kpi12Commands: (m: string) => `reply to commands today, p95; median ${m} s`, kpi12Down: 'off', kpi12DiskHere: (n: string) => `free on the PC's disk, of ${n} GB`,
   kpi13Title: 'Suggestions · 7 days', kpi13Rate: (p: number) => `${p}% accepted`, kpi13None: 'No suggestions in the last 7 days.',
   kpi13Parts: {
     accepted: (n: number) => `${n} accepted`, discussed: (n: number) => `${n} discussed`, later: (n: number) => `${n} later`,

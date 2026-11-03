@@ -276,7 +276,8 @@ internal fun Kpi12(h: KpiHealth) {
         h.sessionsHere?.let { n ->
             add { m -> Figure(h.sessionsMax?.let { "$n / $it" } ?: n.toString(), stringResource(R.string.kpi12_sessions_here), if (h.sessionsMax != null && n >= h.sessionsMax!!) Cm.waiting else null, m) }
         }
-        h.hosts.forEach { x ->
+        // Contratto 1.110 (app-kpi-win-disco-03-11): una macchina compare solo mentre lavora; a riposo, il disco del PC al suo posto.
+        it.pixelbox.cmwatch.rules.KpiHosts.shown(h).forEach { x ->
             add { m ->
                 if (!x.up) Figure(stringResource(R.string.kpi12_down), x.name, Cm.briefAlertRing, m)
                 else Figure(
@@ -285,6 +286,10 @@ internal fun Kpi12(h: KpiHealth) {
                     if ((x.ramPct ?: 0) >= 85) Cm.waiting else null, m,
                 )
             }
+        }
+        it.pixelbox.cmwatch.rules.KpiHosts.disk(h)?.let { d ->
+            val gb = { b: Long -> String.format(locale, if (b >= 100L shl 30) "%.0f" else "%.1f", b / 1073741824.0) }
+            add { m -> Figure(stringResource(R.string.kpi12_gb, gb(d.free)), stringResource(R.string.kpi12_disk_here, gb(d.total)), if (d.free * 10 < d.total) Cm.waiting else null, m) }
         }
         // Il carico di ogni macchina accesa accanto alla RAM (Franz 03/11 17:40, app-sistema-barra-kpi-03-11): quattro riquadri, niente buco.
         // Contratto 1.109: la risposta dei comandi di oggi, p95, è il quarto riquadro; con un relay precedente il carico delle macchine.

@@ -1756,4 +1756,6 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <plurals name="search_foot_sessions"><item quantity="one">in %1$d sessione</item><item quantity="other">in %1$d sessioni</item></plurals>
     <string name="search_foot_today">oggi</string>
     <string name="search_foot_week">ultimi 7 giorni</string>
+    <string name="kpi12_gb">%1$s GB</string>
+    <string name="kpi12_disk_here">liberi sul disco del PC, di %1$s GB</string>
 </resources>

@@ -1044,12 +1044,19 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     @SerialName("sessions_max") val sessionsMax: Int? = null, val hosts: List<KpiHost> = emptyList(),
     /** Contratto 1.109. */
     val commands: KpiCommands? = null,
+    /** Contratto 1.110: il disco di questo computer (quello delle sessioni); null se non si legge o con un relay precedente. */
+    @SerialName("local_disk") val localDisk: KpiDisk? = null,
 )
+@Serializable data class KpiDisk(val free: Long, val total: Long)
 /** Contratto 1.108: `p95_s` al rango più vicino, sugli stessi campioni di p50 e max (dalla push alla lettura, ultima ora). */
 /** Contratto 1.109: il tempo di risposta dei comandi del bus di oggi, da `issued` all'esito scritto; null senza comandi. */
 @Serializable data class KpiCommands(@SerialName("p50_s") val p50S: Double? = null, @SerialName("p95_s") val p95S: Double? = null, val n: Int = 0)
 @Serializable data class KpiLatency(@SerialName("p50_s") val p50S: Double? = null, @SerialName("max_s") val maxS: Double? = null, val n: Int = 0, @SerialName("p95_s") val p95S: Double? = null)
-@Serializable data class KpiHost(val name: String, val up: Boolean, val cpu: Double? = null, @SerialName("ram_pct") val ramPct: Int? = null, @SerialName("disk_pct") val diskPct: Int? = null)
+/** Contratto 1.110: `working` (null con un relay precedente) e i motivi `job`, `session`, `cpu`. */
+@Serializable data class KpiHost(
+    val name: String, val up: Boolean, val cpu: Double? = null, @SerialName("ram_pct") val ramPct: Int? = null, @SerialName("disk_pct") val diskPct: Int? = null,
+    val working: Boolean? = null, @SerialName("working_why") val workingWhy: List<String> = emptyList(),
+)
 
 /** 13 · come sono finiti i suggerimenti degli ultimi sette giorni; `accepted` conta anche le scelte. */
 @Serializable data class KpiSuggestions(val accepted: Int = 0, val discussed: Int = 0, val later: Int = 0, val never: Int = 0, val expired: Int = 0)

@@ -1730,4 +1730,6 @@ It starts at your last message to the master.</string>
     <plurals name="search_foot_sessions"><item quantity="one">in %1$d session</item><item quantity="other">in %1$d sessions</item></plurals>
     <string name="search_foot_today">today</string>
     <string name="search_foot_week">last 7 days</string>
+    <string name="kpi12_gb">%1$s GB</string>
+    <string name="kpi12_disk_here">free on the PC\'s disk, of %1$s GB</string>
 </resources>
