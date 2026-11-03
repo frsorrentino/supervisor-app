@@ -482,9 +482,13 @@
   // trascinata in su si apre, alle stesse altezze del bordo superiore, nella colonna del suo lato.
   function barDrag(phase: 'move' | 'end' | 'cancel', x: number, y: number) {
     if (phase === 'cancel') { hDrag = null; landing = null; return }
-    if (!hDrag) { const w = masterW ?? (masterHalf ? COLUMN : 720); hDrag = { y, col: { x: masterLeft ? 0 : window.innerWidth - w, y: 0, w, h: window.innerHeight } } }
-    if (phase === 'move') heightPreview(y)
-    else heightUp({ clientY: y } as PointerEvent)
+    // Anche il lato (Franz 22:34: «2 possibili direzioni, sinistra e destra»): la metà dello schermo sotto il puntatore.
+    const side = sideAt(window.innerWidth, x), w = masterW ?? (masterHalf ? COLUMN : 720)
+    hDrag = { y: hDrag?.y ?? y, col: { x: side === 'left' ? 0 : window.innerWidth - w, y: 0, w, h: window.innerHeight } }
+    if (phase === 'move') { heightPreview(y); return }
+    const open = landing?.kind === 'height' && landing.on !== 'bar'
+    heightUp({ clientY: y } as PointerEvent)
+    if (open && (side === 'left') !== masterLeft) placeMaster(side)
   }
   function heightMove(e: PointerEvent) {
     if (!hDrag || (Math.abs(e.clientY - hDrag.y) < 8 && !landing)) return
