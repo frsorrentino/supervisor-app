@@ -451,7 +451,7 @@
     if (phase === 'cancel') { landing = null; return }
     const zs = landing?.zones ?? zones(window.innerWidth, window.innerHeight, !deskDashboard)
     const on = landingAt(zs, x, y)
-    if (phase === 'move') { landing = { zones: zs, on, now: landing?.now ?? current({ open: masterOpen, left: masterLeft, under: masterUnder, half: masterHalf }) }; return }
+    if (phase === 'move') { landing = { zones: zs, on, now: landing?.now ?? current({ open: masterOpen, left: masterLeft, under: masterUnder, half: masterHalf, compact: stackH === 'compact' }) }; return }
     landing = null
     if (on) smooth(() => land(on))
   }
@@ -459,8 +459,8 @@
     if (z.place === 'bar') { masterOpen = false; return }
     masterOpen = true
     masterLeft = z.side === 'left'; save('cm.master_left', masterLeft ? '1' : '0')
-    masterUnder = z.place === 'under'; save('cm.master_under', masterUnder ? '1' : '0')
-    if (z.place === 'under') { stackH = 'half'; save('cm.master_stack_h', 'half') }
+    masterUnder = z.place === 'under' || z.place === 'compact'; save('cm.master_under', masterUnder ? '1' : '0')
+    if (masterUnder) { stackH = z.place === 'compact' ? 'compact' : 'half'; save('cm.master_stack_h', stackH) }
     // La misura della zona disegnata: la colonna esterna è stretta (anche sotto la home), metà schermo è larga.
     masterHalf = z.place !== 'half'; save('cm.master_wide', masterHalf ? '0' : '1')
   }
@@ -1419,6 +1419,8 @@
   .hstack .grip:hover i { background: var(--text2); }
   .dpanel.under.compact .mchat :global(section.chat > :not(.bar)) { display: none; }
   .dpanel.under.compact .mchat { flex: none; }
+  /* Compatta: il testo della master si legge tutto scorrendo con la rotella, nelle due righe che occupa (Franz 03/11 22:01). */
+  .dpanel.under.compact :global(.dock .col > .hl) { display: block; -webkit-line-clamp: unset; line-clamp: none; max-height: 2.9em; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
   /* A metà la riga di modello, modifiche e contesto è chiusa; si apre col tasto a fisarmonica (Franz 03/11 17:44). */
   .dpanel.under.nohead .mchat :global(section.chat > header) { display: none; }
   .headkey { display: flex; align-items: center; gap: 6px; margin: 0 12px; padding: 4px 8px; align-self: flex-start; border-radius: 12px; color: var(--text2); font: 400 12.5px var(--mono); }
