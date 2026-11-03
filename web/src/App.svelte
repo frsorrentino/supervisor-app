@@ -3,7 +3,7 @@
   import * as files from './lib/fileActions'
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
-  import { clampWidth, COLUMN, heightAt, heightZones, sideAt, sideZones, snapWidth, type Height, type Rect, type Side, type Zone } from './lib/masterLanding'
+  import { clampWidth, COLUMN, heightAt, heightZones, sideAt, snapWidth, type Height, type Rect, type Side } from './lib/masterLanding'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -445,14 +445,19 @@
   // I gesti della master nella plancia (Franz 03/11 22:06-22:08, app-master-trascina-03-11; masterLanding.ts): la testata
   // trascinata cambia solo il lato; il bordo verso le sessioni allarga e stringe (scatti a colonna e metà schermo, libera fra i
   // due); il bordo superiore cambia l'altezza a scatti. Mentre si trascina si vede dove si arriva; tutto si ricorda.
-  type Land = { kind: 'side'; zones: Zone<Side>[]; on: Side } | { kind: 'height'; zones: Zone<Height>[]; on: Height; now: Height }
+  // `pv`: il riquadro dove andrà la master, che segue il dito (Franz 22:15: «serve maggiore chiarezza e fluidità»).
+  type Land = { kind: 'side'; on: Side; pv: Rect } | { kind: 'height'; on: Height; pv: Rect }
   let landing = $state<Land | null>(null)
   // La larghezza libera, in px; null = quella del tasto Allarga/Stringi (420 o 720).
   let masterW = $state<number | null>(Number(load('cm.master_w')) || null)
   function placeDrag(phase: 'move' | 'end' | 'cancel', x: number) {
     if (phase === 'cancel') { landing = null; return }
     const on = sideAt(window.innerWidth, x)
-    if (phase === 'move') { landing = { kind: 'side', zones: sideZones(window.innerWidth, window.innerHeight), on }; return }
+    if (phase === 'move') {
+      const w = document.querySelector('aside.dpanel')?.getBoundingClientRect().width ?? COLUMN
+      landing = { kind: 'side', on, pv: { x: on === 'left' ? 0 : window.innerWidth - w, y: 0, w, h: window.innerHeight } }
+      return
+    }
     landing = null
     if ((on === 'left') !== masterLeft) placeMaster(on)
   }
@@ -468,7 +473,6 @@
     save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
   }
   let hDrag: { y: number; col: Rect } | null = null
-  const heightNow = (): Height => (!masterOpen ? 'bar' : stacked ? (stackH === 'compact' ? 'compact' : 'half') : 'column')
   function heightDown(e: PointerEvent, el: HTMLElement | null) {
     const r = (el ?? (e.currentTarget as HTMLElement)).getBoundingClientRect()
     hDrag = { y: e.clientY, col: { x: r.x, y: 0, w: r.width, h: window.innerHeight } }
@@ -476,8 +480,10 @@
   }
   function heightMove(e: PointerEvent) {
     if (!hDrag || (Math.abs(e.clientY - hDrag.y) < 8 && !landing)) return
-    const zs = heightZones(hDrag.col, !deskDashboard)
-    landing = { kind: 'height', zones: zs, on: heightAt(zs, e.clientY), now: heightNow() }
+    const on = heightAt(heightZones(hDrag.col, !deskDashboard), e.clientY)
+    const H = window.innerHeight, c = hDrag.col
+    const pv: Rect = on === 'bar' ? { x: 0, y: H - 72, w: window.innerWidth, h: 72 } : on === 'compact' ? { x: c.x, y: H - 150, w: c.w, h: 150 } : on === 'half' ? { x: c.x, y: H / 2, w: c.w, h: H / 2 } : { x: c.x, y: 0, w: c.w, h: H }
+    landing = { kind: 'height', on, pv }
   }
   function heightUp(e: PointerEvent) {
     if (!hDrag) return
@@ -1299,13 +1305,9 @@
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
   <div class="deskwrap" class:left={masterLeft} class:stacked>
   {#if landing}
-    <!-- Dove arriva la master mentre la si trascina (app-master-trascina-03-11): acceso il lato o l'altezza sotto il dito. -->
-    <div class="landing" class:soft={landing.kind === 'height'} aria-hidden="true">
-      {#if landing.kind === 'side'}
-        {#each landing.zones as z (z.key)}<div class="lz" class:on={landing.on === z.key} style="left:{z.rect.x}px; top:{z.rect.y}px; width:{z.rect.w}px; height:{z.rect.h}px"><span>{z.key === 'left' ? t.masterPosLeft : t.masterPosRight}</span></div>{/each}
-      {:else}
-        {#each landing.zones as z (z.key)}<div class="lz" class:on={landing.on === z.key} class:now={landing.now === z.key} style="left:{z.rect.x}px; top:{z.rect.y}px; width:{z.rect.w}px; height:{z.rect.h}px"><span>{t.masterLand[z.key]}</span></div>{/each}
-      {/if}
+    <!-- Dove andrà la master mentre la si trascina (app-master-trascina-03-11): un riquadro solo, che scivola dietro al dito. -->
+    <div class="landing" aria-hidden="true">
+      <div class="pv" style="left:{landing.pv.x}px; top:{landing.pv.y}px; width:{landing.pv.w}px; height:{landing.pv.h}px"><span>{landing.kind === 'side' ? (landing.on === 'left' ? t.masterPosLeft : t.masterPosRight) : t.masterLand[landing.on]}</span></div>
     </div>
   {/if}
   <div class="dstage">
@@ -1419,15 +1421,10 @@
   .deskwrap { height: 100%; display: flex; min-height: 0; }
   /* I punti di atterraggio (app-master-trascina-03-11): un velo su tutta la pagina, le zone tratteggiate; quella sotto il dito
      piena e chiara, quella dove la master sta già col bordo pieno. */
-  .landing { position: fixed; inset: 0; z-index: 60; pointer-events: none; background: rgb(11 12 14 / .78); backdrop-filter: blur(3px); }
-  .landing.soft { background: rgb(11 12 14 / .45); backdrop-filter: none; }
-  .lz { position: absolute; box-sizing: border-box; padding: 6px; display: grid; place-items: center; }
-  .lz::before { content: ''; position: absolute; inset: 6px; border: 2px dashed color-mix(in srgb, var(--tx2) 55%, transparent); border-radius: 16px; transition: background .12s, border-color .12s; }
-  .lz.now::before { border-style: solid; border-color: var(--tx3); }
-  .lz.on::before { background: color-mix(in srgb, var(--busy) 22%, transparent); border: 2px solid var(--busy); }
-  .lz span { position: relative; font: 600 16px var(--display); color: var(--tx2); background: var(--s1); padding: 6px 12px; border-radius: 14px; }
-  .lz.on span { color: var(--tx); background: var(--s3); }
-  @media (prefers-reduced-motion: reduce) { .lz::before { transition: none; } }
+  .landing { position: fixed; inset: 0; z-index: 60; pointer-events: none; background: rgb(11 12 14 / .35); }
+  .pv { position: absolute; box-sizing: border-box; display: grid; place-items: center; border: 2px solid var(--busy); border-radius: 18px; background: color-mix(in srgb, var(--busy) 16%, transparent); box-shadow: 0 0 0 1px rgb(0 0 0 / .4), 0 18px 48px rgb(0 0 0 / .45); transition: left .18s cubic-bezier(.2, .8, .2, 1), top .18s cubic-bezier(.2, .8, .2, 1), width .18s cubic-bezier(.2, .8, .2, 1), height .18s cubic-bezier(.2, .8, .2, 1); }
+  .pv span { font: 600 16px var(--display); color: var(--tx); background: var(--s3); padding: 6px 14px; border-radius: 14px; }
+  @media (prefers-reduced-motion: reduce) { .pv { transition: none; } }
   .deskwrap.left { flex-direction: row-reverse; }
   .dstage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   .dstage > :global(:first-child) { flex: 1; min-height: 0; }
@@ -1438,10 +1435,11 @@
   .dpanel { position: relative; }
   .wgrip { position: absolute; z-index: 5; top: 0; bottom: 0; left: -5px; width: 10px; cursor: ew-resize; touch-action: none; }
   .deskwrap.left .wgrip { left: auto; right: -5px; }
-  .wgrip:hover, .wgrip:active { background: linear-gradient(90deg, transparent 4px, var(--tx3) 4px, var(--tx3) 6px, transparent 6px); }
+  .wgrip::after { content: ''; position: absolute; left: 3px; top: 50%; width: 4px; height: 48px; margin-top: -24px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, height .15s, margin-top .15s; }
+  .wgrip:hover::after, .wgrip:active::after { opacity: 1; height: 72px; margin-top: -36px; background: var(--tx2); }
   .hgrip { position: absolute; z-index: 5; top: 0; left: 30%; right: 30%; height: 12px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
-  .hgrip i { width: 44px; height: 4px; border-radius: 2px; background: var(--line); }
-  .hgrip:hover i { background: var(--text2); }
+  .hgrip i { width: 48px; height: 4px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, width .15s; }
+  .hgrip:hover i, .hgrip:active i { opacity: 1; width: 72px; background: var(--tx2); }
   .dpanel.under .wgrip, .dpanel.under .hgrip { display: none; }
   .hstack { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .hs-top { flex: 1; min-height: 0; overflow: auto; }
@@ -1454,8 +1452,8 @@
   .dpanel.stackcol { background: var(--bg); }
   .hstack[data-h='compact'] > .dpanel.under { flex: none; }
   .hstack .grip { flex: none; height: 14px; margin: -8px 0 -6px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
-  .hstack .grip i { width: 44px; height: 4px; border-radius: 2px; background: var(--line); }
-  .hstack .grip:hover i { background: var(--text2); }
+  .hstack .grip i { width: 48px; height: 4px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, width .15s; }
+  .hstack .grip:hover i, .hstack .grip:active i { opacity: 1; width: 72px; background: var(--tx2); }
   .dpanel.under.compact .mchat :global(section.chat > :not(.bar)) { display: none; }
   .dpanel.under.compact .mchat { flex: none; }
   /* Compatta: il testo della master si legge tutto scorrendo con la rotella, nelle due righe che occupa (Franz 03/11 22:01). */
