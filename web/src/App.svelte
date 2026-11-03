@@ -396,7 +396,20 @@
   let masterOpen = $state(linked === MASTER || embed)
   // Il lato del pannello della master nella plancia, ricordato su questo dispositivo (Franz 30/10 13:26).
   let masterLeft = $state(load('cm.master_left') === '1')
-  function moveMaster() { smooth(() => { masterLeft = !masterLeft; save('cm.master_left', masterLeft ? '1' : '0') }) }
+  // Master sotto la dashboard, nella stessa colonna (Franz 03/11 16:52, forma B, app-master-sopra-dashboard-03-11): con le
+  // sessioni aperte la chat della sessione tiene il resto. «Sposta» gira fra destra, sotto la dashboard e sinistra.
+  let masterUnder = $state(load('cm.master_under') === '1')
+  function moveMaster() {
+    smooth(() => {
+      if (!masterLeft && !masterUnder) masterUnder = true
+      else if (masterUnder) { masterUnder = false; masterLeft = true }
+      else masterLeft = false
+      save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0')
+    })
+  }
+  // Solo con le sessioni aperte nella vista larga, con la master aperta e fuori dalle colonne.
+  const stacked = $derived(masterUnder && masterOpen && !!master && !cols.includes(MASTER))
+  const moveLabelOf = () => (masterUnder ? t.masterMoveLeft : masterLeft ? t.masterMoveRight : t.masterMoveUnder)
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
   // La misura del pannello, stretto o a metà schermo, ricordata come il lato (app-pwa-master-tasti-03-11).
@@ -1172,7 +1185,7 @@
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
 {#snippet masterBar()}{#if master}<div class="mbar"><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
-  onToggleKey={() => smooth(masterSize)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={masterLeft ? t.masterMoveRight : t.masterMoveLeft} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
+  onToggleKey={() => smooth(masterSize)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
@@ -1203,7 +1216,7 @@
        accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
   <Desk {cols} {shares} homeRight={master ? !masterLeft : homeRight} tab={wco ? columnTab : null} onCols={setCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={master ? null : () => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
-    {#snippet home()}{@render homePane()}{/snippet}
+    {#snippet home()}{#if stacked}<div class="hstack"><div class="hs-top">{@render homePane()}</div><div class="dpanel under">{@render masterPanel()}</div></div>{:else}{@render homePane()}{/if}{/snippet}
     {#snippet column(name, grab)}
       {@const held = heldCols.includes(name)}
       {@const phase = splashOf(name, true)}
@@ -1224,7 +1237,7 @@
   </Desk>
   {#if master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
   </div>
-  {#if master && masterOpen && !cols.includes(MASTER)}<aside class="dpanel" class:wide={!masterHalf}>{@render masterPanel()}</aside>{/if}
+  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf}>{@render masterPanel()}</aside>{/if}
   </div>
 {:else}
   <div class="phone">
@@ -1309,6 +1322,9 @@
   .dpanel { flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); border-left: 1px solid var(--line); }
   .dpanel.wide { width: 720px; }
   .deskwrap.left .dpanel { border-left: 0; border-right: 1px solid var(--line); }
+  .hstack { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+  .hs-top { flex: 1; min-height: 0; overflow: auto; }
+  .dpanel.under { flex: 1; width: auto; border-left: 0; border-top: 1px solid var(--line); }
   .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 4px 12px 6px; border-top: 1px solid var(--line); background: var(--s1); }
   .mbar > :global(.dock) { width: 500px; flex: none; border-radius: 0; padding: 6px 4px 6px 8px; }
   /* La barra della plancia (pwa2): il campo è una pillola sola, senza il promemoria dei tasti. */
