@@ -823,6 +823,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val session: String? = null,
     /** Contratto 1.17: l'id del lavoro accodato da `night_add`. */
     val job: String? = null,
+    /** Contratto 1.112: lettura rimpiazzata da una più recente della stessa sessione; si chiude senza avviso. */
+    val superseded: Boolean = false,
 )
 
 /**

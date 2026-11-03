@@ -97,7 +97,7 @@
   import { nextKey, type ForYouRow } from './lib/masterHome'
   import { since as kpiSince, head as kpiHeadOf } from './lib/kpi'
   import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
-  import { refusalText } from './lib/questionRules'
+  import { refusalText, superseded } from './lib/questionRules'
   import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
   import { of as swipeOf, stable as swipeStable, step as swipeStep, type Pages } from './lib/swipePages'
 
@@ -319,7 +319,8 @@
     try {
       const r = await tr.send(c)
       // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
-      if (!r.ok) say(`✗ ${refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)}`)
+      // Contratto 1.112: una lettura rimpiazzata da una più recente si chiude in silenzio.
+      if (!r.ok && !superseded(r)) say(`✗ ${refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)}`)
       return r
     } catch {
       say(`✗ ${t.noAnswer}`)

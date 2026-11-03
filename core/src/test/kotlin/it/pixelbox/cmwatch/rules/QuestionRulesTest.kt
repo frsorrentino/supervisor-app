@@ -6,6 +6,7 @@ import it.pixelbox.cmwatch.contract.Option
 import it.pixelbox.cmwatch.contract.Question
 import it.pixelbox.cmwatch.contract.QuestionKind
 import it.pixelbox.cmwatch.contract.Tier
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.*
 import org.junit.Test
@@ -135,5 +136,18 @@ class QuestionRulesTest {
         val st = base.copy(sessions = listOf(s))
         assertEquals(listOf(pq.what), AttentionQueue.items(st).map { it.text })
         assertEquals("Publish the docs: git push origin main 1, Yes. 2, No.", SpeechText.question(pq, "%1\$d, %2\$s."))
+    }
+
+    // Contratto 1.112: una lettura rimpiazzata da una più recente della stessa sessione si chiude in silenzio (Franz 03/11:
+    // «cos'è questo messaggio che appare spesso?»). Col campo `superseded`, o col testo dei relay di prima (inglese e italiano).
+    @Test fun aSupersededReadIsSilent() {
+        val root = ContractJson.json.parseToJsonElement(Fixtures.cmdResult).jsonObject
+        val r = root["result"]!!.jsonArray.map { ContractJson.decodeResult(it.toString()) }.first { it.id == "6f1c2d3e-0924-4000-8000-000000000924" }
+        assertTrue(r.superseded); assertTrue(QuestionRules.superseded(r))
+        val old = it.pixelbox.cmwatch.contract.CmdResult("x", false, "superseded by a newer read of the same session")
+        assertTrue(QuestionRules.superseded(old))
+        assertTrue(QuestionRules.superseded(old.copy(text = "sostituita da una lettura più recente della stessa sessione")))
+        assertFalse(QuestionRules.superseded(old.copy(text = "atlas-shop is not running")))
+        assertFalse(QuestionRules.superseded(old.copy(ok = true)))
     }
 }

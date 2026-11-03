@@ -229,6 +229,21 @@ class RepoTest {
         assertTrue(repo.resultsById.value.containsKey(page))
     }
 
+    // Contratto 1.112: una lettura rimpiazzata da una più recente non è un rifiuto da mostrare; la richiesta si chiude.
+    @Test fun unaLetturaRimpiazzataNonEUnAvviso() = runTest {
+        val f = fake()
+        val tr = object : Transport by f {
+            override suspend fun send(cmd: Cmd, onWritten: () -> Unit): CmdResult =
+                if (cmd.op == CmdOp.DECISIONI) CmdResult(cmd.id, false, "superseded by a newer read of the same session", superseded = true) else f.send(cmd, onWritten)
+        }
+        val repo = Repo(MemoryStore(), tr, bg(), { clock }, { online }, "test", freshnessTickMs = 0); repo.start(); idle()
+        val got = mutableListOf<String>(); bg().launch { repo.userResults.collect { got += it.id } }; idle()
+        val page = repo.command(CmdOp.DECISIONI, null, null)
+        val answer = repo.answer("ledger-api", 1); idle()
+        assertEquals(listOf(answer), got)
+        assertTrue(repo.snapshot.value.pending.none { it.cmd.id == page })
+    }
+
     // Contratto 1.72: la vista «Modifiche» e «Mostra tutto» sono letture: niente vibrazione né conferma, mai in coda senza rete
     // (senza rete la vista dice «PC non raggiungibile»).
     @Test fun leLettureDelleModificheNonSonoAzioniDellUtente() = runTest {

@@ -409,7 +409,8 @@ export type ElicitField = {
   description?: string; default?: string | number | boolean; options?: { value: string; label: string }[]
   min_length?: number; max_length?: number; format?: string; min?: number; max?: number
 }
-export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null }
+/** `superseded` (1.112): lettura rimpiazzata da una più recente della stessa sessione, si chiude senza avviso. */
+export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null; superseded?: boolean }
 
 /** Lo stato come arriva: i campi che mancano prendono i valori di default del contratto. */
 export function decodeState(raw: string): State {

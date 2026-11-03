@@ -61,3 +61,9 @@ export function refusalText(r: CmdResult, answered: string | null, sessions: Ses
   const name = r.text.slice(0, -QUESTION_CHANGED.length)
   return sessions.some(s => s.name === name && s.resolved?.id === answered) ? alreadyResolved(name) : r.text
 }
+
+/** I testi di `relay.cmd_superseded` dei relay precedenti a 1.112, che non mandano il campo. */
+const SUPERSEDED_TEXTS = new Set(['superseded by a newer read of the same session', 'sostituita da una lettura più recente della stessa sessione'])
+
+/** Contratto 1.112: una lettura rimpiazzata da una più recente: la richiesta si chiude in silenzio, mai un avviso. */
+export const superseded = (r: CmdResult | null | undefined): boolean => !!r && !r.ok && (r.superseded === true || SUPERSEDED_TEXTS.has(r.text.trim()))

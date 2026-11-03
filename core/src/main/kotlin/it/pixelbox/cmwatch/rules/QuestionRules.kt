@@ -100,4 +100,10 @@ object QuestionRules {
         val name = r.text.removeSuffix(QUESTION_CHANGED)
         return if (sessions.any { it.name == name && it.resolved?.id == answered }) alreadyResolved.format(name) else r.text
     }
+
+    /** I testi di `relay.cmd_superseded` dei relay precedenti a 1.112, che non mandano il campo. */
+    private val SUPERSEDED_TEXTS = setOf("superseded by a newer read of the same session", "sostituita da una lettura più recente della stessa sessione")
+
+    /** Contratto 1.112: una lettura rimpiazzata da una più recente: la richiesta si chiude in silenzio, mai un avviso. */
+    fun superseded(r: it.pixelbox.cmwatch.contract.CmdResult): Boolean = !r.ok && (r.superseded || r.text.trim() in SUPERSEDED_TEXTS)
 }

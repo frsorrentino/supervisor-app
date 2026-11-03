@@ -5,7 +5,8 @@ import { notificationOf } from './pushView'
 import { items } from './queue'
 import { question as spoken } from './speechRules'
 import { decodeState } from './contract'
-import { approves, shareable, permissionCard, FOLD_CHARS, allowAllVisible, inline, needsLongPress, optionLabel, optionNote, primaryIndex, refusalText, textArg } from './questionRules'
+import { approves, shareable, permissionCard, FOLD_CHARS, allowAllVisible, inline, needsLongPress, optionLabel, optionNote, primaryIndex, refusalText, superseded, textArg } from './questionRules'
+import { readPage } from './decideDecode'
 
 // Gli stessi casi di QuestionRulesTest in Kotlin.
 const q: Question = { id: 'q', kind: 'ask', text: 'Deploy?', options: [{ n: 1, label: 'yes' }, { n: 2, label: 'no' }], tier: 'low', asked_at: 0 }
@@ -90,5 +91,23 @@ describe('permesso_esplicito', () => {
     const s = base.sessions.find(x => x.question)!
     expect(items({ ...base, sessions: [{ ...s, question: pq }] }).map(i => i.text)).toEqual([pq.what])
     expect(notificationOf(permesso.event).body).toBe(pq.what)
+  })
+})
+
+// Contratto 1.112, gli stessi casi di QuestionRulesTest: la lettura rimpiazzata della fixture, e i testi dei relay di prima.
+describe('lettura rimpiazzata', () => {
+  const root = JSON.parse(readFileSync(new URL('../../../contract/cmd-result-sample.json', import.meta.url), 'utf8'))
+  const r = root.result.find((x: { id: string }) => x.id === '6f1c2d3e-0924-4000-8000-000000000924')
+  it('si riconosce dal campo e dai testi vecchi', () => {
+    expect(r.superseded).toBe(true); expect(superseded(r)).toBe(true)
+    const old = { id: 'x', ok: false, text: 'superseded by a newer read of the same session', at: 0 }
+    expect(superseded(old)).toBe(true)
+    expect(superseded({ ...old, text: 'sostituita da una lettura più recente della stessa sessione' })).toBe(true)
+    expect(superseded({ ...old, text: 'atlas-shop is not running' })).toBe(false)
+    expect(superseded({ ...old, ok: true })).toBe(false)
+  })
+  it('una pagina non va in errore per una lettura rimpiazzata', () => {
+    expect(readPage(r, JSON.parse, null)).toEqual({ page: null, failed: false })
+    expect(readPage({ ...r, superseded: false, text: 'boom' }, JSON.parse, null)).toEqual({ page: null, failed: true })
   })
 })

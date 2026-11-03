@@ -381,7 +381,8 @@ class Repo(
                 _snapshot.update { it.copy(pending = it.pending.filter { p -> p.cmd.id != cmd.id }) }
                 _resultsById.update { m -> (m + (r.id to r)).entries.toList().takeLast(MAX_RESULTS).associate { e -> e.key to e.value } }
                 _results.emit(r)
-                if (cmd.op !in PASSIVE) _userResults.emit(r)
+                // Contratto 1.112: una lettura rimpiazzata non è un rifiuto dell'utente.
+                if (cmd.op !in PASSIVE && !it.pixelbox.cmwatch.rules.QuestionRules.superseded(r)) _userResults.emit(r)
             }
         }
     }
