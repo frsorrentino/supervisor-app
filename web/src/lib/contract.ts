@@ -44,6 +44,8 @@ export type Session = {
   goal?: Goal | null; suggestion?: string | null
   /** Contratto 1.51: il comando slash dell'handoff; null = nessuno, assente = relay vecchio (fable-director). */
   handoff?: string | null
+  /** Contratto 1.111: le voci di Tocca a te di questa sessione; assente quando sono tutte 0 e con un relay precedente. */
+  tocca?: { prove: number; decidi: number; guarda: number; segui: number } | null
   /** Contratto 1.37: assenti nello stato quando non valorizzati; la lettura mette null / false / null. */
   advice?: Advice | null; finished?: boolean; duplicate_of?: string | null
   /** Contratto 1.38: i Prossimi dell'ultimo esito, col «!» tolto; `blocking` = sblocca un lavoro fermo. */

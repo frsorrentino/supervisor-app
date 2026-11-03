@@ -37,5 +37,13 @@ export const MENU_ICON: Partial<Record<MenuKind, string>> = {
   restart_clean: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5',
 }
 
-/** I numeri di Tocca a te della sessione: nel web per ora solo i risultati non visti dallo stato. */
-export const mineOf = (st: State, name: string): Mine => ({ guarda: unseenResults(st, name) })
+/**
+ * I numeri di Tocca a te della sessione: dal relay (contratto 1.111, contati su tutto); con un relay precedente solo i risultati
+ * non visti dello stato. Con un relay 1.111 una sessione senza `tocca` non ha niente.
+ */
+export function mineOf(st: State, name: string): Mine {
+  const s = st.sessions.find(x => x.name === name)
+  if (s?.tocca) return { prove: s.tocca.prove, decidi: s.tocca.decidi, guarda: s.tocca.guarda, seguiti: s.tocca.segui }
+  if (st.sessions.some(x => x.tocca)) return {}
+  return { guarda: unseenResults(st, name) }
+}

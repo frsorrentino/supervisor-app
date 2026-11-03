@@ -286,7 +286,12 @@ enum class CmdOp {
     @SerialName("permission_bypass") val permissionBypass: Boolean = false,
     /** Contratto 1.72: i conteggi delle modifiche della cartella; null fuori da git, senza modifiche o con git fermo. */
     val changes: ChangesCount? = null,
+    /** Contratto 1.111: le voci di Tocca a te di questa sessione; assente quando sono tutte 0 e con un relay precedente. */
+    val tocca: Tocca? = null,
 )
+
+/** Contratto 1.111, `sessions[].tocca`: contate come le pagine (prove comprende le pause con `prova`; guarda tutti i non visti). */
+@Serializable data class Tocca(val prove: Int = 0, val decidi: Int = 0, val guarda: Int = 0, val segui: Int = 0)
 
 @Serializable data class NeedsYou(
     val reason: String, val at: Long = 0,

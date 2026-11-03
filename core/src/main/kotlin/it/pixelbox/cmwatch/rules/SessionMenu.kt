@@ -31,10 +31,13 @@ object SessionMenu {
     private fun isTest(i: DecisionItem) = i.kind == "pause" && i.prova != null
 
     /**
-     * I numeri di Tocca a te della sessione dalle pagine che l'app ha già letto (null = non letta: quella voce non compare) e dai
+     * I numeri di Tocca a te della sessione: dal relay (1.111) o, prima, dalle pagine che l'app ha già letto (null = non letta: quella voce non compare) e dai
      * risultati dello stato.
      */
     fun mine(st: State, name: String, prove: ProvePage?, decisions: DecisionsPage?, seguiti: SeguitiPage?): Mine {
+        // Contratto 1.111: i numeri del relay, contati su tutto; le pagine lette solo con un relay precedente.
+        st.sessions.firstOrNull { it.name == name }?.tocca?.let { return Mine(it.prove, it.decidi, it.guarda, it.segui) }
+        if (st.sessions.any { it.name == name } && st.sessions.any { it.tocca != null }) return Mine()
         val items = decisions?.groups.orEmpty().flatMap { it.items }.filter { it.session == name }
         val proveItems = prove?.groups.orEmpty().flatMap { it.prove }.filter { it.session == name }.map { it.task }
         val proveTasks = (proveItems + items.filter(::isTest).map { it.task ?: "" }).filter { it.isNotEmpty() }.toSet()

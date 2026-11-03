@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { decodeState } from './contract'
 import type { Session, State } from './contract'
-import { sessionMenu, unseenResults } from './sessionMenu'
+import { mineOf, sessionMenu, unseenResults } from './sessionMenu'
 
 // Un menu della sessione, lo stesso da home, chat e plancia (app-menu-sessione-03-11). Gli stessi casi di SessionMenuTest.kt.
 const s = (x: Partial<Session> = {}): Session => ({ id: 'kb', name: 'kb', account: 'personal', project: 'p', state: 'idle', since: 0, link: '', handoff: null, ...x }) as Session
@@ -38,5 +40,15 @@ describe('sessionMenu', () => {
     const r = { n_unseen: 4, items: [item('1', 'kb'), item('2', 'kb', 5), item('3', 'web'), item('4', 'kb')] }
     expect(unseenResults(st([s()], { results: r } as Partial<State>), 'kb')).toBe(2)
     expect(unseenResults(st([s()]), 'kb')).toBe(0)
+  })
+  it('con il contratto 1.111 valgono i numeri del relay', () => {
+    const idle = decodeState(readFileSync(new URL('../../../contract/state-2-idle.json', import.meta.url), 'utf8'))
+    expect(mineOf(idle, 'atlas-shop')).toEqual({ prove: 2, decidi: 1, guarda: 3, seguiti: 1 })
+    // Un'altra sessione senza tocca con un relay 1.111: niente, anche con un risultato non visto nello stato.
+    const item = { id: 'r', session: 'web', title: '', kind: 'other', path: '', at: 0, version: 1, versions: 1, seen_at: null }
+    const st = { ...idle, sessions: [...idle.sessions, s({ name: 'web' })], results: { n_unseen: 1, items: [item] } } as State
+    expect(mineOf(st, 'web')).toEqual({})
+    // Relay precedente: solo i non visti dello stato.
+    expect(mineOf({ ...st, sessions: st.sessions.map(x => ({ ...x, tocca: undefined })) }, 'web')).toEqual({ guarda: 1 })
   })
 })

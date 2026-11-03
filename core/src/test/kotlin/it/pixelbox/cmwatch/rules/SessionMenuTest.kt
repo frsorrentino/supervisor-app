@@ -93,4 +93,15 @@ class SessionMenuTest {
         // Pagine non lette: zero, e la voce non compare.
         assertEquals(SessionMenu.Mine(), SessionMenu.mine(st(s()), "kb", null, null, null))
     }
+
+    @Test fun withContract1111TheRelayNumbersWin() {
+        // La fixture del relay: atlas-shop porta tocca {2, 1, 3, 1}; le pagine lette non contano più.
+        val st = it.pixelbox.cmwatch.contract.ContractJson.decodeState(java.io.File("../contract/state-2-idle.json").readText())
+        val pages = DecisionsPage(groups = listOf(DecisionGroup("g", items = List(9) { i -> DecisionItem(kind = "ok", task = "t$i", session = "atlas-shop") })))
+        assertEquals(SessionMenu.Mine(prove = 2, decidi = 1, guarda = 3, seguiti = 1), SessionMenu.mine(st, "atlas-shop", null, pages, null))
+        // Una sessione senza tocca con un relay 1.111: niente da fare per lei, anche se una pagina vecchia diceva altro.
+        val other = st.sessions.first { s -> s.name == "atlas-shop" }.copy(name = "web", tocca = null)
+        val st2 = st.copy(sessions = st.sessions + other)
+        assertEquals(SessionMenu.Mine(), SessionMenu.mine(st2, "web", null, DecisionsPage(groups = listOf(DecisionGroup("g", items = listOf(DecisionItem(kind = "ok", task = "a", session = "web"))))), null))
+    }
 }
