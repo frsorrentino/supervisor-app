@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateIntAsState
@@ -634,8 +635,10 @@ private fun LiveOpen(
 @Composable
 private fun LiveKey(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Int, primary: Boolean, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.width(72.dp)) {
-        if (primary) FilledIconButton(onClick = onClick, modifier = Modifier.size(48.dp)) { Icon(icon, null) }
-        else FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(48.dp)) { Icon(icon, null, tint = Cm.actionIcon) }
-        Text(stringResource(label), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
+        // Il nome sta sul tasto, così TalkBack lo legge; il testo sotto si vede ma non si ripete (app-bug-notte-03-11).
+        val name = stringResource(label)
+        if (primary) FilledIconButton(onClick = onClick, modifier = Modifier.size(48.dp)) { Icon(icon, name) }
+        else FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(48.dp)) { Icon(icon, name, tint = Cm.actionIcon) }
+        Text(name, style = MaterialTheme.typography.labelMedium, color = Cm.text2, modifier = Modifier.clearAndSetSemantics {})
     }
 }
