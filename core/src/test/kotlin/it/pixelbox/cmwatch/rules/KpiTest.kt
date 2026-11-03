@@ -238,7 +238,7 @@ class KpiTest {
         assertEquals(7, data.checksWeek!!.size)
         assertEquals(KpiTurn(1_789_201_000, 1_789_201_420, "fail", 26_100, 260_000), data.turnsToday!!.single().turns[1])
         val h = data.health!!
-        assertEquals(2.1, h.latency!!.p50S!!, 0.0); assertEquals(4, h.sessionsHere); assertEquals(5, h.sessionsMax)
+        assertEquals(2.1, h.latency!!.p50S!!, 0.0); assertEquals(6.4, h.latency!!.p95S!!, 0.0); assertEquals(4, h.sessionsHere); assertEquals(5, h.sessionsMax)
         assertEquals(KpiHost("win", true, 0.12, 71, null), h.hosts.single())
         assertEquals(KpiSuggestions(7, 3, 2, 0, 2), data.suggestions7d)
         assertEquals(KpiWaitNow("ledger-api", "question", 1_789_210_500), data.waits!!.now.single())

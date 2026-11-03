@@ -268,7 +268,8 @@ internal fun Kpi12(h: KpiHealth) {
             if (lat == null) Figure("–", stringResource(R.string.kpi12_latency_none), null, m)
             else Figure(
                 stringResource(R.string.kpi12_seconds, String.format(locale, "%.1f", lat.p50S)),
-                lat.maxS?.let { stringResource(R.string.kpi12_latency_max, String.format(locale, "%.1f", it)) } ?: stringResource(R.string.kpi12_latency),
+                lat.p95S?.let { p -> stringResource(R.string.kpi12_latency_p95, String.format(locale, "%.1f", p), lat.maxS?.let { String.format(locale, "%.1f", it) } ?: "–") }
+                    ?: lat.maxS?.let { stringResource(R.string.kpi12_latency_max, String.format(locale, "%.1f", it)) } ?: stringResource(R.string.kpi12_latency),
                 if (lat.p50S!! > 5) Cm.waiting else null, m,
             )
         }
@@ -287,7 +288,7 @@ internal fun Kpi12(h: KpiHealth) {
         }
         // Il carico di ogni macchina accesa accanto alla RAM (Franz 03/11 17:40, app-sistema-barra-kpi-03-11): quattro riquadri, niente buco.
         h.hosts.filter { x -> x.up && x.cpu != null }.forEach { x ->
-            add { m -> Figure("${Math.round(x.cpu!!)}%", stringResource(R.string.kpi12_cpu, x.name), if (x.cpu!! >= 85) Cm.waiting else null, m) }
+            add { m -> Figure("${Math.round(x.cpu!! * 100)}%", stringResource(R.string.kpi12_cpu, x.name), if (x.cpu!! >= 0.85) Cm.waiting else null, m) }  // `cpu` fra 0 e 1 (contratto 1.75)
         }
     }
     Column(Modifier.testTag("kpi-12").fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {

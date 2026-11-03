@@ -1025,7 +1025,8 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val latency: KpiLatency? = null, @SerialName("sessions_here") val sessionsHere: Int? = null,
     @SerialName("sessions_max") val sessionsMax: Int? = null, val hosts: List<KpiHost> = emptyList(),
 )
-@Serializable data class KpiLatency(@SerialName("p50_s") val p50S: Double? = null, @SerialName("max_s") val maxS: Double? = null, val n: Int = 0)
+/** Contratto 1.108: `p95_s` al rango più vicino, sugli stessi campioni di p50 e max (dalla push alla lettura, ultima ora). */
+@Serializable data class KpiLatency(@SerialName("p50_s") val p50S: Double? = null, @SerialName("max_s") val maxS: Double? = null, val n: Int = 0, @SerialName("p95_s") val p95S: Double? = null)
 @Serializable data class KpiHost(val name: String, val up: Boolean, val cpu: Double? = null, @SerialName("ram_pct") val ramPct: Int? = null, @SerialName("disk_pct") val diskPct: Int? = null)
 
 /** 13 · come sono finiti i suggerimenti degli ultimi sette giorni; `accepted` conta anche le scelte. */

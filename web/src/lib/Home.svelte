@@ -396,7 +396,7 @@
     const l = pin === 'lavori' || (up as string[]).includes('lavori') ? lavoriInfo(lavoriProgress(st, agenda, now, zone, today)) : null
     const p = st.plugins ? pluginsInfo(st.plugins) : null
     return {
-      system: s && { bar: [[s.barPct, SYS_TONE[s.level as keyof typeof SYS_TONE] ?? SYS_TONE.green]], number: `${s.pct}%`, note: [t.slotRam(s.ramPct), ...s.hosts.map(h => (h.ramPct == null ? t.slotHostOff(h.name) : t.slotHostRam(h.name, h.ramPct))), t.slotSessions(s.sessions)].join(' · ') },
+      system: s && { bar: [[s.barPct, barTone(s.level)]], number: `${s.pct}%`, note: [t.slotRam(s.ramPct), ...s.hosts.map(h => (h.ramPct == null ? t.slotHostOff(h.name) : t.slotHostRam(h.name, h.ramPct))), t.slotSessions(s.sessions)].join(' · ') },
       lavori: l && { bar: l.total ? [[l.youPct, 'var(--wait)'], [100 - l.youPct, 'var(--tx3)']] : [], number: t.slotLavoriOf(l.you, l.total), note: l.last == null ? t.slotLavoriNone : l.lastSince ? t.slotLavoriLastSince(l.last, since(l.lastSince, now)) : t.slotLavoriLast(l.last) },
       suggestions: { names: suggestionNames ?? [] },
       // Il sottotitolo di Sessioni In cima: i nomi, prima chi aspetta Franz, poi «+N» come Suggerimenti (app-in-cima-uguali-03-11).

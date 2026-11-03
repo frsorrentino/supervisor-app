@@ -168,7 +168,7 @@ describe('contratto 1.96, op kpi (proposte 8, 9, 10, 12, 13, 17)', () => {
   })
   it('12 · la salute arriva intera', () => {
     const h = data.kpi_health!
-    expect([h.latency?.p50_s, h.sessions_here, h.sessions_max, h.hosts[0].ram_pct]).toEqual([2.1, 4, 5, 71])
+    expect([h.latency?.p50_s, h.latency?.p95_s, h.sessions_here, h.sessions_max, h.hosts[0].ram_pct]).toEqual([2.1, 6.4, 4, 5, 71])
   })
   it('13 · il tasso di accettazione', () => {
     expect(acceptRate(data.kpi_suggestions_7d!)).toBe(50)

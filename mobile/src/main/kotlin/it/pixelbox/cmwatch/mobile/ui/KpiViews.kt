@@ -333,7 +333,7 @@ private fun SlotBar(parts: List<Pair<Int, Color>>, modifier: Modifier) {
 internal fun SystemSlotRow(i: it.pixelbox.cmwatch.rules.SlotInfo.SystemInfo, drag: Modifier, open: Boolean, onToggle: () -> Unit) {
     val hosts = i.hosts.map { h -> h.ramPct?.let { stringResource(R.string.slot_host_ram, h.name, it) } ?: stringResource(R.string.slot_host_off, h.name) }
     val note = (listOf(stringResource(R.string.slot_ram, i.ramPct)) + hosts + pluralStringResource(R.plurals.slot_sessions, i.sessions, i.sessions)).joinToString(" · ")
-    SlotInfoRow(drag, stringResource(R.string.home_sec_system), androidx.compose.material.icons.Icons.Outlined.Memory, "home-sez-sistema", bar = listOf(i.barPct to systemTone(i.level)), number = "${i.pct}%", note = note, open = open, onToggle = onToggle)
+    SlotInfoRow(drag, stringResource(R.string.home_sec_system), androidx.compose.material.icons.Icons.Outlined.Memory, "home-sez-sistema", bar = listOf(i.barPct to barTone(i.level)), number = "${i.pct}%", note = note, open = open, onToggle = onToggle)
 }
 
 /** Lavori nello slot: quanti aspettano Franz su quanti, sotto l'ultimo che lo aspetta. */
