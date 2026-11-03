@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove } from './decide'
+import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove, chooseAt } from './decide'
 import { decodeState, type Approval, type DecisionItem, type DecisionsPage, type ProvePage } from './contract'
 import { outcomeType } from './kpi'
 
@@ -119,8 +119,28 @@ describe('decisione_spiegata', () => {
     expect(viaApprove(it0({ kind: 'ok', asks: 'ok' }))).toBe(true)
     expect(buttons(it0({ kind: 'ok', asks: 'choice', options: ['A', 'B'] }))).toEqual([{ kind: 'choice', label: 'A' }, { kind: 'choice', label: 'B' }])
     expect(buttons(it0({ kind: 'needs_you', task: null, session: 's', asks: 'pc' }))).toEqual([{ kind: 'done' }])
-    expect(buttons(it0({ kind: 'needs_you', task: null, session: 's', asks: 'other' }))).toEqual([{ kind: 'discuss' }])
+    expect(buttons(it0({ kind: 'needs_you', task: null, session: 's', asks: 'other' }))).toEqual([{ kind: 'done' }, { kind: 'discuss' }])
     expect(buttons(it0({}))).toEqual([{ kind: 'done' }])
     expect(buttons(it0({ kind: 'ok' }))).toEqual([{ kind: 'proceed' }])
+  })
+  // app-decidere-tasti-03-11 (Franz 03/11 14:22: «In da decidere non ci sono tasti per decidere»): 31 voci su 42 avevano solo Parliamone.
+  it('decidere_tasti: una pausa si decide dal telefono', () => {
+    const pause = (reason: string, asks = 'other', options?: string[]): DecisionItem => ({ kind: 'pause', task: 't', session: 's', since: 0, asks, reason, options })
+    const works = [{ kind: 'works' }, { kind: 'broken' }]
+    expect(buttons(pause('Aspetta la prova di Franz sul telefono: versione finale'))).toEqual(works)
+    expect(buttons(pause('Franz prova la pre-release tabellone-4-2026-11-02 e la PWA'))).toEqual(works)
+    expect(buttons(pause('Seconda prova di Franz: pre-release in-cima-2'))).toEqual(works)
+    expect(buttons(pause('Franz guarda la v12 (copia leggera mandata in chat)'))).toEqual(works)
+    expect(buttons(pause('Waits for you to try build 0.4.12 on the phone'))).toEqual(works)
+    expect(buttons(pause('Aspetta la prova di Franz sul telefono: nomi, ordine e ok', 'ok'))).toEqual(works)
+    expect(buttons(pause("Aspetta l'ok di Franz per approvare il piano", 'ok'))).toEqual([{ kind: 'proceed' }, { kind: 'discuss' }])
+    expect(buttons(pause('Rimandato da Franz il 28/10 21:35'))).toEqual([{ kind: 'done' }, { kind: 'discuss' }])
+    expect(buttons(pause('Franz prova al PC', 'pc'))).toEqual([{ kind: 'done' }])
+    expect(buttons(pause('Aspetta la scelta di Franz', 'choice', ['A']))).toEqual([{ kind: 'choice', label: 'A' }])
+    const noOpts = pause('Aspetta la scelta di Franz sulla pulizia', 'choice')
+    expect(buttons(noOpts)).toEqual([{ kind: 'discuss' }])
+    expect(chooseAt(noOpts)).toBe('s')
+    expect(chooseAt(pause('Aspetta la scelta', 'choice', ['A']))).toBeNull()
+    expect(chooseAt(pause('Rimandato'))).toBeNull()
   })
 })

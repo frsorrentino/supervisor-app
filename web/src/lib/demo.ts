@@ -107,9 +107,10 @@ export const seguitiDemo = (now: number): SeguitiPage => ({ at: now,
   ],
   promemoria_scattati: [{ id: 'demo-cert', text: en ? 'Renew the certificate' : 'Rinnova il certificato', outcome: 'fired', at: now - 7200 }],
 })
-export const decisionsDemo = (now: number): DecisionsPage => ({ at: now, n: 2, here: 1, tasks: 3, snoozed: 0, groups: [
-  { key: 'demo-a', title: en ? 'Cover image for the post' : 'Immagine di copertina del post', cause: null, unblocks: ['demo-cover', 'demo-docs'], weight: 2, where: 'here', since: now - 1200, note: null, refs: ['demo-cover'], items: [{ kind: 'pause', task: 'demo-cover', short: en ? 'Cover image' : 'Immagine di copertina', session: 'blog', reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', since: now - 1200, where: 'here' }] },
-  { key: 'demo-b', title: en ? 'Log in to the payment sandbox' : 'Login nella sandbox dei pagamenti', cause: null, unblocks: ['demo-cart'], weight: 1, where: 'pc', since: now - 420, note: null, refs: [], items: [{ kind: 'needs_you', task: null, session: 'storefront', reason: en ? 'Log in to the sandbox' : 'Fai il login nella sandbox', since: now - 420, where: 'pc' }] },
+export const decisionsDemo = (now: number): DecisionsPage => ({ at: now, n: 3, here: 2, tasks: 4, snoozed: 0, groups: [
+  { key: 'demo-a', title: en ? 'Cover image for the post' : 'Immagine di copertina del post', cause: null, unblocks: ['demo-cover', 'demo-docs'], weight: 2, where: 'here', since: now - 1200, note: null, refs: ['demo-cover'], items: [{ kind: 'pause', task: 'demo-cover', short: en ? 'Cover image' : 'Immagine di copertina', session: 'blog', reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', since: now - 1200, where: 'here', asks: 'other' }] },
+  { key: 'demo-c', title: en ? 'Try the new checkout on the phone' : 'Prova il nuovo checkout sul telefono', cause: null, unblocks: ['demo-checkout'], weight: 1, where: 'here', since: now - 300, note: null, refs: ['demo-checkout'], items: [{ kind: 'pause', task: 'demo-checkout', short: en ? 'New checkout' : 'Nuovo checkout', session: 'storefront', reason: en ? 'Waits for you to try build 0.4.12 on the phone' : 'Aspetta la tua prova della versione 0.4.12 sul telefono', since: now - 300, where: 'here', asks: 'other' }] },
+  { key: 'demo-b', title: en ? 'Log in to the payment sandbox' : 'Login nella sandbox dei pagamenti', cause: null, unblocks: ['demo-cart'], weight: 1, where: 'pc', since: now - 420, note: null, refs: [], items: [{ kind: 'needs_you', task: null, session: 'storefront', reason: en ? 'Log in to the sandbox' : 'Fai il login nella sandbox', since: now - 420, where: 'pc', asks: 'pc' }] },
 ] })
 
 export type World = {
@@ -203,7 +204,7 @@ export function world(now: number): World {
     ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'results', 'result_seen', 'result_note', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
     // Contratto 1.99: le righe di Da provare e Da decidere, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
-    prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 2, here: 1, tasks: 3, snoozed: 0 },
+    prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 3, here: 2, tasks: 4, snoozed: 0 },
     prima_raccolta: { status: 'ask', done: 9, total: 10, ask: true, first_round_at: null },
     seguiti: { rimasto: 1, altrove: 0, promemoria: 2 },
     // Contratto 1.106 (app-da-guardare-02-11): tre consegne da guardare, l'ultima versione di ogni lavoro.

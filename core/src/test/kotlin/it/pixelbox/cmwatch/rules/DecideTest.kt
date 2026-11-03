@@ -146,8 +146,30 @@ class DecideTest {
         assertTrue(CinqueMinuti.viaApprove(DecisionItem(kind = "ok", task = "t", asks = "ok")))
         assertEquals(listOf(CinqueMinuti.Btn.Choice("A"), CinqueMinuti.Btn.Choice("B")), CinqueMinuti.buttons(DecisionItem(kind = "ok", task = "t", asks = "choice", options = listOf("A", "B"))))
         assertEquals(listOf(CinqueMinuti.Btn.Done), CinqueMinuti.buttons(DecisionItem(kind = "needs_you", session = "s", asks = "pc")))
-        assertEquals(listOf(CinqueMinuti.Btn.Discuss), CinqueMinuti.buttons(DecisionItem(kind = "needs_you", session = "s", asks = "other")))
+        assertEquals(listOf(CinqueMinuti.Btn.Done, CinqueMinuti.Btn.Discuss), CinqueMinuti.buttons(DecisionItem(kind = "needs_you", session = "s", asks = "other")))
         assertEquals("senza asks il tasto di prima", listOf(CinqueMinuti.Btn.Done), CinqueMinuti.buttons(DecisionItem(kind = "pause", task = "t")))
         assertEquals(listOf(CinqueMinuti.Btn.Proceed), CinqueMinuti.buttons(DecisionItem(kind = "ok", task = "t")))
+    }
+
+    // app-decidere-tasti-03-11 (Franz 03/11 14:22: «In da decidere non ci sono tasti per decidere»): 31 voci su 42 avevano solo Parliamone.
+    @Test fun decidere_tasti_unaPausaSiDecideDalTelefono() {
+        fun pause(reason: String, asks: String = "other", options: List<String>? = null) = DecisionItem(kind = "pause", task = "t", session = "s", asks = asks, reason = reason, options = options)
+        val works = listOf(CinqueMinuti.Btn.Works, CinqueMinuti.Btn.Broken)
+        assertEquals(works, CinqueMinuti.buttons(pause("Aspetta la prova di Franz sul telefono: versione finale")))
+        assertEquals(works, CinqueMinuti.buttons(pause("Franz prova la pre-release tabellone-4-2026-11-02 e la PWA")))
+        assertEquals(works, CinqueMinuti.buttons(pause("Seconda prova di Franz: pre-release in-cima-2")))
+        assertEquals(works, CinqueMinuti.buttons(pause("Franz guarda la v12 (copia leggera mandata in chat)")))
+        assertEquals(works, CinqueMinuti.buttons(pause("Waits for you to try build 0.4.12 on the phone")))
+        assertEquals("una prova vince anche su asks ok", works, CinqueMinuti.buttons(pause("Aspetta la prova di Franz sul telefono: nomi, ordine e ok", asks = "ok")))
+        assertEquals("le parole intere: «provato» o «approvare» non sono una prova", listOf(CinqueMinuti.Btn.Proceed, CinqueMinuti.Btn.Discuss), CinqueMinuti.buttons(pause("Aspetta l'ok di Franz per approvare il piano", asks = "ok")))
+        assertEquals(listOf(CinqueMinuti.Btn.Done, CinqueMinuti.Btn.Discuss), CinqueMinuti.buttons(pause("Rimandato da Franz il 28/10 21:35")))
+        assertEquals("al PC resta Fatto", listOf(CinqueMinuti.Btn.Done), CinqueMinuti.buttons(pause("Franz prova al PC", asks = "pc")))
+        assertEquals(listOf(CinqueMinuti.Btn.Choice("A")), CinqueMinuti.buttons(pause("Aspetta la scelta di Franz", asks = "choice", options = listOf("A"))))
+        // Una scelta senza le opzioni non si decide da qui: la card dice dove.
+        val noOpts = pause("Aspetta la scelta di Franz sulla pulizia", asks = "choice")
+        assertEquals(listOf(CinqueMinuti.Btn.Discuss), CinqueMinuti.buttons(noOpts))
+        assertEquals("s", CinqueMinuti.chooseAt(noOpts))
+        assertEquals(null, CinqueMinuti.chooseAt(pause("Aspetta la scelta", asks = "choice", options = listOf("A"))))
+        assertEquals(null, CinqueMinuti.chooseAt(pause("Rimandato")))
     }
 }

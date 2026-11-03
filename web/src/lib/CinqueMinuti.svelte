@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CmdResult, DecisionGroup, DecisionItem, DecisionsPage, State } from './contract'
   import { decodeDecisions, readPage } from './decideDecode'
-  import { buttons, canDrop, card as cardText, nextDecisions, viaApprove } from './decide'
+  import { buttons, canDrop, card as cardText, chooseAt, nextDecisions, viaApprove } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
   import LoadFailed from './LoadFailed.svelte'
@@ -17,6 +17,8 @@
   let howMany = $state<number | null>(null)
   let touched = $state(new Set<string>())
   let dropping = $state(false), reason = $state('')
+  // Non va (app-decidere-tasti-03-11): la voce aperta per scrivere cosa non va, e il testo.
+  let broken = $state<string | null>(null), what = $state('')
   // Senza risposta in tempo la pagina lo dice e offre Riprova, invece di restare «In arrivo dal PC» (app-pwa-decisioni-03-11).
   let failed = $state(false)
   async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('decisioni', null)), decodeDecisions, page)) }
@@ -63,12 +65,20 @@
         {#if x.title}<b class="i">{x.title}</b>{/if}
         {#if x.plan}{@const k = `${g.key}-${n}`}<p class="plan" class:folded={!planOpen.has(k)}>{x.plan}</p>{#if x.plan.length > 160}<button class="text" onclick={() => { const s = new Set(planOpen); if (s.has(k)) s.delete(k); else s.add(k); planOpen = s }}>{planOpen.has(k) ? t.permissionLess : t.permissionMore}</button>{/if}{/if}
         {#if x.reason}<p class="m">{x.reason}</p>{/if}
+        {@const at = chooseAt(i)}{#if at}<p class="pos pc">{t.decisionsChooseAt(at)}</p>{/if}
         {#if buttons(i).length}<div class="ac">{#each buttons(i) as btn, bi (bi)}
           {@const id = `${n}-${bi}`}{#if btn.kind === 'proceed'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)) })}>{#if picked === id}✓ {/if}{t.decisionsProceed}</button>
           {:else if btn.kind === 'discuss'}<button class="out" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.sugDiscussPrompt(t.decisionsDiscussAbout(name, ref))))}>{#if picked === id}✓ {/if}{t.decisionsDiscuss}</button>
+          {:else if btn.kind === 'works'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.decisionsWorksPrompt(name, ref)))}>{#if picked === id}✓ {/if}{t.decisionsWorks}</button>
+          {:else if btn.kind === 'broken'}<button class="out" class:fade={!!picked} disabled={!!picked} onclick={() => { broken = `${g.key}-${n}`; what = '' }}>{t.decisionsBroken}</button>
           {:else if btn.kind === 'done'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onDone(i))}>{#if picked === id}✓ {/if}{t.agendaDone}</button>
           {:else}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, '', btn.label); else onAsk(`${t.decisionsChoicePrompt(name, ref)} ${btn.label}`) })}>{#if picked === id}✓ {/if}{btn.label}</button>{/if}
         {/each}</div>{/if}
+        {#if broken === `${g.key}-${n}`}
+          <p>{t.decisionsBrokenTitle}</p>
+          <input bind:value={what} />
+          <div class="ac"><button class="text" onclick={() => (broken = null)}>{t.cancel}</button><button class="tonal" class:done={picked === `${n}-b`} disabled={!what.trim()} onclick={() => { const w = what.trim(); act(`${n}-b`, g.key, () => onAsk(t.decisionsBrokenPrompt(name, ref, w))) }}>{#if picked === `${n}-b`}✓ {/if}{t.send}</button></div>
+        {/if}
       {/each}
       <hr />
       <div class="ac"><button class="text" class:done={picked === 'not_now'} onclick={() => decide(g.key, 'not_now')}>{#if picked === 'not_now'}✓ {/if}{t.decisionsNotNow}</button><button class="text red" onclick={() => (dropping = true)}>{t.decisionsDrop}</button></div>

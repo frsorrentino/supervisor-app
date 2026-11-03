@@ -288,6 +288,8 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
 private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, onAsk: (String) -> Unit, head: Boolean = false, onLeft: () -> Unit) {
     var picked by remember(g.key) { mutableStateOf<String?>(null) }
     var dropping by remember(g.key) { mutableStateOf(false) }
+    // Non va (app-decidere-tasti-03-11): la voce di cui si scrive cosa non va, con il testo che va alla master.
+    var broken by remember(g.key) { mutableStateOf<Pair<Int, String>?>(null) }
     val off = animationsOff()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     fun act(id: String, send: () -> Unit) {
@@ -309,15 +311,20 @@ private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> 
             x.title?.let { Text(it, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = Cm.text) }
             x.plan?.let { PlanText(it) }
             x.reason?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+            CinqueMinuti.chooseAt(i)?.let { Text(stringResource(R.string.decisions_choose_at, it), style = MonoSmall, color = Cm.waiting) }
             val proceed = stringResource(R.string.decisions_proceed_prompt, name, i.task ?: i.session.orEmpty())
             val discuss = stringResource(R.string.sug_discuss_prompt, stringResource(R.string.decisions_discuss_about, name, i.task ?: i.session.orEmpty()))
             val choicePrompt = stringResource(R.string.decisions_choice_prompt, name, i.task ?: i.session.orEmpty())
+            val worksPrompt = stringResource(R.string.decisions_works_prompt, name, i.task ?: i.session.orEmpty())
+            val brokenPrompt = stringResource(R.string.decisions_broken_prompt, name, i.task ?: i.session.orEmpty(), "%s")
             val btns = CinqueMinuti.buttons(i)
             if (btns.isNotEmpty()) @OptIn(ExperimentalLayoutApi::class) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 btns.forEach { btn ->
                     when (btn) {
                         CinqueMinuti.Btn.Proceed -> "$n-p".let { id -> ConfirmButton(stringResource(R.string.decisions_proceed), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, null) else onAsk(proceed) } } }
                         CinqueMinuti.Btn.Discuss -> "$n-d".let { id -> ConfirmButton(stringResource(R.string.decisions_discuss), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id, outlined = true) { act(id) { onAsk(discuss) } } }
+                        CinqueMinuti.Btn.Works -> "$n-w".let { id -> ConfirmButton(stringResource(R.string.decisions_works), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { onAsk(worksPrompt) } } }
+                        CinqueMinuti.Btn.Broken -> ConfirmButton(stringResource(R.string.decisions_broken), confirmed = picked == "$n-b", enabled = picked == null, faded = picked != null && picked != "$n-b", outlined = true) { broken = n to brokenPrompt }
                         CinqueMinuti.Btn.Done -> "$n-f".let { id -> ConfirmButton(stringResource(R.string.agenda_done), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { onDone(i) } } }
                         is CinqueMinuti.Btn.Choice -> "$n-c-${btn.label}".let { id -> ConfirmButton(btn.label, confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, btn.label) else onAsk(choicePrompt + " " + btn.label) } } }
                     }
@@ -329,6 +336,16 @@ private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> 
             TextButton(onClick = { act("not_now") { onNotNow(g.key) } }, enabled = picked == null) { Text((if (picked == "not_now") "✓ " else "") + stringResource(R.string.decisions_not_now), color = if (picked == "not_now") V3.Good else androidx.compose.ui.graphics.Color.Unspecified) }
             TextButton(onClick = { dropping = true }, enabled = picked == null) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) }
         }
+    }
+    broken?.let { (n, prompt) ->
+        var what by rememberSaveable { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { broken = null }, containerColor = Cm.surface,
+            title = { Text(stringResource(R.string.decisions_broken_title), color = Cm.text) },
+            text = { OutlinedTextField(what, { what = it }, modifier = Modifier.fillMaxWidth()) },
+            confirmButton = { TextButton(enabled = what.isNotBlank(), onClick = { val w = what.trim(); broken = null; what = ""; act("$n-b") { onAsk(prompt.replace("%s", w)) } }) { Text(stringResource(R.string.send)) } },
+            dismissButton = { TextButton(onClick = { broken = null }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
     if (dropping) {
         var reason by rememberSaveable { mutableStateOf("") }

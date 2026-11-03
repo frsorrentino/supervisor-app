@@ -16,18 +16,27 @@ export type Act = 'approve' | 'done' | 'none'
  * Contratto 1.104 (Franz 02/11 08:04: «non ricordo cosa era stato proposto»), porta di CinqueMinuti.buttons: ok = Procedi e Parliamone; choice = le opzioni;
  * pc = Fatto, solo per ciò che si fa a mano al PC; other = Parliamone. Senza `asks`, un relay di prima: il tasto di sempre.
  */
-export type Btn = { kind: 'proceed' } | { kind: 'discuss' } | { kind: 'done' } | { kind: 'choice'; label: string }
+export type Btn = { kind: 'proceed' } | { kind: 'discuss' } | { kind: 'done' } | { kind: 'works' } | { kind: 'broken' } | { kind: 'choice'; label: string }
+/**
+ * app-decidere-tasti-03-11 (Franz 03/11 14:22: «In da decidere non ci sono tasti per decidere»), porta di CinqueMinuti.buttons: una pausa che aspetta
+ * una prova di Franz si decide con Va bene e Non va; ogni altra pausa o richiesta con Fatto e Parliamone. Parole intere: «provato» e «approvare» non sono una prova.
+ */
+const TEST = /(?<!\p{L})(prova|prove|guarda|try|tries)(?!\p{L})/iu
+const waitsTest = (i: DecisionItem) => i.kind !== 'ok' && i.asks !== 'pc' && !(i.options?.length) && TEST.test(i.reason ?? '')
 export function buttons(i: DecisionItem): Btn[] {
   const opts = (i.options ?? []).map(label => ({ kind: 'choice', label }) as Btn)
+  if (waitsTest(i)) return [{ kind: 'works' }, { kind: 'broken' }]
   switch (i.asks) {
     case 'ok': return [{ kind: 'proceed' }, { kind: 'discuss' }]
     case 'choice': return opts.length ? opts : [{ kind: 'discuss' }]
     case 'pc': return [{ kind: 'done' }]
-    case 'other': return [{ kind: 'discuss' }]
+    case 'other': return act(i) === 'done' ? [{ kind: 'done' }, { kind: 'discuss' }] : [{ kind: 'discuss' }]
   }
   const a = act(i)
   return a === 'approve' ? (opts.length ? opts : [{ kind: 'proceed' }]) : a === 'done' ? [{ kind: 'done' }] : []
 }
+/** Una scelta senza opzioni non si decide da qui: la sessione dove si sceglie, che la card dice. Null per tutto il resto. */
+export const chooseAt = (i: DecisionItem): string | null => (i.asks === 'choice' && !(i.options?.length) ? (i.session ?? i.task ?? null) : null)
 /** Procedi e una scelta passano dall'ok del registro solo per una card; per una pausa le dice alla master. */
 export const viaApprove = (i: DecisionItem) => i.kind === 'ok' && !!i.task
 /** Il testo della card: la frase della master, la causa, poi per voce titolo intero, inizio del piano e motivo; mai lo stesso testo due volte. */

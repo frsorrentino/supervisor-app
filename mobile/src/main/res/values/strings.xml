@@ -1623,6 +1623,12 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="seguiti_expired">Scaduto il %1$s</string>
     <string name="decisions_proceed">Procedi</string>
     <string name="decisions_discuss">Parliamone</string>
+    <string name="decisions_works">Va bene</string>
+    <string name="decisions_broken">Non va</string>
+    <string name="decisions_works_prompt">Ho provato %1$s (%2$s): va bene, chiudilo.</string>
+    <string name="decisions_broken_title">Cosa non va?</string>
+    <string name="decisions_broken_prompt">Ho provato %1$s (%2$s): non va. %3$s</string>
+    <string name="decisions_choose_at">Le opzioni non sono arrivate qui: si sceglie nella sessione %1$s.</string>
     <string name="decisions_proceed_prompt">Procedi con %1$s (%2$s).</string>
     <string name="decisions_choice_prompt">Per %1$s (%2$s) scelgo:</string>
     <string name="decisions_discuss_about">%1$s (%2$s).</string>

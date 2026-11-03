@@ -54,18 +54,31 @@ object CinqueMinuti {
      * Contratto 1.104 (Franz 02/11 08:04: «non ricordo cosa era stato proposto»): i tasti secondo cosa si aspetta. ok = Procedi e Parliamone; choice = le
      * opzioni; pc = Fatto, solo per ciò che si fa a mano al PC; other = Parliamone. Senza `asks`, un relay di prima: il tasto di sempre.
      */
-    sealed class Btn { data object Proceed : Btn(); data object Discuss : Btn(); data object Done : Btn(); data class Choice(val label: String) : Btn() }
-    fun buttons(i: DecisionItem): List<Btn> = when (i.asks) {
-        "ok" -> listOf(Btn.Proceed, Btn.Discuss)
-        "choice" -> i.options.orEmpty().map { Btn.Choice(it) }.ifEmpty { listOf(Btn.Discuss) }
-        "pc" -> listOf(Btn.Done)
-        "other" -> listOf(Btn.Discuss)
+    sealed class Btn { data object Proceed : Btn(); data object Discuss : Btn(); data object Done : Btn(); data object Works : Btn(); data object Broken : Btn(); data class Choice(val label: String) : Btn() }
+
+    /**
+     * app-decidere-tasti-03-11 (Franz 03/11 14:22: «In da decidere non ci sono tasti per decidere»): una pausa che aspetta una prova di Franz
+     * si decide con Va bene e Non va; ogni altra pausa o richiesta con Fatto e Parliamone. Parole intere: «provato» e «approvare» non sono una prova.
+     */
+    private val TEST = Regex("""(?i)(?<![\p{L}])(prova|prove|guarda|try|tries)(?![\p{L}])""")
+    private fun waitsTest(i: DecisionItem) = i.kind != "ok" && i.asks != "pc" && i.options.isNullOrEmpty() && TEST.containsMatchIn(i.reason.orEmpty())
+
+    fun buttons(i: DecisionItem): List<Btn> = when {
+        waitsTest(i) -> listOf(Btn.Works, Btn.Broken)
+        i.asks == "ok" -> listOf(Btn.Proceed, Btn.Discuss)
+        i.asks == "choice" -> i.options.orEmpty().map { Btn.Choice(it) }.ifEmpty { listOf(Btn.Discuss) }
+        i.asks == "pc" -> listOf(Btn.Done)
+        i.asks == "other" -> if (act(i) == Act.DONE) listOf(Btn.Done, Btn.Discuss) else listOf(Btn.Discuss)
         else -> when (act(i)) {
             Act.APPROVE -> i.options.orEmpty().map { Btn.Choice(it) }.ifEmpty { listOf(Btn.Proceed) }
             Act.DONE -> listOf(Btn.Done)
             Act.NONE -> emptyList()
         }
     }
+
+    /** Una scelta senza opzioni non si decide da qui: la sessione dove si sceglie, che la card dice. Null per tutto il resto. */
+    fun chooseAt(i: DecisionItem): String? = if (i.asks == "choice" && i.options.isNullOrEmpty()) i.session ?: i.task else null
+
     /** Procedi e una scelta passano dall'ok del registro solo per una card; per una pausa le dice alla master. */
     fun viaApprove(i: DecisionItem): Boolean = i.kind == "ok" && i.task != null
 

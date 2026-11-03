@@ -118,7 +118,7 @@ describe('demo_allineata', () => {
     await d.send(newCmd('prova', null, '1,2', undefined, undefined, { result: 'ok' }))
     expect(d.state.prove).toBeNull()
     await d.send(newCmd('decisione', null, 'demo-a', undefined, undefined, { action: 'not_now', hours: 24 }))
-    expect(d.state.decisions?.n).toBe(1)
+    expect(d.state.decisions?.n).toBe(2)
     expect((await d.send(newCmd('decisione', null, 'demo-b', undefined, undefined, { action: 'drop' })))!.ok).toBe(false)
   })
   it('demo_rapporto_inglese: nessuna frase della master resta in italiano', () => {
