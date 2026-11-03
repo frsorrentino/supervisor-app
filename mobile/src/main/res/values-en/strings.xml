@@ -185,6 +185,9 @@
     <string name="ov_updated_ago">updated %1$d min ago · %2$s</string>
     <string name="ov_stale">PC idle for %1$d min · %2$s</string>
     <string name="turn_running">turn running</string>
+    <string name="detail_said">Last message · %1$s</string>
+    <string name="detail_doing">Doing now</string>
+    <string name="detail_stats">Statistics</string>
     <string name="goal">Goal</string>
     <string name="low_priority">low priority</string>
     <string name="low_priority_offered">low priority offered</string>

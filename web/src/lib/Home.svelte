@@ -27,6 +27,7 @@
   import { shown as shownQuota } from './quotaLine'
   import { askedFor, attachedTasks, build, MASTER, staleHours, type Group, type Row } from './summary'
   import { doneOf, okOf, type Done } from './queue'
+  import { detailOf } from './sessionDetail'
   import { leave } from './leave'
   import { expiry, since } from './durations'
   import { lavoriInfo, pluginsInfo, systemInfo } from './slotInfo'
@@ -922,6 +923,12 @@
   {/each}
 </dialog>
 
+{#snippet chipRow(s: Session, steps: string[], blocking: Set<string>)}
+        <div class="chips">
+          {#each steps as step}{@const k = stepKey(s, step)}<button class="chip" class:unblock={blocking.has(step)} class:sent={sentSteps.has(k)} disabled={sentSteps.has(k)} aria-label={sentSteps.has(k) ? t.stepSent(step) : undefined} onclick={(e) => { e.stopPropagation(); sentSteps = new Set([...sentSteps, k]); onStep(s.name, step) }}>{#if sentSteps.has(k)}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--good)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{:else if blocking.has(step)}<svg class="lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>{/if}{step}</button>{/each}
+        </div>
+{/snippet}
+
 {#snippet card(r: Row, group: Group)}
     {@const s = r.session}
     {@const x = text(r)}
@@ -930,6 +937,9 @@
     {@const mine = placed?.inCards.get(s.name) ?? []}
     {@const svc = placedOut.inCards.get(s.name) ?? []}
     {@const rl = railOf(r)}
+    <!-- app-attesa-dettagli-02-11: aperta, la scheda dice cosa si sceglie e cosa sta facendo; le statistiche vanno in fondo. -->
+    {@const dt = detailOf(s, group, x.body)}
+    {@const steps = x.steps.length ? x.steps : open ? dt.steps : []}
     <div class="card r" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
       role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
       oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
@@ -978,6 +988,8 @@
         <p class="meta mono2"><span class="tool">{tool}</span>{rest.join(' ')}</p>
       {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open && group !== 'waiting'} class:strong={group === 'waiting' || open} class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
       {#if group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
+      {#if open && dt.doing}<p class="doing" data-testid="scheda-sta-facendo"><small>{t.detailDoing}</small><span class="mono2">{dt.doing}</span></p>{/if}
+      {#if open && dt.said}<div class="said" data-testid="scheda-ultimo-messaggio"><small>{t.detailSaid(hhmm(dt.saidAt!))}</small><p>{dt.said.replace(/\*\*|__|`/g, '')}</p></div>{/if}
       {#if group === 'waiting' && !s.question}
         {@const d = doneOf(s)}
         {@const ok = okOf(s)}
@@ -987,9 +999,8 @@
         {#if ok}<div class="oks"><div class="ok"><span class="okt mono2"></span><button class={s.name === primary ? 'approve mini' : 'tonal mini'} class:done={wp === 'ok'} disabled={!!wp} onclick={(e) => { e.stopPropagation(); wAct(s, 'ok', () => onOk(s.name, ok)) }}>{#if wp === 'ok'}✓ {/if}{t.attentionOk}</button></div></div>
         {:else if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} class:done={wp === 'done'} disabled={!!wp} onclick={(e) => { e.stopPropagation(); wAct(s, 'done', () => onDone(d)) }}>{#if wp === 'done'}✓ {/if}{t.attentionDone}</button></div></div>{/if}
       {/if}
-      {#if open}<div class="details">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
-      {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
-      {#if open && turnsOf(kpiData, s.name).length}<Kpi10 turns={turnsOf(kpiData, s.name)} />{/if}
+      <!-- Aperta, una ferma mostra anche le altre voci di «Prossimi:» come tasti, subito sotto l'Ok (app-attesa-dettagli-02-11). -->
+      {#if steps.length && group === 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
       {#if r.approvals.length}
         <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
         <div class="oks">
@@ -1034,11 +1045,7 @@
       {#if group === 'waiting' && s.question}
         <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={s.name === primary} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
       {/if}
-      {#if x.steps.length}
-        <div class="chips">
-          {#each x.steps as step}{@const k = stepKey(s, step)}<button class="chip" class:unblock={x.blocking.has(step)} class:sent={sentSteps.has(k)} disabled={sentSteps.has(k)} aria-label={sentSteps.has(k) ? t.stepSent(step) : undefined} onclick={(e) => { e.stopPropagation(); sentSteps = new Set([...sentSteps, k]); onStep(s.name, step) }}>{#if sentSteps.has(k)}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--good)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{:else if x.blocking.has(step)}<svg class="lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>{/if}{step}</button>{/each}
-        </div>
-      {/if}
+      {#if steps.length && group !== 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
       {#if c}
         <div class="clean">
           <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
@@ -1072,6 +1079,9 @@
           <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
         </div>
       {/if}
+      {#if open}<div class="details stats">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
+      {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
+      {#if open && turnsOf(kpiData, s.name).length}<Kpi10 turns={turnsOf(kpiData, s.name)} />{/if}
       {#if !open}
         <!-- Le barre del contesto e delle ultime sei ore (kpi-5, kpi-6) solo nella card aperta (app-home-riordino-29-10). -->
       {:else if s.context != null}
@@ -1231,6 +1241,11 @@
   .chev { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .chev:hover { background: var(--surface); }
   .goal { font-size: 12.5px; color: var(--b-label); }
+  .said, .doing { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px; }
+  .said small, .doing small { font-size: 11.5px; color: var(--b-label); }
+  .said p { margin: 0; font-size: 14px; line-height: 1.45; white-space: pre-line; color: var(--text); }
+  .doing span { font-size: 12.5px; color: var(--text); }
+  .details.stats { margin-top: 6px; }
   /* Franz 24/10 19:46 (B2): un esito di più di 6 ore fa si spegne e dice da quanto. */
   .body.stale { font-style: italic; opacity: .75; } .body .ago { font: 600 10.5px var(--mono); letter-spacing: .06em; color: var(--b-warn); background: color-mix(in srgb, var(--b-warn) 14%, transparent); border-radius: 999px; padding: 1px 7px; margin-left: 6px; font-style: normal; white-space: nowrap; }
   .asked { margin: 2px 0 0; }

@@ -981,6 +981,8 @@ private fun SummaryCard(
     // L'esito per primo e senza l'etichetta «Esito:»; la domanda così com'è.
     val shown = if (waiting) parsed.text else s.outcome?.let { o -> it.pixelbox.cmwatch.rules.OutcomeText.summary(o) } ?: parsed.text
     val body = it.pixelbox.cmwatch.rules.Markdown.parse(shown).text.trim()
+    // app-attesa-dettagli-02-11: aperta, la scheda dice cosa si sceglie e cosa sta facendo; le statistiche vanno in fondo.
+    val detail = androidx.compose.runtime.remember(s, r.group, body) { it.pixelbox.cmwatch.rules.SessionDetail.of(s, r.group, body) }
     val glyph = it.pixelbox.cmwatch.rules.Rail.glyph(s, r.group)
     val sinceWait = it.pixelbox.cmwatch.rules.Kpi.waitingSince(s)
     val railText = when {
@@ -1070,15 +1072,17 @@ private fun SummaryCard(
         if (waiting) Summary.askedFor(s)?.let { a ->
             Text(if (a.task != null) stringResource(R.string.asked_for_task, a.from, a.task!!) else stringResource(R.string.asked_for, a.from), style = MonoSmall)
         }
-        if (open) {
-            details(s).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
-            // Proposta 11: la giornata a fasce nella card aperta; «ti aspetta» solo per il tratto in corso, dallo stato.
-            kpiEvents?.let { ev ->
-                val from = it.pixelbox.cmwatch.rules.Kpi.midnight(now, java.time.ZoneId.systemDefault())
-                Kpi11(it.pixelbox.cmwatch.rules.Kpi.day(ev, from, now, if (s.state == it.pixelbox.cmwatch.contract.SessionState.GONE) null else it.pixelbox.cmwatch.rules.Kpi.waitingSince(s)), from, now)
+        if (open) detail.doing?.let { d ->
+            Column(Modifier.padding(top = 2.dp).testTag("scheda-sta-facendo"), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(stringResource(R.string.detail_doing), style = V3.Small, color = V3.Tx2)
+                Text(d, style = V3.Meter.copy(color = V3.Tx))
             }
-            // Proposta 10: la striscia dei turni di oggi col costo, sotto la giornata a fasce.
-            kpiTurns?.takeIf { t -> t.isNotEmpty() }?.let { t -> Kpi10(t) }
+        }
+        if (open) detail.said?.let { said ->
+            Column(Modifier.padding(top = 2.dp).testTag("scheda-ultimo-messaggio"), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(stringResource(R.string.detail_said, hhmmOf(detail.saidAt ?: 0)), style = V3.Small, color = V3.Tx2)
+                Text(it.pixelbox.cmwatch.rules.Markdown.parse(said).text.trim(), style = V3.Body, color = V3.Tx)
+            }
         }
         // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
         r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
@@ -1106,6 +1110,13 @@ private fun SummaryCard(
         }
         // I consigli come tasti, sempre visibili (Franz, 03/10 17:27): il tocco li manda subito a quella sessione, che li
         // prende a fine turno se sta lavorando.
+        // Aperta, una ferma mostra anche le altre voci di «Prossimi:» come tasti (app-attesa-dettagli-02-11).
+        if (waiting && open && detail.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            val blocking = s.nextSteps.orEmpty().filter { it.blocking }.map { it.text.trim() }
+            detail.steps.forEach { step -> StepChip(step, step in blocking, sent = step in sentSteps) { sentSteps = sentSteps + step; onStep(step) } }
+        }
         if (!waiting && parsed.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -1184,6 +1195,17 @@ private fun SummaryCard(
                 s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
             )
+        }
+        // Le statistiche in fondo, sotto quello che si sceglie (app-attesa-dettagli-02-11).
+        if (open) {
+            details(s).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+            // Proposta 11: la giornata a fasce nella card aperta; «ti aspetta» solo per il tratto in corso, dallo stato.
+            kpiEvents?.let { ev ->
+                val from = it.pixelbox.cmwatch.rules.Kpi.midnight(now, java.time.ZoneId.systemDefault())
+                Kpi11(it.pixelbox.cmwatch.rules.Kpi.day(ev, from, now, if (s.state == it.pixelbox.cmwatch.contract.SessionState.GONE) null else it.pixelbox.cmwatch.rules.Kpi.waitingSince(s)), from, now)
+            }
+            // Proposta 10: la striscia dei turni di oggi col costo, sotto la giornata a fasce.
+            kpiTurns?.takeIf { t -> t.isNotEmpty() }?.let { t -> Kpi10(t) }
         }
         // Le barre dei KPI 5 e 6 solo nella card aperta (riordino del 29/10, punto 8).
         if (open) s.context?.let { pct ->

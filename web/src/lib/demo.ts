@@ -119,6 +119,11 @@ export type World = {
   fullDiffs: Record<string, StepDiff>
 }
 
+/** L'ultimo messaggio di blog: la proposta e le scelte, come le scrive una sessione (app-attesa-dettagli-02-11). */
+const blogOutcome = (now: number) => en
+  ? { short: 'post ready, only publishing is left', at: now - 240, full: 'I re-read the post and fixed the links: the draft is in content/posts/release-2-8.md and the cover is already in the repo.\nShall I publish it now, or schedule it for tomorrow morning when the newsletter goes out?\nEsito: post ready, only publishing is left\nProssimi: !ok to publish the post · schedule it for tomorrow 9:00 · send me the preview first' }
+  : { short: 'post pronto, manca solo la pubblicazione', at: now - 240, full: "Ho riletto il post e sistemato i link: la bozza è in content/posts/release-2-8.md e la copertina è già nel repo.\nLo pubblico adesso o lo programmo per domattina, quando parte la newsletter?\nEsito: post pronto, manca solo la pubblicazione\nProssimi: !ok alla pubblicazione del post · programmalo per domani alle 9 · mandami prima l'anteprima" }
+
 /** Il mondo della demo all'istante `now` (epoch s). */
 export function world(now: number): World {
   const base = decodeState(dress(stateRaw))
@@ -126,6 +131,8 @@ export function world(now: number): World {
   const sh = <T extends number | null | undefined>(x: T): T => (x == null ? x : ((x + d) as T))
   const stopLogin = { reason: en ? 'Log in to the payment sandbox and send me the code' : 'Fai il login nella sandbox dei pagamenti e mandami il codice', at: now - 420 }
   const stopOk = { text: en ? 'ok to publish the post' : 'ok alla pubblicazione del post', at: now - 240 }
+  const blogSteps = en ? [{ text: 'ok to publish the post', blocking: true }, { text: 'schedule it for tomorrow 9:00', blocking: false }, { text: 'send me the preview first', blocking: false }]
+    : [{ text: 'ok alla pubblicazione del post', blocking: true }, { text: 'programmalo per domani alle 9', blocking: false }, { text: "mandami prima l'anteprima", blocking: false }]
   const sessions: Session[] = [
     { id: 'm', name: 'master', account: 'personal', account_kind: 'personal', project: 'personal/control-room', state: 'idle', since: now - 3600, context: 34, attached: true,
       model: { id: 'claude-opus-5[1m]', label: 'Opus 5' }, effort: 'high', suggestion: 'commit the README changes and open a PR', handoff: '/supervisor:handoff --here' },
@@ -138,7 +145,8 @@ export function world(now: number): World {
       // Contratto 1.68 nella demo (FakeTransport.stopped): storefront ferma per te con un login, blog con un ok alla fine del
       // turno. Blog è seguita e al 64 % di contesto: si vedono «ha finito» e la proposta «handoff, poi /clear».
       if (x.name === 'storefront') return { ...x, needs_you: stopLogin }
-      if (x.name === 'blog') return { ...x, turn_blocking: stopOk, followed: true, context: 64, heads_up: { text: en ? 'This conversation is getting long: a handoff would help' : 'Questa conversazione si sta allungando: conviene un handoff', seen_at: now - 780 } }
+      // app-attesa-dettagli-02-11: la ferma ha la sua proposta e tre scelte, così la scheda aperta mostra cosa si sceglie.
+      if (x.name === 'blog') return { ...x, turn_blocking: stopOk, followed: true, context: 64, outcome: blogOutcome(now), next_steps: blogSteps, heads_up: { text: en ? 'This conversation is getting long: a handoff would help' : 'Questa conversazione si sta allungando: conviene un handoff', seen_at: now - 780 } }
       return x
     }),
     // Al lavoro adesso: nella fixture l'unica in turno è ferma su un login, e il tabellone direbbe 0.
