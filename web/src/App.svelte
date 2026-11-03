@@ -44,6 +44,7 @@
   import Utilizzo from './lib/Utilizzo.svelte'
   import UsagePage from './lib/UsagePage.svelte'
   import MasterDock from './lib/MasterDock.svelte'
+  import SwapPills from './lib/SwapPills.svelte'
   import DeskHead from './lib/DeskHead.svelte'
   import DeskTools from './lib/DeskTools.svelte'
   import DeskNight from './lib/DeskNight.svelte'
@@ -1262,6 +1263,8 @@
     {/snippet}
   </Desk>
   {#if master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
+  <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
+  {#if cols.length && !stacked && !page}<SwapPills shown={cols} current={cols.at(-1) ?? null} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols([...cols, n]) }} onSwap={(n) => setCols(cols.length ? [...cols.slice(0, -1), n] : [n])} />{/if}
   </div>
   {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf}>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->

@@ -987,7 +987,7 @@
     <!-- app-attesa-dettagli-02-11: aperta, la scheda dice cosa si sceglie e cosa sta facendo; le statistiche vanno in fondo. -->
     {@const dt = detailOf(s, group, x.body)}
     {@const steps = x.steps.length ? x.steps : open ? dt.steps : []}
-    <div class="card r" class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
+    <div class="card r" data-sess={s.name} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
       role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
       oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
       {#if ctx === s.name}
