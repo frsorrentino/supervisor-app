@@ -73,11 +73,13 @@ internal val CatPeekEnd = RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18
  * scelta resta (app-home-in-cima-02-11): la freccia a destra lo dice.
  */
 @Composable
-internal fun CatLabel(id: String, modifier: Modifier = Modifier, onToggle: () -> Unit = {}) {
+internal fun CatLabel(id: String, modifier: Modifier = Modifier, amber: Boolean = false, onToggle: () -> Unit = {}) {
     androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().testTag("home-cat-$id").then(modifier).handCursor().clickable(onClick = onToggle)) {
         HorizontalDivider(Modifier.padding(top = 12.dp), thickness = 1.dp, color = V3.Line)
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 12.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = V3.Tx3), modifier = Modifier.weight(1f).padding(top = 8.dp, bottom = 2.dp))
+            // Aperta, l'ambra resta sull'etichetta con la sua icona (app-richiede-te-righe-02-11, mockup punto 3).
+            if (amber) Icon(catIcon(id), null, tint = V3.Wait, modifier = Modifier.padding(top = 6.dp, end = 6.dp).size(16.dp))
+            Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = if (amber) V3.Wait else V3.Tx3), modifier = Modifier.weight(1f).padding(top = 8.dp, bottom = 2.dp))
             TurnArrow(true, V3.Tx3, Modifier.size(20.dp))
         }
     }

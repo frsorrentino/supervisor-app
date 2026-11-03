@@ -158,7 +158,7 @@ fun SummaryList(
      * un tasto (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
      * `foryou` null = relay senza impegni e senza agenda: la sezione non c'è.
      */
-    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, /** I corpi delle voci del programma del 01/11, per chiave: si aprono sul posto (Franz 02/11 08:05). */ sectionBodies: Map<String, @Composable () -> Unit> = emptyMap(), onLavori: () -> Unit = {},
+    foryou: Lavori.ForYouGroups? = null, lavoriLine: String? = null, lavoriCount: Int? = null, lavoriInfo: it.pixelbox.cmwatch.rules.SlotInfo.LavoriInfo? = null, /** I corpi delle voci del programma del 01/11, per chiave: si aprono sul posto (Franz 02/11 08:05). */ sectionBodies: Map<String, @Composable () -> Unit> = emptyMap(), onLavori: () -> Unit = {},
     onAgendaEdit: (RecapAgenda.Edit) -> Unit = {}, onStart: (it.pixelbox.cmwatch.rules.RecapActions.Action) -> Unit = {},
     onDoneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = {},
     today: java.time.LocalDate = java.time.LocalDate.now(),
@@ -284,7 +284,8 @@ fun SummaryList(
         CloseFinishedDialog(preview, previewDone, onDismiss = { closeAsk = null; preview = null }) { ok -> closeAsk = null; preview = null; onCloseMany(ok) }
     }
     fun save(key: String, v: Boolean) { runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
-    class NewRow(val title: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val count: String, val tag: String, val open: androidx.compose.runtime.MutableState<Boolean>)
+    /** `hot`: ha qualcosa per Franz, filo e numero in ambra (app-richiede-te-righe-02-11). */
+    class NewRow(val title: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val count: String, val tag: String, val open: androidx.compose.runtime.MutableState<Boolean>, val hot: Boolean = false)
     val newOpen = remember { it.pixelbox.cmwatch.rules.HomeOrder.TOP.associateWith { k -> section(k) } }
     fun newRow(key: String): NewRow? {
         if (key !in sectionBodies) return null
@@ -294,8 +295,8 @@ fun SummaryList(
         return when (key) {
             "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open) }
             "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.seguiti_title, icons.Update, n.toString(), "home-seguiti", open) }
-            "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> NewRow(R.string.prove_title, icons.Science, p.n.toString(), "home-da-provare", open) }
-            "decisioni" -> st.decisions?.takeIf { d -> d.n > 0 }?.let { d -> NewRow(R.string.decisions_title, icons.Timer, d.n.toString(), "home-da-decidere", open) }
+            "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> NewRow(R.string.prove_title, icons.Science, p.n.toString(), "home-da-provare", open, p.n > 0) }
+            "decisioni" -> st.decisions?.takeIf { d -> d.n > 0 }?.let { d -> NewRow(R.string.decisions_title, icons.Timer, d.n.toString(), "home-da-decidere", open, true) }
             else -> null
         }
     }
@@ -336,9 +337,15 @@ fun SummaryList(
                 bits.ifEmpty { none } to ((w?.alarm == true) || (sy != null && sy.level != "green"))
             }
             "you" -> {
+                // Le voci che la accendono (app-richiede-te-righe-02-11): Da decidere, Da provare e, con voci, Suggerimenti (Franz 20:52).
                 val d = if ("decisioni" in up) 0 else kpiState?.decisions?.n ?: 0
                 val p = if ("prove" in up) 0 else kpiState?.prove?.n ?: 0
-                inOrder(listOf("decisioni" to d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") }, "prove" to p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") })).ifEmpty { none } to (d > 0)
+                val s = if ("suggestions" in up) 0 else suggestions?.takeIf { x -> x.shown.isNotEmpty() }?.total ?: 0
+                inOrder(listOf(
+                    "decisioni" to d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") },
+                    "prove" to p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") },
+                    "suggestions" to s.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.sug_title)} $n") },
+                )).ifEmpty { none } to (d + p + s > 0)
             }
             else -> {
                 // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).
@@ -651,7 +658,7 @@ fun SummaryList(
             if (sug != null) {
                 // Una sezione come le altre (Franz 30/10 17:33): titolo, numero, freccina; da chiusa resta il numero, la barra dei 7 giorni sta dentro.
                 dragPresent += "suggestions"
-                item(key = "sec-suggestions") { Box(moving()) { V3Section(sectionDrag("suggestions"), stringResource(R.string.sug_title), androidx.compose.material.icons.Icons.Outlined.AutoAwesome, sug.total.toString(), sugAt?.let { at -> if (suggestionsOpen) at else stringResource(R.string.home_last_at, at) }, "home-sez-suggerimenti", suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) } } }
+                item(key = "sec-suggestions") { Box(moving()) { V3Section(sectionDrag("suggestions"), stringResource(R.string.sug_title), androidx.compose.material.icons.Icons.Outlined.AutoAwesome, sug.total.toString(), sugAt?.let { at -> if (suggestionsOpen) at else stringResource(R.string.home_last_at, at) }, "home-sez-suggerimenti", suggestionsOpen, hot = true) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) } } }
                 if (suggestionsOpen) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
             }
         }
@@ -660,7 +667,7 @@ fun SummaryList(
         if (showLavori && (foryou != null || outside.isNotEmpty())) {
             val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
             if (listSkip != "lavori") dragPresent += "lavori"
-            if (listSkip != "lavori" && "lavori" !in liveTop) item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, dot = if (looseOk.isNotEmpty()) V3.Wait else null, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
+            if (listSkip != "lavori" && "lavori" !in liveTop) item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, lavoriCount?.toString(), right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, dot = if (looseOk.isNotEmpty()) V3.Wait else null, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
             if (lavoriOpen) {
                 // Gli ok ai compiti senza una sessione aperta (Franz 02/11 23:57): in cima ai lavori, con la loro card ambra.
                 looseOk.forEachIndexed { i, r ->
@@ -791,7 +798,7 @@ fun SummaryList(
             val r = newRow(key) ?: return
             val moving = movingIn(key)
             dragPresent += key
-            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(key, kpiState), tag = r.tag, open = r.open.value) { toggleNew(r, key) } } }
+            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(key, kpiState), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, key) } } }
             if (r.open.value) item(key = "$key-body") { Box(moving()) { sectionBodies[key]?.invoke() } }
         }
         val renderClosed: () -> Unit = {
@@ -813,7 +820,7 @@ fun SummaryList(
                     if (suggestionsOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } }
                 }
                 "lavori" -> if (showLavori && lavoriInfo != null) LavoriSlotRow(lavoriInfo, now, slotDrag("lavori"), lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
-                else if (showLavori && (foryou != null || outside.isNotEmpty())) SlotRow(slotDrag("lavori"), stringResource(R.string.lavori_title), icons.Checklist, right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
+                else if (showLavori && (foryou != null || outside.isNotEmpty())) SlotRow(slotDrag("lavori"), stringResource(R.string.lavori_title), icons.Checklist, lavoriCount?.toString(), right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
                 "usage" -> if (hasUsage) {
                     if (weekSlot != null) UsageSlotRow(weekSlot, now, slotDrag("usage"), usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     else SlotRow(slotDrag("usage"), stringResource(R.string.home_sec_usage), icons.DataUsage, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
@@ -829,7 +836,7 @@ fun SummaryList(
                     if (pluginsOpen) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
                 }
                 "prima_raccolta", "seguiti", "prove", "decisioni" -> newRow(pin)?.let { r ->
-                    SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(pin, kpiState), tag = r.tag, open = r.open.value) { toggleNew(r, pin) }
+                    SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(pin, kpiState), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, pin) }
                     if (r.open.value) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { sectionBodies[pin]?.invoke() }
                 }
                 "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }
@@ -885,7 +892,7 @@ fun SummaryList(
         item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
-            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
+            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
             else item(key = "cat-${c.id}") {
                 Box(movingIn("cat:${c.id}")()) {
                     val (bits, amber) = catBits(c.id)

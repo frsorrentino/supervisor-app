@@ -145,7 +145,7 @@ const it = {
   // In corso per chi deve muoversi (mockup della master approvato da Franz il 22/10 alle 21:16).
   lavoriWorking: 'Al lavoro', lavoriWaitsYou: 'Aspetta te', lavoriOthers: 'Fermi su altri', lavoriNTasks: (n: number) => `${n} compiti`, lavoriSinceAt: (h: string) => `dalle ${h}`, lavoriSinceOn: (d: string) => `dal ${d}`, lavoriUntil: (d: string) => `fino al ${d}`,
   lavoriViewList: 'Elenco', lavoriViewTime: 'Tempo', lavoriAgendaNoDate: "dall'agenda, senza data", lavoriTimeKey: 'piena = al lavoro · tratteggio = in pausa o in coda · riga bianca = adesso',
-  lavoriOldRelay: 'Aggiorna supervisor sul PC per vedere gli impegni del registro', lavoriHomeLine: (a: number, b: number, c: number) => `${a} ${a === 1 ? 'attivo' : 'attivi'} · ${b} notte · ${c} oggi`, lavoriAll: 'Tutti i lavori',
+  lavoriOldRelay: 'Aggiorna supervisor sul PC per vedere gli impegni del registro', lavoriHomeLine: (b: number, c: number) => [b ? `${b} notte` : '', c ? `${c} oggi` : ''].filter(Boolean).join(' · '), lavoriAll: 'Tutti i lavori',
   lavoriDonePrompt: (reason: string, task: string) => `Fatto: ${reason}. Riprendi ${task}`,
   homeCommitments: 'Impegni', commitApprovedAt: (h: string) => `approvato alle ${h}`, commitAwaiting: 'aspetta il tuo ok', commitIdle: (x: string) => `fermo da ${x}`, commitYourTurn: 'tocca a te', commitTurn: (s: string) => `tocca a ${s}`, commitPaused: (r: string) => `in pausa: ${r}`, commitStalled: 'fermo', commitNext: 'Prossimo', commitCheckRed: 'ultimo controllo rosso',
   // Lo stile «Studio e Diretta» (app-home-riordino-29-10, 30/10): la colonna dei minuti, il riepilogo delle sessioni, la riga
@@ -561,7 +561,7 @@ const en: typeof it = {
   lavoriProofCheck: 'check green', lavoriProofFailed: 'check red', lavoriProofCancelled: 'cancelled', lavoriDoneEmpty: 'Nothing closed in the last seven days', lavoriQuotaNote: 'The quota is not here: it stays in «Usage and limits».',
   lavoriWorking: 'Working', lavoriWaitsYou: 'Waits for you', lavoriOthers: 'Blocked by others', lavoriNTasks: (n: number) => `${n} tasks`, lavoriSinceAt: (h: string) => `since ${h}`, lavoriSinceOn: (d: string) => `since ${d}`, lavoriUntil: (d: string) => `until ${d}`,
   lavoriViewList: 'List', lavoriViewTime: 'Time', lavoriAgendaNoDate: 'from the agenda, no date', lavoriTimeKey: 'solid = working · dashes = paused or queued · white line = now',
-  lavoriOldRelay: "Update supervisor on the PC to see the registry's commitments", lavoriHomeLine: (a: number, b: number, c: number) => `${a} running · ${b} tonight · ${c} today`, lavoriAll: 'All the work',
+  lavoriOldRelay: "Update supervisor on the PC to see the registry's commitments", lavoriHomeLine: (b: number, c: number) => [b ? `${b} tonight` : '', c ? `${c} today` : ''].filter(Boolean).join(' · '), lavoriAll: 'All the work',
   lavoriDonePrompt: (reason: string, task: string) => `Done: ${reason}. Resume ${task}`,
   homeCommitments: 'Commitments', commitApprovedAt: (h: string) => `approved at ${h}`, commitAwaiting: 'waits for your ok', commitIdle: (x: string) => `idle for ${x}`, commitYourTurn: 'your turn', commitTurn: (s: string) => `${s}'s turn`, commitPaused: (r: string) => `paused: ${r}`, commitStalled: 'stalled', commitNext: 'Next', commitCheckRed: 'last check red',
   railSpan: (s: { n: number; unit: 'min' | 'h' | 'd' }) => (s.unit === 'min' ? `${s.n}'` : s.unit === 'h' ? `${s.n} h` : `${s.n} d`),

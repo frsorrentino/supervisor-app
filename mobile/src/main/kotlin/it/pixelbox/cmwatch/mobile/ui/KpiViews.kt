@@ -231,13 +231,13 @@ internal val LocalSlotLine = androidx.compose.runtime.compositionLocalOf { true 
 
 /** Una voce agganciata: lo stesso riepilogo della riga in elenco, nella misura del tabellone. */
 @Composable
-internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, onToggle: () -> Unit) {
+internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, hot: Boolean = false, onToggle: () -> Unit) {
     if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(18.dp))
+    Row(Modifier.fillMaxWidth().hotEdge(hot).heightIn(min = 44.dp).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
-        count?.let { Text(it, style = V3.Name.copy(fontSize = 13.sp, color = V3.Tx2), modifier = Modifier.padding(start = 6.dp)) }
+        count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 13.sp), Modifier.padding(start = 6.dp)) }
         Row(Modifier.weight(1f).padding(start = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
             right?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp), textAlign = androidx.compose.ui.text.style.TextAlign.End) }

@@ -317,9 +317,11 @@
       return { bits: bits.length ? bits : none, amber: !!w?.alarm || (!!sy && sy.level !== 'green') }
     }
     if (id === 'you') {
+      // Le voci che la accendono (app-richiede-te-righe-02-11): Da decidere, Da provare e, con voci, Suggerimenti (Franz 20:52).
       const d = up.includes('decisioni') ? 0 : st.decisions?.n ?? 0, p = up.includes('prove') ? 0 : st.prove?.n ?? 0
-      const bits = inOrder<{ text: string }>([['decisioni', d ? { text: `${t.decisionsTitle} ${d}` } : null], ['prove', p ? { text: `${t.proveTitle} ${p}` } : null]])
-      return { bits: bits.length ? bits : none, amber: d > 0 }
+      const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
+      const bits = inOrder<{ text: string }>([['decisioni', d ? { text: `${t.decisionsTitle} ${d}` } : null], ['prove', p ? { text: `${t.proveTitle} ${p}` } : null], ['suggestions', s ? { text: `${t.sugTitle} ${s}` } : null]])
+      return { bits: bits.length ? bits : none, amber: d + p + s > 0 }
     }
     // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).
     const n = up.includes('sessions') ? 0 : model.open
@@ -375,8 +377,10 @@
   const lavoriLine = $derived.by(() => {
     const ip = lavoriProgress(st, agenda, now, zone, today)
     const doneToday = lavoriDoneToday(donePages, events, zone, today)
-    return t.lavoriHomeLine(ip.total, st.night.queued, doneToday)
+    // Gli attivi sono il numero accanto al nome; a destra solo le parti non zero (app-richiede-te-righe-02-11).
+    return t.lavoriHomeLine(st.night.queued, doneToday)
   })
+  const lavoriCount = $derived(lavoriProgress(st, agenda, now, zone, today).total)
   function fySub(r: LavoriRow): string | null {
     if (r.kind === 'ok') return r.who && r.at ? t.lavoriAsks(r.who, hhmm(r.at)) : r.who ? t.lavoriAsksWho(r.who) : t.lavoriWaitsOk
     if (r.commitment) return r.who ? t.lavoriUnblocks(r.who) : null
@@ -619,7 +623,7 @@
 
 <!-- La testata di sezione dello stile «Studio e Diretta» (30/10): l'icona grigia nel binario dei glifi, il titolo allineato ai
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
-{#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null } = {})}
+{#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null; hot?: boolean } = {})}
   {@const info = (key === listSkip || (up as string[]).includes(key)) && !part ? slotExtra[key] : null}
   {#if info}
     <!-- Una voce nello slot (Franz 01/11 17:44): titolo, barra e numero, sotto una riga; il riepilogo a destra non c'è più. -->
@@ -634,7 +638,7 @@
     <div class="sec static" data-testid={testid}><span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
     <!-- L'unica struttura delle voci della home (Franz 31/10 17:04). -->
-    <button class="sec" class:compact={key === listSkip} class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? !!open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
+    <button class="sec" class:hot={o.hot} class:compact={key === listSkip} class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? !!open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ic"><span class="ms">{icon}</span></span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
       <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt">{right}</span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span>
     </button>
@@ -672,7 +676,7 @@
      Nella plancia restano nella colonna «Richiede te». -->
 {#snippet secSuggestions()}
 {#if shows('you') && suggestions && suggestionsN}
-  {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti', !part && !open.suggestions && suggestionsAt ? t.homeLastAt(hhmm(suggestionsAt)) : null)}
+  {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti', !part && !open.suggestions && suggestionsAt ? t.homeLastAt(hhmm(suggestionsAt)) : null, { hot: true })}
   {#if part || open.suggestions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div></div>{/if}
 {/if}
 {/snippet}
@@ -700,7 +704,7 @@
 {/snippet}
 {#snippet secLavori()}
 {#if shows('work') && showLavori && (fy || workGroups.length)}
-  {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', null, 'home-sez-lavori', open.lavori ? null : lavoriLine, { dot: looseOk.length ? 'var(--wait)' : null })}{/if}
+  {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', lavoriCount ? String(lavoriCount) : null, 'home-sez-lavori', open.lavori ? null : (lavoriLine || null), { dot: looseOk.length ? 'var(--wait)' : null })}{/if}
   {#if part || open.lavori}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     <!-- Gli ok ai compiti senza una sessione aperta (Franz 02/11 23:57): in cima ai lavori, con la loro card ambra. -->
     {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
@@ -748,7 +752,7 @@
       {/if}
     {/each}
     {#if fy && !part}
-      <button class="all" onclick={onLavori}><span class="wic"><span class="ms">event_list</span></span><span class="otext"><b>{t.lavoriAll ? `${t.lavoriAll} · ${lavoriLine}` : lavoriLine}</b></span>
+      <button class="all" onclick={onLavori}><span class="wic"><span class="ms">event_list</span></span><span class="otext"><b>{lavoriLine ? `${t.lavoriAll} · ${lavoriLine}` : t.lavoriAll}</b></span>
         <span class="ms chevr">chevron_right</span></button>
     {/if}
   </div></div>{/if}
@@ -848,8 +852,8 @@
   {#if newBody && (!part || part === catFor(k))}
     {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'task_alt', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', !open['prima_raccolta'] ? rightOf('prima_raccolta') : null)}{@render nuovaBody(k)}
     {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
-    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null)}{@render nuovaBody(k)}
-    {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null)}{@render nuovaBody(k)}
+    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: st.prove.n > 0 })}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && st.decisions?.n}{@render sec('decisioni', t.decisionsTitle, 'timer', String(st.decisions.n), 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
     {/if}
   {/if}
 {/snippet}
@@ -877,7 +881,7 @@
   <div class="topedge" data-sec-head={EDGE}></div>
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
-      {#if c.open}<button class="catlabel cathead" aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
+      {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
       {:else}
         {@const sig = catSignal(c.id)}
         <button class="catrow cathead" class:amber={sig.amber} aria-expanded="false" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
@@ -1473,6 +1477,13 @@
   .sec .ic .ms { color: var(--tx2); }
   .sec .st { white-space: nowrap; }
   .sec small { font: 600 15px var(--display); letter-spacing: 0; color: var(--tx2); margin-left: 8px; }
+  /* Una voce che chiede Franz (app-richiede-te-righe-02-11): filo ambra a sinistra, numero in una pillola ambra, icona ambra. */
+  .sec.hot { box-shadow: inset 3px 0 0 var(--wait); border-radius: 2px; }
+  .sec.hot .ic .ms { color: var(--wait); }
+  .sec.hot small { color: var(--wait); background: color-mix(in srgb, var(--wait) 16%, transparent); border-radius: 999px; padding: 1px 8px; }
+  .catlabel.amber { color: var(--wait); }
+  .catlabel .catic { display: inline-flex; vertical-align: -3px; margin-right: 6px; color: var(--wait); }
+  .catlabel .catic .ms { font-size: 16px; letter-spacing: 0; }
   .sec .sp { flex: 1; min-width: 8px; }
   .sec .rt { font: 400 14px var(--sans); color: var(--tx2); text-align: right; min-width: 0; }
   .sec .sysdot { flex: none; margin-right: 6px; }

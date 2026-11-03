@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -148,26 +149,42 @@ private fun DrawScope.waitingMark(u: Float, col: Color) {
 /** Il titolo col binario: l'icona grigia allineata ai glifi, il titolo ai nomi, il numero accanto; a destra il riepilogo e l'apertura. */
 /** La testata che si trascina con la pressione lunga: `drag` per primo, gli altri come sempre. */
 @Composable
-internal fun V3Section(drag: Modifier, title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, onToggle: (() -> Unit)? = null) =
-    V3Section(title, icon, count, right, tag, open, onToggle, drag, dot, nav)
+internal fun V3Section(drag: Modifier, title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, hot: Boolean = false, onToggle: (() -> Unit)? = null) =
+    V3Section(title, icon, count, right, tag, open, onToggle, drag, dot, nav, hot)
+
+/**
+ * Una voce che chiede Franz (app-richiede-te-righe-02-11, mockup richiede-te.png punti 1 e 3): il filo ambra a sinistra. Si disegna
+ * sopra il fondo, senza spostare niente: accesa o spenta la riga ha la stessa misura.
+ */
+internal fun Modifier.hotEdge(hot: Boolean): Modifier = if (!hot) this else drawBehind {
+    val w = 3.dp.toPx()
+    drawRoundRect(V3.Wait, Offset.Zero, Size(w, size.height), CornerRadius(w / 2f))
+}
+
+/** Il numero di una voce che chiede Franz: in una pillola ambra; altrimenti grigio accanto al nome, come sempre. */
+@Composable
+internal fun SectionCount(n: String, hot: Boolean, style: TextStyle, modifier: Modifier = Modifier) {
+    if (!hot) { Text(n, style = style.copy(color = V3.Tx2), modifier = modifier); return }
+    Text(n, style = style.copy(color = V3.Wait), modifier = modifier.clip(androidx.compose.foundation.shape.CircleShape).background(V3.Wait.copy(alpha = 0.16f)).padding(horizontal = 8.dp))
+}
 
 /**
  * L'unica struttura delle voci della home (Franz 31/10 17:04): sul fondo pagina, senza card e senza filo. `dot`: il pallino di stato
  * prima del riepilogo. `nav`: la voce porta altrove, freccina a destra al posto di quella che apre e chiude.
  */
 @Composable
-internal fun V3Section(title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, onToggle: (() -> Unit)? = null, drag: Modifier = Modifier, dot: Color? = null, nav: Boolean = false) {
-    var m = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp)
+internal fun V3Section(title: String, icon: ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, onToggle: (() -> Unit)? = null, drag: Modifier = Modifier, dot: Color? = null, nav: Boolean = false, hot: Boolean = false) {
+    var m = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp).hotEdge(hot)
     if (onToggle != null) m = m.handCursor().clickable(onClick = onToggle)
     if (tag != null) m = m.testTag(tag)
     // La zona della pressione lunga: il gesto lo legge la lista (SummaryList), qui si dice solo dove sta il titolo.
     m = m.then(drag)
     // Frecce e riassunti sulla stessa verticale di quelli dentro le liste, che hanno 12 dp a destra (Franz 31/10 01:14).
     Row(m.heightIn(min = 36.dp).padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }
+        Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.size(22.dp)) }
         Spacer(Modifier.width(8.dp))
         Text(title, style = V3.Section, maxLines = 1)
-        count?.let { Text(it, style = V3.Section.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = V3.Tx2), modifier = Modifier.padding(start = 8.dp)) }
+        count?.let { SectionCount(it, hot, V3.Section.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp), Modifier.padding(start = 8.dp)) }
         // Il riepilogo prende quello che avanza e va a capo solo come ultima risorsa: mai tagliato, mai addosso al numero (Franz 30/10 19:46).
         Row(Modifier.weight(1f).padding(start = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }

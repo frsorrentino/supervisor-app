@@ -1371,8 +1371,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_done_empty">Niente di chiuso negli ultimi sette giorni</string>
     <string name="lavori_quota_note">La quota non è qui: resta in «Utilizzo e limiti».</string>
     <string name="lavori_old_relay">Aggiorna supervisor sul PC per vedere gli impegni del registro</string>
-    <plurals name="lavori_home_active"><item quantity="one">%1$d attivo</item><item quantity="other">%1$d attivi</item></plurals>
-    <string name="lavori_home_line">%1$s · %2$d notte · %3$d oggi</string>
+    <!-- Lavori in home (app-richiede-te-righe-02-11): il numero degli attivi accanto al nome, a destra le parti non zero. -->
+    <string name="lavori_home_night">%1$d notte</string>
+    <string name="lavori_home_today">%1$d oggi</string>
     <string name="lavori_all">Tutti i lavori</string>
     <string name="lavori_done_prompt">Fatto: %1$s. Riprendi %2$s</string>
     <!-- Contratto 1.83: le domande dei server MCP (elicitation) -->

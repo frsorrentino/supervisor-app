@@ -1186,8 +1186,11 @@ class MainActivity : ComponentActivity() {
         val lavoriLine = remember(state, agenda, now, events, donePages) { state?.let { st ->
             val ip = it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday)
             val doneToday = it.pixelbox.cmwatch.rules.Lavori.doneToday(donePages, events, lavoriZone, lavoriToday)
-            getString(R.string.lavori_home_line, resources.getQuantityString(R.plurals.lavori_home_active, ip.total, ip.total), st.night.queued, doneToday)
+            // Gli attivi sono il numero accanto al nome; a destra solo le parti non zero (app-richiede-te-righe-02-11).
+            listOfNotNull(st.night.queued.takeIf { n -> n > 0 }?.let { n -> getString(R.string.lavori_home_night, n) }, doneToday.takeIf { n -> n > 0 }?.let { n -> getString(R.string.lavori_home_today, n) })
+                .joinToString(" · ").ifEmpty { null }
         } }
+        val lavoriCount = remember(state, agenda, now) { state?.let { st -> it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday).total.takeIf { n -> n > 0 } } }
         val lavoriSlot = remember(state, agenda, now) { state?.let { st -> it.pixelbox.cmwatch.rules.SlotInfo.lavori(it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday)) } }
         val forYouAction: (it.pixelbox.cmwatch.rules.MasterHome.Row) -> Unit = { row ->
             when (row.kind) {
@@ -1759,7 +1762,7 @@ class MainActivity : ComponentActivity() {
                     justClosed = justClosed,
                     tonight = st.night.items?.let { _ -> it.pixelbox.cmwatch.rules.TonightCard.of(st.night, now) },
                     // La sezione «Lavori» (22/10): gli ok e le cose da fare fuori dalla chat con il loro tasto; «Tutti i lavori» apre la pagina.
-                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriInfo = lavoriSlot, sectionBodies = sectionBodies, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
+                    foryou = lavoriForYou, lavoriLine = lavoriLine, lavoriCount = lavoriCount, lavoriInfo = lavoriSlot, sectionBodies = sectionBodies, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
                     onDone = attentionDone,
                     onAgendaEdit = editAgenda, onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     // «Utilizzo» (Franz, 08/10 12:30; unito il 09/10): le schede della quota e «Oggi» in una sezione richiudibile.
