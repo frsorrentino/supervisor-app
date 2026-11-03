@@ -1178,7 +1178,13 @@ class MainActivity : ComponentActivity() {
         // Il risultato con quello che sa la pagina (didascalia, file, note): lo stato porta solo l'essenziale.
         val fullResult = { r: it.pixelbox.cmwatch.contract.ResultItem -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { x -> x.id == r.id } ?: r }
         val guardare = it.pixelbox.cmwatch.mobile.ui.GuardareActions(
-            file = { r, f, quiet, ready -> withFile(r.session.orEmpty(), "result:${r.id}:${f.path}", f, quiet) { file, _ -> ready(file.path) } },
+            file = { r, f, quiet, ready ->
+                val key = "result:${r.id}:${f.path}"
+                withFile(r.session.orEmpty(), key, f, quiet) { file, _ -> ready(file.path) }
+                // A caricamento finito: il file (anche se lo stava già chiedendo la miniatura, e withFile non richiama), o null se non è
+                // arrivato (rete, PC, file sparito): il visore lo dice invece di girare per sempre (app-bug-notte-03-11).
+                scope.launch { androidx.compose.runtime.snapshotFlow { key in fileLoading }.first { loading -> !loading }; ready(fileLocal[key]) }
+            },
             seen = { r -> scope.launch {
                 val id = runCatching { app.repo.command(CmdOp.RESULT_SEEN, null, r.id) }.getOrNull()
                 val x = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }

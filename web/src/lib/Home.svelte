@@ -1546,6 +1546,8 @@
   .approve { background: var(--act); color: var(--on-act); }
   .text.mini { color: var(--tx2); }
   .chip { background: var(--s3); color: var(--tx); font: 600 14.5px var(--display); min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 18px; }
+  /* I tasti di Prossimi restano alti 36 px, l'area di tocco arriva a 48 (app-bug-notte-03-11). */
+  .chip { position: relative; } .chip::after { content: ''; position: absolute; inset: -6px 0; }
   .chip.unblock { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
   .wrows { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; }
   .wrow { gap: 8px; min-height: 52px; padding: 10px 12px 10px 0; }

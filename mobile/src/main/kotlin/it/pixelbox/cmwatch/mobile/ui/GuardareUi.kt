@@ -43,8 +43,11 @@ import it.pixelbox.cmwatch.rules.Guardare
  * precedenti (anche nella sessione, dalla riga «Risultati»); il risultato aperto col lettore della chat.
  */
 class GuardareActions(
-    /** Il file sul telefono (dalla cache o chiesto al PC con l'op `file`); `quiet` = una miniatura, niente avvisi se non arriva. */
-    val file: (ResultItem, TranscriptFile, Boolean, (String) -> Unit) -> Unit = { _, _, _, _ -> },
+    /**
+     * Il file sul telefono (dalla cache o chiesto al PC con l'op `file`); `quiet` = una miniatura, niente avvisi se non arriva.
+     * Il percorso, o null se il file non è arrivato: il visore lo dice e offre «Riprova» invece di girare per sempre.
+     */
+    val file: (ResultItem, TranscriptFile, Boolean, (String?) -> Unit) -> Unit = { _, _, _, _ -> },
     val seen: (ResultItem) -> Unit = {},
     val note: (ResultItem, String, Double?) -> Unit = { _, _, _ -> },
     val open: (ResultItem) -> Unit = {},
@@ -72,7 +75,7 @@ private fun titleOf(l: Guardare.Line) = l.version?.let { stringResource(R.string
 private fun Thumb(i: ResultItem, a: GuardareActions, modifier: Modifier) {
     val t = Guardare.thumb(i)
     var path by remember(i.id) { mutableStateOf<String?>(null) }
-    LaunchedEffect(i.id, t?.path) { if (t != null) a.file(i, t, true) { p -> path = p } }
+    LaunchedEffect(i.id, t?.path) { if (t != null) a.file(i, t, true) { p -> if (p != null) path = p } }
     val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, path) {
         value = path?.let { p -> kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { decodeScaled(p, 480) } }
     }
@@ -139,7 +142,8 @@ private fun GroupBlock(g: ResultGroup, a: GuardareActions) {
         VersionRow(latest, a)
         val older = Guardare.older(g)
         if (older.isNotEmpty()) {
-            Row(Modifier.fillMaxWidth().clickable { olderOpen = !olderOpen }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // Area di tocco di almeno 48 dp (app-bug-notte-03-11).
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { olderOpen = !olderOpen }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(if (olderOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx2)
                 Text(stringResource(R.string.watch_older) + "  " + older.size, style = V3.Small)
             }
@@ -199,7 +203,7 @@ fun ResultsChatRow(line: Guardare.SessionLine, onOpen: () -> Unit) {
     val latest = line.latest ?: return
     val l = Guardare.line(latest)
     Row(
-        Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S2).clickable(onClick = onOpen).padding(horizontal = 14.dp, vertical = 10.dp).testTag("chat-risultati"),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(V3.Shape).background(V3.S2).clickable(onClick = onOpen).padding(horizontal = 14.dp, vertical = 10.dp).testTag("chat-risultati"),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(Icons.Outlined.Visibility, null, tint = V3.Tx)
@@ -222,9 +226,11 @@ fun ResultsChatRow(line: Guardare.SessionLine, onOpen: () -> Unit) {
 fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
     val l = Guardare.line(i)
     var path by remember(i.id) { mutableStateOf<String?>(null) }
+    var failed by remember(i.id) { mutableStateOf(false) }
+    var attempt by remember(i.id) { mutableStateOf(0) }
     val kind = Guardare.kind(i.kind)
     val show = Guardare.thumb(i) ?: Guardare.main(i).takeIf { kind == Guardare.Kind.VIDEO }
-    LaunchedEffect(i.id) { show?.let { f -> a.file(i, f, false) { p -> path = p } } }
+    LaunchedEffect(i.id, attempt) { failed = false; show?.let { f -> a.file(i, f, false) { p -> if (p == null) failed = true else path = p } } }
     var pos by remember(i.id) { mutableStateOf<Double?>(null) }
     var text by rememberSaveable(i.id) { mutableStateOf("") }
     var sent by remember(i.id) { mutableStateOf(false) }
@@ -240,6 +246,11 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
             p != null -> {
                 val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, p) { value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { decodeScaled(p, 2048, 12_000_000) } }
                 bmp?.let { b -> Image(b, null, Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.FillWidth) }
+            }
+            // Senza rete o col file sparito dal PC: lo dice, e «Riprova» lo richiede (app-bug-notte-03-11, prima girava per sempre).
+            show != null && failed -> Column(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp)).background(V3.S2).padding(16.dp).testTag("risultato-non-arrivato"), verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(R.string.watch_file_failed), style = V3.Small, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                V3Pill(stringResource(R.string.watch_retry)) { attempt++ }
             }
             show != null -> Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp)).background(V3.S2), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = V3.Tx2) }
         }

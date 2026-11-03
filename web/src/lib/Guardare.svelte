@@ -35,6 +35,8 @@
   // Le miniature e il file aperto: URL locali dal blob, rilasciati quando il componente se ne va.
   // Chiesti si segna fuori dallo stato: il render non scrive stato (state_unsafe_mutation), lo fa solo l'arrivo del file.
   let urls = $state<Record<string, string>>({})
+  // I file che non sono arrivati (rete, PC, file sparito): il visore lo dice e offre «Riprova» (app-bug-notte-03-11).
+  let failedFiles = $state<Record<string, true>>({})
   const asked = new Set<string>()
   const made: string[] = []
   $effect(() => () => { for (const u of made) URL.revokeObjectURL(u) })
@@ -42,10 +44,12 @@
     const k = `${r.id}:${f.path}`
     if (!asked.has(k)) {
       asked.add(k)
-      queueMicrotask(() => void getFile(r, f, quiet).then(b => { if (b) { const u = URL.createObjectURL(b); made.push(u); urls = { ...urls, [k]: u } } }))
+      queueMicrotask(() => void getFile(r, f, quiet).catch(() => null).then(b => { if (b) { const u = URL.createObjectURL(b); made.push(u); urls = { ...urls, [k]: u } } else failedFiles = { ...failedFiles, [k]: true } }))
     }
     return urls[k] ?? null
   }
+  // Il tocco richiede il file subito: il riquadro dipende solo da `urls`, e con `asked` svuotato e basta non ripartirebbe.
+  function retry(r: ResultItem, f: TranscriptFile) { const k = `${r.id}:${f.path}`; asked.delete(k); const { [k]: _, ...rest } = failedFiles; failedFiles = rest; urlOf(r, f, false) }
   const sub = (l: Line, withSession = true) => [withSession ? l.session : null, l.seconds != null ? `${t.watchKind[l.kind]}, ${t.watchSeconds(l.seconds)}` : t.watchKind[l.kind], hm(l.at)].filter(Boolean).join(' · ')
   const hm = (s: number) => new Date(s * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   const titleOf = (l: Line) => (l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title)
@@ -83,6 +87,7 @@
     <div class="vh">{#if fromList}<button class="back" aria-label={t.back} onclick={() => { opened = null; fromList = false }}><CatIcon name="back" size={24} /></button>{/if}<h2>{l.title}</h2></div>
     {#if u && l.kind === 'video'}<!-- svelte-ignore a11y_media_has_caption --><video src={u} controls playsinline ontimeupdate={(e) => (at = (e.currentTarget as HTMLVideoElement).currentTime)}></video>
     {:else if u}<img class="full" src={u} alt={l.title} />
+    {:else if show && failedFiles[`${r.id}:${show.path}`]}<div class="ph fail" data-testid="risultato-non-arrivato"><p>{t.watchFileFailed}</p><button class="pill" onclick={() => retry(r, show)}>{t.watchRetry}</button></div>
     {:else if show}<div class="ph"></div>{/if}
     {#if l.kind !== 'video' && l.kind !== 'image'}<button class="pill" onclick={() => onExternal(r)}>{t.watchOpenFile}</button>{/if}
     <p class="vline"><b>{t.watchVersionOf(r.version, r.versions)}</b><span class="mono">{[hm(r.at), l.seconds != null ? t.watchSeconds(l.seconds) : null].filter(Boolean).join(' · ')}</span></p>
@@ -152,22 +157,29 @@
   .th .play { position: relative; font-size: 34px; color: var(--tx); }
   .th .doc { color: var(--tx2); display: grid; }
   .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* La pillola resta alta 36 px, ma l'area di tocco arriva a 48 (app-bug-notte-03-11). */
+  .pill { position: relative; }
+  .pill::after { content: ''; position: absolute; inset: -6px 0; }
   .pill { min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; border-radius: 18px; background: var(--s3); color: var(--tx); font-size: 14px; }
   .pill .ms { font-size: 18px; }
   .pill.filled { background: var(--act); color: var(--on-act, #000); }
   .pill.done { background: var(--good); color: #000; }
-  .all, .older { align-self: center; color: var(--act); padding: 10px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
+  .all, .older { min-height: 48px; align-self: center; color: var(--act); padding: 10px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
   .older { align-self: flex-start; color: var(--tx2); }
   .grp { background: var(--s1); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .grp h3 { margin: 0; font-size: 17px; color: var(--tx); border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); padding-bottom: 6px; }
   .note { display: flex; gap: 8px; color: var(--tx2); font-size: 13.5px; margin: 0 0 4px; }
   .note .ms { font-size: 18px; }
   .viewer { display: flex; flex-direction: column; gap: 10px; padding: 8px 16px 24px; }
+  /* «Apri il file» e «Riprova» sono pillole, non barre a tutta larghezza (app-bug-notte-03-11). */
+  .viewer > .pill { align-self: flex-start; }
   .vh { display: flex; align-items: center; gap: 6px; }
   .vh h2 { margin: 0; font-size: 20px; color: var(--tx); }
   .back { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 20px; color: var(--tx); }
   video, .full { width: 100%; border-radius: 12px; background: #000; }
   .ph { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: var(--s2); }
+  .ph.fail { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--tx2); text-align: center; padding: 16px; box-sizing: border-box; }
+  .ph.fail p { margin: 0; }
   .vline { display: flex; gap: 10px; align-items: baseline; margin: 0; color: var(--tx); }
   .mono { font-family: var(--mono, monospace); color: var(--tx2); font-size: 13px; }
   .changed { margin: 0; color: var(--tx); }

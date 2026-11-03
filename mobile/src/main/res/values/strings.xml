@@ -1657,6 +1657,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="reorder_cat_closed">chiusa</string>
     <string name="reorder_foot">Ordine e categorie valgono anche per le colonne della PWA.</string>
     <string name="home_sec_watch">Da guardare</string>
+    <string name="watch_file_failed">Il file non è arrivato dal PC.</string>
+    <string name="watch_retry">Riprova</string>
     <string name="watch_seen">Visto</string>
     <string name="watch_note">Nota</string>
     <string name="watch_all">Tutti i risultati</string>

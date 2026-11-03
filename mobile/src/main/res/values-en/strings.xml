@@ -1625,6 +1625,8 @@ It starts at your last message to the master.</string>
     <string name="reorder_cat_closed">closed</string>
     <string name="reorder_foot">Order and categories also apply to the web app columns.</string>
     <string name="home_sec_watch">To look at</string>
+    <string name="watch_file_failed">The file didn\'t arrive from the PC.</string>
+    <string name="watch_retry">Try again</string>
     <string name="watch_seen">Seen</string>
     <string name="watch_note">Note</string>
     <string name="watch_all">All results</string>
