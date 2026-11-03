@@ -314,6 +314,39 @@ fun SummaryList(
     }
     fun toggleNew(r: NewRow, key: String) { r.open.value = !r.open.value; save(key, r.open.value) }
     // Rilasciata sul tabellone, la voce resta aperta col suo contenuto in vista (Franz 02/11 20:45).
+    // Presa una voce di In cima, le voci di In cima restano con la sola testata, così sotto si vede il bersaglio (Franz 03/11 12:05,
+    // app-cima-rilascio-reset-03-11). Al rilascio tornano come erano: niente si salva.
+    val shutForDrag = remember { mutableMapOf<String, Any?>() }
+    fun shutTop(keys: List<String>) {
+        shutForDrag.clear()
+        keys.forEach { k ->
+            when (k) {
+                "sessions" -> { shutForDrag[k] = sessionsOpen; sessionsOpen = false }
+                "usage" -> { shutForDrag[k] = usageOpen; usageOpen = false }
+                "esiti" -> { shutForDrag[k] = esitiOpen; esitiOpen = false }
+                "suggestions" -> { shutForDrag[k] = suggestionsOpen; suggestionsOpen = false }
+                "lavori" -> { shutForDrag[k] = lavoriOpen; lavoriOpen = false }
+                "plugins" -> { shutForDrag[k] = pluginsOpen; pluginsOpen = false }
+                "system" -> { shutForDrag[k] = sysManual; system?.let { s -> sysManual = SystemRules.Manual(s.level, false) } }
+                else -> newOpen[k]?.let { o -> shutForDrag[k] = o.value; o.value = false }
+            }
+        }
+    }
+    fun reopenTop() {
+        shutForDrag.forEach { (k, v) ->
+            when (k) {
+                "sessions" -> sessionsOpen = v as Boolean
+                "usage" -> usageOpen = v as Boolean
+                "esiti" -> esitiOpen = v as Boolean
+                "suggestions" -> suggestionsOpen = v as Boolean
+                "lavori" -> lavoriOpen = v as Boolean
+                "plugins" -> pluginsOpen = v as Boolean
+                "system" -> sysManual = v as SystemRules.Manual?
+                else -> newOpen[k]?.value = v as Boolean
+            }
+        }
+        shutForDrag.clear()
+    }
     fun openOnBoard(k: String) {
         when (k) {
             "sessions" -> sessionsOpen = true
@@ -469,7 +502,7 @@ fun SummaryList(
             if (gaveUp != null) return@awaitEachGesture
             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             dragY = down.position.y; dragGhostShift = top - down.position.y; dragOrder = if (key.startsWith("cat:")) it.pixelbox.cmwatch.rules.HomeCats.catKeys(catsNow) else shownOrder; dragKey = key
-            if (key in upNow) offEdge = edgeTop()
+            if (key in upNow) { shutTop(upNow); offEdge = edgeTop() }
             var commit = false
             try {
                 while (true) {
@@ -491,7 +524,7 @@ fun SummaryList(
                     ghostFly = key
                     ghostScope.launch { ghostY.snapTo(from); ghostY.animateTo(landing, CmMotion.bounceFloat); ghostFly = null }
                 }
-                dragOrder = null; dragKey = null; offEdge = Float.POSITIVE_INFINITY
+                dragOrder = null; dragKey = null; offEdge = Float.POSITIVE_INFINITY; reopenTop()
                 if (commit && o != null && key.startsWith("cat:")) {
                     val moved = it.pixelbox.cmwatch.rules.HomeCats.catOrder(catsNow, o)
                     if (moved != catsNow) { val full = it.pixelbox.cmwatch.rules.HomeCats.encode(moved, savedPinNow, upNow) ?: emptyList(); sentOrder.send(full); saveOrder?.invoke(full) }

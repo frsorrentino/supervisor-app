@@ -673,7 +673,7 @@
   {/if}
 {/snippet}
 
-<section class="home" class:part={!!part}>
+<section class="home" class:part={!!part} class:topdrag={topDrag}>
 {#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed'}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins'}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {#if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
@@ -1436,6 +1436,9 @@
   .boardlabel .reset { margin-left: auto; min-height: 32px; padding: 0 4px 0 12px; font: 500 13px var(--sans, inherit); letter-spacing: 0; text-transform: none; color: var(--tx2); cursor: pointer; }
   /* Il bersaglio unico sotto In cima: dal bordo al fondo dello schermo, sopra le categorie. */
   .offdrop { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); text-align: center; background: color-mix(in srgb, var(--bg) 80%, transparent); pointer-events: none; }
+  /* Presa una voce di In cima, le voci di In cima restano con la sola testata: sotto si vede il bersaglio (Franz 03/11 12:05). Al
+     rilascio tornano come erano; niente si salva. */
+  .home.topdrag .onboard > :not(:first-child) { display: none; }
   .offdrop.hot { border: 2px solid var(--tx); background: color-mix(in srgb, var(--bg) 60%, transparent); }
   .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }
   .topedge.on.hot { border: 2px solid var(--tx); }
