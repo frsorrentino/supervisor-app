@@ -378,6 +378,8 @@ const it = {
   openInClaude: 'Apri in Claude', openInClaudeSub: "Continua nell'app Claude",
   openInSupervisor: 'Apri in supervisor', openInSupervisorHint: 'Tasto destro o pressione lunga: il link in Claude',
   menuExit: 'Chiudi la sessione', menuExitSub: 'Manda /exit, dopo una conferma',
+  // Il menu unico della sessione (app-menu-sessione-03-11).
+  smenuCount: (x: string, n: number) => `${x} · ${n}`, smenuTitle: { prove: 'Da provare', decidi: 'Da decidere', guarda: 'Da guardare', seguiti: 'Da seguire' } as Record<string, string>, smenuSub: { prove: 'Le prove di questa sessione', decidi: 'Le scelte che aspetta da te', guarda: 'I suoi lavori che non hai ancora visto', seguiti: 'Quello che ha lasciato indietro' } as Record<string, string>, smenuRestart: 'Riparti pulito', smenuRestartSub: "Scrive l'handoff, poi /clear a turno finito",
   slashConfirmOk: 'Manda',
   ctxTitle: (p: number) => `Contesto ${p}%`, ctxHandoff: "Scrivi l'handoff e riparti pulita", ctxCompact: 'Compatta la conversazione',
   ctxWider: 'Passa alla finestra da 1M',
@@ -785,6 +787,7 @@ const en: typeof it = {
   openInClaude: 'Open in Claude', openInClaudeSub: 'Continue in the Claude app',
   openInSupervisor: 'Open in supervisor', openInSupervisorHint: 'Right click or long press: the link in Claude',
   menuExit: 'Close the session', menuExitSub: 'Sends /exit, after a confirmation',
+  smenuCount: (x: string, n: number) => `${x} · ${n}`, smenuTitle: { prove: 'To test', decidi: 'To decide', guarda: 'To look at', seguiti: 'To follow up' } as Record<string, string>, smenuSub: { prove: "This session's tests", decidi: 'The choices it is waiting on from you', guarda: 'Its work you have not seen yet', seguiti: 'What it left behind' } as Record<string, string>, smenuRestart: 'Restart clean', smenuRestartSub: 'Writes the handoff, then /clear when the turn ends',
   slashConfirmOk: 'Send',
   ctxTitle: (p: number) => `Context ${p}%`, ctxHandoff: 'Write the handoff and restart clean', ctxCompact: 'Compact the conversation',
   ctxWider: 'Switch to the 1M window',

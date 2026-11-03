@@ -235,6 +235,14 @@
     <string name="back_to_summary">Torna al riepilogo</string>
     <string name="menu_exit">Chiudi la sessione</string>
     <string name="menu_exit_sub">Manda /exit, dopo una conferma</string>
+    <!-- Il menu unico della sessione (app-menu-sessione-03-11): le voci di Tocca a te che la riguardano, col numero, e Riparti pulito. -->
+    <string name="smenu_count">%1$s · %2$d</string>
+    <string name="smenu_prove_sub">Le prove di questa sessione</string>
+    <string name="smenu_decidi_sub">Le scelte che aspetta da te</string>
+    <string name="smenu_guarda_sub">I suoi lavori che non hai ancora visto</string>
+    <string name="smenu_seguiti_sub">Quello che ha lasciato indietro</string>
+    <string name="smenu_restart">Riparti pulito</string>
+    <string name="smenu_restart_sub">Scrive l\'handoff, poi /clear a turno finito</string>
     <string name="ctx_short">ctx %1$d%%</string>
     <string name="quota_h5_short">5h %1$d%%</string>
     <string name="reading_now">IN LETTURA</string>

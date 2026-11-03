@@ -194,6 +194,10 @@ data class SheetActions(
     val decision: ((text: String, project: String?) -> Unit)? = null,
     /** Contratto 1.72: la vista «Modifiche», op `changes` con `file` = il percorso relativo o null; null = il relay non la conosce. */
     val changes: (suspend (file: String?) -> DiffRules.Load<ChangesView>)? = null,
+    /** Il menu unico della sessione (app-menu-sessione-03-11): lo stato per la regola, i numeri di Tocca a te e dove portano. */
+    val menuState: it.pixelbox.cmwatch.contract.State? = null,
+    val mine: it.pixelbox.cmwatch.rules.SessionMenu.Mine = it.pixelbox.cmwatch.rules.SessionMenu.Mine(),
+    val openMine: ((it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit)? = null,
 )
 
 /** Un messaggio della chat con il suo stato e, se non è stato consegnato, il motivo (`ChatRules.status`/`reason`). */
@@ -2273,35 +2277,30 @@ private fun SheetHeader(
                 IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = Cm.text2) }
                 if (changesMenu) Box(Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 7.dp).size(10.dp).background(bg, CircleShape).padding(2.dp).background(Cm.actionIcon, CircleShape))
                 // Il menu della sessione come quello dell'app (Franz, 03/10 15:26): pannello, voci spiegate.
-                if (menu) MenuPanel(
-                    onDismiss = { menu = false },
-                    entries = listOfNotNull(
-                        changes?.takeIf { changesMenu }?.let { c ->
-                            MenuEntry(
-                                Icons.Outlined.Add,
-                                DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c),
-                                stringResource(R.string.changes_open),
-                            ) { onChanges?.invoke() }
-                        },
-                        MenuEntry(
-                            if (s.followed) Icons.Outlined.NotificationsOff else Icons.Outlined.NotificationsActive,
-                            stringResource(if (s.followed) R.string.unfollow else R.string.follow),
-                            stringResource(if (s.followed) R.string.unfollow_sub else R.string.follow_sub),
-                        ) { actions.follow(!s.followed) },
-                        actions.askMaster?.let { ask -> MenuEntry(Icons.Outlined.SupervisorAccount, stringResource(R.string.ask_master), stringResource(R.string.ask_master_sub), onClick = ask) },
-                        s.link.takeIf { it.isNotBlank() }?.let { MenuEntry(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.open_in_claude), stringResource(R.string.open_in_claude_sub), onClick = actions.openInClaude) },
-                        // Con la conversazione vera il terminale non serve più dal telefono (Franz, 30/09 20:39).
-                        if (showTerminal) MenuEntry(Icons.Outlined.Terminal, stringResource(R.string.terminal), stringResource(R.string.terminal_sub), onClick = actions.terminal) else null,
-                    ),
-                    // Franz, 03/10 16:02: chiudere la sessione dal menu, con la stessa conferma di /exit scritto nel campo; in fondo,
-                    // separata e in rosso (osservazioni del 03/10).
-                    footer = if (canExit) MenuEntry(Icons.Outlined.PowerSettingsNew, stringResource(R.string.menu_exit), stringResource(R.string.menu_exit_sub), destructive = true) { exitAsk = true } else null,
-                ) {
-                    SessionBadge(s, 20.dp)
-                    Text(
-                        s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text,
-                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
-                    )
+                if (menu) {
+                    // Un menu solo, lo stesso dalla home e dalla plancia (app-menu-sessione-03-11): le voci da SessionMenu.
+                    val st0 = actions.menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = (actions.sessions + s).distinctBy { x -> x.name })
+                    val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, actions.mine, changes = changes != null && changesMenu, terminal = showTerminal, canExit = canExit)
+                    val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
+                        changes = { onChanges?.invoke() },
+                        changesTitle = changes?.let { c -> DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c) },
+                        changesSub = stringResource(R.string.changes_open),
+                        prove = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) } },
+                        decidi = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI) } },
+                        guarda = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA) } },
+                        seguiti = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI) } },
+                        follow = actions.follow, askMaster = actions.askMaster, openInClaude = actions.openInClaude, terminal = actions.terminal,
+                        restartClean = actions.handoff,
+                        // Franz, 03/10 16:02: chiudere la sessione dal menu, con la stessa conferma di /exit scritto nel campo.
+                        exit = { exitAsk = true },
+                    ))
+                    MenuPanel(onDismiss = { menu = false }, entries = entries, footer = footer) {
+                        SessionBadge(s, 20.dp)
+                        Text(
+                            s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text,
+                            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
             }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
   import OneLine from './OneLine.svelte'
   import { parts as oneLineParts } from './oneLine'
   import { lang, locale } from './lang'
@@ -71,7 +72,7 @@
   import type { NightPage } from './night'
   import { total as seguitiTotal } from './seguiti'
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
-  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock }: {
+  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -121,6 +122,8 @@
     onOk?: (session: string, text: string) => void | Promise<boolean>
     /** Il menu contestuale della card (Franz, 14/10 20:58): segui, fai controllare alla master, come il ⋮ della sessione. */
     onSessionCmd?: (name: string, op: 'follow' | 'unfollow' | 'prompt', arg?: string) => void
+    /** Il menu unico della sessione (app-menu-sessione-03-11): dove porta una voce di Tocca a te, e Riparti pulito. */
+    onMine?: ((name: string, kind: MenuKind) => void) | null; onRestart?: ((name: string) => void) | null
     /** Il riquadro Notte (mockup approvato l'08/10 alle 12:57): `undefined` = nascosto, null = rapporto in arrivo. */
     night?: NightPage | null | undefined; nightTitle?: string; onNight?: () => void
     /** «Utilizzo»: i pannelli della quota in una sezione richiudibile. */
@@ -625,7 +628,6 @@
     held = setTimeout(() => { longFired = true; openCtx(name, x, y) }, HOLD_MS)
   }
   function holdEnd() { if (held) clearTimeout(held); held = null }
-  const hasMaster = $derived(st.sessions.some(x => x.name === MASTER && x.state !== 'gone'))
   // Il tasto di un passo toccato resta segnato «mandato» finché la sessione non cambia esito (Franz, 06/10 12:32): la card
   // risponde subito, poi la sessione al lavoro la aggiorna.
   let sentSteps = $state(new Set<string>())
@@ -998,23 +1000,41 @@
         <button class="scrim" aria-label={t.closeWord} onclick={(e) => { e.stopPropagation(); ctx = null }}></button>
         <div class="cmenu" role="menu" tabindex="-1" style="left:{at.x}px; top:{at.y}px" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') ctx = null; e.stopPropagation() }}>
           <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
-          <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, s.followed ? 'unfollow' : 'follow'); ctx = null }}>
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d={s.followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
-            <span><span class="mt">{s.followed ? t.unfollow : t.follow}</span><span class="msub">{s.followed ? t.unfollowSub : t.followSub}</span></span>
-          </button>
-          {#if s.name !== MASTER && hasMaster}
-            <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, 'prompt', t.askMasterPrompt(s.name)); ctx = null }}>
-              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
-              <span><span class="mt">{t.askMaster}</span><span class="msub">{t.askMasterSub}</span></span>
-            </button>
-          {/if}
-          {#if canExit && s.state !== 'gone'}
-            <hr />
-            <button class="mi danger" role="menuitem" onclick={() => { ctx = null; confirming = s.name }}>
-              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
-              <span><span class="mt">{t.menuExit}</span><span class="msub">{t.menuExitSub}</span></span>
-            </button>
-          {/if}
+          <!-- Un menu solo, lo stesso della chat e della plancia (app-menu-sessione-03-11): voci e ordine da sessionMenu. -->
+          {#each sessionMenu(s, st, mineOf(st, s.name), { canExit }) as i (i.kind)}
+            {#if i.n != null}
+              <button class="mi" role="menuitem" disabled={!onMine} onclick={() => { ctx = null; onMine?.(s.name, i.kind) }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d={MENU_ICON[i.kind]} /></svg>
+                <span><span class="mt">{t.smenuCount(t.smenuTitle[i.kind], i.n)}</span><span class="msub">{t.smenuSub[i.kind]}</span></span>
+              </button>
+            {:else if i.kind === 'follow'}
+              <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, s.followed ? 'unfollow' : 'follow'); ctx = null }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d={s.followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
+                <span><span class="mt">{s.followed ? t.unfollow : t.follow}</span><span class="msub">{s.followed ? t.unfollowSub : t.followSub}</span></span>
+              </button>
+            {:else if i.kind === 'ask_master'}
+              <button class="mi" role="menuitem" onclick={() => { onSessionCmd(s.name, 'prompt', t.askMasterPrompt(s.name)); ctx = null }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
+                <span><span class="mt">{t.askMaster}</span><span class="msub">{t.askMasterSub}</span></span>
+              </button>
+            {:else if i.kind === 'open_in_claude'}
+              <a class="mi" role="menuitem" href={s.link} target="_blank" rel="noopener" onclick={() => (ctx = null)}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
+                <span><span class="mt">{t.openInClaude}</span><span class="msub">{t.openInClaudeSub}</span></span>
+              </a>
+            {:else if i.kind === 'restart_clean' && onRestart}
+              <button class="mi" role="menuitem" onclick={() => { ctx = null; onRestart?.(s.name) }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d={MENU_ICON.restart_clean} /></svg>
+                <span><span class="mt">{t.smenuRestart}</span><span class="msub">{t.smenuRestartSub}</span></span>
+              </button>
+            {:else if i.kind === 'exit'}
+              <hr />
+              <button class="mi danger" role="menuitem" onclick={() => { ctx = null; confirming = s.name }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
+                <span><span class="mt">{t.menuExit}</span><span class="msub">{t.menuExitSub}</span></span>
+              </button>
+            {/if}
+          {/each}
         </div>
       {/if}
       <!-- Il binario (stile «Studio e Diretta», 30/10): il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora. -->
@@ -1273,7 +1293,7 @@
   .cmenu .mt { font: 600 17px/1.2 var(--display); }
   .cmenu .msub { font-size: 14px; line-height: 1.3; color: var(--tx2); }
   .cmenu .mi.danger .mt { color: var(--red); }
-  .mi { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 12px; border-radius: 14px; text-align: left; color: var(--text); }
+  .mi { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 12px; border-radius: 14px; text-align: left; color: var(--text); text-decoration: none; }
   .mi:hover { background: var(--high); }
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mi > span { display: flex; flex-direction: column; gap: 2px; }

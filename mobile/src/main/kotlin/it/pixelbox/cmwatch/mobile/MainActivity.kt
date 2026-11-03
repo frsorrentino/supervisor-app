@@ -1312,6 +1312,31 @@ class MainActivity : ComponentActivity() {
         } }
         val lavoriCount = remember(state, agenda, now) { state?.let { st -> it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday).total.takeIf { n -> n > 0 } } }
         val lavoriSlot = remember(state, agenda, now) { state?.let { st -> it.pixelbox.cmwatch.rules.SlotInfo.lavori(it.pixelbox.cmwatch.rules.Lavori.inProgress(st, agenda, now, lavoriZone, lavoriToday)) } }
+        // Il menu unico della sessione (app-menu-sessione-03-11): i numeri di Tocca a te dalle pagine già lette, dove porta ogni voce,
+        // e Riparti pulito (handoff col comando della sessione, poi /clear a turno finito, come il foglio del contesto).
+        val mineOf: (String) -> it.pixelbox.cmwatch.rules.SessionMenu.Mine = { n ->
+            state?.let { st0 -> it.pixelbox.cmwatch.rules.SessionMenu.mine(st0, n, provePage, decisionsPage, seguitiPage) } ?: it.pixelbox.cmwatch.rules.SessionMenu.Mine()
+        }
+        val openMine: (String, it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit = { n, k ->
+            when (k) {
+                it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE -> proveOpen = true
+                it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI -> decisionsOpen = true
+                it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA -> { watchSession = n; watchOpen = true }
+                it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI -> seguitiOpen = true
+                else -> Unit
+            }
+        }
+        val restartClean: (String) -> Unit = { n ->
+            state?.let { st0 ->
+                st0.sessions.firstOrNull { x -> x.name == n }?.let { s0 ->
+                    val clear = it.pixelbox.cmwatch.rules.ContextActions.canClear(st0)
+                    it.pixelbox.cmwatch.rules.ContextActions.handoffPrompt(st0, s0) { c -> getString(if (clear) R.string.ctx_handoff_clear_prompt else R.string.ctx_handoff_prompt, c) }?.let { p ->
+                        sendPrompt(n, p)
+                        if (clear) clearAfter.edit().putLong(n, System.currentTimeMillis() / 1000).apply()
+                    }
+                }
+            }
+        }
         val forYouAction: (it.pixelbox.cmwatch.rules.MasterHome.Row) -> Unit = { row ->
             when (row.kind) {
                 // Variante 3 (02/10 21:11): la riga si apre sul posto; «Apri la conversazione» porta alla sessione.
@@ -1603,6 +1628,7 @@ class MainActivity : ComponentActivity() {
                             }) else null,
                             askMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.takeIf { m -> m.name != session.name }?.let { m -> { askMasterAbout(m.name, session.name) } },
                             changes = readChanges(session.name),
+                            menuState = state, mine = mineOf(session.name), openMine = { k -> openMine(session.name, k) },
                         ), chat = rows, quota = quotaWarn, accountQuota = state?.quota?.get(session.account), canTonight = nightDir != null,
                             // Niente frasi rapide (Franz, 01/10 23:34: «via» fisso, generico e fuori luogo): i consigli in più
                             // li scriverà la sessione stessa a fine turno.
@@ -1824,6 +1850,8 @@ class MainActivity : ComponentActivity() {
                     } },
                     onFollow = { n, f -> scope.launch { runCatching { app.repo.command(if (f) CmdOp.FOLLOW else CmdOp.UNFOLLOW, n, null) } } },
                     onAskMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.let { m -> { n: String -> if (n != m.name) askMasterAbout(m.name, n) } },
+                    menuState = state, mineOf = mineOf, onMine = openMine, onRestartClean = restartClean,
+                    onOpenInClaude = { n -> state?.sessions?.firstOrNull { x -> x.name == n }?.link?.takeIf { l -> l.isNotBlank() }?.let { l -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(l))) } },
                     now = now,
                     nightDate = nightRef?.date?.takeIf { showNightBox }?.let { d -> runCatching { java.time.LocalDate.parse(d) }.getOrNull() },
                     nightPage = boxPage, onNight = { nightOpen = true },

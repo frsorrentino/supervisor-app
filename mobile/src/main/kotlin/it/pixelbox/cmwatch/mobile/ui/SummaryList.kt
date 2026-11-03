@@ -126,6 +126,11 @@ fun SummaryList(
     canExit: Boolean = false, onClose: (String) -> Unit = {},
     /** Il menu contestuale della card (pressione lunga, Franz 14/10 20:58): segui, fai controllare alla master. */
     onFollow: (String, Boolean) -> Unit = { _, _ -> }, onAskMaster: ((String) -> Unit)? = null,
+    /** Il menu unico della sessione (app-menu-sessione-03-11): lo stesso della chat, dalle regole di SessionMenu. */
+    menuState: it.pixelbox.cmwatch.contract.State? = null,
+    mineOf: (String) -> it.pixelbox.cmwatch.rules.SessionMenu.Mine = { _ -> it.pixelbox.cmwatch.rules.SessionMenu.Mine() },
+    onMine: ((String, it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit)? = null,
+    onOpenInClaude: ((String) -> Unit)? = null, onRestartClean: ((String) -> Unit)? = null,
     now: Long = System.currentTimeMillis() / 1000,
     /** Un foglio aperto sopra la home: niente scorrimento automatico (voce 2). */
     sheetOpen: Boolean = false,
@@ -646,6 +651,8 @@ fun SummaryList(
                 onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
                 firstFilled = false, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, now = now,
                 onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
+                menuState = menuState, mine = mineOf(s.name), onMine = onMine?.let { m -> { k -> m(s.name, k) } },
+                onOpenInClaude = onOpenInClaude?.let { o -> { o(s.name) } }, onRestartClean = onRestartClean?.let { o -> { o(s.name) } },
                 onApprove = onApprove, onDone = onDone,
                 works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
                 kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
@@ -1021,6 +1028,8 @@ private fun SummaryCard(
     onAnswer: (Int) -> Unit, onStep: (String) -> Unit, onOpen: () -> Unit,
     firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, closing: Boolean = false, now: Long = System.currentTimeMillis() / 1000,
     onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
+    menuState: it.pixelbox.cmwatch.contract.State? = null, mine: it.pixelbox.cmwatch.rules.SessionMenu.Mine = it.pixelbox.cmwatch.rules.SessionMenu.Mine(),
+    onMine: ((it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit)? = null, onOpenInClaude: (() -> Unit)? = null, onRestartClean: (() -> Unit)? = null,
     /** L'ok a un compito del registro che questa sessione chiede (Franz 23/10: «Approva» nella scheda della sessione). */
     onApprove: (task: String, note: String, choice: String?) -> Unit = { _, _, _ -> },
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
@@ -1257,24 +1266,25 @@ private fun SummaryCard(
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
             ) { Text(stringResource(R.string.cleanup_close_short)) }
         }
-        if (menu) MenuPanel(
-            onDismiss = { menu = false },
-            entries = listOfNotNull(
-                MenuEntry(
-                    if (s.followed) Icons.Outlined.NotificationsOff else Icons.Outlined.NotificationsActive,
-                    stringResource(if (s.followed) R.string.unfollow else R.string.follow),
-                    stringResource(if (s.followed) R.string.unfollow_sub else R.string.follow_sub),
-                ) { onFollow(!s.followed) },
-                onAskMaster?.let { ask -> MenuEntry(Icons.Outlined.SupervisorAccount, stringResource(R.string.ask_master), stringResource(R.string.ask_master_sub), onClick = ask) },
-            ),
-            footer = if (canExit && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE)
-                MenuEntry(Icons.Outlined.PowerSettingsNew, stringResource(R.string.menu_exit), stringResource(R.string.menu_exit_sub), destructive = true) { menuClose = true } else null,
-        ) {
-            SessionBadge(s, 20.dp)
-            Text(
-                s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text,
-                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
-            )
+        if (menu) {
+            // Un menu solo, lo stesso della chat e della plancia (app-menu-sessione-03-11): le voci da SessionMenu.
+            val st0 = menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = listOf(s))
+            val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, mine, canExit = canExit)
+            val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
+                prove = onMine?.let { m -> { m(it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) } },
+                decidi = onMine?.let { m -> { m(it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI) } },
+                guarda = onMine?.let { m -> { m(it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA) } },
+                seguiti = onMine?.let { m -> { m(it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI) } },
+                follow = onFollow, askMaster = onAskMaster, openInClaude = onOpenInClaude, restartClean = onRestartClean,
+                exit = { menuClose = true },
+            ))
+            MenuPanel(onDismiss = { menu = false }, entries = entries, footer = footer) {
+                SessionBadge(s, 20.dp)
+                Text(
+                    s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
+                )
+            }
         }
         // Le statistiche in fondo, sotto quello che si sceglie (app-attesa-dettagli-02-11).
         if (open) {

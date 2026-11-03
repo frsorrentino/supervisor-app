@@ -1,9 +1,9 @@
 <script lang="ts">
+  import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
   import { growFromPress } from './motion'
   import CloseDialog from './CloseDialog.svelte'
   import type { CmdOp, Model, Session, State } from './contract'
   import { modelKind, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
-  import { MASTER } from './summary'
   import { t } from './t'
   import Badge from './Badge.svelte'
   import SessionsMenu from './SessionsMenu.svelte'
@@ -16,7 +16,7 @@
   // La testata della sessione (SheetHeader.kt): una riga con modello · effort in una pillola, la quota delle 5 ore con l'ora
   // dell'azzeramento, il contesto ad anello e il menu ⋮; sotto obiettivo, priorità e finestra. Su desktop a sinistra anche
   // badge e nome, come la plancia del tablet.
-  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, menuMove = null }: {
+  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, menuMove = null, onMine = null }: {
     /** La voce del menu ⋮ che sposta il pannello della master di lato, nella plancia (Franz 30/10 13:26). */
     menuMove?: { label: string; onMove: () => void; on?: boolean; icon?: string }[] | null
 
@@ -27,6 +27,8 @@
     onCmd: (op: CmdOp, arg?: string) => void; onPrompt: (text: string) => void
     /** Contratto 1.37: «Handoff, poi /clear»; lo gestisce App (prompt e /clear a turno finito). */
     onHandoff: () => void
+    /** Il menu unico (app-menu-sessione-03-11): dove porta una voce di Tocca a te di questa sessione. */
+    onMine?: ((kind: MenuKind) => void) | null
     /** Il tocco sulla pillola della quota porta a Utilizzo (variante A, 09/10). */
     onUsage?: () => void
     /** Contratto 1.72: il tocco sulla pillola delle modifiche apre la vista «Modifiche»; null = il relay non ha l'op. */
@@ -48,6 +50,9 @@
   // Sul telefono la pillola è la prima voce del menu ⋮, col puntino sul ⋮: la testata resta su una riga (Franz, 16/10 13:08).
   let viewport = $state(typeof window === 'undefined' ? 1280 : window.innerWidth)
   const changesMenu = $derived(!!changes && inMenu(viewport))
+  // Un menu solo, lo stesso dalla home e dalla plancia (app-menu-sessione-03-11): le voci e l'ordine da sessionMenu.
+  const items = $derived(sessionMenu(s, st, mineOf(st, s.name), { changes: changesMenu && !!changes, canExit }))
+  const has = (k: MenuKind) => items.some(i => i.kind === k)
   const wider = $derived(widerOf({ ...s, model }, st.choices))
   const canExit = $derived(!!st.slash?.includes('exit') && s.state !== 'gone')
   // Contratto 1.37: il consiglio di fable-director, dentro il foglio; il puntino solo se la scelta attuale è diversa.
@@ -216,17 +221,23 @@
         <button class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
         <div class="panel v3" transition:growFromPress role="menu">
           <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
-          {#if changesMenu && changes}
+          {#if has('changes') && changes}
             <button class="mi" role="menuitem" disabled={!onChanges} onclick={() => { menu = false; onChanges?.() }}>
               <Icon name="diff" size={22} color="var(--icon)" />
               <span><span class="mt">{menuLine(t.changesTitle, t.changesFiles(changes.files), changes)}</span><span class="msub">{t.changesOpen}</span></span>
             </button>
           {/if}
+          {#each items.filter(i => i.n != null) as i (i.kind)}
+            <button class="mi" role="menuitem" disabled={!onMine} onclick={() => { menu = false; onMine?.(i.kind) }}>
+              <svg viewBox="0 0 24 24" width="22" height="22"><path d={MENU_ICON[i.kind]} /></svg>
+              <span><span class="mt">{t.smenuCount(t.smenuTitle[i.kind], i.n ?? 0)}</span><span class="msub">{t.smenuSub[i.kind]}</span></span>
+            </button>
+          {/each}
           <button class="mi" role="menuitem" onclick={() => { picked.followed = !followed; onCmd(followed ? 'unfollow' : 'follow'); menu = false }}>
             <svg viewBox="0 0 24 24" width="22" height="22"><path d={followed ? 'M8.7 3A6 6 0 0 1 18 8a21 21 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20' : 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'} /></svg>
             <span><span class="mt">{followed ? t.unfollow : t.follow}</span><span class="msub">{followed ? t.unfollowSub : t.followSub}</span></span>
           </button>
-          {#if s.name !== MASTER && st.sessions.some(x => x.name === MASTER && x.state !== 'gone')}
+          {#if has('ask_master')}
             <button class="mi" role="menuitem" onclick={() => { onCmd('prompt', t.askMasterPrompt(s.name)); menu = false }}>
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
               <span><span class="mt">{t.askMaster}</span><span class="msub">{t.askMasterSub}</span></span>
@@ -237,6 +248,12 @@
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
               <span><span class="mt">{t.openInClaude}</span><span class="msub">{t.openInClaudeSub}</span></span>
             </a>
+          {/if}
+          {#if has('restart_clean')}
+            <button class="mi" role="menuitem" onclick={() => { menu = false; onHandoff() }}>
+              <svg viewBox="0 0 24 24" width="22" height="22"><path d={MENU_ICON.restart_clean} /></svg>
+              <span><span class="mt">{t.smenuRestart}</span><span class="msub">{t.smenuRestartSub}</span></span>
+            </button>
           {/if}
           <!-- Le posizioni e i tasti della master stanno qui (Franz 03/11 17:05, scelta C, app-master-tasti-compatti-03-11). -->
           {#if menuMove?.length}
@@ -249,7 +266,7 @@
               </button>
             {/each}
           {/if}
-          {#if canExit}
+          {#if has('exit')}
             <hr />
             <button class="mi danger" role="menuitem" onclick={() => { menu = false; closer?.ask(s) }}>
               <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>

@@ -232,6 +232,14 @@
     <string name="back_to_summary">Back to the summary</string>
     <string name="menu_exit">Close the session</string>
     <string name="menu_exit_sub">Sends /exit, after a confirmation</string>
+    <!-- The single session menu (app-menu-sessione-03-11). -->
+    <string name="smenu_count">%1$s · %2$d</string>
+    <string name="smenu_prove_sub">This session\'s tests</string>
+    <string name="smenu_decidi_sub">The choices it is waiting on from you</string>
+    <string name="smenu_guarda_sub">Its work you have not seen yet</string>
+    <string name="smenu_seguiti_sub">What it left behind</string>
+    <string name="smenu_restart">Restart clean</string>
+    <string name="smenu_restart_sub">Writes the handoff, then /clear when the turn ends</string>
     <string name="ctx_short">ctx %1$d%%</string>
     <string name="quota_h5_short">5h %1$d%%</string>
     <string name="reading_now">READING</string>
