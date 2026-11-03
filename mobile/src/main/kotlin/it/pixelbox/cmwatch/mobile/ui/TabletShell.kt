@@ -879,7 +879,8 @@ private fun DeskBody(
     )
     // Luce 4 (app-luci-02-11): sul tablet lo sfondo è chiaro in alto al centro e scuro ai bordi; di giorno il fondo di sempre.
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().then(if (V3.day) Modifier.background(Cm.bg) else Modifier.drawBehind {
-        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(0f to Color(0xFF262D39), 0.58f to Color(0xFF11141B), 1f to Color(0xFF06070A), center = Offset(size.width / 2f, 0f), radius = maxOf(size.width * 0.75f, 1f)))
+        // Luce a metà intensità, come la PWA larga (Franz 03/11 17:46 e 18:12, app-luci-02-11).
+        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(0f to Color(0xFF181C24), 0.6f to Color(0xFF101218), 1f to Color(0xFF0A0B0E), center = Offset(size.width / 2f, 0f), radius = maxOf(size.width * 0.75f, 1f)))
     }).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
         val homeW = 400.dp
         val handleW = 28.dp
