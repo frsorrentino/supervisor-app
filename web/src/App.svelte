@@ -815,7 +815,7 @@
     try { seen = localStorage.getItem('cm.primaSeen') === '1' } catch { /* senza memoria non si riapre a ogni giro */ }
     if (primaAutoOpen(s, seen)) { try { localStorage.setItem('cm.primaSeen', '1') } catch { /* come sopra */ } ; untrack(() => openPage('prima-raccolta')) }
   })
-  const pageTitle: Record<PageName, string> = $derived({ seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.menuSearch, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.watchPageTitle })
+  const pageTitle: Record<PageName, string> = $derived({ seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.search, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.watchPageTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.

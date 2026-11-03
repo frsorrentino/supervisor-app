@@ -38,7 +38,7 @@
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
-  let { s, items, now, onFile = () => {}, onFiles = () => {}, onDecision, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void; onDecision?: (text: string) => void
+  let { flash = null, s, items, now, onFile = () => {}, onFiles = () => {}, onDecision, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { flash?: string | null; s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void; onDecision?: (text: string) => void
     /** Contratto 1.72: «Mostra tutto» sotto un passaggio, l'op `diff`; null = il relay non la conosce. */
     onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null
     /** Le sessioni dello stato e l'apertura di una: il link di una di loro nel testo diventa il tasto «Apri in supervisor» (Franz, 21/10 19:04). */
@@ -51,6 +51,8 @@
   // A + B (Franz, 10/10 16:01), come sul telefono: all'apertura le ultime sei voci salgono a cascata dall'alto, 30 ms l'una
   // dall'altra, nel primo secondo; una voce che arriva dopo entra da sola. Le voci arrivate dall'ultima visita hanno sopra la
   // riga «Nuovi» e un fondo che sfuma; l'ultima visita si ricorda lasciando la chat (Chat rimonta il Feed a ogni sessione).
+  /** La voce della trascrizione di un elemento, per Cerca (app-cerca-pagina-03-11). */
+  const entryOf = (it: Item): string | undefined => (it.type === 'steps' ? it.entries[0].id : it.type === 'mine' ? it.entry?.id : it.entry.id)
   const itemKey = (it: Item) => (it.type === 'steps' ? `s-${it.entries[0].id}` : it.type === 'mine' ? `m-${it.sent.id}` : `${it.type[0]}-${it.entry.id}`)
   // svelte-ignore state_referenced_locally
   const seenAt = readSeen(s.name)
@@ -244,7 +246,7 @@
 
 {#each items as it, i (itemKey(it))}
   {@const m = motion(it, i, items.length)}
-  <div class="it {m.cls}" class:fresh={newsFrom != null && i >= newsFrom && it.type !== 'mine'} style="--rank:{m.rank}" data-entry={it.type === 'steps' ? it.entries[0].id : it.type === 'mine' ? it.entry?.id : it.entry.id}>
+  <div class="it {m.cls}" class:fresh={newsFrom != null && i >= newsFrom && it.type !== 'mine'} class:found={flash != null && entryOf(it) === flash} style="--rank:{m.rank}" data-entry={entryOf(it)}>
   {#if i === newsFrom}<div class="news"><span>{t.chatNews}</span></div>{/if}
   {#if it.type === 'mine'}
     {@const [ic, tone] = status[it.status]}
@@ -305,9 +307,9 @@
   p { white-space: pre-wrap; overflow-wrap: anywhere; }
   .it { display: flex; flex-direction: column; border-radius: 14px; }
   /* Il passaggio trovato da Cerca: un lampo giallo che si spegne (app-cerca-pagina-03-11). */
-  .it:global(.found) { animation: found 2.2s ease-out; }
+  .it.found { animation: found 2.2s ease-out; }
   @keyframes found { from { background: rgba(255, 178, 63, .22); } to { background: transparent; } }
-  @media (prefers-reduced-motion: reduce) { .it:global(.found) { animation: none; background: rgba(255, 178, 63, .14); } }
+  @media (prefers-reduced-motion: reduce) { .it.found { animation: none; background: rgba(255, 178, 63, .14); } }
   .rise { animation: rise 200ms cubic-bezier(0.3, 0, 0.2, 1) both; animation-delay: calc(var(--rank) * 30ms); }
   @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
   .fresh { animation: fresh 2s ease-out 600ms both; }

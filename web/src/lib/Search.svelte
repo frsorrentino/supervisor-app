@@ -5,6 +5,7 @@
   import { dayStart, FILTER, groups, remember, whenOf, type Filter, type Recent } from './searchView'
   import { badge as badgeOf, GREY } from './badge'
   import Icon from './Icon.svelte'
+  import { MASTER } from './summary'
   import { t } from './t'
 
   // Cerca (app-cerca-pagina-03-11, mockup del 03/11, scelta «Così» di Franz). Prima di scrivere: le ricerche recenti e i filtri
@@ -27,7 +28,8 @@
   const hits = $derived<Hit[]>(remote && page ? withConversations(local, page) : local)
   const shown = $derived(groups(hits, filter, dayStart(now, timeZone)))
   const total = $derived(shown.reduce((n, g) => n + g.hits.length, 0))
-  const open = $derived(sessions.filter(s => s.state !== 'gone'))
+  // Le pillole: le sessioni aperte, senza la master (mockup).
+  const open = $derived(sessions.filter(s => s.state !== 'gone' && s.name !== MASTER))
   const color = (name: string | null) => {
     const s = sessions.find(x => x.name === name)
     const f = s ? badgeOf(s.account, s.color, s.state, s.icon, s.account_kind).fill : GREY

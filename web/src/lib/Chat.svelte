@@ -160,27 +160,32 @@
   // quando arriva qualcosa di nuovo, ma solo se si era già in fondo: chi sta rileggendo più su resta dov'è (Franz, 06/10 10:03).
   let settled = false
   let atEnd = $state(true)
-  // Da Cerca: la voce trovata al centro, con un lampo giallo; la chat smette di seguire la fine finché non si torna giù.
+  // Da Cerca: la voce trovata al centro, con un lampo giallo; la chat smette di seguire la fine finché non si torna giù, e il primo
+  // assestamento in fondo dell'apertura non la riporta giù (`held`). Si riprova a ogni voce nuova finché la voce non è disegnata.
+  let held = false
+  let flash = $state<string | null>(null)
   $effect(() => {
+    items.length
     if (!focus || !list) return
     const el = list.querySelector<HTMLElement>(`[data-entry="${CSS.escape(focus)}"]`)
     if (!el) return
-    atEnd = false
+    held = true; settled = true; atEnd = false
+    const id = focus
     requestAnimationFrame(() => {
       el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' })
-      el.classList.add('found'); setTimeout(() => el.classList.remove('found'), 2200)
+      flash = id; setTimeout(() => { if (flash === id) flash = null }, 2200)
     })
     onFocused()
   })
   let auto = false
   // Solo un cambio vero di sessione riporta in fondo: `s` è un oggetto nuovo a ogni stato del relay (Franz, 07/10 14:53).
   let shownName: string | undefined
-  $effect.pre(() => { if (s.name !== shownName) { shownName = s.name; settled = false; atEnd = true } })
+  $effect.pre(() => { if (s.name !== shownName) { shownName = s.name; settled = false; atEnd = true; held = false } })
   $effect(() => {
     items.length; s.question
     if (home || !list) return
     const el = list
-    if (!settled) { requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; settled = true; atEnd = true }); return }
+    if (!settled) { requestAnimationFrame(() => { if (held) return; el.scrollTop = el.scrollHeight; settled = true; atEnd = true }); return }
     if (!atEnd) return
     // Già in fondo non c'è scorrimento e quindi nemmeno `scrollend`: il segno «scorrimento nostro» non deve restare acceso.
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 2) return
@@ -227,7 +232,7 @@
         {onAnswer} onSession={onPick} onSpeak={(x) => toggle(x, s.name)} {events} {sent} {read} {onRead} onPrompt={onPromptTo} {onCmd} />
     {:else}
     {#if onOlder}<button class="older" onclick={() => { atEnd = false; onOlder() }}>{t.loadOlder}</button>{/if}
-    {#key s.name}<Feed {s} {items} now={st.ts} {onFile} {onFiles} onDecision={canDecide ? openDecision : undefined} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
+    {#key s.name}<Feed {flash} {s} {items} now={st.ts} {onFile} {onFiles} onDecision={canDecide ? openDecision : undefined} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
     <!-- A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC. -->
     <!-- Senza messaggi, esito, domanda e lavoro in corso una riga, invece di una pagina che sembra rotta (SessionSheet). -->
     {#if !items.length && !s.outcome && !s.question && s.state !== 'busy' && s.state !== 'awaiting' && waitingSince == null}<p class="emptychat">{t.chatEmpty}</p>{/if}
