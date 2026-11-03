@@ -700,7 +700,7 @@
     {@render waitingBlock()}
     <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
          intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
-    <div class="list">
+    <div class="list lit">
       {#each restFlat as [r, group] (r.session.name)}<div class="cw" class:finished={finishedNow.includes(r.session.name)} data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line"></span>{/if}</div>{/each}
     </div>
     {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
@@ -946,7 +946,7 @@
     <!-- app-attesa-dettagli-02-11: aperta, la scheda dice cosa si sceglie e cosa sta facendo; le statistiche vanno in fondo. -->
     {@const dt = detailOf(s, group, x.body)}
     {@const steps = x.steps.length ? x.steps : open ? dt.steps : []}
-    <div class="card r" class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
+    <div class="card r" class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
       role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
       oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
       {#if ctx === s.name}

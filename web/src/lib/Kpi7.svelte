@@ -18,7 +18,7 @@
   const tone = (pct: number) => (pct >= 90 ? 'var(--red)' : pct >= 75 ? 'var(--wait)' : 'var(--tx2)')
 </script>
 
-<div class="board" data-kpi="kpi-7">
+<div class="board lit" data-kpi="kpi-7">
   <button class="cell" data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><b class="n" class:wait={h.waiting > 0}>{h.waiting}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
   <button class="cell" data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><b class="n">{h.busy}</b><span class="l">{t.kpi7Busy}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
   <button class="cell" data-testid="home-box-esiti" onclick={() => onBox('esiti')}><b class="n">{h.outcomes ?? '–'}</b><span class="l">{#if h.outcomes == null}{t.kpi7OutcomesUnknown}{:else if h.red}{t.kpi7Outcomes}, <em>{t.kpi7Red(h.red)}</em>{:else}{t.kpi7Outcomes}{/if}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>

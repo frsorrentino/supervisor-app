@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -589,7 +590,9 @@ private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier)
             drawLine(Cm.briefWeek, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
             drawCircle(if (fullX != null) Cm.briefAlertRing else Cm.briefWeek, 4.dp.toPx(), it)
         }
-        drawCircle(Cm.briefWeek, 4.dp.toPx(), dot)
+        // Luce 3 (app-luci-02-11): la linea resta normale, brilla solo il punto di oggi (due velature, niente sfocature).
+        if (!V3.day) { drawCircle(Color.White.copy(alpha = 0.10f), 9.dp.toPx(), dot); drawCircle(Color.White.copy(alpha = 0.25f), 6.dp.toPx(), dot) }
+        drawCircle(if (V3.day) Cm.briefWeek else Color(0xFFF4F7FB), 4.dp.toPx(), dot)
         val n = measurer.measure(nowText, strong)
         val ny = if (dot.y - 8.dp.toPx() - n.size.height > y100 + 4.dp.toPx()) dot.y - 6.dp.toPx() - n.size.height else dot.y + 6.dp.toPx()
         val nx = if (dot.x - 7.dp.toPx() - n.size.width >= l) dot.x - 7.dp.toPx() - n.size.width else minOf(dot.x + 7.dp.toPx(), xr - n.size.width)
@@ -874,7 +877,10 @@ private fun DeskBody(
         if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio = 0.86f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow),
         label = "homeSide",
     )
-    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().background(Cm.bg).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
+    // Luce 4 (app-luci-02-11): sul tablet lo sfondo è chiaro in alto al centro e scuro ai bordi; di giorno il fondo di sempre.
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().then(if (V3.day) Modifier.background(Cm.bg) else Modifier.drawBehind {
+        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(0f to Color(0xFF262D39), 0.58f to Color(0xFF11141B), 1f to Color(0xFF06070A), center = Offset(size.width / 2f, 0f), radius = maxOf(size.width * 0.75f, 1f)))
+    }).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
         val homeW = 400.dp
         val handleW = 28.dp
         val detailsW = if (inspector != null) 341.dp else 0.dp

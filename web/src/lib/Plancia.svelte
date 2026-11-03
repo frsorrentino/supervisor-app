@@ -23,7 +23,7 @@
     {#if top}<div class="topband">{@render top()}</div>{/if}
     <div class="cols" style:--n={n}>
       {#each shownCols as parts, i (i)}
-        <section class="col">{#each parts as p, k (k)}{@render p()}{/each}</section>
+        <section class="col lit">{#each parts as p, k (k)}{@render p()}{/each}</section>
       {/each}
     </div>
     {#if !panel}{@render bar()}{/if}
@@ -34,10 +34,10 @@
 <style>
   .plancia { height: 100%; display: flex; min-height: 0; }
   .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
-  .cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); border-top: 1px solid var(--line); }
+  /* Le colonne sono pannelli staccati sullo sfondo illuminato (app-luci-02-11, luci2-web-largo). */
+  .cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 12px; padding: 12px; }
   .topband { flex: none; max-height: 40%; overflow-y: auto; border-top: 1px solid var(--line); }
-  .col { min-width: 0; min-height: 0; overflow-y: auto; padding-bottom: 24px; }
-  .col + .col { border-left: 1px solid var(--line); }
+  .col { min-width: 0; min-height: 0; overflow-y: auto; padding-bottom: 24px; border-radius: 14px; --lit-bg: rgba(16, 19, 25, .6); --lit-angle: 150deg; }
   .mpanel { flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); border-left: 1px solid var(--line); }
   .mpanel.wide { width: 720px; }
   /* Il pannello a sinistra: le colonne si stringono dall'altra parte. */

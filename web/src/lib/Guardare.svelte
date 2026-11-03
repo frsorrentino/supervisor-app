@@ -119,7 +119,7 @@
     {#if failed && !page}<p class="sub">{t.watchReadFailed}</p>{:else if !page}<p class="sub">{t.watchLoading}</p>{:else if !groups.length}<p class="sub">{t.watchEmpty}</p>{/if}
     {#each groups as g (g.title + g.session)}
       {@const k = g.title + '|' + g.session}
-      <section class="grp">
+      <section class="grp lit">
         <h3>{g.title}</h3>
         {#each [g.items[0], ...(olderOpen[k] ? older(g) : [])].filter(Boolean) as r (r.id)}
           {@const l = line(r)}

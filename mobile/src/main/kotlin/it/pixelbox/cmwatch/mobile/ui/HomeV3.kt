@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -157,15 +158,22 @@ internal fun V3Section(drag: Modifier, title: String, icon: ImageVector, count: 
  * sopra il fondo, senza spostare niente: accesa o spenta la riga ha la stessa misura.
  */
 internal fun Modifier.hotEdge(hot: Boolean): Modifier = if (!hot) this else drawBehind {
-    val w = 3.dp.toPx()
-    drawRoundRect(V3.Wait, Offset.Zero, Size(w, size.height), CornerRadius(w / 2f))
+    // Luce 2 (app-luci-02-11, luci2): una spia ambra sottile alta metà riga, con un alone piccolo fatto di due velature più larghe
+    // (niente sfocature: costano su Android). Di giorno la spia piena di sempre, senza alone.
+    val w = 2.5.dp.toPx(); val x = 4.dp.toPx(); val top = size.height * 0.24f; val h = size.height * 0.52f
+    if (!V3.day) listOf(1.5.dp.toPx() to 0.30f, 4.dp.toPx() to 0.10f).forEach { (r, a) ->
+        drawRoundRect(Color(0xFFFFB23F).copy(alpha = a), Offset(x - r, top - r), Size(w + 2 * r, h + 2 * r), CornerRadius(w / 2f + r))
+    }
+    drawRoundRect(if (V3.day) V3.Wait else Color(0xFFFFC867), Offset(x, top), Size(w, h), CornerRadius(w / 2f))
 }
 
 /** Il numero di una voce che chiede Franz: in una pillola ambra; altrimenti grigio accanto al nome, come sempre. */
 @Composable
 internal fun SectionCount(n: String, hot: Boolean, style: TextStyle, modifier: Modifier = Modifier) {
     if (!hot) { Text(n, style = style.copy(color = V3.Tx2), modifier = modifier); return }
-    Text(n, style = style.copy(color = V3.Wait), modifier = modifier.clip(androidx.compose.foundation.shape.CircleShape).background(V3.Wait.copy(alpha = 0.16f)).padding(horizontal = 8.dp))
+    // Luce 2: la pillola col bordo appena acceso, senza alone.
+    Text(n, style = style.copy(color = V3.Wait), modifier = modifier.clip(androidx.compose.foundation.shape.CircleShape).background(V3.Wait.copy(alpha = if (V3.day) 0.16f else 0.10f))
+        .then(if (V3.day) Modifier else Modifier.border(1.dp, Color(0xFFFFB23F).copy(alpha = 0.28f), androidx.compose.foundation.shape.CircleShape)).padding(horizontal = 8.dp))
 }
 
 /**
@@ -220,7 +228,16 @@ internal fun androidx.compose.foundation.lazy.LazyItemScope.foldItem(): Modifier
     else Modifier.animateItem(fadeInSpec = androidx.compose.animation.core.tween(130, delayMillis = 170), fadeOutSpec = androidx.compose.animation.core.tween(80), placementSpec = CmMotion.bounce)
 
 /** Il filetto delle scatole bianche del giorno B; di notte il fondo basta. */
-internal fun Modifier.v3Edge(): Modifier = if (V3.day) border(1.dp, V3.Line, V3.Shape) else this
+internal fun Modifier.v3Edge(): Modifier = if (V3.day) border(1.dp, V3.Line, V3.Shape) else border(1.dp, LitEdge, V3.Shape)
+
+/**
+ * Luce 1 (app-luci-02-11, mockup luci2 della master, ok di Franz il 02/11 alle 22:24): riquadri, schede e voci del tabellone restano
+ * piatti e scuri; il bordo di 1 dp prende luce solo nell'angolo in alto a sinistra e si spegne entro un terzo della larghezza.
+ */
+internal val LitEdge = Brush.linearGradient(
+    0f to Color.White.copy(alpha = 0.30f), 0.18f to Color.White.copy(alpha = 0.07f), 0.40f to Color.Transparent,
+    0.82f to Color.Transparent, 1f to Color.White.copy(alpha = 0.06f),
+)
 
 /** La lista a filo: un fondo solo, con le righe separate dal filo. */
 @Composable

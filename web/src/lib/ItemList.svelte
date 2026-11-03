@@ -13,7 +13,7 @@
 </script>
 
 {#if rows.length}
-  <div class="il" data-testid={testid}>
+  <div class="il lit" data-testid={testid}>
     {#each rows.slice(0, n) as r (r.key)}
       {@const o = openKey === r.key}
       <div class="ir">

@@ -130,7 +130,7 @@ fun GuardareBody(items: List<ResultItem>, a: GuardareActions, onAll: () -> Unit)
 private fun GroupBlock(g: ResultGroup, a: GuardareActions) {
     val latest = g.items.firstOrNull() ?: return
     var olderOpen by rememberSaveable(g.title, g.session) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(g.title, style = V3.Section)
         HorizontalDivider(color = V3.Line)
         VersionRow(latest, a)

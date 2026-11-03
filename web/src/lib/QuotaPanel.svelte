@@ -172,7 +172,8 @@
             <line x1={g.now.x} y1={g.now.y} x2={g.proj.x} y2={g.proj.y} stroke="var(--b-week)" stroke-width="2" stroke-dasharray="6 5" />
             <circle cx={g.proj.x} cy={g.proj.y} r="4" fill={wk.fullAt ? 'var(--b-alert)' : 'var(--b-week)'} />
           {/if}
-          <circle cx={g.now.x} cy={g.now.y} r="4" fill="var(--b-week)" />
+          <!-- Luce 3 (app-luci-02-11): la linea resta normale, brilla solo il punto di oggi. -->
+          <circle class="nowdot" cx={g.now.x} cy={g.now.y} r="4" fill="var(--b-week)" />
           <text x={g.nowLabel.x} y={g.nowLabel.y} class="ax val" text-anchor={g.nowLabel.anchor}>{t.rhythmNow(wk.pct)}</text>
           {#each wd as d (d.index)}<text x={g.dayX(d.index)} y={WH - 2} class="ax" class:today={d.today} text-anchor="middle">{dayShort(d.start)}</text>{/each}
         </svg>

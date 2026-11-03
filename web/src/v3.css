@@ -207,3 +207,38 @@
   :root:root:not(.night-only) .card.r.waiting, :root:root:not(.night-only) [data-testid='home-box-aspetta'] { background: #FFF6E5; border-color: #F2D7A2; }
   :root:root:not(.night-only) .row-red { background: #FFF3F2; }
 }
+
+/* Le luci, seconda prova (app-luci-02-11; mockup luci2 della master, ok di Franz il 02/11 alle 22:24): niente fondi sfumati né
+   aloni larghi, niente sfocature. La doppia :root vince sui fogli dei componenti. */
+/* 1. Riquadri, schede, voci del tabellone e colonne restano piatti e scuri: il bordo di 1 px prende luce solo nell'angolo in alto a
+   sinistra e si spegne entro un terzo della larghezza. `--lit-bg` è il fondo dell'elemento. */
+:root:root .lit {
+  background: linear-gradient(var(--lit-bg, var(--s1)), var(--lit-bg, var(--s1))) padding-box,
+    linear-gradient(var(--lit-angle, 135deg), rgba(255, 255, 255, .30) 0%, rgba(255, 255, 255, .07) 18%, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 82%, rgba(255, 255, 255, .06) 100%) border-box;
+  border: 1px solid transparent;
+}
+:root:root .card.waiting.lit { --lit-bg: var(--s2); }
+:root:root .onboard > .usageslot, :root:root .onboard > .secwrap > .usageslot {
+  background: linear-gradient(var(--s1), var(--s1)) padding-box,
+    linear-gradient(135deg, rgba(255, 255, 255, .30) 0%, rgba(255, 255, 255, .07) 18%, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 82%, rgba(255, 255, 255, .06) 100%) border-box;
+  border: 1px solid transparent;
+}
+/* 2. Quello che chiede Franz: una spia ambra sottile a sinistra, alta metà riga, con un alone piccolo; il numero in una pillola col
+   bordo appena acceso, senza alone; l'icona ambra con un filo di luce. */
+:root:root .sec.hot { box-shadow: none; position: relative; }
+:root:root .sec.hot::before { content: ""; position: absolute; left: 4px; top: 24%; bottom: 24%; width: 2.5px; border-radius: 3px; background: #FFC867; box-shadow: 0 0 5px 1px rgba(255, 178, 63, .65), 0 0 14px 3px rgba(255, 178, 63, .16); }
+:root:root .sec.hot small { background: rgba(255, 178, 63, .10); outline: 1px solid rgba(255, 178, 63, .28); outline-offset: -1px; }
+:root:root .sec.hot .ic { filter: drop-shadow(0 0 3px rgba(255, 178, 63, .45)); }
+/* 3. Nel grafico della settimana brilla solo il punto di oggi. */
+:root:root .nowdot { fill: #F4F7FB; filter: drop-shadow(0 0 3px rgba(255, 255, 255, .9)) drop-shadow(0 0 8px rgba(255, 255, 255, .35)); }
+/* 4. Web largo e tablet: lo sfondo è chiaro in alto al centro e scuro ai bordi; il telefono resta nero pieno. */
+@media (min-width: 900px) {
+  :root:root .plancia.v3 { background: radial-gradient(75% 70% at 50% 0%, #262D39 0%, #11141B 58%, #06070A 100%); }
+}
+@media (prefers-color-scheme: light) {
+  :root:root:not(.night-only) .lit, :root:root:not(.night-only) .onboard > .usageslot { background: var(--lit-bg, var(--s1)); border: 1px solid var(--line); }
+  :root:root:not(.night-only) .col.lit { background: var(--s1); }
+  :root:root:not(.night-only) .plancia.v3 { background: var(--bg); }
+  :root:root:not(.night-only) .nowdot { fill: var(--b-week); filter: none; }
+  :root:root:not(.night-only) .sec.hot::before { box-shadow: none; background: var(--wait); }
+}

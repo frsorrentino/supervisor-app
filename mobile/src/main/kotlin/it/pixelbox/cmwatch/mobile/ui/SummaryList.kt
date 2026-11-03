@@ -1015,7 +1015,7 @@ private fun SummaryCard(
     if (!waiting && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Row(
         // La chat si restringe verso la sua card durante il gesto indietro.
-        Modifier.fly("card-${s.id}").fillMaxWidth().then(if (waiting) Modifier.clip(V3.Shape).background(if (V3.day) V3.WaitFill else V3.S2).border(1.dp, if (V3.day) V3.WaitLine else androidx.compose.ui.graphics.Color.Transparent, V3.Shape) else Modifier).smoothSize()
+        Modifier.fly("card-${s.id}").fillMaxWidth().then(if (waiting) Modifier.clip(V3.Shape).background(if (V3.day) V3.WaitFill else V3.S2).then(if (V3.day) Modifier.border(1.dp, V3.WaitLine, V3.Shape) else Modifier.border(1.dp, LitEdge, V3.Shape)) else Modifier).smoothSize()
             // Franz, 03/10 17:05: il tocco sulla card porta dritto alla sessione; il tasto ▼ la apre sul posto.
             .handCursor().combinedClickable(onClick = onOpen, onLongClick = { menu = true }).contextClick { menu = true }
             .padding(end = 10.dp, top = 8.dp, bottom = 10.dp),
