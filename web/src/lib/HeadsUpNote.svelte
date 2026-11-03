@@ -26,7 +26,9 @@
   .hu svg { flex: none; margin-top: 3px; color: var(--tx3); }
   p { font-size: 14px; }
   small { font: 12px var(--mono); }
-  .ac { display: flex; gap: 12px; margin-top: 4px; }
+  /* I tasti restano interi e vanno a capo insieme (a 320 px in inglese «I know» si spezzava in due righe). */
+  .ac { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
+  .ac button { white-space: nowrap; }
   button { color: var(--icon); font-weight: 500; font-size: 14px; padding: 4px 0; }
   button.q { color: var(--text2); }
 </style>
