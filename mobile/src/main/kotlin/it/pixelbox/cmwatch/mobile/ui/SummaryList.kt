@@ -642,8 +642,10 @@ fun SummaryList(
                 // Al massimo due parti, su una riga: prima chi aspetta Franz (con tre andava a capo).
                 val line = (listOfNotNull(waitN.takeIf { w -> w > 0 }?.let { w -> pluralStringResource(R.plurals.home_sessions_waiting, w, w) }) + sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)).split(" · ").filter { x -> x.isNotEmpty() }).take(2).joinToString(" · ")
                 val toggle = { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) }
+                // Il sottotitolo In cima: i nomi, prima chi aspetta Franz, poi «+N» come Suggerimenti (master 03/11 10:20, app-in-cima-uguali-03-11).
+                val boardNames = (waitRows + restRows).map { r -> r.session.name }.filter { x -> x != it.pixelbox.cmwatch.rules.ContextActions.MASTER }.distinct()
                 // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).
-                if ("sessions" in liveTop) BoardCard(moving()) { SlotRow(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, onToggle = toggle) }
+                if ("sessions" in liveTop) BoardCard(moving()) { SlotRow(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, names = boardNames, onToggle = toggle) }
                 else Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, onToggle = toggle) }
             }
             if (sessionsOpen) renderWaiting()

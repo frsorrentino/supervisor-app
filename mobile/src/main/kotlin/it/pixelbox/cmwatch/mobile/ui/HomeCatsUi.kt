@@ -54,10 +54,10 @@ internal class CatBit(val text: String, val tone: Color? = null)
  * numero, o le sue parole iniziali intere (OneLine in core). Mai a capo, mai puntini, mai una parola tagliata.
  */
 @Composable
-internal fun OneLineParts(bits: List<CatBit>, style: androidx.compose.ui.text.TextStyle, base: Color, modifier: Modifier = Modifier) {
+internal fun OneLineParts(bits: List<CatBit>, style: androidx.compose.ui.text.TextStyle, base: Color, modifier: Modifier = Modifier, start: Boolean = false) {
     if (bits.isEmpty()) return
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
-    androidx.compose.foundation.layout.BoxWithConstraints(modifier, contentAlignment = Alignment.CenterEnd) {
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier, contentAlignment = if (start) Alignment.CenterStart else Alignment.CenterEnd) {
         fun line(k: Int) = buildAnnotatedString {
             bits.take(k).forEachIndexed { i, b ->
                 if (i > 0) withStyle(SpanStyle(color = base)) { append(it.pixelbox.cmwatch.rules.OneLine.SEP) }
@@ -70,14 +70,14 @@ internal fun OneLineParts(bits: List<CatBit>, style: androidx.compose.ui.text.Te
         fun one(x: String) = buildAnnotatedString { withStyle(SpanStyle(color = bits[0].tone ?: base)) { append(x) } }
         val shown = if (k > 0) line(k) else it.pixelbox.cmwatch.rules.OneLine.shorts(bits[0].text).map(::one)
             .firstOrNull { x -> measurer.measure(x, style, softWrap = false, maxLines = 1).size.width <= max } ?: return@BoxWithConstraints
-        Text(shown, style = style, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, textAlign = TextAlign.End)
+        Text(shown, style = style, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, textAlign = if (start) TextAlign.Start else TextAlign.End)
     }
 }
 
 /** Un riassunto già scritto coi separatori, nella stessa regola. */
 @Composable
-internal fun OneLineText(text: String, style: androidx.compose.ui.text.TextStyle, modifier: Modifier = Modifier) =
-    OneLineParts(it.pixelbox.cmwatch.rules.OneLine.parts(text).map { p -> CatBit(p) }, style, style.color, modifier)
+internal fun OneLineText(text: String, style: androidx.compose.ui.text.TextStyle, modifier: Modifier = Modifier, start: Boolean = false) =
+    OneLineParts(it.pixelbox.cmwatch.rules.OneLine.parts(text).map { p -> CatBit(p) }, style, style.color, modifier, start)
 
 internal fun catIcon(id: String): ImageVector = when (id) {
     // Tocca a te (app-home-nomi-02-11): la cartellina con l'orologio, non più la mano.

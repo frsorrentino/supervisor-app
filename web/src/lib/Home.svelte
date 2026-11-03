@@ -373,7 +373,7 @@
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const fy = $derived(st.commitments != null || agenda ? lavoriForYou(st, agenda, now, today) : null)
   // Il dato in più di una voce nello slot; Chiuse non c'è: il relay non dice quando si è chiusa (SlotInfo.kt).
-  const slotExtra = $derived.by((): Record<string, { bar?: [number, string][]; number?: string; note?: string | null; names?: string[] } | null> => {
+  const slotExtra = $derived.by((): Record<string, { bar?: [number, string][]; number?: string; note?: string | null; names?: string[]; line?: string | null } | null> => {
     const s = sys ? systemInfo(sys, st.hosts_status, st.sessions) : null
     const l = pin === 'lavori' || (up as string[]).includes('lavori') ? lavoriInfo(lavoriProgress(st, agenda, now, zone, today)) : null
     const p = st.plugins ? pluginsInfo(st.plugins) : null
@@ -381,6 +381,8 @@
       system: s && { bar: [[s.barPct, SYS_TONE[s.level as keyof typeof SYS_TONE] ?? SYS_TONE.green]], number: `${s.pct}%`, note: [t.slotRam(s.ramPct), ...s.hosts.map(h => (h.ramPct == null ? t.slotHostOff(h.name) : t.slotHostRam(h.name, h.ramPct))), t.slotSessions(s.sessions)].join(' · ') },
       lavori: l && { bar: l.total ? [[l.youPct, 'var(--wait)'], [100 - l.youPct, 'var(--tx3)']] : [], number: t.slotLavoriOf(l.you, l.total), note: l.last == null ? t.slotLavoriNone : l.lastSince ? t.slotLavoriLastSince(l.last, since(l.lastSince, now)) : t.slotLavoriLast(l.last) },
       suggestions: { names: suggestionNames ?? [] },
+      // Il sottotitolo di Sessioni In cima: i nomi, prima chi aspetta Franz, poi «+N» come Suggerimenti (app-in-cima-uguali-03-11).
+      sessions: { names: [...new Set([...waitRows.map(r => r.session.name), ...restFlat.map(([r]) => r.session.name)].filter(n => n !== MASTER))] },
       plugins: p && { note: p.names.length ? t.slotPluginsNames(p.names.join(', ')) : p.checkedAt ? t.slotPluginsChecked(hhmm(p.checkedAt)) : null },
     }
   })
@@ -637,14 +639,14 @@
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
 {#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null; hot?: boolean } = {})}
   <!-- In cima ogni voce ha la stessa scheda (Franz 03/11 08:25, app-in-cima-uguali-03-11): senza un dato in più, il riassunto sotto. -->
-  {@const info = (key === listSkip || (up as string[]).includes(key)) && !part ? (slotExtra[key] ?? { note: right }) : null}
+  {@const info = (key === listSkip || (up as string[]).includes(key)) && !part ? (slotExtra[key] ?? { line: right }) : null}
   {#if info}
     <!-- Una voce nello slot (Franz 01/11 17:44): titolo, barra e numero, sotto una riga; il riepilogo a destra non c'è più. -->
     <button class="usageslot" class:draggable={!!onHomeOrder} data-sec-head={key} aria-expanded={o.isOpen ?? !!open[key]} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ustop">{#if icon.startsWith('svg:')}<CatIcon name={icon.slice(4)} />{:else}<span class="ms">{icon}</span>{/if}<b>{title}</b>{#if count}<small class:hot={o.hot}>{count}</small>{/if}
         {#if info.bar}<span class="usbar">{#each info.bar as [pct, tone]}<i style="width:{pct}%;background:{tone}"></i>{/each}</span>{:else}<span class="sp"></span>{/if}
         {#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if info.number}<span class="uspct">{info.number}</span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span></span>
-      {#if info.names}<SlotNames names={info.names} />{:else if info.note}<span class="usnote">{info.note}</span>{/if}
+      {#if info.names}<SlotNames names={info.names} />{:else if info.line}<span class="usnote"><OneLine parts={oneLineParts(info.line).map(text => ({ text }))} start /></span>{:else if info.note}<span class="usnote">{info.note}</span>{/if}
     </button>
   {:else if part && !o.onclick}
     <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->

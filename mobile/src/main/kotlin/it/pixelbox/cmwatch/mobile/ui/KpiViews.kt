@@ -236,21 +236,27 @@ internal fun BoardCard(modifier: Modifier = Modifier, content: @Composable () ->
         androidx.compose.runtime.CompositionLocalProvider(LocalSlotLine provides false) { content() }
     }
 
-/** Una voce agganciata: lo stesso riepilogo della riga in elenco, nella misura del tabellone. */
+/**
+ * Una voce agganciata, senza un dato in più: la stessa struttura delle altre voci In cima (Franz 03/11 10:04,
+ * app-in-cima-uguali-03-11), la riga del titolo e sotto il sottotitolo, cioè il riepilogo della riga in elenco su una riga, o i
+ * nomi (`names`, come Suggerimenti). A destra solo il pallino e la freccia.
+ */
 @Composable
-internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, hot: Boolean = false, onToggle: () -> Unit) {
+internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, hot: Boolean = false, names: List<String>? = null, onToggle: () -> Unit) {
     if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-    Row(Modifier.fillMaxWidth().hotEdge(hot).heightIn(min = 44.dp).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
-        count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 13.sp), Modifier.padding(start = 6.dp)) }
-        Row(Modifier.weight(1f).padding(start = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxWidth().hotEdge(hot).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
+        Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+            count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 13.sp), Modifier.padding(start = 6.dp)) }
+            Spacer(Modifier.weight(1f))
             dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
-            right?.let { OneLineText(it, V3.Small.copy(fontSize = 13.5.sp), Modifier.weight(1f, fill = false)) }
+            if (open != null) Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
+            else if (nav) Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
         }
-        if (open != null) Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
-        else if (nav) Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
+        if (!names.isNullOrEmpty()) SlotNames(names)
+        else right?.let { OneLineText(it, V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), Modifier.fillMaxWidth(), start = true) }
     }
 }
 
