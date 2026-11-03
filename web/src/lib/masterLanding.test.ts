@@ -1,42 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { BAR, COLUMN, current, landingAt, zones } from './masterLanding'
+import { clampWidth, COLUMN, heightAt, heightZones, MIN_W, sideAt, sideZones, snapWidth } from './masterLanding'
 
-// I punti di atterraggio della master trascinata nella PWA larga (app-master-trascina-03-11).
+// La master si sposta con la testata (solo il lato) e si misura dai bordi (app-master-trascina-03-11, Franz 03/11 22:08).
 describe('masterLanding', () => {
-  const W = 1920, H = 1000
-  const at = (x: number, y: number, under = true) => { const z = landingAt(zones(W, H, under), x, y); return z ? `${z.side}:${z.place}` : null }
-
-  it('la colonna esterna di ogni lato: colonna intera, poi sotto la home a metà e compatta', () => {
-    expect(at(W - 10, 100)).toBe('right:column')
-    expect(at(W - 10, (H - BAR) * 0.6)).toBe('right:under')
-    expect(at(W - 10, H - BAR - 50)).toBe('right:compact')
-    expect(at(10, 100)).toBe('left:column')
-    expect(at(10, (H - BAR) * 0.6)).toBe('left:under')
-    expect(at(10, H - BAR - 50)).toBe('left:compact')
+  it('la testata lasciata nella metà sinistra o destra sceglie il lato', () => {
+    expect(sideAt(1920, 100)).toBe('left')
+    expect(sideAt(1920, 959)).toBe('left')
+    expect(sideAt(1920, 960)).toBe('right')
+    expect(sideZones(1920, 1000).map(z => z.key)).toEqual(['left', 'right'])
   })
-  it('senza sessioni aperte la colonna esterna è tutta «colonna intera»', () => {
-    expect(at(W - 10, H - BAR - 50, false)).toBe('right:column')
-    expect(zones(W, H, false).some(z => z.place === 'under' || z.place === 'compact')).toBe(false)
+  it('la larghezza si ferma sugli scatti vicini e resta libera fra i due', () => {
+    expect(snapWidth(COLUMN + 20, 1920)).toBe(COLUMN)
+    expect(snapWidth(940, 1920)).toBe(960)
+    expect(snapWidth(650, 1920)).toBe(650)
   })
-  it('verso il centro, fino a metà schermo: la master larga a metà', () => {
-    expect(at(W - COLUMN - 10, 300)).toBe('right:half')
-    expect(at(W / 2 + 5, 300)).toBe('right:half')
-    expect(at(COLUMN + 10, 300)).toBe('left:half')
-    expect(at(W / 2 - 5, 300)).toBe('left:half')
+  it('la larghezza non scende sotto il minimo e non passa il 60 % dello schermo', () => {
+    expect(clampWidth(100, 1920)).toBe(MIN_W)
+    expect(clampWidth(1800, 1920)).toBe(1152)
   })
-  it('in fondo, a tutta larghezza, la riga', () => {
-    expect(at(W / 2, H - 20)).toBe('right:bar')
-    expect(at(5, H - 1)).toBe('right:bar')
+  it('il bordo superiore: colonna intera, a metà, compatta, in fondo la riga', () => {
+    const zs = heightZones({ x: 0, y: 0, w: 420, h: 1000 }, true)
+    expect([50, 400, 700, 950, 1200].map(y => heightAt(zs, y))).toEqual(['column', 'half', 'compact', 'bar', 'bar'])
   })
-  it('le zone non si sovrappongono e coprono la pagina', () => {
-    const zs = zones(W, H, true)
-    for (let x = 0; x < W; x += 37) for (let y = 0; y < H; y += 41) expect(zs.filter(z => x >= z.rect.x && x < z.rect.x + z.rect.w && y >= z.rect.y && y < z.rect.y + z.rect.h).length).toBe(1)
-  })
-  it('la posizione di adesso', () => {
-    expect(current({ open: false, left: true, under: false, half: true })).toEqual({ side: 'right', place: 'bar' })
-    expect(current({ open: true, left: true, under: true, half: true })).toEqual({ side: 'left', place: 'under' })
-    expect(current({ open: true, left: true, under: true, half: true, compact: true })).toEqual({ side: 'left', place: 'compact' })
-    expect(current({ open: true, left: false, under: false, half: true })).toEqual({ side: 'right', place: 'column' })
-    expect(current({ open: true, left: false, under: false, half: false })).toEqual({ side: 'right', place: 'half' })
+  it('senza sessioni aperte la master non sta sotto la home: colonna o riga', () => {
+    const zs = heightZones({ x: 0, y: 100, w: 420, h: 900 }, false)
+    expect(zs.map(z => z.key)).toEqual(['column', 'bar'])
+    expect(heightAt(zs, 500)).toBe('column')
+    expect(heightAt(zs, 990)).toBe('bar')
   })
 })

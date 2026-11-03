@@ -1,50 +1,43 @@
-// Dove si può lasciare la master trascinandola nella PWA larga (Franz 03/11 18:50, app-master-trascina-03-11): mentre la si
-// trascina compaiono i punti di atterraggio, e al rilascio la master va in quello sotto il dito. Le stesse posizioni del tasto
-// Posizione: una riga in basso, colonna intera, metà schermo, sotto la home a metà o compatta (Franz 03/11 22:00: «manca la
-// versione compatta»); ognuna a destra o a sinistra.
+// La master nella PWA larga si sposta e si misura coi gesti (Franz 03/11 22:06-22:08, app-master-trascina-03-11): la testata
+// trascinata cambia solo il lato; il bordo verso le sessioni allarga e stringe, con due scatti (colonna e metà schermo) e la
+// misura libera fra i due; il bordo superiore cambia l'altezza a scatti. Qui le regole, senza la pagina.
 export type Side = 'left' | 'right'
-export type Place = 'bar' | 'column' | 'half' | 'under' | 'compact'
-export type Landing = { side: Side; place: Place }
+export type Height = 'column' | 'half' | 'compact' | 'bar'
 export type Rect = { x: number; y: number; w: number; h: number }
-export type Zone = Landing & { rect: Rect }
+export type Zone<K> = { key: K; rect: Rect }
 
-/** La larghezza della colonna della master (`.dpanel`, stretta) e l'altezza della barra in fondo. */
+/** La colonna stretta della master e i limiti della misura libera. */
 export const COLUMN = 420
-export const BAR = 96
+export const MIN_W = 360
+/** Entro questa distanza da uno scatto la larghezza ci si ferma. */
+export const SNAP = 32
 
-/**
- * Le zone sulla pagina larga `w`×`h`. `under`: la master può stare sotto la home (solo con le sessioni aperte). Sui due lati:
- * la colonna esterna (colonna intera; con `under` sotto, a metà e compatta) e la fascia verso il centro fino a metà schermo
- * (metà schermo). In fondo, a tutta larghezza, la riga.
- */
-export function zones(w: number, h: number, under: boolean): Zone[] {
-  const top = h - BAR
-  const col = Math.min(COLUMN, w / 4)
-  const out: Zone[] = [{ side: 'right', place: 'bar', rect: { x: 0, y: top, w, h: BAR } }]
-  for (const side of ['left', 'right'] as const) {
-    const cx = side === 'left' ? 0 : w - col
-    const hx = side === 'left' ? col : w / 2
-    // Dall'alto: colonna intera, sotto la home a metà, sotto la home compatta (in fondo, come sta la compatta).
-    const a = Math.round(top * 0.45), b = Math.round(top * 0.75)
-    out.push({ side, place: 'column', rect: { x: cx, y: 0, w: col, h: under ? a : top } })
-    if (under) {
-      out.push({ side, place: 'under', rect: { x: cx, y: a, w: col, h: b - a } })
-      out.push({ side, place: 'compact', rect: { x: cx, y: b, w: col, h: top - b } })
-    }
-    out.push({ side, place: 'half', rect: { x: hx, y: 0, w: w / 2 - col, h: top } })
-  }
-  return out
+/** Le due zone del lato: la metà sinistra e la metà destra della pagina. */
+export const sideZones = (w: number, h: number): Zone<Side>[] => [
+  { key: 'left', rect: { x: 0, y: 0, w: w / 2, h } },
+  { key: 'right', rect: { x: w / 2, y: 0, w: w / 2, h } },
+]
+export const sideAt = (w: number, x: number): Side => (x < w / 2 ? 'left' : 'right')
+
+/** La larghezza mentre si trascina il bordo: fra MIN_W e il 60 % dello schermo. */
+export const clampWidth = (px: number, screen: number) => Math.round(Math.max(MIN_W, Math.min(screen * 0.6, px)))
+/** Al rilascio: vicina a uno scatto (colonna, metà schermo) ci si ferma, altrimenti resta dove la si lascia. */
+export function snapWidth(px: number, screen: number): number {
+  const w = clampWidth(px, screen)
+  for (const s of [COLUMN, Math.round(screen / 2)]) if (Math.abs(w - s) <= SNAP) return s
+  return w
 }
 
-const inside = (r: Rect, x: number, y: number) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h
-
-/** La zona sotto il dito; null al centro della pagina, dove lasciarla non cambia niente. */
-export const landingAt = (zs: Zone[], x: number, y: number): Zone | null => zs.find(z => inside(z.rect, x, y)) ?? null
-
-/** La posizione di adesso, per evidenziare la zona dove la master sta già. */
-export function current(s: { open: boolean; left: boolean; under: boolean; half: boolean; compact?: boolean }): Landing {
-  const side: Side = s.left ? 'left' : 'right'
-  if (!s.open) return { side: 'right', place: 'bar' }
-  if (s.under) return { side, place: s.compact ? 'compact' : 'under' }
-  return { side, place: s.half ? 'column' : 'half' }
+/**
+ * Le bande del bordo superiore sulla colonna della master, dall'alto: colonna intera, sotto la home a metà, compatta, e in
+ * fondo la riga. `under` false (nessuna sessione aperta, la master non sta sotto la home): solo colonna e riga.
+ */
+export function heightZones(col: Rect, under: boolean): Zone<Height>[] {
+  const cuts: [Height, number][] = under ? [['column', 0.15], ['half', 0.6], ['compact', 0.88], ['bar', 1]] : [['column', 0.85], ['bar', 1]]
+  let y = col.y
+  return cuts.map(([key, f]) => { const end = col.y + col.h * f; const z = { key, rect: { x: col.x, y, w: col.w, h: end - y } }; y = end; return z })
+}
+export function heightAt(zs: Zone<Height>[], y: number): Height {
+  for (const z of zs) if (y < z.rect.y + z.rect.h) return z.key
+  return zs[zs.length - 1].key
 }
