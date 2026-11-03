@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -166,8 +167,10 @@ internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifi
  * quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana col giorno e il ritmo.
  */
 @Composable
-internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}, slot: @Composable () -> Unit = {}) {
-    Column(Modifier.testTag("kpi-7").fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
+internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}, joined: Boolean = false, slot: @Composable () -> Unit = {}) {
+    // `joined`: sotto stanno le righe In cima (app-utilizzo-una-barra-03-11), attaccate: gli angoli in basso sono loro.
+    val shape = if (joined) RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp) else V3.Shape
+    Column(Modifier.testTag("kpi-7").fillMaxWidth().clip(shape).background(V3.S1).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape))) {
         Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
             val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
             val box = { b: HomeBox, tag: String, w: Float -> Modifier.weight(w).fillMaxHeight().then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).testTag(tag).handCursor().clickable { onBox(b) } }
@@ -177,31 +180,8 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f))
         }
-        val rings = it.pixelbox.cmwatch.rules.UtilizzoRules.shownQuota(st.quota).mapNotNull { (name, q) -> it.pixelbox.cmwatch.rules.UtilizzoRules.bar(q.h5, q.w7, q.resetH5, q.resetW7, now, q.stale)?.let { b -> Triple(name, q, b) } }.filter { (_, _, b) -> !b.week }.sortedByDescending { it.third.pct }
-        if (rings.isNotEmpty()) {
-            Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-            Column(Modifier.fillMaxWidth().handCursor().clickable(onClick = onQuota).padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                rings.forEach { (name, q, b) ->
-                    val pct = b.pct
-                    val tone = if (q.stale) V3.Tx3 else if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // Con due account la forma dice quale: tondo personale, quadrato lavoro, come nel badge.
-                        if (rings.size > 1) Box(Modifier.size(10.dp).border(2.dp, V3.Tx2, if (it.pixelbox.cmwatch.rules.Accounts.personal(name, q.kind)) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(3.dp)))
-                        Text(stringResource(R.string.kpi7_quota), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
-                        BoxWithConstraints(Modifier.weight(1f).height(12.dp), contentAlignment = Alignment.CenterStart) {
-                            Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(V3.S3)) {
-                                Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(tone))
-                            }
-                            it.pixelbox.cmwatch.rules.UtilizzoRules.elapsedPct(b.resetAt, b.windowS, now)?.let { done ->
-                                Box(Modifier.offset(x = maxWidth * (done / 100f)).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(V3.Tx))
-                            }
-                        }
-                        Text("$pct%", style = if (q.stale) V3.Meter.copy(color = V3.Tx3) else V3.Meter, maxLines = 1)
-                    }
-                    if (q.stale) Text(stringResource(R.string.quota_line_stale), style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), maxLines = 1)
-                }
-            }
-        }
+        // La barra fissa delle 5 ore non c'è più (app-utilizzo-una-barra-03-11): le finestre d'uso stanno nella riga Utilizzo, e una
+        // vicina al limite entra da sola nel tabellone.
         slot()
     }
 }
@@ -229,20 +209,59 @@ internal fun androidx.compose.foundation.layout.BoxScope.SlotDrop(hot: Boolean =
 /** La riga di separazione sopra una voce dello slot: nel riquadro dei tre numeri sì, in un riquadro suo del tabellone no. */
 internal val LocalSlotLine = androidx.compose.runtime.compositionLocalOf { true }
 
-/** La scheda di una voce In cima, uguale per tutte (app-in-cima-uguali-03-11): fondo S1 e il bordo acceso delle luci. */
+/** Dentro il tabellone le voci sono righe compatte su una riga sola (app-utilizzo-una-barra-03-11, Franz 03/11 13:11). */
+internal val LocalBoardRow = androidx.compose.runtime.compositionLocalOf { false }
+
+/** Tira su l'elemento della lista dello spazio fra gli elementi, così la riga si attacca a quella sopra. */
+internal fun Modifier.pullUp(gap: androidx.compose.ui.unit.Dp): Modifier = layout { m, c ->
+    val p = m.measure(c)
+    val g = gap.roundToPx()
+    layout(p.width, (p.height - g).coerceAtLeast(0)) { p.place(0, -g) }
+}
+
+/**
+ * Una voce In cima: una riga del tabellone (app-utilizzo-una-barra-03-11). `above`: si attacca a quella sopra (il tabellone o la riga
+ * prima); `below`: quella sotto le si attacca. Dove una voce aperta mette il suo corpo fra le righe, il pezzo si chiude con gli angoli.
+ */
 @Composable
-internal fun BoardCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) =
-    androidx.compose.foundation.layout.Column(modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
-        androidx.compose.runtime.CompositionLocalProvider(LocalSlotLine provides false) { content() }
+internal fun BoardCard(modifier: Modifier = Modifier, above: Boolean = false, below: Boolean = false, content: @Composable () -> Unit) {
+    val r = 14.dp
+    val shape = RoundedCornerShape(topStart = if (above) 0.dp else r, topEnd = if (above) 0.dp else r, bottomStart = if (below) 0.dp else r, bottomEnd = if (below) 0.dp else r)
+    androidx.compose.foundation.layout.Column(modifier.then(if (above) Modifier.pullUp(8.dp) else Modifier).fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape)) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalSlotLine provides false, LocalBoardRow provides true) { content() }
     }
+}
 
 /**
  * Una voce agganciata, senza un dato in più: la stessa struttura delle altre voci In cima (Franz 03/11 10:04,
  * app-in-cima-uguali-03-11), la riga del titolo e sotto il sottotitolo, cioè il riepilogo della riga in elenco su una riga, o i
  * nomi (`names`, come Suggerimenti). A destra solo il pallino e la freccia.
  */
+/**
+ * La riga compatta del tabellone (app-utilizzo-una-barra-03-11, mockup 1 approvato da Franz alle 13:11): icona, nome, numero e a destra
+ * lo stato su una riga, o la barra col suo numero; il tocco apre la voce.
+ */
+@Composable
+internal fun BoardRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tag: String?, count: String? = null, right: String? = null, bar: (@Composable (Modifier) -> Unit)? = null, number: String? = null, tone: Color? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, hot: Boolean = false, alarm: Boolean = false, onToggle: () -> Unit) {
+    val ink = tone ?: if (hot) V3.Wait else null
+    Row(Modifier.fillMaxWidth().then(if (alarm) Modifier.background(V3.Wait.copy(alpha = 0.14f)) else Modifier).hotEdge(hot).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).heightIn(min = 48.dp).padding(start = 14.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = ink ?: V3.Tx2, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(title, style = V3.Name.copy(fontSize = 16.sp, color = ink ?: V3.Tx), maxLines = 1)
+        count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 14.sp), Modifier.padding(start = 6.dp)) }
+        Spacer(Modifier.width(12.dp))
+        if (bar != null) bar(Modifier.weight(1f)) else if (right == null || number != null) Spacer(Modifier.weight(1f))
+        if (number != null) { Spacer(Modifier.width(10.dp)); Text(number, style = V3.Meter.copy(color = ink ?: V3.Tx2), maxLines = 1) }
+        else right?.let { Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { OneLineText(it, V3.Small.copy(fontSize = 14.sp, lineHeight = 18.sp, color = ink ?: V3.Tx2)) } }
+        dot?.let { c -> Box(Modifier.padding(start = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
+        if (open != null) Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
+        else if (nav) Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
+    }
+}
+
 @Composable
 internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: String? = null, right: String? = null, tag: String? = null, open: Boolean? = null, dot: Color? = null, nav: Boolean = false, hot: Boolean = false, names: List<String>? = null, onToggle: () -> Unit) {
+    if (LocalBoardRow.current) return BoardRow(drag, title, icon, tag, count, right ?: names?.joinToString(" · "), open = open, dot = dot, nav = nav, hot = hot, onToggle = onToggle)
     if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Column(Modifier.fillMaxWidth().hotEdge(hot).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
         Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -266,6 +285,7 @@ internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.gr
  */
 @Composable
 internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tag: String, count: String? = null, bar: List<Pair<Int, Color>>? = null, number: String? = null, numberTone: Color? = null, note: String? = null, names: List<String>? = null, open: Boolean, onToggle: () -> Unit) {
+    if (LocalBoardRow.current) return BoardRow(drag, title, icon, tag, count, right = if (bar != null && number != null) null else names?.joinToString(" · ") ?: note, bar = bar?.let { b -> { m -> SlotBar(b, m) } }, number = number.takeIf { bar != null }, open = open, onToggle = onToggle)
     if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Column(Modifier.fillMaxWidth().then(drag).handCursor().clickable(onClick = onToggle).testTag(tag).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
         Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -341,26 +361,22 @@ internal fun PluginsSlotRow(i: it.pixelbox.cmwatch.rules.SlotInfo.PluginsInfo, z
     SlotInfoRow(drag, stringResource(R.string.home_sec_plugins), androidx.compose.material.icons.Icons.Outlined.Extension, "home-sez-plugin", note = note, open = open, onToggle = onToggle)
 }
 
-/** Utilizzo nello slot: barra e percentuale in una riga, sotto settimana, giorno e ritmo; con due account anche di chi è. */
+/**
+ * Utilizzo nel tabellone (app-utilizzo-una-barra-03-11): una riga con la barra e «49% sett.». Con l'allarme ([UtilizzoRules.usageAlarm])
+ * la riga è ambra e dice la finestra vicina al limite: le 5 ore con l'ora in cui si azzera, o la settimana.
+ */
 @Composable
-internal fun UsageSlotRow(w: it.pixelbox.cmwatch.rules.UtilizzoRules.WeekSlot, now: Long, drag: Modifier, open: Boolean, onToggle: () -> Unit) {
-    val tone = if (w.stale) V3.Tx3 else if (w.pct >= 90) V3.Red else if (w.pct >= 75 || w.alarm) V3.Wait else V3.Tx2
+internal fun UsageSlotRow(w: it.pixelbox.cmwatch.rules.UtilizzoRules.WeekSlot?, now: Long, drag: Modifier, open: Boolean, alarm: it.pixelbox.cmwatch.rules.UtilizzoRules.UsageAlarm? = null, onToggle: () -> Unit) {
     if (LocalSlotLine.current) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-    Column(Modifier.fillMaxWidth().then(drag).handCursor().clickable(onClick = onToggle).testTag("slot-utilizzo").padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)) {
-        Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(androidx.compose.material.icons.Icons.Outlined.DataUsage, null, tint = if (w.alarm) tone else V3.Tx2, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.home_sec_usage), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
-            Spacer(Modifier.width(10.dp))
-            Meter(w.pct, null, it.pixelbox.cmwatch.rules.UtilizzoRules.elapsedPct(w.resetAt, it.pixelbox.cmwatch.rules.UtilizzoRules.W7_S, now), Modifier.weight(1f), stale = w.stale, alarm = w.alarm)
-            Spacer(Modifier.width(10.dp))
-            Text("${w.pct}%", style = V3.Meter.copy(color = if (w.stale) V3.Tx3 else if (w.alarm) tone else V3.Tx), maxLines = 1)
-            Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
-        }
-        val pace = if (w.stale) stringResource(R.string.quota_line_stale) else weekPaceText(w.delta, w.day)?.replaceFirstChar { c -> c.lowercase() }
-        val note = listOfNotNull(if (w.many) usageAccount(w.account, w.personal) else null, stringResource(R.string.usage_week), pace).joinToString(" · ")
-        Text(note, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp))
-    }
+    val pct = alarm?.pct ?: w?.pct ?: 0
+    val stale = alarm == null && w?.stale == true
+    val tone = if (alarm != null) (if (pct >= 90) V3.Red else V3.Wait) else if (stale) V3.Tx3 else V3.Tx2
+    val window = if (alarm == null || alarm.week) it.pixelbox.cmwatch.rules.UtilizzoRules.W7_S else it.pixelbox.cmwatch.rules.UtilizzoRules.H5_S
+    val tick = it.pixelbox.cmwatch.rules.UtilizzoRules.elapsedPct(alarm?.resetAt ?: w?.resetAt, window, now)
+    val title = when { alarm == null -> stringResource(R.string.home_sec_usage); alarm.week -> stringResource(R.string.usage_week); else -> stringResource(R.string.kpi7_quota) }
+    val reset = alarm?.takeIf { a -> !a.week }?.resetAt?.takeIf { at -> at > now }?.let { at -> stringResource(R.string.quota_resets_at, java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(at).atZone(java.time.ZoneId.systemDefault()))) }
+    val number = if (alarm != null) listOfNotNull("$pct%", reset).joinToString(" · ") else stringResource(R.string.usage_week_pct, pct)
+    BoardRow(drag, title, androidx.compose.material.icons.Icons.Outlined.DataUsage, "slot-utilizzo", bar = { m -> Meter(pct, null, tick, m, stale = stale, alarm = alarm != null) }, number = number, tone = if (alarm != null) tone else null, open = open, alarm = alarm != null, onToggle = onToggle)
 }
 
 @Composable

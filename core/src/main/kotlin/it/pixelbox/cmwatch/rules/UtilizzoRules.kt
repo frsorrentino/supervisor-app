@@ -51,6 +51,19 @@ object UtilizzoRules {
         return WeekSlot(top.key, Accounts.isPersonalQuota(top.key, q), pct, reset, delta, weekDay(reset, now), q.stale, !q.stale && (pct >= 75 || (delta ?: 0) >= 10), shown.size > 1)
     }
 
+    /**
+     * app-utilizzo-una-barra-03-11 (Franz 03/11 13:11, «Righe nel tabellone»): la barra fissa delle 5 ore lascia il tabellone; una
+     * finestra vicina al limite ci entra da sola in ambra. Le 5 ore dal 75% (lettura fresca), la settimana con l'allarme dello slot;
+     * con tutte e due la più carica, a pari le 5 ore, che finiscono prima. Null senza allarme.
+     */
+    data class UsageAlarm(val account: String, val week: Boolean, val pct: Int, val resetAt: Long?)
+
+    fun usageAlarm(quota: Map<String, it.pixelbox.cmwatch.contract.QuotaAccount>, now: Long): UsageAlarm? {
+        val h5 = quota.entries.filter { !it.value.stale }.mapNotNull { e -> fiveHourLive(e.value.h5, e.value.resetH5, false, now)?.coerceIn(0, 100)?.takeIf { it >= 75 }?.let { UsageAlarm(e.key, false, it, e.value.resetH5) } }.maxByOrNull { it.pct }
+        val w = weekSlot(quota, now)?.takeIf { it.alarm }?.let { UsageAlarm(it.account, true, it.pct, it.resetAt) }
+        return listOfNotNull(h5, w).maxWithOrNull(compareBy<UsageAlarm> { it.pct }.thenBy { if (it.week) 0 else 1 })
+    }
+
     data class Bar(val week: Boolean, val pct: Int, val resetAt: Long?, val windowS: Long, val delta: Int?, val day: Int?)
 
     /**

@@ -1541,6 +1541,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="usage_account_personal">Personale</string>
     <string name="usage_account_work">Professionale</string>
     <string name="usage_week">Settimana</string>
+    <string name="usage_week_pct">%1$d%% sett.</string>
     <string name="usage_today">Oggi</string>
     <string name="usage_details">Tutti i dettagli</string>
     <string name="usage_now">adesso</string>

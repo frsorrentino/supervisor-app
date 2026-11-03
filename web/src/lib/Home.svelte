@@ -59,7 +59,8 @@
   import CatIcon from './CatIcon.svelte'
   import { BOARD_MAX, DEFAULT_CATS, EDGE, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
-  import { elapsedPct, paceText, W7_S, weekSlot } from './utilizzo'
+  import { elapsedPct, H5_S, paceText, usageAlarm, W7_S, weekSlot } from './utilizzo'
+  import { resetLabel } from './header'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
 
@@ -164,7 +165,10 @@
   // entra solo Utilizzo con l'allarme della settimana, come prima.
   const savedPin = null as HomeSection | null
   const week = $derived(!part && usage && showUsage ? weekSlot(st.quota, now) : null)
-  const weekAlarm = $derived(!!week?.alarm)
+  // app-utilizzo-una-barra-03-11: la barra fissa delle 5 ore lascia il tabellone; una finestra vicina al limite (5 ore o settimana) ci
+  // entra da sola, in ambra, finché dura. Il nome resta quello di quando scattava solo la settimana.
+  const alarm = $derived(!part && usage && showUsage ? usageAlarm(st.quota, now) : null)
+  const weekAlarm = $derived(!!alarm)
   const pin = $derived(slotKey(savedPin, weekAlarm))
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
@@ -315,7 +319,6 @@
   }
   // Aperte o chiuse col tocco, come l'interruttore di Riordina: la scelta si salva (app-home-in-cima-02-11).
   // Il tasto Reset (app-cima-rilascio-reset-03-11): In cima vuota e l'ordine iniziale, come «Ripristina» in Riordina; chiede prima.
-  function resetHome() { if (!confirm(t.homeResetAsk)) return; sentOrder = { from: savedKey, cats: DEFAULT_CATS, pin: null, top: [] }; onHomeOrder?.(encodeCats(DEFAULT_CATS, null, [])) }
   function setCats(next: Cat[]) { sentOrder = { from: savedKey, cats: next, pin: null, top: up }; onHomeOrder?.(encodeCats(next, null, up)) }
   const CATS_ICON: Record<CatId, string> = { you: 'pending_actions', work: 'play_circle', out: 'svg:inbox', tools: 'svg:speed' }
   // Il segnale di una categoria chiusa (Franz: «un segnale, non uno spostamento»), come HomeCatsUi.kt: ambra quando c'è qualcosa da
@@ -652,7 +655,8 @@
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
 {#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null; hot?: boolean } = {})}
   <!-- In cima ogni voce ha la stessa scheda (Franz 03/11 08:25, app-in-cima-uguali-03-11): senza un dato in più, il riassunto sotto. -->
-  {@const info = (key === listSkip || (up as string[]).includes(key)) && !part ? (slotExtra[key] ?? { line: right }) : null}
+  <!-- Le voci In cima stanno nel tabellone come righe (app-utilizzo-una-barra-03-11, Franz 03/11 13:11): la scheda resta solo per la voce dello slot. -->
+  {@const info = key === listSkip && !part ? (slotExtra[key] ?? { line: right }) : null}
   {#if info}
     <!-- Una voce nello slot (Franz 01/11 17:44): titolo, barra e numero, sotto una riga; il riepilogo a destra non c'è più. -->
     <button class="usageslot" class:draggable={!!onHomeOrder} data-sec-head={key} aria-expanded={o.isOpen ?? !!open[key]} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
@@ -676,7 +680,12 @@
 <section class="home" class:part={!!part} class:topdrag={topDrag}>
 {#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed'}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins'}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
+ {@const live = dragOrder ?? order}
+ <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->
  {#if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
+ {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip) as k (k)}
+   <div class="hsec onboard inboard" class:held={k === dragKey}>{@render secOf(k)}</div>
+ {/each}
 {/snippet}
   <!-- Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto. -->
   {#if allDone && (!part || part === 'you')}<div class="alldone" data-testid="tutto-fatto"><svg viewBox="0 0 24 24" width="32" height="32"><path pathLength="1" d="M5 12.5l5 5L20 7" /></svg></div>{/if}
@@ -818,11 +827,16 @@
     <div class="card wrows"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
   {:else if usage && showUsage && !part}
     <div class="secwrap" bind:this={usageEl}>{#if week && (listSkip === 'usage' || (up as string[]).includes('usage'))}
-      <button class="usageslot" class:draggable={!!onHomeOrder && !weekAlarm} data-sec-head="usage" data-testid="slot-utilizzo" aria-expanded={open.usage} onclick={() => { if (!dragJustEnded) toggleSec('usage') }} onpointerdown={(e) => secDown('usage', e)}>
-        <span class="ustop"><span class="ms" style:color={weekAlarm ? slotTone(week) : null}>data_usage</span><b>{t.homeUsage}</b>
-          <span class="usmeter"><i style="width:{week.pct}%;background:{slotTone(week)}"></i>{#if elapsedPct(week.resetAt, W7_S, now) != null}<s style="left:{elapsedPct(week.resetAt, W7_S, now)}%"></s>{/if}</span>
-          <span class="uspct" style:color={week.stale ? 'var(--tx3)' : weekAlarm ? slotTone(week) : null}>{week.pct}%</span><span class="ms tog" class:up={open.usage}>expand_more</span></span>
-        <span class="usnote">{[week.many ? (week.personal ? t.usageAccountPersonal : t.usageAccountWork) : null, t.usageWeek, week.stale ? t.quotaLineStale : lowerFirst(paceText(week.delta, week.day))].filter(Boolean).join(' · ')}</span>
+      <!-- Nel tabellone Utilizzo è una riga con la sua barra (app-utilizzo-una-barra-03-11); con l'allarme la riga è ambra e dice la
+           finestra vicina al limite: le 5 ore con l'ora in cui si azzera, o la settimana. -->
+      {@const a = alarm}
+      {@const pct = a ? a.pct : week.pct}
+      {@const tick = a ? elapsedPct(a.resetAt, a.week ? W7_S : H5_S, now) : elapsedPct(week.resetAt, W7_S, now)}
+      {@const reset = a && !a.week ? resetLabel(a.resetAt, now) : null}
+      <button class="sec usagerow" class:alarm={!!a} class:draggable={!!onHomeOrder && !a} data-sec-head="usage" data-testid="slot-utilizzo" aria-expanded={open.usage} onclick={() => { if (!dragJustEnded) toggleSec('usage') }} onpointerdown={(e) => secDown('usage', e)}>
+        <span class="ic"><span class="ms" aria-hidden="true">data_usage</span></span><span class="st">{a ? (a.week ? t.usageWeek : t.board5h) : t.homeUsage}</span>
+        <span class="usmeter"><i style="width:{pct}%;background:{a ? (pct >= 90 ? 'var(--red)' : 'var(--wait)') : slotTone(week)}"></i>{#if tick != null}<s style="left:{tick}%"></s>{/if}</span>
+        <span class="rt">{a ? [`${pct}%`, reset ? t.quotaResetsAt(reset) : null].filter(Boolean).join(' · ') : t.usageWeekPct(pct)}</span><span class="ms tog" class:up={open.usage}>expand_more</span>
       </button>
     {:else}{@render sec('usage', t.homeUsage, 'data_usage', null, 'home-sez-utilizzo', usageLine)}{/if}</div>
     {#if open.usage}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="card wrows">{@render (usageBlock ?? usage)()}</div></div></div>{/if}
@@ -901,14 +915,11 @@
   {#each cats.flatMap(c => c.sections).filter(k => catFor(k) === part && SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
 {:else}
   {@const live = dragOrder ?? order}
-  {#if live.slice(0, edgeAt(live)).some(k => k !== listSkip)}<div class="boardlabel" data-testid="home-tabellone-voci"><span class="ms" aria-hidden="true">push_pin</span>{t.boardLabel}{#if onHomeOrder}<button class="reset" data-testid="home-reset" onclick={resetHome}>{t.homeReset}</button>{/if}</div>{/if}
-  {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip) as k (k)}
-    <div class="hsec onboard" class:held={k === dragKey}>{@render secOf(k)}</div>
-  {/each}
+  <!-- La fascia «In cima» non c'è più: le sue voci stanno nel tabellone (slotBox, app-utilizzo-una-barra-03-11). -->
   <!-- Il bordo dello spazio in cima: fermo non si vede, durante il trascinamento di una sezione è la striscia dove lasciarla. -->
   <!-- Il bordo non si vede (app-tabellone-quattro-02-11): serve alle voci del tabellone per uscirne verso la loro categoria. -->
   <!-- Con delle voci In cima, il filo le separa dalle categorie anche quando la prima è chiusa (Franz 03/11 10:3x, app-in-cima-uguali-03-11). -->
-  <div class="topedge" class:line={live.slice(0, edgeAt(live)).some(k => k !== listSkip)} data-sec-head={EDGE}></div>
+  <div class="topedge" data-sec-head={EDGE}></div>
   {#if topDrag}<div class="offdrop" class:hot={offHot} style:top="{Math.max(0, edgeY)}px" data-testid={offHot ? 'cima-togli-acceso' : 'cima-togli'}>{t.homeOffTop}</div>{/if}
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
@@ -1461,6 +1472,13 @@
   .slotdrop { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); pointer-events: none; }
   .slotdrop.hot { border: 2px solid var(--tx); background: color-mix(in srgb, var(--bg) 55%, transparent); }
   .inslot { gap: 0; border-top: 1px solid var(--line); }
+  /* Le righe In cima nel tabellone (app-utilizzo-una-barra-03-11): righe compatte separate da un filo, la stessa scheda dei tre numeri. */
+  .inboard { gap: 0; border-top: 1px solid var(--line); }
+  .inboard > :global(.sec), .inboard > :global(.secwrap > .sec), .inslot > :global(.secwrap > .sec) { margin: 0; min-height: 46px; padding: 6px 12px 6px 0; font-size: 16px; }
+  .inboard > :global(.sec .ic), .inboard > :global(.secwrap > .sec .ic), .inslot > :global(.secwrap > .sec .ic) { width: 44px; margin-right: 4px; }
+  .usagerow .usmeter { flex: 1; min-width: 40px; margin: 0 12px; }
+  .usagerow.alarm { background: color-mix(in srgb, var(--wait) 14%, transparent); }
+  .usagerow.alarm .ic .ms, .usagerow.alarm .st, .usagerow.alarm .rt { color: var(--wait); }
   .inslot :global(.card) { margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
   .ustop { width: 100%; }
   .inslot :global(.onehead) { display: none; }

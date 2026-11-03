@@ -72,4 +72,27 @@ class UtilizzoRulesTest {
         assertEquals("b", s.account); assertEquals(82, s.pct); assertEquals(true, s.alarm); assertEquals(true, s.many)
         assertNull(UtilizzoRules.weekSlot(emptyMap(), 0))
     }
+
+    // app-utilizzo-una-barra-03-11: la barra fissa delle 5 ore lascia il tabellone; una finestra vicina al limite ci entra da sola in ambra.
+    private fun q5(h5: Int, reset: Long = 3600, stale: Boolean = false, w7: Int? = null) = it.pixelbox.cmwatch.contract.QuotaAccount(h5 = h5, resetH5 = reset, stale = stale, w7 = w7)
+
+    @Test fun usageAlarm_leCinqueOreDal75() {
+        assertNull(UtilizzoRules.usageAlarm(mapOf("a" to q5(74)), 0))
+        assertEquals(UtilizzoRules.UsageAlarm("a", false, 75, 3600L), UtilizzoRules.usageAlarm(mapOf("a" to q5(75)), 0))
+    }
+
+    @Test fun usageAlarm_laSettimanaComeLoSlot() {
+        assertEquals(UtilizzoRules.UsageAlarm("a", true, 80, null), UtilizzoRules.usageAlarm(mapOf("a" to acc(80)), 0))
+        assertNull(UtilizzoRules.usageAlarm(mapOf("a" to acc(40)), 0))
+    }
+
+    @Test fun usageAlarm_maiDaUnaLetturaVecchia() {
+        assertNull(UtilizzoRules.usageAlarm(mapOf("a" to q5(95, stale = true)), 0))
+    }
+
+    @Test fun usageAlarm_laFinestraPiuCaricaVince() {
+        assertEquals(UtilizzoRules.UsageAlarm("b", false, 90, 3600L), UtilizzoRules.usageAlarm(mapOf("a" to acc(80), "b" to q5(90)), 0))
+        assertEquals(UtilizzoRules.UsageAlarm("a", true, 92, null), UtilizzoRules.usageAlarm(mapOf("a" to q5(76, w7 = 92)), 0))
+        assertEquals("a pari le 5 ore, che finiscono prima", false, UtilizzoRules.usageAlarm(mapOf("a" to q5(80, w7 = 80)), 0)!!.week)
+    }
 }

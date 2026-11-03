@@ -1509,6 +1509,7 @@ It starts at your last message to the master.</string>
     <string name="usage_account_personal">Personal</string>
     <string name="usage_account_work">Work</string>
     <string name="usage_week">Week</string>
+    <string name="usage_week_pct">%1$d%% wk</string>
     <string name="usage_today">Today</string>
     <string name="usage_details">All the details</string>
     <string name="usage_now">now</string>

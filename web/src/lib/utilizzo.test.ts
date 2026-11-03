@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { elapsedPct, weekSlot, fiveHourLive, H5_S, peakHour, quotaBar, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
+import { elapsedPct, usageAlarm, weekSlot, fiveHourLive, H5_S, peakHour, quotaBar, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
 
 describe('utilizzo', () => {
   it('quanto è passato della finestra', () => {
@@ -74,5 +74,24 @@ describe('allarme della settimana', () => {
   it('con due account il più carico fra i freschi', () => {
     expect(weekSlot({ a: { w7: 30 }, b: { w7: 82 }, c: { w7: 99, stale: true } }, 0)).toMatchObject({ account: 'b', pct: 82, alarm: true, many: true })
     expect(weekSlot({}, 0)).toBeNull()
+  })
+})
+
+// app-utilizzo-una-barra-03-11: la barra fissa delle 5 ore lascia il tabellone; una finestra vicina al limite ci entra da sola in ambra.
+describe('allarme d\'uso nel tabellone', () => {
+  const q5 = (h5: number, o: { reset?: number; stale?: boolean; w7?: number } = {}) => ({ h5, reset_h5: o.reset ?? 3600, stale: o.stale ?? false, w7: o.w7 ?? null })
+  it('le 5 ore dal 75%', () => {
+    expect(usageAlarm({ a: q5(74) }, 0)).toBeNull()
+    expect(usageAlarm({ a: q5(75) }, 0)).toEqual({ account: 'a', week: false, pct: 75, resetAt: 3600 })
+  })
+  it('la settimana come lo slot', () => {
+    expect(usageAlarm({ a: { w7: 80 } }, 0)).toEqual({ account: 'a', week: true, pct: 80, resetAt: null })
+    expect(usageAlarm({ a: { w7: 40 } }, 0)).toBeNull()
+  })
+  it('mai da una lettura vecchia', () => { expect(usageAlarm({ a: q5(95, { stale: true }) }, 0)).toBeNull() })
+  it('la finestra più carica vince, a pari le 5 ore', () => {
+    expect(usageAlarm({ a: { w7: 80 }, b: q5(90) }, 0)).toEqual({ account: 'b', week: false, pct: 90, resetAt: 3600 })
+    expect(usageAlarm({ a: q5(76, { w7: 92 }) }, 0)).toEqual({ account: 'a', week: true, pct: 92, resetAt: null })
+    expect(usageAlarm({ a: q5(80, { w7: 80 }) }, 0)?.week).toBe(false)
   })
 })

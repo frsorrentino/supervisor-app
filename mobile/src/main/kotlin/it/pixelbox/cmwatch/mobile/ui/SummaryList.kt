@@ -226,7 +226,10 @@ fun SummaryList(
     // entra solo Utilizzo con l'allarme della settimana, come prima.
     val savedPin: String? = null
     val weekSlot = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(st.quota, now) }.takeIf { usage != null && showUsage }
-    val weekAlarm = weekSlot?.alarm == true
+    // app-utilizzo-una-barra-03-11: la barra fissa delle 5 ore lascia il tabellone; una finestra vicina al limite (5 ore o settimana) ci
+    // entra da sola, in ambra, finché dura. Il nome resta quello di quando scattava solo la settimana.
+    val usageAlarm = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.usageAlarm(st.quota, now) }.takeIf { usage != null && showUsage }
+    val weekAlarm = usageAlarm != null
     val pin = it.pixelbox.cmwatch.rules.HomeOrder.slot(savedPin, weekAlarm)
     val savedPinNow by androidx.compose.runtime.rememberUpdatedState(savedPin)
     val savedOrderNow by androidx.compose.runtime.rememberUpdatedState(savedOrder)
@@ -618,7 +621,7 @@ fun SummaryList(
                         if (b == HomeBox.WAITING && !sessionsOpen) { sessionsOpen = true; save("sessions", true) }
                         if (catsNow.any { c -> c.id == id && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, id))
                         catFocus = id
-                    }, onQuota, slot = { slotContent() })
+                    }, onQuota, joined = up.any { k -> k != pin }, slot = { slotContent() })
                     val held = dragKey
                     // Sul tabellone si rilascia una sezione che non c'è ancora; con quattro voci lo dice, e il rilascio non cambia niente.
                     if (held != null && catFor(held) != null && held !in up && !(weekAlarm && held == "usage")) SlotDrop(overSlot(held, dragY) && boardTakes(held), full = !boardTakes(held))
@@ -679,6 +682,12 @@ fun SummaryList(
         val live = if (catDrag) null else dragOrder
         val liveTop = live?.let { o -> o.take(o.indexOf(edge).coerceAtLeast(0)) } ?: up
         val liveBelow = live?.let { o -> o.drop(o.indexOf(edge) + 1) }
+        // Le righe In cima nel tabellone (app-utilizzo-una-barra-03-11): ognuna si attacca a quella sopra, tranne dopo una voce aperta che
+        // mette il suo corpo fra le righe (Sessioni, Esiti, Lavori); lì il pezzo si chiude con gli angoli e il seguente riparte.
+        val boardKeys = liveTop.filter { k -> k != listSkip }
+        val bodyBelow: (String) -> Boolean = { k -> (k == "sessions" && sessionsOpen) || (k == "esiti" && esitiOpen) || (k == "lavori" && lavoriOpen) }
+        val boardAbove: (String) -> Boolean = { k -> boardKeys.indexOf(k).let { i -> i == 0 || (i > 0 && !bodyBelow(boardKeys[i - 1])) } }
+        val boardBelow: (String) -> Boolean = { k -> boardKeys.indexOf(k).let { i -> i >= 0 && i < boardKeys.size - 1 && !bodyBelow(k) } }
         val renderSessions: () -> Unit = {
         val moving = movingIn("sessions")
         if (restRows.isNotEmpty() || justClosed != null || waitRows.isNotEmpty()) {
@@ -693,7 +702,7 @@ fun SummaryList(
                 // Il sottotitolo In cima: i nomi, prima chi aspetta Franz, poi «+N» come Suggerimenti (master 03/11 10:20, app-in-cima-uguali-03-11).
                 val boardNames = (waitRows + restRows).map { r -> r.session.name }.filter { x -> x != it.pixelbox.cmwatch.rules.ContextActions.MASTER }.distinct()
                 // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).
-                if ("sessions" in liveTop) BoardCard(moving()) { SlotRow(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, names = boardNames, onToggle = toggle) }
+                if ("sessions" in liveTop) BoardCard(moving(), boardAbove("sessions"), boardBelow("sessions")) { SlotRow(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, names = boardNames, onToggle = toggle) }
                 else Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, onToggle = toggle) }
             }
             if (sessionsOpen) renderWaiting()
@@ -787,7 +796,7 @@ fun SummaryList(
             dragPresent += "esiti"
             item(key = "sec-esiti") {
                 // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).
-                if ("esiti" in liveTop) BoardCard(moving()) { SlotRow(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, (out.red.size + out.settled).takeIf { n -> n > 0 }?.toString(), right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) }
+                if ("esiti" in liveTop) BoardCard(moving(), boardAbove("esiti"), boardBelow("esiti")) { SlotRow(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, (out.red.size + out.settled).takeIf { n -> n > 0 }?.toString(), right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) }
                 else Box(moving()) { V3Section(sectionDrag("esiti"), stringResource(R.string.box_outcomes_title), androidx.compose.material.icons.Icons.Outlined.SportsScore, (out.red.size + out.settled).takeIf { n -> n > 0 }?.toString(), right = if (esitiOpen) null else esitiLine(out), tag = "home-sez-esiti", open = esitiOpen, onToggle = { esitiOpen = !esitiOpen; save("esiti", esitiOpen) }) }
             }
             if (esitiOpen) item(key = "esiti") {
@@ -887,7 +896,7 @@ fun SummaryList(
                 "lavori" -> if (showLavori && lavoriInfo != null) LavoriSlotRow(lavoriInfo, now, slotDrag("lavori"), lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
                 else if (showLavori && (foryou != null || outside.isNotEmpty())) SlotRow(slotDrag("lavori"), stringResource(R.string.lavori_title), icons.Checklist, lavoriCount?.toString(), right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
                 "usage" -> if (hasUsage) {
-                    if (weekSlot != null) UsageSlotRow(weekSlot, now, slotDrag("usage"), usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
+                    if (weekSlot != null || usageAlarm != null) UsageSlotRow(weekSlot, now, slotDrag("usage"), usageOpen, usageAlarm) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     else SlotRow(slotDrag("usage"), stringResource(R.string.home_sec_usage), icons.DataUsage, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     if (usageOpen) androidx.compose.runtime.CompositionLocalProvider(LocalUsageInSlot provides true) { usage!!() }
                 }
@@ -941,7 +950,7 @@ fun SummaryList(
             if (!has) { renderKey(k); return }
             dragPresent += k
             item(key = "sec-$k") {
-                BoardCard(movingIn(k)()) { slotFor(k) }
+                BoardCard(movingIn(k)(), boardAbove(k), boardBelow(k)) { slotFor(k) }
             }
             if (k == "lavori") renderLavori()
             // Plugin e skill sta dentro Sistema anche sul tabellone, come nella lista.
@@ -949,23 +958,14 @@ fun SummaryList(
         }
         val shownCats = if (catDrag) it.pixelbox.cmwatch.rules.HomeCats.catOrder(cats, dragOrder.orEmpty()) else cats
         fun moveCatTo(i: Int, to: Int) = setCats(it.pixelbox.cmwatch.rules.HomeCats.moveCat(cats, i, to))
-        if (liveTop.any { k -> k != listSkip }) item(key = "top-label") {
-            Box(Modifier.animateItem()) {
-                // Reset (app-cima-rilascio-reset-03-11): In cima vuota e l'ordine iniziale, come «Ripristina» in Riordina.
-                BoardLabel(onReset = if (onHomeOrder == null) null else ({
-                    val full = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.DEFAULT, null, emptyList()) ?: emptyList()
-                    sentOrder.send(full); saveOrder?.invoke(full)
-                }))
-            }
-        }
+        // La fascia «In cima» con la sua etichetta non c'è più: le voci sono righe del tabellone (app-utilizzo-una-barra-03-11).
         liveTop.forEach(::renderBoard)
         // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
         if (dragKey != null && dragKey in up) dragPresent += edge
-        val topLine = liveTop.any { k -> k != listSkip }
-        item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge), line = topLine) } }
+        item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
-            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second, divider = !(topLine && ci == 0)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
+            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second, divider = true) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
             else item(key = "cat-${c.id}") {
                 Box(movingIn("cat:${c.id}")()) {
                     val (bits, amber) = catBits(c.id)

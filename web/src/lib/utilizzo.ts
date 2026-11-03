@@ -63,6 +63,25 @@ export function weekSlot(quota: Record<string, QuotaLike>, now: number): WeekSlo
   return { account, personal: isPersonalQuota(account, q as never), pct, resetAt, delta, day: weekDay(resetAt, now), stale, alarm: !stale && (pct >= 75 || (delta ?? 0) >= 10), many: list.length > 1 }
 }
 
+/**
+ * app-utilizzo-una-barra-03-11 (Franz 03/11 13:11, «Righe nel tabellone»), porta di UtilizzoRules.usageAlarm: la barra fissa delle 5 ore
+ * lascia il tabellone; una finestra vicina al limite ci entra da sola in ambra. Le 5 ore dal 75% (lettura fresca), la settimana con
+ * l'allarme dello slot; con tutte e due la più carica, a pari le 5 ore, che finiscono prima. Null senza allarme.
+ */
+export type UsageAlarm = { account: string; week: boolean; pct: number; resetAt: number | null }
+export function usageAlarm(quota: Record<string, QuotaLike & { h5?: number | null; reset_h5?: number | null }>, now: number): UsageAlarm | null {
+  const h5 = Object.entries(quota).filter(([, q]) => !q.stale).map(([account, q]) => {
+    const live = fiveHourLive(q.h5, q.reset_h5, false, now)
+    const pct = live == null ? -1 : Math.max(0, Math.min(100, live))
+    return pct >= 75 ? { account, week: false, pct, resetAt: q.reset_h5 ?? null } : null
+  }).filter((x): x is UsageAlarm => !!x).reduce<UsageAlarm | null>((a, b) => (!a || b.pct > a.pct ? b : a), null)
+  const w = weekSlot(quota, now)
+  const wk: UsageAlarm | null = w?.alarm ? { account: w.account, week: true, pct: w.pct, resetAt: w.resetAt } : null
+  if (!h5) return wk
+  if (!wk) return h5
+  return wk.pct > h5.pct ? wk : h5
+}
+
 export type QuotaBar = { week: boolean; pct: number; resetAt: number | null; windowS: number; delta: number | null; day: number | null }
 
 /**
