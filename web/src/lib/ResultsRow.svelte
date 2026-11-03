@@ -22,7 +22,8 @@
 {/if}
 
 <style>
-  .rr { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border-radius: 14px; background: var(--s2); color: var(--tx); text-align: left; margin: 4px 0; }
+  /* Allineata alle altre righe in cima alla chat (margine come .nudge). */
+  .rr { display: flex; align-items: center; gap: 10px; box-sizing: border-box; width: calc(100% - 24px); padding: 10px 14px; border-radius: 14px; background: var(--s2); color: var(--tx); text-align: left; margin: 0 12px 8px; }
   .rr b { font-size: 16px; }
   .rr small { color: var(--tx2); }
   .sp { flex: 1; }
