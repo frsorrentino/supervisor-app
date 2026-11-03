@@ -12,6 +12,8 @@
     const alts = [...el.querySelectorAll<HTMLElement>(':scope > .n')]
     const show = (k: number) => items.forEach((s, i) => (s.hidden = i >= k))
     alts.forEach(a => (a.hidden = true))
+    // Lo spazio si misura con tutte le parti in vista: ridotta, la riga sarebbe larga quanto quel che resta e non ricrescerebbe più.
+    show(items.length)
     const max = el.clientWidth + 0.5
     const k = count(items.length, max, n => { show(n); return el!.scrollWidth })
     show(k)
