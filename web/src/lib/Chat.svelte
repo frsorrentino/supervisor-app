@@ -65,7 +65,7 @@
     onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null
     /** Contratto 1.72: la vista «Modifiche», op `changes` con `file` = il percorso relativo o null; null = il relay non la conosce. */
     onChanges?: ((file: string | null) => Promise<Load<ChangesView>>) | null
-    menuMove?: { label: string; onMove: () => void } | null
+    menuMove?: { label: string; onMove: () => void; on?: boolean; icon?: string }[] | null
     events: Event[]; sent: Scheduled[]; read: Set<string>; onRead: (key: string) => void; onPromptTo: (session: string, text: string) => void
   } = $props()
   // Franz, 06/10 08:46: la master si apre sulla conversazione; la sua casa resta a un tocco («Casa»).

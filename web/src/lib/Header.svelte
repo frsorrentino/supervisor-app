@@ -18,7 +18,7 @@
   // badge e nome, come la plancia del tablet.
   let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, menuMove = null }: {
     /** La voce del menu ⋮ che sposta il pannello della master di lato, nella plancia (Franz 30/10 13:26). */
-    menuMove?: { label: string; onMove: () => void } | null
+    menuMove?: { label: string; onMove: () => void; on?: boolean; icon?: string }[] | null
 
     /** Sul telefono il menu delle sessioni («Vai a») sul nome e il ≡ dell'app, come la testata della sessione nell'app. */
     onGo?: ((name: string | null) => void) | null; onReopen?: ((name: string) => void) | null; appMenu?: import('svelte').Snippet | null
@@ -238,11 +238,16 @@
               <span><span class="mt">{t.openInClaude}</span><span class="msub">{t.openInClaudeSub}</span></span>
             </a>
           {/if}
-          {#if menuMove}
-            <button class="mi" role="menuitem" onclick={() => { menu = false; menuMove.onMove() }}>
-              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M3 12h18" /></svg>
-              <span><span class="mt">{menuMove.label}</span></span>
-            </button>
+          <!-- Le posizioni e i tasti della master stanno qui (Franz 03/11 17:05, scelta C, app-master-tasti-compatti-03-11). -->
+          {#if menuMove?.length}
+            <hr />
+            {#each menuMove as m (m.label)}
+              <button class="mi" role="menuitemradio" aria-checked={m.on ?? false} onclick={() => { menu = false; m.onMove() }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d={m.icon ?? 'M8 7l-5 5 5 5M16 7l5 5-5 5M3 12h18'} /></svg>
+                <span><span class="mt">{m.label}</span></span>
+                {#if m.on}<span class="ms on" aria-hidden="true">check</span>{/if}
+              </button>
+            {/each}
           {/if}
           {#if canExit}
             <hr />
@@ -458,6 +463,7 @@
   .mi:hover { background: var(--high); }
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mi > span { display: flex; flex-direction: column; gap: 2px; }
+  .mi > .on { margin-left: auto; flex-direction: row; color: var(--accent); font-size: 20px; }
   .mt { font-size: 15.5px; }
   .msub { font-size: 13px; color: var(--text2); }
   .danger svg { stroke: var(--b-alert); }
