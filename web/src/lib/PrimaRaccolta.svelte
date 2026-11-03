@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ItemList from './ItemList.svelte'
+  import { prima } from './itemRows'
   import type { CmdResult, PrimaRaccoltaPage, PrimaRaccoltaSummary } from './contract'
   import { decodePrima } from './decideDecode'
   import { screen } from './decide'
@@ -26,13 +28,12 @@
     {#if askConsent(page)}
       <div class="c"><p>{page.ask_text}</p><div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentno'} disabled={!!busy} onclick={() => touch('consent', 'no')}>{#if busy === 'consentno'}✓ {/if}{t.primaNo}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{t.primaYes}</button></div></div>
     {/if}
-    {#each page.sections as s (s.key)}
-      <div class="c" data-testid={`prima-${s.key}`}>
-        <b>{t.primaSections[s.key] ?? s.key}</b>
+    <!-- Le sezioni come righe (app-richiede-te-righe-02-11): il tocco apre il testo intero e «Vai». -->
+    <ItemList rows={page.sections.map(prima)} testid="prima" name={(r) => t.primaSections[r.key] ?? r.key}>{#snippet card(r)}{@const s = page?.sections.find(x => x.key === r.key)}{#if s}
+      <div class="in" data-testid={`prima-${s.key}`}>
         {#if emptySection(s)}{#if s.why}<p class="m">{s.why}</p>{/if}{#if s.when}<p class="m">{s.when}</p>{/if}{:else}<p>{s.text}</p>{/if}
         {#if screen(s.dove)}<div class="ac"><span class="sp"></span><button class="text" onclick={() => onScreen(screen(s.dove)!)}>{t.featuresGo}</button></div>{/if}
-      </div>
-    {/each}
+      </div>{/if}{/snippet}</ItemList>
     {#if firstRoundOffer(page)}
       <div class="c"><p>{firstRoundOffer(page)}</p><div class="ac"><span class="sp"></span><button class="tonal" class:done={busy === 'first_round'} disabled={!!busy} onclick={() => touch('first_round')}>{#if busy === 'first_round'}✓ {/if}{t.primaFirstRound}</button></div></div>
     {/if}
@@ -41,6 +42,7 @@
 </div>
 
 <style>
+  .in { display: flex; flex-direction: column; gap: 6px; }
   /* La conferma (voce 11), come in DaProvare. */
   .tonal, .out { transition: background-color 150ms, color 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
   .tonal.done, .out.done { background: var(--good); color: var(--bg); border-color: transparent; transform: scale(1.06); }

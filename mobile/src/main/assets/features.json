@@ -840,8 +840,8 @@
     "en": "Useful so you don't miss what the master noticed for you."
    },
    "how": {
-    "it": "Tocca Accetta per mandarla alla master, o Altre risposte per più tardi o mai.",
-    "en": "Tap Accept to send it to the master, or Other answers for later or never."
+    "it": "Tocca la voce, poi Accetta per mandarla alla master, o Altre risposte per più tardi o mai.",
+    "en": "Tap the item, then Accept to send it to the master, or Other answers for later or never."
    },
    "route": null,
    "section": "suggestions",
@@ -851,7 +851,7 @@
    },
    "web": {
     "file": "web/src/lib/SuggestionsCard.svelte",
-    "needle": "sugKind"
+    "needle": "sugAccept"
    }
   },
   {

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ItemList from './ItemList.svelte'
+  import { altrove as altroveRow, promemoria as promemoriaRow, rimasto as rimastoRow } from './itemRows'
   import type { CmdResult, RimastoItem, SeguitiPage, SeguitiSummary } from './contract'
   import { decodeSeguiti } from './decideDecode'
   import { age, canAccept, canAlign, changedPaths, clean, fired, ordered, whenText } from './seguiti'
@@ -51,10 +53,10 @@
   {:else}
     <h3>{t.seguitiRimasto}</h3>
     {#if page.rimasto.length === 0}<p class="m">{t.seguitiRimastoEmpty}</p>{/if}
-    {#each ordered(page.rimasto).filter(i => !gone[i.product + i.key]) as i (i.product + i.key)}
-      <div class="c" data-testid={`rimasto-${i.key}`} out:slide={{ duration: outMs() }}>
-        <b>{i.title || i.key}</b>
-        <p class="m">{[i.product, i.where].filter(Boolean).join(' · ')}</p>
+    <!-- Le voci come righe (app-richiede-te-righe-02-11): il tocco apre la scheda coi tasti. -->
+    {@const rim = ordered(page.rimasto).filter(i => !gone[i.product + i.key])}
+    <ItemList rows={rim.map(rimastoRow)} testid="seguito">{#snippet card(r)}{@const i = rim.find(x => rimastoRow(x).key === r.key)}{#if i}
+      <div class="in" data-testid={`rimasto-${i.key}`}>
         <p>{ageText(i)}</p>
         <p class="m">{alignedText(i)}</p>
         {#if i.task}<p class="m">{t.seguitiTask(i.task)}</p>{/if}
@@ -62,31 +64,27 @@
           {#if canAccept(i)}<button class="out" class:done={picked[i.product + i.key] === 'ok'} disabled={!!picked[i.product + i.key]} onclick={() => act('ok', i.product, i.key)}>{#if picked[i.product + i.key] === 'ok'}✓ {/if}{t.seguitiAccept}</button>{/if}
           {#if canAlign(i)}<button class="tonal" class:done={picked[i.product + i.key] === 'allinea'} disabled={!!picked[i.product + i.key]} onclick={() => act('allinea', i.product, i.key)}>{#if picked[i.product + i.key] === 'allinea'}✓ {/if}{t.seguitiAlign}</button>{/if}
         </div>{/if}
-      </div>
-    {/each}
+      </div>{/if}{/snippet}</ItemList>
     <h3>{t.seguitiAltrove}</h3>
     {#if page.altrove.length === 0}<p class="m">{t.seguitiAltroveEmpty}</p>{/if}
-    {#each page.altrove as r (r.id)}
-      <div class="c" data-testid={`altrove-${r.id}`}>
-        <b>{r.text}</b>
+    <ItemList rows={page.altrove.map(altroveRow)} testid="altrove">{#snippet card(row)}{@const r = page?.altrove.find(x => `a-${x.id}` === row.key)}{#if r}
+      <div class="in" data-testid={`altrove-${r.id}`}>
         <p class="m">{r.complete ? t.seguitiChecked(r.done, r.total) : t.seguitiPartial(r.done, r.total)}{r.at ? ` · ${whenText(r.at)}` : ''}</p>
         {#if r.running}<p class="m">{t.seguitiRunning}</p>{/if}
         {#if r.positive.length}<p class="m">{t.seguitiFoundIn}</p>{#each r.positive as x (x)}<p>{x}</p>{/each}{/if}
         {#if r.errors.length}<p class="m">{t.seguitiErrors}</p>{#each r.errors as x (x)}<p>{x}</p>{/each}{/if}
         {#if clean(r)}<p>{t.seguitiClean}</p>{/if}
         {#if r.task}<p>{t.seguitiCard(r.task)}</p><div class="ac"><span class="sp"></span><button class="text" onclick={onLavori}>{t.seguitiOpenLavori}</button></div>{/if}
-      </div>
-    {/each}
+      </div>{/if}{/snippet}</ItemList>
     <h3>{t.seguitiPromemoria}</h3>
     {#if page.promemoria.length === 0}<p class="m">{t.seguitiPromemoriaEmpty}</p>{/if}
-    {#each page.promemoria.filter(p => !gone[p.id]) as p (p.id)}
-      <div class="c" data-testid={`promemoria-${p.id}`} out:slide={{ duration: outMs() }}>
-        <p>{p.text}</p>
+    {@const prom = page.promemoria.filter(p => !gone[p.id])}
+    <ItemList rows={prom.map(promemoriaRow)} testid="promemoria">{#snippet card(row)}{@const p = prom.find(x => `p-${x.id}` === row.key)}{#if p}
+      <div class="in" data-testid={`promemoria-${p.id}`}>
         <p class="m">{p.at_time ? t.seguitiAtTime(whenText(p.at_time)) : t.seguitiUntil}</p>
         {#if p.expires_at}<p class="m">{t.seguitiExpires(whenText(p.expires_at))}</p>{/if}
         <div class="ac"><span class="sp"></span><button class="text" class:done={picked[p.id] === 'remind_remove'} disabled={!!picked[p.id]} onclick={() => act('remind_remove', undefined, p.id)}>{#if picked[p.id] === 'remind_remove'}✓ {/if}{t.seguitiRemove}</button></div>
-      </div>
-    {/each}
+      </div>{/if}{/snippet}</ItemList>
     <p class="m">{t.seguitiAddHint}</p>
     <div class="ac"><span class="sp"></span><button class="text" onclick={onMaster}>{t.seguitiWriteMaster}</button></div>
     {#if page.promemoria_scattati.length}
@@ -99,6 +97,7 @@
 </div>
 
 <style>
+  .in { display: flex; flex-direction: column; gap: 6px; }
   /* La conferma (voce 11), come in DaProvare. */
   .tonal, .out, .text { transition: background-color 150ms, color 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
   .tonal.done, .out.done { background: var(--good); color: var(--bg); border-color: transparent; transform: scale(1.06); }

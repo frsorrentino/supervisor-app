@@ -4,10 +4,11 @@
   import { allOk, screen } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
-  import { flip } from 'svelte/animate'
   import { slide } from 'svelte/transition'
   import { leave } from './leave'
-  import { bounceEase, bounceMs, reducedMotion } from './motion'
+  import { reducedMotion } from './motion'
+  import ItemList from './ItemList.svelte'
+  import { prove, proveKo, proveRed } from './itemRows'
   // «Da provare» (contratto 1.99, banco_prova), porta di DaProvareScreen. Sul web vale l'ultima versione online: nessuna prova aspetta un'installazione.
   let { run, onScreen, onShot }: { run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onScreen: (s: string) => void; onShot: (f: File, note: string) => void } = $props()
   let page = $state<ProvePage | null>(null)
@@ -35,20 +36,18 @@
   {:else if !page.groups.length && !page.ko.length && !page.red.length}<p class="m">{t.proveNone}</p>{/if}
   {#each (page?.groups ?? []).filter(g => shown(g).length) as g (g.build)}
     <div class="h" out:slide={{ duration: outMs() }}><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}✓ {/if}{t.proveAllOk}</button>{/if}</div>
-    {#each shown(g) as p (p.id)}
-      {@const pk = picked[String(p.id)]}
-      <div class="c" class:picked={!!pk} out:slide={{ duration: outMs() }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>
-        <b>{p.short ?? p.title ?? p.task}</b><p>{p.fai}</p><p class="m">{t.proveExpected(p.atteso)}</p>
+    <!-- Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok. Sul web la versione c'è sempre. -->
+    <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
+      <div class="in"><p>{p.fai}</p><p class="m">{t.proveExpected(p.atteso)}</p>
         <div class="ac">
           {#if screen(p.dove)}<button class="text" onclick={() => onScreen(screen(p.dove)!)}>{t.featuresGo}</button>{/if}
           <span class="sp"></span>
           <button class="out" class:fade={pk === 'ok'} disabled={!!pk} onclick={() => (ko = p)}>{t.proveKo}</button><button class="tonal" class:done={pk === 'ok'} class:fade={pk === 'ko'} disabled={!!pk} onclick={() => result([String(p.id)], String(p.id), 'ok')}>{#if pk === 'ok'}✓ {/if}{t.proveOk}</button>
         </div>
-      </div>
-    {/each}
+      </div>{/if}{/snippet}</ItemList>
   {/each}
-  {#if page?.ko.length}<div class="h"><span>{t.proveReported}</span></div>{#each page.ko as k (k.id)}<div class="c"><b>{k.short ?? k.task}</b><p class="m">{k.text}</p></div>{/each}{/if}
-  {#if page?.red.length}<div class="h"><span>{t.proveRed}</span></div>{#each page.red as r (r.task)}<div class="c"><b>{r.short ?? r.task}</b><p class="r">{r.reason ?? t.proveRedRunning}</p></div>{/each}{/if}
+  {#if page?.ko.length}<div class="h"><span>{t.proveReported}</span></div><ItemList rows={page.ko.map(proveKo)} testid="prova-ko">{#snippet card(r)}<p class="m in">{page?.ko.find(k => `ko-${k.id}` === r.key)?.text}</p>{/snippet}</ItemList>{/if}
+  {#if page?.red.length}<div class="h"><span>{t.proveRed}</span></div><ItemList rows={page.red.map(proveRed)} testid="prova-rossa">{#snippet card(r)}<p class="r in">{page?.red.find(x => `red-${x.task}` === r.key)?.reason ?? t.proveRedRunning}</p>{/snippet}</ItemList>{/if}
   {#if page?.groups.length}<p class="m small">{t.proveWeb}</p>{/if}
   {#if ko}
     <div class="c ko">
@@ -61,6 +60,7 @@
 </div>
 
 <style>
+  .in { display: flex; flex-direction: column; gap: 6px; }
   .dp { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
   .h { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 0; font: 12px var(--mono); color: var(--text2); }
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }

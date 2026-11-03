@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import it.pixelbox.cmwatch.rules.ItemRows
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -48,15 +49,16 @@ fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?,
         if (page == null) { if (!failed) Note(stringResource(R.string.prove_loading)); return@Column }
         Heading(stringResource(R.string.seguiti_rimasto))
         if (page.rimasto.isEmpty()) Note(stringResource(R.string.seguiti_rimasto_empty))
-        Seguiti.ordered(page.rimasto).forEach { RimastoCard(it, onAction) }
+        // Le voci come righe (app-richiede-te-righe-02-11): il tocco apre la scheda coi tasti.
+        val rim = Seguiti.ordered(page.rimasto)
+        ItemList(rim.map { ItemRows.rimasto(it) }, "seguito") { r -> rim.firstOrNull { x -> ItemRows.rimasto(x).key == r.key }?.let { RimastoCard(it, onAction) } }
         Heading(stringResource(R.string.seguiti_altrove))
         if (page.altrove.isEmpty()) Note(stringResource(R.string.seguiti_altrove_empty))
-        page.altrove.forEach { AltroveCard(it, onLavori) }
+        ItemList(page.altrove.map { ItemRows.altrove(it) }, "altrove") { r -> page.altrove.firstOrNull { x -> "a-${x.id}" == r.key }?.let { AltroveCard(it, onLavori) } }
         Heading(stringResource(R.string.seguiti_promemoria))
         if (page.promemoria.isEmpty()) Note(stringResource(R.string.seguiti_promemoria_empty))
-        page.promemoria.forEach { p ->
+        ItemList(page.promemoria.map { ItemRows.promemoria(it) }, "promemoria") { r -> page.promemoria.firstOrNull { x -> "p-${x.id}" == r.key }?.let { p ->
             Card {
-                Text(p.text, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                 Text(when {
                     p.atTime != null -> stringResource(R.string.seguiti_at_time, Seguiti.whenText(p.atTime!!))
                     else -> stringResource(R.string.seguiti_until)
@@ -65,13 +67,13 @@ fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?,
                 var gone by androidx.compose.runtime.remember(p.id) { androidx.compose.runtime.mutableStateOf(false) }
                 TextButton(onClick = { gone = true; onAction("remind_remove", null, p.id) }, enabled = !gone, modifier = Modifier.align(Alignment.End)) { Text((if (gone) "✓ " else "") + stringResource(R.string.seguiti_remove)) }
             }
-        }
+        } }
         Note(stringResource(R.string.seguiti_add_hint))
         TextButton(onClick = onMaster, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.seguiti_write_master)) }
         if (page.promemoriaScattati.isNotEmpty()) {
             Heading(stringResource(R.string.seguiti_fired_title))
             page.promemoriaScattati.forEach { p ->
-                Card {
+                Boxed {
                     Text(p.text, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                     p.at?.let { Text(stringResource(if (Seguiti.fired(p)) R.string.seguiti_fired else R.string.seguiti_expired, Seguiti.whenText(it)), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
                 }
@@ -82,12 +84,13 @@ fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?,
 
 @Composable private fun Heading(t: String) = Text(t, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, modifier = Modifier.padding(start = 4.dp, top = 6.dp))
 @Composable private fun Note(t: String) = Text(t, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
-@Composable private fun Card(content: @Composable ColumnScope.() -> Unit) = Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
+/** Dentro una riga aperta: niente fondo, la riga lo dà già (app-richiede-te-righe-02-11). Le schede scattate restano schede. */
+@Composable private fun Card(content: @Composable ColumnScope.() -> Unit) = Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
+@Composable private fun Boxed(content: @Composable ColumnScope.() -> Unit) = Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RimastoCard(i: RimastoItem, onAction: (String, String?, String) -> Unit) = Card {
-    Text(i.title.ifBlank { i.key }, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
     Text(listOfNotNull(i.product, i.where?.takeIf { it.isNotBlank() }).joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     Text(when (Seguiti.age(i)) {
         Seguiti.Age.ALIGNED -> stringResource(R.string.seguiti_aligned)
@@ -115,7 +118,6 @@ private fun RimastoCard(i: RimastoItem, onAction: (String, String?, String) -> U
 
 @Composable
 private fun AltroveCard(r: AltroveRun, onLavori: () -> Unit) = Card {
-    Text(r.text, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
     Text((if (Seguiti.partial(r)) stringResource(R.string.seguiti_partial, r.done, r.total) else stringResource(R.string.seguiti_checked, r.done, r.total)) + (r.at?.let { " · " + Seguiti.whenText(it) } ?: ""), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     if (r.running) Text(stringResource(R.string.seguiti_running), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     if (r.positive.isNotEmpty()) { Text(stringResource(R.string.seguiti_found_in), style = MaterialTheme.typography.bodyMedium, color = Cm.text2); r.positive.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text) } }

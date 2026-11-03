@@ -1303,6 +1303,12 @@ It starts at your last message to the master.</string>
     <string name="lavori_old_relay">Update supervisor on the PC to see the registry\'s commitments</string>
     <string name="lavori_home_night">%1$d tonight</string>
     <string name="lavori_home_today">%1$d today</string>
+    <string name="item_more">%1$d more</string>
+    <string name="item_to_install">to install</string>
+    <string name="item_reported">reported</string>
+    <string name="item_red">red check</string>
+    <string name="item_until">on condition</string>
+    <string name="item_empty">empty</string>
     <string name="lavori_all">All the work</string>
     <string name="lavori_done_prompt">Done: %1$s. Resume %2$s</string>
     <!-- Contract 1.83: MCP server questions (elicitation) -->

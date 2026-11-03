@@ -2,7 +2,8 @@
   import type { Suggestion } from './contract'
   import { t } from './t'
   import { options } from './suggestions'
-  import { bounceEase, bounceMs, reducedMotion } from './motion'
+  import ItemList from './ItemList.svelte'
+  import { split, suggestion } from './itemRows'
 
   // «Suggerimenti della master» (Franz 24/10 19:46, scheda A del mockup docs/mockup/2026-10-24-suggerimenti-home; contratto
   // 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Parliamone»,
@@ -13,66 +14,34 @@
   let more = $state(new Set<string>())
   // Voce 12: la voce esce nel verso della scelta, la successiva sale con la molla. Se la voce resta, torna.
   let leaving = $state<Record<string, string>>({})
+  // Una voce risposta esce subito dalle righe; se il relay la tiene, dopo 3 secondi torna.
   function answer(s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', option?: string) {
-    if (reducedMotion()) { (onAnswer as (a: Suggestion, b: string, c?: string) => void)(s, action, option); return }
     leaving = { ...leaving, [s.id]: action }
-    setTimeout(() => (onAnswer as (a: Suggestion, b: string, c?: string) => void)(s, action, option), 160)
-    setTimeout(() => { const { [s.id]: _, ...rest } = leaving; leaving = rest }, 3200)
+    ;(onAnswer as (a: Suggestion, b: string, c?: string) => void)(s, action, option)
+    setTimeout(() => { const { [s.id]: _, ...rest } = leaving; leaving = rest }, 3000)
   }
-  const rise = () => ({ duration: bounceMs(), easing: bounceEase, css: (u: number) => `transform: scale(${0.95 + 0.05 * u})` })
-  const icon: Record<string, string> = {
-    recurring: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
-    cleanup: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
-    deadline: 'M12 9v4l2 2M9 2h6M20 13a8 8 0 1 1-16 0 8 8 0 0 1 16 0z',
-    quota: 'M21 12a9 9 0 1 1-9-9M21 3v6h-6',
-    choice: 'M6 3v6a6 6 0 0 0 6 6h0a6 6 0 0 1 6 6M18 3v4M6 21v-4M14 7l4-4 4 4',
-    followup: 'M15 4l5 5-5 5M20 9H9a5 5 0 0 0 0 10h3',
-    unsaved: 'M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 3v5h7V3M8 14h8v7H8z',
-    waiting: 'M6 2h12M6 22h12M7 2v4l5 6 5-6V2M7 22v-4l5-6 5 6v4',
-    idea: 'M9 18h6M10 22h4M12 2a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 2z',
-    proposal: 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6',
-    // Contratto 1.94: le note di claude-observe di un plugin, un foglietto con l'angolo piegato.
-    observe: 'M15 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10zM15 21v-4a2 2 0 0 1 2-2h4M7 8h10M7 12h6',
-    // Contratto 1.102: un promemoria scattato, una campanella; il suo prompt arriva alla master solo con Accetta.
-    reminder: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
-    // Un tipo che quest'app non conosce: una stella neutra, non più l'icona della quota (documento suggerimenti-coda, §8.8).
-    other: 'M12 3l1.9 4.6L19 9l-4 3.4L16 18l-4-2.8L8 18l1-5.6L5 9l5.1-1.4z',
-  }
+  const rows = $derived(shown.filter(s => !leaving[s.id]))
 </script>
 
 <!-- Nello stile «Studio e Diretta» (30/10): fuori da «Ti aspettano», una lista a filo col binario; il tipo è l'icona grigia
      a sinistra e la parola sopra il testo; a destra «Altre risposte» (da cui si rifiuta) e «Accetta» tonale. -->
-<div class="card sugg">
-  {#each shown as s (s.id)}
-    <div class="sug" class:out-fwd={leaving[s.id] === 'accept' || leaving[s.id] === 'choose' || leaving[s.id] === 'discuss'} class:out-down={leaving[s.id] === 'later' || leaving[s.id] === 'never'} in:rise>
-      <span class="rail sym"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={icon[s.kind] ?? icon.other} /></svg></span>
-      <span class="txt">
-        <span class="k">{t.sugKind[s.kind] ?? t.sugKindOther}</span>
-        <span class="body">{s.text}</span>
-        <span class="btns">
-          {#if more.has(s.id)}
-            <button class="text" onclick={() => answer(s, 'discuss')}>{t.sugDiscuss}</button>
-            <button class="text" onclick={() => answer(s, 'later')}>{t.sugLater}</button>
-            <button class="text" onclick={() => answer(s, 'never')}>{t.sugNever}</button>
-          {:else}<button class="text" aria-expanded="false" onclick={() => (more = new Set([...more, s.id]))}>{t.sugMore}</button>{/if}
-          {#each options(s) as o (o)}<button class="tonal" onclick={() => answer(s, 'choose', o)}>{o}</button>{:else}<button class="tonal" onclick={() => answer(s, 'accept')}>{t.sugAccept}</button>{/each}
-        </span>
-      </span>
-    </div>
-  {/each}
-</div>
+<!-- Le voci come righe (app-richiede-te-righe-02-11): pallino ambra, la prima frase, a destra il tipo, sotto il resto; il tocco
+     apre il testo intero coi tasti: «Altre risposte» (da cui si rifiuta) e «Accetta» tonale. -->
+<ItemList rows={rows.map(suggestion)} testid="suggerimento">{#snippet card(r)}{@const s = rows.find(x => x.id === r.key)}{#if s}
+  <span class="txt">
+    {#if split(s.text)[1]}<span class="body">{split(s.text)[1]}</span>{/if}
+    <span class="btns">
+      {#if more.has(s.id)}
+        <button class="text" onclick={() => answer(s, 'discuss')}>{t.sugDiscuss}</button>
+        <button class="text" onclick={() => answer(s, 'later')}>{t.sugLater}</button>
+        <button class="text" onclick={() => answer(s, 'never')}>{t.sugNever}</button>
+      {:else}<button class="text" aria-expanded="false" onclick={() => (more = new Set([...more, s.id]))}>{t.sugMore}</button>{/if}
+      {#each options(s) as o (o)}<button class="tonal" onclick={() => answer(s, 'choose', o)}>{o}</button>{:else}<button class="tonal" onclick={() => answer(s, 'accept')}>{t.sugAccept}</button>{/each}
+    </span>
+  </span>{/if}{/snippet}</ItemList>
 
 <style>
-  .card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; }
-  .rail { width: 52px; flex: none; display: flex; justify-content: center; color: var(--tx2); }
-  .sug { display: flex; gap: 8px; padding: 12px 12px 12px 0; border-top: 1px solid var(--line); }
-  .sug:first-of-type { border-top: 0; }
-  .sug { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .sug.out-fwd { transform: translateX(25%); opacity: 0; }
-  .sug.out-down { transform: translateY(50%); opacity: 0; }
-  .sym { padding-top: 2px; }
   .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }
-  .k { font-size: 13px; color: var(--tx3); }
   .body { font-size: 15px; line-height: 1.4; color: var(--tx); }
   .btns { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; margin-top: 8px; }
   .btns button { font: 600 15px var(--display); letter-spacing: .02em; white-space: nowrap; }

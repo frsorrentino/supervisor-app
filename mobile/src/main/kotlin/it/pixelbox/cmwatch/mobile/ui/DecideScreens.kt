@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import it.pixelbox.cmwatch.rules.ItemRows
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -110,14 +111,16 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
                 ConfirmButton(stringResource(R.string.prima_yes), confirmed = tapped == "si", enabled = tapped == null, faded = tapped == "no") { tapped = "si"; onTouch("consent", "si") }
             }
         }
-        page.sections.forEach { s ->
-            DecideCard {
-                Text(primaSection(s.key), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
-                if (PrimaRaccolta.empty(s)) {
-                    s.why?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
-                    s.whenFills?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
-                } else Text(s.text.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
-                BancoProva.screen(s.dove)?.let { d -> TextButton(onClick = { onScreen(d) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.features_go)) } }
+        // Le sezioni come righe (app-richiede-te-righe-02-11): il tocco apre il testo intero e «Vai».
+        ItemList(page.sections.map { ItemRows.prima(it) }, "prima", name = { r -> primaSection(r.key) }) { r ->
+            page.sections.firstOrNull { it.key == r.key }?.let { s ->
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (PrimaRaccolta.empty(s)) {
+                        s.why?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
+                        s.whenFills?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
+                    } else Text(s.text.orEmpty(), style = V3.Body)
+                    BancoProva.screen(s.dove)?.let { d -> TextButton(onClick = { onScreen(d) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.features_go)) } }
+                }
             }
         }
         PrimaRaccolta.firstRoundOffer(page)?.let { cost ->
@@ -180,14 +183,14 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
             }
             if (b == BancoProva.Build.TO_INSTALL) Text(stringResource(R.string.prove_install_first), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, modifier = Modifier.padding(horizontal = 4.dp))
             if (b == BancoProva.Build.UNKNOWN) Text(stringResource(R.string.prove_build_unknown), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
-            g.prove.forEach { p ->
-                val id = p.id.toString()
+            // Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok.
+            ItemList(g.prove.filter { it.id.toString() !in gone }.map { p -> ItemRows.prove(p, b != BancoProva.Build.TO_INSTALL) }, "prova-${g.build}") { r ->
+                val p = g.prove.first { it.id.toString() == r.key }
+                val id = r.key
                 val pk = picked[id]
-                androidx.compose.animation.AnimatedVisibility(id !in gone, exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(if (off) 0 else 160)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (off) 0 else 160))) {
-                DecideCard(picked = pk != null) {
-                    Text(p.short ?: p.title ?: p.task, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
-                    Text(p.fai, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
-                    Text(stringResource(R.string.prove_expected, p.atteso), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(p.fai, style = V3.Body)
+                    Text(stringResource(R.string.prove_expected, p.atteso), style = V3.Small)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         BancoProva.screen(p.dove)?.let { s -> TextButton(onClick = { onScreen(s) }) { Text(stringResource(R.string.features_go)) } }
                         Spacer(Modifier.weight(1f))
@@ -197,16 +200,15 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                         }
                     }
                 }
-                }
             }
         }
         if (!page?.ko.isNullOrEmpty()) {
             Text(stringResource(R.string.prove_reported), style = MonoSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
-            page!!.ko.forEach { k -> DecideCard { Text(k.short ?: k.task, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text); Text(k.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) } }
+            ItemList(page!!.ko.map { k -> ItemRows.proveKo(k) }, "prova-ko") { r -> page.ko.firstOrNull { "ko-${it.id}" == r.key }?.let { k -> Text(k.text, style = V3.Body) } }
         }
         if (!page?.red.isNullOrEmpty()) {
             Text(stringResource(R.string.prove_red), style = MonoSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
-            page!!.red.forEach { r -> DecideCard { Text(r.short ?: r.task, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text); Text(r.reason ?: stringResource(R.string.prove_red_running), style = MaterialTheme.typography.bodyMedium, color = Cm.gone) } }
+            ItemList(page!!.red.map { x -> ItemRows.proveRed(x) }, "prova-rossa") { r -> page.red.firstOrNull { "red-${it.task}" == r.key }?.let { x -> Text(x.reason ?: stringResource(R.string.prove_red_running), style = V3.Body.copy(color = V3.Red)) } }
         }
     }
     ko?.let { p ->
@@ -232,21 +234,28 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
 @Composable
 fun CinqueMinutiScreen(page: DecisionsPage?, onBack: () -> Unit, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null, onAsk: (String) -> Unit = {}) = DecidePage(stringResource(R.string.decisions_title), "cinque-minuti", onBack) { CinqueMinutiBody(page, onApprove, onDone, onNotNow, onDrop, startHowMany, onAsk) }
 
+/**
+ * In home (`rows`, app-richiede-te-righe-02-11): le decisioni come righe, le prime tre e «altre N»; il tocco apre la scheda coi tasti.
+ * Nella pagina: Franz sceglie quante, poi una alla volta.
+ */
 @Composable
-fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null, onAsk: (String) -> Unit = {}) {
+fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null, onAsk: (String) -> Unit = {}, rows: Boolean = false) {
     var howMany by rememberSaveable { mutableStateOf(startHowMany) }
     var touched by rememberSaveable { mutableStateOf(emptyList<String>()) }
-    var dropping by remember { mutableStateOf(false) }
-    // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto scelto diventa la conferma e la scheda dopo entra con la sua
-    // transizione, invece del cambio di colpo. Il comando parte subito; la scheda cambia dopo la conferma (Leave.confirmMs).
-    var picked by remember { mutableStateOf<String?>(null) }
     val off = animationsOff()
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val many = howMany
         when {
             page == null -> Text(stringResource(R.string.prove_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp))
             page.groups.isEmpty() -> Text(stringResource(R.string.decisions_none), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp))
+            rows -> {
+                val left = page.groups.filter { it.key !in touched }
+                if (left.isEmpty()) Text(stringResource(R.string.decisions_done), style = V3.Body, modifier = Modifier.padding(4.dp))
+                ItemList(left.map { ItemRows.decision(it) }, "decisione") { r ->
+                    val g = left.first { it.key == r.key }
+                    DecisionGroupBody(g, onApprove, onDone, onNotNow, onDrop, onAsk) { touched = touched + g.key }
+                }
+            }
             many == null -> DecideCard {
                 Text(stringResource(R.string.decisions_head, page.n, page.here, page.tasks), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
                 Text(stringResource(R.string.decisions_how_many), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
@@ -260,64 +269,75 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
                 val g = left.firstOrNull()
                 if (g == null) Text(stringResource(R.string.decisions_done), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.padding(4.dp))
                 else {
-                    fun next() { touched = touched + g.key }
-                    fun act(id: String, send: () -> Unit) {
-                        if (picked != null) return
-                        picked = id; send()
-                        scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(off)); next(); picked = null }
-                    }
                     Text(stringResource(R.string.decisions_position, touched.size + 1, minOf(many, page.groups.size)), style = MonoSmall, modifier = Modifier.padding(start = 4.dp))
                     // La scheda dopo entra da 0,96 a 1 con dissolvenza (voce 12), quella fatta esce in dissolvenza.
                     androidx.compose.animation.AnimatedContent(g, contentKey = { it.key }, label = "decide-next", transitionSpec = {
                         (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(if (off) 0 else 200)) + androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(if (off) 0 else 200), initialScale = 0.96f)) togetherWith androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (off) 0 else 120))
-                    }) { g ->
-                    DecideCard {
-                        // Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte.
-                        val c = CinqueMinuti.card(g)
-                        c.head.forEachIndexed { n, h -> Text(h, style = if (n == 0) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyMedium, color = if (n == 0) Cm.text else Cm.text2) }
-                        Text(stringResource(if (g.where == "pc") R.string.decisions_at_pc else R.string.decisions_here) + if (g.weight > 1) " · " + stringResource(R.string.decisions_unblocks, g.weight) else "", style = MonoSmall, color = if (g.where == "pc") Cm.waiting else Cm.text2)
-                        g.items.forEachIndexed { n, i ->
-                            val x = c.items[n]
-                            val name = i.title ?: i.short ?: i.session ?: i.task.orEmpty()
-                            HorizontalDivider(color = Cm.line)
-                            x.title?.let { Text(it, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = Cm.text) }
-                            x.plan?.let { PlanText(it) }
-                            x.reason?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
-                            val proceed = stringResource(R.string.decisions_proceed_prompt, name, i.task ?: i.session.orEmpty())
-                            val discuss = stringResource(R.string.sug_discuss_prompt, stringResource(R.string.decisions_discuss_about, name, i.task ?: i.session.orEmpty()))
-                            val choicePrompt = stringResource(R.string.decisions_choice_prompt, name, i.task ?: i.session.orEmpty())
-                            val btns = CinqueMinuti.buttons(i)
-                            if (btns.isNotEmpty()) @OptIn(ExperimentalLayoutApi::class) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                btns.forEach { btn ->
-                                    when (btn) {
-                                        CinqueMinuti.Btn.Proceed -> "$n-p".let { id -> ConfirmButton(stringResource(R.string.decisions_proceed), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, null) else onAsk(proceed) } } }
-                                        CinqueMinuti.Btn.Discuss -> "$n-d".let { id -> ConfirmButton(stringResource(R.string.decisions_discuss), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id, outlined = true) { act(id) { onAsk(discuss) } } }
-                                        CinqueMinuti.Btn.Done -> "$n-f".let { id -> ConfirmButton(stringResource(R.string.agenda_done), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { onDone(i) } } }
-                                        is CinqueMinuti.Btn.Choice -> "$n-c-${btn.label}".let { id -> ConfirmButton(btn.label, confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, btn.label) else onAsk(choicePrompt + " " + btn.label) } } }
-                                    }
-                                }
-                            }
-                        }
-                        HorizontalDivider(color = Cm.line)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { act("not_now") { onNotNow(g.key) } }, enabled = picked == null) { Text((if (picked == "not_now") "✓ " else "") + stringResource(R.string.decisions_not_now), color = if (picked == "not_now") V3.Good else androidx.compose.ui.graphics.Color.Unspecified) }
-                            TextButton(onClick = { dropping = true }, enabled = picked == null) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) }
-                        }
-                    }
-                    }
-                    if (dropping) {
-                        var reason by rememberSaveable { mutableStateOf("") }
-                        AlertDialog(
-                            onDismissRequest = { dropping = false }, containerColor = Cm.surface,
-                            title = { Text(stringResource(R.string.decisions_drop_title), color = Cm.text) },
-                            text = { OutlinedTextField(reason, { reason = it }, label = { Text(stringResource(R.string.decisions_drop_reason)) }, modifier = Modifier.fillMaxWidth()) },
-                            confirmButton = { TextButton(enabled = CinqueMinuti.canDrop(reason), onClick = { val r = reason.trim(); dropping = false; reason = ""; act("drop") { onDrop(g.key, r) } }) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) } },
-                            dismissButton = { TextButton(onClick = { dropping = false }) { Text(stringResource(R.string.cancel)) } },
-                        )
+                    }) { g -> DecideCard { DecisionGroupBody(g, onApprove, onDone, onNotNow, onDrop, onAsk, head = true) { touched = touched + g.key } } }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * La scheda di una decisione coi suoi tasti. Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto scelto diventa la conferma; il
+ * comando parte subito, `onLeft` dopo la conferma (Leave.confirmMs). `head`: anche titolo e frase della master (nella riga ci sono già).
+ */
+@Composable
+private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, onAsk: (String) -> Unit, head: Boolean = false, onLeft: () -> Unit) {
+    var picked by remember(g.key) { mutableStateOf<String?>(null) }
+    var dropping by remember(g.key) { mutableStateOf(false) }
+    val off = animationsOff()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    fun act(id: String, send: () -> Unit) {
+        if (picked != null) return
+        picked = id; send()
+        scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(off)); onLeft(); picked = null }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte.
+        val c = CinqueMinuti.card(g)
+        if (head) c.head.forEachIndexed { n, h -> Text(h, style = if (n == 0) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyMedium, color = if (n == 0) Cm.text else Cm.text2) }
+        else c.head.filter { it != g.title.trim() }.forEach { h -> Text(h, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+        Text(stringResource(if (g.where == "pc") R.string.decisions_at_pc else R.string.decisions_here) + if (g.weight > 1) " · " + stringResource(R.string.decisions_unblocks, g.weight) else "", style = MonoSmall, color = if (g.where == "pc") Cm.waiting else Cm.text2)
+        g.items.forEachIndexed { n, i ->
+            val x = c.items[n]
+            val name = i.title ?: i.short ?: i.session ?: i.task.orEmpty()
+            HorizontalDivider(color = Cm.line)
+            x.title?.let { Text(it, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = Cm.text) }
+            x.plan?.let { PlanText(it) }
+            x.reason?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+            val proceed = stringResource(R.string.decisions_proceed_prompt, name, i.task ?: i.session.orEmpty())
+            val discuss = stringResource(R.string.sug_discuss_prompt, stringResource(R.string.decisions_discuss_about, name, i.task ?: i.session.orEmpty()))
+            val choicePrompt = stringResource(R.string.decisions_choice_prompt, name, i.task ?: i.session.orEmpty())
+            val btns = CinqueMinuti.buttons(i)
+            if (btns.isNotEmpty()) @OptIn(ExperimentalLayoutApi::class) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                btns.forEach { btn ->
+                    when (btn) {
+                        CinqueMinuti.Btn.Proceed -> "$n-p".let { id -> ConfirmButton(stringResource(R.string.decisions_proceed), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, null) else onAsk(proceed) } } }
+                        CinqueMinuti.Btn.Discuss -> "$n-d".let { id -> ConfirmButton(stringResource(R.string.decisions_discuss), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id, outlined = true) { act(id) { onAsk(discuss) } } }
+                        CinqueMinuti.Btn.Done -> "$n-f".let { id -> ConfirmButton(stringResource(R.string.agenda_done), confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { onDone(i) } } }
+                        is CinqueMinuti.Btn.Choice -> "$n-c-${btn.label}".let { id -> ConfirmButton(btn.label, confirmed = picked == id, enabled = picked == null, faded = picked != null && picked != id) { act(id) { if (CinqueMinuti.viaApprove(i)) onApprove(i.task!!, btn.label) else onAsk(choicePrompt + " " + btn.label) } } }
                     }
                 }
             }
         }
+        HorizontalDivider(color = Cm.line)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = { act("not_now") { onNotNow(g.key) } }, enabled = picked == null) { Text((if (picked == "not_now") "✓ " else "") + stringResource(R.string.decisions_not_now), color = if (picked == "not_now") V3.Good else androidx.compose.ui.graphics.Color.Unspecified) }
+            TextButton(onClick = { dropping = true }, enabled = picked == null) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) }
+        }
+    }
+    if (dropping) {
+        var reason by rememberSaveable { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { dropping = false }, containerColor = Cm.surface,
+            title = { Text(stringResource(R.string.decisions_drop_title), color = Cm.text) },
+            text = { OutlinedTextField(reason, { reason = it }, label = { Text(stringResource(R.string.decisions_drop_reason)) }, modifier = Modifier.fillMaxWidth()) },
+            confirmButton = { TextButton(enabled = CinqueMinuti.canDrop(reason), onClick = { val r = reason.trim(); dropping = false; reason = ""; act("drop") { onDrop(g.key, r) } }) { Text(stringResource(R.string.decisions_drop), color = Cm.gone) } },
+            dismissButton = { TextButton(onClick = { dropping = false }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 }
 

@@ -1,6 +1,7 @@
 package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.background
+import it.pixelbox.cmwatch.rules.ItemRows
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,66 +68,31 @@ internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, Stri
     val view = androidx.compose.ui.platform.LocalView.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val leaving = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
-    val seen = androidx.compose.runtime.remember { mutableSetOf<String>() }
     val answer = { s: Suggestion, action: String, opt: String? ->
         if (action == "accept" || action == "choose") view.confirmHaptic()
-        if (off) onAnswer(s, action, opt)
-        else {
-            leaving[s.id] = action
-            scope.launch { kotlinx.coroutines.delay(160); onAnswer(s, action, opt); kotlinx.coroutines.delay(3_000); leaving.remove(s.id) }
-        }
+        leaving[s.id] = action
+        onAnswer(s, action, opt)
+        scope.launch { kotlinx.coroutines.delay(3_000); leaving.remove(s.id) }
         Unit
     }
-    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) {
-        v.shown.forEachIndexed { i, s -> androidx.compose.runtime.key(s.id) {
-            val isNew = seen.isNotEmpty() && s.id !in seen
-            androidx.compose.runtime.SideEffect { seen += s.id }
-            val rise = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (isNew && !off) 0.95f else 1f) }
-            androidx.compose.runtime.LaunchedEffect(Unit) { rise.animateTo(1f, CmMotion.bounceFloat) }
-            val how = leaving[s.id]
-            val out by androidx.compose.animation.core.animateFloatAsState(if (how != null) 1f else 0f, androidx.compose.animation.core.tween(160, easing = CmMotion.easing), label = "leave")
-            val down = how == "later" || how == "never"
-            if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-            val (icon, label) = when (s.kind) {
-                "recurring" -> Icons.Rounded.Repeat to R.string.sug_kind_recurring
-                "cleanup" -> Icons.Rounded.DeleteOutline to R.string.sug_kind_cleanup
-                "deadline" -> Icons.Rounded.Schedule to R.string.sug_kind_deadline
-                "quota" -> Icons.Rounded.DataUsage to R.string.sug_kind_quota
-                "choice" -> Icons.Rounded.AltRoute to R.string.sug_kind_choice
-                "followup" -> Icons.AutoMirrored.Rounded.Redo to R.string.sug_kind_followup
-                "unsaved" -> Icons.Rounded.SaveAs to R.string.sug_kind_unsaved
-                "waiting" -> Icons.Rounded.HourglassEmpty to R.string.sug_kind_waiting
-                "idea" -> Icons.Rounded.Lightbulb to R.string.sug_kind_idea
-                "proposal" -> Icons.Rounded.TipsAndUpdates to R.string.sug_kind_proposal
-                // Contratto 1.94: le note di claude-observe di un plugin, da smistare nella sua sessione.
-                "observe" -> Icons.Rounded.StickyNote2 to R.string.sug_kind_observe
-                // Contratto 1.102: un promemoria scattato; il suo prompt arriva alla master solo con Accetta.
-                "reminder" -> Icons.Rounded.NotificationsActive to R.string.sug_kind_reminder
-                // Un tipo che quest'app non conosce: neutro, non più «Quota» (documento suggerimenti-coda, §8.8).
-                else -> Icons.Rounded.AutoAwesome to R.string.sug_kind_other
+    // Le voci come righe (app-richiede-te-righe-02-11): pallino ambra, la prima frase, a destra il tipo, sotto il resto; il tocco
+    // apre il testo intero coi tasti. Una voce risposta esce subito; se il relay la tiene, dopo 3 secondi torna.
+    val shown = v.shown.filter { it.id !in leaving }
+    ItemList(shown.map { ItemRows.suggestion(it) }, "suggerimento", right = { r -> itemRight(r) { k -> stringResource(sugKindLabel(k)) } }) { r ->
+        val s = shown.firstOrNull { it.id == r.key } ?: return@ItemList
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            ItemRows.split(s.text).second?.let { Text(it, style = V3.Body) }
+            FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (s.id in more) {
+                    SugText(stringResource(R.string.sug_discuss)) { answer(s, "discuss", null) }
+                    SugText(stringResource(R.string.sug_later)) { answer(s, "later", null) }
+                    SugText(stringResource(R.string.sug_never)) { answer(s, "never", null) }
+                } else SugText(stringResource(R.string.sug_more)) { more = more + s.id }
+                val opts = Suggestions.options(s)
+                if (opts.isEmpty()) V3Pill(stringResource(R.string.sug_accept)) { answer(s, "accept", null) }
+                else opts.forEach { o -> V3Pill(o) { answer(s, "choose", o) } }
             }
-            Row(Modifier.graphicsLayer {
-                scaleX = rise.value; scaleY = rise.value; alpha = 1f - out
-                if (down) translationY = out * size.height * 0.5f else translationX = out * size.width * 0.25f
-            }.padding(top = 12.dp, end = 12.dp, bottom = 12.dp)) {
-                Box(Modifier.width(V3.Rail).padding(top = 2.dp), contentAlignment = Alignment.Center) { Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(20.dp)) }
-                Spacer(Modifier.width(8.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(stringResource(label), style = V3.Small.copy(fontSize = 13.sp, color = V3.Tx3))
-                    Text(s.text, style = V3.Body)
-                    FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (s.id in more) {
-                            SugText(stringResource(R.string.sug_discuss)) { answer(s, "discuss", null) }
-                            SugText(stringResource(R.string.sug_later)) { answer(s, "later", null) }
-                            SugText(stringResource(R.string.sug_never)) { answer(s, "never", null) }
-                        } else SugText(stringResource(R.string.sug_more)) { more = more + s.id }
-                        val opts = Suggestions.options(s)
-                        if (opts.isEmpty()) V3Pill(stringResource(R.string.sug_accept)) { answer(s, "accept", null) }
-                        else opts.forEach { o -> V3Pill(o) { answer(s, "choose", o) } }
-                    }
-                }
-            }
-        } }
+        }
     }
 }
 
