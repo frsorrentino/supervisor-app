@@ -322,6 +322,8 @@
   .settings { gap: 8px; padding: 0 12px 24px; }
   .gh { margin: 12px 0 2px; gap: 8px; font: 700 18px/1.2 var(--display); letter-spacing: 0; color: var(--tx); }
   .gh { width: 100%; text-align: left; align-items: center; }
+  /* Area di tocco allargata dentro il margine sopra, senza cambiare l'aspetto (app-bug-notte-03-11); 48 dp pieni chiederebbero spaziature nuove. */
+  button.gh { position: relative; } button.gh::after { content: ''; position: absolute; inset: -10px 0 -2px; }
   .gtog { transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
   .gtog.up { transform: rotate(180deg); }
   @media (prefers-reduced-motion: reduce) { .gtog { transition: none; } }

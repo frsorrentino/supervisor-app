@@ -286,6 +286,8 @@
   .job { display: flex; align-items: center; gap: 10px; } .jcol { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; } .jcol > span:not(:first-child) { color: var(--text2); font-size: 13px; } .jcol b { font-weight: 600; } .started { color: var(--busy); }
   .link { color: var(--icon); padding: 8px 12px; border-radius: 16px; font-weight: 500; font-size: 14px; }
   .day { display: flex; align-items: center; gap: 8px; width: 100%; margin: 10px 0 2px; padding: 0 6px; font: 600 12px/1.6 var(--mono); letter-spacing: .12em; color: var(--text2); text-align: left; } .day:disabled { color: var(--text2); }
+  /* Area di tocco allargata dentro il margine sopra, senza cambiare l'aspetto (app-bug-notte-03-11); 48 dp pieni chiederebbero spaziature nuove. */
+  .day { position: relative; } .day::after { content: ''; position: absolute; inset: -10px 0 -2px; }
   .done { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 18px; } .done .tm { font: 12px/1.5 var(--mono); color: var(--text2); } .done b { font-weight: 600; font-size: 14px; }
   .done .who { color: var(--text2); font-size: 13px; padding: 0; } .proof { color: var(--icon); } .proof.plain { color: var(--text2); }
   /* Franz 24/10 18:36: niente esce dalla scheda, neanche un percorso lungo senza spazi. */

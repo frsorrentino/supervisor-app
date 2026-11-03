@@ -1496,6 +1496,8 @@
   /* In «Altro» il titolo non cede mai: è il riepilogo a destra che va a capo, su una colonna stretta. */
   /* A destra come le righe dentro le liste: stessa verticale misurata, 387 a 412 (Franz 31/10 01:14). */
   .sec { gap: 0; margin: 18px 0 2px; padding: 0 13px 0 0; font: 700 18px/1.2 var(--display); letter-spacing: .005em; color: var(--tx); }
+  /* Area di tocco allargata dentro il margine sopra, senza cambiare l'aspetto (app-bug-notte-03-11); 48 dp pieni chiederebbero spaziature nuove. */
+  button.sec { position: relative; } button.sec::after { content: ''; position: absolute; inset: -13px 0 -2px; }
   .sec .ic { width: 52px; flex: none; display: flex; justify-content: center; margin-right: 8px; }
   .sec .ic .ms { color: var(--tx2); }
   .sec .st { white-space: nowrap; }

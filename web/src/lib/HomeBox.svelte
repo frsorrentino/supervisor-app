@@ -154,6 +154,8 @@
   .n.wait { color: var(--wait); } .n.busy { color: var(--busy); }
   .hero p { font-size: 14.5px; line-height: 1.35; color: var(--text2); }
   .sec { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-transform: uppercase; }
+  /* Area di tocco allargata dentro il margine sopra, senza cambiare l'aspetto (app-bug-notte-03-11); 48 dp pieni chiederebbero spaziature nuove. */
+  button.sec { position: relative; } button.sec::after { content: ''; position: absolute; inset: -13px 0 -6px; }
   .sec.red span { color: var(--gone); }
   .views { display: flex; justify-content: flex-end; margin-top: 12px; }
   .gh { width: calc(100% - 8px); box-sizing: content-box; cursor: pointer; }
