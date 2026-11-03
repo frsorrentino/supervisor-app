@@ -30,8 +30,11 @@ const SLASH_RESULT_TIMEOUT_MS = 60_000
 /** Un file della chat: il relay lo prepara tutto, anche copiandolo da un altro host, prima di rispondere (10/10). Anche
  * `quota_route` (1.58): la sessione scrive il passaggio di consegne prima del lancio. */
 const FILE_RESULT_TIMEOUT_MS = 180_000
+/** Le pagine lette dal PC (app-pwa-decisioni-03-11): il 03/11 alle 12:46 `decisioni` è arrivato al relay 29,5 s dopo la partenza
+ * ed eseguito in 0,1 s; a 20 s la PWA aveva già lasciato perdere e restava «In arrivo dal PC». */
+const PAGE_OPS: CmdOp[] = ['decisioni', 'prove', 'seguiti', 'prima_raccolta', 'results', 'agenda']
 export const resultTimeoutMs = (op: CmdOp) =>
-  op === 'slash' || op === 'done' ? SLASH_RESULT_TIMEOUT_MS : op === 'file' || op === 'report' || op === 'quota_route' ? FILE_RESULT_TIMEOUT_MS : RESULT_TIMEOUT_MS
+  op === 'slash' || op === 'done' || PAGE_OPS.includes(op) ? SLASH_RESULT_TIMEOUT_MS : op === 'file' || op === 'report' || op === 'quota_route' ? FILE_RESULT_TIMEOUT_MS : RESULT_TIMEOUT_MS
 
 export class LocalTransport implements Transport {
   constructor(

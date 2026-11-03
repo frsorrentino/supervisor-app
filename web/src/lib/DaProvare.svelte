@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { CmdResult, ProvePage } from './contract'
-  import { decodeProve } from './decideDecode'
+  import { decodeProve, readPage } from './decideDecode'
   import { allOk, screen } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
+  import LoadFailed from './LoadFailed.svelte'
   import { slide } from 'svelte/transition'
   import { leave } from './leave'
   import { reducedMotion } from './motion'
@@ -14,7 +15,9 @@
   let page = $state<ProvePage | null>(null)
   let ko = $state<ProvePage['groups'][number]['prove'][number] | null>(null)
   let text = $state(''), shot = $state<File | null>(null)
-  async function load() { const r = await run(newCmd('prove', null)); if (r?.ok) page = decodeProve(r.text) }
+  // Senza risposta in tempo la pagina lo dice e offre Riprova, invece di restare «In arrivo dal PC» (app-pwa-decisioni-03-11).
+  let failed = $state(false)
+  async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('prove', null)), decodeProve, page)) }
   $effect(() => { void load() })
   // Franz 02/11 15:38: Ok non blocca più e la scheda non sparisce di colpo (leave.ts): conferma sul tasto, uscita in altezza,
   // le altre salgono; la pagina si ricarica dopo, in silenzio. Se il PC dice no, la scheda torna.
@@ -32,7 +35,7 @@
 </script>
 
 <div class="dp" data-testid="da-provare">
-  {#if !page}<p class="m">{t.proveLoading}</p>
+  {#if !page}{#if failed}<LoadFailed onRetry={() => void load()} />{:else}<p class="m">{t.proveLoading}</p>{/if}
   {:else if !page.groups.length && !page.ko.length && !page.red.length}<p class="m">{t.proveNone}</p>{/if}
   {#each (page?.groups ?? []).filter(g => shown(g).length) as g (g.build)}
     <div class="h" out:slide={{ duration: outMs() }}><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}✓ {/if}{t.proveAllOk}</button>{/if}</div>

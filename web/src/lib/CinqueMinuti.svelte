@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { CmdResult, DecisionGroup, DecisionItem, DecisionsPage, State } from './contract'
-  import { decodeDecisions } from './decideDecode'
+  import { decodeDecisions, readPage } from './decideDecode'
   import { buttons, canDrop, card as cardText, nextDecisions, viaApprove } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
+  import LoadFailed from './LoadFailed.svelte'
   import { confirmMs } from './leave'
   import { pass } from './motion'
   import ItemList from './ItemList.svelte'
@@ -16,7 +17,9 @@
   let howMany = $state<number | null>(null)
   let touched = $state(new Set<string>())
   let dropping = $state(false), reason = $state('')
-  async function load() { const r = await run(newCmd('decisioni', null)); if (r?.ok) page = decodeDecisions(r.text) }
+  // Senza risposta in tempo la pagina lo dice e offre Riprova, invece di restare «In arrivo dal PC» (app-pwa-decisioni-03-11).
+  let failed = $state(false)
+  async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('decisioni', null)), decodeDecisions, page)) }
   $effect(() => { void load() })
   const g = $derived(page && howMany != null ? nextDecisions(page, touched, Math.max(0, howMany - touched.size))[0] ?? null : null)
   const next = (k: string) => { touched = new Set([...touched, k]) }
@@ -28,7 +31,7 @@
 </script>
 
 <div class="cm" data-testid="cinque-minuti">
-  {#if !page}<p class="m">{t.proveLoading}</p>
+  {#if !page}{#if failed}<LoadFailed onRetry={() => void load()} />{:else}<p class="m">{t.proveLoading}</p>{/if}
   {:else if !page.groups.length && !touched.size}<p class="m">{t.decisionsNone}</p>
   {:else if rows}
     {@const left = page.groups.filter(x => !touched.has(x.key))}

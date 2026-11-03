@@ -6,6 +6,7 @@
   import { age, canAccept, canAlign, changedPaths, clean, fired, ordered, whenText } from './seguiti'
   import { newCmd } from './transport'
   import { t } from './t'
+  import LoadFailed from './LoadFailed.svelte'
   import { slide } from 'svelte/transition'
   import { leave } from './leave'
   import { reducedMotion } from './motion'
@@ -48,7 +49,7 @@
 <div class="pr" data-testid="seguiti">
   <p class="m">{t.seguitiIntro}</p>
   {#if note}<p class="m" data-testid="seguiti-note">{note}</p>{/if}
-  {#if failed}<p class="m">{t.seguitiReadFailed}</p>{/if}
+  {#if failed}{#if page}<p class="m">{t.seguitiReadFailed}</p>{:else}<LoadFailed onRetry={() => void load()} />{/if}{/if}
   {#if !page}{#if !failed}<p class="m">{t.proveLoading}</p>{/if}
   {:else}
     <h3>{t.seguitiRimasto}</h3>

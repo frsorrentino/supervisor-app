@@ -2,15 +2,18 @@
   import ItemList from './ItemList.svelte'
   import { prima } from './itemRows'
   import type { CmdResult, PrimaRaccoltaPage, PrimaRaccoltaSummary } from './contract'
-  import { decodePrima } from './decideDecode'
+  import { decodePrima, readPage } from './decideDecode'
   import { screen } from './decide'
   import { askConsent, canStart, emptySection, finished, firstRoundOffer } from './primaRaccolta'
   import { newCmd } from './transport'
   import { t } from './t'
+  import LoadFailed from './LoadFailed.svelte'
   // «Prima raccolta» (contratto 1.100), porta di PrimaRaccoltaScreen: cosa si è trovato per ogni sezione; una vuota dice perché e quando si riempie.
   let { run, summary, onScreen, onFeatures }: { run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; summary: PrimaRaccoltaSummary | null | undefined; onScreen: (s: string) => void; onFeatures: () => void } = $props()
   let page = $state<PrimaRaccoltaPage | null>(null)
-  async function load() { const r = await run(newCmd('prima_raccolta', null)); if (r?.ok) page = decodePrima(r.text) }
+  // Senza risposta in tempo la pagina lo dice e offre Riprova, invece di restare «In arrivo dal PC» (app-pwa-decisioni-03-11).
+  let failed = $state(false)
+  async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('prima_raccolta', null)), decodePrima, page)) }
   // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
   $effect(() => { void summary?.done; void summary?.status; void load() })
   // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato si accende subito e resta acceso finché la scheda cambia.
@@ -20,7 +23,7 @@
 </script>
 
 <div class="pr" data-testid="prima-raccolta">
-  {#if !page}<p class="m">{t.proveLoading}</p>
+  {#if !page}{#if failed}<LoadFailed onRetry={() => void load()} />{:else}<p class="m">{t.proveLoading}</p>{/if}
   {:else}
     <p>{head(page)}</p>
     {#if page.cost === 0}<p class="m">{t.primaFree}</p>{/if}
