@@ -293,7 +293,8 @@ fun SummaryList(
         val st = kpiState ?: return null
         val open = newOpen[key] ?: return null
         return when (key) {
-            "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open) }
+            // Con la domanda aperta chiede Franz: in ambra come le altre voci di Tocca a te (master 02/11 02:08, app-bug-notte-03-11).
+            "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open, p.status == "ask") }
             "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.seguiti_title, icons.Update, n.toString(), "home-seguiti", open) }
             "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> NewRow(R.string.prove_title, icons.Science, p.n.toString(), "home-da-provare", open, p.n > 0) }
             "decisioni" -> st.decisions?.takeIf { d -> d.n > 0 }?.let { d -> NewRow(R.string.decisions_title, icons.Timer, d.n.toString(), "home-da-decidere", open, true) }
@@ -343,11 +344,14 @@ fun SummaryList(
                 val d = if ("decisioni" in up) 0 else kpiState?.decisions?.n ?: 0
                 val p = if ("prove" in up) 0 else kpiState?.prove?.n ?: 0
                 val s = if ("suggestions" in up) 0 else suggestions?.takeIf { x -> x.shown.isNotEmpty() }?.total ?: 0
+                // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
+                val pr = kpiState?.primaRaccolta?.takeIf { x -> x.status == "ask" && "prima_raccolta" !in up }
                 inOrder(listOf(
+                    "prima_raccolta" to pr?.let { CatBit("${stringResource(R.string.prima_title)} ${stringResource(R.string.home_prima_ask)}") },
                     "decisioni" to d.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.decisions_title)} $n") },
                     "prove" to p.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.prove_title)} $n") },
                     "suggestions" to s.takeIf { n -> n > 0 }?.let { n -> CatBit("${stringResource(R.string.sug_title)} $n") },
-                )).ifEmpty { none } to (d + p + s > 0)
+                )).ifEmpty { none } to (d + p + s > 0 || pr != null)
             }
             else -> {
                 // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).

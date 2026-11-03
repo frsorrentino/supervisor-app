@@ -324,8 +324,10 @@
       // Le voci che la accendono (app-richiede-te-righe-02-11): Da decidere, Da provare e, con voci, Suggerimenti (Franz 20:52).
       const d = up.includes('decisioni') ? 0 : st.decisions?.n ?? 0, p = up.includes('prove') ? 0 : st.prove?.n ?? 0
       const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
-      const bits = inOrder<{ text: string }>([['decisioni', d ? { text: `${t.decisionsTitle} ${d}` } : null], ['prove', p ? { text: `${t.proveTitle} ${p}` } : null], ['suggestions', s ? { text: `${t.sugTitle} ${s}` } : null]])
-      return { bits: bits.length ? bits : none, amber: d + p + s > 0 }
+      // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
+      const pr = !up.includes('prima_raccolta') && st.prima_raccolta?.status === 'ask'
+      const bits = inOrder<{ text: string }>([['decisioni', d ? { text: `${t.decisionsTitle} ${d}` } : null], ['prove', p ? { text: `${t.proveTitle} ${p}` } : null], ['suggestions', s ? { text: `${t.sugTitle} ${s}` } : null], ['prima_raccolta', pr ? { text: `${t.primaTitle} ${t.homePrima.ask}` } : null]])
+      return { bits: bits.length ? bits : none, amber: d + p + s > 0 || pr }
     }
     // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).
     const n = up.includes('sessions') ? 0 : model.open
@@ -856,7 +858,7 @@
   <!-- Nella plancia larga anche queste, nella loro colonna (Franz 02/11 11:11: «mancano molte sezioni»): Da decidere e Da
        provare chiedono te, Da seguire e Prima raccolta sono lavoro in corso. -->
   {#if newBody && (!part || part === catFor(k))}
-    {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'task_alt', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', !open['prima_raccolta'] ? rightOf('prima_raccolta') : null)}{@render nuovaBody(k)}
+    {#if k === 'prima_raccolta' && st.prima_raccolta}{@render sec('prima_raccolta', t.primaTitle, 'task_alt', `${st.prima_raccolta.done}/${st.prima_raccolta.total}`, 'home-prima-raccolta', !open['prima_raccolta'] ? rightOf('prima_raccolta') : null, { hot: st.prima_raccolta.status === 'ask' })}{@render nuovaBody(k)}
     {:else if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.seguitiTitle, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
     {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.proveTitle, 'checklist', String(st.prove.n), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: st.prove.n > 0 })}{@render nuovaBody(k)}
     {:else if (k as string) === 'da_guardare' && st.results?.n_unseen}{@render sec(k, t.homeSecWatch, 'svg:eye', String(st.results.n_unseen), 'home-da-guardare', !open[k] ? rightOf(k) : null)}{@render nuovaBody(k)}
