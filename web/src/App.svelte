@@ -478,9 +478,21 @@
     hDrag = { y: e.clientY, col: { x: r.x, y: 0, w: r.width, h: window.innerHeight } }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }
+  // La riga in basso (Franz 22:30: «quando la master è chiusa ad una riga in basso non c'è possibilità di trascinamento»):
+  // trascinata in su si apre, alle stesse altezze del bordo superiore, nella colonna del suo lato.
+  function barDrag(phase: 'move' | 'end' | 'cancel', x: number, y: number) {
+    if (phase === 'cancel') { hDrag = null; landing = null; return }
+    if (!hDrag) { const w = masterW ?? (masterHalf ? COLUMN : 720); hDrag = { y, col: { x: masterLeft ? 0 : window.innerWidth - w, y: 0, w, h: window.innerHeight } } }
+    if (phase === 'move') heightPreview(y)
+    else heightUp({ clientY: y } as PointerEvent)
+  }
   function heightMove(e: PointerEvent) {
     if (!hDrag || (Math.abs(e.clientY - hDrag.y) < 8 && !landing)) return
-    const on = heightAt(heightZones(hDrag.col, !deskDashboard), e.clientY)
+    heightPreview(e.clientY)
+  }
+  function heightPreview(y: number) {
+    if (!hDrag) return
+    const on = heightAt(heightZones(hDrag.col, !deskDashboard), y)
     const H = window.innerHeight, c = hDrag.col
     const pv: Rect = on === 'bar' ? { x: 0, y: H - 72, w: window.innerWidth, h: 72 } : on === 'compact' ? { x: c.x, y: H - 150, w: c.w, h: 150 } : on === 'half' ? { x: c.x, y: H / 2, w: c.w, h: H / 2 } : { x: c.x, y: 0, w: c.w, h: H }
     landing = { kind: 'height', on, pv }
@@ -1276,7 +1288,7 @@
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
-{#snippet masterBar()}{#if master}<div class="mbar"><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? (p, x) => placeDrag(p, x) : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+{#snippet masterBar()}{#if master}<div class="mbar">{#if wide}<button class="hgrip bargrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); barDrag('move', e.clientX, e.clientY) }} onpointermove={(e) => { if (hDrag) barDrag('move', e.clientX, e.clientY) }} onpointerup={(e) => barDrag('end', e.clientX, e.clientY)} onpointercancel={() => barDrag('cancel', 0, 0)}><i></i></button>{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} onPlace={wide ? (p, x) => placeDrag(p, x) : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
   onToggleKey={() => smooth(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
@@ -1466,6 +1478,8 @@
   .hstack { gap: 12px; background: var(--bg); }
   .dpanel.under { flex: 1; width: auto; border: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgb(0 0 0 / .4); }
   .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 5px 12px; border-top: 1px solid var(--line); background: var(--s1); }
+  .mbar { position: relative; }
+  .mbar .bargrip { top: -6px; left: 40%; right: 40%; }
   /* Il campo centrato in altezza con il testo della master e la freccia (Franz 03/11 18:01): niente margine in basso qui. */
   .mbar .mquick { padding: 0; align-self: center; }
   .mbar .mquick :global(.bar) { margin-top: 0; margin-bottom: 0; }
