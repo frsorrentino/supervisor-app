@@ -410,6 +410,18 @@
   // Home sopra e master sotto non è un lato (Franz 03/11 17:30 e 17:31): la colonna con home e master prende il lato e la larghezza
   // che la master ha in quel momento; le sessioni occupano il resto.
   function placeMaster(p: 'right' | 'left') { smooth(() => { masterLeft = p === 'left'; save('cm.master_left', masterLeft ? '1' : '0') }) }
+  // Tre altezze fisse della master sotto la home (Franz 03/11 17:38, app-master-compatta-03-11): compatta (l'ultimo messaggio, il
+  // ▶ e il campo), metà colonna, intera (della home resta la testata). Il tocco sulla testata o sulla maniglia passa alla
+  // successiva; la maniglia trascinata si ferma sullo scatto più vicino nel verso del gesto. Di base metà, finché Franz non sceglie.
+  const STACK_H = ['compact', 'half', 'full'] as const
+  let stackH = $state<(typeof STACK_H)[number]>((STACK_H as readonly string[]).includes(load('cm.master_stack_h') ?? '') ? (load('cm.master_stack_h') as (typeof STACK_H)[number]) : 'half')
+  function setStack(h: (typeof STACK_H)[number]) { smooth(() => { stackH = h; save('cm.master_stack_h', h) }) }
+  function stepStack(d: 1 | -1, wrap = true) {
+    const i = STACK_H.indexOf(stackH) + d
+    setStack(STACK_H[wrap ? (i + STACK_H.length) % STACK_H.length : Math.max(0, Math.min(STACK_H.length - 1, i))])
+  }
+  let gripY: number | null = null
+  function gripUp(e: PointerEvent) { if (gripY == null) return; const dy = e.clientY - gripY; gripY = null; if (Math.abs(dy) < 12) stepStack(1); else stepStack(dy < 0 ? 1 : -1, false) }
   function stackMaster() {
     smooth(() => { masterUnder = !masterUnder; save('cm.master_under', masterUnder ? '1' : '0') })
   }
@@ -1197,7 +1209,7 @@
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
 {#snippet masterBar()}{#if master}<div class="mbar"><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
-{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (masterHalf) masterOpen = false; else masterHalf = true })}
+{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
   onToggleKey={() => smooth(masterSize)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
@@ -1252,7 +1264,7 @@
   </div>
   {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf}>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf}><div class="hstack"><div class="hs-top">{@render homePane()}</div><div class="dpanel under">{@render masterPanel()}</div></div></aside>{/if}
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf}><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { gripY = e.clientY; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }} onpointerup={gripUp} onpointercancel={() => (gripY = null)}><i></i></button><div class="dpanel under" class:compact={stackH === 'compact'}>{@render masterPanel()}</div></div></aside>{/if}
   </div>
 {:else}
   <div class="phone">
@@ -1346,6 +1358,13 @@
   .deskwrap.stacked :global(.desk.right.details) { grid-template-columns: 341px minmax(0, 1fr) 0 0; }
   .deskwrap.stacked :global(.desk > .home), .deskwrap.stacked :global(.desk > .handle) { display: none; }
   .dpanel.stackcol { background: var(--bg); }
+  .hstack[data-h='compact'] > .dpanel.under { flex: none; }
+  .hstack[data-h='full'] > .hs-top { flex: none; height: 84px; overflow: hidden; }
+  .hstack .grip { flex: none; height: 14px; margin: -8px 0 -6px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
+  .hstack .grip i { width: 44px; height: 4px; border-radius: 2px; background: var(--line); }
+  .hstack .grip:hover i { background: var(--text2); }
+  .dpanel.under.compact .mchat :global(section.chat > :not(.bar)) { display: none; }
+  .dpanel.under.compact .mchat { flex: none; }
   /* Uno stacco netto fra home e master nella stessa colonna (app-master-tasti-compatti-03-11): un vuoto e la master come scheda. */
   .hstack { gap: 12px; background: var(--bg); }
   .dpanel.under { flex: 1; width: auto; border: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgb(0 0 0 / .4); }
