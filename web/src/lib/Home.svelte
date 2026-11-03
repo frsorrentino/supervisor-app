@@ -236,6 +236,8 @@
     if (dragArmed && Math.abs(e.clientY - dragStartY) > 6) { dragBegin(dragArmed); dragArmed = null }
     if (!dragOrder) { if (Math.abs(e.clientY - dragStartY) > 10) clearTimeout(dragTimer); return }
     dragY = e.clientY
+    // Il bordo si rilegge anche qui, non solo nel fotogramma: il bersaglio si accende appena il dito lo passa.
+    if (dragKey && (up as string[]).includes(dragKey)) edgeY = document.querySelector(`.home [data-sec-head="${EDGE}"]`)?.getBoundingClientRect().top ?? Infinity
   }
   const secEnd = () => secUp()
   const secCancel = () => secUp(true)
