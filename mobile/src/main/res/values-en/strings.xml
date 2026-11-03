@@ -955,6 +955,7 @@ It starts at your last message to the master.</string>
     <string name="kpi12_ram">RAM used on %1$s</string>
     <string name="kpi12_up">%1$s on</string>
     <string name="kpi12_cpu">CPU used on %1$s</string>
+    <string name="kpi12_commands">reply to commands today, p95; median %1$s s</string>
     <string name="kpi12_latency_p95">push to phone, median; p95 %1$s s, peak %2$s s</string>
     <string name="kpi12_down">off</string>
     <string name="kpi13_title">Suggestions · 7 days</string>

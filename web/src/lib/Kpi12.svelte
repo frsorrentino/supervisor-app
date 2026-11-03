@@ -13,8 +13,11 @@
     out.push(lat ? { v: `${num(lat.p50_s!)} s`, k: lat.p95_s != null ? t.kpi12LatencyP95(num(lat.p95_s), lat.max_s != null ? num(lat.max_s) : null) : lat.max_s != null ? t.kpi12LatencyMax(num(lat.max_s)) : t.kpi12Latency, tone: lat.p50_s! > 5 ? 'var(--wait)' : null } : { v: '–', k: t.kpi12LatencyNone, tone: null })
     if (h.sessions_here != null) out.push({ v: h.sessions_max != null ? `${h.sessions_here} / ${h.sessions_max}` : String(h.sessions_here), k: t.kpi12SessionsHere, tone: h.sessions_max != null && h.sessions_here >= h.sessions_max ? 'var(--wait)' : null })
     for (const x of h.hosts) out.push(!x.up ? { v: t.kpi12Down, k: x.name, tone: 'var(--b-alert)' } : { v: x.ram_pct != null ? `${x.ram_pct}%` : '–', k: x.ram_pct != null ? t.kpi12Ram(x.name) : t.kpi12Up(x.name), tone: (x.ram_pct ?? 0) >= 85 ? 'var(--wait)' : null })
-    // Il carico di ogni macchina accesa accanto alla RAM (Franz 03/11 17:40, app-sistema-barra-kpi-03-11): quattro riquadri, niente buco a destra.
-    for (const x of h.hosts) if (x.up && x.cpu != null) out.push({ v: `${Math.round(x.cpu * 100)}%`, k: t.kpi12Cpu(x.name), tone: x.cpu >= 0.85 ? 'var(--wait)' : null })  // `cpu` fra 0 e 1 (contratto 1.75)
+    // Il quarto riquadro (Franz 03/11 17:40, app-sistema-barra-kpi-03-11): la risposta dei comandi di oggi, p95 (contratto 1.109);
+    // con un relay precedente il carico di ogni macchina accesa accanto alla RAM, così a destra non resta il buco.
+    const c = h.commands && h.commands.n > 0 && h.commands.p95_s != null ? h.commands : null
+    if (c) out.push({ v: `${num(c.p95_s!)} s`, k: t.kpi12Commands(c.p50_s != null ? num(c.p50_s) : '–'), tone: c.p95_s! > 10 ? 'var(--wait)' : null })
+    else for (const x of h.hosts) if (x.up && x.cpu != null) out.push({ v: `${Math.round(x.cpu * 100)}%`, k: t.kpi12Cpu(x.name), tone: x.cpu >= 0.85 ? 'var(--wait)' : null })  // `cpu` fra 0 e 1 (contratto 1.75)
     return out
   })
 </script>

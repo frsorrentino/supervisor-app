@@ -1024,8 +1024,12 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
 @Serializable data class KpiHealth(
     val latency: KpiLatency? = null, @SerialName("sessions_here") val sessionsHere: Int? = null,
     @SerialName("sessions_max") val sessionsMax: Int? = null, val hosts: List<KpiHost> = emptyList(),
+    /** Contratto 1.109. */
+    val commands: KpiCommands? = null,
 )
 /** Contratto 1.108: `p95_s` al rango più vicino, sugli stessi campioni di p50 e max (dalla push alla lettura, ultima ora). */
+/** Contratto 1.109: il tempo di risposta dei comandi del bus di oggi, da `issued` all'esito scritto; null senza comandi. */
+@Serializable data class KpiCommands(@SerialName("p50_s") val p50S: Double? = null, @SerialName("p95_s") val p95S: Double? = null, val n: Int = 0)
 @Serializable data class KpiLatency(@SerialName("p50_s") val p50S: Double? = null, @SerialName("max_s") val maxS: Double? = null, val n: Int = 0, @SerialName("p95_s") val p95S: Double? = null)
 @Serializable data class KpiHost(val name: String, val up: Boolean, val cpu: Double? = null, @SerialName("ram_pct") val ramPct: Int? = null, @SerialName("disk_pct") val diskPct: Int? = null)
 

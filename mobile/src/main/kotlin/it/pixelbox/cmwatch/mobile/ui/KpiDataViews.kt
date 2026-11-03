@@ -287,7 +287,10 @@ internal fun Kpi12(h: KpiHealth) {
             }
         }
         // Il carico di ogni macchina accesa accanto alla RAM (Franz 03/11 17:40, app-sistema-barra-kpi-03-11): quattro riquadri, niente buco.
-        h.hosts.filter { x -> x.up && x.cpu != null }.forEach { x ->
+        // Contratto 1.109: la risposta dei comandi di oggi, p95, è il quarto riquadro; con un relay precedente il carico delle macchine.
+        val cmds = h.commands?.takeIf { c -> c.n > 0 && c.p95S != null }
+        if (cmds != null) add { m -> Figure(stringResource(R.string.kpi12_seconds, String.format(locale, "%.1f", cmds.p95S)), stringResource(R.string.kpi12_commands, cmds.p50S?.let { String.format(locale, "%.1f", it) } ?: "–"), if (cmds.p95S!! > 10) Cm.waiting else null, m) }
+        else h.hosts.filter { x -> x.up && x.cpu != null }.forEach { x ->
             add { m -> Figure("${Math.round(x.cpu!! * 100)}%", stringResource(R.string.kpi12_cpu, x.name), if (x.cpu!! >= 0.85) Cm.waiting else null, m) }  // `cpu` fra 0 e 1 (contratto 1.75)
         }
     }
