@@ -202,9 +202,11 @@ fun ResultsChatRow(line: Guardare.SessionLine, onOpen: () -> Unit) {
         Icon(Icons.Outlined.Visibility, null, tint = V3.Tx)
         Text(stringResource(R.string.watch_results), style = V3.Name)
         Text(line.groups.size.toString(), style = V3.Small)
-        Spacer(Modifier.weight(1f))
-        if (line.groups.any { it.unseen }) Box(Modifier.size(8.dp).clip(CircleShape).background(V3.Wait))
-        Text(titleOf(l), style = V3.Small, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false))
+        // Il titolo prende tutto lo spazio a destra (con uno Spacer a metà andava a capo e restava «Docs tour,»).
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            if (line.groups.any { it.unseen }) Box(Modifier.size(8.dp).clip(CircleShape).background(V3.Wait))
+            Text(titleOf(l), style = V3.Small, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false))
+        }
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx2)
     }
 }
