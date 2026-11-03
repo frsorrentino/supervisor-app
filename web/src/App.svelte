@@ -443,23 +443,41 @@
   const masterNarrow = () => load('cm.master_wide') !== '1'
   function masterSize() { masterHalf = !masterHalf; save('cm.master_wide', masterHalf ? '0' : '1') }
   // I gesti della master nella plancia (Franz 03/11 22:06-22:08, app-master-trascina-03-11; masterLanding.ts): la testata
-  // trascinata cambia solo il lato; il bordo verso le sessioni allarga e stringe (scatti a colonna e metà schermo, libera fra i
-  // due); il bordo superiore cambia l'altezza a scatti. Mentre si trascina si vede dove si arriva; tutto si ricorda.
-  // `pv`: il riquadro dove andrà la master, che segue il dito (Franz 22:15: «serve maggiore chiarezza e fluidità»).
-  type Land = { kind: 'side'; on: Side; pv: Rect } | { kind: 'height'; on: Height; pv: Rect }
-  let landing = $state<Land | null>(null)
+  // trascinata cambia il lato; il bordo verso le sessioni allarga e stringe (scatti a colonna e metà schermo, libera fra i due);
+  // il bordo superiore, o la riga in basso tirata su, cambia l'altezza a scatti. Come le icone di Android (Franz 22:35, video
+  // delle 22:37): mentre si trascina la pagina si riorganizza già, il posto della master resta tratteggiato e un'etichetta segue
+  // il dito; al rilascio la scelta si ricorda, annullato il gesto tutto torna com'era.
+  type Snap = { open: boolean; left: boolean; under: boolean; h: (typeof STACK_H)[number] }
+  let snap: Snap | null = null
+  let mtag = $state<{ x: number; y: number; text: string } | null>(null)
+  const placing = $derived(mtag != null)
   // La larghezza libera, in px; null = quella del tasto Allarga/Stringi (420 o 720).
   let masterW = $state<number | null>(Number(load('cm.master_w')) || null)
-  function placeDrag(phase: 'move' | 'end' | 'cancel', x: number) {
-    if (phase === 'cancel') { landing = null; return }
+  const colWidth = () => masterW ?? (masterHalf ? COLUMN : 720)
+  // Il gesto continua sulla finestra: mentre la pagina si riorganizza l'elemento preso può sparire (la riga che diventa pannello).
+  function follow(onMove: (e: PointerEvent) => void, onEnd: (e: PointerEvent | null) => void) {
+    const up = (e: PointerEvent) => { stop(); onEnd(e) }
+    const cancel = () => { stop(); onEnd(null) }
+    const stop = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel) }
+    window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel)
+  }
+  function begin() { snap ??= { open: masterOpen, left: masterLeft, under: masterUnder, h: stackH } }
+  function commit() {
+    snap = null; mtag = null
+    save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH)
+  }
+  function revert() {
+    if (snap) { masterOpen = snap.open; masterLeft = snap.left; masterUnder = snap.under; stackH = snap.h }
+    snap = null; mtag = null
+  }
+  // La testata: il lato, dalla metà dello schermo sotto il dito. Il pannello resta lo stesso elemento: bastano i suoi eventi.
+  function placeDrag(phase: 'move' | 'end' | 'cancel', x: number, y: number) {
+    if (phase === 'cancel') { smooth(revert); return }
+    if (phase === 'end') { commit(); return }
+    begin()
     const on = sideAt(window.innerWidth, x)
-    if (phase === 'move') {
-      const w = document.querySelector('aside.dpanel')?.getBoundingClientRect().width ?? COLUMN
-      landing = { kind: 'side', on, pv: { x: on === 'left' ? 0 : window.innerWidth - w, y: 0, w, h: window.innerHeight } }
-      return
-    }
-    landing = null
-    if ((on === 'left') !== masterLeft) placeMaster(on)
+    if ((on === 'left') !== masterLeft) smooth(() => { masterLeft = on === 'left' })
+    mtag = { x, y, text: on === 'left' ? t.masterPosLeft : t.masterPosRight }
   }
   let wDrag: number | null = null
   function widthDown(e: PointerEvent) { e.preventDefault(); wDrag = e.clientX; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }
@@ -472,49 +490,44 @@
     smooth(() => { masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2 })
     save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
   }
-  let hDrag: { y: number; col: Rect } | null = null
-  function heightDown(e: PointerEvent, el: HTMLElement | null) {
-    const r = (el ?? (e.currentTarget as HTMLElement)).getBoundingClientRect()
-    hDrag = { y: e.clientY, col: { x: r.x, y: 0, w: r.width, h: window.innerHeight } }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto; `side` anche il lato (la riga in basso).
+  function heightGesture(x0: number, y0: number, side: boolean) {
+    let moved = false
+    const col = (x: number): Rect => {
+      const w = colWidth(), left = side ? sideAt(window.innerWidth, x) === 'left' : masterLeft
+      return { x: left ? 0 : window.innerWidth - w, y: 0, w, h: window.innerHeight }
+    }
+    const apply = (e: PointerEvent) => {
+      if (!moved && Math.abs(e.clientY - y0) < 8) return
+      moved = true; begin()
+      const on = heightAt(heightZones(col(e.clientX), !deskDashboard), e.clientY)
+      const left = side ? sideAt(window.innerWidth, e.clientX) === 'left' : masterLeft
+      const now: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
+      if (on !== now || left !== masterLeft) smooth(() => { masterLeft = left; setHeight(on) })
+      mtag = { x: e.clientX, y: e.clientY, text: t.masterLand[on] }
+    }
+    follow(apply, (e) => {
+      if (!e) { smooth(revert); return }
+      // Un tocco senza trascinare: la maniglia sotto la home passa all'altezza dopo, come prima.
+      if (!moved) { if (stacked) stepStack(1); return }
+      commit()
+    })
+    void x0
   }
-  // La riga in basso (Franz 22:30: «quando la master è chiusa ad una riga in basso non c'è possibilità di trascinamento»):
-  // trascinata in su si apre, alle stesse altezze del bordo superiore, nella colonna del suo lato.
+  function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientX, e.clientY, false) }
+  // La riga in basso (Franz 22:30 e 22:34): tirata su si apre, alle altezze del bordo superiore, sul lato sotto il dito.
+  let barGesture = false
   function barDrag(phase: 'move' | 'end' | 'cancel', x: number, y: number) {
-    if (phase === 'cancel') { hDrag = null; landing = null; return }
-    // Anche il lato (Franz 22:34: «2 possibili direzioni, sinistra e destra»): la metà dello schermo sotto il puntatore.
-    const side = sideAt(window.innerWidth, x), w = masterW ?? (masterHalf ? COLUMN : 720)
-    hDrag = { y: hDrag?.y ?? y, col: { x: side === 'left' ? 0 : window.innerWidth - w, y: 0, w, h: window.innerHeight } }
-    if (phase === 'move') { heightPreview(y); return }
-    const open = landing?.kind === 'height' && landing.on !== 'bar'
-    heightUp({ clientY: y } as PointerEvent)
-    if (open && (side === 'left') !== masterLeft) placeMaster(side)
-  }
-  function heightMove(e: PointerEvent) {
-    if (!hDrag || (Math.abs(e.clientY - hDrag.y) < 8 && !landing)) return
-    heightPreview(e.clientY)
-  }
-  function heightPreview(y: number) {
-    if (!hDrag) return
-    const on = heightAt(heightZones(hDrag.col, !deskDashboard), y)
-    const H = window.innerHeight, c = hDrag.col
-    const pv: Rect = on === 'bar' ? { x: 0, y: H - 72, w: window.innerWidth, h: 72 } : on === 'compact' ? { x: c.x, y: H - 150, w: c.w, h: 150 } : on === 'half' ? { x: c.x, y: H / 2, w: c.w, h: H / 2 } : { x: c.x, y: 0, w: c.w, h: H }
-    landing = { kind: 'height', on, pv }
-  }
-  function heightUp(e: PointerEvent) {
-    if (!hDrag) return
-    const moved = landing?.kind === 'height'
-    const on = moved ? heightAt(heightZones(hDrag.col, !deskDashboard), e.clientY) : null
-    hDrag = null; landing = null
-    // Un tocco senza trascinare: la maniglia sotto la home passa all'altezza dopo, come prima.
-    if (!on) { if (stacked) stepStack(1); return }
-    smooth(() => setHeight(on))
+    if (phase !== 'move' || barGesture) return
+    barGesture = true
+    heightGesture(x, y, true)
+    window.addEventListener('pointerup', () => { barGesture = false }, { once: true })
   }
   function setHeight(h: Height) {
     if (h === 'bar') { masterOpen = false; return }
     masterOpen = true
-    masterUnder = h !== 'column'; save('cm.master_under', masterUnder ? '1' : '0')
-    if (masterUnder) { stackH = h === 'compact' ? 'compact' : 'half'; save('cm.master_stack_h', stackH) }
+    masterUnder = h !== 'column'
+    if (masterUnder) stackH = h === 'compact' ? 'compact' : 'half'
   }
   function masterSizeKey() { masterSize(); masterW = null; save('cm.master_w', '') }
   // Telefono: la sessione aperta, o la home.
@@ -1292,8 +1305,8 @@
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
-{#snippet masterBar()}{#if master}<div class="mbar">{#if wide}<button class="hgrip bargrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); barDrag('move', e.clientX, e.clientY) }} onpointermove={(e) => { if (hDrag) barDrag('move', e.clientX, e.clientY) }} onpointerup={(e) => barDrag('end', e.clientX, e.clientY)} onpointercancel={() => barDrag('cancel', 0, 0)}><i></i></button>{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
-{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} onPlace={wide ? (p, x) => placeDrag(p, x) : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
+{#snippet masterBar()}{#if master}<div class="mbar" class:placing>{#if wide}<button class="hgrip bargrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientX, e.clientY, true) }}><i></i></button>{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} onPlace={wide ? placeDrag : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
   onToggleKey={() => smooth(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
@@ -1320,11 +1333,9 @@
   <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
   <div class="deskwrap" class:left={masterLeft} class:stacked>
-  {#if landing}
-    <!-- Dove andrà la master mentre la si trascina (app-master-trascina-03-11): un riquadro solo, che scivola dietro al dito. -->
-    <div class="landing" aria-hidden="true">
-      <div class="pv" style="left:{landing.pv.x}px; top:{landing.pv.y}px; width:{landing.pv.w}px; height:{landing.pv.h}px"><span>{landing.kind === 'side' ? (landing.on === 'left' ? t.masterPosLeft : t.masterPosRight) : t.masterLand[landing.on]}</span></div>
-    </div>
+  {#if mtag}
+    <!-- L'etichetta che segue il dito durante il gesto della master (app-master-trascina-03-11). -->
+    <div class="mghost" aria-hidden="true" style="left:{mtag.x}px; top:{mtag.y}px">{mtag.text}</div>
   {/if}
   <div class="dstage">
   <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
@@ -1354,9 +1365,9 @@
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
   {#if cols.length && !stacked && !page}<SwapPills shown={cols} current={cols.at(-1) ?? null} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols([...cols, n]) }} onSwap={(n) => setCols(cols.length ? [...cols.slice(0, -1), n] : [n])} />{/if}
   </div>
-  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => heightDown(e, (e.currentTarget as HTMLElement).closest('aside'))} onpointermove={heightMove} onpointerup={heightUp} onpointercancel={() => { hDrag = null; landing = null }}><i></i></button>{@render masterPanel()}</aside>{/if}
+  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:placing class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => heightDown(e, (e.currentTarget as HTMLElement).closest('aside'))} onpointermove={heightMove} onpointerup={heightUp} onpointercancel={() => { hDrag = null; landing = null }}><i></i></button><div class="dpanel under" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button><div class="dpanel under" class:placing class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
   </div>
 {:else}
   <div class="phone">
@@ -1437,10 +1448,11 @@
   .deskwrap { height: 100%; display: flex; min-height: 0; }
   /* I punti di atterraggio (app-master-trascina-03-11): un velo su tutta la pagina, le zone tratteggiate; quella sotto il dito
      piena e chiara, quella dove la master sta già col bordo pieno. */
-  .landing { position: fixed; inset: 0; z-index: 60; pointer-events: none; background: rgb(11 12 14 / .35); }
-  .pv { position: absolute; box-sizing: border-box; display: grid; place-items: center; border: 2px solid var(--wait); border-radius: 18px; background: color-mix(in srgb, var(--wait) 16%, transparent); box-shadow: 0 0 0 1px rgb(0 0 0 / .4), 0 18px 48px rgb(0 0 0 / .45); transition: left .18s cubic-bezier(.2, .8, .2, 1), top .18s cubic-bezier(.2, .8, .2, 1), width .18s cubic-bezier(.2, .8, .2, 1), height .18s cubic-bezier(.2, .8, .2, 1); }
-  .pv span { font: 600 16px var(--display); color: var(--tx); background: var(--s3); padding: 6px 14px; border-radius: 14px; }
-  @media (prefers-reduced-motion: reduce) { .pv { transition: none; } }
+  /* Il posto della master durante il gesto: tratteggiato in giallo, il contenuto in secondo piano (come Android). */
+  .placing { outline: 2px dashed var(--wait); outline-offset: -4px; }
+  .placing > :global(*) { opacity: .35; transition: opacity .15s; }
+  .placing > :global(.wgrip), .placing > :global(.hgrip) { opacity: 0; }
+  .mghost { position: fixed; z-index: 70; pointer-events: none; transform: translate(14px, -50%); padding: 8px 14px; border-radius: 16px; background: var(--wait); color: var(--on-act, #0B0C0E); font: 600 15px var(--display); box-shadow: 0 10px 28px rgb(0 0 0 / .5); white-space: nowrap; }
   .deskwrap.left { flex-direction: row-reverse; }
   .dstage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   .dstage > :global(:first-child) { flex: 1; min-height: 0; }
