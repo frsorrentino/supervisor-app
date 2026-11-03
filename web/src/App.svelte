@@ -401,27 +401,28 @@
   let masterUnder = $state(load('cm.master_under') === '1')
   function moveMaster() {
     smooth(() => {
-      if (!masterLeft && !masterUnder) masterUnder = true
-      else if (masterUnder) { masterUnder = false; masterLeft = true }
-      else masterLeft = false
+      masterLeft = !masterLeft
       save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0')
     })
   }
   // Solo con le sessioni aperte nella vista larga, con la master aperta e fuori dalle colonne.
   const stacked = $derived(masterUnder && masterOpen && !!master && !cols.includes(MASTER))
-  function placeMaster(p: 'right' | 'under' | 'left') {
-    smooth(() => { masterUnder = p === 'under'; masterLeft = p === 'left'; save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0') })
+  // Home sopra e master sotto non è un lato (Franz 03/11 17:30 e 17:31): la colonna con home e master prende il lato e la larghezza
+  // che la master ha in quel momento; le sessioni occupano il resto.
+  function placeMaster(p: 'right' | 'left') { smooth(() => { masterLeft = p === 'left'; save('cm.master_left', masterLeft ? '1' : '0') }) }
+  function stackMaster() {
+    smooth(() => { masterUnder = !masterUnder; save('cm.master_under', masterUnder ? '1' : '0') })
   }
   // Il tasto tondo Posizione accanto al ▶ della master (Franz 03/11 17:23, al posto del menu ⋮ della scelta C delle 17:05,
   // app-master-tasti-compatti-03-11): le posizioni, la misura e Chiudi al posto dei tre tasti tondi. «Sotto la dashboard» solo con le sessioni aperte: sul cruscotto la master sta di lato.
   const masterMenu = $derived([
-    { label: t.masterPosRight, on: !masterLeft && !masterUnder, icon: 'M3 5h18v14H3zM15 5v14', onMove: () => placeMaster('right') },
-    ...(deskDashboard ? [] : [{ label: t.masterPosUnder, on: masterUnder, icon: 'M3 5h18v14H3zM3 12h18', onMove: () => placeMaster('under') }]),
-    { label: t.masterPosLeft, on: masterLeft && !masterUnder, icon: 'M3 5h18v14H3zM9 5v14', onMove: () => placeMaster('left') },
-    ...(masterOpen && !stacked ? [{ label: masterHalf ? t.masterWiden : t.masterNarrowKey, icon: masterHalf ? 'M8 7l-5 5 5 5M16 7l5 5-5 5' : 'M4 7l5 5-5 5M20 7l-5 5 5 5', onMove: () => smooth(masterSize) }] : []),
+    { label: t.masterPosRight, on: !masterLeft, icon: 'M3 5h18v14H3zM15 5v14', onMove: () => placeMaster('right') },
+    { label: t.masterPosLeft, on: masterLeft, icon: 'M3 5h18v14H3zM9 5v14', onMove: () => placeMaster('left') },
+    ...(deskDashboard ? [] : [{ label: t.masterPosUnder, on: masterUnder, icon: 'M3 5h18v14H3zM3 12h18', onMove: stackMaster }]),
+    ...(masterOpen ? [{ label: masterHalf ? t.masterWiden : t.masterNarrowKey, icon: masterHalf ? 'M8 7l-5 5 5 5M16 7l5 5-5 5' : 'M4 7l5 5-5 5M20 7l-5 5 5 5', onMove: () => smooth(masterSize) }] : []),
     ...(masterOpen ? [{ label: t.masterCloseKey, icon: 'M7 7l10 10M17 7L7 17', onMove: () => smooth(() => { masterOpen = false }) }] : []),
   ])
-  const moveLabelOf = () => (masterUnder ? t.masterMoveLeft : masterLeft ? t.masterMoveRight : t.masterMoveUnder)
+  const moveLabelOf = () => (masterLeft ? t.masterMoveRight : t.masterMoveLeft)
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
   // La misura del pannello, stretto o a metà schermo, ricordata come il lato (app-pwa-master-tasti-03-11).
@@ -1222,13 +1223,13 @@
 {:else if wide}
   <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
-  <div class="deskwrap" class:left={masterLeft}>
+  <div class="deskwrap" class:left={masterLeft} class:stacked>
   <div class="dstage">
   <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
        accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
   <Desk {cols} {shares} homeRight={master ? !masterLeft : homeRight} tab={wco ? columnTab : null} onCols={setCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={master ? null : () => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
-    {#snippet home()}{#if stacked}<div class="hstack"><div class="hs-top">{@render homePane()}</div><div class="dpanel under">{@render masterPanel()}</div></div>{:else}{@render homePane()}{/if}{/snippet}
+    {#snippet home()}{#if !stacked}{@render homePane()}{/if}{/snippet}
     {#snippet column(name, grab)}
       {@const held = heldCols.includes(name)}
       {@const phase = splashOf(name, true)}
@@ -1250,6 +1251,8 @@
   {#if master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
   </div>
   {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf}>{@render masterPanel()}</aside>{/if}
+  <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf}><div class="hstack"><div class="hs-top">{@render homePane()}</div><div class="dpanel under">{@render masterPanel()}</div></div></aside>{/if}
   </div>
 {:else}
   <div class="phone">
@@ -1336,6 +1339,13 @@
   .deskwrap.left .dpanel { border-left: 0; border-right: 1px solid var(--line); }
   .hstack { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .hs-top { flex: 1; min-height: 0; overflow: auto; }
+  /* Con home e master nella colonna della master, la griglia delle sessioni non tiene più il posto della home. */
+  .deskwrap.stacked :global(.desk) { grid-template-columns: 0 0 minmax(0, 1fr); }
+  .deskwrap.stacked :global(.desk.right) { grid-template-columns: minmax(0, 1fr) 0 0; }
+  .deskwrap.stacked :global(.desk.details) { grid-template-columns: 0 0 minmax(0, 1fr) 341px; }
+  .deskwrap.stacked :global(.desk.right.details) { grid-template-columns: 341px minmax(0, 1fr) 0 0; }
+  .deskwrap.stacked :global(.desk > .home), .deskwrap.stacked :global(.desk > .handle) { display: none; }
+  .dpanel.stackcol { background: var(--bg); }
   /* Uno stacco netto fra home e master nella stessa colonna (app-master-tasti-compatti-03-11): un vuoto e la master come scheda. */
   .hstack { gap: 12px; background: var(--bg); }
   .dpanel.under { flex: 1; width: auto; border: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgb(0 0 0 / .4); }
