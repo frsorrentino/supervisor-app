@@ -925,12 +925,12 @@ fun SummaryList(
             when (k) {
                 "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> renderNew(k)
                 // Chiuse sta dentro Sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
-                "sessions" -> { renderSessions(); if (listSkip != "closed") renderClosed() }
+                "sessions" -> { renderSessions(); if (listSkip != "closed" && "sessions" !in liveTop) renderClosed() }
                 "suggestions" -> renderSuggestions()
                 "lavori" -> renderLavori()
                 "esiti" -> renderEsiti()
                 "usage" -> renderUsage()
-                "system" -> { renderSystem(); if (listSkip != "plugins") renderPlugins() }
+                "system" -> { renderSystem(); if (listSkip != "plugins" && "system" !in liveTop) renderPlugins() }
             }
         }
         // Una voce del tabellone: la riga dello slot nel suo riquadro, aperta col suo corpo. Sessioni ed Esiti non hanno un dato in più:
@@ -954,8 +954,6 @@ fun SummaryList(
                 BoardCard(movingIn(k)(), boardAbove(k), boardBelow(k)) { slotFor(k) }
             }
             if (k == "lavori") renderLavori()
-            // Plugin e skill sta dentro Sistema anche sul tabellone, come nella lista.
-            if (k == "system" && listSkip != "plugins" && "plugins" !in liveTop) renderPlugins()
         }
         val shownCats = if (catDrag) it.pixelbox.cmwatch.rules.HomeCats.catOrder(cats, dragOrder.orEmpty()) else cats
         fun moveCatTo(i: Int, to: Int) = setCats(it.pixelbox.cmwatch.rules.HomeCats.moveCat(cats, i, to))
@@ -976,6 +974,10 @@ fun SummaryList(
             if (!c.open) return@forEachIndexed
             val before = dragPresent.size
             (liveBelow?.filter { k -> catFor(k) == c.id } ?: c.sections).forEach(::renderKey)
+            // Con Sistema o Sessioni sul tabellone, Plugin e skill e Chiuse restano nella loro categoria, che si sposta come le altre
+            // (Franz 03/11 18:54, app-risorse-categoria-03-11).
+            if (c.id == "tools" && "system" in liveTop && listSkip != "plugins" && "plugins" !in liveTop) renderPlugins()
+            if (c.id == "work" && "sessions" in liveTop && listSkip != "closed" && "closed" !in liveTop) renderClosed()
             catHas[c.id] = dragPresent.size > before
         }
         footer?.let { f -> item(key = "footer") { f() } }

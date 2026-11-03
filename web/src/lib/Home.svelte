@@ -683,7 +683,7 @@
 {/snippet}
 
 <section class="home" class:part={!!part} class:topdrag={topDrag}>
-{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed'}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins'}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed' && !up.includes('sessions')}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {@const live = dragOrder ?? order}
  <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->
@@ -942,6 +942,10 @@
         {#each live.slice(edgeAt(live) + 1).filter(k => k !== listSkip && catFor(k) === c.id) as k (k)}
           <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
         {/each}
+        <!-- Con Sistema o Sessioni sul tabellone, Plugin e skill e Chiuse restano nella loro categoria, che si sposta come le altre
+             (Franz 03/11 18:54, app-risorse-categoria-03-11). -->
+        {#if c.id === 'tools' && up.includes('system')}<div class="hsec">{@render secPlugins()}</div>{/if}
+        {#if c.id === 'work' && up.includes('sessions')}<div class="hsec">{@render secClosed()}</div>{/if}
       {/if}
     </div>
   {/each}
