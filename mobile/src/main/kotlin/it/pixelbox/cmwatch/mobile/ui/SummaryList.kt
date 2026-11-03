@@ -905,10 +905,11 @@ fun SummaryList(
         liveTop.forEach(::renderBoard)
         // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
         if (dragKey != null && dragKey in up) dragPresent += edge
-        item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
+        val topLine = liveTop.any { k -> k != listSkip }
+        item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge), line = topLine) } }
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
-            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
+            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second, divider = !(topLine && ci == 0)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
             else item(key = "cat-${c.id}") {
                 Box(movingIn("cat:${c.id}")()) {
                     val (bits, amber) = catBits(c.id)

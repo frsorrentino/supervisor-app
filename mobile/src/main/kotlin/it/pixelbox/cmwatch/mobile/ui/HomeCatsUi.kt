@@ -104,9 +104,10 @@ internal val CatPeekEnd = RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18
  * scelta resta (app-home-in-cima-02-11): la freccia a destra lo dice.
  */
 @Composable
-internal fun CatLabel(id: String, modifier: Modifier = Modifier, amber: Boolean = false, onToggle: () -> Unit = {}) {
+internal fun CatLabel(id: String, modifier: Modifier = Modifier, amber: Boolean = false, divider: Boolean = true, onToggle: () -> Unit = {}) {
     androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().testTag("home-cat-$id").then(modifier).handCursor().clickable(onClick = onToggle)) {
-        HorizontalDivider(Modifier.padding(top = 12.dp), thickness = 1.dp, color = V3.Line)
+        // Subito sotto In cima il filo c'è già, quello del bordo (TopEdge): non si raddoppia.
+        if (divider) HorizontalDivider(Modifier.padding(top = 12.dp), thickness = 1.dp, color = V3.Line)
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 12.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             // Aperta, l'ambra resta sull'etichetta con la sua icona (app-richiede-te-righe-02-11, mockup punto 3).
             if (amber) Icon(catIcon(id), null, tint = V3.Wait, modifier = Modifier.padding(top = 6.dp, end = 6.dp).size(16.dp))
@@ -144,8 +145,9 @@ internal fun BoardLabel() {
  * tratteggiata dove lasciarla, accesa quando la voce presa sta già sopra.
  */
 @Composable
-internal fun TopEdge(dragging: Boolean, hot: Boolean, modifier: Modifier = Modifier) {
-    if (!dragging) { Box(modifier.fillMaxWidth().height(1.dp)); return }
+internal fun TopEdge(dragging: Boolean, hot: Boolean, modifier: Modifier = Modifier, line: Boolean = false) {
+    // Con delle voci In cima, il filo le separa dalle categorie anche quando la prima è chiusa (Franz 03/11 10:3x, app-in-cima-uguali-03-11).
+    if (!dragging) { if (line) HorizontalDivider(modifier.fillMaxWidth().padding(top = 12.dp), thickness = 1.dp, color = V3.Line) else Box(modifier.fillMaxWidth().height(1.dp)); return }
     Box(modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp).heightIn(min = 48.dp).clip(V3.Shape).background(V3.Bg.copy(alpha = .72f)).drawDashedEdge(hot).testTag(if (hot) "home-cima-acceso" else "home-cima"), contentAlignment = Alignment.Center) {
         Text(stringResource(R.string.home_top_drop), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx), textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
     }

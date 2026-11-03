@@ -894,7 +894,8 @@
   {/each}
   <!-- Il bordo dello spazio in cima: fermo non si vede, durante il trascinamento di una sezione è la striscia dove lasciarla. -->
   <!-- Il bordo non si vede (app-tabellone-quattro-02-11): serve alle voci del tabellone per uscirne verso la loro categoria. -->
-  <div class="topedge" data-sec-head={EDGE}></div>
+  <!-- Con delle voci In cima, il filo le separa dalle categorie anche quando la prima è chiusa (Franz 03/11 10:3x, app-in-cima-uguali-03-11). -->
+  <div class="topedge" class:line={live.slice(0, edgeAt(live)).some(k => k !== listSkip)} data-sec-head={EDGE}></div>
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
       {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
@@ -1410,6 +1411,9 @@
   .hcat:has(.hsec > *) .catlabel { display: flex; }
   /* Lo spazio in cima (app-home-in-cima-02-11): il bordo è una linea vuota; durante il trascinamento la striscia dove lasciare. */
   .topedge { height: 1px; flex: none; }
+  .topedge.line:not(.on) { height: 0; margin-top: 10px; border-top: 1px solid var(--line); }
+  /* Subito sotto, l'etichetta di una categoria aperta non raddoppia il filo. */
+  .topedge.line + .hcat .catlabel { border-top: 0; margin-top: 0; }
   /* I due gruppi dentro Sessioni: «Ti aspettano N» in ambra, «Le altre» in grigio. */
   .sgroup { display: flex; align-items: baseline; gap: 6px; padding: 2px 6px 0; font: 500 12px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
   .sgroup.wait { color: var(--wait); }
