@@ -382,6 +382,8 @@
   // le aveva aperte; sessioni, lavori ed esiti aperti.
   const SEC = 'home-sections-2'
   const SEC_START = { suggestions: true, sessions: true, lavori: true, esiti: true, usage: false, night: false }
+  // Nella PWA larga le voci In cima si aprono una volta nella loro colonna (app-in-cima-largo-03-11).
+  $effect(() => { if (part && part !== 'top') for (const k of up) if (catFor(k) === part && !untrack(() => open[k])) open[k] = true })
   let open = $state<Record<string, boolean>>((() => { try { return { ...SEC_START, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { ...SEC_START } } })())
   function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
   // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe con un tasto
@@ -914,7 +916,9 @@
   <!-- La fascia sopra le colonne della plancia larga: le voci in cima, affiancate. -->
   <div class="topband" data-testid="home-cima">{#each up.filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}</div>
 {:else if part}
-  {#each cats.flatMap(c => c.sections).filter(k => catFor(k) === part && SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
+  <!-- Le voci In cima nella PWA larga stanno aperte in cima alla colonna della loro categoria, senza fascia sopra (Franz 03/11
+       17:49, app-in-cima-largo-03-11): la schermata si presenta come se non fossero scelte. -->
+  {#each [...up.filter(k => catFor(k) === part), ...cats.flatMap(c => c.sections).filter(k => catFor(k) === part)].filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
 {:else}
   {@const live = dragOrder ?? order}
   <!-- La fascia «In cima» non c'è più: le sue voci stanno nel tabellone (slotBox, app-utilizzo-una-barra-03-11). -->

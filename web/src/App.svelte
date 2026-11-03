@@ -412,14 +412,15 @@
   function placeMaster(p: 'right' | 'left') { smooth(() => { masterLeft = p === 'left'; save('cm.master_left', masterLeft ? '1' : '0') }) }
   // Due altezze fisse della master sotto la home (Franz 03/11 17:38 e 17:41, app-master-compatta-03-11): compatta (l'ultimo
   // messaggio, il ▶ e il campo) e metà colonna; intera c'è già la colonna sua. Il tocco sulla testata o sulla maniglia passa alla
-  // successiva; la maniglia trascinata si ferma sullo scatto più vicino nel verso del gesto. Di base metà, finché Franz non sceglie.
+  // successiva; la maniglia trascinata si ferma sullo scatto più vicino nel verso del gesto. Di base compatta (Franz 17:44).
   const STACK_H = ['compact', 'half'] as const
-  let stackH = $state<(typeof STACK_H)[number]>((STACK_H as readonly string[]).includes(load('cm.master_stack_h') ?? '') ? (load('cm.master_stack_h') as (typeof STACK_H)[number]) : 'half')
+  let stackH = $state<(typeof STACK_H)[number]>((STACK_H as readonly string[]).includes(load('cm.master_stack_h') ?? '') ? (load('cm.master_stack_h') as (typeof STACK_H)[number]) : 'compact')
   function setStack(h: (typeof STACK_H)[number]) { smooth(() => { stackH = h; save('cm.master_stack_h', h) }) }
   function stepStack(d: 1 | -1, wrap = true) {
     const i = STACK_H.indexOf(stackH) + d
     setStack(STACK_H[wrap ? (i + STACK_H.length) % STACK_H.length : Math.max(0, Math.min(STACK_H.length - 1, i))])
   }
+  let stackHead = $state(false)
   let gripY: number | null = null
   function gripUp(e: PointerEvent) { if (gripY == null) return; const dy = e.clientY - gripY; gripY = null; if (Math.abs(dy) < 12) stepStack(1); else stepStack(dy < 0 ? 1 : -1, false) }
   function stackMaster() {
@@ -1210,7 +1211,7 @@
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
 {#snippet masterBar()}{#if master}<div class="mbar"><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
-  onToggleKey={() => smooth(masterSize)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} /><div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
+  onToggleKey={() => smooth(masterSize)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
@@ -1222,7 +1223,7 @@
 {:else if embed}
   <div class="embedded v3">{@render chatOf(MASTER, true)}</div>
 {:else if wide && deskDashboard}
-  <Plancia {width} order={decodeCats(st.home_order).map(c => c.id)} top={topOf(st.home_order).length ? topBand : null} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf} panelLeft={masterLeft}>
+  <Plancia {width} order={decodeCats(st.home_order).map(c => c.id)} top={null} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf} panelLeft={masterLeft}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
@@ -1264,7 +1265,7 @@
   </div>
   {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf}>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf}><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { gripY = e.clientY; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }} onpointerup={gripUp} onpointercancel={() => (gripY = null)}><i></i></button><div class="dpanel under" class:compact={stackH === 'compact'}>{@render masterPanel()}</div></div></aside>{/if}
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf}><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { gripY = e.clientY; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }} onpointerup={gripUp} onpointercancel={() => (gripY = null)}><i></i></button><div class="dpanel under" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
   </div>
 {:else}
   <div class="phone">
@@ -1364,6 +1365,10 @@
   .hstack .grip:hover i { background: var(--text2); }
   .dpanel.under.compact .mchat :global(section.chat > :not(.bar)) { display: none; }
   .dpanel.under.compact .mchat { flex: none; }
+  /* A metà la riga di modello, modifiche e contesto è chiusa; si apre col tasto a fisarmonica (Franz 03/11 17:44). */
+  .dpanel.under.nohead .mchat :global(section.chat > header) { display: none; }
+  .headkey { display: flex; align-items: center; gap: 6px; margin: 0 12px; padding: 4px 8px; align-self: flex-start; border-radius: 12px; color: var(--text2); font: 400 12.5px var(--mono); }
+  .headkey:hover { background: var(--s2); }
   /* Uno stacco netto fra home e master nella stessa colonna (app-master-tasti-compatti-03-11): un vuoto e la master come scheda. */
   .hstack { gap: 12px; background: var(--bg); }
   .dpanel.under { flex: 1; width: auto; border: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgb(0 0 0 / .4); }
