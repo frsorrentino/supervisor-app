@@ -51,7 +51,7 @@ internal class CatBit(val text: String, val tone: Color? = null)
 /**
  * Il riassunto a destra su una riga (Franz 03/11 08:07, variante 1, app-riassunti-una-riga-03-11): le parti in ordine di
  * importanza; quelle che non entrano nella larghezza vera cadono intere, dall'ultima; se non entra nemmeno la prima resta il suo
- * numero (OneLine in core). Mai a capo, mai puntini.
+ * numero, o le sue parole iniziali intere (OneLine in core). Mai a capo, mai puntini, mai una parola tagliata.
  */
 @Composable
 internal fun OneLineParts(bits: List<CatBit>, style: androidx.compose.ui.text.TextStyle, base: Color, modifier: Modifier = Modifier) {
@@ -66,7 +66,10 @@ internal fun OneLineParts(bits: List<CatBit>, style: androidx.compose.ui.text.Te
         }
         val max = constraints.maxWidth.toFloat()
         val k = it.pixelbox.cmwatch.rules.OneLine.count(bits.size, max) { n -> measurer.measure(line(n), style, softWrap = false, maxLines = 1).size.width.toFloat() }
-        val shown = if (k > 0) line(k) else buildAnnotatedString { withStyle(SpanStyle(color = bits[0].tone ?: base)) { append(it.pixelbox.cmwatch.rules.OneLine.short(bits[0].text)) } }
+        // Nemmeno la prima: la sua forma corta più lunga che entra (il numero, o le parole iniziali intere), o niente.
+        fun one(x: String) = buildAnnotatedString { withStyle(SpanStyle(color = bits[0].tone ?: base)) { append(x) } }
+        val shown = if (k > 0) line(k) else it.pixelbox.cmwatch.rules.OneLine.shorts(bits[0].text).map(::one)
+            .firstOrNull { x -> measurer.measure(x, style, softWrap = false, maxLines = 1).size.width <= max } ?: return@BoxWithConstraints
         Text(shown, style = style, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, textAlign = TextAlign.End)
     }
 }

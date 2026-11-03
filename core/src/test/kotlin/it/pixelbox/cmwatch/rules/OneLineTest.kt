@@ -31,6 +31,13 @@ class OneLineTest {
         assertEquals("niente oggi", OneLine.short("niente oggi"))
     }
 
+    @Test fun aPartWithoutANumberShrinksByWholeWords() {
+        assertEquals(listOf("22"), OneLine.shorts("22 da decidere"))
+        assertEquals(listOf("niente"), OneLine.shorts("niente oggi"))
+        assertEquals(listOf("Prima raccolta aspetta", "Prima raccolta", "Prima"), OneLine.shorts("Prima raccolta aspetta te"))
+        assertEquals(emptyList<String>(), OneLine.shorts("ok"))
+    }
+
     @Test fun theSummaryIsSplitOnTheDots() {
         assertEquals(listOf("1 al lavoro", "1 finita"), OneLine.parts("1 al lavoro · 1 finita"))
         assertEquals(listOf("30 oggi"), OneLine.parts("30 oggi"))

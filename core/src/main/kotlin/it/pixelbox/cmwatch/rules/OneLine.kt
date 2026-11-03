@@ -26,4 +26,14 @@ object OneLine {
 
     /** La prima parte ridotta al suo numero; senza un numero resta intera. */
     fun short(part: String): String = NUMBER.find(part)?.value?.trim() ?: part
+
+    /**
+     * Le forme corte della prima parte, dalla più lunga, quando non entra intera: il suo numero; senza un numero, le sue parole
+     * iniziali intere («niente oggi» → «niente»). Nessuna che entri: la riga resta senza riassunto, mai una parola tagliata.
+     */
+    fun shorts(part: String): List<String> {
+        NUMBER.find(part)?.let { return listOf(it.value.trim()) }
+        val w = part.split(' ').filter { it.isNotEmpty() }
+        return (w.size - 1 downTo 1).map { k -> w.take(k).joinToString(" ") }
+    }
 }

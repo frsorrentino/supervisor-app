@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { count, parts, short, SEP } from './oneLine'
+import { count, parts, short, shorts, SEP } from './oneLine'
 
 // Il riassunto a destra su una riga (app-riassunti-una-riga-03-11); gli stessi casi in OneLineTest.kt.
 describe('oneLine', () => {
@@ -20,6 +20,12 @@ describe('oneLine', () => {
     expect(short('3 ti aspettano')).toBe('3')
     expect(short('Da decidere 2')).toBe('2')
     expect(short('niente oggi')).toBe('niente oggi')
+  })
+  it('a part without a number shrinks by whole words', () => {
+    expect(shorts('22 da decidere')).toEqual(['22'])
+    expect(shorts('niente oggi')).toEqual(['niente'])
+    expect(shorts('Prima raccolta aspetta te')).toEqual(['Prima raccolta aspetta', 'Prima raccolta', 'Prima'])
+    expect(shorts('ok')).toEqual([])
   })
   it('the summary is split on the dots', () => {
     expect(parts('1 al lavoro · 1 finita')).toEqual(['1 al lavoro', '1 finita'])

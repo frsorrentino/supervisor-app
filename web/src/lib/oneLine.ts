@@ -16,3 +16,14 @@ export function count(n: number, max: number, width: (k: number) => number): num
 
 /** La prima parte ridotta al suo numero; senza un numero resta intera. */
 export const short = (part: string): string => NUMBER.exec(part)?.[0].trim() ?? part
+
+/**
+ * Le forme corte della prima parte, dalla più lunga, quando non entra intera: il suo numero; senza un numero, le sue parole
+ * iniziali intere («niente oggi» → «niente»). Nessuna che entri: la riga resta senza riassunto, mai una parola tagliata.
+ */
+export function shorts(part: string): string[] {
+  const n = NUMBER.exec(part)
+  if (n) return [n[0].trim()]
+  const w = part.split(' ').filter(Boolean)
+  return Array.from({ length: Math.max(0, w.length - 1) }, (_, i) => w.slice(0, w.length - 1 - i).join(' '))
+}
