@@ -83,7 +83,7 @@
   </button>
 {/snippet}
 
-<div class="dock" class:expanded class:screen class:nokeys={!keys} role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
+<div class="dock" class:expanded class:screen class:bar class:nokeys={!keys} role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
   onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={(e) => { if (y0 != null && dragged) { onDrop?.(0); onPlace?.('cancel', e.clientX, e.clientY) } y0 = null }}>
   <!-- La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42). -->
   {#if !bar && keys}{@render toggleKey()}{/if}
@@ -176,4 +176,8 @@
   .col > .hl { display: block; }
   /* Senza i tasti tondi il testo della master prende il posto liberato, su due righe (app-master-tasti-compatti-03-11). */
   .dock.nokeys .col > .hl { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+  /* Nella riga in basso la risposta va su due righe se serve (app-master-riga-risposta-04-11). */
+  .dock.bar .l1 { align-items: flex-start; }
+  .dock.bar .l1 .hl { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; }
+  .dock.bar .l1 .mn, .dock.bar .l1 .mono { line-height: 19px; }
 </style>

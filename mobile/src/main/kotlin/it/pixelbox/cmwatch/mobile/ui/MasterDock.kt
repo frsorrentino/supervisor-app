@@ -120,6 +120,8 @@ fun MasterDock(
      * gesto ha un tocco che fa lo stesso (WCAG 2.5.1). Null = niente tasto.
      */
     onClose: (() -> Unit)? = null,
+    /** Le righe della risposta: 2 nella riga in basso del tablet (Franz 04/11 11:11, app-master-riga-risposta-04-11). */
+    headlineLines: Int = 1,
     /**
      * La master a tutto schermo sul telefono (Franz, 08/10 18:15): una testata sola, nel colore della master fino alla barra di
      * stato. ⌄ va a sinistra, al posto della freccia indietro, e a destra il menu ≡ della home (`trailing`); angoli dritti.
@@ -204,7 +206,7 @@ fun MasterDock(
                     time?.let { Text(it, style = V3.Meter, maxLines = 1) }
                     if (!expanded) ctx?.let { Text(it, style = V3.Meter, maxLines = 1) }
                 }
-                hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = 1, overflow = TextOverflow.Clip) }
+                hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = headlineLines, overflow = TextOverflow.Clip) }
             }
             // Durante la lettura il ▶ diventa ■ e la ferma (Franz, 03/10 17:25), come sotto le risposte della chat.
             val spoken = hero?.let { h -> listOf(h.headline, h.body).filter { it.isNotBlank() }.joinToString("\n") }

@@ -1640,7 +1640,13 @@
   /* Il campo centrato in altezza con il testo della master e la freccia (Franz 03/11 18:01): niente margine in basso qui. */
   .mbar .mquick { padding: 0; align-self: center; }
   .mbar .mquick :global(.bar) { margin-top: 0; margin-bottom: 0; }
-  .mbar > :global(.dock) { width: 500px; flex: none; border-radius: 0; padding: 6px 4px 6px 8px; }
+  /* Più spazio alla risposta che al campo (Franz 04/11 11:11, app-master-riga-risposta-04-11): la risposta prende almeno il 60 %
+     e va su due righe; il campo resta stretto e si allarga quando ci si scrive (fuoco o testo dentro), poi torna stretto. */
+  .mbar > :global(.dock) { flex: 1 1 0; min-width: 60%; border-radius: 0; padding: 6px 4px 6px 8px; transition: min-width 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .mbar > .mquick { flex: 0 1 clamp(240px, 26%, 380px); transition: flex-basis 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .mbar:has(> .mquick:focus-within, > .mquick :global(textarea:not(:placeholder-shown))) > .mquick { flex: 1 1 60%; }
+  .mbar:has(> .mquick:focus-within, > .mquick :global(textarea:not(:placeholder-shown))) > :global(.dock) { min-width: 30%; }
+  @media (prefers-reduced-motion: reduce) { .mbar > .mquick, .mbar > :global(.dock) { transition: none; } }
   /* La barra della plancia (pwa2): il campo è una pillola sola, senza il promemoria dei tasti. */
   .mbar :global(.bar) { padding: 0; }
   .mbar :global(.keys), .mchat :global(.keys) { display: none; }
