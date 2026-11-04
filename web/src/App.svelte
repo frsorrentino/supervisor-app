@@ -125,6 +125,8 @@
   const tr: Transport | null = access ? new LocalTransport(access.base, access.token) : rt ?? demo
   let st = $state<State>(demo ? demo.state : blankState(nowS()))
   let ready = $state(!!demo)
+  // Il contenuto delle colonne entra con un'assolvenza breve al primo stato (app-avvio-senza-salto-04-11).
+  let bootFade = $state(false)
   let down = $state(false)
   let clock = $state(nowS())
   // L'ora delle età e dei conti: quella vera con il relay, quella della fixture nella demo.
@@ -179,7 +181,20 @@
 
   if (tr) {
     tr.subscribe(s => {
-      st = s; ready = true; down = false; clock = nowS()
+      // Il primo stato (app-avvio-senza-salto-04-11): le colonne dello scheletro si riempiono, e una colonna salvata che non c'è
+      // più esce con la coreografia della home.
+      // (Se lo stato arriva già durante l'avvio, prima che la pagina sia pronta, entra e basta.)
+      let entered = false
+      if (!ready) try {
+        if (wide) {
+          const gone = cols.filter(n => !s.sessions.some(x => x.name === n))
+          bootFade = true; setTimeout(() => (bootFade = false), 1000)
+          smooth(() => { st = s; ready = true }, null, gone.length === 1 ? gone[0] : null)
+          entered = true
+        }
+      } catch { /* sotto */ }
+      if (!entered) { st = s; ready = true }
+      down = false; clock = nowS()
       msgs = msgs.map(m => advance(m, s.sessions.find(x => x.name === m.session) ?? null, nowS()))
       record(s)
       clearsDue(s)
@@ -738,7 +753,12 @@
   const dropCol = (n: string) => smooth(() => { heldCols = heldCols.filter(x => x !== n); if (leaving?.name === n) leaving = null }, null, n)
   let pinned = $state<string[] | null>(columnsFromPref(load('cm.columns')))
   if (linked != null && known(linked) && linked !== MASTER) pinned = add(pinned ?? columns(null, live), linked)
-  const cols = $derived(columns(pinned, [...live, ...heldCols]))
+  // Prima della risposta del relay le colonne sono quelle salvate, con lo scheletro al loro posto (app-avvio-senza-salto-04-11):
+  // mai la plancia su quattro colonne per prima.
+  const seenCols = columnsFromPref(load('cm.columns_seen'))
+  const cols = $derived(ready ? columns(pinned, [...live, ...heldCols]) : (pinned ?? seenCols ?? []).filter(n => n !== MASTER))
+  // Le colonne che si vedevano, per il prossimo avvio anche senza una scelta salvata.
+  $effect(() => { if (ready) save('cm.columns_seen', columnsPref(cols)) })
   $effect(() => { shownCols = cols })
   let shares = $state(sharesFromPref(load('cm.shares'), 0))
   $effect(() => { if (shares.length !== cols.length) shares = sharesFromPref(load('cm.shares'), cols.length) })
@@ -1554,11 +1574,16 @@
       {@const held = heldCols.includes(name)}
       {@const phase = splashOf(name, true)}
       {@const hr = headRow(name)}
-      <div class="column" data-col={name}>
+      <div class="column" data-col={name} class:boot={bootFade}>
+        {#if !ready}
+          <!-- Lo scheletro della colonna salvata finché il relay non risponde (app-avvio-senza-salto-04-11). -->
+          <div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i></div>
+        {:else}
         {#if hr && !wco}<ColumnHead r={hr} now={now} onClose={() => (held ? dropCol(name) : setCols(cols.filter(c => c !== name)))} onGrab={grab} />{/if}
         <div class="cbody">{@render chatOf(name, true)}
           {#if phase}<CloseSplash {phase} column onArm={(w) => arm(name, w)} onDismiss={() => (leaving = null)} onHome={() => dropCol(name)} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(name)('reopen'); dropCol(name) } : null} />{/if}
         </div>
+        {/if}
       </div>
     {/snippet}
     <!-- Senza colonne il cruscotto a tre colonne (Franz, 21/10 13:02): cosa serve da te, il lavoro, numeri e strumenti. -->
@@ -1641,6 +1666,16 @@
   .nomaster button { height: 44px; padding: 0 20px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
   .reading { padding: 8px 0; }
   .column { height: 100%; display: flex; flex-direction: column; }
+  /* All'avvio (app-avvio-senza-salto-04-11): lo scheletro della colonna salvata, poi il contenuto entra con un'assolvenza breve e
+     un leggero spostamento, con la durata e la curva della coreografia della home (v3.css). */
+  .skel { display: flex; flex-direction: column; gap: 12px; padding: 18px 16px; }
+  .skel i { display: block; height: 14px; border-radius: 7px; background: var(--s2); width: 70%; }
+  .skel i.h { height: 22px; width: 45%; margin-bottom: 10px; }
+  .skel i.s { width: 50%; }
+  .column.boot > :global(*) { animation: boot-in calc(var(--reflow-ms) * .6) var(--reflow-ease) both; }
+  @keyframes boot-in { from { opacity: 0; translate: 0 6px; } }
+  @media (prefers-reduced-motion: reduce) { .column.boot > :global(*) { animation: boot-fade 150ms ease-out both; } }
+  @keyframes boot-fade { from { opacity: 0; } }
   .cbody { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
   .soon { color: var(--text2); padding: 24px; }
   .sheet { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 0 0; width: min(600px, 100vw); max-height: 90vh; border-radius: 28px; }
