@@ -49,6 +49,11 @@
 <header>
   <div class="bar">
     <span class="title"><b>{quota ? t.summaryTitle : t.appTitle}</b><span class="ver" data-testid="versione-titolo">{__APP_VERSION__}</span><span class="open">{t.summaryOpen(openCount)}</span></span>
+    <!-- Ricarica (Franz 04/11, app-pwa-ricarica-04-11): nella PWA installata non c'è il tasto del browser; fa quello che fa Ctrl+R,
+         che resta anche da tastiera. La pagina arriva dalla rete se c'è (sw.ts), quindi porta l'ultima versione. -->
+    <button class="ib" aria-label={t.reload} title={t.reload} data-testid="ricarica" onclick={() => location.reload()}>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></svg>
+    </button>
     <button class="ib" aria-label={t.search} title={t.search} onclick={() => onPage('search')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
     </button>
@@ -100,6 +105,10 @@
       <span class="mt"><b>{t.liveMenu}</b><small class:wrap={liveNote}>{liveNote ? t.liveOnlyApp : t.liveMenuSub}</small></span>
     </button>
     {#if liveNote}<a class="mi applink" href="https://github.com/frsorrentino/supervisor-app" target="_blank" rel="noopener"><span class="mic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg></span><span class="mt"><b>{t.liveAppLink}</b></span></a>{/if}
+    <button class="mi" role="menuitem" onclick={() => location.reload()}>
+      <span class="mic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></svg></span>
+      <span class="mt"><b>{t.reloadMenu}</b><small>{t.reloadMenuSub}</small></span>
+    </button>
     <hr />
     <button class="foot" role="menuitem" onclick={() => go('settings')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
