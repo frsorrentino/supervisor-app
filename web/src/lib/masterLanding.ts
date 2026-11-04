@@ -41,3 +41,26 @@ export function heightAt(zs: Zone<Height>[], y: number): Height {
   for (const z of zs) if (y < z.rect.y + z.rect.h) return z.key
   return zs[zs.length - 1].key
 }
+
+/** Quanto deve restare sotto il dito un bersaglio nuovo prima di prenderlo (app-trascina-rifinitura-04-11). */
+export const DWELL_MS = 140
+
+/**
+ * La sosta (app-trascina-rifinitura-04-11, Franz 04/11 08:20: «dalla riga in basso c'è sfarfallio»): il bersaglio di adesso
+ * tiene; uno nuovo vince solo se resta sotto il dito per `dwell` ms di fila. `feed` dice il bersaglio da mostrare e, se uno nuovo
+ * aspetta, fra quanti ms riguardare anche senza altri movimenti del dito.
+ */
+export function steady<K>(start: K, dwell = DWELL_MS) {
+  let cur = start
+  let cand: { key: K; since: number } | null = null
+  return {
+    get current() { return cur },
+    feed(key: K, now: number): { on: K; wait: number | null } {
+      if (key === cur) { cand = null; return { on: cur, wait: null } }
+      if (!cand || cand.key !== key) cand = { key, since: now }
+      const left = dwell - (now - cand.since)
+      if (left <= 0) { cur = key; cand = null; return { on: cur, wait: null } }
+      return { on: cur, wait: left }
+    },
+  }
+}

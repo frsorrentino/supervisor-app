@@ -13,6 +13,10 @@ export function markBox(m: LandMark): Box {
 /** Il posto della master dopo il rilascio: il pannello sotto la home, il pannello di lato, quello della plancia, o la riga. */
 export const PLACES = ['.dpanel.under', 'aside.dpanel:not(.stackcol)', 'aside.mpanel', '.mbar'] as const
 
+/** Le durate del segno d'arrivo: lo spostamento come la master, poi acceso e la sfumatura. */
+export const MOVE_MS = 380, HOLD_MS = 320, FADE_MS = 300
+export const MOVE_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)'
+
 export function landOn(from: Box, to: Box, reduced: boolean): void {
   if (reduced || typeof document === 'undefined' || !to.w || !to.h) return
   const el = document.createElement('div')
@@ -20,9 +24,17 @@ export function landOn(from: Box, to: Box, reduced: boolean): void {
   el.setAttribute('aria-hidden', 'true')
   document.body.appendChild(el)
   const at = (b: Box) => ({ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` })
+  // Sincronizzato con la master (app-trascina-rifinitura-04-11): arriva al posto in MOVE_MS con la curva del gruppo
+  // `master-morph` (v3.css), poi resta acceso HOLD_MS perché si veda, e sfuma in FADE_MS.
+  const total = MOVE_MS + HOLD_MS + FADE_MS
   const a = el.animate(
-    [{ ...at(from), opacity: 1, borderRadius: '2px' }, { ...at(to), opacity: 1, borderRadius: '14px', offset: 0.65 }, { ...at(to), opacity: 0, borderRadius: '14px' }],
-    { duration: 560, easing: 'cubic-bezier(.2, .8, .2, 1)', fill: 'forwards' },
+    [
+      { ...at(from), opacity: 1, borderRadius: '2px', easing: MOVE_EASE },
+      { ...at(to), opacity: 1, borderRadius: '14px', offset: MOVE_MS / total },
+      { ...at(to), opacity: 1, borderRadius: '14px', offset: (MOVE_MS + HOLD_MS) / total, easing: 'ease-out' },
+      { ...at(to), opacity: 0, borderRadius: '14px' },
+    ],
+    { duration: total, fill: 'forwards' },
   )
   a.onfinish = a.oncancel = () => el.remove()
 }

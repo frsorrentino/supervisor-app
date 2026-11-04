@@ -3,7 +3,7 @@
   import * as files from './lib/fileActions'
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
-  import { clampWidth, COLUMN, heightAt, heightZones, sideAt, snapWidth, type Height, type Rect, type Side } from './lib/masterLanding'
+  import { clampWidth, COLUMN, heightAt, heightZones, sideAt, snapWidth, steady, type Height, type Rect, type Side } from './lib/masterLanding'
   import { landOn, markBox, PLACES } from './lib/landingMorph'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
@@ -474,10 +474,12 @@
   let marks = $state<Mark[]>([])
   // La calamita (Franz 03/11 23:01): dove sta il dito; un segno vicino si allunga e gli scivola incontro lungo il suo bordo.
   let ptr = $state({ x: 0, y: 0 })
-  const pullOf = (m: Mark) => Math.max(0, 1 - Math.hypot(m.x - ptr.x, m.y - ptr.y) / 240)
+  // Più forte dal 04/11 (app-trascina-rifinitura-04-11, «la calamita deve sentirsi»): sente il dito da 320 px e gli va incontro
+  // per più di metà strada; il segno preso resta teso verso il dito.
+  const pullOf = (m: Mark) => Math.max(0, 1 - Math.hypot(m.x - ptr.x, m.y - ptr.y) / 320)
   function markStyle(m: Mark) {
-    const p = m.on ? Math.max(pullOf(m), 0.6) : pullOf(m), len = 48 + p * 88
-    const dx = m.v ? 0 : (ptr.x - m.x) * p * 0.3, dy = m.v ? (ptr.y - m.y) * p * 0.3 : 0
+    const p = m.on ? Math.max(pullOf(m), 0.75) : pullOf(m), len = 48 + p * 104
+    const dx = m.v ? 0 : (ptr.x - m.x) * p * 0.55, dy = m.v ? (ptr.y - m.y) * p * 0.55 : 0
     return `left:${m.x + dx}px; top:${m.y + dy}px; ${m.v ? `height:${len}px` : `width:${len}px`}; opacity:${0.45 + p * 0.55}`
   }
   let resizing = $state(false)
@@ -485,19 +487,36 @@
   let masterW = $state<number | null>(Number(load('cm.master_w')) || null)
   const colWidth = () => masterW ?? (masterHalf ? COLUMN : 720)
   // Il gesto continua sulla finestra: mentre la pagina si riorganizza l'elemento preso può sparire (la riga che diventa pannello).
+  // Ogni gesto finisce in uno di quattro modi, e tutti passano da `onEnd`: rilascio, annullo del sistema, Esc, finestra che perde
+  // il fuoco (app-trascina-rifinitura-04-11: dopo il rilascio restavano «Metà schermo» e la barra gialla).
   function follow(onMove: (e: PointerEvent) => void, onEnd: (e: PointerEvent | null) => void) {
     const up = (e: PointerEvent) => { stop(); onEnd(e) }
     const cancel = () => { stop(); onEnd(null) }
-    const stop = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel) }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') cancel() }
+    const stop = () => {
+      window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel)
+      window.removeEventListener('keydown', key); window.removeEventListener('blur', cancel)
+    }
     window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel)
+    window.addEventListener('keydown', key); window.addEventListener('blur', cancel)
+  }
+  // Il punto solo dove si tolgono i segni di un gesto: il fotogramma in attesa del bordo (che li riscriveva dopo il rilascio),
+  // la sosta in attesa, i segni, la selezione del testo.
+  let dwellTimer: ReturnType<typeof setTimeout> | undefined
+  function clearMarks() {
+    if (wFrame) cancelAnimationFrame(wFrame)
+    wFrame = 0; clearTimeout(dwellTimer); dwellTimer = undefined
+    marks = []; resizing = false; wDrag = null; document.body.style.userSelect = ''
   }
   function begin() { snap ??= { open: masterOpen, left: masterLeft, under: masterUnder, h: stackH }; document.body.style.userSelect = 'none' }
   // Al rilascio il segno giallo d'arrivo si allarga nel contorno del posto, poi svanisce (app-trascina-morphing-03-11, punto 2).
   const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-  function landFrom(m: Mark | undefined) {
+  // Il riquadro giallo parte al rilascio e segue la master: aspetta che la transizione abbia messo il posto nuovo nella pagina,
+  // poi lo misura (app-trascina-rifinitura-04-11).
+  function landFrom(m: Mark | undefined, vt: ViewTransition | null = null) {
     if (!m) return
     const from = markBox(m)
-    void tick().then(() => requestAnimationFrame(() => {
+    void (vt ? vt.updateCallbackDone.catch(() => {}) : tick()).then(() => requestAnimationFrame(() => {
       const el = PLACES.map(q => document.querySelector<HTMLElement>(q)).find(x => x && x.getBoundingClientRect().width > 0)
       if (!el) return
       const r = el.getBoundingClientRect()
@@ -506,21 +525,26 @@
   }
   function commit() {
     landFrom(marks.find(m => m.on))
-    snap = null; marks = []; document.body.style.userSelect = ''
+    snap = null; clearMarks()
     save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH)
   }
   function revert() {
     if (snap) { masterOpen = snap.open; masterLeft = snap.left; masterUnder = snap.under; stackH = snap.h }
-    snap = null; marks = []; document.body.style.userSelect = ''
+    snap = null; clearMarks()
   }
   // La testata: il lato, dalla metà dello schermo sotto il dito. Il pannello resta lo stesso elemento: bastano i suoi eventi.
+  let sideHold: ReturnType<typeof steady<Side>> | null = null
   function placeDrag(phase: 'move' | 'end' | 'cancel', x: number, y: number) {
-    if (phase === 'cancel') { smooth(revert); return }
-    if (phase === 'end') { commit(); return }
+    if (phase === 'cancel') { sideHold = null; smooth(revert); return }
+    if (phase === 'end') { sideHold = null; commit(); return }
     begin()
     const W = window.innerWidth, H = window.innerHeight
-    // Un margine di 48 px intorno al centro: il lato non sfarfalla mentre il dito passa sul confine.
-    const on: Side = Math.abs(x - W / 2) < 48 ? (masterLeft ? 'left' : 'right') : sideAt(W, x)
+    // Un margine di 48 px intorno al centro e la sosta: il lato non sfarfalla mentre il dito passa sul confine.
+    sideHold ??= steady<Side>(masterLeft ? 'left' : 'right')
+    const raw: Side = Math.abs(x - W / 2) < 48 ? sideHold.current : sideAt(W, x)
+    const { on, wait } = sideHold.feed(raw, performance.now())
+    clearTimeout(dwellTimer)
+    if (wait != null) dwellTimer = setTimeout(() => placeDrag('move', x, y), wait + 5)
     ptr = { x, y }
     if ((on === 'left') !== masterLeft) smooth(() => { masterLeft = on === 'left' })
     marks = [{ x: 14, y: H / 2, v: true, on: on === 'left', text: t.masterPosLeft }, { x: W - 14, y: H / 2, v: true, on: on === 'right', text: t.masterPosRight }]
@@ -533,7 +557,18 @@
       (m) => { if (!moved) return; if (m) placeDrag('end', m.clientX, m.clientY); else placeDrag('cancel', 0, 0) })
   }
   let wDrag: number | null = null
-  function widthDown(e: PointerEvent) { e.preventDefault(); wDrag = e.clientX; resizing = true; document.body.style.userSelect = 'none'; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }
+  // La misura di prima, per l'annullo; Esc e la perdita del fuoco annullano anche qui.
+  let wStart: number | null = null
+  const wKey = (e: KeyboardEvent) => { if (e.key === 'Escape') widthCancel() }
+  function widthListen(on: boolean) {
+    if (on) { window.addEventListener('keydown', wKey); window.addEventListener('blur', widthCancel) }
+    else { window.removeEventListener('keydown', wKey); window.removeEventListener('blur', widthCancel) }
+  }
+  function widthDown(e: PointerEvent) { e.preventDefault(); wDrag = e.clientX; wStart = masterW; resizing = true; document.body.style.userSelect = 'none'; widthListen(true); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }
+  function widthCancel() {
+    if (wDrag == null) return
+    widthListen(false); clearMarks(); masterW = wStart
+  }
   const widthOf = (x: number) => clampWidth(masterLeft ? x : window.innerWidth - x, window.innerWidth)
   // Un aggiornamento per fotogramma, e nessuna transizione delle colonne mentre il bordo si muove (Franz 22:54: «poco fluido»).
   let wFrame = 0, wX = 0
@@ -552,36 +587,46 @@
   }
   function widthUp(e: PointerEvent) {
     if (wDrag == null) return
-    landFrom(marks.find(m => m.on))
-    wDrag = null; resizing = false; marks = []; document.body.style.userSelect = ''
+    const mark = marks.find(m => m.on)
+    widthListen(false); clearMarks()
     const w = snapWidth(masterLeft ? e.clientX : window.innerWidth - e.clientX, window.innerWidth)
-    smooth(() => { masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2 })
+    landFrom(mark, smooth(() => { masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2 }))
     save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
   }
   // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto; `side` anche il lato (la riga in basso).
   function heightGesture(x0: number, y0: number, side: boolean) {
     let moved = false
-    const col = (x: number): Rect => {
-      const w = colWidth(), left = side ? sideAt(window.innerWidth, x) === 'left' : masterLeft
-      return { x: left ? 0 : window.innerWidth - w, y: 0, w, h: window.innerHeight }
-    }
+    // Le zone si calcolano una volta, all'inizio del gesto, per i due lati (app-trascina-rifinitura-04-11): rifarle a ogni
+    // movimento, con la pagina che intanto si riorganizza, faceva sfarfallare il bersaglio dalla riga in basso.
+    const W0 = window.innerWidth, H0 = window.innerHeight, w0 = colWidth(), under = !deskDashboard
+    const cols: Record<Side, Rect> = { left: { x: 0, y: 0, w: w0, h: H0 }, right: { x: W0 - w0, y: 0, w: w0, h: H0 } }
+    const zones: Record<Side, ReturnType<typeof heightZones>> = { left: heightZones(cols.left, under), right: heightZones(cols.right, under) }
+    const now0 = (): Height => (!masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half')
+    const hold = steady<Height>(now0()), sideHold = steady<Side>(masterLeft ? 'left' : 'right')
     const apply = (e: PointerEvent) => {
       if (!moved && Math.abs(e.clientY - y0) < 8) return
       moved = true; begin()
-      const zs = heightZones(col(e.clientX), !deskDashboard)
-      // Il margine anche qui: la banda di adesso tiene finché il dito non la supera di 28 px.
-      const now0: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
+      const t0 = performance.now()
+      const rawSide: Side = side ? (Math.abs(e.clientX - W0 / 2) < 48 ? sideHold.current : sideAt(W0, e.clientX)) : masterLeft ? 'left' : 'right'
+      const sd = sideHold.feed(rawSide, t0)
+      const zs = zones[sd.on]
+      // Il margine (28 px oltre il confine) e poi la sosta: la banda nuova vince solo se resta sotto il dito.
+      const cur = hold.current
       const near = [heightAt(zs, e.clientY - 28), heightAt(zs, e.clientY), heightAt(zs, e.clientY + 28)]
-      const on = moved && near.includes(now0) && near[1] !== now0 && (near[0] === now0 || near[2] === now0) ? now0 : near[1]
-      const left = side ? sideAt(window.innerWidth, e.clientX) === 'left' : masterLeft
-      const now: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
-      if (on !== now || left !== masterLeft) smooth(() => { masterLeft = left; setHeight(on) })
-      const c = col(e.clientX), H = window.innerHeight, cx = c.x + c.w / 2
+      const raw = near.includes(cur) && near[1] !== cur && (near[0] === cur || near[2] === cur) ? cur : near[1]
+      const hd = hold.feed(raw, t0)
+      const on = hd.on, left = sd.on === 'left'
+      clearTimeout(dwellTimer)
+      const wait = Math.max(hd.wait ?? 0, sd.wait ?? 0)
+      if (wait > 0) dwellTimer = setTimeout(() => apply(e), wait + 5)
+      if (on !== now0() || left !== masterLeft) smooth(() => { masterLeft = left; setHeight(on) })
+      const c = cols[sd.on], H = H0, cx = c.x + c.w / 2
       ptr = { x: e.clientX, y: e.clientY }
       const ys: [Height, number][] = deskDashboard ? [['column', 24], ['bar', H - 36]] : [['column', 24], ['half', H / 2], ['compact', H - 150], ['bar', H - 36]]
       marks = ys.map(([k, y]) => ({ x: cx, y, v: false, on: k === on, text: t.masterLand[k] }))
     }
     follow(apply, (e) => {
+      clearTimeout(dwellTimer)
       if (!e) { smooth(revert); return }
       // Un tocco senza trascinare: la maniglia sotto la home passa all'altezza dopo, come prima.
       if (!moved) { if (stacked) stepStack(1); return }
@@ -692,12 +737,13 @@
   // Il cambio con la transizione del browser, quando c'è (Chrome): niente ridisegni continui.
   // Con la pagina nascosta niente transizione: il browser la interrompe e la promessa rifiutata finiva in console (15/10).
   // `morph`: aprendo o chiudendo una pagina, la voce premuta diventa la pagina e ci torna (morphStart in motion.ts).
-  const smooth = (go: () => void, morph: 'open' | 'back' | null = null) => {
-    if (!document.startViewTransition || document.hidden) { go(); return }
+  const smooth = (go: () => void, morph: 'open' | 'back' | null = null): ViewTransition | null => {
+    if (!document.startViewTransition || document.hidden) { go(); return null }
     const m = morph ? morphStart(morph) : null
     const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : go)
     for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
     if (m) vt.finished.catch(() => {}).finally(m.done)
+    return vt
   }
   function setCols(c: string[]) { smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }) }
   // Dal trascinamento niente View Transition: sfumerebbe due fotografie della plancia invece di far scorrere la colonna lasciata
@@ -1449,9 +1495,9 @@
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
   {#if cols.length && !stacked && !page}<SwapPills shown={cols} current={cols.at(-1) ?? null} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols([...cols, n]) }} onSwap={(n) => setCols(cols.length ? [...cols.slice(0, -1), n] : [n])} />{/if}
   </div>
-  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
+  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={() => (wDrag = null)}></button><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
   </div>
 {:else}
   <div class="phone">
