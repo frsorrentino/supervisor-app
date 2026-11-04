@@ -1201,7 +1201,8 @@
   let kpiData = $state<KpiData | null>(null)
   let kpiDataAsked = 0
   $effect(() => {
-    if (!tr || demo || !st.ops?.includes('kpi')) return
+    // Anche la demo risponde (app-demo-sempre-allineata-03-11): i riquadri che vivono dell'op non restano vuoti.
+    if (!tr || !st.ops?.includes('kpi')) return
     void st.ts
     const at = nowS()
     if (at - kpiDataAsked < 300) return

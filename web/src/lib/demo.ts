@@ -8,7 +8,7 @@ import { decodeChanges, decodeState } from './contract'
 import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry, PrimaRaccoltaPage, SeguitiPage, ResultItem, ResultsPage } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
-import type { Commitment, DecisionsPage, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
+import type { Commitment, DecisionsPage, KpiData, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
 import { midnight } from './kpi'
 import type { NightReport } from './night'
 import { lang } from './lang'
@@ -107,6 +107,36 @@ export const seguitiDemo = (now: number): SeguitiPage => ({ at: now,
   ],
   promemoria_scattati: [{ id: 'demo-cert', text: en ? 'Renew the certificate' : 'Rinnova il certificato', outcome: 'fired', at: now - 7200 }],
 })
+/**
+ * L'op `kpi` nella demo (contratto 1.96-1.110, app-demo-sempre-allineata-03-11): i compiti, i controlli della settimana, i turni
+ * di oggi, la salute (disco di questo computer, tempi dei comandi, win al lavoro), i suggerimenti e le attese. Prima la demo non
+ * rispondeva e i riquadri che ne vivono (il quarto KPI di Sistema, il disco) restavano vuoti.
+ */
+export const kpiDemo = (now: number): KpiData => {
+  const day = (k: number) => new Date((now - k * 86400) * 1000).toISOString().slice(0, 10)
+  const week = [6, 5, 4, 3, 2, 1, 0]
+  return {
+    at: now,
+    kpi_tasks: { open: 6, waiting_you: 2, stalled: 1, closed_today: 3, tasks: [
+      { task: 'shop-checkout', short: 'Checkout', state: 'running', age_s: 5400, attempts: 1, attempts_max: 3, stalled: false, who: 'storefront' },
+      { task: 'blog-post', short: 'Post', state: 'paused', age_s: 7200, attempts: 1, attempts_max: 3, stalled: false, who: 'blog' },
+      { task: 'docs-migrate', short: 'Docs', state: 'assigned', age_s: 90000, attempts: 2, attempts_max: 3, stalled: true, who: null },
+    ] },
+    kpi_checks_week: week.map((k, i) => ({ date: day(k), green: 3 + (i % 3), red: i === 4 ? 1 : 0 })),
+    kpi_turns_today: [
+      { session: 'storefront', turns: [{ start: now - 5400, end: now - 4800, outcome: 'ok', tokens: 41000, cache_read: 380000 }, { start: now - 1500, end: now - 420, outcome: 'question', tokens: 22000, cache_read: 210000 }] },
+      { session: 'blog', turns: [{ start: now - 3000, end: now - 240, outcome: 'question', tokens: 18000, cache_read: 160000 }] },
+    ],
+    kpi_health: {
+      local_disk: { free: 84e9, total: 256e9 }, commands: { p50_s: 0.8, p95_s: 2.4, n: 146 },
+      latency: { p50_s: 1.1, p95_s: 3.2, max_s: 9.5, n: 146 }, sessions_here: 5, sessions_max: 12,
+      hosts: [{ name: 'win', up: true, cpu: 22, ram_pct: 58, disk_pct: 61, working: true, working_why: ['job'] }],
+    },
+    kpi_suggestions_7d: { accepted: 6, discussed: 2, later: 3, never: 1, expired: 2 },
+    kpi_waits: { now: [{ session: 'storefront', kind: 'needs_you', since: now - 420 }], week: week.map((k, i) => ({ date: day(k), median_min: 4 + i, n: 3 + (i % 2) })) },
+  }
+}
+
 export const decisionsDemo = (now: number): DecisionsPage => ({ at: now, n: 3, here: 2, tasks: 4, snoozed: 0, groups: [
   { key: 'demo-a', title: en ? 'Cover image for the post' : 'Immagine di copertina del post', cause: null, unblocks: ['demo-cover', 'demo-docs'], weight: 2, where: 'here', since: now - 1200, note: null, refs: ['demo-cover'], items: [{ kind: 'pause', task: 'demo-cover', short: en ? 'Cover image' : 'Immagine di copertina', session: 'blog', reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', since: now - 1200, where: 'here', asks: 'other' }] },
   { key: 'demo-c', title: en ? 'Try the new checkout on the phone' : 'Prova il nuovo checkout sul telefono', cause: null, unblocks: ['demo-checkout'], weight: 1, where: 'here', since: now - 300, note: null, refs: ['demo-checkout'], items: [{ kind: 'pause', task: 'demo-checkout', short: en ? 'New checkout' : 'Nuovo checkout', session: 'storefront', reason: en ? 'Waits for you to try build 0.4.12 on the phone' : 'Aspetta la tua prova della versione 0.4.12 sul telefono', since: now - 300, where: 'here', asks: 'other' }] },
@@ -163,9 +193,10 @@ export function world(now: number): World {
         changes: s.changes ? { ...s.changes, at: now - 120 } : s.changes }
       // Contratto 1.68 nella demo (FakeTransport.stopped): storefront ferma per te con un login, blog con un ok alla fine del
       // turno. Blog è seguita e al 64 % di contesto: si vedono «ha finito» e la proposta «handoff, poi /clear».
-      if (x.name === 'storefront') return { ...x, needs_you: stopLogin }
+      // Contratto 1.113 per sessione (app-demo-sempre-allineata-03-11): i conti di Tocca a te, che sommati fanno quelli di `tocca`.
+      if (x.name === 'storefront') return { ...x, needs_you: stopLogin, tocca: { prove: 2, decidi: 2, guarda: 1, segui: 1 } }
       // app-attesa-dettagli-02-11: la ferma ha la sua proposta e tre scelte, così la scheda aperta mostra cosa si sceglie.
-      if (x.name === 'blog') return { ...x, turn_blocking: stopOk, followed: true, context: 64, outcome: blogOutcome(now), next_steps: blogSteps, heads_up: { text: en ? 'This conversation is getting long: a handoff would help' : 'Questa conversazione si sta allungando: conviene un handoff', seen_at: now - 780 } }
+      if (x.name === 'blog') return { ...x, tocca: { prove: 0, decidi: 1, guarda: 0, segui: 0 }, turn_blocking: stopOk, followed: true, context: 64, outcome: blogOutcome(now), next_steps: blogSteps, heads_up: { text: en ? 'This conversation is getting long: a handoff would help' : 'Questa conversazione si sta allungando: conviene un handoff', seen_at: now - 780 } }
       return x
     }),
     // Al lavoro adesso: nella fixture l'unica in turno è ferma su un login, e il tabellone direbbe 0.
@@ -206,6 +237,20 @@ export function world(now: number): World {
     // Contratto 1.99: le righe di Da provare e Da decidere, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 3, here: 2, tasks: 4, snoozed: 0 },
     // Contratto 1.113 (app-pulizia-tocca-03-11): lo stesso conto delle righe qui sopra e tre voci uscite da sole stamattina.
+    // Il consumo di oggi per sessione (Utilizzo, «chi ha speso di più»; app-demo-sempre-allineata-03-11): le quote per account sommano a 1.
+    usage_today: [
+      { session: 'storefront', account: 'personal', tokens: 1840000, share: 0.52 }, { session: 'master', account: 'personal', tokens: 1130000, share: 0.32 },
+      { session: 'blog', account: 'personal', tokens: 560000, share: 0.16 },
+    ],
+    // Contratto 1.83: una domanda di un server MCP in cima a Tocca a te (app-demo-sempre-allineata-03-11); nella demo non scade.
+    elicitations: [{
+      id: 'e-demo-1', session: 'storefront', server: 'issue-tracker', mode: 'form', asked_at: now - 40, expires_at: now + 3600,
+      message: en ? 'Which project should the checkout issue go to?' : 'In quale progetto apro la issue del checkout?',
+      fields: [
+        { key: 'project', title: en ? 'Project' : 'Progetto', required: true, kind: 'choice', options: [{ value: 'SHOP', label: en ? 'Shop' : 'Negozio' }, { value: 'OPS', label: en ? 'Operations' : 'Operazioni' }] },
+        { key: 'urgent', title: en ? 'Urgent' : 'Urgente', required: false, kind: 'boolean', default: false },
+      ],
+    }],
     tocca: { n: 5, prove: 2, decidi: 3, today: { n: 3, items: [
       { task: 'shop-banner', short: en ? 'Banner on the home' : 'Banner in home', kind: 'prova', rule: 1, at: now - 5400 },
       { task: 'blog-feed', short: en ? 'RSS feed' : 'Feed RSS', kind: 'pause', rule: 2, at: now - 9000 },

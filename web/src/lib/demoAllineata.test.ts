@@ -168,3 +168,49 @@ describe('demo_senza_dati', () => {
     expect(realLink(u)).toBe('/')
   })
 })
+
+// app-demo-sempre-allineata-03-11: ogni campo che il relay manda nello stato (le fixture del contratto, livello alto e sessioni)
+// ha dati anche nella demo. Un campo nuovo del contratto senza dati finti fa fallire il test, e con lui la build.
+// Le eccezioni stanno qui sotto, ognuna col suo perché.
+const NOT_IN_DEMO: Record<string, string> = {
+  feedback: "le segnalazioni d'errore dei plugin: l'app non le legge ancora (non c'è nel tipo State)",
+}
+const filled = (v: unknown) => v != null && v !== '' && !(Array.isArray(v) && !v.length) && !(typeof v === 'object' && !Array.isArray(v) && !Object.keys(v as object).length)
+const fixtures = ['state-1-question', 'state-2-idle', 'state-3-stale'].map(f => JSON.parse(readFileSync(new URL(`../../../contract/${f}.json`, import.meta.url), 'utf8')) as Record<string, unknown>)
+const topKeys = [...new Set(fixtures.flatMap(f => Object.keys(f)))].sort()
+const sessionKeys = [...new Set(fixtures.flatMap(f => ((f.sessions as Record<string, unknown>[]) ?? []).flatMap(s => Object.keys(s))))].sort()
+
+describe('demo_allineata: i campi del contratto', () => {
+  it('ogni campo dello stato ha dati nella demo', () => {
+    const missing = topKeys.filter(k => !(k in NOT_IN_DEMO) && !filled((st as unknown as Record<string, unknown>)[k]))
+    expect(missing, `campi dello stato senza dati nella demo: ${missing.join(', ')}`).toEqual([])
+  })
+  it('ogni campo di una sessione ha dati in almeno una sessione della demo', () => {
+    const ss = st.sessions as unknown as Record<string, unknown>[]
+    const missing = sessionKeys.filter(k => !(`sessions.${k}` in NOT_IN_DEMO) && !ss.some(s => filled(s[k])))
+    expect(missing, `campi delle sessioni senza dati nella demo: ${missing.join(', ')}`).toEqual([])
+  })
+})
+
+// Le letture che l'app fa quando apre una pagina o un riquadro: la demo risponde a ognuna (prima mancava `kpi`).
+const READS = ['kpi', 'prove', 'decisioni', 'seguiti', 'results', 'prima_raccolta', 'plugins', 'projects', 'night', 'agenda', 'timeline'] as const
+describe('demo_allineata: le letture', () => {
+  it.each(READS)('demo_allineata: la demo risponde a %s', async (op) => {
+    const d = new DemoTransport(() => NOW)
+    const r = await d.send(newCmd(op as never, null))
+    expect(r?.ok, `${op}: ${r?.text}`).toBe(true)
+    expect(filled(JSON.parse(r!.text)), op).toBe(true)
+  })
+  it('demo_allineata: i riquadri dei KPI hanno i loro numeri', async () => {
+    const d = new DemoTransport(() => NOW)
+    const k = JSON.parse((await d.send(newCmd('kpi', null)))!.text)
+    expect(k.kpi_health.local_disk.total).toBeGreaterThan(0)
+    expect(k.kpi_health.commands.p95_s).toBeGreaterThan(0)
+    expect(k.kpi_health.hosts.some((h: { working?: boolean }) => h.working)).toBe(true)
+  })
+  it('demo_allineata: i conti di Tocca a te per sessione sommano quelli della home', () => {
+    const ss = st.sessions.filter(s => s.tocca)
+    expect(ss.reduce((n, s) => n + s.tocca!.prove, 0)).toBe(st.tocca!.prove)
+    expect(ss.reduce((n, s) => n + s.tocca!.decidi, 0)).toBe(st.tocca!.decidi)
+  })
+})
