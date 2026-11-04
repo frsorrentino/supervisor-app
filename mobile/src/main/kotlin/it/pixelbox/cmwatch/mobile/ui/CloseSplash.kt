@@ -53,6 +53,8 @@ fun CloseSplashOverlay(
     phase: CloseSplash.Phase, onHome: () -> Unit, onReopen: (() -> Unit)?,
     /** In una colonna del tablet il pannello toglie la colonna invece di tornare alla home. */
     column: Boolean = false,
+    /** Rifiutata dal relay (app-chiudi-esito-04-11): «Va bene» toglie il motivo e lascia la pagina com'era. */
+    onDismiss: () -> Unit = onHome,
 ) {
     val home by rememberUpdatedState(onHome)
     val hm = { at: Long -> SPLASH_HM.format(Instant.ofEpochSecond(at).atZone(ZoneId.systemDefault())) }
@@ -68,7 +70,7 @@ fun CloseSplashOverlay(
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val closed = phase is CloseSplash.Phase.Closed
-            Icon(Icons.Rounded.PowerSettingsNew, null, tint = if (closed) Cm.text2 else Cm.actionIcon, modifier = Modifier.size(44.dp))
+            Icon(Icons.Rounded.PowerSettingsNew, null, tint = if (closed) Cm.text2 else if (phase is CloseSplash.Phase.Refused) Cm.waiting else Cm.actionIcon, modifier = Modifier.size(44.dp))
             when (phase) {
                 is CloseSplash.Phase.Closing -> {
                     Text(stringResource(R.string.splash_closing, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
@@ -82,6 +84,13 @@ fun CloseSplashOverlay(
                         Text(stringResource(R.string.splash_slow), style = MaterialTheme.typography.labelMedium, color = Cm.waiting)
                         TextButton(onClick = onHome) { Text(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), color = Cm.actionIcon) }
                     } else Text(stringResource(R.string.splash_usually), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
+                }
+                is CloseSplash.Phase.Refused -> {
+                    Text(stringResource(R.string.splash_refused, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
+                    Text(phase.why, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center)
+                    Button(onClick = onDismiss, Modifier.padding(top = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
+                        Text(stringResource(R.string.splash_refused_ok))
+                    }
                 }
                 is CloseSplash.Phase.Closed -> {
                     Text(stringResource(R.string.splash_closed, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)

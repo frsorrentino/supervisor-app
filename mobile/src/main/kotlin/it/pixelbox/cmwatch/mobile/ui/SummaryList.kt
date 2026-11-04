@@ -148,6 +148,8 @@ fun SummaryList(
     justClosed: Pair<it.pixelbox.cmwatch.contract.Session, String>? = null,
     /** La sessione chiusa da una card, finché non esce dallo stato o il PC rifiuta (Franz 24/10 13:20: «nessun feedback»). */
     closing: String? = null,
+    /** Il Chiudi rifiutato dal relay: la sessione e il motivo in chiaro; [onCloseSeen] lo toglie (app-chiudi-esito-04-11). */
+    closeRefused: Pair<String, String>? = null, onCloseSeen: () -> Unit = {},
     /** Contratto 1.83: le domande aperte dei server MCP, in cima; `onElicit` manda la risposta (action, content). */
     elicitations: List<it.pixelbox.cmwatch.contract.Elicitation> = emptyList(),
     onElicit: (it.pixelbox.cmwatch.contract.Elicitation, String, Map<String, String?>) -> Unit = { _, _, _ -> },
@@ -670,7 +672,7 @@ fun SummaryList(
             SummaryCard(
                 r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
                 onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
-                firstFilled = false, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, now = now,
+                firstFilled = false, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, refused = closeRefused?.takeIf { r -> r.first == s.name }?.second, onRefusedSeen = onCloseSeen, now = now,
                 onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                 menuState = menuState, mine = mineOf(s.name), onMine = onMine?.let { m -> { k -> m(s.name, k) } },
                 onOpenInClaude = onOpenInClaude?.let { o -> { o(s.name) } }, onRestartClean = onRestartClean?.let { o -> { o(s.name) } },
@@ -1068,7 +1070,7 @@ private fun details(s: Session): List<String> = listOfNotNull(
 private fun SummaryCard(
     r: Summary.Row, open: Boolean, onToggle: () -> Unit,
     onAnswer: (Int) -> Unit, onStep: (String) -> Unit, onOpen: () -> Unit,
-    firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, closing: Boolean = false, now: Long = System.currentTimeMillis() / 1000,
+    firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, closing: Boolean = false, refused: String? = null, onRefusedSeen: () -> Unit = {}, now: Long = System.currentTimeMillis() / 1000,
     onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
     menuState: it.pixelbox.cmwatch.contract.State? = null, mine: it.pixelbox.cmwatch.rules.SessionMenu.Mine = it.pixelbox.cmwatch.rules.SessionMenu.Mine(),
     onMine: ((it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit)? = null, onOpenInClaude: (() -> Unit)? = null, onRestartClean: (() -> Unit)? = null,
@@ -1298,6 +1300,8 @@ private fun SummaryCard(
             }
         }
         if (closing && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now) == null) ClosingChip(s.name)
+        // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene».
+        refused?.let { why -> RefusedRow(s.name, why, onRefusedSeen) }
         if (menuClose) androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -2121,6 +2125,18 @@ internal fun expiryText(at: Long, now: Long): String {
 
 internal fun hhmmOf(epoch: Long): String =
     java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(epoch).atZone(java.time.ZoneId.systemDefault()))
+
+/** Il Chiudi rifiutato dal relay, col motivo, finché non lo togli (app-chiudi-esito-04-11). */
+@Composable
+private fun RefusedRow(name: String, why: String, onSeen: () -> Unit) {
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(stringResource(R.string.splash_refused, name), style = MaterialTheme.typography.bodySmall, color = Cm.waiting)
+        Text(why, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
+        androidx.compose.material3.TextButton(onClick = onSeen) { Text(stringResource(R.string.splash_refused_ok), color = Cm.actionIcon) }
+    }
+}
 
 /** Mandato /exit da una card: lo dice finché la sessione non esce; poi in cima la card «chiusa alle» (Franz 24/10 13:20). */
 @Composable

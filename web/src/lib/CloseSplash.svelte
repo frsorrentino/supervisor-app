@@ -5,7 +5,8 @@
   // Il pannello di chiusura sopra la pagina della sessione (CloseSplash.kt; Franz, 08/10 18:29, variante A): la pagina resta
   // sotto, velata. «Si sta chiudendo» con i passi veri; «è chiusa» con l'ora, «Riapri» e «Torna alla home», e dopo 3 s il
   // ritorno da solo, con la barra che si consuma. In una colonna della plancia toglie la colonna.
-  let { phase, onHome, onReopen = null, column = false }: { phase: Phase; onHome: () => void; onReopen?: (() => void) | null; column?: boolean } = $props()
+  // Rifiutata dal relay (app-chiudi-esito-04-11): il motivo resta finché non lo togli con `onDismiss`, sulla pagina com'era.
+  let { phase, onHome, onDismiss = onHome, onReopen = null, column = false }: { phase: Phase; onHome: () => void; onDismiss?: () => void; onReopen?: (() => void) | null; column?: boolean } = $props()
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   $effect(() => {
     if (phase.kind !== 'closed') return
@@ -16,7 +17,7 @@
 
 <div class="veil" role="presentation">
   <div class="card" role="status">
-    <svg class="pw" class:off={phase.kind === 'closed'} viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v9" /><path d="M6.3 6.8a8 8 0 1 0 11.4 0" /></svg>
+    <svg class="pw" class:off={phase.kind === 'closed'} class:no={phase.kind === 'refused'} viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v9" /><path d="M6.3 6.8a8 8 0 1 0 11.4 0" /></svg>
     {#if phase.kind === 'closing'}
       <h3>{t.splashClosing(phase.name)}</h3>
       <p>{t.splashSentAt(hm(phase.sentAt))}</p>
@@ -29,6 +30,10 @@
         <small class="slow">{t.splashSlow}</small>
         <button class="tx" onclick={onHome}>{column ? t.splashDrop : t.splashHome}</button>
       {:else}<small>{t.splashUsually}</small>{/if}
+    {:else if phase.kind === 'refused'}
+      <h3>{t.splashRefused(phase.name)}</h3>
+      <p>{phase.why}</p>
+      <div class="btns"><button class="fill" onclick={onDismiss}>{t.splashRefusedOk}</button></div>
     {:else}
       <h3>{t.splashClosed(phase.name)}</h3>
       <p>{phase.byMe ? t.splashClosedLine(hm(phase.at)) : t.splashClosedOther(hm(phase.at))}</p>
@@ -48,6 +53,7 @@
     animation: pop .25s cubic-bezier(.2, .8, .2, 1); }
   .pw { color: var(--icon); }
   .pw.off { color: var(--text2); }
+  .pw.no { color: var(--wait); }
   h3 { margin: 0; font-size: 22px; font-weight: 500; }
   p { margin: 0; color: var(--text2); font-size: 14px; }
   ul { list-style: none; margin: 6px 0 0; padding: 0; align-self: stretch; text-align: left; font-size: 14px; color: var(--text2); }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Session, SessionState } from './contract'
-import { closeSplash, ghostSession, SLOW_S } from './closeSplash'
+import { closeRefusals, closeSplash, ghostSession, SLOW_S } from './closeSplash'
 
 // Gli stessi casi di CloseSplashTest.kt.
 const s = (n: string, state: SessionState, since = 100): Session => ({ id: n, name: n, account: 'personale', project: n, state, since })
@@ -34,4 +34,22 @@ describe('ghostSession', () => {
       .toEqual({ ...s('kb', 'gone', 900), question: null }))
   it('a session never seen is a gone placeholder, never null', () =>
     expect(ghostSession('kb', {})).toEqual({ id: 'kb', name: 'kb', account: '', project: '', state: 'gone', since: 0, question: null }))
+})
+
+// app-chiudi-esito-04-11: il Chiudi rifiutato dice perché, e il pannello resta finché non lo togli.
+describe('close refused', () => {
+  const texts = { busy: 'resta aperta: sta lavorando', background: 'resta aperta: ha un lavoro in sottofondo' }
+  const other = (r: string) => `resta aperta: ${r}`
+  it('a refused exit shows the reason instead of closing', () =>
+    expect(closeSplash('kb', [s('kb', 'idle')], { ...sent(true), refused: 'resta aperta: ha un lavoro in sottofondo' }, null, 1_002))
+      .toEqual({ kind: 'refused', name: 'kb', why: 'resta aperta: ha un lavoro in sottofondo' }))
+  it('gone anyway after a refusal is closed', () =>
+    expect(closeSplash('kb', [s('kb', 'gone', 1_003)], { ...sent(), refused: 'x' }, null, 1_005)).toMatchObject({ kind: 'closed' }))
+  it('reads the background refusal the relay sends today', () =>
+    expect(closeRefusals('ERR kb not closed: a job is running in the background', texts, other)).toEqual([{ name: 'kb', why: 'resta aperta: ha un lavoro in sottofondo' }]))
+  it('reads only the refused lines of a close with names', () =>
+    expect(closeRefusals('closed: field-notes\natlas-shop not closed: it is working', texts, other)).toEqual([{ name: 'atlas-shop', why: 'resta aperta: sta lavorando' }]))
+  it('an unknown reason stays as the relay wrote it', () =>
+    expect(closeRefusals('kb not closed: something else', texts, other)).toEqual([{ name: 'kb', why: 'resta aperta: something else' }]))
+  it('no refusal in a plain close', () => expect(closeRefusals('closed: kb', texts, other)).toEqual([]))
 })

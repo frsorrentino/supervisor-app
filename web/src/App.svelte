@@ -93,7 +93,7 @@
   import { build as overviewOf } from './lib/overview'
   import ReadingPill from './lib/ReadingPill.svelte'
   import CloseSplash from './lib/CloseSplash.svelte'
-  import { closeSplash, ghostSession, type Leaving } from './lib/closeSplash'
+  import { closeRefusals, closeSplash, ghostSession, type Leaving } from './lib/closeSplash'
   import { askedSession } from './lib/sessionLinks'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
@@ -293,9 +293,13 @@
     const r = await run(newCmd('close_preview', null, names.join(',')))
     return r?.ok ? readPreview(r.text) : null
   }
+  // Il relay chiude quelle che può e dice perché le altre restano (`<nome> not closed: <motivo>`): l'avviso conta solo le chiuse.
   async function closeMany(names: string[]) {
     const r = await run(newCmd('close', null, names.join(',')))
-    if (r?.ok) say(`✓ ${t.closedSaved(names.length)}`)
+    if (!r?.ok) return
+    const rf = refusals(r.text)
+    const done = names.length - rf.length
+    say([...(done > 0 ? [`✓ ${t.closedSaved(done)}`] : []), ...rf.map(x => `✗ ${t.closeRefusedSay(x.name, x.why)}`)].join(' · '))
   }
   /** Contratto 1.90: il tasto di un consiglio del Sistema (sys_kill o close con i nomi); il testo del relay dice cosa ha chiuso. */
   /** Contratto 1.95: l'elenco dei plugin (lettura passiva) e i comandi della sezione; il testo del relay dice com'è andata. */
@@ -316,13 +320,19 @@
   /** Un comando al relay; il rifiuto si mostra in basso. */
   /** Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno). */
   const attentionDone = (d: { kind: string; ref: string; since?: number }) => run(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since })).then(r => !!r?.ok)
+  /** app-chiudi-esito-04-11: i «not closed» del relay, col motivo in italiano. */
+  const refusals = (text: string) => closeRefusals(text, t.closeBlocked, t.closeRefusedOther)
   async function run(c: Cmd): Promise<CmdResult | null> {
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     try {
       const r = await tr.send(c)
       // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
       // Contratto 1.112: una lettura rimpiazzata da una più recente si chiude in silenzio.
-      if (!r.ok && !superseded(r)) say(`✗ ${refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)}`)
+      if (!r.ok && !superseded(r)) {
+        const why = refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)
+        const rf = refusals(why)
+        say(`✗ ${rf.length ? rf.map(x => t.closeRefusedSay(x.name, x.why)).join(' · ') : why}`)
+      }
       return r
     } catch {
       say(`✗ ${t.noAnswer}`)
@@ -1178,8 +1188,11 @@
     else if (op === 'slash' && arg === 'exit' && name && name !== MASTER) {
       const l: Leaving = { name, sentAt: nowS(), delivered: false }
       leaving = l
-      // Rifiutata (il motivo lo dice già l'avviso di `run`), la card torna com'era; senza risposta la chiusura può essere in corso.
-      run(newCmd(op, name, arg, text)).then(r => { if (r && leaving?.name === name && leaving.sentAt === l.sentAt) leaving = r.ok ? { ...l, delivered: true } : null })
+      // Rifiutata, pannello e card dicono perché finché non li togli (Franz, 04/11: il Chiudi dà sempre un esito); senza
+      // risposta la chiusura può essere in corso.
+      run(newCmd(op, name, arg, text)).then(r => {
+        if (r && leaving?.name === name && leaving.sentAt === l.sentAt) leaving = r.ok ? { ...l, delivered: true } : { ...l, refused: refusals(r.text)[0]?.why ?? r.text }
+      })
     } else run(newCmd(op, name || null, arg, text, st.sessions.find(x => x.name === name)?.question?.id))
   }
   // La conversazione di quello che è a schermo, la master sempre (vive nella home), alla cadenza del telefono e una lettura
@@ -1356,7 +1369,7 @@
   onExternal={(r) => fileAction(r.session ?? '', r.path, 'open', `result:${r.id}:${r.path}`)} onSession={(n) => { openPage(null); pick(n) }}
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
 {#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
-        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving?.name ?? null} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
+        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused } : null} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
@@ -1492,7 +1505,7 @@
       <div class="column" data-col={name}>
         {#if hr && !wco}<ColumnHead r={hr} now={now} onClose={() => (held ? dropCol(name) : setCols(cols.filter(c => c !== name)))} onGrab={grab} />{/if}
         <div class="cbody">{@render chatOf(name, true)}
-          {#if phase}<CloseSplash {phase} column onHome={() => dropCol(name)} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(name)('reopen'); dropCol(name) } : null} />{/if}
+          {#if phase}<CloseSplash {phase} column onDismiss={() => (leaving = null)} onHome={() => dropCol(name)} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(name)('reopen'); dropCol(name) } : null} />{/if}
         </div>
       </div>
     {/snippet}
@@ -1524,7 +1537,7 @@
               {:else if session && p === session.name}
                 {@const sn = session.name}
                 <div class="cbody" style:view-transition-name="page-fly">{@render chatOf(sn, false)}
-                  {#if phase}<CloseSplash {phase} onHome={splashHome} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(sn)('reopen'); splashHome() } : null} />{/if}
+                  {#if phase}<CloseSplash {phase} onDismiss={() => (leaving = null)} onHome={splashHome} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(sn)('reopen'); splashHome() } : null} />{/if}
                 </div>
               {:else}<div class="cbody">{@render chatOf(p, false)}</div>{/if}
             {/if}

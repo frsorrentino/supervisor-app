@@ -5,10 +5,12 @@ import type { Session } from './contract'
 export const CLOSED_SHOW_MS = 3_000
 export const SLOW_S = 20
 
-export type Leaving = { name: string; sentAt: number; delivered: boolean }
+// `refused`: il motivo per cui il relay non l'ha chiusa, già in chiaro (app-chiudi-esito-04-11).
+export type Leaving = { name: string; sentAt: number; delivered: boolean; refused?: string | null }
 export type Phase =
   | { kind: 'closing'; name: string; sentAt: number; delivered: boolean; slow: boolean }
   | { kind: 'closed'; name: string; at: number; byMe: boolean }
+  | { kind: 'refused'; name: string; why: string }
 
 /**
  * La fase per la pagina di `name`; null = niente pannello. `lastSeen` è la sessione com'era l'ultima volta nello stato.
@@ -21,6 +23,8 @@ export function closeSplash(name: string, sessions: Session[], leaving: Leaving 
   const at = s?.since ?? (lastSeen?.state === 'gone' ? lastSeen.since : now)
   if (!s) return { kind: 'closed', name, at, byMe: mine }
   if (s.state === 'gone') return mine ? { kind: 'closed', name, at, byMe: true } : null
+  // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, il pannello dice perché finché non lo togli.
+  if (mine && leaving!.refused) return { kind: 'refused', name, why: leaving!.refused }
   // Dal vivo 08/10 19:29: dopo /exit Claude Code può chiedere cosa fare dei lavori in background; il pannello non copre la
   // domanda, e torna quando è risposta.
   if (mine && s.question) return null
@@ -36,4 +40,27 @@ export function closeSplash(name: string, sessions: Session[], leaving: Leaving 
 export function ghostSession(name: string, lastSeen: Record<string, Session>): Session {
   const x = lastSeen[name]
   return x ? { ...x, state: 'gone', question: null } : { id: name, name, account: '', project: '', state: 'gone', since: 0, question: null }
+}
+
+/** Una riga «<nome> not closed: <motivo>» del relay (op close e /exit), col motivo già in chiaro. */
+export type Refusal = { name: string; why: string }
+const NOT_CLOSED = /(?:^|\s)(\S+) not closed: (.+)$/
+
+/** Il motivo del relay come una delle chiavi di `close_preview.blocked_by`; null se non lo riconosce. */
+export function refusalKind(reason: string): string | null {
+  if (/background/i.test(reason)) return 'background'
+  if (/question/i.test(reason)) return 'question'
+  if (/working|busy/i.test(reason)) return 'busy'
+  if (/attached|terminal|open at the PC/i.test(reason)) return 'attached'
+  return null
+}
+
+/** Le sessioni che il relay non ha chiuso, dal testo del risultato; `texts` sono i motivi in chiaro (`t.closeBlocked`). */
+export function closeRefusals(text: string, texts: Record<string, string>, other: (reason: string) => string): Refusal[] {
+  return text.split('\n').flatMap(l => {
+    const m = NOT_CLOSED.exec(l.trim())
+    if (!m) return []
+    const k = refusalKind(m[2])
+    return [{ name: m[1], why: (k && texts[k]) || other(m[2]) }]
+  })
 }

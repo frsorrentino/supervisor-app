@@ -74,7 +74,7 @@
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
   import { closedToday, toccaCounts } from './toccaRules'
   import ToccaClosed from './ToccaClosed.svelte'
-  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
+  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -135,6 +135,8 @@
     justClosed?: { s: Session; line: string } | null
     /** La sessione chiusa da una card, finché non esce dallo stato o il PC rifiuta (Franz 24/10 13:20: «nessun feedback»). */
     closing?: string | null
+    /** Il Chiudi rifiutato dal relay, col motivo in chiaro; `onCloseSeen` lo toglie. */
+    closeRefused?: { name: string; why: string } | null; onCloseSeen?: () => void
     /** Contratto 1.83: le domande aperte dei server MCP, in cima; `onElicit` manda la risposta. */
     elicitations?: Elicitation[]; onElicit?: (e: Elicitation, action: 'accept' | 'decline', values: Values) => void
     /** La sezione «Lavori» (22/10): l'agenda (null = non arrivata), «Tutti i lavori» apre la pagina; Fatto su una riga dell'agenda
@@ -1148,6 +1150,11 @@
       {#if closing === s.name && !c}
         <div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>
       {/if}
+      <!-- Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene». -->
+      {#if closeRefused?.name === s.name}
+        <div class="clean" role="status"><span class="refused"><b>{t.splashRefused(s.name)}</b> · {closeRefused.why}</span>
+          <button class="keep" onclick={(e) => { e.stopPropagation(); onCloseSeen() }}>{t.splashRefusedOk}</button></div>
+      {/if}
       {#if confirming === s.name && !c?.canClose}
         <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
           <span>{t.closeInline}</span>
@@ -1369,14 +1376,17 @@
   .clean span { flex: 1 1 160px; min-width: 0; }
   /* Mandato /exit da una card: la riga lo dice finché la sessione non esce (poi la card «chiusa alle» in cima). */
   .closing { flex: none !important; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--text); font-weight: 500; }
+  .refused { color: var(--text2); }
+  .refused b { color: var(--wait); font-weight: 500; }
   .closing .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--b-track); border-top-color: var(--icon); animation: turn 1s linear infinite; }
   @keyframes turn { to { rotate: 360deg; } }
   @media (prefers-reduced-motion: reduce) { .closing .spin { animation: none; } }
   .confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; color: var(--text2); }
   .confirm span { flex: 1 1 160px; min-width: 0; }
   .confirm button { border-radius: 999px; padding: 8px 14px; font-weight: 500; flex: none; }
-  .confirm .keep { color: var(--icon); }
-  .confirm .keep:hover { background: var(--high); }
+  .confirm .keep, .clean .keep { color: var(--icon); }
+  .clean .keep { border-radius: 999px; padding: 8px 14px; font-weight: 500; flex: none; }
+  .confirm .keep:hover, .clean .keep:hover { background: var(--high); }
   .confirm .danger { background: var(--gone); color: #fff; }
   .close { display: flex; align-items: center; gap: 8px; background: var(--high); border-radius: 999px; padding: 8px 14px; color: var(--text); font-weight: 500; flex: none; }
   dialog.alert { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 22px; width: min(400px, 92vw); border-radius: 28px; }

@@ -64,4 +64,20 @@ class CloseSplashTest {
 
     @Test fun neverSeenAndMissingFallsBackToNow() =
         assertEquals(CloseSplash.Phase.Closed("kb", at = 1_005, byMe = false), CloseSplash.of("kb", emptyList(), null, lastSeen = null, now = 1_005))
+
+    // app-chiudi-esito-04-11: il Chiudi rifiutato dice perché, e il pannello resta finché non lo togli. Gli stessi casi della web.
+    @Test fun aRefusedExitShowsTheReasonInsteadOfClosing() =
+        assertEquals(CloseSplash.Phase.Refused("kb", "resta aperta"), CloseSplash.of("kb", listOf(s("kb", SessionState.IDLE)), sent.copy(refused = "resta aperta"), null, now = 1_002))
+
+    @Test fun goneAnywayAfterARefusalIsClosed() =
+        assertEquals(CloseSplash.Phase.Closed("kb", at = 1_003, byMe = true), CloseSplash.of("kb", listOf(s("kb", SessionState.GONE, 1_003)), sent.copy(refused = "x"), null, now = 1_005))
+
+    @Test fun readsTheBackgroundRefusalTheRelaySendsToday() =
+        assertEquals(listOf(CloseSplash.Refusal("kb", "background", "a job is running in the background")), CloseSplash.refusals("ERR kb not closed: a job is running in the background"))
+
+    @Test fun readsOnlyTheRefusedLinesOfACloseWithNames() =
+        assertEquals(listOf(CloseSplash.Refusal("atlas-shop", "busy", "it is working")), CloseSplash.refusals("closed: field-notes\natlas-shop not closed: it is working"))
+
+    @Test fun anUnknownReasonHasNoKind() =
+        assertEquals(listOf(CloseSplash.Refusal("kb", null, "something else")), CloseSplash.refusals("kb not closed: something else"))
 }
