@@ -1758,4 +1758,19 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="search_foot_week">ultimi 7 giorni</string>
     <string name="kpi12_gb">%1$s GB</string>
     <string name="kpi12_disk_here">liberi sul disco del PC, di %1$s GB</string>
+    <!-- La plancia del tablet come la PWA larga (app-tablet-come-pwa-03-11). -->
+    <string name="desk_you_empty">Niente che aspetti te</string>
+    <string name="desk_out_sub">esiti oggi</string>
+    <string name="desk_tools_sub">quota 5 ore</string>
+    <string name="desk_tools_sub_reset">quota 5 ore, si azzera alle %1$s</string>
+    <string name="desk_tools_week">quota della settimana</string>
+    <string name="desk_last_night">La notte scorsa</string>
+    <string name="desk_night_end">finito alle %1$s</string>
+    <string name="desk_night_all">Tutta la notte</string>
+    <string name="desk_night_later">Il rapporto arriva aprendo la pagina Notte.</string>
+    <string name="desk_done_today">Fatto oggi</string>
+    <string name="desk_all_tasks">Tutti i compiti</string>
+    <string name="desk_win">PC Windows</string>
+    <string name="desk_win_none">Nessun host remoto: il relay non ne ha letto nessuno.</string>
+    <string name="desk_host_down">non risponde</string>
 </resources>

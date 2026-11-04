@@ -1814,9 +1814,10 @@ class MainActivity : ComponentActivity() {
             }
             val master = summary.master
             val masterEntries = master?.let { m -> ChatFeed.pageEntries(m.name, chatName, entriesOwner, entries, feedCache) }.orEmpty()
-            val list: @Composable () -> Unit = {
+            // `parts`: una colonna della plancia del tablet (app-tablet-come-pwa-03-11), con la testata e il fondo di ogni categoria.
+            val listPart: @Composable (List<String>?, (@Composable (String) -> Unit)?, (@Composable (String) -> Unit)?) -> Unit = { parts, partHead, partFoot ->
                 SummaryList(
-                    summary, onQuota = goUsage,
+                    summary, onQuota = goUsage, parts = parts, partHead = partHead, partFoot = partFoot,
                     update = updateUi.takeIf { BuildConfig.SELF_UPDATE }, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
                     // Contratto 1.68: il banner con le voci di «Serve te» delle altre sessioni; il tocco porta alla prima.
                     attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }.orEmpty(),
@@ -1884,13 +1885,62 @@ class MainActivity : ComponentActivity() {
                     onPluginsLoad = { app.pluginsLoad() },
                     onPluginCmd = { op, arg -> app.pluginsCmd(op, arg) },
                     pluginsRunner = app.pluginsRun,
-                    onHomeOrder = if (state?.ops?.contains("home_order") == true) ({ o -> scope.launch { runCatching { app.repo.command(CmdOp.HOME_ORDER, null, it.pixelbox.cmwatch.rules.HomeOrder.arg(o)) } } }) else null,
+                    onHomeOrder = if (parts == null && state?.ops?.contains("home_order") == true) ({ o -> scope.launch { runCatching { app.repo.command(CmdOp.HOME_ORDER, null, it.pixelbox.cmwatch.rules.HomeOrder.arg(o)) } } }) else null,
                     onSystem = if (!demo) ({ op, arg -> scope.launch {
                         val id = runCatching { app.repo.command(op, null, arg) }.getOrNull()
                         val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
                         r?.let { x -> android.widget.Toast.makeText(this@MainActivity, x.text, android.widget.Toast.LENGTH_SHORT).show() }
                     } }) else null,
                 )
+            }
+            val list: @Composable () -> Unit = { listPart(null, null, null) }
+            // La plancia del tablet senza sessioni aperte, come la PWA larga (Plancia.svelte, app-tablet-come-pwa-03-11): le colonne per
+            // categoria con la loro cifra in testa; la master chiusa è la barra in fondo, aperta il pannello di lato.
+            if (deskDashboard) {
+                val zone = java.time.ZoneId.systemDefault()
+                val head = remember(st, kpiPage, now) { it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, zone) }
+                val doneToday = remember(events, now / 3600) { it.pixelbox.cmwatch.rules.Lavori.done(events, zone, java.time.LocalDate.now(zone)).firstOrNull { d -> d.date == java.time.LocalDate.now(zone) }?.rows.orEmpty() }
+                val hero = master?.let { m -> remember(masterEntries, m.outcome) { it.pixelbox.cmwatch.rules.MasterHome.hero(masterEntries, m) } }
+                val speakMaster = { t: String -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }
+                it.pixelbox.cmwatch.mobile.ui.Plancia(
+                    widthDp, it.pixelbox.cmwatch.rules.HomeCats.decode(st.homeOrder).map { c -> c.id },
+                    head = { pageHeader(null) },
+                    column = { parts ->
+                        listPart(parts, { part ->
+                            it.pixelbox.cmwatch.mobile.ui.DeskHead(part, head, st, now) {
+                                when (part) {
+                                    "you" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.WAITING
+                                    "work" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.BUSY
+                                    "out" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.OUTCOMES
+                                    else -> goUsage()
+                                }
+                            }
+                        }, { part ->
+                            Column(Modifier.fillMaxWidth()) {
+                                when (part) {
+                                    "out" -> { it.pixelbox.cmwatch.mobile.ui.DeskNight(boxPage, loading = nightRef != null && boxPage == null) { nightOpen = true }; it.pixelbox.cmwatch.mobile.ui.DeskDone(doneToday) { open = null; tab = StartRoute.Tab.LAVORI } }
+                                    "tools" -> it.pixelbox.cmwatch.mobile.ui.DeskTools(st) { p -> sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, p) }
+                                }
+                            }
+                        })
+                    },
+                    bar = { if (master != null && hero != null) MasterDock(master, hero, onSpeak = speakMaster, onToggle = { masterHalf = true; masterChat = true }) },
+                    panel = if (master != null && hero != null && masterChat) ({
+                        val collapse = { masterChat = false; masterHalf = false }
+                        sessionPage(
+                            master, masterEntries, null, true, null, null, true,
+                            {
+                                MasterDock(
+                                    master, hero, onSpeak = speakMaster, onToggle = if (masterHalf) ({ masterHalf = false }) else collapse, expanded = true,
+                                    toggleUp = masterHalf, onToggleKey = if (masterHalf) ({ masterHalf = false }) else ({ masterHalf = true }),
+                                    onClose = collapse, screen = false, trailing = { AppMenu(menuActions) },
+                                )
+                            }, null,
+                        )
+                    }) else null,
+                    panelWidthDp = if (masterHalf) 420 else 720,
+                )
+                return@summaryPage
             }
             if (master != null) {
                 val hero = remember(masterEntries, master.outcome) { it.pixelbox.cmwatch.rules.MasterHome.hero(masterEntries, master) }
@@ -2112,7 +2162,7 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.LocalAgendaNight provides agendaNight,
         ) {
         it.pixelbox.cmwatch.mobile.ui.PageIn(fromStart = true, animate = cameBack) {
-        if (wide && state != null && summary != null) tabletDesk(state, summary) else
+        if (deskDashboard && state != null && summary != null) summaryPage() else if (wide && state != null && summary != null) tabletDesk(state, summary) else
         AppShell(
             tab, demo, onTab = { tab = it; open = null }, onSettings = { settingsOpen = true },
             sessions = state?.let { st -> PhoneBoard.sections(st).flatMap { sec -> sec.sessions } }.orEmpty(),

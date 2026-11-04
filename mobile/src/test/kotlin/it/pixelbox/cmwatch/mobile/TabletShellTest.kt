@@ -163,6 +163,36 @@ class TabletShellTest {
 
     // Nessuna colonna ancora: l'invito a toccare una sessione nella home.
     @Test fun tabletDeskEmpty() = paparazzi.snapshot { desk(emptyList(), emptyList()) }
+    /**
+     * La plancia senza sessioni aperte come la PWA larga (app-tablet-come-pwa-03-11): quattro colonne per categoria con la cifra
+     * in testa, la barra della master in fondo; `panel` la master aperta di lato, 420 dp, che lascia posto a tre colonne.
+     */
+    @Composable
+    private fun plancia(panel: Boolean) = CmPhoneTheme(still = true) {
+        val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
+        val head = it.pixelbox.cmwatch.rules.Kpi.head(st, null, ts, zone)
+        val m = summary.master!!
+        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
+        Plancia(
+            1440, listOf("you", "work", "out", "tools"), head = {},
+            column = { parts ->
+                SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, parts = parts, now = ts, kpiState = st,
+                    partHead = { p -> DeskHead(p, head, st, ts) {} },
+                    partFoot = { p ->
+                        androidx.compose.foundation.layout.Column {
+                            if (p == "out") { DeskNight(null, loading = false) {}; DeskDone(emptyList()) {} }
+                            if (p == "tools") DeskTools(st) {}
+                        }
+                    },
+                )
+            },
+            bar = { MasterDock(m, hero, onSpeak = {}, onToggle = {}) },
+            panel = if (panel) ({ MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true) }) else null,
+        )
+    }
+    @Test fun planciaEmpty() = paparazzi.snapshot { plancia(panel = false) }
+    @Test fun planciaMasterOpen() = paparazzi.snapshot { plancia(panel = true) }
+
     // Contratto 1.72: la vista «Modifiche» si apre nella colonna della sessione; la home e l'altra colonna restano.
     @Test fun tabletDeskChanges() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(6, 6), changes = true) }
 

@@ -80,6 +80,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -111,7 +112,7 @@ import it.pixelbox.cmwatch.mobile.update.AppUpdater
  * Il riepilogo unico (design 03/10, tavola 4): ogni sessione una volta, nei gruppi del bisogno, una riga aperta alla
  * volta; aperta mostra anche i dettagli delle vecchie card di Sessioni. Sotto, «Chiuse · N» e le righe di servizio.
  */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SummaryList(
     model: Summary.Model, onOpen: (String) -> Unit, onAnswer: (String, Int) -> Unit, onStep: (String, String) -> Unit,
@@ -206,6 +207,14 @@ fun SummaryList(
     onPluginCmd: (suspend (it.pixelbox.cmwatch.contract.CmdOp, String?) -> it.pixelbox.cmwatch.contract.CmdResult?)? = null,
     pluginsRunner: it.pixelbox.cmwatch.rules.PluginsRun? = null,
     pluginsInitial: it.pixelbox.cmwatch.contract.PluginsPage? = null,
+    /**
+     * Una colonna della plancia del tablet (come `part` di Home.svelte, app-tablet-come-pwa-03-11): solo le sezioni di queste
+     * categorie, una dopo l'altra, ognuna con prima le voci che Franz tiene in cima; aperte e ferme, senza tabellone, etichette
+     * di categoria né riordino. `partHead` resta in alto finché si scorre la sua categoria, `partFoot` le chiude.
+     */
+    parts: List<String>? = null,
+    partHead: (@Composable (String) -> Unit)? = null,
+    partFoot: (@Composable (String) -> Unit)? = null,
 ) {
     // Pressione lunga su una voce riordinabile (Franz 31/10 14:27, supera la regola delle 01:01): niente si chiude e niente cambia
     // posto alla pressione. La sezione resta dov'è, attenuata e com'era; una copia del titolo segue il dito. Il gesto lo legge la
@@ -230,10 +239,10 @@ fun SummaryList(
     // Lo slot di una voce sola non c'è più: le voci stanno sul tabellone, fino a quattro (app-tabellone-quattro-02-11); nello slot
     // entra solo Utilizzo con l'allarme della settimana, come prima.
     val savedPin: String? = null
-    val weekSlot = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(st.quota, now) }.takeIf { usage != null && showUsage }
+    val weekSlot = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.weekSlot(st.quota, now) }.takeIf { usage != null && showUsage && parts == null }
     // app-utilizzo-una-barra-03-11: la barra fissa delle 5 ore lascia il tabellone; una finestra vicina al limite (5 ore o settimana) ci
     // entra da sola, in ambra, finché dura. Il nome resta quello di quando scattava solo la settimana.
-    val usageAlarm = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.usageAlarm(st.quota, now) }.takeIf { usage != null && showUsage }
+    val usageAlarm = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.usageAlarm(st.quota, now) }.takeIf { usage != null && showUsage && parts == null }
     val weekAlarm = usageAlarm != null
     val pin = it.pixelbox.cmwatch.rules.HomeOrder.slot(savedPin, weekAlarm)
     val savedPinNow by androidx.compose.runtime.rememberUpdatedState(savedPin)
@@ -281,7 +290,7 @@ fun SummaryList(
     // riordino (app-home-riordino-29-10): Utilizzo parte chiusa anche per chi l'aveva aperta, come nella web.
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { runCatching { ctx.getSharedPreferences("home_sections_2", android.content.Context.MODE_PRIVATE) }.getOrNull() }
-    fun section(key: String) = mutableStateOf(runCatching { prefs?.getBoolean(key, key in startOpen) }.getOrNull() ?: (key in startOpen))
+    fun section(key: String): androidx.compose.runtime.MutableState<Boolean> = if (parts != null) AlwaysOpen else mutableStateOf(runCatching { prefs?.getBoolean(key, key in startOpen) }.getOrNull() ?: (key in startOpen))
     var sessionsOpen by remember { section("sessions") }
     var usageOpen by remember { section("usage") }
     var esitiOpen by remember { section("esiti") }
@@ -602,13 +611,13 @@ fun SummaryList(
         // In fondo lo spazio del controller della lettura, che si posa sopra la barra della master (09/10 16:50).
         Modifier.fillMaxSize().background(V3.Bg).onGloballyPositioned { c -> viewTop[0] = c.boundsInRoot().top }.pointerInput(Unit) {
             awaitPointerEventScope { while (true) { val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial); touch[0] = if (e.changes.any { it.pressed }) 1L else 0L; touch[1] = System.currentTimeMillis() } }
-        }, state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp + readingRoom()),
+        }, state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = if (parts != null) 0.dp else 8.dp, bottom = 12.dp + readingRoom()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }
+        if (parts == null && update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }
         // Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto.
-        elicitations.forEach { e -> item(key = "elicit-${e.id}") { Box(moving()) { ElicitationCard(e, now, onElicit) } } }
-        if (attention.isNotEmpty()) item(key = "attention-banner") {
+        if (parts == null) elicitations.forEach { e -> item(key = "elicit-${e.id}") { Box(moving()) { ElicitationCard(e, now, onElicit) } } }
+        if (parts == null && attention.isNotEmpty()) item(key = "attention-banner") {
             Box(moving()) { AttentionBanner(attention) { sessionsOpen = true; save("sessions", true); onAttention() } }
         }
         // Strada B (Franz 23/10 23:08, mockup del 23/10): un lavoro di una sessione aperta sta nella sua scheda, come gli ok;
@@ -618,7 +627,7 @@ fun SummaryList(
         val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
         // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, con sotto la quota (stile «Studio e Diretta», 30/10).
         var slotContent: @Composable () -> Unit = {}
-        kpiState?.let { st ->
+        if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
                 Box(moving().onGloballyPositioned { c -> boardBox = c }) {
                     Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, { b ->
@@ -665,7 +674,7 @@ fun SummaryList(
                 doneFilled = s.name == primary && s.needsYou?.until != true, lastRed = lastRed[s.name], firstInList = first,
             )
         }
-        if (allDone) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
+        if (allDone && parts == null) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
         // Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda stanno in
         // cima alla lista di Sessioni, con la loro card ambra; la riga Sessioni si accende quando ce n'è una.
         // Franz 02/11 23:57: «aspettano te sia un sottoinsieme di sessioni»: un gruppo in cima a Sessioni con le sole sessioni che
@@ -966,6 +975,24 @@ fun SummaryList(
         }
         val shownCats = if (catDrag) it.pixelbox.cmwatch.rules.HomeCats.catOrder(cats, dragOrder.orEmpty()) else cats
         fun moveCatTo(i: Int, to: Int) = setCats(it.pixelbox.cmwatch.rules.HomeCats.moveCat(cats, i, to))
+        // Una colonna della plancia (Home.svelte con `part`): le voci in cima di questa categoria, poi le sue sezioni.
+        if (parts != null) parts.forEach { part ->
+            // La testata da bordo a bordo della colonna, oltre il margine della lista (12 dp per lato), come nella PWA.
+            partHead?.let { h -> stickyHeader(key = "head-$part") { Box(Modifier.layout { m, c -> val e = 12.dp.roundToPx(); val p = m.measure(c.copy(minWidth = c.maxWidth + 2 * e, maxWidth = c.maxWidth + 2 * e)); layout(c.maxWidth, p.height) { p.place(-e, 0) } }) { h(part) } } }
+            if (part == "you") {
+                elicitations.forEach { e -> item(key = "elicit-${e.id}") { Box(Modifier.animateItem()) { ElicitationCard(e, now, onElicit) } } }
+                if (allDone) item(key = "all-done") { Box(Modifier.animateItem().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
+            }
+            val keys = (up.filter { k -> catFor(k) == part } + cats.firstOrNull { c -> c.id == part }?.sections.orEmpty()).distinct()
+            val before = dragPresent.size
+            keys.forEach(::renderKey)
+            if (part == "tools" && "system" in up && "plugins" !in keys) renderPlugins()
+            if (part == "work" && "sessions" in up && "closed" !in keys) renderClosed()
+            if (part == "you") kpiState?.let(it.pixelbox.cmwatch.rules.ToccaRules::closedToday)?.let { td -> item(key = "tocca-closed") { ToccaClosedRow(td, Modifier.animateItem()) } }
+            if (part == "you" && dragPresent.size == before) item(key = "you-empty") { Text(stringResource(R.string.desk_you_empty), Modifier.padding(horizontal = 6.dp, vertical = 10.dp), color = V3.Tx2, style = MaterialTheme.typography.bodyMedium) }
+            partFoot?.let { f -> item(key = "foot-$part") { f(part) } }
+        }
+        if (parts != null) return@LazyColumn
         // La fascia «In cima» con la sua etichetta non c'è più: le voci sono righe del tabellone (app-utilizzo-una-barra-03-11).
         liveTop.forEach(::renderBoard)
         // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
@@ -2150,4 +2177,13 @@ internal fun rememberSentOrder(relay: List<String>?): SentOrder = remember { Sen
 private fun slotSuggestionNames(all: List<it.pixelbox.cmwatch.contract.Suggestion>): List<String> {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     return remember(all) { it.pixelbox.cmwatch.rules.SlotInfo.suggestionNames(all) { k -> ctx.getString(sugKindLabel(k)) } }
+}
+
+/** Le sezioni di una colonna della plancia: sempre aperte, il tocco sulla testata non le chiude (Home.svelte, `part`). */
+private object AlwaysOpen : androidx.compose.runtime.MutableState<Boolean> {
+    override var value: Boolean
+        get() = true
+        set(_) {}
+    override fun component1() = true
+    override fun component2(): (Boolean) -> Unit = {}
 }

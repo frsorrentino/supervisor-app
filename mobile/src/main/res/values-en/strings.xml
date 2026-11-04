@@ -1732,4 +1732,19 @@ It starts at your last message to the master.</string>
     <string name="search_foot_week">last 7 days</string>
     <string name="kpi12_gb">%1$s GB</string>
     <string name="kpi12_disk_here">free on the PC\'s disk, of %1$s GB</string>
+    <!-- The tablet plancia like the wide PWA (app-tablet-come-pwa-03-11). -->
+    <string name="desk_you_empty">Nothing waiting for you</string>
+    <string name="desk_out_sub">outcomes today</string>
+    <string name="desk_tools_sub">5-hour quota</string>
+    <string name="desk_tools_sub_reset">5-hour quota, resets at %1$s</string>
+    <string name="desk_tools_week">weekly quota</string>
+    <string name="desk_last_night">Last night</string>
+    <string name="desk_night_end">done at %1$s</string>
+    <string name="desk_night_all">The whole night</string>
+    <string name="desk_night_later">The report arrives when you open the Night page.</string>
+    <string name="desk_done_today">Done today</string>
+    <string name="desk_all_tasks">All tasks</string>
+    <string name="desk_win">Windows PC</string>
+    <string name="desk_win_none">No remote host: the relay has read none.</string>
+    <string name="desk_host_down">not answering</string>
 </resources>
