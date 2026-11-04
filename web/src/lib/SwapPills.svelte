@@ -48,13 +48,13 @@
 <style>
   .pill { position: fixed; z-index: 30; transform: translate(-50%, -50%); width: 30px; display: flex; flex-direction: column; border-radius: 16px; background: var(--s1); border: 1px solid var(--line); opacity: .55; transition: opacity .15s, background-color .15s; }
   .pill.hot { opacity: 1; background: var(--s2); }
-  .pill button { height: 30px; display: grid; place-items: center; font: 500 20px/1 var(--sans, inherit); color: var(--text); }
+  .pill button { height: 30px; padding: 0; display: grid; place-items: center; font: 500 20px/1 var(--sans, inherit); color: var(--text); }
   .pill button:hover { color: var(--accent); }
   .tip { position: absolute; left: calc(100% + 8px); white-space: nowrap; padding: 4px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; color: var(--text); pointer-events: none; }
   .pill.flip .tip { left: auto; right: calc(100% + 8px); }
   .tip1 { top: 2px; }
   /* Il filo: 28 x 2 a riposo, il tocco prende 30 x 30; al passaggio diventa la pillola del meno, come quella del +. */
-  .link { position: fixed; z-index: 30; transform: translate(-50%, -50%); width: 30px; height: 30px; display: grid; place-items: center; border-radius: 16px; border: 1px solid transparent; transition: background-color .15s, border-color .15s; }
+  .link { position: fixed; z-index: 30; transform: translate(-50%, -50%); width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 16px; border: 1px solid transparent; transition: background-color .15s, border-color .15s; }
   .link i { width: 28px; height: 2px; border-radius: 1px; background: var(--text); opacity: .8; transition: width .15s; }
   .link.hot { background: var(--s2); border-color: var(--line); }
   .link.hot i { width: 12px; opacity: 1; }

@@ -133,7 +133,7 @@
      resta sotto .cols, che viene dopo nel DOM, quando la home è a sinistra. */
   .home { grid-area: home; min-height: 0; display: flex; flex-direction: column; view-transition-name: desk-home; position: relative; z-index: 1; }
   .handle { grid-area: handle; position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 10px; }
-  .handle > i { position: absolute; inset: 0 auto 0 50%; width: 1px; background: var(--line); }
+  .handle > i { position: absolute; inset: 0 auto 0 calc(50% - .5px); width: 1px; background: var(--line); }
   .hb { position: relative; width: 28px; height: 28px; border-radius: 50%; background: var(--surface); color: var(--text2); display: grid; place-items: center; }
   .hb:hover { filter: brightness(1.25); }
   /* La griglia di puntini dietro le colonne (TechStyle.dotGrid). */
