@@ -8,6 +8,7 @@
   import LongText from './LongText.svelte'
   import LoadFailed from './LoadFailed.svelte'
   import { confirmMs } from './leave'
+  import Check from './Check.svelte'
   import { pass } from './motion'
   import ItemList from './ItemList.svelte'
   import { decision } from './itemRows'
@@ -33,7 +34,7 @@
   // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto scelto diventa la conferma e la scheda dopo entra con la sua
   // transizione, invece del cambio di colpo. Il comando parte subito; la scheda cambia dopo la conferma (leave.ts, confirmMs).
   let picked = $state<string | null>(null)
-  function act(id: string, key: string, send: () => void) { if (picked) return; picked = id; send(); setTimeout(() => { next(key); picked = null }, confirmMs()) }
+  function act(id: string, key: string, send: () => void) { if (picked) return; picked = id; send(); setTimeout(() => { next(key); picked = null }, confirmMs('ok')) }
   async function decide(key: string, action: 'not_now' | 'drop', r?: string) { act(action, key, () => {}); await run(newCmd('decisione', null, key, undefined, undefined, action === 'drop' ? { action, reason: r } : { action, hours: 24 })) }
 </script>
 
@@ -72,21 +73,21 @@
         {#if x.reason}<div class="lw m"><LongText text={x.reason} /></div>{/if}
         {@const at = chooseAt(i)}{#if at}<p class="pos pc">{t.decisionsChooseAt(at)}</p>{/if}
         {#if buttons(i).length}<div class="ac">{#each buttons(i) as btn, bi (bi)}
-          {@const id = `${n}-${bi}`}{#if btn.kind === 'proceed'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)) })}>{#if picked === id}✓ {/if}{t.decisionsProceed}</button>
-          {:else if btn.kind === 'discuss'}<button class="out" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.sugDiscussPrompt(t.decisionsDiscussAbout(name, ref))))}>{#if picked === id}✓ {/if}{t.decisionsDiscuss}</button>
-          {:else if btn.kind === 'works'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.decisionsWorksPrompt(name, ref)))}>{#if picked === id}✓ {/if}{t.decisionsWorks}</button>
+          {@const id = `${n}-${bi}`}{#if btn.kind === 'proceed'}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)) })}><span class="lbl">{t.decisionsProceed}</span>{#if picked === id}<Check />{/if}</button>
+          {:else if btn.kind === 'discuss'}<button class="out ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.sugDiscussPrompt(t.decisionsDiscussAbout(name, ref))))}><span class="lbl">{t.decisionsDiscuss}</span>{#if picked === id}<Check />{/if}</button>
+          {:else if btn.kind === 'works'}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.decisionsWorksPrompt(name, ref)))}><span class="lbl">{t.decisionsWorks}</span>{#if picked === id}<Check />{/if}</button>
           {:else if btn.kind === 'broken'}<button class="out" class:fade={!!picked} disabled={!!picked} onclick={() => { broken = `${g.key}-${n}`; what = '' }}>{t.decisionsBroken}</button>
-          {:else if btn.kind === 'done'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onDone(i))}>{#if picked === id}✓ {/if}{t.agendaDone}</button>
-          {:else}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, '', btn.label); else onAsk(`${t.decisionsChoicePrompt(name, ref)} ${btn.label}`) })}>{#if picked === id}✓ {/if}{btn.label}</button>{/if}
+          {:else if btn.kind === 'done'}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onDone(i))}><span class="lbl">{t.agendaDone}</span>{#if picked === id}<Check />{/if}</button>
+          {:else}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, '', btn.label); else onAsk(`${t.decisionsChoicePrompt(name, ref)} ${btn.label}`) })}><span class="lbl">{btn.label}</span>{#if picked === id}<Check />{/if}</button>{/if}
         {/each}</div>{/if}
         {#if broken === `${g.key}-${n}`}
           <p>{t.decisionsBrokenTitle}</p>
           <input bind:value={what} />
-          <div class="ac"><button class="text" onclick={() => (broken = null)}>{t.cancel}</button><button class="tonal" class:done={picked === `${n}-b`} disabled={!what.trim()} onclick={() => { const w = what.trim(); act(`${n}-b`, g.key, () => onAsk(t.decisionsBrokenPrompt(name, ref, w))) }}>{#if picked === `${n}-b`}✓ {/if}{t.send}</button></div>
+          <div class="ac"><button class="text" onclick={() => (broken = null)}>{t.cancel}</button><button class="tonal ck" class:done={picked === `${n}-b`} disabled={!what.trim()} onclick={() => { const w = what.trim(); act(`${n}-b`, g.key, () => onAsk(t.decisionsBrokenPrompt(name, ref, w))) }}><span class="lbl">{t.send}</span>{#if picked === `${n}-b`}<Check />{/if}</button></div>
         {/if}
       {/each}
       <hr />
-      <div class="ac"><button class="text" class:done={picked === 'not_now'} onclick={() => decide(g.key, 'not_now')}>{#if picked === 'not_now'}✓ {/if}{t.decisionsNotNow}</button><button class="text red" onclick={() => (dropping = true)}>{t.decisionsDrop}</button></div>
+      <div class="ac"><button class="text ck" class:done={picked === 'not_now'} onclick={() => decide(g.key, 'not_now')}><span class="lbl">{t.decisionsNotNow}</span>{#if picked === 'not_now'}<Check />{/if}</button><button class="text red" onclick={() => (dropping = true)}>{t.decisionsDrop}</button></div>
       {#if dropping}
         <p>{t.decisionsDropTitle}</p>
         <input bind:value={reason} placeholder={t.decisionsDropReason} />
@@ -97,8 +98,6 @@
 <style>
   /* La conferma (voce 11), come in DaProvare: il tasto scelto si accende e cresce un poco, gli altri sfumano. */
   .tonal, .out, .text { transition: background-color 150ms, color 150ms, opacity 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
-  .tonal.done, .out.done { background: var(--good); color: var(--bg); border-color: transparent; transform: scale(1.06); }
-  .text.done { color: var(--good); }
   .fade { opacity: .35; }
   .cm { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }

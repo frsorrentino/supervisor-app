@@ -6,9 +6,10 @@
   import { newCmd } from './transport'
   import { t } from './t'
   import LongText from './LongText.svelte'
+  import Check from './Check.svelte'
   import LoadFailed from './LoadFailed.svelte'
   import { slide } from 'svelte/transition'
-  import { leave } from './leave'
+  import { confirmMs, leave } from './leave'
   import { reducedMotion } from './motion'
   import ItemList from './ItemList.svelte'
   import { prove, proveKo, proveRed } from './itemRows'
@@ -34,7 +35,8 @@
   const decide = (key: string, action: 'provato' | 'non_va', reason?: string) => run(newCmd('decisione', null, key, undefined, undefined, reason ? { action, reason } : { action })).then(r => !!r?.ok)
   async function allGood(c: TestCard) {
     const ks = cardKeys(c); for (const k of ks) sentKeys[k] = true
-    const ok = (await Promise.all(ks.map(k => decide(k, 'provato')))).every(Boolean)
+    const [oks] = await Promise.all([Promise.all(ks.map(k => decide(k, 'provato'))), new Promise(r => setTimeout(r, confirmMs('ok')))])
+    const ok = oks.every(Boolean)
     for (const k of ks) { if (ok) doneKeys[k] = true; else delete sentKeys[k] }
   }
   async function sendKoCard() { const k = koWhich!, why = koWhy.trim(); koCard = null; koWhy = ''; sentKeys[k] = true; if (await decide(k, 'non_va', why)) doneKeys[k] = true; else delete sentKeys[k] }
@@ -65,7 +67,7 @@
       <p class="m">{t.proveCardContains(rows.length)}</p>
       {#each more[c.project] ? rows : rows.slice(0, 3) as r (r.key)}<div class="row"><LongText text={r.text} /></div>{/each}
       {#if !more[c.project] && rows.length > 3}<button class="text" onclick={() => (more[c.project] = true)}>{t.proveCardMore(rows.length - 3)}</button>{/if}
-      <div class="ac"><button class="out" disabled={busy} onclick={() => { koCard = c; koWhich = rows.length === 1 ? rows[0].key : null }}>{t.proveCardKo}</button><span class="sp"></span><button class="tonal" class:done={busy} disabled={busy} onclick={() => allGood(c)}>{#if busy}✓ {/if}{t.proveCardAll}</button></div>
+      <div class="ac"><button class="out" disabled={busy} onclick={() => { koCard = c; koWhich = rows.length === 1 ? rows[0].key : null }}>{t.proveCardKo}</button><span class="sp"></span><button class="tonal ck" class:done={busy} disabled={busy} onclick={() => allGood(c)}><span class="lbl">{t.proveCardAll}</span>{#if busy}<Check />{/if}</button></div>
     </div>
   {/each}
   {#if koCard}
@@ -79,14 +81,14 @@
   {#if !page}{#if failed}<LoadFailed onRetry={() => void load()} />{:else}<p class="m">{t.proveLoading}</p>{/if}
   {:else if !page.groups.length && !page.ko.length && !page.red.length}<p class="m">{t.proveNone}</p>{/if}
   {#each (page?.groups ?? []).filter(g => shown(g).length) as g (g.build)}
-    <div class="h" out:slide={{ duration: outMs() }}><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}✓ {/if}{t.proveAllOk}</button>{/if}</div>
+    <div class="h" out:slide={{ duration: outMs() }}><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal ck" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}><span class="lbl">{t.proveAllOk}</span>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}<Check />{/if}</button>{/if}</div>
     <!-- Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok. Sul web la versione c'è sempre. -->
     <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
       <div class="in"><LongText text={p.fai} /><p class="m">{t.proveExpected(p.atteso)}</p>
         <div class="ac">
           {#if screen(p.dove)}<button class="text" onclick={() => onScreen(screen(p.dove)!)}>{t.featuresGo}</button>{/if}
           <span class="sp"></span>
-          <button class="out" class:fade={pk === 'ok'} disabled={!!pk} onclick={() => (ko = p)}>{t.proveKo}</button><button class="tonal" class:done={pk === 'ok'} class:fade={pk === 'ko'} disabled={!!pk} onclick={() => result([String(p.id)], String(p.id), 'ok')}>{#if pk === 'ok'}✓ {/if}{t.proveOk}</button>
+          <button class="out" class:fade={pk === 'ok'} disabled={!!pk} onclick={() => (ko = p)}>{t.proveKo}</button><button class="tonal ck" class:done={pk === 'ok'} class:fade={pk === 'ko'} disabled={!!pk} onclick={() => result([String(p.id)], String(p.id), 'ok')}><span class="lbl">{t.proveOk}</span>{#if pk === 'ok'}<Check />{/if}</button>
         </div>
       </div>{/if}{/snippet}</ItemList>
   {/each}
@@ -117,7 +119,6 @@
   .out { border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 8px 14px; font-size: 14px; white-space: nowrap; }
   /* La conferma (voce 11): il tasto scelto si accende e cresce un poco, gli altri sfumano; la scheda si schiarisce. */
   .tonal, .out { transition: background-color 150ms, color 150ms, opacity 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
-  .done { background: var(--good); color: var(--bg); transform: scale(1.06); }
   .fade { opacity: .35; }
   button:disabled { cursor: default; }
   .c { transition: background-color 150ms; }

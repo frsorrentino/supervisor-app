@@ -305,3 +305,20 @@ html.reflow-home-first::view-transition-group(master-morph), html.reflow-home-fi
 @media (prefers-reduced-motion: reduce) {
   html.reflow-master-first::view-transition-group(*.home-reflow), html.reflow-home-first::view-transition-group(master-morph) { animation-delay: 0s; }
 }
+
+/* La spunta disegnata (D3, app-motion-loops-04-11, Franz 04/11 21:13-21:24): al tocco il tasto si abbassa a .94; confermato,
+   l'etichetta sparisce in 180 ms, il tasto prende un verde scuro e la spunta si disegna in 780 ms; poi l'elemento esce
+   (leave.ts, CHECK_MS). Col movimento ridotto la spunta c'è già intera. */
+button.ck { position: relative; transition: transform 60ms ease-out; }
+button.ck:active:not(:disabled) { transform: scale(.94); }
+button.ck.done { background: color-mix(in srgb, var(--good) 14%, var(--s2)); border-color: color-mix(in srgb, var(--good) 34%, var(--s2)); color: var(--tx); transform: none; opacity: 1; }
+button.ck .lbl { transition: opacity 180ms ease-out; }
+button.ck.done .lbl { opacity: 0; }
+.dck { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; pointer-events: none; }
+.dck.inl { position: static; display: inline-block; margin: 0; vertical-align: -4px; flex: none; }
+.dck path { fill: none; stroke: var(--good); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: dck-draw 780ms ease 120ms forwards; }
+@keyframes dck-draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  button.ck, button.ck .lbl { transition: none; }
+  .dck path { animation: none; stroke-dashoffset: 0; }
+}

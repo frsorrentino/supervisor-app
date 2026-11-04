@@ -1144,7 +1144,7 @@ private fun SummaryCard(
     val wAct: (String, () -> Unit) -> Unit = { choice, send ->
         if (wPick == null) {
             wPick = choice; view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); send()
-            wScope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(offAnim)); wGone = true; kotlinx.coroutines.delay(15_000); wGone = false; wPick = null }
+            wScope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(offAnim, ok = true)); wGone = true; kotlinx.coroutines.delay(15_000); wGone = false; wPick = null }
         }
     }
     // Solo le card in attesa escono: le altre restano nel loro posto senza contenitori in più (stessa impaginazione di prima).
@@ -1709,10 +1709,10 @@ private fun OkButtons(a: it.pixelbox.cmwatch.contract.Approval, filled: Boolean,
 private fun MiniButton(text: String, filled: Boolean, confirmed: Boolean = false, onClick: () -> Unit) {
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // `confirmed` (voce 11, app-feedback-azioni-02-11): il tasto toccato diventa la conferma, verde con la spunta.
-    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) V3.Good else if (filled) Cm.primary else Cm.surfaceHigh, CmMotion.slow, label = "mini-bg")
-    val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "mini-scale")
-    Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press).graphicsLayer { scaleX = scale; scaleY = scale }, shape = pressShape(press), color = bg, contentColor = if (confirmed) V3.Bg else if (filled) Cm.onPrimary else Cm.text) {
-        Text(if (confirmed) "✓ $text" else text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+    // D3 (app-motion-loops-04-11): confermato, verde scuro col bordo, l'etichetta sparisce e la spunta si disegna.
+    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) CheckFill else if (filled) Cm.primary else Cm.surfaceHigh, androidx.compose.animation.core.tween(it.pixelbox.cmwatch.rules.Leave.CHECK_LABEL_MS), label = "mini-bg")
+    Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press), shape = pressShape(press), color = bg, contentColor = if (confirmed) V3.Tx else if (filled) Cm.onPrimary else Cm.text, border = if (confirmed) androidx.compose.foundation.BorderStroke(1.dp, CheckLine) else null) {
+        Box(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) { CheckLabel(confirmed) { Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false) } }
     }
 }
 
@@ -1797,7 +1797,8 @@ private fun OkSent(text: String) {
             Modifier.fillMaxWidth(w.value.coerceAtMost(1f)).clip(CircleShape).background(Cm.primary).padding(horizontal = 14.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Rounded.Check, null, tint = Cm.onPrimary, modifier = Modifier.size(16.dp))
+            // La spunta si disegna anche sulla conferma di un'approvazione (D3).
+            DrawnCheck(size = 18.dp)
             Spacer(Modifier.width(6.dp))
             Text(text, style = MaterialTheme.typography.labelLarge, color = Cm.onPrimary, maxLines = 1, softWrap = false)
         }

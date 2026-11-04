@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Check from './Check.svelte'
+  import { confirmMs } from './leave'
   import { draftOf, type Draft, type FeedbackKind, type Tech } from './feedback'
   import { t } from './t'
   // Feedback dal menù (app-feedback-menu-04-11, scelta A): il tipo, il testo, i dati tecnici aggiunti da soli e la foto della
@@ -20,6 +22,8 @@
   let grabbing = $state(false)
   let draft = $state<Draft | null>(null)
   let sending = $state(false)
+  // Mandato: la spunta si disegna sul tasto usato (D3, app-motion-loops-04-11), poi il foglio si chiude.
+  let sentAs = $state<'github' | 'anon' | null>(null)
   let result = $state<string | null>(null)
   $effect(() => { const v = text; try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY) } catch { /* solo per questa visita */ } })
   const techLines = $derived([`app ${tech.version} (${tech.commit})`, tech.device, tech.screen, tech.lang])
@@ -39,8 +43,8 @@
     const err = await onSend(draft, photo, as).catch((e) => String(e))
     sending = false
     if (err) { result = t.feedbackSendFail(err); return }
-    text = ''; result = t.feedbackSent
-    setTimeout(onDone, 1200)
+    text = ''; result = t.feedbackSent; sentAs = as
+    setTimeout(onDone, confirmMs('ok') + 300)
   }
 </script>
 
@@ -72,9 +76,9 @@
       {#if photo}<img class="shot" src={photo} alt={t.feedbackPhotoAttached} />{/if}
     </div>
     {#if result}<p class="note">{result}</p>{:else if !onSend}<p class="note">{t.feedbackNotYet}</p>{/if}
-    <button class="fill" disabled={!onSend || sending} onclick={() => send('github')}>{t.feedbackSendGithub}</button>
+    <button class="fill ck" class:done={sentAs === 'github'} disabled={!onSend || sending || !!sentAs} onclick={() => send('github')}><span class="lbl">{t.feedbackSendGithub}</span>{#if sentAs === 'github'}<Check />{/if}</button>
     <div class="btns">
-      <button class="tx2" disabled={!onSend || sending} onclick={() => send('anon')}>{t.feedbackSendAnon}</button>
+      <button class="tx2 ck" class:done={sentAs === 'anon'} disabled={!onSend || sending || !!sentAs} onclick={() => send('anon')}><span class="lbl">{t.feedbackSendAnon}</span>{#if sentAs === 'anon'}<Check />{/if}</button>
       <button class="tx2" onclick={() => (draft = null)}>{t.feedbackEdit}</button>
       <button class="tx2" onclick={onDone}>{t.feedbackLater}</button>
     </div>

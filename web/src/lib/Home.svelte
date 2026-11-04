@@ -1,5 +1,6 @@
 <script lang="ts">
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
+  import Check from './Check.svelte'
   import OneLine from './OneLine.svelte'
   import { parts as oneLineParts } from './oneLine'
   import { lang, locale } from './lang'
@@ -1218,7 +1219,7 @@
       {#if openW && ds.length}
         <div class="kv wkv">{#each ds as d (d.kind)}<span>{t.lavoriDetail[d.kind]}</span><span>{d.kind === 'asked_at' ? hhmm(Number(d.value)) : d.value}</span>{/each}</div>
       {/if}
-      {#if r.approval && sentOk[r.approval.task]}<div class="oksent" in:fade={{ duration: 150 }}><span class="ms">check</span>{sentOk[r.approval.task]}</div>
+      {#if r.approval && sentOk[r.approval.task]}<div class="oksent" in:fade={{ duration: 150 }}><Check inline />{sentOk[r.approval.task]}</div>
       {:else}<div class="oks"><div class="ok" class:stack={!!r.approval && choices(r.approval).length > 0}>
         <span class="okt mono2">{fySub(r) ?? ''}</span>
         {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval, filled)}{/if}

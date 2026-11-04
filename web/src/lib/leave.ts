@@ -6,7 +6,9 @@ import { reducedMotion } from './motion'
 // Non si aspetta il PC per uscire: il blocco di un attimo era quello. Se il PC dice no, l'elemento torna e il tasto si spegne.
 
 /** Quanto resta in vista la conferma sul tasto prima che l'elemento esca. */
-export const confirmMs = (): number => (reducedMotion() ? 0 : 350)
+export const confirmMs = (choice?: string): number => (reducedMotion() ? 0 : choice === 'ok' ? CHECK_MS : 350)
+/** Un Ok aspetta la spunta disegnata (D3, app-motion-loops-04-11): 180 ms l'etichetta, 120 + 780 ms la spunta, un attimo intera. */
+export const CHECK_MS = 1100
 
 export type LeaveHooks = { pick: (ids: string[], choice: string | null) => void; hide: (ids: string[], hidden: boolean) => void }
 
@@ -17,7 +19,7 @@ export async function leave(
   h.pick(ids, choice)
   let settled: boolean | null = null
   const sent = send().then(ok => (settled = ok), () => (settled = false))
-  await wait(confirmMs())
+  await wait(confirmMs(choice))
   if (settled === false) { h.pick(ids, null); return false }
   h.hide(ids, true)
   const ok = await sent

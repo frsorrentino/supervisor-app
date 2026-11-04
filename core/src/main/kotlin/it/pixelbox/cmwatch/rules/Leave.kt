@@ -11,7 +11,14 @@ import kotlinx.coroutines.coroutineScope
  */
 object Leave {
     /** Quanto resta in vista la conferma sul tasto prima che l'elemento esca. */
-    fun confirmMs(animationsOff: Boolean): Long = if (animationsOff) 0 else 350
+    fun confirmMs(animationsOff: Boolean, ok: Boolean = false): Long = if (animationsOff) 0 else if (ok) CHECK_MS else 350
+
+    /** Un Ok aspetta la spunta disegnata (D3, app-motion-loops-04-11, come leave.ts): 180 ms l'etichetta, 120 + 780 ms la spunta, un attimo intera. */
+    const val CHECK_MS = 1100L
+    /** I tempi della spunta: l'etichetta sparisce, poi la spunta si disegna. */
+    const val CHECK_LABEL_MS = 180
+    const val CHECK_DELAY_MS = 120
+    const val CHECK_DRAW_MS = 780
 
     /**
      * Quando un elemento è uscito l'ultima volta (app-prova-ok-sparisce-04-11): la lista sale, e un tocco ripetuto nel punto dove

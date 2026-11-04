@@ -67,12 +67,12 @@ private fun DecideCard(picked: Boolean = false, content: @Composable ColumnScope
 internal fun ConfirmButton(label: String, confirmed: Boolean, enabled: Boolean, faded: Boolean = false, outlined: Boolean = false, onClick: () -> Unit) {
     val view = androidx.compose.ui.platform.LocalView.current
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "confirm-scale")
-    val mod = Modifier.graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (faded) 0.35f else 1f }
+    val mod = Modifier.pressScale(press).graphicsLayer { alpha = if (faded) 0.35f else 1f }
     val tap = { view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); onClick() }
     // A riposo il tasto è quello di sempre (tonale o a contorno, con i colori del tema); solo la conferma lo fa verde.
-    if (confirmed) FilledTonalButton(onClick = {}, enabled = false, modifier = mod,
-        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(disabledContainerColor = V3.Good, disabledContentColor = Cm.bg)) { Text("✓ $label") }
+    // Confermato (D3, app-motion-loops-04-11): verde scuro col bordo, l'etichetta sparisce e la spunta si disegna.
+    if (confirmed) FilledTonalButton(onClick = {}, enabled = false, modifier = mod, border = androidx.compose.foundation.BorderStroke(1.dp, CheckLine),
+        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(disabledContainerColor = CheckFill, disabledContentColor = V3.Tx)) { CheckLabel(true) { Text(label) } }
     else if (outlined) OutlinedButton(onClick = tap, enabled = enabled, modifier = mod, shape = pressShape(press), interactionSource = press) { Text(label) }
     else FilledTonalButton(onClick = tap, enabled = enabled, modifier = mod, shape = pressShape(press), interactionSource = press) { Text(label) }
 }
@@ -172,7 +172,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
         }
     }
     val act: (List<String>, String, suspend () -> Boolean) -> Unit = { ids, choice, send ->
-        scope.launch { it.pixelbox.cmwatch.rules.Leave.run(ids, choice, send, hooks) { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(off)) } }
+        scope.launch { it.pixelbox.cmwatch.rules.Leave.run(ids, choice, send, hooks) { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(off, ok = choice == "ok")) } }
     }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (page == null) Text(stringResource(R.string.prove_loading), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(4.dp))
@@ -360,7 +360,7 @@ private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> 
     fun act(id: String, send: () -> Unit) {
         if (picked != null) return
         picked = id; send()
-        scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(off)); onLeft(); picked = null }
+        scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(off, ok = true)); onLeft(); picked = null }
     }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         // Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte.
