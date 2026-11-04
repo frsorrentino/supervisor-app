@@ -372,7 +372,7 @@ internal fun MasterFrame(
             Row(Modifier.fillMaxSize()) {
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
                     if (panel != null) {
-                        Box(Modifier.width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
+                        Box(Modifier.reflow("r-master").width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
                             panel()
                             if (onPlace != null && place != null) {
                                 // La maniglia del lato, in testa: trascinata, la sagoma passa alla metà dello schermo sotto il dito.
@@ -392,7 +392,7 @@ internal fun MasterFrame(
                     Column(Modifier.weight(1f).fillMaxHeight()) {
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
                         bar?.let { b ->
-                            Box(Modifier.fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
+                            Box(Modifier.reflow("r-master").fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
                                 b()
                                 // Due maniglie sull'asse della colonna dove la master atterra, una per lato (app-master-riga-maniglie-04-11,
                                 // Franz 04/11 17:40): tirata su apre la master da quel lato, alle altezze del bordo superiore; un tocco la

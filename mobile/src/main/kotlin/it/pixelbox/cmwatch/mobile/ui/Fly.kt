@@ -41,3 +41,58 @@ fun Modifier.fly(key: String): Modifier {
         )
     }
 }
+
+/**
+ * La coreografia del tablet fra la plancia e le colonne (app-home-riposiziona-animata-04-11, Franz 04/11 18:03-18:04, come
+ * `html.reflow` della web): aprendo la prima sessione la sua scheda si allarga nella colonna, le altre scivolano nella colonna
+ * della home e la master va al suo posto; chiudendo l'ultima l'inverso. Ogni scheda resta riconoscibile, il testo si
+ * rimisura e non si deforma, niente dissolvenze incrociate; durata e curva di HomeReflow, le stesse della web.
+ */
+val LocalReflow = compositionLocalOf<Fly?> { null }
+
+/** La sessione che nella home cede il suo nome alla colonna aperta (`oneName(focus)` della web). */
+val LocalReflowFocus = compositionLocalOf<String?> { null }
+
+/** La plancia o le colonne, per il contenuto che entra o esce: durante la coreografia ci sono tutte e due. */
+val LocalDeskDash = compositionLocalOf<Boolean?> { null }
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun Modifier.reflow(key: String): Modifier {
+    val f = LocalReflow.current ?: return this
+    if (key == "r-" + LocalReflowFocus.current) return this
+    val off = animationsOff()
+    val e = it.pixelbox.cmwatch.rules.HomeReflow.EASE
+    return with(f.shared) {
+        this@reflow.sharedBounds(
+            rememberSharedContentState(key), f.anim,
+            enter = EnterTransition.None, exit = ExitTransition.None,
+            boundsTransform = { _, _ -> if (off) snap() else tween(it.pixelbox.cmwatch.rules.HomeReflow.DURATION_MS, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3])) },
+            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+        )
+    }
+}
+
+/** La colonna aperta prende il nome della sua scheda (la focus), che nella home non lo ha. */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun Modifier.reflowColumn(name: String): Modifier {
+    if (LocalReflowFocus.current != name) return this
+    val f = LocalReflow.current ?: return this
+    val off = animationsOff()
+    val e = it.pixelbox.cmwatch.rules.HomeReflow.EASE
+    return with(f.shared) {
+        this@reflowColumn.sharedBounds(
+            rememberSharedContentState("r-$name"), f.anim,
+            enter = EnterTransition.None, exit = ExitTransition.None,
+            boundsTransform = { _, _ -> if (off) snap() else tween(it.pixelbox.cmwatch.rules.HomeReflow.DURATION_MS, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3])) },
+            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+        )
+    }
+}
+
+/** Le colonne che quel contenuto mostrava: uscendo, le colonne restano quelle di prima finché la coreografia non finisce. */
+val LocalDeskCols = compositionLocalOf<List<String>?> { null }
+
+/** Lo stato di una delle due viste del tablet: la plancia, o le colonne aperte. */
+data class DeskView(val dash: Boolean, val cols: List<String>)

@@ -1885,6 +1885,8 @@ class MainActivity : ComponentActivity() {
             MasterDock(m, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, onToggle = onToggle, headlineLines = 2, full = true)
         }
         val summaryPage: @Composable () -> Unit = summaryPage@{
+            // Durante la coreografia del tablet plancia e colonne ci sono tutte e due: ognuna dice la sua (app-home-riposiziona-animata-04-11).
+            val dash = it.pixelbox.cmwatch.mobile.ui.LocalDeskDash.current ?: deskDashboard
             val st = state
             if (st == null || summary == null) {
                 // Prima del primo stato la rotella: mai un riepilogo vuoto (revisione finale 02/10).
@@ -1955,7 +1957,7 @@ class MainActivity : ComponentActivity() {
                             it.pixelbox.cmwatch.mobile.ui.UtilizzoV3(ov.rings, st, kpiPage, kpiData, now, onDetails = goUsage)
                         }
                     },
-                    showLavori = !deskDashboard, showUsage = !deskDashboard, usageFocus = usageFocus, usageSeen = usageSeen, onUsageFocused = { n -> usageSeen = n }, scrollMemo = homeScroll,
+                    showLavori = !dash, showUsage = !dash, usageFocus = usageFocus, usageSeen = usageSeen, onUsageFocused = { n -> usageSeen = n }, scrollMemo = homeScroll,
                     onSpeak = { t -> speech.toggle(t) },
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
                     system = state?.system, ops = state?.ops,
@@ -1978,7 +1980,7 @@ class MainActivity : ComponentActivity() {
             val list: @Composable () -> Unit = { listPart(null, null, null) }
             // La plancia del tablet senza sessioni aperte, come la PWA larga (Plancia.svelte, app-tablet-come-pwa-03-11): le colonne per
             // categoria con la loro cifra in testa; la master chiusa è la barra in fondo, aperta il pannello di lato.
-            if (deskDashboard) {
+            if (dash) {
                 val zone = java.time.ZoneId.systemDefault()
                 val head = remember(st, kpiPage, now) { it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, zone) }
                 val doneToday = remember(events, now / 3600) { it.pixelbox.cmwatch.rules.Lavori.done(events, zone, java.time.LocalDate.now(zone)).firstOrNull { d -> d.date == java.time.LocalDate.now(zone) }?.rows.orEmpty() }
@@ -2159,6 +2161,7 @@ class MainActivity : ComponentActivity() {
             onClose = { n -> saveCols(tabletCols - n) },
         )
         val tabletDesk: @Composable (it.pixelbox.cmwatch.contract.State, it.pixelbox.cmwatch.rules.Summary.Model, Boolean) -> Unit = { st, sm, homeHidden ->
+            val deskCols = it.pixelbox.cmwatch.mobile.ui.LocalDeskCols.current ?: tabletCols
             val zone = java.time.ZoneId.systemDefault()
             val rows = remember(sm) { it.pixelbox.cmwatch.rules.Tablet.groups(sm).flatMap { g -> g.second } }
             val lastRows = remember { mutableStateMapOf<String, it.pixelbox.cmwatch.rules.Summary.Row>() }
@@ -2168,7 +2171,8 @@ class MainActivity : ComponentActivity() {
                 // Con la master la home sta dal suo lato (App.svelte: homeRight = !masterLeft); nella pila sta sopra la master.
                 home = { summaryPage() }, homeRight = if (sm.master != null) !place.left else homeRight, homeHidden = homeHidden,
                 onHomeSide = { homeRight = !homeRight; tabletPrefs.edit().putBoolean("tablet_home_right", homeRight).apply() },
-                columns = tabletCols, shares = tabletShares,
+                // Uscendo dalla coreografia le colonne di prima (LocalDeskCols), con larghezze uguali se non sono più quelle salvate.
+                columns = deskCols, shares = if (deskCols == tabletCols) tabletShares else it.pixelbox.cmwatch.rules.Tablet.Shares.equal(deskCols.size),
                 // Lo scambio porta con sé la larghezza della colonna.
                 onSwap = { a, b ->
                     saveCols(it.pixelbox.cmwatch.rules.Tablet.swap(tabletCols, a, b))
@@ -2186,7 +2190,7 @@ class MainActivity : ComponentActivity() {
                             delivered = leaving?.cmd?.let { id -> results[id] != null } == true,
                         )
                         val drop = { heldCols.remove(name); if (leaving?.name == name) leaving = null }
-                        Box(Modifier.fillMaxSize()) {
+                        Box(Modifier.reflowColumn(name).fillMaxSize()) {
                             sessionPage(
                                 // La testata della sessione resta anche in colonna (Franz, 05/10 10:13): modello, quota, contesto e il
                                 // menu ⋮ con Segui, Terminale e Chiudi la sessione.
@@ -2232,6 +2236,24 @@ class MainActivity : ComponentActivity() {
                 },
             )
         }
+        // Con le sessioni aperte la master come senza (variante A della PWA): chiusa la barra in fondo, aperta il pannello di lato,
+        // o sotto la home nella colonna della master.
+        val deskFrame: @Composable (it.pixelbox.cmwatch.contract.State, it.pixelbox.cmwatch.rules.Summary.Model) -> Unit = { st, summary ->
+            val m = summary.master
+            val stacked = m != null && place.copy(open = masterChat).stacked(true)
+            it.pixelbox.cmwatch.mobile.ui.MasterFrame(
+                place.left, place.panelWidth(),
+                panel = if (m != null && masterChat) ({
+                    if (stacked) it.pixelbox.cmwatch.mobile.ui.MasterStack(place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF,
+                        home = { it.pixelbox.cmwatch.mobile.ui.StackEdge(tabletSwap.takeIf { tabletCols.isNotEmpty() && tab != StartRoute.Tab.LAVORI }, toEnd = place.left) { summaryPage() } },
+                        master = { if (place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF) masterPanel(m, true) else masterBar(m) { keepPlace(place.stepStack()) } }, onStep = { keepPlace(place.stepStack()) })
+                    else masterPanel(m, true)
+                }) else null,
+                bar = if (m != null && !masterChat) ({ masterBar(m) { masterChat = true } }) else null,
+                place = place, open = masterChat, sessionsOpen = true,
+                onPlace = if (m != null) ({ p, o, commit -> if (commit) keepPlace(p) else place = p; masterChat = o }) else null,
+            ) { tabletDesk(st, summary, stacked) }
+        }
         val headsPrefs = remember { getSharedPreferences("heads_up", MODE_PRIVATE) }
         var headsSeen by remember { mutableStateOf(headsPrefs.getStringSet("seen", emptySet()).orEmpty().toSet()) }
         CompositionLocalProvider(
@@ -2248,23 +2270,28 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.LocalAgendaNight provides agendaNight,
         ) {
         it.pixelbox.cmwatch.mobile.ui.PageIn(fromStart = true, animate = cameBack) {
-        if (deskDashboard && state != null && summary != null) summaryPage() else if (wide && state != null && summary != null) {
-            // Con le sessioni aperte la master come senza (variante A della PWA): chiusa la barra in fondo, aperta il pannello di lato,
-            // o sotto la home nella colonna della master.
-            val m = summary.master
-            val stacked = m != null && place.copy(open = masterChat).stacked(true)
-            it.pixelbox.cmwatch.mobile.ui.MasterFrame(
-                place.left, place.panelWidth(),
-                panel = if (m != null && masterChat) ({
-                    if (stacked) it.pixelbox.cmwatch.mobile.ui.MasterStack(place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF,
-                        home = { it.pixelbox.cmwatch.mobile.ui.StackEdge(tabletSwap.takeIf { tabletCols.isNotEmpty() && tab != StartRoute.Tab.LAVORI }, toEnd = place.left) { summaryPage() } },
-                        master = { if (place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF) masterPanel(m, true) else masterBar(m) { keepPlace(place.stepStack()) } }, onStep = { keepPlace(place.stepStack()) })
-                    else masterPanel(m, true)
-                }) else null,
-                bar = if (m != null && !masterChat) ({ masterBar(m) { masterChat = true } }) else null,
-                place = place, open = masterChat, sessionsOpen = true,
-                onPlace = if (m != null) ({ p, o, commit -> if (commit) keepPlace(p) else place = p; masterChat = o }) else null,
-            ) { tabletDesk(state, summary, stacked) }
+        if (wide && state != null && summary != null) SharedTransitionLayout {
+            // La plancia e le colonne: una sola coreografia nei due versi (app-home-riposiziona-animata-04-11). Le schede, la
+            // colonna aperta e la master passano da una vista all'altra coi bordi condivisi (reflow); il resto entra ed esce
+            // fermo; col movimento ridotto solo un'assolvenza breve.
+            val reflowOff = animationsOff()
+            AnimatedContent(
+                DeskView(deskDashboard, tabletCols),
+                transitionSpec = {
+                    if (reflowOff) fadeIn(androidx.compose.animation.core.tween(it.pixelbox.cmwatch.rules.HomeReflow.REDUCED_FADE_MS)) togetherWith fadeOut(androidx.compose.animation.core.tween(it.pixelbox.cmwatch.rules.HomeReflow.REDUCED_FADE_MS))
+                    else EnterTransition.None togetherWith ExitTransition.None
+                },
+                contentKey = { v -> v.dash }, label = "reflow",
+            ) { view ->
+            CompositionLocalProvider(
+                LocalReflow provides Fly(this@SharedTransitionLayout, this@AnimatedContent).takeIf { !reflowOff },
+                LocalDeskDash provides view.dash, LocalDeskCols provides view.cols,
+                // La prima colonna aperta prende il nome della sua scheda.
+                LocalReflowFocus provides view.cols.singleOrNull()?.takeIf { !view.dash },
+            ) {
+            if (view.dash) summaryPage() else deskFrame(state, summary)
+            }
+            }
         } else
         AppShell(
             tab, demo, onTab = { tab = it; open = null }, onSettings = { settingsOpen = true },
