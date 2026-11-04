@@ -56,7 +56,7 @@ private fun DecidePage(title: String, tag: String, onBack: () -> Unit, content: 
 private fun DecideCard(picked: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     // La scheda scelta si schiarisce (voce 11), con il passaggio lento dei colori (voce 14).
     val bg by androidx.compose.animation.animateColorAsState(if (picked) Cm.surfaceHigh else Cm.surfaceLow, CmMotion.slow, label = "decide-card")
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(bg).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(bg).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
 }
 
 /**

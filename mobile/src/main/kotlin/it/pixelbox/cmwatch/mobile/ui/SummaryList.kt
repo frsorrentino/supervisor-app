@@ -1546,8 +1546,8 @@ private val OUT_HM = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
 @Composable
 private fun JustClosedCard(s: it.pixelbox.cmwatch.contract.Session, line: String) {
     Row(
-        Modifier.fly("card-${s.id}").fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surface)
-            .border(1.5.dp, Cm.actionIcon.copy(alpha = 0.7f), RoundedCornerShape(20.dp)).padding(14.dp),
+        Modifier.fly("card-${s.id}").fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surface)
+            .border(1.5.dp, Cm.actionIcon.copy(alpha = 0.7f), RoundedCornerShape(14.dp)).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SessionBadge(s, 22.dp)
@@ -1599,7 +1599,7 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
     var ask by rememberSaveable(a.task) { mutableStateOf(false) }
     var choice by rememberSaveable(a.task) { mutableStateOf<String?>(null) }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1981,7 +1981,7 @@ private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Releas
     val p = u.phase
     val r = p.release ?: return
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -2039,7 +2039,7 @@ internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, S
     var choice by rememberSaveable(c.task) { mutableStateOf<String?>(null) }
     val toneColor = when (r.tone) { Commitments.Tone.ALERT -> Cm.gone; Commitments.Tone.WARN -> Cm.waiting; Commitments.Tone.NORMAL -> Cm.text2 }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

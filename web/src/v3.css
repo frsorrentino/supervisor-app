@@ -154,6 +154,8 @@
   --icon: var(--tx2); --primary: var(--act); --on-primary: var(--on-act); --idle: var(--good); --gone: var(--red); --gone-dim: var(--red);
   --b-warn: var(--wait); --b-good: var(--good); --b-ring: var(--busy); --b-alert: var(--red); --b-track: var(--s3); --b-label: var(--tx2);
   --b-second: var(--tx2); --b-week: var(--tx2); --advice: var(--tx2); --prod: var(--red);
+  /* Come Cm.accent e V3.Banner/BannerInk sul telefono: la fascia d'avviso è ambra piena di notte, ambra chiaro di giorno. */
+  --accent: var(--busy); --banner: var(--wait); --banner-ink: var(--on-act);
   --master-highest: var(--s2); --master-high: var(--s1); --master-container: var(--s1); --master-low: var(--bg); --master-key: var(--s3);
   --steps-bg: var(--s1); --steps-fail: color-mix(in srgb, var(--red) 12%, var(--s1)); --steps-dot: var(--tx3);
   --sans: Barlow, system-ui, sans-serif; --display: 'Barlow Semi Condensed', Barlow, system-ui, sans-serif;
@@ -187,10 +189,13 @@
 .v3 .vdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--good); margin-right: 6px; vertical-align: 1px; }
 .v3 .vdot.down { background: var(--red); }
 .v3 .vchips { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; }
-.v3 .vchip { min-height: 34px; padding: 0 14px; border-radius: 17px; background: var(--s3); color: var(--tx); font: 600 14.5px var(--display); }
+.v3 .vchip { min-height: 34px; padding: 0 14px; border-radius: 17px; background: var(--s3); color: var(--tx); font: 600 15px var(--display); }
 .v3 .vchip.on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
 .v3 .vbtn { min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font: 600 15px var(--display); letter-spacing: .02em; }
 .v3 .vgo { padding: 0 12px 12px; }
+/* Il carattere dei tasti, una regola sola come V3Pill e labelLarge sul telefono (audit grafica 04/11): Tasto 15, Semi Condensed 600.
+   La doppia :root vince sui fogli dei componenti, che scrivevano 500 14 in Barlow. */
+:root:root :is(button.tonal, button.filled, button.approve, .vbtn) { font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .01em; }
 
 /* Titoli di tutte le pagine in Barlow Semi Condensed; :where lascia vincere le regole dei componenti sulla misura. */
 :where(.v3) :where(h1, h2, h3, h4) { font-family: var(--display); font-weight: 700; }
@@ -202,6 +207,7 @@
     --bg: #F1F4F8; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EAEEF4; --line: #DFE4EB;
     --tx: #121418; --tx2: #565C66; --tx3: #60666F; --act: #121418; --on-act: #FFFFFF;
     --wait: #9A5700; --busy: #1A64D6; --good: #0B7F55; --red: #C9302F;
+    --banner: #FFF6E5; --banner-ink: var(--wait);
   }
   :root:root:not(.night-only) .card { border: 1px solid var(--line); }
   :root:root:not(.night-only) .card.r.waiting, :root:root:not(.night-only) [data-testid='home-box-aspetta'] { background: #FFF6E5; border-color: #F2D7A2; }

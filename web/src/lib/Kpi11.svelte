@@ -27,6 +27,6 @@
   .tot { flex: none; letter-spacing: 0; }
   .bar { display: flex; gap: 0; height: 10px; border-radius: 5px; overflow: hidden; }
   .bar i { display: block; height: 100%; min-width: 1px; }
-  .hrs { position: relative; height: 12px; font: 10px/1 var(--mono); color: var(--text2); }
+  .hrs { position: relative; height: 12px; font: 11px/1 var(--mono); color: var(--text2); }
   .hrs span { position: absolute; top: 0; }
 </style>

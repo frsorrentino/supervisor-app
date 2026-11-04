@@ -58,16 +58,16 @@
     background: var(--s2); animation: in .25s cubic-bezier(.2, .8, .2, 1); }
   .pill:hover, .pill:focus-visible { background: var(--s3); }
   svg { flex: none; }
-  .text { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
-  .act { color: var(--tx); font: 600 14px var(--display); }
+  .text { flex: 1; min-width: 0; font-size: 15.5px; font-weight: 500; white-space: nowrap; overflow: hidden; }
+  .act { color: var(--tx); font: 600 15px var(--display); }
   .x { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; }
   .x:hover { background: rgb(255 255 255 / .06); }
   .away { margin: 8px 12px; padding: 12px 6px 12px 14px; border-radius: 14px; display: flex; flex-direction: column; gap: 6px;
     background: var(--s2); animation: in .25s cubic-bezier(.2, .8, .2, 1); }
   .away .top { display: flex; align-items: center; gap: 10px; }
   .away b { flex: 1; min-width: 0; font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; }
-  .away .m { font: 12px var(--mono); color: var(--text2); white-space: nowrap; }
-  .req { font-size: 14.5px; line-height: 1.4; padding-right: 8px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: clip; }
+  .away .m { font: 12.5px var(--mono); color: var(--text2); white-space: nowrap; }
+  .req { font-size: 14px; line-height: 1.4; padding-right: 8px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: clip; }
   .away .row { display: flex; align-items: center; gap: 8px; padding-right: 8px; }
   .away small { flex: 1; min-width: 0; color: var(--text2); font-size: 12.5px; }
   .open { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; background: var(--high); color: var(--text); font-weight: 500; font-size: 14px; text-decoration: none; white-space: nowrap; }

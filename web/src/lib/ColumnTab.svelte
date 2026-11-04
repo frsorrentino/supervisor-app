@@ -25,9 +25,9 @@
   .tab { height: 100%; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 12px; overflow: hidden;
     background: var(--bg); border: 1px solid rgb(255 255 255 / .12); border-bottom: 0; border-radius: 12px 12px 0 0;
     app-region: no-drag; -webkit-app-region: no-drag; touch-action: none; cursor: grab; user-select: none; }
-  .tb { min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; height: 100%; }
+  .tb { min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; height: 100%; }
   .name { white-space: nowrap; flex: none; }
-  .st { font-size: 10.5px; letter-spacing: .08em; white-space: nowrap; overflow: hidden; min-width: 0; margin-left: 2px; }
+  .st { font-size: 11px; letter-spacing: .08em; white-space: nowrap; overflow: hidden; min-width: 0; margin-left: 2px; }
   .x { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; }
   .x:hover { background: var(--surface); }
 </style>

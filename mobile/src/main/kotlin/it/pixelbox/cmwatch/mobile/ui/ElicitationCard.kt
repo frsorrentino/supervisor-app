@@ -50,7 +50,7 @@ internal fun ElicitationCard(e: Elicitation, now: Long, onAnswer: (Elicitation, 
         mutableStateMapOf<String, String?>().apply { e.fields.orEmpty().forEach { f -> put(f.key, Elicit.initial(f)) } }
     }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

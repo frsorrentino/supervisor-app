@@ -63,7 +63,7 @@
   .n.wait { color: var(--wait); }
   .tt { min-width: 0; display: flex; flex-direction: column; }
   .t { font: 700 19px/1.15 var(--display); }
-  .s { font-size: 13.5px; line-height: 1.3; color: var(--tx2); margin-top: 3px; }
+  .s { font-size: 14px; line-height: 1.3; color: var(--tx2); margin-top: 3px; }
   .s em { font-style: normal; font-weight: 500; color: var(--red); }
   .chev { align-self: start; margin-top: 2px; color: var(--tx3); }
   .q { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
@@ -71,5 +71,5 @@
   .meter { flex: 1; position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
   .meter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
   .meter b { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
-  .pct { font: 400 12px var(--mono); color: var(--tx2); }
+  .pct { font: 400 12.5px var(--mono); color: var(--tx2); }
 </style>

@@ -55,8 +55,8 @@
   .head em { font-style: normal; color: var(--b-alert); }
   svg { width: 100%; height: 58px; display: block; }
   .vals { position: absolute; left: 0; right: 0; top: 0; height: 0; }
-  .vals span { position: absolute; font: 10px/1 var(--mono); color: var(--b-week); white-space: nowrap; }
+  .vals span { position: absolute; font: 11px/1 var(--mono); color: var(--b-week); white-space: nowrap; }
   .vals .first { transform: translateX(0); }
   .vals .last { transform: translateX(-100%); }
-  small { font: 10px/1.2 var(--mono); color: var(--b-week); }
+  small { font: 11px/1.2 var(--mono); color: var(--b-week); }
 </style>

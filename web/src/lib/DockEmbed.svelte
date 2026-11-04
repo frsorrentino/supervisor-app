@@ -59,7 +59,7 @@
   .dock { position: fixed; left: 0; right: 0; bottom: 0; background: none; }
   /* In home la barra della v3 è trasparente sulla colonna; qui sotto c'è la pagina di Studio e il fondo deve restare. */
   .dock.v3 > :global(.dock) { background: var(--master-highest); }
-  .dock.sheet { top: 0; display: flex; flex-direction: column; border-radius: 26px 26px 0 0; overflow: hidden; background: var(--bg); }
+  .dock.sheet { top: 0; display: flex; flex-direction: column; border-radius: 28px 28px 0 0; overflow: hidden; background: var(--bg); }
   .body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .pair { position: fixed; left: 0; right: 0; bottom: 0; max-height: 100%; overflow: auto; border-radius: 26px 26px 0 0; background: var(--bg); }
+  .pair { position: fixed; left: 0; right: 0; bottom: 0; max-height: 100%; overflow: auto; border-radius: 28px 28px 0 0; background: var(--bg); }
 </style>

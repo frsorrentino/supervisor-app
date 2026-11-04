@@ -51,7 +51,7 @@
 
 <style>
   section { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; text-align: left; }
-  .label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .label { font-size: 12.5px; color: var(--text2); margin-bottom: 4px; }
   .group { display: flex; align-items: center; width: 100%; padding: 6px 8px; font-size: 14px; font-weight: 500; color: var(--text2); text-align: left; }
   .group span { flex: 1; }
   .fold { border-radius: 14px; }
@@ -59,8 +59,8 @@
   .row { display: flex; align-items: flex-start; gap: 12px; padding: 6px 0 6px 8px; border-radius: 14px; cursor: pointer; }
   .row:hover { background: var(--low); }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-  b { font-weight: 400; font-size: 16px; color: var(--text); }
-  small { font-size: 13px; color: var(--text2); overflow-wrap: anywhere; }
+  b { font-weight: 400; font-size: 15.5px; color: var(--text); }
+  small { font-size: 12.5px; color: var(--text2); overflow-wrap: anywhere; }
   input { width: 20px; height: 20px; margin: 2px 12px 0 0; flex: none; accent-color: var(--primary); }
   .mark { width: 18px; height: 18px; flex: none; margin-top: 3px; border: 2px solid var(--text2); }
   .mark.personal { border-radius: 50%; } .mark.agency { border-radius: 5px; } .mark.desk { border-radius: 3px; transform: rotate(45deg) scale(.8); } .mark.none { border-color: transparent; }

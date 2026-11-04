@@ -24,7 +24,7 @@ fun PairedScreen(host: String, phoneName: String, watchName: String?, watchPendi
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(stringResource(R.string.paired_title, host), style = MaterialTheme.typography.headlineMedium, color = Cm.text)
-        Surface(color = Cm.surface, shape = RoundedCornerShape(20.dp)) {
+        Surface(color = Cm.surface, shape = RoundedCornerShape(14.dp)) {
             Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 DeviceRow(Icons.Rounded.PhoneAndroid, phoneName, stringResource(R.string.paired_this_phone), Cm.text2)
                 watchName?.let {

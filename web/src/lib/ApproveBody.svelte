@@ -32,7 +32,7 @@
   .aopts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
   .aopts span { white-space: nowrap; padding: 6px 12px; border-radius: 999px; background: var(--high); color: var(--text2); font-size: 14px; font-weight: 500; }
   .aopts span.on { background: var(--primary); color: var(--on-primary); }
-  .alab { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text2); margin-top: 14px; }
+  .alab { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--text2); margin-top: 14px; }
   .alab input { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--low); color: var(--text); font-size: 15px; }
   .abtns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   .acancel { padding: 10px 16px; border-radius: 999px; color: var(--text2); background: none; }

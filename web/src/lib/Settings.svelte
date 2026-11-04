@@ -260,7 +260,7 @@
   .pick { background: var(--high); color: var(--text); border: 0; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px; }
   a.srow { color: inherit; text-decoration: none; }
   .settings { display: flex; flex-direction: column; gap: 14px; padding: 0 16px 24px; max-width: 760px; }
-  .gh { display: flex; align-items: center; gap: 10px; margin: 6px 8px 0; font: 12px var(--mono); letter-spacing: .06em; color: var(--text2); }
+  .gh { display: flex; align-items: center; gap: 10px; margin: 6px 8px 0; font: 12.5px var(--mono); letter-spacing: .06em; color: var(--text2); }
   .gh i { flex: 1; height: 1px; background: color-mix(in srgb, var(--text2) 25%, transparent); }
   .scheme { border-radius: 24px; background: var(--low); padding: 20px 10px 16px; display: flex; flex-direction: column; gap: 16px;
     background-image: radial-gradient(rgb(255 255 255 / .07) 1px, transparent 1.4px); background-size: 16px 16px; }
@@ -275,15 +275,15 @@
   .circle { position: relative; width: var(--s); height: var(--s); border-radius: 50%; background: var(--surface); border: 2px solid; display: grid; place-items: center; }
   .circle.dashed { background: none; outline: 2px dashed var(--b-track); outline-offset: -2px; }
   .dot { position: absolute; top: 3px; right: 3px; width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--low); }
-  .node b { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; max-width: 100%; }
-  .pc .node b { font-size: 16px; }
+  .node b { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; max-width: 100%; }
+  .pc .node b { font-size: 15.5px; }
   .node b.dim { color: var(--text2); }
-  .node small { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; max-width: 100%; }
+  .node small { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; max-width: 100%; }
   .card { background: var(--surface); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
   .ctop { display: flex; align-items: center; gap: 12px; }
-  .ctop b { flex: 1; font-size: 16px; font-weight: 600; }
+  .ctop b { flex: 1; font-size: 15.5px; font-weight: 600; }
   .chip { border-radius: 12px; padding: 4px 10px; font-size: 12.5px; font-weight: 500; }
-  .fact { display: flex; gap: 16px; font-size: 14.5px; }
+  .fact { display: flex; gap: 16px; font-size: 14px; }
   .fact span:first-child { color: var(--text2); }
   .fact span:last-child { flex: 1; text-align: right; }
   .hint { text-align: center; font-size: 12.5px; color: var(--text2); }
@@ -292,7 +292,7 @@
   button.srow:hover { background: var(--surface); }
   .sic { width: 40px; height: 40px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; flex: none; }
   .st { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .st b { font-size: 16px; font-weight: 500; }
+  .st b { font-size: 15.5px; font-weight: 500; }
   .st small { font-size: 12.5px; color: var(--text2); }
   label.srow { cursor: pointer; }
   .revoke { color: var(--gone); font-weight: 500; font-size: 14px; padding: 10px 14px; border-radius: 999px; flex: none; }

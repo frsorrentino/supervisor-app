@@ -120,7 +120,7 @@ fun ModalBottomSheet(
                 if (to == hidden && now != hidden && !leaving && kotlin.math.abs(y - rest) < still) { leaving = true; launch { grow.animateTo(0f, CmMotion.fast) } }
             }
         }
-        V3Theme { androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier.growFromPress(androidx.compose.ui.graphics.TransformOrigin(.5f, 1f), bottom) { grow.value }, sheetState = sheetState, containerColor = V3.S1, shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp), content = content) }
+        V3Theme { androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier.growFromPress(androidx.compose.ui.graphics.TransformOrigin(.5f, 1f), bottom) { grow.value }, sheetState = sheetState, containerColor = V3.S1, shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), content = content) }
         return
     }
     androidx.compose.ui.window.Dialog(onDismissRequest, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {

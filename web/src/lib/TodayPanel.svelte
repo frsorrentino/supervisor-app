@@ -34,17 +34,17 @@
 </div>
 
 <style>
-  .panel { border-radius: 16px; background: var(--low); border: 1px solid rgb(255 255 255 / .12); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .panel { border-radius: 14px; background: var(--low); border: 1px solid rgb(255 255 255 / .12); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
   .title { display: flex; align-items: baseline; gap: 8px; }
   .lab { flex: 1; font: 11px var(--mono); letter-spacing: .12em; color: var(--text2); }
   .title b { font: 500 14px var(--mono); }
   .chart { width: 100%; height: auto; }
-  .hours { display: flex; font: 10px var(--mono); color: var(--text2); }
+  .hours { display: flex; font: 11px var(--mono); color: var(--text2); }
   .hours span { flex: 1; }
   .urow { display: flex; align-items: center; gap: 10px; font-size: 14px; }
   .un { width: 42%; flex: none; white-space: nowrap; overflow: hidden; }
   .urow i { flex: 1; height: 8px; border-radius: 4px; background: var(--b-track); position: relative; overflow: hidden; }
   .urow i b { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--b-ring); }
   .urow.dim i b { background: var(--text2); opacity: .5; }
-  .urow em { font: 12px var(--mono); color: var(--text2); font-style: normal; min-width: 40px; text-align: right; }
+  .urow em { font: 12.5px var(--mono); color: var(--text2); font-style: normal; min-width: 40px; text-align: right; }
 </style>

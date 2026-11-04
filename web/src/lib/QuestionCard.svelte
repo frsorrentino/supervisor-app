@@ -49,13 +49,13 @@
   .qcard { background: var(--s2); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
   .qtext { display: flex; gap: 10px; align-items: flex-start; }
   .gl { flex: none; display: flex; padding-top: 3px; }
-  .qtext p { flex: 1; font-size: 16px; line-height: 1.5; letter-spacing: .03em; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .qtext p { flex: 1; font-size: 15.5px; line-height: 1.5; letter-spacing: .03em; white-space: pre-wrap; overflow-wrap: anywhere; }
   .perm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
   .perm p { flex: none; align-self: stretch; }
   .perm p.folded { max-height: calc(var(--fold) * 1.5em); overflow: hidden; }
   .perm .label { font-size: 14px; color: var(--tx2); overflow-wrap: anywhere; }
-  .perm pre { align-self: stretch; margin: 0; font: 13px/1.45 var(--mono, monospace); color: var(--tx2); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .fold { min-height: 44px; color: var(--icon); font: 600 14px var(--display); }
+  .perm pre { align-self: stretch; margin: 0; font: 12.5px/1.45 var(--mono, monospace); color: var(--tx2); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .fold { min-height: 44px; color: var(--icon); font: 600 15px var(--display); }
   .speak { color: var(--icon); width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none; margin-top: -4px; }
   .speak:hover { background: var(--s3); }
   .more { display: flex; gap: 8px; }

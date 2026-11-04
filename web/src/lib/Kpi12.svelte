@@ -33,7 +33,7 @@
 
 <style>
   .k12 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .fig { background: var(--low); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .fig { background: var(--low); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .fig b { font: 500 24px/1.1 var(--sans, inherit); }
-  .fig span { font-size: 13px; color: var(--text2); overflow-wrap: anywhere; }
+  .fig span { font-size: 12.5px; color: var(--text2); overflow-wrap: anywhere; }
 </style>

@@ -260,7 +260,7 @@ private fun DeviceCard(m: SettingsDevices.Model, selected: DeviceNode) {
         )
     }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surface).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surface).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -385,7 +385,7 @@ private fun LinkedCard(d: SettingsDevices.Linked, host: String?, now: Long) {
         else -> stringResource(R.string.dev_seen_ago, seenShort(d.seen, now))
     }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surface).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surface).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -71,12 +71,12 @@
   .what:not(:disabled):hover { background: rgb(255 255 255 / .05); }
   .what:disabled { cursor: default; }
   .what .mono { white-space: nowrap; overflow: hidden; }
-  .line { font-size: 14.5px; white-space: nowrap; overflow: hidden; }
+  .line { font-size: 14px; white-space: nowrap; overflow: hidden; }
   .chip { flex: none; min-width: 40px; height: 34px; padding: 0 10px; border-radius: 17px; background: var(--surface); color: var(--text); font-weight: 500; font-size: 14px; display: grid; place-items: center; }
   .stop { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--icon); }
   .pill.open { padding-left: 8px; }
   .val { background: var(--primary); color: var(--on-primary); font-weight: 600; min-width: 64px; }
-  .pp { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--icon); background: #33405A; }
+  .pp { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--icon); background: var(--s3); }
   .pp.play { background: var(--primary); color: var(--on-primary); }
   .pp:hover { filter: brightness(1.15); }
   .bars.still i { animation: none; height: 45%; background: var(--text2); }

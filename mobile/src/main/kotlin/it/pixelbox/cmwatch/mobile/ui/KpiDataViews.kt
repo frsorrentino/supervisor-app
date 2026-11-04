@@ -104,7 +104,7 @@ private fun DayColumns(days: List<String>, cells: List<Pair<List<Pair<Float, Col
                     parts.asReversed().forEach { (f, c) -> if (f > 0f) Box(Modifier.fillMaxWidth().height((f * height).dp.coerceAtLeast(2.dp)).clip(RoundedCornerShape(2.dp)).background(c)) }
                     if (parts.all { it.first <= 0f }) Box(Modifier.fillMaxWidth().height(2.dp).background(Cm.briefTrack))
                 }
-                Text(weekday(d), style = MonoSmall.copy(fontSize = 10.sp), color = Cm.text2, maxLines = 1)
+                Text(weekday(d), style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2, maxLines = 1)
             }
         }
     }
@@ -184,7 +184,7 @@ internal fun Kpi9(days: List<KpiChecksDay>) {
                         withStyle(SpanStyle(color = Cm.text2)) { append(d.green.toString()) }
                         if (d.red > 0) withStyle(SpanStyle(color = Cm.briefAlertRing)) { append(" ${d.red}") }
                     },
-                    style = MonoSmall.copy(fontSize = 10.sp), maxLines = 1,
+                    style = MonoSmall.copy(fontSize = 11.sp), maxLines = 1,
                 )
             }
         })
@@ -206,7 +206,7 @@ private fun turnTone(o: String): Color = when (o) {
 internal fun Kpi10(turns: List<KpiTurn>) {
     val s = Kpi.turnsSummary(turns)
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
-    val label = MonoSmall.copy(fontSize = 10.sp, color = Cm.briefWeek)
+    val label = MonoSmall.copy(fontSize = 11.sp, color = Cm.briefWeek)
     val first = compact(s.tokensFirst)
     val last = compact(s.tokensLast)
     val aria = stringResource(R.string.kpi10_aria, s.n, s.minutes, first, last)
@@ -253,7 +253,7 @@ internal fun Kpi10(turns: List<KpiTurn>) {
                 }
             }
         }
-        Text(stringResource(R.string.kpi10_caption), style = MonoSmall.copy(fontSize = 10.sp), color = Cm.briefWeek)
+        Text(stringResource(R.string.kpi10_caption), style = MonoSmall.copy(fontSize = 11.sp), color = Cm.briefWeek)
     }
 }
 
@@ -357,7 +357,7 @@ internal fun Kpi17(w: KpiWaits, now: Long) {
         }
         DayColumns(w.week.map { it.date }, w.week.map { d ->
             listOf(((d.medianMin ?: 0.0).toFloat() / top) to Cm.waiting) to @Composable {
-                Text(d.medianMin?.let { Math.round(it).toString() } ?: "–", style = MonoSmall.copy(fontSize = 10.sp), color = Cm.text2, maxLines = 1)
+                Text(d.medianMin?.let { Math.round(it).toString() } ?: "–", style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2, maxLines = 1)
             }
         })
         Text(stringResource(R.string.kpi17_caption), style = MaterialTheme.typography.bodySmall, color = Cm.text2)

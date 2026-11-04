@@ -79,11 +79,11 @@
   .row:hover, .row.on { background: color-mix(in srgb, var(--primary) 10%, transparent); }
   .home { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--advice) 25%, transparent); flex: none; }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .col b { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
-  .col small { font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; }
-  .dim { color: var(--text2); font-size: 16px; }
-  .ctx { font-size: 12px; color: var(--text2); }
-  .gh { padding: 10px 20px 2px; font: 500 12px/1.4 var(--mono); letter-spacing: .08em; }
+  .col b { font-size: 15.5px; font-weight: 500; white-space: nowrap; overflow: hidden; }
+  .col small { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; }
+  .dim { color: var(--text2); font-size: 15.5px; }
+  .ctx { font-size: 12.5px; color: var(--text2); }
+  .gh { padding: 10px 20px 2px; font: 500 12.5px/1.4 var(--mono); letter-spacing: .08em; }
   hr { border: 0; height: 1px; background: var(--line); margin: 4px 0; }
   dialog.sheet { margin: auto auto 0; border: 0; color: var(--text); background: var(--surface); padding: 20px 0 16px; width: min(600px, 100vw); max-height: 80vh; border-radius: 28px 28px 0 0; }
   dialog.sheet::backdrop { background: rgb(0 0 0 / .55); }

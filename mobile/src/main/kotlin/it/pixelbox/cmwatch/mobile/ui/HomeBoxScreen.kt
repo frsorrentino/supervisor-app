@@ -242,11 +242,11 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
     }
 }
 
-private val KindStyle = MonoSmall.copy(fontSize = 11.5.sp, letterSpacing = 0.9.sp, fontWeight = FontWeight.Medium)
+private val KindStyle = MonoSmall.copy(fontSize = 11.sp, letterSpacing = 0.9.sp, fontWeight = FontWeight.Medium)
 
 @Composable
 private fun BoxHero(value: String, tone: Color?, text: String) {
-    Row(Modifier.fillMaxWidth().padding(bottom = 14.dp).clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+    Row(Modifier.fillMaxWidth().padding(bottom = 14.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(value, style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Medium), color = tone ?: Cm.text, maxLines = 1)
         Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.weight(1f))
     }
@@ -274,7 +274,7 @@ private fun BoxFold(title: String, count: Int, tone: Color, open: Boolean, modif
 
 @Composable
 private fun BoxCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 4.dp), content = content)
+    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 4.dp), content = content)
 }
 
 /** Un pezzo della scheda per le liste lunghe: gli angoli tondi solo in cima e in fondo, così la lista resta pigra. */

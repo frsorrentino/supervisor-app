@@ -62,17 +62,17 @@
 </div>
 
 <style>
-  .elicit { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 20px; background: var(--low); }
+  .elicit { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: var(--low); }
   .head { display: flex; align-items: center; gap: 10px; }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-  .col b { font-size: 16px; font-weight: 600; }
-  .mono { font: 12px/1.4 var(--mono); color: var(--text2); }
+  .col b { font-size: 15.5px; font-weight: 600; }
+  .mono { font: 12.5px/1.4 var(--mono); color: var(--text2); }
   .link { overflow-wrap: anywhere; }
-  .q { font-size: 16px; }
+  .q { font-size: 15.5px; }
   .note { font-size: 14px; color: var(--text2); }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .lab { font-size: 14px; font-weight: 500; }
-  .field small { font-size: 12px; color: var(--text2); }
+  .field small { font-size: 12.5px; color: var(--text2); }
   .field small.err { color: var(--gone); }
   .opts, .acts { display: flex; flex-wrap: wrap; gap: 6px; }
   .acts { justify-content: flex-end; gap: 8px; }

@@ -247,20 +247,20 @@
   .head { display: flex; align-items: center; gap: 8px; height: 56px; }
   .head h2 { font: 500 22px/1 var(--sans, inherit); margin: 0; } .head small { color: var(--text2); font-size: 14px; }
   .back { color: var(--text); padding: 8px; border-radius: 50%; }
-  .desk, .sec { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); }
+  .desk, .sec { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; padding: 0 4px; font: 500 12.5px/1 var(--mono); letter-spacing: .14em; color: var(--text2); }
   .sec span { text-transform: uppercase; }
   .sec i, .desk i, .gh i, .day i { flex: 1; height: 1px; background: var(--line); }
   .gh { display: flex; align-items: center; gap: 8px; margin: 10px 4px 2px; font: 600 11px/1.4 var(--mono); letter-spacing: .1em; color: var(--t); } .gh i { background: color-mix(in srgb, var(--t) 30%, transparent); }
   .expl { margin: 0 6px 6px; color: var(--text2); font-size: 14px; line-height: 1.4; } .expl.bright { color: var(--text); } .expl.quota { margin-top: 14px; color: var(--tx2); border-top: 1px solid var(--line); padding-top: 10px; }
-  .row, .card, .done { background: var(--low); border-radius: 20px; }
+  .row, .card, .done { background: var(--low); border-radius: 14px; }
   .row { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; }
-  .row .t, .done .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .row b { font-weight: 600; font-size: 15px; } .row small, .done small { color: var(--text2); font-size: 13px; }
+  .row .t, .done .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .row b { font-weight: 600; font-size: 15px; } .row small, .done small { color: var(--text2); font-size: 12.5px; }
   .mark { width: 18px; height: 18px; flex: none; border: 2px solid var(--text2); border-radius: 5px; } .mark.personal { border-radius: 50%; } .mark.desk { border-radius: 3px; transform: rotate(45deg) scale(.8); }
   .filled { background: var(--primary); color: var(--on-primary); border-radius: 999px; padding: 9px 16px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   .tonal { background: var(--high); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   .fold { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 6px; color: var(--text2); font-size: 14px; text-align: left; border-radius: 12px; } .fold span { flex: 1; }
-  .axis { display: flex; padding: 2px 18px; font: 11px var(--mono); color: var(--b-axis, #8B929C); } .axis span { flex: 1; } .axis b { font-weight: 400; color: var(--text); }
-  .key { margin: 0 6px 6px; font: 11px/1.4 var(--mono); color: var(--b-axis, #8B929C); }
+  .axis { display: flex; padding: 2px 18px; font: 11px var(--mono); color: var(--tx3); } .axis span { flex: 1; } .axis b { font-weight: 400; color: var(--text); }
+  .key { margin: 0 6px 6px; font: 11px/1.4 var(--mono); color: var(--tx3); }
   .card { display: flex; flex-direction: column; gap: 4px; padding: 14px; }
   .turn { flex: none; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
   .turn.up { transform: rotate(180deg); }
@@ -271,25 +271,25 @@
   .wl { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; background: var(--low); border-radius: 16px; }
   .ic { flex: none; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--t) 18%, transparent); display: flex; align-items: center; justify-content: center; }
   .wl .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .tt { display: flex; align-items: center; gap: 8px; min-width: 0; } .tt b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; }
-  .wl small { color: var(--text2); font-size: 13px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .when { flex: none; font: 12px/1 var(--mono); color: var(--text2); white-space: nowrap; }
+  .wl small { color: var(--text2); font-size: 12.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .when { flex: none; font: 12.5px/1 var(--mono); color: var(--text2); white-space: nowrap; }
   .tag { font: 600 11px var(--mono); letter-spacing: .06em; border-radius: 999px; padding: 4px 8px; background: color-mix(in srgb, currentColor 15%, transparent); white-space: nowrap; }
   .axis.gantt { padding: 2px 6px; gap: 8px; } .axis.gantt .lbl, .grow .lbl { width: 120px; flex: none; } .axis .days { flex: 1; display: flex; } .axis .days span { flex: 1; }
-  .grow { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px; } .grow .lbl { font-size: 13.5px; white-space: nowrap; overflow: hidden; } .grow .track { flex: 1; margin: 0; }
-  .nodate { flex: 1; font: 11px/16px var(--mono); color: var(--b-axis, #8B929C); }
+  .grow { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px; } .grow .lbl { font-size: 14px; white-space: nowrap; overflow: hidden; } .grow .track { flex: 1; margin: 0; }
+  .nodate { flex: 1; font: 11px/16px var(--mono); color: var(--tx3); }
   .track { position: relative; height: 8px; border-radius: 4px; background: var(--b-track); margin: 10px 0 2px; }
   .track i { position: absolute; top: 0; height: 8px; border-radius: 4px; background: var(--busy); }
   .track i.dashed { background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--text2) 70%, transparent) 0 6px, transparent 6px 10px); }
   .track i.now { width: 2px; top: -4px; height: 16px; border-radius: 0; background: var(--text); }
-  .card.night { gap: 8px; } .trow { display: flex; align-items: center; gap: 12px; } .tcol { flex: 1; } .big { font-size: 16px; }
+  .card.night { gap: 8px; } .trow { display: flex; align-items: center; gap: 12px; } .tcol { flex: 1; } .big { font-size: 15.5px; }
   .running { color: var(--busy); font-size: 14px; margin: 0; } .muted { color: var(--text2); font-size: 14px; margin: 0; }
-  .job { display: flex; align-items: center; gap: 10px; } .jcol { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; } .jcol > span:not(:first-child) { color: var(--text2); font-size: 13px; } .jcol b { font-weight: 600; } .started { color: var(--busy); }
+  .job { display: flex; align-items: center; gap: 10px; } .jcol { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; } .jcol > span:not(:first-child) { color: var(--text2); font-size: 12.5px; } .jcol b { font-weight: 600; } .started { color: var(--busy); }
   .link { color: var(--icon); padding: 8px 12px; border-radius: 16px; font-weight: 500; font-size: 14px; }
-  .day { display: flex; align-items: center; gap: 8px; width: 100%; margin: 10px 0 2px; padding: 0 6px; font: 600 12px/1.6 var(--mono); letter-spacing: .12em; color: var(--text2); text-align: left; } .day:disabled { color: var(--text2); }
+  .day { display: flex; align-items: center; gap: 8px; width: 100%; margin: 10px 0 2px; padding: 0 6px; font: 600 12.5px/1.6 var(--mono); letter-spacing: .12em; color: var(--text2); text-align: left; } .day:disabled { color: var(--text2); }
   /* Area di tocco allargata dentro il margine sopra, senza cambiare l'aspetto (app-bug-notte-03-11); 48 dp pieni chiederebbero spaziature nuove. */
   .day { position: relative; } .day::after { content: ''; position: absolute; inset: -10px 0 -2px; }
-  .done { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 18px; } .done .tm { font: 12px/1.5 var(--mono); color: var(--text2); } .done b { font-weight: 600; font-size: 14px; }
-  .done .who { color: var(--text2); font-size: 13px; padding: 0; } .proof { color: var(--icon); } .proof.plain { color: var(--text2); }
+  .done { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 18px; } .done .tm { font: 12.5px/1.5 var(--mono); color: var(--text2); } .done b { font-weight: 600; font-size: 14px; }
+  .done .who { color: var(--text2); font-size: 12.5px; padding: 0; } .proof { color: var(--icon); } .proof.plain { color: var(--text2); }
   /* Franz 24/10 18:36: niente esce dalla scheda, neanche un percorso lungo senza spazi. */
   .row .t, .done .t { overflow-wrap: anywhere; }
   .kpi { padding: 4px 4px 8px; }

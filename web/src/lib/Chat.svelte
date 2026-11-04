@@ -334,7 +334,7 @@
   .chat.master :global(.steps) { background: var(--master-high); }
   .chat.master :global(.box) { border: 0; }
   .chat.master :global(.box .row) { border-top-color: var(--line); }
-  .chat.master > :global(.bar) { margin-top: 10px; padding-top: 10px; border-radius: 26px 26px 0 0; background: var(--master-high); }
+  .chat.master > :global(.bar) { margin-top: 10px; padding-top: 10px; border-radius: 28px 28px 0 0; background: var(--master-high); }
   .chat { display: flex; flex-direction: column; height: 100%; min-width: 0; position: relative; container-type: inline-size; }
   .dropzone { position: absolute; inset: 8px; z-index: 20; display: grid; place-items: center; border: 2px dashed color-mix(in srgb, var(--icon) 60%, transparent); border-radius: 24px; background: rgb(0 0 0 / .6); color: var(--icon); font-weight: 500; pointer-events: none; }
   /* Gli hover nella master: un passo sopra il suo fondo celeste, non il grigio delle altre sessioni (Franz, 07/10 14:49). */
@@ -352,13 +352,13 @@
   .qlimit { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; padding: 16px; border-radius: 24px; border: 2px solid var(--gone); background: var(--high); max-width: 760px; }
   .qlimit p { margin: 0 0 4px; }
   .qlimit.fail { border-color: var(--wait); }
-  .qway { min-height: 44px; padding: 10px 18px; border-radius: 22px; background: var(--surface); color: var(--text); font-size: 16px; font-weight: 500; text-align: left; }
+  .qway { min-height: 44px; padding: 10px 18px; border-radius: 22px; background: var(--surface); color: var(--text); font-size: 15.5px; font-weight: 500; text-align: left; }
   .qway.filled { background: var(--primary); color: var(--on-primary); }
   .resolved { margin: 4px 4px 8px; font-size: 14px; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .waitpc { margin: 0; text-align: center; font-size: 12.5px; color: var(--text2); }
   .nudge { display: flex; align-items: center; gap: 12px; margin: 0 12px 8px; padding: 10px 6px 10px 14px; border-radius: 20px; background: var(--high); }
   .nudge .nt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; line-height: 1.3; color: var(--text2); }
-  .nudge .nt b { font-weight: 500; font-size: 14.5px; color: var(--text); white-space: nowrap; }
+  .nudge .nt b { font-weight: 500; font-size: 14px; color: var(--text); white-space: nowrap; }
   .nudge .nsub { white-space: nowrap; }
   /* Una colonna stretta della plancia: resta il titolo, su una riga. */
   @container (max-width: 380px) { .nudge { flex-wrap: wrap; } .nudge .nsub { display: none; } .nudge .nt { flex: 1 1 calc(100% - 40px); } .nudge .go { margin-left: auto; } }
@@ -370,7 +370,7 @@
   .sheet h3 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
   .sheet .sub { color: var(--text2); font-size: 14px; }
   .sheet textarea { width: 100%; margin-top: 12px; background: var(--high); color: var(--text); border: 0; border-radius: 16px; padding: 12px 14px; font: inherit; font-size: 15.5px; resize: vertical; }
-  .sheet .lab { font-size: 12px; color: var(--text2); margin: 14px 0 6px; }
+  .sheet .lab { font-size: 12.5px; color: var(--text2); margin: 14px 0 6px; }
   .pick { display: flex; gap: 8px; flex-wrap: wrap; }
   .pick button { background: var(--high); border-radius: 999px; padding: 7px 14px; font-weight: 500; }
   .pick button.on { background: color-mix(in srgb, var(--primary) 22%, var(--high)); color: var(--primary); }

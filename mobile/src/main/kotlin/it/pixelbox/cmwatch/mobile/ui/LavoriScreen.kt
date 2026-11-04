@@ -274,7 +274,7 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
     // sotto, che vanno a capo fra loro, come nella home (Franz 24/10 18:35, regola di e8afbe1c).
     val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
     Column(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -374,7 +374,7 @@ private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
             }
             meta?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
         }
-        right?.let { Text(it, style = MonoSmall.copy(fontSize = 12.sp), color = Cm.text2) }
+        right?.let { Text(it, style = MonoSmall.copy(fontSize = 12.5.sp), color = Cm.text2) }
     }
     if (l.who == Lavori.Who.WORKING) WorkEdgeLine(Modifier.align(Alignment.BottomCenter))
     }
@@ -432,7 +432,7 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
             "cancelled" -> Icon(Icons.Rounded.Remove, null, tint = Cm.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
             else -> Icon(Icons.Rounded.Check, null, tint = Cm.briefGoodInk, modifier = Modifier.size(18.dp).padding(top = 1.dp))
         }
-        Text(hhmm(d.at, zone), style = MonoSmall.copy(fontSize = 12.sp))
+        Text(hhmm(d.at, zone), style = MonoSmall.copy(fontSize = 12.5.sp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(d.title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -497,7 +497,7 @@ internal fun Tonight(state: State, onAdd: () -> Unit, onRemove: (String) -> Unit
 @Composable
 internal fun RegCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) =
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).smoothSize().then(modifier).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).smoothSize().then(modifier).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp), content = content,
     )
 

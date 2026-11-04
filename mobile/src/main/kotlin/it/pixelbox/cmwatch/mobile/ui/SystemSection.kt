@@ -89,7 +89,7 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
     var ask by remember { mutableStateOf<String?>(null) }
     var sent by remember { mutableStateOf(setOf<String>()) }
     Column(
-        Modifier.fillMaxWidth().testTag("system_advice").clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().testTag("system_advice").clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Meter(stringResource(R.string.system_load), (s.loadPerCore / 3).toFloat(), barTone(s.loadLevel), stringResource(R.string.system_load_v, SystemRules.num(s.loadPerCore, c)))

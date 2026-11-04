@@ -161,9 +161,9 @@
   .pg { gap: 12px; padding: 8px 16px 24px; }
   .row { display: flex; gap: 12px; padding: 8px 0; cursor: pointer; border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); text-align: left; }
   .col { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
-  .t { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: var(--tx); }
+  .t { display: flex; align-items: center; gap: 8px; font-size: 15.5px; font-weight: 600; color: var(--tx); }
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--wait); flex: none; }
-  .sub { color: var(--tx2); font-size: 13.5px; margin: 0; }
+  .sub { color: var(--tx2); font-size: 14px; margin: 0; }
   .sub.warn { color: var(--wait); }
   /* Sugli schermi stretti la miniatura cede spazio ai tasti (app-bug-notte-03-11). */
   .th { width: min(118px, 28%); aspect-ratio: 118 / 74; height: auto; flex: none; border-radius: 10px; background: var(--s3); position: relative; overflow: hidden; display: grid; place-items: center; }
@@ -182,7 +182,7 @@
   .older { align-self: flex-start; color: var(--tx2); }
   .grp { background: var(--s1); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .grp h3 { margin: 0; font-size: 17px; color: var(--tx); border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); padding-bottom: 6px; }
-  .note { display: flex; gap: 8px; color: var(--tx2); font-size: 13.5px; margin: 0 0 4px; }
+  .note { display: flex; gap: 8px; color: var(--tx2); font-size: 14px; margin: 0 0 4px; }
   .note .ms { font-size: 18px; }
   .viewer { display: flex; flex-direction: column; gap: 10px; padding: 8px 16px 24px; }
   /* «Apri il file» e «Riprova» sono pillole, non barre a tutta larghezza (app-bug-notte-03-11). */
@@ -196,7 +196,7 @@
   .ph.fail { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--tx2); text-align: center; padding: 16px; box-sizing: border-box; }
   .ph.fail p { margin: 0; }
   .vline { display: flex; gap: 10px; align-items: baseline; margin: 0; color: var(--tx); }
-  .mono { font-family: var(--mono, monospace); color: var(--tx2); font-size: 13px; }
+  .mono { font-family: var(--mono, monospace); color: var(--tx2); font-size: 12.5px; }
   .changed { margin: 0; color: var(--tx); }
   .nform { display: flex; gap: 8px; }
   .nform input { flex: 1; min-height: 44px; border-radius: 22px; padding: 0 16px; background: transparent; border: 1px solid var(--line, rgba(255,255,255,.2)); color: var(--tx); font: inherit; }

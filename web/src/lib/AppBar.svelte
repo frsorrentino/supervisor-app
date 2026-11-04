@@ -111,7 +111,7 @@
 <style>
   .applink { text-decoration: none; color: var(--icon); }
   .applink b { color: var(--icon); }
-  .stalebar { margin: 0; padding: 6px 20px; background: var(--brief-warn, #5a4300); color: var(--brief-warn-ink, #ffd77a); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+  .stalebar { margin: 0; padding: 6px 20px; background: var(--banner); color: var(--banner-ink); font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; }
   header { padding: 4px 8px 6px; }
   .bar { display: flex; align-items: center; min-height: 56px; }
   .title { flex: 1; display: flex; align-items: baseline; gap: 10px; padding-left: 12px; min-width: 0; }
@@ -140,11 +140,11 @@
   .mi:hover, .foot:hover { background: var(--high); }
   .mic { width: 40px; height: 40px; border-radius: 50%; background: var(--high); display: grid; place-items: center; flex: none; }
   .mt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .mt b { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
+  .mt b { font-size: 15.5px; font-weight: 500; white-space: nowrap; overflow: hidden; }
   .mt small { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; }
   .mt small.wrap { white-space: normal; line-height: 1.35; }
   hr { border: 0; height: 1px; background: var(--line); margin: 4px 0; }
-  .foot { display: flex; align-items: center; gap: 20px; width: 100%; padding: 14px 28px; font-size: 16px; color: var(--text2); }
+  .foot { display: flex; align-items: center; gap: 20px; width: 100%; padding: 14px 28px; font-size: 15.5px; color: var(--text2); }
   @media (prefers-reduced-motion: reduce) { .panel, .scrim { animation: none; } }
   /* Il menu nella forma della v3 (mockup approvato da Franz il 30/10 alle 19:25): icone grigie nel binario senza cerchio, una
      voce per riga col filo, «Lancia una sessione» come le altre (Franz 31/10 01:03). */

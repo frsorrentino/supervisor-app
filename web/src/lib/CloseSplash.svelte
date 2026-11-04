@@ -54,7 +54,7 @@
   li { display: flex; gap: 10px; margin: 6px 0; }
   li.done { color: var(--text); }
   li i { font-style: normal; width: 18px; text-align: center; }
-  small { font-size: 12px; color: var(--text2); }
+  small { font-size: 12.5px; color: var(--text2); }
   small.slow { color: var(--wait); }
   .bar { align-self: stretch; height: 4px; border-radius: 2px; background: var(--high); overflow: hidden; margin-top: 8px; }
   .bar b { display: block; height: 100%; background: var(--icon); }

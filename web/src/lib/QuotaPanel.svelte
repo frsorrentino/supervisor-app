@@ -225,14 +225,14 @@
   .num b.dim { color: var(--text2); }
   .num small { font-size: 12.5px; color: var(--text2); }
   .old { font-size: 12.5px; color: var(--b-warn); }
-  .panel { border-radius: 16px; background: var(--low); border: 1px solid rgb(255 255 255 / .12); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .panel { border-radius: 14px; background: var(--low); border: 1px solid rgb(255 255 255 / .12); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
   .title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .lab { flex: 1; font: 11px var(--mono); letter-spacing: .12em; color: var(--text2); }
   .title b { font: 500 14px var(--mono); }
   .chartbox { width: 100%; }
   .chart { display: block; }
   .bars { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; align-items: center; }
-  .bl { font-size: 13px; color: var(--text2); }
+  .bl { font-size: 12.5px; color: var(--text2); }
   .bv { font: 12.5px var(--mono); text-align: right; min-width: 3.2em; }
   .bar { position: relative; height: 10px; border-radius: 5px; background: var(--b-track); }
   .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--b-ring); }
@@ -245,7 +245,7 @@
   .orig { display: flex; gap: 3px; height: 10px; }
   .orig i { border-radius: 3px; min-width: 2px; }
   .origl { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12.5px; }
-  .ax { font: 10.5px var(--mono); fill: var(--text2); }
+  .ax { font: 11px var(--mono); fill: var(--text2); }
   .ax.val { fill: var(--text); }
   .txt { font-size: 12.5px; color: var(--text); }
   .txt.dim { color: var(--text2); }

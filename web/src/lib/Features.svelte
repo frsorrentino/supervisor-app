@@ -50,22 +50,22 @@
 <style>
   .fx { padding: 0 12px 24px; max-width: 720px; }
   h3 { margin: 16px 4px 6px; font-size: 14px; font-weight: 600; color: var(--text2); }
-  .card { background: var(--low); border-radius: 20px; overflow: hidden; }
+  .card { background: var(--low); border-radius: 14px; overflow: hidden; }
   .row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 14px; text-align: left; color: var(--text); border-top: 1px solid var(--line); }
   .row:first-child { border-top: 0; }
   .bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .hd { display: flex; align-items: baseline; gap: 8px; }
   .hd b { font-weight: 600; font-size: 15.5px; }
-  small { font: 12px var(--mono); color: var(--wait); white-space: nowrap; }
-  .tx { font-size: 14.5px; color: var(--text2); overflow-wrap: anywhere; }
-  .wh { font: 12px var(--mono); color: var(--text2); overflow-wrap: anywhere; }
+  small { font: 12.5px var(--mono); color: var(--wait); white-space: nowrap; }
+  .tx { font-size: 14px; color: var(--text2); overflow-wrap: anywhere; }
+  .wh { font: 12.5px var(--mono); color: var(--text2); overflow-wrap: anywhere; }
   .page { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
   .back { display: flex; align-items: center; gap: 4px; color: var(--text2); font-size: 14px; padding: 6px 0; }
   h2 { font-size: 22px; font-weight: 600; color: var(--text); }
   h2 small { font-weight: 400; }
   .about, .how { font-size: 15.5px; line-height: 1.4; color: var(--text); }
-  h4 { margin-top: 4px; font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text2); }
-  .how { margin-top: -6px; font-size: 14.5px; }
+  h4 { margin-top: 4px; font: 500 12.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text2); }
+  .how { margin-top: -6px; font-size: 14px; }
   .zoom { display: block; padding: 0; border: 0; background: none; cursor: zoom-in; max-width: 100%; }
   .look { max-width: 100%; max-height: 520px; border: 1px solid var(--line); border-radius: 12px; }
   .go { background: var(--high); color: var(--text); border-radius: 999px; padding: 9px 16px; font-weight: 500; font-size: 14px; }

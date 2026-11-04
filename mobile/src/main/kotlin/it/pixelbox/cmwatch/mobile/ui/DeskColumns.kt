@@ -95,8 +95,8 @@ internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, onOpen: (
                 } ?: stringResource(R.string.desk_tools_sub)
             }
             Row(Modifier.padding(top = 3.dp)) {
-                Text(sub, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp))
-                if (kind == "out" && (h.red ?: 0) > 0) Text(", " + pluralStringResource(R.plurals.kpi7_red, h.red!!, h.red!!), style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp, color = V3.Red, fontWeight = FontWeight.Medium))
+                Text(sub, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp))
+                if (kind == "out" && (h.red ?: 0) > 0) Text(", " + pluralStringResource(R.plurals.kpi7_red, h.red!!, h.red!!), style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp, color = V3.Red, fontWeight = FontWeight.Medium))
             }
             if (kind == "tools") rings.forEach { (name, r, b) ->
                 val tick = if (r.stale) null else UtilizzoRules.elapsedPct(b.resetAt, b.windowS, now)
@@ -108,7 +108,7 @@ internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, onOpen: (
                         // La tacca di quanto è passato della finestra.
                         tick?.let { t -> Box(Modifier.fillMaxWidth((t / 100f).coerceIn(0.01f, 1f)).fillMaxHeight()) { Box(Modifier.align(Alignment.CenterEnd).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(V3.Tx)) } }
                     }
-                    if (rings.size > 1) Text("${b.pct}%", style = V3.Meter.copy(fontSize = 12.sp, color = if (r.stale) V3.Tx3 else V3.Tx2), modifier = Modifier.padding(start = 8.dp))
+                    if (rings.size > 1) Text("${b.pct}%", style = V3.Meter.copy(fontSize = 12.5.sp, color = if (r.stale) V3.Tx3 else V3.Tx2), modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }
@@ -129,7 +129,7 @@ private fun DeskSec(icon: ImageVector, title: String, count: Int? = null) {
     Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(12.dp))
-        Text(title, style = V3.Name.copy(fontSize = 16.sp))
+        Text(title, style = V3.Name.copy(fontSize = 15.sp))
         count?.let { Text(it.toString(), style = V3.Meter, modifier = Modifier.padding(start = 6.dp)) }
     }
 }

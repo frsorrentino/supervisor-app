@@ -122,7 +122,7 @@ fun SearchScreen(
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(bottom = 16.dp)) {
             if (query.isBlank()) {
                 if (recent.isNotEmpty()) {
-                    item(key = "lbl") { Text(stringResource(R.string.search_recent).uppercase(), style = V3.RailText.copy(color = V3.Tx3, fontSize = 13.sp, letterSpacing = 1.sp), modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp)) }
+                    item(key = "lbl") { Text(stringResource(R.string.search_recent).uppercase(), style = V3.RailText.copy(color = V3.Tx3, fontSize = 12.5.sp, letterSpacing = 1.sp), modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp)) }
                     items(recent, key = { "r-" + it.q }) { r ->
                         Column {
                             if (r != recent.first()) HorizontalDivider(color = V3.Line)
@@ -130,7 +130,7 @@ fun SearchScreen(
                                 session = r.session?.takeIf { n -> open.any { it.name == n } }; query = r.q
                             }.padding(start = 20.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                                 Icon(Icons.Rounded.History, null, tint = V3.Tx2)
-                                Text(buildAnnotatedString { append(r.q); r.session?.let { withStyle(SpanStyle(color = V3.Tx3, fontSize = 13.sp)) { append("  $it") } } },
+                                Text(buildAnnotatedString { append(r.q); r.session?.let { withStyle(SpanStyle(color = V3.Tx3, fontSize = 12.5.sp)) { append("  $it") } } },
                                     style = V3.Body.copy(color = V3.Tx), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
                                 IconButton(onClick = { saveRecent(recent.filterNot { it == r }) }) { Icon(Icons.Rounded.Close, stringResource(R.string.search_forget, r.q), tint = V3.Tx2) }
                             }
@@ -146,8 +146,8 @@ fun SearchScreen(
                             Box(Modifier.size(10.dp).clip(CircleShape).background(if (g.session == null) V3.Tx2 else if (g.live == false) V3.Tx3 else color(g.session)))
                             // Il nome intero su una riga, mai spezzato (regole di larghezza di Franz): quando manca posto cede «aperta».
                             Text(g.session ?: stringResource(R.string.tab_diary), style = V3.Section.copy(fontSize = 17.sp), maxLines = 1, softWrap = false)
-                            Text(g.hits.size.toString(), style = V3.Meter.copy(color = V3.Tx3, fontSize = 13.sp), maxLines = 1, softWrap = false)
-                            Text(g.live?.let { l -> stringResource(if (l) R.string.search_open_one else R.string.search_closed) }.orEmpty(), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.sp),
+                            Text(g.hits.size.toString(), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.5.sp), maxLines = 1, softWrap = false)
+                            Text(g.live?.let { l -> stringResource(if (l) R.string.search_open_one else R.string.search_closed) }.orEmpty(), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.5.sp),
                                 maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
                         }
                         g.hits.forEach { h ->
@@ -157,11 +157,11 @@ fun SearchScreen(
                                 Modifier.fillMaxWidth().then(if (can) Modifier.handCursor().clickable { onOpen(h.session, h.entry) } else Modifier).padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text(whenText(SearchView.whenOf(h.at, now, zone)), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.sp, lineHeight = 20.sp), maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = 42.dp))
+                                Text(whenText(SearchView.whenOf(h.at, now, zone)), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.5.sp, lineHeight = 20.sp), maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = 42.dp))
                                 Text(
                                     buildAnnotatedString {
                                         append(h.line.substring(0, h.start))
-                                        withStyle(SpanStyle(color = V3.Tx, background = Color(0x42FFB23F))) { append(h.line.substring(h.start, h.end)) }
+                                        withStyle(SpanStyle(color = V3.Tx, background = V3.Wait.copy(alpha = 0.26f))) { append(h.line.substring(h.start, h.end)) }
                                         append(h.line.substring(h.end))
                                     },
                                     style = V3.Body.copy(color = V3.Tx2, fontSize = 15.sp, lineHeight = 20.sp), maxLines = 2, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f),
@@ -177,7 +177,7 @@ fun SearchScreen(
                     Text(
                         listOf(pluralStringResource(R.plurals.search_foot_results, n, n), pluralStringResource(R.plurals.search_foot_sessions, groups.size, groups.size)).joinToString(" ") +
                             " · " + stringResource(if (today) R.string.search_foot_today else R.string.search_foot_week),
-                        style = V3.Small.copy(color = V3.Tx3, fontSize = 13.sp), modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp),
+                        style = V3.Small.copy(color = V3.Tx3, fontSize = 12.5.sp), modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp),
                     )
                 }
             }

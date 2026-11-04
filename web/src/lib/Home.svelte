@@ -1276,12 +1276,12 @@
 <style>
   .alive { color: var(--idle); font-weight: 500; }
   .home { padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; height: 100%; }
-  .gh { display: flex; align-items: center; gap: 8px; margin: 6px 8px 0; font: 500 12px/1.4 var(--mono); letter-spacing: .08em; color: var(--t); }
+  .gh { display: flex; align-items: center; gap: 8px; margin: 6px 8px 0; font: 500 12.5px/1.4 var(--mono); letter-spacing: .08em; color: var(--t); }
   .gh i { flex: 1; height: 1px; background: color-mix(in srgb, var(--t) 25%, transparent); }
   .card.just { background: var(--surface); outline: 1.5px solid color-mix(in srgb, var(--icon) 70%, transparent); cursor: default; padding: 14px; }
   .jrow { display: flex; align-items: center; gap: 12px; }
   .jcol { display: flex; flex-direction: column; min-width: 0; }
-  .jcol b { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+  .jcol b { font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; }
   .jcol small { font-size: 14px; color: var(--text2); white-space: nowrap; overflow: hidden; }
   .scrim { position: fixed; inset: 0; z-index: 60; cursor: default; background: transparent; }
   .cmenu { position: fixed; z-index: 61; width: min(360px, calc(100vw - 24px)); background: var(--surface); border-radius: 20px; padding: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); cursor: default; }
@@ -1303,7 +1303,7 @@
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mi > span { display: flex; flex-direction: column; gap: 2px; }
   .mt { font-size: 15.5px; }
-  .msub { font-size: 13px; color: var(--text2); }
+  .msub { font-size: 12.5px; color: var(--text2); }
   .mi.danger svg { stroke: var(--b-alert); }
   .card { position: relative; -webkit-touch-callout: none; background: var(--low); border-radius: 20px; padding: 8px 10px 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background .15s, box-shadow .15s; outline: none; }
   .card.waiting { background: color-mix(in srgb, var(--low) 94%, var(--b-warn)); }
@@ -1312,18 +1312,18 @@
   .top { display: flex; align-items: center; gap: 10px; }
   .nm { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
   .nm .name { flex: 0 1 auto; }
-  .name { flex: 1; min-width: 0; font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; }
+  .name { flex: 1; min-width: 0; font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; }
   .stale { color: var(--wait); }
   .chev { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .chev:hover { background: var(--surface); }
   .goal { font-size: 12.5px; color: var(--b-label); }
   .said, .doing { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px; }
-  .said small, .doing small { font-size: 11.5px; color: var(--b-label); }
+  .said small, .doing small { font-size: 11px; color: var(--b-label); }
   .said p { margin: 0; font-size: 14px; line-height: 1.45; white-space: pre-line; color: var(--text); }
   .doing span { font-size: 12.5px; color: var(--text); }
   .details.stats { margin-top: 6px; }
   /* Franz 24/10 19:46 (B2): un esito di più di 6 ore fa si spegne e dice da quanto. */
-  .body.stale { font-style: italic; opacity: .75; } .body .ago { font: 600 10.5px var(--mono); letter-spacing: .06em; color: var(--b-warn); background: color-mix(in srgb, var(--b-warn) 14%, transparent); border-radius: 999px; padding: 1px 7px; margin-left: 6px; font-style: normal; white-space: nowrap; }
+  .body.stale { font-style: italic; opacity: .75; } .body .ago { font: 600 11px var(--mono); letter-spacing: .06em; color: var(--b-warn); background: color-mix(in srgb, var(--b-warn) 14%, transparent); border-radius: 999px; padding: 1px 7px; margin-left: 6px; font-style: normal; white-space: nowrap; }
   .asked { margin: 2px 0 0; }
   .body { font-size: 14px; color: var(--text2); white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: clip; }
   .body.full { display: block; }
@@ -1336,9 +1336,9 @@
   .approve.mini.done, .tonal.mini.done { background: var(--good); color: var(--bg); transform: scale(1.06); }
   .tonal { background: var(--high); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   /* Strada B (23/10): la lista compatta dei lavori senza sessione e la riga di un lavoro nella scheda della sua sessione. */
-  .wkv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; overflow-wrap: anywhere; }
+  .wkv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; overflow-wrap: anywhere; }
   .okt.col { display: flex; flex-direction: column; gap: 1px; } .okt.col b { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; }
-  .mono2 { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text2); }
+  .mono2 { font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--text2); }
   .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .opts button { white-space: nowrap; }
   /* Franz 24/10 09:22: con le opzioni chi chiede (o il titolo) sopra e i tasti interi sotto, che vanno a capo fra loro. */
@@ -1356,8 +1356,8 @@
   .cmt .tone, .cmt .dim { color: var(--text2); }
   .cmt.warn .tone { color: var(--b-warn, #FFB020); }
   .cmt.alert .tone, .cmt .red { color: var(--gone, #FF453A); }
-  .cmt .red { font-size: 13px; }
-  .stalled { color: var(--b-warn-ink, #1d1300); background: var(--b-warn, #FFB020); }
+  .cmt .red { font-size: 12.5px; }
+  .stalled { color: var(--banner-ink); background: var(--banner); }
   .prod, .dup { font: 600 11px/1.4 var(--mono); letter-spacing: .08em; border-radius: 999px; padding: 3px 10px; flex: none; }
   .prod { color: var(--prod); background: color-mix(in srgb, var(--prod) 16%, transparent); }
   .dup { color: var(--b-warn); background: color-mix(in srgb, var(--b-warn) 14%, transparent); }
@@ -1365,14 +1365,14 @@
   .kv span:nth-child(odd) { color: var(--text2); }
   .approve { align-self: stretch; margin-top: 4px; background: var(--primary); color: var(--on-primary); border-radius: 999px; padding: 11px 20px; font-weight: 500; }
   /* Testo e tasto: se non ci stanno, il tasto scende sotto; il testo non si schiaccia mai (Franz 30/10 19:46). */
-  .clean { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text2); }
+  .clean { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; font-size: 14px; color: var(--text2); }
   .clean span { flex: 1 1 160px; min-width: 0; }
   /* Mandato /exit da una card: la riga lo dice finché la sessione non esce (poi la card «chiusa alle» in cima). */
   .closing { flex: none !important; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--text); font-weight: 500; }
   .closing .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--b-track); border-top-color: var(--icon); animation: turn 1s linear infinite; }
   @keyframes turn { to { rotate: 360deg; } }
   @media (prefers-reduced-motion: reduce) { .closing .spin { animation: none; } }
-  .confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13.5px; color: var(--text2); }
+  .confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; color: var(--text2); }
   .confirm span { flex: 1 1 160px; min-width: 0; }
   .confirm button { border-radius: 999px; padding: 8px 14px; font-weight: 500; flex: none; }
   .confirm .keep { color: var(--icon); }
@@ -1382,15 +1382,15 @@
   dialog.alert { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 22px; width: min(400px, 92vw); border-radius: 28px; }
   dialog.alert::backdrop { background: rgb(0 0 0 / .55); }
   .ccol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow-wrap: anywhere; } .ccol small { color: var(--text2); font-size: 12.5px; } .ccol small.warn { color: var(--b-warn); }
-  .ghact { font: 500 13px var(--sans); letter-spacing: 0; color: var(--icon); padding: 3px 10px; border-radius: 14px; background: color-mix(in srgb, var(--icon) 12%, transparent); }
+  .ghact { font: 500 12.5px var(--sans); letter-spacing: 0; color: var(--icon); padding: 3px 10px; border-radius: 14px; background: color-mix(in srgb, var(--icon) 12%, transparent); }
   .ghact:hover { background: color-mix(in srgb, var(--icon) 20%, transparent); }
   .cfl { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; max-height: 50vh; overflow-y: auto; }
-  .cf { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; color: var(--text2); overflow-wrap: anywhere; }
+  .cf { display: flex; flex-direction: column; gap: 2px; font-size: 14px; color: var(--text2); overflow-wrap: anywhere; }
   .cf b { color: var(--text); font-size: 15px; font-weight: 600; } .cf.no b { color: var(--text2); }
   .cf .warn { color: var(--b-warn); } .cf .ok { color: var(--good); } .cf .why { font-style: italic; }
   dialog h3 { font-size: 22px; font-weight: 600; }
   dialog .sub { color: var(--text2); font-size: 14px; margin-top: 6px; }
-  dialog .lab { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text2); margin-top: 14px; }
+  dialog .lab { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--text2); margin-top: 14px; }
   dialog input { background: var(--high); color: var(--text); border: 0; border-radius: 14px; padding: 11px 14px; font: inherit; font-size: 15px; }
   dialog .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   dialog .btns button { padding: 10px 16px; border-radius: 20px; font-weight: 500; }
@@ -1407,9 +1407,9 @@
   .track.hand { position: relative; overflow: visible; }
   .track.hand::after { content: ''; position: absolute; left: var(--hand); top: -2px; width: 2px; height: 7px; border-radius: 1px; background: var(--text); opacity: .8; }
   .track.hand .fill { border-radius: 2px; }
-  .sec { display: flex; align-items: center; gap: 8px; width: 100%; margin: 14px 0 4px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-align: left; }
+  .sec { display: flex; align-items: center; gap: 8px; width: 100%; margin: 14px 0 4px; padding: 0 4px; font: 500 12.5px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-align: left; }
   .sec i { flex: 1; height: 1px; background: var(--line); }
-  .sec small { font: 13px/1 var(--sans, inherit); letter-spacing: 0; }
+  .sec small { font: 12.5px/1 var(--sans, inherit); letter-spacing: 0; }
   .sysdot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
   .card.sys { cursor: default; padding: 12px 14px; }
   .sysm { align-items: center; } .sysm .trackrow { min-width: 0; } .sysm .track, .sysm .fill { display: block; }
@@ -1417,20 +1417,20 @@
   .nchips span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--high); font-weight: 500; font-size: 14px; }
   .outside { margin: 18px 4px 0; }
   .oh { display: flex; align-items: center; gap: 12px; }
-  .oh h3 { font-size: 16px; font-weight: 600; }
+  .oh h3 { font-size: 15.5px; font-weight: 600; }
   .oh i { flex: 1; height: 1px; background: var(--line); }
   .osub { font-size: 12.5px; color: var(--stale); }
   .cat { margin-top: 6px; }
-  .gh .note { font: 400 11.5px/1 var(--sans, inherit); letter-spacing: 0; text-transform: none; color: var(--stale); }
+  .gh .note { font: 400 11px/1 var(--sans, inherit); letter-spacing: 0; text-transform: none; color: var(--stale); }
   .oline { display: block; height: 1px; margin: 0 14px; background: var(--line); }
   .otext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
-  .otext b { font-size: 16px; font-weight: 600; color: var(--text); }
+  .otext b { font-size: 15.5px; font-weight: 600; color: var(--text); }
   .otext small { font-size: 14px; color: var(--text2); }
   .two { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .obtn { flex: none; padding: 9px 16px; border-radius: 999px; background: var(--surface); color: var(--primary); font-size: 14px; font-weight: 500; }
   .tonight .otop { align-items: flex-start; }
   .tjob { display: flex; align-items: flex-start; gap: 12px; }
-  .tn { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 500; flex: none; }
+  .tn { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--text2); font-size: 12.5px; font-weight: 500; flex: none; }
   .tn.run { background: var(--busy); color: var(--bg); }
   .ttag { flex: none; font: 500 11px/1 var(--mono); padding: 4px 7px; border-radius: 6px; background: var(--surface); color: var(--text2); }
   .ttag.run { color: var(--busy); background: color-mix(in srgb, var(--busy) 14%, transparent); }
@@ -1454,7 +1454,7 @@
   .oks { display: flex; flex-direction: column; gap: 6px; }
   .ok { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
   .ok svg { flex: none; }
-  .okt.mono2 { font-family: ui-monospace, monospace; font-size: 13px; color: var(--text2); }
+  .okt.mono2 { font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--text2); }
   .okt { flex: 1 1 140px; min-width: 0; font-size: 14px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   /* Il riordino (app-home-riordino-29-10): «Ti aspettano» ha un'intestazione fissa ambra; le card stanno in un involucro
      per l'animazione; chiuse, le card fuori da «Ti aspettano» tengono una riga; Lavori ed Esiti hanno righe compatte. */
@@ -1466,7 +1466,7 @@
   .hsec:empty { display: none; }
   /* La home per categorie (app-home-categorie-02-11, mockup home-categorie-telefono.png). */
   .hcat { display: flex; flex-direction: column; gap: 8px; }
-  .catlabel { display: none; width: 100%; align-items: center; justify-content: space-between; margin: 10px 0 0; padding: 8px 12px 2px 4px; border-top: 1px solid var(--line); font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); text-align: left; cursor: pointer; }
+  .catlabel { display: none; width: 100%; align-items: center; justify-content: space-between; margin: 10px 0 0; padding: 8px 12px 2px 4px; border-top: 1px solid var(--line); font: 500 12.5px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); text-align: left; cursor: pointer; }
   .catlabel .arr { font-size: 20px; letter-spacing: 0; rotate: 180deg; }
   .hcat:has(.hsec > *) .catlabel { display: flex; }
   /* Lo spazio in cima (app-home-in-cima-02-11): il bordo è una linea vuota; durante il trascinamento la striscia dove lasciare. */
@@ -1475,11 +1475,11 @@
   /* Subito sotto, l'etichetta di una categoria aperta non raddoppia il filo. */
   .topedge.line + .hcat .catlabel { border-top: 0; margin-top: 0; }
   /* I due gruppi dentro Sessioni: «Ti aspettano N» in ambra, «Le altre» in grigio. */
-  .sgroup { display: flex; align-items: baseline; gap: 6px; padding: 2px 6px 0; font: 500 12px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
+  .sgroup { display: flex; align-items: baseline; gap: 6px; padding: 2px 6px 0; font: 500 12.5px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
   .sgroup.wait { color: var(--wait); }
-  .boardlabel { display: flex; align-items: center; gap: 6px; padding: 10px 4px 2px; font: 500 13px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
+  .boardlabel { display: flex; align-items: center; gap: 6px; padding: 10px 4px 2px; font: 500 12.5px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
   .boardlabel .ms { font-size: 16px; letter-spacing: 0; text-transform: none; }
-  .boardlabel .reset { margin-left: auto; min-height: 32px; padding: 0 4px 0 12px; font: 500 13px var(--sans, inherit); letter-spacing: 0; text-transform: none; color: var(--tx2); cursor: pointer; }
+  .boardlabel .reset { margin-left: auto; min-height: 32px; padding: 0 4px 0 12px; font: 500 12.5px var(--sans, inherit); letter-spacing: 0; text-transform: none; color: var(--tx2); cursor: pointer; }
   /* Il bersaglio unico sotto In cima: dal bordo al fondo dello schermo, sopra le categorie. */
   .offdrop { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); text-align: center; background: color-mix(in srgb, var(--bg) 80%, transparent); pointer-events: none; }
   /* Presa una voce di In cima, le voci di In cima restano con la sola testata: sotto si vede il bersaglio (Franz 03/11 12:05). Al
@@ -1509,7 +1509,7 @@
   .inslot { gap: 0; border-top: 1px solid var(--line); }
   /* Le righe In cima nel tabellone (app-utilizzo-una-barra-03-11): righe compatte separate da un filo, la stessa scheda dei tre numeri. */
   .inboard { gap: 0; border-top: 1px solid var(--line); }
-  .inboard > :global(.sec), .inboard > :global(.secwrap > .sec), .inslot > :global(.secwrap > .sec) { margin: 0; min-height: 46px; padding: 6px 12px 6px 0; font-size: 16px; }
+  .inboard > :global(.sec), .inboard > :global(.secwrap > .sec), .inslot > :global(.secwrap > .sec) { margin: 0; min-height: 46px; padding: 6px 12px 6px 0; font-size: 15.5px; }
   .inboard > :global(.sec .ic), .inboard > :global(.secwrap > .sec .ic), .inslot > :global(.secwrap > .sec .ic) { width: 44px; margin-right: 4px; }
   .usagerow .usmeter { flex: 1; min-width: 40px; margin: 0 12px; }
   .usagerow.alarm { background: color-mix(in srgb, var(--wait) 14%, transparent); }
@@ -1528,8 +1528,8 @@
   .usmeter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
   .usmeter s { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
   .uspct { font: 400 12.5px var(--mono); }
-  .usnote { font-size: 13.5px; line-height: 1.3; color: var(--tx2); }
-  .ustop small { font: 500 13px var(--display); color: var(--tx2); }
+  .usnote { font-size: 14px; line-height: 1.3; color: var(--tx2); }
+  .ustop small { font: 500 12.5px var(--display); color: var(--tx2); }
   /* Una voce che chiede Franz, In cima: il numero nella pillola ambra come nella sua riga (app-in-cima-uguali-03-11). */
   .ustop small.hot { color: var(--wait); background: color-mix(in srgb, var(--wait) 16%, transparent); border-radius: 999px; padding: 1px 8px; }
   .ustop :global(svg) { flex: none; width: 18px; height: 18px; color: var(--tx2); }
@@ -1540,7 +1540,7 @@
   .dragg .ic { flex: 0 0 auto; }
   .sec.wait span, .sec.wait small { color: var(--wait); }
   .cw { position: relative; display: flex; flex-direction: column; box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow var(--spring-slow-t) var(--spring-slow); }
-  .oksent { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 99px; background: var(--act, var(--tx)); color: var(--onact, var(--bg)); font-weight: 600; transform-origin: right; animation: oksent var(--spring-bounce-t) var(--spring-bounce); }
+  .oksent { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 99px; background: var(--act); color: var(--on-act); font-weight: 600; transform-origin: right; animation: oksent var(--spring-bounce-t) var(--spring-bounce); }
   .oksent .ms { font-size: 16px; }
   @keyframes oksent { from { transform: scaleX(.45); } }
   .alldone { display: flex; justify-content: center; padding: 4px 0; }
@@ -1564,7 +1564,7 @@
   .wrow .otext small.txt { font: 14px/1.35 var(--sans, inherit); color: var(--text); }
   .wrow { flex-wrap: wrap; }
   .wrow .otext { flex: 1 1 140px; }
-  .wrow .mono { font: 12px var(--mono); color: var(--text2); white-space: nowrap; }
+  .wrow .mono { font: 12.5px var(--mono); color: var(--text2); white-space: nowrap; }
   .wic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--high); color: var(--text2); }
   .wic.red { background: color-mix(in srgb, var(--gone) 20%, transparent); color: var(--gone); }
   .wic.good { background: color-mix(in srgb, var(--idle) 18%, transparent); color: var(--idle); }
@@ -1627,7 +1627,7 @@
   .redtag { display: inline-flex; align-items: center; gap: 5px; font: 500 12.5px var(--mono); color: var(--red); white-space: nowrap; flex: none; }
   .chev { width: 28px; height: 28px; color: var(--tx3); }
   .body { color: var(--tx2); }
-  .body.strong { color: var(--tx); font-size: 16px; line-height: 1.36; }
+  .body.strong { color: var(--tx); font-size: 15.5px; line-height: 1.36; }
   .meta { font: 400 12.5px var(--mono); color: var(--tx2); }
   .meta .tool { color: var(--tx2); margin-right: .6em; }
   .mono2, .okt.mono2 { font-family: var(--mono); }
@@ -1636,7 +1636,7 @@
   .tonal { background: var(--s3); color: var(--tx); }
   .approve { background: var(--act); color: var(--on-act); }
   .text.mini { color: var(--tx2); }
-  .chip { background: var(--s3); color: var(--tx); font: 600 14.5px var(--display); min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 18px; }
+  .chip { background: var(--s3); color: var(--tx); font: 600 15px var(--display); min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 18px; }
   /* I tasti di Prossimi restano alti 36 px, l'area di tocco arriva a 48 (app-bug-notte-03-11). */
   .chip { position: relative; } .chip::after { content: ''; position: absolute; inset: -6px 0; }
   .chip.unblock { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
@@ -1652,7 +1652,7 @@
   .chevr, .tog { color: var(--tx3); }
   .all { gap: 8px; min-height: 52px; padding: 10px 12px 10px 0; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; color: var(--tx); width: 100%; }
   .all .otext { flex: 1; }
-  .gh.cat { margin: 8px 0 0 60px; font: 400 13.5px var(--sans); letter-spacing: 0; color: var(--tx2); }
+  .gh.cat { margin: 8px 0 0 60px; font: 400 14px var(--sans); letter-spacing: 0; color: var(--tx2); }
   .gh.cat svg, .gh.cat i { display: none; }
   .exp { padding: 2px 12px 12px 60px; }
   .footer.exp { padding: 8px 12px 12px; }

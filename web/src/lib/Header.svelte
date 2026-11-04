@@ -380,9 +380,9 @@
   .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); flex: none; }
   .ib:hover { background: var(--surface); }
   .back { color: var(--text); width: 36px; }
-  .pill { display: flex; align-items: center; min-width: min-content; overflow: hidden; background: var(--surface); border-radius: 999px; height: 31px; padding: 0 6px 0 12px; font-size: 13px; font-weight: 500; white-space: nowrap; flex: 0 1 auto; }
+  .pill { display: flex; align-items: center; min-width: min-content; overflow: hidden; background: var(--surface); border-radius: 999px; height: 31px; padding: 0 6px 0 12px; font-size: 12.5px; font-weight: 500; white-space: nowrap; flex: 0 1 auto; }
   /* Le pillole di quota e contesto, alte e larghe come quella del modello (variante A, 09/10). */
-  .mpill { display: flex; align-items: center; gap: 5px; background: var(--surface); border-radius: 999px; height: 33px; padding: 0 10px 0 8px; font-size: 13px; font-weight: 500; white-space: nowrap; flex: none; color: var(--text); }
+  .mpill { display: flex; align-items: center; gap: 5px; background: var(--surface); border-radius: 999px; height: 33px; padding: 0 10px 0 8px; font-size: 12.5px; font-weight: 500; white-space: nowrap; flex: none; color: var(--text); }
   /* Il testo al centro sulle maiuscole e le cifre, non sulla riga del carattere: con Roboto a 13 px stavano 1 px sopra il
      centro, e la barra sembrava avere più spazio sotto le pillole che sopra (Franz, 12/10 15:19). */
   .lbl, .mpill > span { text-box: trim-both cap alphabetic; }
@@ -397,7 +397,7 @@
   .row { position: relative; background: none; }
   .permtip { position: absolute; left: 12px; top: 42px; z-index: 31; width: min(320px, calc(100vw - 24px)); display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: var(--high); box-shadow: 0 8px 28px rgb(0 0 0 / .5); }
   .permtip span { display: flex; flex-direction: column; gap: 4px; }
-  .permtip small { color: var(--text2); font-size: 13.5px; line-height: 1.4; }
+  .permtip small { color: var(--text2); font-size: 14px; line-height: 1.4; }
   .pill svg { flex: none; }
   /* Il puntino del consiglio, in alto a destra della pillola (mockup 1.37). */
   .dot { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--advice); border: 2px solid var(--bg); }
@@ -421,17 +421,17 @@
   .adv.same { background: color-mix(in srgb, var(--good) 10%, transparent); }
   .adv.same .adc { background: color-mix(in srgb, var(--good) 22%, transparent); color: var(--good); }
   .adv.same .ov { color: var(--good); }
-  .at { font-size: 16.5px; font-weight: 500; }
-  .aw { font-size: 13.5px; line-height: 1.35; color: var(--text2); }
-  .cost { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0 54px; font-size: 13px; line-height: 1.35; color: var(--b-warn); }
+  .at { font-size: 17px; font-weight: 500; }
+  .aw { font-size: 14px; line-height: 1.35; color: var(--text2); }
+  .cost { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0 54px; font-size: 12.5px; line-height: 1.35; color: var(--b-warn); }
   .cost svg { flex: none; margin-top: 1px; }
-  .use { margin: 12px 0 0 54px; padding: 9px 18px; border-radius: 999px; font-size: 14.5px; font-weight: 500; color: color-mix(in srgb, var(--advice) 30%, white); background: color-mix(in srgb, var(--advice) 24%, transparent); }
+  .use { margin: 12px 0 0 54px; padding: 9px 18px; border-radius: 999px; font-size: 14px; font-weight: 500; color: color-mix(in srgb, var(--advice) 30%, white); background: color-mix(in srgb, var(--advice) 24%, transparent); }
   .use:hover { filter: brightness(1.15); }
-  .grp { margin: 16px 20px 6px; font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text2); }
+  .grp { margin: 16px 20px 6px; font: 500 12.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text2); }
   .tr { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 64px; padding: 10px 20px; }
   .tr:hover, .tr.on { background: var(--high); }
   .tr.on .circ { background: color-mix(in srgb, var(--busy) 25%, transparent); }
-  .tt { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; white-space: nowrap; }
+  .tt { display: flex; align-items: center; gap: 10px; font-size: 15.5px; font-weight: 500; white-space: nowrap; }
   .ts { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; }
   .ok { flex: none; color: var(--icon); }
   .rec { font: 600 11px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--advice); background: color-mix(in srgb, var(--advice) 14%, transparent); border-radius: 999px; padding: 3px 9px; }
@@ -444,14 +444,14 @@
   .bgp button.on { border-radius: 22px; background: var(--primary); color: var(--on-primary); }
   .bgp button:not(.on):hover { filter: brightness(1.2); }
   .bgp i { position: absolute; top: 6px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--advice); }
-  .ed { margin: 10px 20px 0; font-size: 13px; color: var(--text2); }
+  .ed { margin: 10px 20px 0; font-size: 12.5px; color: var(--text2); }
   .opt { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
   .opt small { font-size: 12.5px; font-weight: 400; opacity: .8; margin-top: 2px; }
   .pill:disabled { padding-right: 12px; cursor: default; }
   .pm { display: inline-flex; margin-left: 4px; }
   /* Il gruppo Permessi (mockup del 14/10): tre per riga, la scelta piena, il tocco che chiede conferma col bordo ambra. */
   .perms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 4px 20px 0; }
-  .perms button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 6px; border-radius: 12px; background: var(--high); font-size: 13px; text-align: center; border: 2px solid transparent; }
+  .perms button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 6px; border-radius: 12px; background: var(--high); font-size: 12.5px; text-align: center; border: 2px solid transparent; }
   .perms button.on { background: var(--primary); color: var(--on-primary); }
   .perms button.armed { border-color: var(--b-warn); }
   .perms button:not(.on):hover { filter: brightness(1.2); }
@@ -460,12 +460,12 @@
   .trk, .arc { fill: none; stroke-width: 3; }
   .trk { stroke: var(--b-track); }
   .arc { stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
-  .note { padding: 0 16px; font-size: 12px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; }
+  .note { padding: 0 16px; font-size: 12.5px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; }
   .chrow { display: flex; padding: 4px 0 6px 16px; }
   .mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--icon); border: 2px solid var(--bg); }
   .gname { font-size: 19px; font-weight: 600; white-space: nowrap; }
-  .gl { font-size: 13px; font-weight: 500; white-space: pre; }
-  .cpill { flex: none; display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--text); }
+  .gl { font-size: 12.5px; font-weight: 500; white-space: pre; }
+  .cpill { flex: none; display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--surface); font-size: 12.5px; font-weight: 500; white-space: nowrap; color: var(--text); }
   .cpill:not(:disabled):hover { filter: brightness(1.2); }
   .cpill:disabled { cursor: default; }
   .cpill b { font-weight: 500; }
@@ -475,14 +475,14 @@
   .scrim { position: fixed; inset: 0; z-index: 9; cursor: default; }
   /* Il menu a pannello dell'app (AppMenuPanel): 380 px su desktop, voci con la spiegazione sotto. */
   .panel { position: absolute; right: 4px; top: 46px; z-index: 10; width: min(380px, calc(100vw - 24px)); background: var(--surface); border-radius: 20px; padding: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); }
-  .ph { display: flex; align-items: center; gap: 12px; padding: 10px 12px 12px; font-size: 16px; }
+  .ph { display: flex; align-items: center; gap: 12px; padding: 10px 12px 12px; font-size: 15.5px; }
   .mi { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 12px; border-radius: 14px; text-align: left; color: var(--text); text-decoration: none; }
   .mi:hover { background: var(--high); }
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mi > span { display: flex; flex-direction: column; gap: 2px; }
   .mi > .on { margin-left: auto; flex-direction: row; color: var(--accent); font-size: 20px; }
   .mt { font-size: 15.5px; }
-  .msub { font-size: 13px; color: var(--text2); }
+  .msub { font-size: 12.5px; color: var(--text2); }
   .danger svg { stroke: var(--b-alert); }
   .danger .mt { color: var(--b-alert); }
   hr { border: 0; height: 1px; background: var(--line); margin: 4px 8px; }

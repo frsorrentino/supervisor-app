@@ -99,23 +99,23 @@
   .dim { color: var(--text2); font-size: 14px; padding: 0 4px; }
   .card.pl { background: var(--s2); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
   .acct { display: flex; align-items: baseline; gap: 8px; }
-  .acct b { flex: 1; font-weight: 600; font-size: 16px; min-width: 0; overflow-wrap: anywhere; }
-  .meta { font: 12px var(--mono); color: var(--text2); flex: none; }
+  .acct b { flex: 1; font-weight: 600; font-size: 15.5px; min-width: 0; overflow-wrap: anywhere; }
+  .meta { font: 12.5px var(--mono); color: var(--text2); flex: none; }
   .row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
   .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .nm b { font-weight: 500; overflow-wrap: anywhere; }
-  .v { font: 12px var(--mono); color: var(--text2); overflow-wrap: anywhere; }
+  .v { font: 12.5px var(--mono); color: var(--text2); overflow-wrap: anywhere; }
   .v .new { color: var(--b-warn); } .v .ok { color: var(--good); }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font: 500 14px inherit; white-space: nowrap; flex: none; }
   .filled { background: var(--primary); color: var(--on-primary); border-radius: 999px; padding: 9px 16px; font-weight: 500; white-space: nowrap; }
   .text { color: var(--icon); font-weight: 500; padding: 8px 6px; white-space: nowrap; }
   .foot, .bar { display: flex; align-items: center; gap: 8px; }
-  .foot span, .bar span { flex: 1; min-width: 0; font: 12px var(--mono); color: var(--text2); }
+  .foot span, .bar span { flex: 1; min-width: 0; font: 12.5px var(--mono); color: var(--text2); }
   .bar { padding: 2px 4px 0; flex-wrap: wrap; }
-  .skills { font-size: 13px; color: var(--text2); overflow-wrap: anywhere; }
-  .note { font-size: 13.5px; background: color-mix(in srgb, var(--good) 12%, var(--low)); border-radius: 12px; padding: 8px 10px; overflow-wrap: anywhere; }
+  .skills { font-size: 12.5px; color: var(--text2); overflow-wrap: anywhere; }
+  .note { font-size: 14px; background: color-mix(in srgb, var(--good) 12%, var(--low)); border-radius: 12px; padding: 8px 10px; overflow-wrap: anywhere; }
   .note.ko { background: color-mix(in srgb, var(--b-warn) 14%, var(--low)); }
-  .confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13.5px; color: var(--text2); padding: 0 4px; }
+  .confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; color: var(--text2); padding: 0 4px; }
   .confirm span { flex: 1 1 100%; }
   .confirm button { border-radius: 999px; padding: 8px 14px; font-weight: 500; }
   .confirm .keep { color: var(--icon); }

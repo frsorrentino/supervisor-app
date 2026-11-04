@@ -134,15 +134,15 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                     if (tick != null) Aligned(valW) {
                         BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
                             val x = (maxWidth * (tick / 100f) - 30.dp).coerceIn(0.dp, (maxWidth - 60.dp).coerceAtLeast(0.dp))
-                            Text(stringResource(R.string.usage_now), style = V3.Meter.copy(fontSize = 12.sp, color = V3.Tx), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.offset(x = x).width(60.dp))
+                            Text(stringResource(R.string.usage_now), style = V3.Meter.copy(fontSize = 12.5.sp, color = V3.Tx), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.offset(x = x).width(60.dp))
                         }
                     }
                     Aligned(valW) { Curve(r, now, Modifier.fillMaxWidth().height(58.dp)) }
                     Aligned(valW) {
                         BoxWithConstraints(Modifier.fillMaxWidth().height(18.dp)) {
                             r.resetAt?.let { reset ->
-                                Text(hm.format(Instant.ofEpochSecond(reset - UtilizzoRules.H5_S).atZone(zone)), style = V3.Meter.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.CenterStart))
-                                Text(hm.format(Instant.ofEpochSecond(reset).atZone(zone)), style = V3.Meter.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.CenterEnd))
+                                Text(hm.format(Instant.ofEpochSecond(reset - UtilizzoRules.H5_S).atZone(zone)), style = V3.Meter.copy(fontSize = 12.5.sp), modifier = Modifier.align(Alignment.CenterStart))
+                                Text(hm.format(Instant.ofEpochSecond(reset).atZone(zone)), style = V3.Meter.copy(fontSize = 12.5.sp), modifier = Modifier.align(Alignment.CenterEnd))
                             }
                         }
                     }
@@ -234,7 +234,7 @@ private fun Aligned(valW: Dp, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun Note(text: String) = Text(text, style = V3.Small.copy(fontSize = 13.5.sp), modifier = Modifier.padding(start = 14.dp, end = 12.dp + ARROW))
+private fun Note(text: String) = Text(text, style = V3.Small.copy(fontSize = 14.sp), modifier = Modifier.padding(start = 14.dp, end = 12.dp + ARROW))
 
 @Composable
 private fun Label(text: String, indent: Boolean = false) {

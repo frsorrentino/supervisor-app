@@ -100,9 +100,9 @@
   .cm { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
   .in { display: flex; flex-direction: column; gap: 8px; }
-  .c b { font-weight: 600; } .i { font-size: 14.5px; }
-  p, .lw { font-size: 14.5px; } .m { color: var(--text2); }
-  .pos { font: 12px var(--mono); color: var(--text2); } .pc { color: var(--wait); }
+  .c b { font-weight: 600; } .i { font-size: 14px; }
+  p, .lw { font-size: 14px; } .m { color: var(--text2); }
+  .pos { font: 12.5px var(--mono); color: var(--text2); } .pc { color: var(--wait); }
   hr { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 0; }
   .ac { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; }

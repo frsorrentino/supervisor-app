@@ -86,7 +86,7 @@
   h3 { font-size: 22px; font-weight: 500; margin: 0; align-self: stretch; }
   p { color: var(--text2); font-size: 15px; margin: 0; align-self: stretch; }
   p.msg { color: var(--text); }
-  .qr { width: min(300px, 100%); aspect-ratio: 1; border-radius: 16px; }
+  .qr { width: min(300px, 100%); aspect-ratio: 1; border-radius: 12px; }
   .qr path { fill: #000; }
   .qr.dim path { fill: var(--tx2); }
   .code { font-family: var(--mono); font-size: 22px; font-weight: 500; letter-spacing: 1px; }

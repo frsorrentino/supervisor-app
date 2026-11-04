@@ -219,7 +219,7 @@
   .thumbs, .chips { display: flex; gap: 8px; overflow-x: auto; }
   .thumb { position: relative; flex: none; }
   .thumb img { width: 72px; height: 72px; object-fit: cover; border-radius: 14px; display: block; }
-  .fname { display: flex; align-items: center; gap: 6px; height: 72px; padding: 0 30px 0 12px; border-radius: 14px; background: var(--surface); font-size: 13px; max-width: 220px; }
+  .fname { display: flex; align-items: center; gap: 6px; height: 72px; padding: 0 30px 0 12px; border-radius: 14px; background: var(--surface); font-size: 12.5px; max-width: 220px; }
   .x { position: absolute; top: 2px; right: 2px; width: 26px; height: 26px; border-radius: 50%; background: rgb(0 0 0 / .6); color: #fff; display: grid; place-items: center; }
   .chip { font: 14px var(--mono); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); white-space: nowrap; }
   .chip:hover { background: var(--surface); }
@@ -260,7 +260,7 @@
   .round.mic { background: none; color: var(--icon); }
   .round.mic:hover { background: var(--surface); }
   .round.mic.on { background: var(--primary); color: var(--on-primary); }
-  .micerr { padding: 0 22px; font-size: 13px; color: var(--text2); }
+  .micerr { padding: 0 22px; font-size: 12.5px; color: var(--text2); }
   .keys { padding: 0 22px 6px; }
   @media (max-width: 760px) { .keys { display: none; } .bar { padding-bottom: 12px; } }
   dialog { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 22px; width: min(400px, 92vw); border-radius: 28px; }

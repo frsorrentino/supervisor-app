@@ -54,7 +54,7 @@ fun FeaturesScreen(catalog: Features.Catalog, onBack: () -> Unit, startOn: Strin
                 Text(if (italian) g.it else g.en, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = Cm.text2, modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 6.dp))
             }
             item("c-${g.key}") {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow)) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow)) {
                     rows.forEachIndexed { i, f ->
                         if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Cm.line))
                         Row(

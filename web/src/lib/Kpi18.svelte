@@ -30,15 +30,15 @@
 <style>
   .k18 { display: flex; flex-direction: column; gap: 8px; }
   .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .fig { background: var(--low); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .fig { background: var(--low); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .fig b { font: 500 24px/1.1 var(--sans, inherit); }
-  .fig span { font-size: 13px; color: var(--text2); overflow-wrap: anywhere; }
-  .hours { display: flex; align-items: flex-end; gap: 3px; background: var(--low); border-radius: 16px; padding: 10px 12px 6px; }
+  .fig span { font-size: 12.5px; color: var(--text2); overflow-wrap: anywhere; }
+  .hours { display: flex; align-items: flex-end; gap: 3px; background: var(--low); border-radius: 14px; padding: 10px 12px 6px; }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 3px; }
   .stack { display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 58px; }
   .stack i { display: block; border-radius: 2px; }
   .p { background: var(--busy); } .c { background: var(--good); }
-  .col small { font: 10px/1 var(--mono); color: var(--text2); text-align: center; height: 10px; }
-  .lbl { font-size: 12px; color: var(--text2); display: flex; gap: 12px; }
+  .col small { font: 11px/1 var(--mono); color: var(--text2); text-align: center; height: 10px; }
+  .lbl { font-size: 12.5px; color: var(--text2); display: flex; gap: 12px; }
   .pl { color: var(--busy); } .cl { color: var(--good); }
 </style>

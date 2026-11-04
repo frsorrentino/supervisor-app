@@ -100,19 +100,19 @@
   .go { transition: background-color 150ms, color 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
   .go.done { background: var(--good); color: var(--bg); transform: scale(1.06); }
   .queue { height: 100%; display: flex; flex-direction: column; }
-  .empty { color: var(--text2); padding: 0 20px; font-size: 16px; }
+  .empty { color: var(--text2); padding: 0 20px; font-size: 15.5px; }
   .strip { flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }
   .page { flex: 0 0 100%; scroll-snap-align: start; padding: 0 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
   .who { display: flex; align-items: center; gap: 10px; padding: 6px 0; text-align: left; border-radius: 8px; }
-  .who b { flex: 1; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; }
+  .who b { flex: 1; font-size: 15.5px; font-weight: 500; white-space: nowrap; overflow: hidden; }
   .who span { font-size: 14px; color: var(--text2); font-weight: 500; }
   .stop { background: var(--surface); border-radius: 24px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
-  .sh { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--advice); }
-  .stop p { margin: 0; font-size: 16px; line-height: 1.45; color: var(--text); }
+  .sh { font: 500 12.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--advice); }
+  .stop p { margin: 0; font-size: 15.5px; line-height: 1.45; color: var(--text); }
   .go { align-self: flex-start; height: 44px; padding: 0 22px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 500; }
   .go.tonal { background: var(--high); color: var(--text); }
   .acts { display: flex; gap: 10px; flex-wrap: wrap; }
-  .exp { font-family: ui-monospace, monospace; font-size: 13px; color: var(--text2); }
+  .exp { font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--text2); }
   .nav { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px; font-size: 14px; font-weight: 500; color: var(--text2); }
   .arrow { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .arrow:not(:disabled):hover { background: var(--surface); }

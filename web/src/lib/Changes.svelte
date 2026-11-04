@@ -84,7 +84,7 @@
 
 <style>
   .chg { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 24px; }
-  .who { font-size: 13px; color: var(--text2); }
+  .who { font-size: 12.5px; color: var(--text2); }
   .src { font-size: 14px; color: var(--text2); }
   .src.outside { color: var(--wait); }
   .note { font-size: 14px; color: var(--text2); padding: 2px 4px; }

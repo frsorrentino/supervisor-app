@@ -33,7 +33,7 @@
 <style>
   /* I blocchi dei file nello stile v3 (Franz 30/10 21:19): .v3 porta i neutri, il fondo resta quello di chi lo contiene. */
   .sd { display: flex; flex-direction: column; gap: 6px; min-width: 0; background: none; }
-  .note { font-size: 13.5px; color: var(--text2); padding: 0 4px; }
+  .note { font-size: 14px; color: var(--text2); padding: 0 4px; }
   .note.bad { color: var(--gone-dim); display: flex; align-items: center; gap: 8px; }
   .note.bad span { flex: 1; }
   .all { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--icon); font-size: 14px; font-weight: 500; }

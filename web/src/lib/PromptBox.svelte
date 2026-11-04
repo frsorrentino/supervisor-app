@@ -37,7 +37,7 @@
   .row { display: flex; align-items: center; border-top: 1px solid var(--line); }
   .row.unblock { box-shadow: inset 3px 0 0 var(--wait); }
   .row.unblock .label { display: flex; align-items: center; gap: 8px; }
-  .label { flex: 1; text-align: left; padding: 10px 0 10px 14px; font-size: 16px; letter-spacing: .03em; }
+  .label { flex: 1; text-align: left; padding: 10px 0 10px 14px; font-size: 15.5px; letter-spacing: .03em; }
   .act { width: 48px; height: 44px; display: grid; place-items: center; }
   .head:hover, .row:hover { background: rgb(255 255 255 / .03); }
 </style>

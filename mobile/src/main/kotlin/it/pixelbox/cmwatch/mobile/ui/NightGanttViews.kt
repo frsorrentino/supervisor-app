@@ -132,7 +132,7 @@ fun ProjectsGantt(g: NightGantt.Projects, zone: ZoneId) {
             val t = tone(r.where)
             Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.width(nameW).padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text(r.name, fontSize = 13.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium, color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip)
+                    Text(r.name, fontSize = 12.5.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium, color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip)
                     Text(
                         if (r.total > 0) stringResource(R.string.night_points, r.done, r.total) else stringResource(R.string.night_no_goal),
                         fontSize = 11.sp, lineHeight = 14.sp, color = t.ink, maxLines = 1,
@@ -189,7 +189,7 @@ fun WhereRow(r: NightGantt.ProjectRow) {
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(r.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Cm.text)
-            r.line?.let { Text(readableSlash(it), fontSize = 13.sp, lineHeight = 18.sp, color = V3.Tx2) }
+            r.line?.let { Text(readableSlash(it), fontSize = 12.5.sp, lineHeight = 18.sp, color = V3.Tx2) }
         }
         StateChip(StateIcons.of(r.where), whereLabel(r.where) + if (r.needsYou && r.where != Where.STOPPED) stringResource(R.string.night_w_needs_you) else "", t)
     }
@@ -197,7 +197,7 @@ fun WhereRow(r: NightGantt.ProjectRow) {
 
 @Composable
 private fun StateChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, t: Tone) = MarkedText(
-    icon, text, t.ink, androidx.compose.ui.text.TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1, size = 12.dp,
+    icon, text, t.ink, androidx.compose.ui.text.TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.Medium), maxLines = 1, size = 12.dp,
     modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(t.chipBg).padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
 )
 
@@ -208,7 +208,7 @@ fun GoalTotals(t: NightGantt.Totals) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(stringResource(R.string.night_goals_reached), fontSize = 15.sp, color = V3.Tx2, modifier = Modifier.weight(1f))
             Text("${t.done}", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Cm.text)
-            Text(" " + stringResource(R.string.night_goals_of, t.total), fontSize = 16.sp, color = dimText, modifier = Modifier.padding(bottom = 4.dp))
+            Text(" " + stringResource(R.string.night_goals_of, t.total), fontSize = 15.5.sp, color = dimText, modifier = Modifier.padding(bottom = 4.dp))
         }
         val parts = listOf(t.done to goalDone, t.running to goalRun, t.partial to goalPartial, t.todo to goalPartial.copy(alpha = .45f), t.stopped to goalStopped)
         Row(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(gridLine)) {
@@ -216,7 +216,7 @@ fun GoalTotals(t: NightGantt.Totals) {
         }
         @OptIn(ExperimentalLayoutApi::class)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            val small = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+            val small = androidx.compose.ui.text.TextStyle(fontSize = 12.5.sp)
             if (t.done > 0) MarkedText(StateIcons.done, pluralStringResource(R.plurals.night_gt_done, t.done, t.done), dimText, small, size = 12.dp)
             if (t.running > 0) MarkedText(StateIcons.running, pluralStringResource(R.plurals.night_gt_running, t.running, t.running), dimText, small, size = 12.dp)
             if (t.partial > 0) MarkedText(StateIcons.partial, pluralStringResource(R.plurals.night_gt_partial, t.partial, t.partial), dimText, small, size = 12.dp)
@@ -246,10 +246,10 @@ fun GoalGroupCard(g: NightGantt.Group, a: NightGantt.Axis, zone: ZoneId) {
             Text(g.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Cm.text, modifier = Modifier.weight(1f))
             StateChip(StateIcons.of(g.where), whereLabel(g.where) + if (g.needsYou && g.where != Where.STOPPED) stringResource(R.string.night_w_needs_you) else "", t)
         }
-        if (g.goals.isEmpty()) g.line?.let { Text(readableSlash(it), fontSize = 13.sp, color = V3.Tx2, modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) }
+        if (g.goals.isEmpty()) g.line?.let { Text(readableSlash(it), fontSize = 12.5.sp, color = V3.Tx2, modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) }
         g.goals.forEach { goal ->
             // Il titolo intero sulla sua riga: tagliato a metà parola non si capirebbe (mai «…» nei testi).
-            Text(goal.title, fontSize = 13.sp, lineHeight = 17.sp, color = V3.Tx2, modifier = Modifier.padding(start = 2.dp, top = 4.dp))
+            Text(goal.title, fontSize = 12.5.sp, lineHeight = 17.sp, color = V3.Tx2, modifier = Modifier.padding(start = 2.dp, top = 4.dp))
             Row(Modifier.fillMaxWidth().heightIn(min = 28.dp), verticalAlignment = Alignment.CenterVertically) {
                 Canvas(Modifier.weight(1f).height(28.dp)) {
                     grid(a.every(if (a.ticks.size > 7) 3 else 1), a.mark)
@@ -268,7 +268,7 @@ fun GoalGroupCard(g: NightGantt.Group, a: NightGantt.Axis, zone: ZoneId) {
             goal.points.forEach { p ->
                 Row(Modifier.fillMaxWidth().padding(start = 10.dp, top = 1.dp, bottom = 1.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     StateMark(StateIcons.of(goal.state), dimText, 12.dp)
-                    Text(p, fontSize = 12.sp, color = dimText)
+                    Text(p, fontSize = 12.5.sp, color = dimText)
                 }
             }
         }

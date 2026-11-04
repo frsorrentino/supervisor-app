@@ -113,7 +113,7 @@ internal fun CatLabel(id: String, modifier: Modifier = Modifier, amber: Boolean 
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 12.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             // Aperta, l'ambra resta sull'etichetta con la sua icona (app-richiede-te-righe-02-11, mockup punto 3).
             if (amber) Icon(catIcon(id), null, tint = V3.Wait, modifier = Modifier.padding(top = 6.dp, end = 6.dp).size(16.dp))
-            Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 13.sp, letterSpacing = 1.2.sp, color = if (amber) V3.Wait else V3.Tx3), modifier = Modifier.weight(1f).padding(top = 8.dp, bottom = 2.dp))
+            Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 12.5.sp, letterSpacing = 1.2.sp, color = if (amber) V3.Wait else V3.Tx3), modifier = Modifier.weight(1f).padding(top = 8.dp, bottom = 2.dp))
             TurnArrow(true, V3.Tx3, Modifier.size(20.dp))
         }
     }
@@ -127,8 +127,8 @@ internal fun CatLabel(id: String, modifier: Modifier = Modifier, amber: Boolean 
 internal fun WaitGroupLabel(text: String, n: Int?) {
     Row(Modifier.fillMaxWidth().padding(start = 6.dp, top = 2.dp).testTag(if (n != null) "home-sessioni-aspettano" else "home-sessioni-altre"), verticalAlignment = Alignment.CenterVertically) {
         val tone = if (n != null) V3.Wait else V3.Tx3
-        Text(text.uppercase(), style = V3.Small.copy(fontSize = 12.sp, letterSpacing = 1.1.sp, color = tone))
-        n?.let { Text(it.toString(), style = V3.Small.copy(fontSize = 12.sp, color = tone), modifier = Modifier.padding(start = 6.dp)) }
+        Text(text.uppercase(), style = V3.Small.copy(fontSize = 12.5.sp, letterSpacing = 1.1.sp, color = tone))
+        n?.let { Text(it.toString(), style = V3.Small.copy(fontSize = 12.5.sp, color = tone), modifier = Modifier.padding(start = 6.dp)) }
     }
 }
 

@@ -106,9 +106,9 @@ fun Led(stale: Boolean, dot: Dp = 8.dp) {
 fun InstrumentNumber(value: String, unit: String, size: Int = 24, color: Color = Cm.text) {
     Row(verticalAlignment = Alignment.Bottom) {
         Text(value, style = TextStyle(fontFamily = V3.Mono, fontSize = size.sp, fontWeight = FontWeight.Medium, color = color))
-        Text(unit, style = TextStyle(fontSize = 12.sp, color = Cm.text2), modifier = Modifier.padding(start = 1.dp, bottom = 3.dp))
+        Text(unit, style = TextStyle(fontSize = 12.5.sp, color = Cm.text2), modifier = Modifier.padding(start = 1.dp, bottom = 3.dp))
     }
 }
 
 /** Testo piccolo monospaziato per orari e «aggiornato ora · PC». */
-val MonoSmall get() = TextStyle(fontFamily = V3.Mono, fontSize = 12.sp, color = Cm.text2)
+val MonoSmall get() = TextStyle(fontFamily = V3.Mono, fontSize = 12.5.sp, color = Cm.text2)

@@ -29,7 +29,7 @@
 <style>
   .inapp { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
   .iat { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
-  .iat small { color: var(--text2); font-size: 13px; }
+  .iat small { color: var(--text2); font-size: 12.5px; }
   .iago { flex: none; padding: 8px 14px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 500; text-decoration: none; }
   .iax { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
 </style>

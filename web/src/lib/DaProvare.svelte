@@ -100,12 +100,12 @@
 <style>
   .in { display: flex; flex-direction: column; gap: 6px; }
   .dp { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
-  .h { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 0; font: 12px var(--mono); color: var(--text2); }
+  .h { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 0; font: 12.5px var(--mono); color: var(--text2); }
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .c b { font-weight: 600; }
   .fuse .row { margin: 0 0 0 4px; } .fuse b { font-size: 17px; } .pick { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
-  p { font-size: 14.5px; }
-  .m { color: var(--text2); } .r { color: var(--gone); } .small { font-size: 13px; }
+  p { font-size: 14px; }
+  .m { color: var(--text2); } .r { color: var(--gone); } .small { font-size: 12.5px; }
   .ac { display: flex; align-items: center; gap: 8px; } .sp { flex: 1; }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   .out { border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 8px 14px; font-size: 14px; white-space: nowrap; }

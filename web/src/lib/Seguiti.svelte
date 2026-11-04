@@ -105,10 +105,10 @@
   .tonal.done, .out.done { background: var(--good); color: var(--bg); border-color: transparent; transform: scale(1.06); }
   .text.done { color: var(--good); }
   .pr { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
-  h3 { font-size: 16px; font-weight: 600; margin: 6px 4px 0; }
-  .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+  h3 { font-size: 15.5px; font-weight: 600; margin: 6px 4px 0; }
+  .c { background: var(--low); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .c b { font-weight: 600; overflow-wrap: anywhere; }
-  p { font-size: 14.5px; overflow-wrap: anywhere; }
+  p { font-size: 14px; overflow-wrap: anywhere; }
   .m { color: var(--text2); }
   .ac { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .sp { flex: 1; }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; min-height: 44px; }

@@ -119,7 +119,7 @@
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
   .chip { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 1px solid rgb(255 255 255 / .2); border-radius: 8px; font-size: 14px; font-weight: 500; }
   .chip.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
-  .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text2); }
+  .field { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--text2); }
   .field input, .field textarea { font: inherit; font-size: 16px; color: var(--text); background: none; border: 1px solid rgb(255 255 255 / .25); border-radius: 12px; padding: 14px 16px; outline: none; resize: vertical; }
   .field input:focus, .field textarea:focus { border-color: var(--icon); border-width: 2px; padding: 13px 15px; }
   .list { display: flex; flex-direction: column; gap: 2px; }
@@ -127,7 +127,7 @@
   .row { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 12px; text-align: left; }
   .row:hover { background: var(--surface); }
   .col { display: flex; flex-direction: column; }
-  .name { font-size: 16px; }
+  .name { font-size: 15.5px; }
   .name b { font-weight: 700; color: var(--icon); }
   small { font-size: 12.5px; color: var(--text2); }
   .act { margin-left: auto; color: var(--icon); font-size: 14px; font-weight: 500; }

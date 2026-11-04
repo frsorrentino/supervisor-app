@@ -10,8 +10,8 @@
 </div>
 
 <style>
-  .kc { background: var(--low); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .kc { background: var(--low); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font: 500 11px/1.3 var(--mono); color: var(--text2); letter-spacing: .06em; }
   .head span { text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; }
-  .head b { font: 400 12px/1.3 var(--mono); letter-spacing: 0; color: var(--text); }
+  .head b { font: 400 12.5px/1.3 var(--mono); letter-spacing: 0; color: var(--text); }
 </style>

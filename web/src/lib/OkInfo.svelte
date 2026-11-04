@@ -16,6 +16,6 @@
 </div>
 
 <style>
-  .ki { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; font-size: 13px; margin: 4px 0; }
+  .ki { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; font-size: 12.5px; margin: 4px 0; }
   .ki span:nth-child(odd), .m { color: var(--text2); }
 </style>

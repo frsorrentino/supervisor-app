@@ -93,7 +93,7 @@ internal fun Kpi11(spans: List<Kpi.Span>, from: Long, now: Long) {
             var hour = 0
             while (from + hour * 3600L <= now) {
                 val x = hour * 3600f / len
-                if (x <= 0.92f) Text("%02d".format(hour), style = MonoSmall.copy(fontSize = 10.sp), color = Cm.text2, maxLines = 1, modifier = Modifier.offset(x = w * x))
+                if (x <= 0.92f) Text("%02d".format(hour), style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2, maxLines = 1, modifier = Modifier.offset(x = w * x))
                 hour += 4
             }
         }
@@ -140,7 +140,7 @@ internal fun Kpi18(f: Kpi.DayFigures) {
                         if (p > 0) Box(Modifier.fillMaxWidth().height((p * 56f / top).dp).clip(RoundedCornerShape(2.dp)).background(Cm.busy))
                     }
                     val hour = f.firstHour + i
-                    Text(if (hour % 4 == 0) hour.toString() else "", style = MonoSmall.copy(fontSize = 10.sp), color = Cm.text2, maxLines = 1, modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Text(if (hour % 4 == 0) hour.toString() else "", style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2, maxLines = 1, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
             }
         }
@@ -247,8 +247,8 @@ internal fun BoardRow(drag: Modifier, title: String, icon: androidx.compose.ui.g
     Row(Modifier.fillMaxWidth().then(if (alarm) Modifier.background(V3.Wait.copy(alpha = 0.14f)) else Modifier).hotEdge(hot).then(drag).handCursor().clickable(onClick = onToggle).then(if (tag != null) Modifier.testTag(tag) else Modifier).heightIn(min = 48.dp).padding(start = 14.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = ink ?: V3.Tx2, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(12.dp))
-        Text(title, style = V3.Name.copy(fontSize = 16.sp, color = ink ?: V3.Tx), maxLines = 1)
-        count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 14.sp), Modifier.padding(start = 6.dp)) }
+        Text(title, style = V3.Name.copy(fontSize = 15.sp, color = ink ?: V3.Tx), maxLines = 1)
+        count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 15.sp), Modifier.padding(start = 6.dp)) }
         Spacer(Modifier.width(12.dp))
         if (bar != null) bar(Modifier.weight(1f)) else if (right == null || number != null) Spacer(Modifier.weight(1f))
         if (number != null) { Spacer(Modifier.width(10.dp)); Text(number, style = V3.Meter.copy(color = ink ?: V3.Tx2), maxLines = 1) }
@@ -268,14 +268,14 @@ internal fun SlotRow(drag: Modifier, title: String, icon: androidx.compose.ui.gr
             Icon(icon, null, tint = if (hot) V3.Wait else V3.Tx2, modifier = Modifier.capAlign(V3.Name.copy(fontSize = 15.sp)).size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
-            count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 13.sp), Modifier.padding(start = 6.dp)) }
+            count?.let { SectionCount(it, hot, V3.Name.copy(fontSize = 12.5.sp), Modifier.padding(start = 6.dp)) }
             Spacer(Modifier.weight(1f))
             dot?.let { c -> Box(Modifier.padding(end = 6.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)) }
             if (open != null) Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
             else if (nav) Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
         }
         if (!names.isNullOrEmpty()) SlotNames(names)
-        else right?.let { OneLineText(it, V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), Modifier.fillMaxWidth(), start = true) }
+        else right?.let { OneLineText(it, V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp), Modifier.fillMaxWidth(), start = true) }
     }
 }
 
@@ -292,7 +292,7 @@ internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.u
             Icon(icon, null, tint = V3.Tx2, modifier = Modifier.capAlign(V3.Name.copy(fontSize = 15.sp)).size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
-            count?.let { Text(it, style = V3.Name.copy(fontSize = 13.sp, color = V3.Tx2), modifier = Modifier.padding(start = 6.dp)) }
+            count?.let { Text(it, style = V3.Name.copy(fontSize = 12.5.sp, color = V3.Tx2), modifier = Modifier.padding(start = 6.dp)) }
             Spacer(Modifier.width(10.dp))
             if (bar != null) SlotBar(bar, Modifier.weight(1f)) else Spacer(Modifier.weight(1f))
             if (number != null) {
@@ -302,14 +302,14 @@ internal fun SlotInfoRow(drag: Modifier, title: String, icon: androidx.compose.u
             Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.padding(start = 4.dp).size(24.dp))
         }
         if (names != null) SlotNames(names)
-        else note?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp)) }
+        else note?.let { Text(it, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp)) }
     }
 }
 
 /** Suggerimenti nello slot: una riga ferma coi nomi; quelli interi che stanno nella larghezza vera, poi «+N». */
 @Composable
 internal fun SlotNames(names: List<String>) {
-    val style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp)
+    val style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp)
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
         val width = constraints.maxWidth.toFloat()
@@ -388,8 +388,8 @@ private fun Board(value: String, label: String, tone: Color, red: String?, modif
         }
         // Due righe per tutte, anche quando il testo ne occupa una: i tre numeri e le etichette stanno sulle stesse linee (Franz 03/11
         // 09:38, app-tabellone-numeri-03-11). Il rosso degli esiti è la seconda riga.
-        Text(label, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp), minLines = if (red != null) 1 else 2)
-        red?.let { Text(it, style = V3.Small.copy(fontSize = 13.5.sp, lineHeight = 17.sp, color = V3.Red)) }
+        Text(label, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp), minLines = if (red != null) 1 else 2)
+        red?.let { Text(it, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp, color = V3.Red)) }
     }
 }
 

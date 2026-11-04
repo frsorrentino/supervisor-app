@@ -26,5 +26,5 @@
   p { margin: 0; font-size: 12.5px; color: var(--text2); }
   .bar { display: flex; gap: 2px; height: 10px; }
   .bar i { display: block; flex-basis: 0; height: 100%; border-radius: 3px; }
-  .names { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
+  .names { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; }
 </style>

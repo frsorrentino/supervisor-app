@@ -151,10 +151,10 @@
   /* La colonna del grafico è quella della barra. */
   .col2 { margin: 0 calc(var(--val) + 10px) 0 calc(var(--lab) + 10px); }
   .col2 svg { display: block; }
-  .axis { position: relative; display: flex; justify-content: space-between; font: 400 12px var(--mono); color: var(--tx2); margin-top: 2px; }
-  .nowl { position: relative; height: 16px; font: 400 12px var(--mono); }
+  .axis { position: relative; display: flex; justify-content: space-between; font: 400 12.5px var(--mono); color: var(--tx2); margin-top: 2px; }
+  .nowl { position: relative; height: 16px; font: 400 12.5px var(--mono); }
   .nowl b { position: absolute; transform: translateX(-50%); font-weight: 400; color: var(--tx); white-space: nowrap; }
-  .note { margin: 4px 0 0; font-size: 13.5px; line-height: 1.35; color: var(--tx2); }
+  .note { margin: 4px 0 0; font-size: 14px; line-height: 1.35; color: var(--tx2); }
   .sl { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 14px; color: var(--tx); overflow-wrap: anywhere; }
   .sl b { font: 400 12.5px var(--mono); }
   .sl.dim span { color: var(--tx2); }

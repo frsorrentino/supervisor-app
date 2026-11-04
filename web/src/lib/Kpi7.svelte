@@ -33,7 +33,7 @@
   .cell:focus-visible { outline: 2px solid var(--tx); outline-offset: -2px; }
   .n { display: block; font: 700 42px/1 var(--display); letter-spacing: -0.01em; }
   .n.wait { color: var(--wait); }
-  .l { display: block; min-height: 2.5em; font-size: 13.5px; line-height: 1.25; color: var(--tx2); margin-top: 6px; overflow-wrap: anywhere; }
+  .l { display: block; min-height: 2.5em; font-size: 14px; line-height: 1.25; color: var(--tx2); margin-top: 6px; overflow-wrap: anywhere; }
   .l em { font-style: normal; font-weight: 500; color: var(--red); }
   .chev { position: absolute; top: 12px; right: 8px; color: var(--tx3); }
 </style>

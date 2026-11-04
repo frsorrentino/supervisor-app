@@ -682,7 +682,7 @@ fun SessionSheet(
                 }
                 if (sheet) {
                     val px = height.value.coerceIn(0f, full)
-                    val sh = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    val sh = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                     Column(
                         Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                             .height(with(androidx.compose.ui.platform.LocalDensity.current) { px.toDp() })
@@ -750,7 +750,7 @@ fun SessionSheet(
                 // Il pannello della conversazione è opaco e ha gli angoli in alto, come un foglio: rigido, alto come sarà da aperto,
                 // scorre sopra la home con la sua barra in cima.
                 if (showPanel || !homeOpen) {
-                    val sh = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    val sh = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                     Column(
                         Modifier.layout { m, c ->
                             val open = c.maxHeight + headerShown()
@@ -2108,7 +2108,7 @@ private fun TextFirstLines(path: String, onClick: () -> Unit) {
         Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(Cm.surfaceLow).border(1.dp, Cm.line, MaterialTheme.shapes.large)
             .handCursor().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Text(lines, style = MonoSmall.copy(color = Cm.text, fontSize = 13.sp, lineHeight = 19.sp))
+        Text(lines, style = MonoSmall.copy(color = Cm.text, fontSize = 12.5.sp, lineHeight = 19.sp))
         if (more) Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(0.7f to androidx.compose.ui.graphics.Color.Transparent, 1f to Cm.surfaceLow)))
     }
 }
@@ -2349,7 +2349,7 @@ private fun SheetHeader(
 @Composable
 private fun ContextNudge(pct: Int, onGo: () -> Unit, onDismiss: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp).clip(RoundedCornerShape(20.dp)).background(Cm.surfaceHigh).padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceHigh).padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(Icons.Rounded.Layers, null, tint = Cm.briefWarn, modifier = Modifier.size(22.dp))

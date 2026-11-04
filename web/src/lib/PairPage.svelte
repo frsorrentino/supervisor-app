@@ -141,13 +141,13 @@
 <style>
   .pair { min-height: var(--vvh, 100dvh); max-width: 480px; margin: 0 auto; padding: max(32px, env(safe-area-inset-top)) 24px 32px;
     display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
-  img { align-self: center; border-radius: 16px; }
+  img { align-self: center; border-radius: 12px; }
   h1 { font-size: 24px; font-weight: 400; text-align: center; }
   p { color: var(--text2); }
   .ask, .ok { color: var(--text); font-size: 18px; text-align: center; }
   .err { color: var(--b-alert); }
-  video { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; background: var(--low); }
-  button { min-height: 48px; border-radius: 24px; font-size: 16px; }
+  video { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--low); }
+  button { min-height: 48px; border-radius: 24px; font-size: 15.5px; }
   .filled { background: var(--primary); color: var(--on-primary); }
   .tonal { background: var(--high); color: var(--text); }
   .text { color: var(--icon); }
@@ -155,6 +155,6 @@
   .paste span { color: var(--text2); font-size: 14px; }
   textarea { background: var(--low); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px;
     font-family: var(--mono); font-size: 16px; resize: vertical; }
-  .btn { min-height: 48px; border-radius: 24px; font-size: 16px; display: grid; place-items: center; text-decoration: none; }
+  .btn { min-height: 48px; border-radius: 24px; font-size: 15.5px; display: grid; place-items: center; text-decoration: none; }
   a.filled { color: var(--on-primary); }
 </style>

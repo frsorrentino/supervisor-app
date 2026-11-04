@@ -20,12 +20,12 @@
 </div>
 
 <style>
-  .k4 { background: var(--low); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .k4 { background: var(--low); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
   .head { display: flex; justify-content: space-between; gap: 8px; font: 500 11px/1.3 var(--mono); color: var(--text2); letter-spacing: .06em; }
   .head span { text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; }
   .head b { font-weight: 500; color: var(--text); letter-spacing: 0; }
   .bar { display: flex; height: 8px; border-radius: 4px; background: var(--b-track); overflow: hidden; gap: 1px; }
   .bar i { display: block; height: 100%; }
-  .names { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
+  .names { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; }
   .names span { overflow-wrap: anywhere; }
 </style>

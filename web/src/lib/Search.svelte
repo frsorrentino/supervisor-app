@@ -91,7 +91,7 @@
     {#if !shown.length && !loading}<p class="none">{t.searchNone}</p>{/if}
     {#each shown as g (`${g.session}-${g.live}`)}
       <section class="grp">
-        <header class="gh"><i class="dot" style:background={g.session == null ? 'var(--text2)' : g.live === false ? 'var(--text3, var(--text2))' : color(g.session)}></i><b>{g.session ?? t.lavoriTitle}</b><span class="n">{g.hits.length}</span>{#if g.live != null}<span class="st">{g.live ? t.searchOpenOne : t.searchClosed}</span>{/if}</header>
+        <header class="gh"><i class="dot" style:background={g.session == null ? 'var(--text2)' : g.live === false ? 'var(--tx3)' : color(g.session)}></i><b>{g.session ?? t.lavoriTitle}</b><span class="n">{g.hits.length}</span>{#if g.live != null}<span class="st">{g.live ? t.searchOpenOne : t.searchClosed}</span>{/if}</header>
         {#each g.hits as h (h.ref)}
           {@const ok = canOpen(h)}
           <svelte:element this={ok ? 'button' : 'div'} class="hit" class:open={ok} role={ok ? undefined : 'group'} onclick={ok ? () => onOpen(h.session, h.entry ?? null) : undefined}>
@@ -121,28 +121,28 @@
   .bar { height: 4px; margin: 4px 20px 0; border-radius: 2px; background: var(--b-track); overflow: hidden; }
   .bar i { display: block; height: 100%; width: 35%; background: var(--icon); animation: run 1.2s ease-in-out infinite; }
   @keyframes run { from { translate: -100% 0; } to { translate: 300% 0; } }
-  .lbl { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); padding: 14px 20px 6px; margin: 0; }
+  .lbl { font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); padding: 14px 20px 6px; margin: 0; }
   .row { display: flex; align-items: center; min-height: 52px; border-top: 1px solid var(--line); padding-right: 8px; }
   .row:first-child { border-top: 0; }
   .go { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 0 0 20px; text-align: left; color: var(--text); }
-  .go .t { flex: 1; min-width: 0; font-size: 16px; white-space: nowrap; overflow: hidden; }
-  .go small { color: var(--text2); font-size: 13px; margin-left: 8px; }
+  .go .t { flex: 1; min-width: 0; font-size: 15.5px; white-space: nowrap; overflow: hidden; }
+  .go small { color: var(--text2); font-size: 12.5px; margin-left: 8px; }
   .x { width: 44px; height: 44px; display: grid; place-items: center; color: var(--text2); border-radius: 22px; }
   .help { margin: 18px 20px 0; color: var(--text2); font-size: 14px; line-height: 1.4; }
   .none { color: var(--text2); padding: 8px 20px; }
-  .grp { margin: 12px 12px 0; background: var(--surface); border-radius: 16px; overflow: hidden; }
+  .grp { margin: 12px 12px 0; background: var(--surface); border-radius: 14px; overflow: hidden; }
   .gh { display: flex; align-items: center; gap: 10px; padding: 12px 14px 8px; }
   .gh .dot { width: 10px; height: 10px; border-radius: 5px; }
   .gh b { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; }
-  .gh .n { font-size: 13px; color: var(--text2); font-variant-numeric: tabular-nums; }
-  .gh .st { margin-left: auto; font-size: 12px; color: var(--text2); }
+  .gh .n { font-size: 12.5px; color: var(--text2); font-variant-numeric: tabular-nums; }
+  .gh .st { margin-left: auto; font-size: 12.5px; color: var(--text2); }
   .hit { display: flex; gap: 12px; width: 100%; padding: 10px 10px 10px 14px; border-top: 1px solid var(--line); align-items: flex-start; text-align: left; }
   .hit.open:hover { background: rgb(255 255 255 / .04); }
-  .hit .at { font-size: 12px; line-height: 20px; color: var(--text2); width: 42px; flex: none; font-variant-numeric: tabular-nums; }
+  .hit .at { font-size: 12.5px; line-height: 20px; color: var(--text2); width: 42px; flex: none; font-variant-numeric: tabular-nums; }
   .hit .tx { flex: 1; min-width: 0; font-size: 15px; line-height: 20px; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .hit mark { background: rgb(255 178 63 / .26); color: var(--text); border-radius: 3px; padding: 0 2px; }
+  .hit mark { background: color-mix(in srgb, var(--wait) 26%, transparent); color: var(--text); border-radius: 3px; padding: 0 2px; }
   .chev { flex: none; color: var(--text2); margin-top: 0; }
-  .more { font-size: 13px; color: var(--text2); padding: 12px 20px 0; }
-  .foot { margin: 16px 20px 0; color: var(--text2); font-size: 13px; }
+  .more { font-size: 12.5px; color: var(--text2); padding: 12px 20px 0; }
+  .foot { margin: 16px 20px 0; color: var(--text2); font-size: 12.5px; }
   @media (prefers-reduced-motion: reduce) { .bar i { animation: none; } }
 </style>

@@ -107,7 +107,7 @@ import java.time.format.DateTimeFormatter
  */
 
 /** Monospazio con le cifre tabulari: i numeri non ballano quando cambiano. */
-private val Mono get() = TextStyle(fontFamily = V3.Mono, fontFeatureSettings = "tnum", fontSize = 12.sp, color = Cm.text2)
+private val Mono get() = TextStyle(fontFamily = V3.Mono, fontFeatureSettings = "tnum", fontSize = 12.5.sp, color = Cm.text2)
 private val MonoLabel = Mono.copy(fontSize = 11.sp, letterSpacing = 1.5.sp)
 
 @Composable
@@ -310,7 +310,7 @@ fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>, usage: it.pixe
             }
         }
         Row(Modifier.fillMaxWidth()) {
-            listOf("0", "6", "12", "18").forEach { Text(it, style = Mono.copy(fontSize = 10.sp), modifier = Modifier.weight(1f)) }
+            listOf("0", "6", "12", "18").forEach { Text(it, style = Mono.copy(fontSize = 11.sp), modifier = Modifier.weight(1f)) }
         }
     }
 }
@@ -323,7 +323,7 @@ private fun UsageBar(name: String, pct: Int, dim: Boolean) {
         Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Cm.briefTrack)) {
             Box(Modifier.fillMaxWidth((pct.coerceIn(0, 100)) / 100f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(if (dim) Cm.text2.copy(alpha = 0.5f) else Cm.briefRing))
         }
-        Text("$pct %", style = Mono.copy(fontSize = 12.sp), modifier = Modifier.width(40.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        Text("$pct %", style = Mono.copy(fontSize = 12.5.sp), modifier = Modifier.width(40.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
 }
 
@@ -418,7 +418,7 @@ private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(label, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, softWrap = false, modifier = Modifier.width(44.dp))
             Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Cm.briefTrack), content = track)
-            Text("$value%", style = Mono.copy(fontSize = 12.sp, color = Cm.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.width(40.dp))
+            Text("$value%", style = Mono.copy(fontSize = 12.5.sp, color = Cm.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.width(40.dp))
         }
     }
     val e = r.elapsed / 100f
@@ -439,7 +439,7 @@ private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
             r.ahead < 0 -> androidx.compose.ui.res.pluralStringResource(R.plurals.rhythm_behind, -r.ahead, -r.ahead)
             else -> stringResource(R.string.rhythm_even)
         },
-        style = Mono.copy(fontSize = 12.sp, color = if (r.ahead > 0) Cm.briefWarn else Cm.text2),
+        style = Mono.copy(fontSize = 12.5.sp, color = if (r.ahead > 0) Cm.briefWarn else Cm.text2),
     )
 }
 
@@ -458,7 +458,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Tick(at: Float) {
 @Composable
 private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
-    val label = Mono.copy(fontSize = 10.sp)
+    val label = Mono.copy(fontSize = 11.sp)
     val strong = label.copy(color = Cm.text)
     val resetText = stringResource(R.string.rhythm_reset, hhmm(r.resetAt))
     val hundredText = r.fullAt?.let { stringResource(R.string.rhythm_hundred_at, hhmm(it)) }
@@ -532,7 +532,7 @@ private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, m
 @Composable
 private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
-    val label = Mono.copy(fontSize = 10.sp)
+    val label = Mono.copy(fontSize = 11.sp)
     val strong = label.copy(color = Cm.text)
     val renewal = stringResource(R.string.week_renewal, dayShortTime(c.resetAt))
     val endText = when {
@@ -631,7 +631,7 @@ private fun WeekOriginsBar(w7: Int, o: it.pixelbox.cmwatch.contract.WeekOrigins)
 @Composable
 private fun WeekDaysChart(days: List<Week7.Day>, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
-    val label = Mono.copy(fontSize = 10.sp)
+    val label = Mono.copy(fontSize = 11.sp)
     val strong = label.copy(color = Cm.text)
     val today = stringResource(R.string.week_today)
     val names = days.map { if (it.today) today else dayShort(it.start) }
@@ -717,8 +717,8 @@ fun TabletInspector(i: Tablet.Inspector, quotaH5: Int?, loading: Boolean) {
 @Composable
 private fun KeyValue(key: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(key, style = Mono.copy(fontSize = 13.sp))
-        Text(value, style = Mono.copy(fontSize = 13.sp, color = Cm.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
+        Text(key, style = Mono.copy(fontSize = 12.5.sp))
+        Text(value, style = Mono.copy(fontSize = 12.5.sp, color = Cm.text), textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
 
@@ -727,7 +727,7 @@ private fun StatBox(value: String, label: String, modifier: Modifier) {
     val shape = RoundedCornerShape(12.dp)
     Column(modifier.clip(shape).background(Cm.surfaceLow).border(1.dp, Cm.line, shape).padding(horizontal = 12.dp, vertical = 10.dp)) {
         Text(value, style = Mono.copy(fontSize = 22.sp, color = Cm.text, fontWeight = FontWeight.Medium))
-        Text(label.uppercase(), style = MonoLabel.copy(fontSize = 10.sp, letterSpacing = 1.sp, lineBreak = androidx.compose.ui.text.style.LineBreak.Heading))
+        Text(label.uppercase(), style = MonoLabel.copy(fontSize = 11.sp, letterSpacing = 1.sp, lineBreak = androidx.compose.ui.text.style.LineBreak.Heading))
     }
 }
 
@@ -749,9 +749,9 @@ private fun TimelineRow(e: TimelineEvent) {
         else -> null
     }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(hhmm(e.at), style = Mono.copy(fontSize = 13.sp), modifier = Modifier.padding(top = 2.dp))
+        Text(hhmm(e.at), style = Mono.copy(fontSize = 12.5.sp), modifier = Modifier.padding(top = 2.dp))
         Text(
-            (kind?.let { stringResource(it) } ?: e.kind).uppercase(), style = MonoLabel.copy(color = tone, fontSize = 10.sp), maxLines = 1,
+            (kind?.let { stringResource(it) } ?: e.kind).uppercase(), style = MonoLabel.copy(color = tone, fontSize = 11.sp), maxLines = 1,
             modifier = Modifier.border(1.dp, tone.copy(alpha = 0.8f), RoundedCornerShape(5.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
         )
         Text(

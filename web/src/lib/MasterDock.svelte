@@ -143,7 +143,7 @@
   .grab:active { cursor: grabbing; }
   /* La master è la superficie più alta dell'app, velata del celeste d'accento, piatta come il resto (Celeste velato, Franz
      06/10 21:23). Aperta resta una linguetta col verso di quando è chiusa, angoli tondi in alto (08:48). */
-  .dock { touch-action: none; display: flex; align-items: center; gap: 12px; padding: 10px 12px 8px 8px; border-radius: 26px 26px 0 0; cursor: pointer; outline: none; background: var(--master-highest); }
+  .dock { touch-action: none; display: flex; align-items: center; gap: 12px; padding: 10px 12px 8px 8px; border-radius: 28px 28px 0 0; cursor: pointer; outline: none; background: var(--master-highest); }
   /* Il filtro dell'hover farebbe da contenitore al pannello del menu ≡, che è fisso: a tutto schermo niente filtro. */
   .dock.screen { border-radius: 0; padding: 10px 4px 8px 8px; }
   .dock.screen:hover, .dock.screen:focus-visible { filter: none; }
@@ -151,7 +151,7 @@
   @media (prefers-reduced-motion: reduce) { .ib { transition: none; } }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .col > * { white-space: nowrap; overflow: hidden; }
-  b { font-size: 16px; font-weight: 600; }
+  b { font-size: 15.5px; font-weight: 600; }
   /* Premuti, i tasti cambiano forma come quelli del Material 3 Expressive: da cerchio a quadrato smussato, con la molla. */
   .ib { flex: none; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; background: var(--master-key); color: var(--text);
     transition: border-radius .35s var(--spring), transform .3s var(--spring); position: relative; }

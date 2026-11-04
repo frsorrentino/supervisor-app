@@ -137,7 +137,7 @@ fun MasterDock(
     // conta per l'handoff: il modello cambia di rado, e con lui la riga non stava nella larghezza (Franz, 06/10 22:27).
     val label = (if (expanded) listOfNotNull(stringResource(R.string.dock_master), time) else listOfNotNull(stringResource(R.string.dock_master), time, ctx)).joinToString(" · ")
     // Aperta resta una linguetta col verso di quando è chiusa, angoli tondi in alto (Franz, 06/10 08:48).
-    val shape = if (screen) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
+    val shape = if (screen) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     Column(Modifier.fillMaxWidth()) {
         val look = LocalMasterLook.current
         if (!expanded && look.thread) MasterThread()

@@ -204,7 +204,7 @@
 <style>
   .mhome { display: flex; flex-direction: column; gap: 20px; }
   /* GlassCard dell'app: superficie, riflesso in alto, bordo sottile (nel colore della card se ha una tinta). */
-  .glass { --tint: transparent; border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgb(255 255 255 / .14);
+  .glass { --tint: transparent; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgb(255 255 255 / .14);
     background: linear-gradient(rgb(255 255 255 / .06), transparent 45%), var(--surface); }
   .foryou { border-color: color-mix(in srgb, var(--wait) 75%, transparent); background: linear-gradient(rgb(255 255 255 / .06), transparent 45%), color-mix(in srgb, var(--wait) 6%, var(--bg)); gap: 4px; }
   .hero { cursor: pointer; outline: none; }
@@ -215,17 +215,17 @@
   .sp { flex: 1; }
   .led { width: 8px; height: 8px; border-radius: 50%; }
   h2 { font-size: 17px; font-weight: 600; line-height: 1.4; }
-  .hbody { color: var(--text2); font-size: 14.5px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .hbody { color: var(--text2); font-size: 14px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .acts { display: flex; gap: 10px; align-items: center; padding-top: 4px; }
   .round, .pill, .tonal { background: var(--high); color: var(--text); }
   .round { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--icon); }
-  .pill { flex: 1; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: 500; font-size: 14.5px; }
+  .pill { flex: 1; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: 500; font-size: 14px; }
   .round:hover, .pill:hover, .tonal:hover { filter: brightness(1.15); }
   hr { border: 0; height: 1px; background: var(--line); margin: 2px 0; }
-  .step { text-align: left; color: var(--icon); font-size: 16px; padding: 4px 0; border-radius: 8px; }
+  .step { text-align: left; color: var(--icon); font-size: 15.5px; padding: 4px 0; border-radius: 8px; }
   .step.unblock { display: flex; align-items: center; gap: 8px; }
   .step:hover { background: rgb(255 255 255 / .04); }
-  .gh { display: flex; align-items: center; gap: 10px; margin: 6px 8px 0; font: 12px var(--mono); letter-spacing: .06em; color: var(--b-ring); }
+  .gh { display: flex; align-items: center; gap: 10px; margin: 6px 8px 0; font: 12.5px var(--mono); letter-spacing: .06em; color: var(--b-ring); }
   .gh i { flex: 1; height: 1px; background: color-mix(in srgb, var(--b-ring) 25%, transparent); }
   .att { border-radius: 20px; }
   .att.open { background: color-mix(in srgb, var(--t) 8%, transparent); }
@@ -234,7 +234,7 @@
   .atop > svg:first-child { flex: none; }
   .acol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .aname, .aline { white-space: nowrap; overflow: hidden; }
-  .aname { font-size: 16px; }
+  .aname { font-size: 15.5px; }
   .aname b { font-weight: 600; }
   .aline { font-size: 14px; color: var(--text2); }
   .abody { padding: 0 8px 12px 40px; display: flex; flex-direction: column; gap: 8px; }
@@ -246,7 +246,7 @@
   .link:hover { background: rgb(255 255 255 / .05); }
   .svc { display: flex; align-items: center; gap: 12px; padding: 6px 8px; }
   .svc > span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-  .stitle { font-size: 16px; }
+  .stitle { font-size: 15.5px; }
   .sdet { font-size: 12.5px; color: var(--text2); }
   .tonal { border-radius: 20px; padding: 10px 16px; font-weight: 500; font-size: 14px; }
   .svc .stitle { color: var(--text); }
@@ -258,7 +258,7 @@
   dialog h3 { font-size: 22px; font-weight: 600; margin-bottom: 12px; }
   .sheetrows { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
   .night { display: flex; flex-direction: column; gap: 12px; }
-  .night label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text2); }
+  .night label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--text2); }
   .night select, .night textarea { font: inherit; color: var(--text); background: var(--high); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
   .night textarea { resize: vertical; }
   .night :focus-visible { outline: 2px solid var(--icon); outline-offset: 1px; }

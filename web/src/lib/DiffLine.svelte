@@ -28,6 +28,6 @@
   .plus, .minus { font-weight: 500; }
   .plus { color: var(--b-good); }
   .minus { color: var(--b-alert); }
-  .df { font: 12px/1.3 var(--mono); color: var(--text2); overflow-wrap: anywhere; }
+  .df { font: 12.5px/1.3 var(--mono); color: var(--text2); overflow-wrap: anywhere; }
   .lab { font: 500 11px/1 var(--mono); letter-spacing: .06em; color: var(--text2); background: var(--high); border-radius: 999px; padding: 4px 8px; white-space: nowrap; }
 </style>

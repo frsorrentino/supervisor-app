@@ -1497,8 +1497,8 @@
   .list { flex: 1; min-height: 0; }
   .strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
   .strip::-webkit-scrollbar { display: none; }
-  .demobar button { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--wait); color: var(--bg); font-weight: 600; font-size: 13px; }
-  .demobar { position: fixed; top: env(safe-area-inset-top); left: 0; right: 0; z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; box-sizing: border-box; padding: 4px 12px; background: color-mix(in srgb, var(--wait) 22%, var(--bg)); color: var(--wait); font-size: 13px; font-weight: 500; }
+  .demobar button { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--wait); color: var(--bg); font-weight: 600; font-size: 12.5px; }
+  .demobar { position: fixed; top: env(safe-area-inset-top); left: 0; right: 0; z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; box-sizing: border-box; padding: 4px 12px; background: color-mix(in srgb, var(--wait) 22%, var(--bg)); color: var(--wait); font-size: 12.5px; font-weight: 500; }
   .pg { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; }
   .reading:empty { display: none; }
   .nomaster { display: flex; align-items: center; gap: 12px; margin: 8px 16px; padding: 14px 16px; border-radius: 20px; background: var(--low); }
@@ -1515,14 +1515,14 @@
   @media (max-width: 599px) { .sheet { margin: auto 0 0; max-width: 100vw; border-radius: 28px 28px 0 0; } }
   .notice { position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); max-width: min(560px, calc(100vw - 32px)); padding: 10px 16px; border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: 0 4px 16px rgb(0 0 0 / .35); z-index: 20; }
   .demo { position: fixed; right: 12px; bottom: 6px; opacity: .6; pointer-events: none; }
-  @media (max-width: 839px) { .demo { bottom: 0; right: 50%; transform: translateX(50%); font-size: 10px; } }
+  @media (max-width: 839px) { .demo { bottom: 0; right: 50%; transform: translateX(50%); font-size: 11px; } }
   .embedded { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
   .embedded.reading { z-index: 70; }
   /* Sola lettura: niente campo di scrittura, né avvisi di altre sessioni. */
   .embedded.reading :global(form.field), .embedded.reading :global(.elsewhere) { display: none; }
   .rbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
   .rbar b { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
-  .rbar small { color: var(--text2); font: 500 12px/1 var(--mono); }
+  .rbar small { color: var(--text2); font: 500 12.5px/1 var(--mono); }
   .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
   /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
   .deskwrap { height: 100%; display: flex; min-height: 0; }
@@ -1535,7 +1535,7 @@
   .mk { position: absolute; width: 48px; height: 4px; transform: translate(-50%, -50%); border-radius: 2px; background: var(--tx3); transition: left .12s ease-out, top .12s ease-out, width .12s ease-out, height .12s ease-out, background .15s; }
   .mk.v { width: 4px; height: 48px; }
   .mk.on { background: var(--wait); box-shadow: 0 0 12px color-mix(in srgb, var(--wait) 45%, transparent); }
-  .mk b { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 6px 12px; border-radius: 14px; background: var(--s2); border: 1px solid var(--line); color: var(--tx); font: 600 14px var(--display); box-shadow: 0 8px 24px rgb(0 0 0 / .4); }
+  .mk b { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 6px 12px; border-radius: 14px; background: var(--s2); border: 1px solid var(--line); color: var(--tx); font: 600 15px var(--display); box-shadow: 0 8px 24px rgb(0 0 0 / .4); }
   .mk b .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--wait); }
   .mk b.v { left: auto; bottom: auto; top: 50%; transform: translateY(-50%); }
   .mk.v b.v { left: 16px; }

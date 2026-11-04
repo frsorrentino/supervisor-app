@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -216,7 +217,7 @@ private fun AgendaBarKey(icon: androidx.compose.ui.graphics.vector.ImageVector, 
     ) {
         androidx.compose.foundation.layout.Box(
             Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(
-                when { filled -> Cm.primary; lit -> androidx.compose.ui.graphics.Color(0xFF3A4A66); else -> Cm.surfaceHigh },
+                when { filled -> Cm.primary; lit -> V3.Tx.copy(alpha = 0.18f).compositeOver(V3.S3); else -> Cm.surfaceHigh },
             ),
             contentAlignment = Alignment.Center,
         ) {

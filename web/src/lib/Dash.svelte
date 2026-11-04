@@ -138,12 +138,12 @@
   .dash { position: absolute; inset: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 440px));
     justify-content: center; align-items: start; gap: 18px; padding: 0 16px 24px 14px; text-align: left; color: var(--text); }
   .dcol { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-  .dt { display: flex; align-items: center; gap: 8px; margin: 14px 4px 0; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); }
+  .dt { display: flex; align-items: center; gap: 8px; margin: 14px 4px 0; font: 500 12.5px/1 var(--mono); letter-spacing: .14em; color: var(--text2); }
   .dt i { flex: 1; height: 1px; background: var(--line); }
   .dcol :global(.recap) { padding: 0; }
   .quota { display: flex; flex-direction: column; gap: 12px; }
   .box { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 24px; background: var(--surface); text-align: left; width: 100%; }
-  h4 { font: 500 12px/1.4 var(--mono); letter-spacing: .08em; color: var(--text2); text-transform: uppercase; }
+  h4 { font: 500 12.5px/1.4 var(--mono); letter-spacing: .08em; color: var(--text2); text-transform: uppercase; }
   h4.gap { margin-top: 10px; }
   .sub { color: var(--text2); font-size: 14px; line-height: 1.4; }
   .row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); text-align: left; width: 100%; color: var(--text); }
@@ -151,8 +151,8 @@
   .row:disabled { cursor: default; }
   .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .txt b { font-size: 15px; font-weight: 500; }
-  .txt small { color: var(--text2); font-size: 13.5px; line-height: 1.35; }
-  .ago { color: var(--text2); font: 12px var(--mono); white-space: nowrap; }
+  .txt small { color: var(--text2); font-size: 14px; line-height: 1.35; }
+  .ago { color: var(--text2); font: 12.5px var(--mono); white-space: nowrap; }
   .host { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
   .host:first-of-type { border-top: 0; }
   .host .chips { margin-top: 4px; }

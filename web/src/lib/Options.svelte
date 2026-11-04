@@ -41,13 +41,13 @@
   .warn.hint { color: var(--wait); }
   .opts { display: flex; flex-direction: column; gap: 6px; }
   .opts.row { flex-direction: row; gap: 2px; }
-  .opt { min-height: 44px; padding: 10px 18px; border-radius: 22px; background: var(--tonal); color: var(--text); font-size: 16px; font-weight: 500; text-align: left; }
+  .opt { min-height: 44px; padding: 10px 18px; border-radius: 22px; background: var(--tonal); color: var(--text); font-size: 15.5px; font-weight: 500; text-align: left; }
   .row .opt { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; border-radius: 6px; }
   .row .opt:first-child { border-radius: 22px 6px 6px 22px; }
   .row .opt:last-child { border-radius: 6px 22px 22px 6px; }
   .row .opt:only-child { border-radius: 22px; }
   .opt.filled { background: var(--primary); color: var(--on-primary); }
-  .opt small { display: block; font-size: 13px; font-weight: 400; color: var(--text2); }
+  .opt small { display: block; font-size: 12.5px; font-weight: 400; color: var(--text2); }
   .opt.filled small { color: inherit; opacity: .8; }
   .opt:hover { filter: brightness(1.12); }
   /* La pressione lunga si vede: il tasto si riempie mentre lo tieni. */
@@ -59,11 +59,11 @@
   :global(.v3) .lbl { display: none; }
   :global(.v3) .v3l { display: flex; align-items: center; gap: 8px; }
   :global(.v3) .opts, :global(.v3) .opts.row { flex-direction: column; gap: 8px; }
-  :global(.v3) .opt, :global(.v3) .row .opt { min-height: 52px; padding: 9px 14px 10px; border-radius: 12px; background: var(--s3); color: var(--tx); text-align: left; white-space: normal; font: 600 16px/1.25 var(--display); }
+  :global(.v3) .opt, :global(.v3) .row .opt { min-height: 52px; padding: 9px 14px 10px; border-radius: 12px; background: var(--s3); color: var(--tx); text-align: left; white-space: normal; font: 600 15px/1.25 var(--display); }
   :global(.v3) .opt.filled { background: var(--s3); color: var(--tx); }
   :global(.v3) .opt.rec { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
-  :global(.v3) .k { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1.2px var(--tx3); font: 500 11.5px/1 var(--mono); color: var(--tx2); }
+  :global(.v3) .k { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1.2px var(--tx3); font: 500 11px/1 var(--mono); color: var(--tx2); }
   :global(.v3) .rec .k { background: var(--tx); box-shadow: none; color: var(--s3); }
-  :global(.v3) .opt small, :global(.v3) .opt.filled small { margin: 2px 0 0 28px; font: 400 13px/1.3 var(--sans); color: var(--tx2); opacity: 1; }
+  :global(.v3) .opt small, :global(.v3) .opt.filled small { margin: 2px 0 0 28px; font: 400 12.5px/1.3 var(--sans); color: var(--tx2); opacity: 1; }
   :global(.v3) .opt:hover { filter: none; background: color-mix(in srgb, var(--tx) 8%, var(--s3)); }
 </style>

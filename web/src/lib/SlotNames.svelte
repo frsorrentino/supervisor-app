@@ -19,5 +19,5 @@
 <span class="usnames" bind:this={el} bind:clientWidth={width}>{line ?? '\u00a0'}</span>
 
 <style>
-  .usnames { display: block; width: 100%; font-size: 13.5px; line-height: 1.3; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .usnames { display: block; width: 100%; font-size: 14px; line-height: 1.3; color: var(--tx2); white-space: nowrap; overflow: hidden; }
 </style>

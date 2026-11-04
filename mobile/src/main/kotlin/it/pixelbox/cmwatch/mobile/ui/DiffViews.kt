@@ -71,7 +71,7 @@ val LocalDiffOpener = compositionLocalOf { DiffOpener() }
 
 /** Il carattere del diff: larghezza fissa, ogni riga alta 18 sp senza margini del carattere, uguale per numeri e testo. */
 private val DiffText = TextStyle(
-    fontFamily = V3.Mono, fontSize = 12.sp, lineHeight = 18.sp,
+    fontFamily = V3.Mono, fontSize = 12.5.sp, lineHeight = 18.sp,
     lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
     platformStyle = PlatformTextStyle(includeFontPadding = false),
 )
@@ -244,7 +244,7 @@ internal fun ChangesPill(c: ChangesCount, onClick: (() -> Unit)?, modifier: Modi
                     append(" ")
                     withStyle(SpanStyle(color = V3.Red)) { append("${DiffRules.MINUS}${c.removed}") }
                 },
-                style = MaterialTheme.typography.labelLarge.copy(fontFamily = V3.Sans, fontSize = 13.sp), color = V3.Tx, maxLines = 1, softWrap = false,
+                style = MaterialTheme.typography.labelLarge.copy(fontFamily = V3.Sans, fontSize = 12.5.sp), color = V3.Tx, maxLines = 1, softWrap = false,
             )
         }
     }

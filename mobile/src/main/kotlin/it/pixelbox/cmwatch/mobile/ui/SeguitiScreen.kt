@@ -86,7 +86,7 @@ fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?,
 @Composable private fun Note(t: String) = Text(t, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
 /** Dentro una riga aperta: niente fondo, la riga lo dà già (app-richiede-te-righe-02-11). Le schede scattate restano schede. */
 @Composable private fun Card(content: @Composable ColumnScope.() -> Unit) = Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
-@Composable private fun Boxed(content: @Composable ColumnScope.() -> Unit) = Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Cm.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
+@Composable private fun Boxed(content: @Composable ColumnScope.() -> Unit) = Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

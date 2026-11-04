@@ -42,18 +42,18 @@
 <style>
   .insp { height: 100%; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
   .lab { font: 11px var(--mono); letter-spacing: .12em; color: var(--text2); }
-  .kv { display: flex; gap: 16px; font: 13px var(--mono); color: var(--text2); }
+  .kv { display: flex; gap: 16px; font: 12.5px var(--mono); color: var(--text2); }
   .kv span:last-child { flex: 1; text-align: right; color: var(--text); overflow-wrap: anywhere; }
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-top: 4px; }
   .stat { border-radius: 12px; background: var(--low); border: 1px solid rgb(255 255 255 / .1); padding: 10px 12px; display: flex; flex-direction: column; }
   .stat b { font: 500 22px var(--mono); }
-  .stat span { font: 10px var(--mono); letter-spacing: .06em; color: var(--text2); }
+  .stat span { font: 11px var(--mono); letter-spacing: .06em; color: var(--text2); }
   .goal { font-size: 14px; color: var(--b-label); }
   .gh { display: flex; align-items: center; gap: 10px; margin-top: 8px; font: 11px var(--mono); letter-spacing: .12em; color: var(--text2); }
   .gh i { flex: 1; height: 1px; background: color-mix(in srgb, var(--text2) 40%, transparent); }
   .ev { display: flex; gap: 10px; align-items: flex-start; }
-  .at { font: 13px var(--mono); color: var(--text2); padding-top: 2px; }
-  .kind { font: 10px var(--mono); letter-spacing: .06em; border: 1px solid; border-radius: 5px; padding: 2px 6px; white-space: nowrap; margin-top: 2px; }
+  .at { font: 12.5px var(--mono); color: var(--text2); padding-top: 2px; }
+  .kind { font: 11px var(--mono); letter-spacing: .06em; border: 1px solid; border-radius: 5px; padding: 2px 6px; white-space: nowrap; margin-top: 2px; }
   .tx { flex: 1; font-size: 14px; }
   .dim { font-size: 12.5px; color: var(--text2); }
 </style>

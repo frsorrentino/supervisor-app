@@ -308,6 +308,8 @@ internal fun V3Theme(content: @Composable () -> Unit) {
         typography = t.copy(
             headlineSmall = d(t.headlineSmall, FontWeight.Bold), titleLarge = d(t.titleLarge, FontWeight.Bold), titleMedium = d(t.titleMedium), titleSmall = d(t.titleSmall),
             bodyLarge = b(t.bodyLarge), bodyMedium = b(t.bodyMedium), bodySmall = b(t.bodySmall), labelLarge = d(t.labelLarge), labelMedium = d(t.labelMedium),
+            // Gli ultimi tre ruoli restavano in Roboto (audit grafica 04/11).
+            labelSmall = b(t.labelSmall), headlineMedium = d(t.headlineMedium, FontWeight.Bold), displaySmall = d(t.displaySmall, FontWeight.Bold),
         ),
         content = content,
     )

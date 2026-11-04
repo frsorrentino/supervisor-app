@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 private fun scheme(day: Boolean) = (if (day) lightColorScheme() else darkColorScheme()).copy(
@@ -55,10 +56,10 @@ private fun scheme(day: Boolean) = (if (day) lightColorScheme() else darkColorSc
     tertiary = V3.Wait,
 )
 
-/** Angoli ampi e variati della scala Expressive: card grandi come le card brief, fogli e card di chi aspetta più morbidi. */
+/** Un raggio per famiglia, come il web (audit grafica 04/11): card, liste e dialoghi 14, riquadri interni 12, fogli dal basso 28 in alto. */
 private val cmShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp), small = RoundedCornerShape(12.dp), medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(14.dp), extraLarge = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(14.dp), extraLarge = RoundedCornerShape(14.dp),
 )
 
 /** Gerarchia forte: numeri grandi più pesanti, come quota e contatori sul polso; titoli un gradino sopra il corpo. */
@@ -71,7 +72,15 @@ private val cmType = Typography().run {
         displayLarge = displayLarge.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = CM_TNUM),
         displayMedium = displayMedium.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = CM_TNUM),
         titleLarge = titleLarge.copy(fontWeight = FontWeight.Medium),
-        titleMedium = titleMedium.copy(fontWeight = FontWeight.Medium),
+        titleMedium = titleMedium.copy(fontWeight = FontWeight.Medium, fontSize = 17.sp, lineHeight = 22.sp),
+        // La scala unica con il web (docs/verifiche/2026-11-04-audit-grafica.md): Nome 17, Tasto 15, Corpo 15,5, Piccolo 14,
+        // Misura 12,5, Minimo 11. bodyMedium è già Piccolo (14) e labelSmall già Minimo (11).
+        titleSmall = titleSmall.copy(fontSize = 15.sp, lineHeight = 20.sp),
+        bodyLarge = bodyLarge.copy(fontSize = 15.5.sp, lineHeight = 21.sp),
+        bodyMedium = bodyMedium.copy(lineHeight = 19.sp),
+        bodySmall = bodySmall.copy(fontSize = 12.5.sp, lineHeight = 17.sp),
+        labelLarge = labelLarge.copy(fontSize = 15.sp, lineHeight = 20.sp),
+        labelMedium = labelMedium.copy(fontSize = 12.5.sp, lineHeight = 17.sp),
     )
 }
 

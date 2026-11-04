@@ -100,7 +100,7 @@ private fun AdviceCard(a: MasterService.AdviceView, choices: Choices, model: Str
     val label = "${m?.label ?: ModelText.short(m) ?: a.model} · ${a.effort}"
     val tint = if (same) Cm.briefGood else Cm.advice
     Column(
-        Modifier.padding(horizontal = 12.dp, vertical = 2.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
+        Modifier.padding(horizontal = 12.dp, vertical = 2.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp))
             .background(tint.copy(alpha = .10f)).padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 14.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {

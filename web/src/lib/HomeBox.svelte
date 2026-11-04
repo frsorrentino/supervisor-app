@@ -149,11 +149,11 @@
 
 <style>
   .box { padding: 0 12px 24px; max-width: 720px; }
-  .hero { display: flex; gap: 14px; align-items: flex-start; background: var(--low); border-radius: 20px; padding: 14px 16px; margin-bottom: 14px; }
+  .hero { display: flex; gap: 14px; align-items: flex-start; background: var(--low); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
   .n { font-size: 44px; font-weight: 500; line-height: 1; flex: none; }
   .n.wait { color: var(--wait); } .n.busy { color: var(--busy); }
-  .hero p { font-size: 14.5px; line-height: 1.35; color: var(--text2); }
-  .sec { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px; padding: 0 4px; font: 500 12px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-transform: uppercase; }
+  .hero p { font-size: 14px; line-height: 1.35; color: var(--text2); }
+  .sec { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px; padding: 0 4px; font: 500 12.5px/1 var(--mono); letter-spacing: .14em; color: var(--text2); text-transform: uppercase; }
   /* Area di tocco allargata dentro il margine sopra, senza cambiare l'aspetto (app-bug-notte-03-11); 48 dp pieni chiederebbero spaziature nuove. */
   button.sec { position: relative; } button.sec::after { content: ''; position: absolute; inset: -13px 0 -6px; }
   .sec.red span { color: var(--gone); }
@@ -170,8 +170,8 @@
   .ic.n { background: color-mix(in srgb, var(--text2) 18%, transparent); color: var(--text2); }
   .kind.g { color: var(--idle); } .kind.b { color: var(--busy); } .kind.n { color: var(--text2); }
   .sec i { flex: 1; height: 1px; background: var(--line); }
-  .sec small { font-size: 13px; letter-spacing: 0; text-transform: none; font-family: inherit; }
-  .card { background: var(--low); border-radius: 20px; padding: 4px 14px; margin-bottom: 8px; }
+  .sec small { font-size: 12.5px; letter-spacing: 0; text-transform: none; font-family: inherit; }
+  .card { background: var(--low); border-radius: 14px; padding: 4px 14px; margin-bottom: 8px; }
   .row { display: flex; gap: 10px; padding: 10px 0; width: 100%; text-align: left; color: var(--text); align-items: flex-start; border-top: 1px solid var(--line); }
   .row:first-child { border-top: 0; }
   .row:disabled { cursor: default; }
@@ -183,16 +183,16 @@
   .bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .hd { display: flex; align-items: baseline; gap: 8px; }
   .hd b { font-weight: 600; flex: 1; min-width: 0; overflow-wrap: anywhere; }
-  .hd span { font: 12px var(--mono); color: var(--text2); flex: none; }
-  .kind { font: 500 11.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; overflow-wrap: anywhere; }
+  .hd span { font: 12.5px var(--mono); color: var(--text2); flex: none; }
+  .kind { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; overflow-wrap: anywhere; }
   .kind.w { color: var(--wait); } .kind.r { color: var(--gone); }
-  .tx { font-size: 14.5px; overflow-wrap: anywhere; }
-  .meta { font: 12px var(--mono); color: var(--text2); overflow-wrap: anywhere; }
+  .tx { font-size: 14px; overflow-wrap: anywhere; }
+  .meta { font: 12.5px var(--mono); color: var(--text2); overflow-wrap: anywhere; }
   .meta .busy { color: var(--busy); }
   .chev { flex: none; align-self: center; color: var(--text2); }
   .more { display: flex; align-items: center; gap: 8px; padding: 6px 4px 0; }
-  .more span { flex: 1; font: 12px var(--mono); color: var(--text2); }
+  .more span { flex: 1; font: 12.5px var(--mono); color: var(--text2); }
   .text { color: var(--icon); font-weight: 500; font-size: 14px; padding: 8px 6px; }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
-  .note { font-size: 13px; color: var(--text2); padding: 8px 4px 0; }
+  .note { font-size: 12.5px; color: var(--text2); padding: 8px 4px 0; }
 </style>

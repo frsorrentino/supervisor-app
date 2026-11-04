@@ -127,22 +127,22 @@
   .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; margin-top: -10px; }
   .ib:hover { background: var(--surface); }
   .sec { display: flex; flex-direction: column; gap: 4px; margin: 14px 0 2px; padding: 0 8px; text-align: left; }
-  .sec .h2 { display: flex; align-items: center; gap: 6px; font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text2); }
+  .sec .h2 { display: flex; align-items: center; gap: 6px; font: 500 12.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text2); }
   .sec small { color: var(--text2); font-size: 14px; }
   .need { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 14px; padding: 14px; border-radius: 24px; background: var(--surface); }
   .ni { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--high); font-weight: 700; }
   .nt { flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-  .nt b { font-size: 16px; font-weight: 500; }
+  .nt b { font-size: 15.5px; font-weight: 500; }
   .nt small { color: var(--text2); font-size: 14px; }
   .na { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-  .nb { padding: 10px 16px; border-radius: 22px; background: var(--high); color: var(--icon); font-weight: 500; font-size: 14.5px; white-space: normal; text-align: left; }
+  .nb { padding: 10px 16px; border-radius: 22px; background: var(--high); color: var(--icon); font-weight: 500; font-size: 14px; white-space: normal; text-align: left; }
   .nb.filled { background: var(--primary); color: var(--on-primary); }
   .nb:hover { filter: brightness(1.12); }
   .card { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 14px 18px; border-radius: 24px; background: var(--surface); text-align: left; }
   .card:hover { filter: brightness(1.06); }
   .hd { display: flex; align-items: center; gap: 8px; }
   .tt { flex: 1; font-size: 17px; font-weight: 500; overflow-wrap: anywhere; }
-  .st { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-weight: 600; font-size: 13px; padding: 4px 10px 4px 8px; border-radius: 999px; background: color-mix(in srgb, currentColor 16%, transparent); white-space: nowrap; }
+  .st { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-weight: 600; font-size: 12.5px; padding: 4px 10px 4px 8px; border-radius: 999px; background: color-mix(in srgb, currentColor 16%, transparent); white-space: nowrap; }
   .card small { color: var(--text2); font-size: 14px; }
   .out { font-size: 15.5px; line-height: 1.45; }
   .steps { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 6px; font-size: 15px; }

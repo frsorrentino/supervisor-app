@@ -52,7 +52,7 @@
   .pill button { height: 30px; display: grid; place-items: center; font: 500 20px/1 var(--sans, inherit); color: var(--text); }
   .pill button + button { border-top: 1px solid var(--line); }
   .pill button:hover { color: var(--accent); }
-  .tip { position: absolute; left: calc(100% + 8px); white-space: nowrap; padding: 4px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 13px; color: var(--text); pointer-events: none; }
+  .tip { position: absolute; left: calc(100% + 8px); white-space: nowrap; padding: 4px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; color: var(--text); pointer-events: none; }
   .pill.flip .tip { left: auto; right: calc(100% + 8px); }
   .tip1 { top: 2px; } .tip2 { top: 32px; }
   .link { position: fixed; z-index: 30; width: 28px; height: 2px; margin-top: -1px; background: var(--text); border-radius: 1px; opacity: .8; pointer-events: none; }

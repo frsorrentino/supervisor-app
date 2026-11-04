@@ -59,10 +59,10 @@
 </div>
 
 <style>
-  .try { width: 100%; max-height: 460px; overflow: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--bg); padding: 8px; box-sizing: border-box; position: relative; }
+  .try { width: 100%; max-height: 460px; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); padding: 8px; box-sizing: border-box; position: relative; }
   .mhead { display: flex; gap: 8px; align-items: baseline; padding: 4px; }
   .mhead small { color: var(--text2); }
-  p { padding: 4px; font-size: 14.5px; white-space: pre-line; }
+  p { padding: 4px; font-size: 14px; white-space: pre-line; }
   p.mine { color: var(--text2); }
   .done { color: var(--text2); }
   .open { color: var(--icon); text-decoration: underline; overflow-wrap: anywhere; }

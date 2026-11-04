@@ -27,6 +27,6 @@
   .stack { display: flex; flex-direction: column; justify-content: flex-end; height: 56px; }
   .stack i { display: block; border-radius: 2px; }
   .stack i.none { height: 2px; background: var(--b-track); }
-  small { font: 10px/1.2 var(--mono); color: var(--text2); text-align: center; white-space: nowrap; overflow: hidden; }
+  small { font: 11px/1.2 var(--mono); color: var(--text2); text-align: center; white-space: nowrap; overflow: hidden; }
   em { font-style: normal; color: var(--b-alert); }
 </style>

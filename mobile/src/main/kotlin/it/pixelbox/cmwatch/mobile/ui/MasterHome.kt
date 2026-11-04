@@ -169,7 +169,7 @@ internal fun AttentionRow(
             Summary.Group.STILL -> stringResource(R.string.summary_since, since(t))
         }
     }
-    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (open) tone.copy(alpha = 0.08f) else Color.Transparent)) {
+    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (open) tone.copy(alpha = 0.08f) else Color.Transparent)) {
         Row(
             Modifier.fillMaxWidth().handCursor().clickable(onClick = onToggle).padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),

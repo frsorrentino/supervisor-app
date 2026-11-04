@@ -37,7 +37,7 @@
   .arr { font-size: 20px; transition: transform .2s; }
   .arr.up { transform: rotate(180deg); }
   ul { list-style: none; margin: 0; padding: 0 12px 8px 60px; }
-  li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; font-size: 13px; border-top: 1px solid var(--line); }
+  li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; font-size: 12.5px; border-top: 1px solid var(--line); }
   li:first-child { border-top: 0; }
   .what { color: var(--text); }
   .what b { font-weight: 500; }

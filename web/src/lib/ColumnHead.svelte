@@ -32,7 +32,7 @@
   .head { background: var(--bg); border-bottom: 1px solid var(--line); cursor: grab; touch-action: none; user-select: none; }
   .head:active { cursor: grabbing; }
   .top { display: flex; align-items: center; gap: 10px; padding: 6px 4px 0 14px; }
-  b { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+  b { flex: 1; min-width: 0; font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; }
   .x { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); cursor: pointer; }
   .x:hover { background: var(--surface); }
   .state { padding: 0 16px 10px; font-size: 11px; letter-spacing: .1em; }
