@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trascinare la master</title>
+<style>
+  :root {
+    --bg: #0E1014; --s1: #16191F; --s2: #1D2128; --s3: #262B33; --line: #2A2F38;
+    --tx: #ECEEF2; --tx2: #A3A9B4; --tx3: #6E7582; --wait: #FFB23F; --busy: #6CB4FF; --act: #ECEEF2; --on-act: #0E1014;
+    --out: cubic-bezier(0.23, 1, 0.32, 1);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--tx); font: 15.5px/1.45 system-ui, sans-serif; padding: 20px 16px 40px; }
+  h1 { font: 700 22px system-ui; margin-bottom: 6px; }
+  .lead { color: var(--tx2); max-width: 900px; margin-bottom: 18px; font-size: 14px; }
+  section { margin-bottom: 26px; max-width: 1000px; }
+  h2 { font: 600 18px system-ui; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  h2 .k { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 13px; background: var(--s3); font-size: 14px; }
+  .what { color: var(--tx2); font-size: 14px; margin-bottom: 10px; }
+  .row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+  button.play { min-height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: var(--s3); color: var(--tx); font: 600 14px system-ui; cursor: pointer; }
+  .stage { position: relative; height: 420px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; touch-action: none; user-select: none; }
+  .col { position: absolute; top: 10px; bottom: 64px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); padding: 10px; transition: left 380ms var(--out), width 380ms var(--out), top 380ms var(--out), bottom 380ms var(--out); }
+  .col b { font: 600 15px system-ui; display: block; margin-bottom: 8px; }
+  .col i { display: block; height: 30px; border-radius: 10px; background: var(--s2); margin-bottom: 6px; }
+  .master { position: absolute; border-radius: 14px; background: #1B2230; border: 1px solid #2E3A50; display: flex; align-items: center; gap: 10px; padding: 0 12px; z-index: 2;
+    transition: left 380ms var(--out), top 380ms var(--out), width 380ms var(--out), height 380ms var(--out); }
+  .master .grip { width: 22px; height: 30px; display: grid; place-items: center; color: var(--tx3); cursor: grab; font-size: 18px; letter-spacing: -2px; }
+  .master b { font: 600 15px system-ui; }
+  .master small { color: var(--tx2); font-size: 13px; }
+  .master.held { box-shadow: 0 10px 30px rgba(0,0,0,.5); cursor: grabbing; transition: none; z-index: 6; opacity: .92; }
+  .dim { position: absolute; inset: 0; background: rgba(0,0,0,.42); opacity: 0; transition: opacity 160ms var(--out); pointer-events: none; z-index: 3; }
+  .dim.on { opacity: 1; }
+  /* A: anteprima a fantasma */
+  .ghost { position: absolute; border-radius: 14px; background: color-mix(in srgb, var(--busy) 18%, transparent); border: 2px solid color-mix(in srgb, var(--busy) 70%, transparent);
+    opacity: 0; z-index: 4; pointer-events: none; transition: left 200ms var(--out), top 200ms var(--out), width 200ms var(--out), height 200ms var(--out), opacity 140ms; }
+  .ghost.on { opacity: 1; }
+  .tag { position: absolute; left: 50%; top: 50%; translate: -50% -50%; padding: 6px 12px; border-radius: 14px; background: var(--s2); font: 600 14px system-ui; white-space: nowrap; }
+  /* B: zone tutte visibili */
+  .zone { position: absolute; border-radius: 14px; border: 1.5px dashed color-mix(in srgb, var(--tx) 30%, transparent); z-index: 4; pointer-events: none; opacity: 0;
+    transition: opacity 160ms, background 140ms, border-color 140ms; display: grid; place-items: center; color: var(--tx2); font: 600 14px system-ui; }
+  .zone.show { opacity: 1; }
+  .zone.on { background: color-mix(in srgb, var(--busy) 26%, transparent); border: 2px solid var(--busy); color: var(--tx); }
+  /* C: come oggi, più discreta */
+  .mk { position: absolute; z-index: 4; border-radius: 2px; background: var(--tx3); opacity: 0; transition: opacity 160ms, background 140ms, width 140ms, height 140ms; translate: -50% -50%; pointer-events: none; }
+  .mk.show { opacity: .55; }
+  .mk.on { background: var(--wait); opacity: 1; }
+  .mk span { position: absolute; padding: 3px 9px; border-radius: 10px; background: var(--s2); font: 600 13px system-ui; white-space: nowrap; color: var(--tx); opacity: 0; transition: opacity 120ms; }
+  .mk.on span { opacity: 1; }
+  .mk.h { height: 3px; width: 36px; } .mk.h.on { width: 64px; } .mk.h span { left: 50%; bottom: 10px; translate: -50% 0; }
+  .mk.v { width: 3px; height: 36px; } .mk.v.on { height: 64px; } .mk.v span { top: 50%; translate: 0 -50%; left: 10px; } .mk.v.r span { left: auto; right: 10px; }
+  .land { position: absolute; z-index: 5; border-radius: 14px; border: 2px solid var(--wait); pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<h1>Trascinare la master: tre direzioni</h1>
+<p class="lead">Compito app-trascina-rifinitura-04-11, parte 2. Ogni riquadro è la plancia larga ridotta: trascina la riga della master dalla maniglia ⋮⋮ (mouse o dito), oppure premi «Riproduci». I posti sono quattro: colonna a sinistra, colonna a destra, sotto la home, riga in basso. Tutte e tre hanno già la parte 1 (sosta, pulizia, calamita). La scelta vale poi su web e tablet.</p>
+
+<section data-v="a">
+  <h2><span class="k">A</span>Anteprima a fantasma</h2>
+  <p class="what">Come lo snap di Windows 11 e il tiling di macOS: lo sfondo si scurisce e un riquadro traslucido mostra dove e quanto grande sarà la master; scivola da un posto all'altro seguendo il dito. Si vede solo il posto di arrivo.</p>
+  <div class="row"><button class="play">Riproduci</button></div>
+  <div class="stage"></div>
+</section>
+
+<section data-v="b">
+  <h2><span class="k">B</span>Zone tutte visibili</h2>
+  <p class="what">Come FancyZones e i gruppi di editor di VS Code: appena parte il gesto lo sfondo si scurisce e compaiono tutti e quattro i posti tratteggiati, col nome; quello sotto il dito si riempie. Si vede tutto, anche quello che non si sceglie.</p>
+  <div class="row"><button class="play">Riproduci</button></div>
+  <div class="stage"></div>
+</section>
+
+<section data-v="c">
+  <h2><span class="k">C</span>Come oggi, più discreta</h2>
+  <p class="what">I segni di oggi sui bordi, più sottili e senza alone; quello preso si allunga in ambra con l'etichetta piccola. Lo sfondo resta com'è: la pagina che si riorganizza sotto il dito fa da anteprima.</p>
+  <div class="row"><button class="play">Riproduci</button></div>
+  <div class="stage"></div>
+</section>
+
+<script>
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+  const LABEL = { left: 'Colonna a sinistra', right: 'Colonna a destra', under: 'Sotto la home', bar: 'Una riga in basso' }
+  function build(sec) {
+    const v = sec.dataset.v, st = sec.querySelector('.stage')
+    st.innerHTML = `
+      <div class="col home"><b>Home</b><i></i><i></i><i></i><i></i></div>
+      <div class="col s1"><b>storefront</b><i></i><i></i><i></i></div>
+      <div class="col s2"><b>ledger-api</b><i></i><i></i></div>
+      <div class="master"><span class="grip">⋮⋮</span><span><b>Master</b> <small>Fase 2.2 avviata su payments-api</small></span></div>
+      <div class="dim"></div><div class="ghost"><span class="tag"></span></div>`
+    let place = 'bar'
+    const W = () => st.clientWidth, H = () => st.clientHeight
+    const rects = () => {
+      const w = W(), h = H(), cw = Math.min(300, w * 0.3)
+      return {
+        left: { x: 10, y: 10, w: cw, h: h - 20 }, right: { x: w - cw - 10, y: 10, w: cw, h: h - 20 },
+        under: { x: 10, y: h * 0.52, w: Math.min(260, w * 0.27), h: h * 0.48 - 10 }, bar: { x: 10, y: h - 54, w: w - 20, h: 44 },
+      }
+    }
+    const put = (el, r) => Object.assign(el.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' })
+    const home = st.querySelector('.home'), s1 = st.querySelector('.s1'), s2 = st.querySelector('.s2'), m = st.querySelector('.master')
+    const dim = st.querySelector('.dim'), ghost = st.querySelector('.ghost')
+    // B: le zone; C: i segni.
+    const zones = {}, marks = {}
+    for (const k of Object.keys(LABEL)) {
+      if (v === 'b') { const z = document.createElement('div'); z.className = 'zone'; z.textContent = LABEL[k]; st.append(z); zones[k] = z }
+      if (v === 'c') { const mk = document.createElement('i'); mk.className = 'mk ' + (k === 'left' || k === 'right' ? 'v' : 'h') + (k === 'right' ? ' r' : ''); mk.innerHTML = `<span>${LABEL[k]}</span>`; st.append(mk); marks[k] = mk }
+    }
+    function layout(p) {
+      const w = W(), h = H(), r = rects()[p]
+      let x0 = 10, x1 = w - 10
+      if (p === 'left') x0 = r.x + r.w + 10
+      if (p === 'right') x1 = r.x - 10
+      const homeW = Math.min(260, w * 0.27)
+      const bottom = p === 'bar' ? 64 : 10
+      Object.assign(home.style, { left: x0 + 'px', width: homeW + 'px', bottom: (p === 'under' ? h - r.y + 10 : bottom) + 'px' })
+      const rest = x1 - (x0 + homeW + 10), sw = (rest - 10) / 2
+      Object.assign(s1.style, { left: x0 + homeW + 10 + 'px', width: sw + 'px', bottom: bottom + 'px' })
+      Object.assign(s2.style, { left: x0 + homeW + 20 + sw + 'px', width: sw + 'px', bottom: bottom + 'px' })
+      if (!m.classList.contains('held')) put(m, r)
+      const rs = rects()
+      for (const k in zones) put(zones[k], rs[k])
+      const at = { left: [16, h / 2], right: [w - 16, h / 2], under: [10 + homeW / 2, h * 0.52], bar: [w / 2, h - 12] }
+      for (const k in marks) Object.assign(marks[k].style, { left: at[k][0] + 'px', top: at[k][1] + 'px' })
+    }
+    // La sosta e il margine della parte 1: un posto nuovo vince se resta sotto il dito 140 ms.
+    let target = null, cand = null, since = 0, timer
+    const under = (x, y) => {
+      const w = W(), h = H()
+      if (y > h - 90) return 'bar'
+      if (x < w * 0.22) return 'left'
+      if (x > w * 0.78) return 'right'
+      if (x < w * 0.5 && y > h * 0.45) return 'under'
+      return target ?? place
+    }
+    function show(t) {
+      target = t
+      if (v === 'a') { ghost.classList.add('on'); put(ghost, rects()[t]); ghost.querySelector('.tag').textContent = LABEL[t] }
+      if (v === 'b') for (const k in zones) zones[k].classList.toggle('on', k === t)
+      if (v === 'c') { for (const k in marks) marks[k].classList.toggle('on', k === t); place = t; layout(t) }
+    }
+    function feed(x, y) {
+      const k = under(x, y)
+      if (k === target) { cand = null; return }
+      if (cand !== k) { cand = k; since = performance.now() }
+      clearTimeout(timer)
+      const left = 140 - (performance.now() - since)
+      if (left <= 0) { cand = null; show(k) } else timer = setTimeout(() => feed(x, y), left + 5)
+    }
+    function start() {
+      target = place; m.classList.add('held')
+      if (v !== 'c') dim.classList.add('on')
+      if (v === 'a') show(place)
+      if (v === 'b') { for (const k in zones) zones[k].classList.add('show'); show(place) }
+      if (v === 'c') { for (const k in marks) marks[k].classList.add('show'); show(place) }
+    }
+    function end(commit) {
+      clearTimeout(timer)
+      const to = commit ? target : place
+      m.classList.remove('held'); dim.classList.remove('on'); ghost.classList.remove('on')
+      for (const k in zones) zones[k].classList.remove('show', 'on')
+      for (const k in marks) marks[k].classList.remove('show', 'on')
+      place = to; layout(place)
+      // Il riquadro d'arrivo: parte al rilascio, segue la master, resta acceso e sfuma (parte 1).
+      if (commit) {
+        const r = rects()[place], el = document.createElement('div'); el.className = 'land'; st.append(el)
+        const g = m.getBoundingClientRect(), s = st.getBoundingClientRect()
+        const from = { x: g.left - s.left, y: g.top - s.top, w: g.width, h: g.height }
+        const at = (b) => ({ left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px' })
+        el.animate([{ ...at(from), opacity: 1, easing: 'cubic-bezier(0.23,1,0.32,1)' }, { ...at(r), opacity: 1, offset: 0.38 }, { ...at(r), opacity: 1, offset: 0.7 }, { ...at(r), opacity: 0 }], { duration: 1000, fill: 'forwards' }).onfinish = () => el.remove()
+      }
+    }
+    let grab = null
+    m.querySelector('.grip').addEventListener('pointerdown', (e) => {
+      e.preventDefault()
+      const g = m.getBoundingClientRect()
+      grab = { dx: e.clientX - g.left, dy: e.clientY - g.top }
+      start()
+      const s = st.getBoundingClientRect()
+      const move = (ev) => { Object.assign(m.style, { left: ev.clientX - s.left - grab.dx + 'px', top: ev.clientY - s.top - grab.dy + 'px' }); feed(ev.clientX - s.left, ev.clientY - s.top) }
+      const stop = (ok) => () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key); end(ok) }
+      const up = stop(true), cancel = stop(false), key = (ev) => { if (ev.key === 'Escape') cancel() }
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel); window.addEventListener('keydown', key)
+    })
+    async function play() {
+      const s = st.getBoundingClientRect(), w = W(), h = H()
+      const path = [[w * 0.5, h - 30], [w * 0.45, h * 0.62], [w * 0.3, h * 0.6], [w * 0.12, h * 0.5], [w * 0.1, h * 0.45], [w * 0.5, h * 0.4], [w * 0.88, h * 0.45], [w * 0.9, h * 0.5]]
+      start()
+      let [px, py] = path[0]
+      for (const [x, y] of path.slice(1)) {
+        for (let i = 1; i <= 14; i++) {
+          const cx = px + (x - px) * i / 14, cy = py + (y - py) * i / 14
+          Object.assign(m.style, { left: cx - 60 + 'px', top: cy - 20 + 'px', width: '320px', height: '44px' })
+          feed(cx, cy); await wait(22)
+        }
+        ;[px, py] = [x, y]; await wait(260)
+      }
+      end(true); await wait(1400)
+      start(); for (let i = 0; i <= 20; i++) { const cx = w * 0.85 - i * w * 0.02, cy = h * 0.5 + i * (h * 0.45 / 20); Object.assign(m.style, { left: cx - 60 + 'px', top: cy - 20 + 'px', width: '320px', height: '44px' }); feed(cx, cy); await wait(24) }
+      await wait(300); end(true)
+    }
+    sec.querySelector('.play').onclick = play
+    layout(place); new ResizeObserver(() => layout(place)).observe(st)
+    return play
+  }
+  const plays = [...document.querySelectorAll('section')].map(build)
+  window.playAll = () => plays.forEach((p) => p())
+</script>
+</body>
+</html>
