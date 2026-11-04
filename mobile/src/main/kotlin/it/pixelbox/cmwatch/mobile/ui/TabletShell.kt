@@ -595,7 +595,7 @@ private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier)
         }
         // Luce 3 (app-luci-02-11): la linea resta normale, brilla solo il punto di oggi (due velature, niente sfocature).
         if (!V3.day) { drawCircle(Color.White.copy(alpha = 0.10f), 9.dp.toPx(), dot); drawCircle(Color.White.copy(alpha = 0.25f), 6.dp.toPx(), dot) }
-        drawCircle(if (V3.day) Cm.briefWeek else Color(0xFFF4F7FB), 4.dp.toPx(), dot)
+        drawCircle(if (V3.day) Cm.briefWeek else Color(0xFFF6F6F6), 4.dp.toPx(), dot)
         val n = measurer.measure(nowText, strong)
         val ny = if (dot.y - 8.dp.toPx() - n.size.height > y100 + 4.dp.toPx()) dot.y - 6.dp.toPx() - n.size.height else dot.y + 6.dp.toPx()
         val nx = if (dot.x - 7.dp.toPx() - n.size.width >= l) dot.x - 7.dp.toPx() - n.size.width else minOf(dot.x + 7.dp.toPx(), xr - n.size.width)
@@ -891,7 +891,8 @@ private fun DeskBody(
     // Luce 4 (app-luci-02-11): sul tablet lo sfondo è chiaro in alto al centro e scuro ai bordi; di giorno il fondo di sempre.
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().then(if (V3.day) Modifier.background(Cm.bg) else Modifier.drawBehind {
         // Luce a metà intensità, come la PWA larga (Franz 03/11 17:46 e 18:12, app-luci-02-11).
-        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(0f to Color(0xFF181C24), 0.6f to Color(0xFF101218), 1f to Color(0xFF0A0B0E), center = Offset(size.width / 2f, 0f), radius = maxOf(size.width * 0.75f, 1f)))
+        // Solo grigi (Franz 04/11, app-luci-grigie-04-11): stessa luminosità di #181C24, #101218, #0A0B0E.
+        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(0f to Color(0xFF1C1C1C), 0.6f to Color(0xFF121212), 1f to Color(0xFF0B0B0B), center = Offset(size.width / 2f, 0f), radius = maxOf(size.width * 0.75f, 1f)))
     }).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
         val homeW = if (homeHidden) 0.dp else 400.dp
         val handleW = if (homeHidden) 0.dp else 28.dp

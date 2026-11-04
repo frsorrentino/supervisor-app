@@ -216,7 +216,7 @@ internal fun Plancia(
             Row(Modifier.weight(1f).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 cols.forEach { parts ->
                     val shape = RoundedCornerShape(14.dp)
-                    Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(V3.S1.copy(alpha = 0.6f)).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape)).testTag("plancia-col")) {
+                    Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(Color(0xFF131313).copy(alpha = 0.6f)).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape)).testTag("plancia-col")) {
                         // Una colonna con più categorie: una dopo l'altra nello stesso scorrimento, come nella PWA.
                         column(parts)
                     }

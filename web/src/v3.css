@@ -236,7 +236,7 @@
 :root:root .sec.hot small { background: rgba(255, 178, 63, .10); outline: 1px solid rgba(255, 178, 63, .28); outline-offset: -1px; }
 :root:root .sec.hot .ic { filter: drop-shadow(0 0 3px rgba(255, 178, 63, .45)); }
 /* 3. Nel grafico della settimana brilla solo il punto di oggi. */
-:root:root .nowdot { fill: #F4F7FB; filter: drop-shadow(0 0 3px rgba(255, 255, 255, .9)) drop-shadow(0 0 8px rgba(255, 255, 255, .35)); }
+:root:root .nowdot { fill: #F6F6F6; filter: drop-shadow(0 0 3px rgba(255, 255, 255, .9)) drop-shadow(0 0 8px rgba(255, 255, 255, .35)); }
 /* 4. Web largo e tablet: lo sfondo è chiaro in alto al centro e scuro ai bordi; il telefono resta nero pieno. */
 @media (min-width: 900px) {
   /* Luce più discreta (Franz 03/11 17:46: «troppo forte»). */
