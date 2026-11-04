@@ -116,8 +116,12 @@ internal fun ItemList(
     V3List {
         rows.take(n + rows.count { it.key in gone }).forEachIndexed { i, r ->
             androidx.compose.runtime.key(r.key) {
+                // Divisore e riga in una colonna: dentro AnimatedVisibility, che li sovrapporrebbe come un Box, la riga perdeva il divisore
+                // (1 px più in alto da lì in giù nei golden di 9622c048).
                 androidx.compose.animation.AnimatedVisibility(r.key !in gone, enter = androidx.compose.animation.EnterTransition.None, exit = confirmedExit(off)) {
-                    ItemRowView(r, right(r), i == 0, openKey == r.key, name(r), "$tag-${r.key}", onClick = { openKey = if (openKey == r.key) null else r.key }) { card(r) }
+                    Column(Modifier.fillMaxWidth()) {
+                        ItemRowView(r, right(r), i == 0, openKey == r.key, name(r), "$tag-${r.key}", onClick = { openKey = if (openKey == r.key) null else r.key }) { card(r) }
+                    }
                 }
             }
         }
