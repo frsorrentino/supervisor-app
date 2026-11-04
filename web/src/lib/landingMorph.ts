@@ -9,7 +9,7 @@ export const PLACES = ['.dpanel.under', 'aside.dpanel:not(.stackcol)', 'aside.mp
 
 /** I tempi: lo spostamento della master al rilascio (il gruppo `master-morph` in v3.css), lo scivolare della sagoma da un posto
  *  all'altro, lo sfondo che si scurisce, la sagoma che sparisce. */
-export const MOVE_MS = 380, SLIDE_MS = 200, DIM_MS = 160, FADE_MS = 200
+export const MOVE_MS = 700, SLIDE_MS = 200, DIM_MS = 160, FADE_MS = 200
 export const MOVE_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)'
 
 const css = (b: Box) => ({ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` })

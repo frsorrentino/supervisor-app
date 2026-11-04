@@ -799,12 +799,12 @@
     // (app-home-riposiziona-animata-04-11, `html.reflow` in v3.css).
     const reflow = wide && !m
     if (reflow) { reflowN++; document.documentElement.classList.add('reflow'); oneName(focus) }
-    const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : reflow ? async () => { go(); await tick(); oneName(focus) } : go)
+    const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : reflow ? async () => { const was = stacked; go(); await tick(); oneName(focus); order(was, stacked) } : go)
     for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
     if (m) vt.finished.catch(() => {}).finally(m.done)
     if (reflow) vt.finished.catch(() => {}).finally(() => {
       if (--reflowN > 0) return
-      document.documentElement.classList.remove('reflow')
+      document.documentElement.classList.remove('reflow', 'reflow-master-first', 'reflow-home-first')
       for (const el of document.querySelectorAll<HTMLElement>('[data-vt], .desk .col[data-col]')) { el.style.removeProperty('view-transition-name'); el.style.removeProperty('view-transition-class') }
     })
     return vt
@@ -812,6 +812,15 @@
   // I nomi del cambio, prima e dopo: un nome doppio annulla tutta la transizione, quindi il secondo resta senza. La sessione
   // `focus` è una cosa sola: la sua colonna se c'è, se no la sua scheda, così aprendo la scheda si espande nella colonna e
   // chiudendo la colonna rientra nella scheda, mentre le altre scivolano al loro posto.
+  // Chi si muove prima (Franz 04/11 dal telefono: «durante la riduzione della master da una colonna a metà colonna alcuni elementi si
+  // sovrappongono»): quando la master scende sotto la home si ritira prima lei e poi entrano le schede; quando risale escono prima
+  // le schede e poi lei cresce. Così le une non passano mai sopra l'altra.
+  function order(was: boolean, now: boolean) {
+    const c = document.documentElement.classList
+    c.remove('reflow-master-first', 'reflow-home-first')
+    if (!was && now) c.add('reflow-master-first')
+    else if (was && !now) c.add('reflow-home-first')
+  }
   function oneName(focus: string | null) {
     const seen = new Set<string>()
     for (const el of document.querySelectorAll<HTMLElement>('[data-vt]')) {
