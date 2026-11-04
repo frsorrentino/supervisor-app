@@ -35,6 +35,23 @@ Uguali già oggi: soglia 840, massimo 4 colonne, larghezze in dodicesimi, scambi
 
 Ogni passo: golden Paparazzi a 1280×800 dp accanto allo screenshot della PWA alla stessa larghezza.
 
-## Dopo
+## Dopo (04/11 03:20, sha 59238b76)
 
-Da compilare a porting finito, con le stesse righe.
+| # | Tablet adesso | Resta diverso |
+|---|---------------|---------------|
+| 1 | Plancia per categorie (`Plancia`, `DeskHead`), ordine della home, colonne da 320 dp, quelle in più in fondo all'ultima nello stesso scorrimento; testata ferma in alto | - |
+| 2 | Come la PWA, che oggi non passa la fascia alla plancia (`top={null}`): le voci in cima stanno in testa alla loro colonna | - |
+| 3 | Pannelli staccati col bordo illuminato; sezioni sempre aperte | Le testate di sezione nelle colonne hanno ancora la freccia (nella PWA sono ferme, senza) |
+| 4 | Barra della master in fondo, con la maniglia | Nella barra manca il campo per scrivere alla master |
+| 5 | Pannello di lato 420 / 720 o misura libera col bordo (scatti a colonna e metà schermo) | - |
+| 6 | Destra o sinistra, ricordato (`ui/master_place`) | - |
+| 7 | Sotto la home, compatta o a metà, con la maniglia che alterna | Compatta mostra solo la barra della master; nella PWA anche l'ultimo messaggio e il campo |
+| 8 | Maniglia del lato, bordo della larghezza, bordo superiore e barra tirata su; segni con calamita ed etichetta; annullato torna com'era | Regole provate con test JVM; il gesto sullo schermo non ha un test automatico: va provato sul tablet |
+| 9 | Tasto Posizione con lati, sotto la home (solo con sessioni aperte), Allarga/Stringi, Chiudi | - |
+| 10 | Home dal lato della master | - |
+| 11 | Pillole + e › nel filo, filo bianco su quella già in colonna | Sul tablet niente passaggio del mouse: le due scritte della PWA non compaiono |
+
+In più resta diversa la colonna Risorse: sul tablet PC Windows (stato e RAM) e Ricorrenti; la PWA mostra anche le sessioni di
+ogni host, le pubblicazioni di oggi (`published_today`, che il modello Kotlin non legge ancora) e il lancio rapido.
+
+Golden: `TabletShellTest` `planciaEmpty`, `planciaMasterOpen`, `deskMasterLeft`, `deskMasterUnder`, `deskSwapPills` (dalla CI).
