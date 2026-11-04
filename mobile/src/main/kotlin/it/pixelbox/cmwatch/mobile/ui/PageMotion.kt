@@ -169,7 +169,7 @@ private fun MorphIn(press: androidx.compose.ui.geometry.Offset, content: @Compos
 
 /**
  * Effetto D (app-audit-grafica-animazioni-04-11, scelto da Franz il 04/11): la testata della home si compatta scorrendo, legata
- * al dito. `SummaryList` scrive qui quanto è scesa la lista (in px, tetto a 1000); la testata e il tabellone lo leggono nel
+ * al dito. `SummaryList` scrive qui quanto è scesa la lista (in px, tetto a 1000); la testata lo legge nel
  * disegno, senza ricomporre. Con le animazioni spente, e negli snapshot, resta tutto fermo.
  */
 object HomeScroll {
@@ -201,15 +201,3 @@ fun Modifier.compactRule(color: androidx.compose.ui.graphics.Color): Modifier {
     }
 }
 
-/** Il tabellone si ritira mentre passa sotto la testata: fino a un quarto di opacità e al 96%, nei primi 110 dp. */
-@Composable
-fun Modifier.foldUnder(state: androidx.compose.foundation.lazy.LazyListState, key: Any): Modifier {
-    if (animationsOff()) return this
-    val range = with(androidx.compose.ui.platform.LocalDensity.current) { 110.dp.toPx() }
-    return this.graphicsLayer {
-        val off = state.layoutInfo.visibleItemsInfo.firstOrNull { it.key == key }?.offset ?: 0
-        val f = (-off / range).coerceIn(0f, 1f)
-        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0f)
-        alpha = 1f - 0.75f * f; val s = 1f - 0.04f * f; scaleX = s; scaleY = s
-    }
-}

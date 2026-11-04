@@ -639,7 +639,7 @@ fun SummaryList(
         var slotContent: @Composable () -> Unit = {}
         if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
-                Box(moving().onGloballyPositioned { c -> boardBox = c }.foldUnder(listState, "kpi-7")) {
+                Box(moving().onGloballyPositioned { c -> boardBox = c }) {
                     Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, { b ->
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
                         // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre.
