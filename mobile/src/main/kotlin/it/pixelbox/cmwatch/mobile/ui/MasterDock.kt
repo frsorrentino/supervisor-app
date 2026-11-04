@@ -71,9 +71,8 @@ internal val MasterKey get() = V3.S3
  */
 @Composable
 internal fun rememberMorphShape(source: androidx.compose.foundation.interaction.MutableInteractionSource): androidx.compose.ui.graphics.Shape {
-    val pressed by source.collectIsPressedAsState()
-    val radius by androidx.compose.animation.core.animateDpAsState(if (pressed) 12.dp else 22.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "morph")
-    return RoundedCornerShape(radius)
+    // Ferma anche al tocco (app-tasto-forma-tocco-04-11): il tasto si stringe al 97 % (pressScale) e resta tondo.
+    return RoundedCornerShape(22.dp)
 }
 
 /** La scintilla di Claude, l'unico colore della master: otto raggi, gira mentre la master lavora o aspetta un permesso. */
@@ -184,7 +183,7 @@ fun MasterDock(
         ) {
             val toggleKey: @Composable () -> Unit = {
                 val toggleSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                FilledTonalIconButton(onClick = onToggleKey, modifier = Modifier.size(44.dp), shape = rememberMorphShape(toggleSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = toggleSrc) {
+                FilledTonalIconButton(onClick = onToggleKey, modifier = Modifier.size(44.dp).pressScale(toggleSrc), shape = rememberMorphShape(toggleSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = toggleSrc) {
                     Icon(
                         if (toggleUp) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                         stringResource(if (toggleUp) R.string.dock_conversation else R.string.dock_collapse), tint = Cm.text,
@@ -195,7 +194,7 @@ fun MasterDock(
             if (places == null) toggleKey()
             if (places == null) onClose?.let { close ->
                 val closeSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                FilledTonalIconButton(onClick = close, modifier = Modifier.size(44.dp), shape = rememberMorphShape(closeSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = closeSrc) {
+                FilledTonalIconButton(onClick = close, modifier = Modifier.size(44.dp).pressScale(closeSrc), shape = rememberMorphShape(closeSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = closeSrc) {
                     Icon(Icons.Rounded.ExpandMore, stringResource(R.string.dock_close), tint = Cm.text)
                 }
             }
@@ -229,7 +228,7 @@ fun MasterDock(
             val reading = spoken != null && LocalSpeaking.current == spoken
             if (reading) RatePill()
             val speakSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-            if (spoken != null) FilledTonalIconButton(onClick = { onSpeak(spoken) }, modifier = Modifier.size(44.dp), shape = rememberMorphShape(speakSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = speakSrc) {
+            if (spoken != null) FilledTonalIconButton(onClick = { onSpeak(spoken) }, modifier = Modifier.size(44.dp).pressScale(speakSrc), shape = rememberMorphShape(speakSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = speakSrc) {
                 Icon(
                     if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
                     stringResource(if (reading) R.string.stop_reading else R.string.dock_listen), tint = Cm.text,
@@ -239,7 +238,7 @@ fun MasterDock(
                 var menu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
                 Box {
                     val placeSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                    FilledTonalIconButton(onClick = { menu = true }, modifier = Modifier.size(44.dp).testTag("master-posizione"), shape = rememberMorphShape(placeSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = placeSrc) {
+                    FilledTonalIconButton(onClick = { menu = true }, modifier = Modifier.size(44.dp).testTag("master-posizione").pressScale(placeSrc), shape = rememberMorphShape(placeSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = placeSrc) {
                         Icon(androidx.compose.material.icons.Icons.Rounded.SpaceDashboard, stringResource(R.string.master_place), tint = Cm.text)
                     }
                     androidx.compose.material3.DropdownMenu(menu, { menu = false }) {

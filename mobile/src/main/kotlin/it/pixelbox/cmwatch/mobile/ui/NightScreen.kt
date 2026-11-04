@@ -244,7 +244,7 @@ private fun slashPhrases(): Map<String, String> = mapOf(
 @Composable
 private fun NeedButton(label: String, filled: Boolean, onClick: () -> Unit) {
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    if (filled) Button(onClick = onClick, shape = pressShape(press), interactionSource = press) { Text(label) } else FilledTonalButton(onClick = onClick, shape = pressShape(press), interactionSource = press) { Text(label) }
+    if (filled) Button(onClick = onClick, modifier = Modifier.pressScale(press), shape = pressShape(press), interactionSource = press) { Text(label) } else FilledTonalButton(onClick = onClick, modifier = Modifier.pressScale(press), shape = pressShape(press), interactionSource = press) { Text(label) }
 }
 
 private fun iconColor(i: NightPage.Icon): Color = when (i) {

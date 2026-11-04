@@ -36,7 +36,7 @@ button.tonal, button.filled, button.approve, button.mini, button.text, button.vb
 button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active, button.vbtn:active { transform: scale(.97); transition-duration: 100ms, 120ms; }
 /* Effetto C (app-audit-grafica-animazioni-04-11, scelto da Franz il 04/11): premuta, la pillola diventa un rettangolo morbido e
    torna con la molla al rilascio. `:root` per battere i raggi scritti nei componenti. */
-@media (prefers-reduced-motion: no-preference) { :root :is(button.tonal, button.filled, button.approve, button.vbtn):active { border-radius: 9px; } }
+/* Al tocco la forma resta quella di riposo, solo la scala al 97 % (Franz 04/11 22:28, app-tasto-forma-tocco-04-11: «il tasto quadrato tondo al clic non va bene»). */
 @media (prefers-reduced-motion: reduce) { button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active, button.vbtn:active { transform: none; } }
 /* Voce 1: la linea del lavoro in corso. Non si riempie: il relay non sa quanto manca. */
 .edge-line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; pointer-events: none; background: color-mix(in srgb, var(--busy) 22%, transparent); animation: edge-in 200ms ease-out; }
