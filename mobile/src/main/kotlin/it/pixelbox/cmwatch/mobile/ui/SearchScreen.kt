@@ -144,11 +144,11 @@ fun SearchScreen(
                     Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp).clip(RoundedCornerShape(16.dp)).background(V3.S1)) {
                         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Box(Modifier.size(10.dp).clip(CircleShape).background(if (g.session == null) V3.Tx2 else if (g.live == false) V3.Tx3 else color(g.session)))
-                            // Il nome intero, anche su due righe, mai tagliato (regole di larghezza di Franz).
-                            Text(g.session ?: stringResource(R.string.tab_diary), style = V3.Section.copy(fontSize = 17.sp), maxLines = 2, modifier = Modifier.weight(1f, fill = false))
-                            Text(g.hits.size.toString(), style = V3.Meter.copy(color = V3.Tx3, fontSize = 13.sp))
-                            Spacer(Modifier.weight(1f))
-                            g.live?.let { l -> Text(stringResource(if (l) R.string.search_open_one else R.string.search_closed), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.sp)) }
+                            // Il nome intero su una riga, mai spezzato (regole di larghezza di Franz): quando manca posto cede «aperta».
+                            Text(g.session ?: stringResource(R.string.tab_diary), style = V3.Section.copy(fontSize = 17.sp), maxLines = 1, softWrap = false)
+                            Text(g.hits.size.toString(), style = V3.Meter.copy(color = V3.Tx3, fontSize = 13.sp), maxLines = 1, softWrap = false)
+                            Text(g.live?.let { l -> stringResource(if (l) R.string.search_open_one else R.string.search_closed) }.orEmpty(), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.sp),
+                                maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
                         }
                         g.hits.forEach { h ->
                             val can = h.kind != ChatSearch.Kind.CONVERSATION || h.live == true || h.session in known
