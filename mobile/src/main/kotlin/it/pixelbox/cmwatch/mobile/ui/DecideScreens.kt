@@ -191,7 +191,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
             if (b == BancoProva.Build.TO_INSTALL) Text(stringResource(R.string.prove_install_first), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, modifier = Modifier.padding(horizontal = 4.dp))
             if (b == BancoProva.Build.UNKNOWN) Text(stringResource(R.string.prove_build_unknown), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
             // Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok.
-            ItemList(g.prove.filter { it.id.toString() !in gone }.map { p -> ItemRows.prove(p, b != BancoProva.Build.TO_INSTALL) }, "prova-${g.build}") { r ->
+            ItemList(g.prove.map { p -> ItemRows.prove(p, b != BancoProva.Build.TO_INSTALL) }, "prova-${g.build}", gone = gone.toSet()) { r ->
                 val p = g.prove.first { it.id.toString() == r.key }
                 val id = r.key
                 val pk = picked[id]

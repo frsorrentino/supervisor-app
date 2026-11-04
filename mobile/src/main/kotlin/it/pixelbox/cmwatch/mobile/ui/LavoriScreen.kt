@@ -376,7 +376,7 @@ private fun WorkLine(l: Lavori.Line, today: LocalDate, zone: ZoneId) {
         }
         right?.let { Text(it, style = MonoSmall.copy(fontSize = 12.5.sp), color = Cm.text2) }
     }
-    if (l.who == Lavori.Who.WORKING) WorkEdgeLine(Modifier.align(Alignment.BottomCenter))
+    WorkEdge(l.who == Lavori.Who.WORKING, Modifier.align(Alignment.BottomCenter))
     }
 }
 

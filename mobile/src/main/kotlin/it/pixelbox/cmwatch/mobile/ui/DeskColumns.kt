@@ -217,9 +217,9 @@ internal fun Plancia(
         Column(Modifier.weight(1f).fillMaxHeight()) {
             head()
             Row(Modifier.weight(1f).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                cols.forEach { parts ->
+                cols.forEachIndexed { i, parts ->
                     val shape = RoundedCornerShape(14.dp)
-                    Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(V3.S1).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape)).testTag("plancia-col")) {
+                    Column(Modifier.weight(1f).bootWave(i).fillMaxHeight().clip(shape).background(V3.S1).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape)).testTag("plancia-col")) {
                         // Una colonna con più categorie: una dopo l'altra nello stesso scorrimento, come nella PWA.
                         androidx.compose.runtime.CompositionLocalProvider(LocalInColumn provides true) { column(parts) }
                     }
@@ -273,6 +273,12 @@ internal fun MasterFrame(
     val underOk by androidx.compose.runtime.rememberUpdatedState(sessionsOpen)
     val change by androidx.compose.runtime.rememberUpdatedState(onPlace)
     val namesNow by androidx.compose.runtime.rememberUpdatedState(names)
+    // L'atterraggio (punto 2): arrivata al posto della sagoma, la master si schiaccia un poco verso il basso e torna.
+    var landed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val squash = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(1f) }
+    val squashOff = animationsOff()
+    androidx.compose.runtime.LaunchedEffect(landed) { if (landed > 0 && !squashOff) { squash.snapTo(0.96f); squash.animateTo(1f, Fx.spring()) } }
+    fun Modifier.landing() = this.graphicsLayer { scaleY = squash.value; scaleX = 2f - squash.value; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f) }
     fun Modifier.grip(key: String) = this.onGloballyPositioned { c -> grips[key] = c }
     fun Modifier.seen(key: String) = this.onGloballyPositioned { c -> seen[key] = c }
     androidx.compose.foundation.layout.BoxWithConstraints(
@@ -362,6 +368,7 @@ internal fun MasterFrame(
                 if (!moved || !ended || go == null) { ghost = null; return@awaitEachGesture }
                 change?.invoke(go.first, go.second, true)
                 ghost = null
+                landed++
             }
         }),
     ) {
@@ -372,7 +379,7 @@ internal fun MasterFrame(
             Row(Modifier.fillMaxSize()) {
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
                     if (panel != null) {
-                        Box(Modifier.reflow("r-master").width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
+                        Box(Modifier.reflow("r-master").landing().width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
                             panel()
                             if (onPlace != null && place != null) {
                                 // La maniglia del lato, in testa: trascinata, la sagoma passa alla metà dello schermo sotto il dito.
@@ -392,7 +399,7 @@ internal fun MasterFrame(
                     Column(Modifier.weight(1f).fillMaxHeight()) {
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
                         bar?.let { b ->
-                            Box(Modifier.reflow("r-master").fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
+                            Box(Modifier.reflow("r-master").landing().fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
                                 b()
                                 // Due maniglie sull'asse della colonna dove la master atterra, una per lato (app-master-riga-maniglie-04-11,
                                 // Franz 04/11 17:40): tirata su apre la master da quel lato, alle altezze del bordo superiore; un tocco la
@@ -440,7 +447,8 @@ private fun GhostLayer(ghost: Ghost?, hints: List<Ghost>, mid: Mid?) {
     val g = ghost ?: lastGhost[0]
     if (shown == 0f && ghost == null) return
     val ease = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
-    val slide: androidx.compose.animation.core.AnimationSpec<androidx.compose.ui.unit.Dp> = if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(200, easing = ease)
+    // Elastica: si allunga nel movimento e si assesta con la molla (app-effetti-movimenti-04-11, punto 2).
+    val slide: androidx.compose.animation.core.AnimationSpec<androidx.compose.ui.unit.Dp> = if (off) androidx.compose.animation.core.snap() else Fx.spring()
     Box(Modifier.fillMaxSize().graphicsLayer { alpha = shown }.background(Color.Black.copy(alpha = 0.22f)))
     val shape = RoundedCornerShape(14.dp)
     hints.forEach { h ->
@@ -462,8 +470,16 @@ private fun GhostLayer(ghost: Ghost?, hints: List<Ghost>, mid: Mid?) {
         val y by androidx.compose.animation.core.animateDpAsState(gg.rect.y.dp, slide, label = "gy")
         val w by androidx.compose.animation.core.animateDpAsState(gg.rect.w.dp, slide, label = "gw")
         val h by androidx.compose.animation.core.animateDpAsState(gg.rect.h.dp, slide, label = "gh")
+        // Passando dall'altra parte dello schermo la sagoma salta la riga di mezzo con un piccolo arco.
+        val hop = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+        val lastX = androidx.compose.runtime.remember { floatArrayOf(gg.rect.x) }
+        androidx.compose.runtime.LaunchedEffect(gg.rect.x) {
+            val jump = kotlin.math.abs(gg.rect.x - lastX[0]) > 300f
+            lastX[0] = gg.rect.x
+            if (jump && !off) { hop.animateTo(-18f, androidx.compose.animation.core.tween(140)); hop.animateTo(0f, Fx.spring()) }
+        }
         Box(
-            Modifier.offset(x, y).size(w, h).graphicsLayer { alpha = shown }.clip(shape).background(V3.Wait.copy(alpha = 0.16f))
+            Modifier.offset(x, y + hop.value.dp).size(w, h).graphicsLayer { alpha = shown }.clip(shape).background(V3.Wait.copy(alpha = 0.16f))
                 .border(2.dp, V3.Wait.copy(alpha = 0.70f), shape).testTag("master-sagoma"),
         ) { GhostTag(gg.text, V3.Tx) }
     }
@@ -526,7 +542,17 @@ internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @C
         Box(Modifier.fillMaxWidth().height(14.dp).handCursor().clickable(onClickLabel = stringResource(R.string.master_stack_step), onClick = onStep), contentAlignment = Alignment.Center) {
             Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
         }
-        val shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+        // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): cambiando misura gli angoli si piegano verso l'interno e tornano
+        // tondi con la molla.
+        val corner = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(18f) }
+        val cornersOff = animationsOff()
+        val firstHalf = androidx.compose.runtime.remember { booleanArrayOf(half) }
+        androidx.compose.runtime.LaunchedEffect(half) {
+            if (half == firstHalf[0] || cornersOff) return@LaunchedEffect
+            firstHalf[0] = half
+            corner.animateTo(3f, androidx.compose.animation.core.tween(Fx.CORNERS_MS * 2 / 5)); corner.animateTo(18f, Fx.spring())
+        }
+        val shape = RoundedCornerShape(topStart = corner.value.dp, topEnd = corner.value.dp)
         Box((if (half) Modifier.weight(1f) else Modifier).fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape)) { master() }
     }
 }

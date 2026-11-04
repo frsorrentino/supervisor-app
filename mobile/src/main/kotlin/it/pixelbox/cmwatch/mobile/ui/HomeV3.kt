@@ -276,7 +276,7 @@ internal fun FoldIn(visible: Boolean, content: @Composable () -> Unit) {
         visible,
         enter = if (still) androidx.compose.animation.EnterTransition.None else androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(200, easing = CmMotion.easing)) + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200, delayMillis = 60)),
         exit = if (still) androidx.compose.animation.ExitTransition.None else androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(150, easing = CmMotion.easing)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(80)),
-    ) { content() }
+    ) { androidx.compose.foundation.layout.Box(Modifier.sheetIn()) { content() } }
 }
 
 /** Voce 5, nelle liste pigre: quel che compare aspetta che le sezioni sotto abbiano fatto posto, quel che esce sparisce prima che salgano. */

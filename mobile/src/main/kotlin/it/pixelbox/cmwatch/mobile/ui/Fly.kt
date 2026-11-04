@@ -36,7 +36,8 @@ fun Modifier.fly(key: String): Modifier {
         this@fly.sharedBounds(
             rememberSharedContentState(key), f.anim,
             enter = EnterTransition.None, exit = ExitTransition.None,
-            boundsTransform = { _, _ -> if (off) snap() else tween(FLY_MS, easing = CmMotion.easing) },
+            // La scheda si allarga nella pagina e gli angoli si assestano con la molla (app-effetti-movimenti-04-11, punto 1).
+            boundsTransform = { _, _ -> if (off) snap() else Fx.spring() },
             resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
         )
     }
@@ -85,7 +86,8 @@ fun Modifier.reflowColumn(name: String): Modifier {
         this@reflowColumn.sharedBounds(
             rememberSharedContentState("r-$name"), f.anim,
             enter = EnterTransition.None, exit = ExitTransition.None,
-            boundsTransform = { _, _ -> if (off) snap() else tween(it.pixelbox.cmwatch.rules.HomeReflow.DURATION_MS, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3])) },
+            // La scheda vola nella colonna con la molla che supera di poco la misura e torna (punto 1).
+            boundsTransform = { _, _ -> if (off) snap() else Fx.spring() },
             resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
         )
     }

@@ -101,21 +101,30 @@ internal fun ItemRowView(r: ItemRows.Row, right: String, first: Boolean, open: B
  * scheda della riga col tasti di sempre; `name`: il nome tradotto quando la riga lo dà come chiave (Prima raccolta).
  */
 @Composable
-internal fun ItemList(rows: List<ItemRows.Row>, tag: String, right: @Composable (ItemRows.Row) -> String = { itemRight(it) }, name: @Composable (ItemRows.Row) -> String = { it.name }, card: @Composable (ItemRows.Row) -> Unit) {
-    if (rows.isEmpty()) return
+internal fun ItemList(
+    rows: List<ItemRows.Row>, tag: String, right: @Composable (ItemRows.Row) -> String = { itemRight(it) }, name: @Composable (ItemRows.Row) -> String = { it.name },
+    /** Le righe confermate che escono (app-effetti-movimenti-04-11, punto 4): restano nella lista e se ne vanno con confirmedExit. */
+    gone: Set<String> = emptySet(),
+    card: @Composable (ItemRows.Row) -> Unit,
+) {
+    if (rows.none { it.key !in gone }) return
+    val off = animationsOff()
     var openKey by rememberSaveable(tag) { mutableStateOf<String?>(null) }
     var all by rememberSaveable(tag) { mutableStateOf(false) }
-    val n = ItemRows.shown(rows.size, all)
+    val live = rows.count { it.key !in gone }
+    val n = ItemRows.shown(live, all)
     V3List {
-        rows.take(n).forEachIndexed { i, r ->
+        rows.take(n + rows.count { it.key in gone }).forEachIndexed { i, r ->
             androidx.compose.runtime.key(r.key) {
-                ItemRowView(r, right(r), i == 0, openKey == r.key, name(r), "$tag-${r.key}", onClick = { openKey = if (openKey == r.key) null else r.key }) { card(r) }
+                androidx.compose.animation.AnimatedVisibility(r.key !in gone, enter = androidx.compose.animation.EnterTransition.None, exit = confirmedExit(off)) {
+                    ItemRowView(r, right(r), i == 0, openKey == r.key, name(r), "$tag-${r.key}", onClick = { openKey = if (openKey == r.key) null else r.key }) { card(r) }
+                }
             }
         }
-        if (n < rows.size) {
+        if (n < live) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             Box(Modifier.fillMaxWidth().heightIn(min = 44.dp).handCursor().clickable { all = true }.testTag("$tag-altre"), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.item_more, rows.size - n), style = V3.Small.copy(color = V3.Tx2))
+                Text(stringResource(R.string.item_more, live - n), style = V3.Small.copy(color = V3.Tx2))
             }
         }
     }

@@ -707,7 +707,8 @@ fun SessionSheet(
             LaunchedEffect(homeOpen, settled, off) {
                 if (homePull != null) return@LaunchedEffect
                 val to = if (homeOpen) 0f else 1f
-                if (off) masterAt.snapTo(to) else masterAt.animateTo(to, CmMotion.panelFloat, fling[0])
+                // Supera di poco l'arresto e torna; in basso un solo rimbalzo (app-effetti-movimenti-04-11, punto 3).
+                if (off) masterAt.snapTo(to) else masterAt.animateTo(to, Fx.spring(), fling[0])
                 fling[0] = 0f
             }
             val pullScope = androidx.compose.runtime.rememberCoroutineScope()

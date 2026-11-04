@@ -754,7 +754,7 @@ fun SummaryList(
                         val edge by androidx.compose.animation.animateColorAsState(if (name in finishedNow) V3.Good else androidx.compose.ui.graphics.Color.Transparent, if (off) androidx.compose.animation.core.snap() else CmMotion.slow, label = "finished")
                         Box((if (V3.day && r.group == Summary.Group.WAITING) Modifier.background(V3.WaitFill) else Modifier).bounceOnMove(i).onGloballyPositioned { c -> rowAt[name] = c.boundsInRoot().let { it.top to it.bottom } }.border(1.5.dp, edge)) {
                             card(r, i == 0)
-                            if (name in workingNow && r.group == Summary.Group.WORKING) WorkEdgeLine(Modifier.align(Alignment.BottomCenter))
+                            WorkEdge(name in workingNow && r.group == Summary.Group.WORKING, Modifier.align(Alignment.BottomCenter))
                         } } } }
                     if (fin.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { V3Pill(stringResource(R.string.close_finished_n, fin.size)) { closeAsk = fin.map { x -> x.name } } }
                 }
@@ -1150,13 +1150,15 @@ private fun SummaryCard(
     // Solo le card in attesa escono: le altre restano nel loro posto senza contenitori in più (stessa impaginazione di prima).
     // Nelle colonne della plancia del tablet anche le sessioni in attesa sono righe libere con divisori (app-superfici-neutre-04-11).
     val boxed = waiting && !LocalInColumn.current
+    val cardTap = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val cardBody: @Composable () -> Unit = {
     if (!boxed && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Row(
         // La chat si restringe verso la sua card durante il gesto indietro.
         Modifier.fly("card-${s.id}").reflow("r-${s.name}").fillMaxWidth().then(if (boxed) Modifier.clip(V3.Shape).background(if (V3.day) V3.WaitFill else V3.S2).then(if (V3.day) Modifier.border(1.dp, V3.WaitLine, V3.Shape) else Modifier.border(1.dp, LitEdge, V3.Shape)) else Modifier).smoothSize()
             // Franz, 03/10 17:05: il tocco sulla card porta dritto alla sessione; il tasto ▼ la apre sul posto.
-            .handCursor().combinedClickable(onClick = onOpen, onLongClick = { menu = true }).contextClick { menu = true }
+            // Al tocco la scheda si contrae al 98 % prima di diventare la pagina o la colonna (app-effetti-movimenti-04-11, punto 1).
+            .cardPress(cardTap).handCursor().combinedClickable(interactionSource = cardTap, indication = androidx.compose.material3.ripple(), onClick = onOpen, onLongClick = { menu = true }).contextClick { menu = true }
             .padding(end = 10.dp, top = 8.dp, bottom = 10.dp),
     ) {
     // Il binario: il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora.
@@ -1380,7 +1382,7 @@ private fun SummaryCard(
     }
     }
     }
-    if (waiting) androidx.compose.animation.AnimatedVisibility(!wGone, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(if (offAnim) 0 else 160)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (offAnim) 0 else 160))) { Column { cardBody() } }
+    if (waiting) androidx.compose.animation.AnimatedVisibility(!wGone, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = confirmedExit(offAnim)) { Column { cardBody() } }
     else cardBody()
 }
 
