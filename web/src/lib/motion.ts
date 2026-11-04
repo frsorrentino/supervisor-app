@@ -50,8 +50,11 @@ export const fold = (_: Element, { ms = 200 }: { ms?: number } = {}) => ({
 // pannello e contenuto crescono insieme dal punto premuto, come un solo oggetto, da un quinto della grandezza e mai da zero.
 export const MENU_FROM = 0.2
 const OPEN_MS = T * 1000, CLOSE_MS = 160, BLUR_PX = 6, PRESS_FRESH_MS = 1000
-let lastPress: { x: number; y: number; at: number } | null = null
-if (typeof addEventListener === 'function') addEventListener('pointerdown', (e) => { lastPress = { x: e.clientX, y: e.clientY, at: performance.now() } }, { capture: true, passive: true })
+let lastPress: { x: number; y: number; at: number; el: Element | null } | null = null
+if (typeof addEventListener === 'function') addEventListener('pointerdown', (e) => {
+  const el = e.target instanceof Element ? e.target.closest('[data-testid], button, a, [role="button"]') : null
+  lastPress = { x: e.clientX, y: e.clientY, at: performance.now(), el }
+}, { capture: true, passive: true })
 
 /** Il perno della crescita, in pixel dal bordo del menu: il punto premuto; senza un tocco recente [fallback], come frazioni del menu. */
 export function pressOrigin(r: { left: number; top: number; width: number; height: number }, press: { x: number; y: number } | null, fallback: [number, number] = [1, 0]): string {
@@ -103,4 +106,47 @@ export function installDialogGrow() {
   }
   // Esc passa dalla stessa uscita.
   document.addEventListener('cancel', (e) => { if (e.target instanceof HTMLDialogElement && runs.has(e.target) && !e.defaultPrevented) { e.preventDefault(); e.target.close() } }, true)
+}
+
+/**
+ * Il morphing delle pagine (compito app-audit-grafica-animazioni-04-11, parte 2): la voce premuta (una casella del tabellone, una
+ * voce della home che porta altrove, una voce di menu) diventa la pagina che apre, e all'Indietro la pagina torna in quella voce.
+ * Con le View Transitions di `smooth`: la voce e la pagina portano a turno lo stesso nome, `morph`. La pagina si dichiara con
+ * `data-morph-target`. Senza un tocco recente, con la riduzione delle animazioni o senza la voce di partenza: niente, resta la
+ * dissolvenza di sempre.
+ */
+const MORPH = 'morph'
+let morphBack: { el: Element; key: string | null } | null = null
+const named = (el: Element | null, on: boolean) => { if (el instanceof HTMLElement || el instanceof SVGElement) el.style.viewTransitionName = on ? MORPH : '' }
+const onScreen = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight }
+
+export type Morph = { before: () => void; after: () => void; done: () => void }
+
+export function morphStart(kind: 'open' | 'back'): Morph | null {
+  if (reducedMotion()) return null
+  if (kind === 'open') {
+    const src = recentPress()?.el ?? null
+    if (!src || !src.isConnected || !onScreen(src) || src.closest('[data-morph-target]')) return null
+    morphBack = { el: src, key: src.getAttribute('data-testid') }
+    named(src, true)
+    let dst: Element | null = null
+    return {
+      before: () => named(src, false),
+      after: () => { dst = document.querySelector('[data-morph-target]'); named(dst, true) },
+      done: () => named(dst, false),
+    }
+  }
+  const from = document.querySelector('[data-morph-target]'), back = morphBack
+  morphBack = null
+  if (!from || !back) return null
+  named(from, true)
+  let dst: Element | null = null
+  return {
+    before: () => named(from, false),
+    after: () => {
+      const el = back.el.isConnected ? back.el : back.key ? document.querySelector(`[data-testid="${CSS.escape(back.key)}"]`) : null
+      if (el && onScreen(el)) { dst = el; named(dst, true) }
+    },
+    done: () => named(dst, false),
+  }
 }

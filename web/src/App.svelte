@@ -23,6 +23,7 @@
   import { nightTitleParts, okAlso } from './lib/decide'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack, tick } from 'svelte'
+  import { morphStart } from './lib/motion'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
   import { blankState, decodeChanges, decodeDiff, transcriptArg, withAfterPage, withFirstPage, withTail } from './lib/contract'
@@ -690,10 +691,13 @@
 
   // Il cambio con la transizione del browser, quando c'è (Chrome): niente ridisegni continui.
   // Con la pagina nascosta niente transizione: il browser la interrompe e la promessa rifiutata finiva in console (15/10).
-  const smooth = (go: () => void) => {
+  // `morph`: aprendo o chiudendo una pagina, la voce premuta diventa la pagina e ci torna (morphStart in motion.ts).
+  const smooth = (go: () => void, morph: 'open' | 'back' | null = null) => {
     if (!document.startViewTransition || document.hidden) { go(); return }
-    const vt = document.startViewTransition(go)
+    const m = morph ? morphStart(morph) : null
+    const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : go)
     for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
+    if (m) vt.finished.catch(() => {}).finally(m.done)
   }
   function setCols(c: string[]) { smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }) }
   // Dal trascinamento niente View Transition: sfumerebbe due fotografie della plancia invece di far scorrere la colonna lasciata
@@ -841,8 +845,8 @@
   // già a destra, nel cruscotto.
   let usageFocus = $state(0)
   // La pagina «Utilizzo e limiti» (scelta D, 30/10 20:11): nella home resta il blocco compatto.
-  function goUsage() { smooth(() => { page = 'usage'; open = null; masterOpen = false }) }
-  const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p; if (p !== 'queue') queueSkip = null }) }
+  function goUsage() { smooth(() => { page = 'usage'; open = null; masterOpen = false }, 'open') }
+  const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p; if (p !== 'queue') queueSkip = null }, page && !p ? 'back' : !page && p ? 'open' : null) }
   if (asked === 'overview') queueMicrotask(goUsage)
   // La quota per account, come la Panoramica; i campioni del ritmo arrivano col trasporto.
   const overview = $derived(overviewOf(st, events, samples, now, undefined, down))
