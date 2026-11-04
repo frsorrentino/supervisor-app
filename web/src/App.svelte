@@ -78,6 +78,8 @@
   import { readPreview, type Preview } from './lib/closeFinished'
   import Search from './lib/Search.svelte'
   import Settings from './lib/Settings.svelte'
+  import Feedback from './lib/Feedback.svelte'
+  import { deviceOf, grabTab } from './lib/feedback'
   import AddDevice from './lib/AddDevice.svelte'
   import Queue from './lib/Queue.svelte'
   import QuotaPanel from './lib/QuotaPanel.svelte'
@@ -906,6 +908,18 @@
   let usageFocus = $state(0)
   // La pagina «Utilizzo e limiti» (scelta D, 30/10 20:11): nella home resta il blocco compatto.
   function goUsage() { smooth(() => { page = 'usage'; open = null; masterOpen = false }, 'open') }
+  // Feedback dal menù (app-feedback-menu-04-11, scelta A): un foglio sopra la pagina dove si è, che resta sotto e si può fotografare.
+  // L'invio aspetta l'op `feedback` del relay (supervisor-feedback-app-04-11): fino ad allora la bozza si vede e non parte.
+  let fbDlg = $state<HTMLDialogElement | null>(null)
+  let fbOn = $state(false)
+  let fbScreen = $state('')
+  function openFeedback() {
+    fbScreen = page ? pageTitle[page] : open ? t.feedbackSession(open) : t.feedbackHome
+    fbOn = true
+    void tick().then(() => fbDlg?.showModal())
+  }
+  const fbTech = $derived({ version: __APP_VERSION__, commit: __APP_COMMIT__, device: deviceOf(navigator.userAgent, window.innerWidth, window.innerHeight), screen: t.feedbackScreen(fbScreen), lang: t.feedbackLang(locale) })
+  const fbGrab = () => grabTab(async () => { fbDlg?.close(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))) }, () => { if (fbOn) fbDlg?.showModal() })
   const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p; if (p !== 'queue') queueSkip = null }, page && !p ? 'back' : !page && p ? 'open' : null) }
   if (asked === 'overview') queueMicrotask(goUsage)
   // La quota per account, come la Panoramica; i campioni del ritmo arrivano col trasporto.
@@ -1334,17 +1348,17 @@
     onChanges={st.ops?.includes('changes') ? (f) => ask(tr, newCmd('changes', name, f == null ? null : fileArg(f)), decodeChanges) : null} />
 {/snippet}
 
-{#snippet appMenu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
+{#snippet appMenu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} menuOnly />{/snippet}
 
 {#snippet homePane()}
   <!-- Larga con le sessioni aperte la master non sta più nella colonna della home: ha il pannello e la barra della plancia
        (Franz 03/11 13:10, variante A, app-pwa-master-tasti-03-11). -->
   <HomePane master={wide ? null : master} entries={transcripts[MASTER] ?? []} open={masterOpen} onToggle={(o) => smooth(() => { masterOpen = o; masterHalf = o && wide })} onSpeak={(x) => toggle(x, MASTER)}
     halfStops={wide} half={masterHalf} onHalf={(h) => (masterHalf = h)}>
-    {#snippet menu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} menuOnly />{/snippet}
+    {#snippet menu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} menuOnly />{/snippet}
     {#snippet quick()}{@render masterQuick()}{/snippet}
     {#snippet list()}
-      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />
+      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />
       <div class="list">{@render homeView(null)}</div>
       {#if !master && ready}
         <!-- Senza master (MasterHome.kt): una card con «Riapri», invece della barra che non c'è. -->
@@ -1478,7 +1492,7 @@
   <div class="embedded v3">{@render chatOf(MASTER, true)}</div>
 {:else if wide && deskDashboard}
   <Plancia {width} order={decodeCats(st.home_order).map(c => c.id)} top={null} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf} panelLeft={masterLeft}>
-    {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} quota={false} />{/snippet}
+    {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
     {#snippet you()}<DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}{/snippet}
@@ -1565,6 +1579,13 @@
   <Launch {st} action={t.nightAddTitle} onLaunch={(pr, text) => { cmd(pr.name)('night_add', pr.path, text); nightDlg?.close() }} />
 </dialog>
 
+{#if fbOn}
+<dialog bind:this={fbDlg} class="sheet fbsheet" aria-label={t.feedbackTitle} onclick={(e) => e.target === e.currentTarget && (fbOn = false)} oncancel={() => (fbOn = false)}>
+  <h2>{t.feedbackTitle}</h2>
+  <Feedback tech={fbTech} onGrab={'getDisplayMedia' in (navigator.mediaDevices ?? {}) ? fbGrab : null} onSend={null} onDone={() => (fbOn = false)} />
+</dialog>
+{/if}
+
 <style>
   .mquick { padding: 0 0 4px; }
   .phone { height: 100%; display: flex; flex-direction: column; max-width: 760px; margin: 0 auto; }
@@ -1585,6 +1606,7 @@
   .soon { color: var(--text2); padding: 24px; }
   .sheet { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 0 0; width: min(600px, 100vw); max-height: 90vh; border-radius: 28px; }
   .sheet::backdrop { background: rgb(0 0 0 / .55); }
+  .fbsheet { overflow-y: auto; }
   .sheet h2 { font-size: 22px; font-weight: 600; padding: 0 20px; }
   @media (max-width: 599px) { .sheet { margin: auto 0 0; max-width: 100vw; border-radius: 28px 28px 0 0; } }
   .notice { position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); max-width: min(560px, calc(100vw - 32px)); padding: 10px 16px; border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: 0 4px 16px rgb(0 0 0 / .35); z-index: 20; }

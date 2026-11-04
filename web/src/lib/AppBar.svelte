@@ -16,7 +16,7 @@
   // (QuotaLine): per ogni account la sua forma, una barra fina delle 5 ore e la percentuale; ambra da 75 %, rossa da 90 %.
   // `menuOnly`: solo il tasto ≡ col suo pannello, nella testata della master a tutto schermo (Franz, 08/10 18:15).
   // `quota`: falso nella home in stile «Studio e Diretta» (30/10), dove la quota sta nel tabellone.
-  let { st, now, openCount, onPage, menuOnly = false, quota = true }: { st: State; now: number; openCount: number; onPage: (p: Page) => void; menuOnly?: boolean; quota?: boolean } = $props()
+  let { st, now, openCount, onPage, onFeedback = null, menuOnly = false, quota = true }: { st: State; now: number; openCount: number; onPage: (p: Page) => void; onFeedback?: (() => void) | null; menuOnly?: boolean; quota?: boolean } = $props()
   let menu = $state(false)
   // Niente più «N per te» qui: chi aspetta lo dice il primo box della home (app-home-riordino-29-10).
   // Il pannello scende dal tasto ≡, non dal bordo dello schermo: sulla plancia con la home a sinistra resta accanto al tasto.
@@ -98,6 +98,11 @@
         <span class="mt"><b>{e.title}</b><small>{e.sub}</small></span>
       </button>
     {/each}
+    <!-- Feedback (app-feedback-menu-04-11): un suggerimento o un bug, in un foglio sopra la pagina dove si è. -->
+    {#if onFeedback}<button class="mi" role="menuitem" onclick={() => { menu = false; onFeedback?.() }}>
+      <span class="mic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><path d="M12 7v4" /><path d="M12 14h.01" /></svg></span>
+      <span class="mt"><b>{t.feedbackMenu}</b><small>{t.feedbackMenuSub}</small></span>
+    </button>{/if}
     <!-- La Modalità live dell'app (AppMenuPanel.kt) vive di un servizio Android e dell'orologio: qui la voce dice dove si trova
          (Franz, 15/10 21:48: «voce che rimanda all'app»). -->
     <button class="mi" role="menuitem" aria-expanded={liveNote} onclick={() => (liveNote = !liveNote)}>
