@@ -1141,3 +1141,35 @@ internal fun StackEdge(swap: SwapPills?, toEnd: Boolean, home: @Composable () ->
         }
     }
 }
+
+/**
+ * Il tablet prima del primo stato (app-avvio-senza-salto-04-11, come lo scheletro della web): mai la pagina del telefono né la
+ * plancia mezza vuota, ma la forma che sta per arrivare, dalle colonne viste l'ultima volta (lette subito): senza colonne la
+ * plancia con le sue colonne grigie, con le colonne la home e una colonna grigia per sessione; in basso la riga della master.
+ */
+@Composable
+internal fun TabletBoot(seenCols: Int, widthDp: Int, master: Boolean) {
+    val shape = RoundedCornerShape(14.dp)
+    Column(Modifier.fillMaxSize().background(V3.Bg).systemBarsPadding().testTag("avvio-scheletro")) {
+        Row(Modifier.weight(1f).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (seenCols == 0) {
+                repeat(it.pixelbox.cmwatch.rules.Plancia.count(widthDp.toFloat(), null).coerceAtLeast(1)) {
+                    Box(Modifier.weight(1f).fillMaxHeight().clip(shape).background(V3.S1)) { BootRows() }
+                }
+            } else {
+                Box(Modifier.width(388.dp).fillMaxHeight().clip(shape).background(V3.S1)) { BootRows() }
+                repeat(seenCols) { Box(Modifier.weight(1f).fillMaxHeight().clip(shape).background(V3.S1).border(1.dp, Cm.line, shape)) }
+            }
+        }
+        if (master) Box(Modifier.fillMaxWidth().height(64.dp).background(V3.S1))
+    }
+}
+
+/** Le righe grigie di una colonna dello scheletro. */
+@Composable
+private fun BootRows() {
+    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(Modifier.width(120.dp).height(14.dp).clip(RoundedCornerShape(7.dp)).background(V3.S3))
+        repeat(4) { i -> Box(Modifier.fillMaxWidth(if (i % 2 == 0) 0.85f else 0.6f).height(12.dp).clip(RoundedCornerShape(6.dp)).background(V3.S2)) }
+    }
+}

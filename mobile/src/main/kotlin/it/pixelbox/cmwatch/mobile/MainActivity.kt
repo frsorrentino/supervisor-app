@@ -37,6 +37,7 @@ import it.pixelbox.cmwatch.rules.ShareLimits
 import it.pixelbox.cmwatch.contract.EventKind
 import it.pixelbox.cmwatch.mobile.pair.Phase
 import it.pixelbox.cmwatch.mobile.ui.*
+import androidx.compose.ui.draw.alpha
 import it.pixelbox.cmwatch.rules.PairAddText
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -454,6 +455,8 @@ class MainActivity : ComponentActivity() {
             ) { k, v -> tabletPrefs.edit().putBoolean(k, v).apply() }
         }
         var pinned by remember { mutableStateOf(it.pixelbox.cmwatch.rules.Tablet.columnsFromPref(tabletPrefs.getString("tablet_columns", null))) }
+        // Le colonne viste l'ultima volta, lette subito: prima del primo stato lo scheletro ha già la loro forma (app-avvio-senza-salto-04-11).
+        val seenCols = remember { it.pixelbox.cmwatch.rules.Tablet.columnsFromPref(tabletPrefs.getString("tablet_columns_seen", null)).orEmpty() }
         var sharesRaw by remember { mutableStateOf(tabletPrefs.getString("tablet_shares", null)) }
         var homeRight by remember { mutableStateOf(tabletPrefs.getBoolean("tablet_home_right", false)) }
         var tabletDetails by remember { mutableStateOf(tabletPrefs.getBoolean("tablet_details", false)) }
@@ -813,6 +816,8 @@ class MainActivity : ComponentActivity() {
         // La master sta nella home: non diventa una colonna.
         val tabletCols = it.pixelbox.cmwatch.rules.Tablet.columns(pinned, (liveNames + heldCols + colsJustClosed).distinct().filter { n -> n != it.pixelbox.cmwatch.rules.ContextActions.MASTER })
         androidx.compose.runtime.SideEffect { shownCols.value = tabletCols }
+        val colsKnown = state != null
+        LaunchedEffect(tabletCols, colsKnown) { if (colsKnown) tabletPrefs.edit().putString("tablet_columns_seen", it.pixelbox.cmwatch.rules.Tablet.columnsPref(tabletCols)).apply() }
         val tabletShares = it.pixelbox.cmwatch.rules.Tablet.Shares.fromPref(sharesRaw, tabletCols.size)
         val columnsOn = wide
         val saveCols: (List<String>) -> Unit = { next -> pinned = next; tabletPrefs.edit().putString("tablet_columns", it.pixelbox.cmwatch.rules.Tablet.columnsPref(next)).apply() }
@@ -2270,7 +2275,16 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.LocalAgendaNight provides agendaNight,
         ) {
         it.pixelbox.cmwatch.mobile.ui.PageIn(fromStart = true, animate = cameBack) {
-        if (wide && state != null && summary != null) SharedTransitionLayout {
+        // Prima del primo stato lo scheletro con la forma che arriva, mai la pagina del telefono; arrivato lo stato, la pagina
+        // entra in un terzo della coreografia (come `.pboot` della web).
+        val bootSeen = remember { booleanArrayOf(false) }
+        if (wide && (state == null || summary == null)) { bootSeen[0] = true; it.pixelbox.cmwatch.mobile.ui.TabletBoot(seenCols.size, widthDp, master = true) }
+        else if (wide && state != null && summary != null) SharedTransitionLayout(Modifier.then(if (!bootSeen[0]) Modifier else {
+            val boot = remember { androidx.compose.animation.core.Animatable(0f) }
+            val bootOff = animationsOff()
+            LaunchedEffect(Unit) { if (bootOff) boot.snapTo(1f) else boot.animateTo(1f, androidx.compose.animation.core.tween((it.pixelbox.cmwatch.rules.HomeReflow.DURATION_MS * 0.35f).toInt())) }
+            Modifier.alpha(boot.value)
+        })) {
             // La plancia e le colonne: una sola coreografia nei due versi (app-home-riposiziona-animata-04-11). Le schede, la
             // colonna aperta e la master passano da una vista all'altra coi bordi condivisi (reflow); il resto entra ed esce
             // fermo; col movimento ridotto solo un'assolvenza breve.
