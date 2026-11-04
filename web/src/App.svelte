@@ -100,7 +100,7 @@
   import { since as kpiSince, head as kpiHeadOf } from './lib/kpi'
   import { add, columns, columnsFromPref, columnsPref, inspect, replace as replaceCol, sharesFromPref, sharesPref, timelineArg, wide as isWide } from './lib/tablet'
   import { refusalText, superseded } from './lib/questionRules'
-  import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
+  import { shouldRead, due, activity, behind, BG_PARALLEL, firstTails, type LastRead, type BgRead } from './lib/readPlan'
   import { of as swipeOf, stable as swipeStable, step as swipeStep, type Pages } from './lib/swipePages'
 
   const load = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
@@ -1198,6 +1198,8 @@
   let fresh = $state<Record<string, boolean>>({})
   let bgBusy = 0
   let shownBefore = new Set<string>()
+  // Le chat a schermo di cui è già partito il /tail (firstTails).
+  const tailed = new Set<string>()
   function bgTick() {
     // Senza /tail (il relay locale) ogni rilettura in sottofondo è un `transcript` che fa lavorare il PC: 1.378 il 15/10 entro
     // le 11:30, circa 6 s ciascuno (Franz, 11:40). Lì si legge solo la chat aperta, come prima del 14/10.
@@ -1218,8 +1220,10 @@
     const names = [...new Set([MASTER, ...slots])]
     untrack(() => {
       // Una chat appena aperta si legge subito, senza aspettare la cadenza della volta prima.
-      for (const n of names) if (n && !shownBefore.has(n)) { reads.delete(n); delete fresh[n] }
+      for (const n of names) if (n && !shownBefore.has(n)) { reads.delete(n); delete fresh[n]; tailed.delete(n) }
       shownBefore = new Set(names.filter((n): n is string => !!n))
+      // Il /tail di tutte insieme, subito: le ultime voci compaiono senza aspettare in fila le letture dal relay.
+      for (const n of firstTails(names, st.sessions.map(x => x.name), tailed)) { tailed.add(n); loadTail(n).then(t => { if (t) fresh[n] = true }) }
       // Una lettura in sottofondo in volo non ferma quelle a schermo.
       if (names.some(n => n && loadingT.has(n))) return
       const now = nowS()
@@ -1232,8 +1236,8 @@
         reads.set(n, { at: now, answered: false, key })
         waitSince[n] ??= Date.now()
         const sig = activity(s), at = Date.now()
-        // Contratto 1.59: la prima lettura di una chat appena aperta parte da /tail, poi le voci dopo l'ultima.
-        ;(last ? Promise.resolve(false) : loadTail(n)).then(t => { if (t) fresh[n] = true; return loadTranscript(n) })
+        // Contratto 1.59: il /tail è già partito sopra; qui la pagina dal relay, poi le voci dopo l'ultima.
+        loadTranscript(n)
           .then(ok => { if (ok) { fresh[n] = true; bgReads[n] = { sig, atMs: at, done: true } } })
           .finally(() => { const r = reads.get(n); if (r) r.answered = true; delete waitSince[n]; readTick++ })
         return

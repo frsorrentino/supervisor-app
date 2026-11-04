@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shouldRead, due, activity, behind } from './readPlan'
+import { shouldRead, due, activity, behind, firstTails } from './readPlan'
 
 // Piano prestazioni, Task 5 (A4a): la stessa cadenza del telefono (PhoneTerminal.kt). Il 07/10 la web chiedeva 888
 // letture all'ora, una per sessione a ogni stato.
@@ -40,5 +40,15 @@ describe('rilettura in sottofondo (Franz, 14/10 18:39: «vedo per qualche second
     expect(behind({ ...s, tool: 'Edit' }, read)).toBe(true)
     expect(behind(s, { ...read, done: false })).toBe(true)
     expect(behind(s, undefined)).toBe(true)
+  })
+})
+
+describe('dopo la ricarica il /tail di tutte le chat a schermo insieme (app-chat-dopo-ricarica-04-11)', () => {
+  it('tutte quelle a schermo e vive, una volta sola', () => {
+    expect(firstTails(['master', 'a', null, 'b', 'a'], ['master', 'a', 'b', 'c'], new Set())).toEqual(['master', 'a', 'b'])
+    expect(firstTails(['master', 'a', 'b'], ['master', 'a', 'b'], new Set(['master', 'a']))).toEqual(['b'])
+  })
+  it("una sessione che non c'è più non si chiede", () => {
+    expect(firstTails(['master', 'x'], ['master'], new Set())).toEqual(['master'])
   })
 })

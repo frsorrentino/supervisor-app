@@ -24,6 +24,14 @@ export function shouldRead(s: { state: string }, last: LastRead | undefined, cha
 export const BG_GAP_MS = 12_000
 export const BG_PARALLEL = 2
 
+/**
+ * Le chat a schermo di cui chiedere subito il /tail, tutte insieme (Franz 04/11, app-chat-dopo-ricarica-04-11: «al reload si
+ * perdono i messaggi dei transcript», «ricompaiono con molto ritardo»). Il /tail viene da Firebase e non fa lavorare il PC;
+ * le letture dal relay restano una per volta. `tailed`: quelle già chieste da quando sono a schermo.
+ */
+export const firstTails = (shown: (string | null)[], live: string[], tailed: Set<string>): string[] =>
+  [...new Set(shown)].filter((n): n is string => !!n && live.includes(n) && !tailed.has(n))
+
 /** L'ultima lettura in sottofondo: la firma dell'attività quando è partita, l'ora, se è arrivata. Fallita = firma vuota. */
 export type BgRead = { sig: string; atMs: number; done: boolean }
 
