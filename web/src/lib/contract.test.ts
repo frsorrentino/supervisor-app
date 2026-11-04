@@ -161,7 +161,7 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     const ops = (op: string) => root.cmd.filter((c: Cmd) => c.op === op).map((c: Cmd) => root.result.find((r: CmdResult) => r.id === c.id).ok)
     expect(ops('suggestion')).toEqual([true, true, false, true, true])   // 1.87: un id che non c'è più è «already gone», ok; 1.88: choose fuori dalle opzioni, discuss, choose
     expect(ops('close_preview')).toEqual([true, false])
-    expect(ops('close')).toEqual([true, false])
+    expect(ops('close')).toEqual([true, false, true, true])   // 1.120: when after, when force
     const prev = root.cmd.find((c: Cmd) => c.op === 'close_preview')
     expect(readPreview(root.result.find((r: CmdResult) => r.id === prev.id).text)!.sessions.length).toBeGreaterThan(0)
   })

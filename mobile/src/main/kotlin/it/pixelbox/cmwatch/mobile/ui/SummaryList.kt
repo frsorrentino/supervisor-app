@@ -150,6 +150,8 @@ fun SummaryList(
     closing: String? = null,
     /** Il Chiudi rifiutato dal relay: la sessione e il motivo in chiaro; [onCloseSeen] lo toglie (app-chiudi-esito-04-11). */
     closeRefused: Pair<String, String>? = null, onCloseSeen: () -> Unit = {},
+    /** Contratto 1.120: il rifiuto si può armare; [onCloseArm] (nome, "after" o "force" già confermato). */
+    closeArmable: Boolean = false, onCloseArm: ((String, String) -> Unit)? = null,
     /** Contratto 1.83: le domande aperte dei server MCP, in cima; `onElicit` manda la risposta (action, content). */
     elicitations: List<it.pixelbox.cmwatch.contract.Elicitation> = emptyList(),
     onElicit: (it.pixelbox.cmwatch.contract.Elicitation, String, Map<String, String?>) -> Unit = { _, _, _ -> },
@@ -672,7 +674,8 @@ fun SummaryList(
             SummaryCard(
                 r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
                 onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
-                firstFilled = false, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, refused = closeRefused?.takeIf { r -> r.first == s.name }?.second, onRefusedSeen = onCloseSeen, now = now,
+                firstFilled = false, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, refused = closeRefused?.takeIf { r -> r.first == s.name }?.second, onRefusedSeen = onCloseSeen,
+                onArm = onCloseArm?.takeIf { closeArmable }?.let { f -> { w: String -> f(s.name, w) } }, now = now,
                 onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                 menuState = menuState, mine = mineOf(s.name), onMine = onMine?.let { m -> { k -> m(s.name, k) } },
                 onOpenInClaude = onOpenInClaude?.let { o -> { o(s.name) } }, onRestartClean = onRestartClean?.let { o -> { o(s.name) } },
@@ -1070,7 +1073,7 @@ private fun details(s: Session): List<String> = listOfNotNull(
 private fun SummaryCard(
     r: Summary.Row, open: Boolean, onToggle: () -> Unit,
     onAnswer: (Int) -> Unit, onStep: (String) -> Unit, onOpen: () -> Unit,
-    firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, closing: Boolean = false, refused: String? = null, onRefusedSeen: () -> Unit = {}, now: Long = System.currentTimeMillis() / 1000,
+    firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, closing: Boolean = false, refused: String? = null, onRefusedSeen: () -> Unit = {}, onArm: ((String) -> Unit)? = null, now: Long = System.currentTimeMillis() / 1000,
     onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
     menuState: it.pixelbox.cmwatch.contract.State? = null, mine: it.pixelbox.cmwatch.rules.SessionMenu.Mine = it.pixelbox.cmwatch.rules.SessionMenu.Mine(),
     onMine: ((it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit)? = null, onOpenInClaude: (() -> Unit)? = null, onRestartClean: (() -> Unit)? = null,
@@ -1301,7 +1304,9 @@ private fun SummaryCard(
         }
         if (closing && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now) == null) ClosingChip(s.name)
         // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene».
-        refused?.let { why -> RefusedRow(s.name, why, onRefusedSeen) }
+        refused?.let { why -> RefusedRow(s.name, why, onRefusedSeen, onArm) }
+        // Contratto 1.120: armata dal relay, la card lo dice finché non si chiude.
+        if (!closing) s.closing?.let { c -> ArmedChip(c.mode == "force") }
         if (menuClose) androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -2128,13 +2133,41 @@ internal fun hhmmOf(epoch: Long): String =
 
 /** Il Chiudi rifiutato dal relay, col motivo, finché non lo togli (app-chiudi-esito-04-11). */
 @Composable
-private fun RefusedRow(name: String, why: String, onSeen: () -> Unit) {
+private fun RefusedRow(name: String, why: String, onSeen: () -> Unit, onArm: ((String) -> Unit)? = null) {
+    var forceAsk by remember(name, why) { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.foundation.layout.FlowRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(stringResource(R.string.splash_refused, name), style = MaterialTheme.typography.bodySmall, color = Cm.waiting)
-        Text(why, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
-        androidx.compose.material3.TextButton(onClick = onSeen) { Text(stringResource(R.string.splash_refused_ok), color = Cm.actionIcon) }
+        if (forceAsk && onArm != null) {
+            // La conferma di «Chiudi comunque» nella card (contratto 1.120).
+            Text(stringResource(R.string.close_force_what), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
+            androidx.compose.material3.TextButton(onClick = { forceAsk = false }) { Text(stringResource(R.string.close_force_cancel), color = Cm.actionIcon) }
+            androidx.compose.material3.Button(
+                onClick = { forceAsk = false; onArm("force") },
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
+            ) { Text(stringResource(R.string.close_force)) }
+        } else {
+            Text(stringResource(R.string.splash_refused, name), style = MaterialTheme.typography.bodySmall, color = Cm.waiting)
+            Text(why, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
+            if (onArm != null) {
+                androidx.compose.material3.TextButton(onClick = { forceAsk = true }) { Text(stringResource(R.string.close_force), color = Cm.actionIcon) }
+                Surface(onClick = { onArm("after") }, shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text) {
+                    Text(stringResource(R.string.close_after), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                }
+            }
+            androidx.compose.material3.TextButton(onClick = onSeen) { Text(stringResource(if (onArm != null) R.string.close_keep else R.string.splash_refused_ok), color = Cm.actionIcon) }
+        }
+    }
+}
+
+/** Contratto 1.120: la chiusura armata, «si chiude appena finisce» o, per «Chiudi comunque», con la rotella. */
+@Composable
+private fun ArmedChip(force: Boolean) {
+    Surface(shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (force) androidx.compose.material3.CircularProgressIndicator(color = Cm.actionIcon, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+            Text(stringResource(if (force) R.string.closing_force else R.string.closing_after), style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 

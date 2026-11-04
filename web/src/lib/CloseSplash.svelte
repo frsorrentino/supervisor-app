@@ -6,7 +6,9 @@
   // sotto, velata. «Si sta chiudendo» con i passi veri; «è chiusa» con l'ora, «Riapri» e «Torna alla home», e dopo 3 s il
   // ritorno da solo, con la barra che si consuma. In una colonna della plancia toglie la colonna.
   // Rifiutata dal relay (app-chiudi-esito-04-11): il motivo resta finché non lo togli con `onDismiss`, sulla pagina com'era.
-  let { phase, onHome, onDismiss = onHome, onReopen = null, column = false }: { phase: Phase; onHome: () => void; onDismiss?: () => void; onReopen?: (() => void) | null; column?: boolean } = $props()
+  // Contratto 1.120: rifiutata per lavoro, domanda o sottofondo, «Chiudi quando finisce» e «Chiudi comunque» con conferma.
+  let { phase, onHome, onDismiss = onHome, onReopen = null, onArm = null, column = false }: { phase: Phase; onHome: () => void; onDismiss?: () => void; onReopen?: (() => void) | null; onArm?: ((when: 'after' | 'force') => void) | null; column?: boolean } = $props()
+  let forceAsk = $state(false)
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   $effect(() => {
     if (phase.kind !== 'closed') return
@@ -29,11 +31,20 @@
       {#if phase.slow}
         <small class="slow">{t.splashSlow}</small>
         <button class="tx" onclick={onHome}>{column ? t.splashDrop : t.splashHome}</button>
-      {:else}<small>{t.splashUsually}</small>{/if}
+      {:else}<small>{phase.force ? t.splashForceUsually : t.splashUsually}</small>{/if}
+    {:else if phase.kind === 'refused' && forceAsk && onArm}
+      <h3>{t.closeForceAsk(phase.name)}</h3>
+      <p>{t.closeForceWhat}</p>
+      <div class="btns"><button class="tx" onclick={() => (forceAsk = false)}>{t.closeForceCancel}</button><button class="danger" onclick={() => { forceAsk = false; onArm?.('force') }}>{t.closeForce}</button></div>
     {:else if phase.kind === 'refused'}
       <h3>{t.splashRefused(phase.name)}</h3>
       <p>{phase.why}</p>
-      <div class="btns"><button class="fill" onclick={onDismiss}>{t.splashRefusedOk}</button></div>
+      {#if phase.armable && onArm}
+        <div class="btns"><button class="tx" onclick={() => (forceAsk = true)}>{t.closeForce}</button><button class="fill" onclick={() => onArm?.('after')}>{t.closeAfter}</button></div>
+        <button class="tx" onclick={onDismiss}>{t.closeKeep}</button>
+      {:else}
+        <div class="btns"><button class="fill" onclick={onDismiss}>{t.splashRefusedOk}</button></div>
+      {/if}
     {:else}
       <h3>{t.splashClosed(phase.name)}</h3>
       <p>{phase.byMe ? t.splashClosedLine(hm(phase.at)) : t.splashClosedOther(hm(phase.at))}</p>
@@ -72,6 +83,7 @@
   .tx:hover { background: var(--high); }
   .fill { background: var(--act); color: var(--on-act); }
   .fill:hover { filter: brightness(1.05); }
+  .danger { background: var(--gone); color: #fff; }
   @keyframes run { from { translate: -100% 0; } to { translate: 250% 0; } }
   @keyframes left { to { scale: 0 1; } }
   @keyframes fade { from { opacity: 0; } }

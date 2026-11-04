@@ -860,6 +860,15 @@ class MainActivity : ComponentActivity() {
         // La sessione chiusa dal telefono con «Chiudi la sessione»: appena è chiusa si torna alla home (dal vivo 03/10 19:57:
         // la sua pagina restava nera).
         var leaving by remember { mutableStateOf<CloseSplash.Leaving?>(null) }
+        // Contratto 1.120: dopo un Chiudi rifiutato, «Chiudi quando finisce» (after) o «Chiudi comunque» (force, già confermato).
+        // Quando finisce la pagina resta com'è e la card lo dice; comunque il pannello segue la chiusura fino a 180 s.
+        val armClose: (String, String) -> Unit = { n, w ->
+            scope.launch {
+                val id = runCatching { app.repo.closeWhen(n, w) }.getOrNull() ?: return@launch
+                if (w == "force") leaving = CloseSplash.Leaving(n, System.currentTimeMillis() / 1000, id, force = true)
+                else if (leaving?.name == n) leaving = null
+            }
+        }
         // Le sessioni com'erano l'ultima volta nello stato: la pagina di una sessione appena uscita resta sotto il pannello di
         // chiusura invece di sparire (Franz, 08/10 18:06).
         val lastSeen = remember { mutableStateMapOf<String, it.pixelbox.cmwatch.contract.Session>() }
@@ -1722,14 +1731,15 @@ class MainActivity : ComponentActivity() {
             val l = leaving ?: return@LaunchedEffect
             val r = l.cmd?.let { id -> results[id] } ?: return@LaunchedEffect
             if (r.ok || l.refused != null) return@LaunchedEffect
-            val why = CloseSplash.refusals(r.text).firstOrNull()?.let { x ->
+            val first = CloseSplash.refusals(r.text).firstOrNull()
+            val why = first?.let { x ->
                 when (x.kind) {
                     "busy" -> getString(R.string.close_blocked_busy); "question" -> getString(R.string.close_blocked_question)
                     "background" -> getString(R.string.close_blocked_background); "attached" -> getString(R.string.close_blocked_attached)
                     else -> getString(R.string.close_refused_other, x.reason)
                 }
             } ?: r.text
-            leaving = l.copy(refused = why)
+            leaving = l.copy(refused = why, armable = first?.armable == true)
         }
         LaunchedEffect(leaving, state?.sessions, leaving?.cmd?.let { id -> results[id] }) {
             val l = leaving ?: return@LaunchedEffect
@@ -1900,7 +1910,7 @@ class MainActivity : ComponentActivity() {
                     onClose = { n -> val l = CloseSplash.Leaving(n, System.currentTimeMillis() / 1000, null); leaving = l
                         scope.launch { runCatching { app.repo.command(CmdOp.SLASH, n, "exit", null) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } } },
                     closing = leaving?.takeIf { l -> l.refused == null }?.name,
-                    closeRefused = leaving?.let { l -> l.refused?.let { why -> l.name to why } }, onCloseSeen = { leaving = null },
+                    closeRefused = leaving?.let { l -> l.refused?.let { why -> l.name to why } }, closeArmable = leaving?.armable == true, onCloseSeen = { leaving = null }, onCloseArm = armClose,
                     elicitations = it.pixelbox.cmwatch.rules.Elicit.open(state, now).filter { e -> e.id !in elicitSent }, onElicit = answerElicit,
                     suggestions = state?.let { st -> it.pixelbox.cmwatch.rules.Suggestions.visible(st, sugDone.toSet(), now) }, onSuggestion = answerSuggestion,
                     closePreview = if (state?.ops?.contains("close_preview") == true && state.ops?.contains("close") == true) ({ names ->
@@ -2166,7 +2176,7 @@ class MainActivity : ComponentActivity() {
                             )
                             phase?.let { ph ->
                                 CloseSplashOverlay(
-                                    ph, onHome = drop, onDismiss = { leaving = null },
+                                    ph, onHome = drop, onDismiss = { leaving = null }, onArm = { w -> armClose(name, w) },
                                     onReopen = if (ph is CloseSplash.Phase.Closed && st.ops?.contains("reopen") == true) ({
                                         scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, name, null) } }
                                         drop()
@@ -2442,7 +2452,7 @@ class MainActivity : ComponentActivity() {
                                 sessionPage(session, pageEntries, null, true, null, null, true, { pageHeader(session.name) }, null)
                                 if (session.name == open) splash?.let { ph ->
                                     CloseSplashOverlay(
-                                        ph, onHome = splashHome, onDismiss = { leaving = null },
+                                        ph, onHome = splashHome, onDismiss = { leaving = null }, onArm = { w -> armClose(session.name, w) },
                                         onReopen = if (ph is CloseSplash.Phase.Closed && state?.ops?.contains("reopen") == true) ({
                                             val name = ph.name
                                             scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, name, null) } }

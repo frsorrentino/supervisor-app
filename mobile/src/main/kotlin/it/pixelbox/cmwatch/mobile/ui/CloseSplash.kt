@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -55,6 +56,8 @@ fun CloseSplashOverlay(
     column: Boolean = false,
     /** Rifiutata dal relay (app-chiudi-esito-04-11): «Va bene» toglie il motivo e lascia la pagina com'era. */
     onDismiss: () -> Unit = onHome,
+    /** Contratto 1.120: «Chiudi quando finisce» ("after") o «Chiudi comunque» ("force", confermato qui). */
+    onArm: ((String) -> Unit)? = null,
 ) {
     val home by rememberUpdatedState(onHome)
     val hm = { at: Long -> SPLASH_HM.format(Instant.ofEpochSecond(at).atZone(ZoneId.systemDefault())) }
@@ -83,13 +86,34 @@ fun CloseSplashOverlay(
                     if (phase.slow) {
                         Text(stringResource(R.string.splash_slow), style = MaterialTheme.typography.labelMedium, color = Cm.waiting)
                         TextButton(onClick = onHome) { Text(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), color = Cm.actionIcon) }
-                    } else Text(stringResource(R.string.splash_usually), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
+                    } else Text(stringResource(if (phase.force) R.string.splash_force_usually else R.string.splash_usually), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                 }
                 is CloseSplash.Phase.Refused -> {
-                    Text(stringResource(R.string.splash_refused, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
-                    Text(phase.why, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center)
-                    Button(onClick = onDismiss, Modifier.padding(top = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
-                        Text(stringResource(R.string.splash_refused_ok))
+                    var forceAsk by remember(phase) { androidx.compose.runtime.mutableStateOf(false) }
+                    val arm = onArm.takeIf { phase.armable }
+                    if (forceAsk && arm != null) {
+                        Text(stringResource(R.string.close_force_ask, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
+                        Text(stringResource(R.string.close_force_what), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center)
+                        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { forceAsk = false }) { Text(stringResource(R.string.close_force_cancel), color = Cm.actionIcon) }
+                            Button(onClick = { forceAsk = false; arm("force") }, colors = ButtonDefaults.buttonColors(containerColor = Cm.gone, contentColor = Color.White)) {
+                                Text(stringResource(R.string.close_force))
+                            }
+                        }
+                    } else {
+                        Text(stringResource(R.string.splash_refused, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
+                        Text(phase.why, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center)
+                        if (arm != null) {
+                            Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { forceAsk = true }) { Text(stringResource(R.string.close_force), color = Cm.actionIcon) }
+                                Button(onClick = { arm("after") }, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
+                                    Text(stringResource(R.string.close_after))
+                                }
+                            }
+                            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
+                        } else Button(onClick = onDismiss, Modifier.padding(top = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
+                            Text(stringResource(R.string.splash_refused_ok))
+                        }
                     }
                 }
                 is CloseSplash.Phase.Closed -> {

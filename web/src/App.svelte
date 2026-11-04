@@ -301,6 +301,17 @@
     const done = names.length - rf.length
     say([...(done > 0 ? [`✓ ${t.closedSaved(done)}`] : []), ...rf.map(x => `✗ ${t.closeRefusedSay(x.name, x.why)}`)].join(' · '))
   }
+  /** Contratto 1.120: «Chiudi quando finisce» (after) o «Chiudi comunque» (force, già confermato) dopo un Chiudi rifiutato. */
+  async function arm(name: string, when: 'after' | 'force') {
+    const r = await run(newCmd('close', null, name, undefined, undefined, { when }))
+    if (!r?.ok) return
+    const rf = refusals(r.text)
+    if (rf.length) { say(rf.map(x => `✗ ${t.closeRefusedSay(x.name, x.why)}`).join(' · ')); return }
+    say(`✓ ${when === 'after' ? t.closeArmedAfter(name) : t.closeArmedForce(name)}`)
+    // Quando finisce: la pagina resta com'è e la card lo dice (sessions[].closing); comunque: il pannello segue la chiusura.
+    if (when === 'force') leaving = { name, sentAt: nowS(), delivered: true, force: true }
+    else if (leaving?.name === name) leaving = null
+  }
   /** Contratto 1.90: il tasto di un consiglio del Sistema (sys_kill o close con i nomi); il testo del relay dice cosa ha chiuso. */
   /** Contratto 1.95: l'elenco dei plugin (lettura passiva) e i comandi della sezione; il testo del relay dice com'è andata. */
   async function pluginsLoad(): Promise<PluginsPage | null> {
@@ -1191,7 +1202,10 @@
       // Rifiutata, pannello e card dicono perché finché non li togli (Franz, 04/11: il Chiudi dà sempre un esito); senza
       // risposta la chiusura può essere in corso.
       run(newCmd(op, name, arg, text)).then(r => {
-        if (r && leaving?.name === name && leaving.sentAt === l.sentAt) leaving = r.ok ? { ...l, delivered: true } : { ...l, refused: refusals(r.text)[0]?.why ?? r.text }
+        if (r && leaving?.name === name && leaving.sentAt === l.sentAt) {
+          const rf = r.ok ? null : refusals(r.text)[0]
+          leaving = r.ok ? { ...l, delivered: true } : { ...l, refused: rf?.why ?? r.text, armable: rf?.armable ?? false }
+        }
       })
     } else run(newCmd(op, name || null, arg, text, st.sessions.find(x => x.name === name)?.question?.id))
   }
@@ -1369,7 +1383,7 @@
   onExternal={(r) => fileAction(r.session ?? '', r.path, 'open', `result:${r.id}:${r.path}`)} onSession={(n) => { openPage(null); pick(n) }}
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
 {#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
-        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused } : null} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
+        night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused, armable: !!leaving.armable } : null} onCloseArm={arm} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
@@ -1505,7 +1519,7 @@
       <div class="column" data-col={name}>
         {#if hr && !wco}<ColumnHead r={hr} now={now} onClose={() => (held ? dropCol(name) : setCols(cols.filter(c => c !== name)))} onGrab={grab} />{/if}
         <div class="cbody">{@render chatOf(name, true)}
-          {#if phase}<CloseSplash {phase} column onDismiss={() => (leaving = null)} onHome={() => dropCol(name)} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(name)('reopen'); dropCol(name) } : null} />{/if}
+          {#if phase}<CloseSplash {phase} column onArm={(w) => arm(name, w)} onDismiss={() => (leaving = null)} onHome={() => dropCol(name)} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(name)('reopen'); dropCol(name) } : null} />{/if}
         </div>
       </div>
     {/snippet}
@@ -1537,7 +1551,7 @@
               {:else if session && p === session.name}
                 {@const sn = session.name}
                 <div class="cbody" style:view-transition-name="page-fly">{@render chatOf(sn, false)}
-                  {#if phase}<CloseSplash {phase} onDismiss={() => (leaving = null)} onHome={splashHome} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(sn)('reopen'); splashHome() } : null} />{/if}
+                  {#if phase}<CloseSplash {phase} onArm={(w) => arm(phase.name, w)} onDismiss={() => (leaving = null)} onHome={splashHome} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(sn)('reopen'); splashHome() } : null} />{/if}
                 </div>
               {:else}<div class="cbody">{@render chatOf(p, false)}</div>{/if}
             {/if}

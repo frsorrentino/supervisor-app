@@ -288,7 +288,12 @@ enum class CmdOp {
     val changes: ChangesCount? = null,
     /** Contratto 1.111: le voci di Tocca a te di questa sessione; assente quando sono tutte 0 e con un relay precedente. */
     val tocca: Tocca? = null,
+    /** Contratto 1.120: la chiusura armata (`close` con when after o force), solo finché è armata. */
+    val closing: Closing? = null,
 )
+
+/** Contratto 1.120, `sessions[].closing`: mode after o force, quando è stata armata, la scadenza (null per after). */
+@Serializable data class Closing(val mode: String, val at: Long = 0, val deadline: Long? = null)
 
 /** Contratto 1.111, `sessions[].tocca`: contate come le pagine (prove comprende le pause con `prova`; guarda tutti i non visti). */
 @Serializable data class Tocca(val prove: Int = 0, val decidi: Int = 0, val guarda: Int = 0, val segui: Int = 0)
@@ -820,6 +825,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val uid: String? = null,
+    /** Contratto 1.120, `close`: now (o assente), after = quando finisce, force = comunque. Assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    @SerialName("when") val closeWhen: String? = null,
 )
 
 /**

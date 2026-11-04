@@ -80,4 +80,16 @@ class CloseSplashTest {
 
     @Test fun anUnknownReasonHasNoKind() =
         assertEquals(listOf(CloseSplash.Refusal("kb", null, "something else")), CloseSplash.refusals("kb not closed: something else"))
+
+    // Contratto 1.120: «Chiudi quando finisce» e «Chiudi comunque» solo dove il relay arma la chiusura.
+    @Test fun aQuestionWaitingCanBeArmedAnAttachedSessionCannot() {
+        assertEquals(true, CloseSplash.refusals("kb not closed: a question is waiting").single().armable)
+        assertEquals(false, CloseSplash.refusals("kb not closed: it is attached to a terminal").single().armable)
+    }
+
+    @Test fun aForcedCloseIsNotSlowBeforeIts180s() {
+        val f = sent.copy(force = true)
+        assertEquals(false, (CloseSplash.of("kb", listOf(s("kb", SessionState.BUSY)), f, null, now = 1_000 + CloseSplash.FORCE_S) as CloseSplash.Phase.Closing).slow)
+        assertEquals(true, (CloseSplash.of("kb", listOf(s("kb", SessionState.BUSY)), f, null, now = 1_000 + CloseSplash.FORCE_S + CloseSplash.SLOW_S) as CloseSplash.Phase.Closing).slow)
+    }
 }

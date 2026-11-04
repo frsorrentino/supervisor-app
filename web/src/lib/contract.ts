@@ -22,6 +22,8 @@ export type Model = { id: string; label?: string | null }
 export type Goal = { text: string; since: number; met?: boolean | null }
 
 export type Session = {
+  /** Contratto 1.120: la chiusura armata (`close` con when after o force), solo finché è armata; deadline null per after. */
+  closing?: { mode: 'after' | 'force'; at: number; deadline: number | null } | null
   /** Contratto 1.54 e 1.55. */
   permission_mode?: string | null; resolved?: Resolved | null
   /** Contratto 1.62: attaccata e con un tasto premuto al PC negli ultimi 2 minuti. */
@@ -386,6 +388,8 @@ export type Cmd = {
   pos_s?: number
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */
   question?: string
+  /** Contratto 1.120, `close`: now (o assente), after = quando finisce, force = comunque. */
+  when?: 'now' | 'after' | 'force'
   /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */
   at?: number; confirm?: boolean; prompt?: string
   /** Contratto 1.65: a una sessione chiusa, che il relay riapre e poi le consegna. */

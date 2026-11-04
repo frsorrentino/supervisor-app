@@ -219,6 +219,8 @@ class Repo(
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo queste sessioni, poi la chiusura. */
     suspend fun closePreview(names: List<String>) = command(CmdOp.CLOSE_PREVIEW, null, names.joinToString(","))
     suspend fun close(names: List<String>) = command(CmdOp.CLOSE, null, names.joinToString(","))
+    /** Contratto 1.120: «Chiudi quando finisce» (after) o «Chiudi comunque» (force) di una sessione. */
+    suspend fun closeWhen(name: String, whenMode: String) = command(CmdOp.CLOSE, null, name, closeWhen = whenMode)
 
     /** Ritorna l'id del comando (uuid): stesso id in Riprova, il PC ignora i duplicati. */
     /** `text`: il primo messaggio di un `launch` (contratto 1.13); per gli altri comandi resta null. */
@@ -244,6 +246,8 @@ class Repo(
         posS: Double? = null,
         /** Contratto 1.83, `elicit`: le risposte del modulo di un server MCP. */
         content: kotlinx.serialization.json.JsonObject? = null,
+        /** Contratto 1.120, `close`: after o force. */
+        closeWhen: String? = null,
     ): String {
         // Contratto 1.52: la risposta vale per la domanda aperta adesso, anche se parte dalla coda dopo minuti.
         val question = if (op == CmdOp.ANSWER || op == CmdOp.ALLOW_ALL)
@@ -252,6 +256,7 @@ class Repo(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt, reopen = reopen,
             kind = kind, since = since, choice = choice, sid = sid, content = content, result = result, hours = hours, reason = reason, also = also, value = value, product = product, key = key, posS = posS,
+            closeWhen = closeWhen,
         )
         question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {

@@ -158,8 +158,9 @@ describe('prove_fuse', () => {
     expect(c[0].rows.map(r => [r.key, r.text])).toEqual([['5be07a3c9e42', 'New home']])
     expect(cardKeys(c[0])).toEqual(['5be07a3c9e42'])
     const d = withoutTests(p)
-    expect(d.groups.map(g => g.key)).toEqual(['3f2a91c07d11', 'a81c55e20b34'])
-    expect([d.n, d.here]).toEqual([2, 1])
+    // Dalla fixture di supervisor 0.8.121 c'è anche il gruppo del login di work, qui.
+    expect(d.groups.map(g => g.key)).toEqual(['3f2a91c07d11', 'a81c55e20b34', '5b0e1f7c2a93'])
+    expect([d.n, d.here]).toEqual([3, 2])
   })
   it('prove_fuse: le prove superate stanno nella pre-release più nuova dello stesso progetto, gli altri progetti a parte', () => {
     const page = { ...p, groups: [P('k1', 'a', 'x/app', 'r-1', 100), P('k2', 'b', 'x/app', 'r-2', 300, '0.2.9'), P('k3', 'c', 'y/web', null, 200, '1.0.1'), ...p.groups] } as DecisionsPage

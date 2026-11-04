@@ -185,8 +185,9 @@ class DecideTest {
         assertEquals(listOf("5be07a3c9e42" to "New home"), c[0].rows.map { it.key to it.text })
         assertEquals(listOf("5be07a3c9e42"), ProveFuse.keys(c[0]))
         val d = ProveFuse.withoutTests(p)
-        assertEquals(listOf("3f2a91c07d11", "a81c55e20b34"), d.groups.map { it.key })
-        assertEquals(2 to 1, d.n to d.here)
+        // Dalla fixture di supervisor 0.8.121 c'è anche il gruppo del login di work, qui.
+        assertEquals(listOf("3f2a91c07d11", "a81c55e20b34", "5b0e1f7c2a93"), d.groups.map { it.key })
+        assertEquals(3 to 2, d.n to d.here)
     }
 
     @Test fun prove_fuse_leProveSuperateStannoNellaPreReleasePiuNuova() {

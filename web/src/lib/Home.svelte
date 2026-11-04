@@ -74,7 +74,7 @@
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
   import { closedToday, toccaCounts } from './toccaRules'
   import ToccaClosed from './ToccaClosed.svelte'
-  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
+  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -136,7 +136,9 @@
     /** La sessione chiusa da una card, finché non esce dallo stato o il PC rifiuta (Franz 24/10 13:20: «nessun feedback»). */
     closing?: string | null
     /** Il Chiudi rifiutato dal relay, col motivo in chiaro; `onCloseSeen` lo toglie. */
-    closeRefused?: { name: string; why: string } | null; onCloseSeen?: () => void
+    closeRefused?: { name: string; why: string; armable?: boolean } | null; onCloseSeen?: () => void
+    /** Contratto 1.120: «Chiudi quando finisce» o «Chiudi comunque» (già confermato qui). */
+    onCloseArm?: ((name: string, when: 'after' | 'force') => void) | null
     /** Contratto 1.83: le domande aperte dei server MCP, in cima; `onElicit` manda la risposta. */
     elicitations?: Elicitation[]; onElicit?: (e: Elicitation, action: 'accept' | 'decline', values: Values) => void
     /** La sezione «Lavori» (22/10): l'agenda (null = non arrivata), «Tutti i lavori» apre la pagina; Fatto su una riga dell'agenda
@@ -599,6 +601,8 @@
     previewing = false
   }
   let confirming = $state<string | null>(null)
+  /** La conferma di «Chiudi comunque» nella card (contratto 1.120). */
+  let forceAsk = $state<string | null>(null)
   // Contratto 1.90, la sezione «Sistema» (Franz 28/10 13:19): compatta in verde, aperta da sola in giallo e in rosso;
   // il tocco sull'intestazione vale finché il livello non cambia. Ogni tasto chiede conferma nella card, come «Chiudi».
   const sys = $derived(st.system ?? null)
@@ -1151,9 +1155,23 @@
         <div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>
       {/if}
       <!-- Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene». -->
-      {#if closeRefused?.name === s.name}
+      {#if closeRefused?.name === s.name && forceAsk === s.name && onCloseArm}
+        <div class="confirm" role="group" aria-label={t.closeForceAsk(s.name)}>
+          <span>{t.closeForceWhat}</span>
+          <button class="keep" onclick={(e) => { e.stopPropagation(); forceAsk = null }}>{t.closeForceCancel}</button>
+          <button class="danger" onclick={(e) => { e.stopPropagation(); forceAsk = null; onCloseArm(s.name, 'force') }}>{t.closeForce}</button>
+        </div>
+      {:else if closeRefused?.name === s.name}
         <div class="clean" role="status"><span class="refused"><b>{t.splashRefused(s.name)}</b> · {closeRefused.why}</span>
-          <button class="keep" onclick={(e) => { e.stopPropagation(); onCloseSeen() }}>{t.splashRefusedOk}</button></div>
+          {#if closeRefused.armable && onCloseArm}
+            <button class="keep" onclick={(e) => { e.stopPropagation(); forceAsk = s.name }}>{t.closeForce}</button>
+            <button class="close" onclick={(e) => { e.stopPropagation(); onCloseArm(s.name, 'after') }}>{t.closeAfter}</button>
+          {/if}
+          <button class="keep" onclick={(e) => { e.stopPropagation(); onCloseSeen() }}>{closeRefused.armable && onCloseArm ? t.closeKeep : t.splashRefusedOk}</button></div>
+      {/if}
+      <!-- Contratto 1.120: armata dal relay, la card lo dice finché non si chiude. -->
+      {#if s.closing && closing !== s.name}
+        <div class="clean"><span class="closing" role="status">{#if s.closing.mode === 'force'}<i class="spin" aria-hidden="true"></i>{/if}{s.closing.mode === 'force' ? t.closingForce : t.closingAfter}</span></div>
       {/if}
       {#if confirming === s.name && !c?.canClose}
         <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>

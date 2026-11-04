@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Session, SessionState } from './contract'
-import { closeRefusals, closeSplash, ghostSession, SLOW_S } from './closeSplash'
+import { closeRefusals, closeSplash, FORCE_S, ghostSession, SLOW_S } from './closeSplash'
 
 // Gli stessi casi di CloseSplashTest.kt.
 const s = (n: string, state: SessionState, since = 100): Session => ({ id: n, name: n, account: 'personale', project: n, state, since })
@@ -9,8 +9,8 @@ const sent = (delivered = false) => ({ name: 'kb', sentAt: 1_000, delivered })
 describe('closeSplash', () => {
   it('a live session without exit shows nothing', () => expect(closeSplash('kb', [s('kb', 'idle')], null, null, 1_010)).toBeNull())
   it('after exit the session is closing until the PC confirms', () => {
-    expect(closeSplash('kb', [s('kb', 'idle')], sent(), null, 1_002)).toEqual({ kind: 'closing', name: 'kb', sentAt: 1_000, delivered: false, slow: false })
-    expect(closeSplash('kb', [s('kb', 'idle')], sent(true), null, 1_004)).toEqual({ kind: 'closing', name: 'kb', sentAt: 1_000, delivered: true, slow: false })
+    expect(closeSplash('kb', [s('kb', 'idle')], sent(), null, 1_002)).toEqual({ kind: 'closing', name: 'kb', sentAt: 1_000, delivered: false, slow: false, force: false })
+    expect(closeSplash('kb', [s('kb', 'idle')], sent(true), null, 1_004)).toEqual({ kind: 'closing', name: 'kb', sentAt: 1_000, delivered: true, slow: false, force: false })
   })
   it('a closing that takes longer than usual says so', () =>
     expect(closeSplash('kb', [s('kb', 'idle')], sent(true), null, 1_000 + SLOW_S)).toMatchObject({ kind: 'closing', slow: true }))
@@ -42,14 +42,29 @@ describe('close refused', () => {
   const other = (r: string) => `resta aperta: ${r}`
   it('a refused exit shows the reason instead of closing', () =>
     expect(closeSplash('kb', [s('kb', 'idle')], { ...sent(true), refused: 'resta aperta: ha un lavoro in sottofondo' }, null, 1_002))
-      .toEqual({ kind: 'refused', name: 'kb', why: 'resta aperta: ha un lavoro in sottofondo' }))
+      .toEqual({ kind: 'refused', name: 'kb', why: 'resta aperta: ha un lavoro in sottofondo', armable: false }))
   it('gone anyway after a refusal is closed', () =>
     expect(closeSplash('kb', [s('kb', 'gone', 1_003)], { ...sent(), refused: 'x' }, null, 1_005)).toMatchObject({ kind: 'closed' }))
   it('reads the background refusal the relay sends today', () =>
-    expect(closeRefusals('ERR kb not closed: a job is running in the background', texts, other)).toEqual([{ name: 'kb', why: 'resta aperta: ha un lavoro in sottofondo' }]))
+    expect(closeRefusals('ERR kb not closed: a job is running in the background', texts, other)).toEqual([{ name: 'kb', why: 'resta aperta: ha un lavoro in sottofondo', armable: true }]))
   it('reads only the refused lines of a close with names', () =>
-    expect(closeRefusals('closed: field-notes\natlas-shop not closed: it is working', texts, other)).toEqual([{ name: 'atlas-shop', why: 'resta aperta: sta lavorando' }]))
+    expect(closeRefusals('closed: field-notes\natlas-shop not closed: it is working', texts, other)).toEqual([{ name: 'atlas-shop', why: 'resta aperta: sta lavorando', armable: true }]))
   it('an unknown reason stays as the relay wrote it', () =>
-    expect(closeRefusals('kb not closed: something else', texts, other)).toEqual([{ name: 'kb', why: 'resta aperta: something else' }]))
+    expect(closeRefusals('kb not closed: something else', texts, other)).toEqual([{ name: 'kb', why: 'resta aperta: something else', armable: false }]))
   it('no refusal in a plain close', () => expect(closeRefusals('closed: kb', texts, other)).toEqual([]))
+})
+
+// Contratto 1.120: «Chiudi quando finisce» e «Chiudi comunque» solo dove il relay arma la chiusura.
+describe('close armed', () => {
+  const texts = { busy: 'sta lavorando', question: 'ha una domanda', background: 'sottofondo', attached: 'aperta al PC' }
+  it('a question waiting can be armed, an attached session cannot', () => {
+    expect(closeRefusals('kb not closed: a question is waiting', texts, x => x)[0].armable).toBe(true)
+    expect(closeRefusals('kb not closed: it is attached to a terminal', texts, x => x)[0].armable).toBe(false)
+  })
+  it('a refused panel says whether it can be armed', () =>
+    expect(closeSplash('kb', [s('kb', 'busy')], { ...sent(true), refused: 'sta lavorando', armable: true }, null, 1_002)).toMatchObject({ kind: 'refused', armable: true }))
+  it('a forced close is not slow before its 180 s', () => {
+    expect(closeSplash('kb', [s('kb', 'busy')], { ...sent(true), force: true }, null, 1_000 + FORCE_S)).toMatchObject({ kind: 'closing', slow: false, force: true })
+    expect(closeSplash('kb', [s('kb', 'busy')], { ...sent(true), force: true }, null, 1_000 + FORCE_S + SLOW_S)).toMatchObject({ slow: true })
+  })
 })

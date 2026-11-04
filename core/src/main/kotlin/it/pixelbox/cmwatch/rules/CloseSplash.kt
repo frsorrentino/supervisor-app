@@ -13,17 +13,22 @@ object CloseSplash {
     const val CLOSED_SHOW_MS = 3_000L
     /** Oltre questi secondi senza conferma il pannello dice che ci sta mettendo più del solito. */
     const val SLOW_S = 20L
+    /** Contratto 1.120: «Chiudi comunque» si chiude a fine turno o entro 180 s; «più del solito» solo dopo. */
+    const val FORCE_S = 180L
+    /** I motivi per cui il relay arma una chiusura (`close` con when after o force): mai una attaccata o che non gira. */
+    val ARMABLE = setOf("busy", "question", "background")
 
     /**
      * La chiusura chiesta da qui: quale sessione, quando, con quale comando; [refused] è il motivo del rifiuto del relay, già
-     * in chiaro (app-chiudi-esito-04-11).
+     * in chiaro (app-chiudi-esito-04-11), e [armable] se si può chiudere quando finisce o comunque (contratto 1.120);
+     * [force]: la chiusura è un «Chiudi comunque».
      */
-    data class Leaving(val name: String, val sentAt: Long, val cmd: String?, val refused: String? = null)
+    data class Leaving(val name: String, val sentAt: Long, val cmd: String?, val refused: String? = null, val armable: Boolean = false, val force: Boolean = false)
 
     sealed interface Phase {
-        data class Closing(val name: String, val sentAt: Long, val delivered: Boolean, val slow: Boolean) : Phase
+        data class Closing(val name: String, val sentAt: Long, val delivered: Boolean, val slow: Boolean, val force: Boolean = false) : Phase
         data class Closed(val name: String, val at: Long, val byMe: Boolean) : Phase
-        data class Refused(val name: String, val why: String) : Phase
+        data class Refused(val name: String, val why: String, val armable: Boolean = false) : Phase
     }
 
     /**
@@ -41,17 +46,20 @@ object CloseSplash {
             s == null -> Phase.Closed(name, at, byMe = mine)
             s.state == SessionState.GONE -> if (mine) Phase.Closed(name, at, byMe = true) else null
             // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, il pannello dice perché finché non lo togli.
-            mine && leaving!!.refused != null -> Phase.Refused(name, leaving.refused!!)
+            mine && leaving!!.refused != null -> Phase.Refused(name, leaving.refused!!, leaving.armable)
             // Dal vivo 08/10 19:29: dopo /exit Claude Code può chiedere cosa fare dei lavori in background; il pannello non
             // copre la domanda, e torna quando è risposta.
             mine && s.question != null -> null
-            mine -> Phase.Closing(name, leaving!!.sentAt, delivered, slow = now - leaving.sentAt >= SLOW_S)
+            mine -> Phase.Closing(name, leaving!!.sentAt, delivered, slow = now - leaving.sentAt >= (if (leaving.force) FORCE_S + SLOW_S else SLOW_S), force = leaving.force)
             else -> null
         }
     }
 
     /** Una riga «<nome> not closed: <motivo>» del relay (op close e /exit); [kind] è la chiave di `blocked_by`, null se nuova. */
-    data class Refusal(val name: String, val kind: String?, val reason: String)
+    data class Refusal(val name: String, val kind: String?, val reason: String) {
+        /** Contratto 1.120: si può chiudere quando finisce o comunque. */
+        val armable get() = kind in ARMABLE
+    }
 
     private val NOT_CLOSED = Regex("""(?:^|\s)(\S+) not closed: (.+)$""")
 
