@@ -112,7 +112,7 @@ fun SearchScreen(
             open.forEach { s -> Pill(s.name, session == s.name, dot = color(s.name)) { session = if (session == s.name) null else s.name } }
         }
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Pill(stringResource(R.string.search_today), today) { today = true }
             Pill(stringResource(R.string.search_week), !today) { today = false }
             Box(Modifier.width(1.dp).height(22.dp).background(V3.S3))
@@ -144,7 +144,8 @@ fun SearchScreen(
                     Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp).clip(RoundedCornerShape(16.dp)).background(V3.S1)) {
                         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Box(Modifier.size(10.dp).clip(CircleShape).background(if (g.session == null) V3.Tx2 else if (g.live == false) V3.Tx3 else color(g.session)))
-                            Text(g.session ?: stringResource(R.string.tab_diary), style = V3.Section.copy(fontSize = 17.sp), maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false))
+                            // Il nome intero, anche su due righe, mai tagliato (regole di larghezza di Franz).
+                            Text(g.session ?: stringResource(R.string.tab_diary), style = V3.Section.copy(fontSize = 17.sp), maxLines = 2, modifier = Modifier.weight(1f, fill = false))
                             Text(g.hits.size.toString(), style = V3.Meter.copy(color = V3.Tx3, fontSize = 13.sp))
                             Spacer(Modifier.weight(1f))
                             g.live?.let { l -> Text(stringResource(if (l) R.string.search_open_one else R.string.search_closed), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.sp)) }
@@ -156,7 +157,7 @@ fun SearchScreen(
                                 Modifier.fillMaxWidth().then(if (can) Modifier.handCursor().clickable { onOpen(h.session, h.entry) } else Modifier).padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text(whenText(SearchView.whenOf(h.at, now, zone)), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.sp, lineHeight = 20.sp), modifier = Modifier.width(42.dp))
+                                Text(whenText(SearchView.whenOf(h.at, now, zone)), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.sp, lineHeight = 20.sp), maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = 42.dp))
                                 Text(
                                     buildAnnotatedString {
                                         append(h.line.substring(0, h.start))
