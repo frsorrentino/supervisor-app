@@ -1016,11 +1016,11 @@ fun SummaryList(
         item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
-            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second, divider = true) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
+            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second, divider = true) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
             else item(key = "cat-${c.id}") {
                 Box(movingIn("cat:${c.id}")()) {
                     val (bits, amber) = catBits(c.id)
-                    CatRow(c.id, bits, amber, false, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo)) { setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) }
+                    CatRow(c.id, bits, amber, false, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo)) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) }
                 }
             }
             if (!c.open) return@forEachIndexed
