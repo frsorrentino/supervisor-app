@@ -891,6 +891,7 @@ class MainActivity : ComponentActivity() {
         // `more` per chat, dall'ultima pagina letta da capo o all'indietro: la chat riaperta lo ritrova (`ChatFeed.moreOnOpen`).
         val feedMore = remember { mutableStateMapOf<String, Boolean>() }
         var olderId by remember { mutableStateOf<String?>(null) }
+        var olderTries by remember { mutableStateOf(0) }
         var unsupported by remember { mutableStateOf(false) }
         // Da quando la lettura in volo aspetta il PC: la riga «in attesa del PC» della chat (piano prestazioni, Task 7).
         var readSince by remember { mutableStateOf<Long?>(null) }
@@ -1018,7 +1019,18 @@ class MainActivity : ComponentActivity() {
             val until = System.currentTimeMillis() + PhoneTerminal.LOST_MS
             while (System.currentTimeMillis() < until) {
                 val r = app.repo.resultsById.value[id]
+                if (r != null && it.pixelbox.cmwatch.rules.QuestionRules.superseded(r) && olderTries < 3) {
+                    // Il relay tiene una lettura per sessione: la pagina «prima» veniva superata dalla lettura `after` della chat
+                    // aperta e non arrivava mai (relay.log 03-04/11, nessun before=). Superata, si richiede.
+                    olderTries++
+                    app.repo.forget(id)
+                    delay(400L * olderTries)
+                    val n = chatName; val first = entries.firstOrNull()?.id
+                    olderId = if (n != null && first != null) runCatching { transcriptSid(n).let { sid -> app.repo.command(CmdOp.TRANSCRIPT, n.takeIf { sid == null }, ChatFeed.olderArg(first), sid = sid) } }.getOrNull() else null
+                    return@LaunchedEffect
+                }
                 if (r != null) {
+                    olderTries = 0
                     // Franz 23/10 23:17: il tasto carica o sparisce (ChatFeed.older): pagina vuota, già nota o rifiutata = niente tasto.
                     val page = if (r.ok) runCatching { ContractJson.decodeTranscript(r.text) }.getOrNull() else null
                     val (list, m) = ChatFeed.older(entries, page)

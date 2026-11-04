@@ -388,7 +388,15 @@
   async function loadOlder(name: string) {
     const first = transcripts[name]?.[0]?.id
     if (!tr || !first) return
-    const r = await run(transcriptCmd(name, `50:before=${first}`))
+    // Il relay tiene una lettura per sessione e la pagina «prima» veniva superata dalla lettura `after` che parte di continuo:
+    // non arrivava mai (relay.log 03-04/11, nessun before=) e il tasto si spegneva. Superata, si richiede.
+    let r: CmdResult | null = null
+    for (let i = 0; i < 4; i++) {
+      r = await run(transcriptCmd(name, `50:before=${first}`))
+      if (!r || !superseded(r)) break
+      await new Promise(res => setTimeout(res, 400 * (i + 1)))
+    }
+    if (r && superseded(r)) return
     // Franz 23/10 23:17: il tasto carica o sparisce (older): pagina vuota, già nota o rifiutata = niente tasto.
     const o = older(transcripts[name] ?? [], r?.ok ? (JSON.parse(r.text) as TranscriptPage) : null)
     transcripts = { ...transcripts, [name]: o.entries }

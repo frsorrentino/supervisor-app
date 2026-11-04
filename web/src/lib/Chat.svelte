@@ -85,7 +85,9 @@
   let changesOpen = $state(false)
   $effect.pre(() => { const name = s.name; if (name !== shown) { drafts[shown] = draft; draft = drafts[name] ?? ''; shown = name; changesOpen = false } })
   let list: HTMLElement | undefined = $state()
-  const items = $derived(group(merge(entries, mine)))
+  // Con pagine più vecchie da caricare i messaggi mandati prima della pagina aspettano la loro: sotto «Carica i messaggi
+  // precedenti» c'erano solo i prompt di Franz con «elaborato», senza le risposte (04/11 20:31, rendicontazione-ak).
+  const items = $derived(group(merge(entries, mine, onOlder != null)))
   // La riga «in attesa del PC»: l'orologio gira solo con una lettura in volo.
   let waitNow = $state(Date.now())
   $effect(() => {
