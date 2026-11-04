@@ -93,4 +93,52 @@ object MasterLanding {
         val p = pullShown(m, px, py)
         return if (m.vertical) 0f to (py - m.y) * p * 0.3f else (px - m.x) * p * 0.3f to 0f
     }
+
+    /** La riga in basso e la compatta, prima di misurarle; sotto la home colonna, maniglia e master hanno 24 fra l'una e l'altra. */
+    const val BAR_H = 64f
+    const val COMPACT_H = 180f
+    const val STACK_GAP = 24f
+
+    /**
+     * Il posto della master nell'area della pagina, per la sagoma dell'anteprima (scelta A di Franz, 04/11 17:21,
+     * app-trascina-rifinitura-04-11; sul tablet app-tablet-scelta-a-04-11; come `placeRect` di masterLanding.ts): la colonna sul
+     * lato `left` larga `w`; sotto la home a metà o compatta, in fondo a quella colonna; la riga in basso a tutta larghezza.
+     */
+    fun placeRect(area: Rect, left: Boolean, h: Height, w: Float, bar: Float = BAR_H, compact: Float = COMPACT_H): Rect {
+        val bottom = area.y + area.h
+        if (h == Height.BAR) return Rect(area.x, bottom - bar, area.w, bar)
+        val x = if (left) area.x else area.x + area.w - w
+        if (h == Height.COLUMN) return Rect(x, area.y, w, area.h)
+        val hh = if (h == Height.HALF) (area.h - STACK_GAP) / 2 else compact
+        return Rect(x, bottom - hh, w, hh)
+    }
+    /** Lo stesso posto dall'altro lato dell'area. */
+    fun mirrorRect(area: Rect, r: Rect): Rect = r.copy(x = 2 * area.x + area.w - r.x - r.w)
+    /** La colonna della master larga `w`, ferma sul suo lato: il bordo verso le sessioni si sposta. */
+    fun widthRect(col: Rect, left: Boolean, w: Float): Rect = col.copy(x = if (left) col.x else col.x + col.w - w, w = w)
+
+    /** La linea a metà schermo del gesto del lato: passata quando il dito è dall'altra parte rispetto a dove stava la master. */
+    fun crossed(screenW: Float, x: Float, fromLeft: Boolean): Boolean = (x < screenW / 2) != fromLeft
+
+    /** Quanto deve restare sotto il dito un bersaglio nuovo prima di prenderlo (app-trascina-rifinitura-04-11). */
+    const val DWELL_MS = 140L
+
+    /**
+     * La sosta (Franz 04/11 08:20: «dalla riga in basso c'è sfarfallio»; `steady` di masterLanding.ts): il bersaglio di adesso
+     * tiene; uno nuovo vince solo se resta sotto il dito per `dwell` ms di fila. `feed` dice il bersaglio da mostrare e, se uno
+     * nuovo aspetta, fra quanti ms riguardare anche senza altri movimenti del dito.
+     */
+    class Steady<K>(start: K, private val dwell: Long = DWELL_MS) {
+        var current: K = start
+            private set
+        private var cand: K? = null
+        private var since = 0L
+        fun feed(key: K, now: Long): Pair<K, Long?> {
+            if (key == current) { cand = null; return current to null }
+            if (cand != key) { cand = key; since = now }
+            val left = dwell - (now - since)
+            if (left <= 0) { current = key; cand = null; return current to null }
+            return current to left
+        }
+    }
 }

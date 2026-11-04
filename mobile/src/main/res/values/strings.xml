@@ -1826,6 +1826,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="master_land_column">Colonna intera</string>
     <string name="master_land_half">Sotto la home, a metà</string>
     <string name="master_land_compact">Sotto la home, compatta</string>
+    <string name="master_mid_left">a sinistra</string>
+    <string name="master_mid_right">a destra</string>
+    <string name="master_mid_cross">Oltre questa linea: %1$s %2$s</string>
+    <string name="master_mid_release">Rilascia: %1$s</string>
     <string name="master_width_edge">Trascina per allargare o stringere la master</string>
     <string name="master_stack_step">Cambia altezza della master</string>
     <string name="swap_add">Apri %1$s accanto</string>

@@ -93,4 +93,34 @@ class MasterLandingTest {
         // Quello di arrivo non scende sotto 0,6.
         assertEquals(48f + 0.6f * 88f, MasterLanding.length(m.copy(on = true), 100f, 900f), 0.001f)
     }
+
+    // La sagoma della scelta A: colonna, metà e compatta in fondo alla colonna, riga a tutta larghezza; specchio e larghezza.
+    @Test fun ghostPlaces() {
+        val area = Rect(0f, 0f, 1600f, 1000f)
+        assertEquals(Rect(1180f, 0f, 420f, 1000f), MasterLanding.placeRect(area, left = false, h = Height.COLUMN, w = 420f))
+        assertEquals(Rect(0f, 512f, 420f, 488f), MasterLanding.placeRect(area, left = true, h = Height.HALF, w = 420f))
+        assertEquals(Rect(0f, 820f, 420f, 180f), MasterLanding.placeRect(area, left = true, h = Height.COMPACT, w = 420f))
+        assertEquals(Rect(0f, 936f, 1600f, 64f), MasterLanding.placeRect(area, left = true, h = Height.BAR, w = 420f))
+        assertEquals(Rect(1180f, 512f, 420f, 488f), MasterLanding.mirrorRect(area, Rect(0f, 512f, 420f, 488f)))
+        assertEquals(Rect(800f, 0f, 800f, 1000f), MasterLanding.widthRect(Rect(1180f, 0f, 420f, 1000f), left = false, w = 800f))
+        assertEquals(Rect(0f, 0f, 800f, 1000f), MasterLanding.widthRect(Rect(0f, 0f, 420f, 1000f), left = true, w = 800f))
+    }
+
+    // La linea a metà: passata quando il dito è dall'altra parte.
+    @Test fun midlineCrossed() {
+        assertEquals(false, MasterLanding.crossed(1600f, 500f, fromLeft = true))
+        assertEquals(true, MasterLanding.crossed(1600f, 900f, fromLeft = true))
+        assertEquals(true, MasterLanding.crossed(1600f, 500f, fromLeft = false))
+    }
+
+    // La sosta: il bersaglio nuovo vince dopo 140 ms sotto il dito; uno che cambia ricomincia.
+    @Test fun steadyHoldsUntilTheDwell() {
+        val s = MasterLanding.Steady(Height.BAR)
+        assertEquals(Height.BAR to 140L, s.feed(Height.COLUMN, 0))
+        assertEquals(Height.BAR to 40L, s.feed(Height.COLUMN, 100))
+        assertEquals(Height.COLUMN to null, s.feed(Height.COLUMN, 140))
+        assertEquals(Height.COLUMN to 140L, s.feed(Height.HALF, 200))
+        assertEquals(Height.COLUMN to null, s.feed(Height.COLUMN, 250))
+        assertEquals(Height.COLUMN to 140L, s.feed(Height.HALF, 260))
+    }
 }

@@ -1798,6 +1798,10 @@ It starts at your last message to the master.</string>
     <string name="master_land_column">Full column</string>
     <string name="master_land_half">Under the home, half</string>
     <string name="master_land_compact">Under the home, compact</string>
+    <string name="master_mid_left">on the left</string>
+    <string name="master_mid_right">on the right</string>
+    <string name="master_mid_cross">Past this line: %1$s %2$s</string>
+    <string name="master_mid_release">Release: %1$s</string>
     <string name="master_width_edge">Drag to widen or narrow the master</string>
     <string name="master_stack_step">Change the master height</string>
     <string name="swap_add">Open %1$s alongside</string>
