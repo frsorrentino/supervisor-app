@@ -59,6 +59,7 @@
         </service>
 
         <service android:name=".live.LiveService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+        <service android:name=".ReadingService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
 
         <service android:name=".push.PhoneMessagingService" android:exported="false">
             <intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT" /></intent-filter>

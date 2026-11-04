@@ -96,6 +96,8 @@ class Speech(ctx: Context) {
         items = blocksOf(text).withIndex().drop(from).flatMap { (i, b) -> SpeechText.chunks(SpeechText.forBlock(b.kind, b.text, code), PHONE_CHUNK).map { i to it } }
         if (items.isEmpty()) { finished(); return }
         startAt(0)
+        // Il player delle notifiche, le cuffie e l'orologio (app-player-lettura-03-11).
+        ReadingService.start(app)
     }
 
     /** Mette in coda i pezzi da `k0` con la velocità di adesso; il primo interrompe quello che il motore sta dicendo. */

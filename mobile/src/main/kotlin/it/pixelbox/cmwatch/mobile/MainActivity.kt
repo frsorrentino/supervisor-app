@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val app get() = application as PhoneApp
-    private val speech by lazy { Speech(this) }
+    private val speech get() = (application as PhoneApp).speech
     private val readingOverlay = it.pixelbox.cmwatch.mobile.ui.ReadingOverlay()
     private val localeManager by lazy { getSystemService(android.app.LocaleManager::class.java) }
     /**
@@ -2773,10 +2773,7 @@ class MainActivity : ComponentActivity() {
         app.updater.resumed()
     }
 
-    override fun onDestroy() {
-        speech.shutdown()
-        super.onDestroy()
-    }
+    // La lettura non si chiude con la schermata: la tiene ReadingService (app-player-lettura-03-11).
 
     companion object {
         private const val KEY_ROTATING = "cm.rotating"

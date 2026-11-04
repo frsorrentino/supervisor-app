@@ -58,6 +58,8 @@ class PhoneApp : Application() {
     lateinit var transport: SwitchableTransport
     lateinit var repo: Repo
     lateinit var notifier: PhoneNotifier
+    /** La lettura vocale vive con l'app e non con la schermata: continua a schermo spento, dal player (app-player-lettura-03-11). */
+    val speech by lazy { Speech(this) }
     private val watch by lazy { WatchPresence(this) }
     /** P6 (21/10): l'aggiornamento dentro l'app, dalle release di GitHub. */
     val updater by lazy { it.pixelbox.cmwatch.mobile.update.AppUpdater(this, scope) }

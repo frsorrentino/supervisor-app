@@ -45,7 +45,7 @@ internal fun LongText(
         if (long && speak != null) {
             val reading = LocalSpeaking.current == text
             FilledTonalIconButton(onClick = { speak(text) }, modifier = Modifier.padding(start = 8.dp).size(40.dp).testTag("leggi")) {
-                Icon(if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, stringResource(if (reading) R.string.stop_reading else R.string.dock_listen))
+                Icon(if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, stringResource(if (reading) R.string.stop_reading else R.string.read_aloud))
             }
         }
     }

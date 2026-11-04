@@ -1789,4 +1789,5 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="master_stack_step">Cambia altezza della master</string>
     <string name="swap_add">Apri %1$s accanto</string>
     <string name="swap_replace">Al posto di %1$s</string>
+    <string name="reading_channel">Lettura vocale</string>
 </resources>
