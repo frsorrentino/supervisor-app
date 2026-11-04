@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CmdResult, DecisionsPage, ProvePage } from './contract'
   import { decodeDecisions, decodeProve, readPage } from './decideDecode'
-  import { allOk, cardKeys, screen, testCards, type TestCard } from './decide'
+  import { allOk, cardKeys, proveDone, proveSent, screen, testCards, type TestCard } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
   import LongText from './LongText.svelte'
@@ -39,13 +39,16 @@
   // Franz 02/11 15:38: Ok non blocca più e la scheda non sparisce di colpo (leave.ts): conferma sul tasto, uscita in altezza,
   // le altre salgono; la pagina si ricarica dopo, in silenzio. Se il PC dice no, la scheda torna.
   let picked = $state<Record<string, string>>({})
-  let gone = $state<Record<string, true>>({})
+  // Le prove mandate restano via anche se la sezione si ridisegna (app-prova-ok-sparisce-04-11): partono da `proveSent`.
+  let gone = $state<Record<string, true>>(Object.fromEntries([...proveSent].map(i => [i, true as const])))
   const hooks = {
     pick: (ids: string[], v: string | null) => { const n = { ...picked }; for (const i of ids) { if (v) n[i] = v; else delete n[i] } picked = n },
-    hide: (ids: string[], v: boolean) => { const n = { ...gone }; for (const i of ids) { if (v) n[i] = true; else delete n[i] } gone = n },
+    hide: (ids: string[], v: boolean) => { const n = { ...gone }; for (const i of ids) { if (v) { n[i] = true; proveSent.add(i) } else { delete n[i]; proveSent.delete(i) } } gone = n },
   }
-  const send = (arg: string, res: 'ok' | 'ko', body?: string) => run(newCmd('prova', null, arg, body, undefined, { result: res })).then(r => !!r?.ok)
-  async function result(ids: string[], arg: string, res: 'ok' | 'ko', body?: string) { if (await leave(ids, res, () => send(arg, res, body), hooks)) void load() }
+  // L'Ok torna indietro solo per un rifiuto vero (`proveDone`); il Non va resta com'era.
+  const send = (arg: string, res: 'ok' | 'ko', body?: string) => run(newCmd('prova', null, arg, body, undefined, { result: res })).then(r => (res === 'ok' ? proveDone(r?.ok ?? null, r?.text) : !!r?.ok))
+  // La lista si rilegge dopo ogni esito, anche un rifiuto.
+  async function result(ids: string[], arg: string, res: 'ok' | 'ko', body?: string) { await leave(ids, res, () => send(arg, res, body), hooks); void load() }
   const shown = (g: ProvePage['groups'][number]) => g.prove.filter(p => !gone[String(p.id)])
   const outMs = () => (reducedMotion() ? 0 : 160)
   async function sendKo() { const p = ko!; const b = text.trim(), f = shot; ko = null; text = ''; shot = null; await result([String(p.id)], String(p.id), 'ko', b); if (f) onShot(f, t.proveKoShotNote(p.short ?? p.task)) }

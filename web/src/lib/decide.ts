@@ -117,3 +117,13 @@ export function withoutTests(page: DecisionsPage): DecisionsPage {
   const gone = page.groups.filter(isTestGroup).reduce((n, g) => n + g.unblocks.length, 0)
   return { ...page, groups, n: groups.length, here: groups.filter(g => g.where === 'here').length, tasks: Math.max(0, page.tasks - gone) }
 }
+
+/**
+ * L'esito dell'Ok su una prova (app-prova-ok-sparisce-04-11, come rules/ProveOk.kt): la scheda torna solo per un rifiuto vero;
+ * «già confermata» o «non c'è più» vogliono dire fatta, e senza risposta in tempo (`ok` null) l'Ok è comunque partito.
+ */
+export function proveDone(ok: boolean | null | undefined, text: string | null | undefined): boolean {
+  return ok !== false || /già confermata|non c'è più|already (confirmed|gone|done)|no longer/i.test(text ?? '')
+}
+/** Le prove con l'Ok mandato, per tutta la pagina: la sezione della home e la pagina le tolgono insieme. */
+export const proveSent = new Set<string>()

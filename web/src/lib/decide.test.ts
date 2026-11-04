@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove, chooseAt, testCards, withoutTests, cardKeys } from './decide'
+import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove, chooseAt, testCards, withoutTests, cardKeys, proveDone } from './decide'
 import { decodeState, type Approval, type DecisionItem, type DecisionsPage, type ProvePage } from './contract'
 import { outcomeType } from './kpi'
 
@@ -175,5 +175,14 @@ describe('prove_fuse', () => {
     const page = { ...p, groups: [mixed] } as DecisionsPage
     expect(testCards(page)).toEqual([])
     expect(withoutTests(page).groups.map(g => g.key)).toEqual(['m'])
+  })
+})
+
+describe("l'Ok su una prova (app-prova-ok-sparisce-04-11)", () => {
+  it('accettato, già confermata o senza risposta: fatta; un rifiuto vero la riporta', () => {
+    expect(proveDone(true, 'prove ok: 1')).toBe(true)
+    expect(proveDone(false, "ERR prova 84: non c'è più o è già confermata")).toBe(true)
+    expect(proveDone(null, null)).toBe(true)
+    expect(proveDone(false, 'prova: bad result maybe')).toBe(false)
   })
 })

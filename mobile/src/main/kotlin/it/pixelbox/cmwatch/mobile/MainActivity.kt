@@ -1092,6 +1092,17 @@ class MainActivity : ComponentActivity() {
             scope.launch { readDecide() }
             return r?.ok == true
         }
+        // L'Ok di una prova (app-prova-ok-sparisce-04-11): la scheda resta via salvo un rifiuto vero; «già confermata» o nessuna
+        // risposta in tempo valgono come fatto. La lista si rilegge dopo ogni esito.
+        suspend fun proveOkRun(ids: String): Boolean {
+            val id = runCatching { app.repo.command(CmdOp.PROVA, null, ids, result = "ok") }.getOrNull() ?: return false
+            val r = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+            app.repo.forget(id)
+            val done = it.pixelbox.cmwatch.rules.ProveOk.done(r?.ok, r?.text)
+            if (!done) toast(r?.text)
+            scope.launch { readDecide() }
+            return done
+        }
         val decideCmd: (CmdOp, String, String?, Int?, String?, String?) -> Unit = { op, arg, result, hours, reason, text -> scope.launch { decideRun(op, arg, result, hours, reason, text) } }
         val goScreen: (String) -> Unit = { s ->
             when (s) {
@@ -1236,7 +1247,7 @@ class MainActivity : ComponentActivity() {
             // Contratto 1.107: sopra il banco, le prove che aspettano Franz fuse nella pre-release più nuova (app-sezioni-accorpate-03-11).
             "prove" to { Inline("prove") { androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
                 decisionsPage?.let { p -> it.pixelbox.cmwatch.mobile.ui.ProveFuseBody(it.pixelbox.cmwatch.rules.ProveFuse.cards(p), { keys -> keys.map { k -> decideRun(CmdOp.DECISIONE, k, "provato", null, null, null) }.all { ok -> ok } }, { k, why -> decideRun(CmdOp.DECISIONE, k, "non_va", null, why, null) }) }
-                it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) }, proveKo, goScreen)
+                it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
             } } },
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             "decisioni" to { Inline("decisioni") { androidx.compose.foundation.layout.Column {
@@ -1256,7 +1267,7 @@ class MainActivity : ComponentActivity() {
         }
         if (proveOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false },
-                onOk = { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) },
+                onOk = { ids -> proveOkRun(ids) },
                 onKo = proveKo,
                 onScreen = { s -> proveOpen = false; goScreen(s) }) }
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { proveOpen = false }

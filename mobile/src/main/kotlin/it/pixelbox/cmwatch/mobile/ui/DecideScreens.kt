@@ -151,19 +151,24 @@ private fun primaSection(key: String): String = when (key) {
 @Composable
 fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit) = DecidePage(stringResource(R.string.prove_title), "da-provare", onBack) { DaProvareBody(page, buildOf, onOk, onKo, onScreen) }
 
+/** Le prove con l'Ok mandato, per tutta l'app: la sezione della home e la pagina le tolgono insieme (app-prova-ok-sparisce-04-11). */
+internal object ProveSent { val ids = androidx.compose.runtime.mutableStateListOf<String>() }
+
 @Composable
 fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit) {
     var ko by remember { mutableStateOf<ProveItem?>(null) }
     // Franz 02/11 15:38: Ok non blocca più e la scheda non sparisce di colpo (Leave): conferma sul tasto, uscita in altezza,
     // le altre salgono; se il PC dice no, la scheda torna.
     var picked by remember { mutableStateOf(mapOf<String, String>()) }
-    var gone by remember { mutableStateOf(setOf<String>()) }
+    // Le prove mandate restano via anche se la sezione si ridisegna (app-prova-ok-sparisce-04-11): lo stato sta in ProveSent.
+    val gone = ProveSent.ids
+    androidx.compose.runtime.LaunchedEffect(page) { page?.let { pg -> val here = pg.groups.flatMap { g -> g.prove.map { it.id.toString() } }.toSet(); ProveSent.ids.retainAll(here) } }
     val off = animationsOff()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val hooks = remember {
         object : it.pixelbox.cmwatch.rules.Leave.Hooks {
             override fun pick(ids: List<String>, choice: String?) { picked = if (choice != null) picked + ids.associateWith { choice } else picked - ids.toSet() }
-            override fun hide(ids: List<String>, hidden: Boolean) { gone = if (hidden) gone + ids else gone - ids.toSet() }
+            override fun hide(ids: List<String>, hidden: Boolean) { if (hidden) ProveSent.ids.addAll(ids.filter { it !in ProveSent.ids }) else ProveSent.ids.removeAll(ids.toSet()) }
         }
     }
     val act: (List<String>, String, suspend () -> Boolean) -> Unit = { ids, choice, send ->
