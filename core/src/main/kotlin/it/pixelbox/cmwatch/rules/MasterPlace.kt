@@ -6,14 +6,14 @@ import it.pixelbox.cmwatch.rules.MasterLanding.Height
  * Dove sta la master sul tablet, come nella PWA larga (App.svelte: masterOpen, masterLeft, masterHalf, masterW, masterUnder,
  * stackH; app-pwa-master-tasti-03-11, app-master-sopra-dashboard-03-11, app-master-compatta-03-11, app-master-trascina-03-11;
  * sul tablet app-tablet-come-pwa-03-11). Chiusa è la barra in fondo; aperta un pannello di lato, stretto (420) o a metà schermo
- * (720) o della misura lasciata col bordo; con le sessioni aperte può stare sotto la home, compatta o a metà colonna.
+ * (720) o al posto fisso lasciato col bordo (colonna o metà schermo); con le sessioni aperte può stare sotto la home, compatta o a metà colonna.
  */
 data class MasterPlace(
     val open: Boolean = false,
     val left: Boolean = false,
     /** Stretta (420): il tasto Allarga; false = 720. */
     val narrow: Boolean = true,
-    /** La misura libera lasciata col bordo; null = quella del tasto. */
+    /** La misura lasciata col bordo; null = quella del tasto. */
     val width: Float? = null,
     val under: Boolean = false,
     val stack: Height = Height.COMPACT,
@@ -38,12 +38,12 @@ data class MasterPlace(
     /** Il tasto tondo e il tocco sulla maniglia sotto la home: compatta e metà si alternano. */
     fun stepStack(): MasterPlace = copy(stack = if (stack == Height.COMPACT) Height.HALF else Height.COMPACT)
 
-    /** Il tasto Allarga/Stringi: torna alla misura del tasto, dimenticando quella libera. */
+    /** Il tasto Allarga/Stringi: torna alla misura del tasto, dimenticando quella del bordo. */
     fun toggleSize(): MasterPlace = copy(narrow = !narrow, width = null)
 
-    /** Il bordo lasciato: la misura si ferma sugli scatti, e conta come stretta sotto il punto di mezzo. */
+    /** Il bordo lasciato: il posto fisso più vicino, e conta come stretta sotto il punto di mezzo. */
     fun widthDropped(px: Float, screen: Float): MasterPlace {
-        val w = MasterLanding.snapWidth(px, screen)
+        val w = MasterLanding.widthAt(px, screen)
         return copy(width = w, narrow = MasterLanding.narrow(w, screen))
     }
 

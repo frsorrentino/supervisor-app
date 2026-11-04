@@ -22,15 +22,24 @@ class MasterLandingTest {
         assertEquals(Side.LEFT, MasterLanding.sideDragged(1920f, 900f, Side.RIGHT))
     }
 
-    @Test fun widthStopsOnNearSnapsAndStaysFreeBetween() {
-        assertEquals(MasterLanding.COLUMN, MasterLanding.snapWidth(MasterLanding.COLUMN + 20f, 1920f))
-        assertEquals(960f, MasterLanding.snapWidth(940f, 1920f))
-        assertEquals(650f, MasterLanding.snapWidth(650f, 1920f))
+    // Franz 04/11 10:29-10:30 (app-trascina-rifinitura-04-11): posti fissi, la calamita aggancia il più vicino.
+    @Test fun widthHasTwoFixedStops() {
+        assertEquals(listOf(MasterLanding.COLUMN, 960f), MasterLanding.widthStops(1920f))
+        assertEquals(listOf(MasterLanding.COLUMN), MasterLanding.widthStops(800f))
     }
 
-    @Test fun widthNeverBelowMinimumNorAbove60Percent() {
-        assertEquals(MasterLanding.MIN_W, MasterLanding.clampWidth(100f, 1920f))
-        assertEquals(1152f, MasterLanding.clampWidth(1800f, 1920f))
+    @Test fun widthAlwaysGoesToTheNearestStopNeverBetween() {
+        val c = MasterLanding.COLUMN
+        assertEquals(listOf(c, c, c, c, 960f, 960f, 960f), listOf(100f, 440f, 650f, 689f, 691f, 940f, 1800f).map { MasterLanding.widthAt(it, 1920f) })
+    }
+
+    @Test fun currentStopHoldsUntilTheFingerPassesTheMidpointByTheMargin() {
+        val c = MasterLanding.COLUMN; val mid = (c + 960f) / 2
+        assertEquals(c, MasterLanding.widthAt(mid + 10f, 1920f, c))
+        assertEquals(960f, MasterLanding.widthAt(mid + MasterLanding.WIDTH_MARGIN, 1920f, c))
+        assertEquals(960f, MasterLanding.widthAt(mid - 10f, 1920f, 960f))
+        assertEquals(c, MasterLanding.widthAt(mid - MasterLanding.WIDTH_MARGIN, 1920f, 960f))
+        assertEquals(960f, MasterLanding.widthAt(700f, 1920f, 650f))
     }
 
     // Al rilascio la misura a metà fra colonna e metà schermo decide se è «stretta» (il tasto Allarga) o «larga».
@@ -65,7 +74,7 @@ class MasterLandingTest {
         val side = MasterLanding.sideMarks(1920f, 1000f, Side.LEFT)
         assertEquals(listOf(14f, 1906f), side.map { it.x })
         assertEquals(listOf(true, false), side.map { it.on })
-        val width = MasterLanding.widthMarks(1920f, 1000f, left = false, snapped = 960f)
+        val width = MasterLanding.widthMarks(1920f, 1000f, left = false, on = 960f)
         assertEquals(listOf(1500f, 960f), width.map { it.x })
         assertEquals(listOf(false, true), width.map { it.on })
         val h = MasterLanding.heightMarks(Rect(1500f, 0f, 420f, 1000f), under = true, on = Height.COMPACT)

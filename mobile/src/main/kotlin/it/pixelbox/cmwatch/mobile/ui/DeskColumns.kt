@@ -291,9 +291,10 @@ internal fun MasterFrame(
                             if ((on == L.Side.LEFT) != cur.left) { cur = cur.copy(left = on == L.Side.LEFT); change?.invoke(cur, curOpen, false) }
                         }
                         "width" -> {
-                            val w = L.clampWidth(if (cur.left) x else W - x, W)
+                            // Posti fissi e calamita (Franz 04/11 10:29-10:30): la master salta subito al posto più vicino, mai nel mezzo.
+                            val w = L.widthAt(if (cur.left) x else W - x, W, live ?: cur.panelWidth())
                             live = w
-                            marks = L.widthMarks(W, H, cur.left, L.snapWidth(w, W)).map { m -> m to namesNow.getValue(m.key) }
+                            marks = L.widthMarks(W, H, cur.left, w).map { m -> m to namesNow.getValue(m.key) }
                         }
                         else -> {
                             // La barra in basso sceglie anche il lato, dalla metà sotto il dito; il bordo superiore solo l'altezza.

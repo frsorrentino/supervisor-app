@@ -3,7 +3,7 @@
   import * as files from './lib/fileActions'
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
-  import { clampWidth, COLUMN, heightAt, heightZones, sideAt, snapWidth, steady, type Height, type Rect, type Side } from './lib/masterLanding'
+  import { COLUMN, heightAt, heightZones, sideAt, steady, widthAt, widthStops, type Height, type Rect, type Side } from './lib/masterLanding'
   import { landOn, markBox, PLACES } from './lib/landingMorph'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
@@ -482,9 +482,10 @@
     const dx = m.v ? 0 : (ptr.x - m.x) * p * 0.55, dy = m.v ? (ptr.y - m.y) * p * 0.55 : 0
     return `left:${m.x + dx}px; top:${m.y + dy}px; ${m.v ? `height:${len}px` : `width:${len}px`}; opacity:${0.45 + p * 0.55}`
   }
-  let resizing = $state(false)
-  // La larghezza libera, in px; null = quella del tasto Allarga/Stringi (420 o 720).
-  let masterW = $state<number | null>(Number(load('cm.master_w')) || null)
+  // La larghezza lasciata col bordo, in px; null = quella del tasto Allarga/Stringi (420 o 720). Una misura libera di prima
+  // (fino al 04/11) torna al posto fisso più vicino.
+  const savedW = Number(load('cm.master_w')) || null
+  let masterW = $state<number | null>(savedW == null ? null : widthAt(savedW, window.innerWidth))
   const colWidth = () => masterW ?? (masterHalf ? COLUMN : 720)
   // Il gesto continua sulla finestra: mentre la pagina si riorganizza l'elemento preso può sparire (la riga che diventa pannello).
   // Ogni gesto finisce in uno di quattro modi, e tutti passano da `onEnd`: rilascio, annullo del sistema, Esc, finestra che perde
@@ -506,7 +507,7 @@
   function clearMarks() {
     if (wFrame) cancelAnimationFrame(wFrame)
     wFrame = 0; clearTimeout(dwellTimer); dwellTimer = undefined
-    marks = []; resizing = false; wDrag = null; document.body.style.userSelect = ''
+    marks = []; wDrag = null; document.body.style.userSelect = ''
   }
   function begin() { snap ??= { open: masterOpen, left: masterLeft, under: masterUnder, h: stackH }; document.body.style.userSelect = 'none' }
   // Al rilascio il segno giallo d'arrivo si allarga nel contorno del posto, poi svanisce (app-trascina-morphing-03-11, punto 2).
@@ -564,13 +565,14 @@
     if (on) { window.addEventListener('keydown', wKey); window.addEventListener('blur', widthCancel) }
     else { window.removeEventListener('keydown', wKey); window.removeEventListener('blur', widthCancel) }
   }
-  function widthDown(e: PointerEvent) { e.preventDefault(); wDrag = e.clientX; wStart = masterW; resizing = true; document.body.style.userSelect = 'none'; widthListen(true); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }
+  function widthDown(e: PointerEvent) { e.preventDefault(); wDrag = e.clientX; wStart = masterW; document.body.style.userSelect = 'none'; widthListen(true); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }
   function widthCancel() {
     if (wDrag == null) return
-    widthListen(false); clearMarks(); masterW = wStart
+    widthListen(false); clearMarks(); smooth(() => { masterW = wStart })
   }
-  const widthOf = (x: number) => clampWidth(masterLeft ? x : window.innerWidth - x, window.innerWidth)
-  // Un aggiornamento per fotogramma, e nessuna transizione delle colonne mentre il bordo si muove (Franz 22:54: «poco fluido»).
+  // Posti fissi e calamita (Franz 04/11 10:29-10:30): mentre il bordo si muove la master salta subito al posto più vicino, mai
+  // nel mezzo; un aggiornamento per fotogramma.
+  const widthOf = (x: number) => widthAt(masterLeft ? x : window.innerWidth - x, window.innerWidth, colWidth())
   let wFrame = 0, wX = 0
   function widthMove(e: PointerEvent) {
     if (wDrag == null) return
@@ -578,18 +580,18 @@
     if (wFrame) return
     wFrame = requestAnimationFrame(() => {
       wFrame = 0
-      const W = window.innerWidth, H = window.innerHeight, px = widthOf(wX), snapped = snapWidth(px, W)
+      const W = window.innerWidth, H = window.innerHeight, on = widthOf(wX)
       ptr = { x: wX, y: H / 2 }
-      masterW = px
+      if (on !== colWidth()) smooth(() => { masterW = on })
       const at = (w: number) => (masterLeft ? w : W - w)
-      marks = [{ x: at(COLUMN), y: H / 2, v: true, on: snapped === COLUMN, text: t.masterLand.column }, { x: W / 2, y: H / 2, v: true, on: snapped === Math.round(W / 2), text: t.masterHalfScreen }]
+      marks = widthStops(W).map(s => (s === COLUMN ? { x: at(COLUMN), y: H / 2, v: true, on: on === s, text: t.masterLand.column } : { x: W / 2, y: H / 2, v: true, on: on === s, text: t.masterHalfScreen }))
     })
   }
   function widthUp(e: PointerEvent) {
     if (wDrag == null) return
     const mark = marks.find(m => m.on)
     widthListen(false); clearMarks()
-    const w = snapWidth(masterLeft ? e.clientX : window.innerWidth - e.clientX, window.innerWidth)
+    const w = widthOf(e.clientX)
     landFrom(mark, smooth(() => { masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2 }))
     save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
   }
@@ -1460,7 +1462,7 @@
 {:else if wide}
   <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
-  <div class="deskwrap" class:left={masterLeft} class:stacked class:resizing>
+  <div class="deskwrap" class:left={masterLeft} class:stacked>
   {#if marks.length}
     <!-- I punti di rilascio della master (app-master-trascina-03-11): segni, quello di arrivo grande e con l'etichetta. -->
     <div class="marks" aria-hidden="true">
@@ -1592,7 +1594,6 @@
   .mk.v.r b.v { left: auto; right: 16px; }
   @media (prefers-reduced-motion: reduce) { .mk { transition: none; } }
   /* Il bordo della master si trascina senza transizioni sotto: le colonne seguono il dito subito. */
-  .deskwrap.resizing :global(.col), .deskwrap.resizing :global(.tabslot), .deskwrap.resizing :global(.dpanel) { transition: none !important; }
   .deskwrap.left { flex-direction: row-reverse; }
   .dstage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   .dstage > :global(:first-child) { flex: 1; min-height: 0; }

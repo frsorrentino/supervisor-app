@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampWidth, COLUMN, DWELL_MS, heightAt, heightZones, MIN_W, sideAt, sideZones, snapWidth, steady, type Height } from './masterLanding'
+import { COLUMN, DWELL_MS, heightAt, heightZones, sideAt, sideZones, steady, widthAt, widthStops, WIDTH_MARGIN, type Height } from './masterLanding'
 
 // La master si sposta con la testata (solo il lato) e si misura dai bordi (app-master-trascina-03-11, Franz 03/11 22:08).
 describe('masterLanding', () => {
@@ -9,14 +9,23 @@ describe('masterLanding', () => {
     expect(sideAt(1920, 960)).toBe('right')
     expect(sideZones(1920, 1000).map(z => z.key)).toEqual(['left', 'right'])
   })
-  it('la larghezza si ferma sugli scatti vicini e resta libera fra i due', () => {
-    expect(snapWidth(COLUMN + 20, 1920)).toBe(COLUMN)
-    expect(snapWidth(940, 1920)).toBe(960)
-    expect(snapWidth(650, 1920)).toBe(650)
+  // Franz 04/11 10:29-10:30 (app-trascina-rifinitura-04-11): posti fissi, la calamita aggancia il più vicino.
+  it('la larghezza ha due posti fissi: colonna e metà schermo', () => {
+    expect(widthStops(1920)).toEqual([COLUMN, 960])
+    expect(widthStops(800)).toEqual([COLUMN])
   })
-  it('la larghezza non scende sotto il minimo e non passa il 60 % dello schermo', () => {
-    expect(clampWidth(100, 1920)).toBe(MIN_W)
-    expect(clampWidth(1800, 1920)).toBe(1152)
+  it('la larghezza va sempre al posto fisso più vicino, mai nel mezzo', () => {
+    expect([100, 440, 650, 689, 691, 940, 1800].map(px => widthAt(px, 1920))).toEqual([COLUMN, COLUMN, COLUMN, COLUMN, 960, 960, 960])
+  })
+  it('il posto di adesso tiene finché il dito non passa il punto di mezzo di WIDTH_MARGIN', () => {
+    const mid = (COLUMN + 960) / 2
+    expect(widthAt(mid + 10, 1920, COLUMN)).toBe(COLUMN)
+    expect(widthAt(mid + WIDTH_MARGIN, 1920, COLUMN)).toBe(960)
+    expect(widthAt(mid - 10, 1920, 960)).toBe(960)
+    expect(widthAt(mid - WIDTH_MARGIN, 1920, 960)).toBe(COLUMN)
+  })
+  it('una misura di adesso che non è un posto fisso non tiene', () => {
+    expect(widthAt(700, 1920, 650)).toBe(960)
   })
   it('il bordo superiore: colonna intera, a metà, compatta, in fondo la riga', () => {
     const zs = heightZones({ x: 0, y: 0, w: 420, h: 1000 }, true)

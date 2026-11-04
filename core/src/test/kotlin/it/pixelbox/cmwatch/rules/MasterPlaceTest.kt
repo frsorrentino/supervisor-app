@@ -21,6 +21,8 @@ class MasterPlaceTest {
         assertEquals(960f, p.width)
         assertFalse(p.narrow)
         assertTrue(MasterPlace(narrow = false).widthDropped(440f, 1920f).narrow)
+        // Posti fissi (Franz 04/11 10:29): una misura nel mezzo va al posto più vicino.
+        assertEquals(420f, MasterPlace().widthDropped(650f, 1920f).width)
     }
 
     // Sotto la home solo con le sessioni aperte: senza, la stessa master sta di lato a colonna intera.
