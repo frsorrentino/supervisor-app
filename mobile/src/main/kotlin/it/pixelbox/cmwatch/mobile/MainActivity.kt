@@ -1940,6 +1940,13 @@ class MainActivity : ComponentActivity() {
                 val zone = java.time.ZoneId.systemDefault()
                 val head = remember(st, kpiPage, now) { it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, zone) }
                 val doneToday = remember(events, now / 3600) { it.pixelbox.cmwatch.rules.Lavori.done(events, zone, java.time.LocalDate.now(zone)).firstOrNull { d -> d.date == java.time.LocalDate.now(zone) }?.rows.orEmpty() }
+                val onPlace = { p: it.pixelbox.cmwatch.rules.MasterPlace, o: Boolean, commit: Boolean -> if (commit) keepPlace(p) else place = p; masterChat = o }
+                it.pixelbox.cmwatch.mobile.ui.MasterFrame(
+                    place.left, place.panelWidth(),
+                    panel = if (master != null && masterChat) ({ masterPanel(master, false) }) else null,
+                    bar = if (master != null && !masterChat) ({ masterBar(master) { masterChat = true } }) else null,
+                    place = place, open = masterChat, sessionsOpen = false, onPlace = if (master != null) onPlace else null,
+                ) {
                 it.pixelbox.cmwatch.mobile.ui.Plancia(
                     widthDp, it.pixelbox.cmwatch.rules.HomeCats.decode(st.homeOrder).map { c -> c.id },
                     head = { pageHeader(null) },
@@ -1962,10 +1969,11 @@ class MainActivity : ComponentActivity() {
                             }
                         })
                     },
-                    bar = { if (master != null) masterBar(master) { masterChat = true } },
-                    panel = if (master != null && masterChat) ({ masterPanel(master, false) }) else null,
-                    panelWidthDp = place.panelWidth().toInt(), panelLeft = place.left,
+                    bar = {},
+                    panel = null,
+                    widthOffsetDp = if (master != null && masterChat) place.panelWidth().toInt() else 0,
                 )
+                }
                 return@summaryPage
             }
             if (master != null && !wide) {
@@ -2203,6 +2211,8 @@ class MainActivity : ComponentActivity() {
                     else masterPanel(m, true)
                 }) else null,
                 bar = if (m != null && !masterChat) ({ masterBar(m) { masterChat = true } }) else null,
+                place = place, open = masterChat, sessionsOpen = true,
+                onPlace = if (m != null) ({ p, o, commit -> if (commit) keepPlace(p) else place = p; masterChat = o }) else null,
             ) { tabletDesk(state, summary, stacked) }
         } else
         AppShell(

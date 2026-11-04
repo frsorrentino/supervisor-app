@@ -28,6 +28,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -40,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Kpi
+import it.pixelbox.cmwatch.rules.MasterLanding as L
 import it.pixelbox.cmwatch.rules.Lavori
 import it.pixelbox.cmwatch.rules.NightPage
 import it.pixelbox.cmwatch.rules.Rail
@@ -190,8 +199,10 @@ internal fun DeskTools(st: State, onTalk: (String) -> Unit) {
 internal fun Plancia(
     widthDp: Int, order: List<String>, head: @Composable () -> Unit, column: @Composable (List<String>) -> Unit,
     bar: @Composable () -> Unit, panel: (@Composable () -> Unit)? = null, panelWidthDp: Int = 420, panelLeft: Boolean = false,
+    /** Lo spazio già preso dalla master nel telaio intorno (MasterFrame): le colonne contano senza. */
+    widthOffsetDp: Int = 0,
 ) {
-    val n = it.pixelbox.cmwatch.rules.Plancia.count(widthDp.toFloat(), panel?.let { panelWidthDp.toFloat() })
+    val n = it.pixelbox.cmwatch.rules.Plancia.count((widthDp - widthOffsetDp).toFloat(), panel?.let { panelWidthDp.toFloat() })
     val cols = it.pixelbox.cmwatch.rules.Plancia.layout(order, n)
     Row(Modifier.fillMaxSize().background(V3.Bg).testTag("plancia")) {
         val side: @Composable () -> Unit = {
@@ -219,18 +230,162 @@ internal fun Plancia(
 
 /**
  * La master accanto a quello che c'è (App.svelte, `deskwrap`): chiusa la barra in fondo, aperta il pannello di lato alto quanto
- * lo schermo, sul lato e nella misura scelti; `stack` mette nel pannello la home sopra e la master sotto (app-tablet-come-pwa-03-11).
+ * lo schermo, sul lato e nella misura scelti (app-tablet-come-pwa-03-11).
+ *
+ * I gesti della PWA (masterLanding, app-master-trascina-03-11), se `onPlace` c'è: la maniglia in testa al pannello cambia solo il
+ * lato; il bordo verso le sessioni allarga e stringe con gli scatti a colonna e a metà schermo; la maniglia in alto del pannello,
+ * o la barra tirata su, cambia l'altezza a scatti. Mentre si trascina la pagina si riorganizza già e compaiono i segni dove si può
+ * lasciare, quello di arrivo grande e con l'etichetta; al rilascio `onPlace(…, true)` ricorda, annullato torna com'era.
  */
 @Composable
-internal fun MasterFrame(left: Boolean, panelWidthDp: Float, panel: (@Composable () -> Unit)?, bar: (@Composable () -> Unit)?, content: @Composable () -> Unit) {
-    Row(Modifier.fillMaxSize().background(V3.Bg)) {
-        val side: @Composable () -> Unit = { panel?.let { p -> Box(Modifier.width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello")) { p() } } }
-        if (left && panel != null) { side(); Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line)) }
-        Column(Modifier.weight(1f).fillMaxHeight()) {
-            Box(Modifier.weight(1f).fillMaxWidth()) { content() }
-            bar?.invoke()
+internal fun MasterFrame(
+    left: Boolean, panelWidthDp: Float, panel: (@Composable () -> Unit)?, bar: (@Composable () -> Unit)?,
+    place: it.pixelbox.cmwatch.rules.MasterPlace? = null, open: Boolean = panel != null, sessionsOpen: Boolean = false,
+    onPlace: ((it.pixelbox.cmwatch.rules.MasterPlace, Boolean, Boolean) -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    var marks by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<List<Pair<L.Mark<*>, String>>>(emptyList()) }
+    var ptr by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    var live by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Float?>(null) }
+    val names = mapOf<Any, String>(
+        L.Side.LEFT to stringResource(R.string.master_pos_left), L.Side.RIGHT to stringResource(R.string.master_pos_right),
+        L.WidthStop.COLUMN to stringResource(R.string.master_land_column), L.WidthStop.HALF_SCREEN to stringResource(R.string.master_half_screen),
+        L.Height.COLUMN to stringResource(R.string.master_land_column), L.Height.HALF to stringResource(R.string.master_land_half),
+        L.Height.COMPACT to stringResource(R.string.master_land_compact), L.Height.BAR to stringResource(R.string.master_land_bar),
+    )
+    // Il gesto lo legge il telaio, che resta fermo mentre la master cambia lato o la barra diventa pannello: le maniglie dicono
+    // solo dove stanno (come `follow` della PWA, che continua il gesto sulla finestra).
+    val grips = androidx.compose.runtime.remember { mutableMapOf<String, androidx.compose.ui.layout.LayoutCoordinates>() }
+    var frame by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    val placeNow by androidx.compose.runtime.rememberUpdatedState(place)
+    val openNow by androidx.compose.runtime.rememberUpdatedState(open)
+    val underOk by androidx.compose.runtime.rememberUpdatedState(sessionsOpen)
+    val change by androidx.compose.runtime.rememberUpdatedState(onPlace)
+    val namesNow by androidx.compose.runtime.rememberUpdatedState(names)
+    fun Modifier.grip(key: String) = this.onGloballyPositioned { c -> grips[key] = c }
+    androidx.compose.foundation.layout.BoxWithConstraints(
+        Modifier.fillMaxSize().background(V3.Bg).onGloballyPositioned { frame = it }.then(if (onPlace == null) Modifier else Modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                val pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial
+                val down = awaitFirstDown(requireUnconsumed = false, pass = pass)
+                val f = frame?.takeIf { it.isAttached } ?: return@awaitEachGesture
+                val key = grips.entries.firstOrNull { (_, c) -> c.isAttached && f.localBoundingBoxOf(c, false).contains(down.position) }?.key ?: return@awaitEachGesture
+                val p0 = placeNow ?: return@awaitEachGesture
+                val open0 = openNow
+                val W = size.width / density; val H = size.height / density
+                var moved = false
+                var cur = p0; var curOpen = open0
+                var ended = false
+                while (true) {
+                    val c = awaitPointerEvent(pass).changes.firstOrNull { it.id == down.id }
+                    if (c == null) break
+                    if (!c.pressed) { ended = true; break }
+                    if (!moved && (c.position - down.position).getDistance() < viewConfiguration.touchSlop) continue
+                    moved = true; c.consume()
+                    val x = c.position.x / density; val y = c.position.y / density
+                    ptr = androidx.compose.ui.geometry.Offset(x, y)
+                    when (key) {
+                        "side" -> {
+                            val on = L.sideDragged(W, x, if (cur.left) L.Side.LEFT else L.Side.RIGHT)
+                            marks = L.sideMarks(W, H, on).map { m -> m to namesNow.getValue(m.key) }
+                            if ((on == L.Side.LEFT) != cur.left) { cur = cur.copy(left = on == L.Side.LEFT); change?.invoke(cur, curOpen, false) }
+                        }
+                        "width" -> {
+                            val w = L.clampWidth(if (cur.left) x else W - x, W)
+                            live = w
+                            marks = L.widthMarks(W, H, cur.left, L.snapWidth(w, W)).map { m -> m to namesNow.getValue(m.key) }
+                        }
+                        else -> {
+                            // La barra in basso sceglie anche il lato, dalla metà sotto il dito; il bordo superiore solo l'altezza.
+                            val l = if (key == "bar") L.sideAt(W, x) == L.Side.LEFT else cur.left
+                            val w = cur.panelWidth()
+                            val col = L.Rect(if (l) 0f else W - w, 0f, w, H)
+                            val zs = L.heightZones(col, underOk)
+                            val on = L.heightDragged(zs, y, cur.copy(open = curOpen).height(underOk))
+                            marks = L.heightMarks(col, underOk, on).map { m -> m to namesNow.getValue(m.key) }
+                            val next = cur.copy(left = l).withHeight(on)
+                            if (next != cur || next.open != curOpen) { cur = next; curOpen = next.open; change?.invoke(cur, curOpen, false) }
+                        }
+                    }
+                }
+                val w = live
+                marks = emptyList(); live = null
+                if (!moved) return@awaitEachGesture
+                when {
+                    !ended -> change?.invoke(p0, open0, false)
+                    key == "width" && w != null -> change?.invoke(cur.widthDropped(w, size.width / density), curOpen, true)
+                    else -> change?.invoke(cur, curOpen, true)
+                }
+            }
+        }),
+    ) {
+        val W = maxWidth.value
+        // Il pannello resta lo stesso nodo quando cambia lato: la riga si rovescia, l'ordine dei figli no.
+        val dir = if (left) androidx.compose.ui.unit.LayoutDirection.Ltr else androidx.compose.ui.unit.LayoutDirection.Rtl
+        androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides dir) {
+            Row(Modifier.fillMaxSize()) {
+                androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
+                    if (panel != null) {
+                        Box(Modifier.width((live ?: panelWidthDp).dp).fillMaxHeight().background(V3.S1).testTag("master-pannello")) {
+                            panel()
+                            if (onPlace != null && place != null) {
+                                // La maniglia del lato, in testa: trascinata, la master passa alla metà dello schermo sotto il dito.
+                                Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-lato").grip("side")) {
+                                    Box(Modifier.align(Alignment.Center).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                                }
+                                // Il bordo verso le sessioni: la larghezza, libera fra 360 e il 60 % dello schermo, scatti al rilascio.
+                                Box(Modifier.align(if (left) Alignment.CenterEnd else Alignment.CenterStart).width(12.dp).fillMaxHeight().testTag("master-bordo").grip("width")) {
+                                    Box(Modifier.align(Alignment.Center).width(4.dp).height(48.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                                }
+                                // Il bordo superiore: l'altezza a scatti (colonna, sotto la home a metà o compatta, riga).
+                                Box(Modifier.align(Alignment.TopStart).fillMaxWidth(0.3f).height(10.dp).grip("height"))
+                            }
+                        }
+                        Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
+                    }
+                    Column(Modifier.weight(1f).fillMaxHeight()) {
+                        Box(Modifier.weight(1f).fillMaxWidth()) { content() }
+                        bar?.let { b ->
+                            Box(Modifier.fillMaxWidth()) {
+                                b()
+                                // La barra tirata su si apre, alle altezze del bordo superiore, sul lato sotto il dito.
+                                if (onPlace != null && place != null) Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-altezza").grip("bar")) {
+                                    Box(Modifier.align(Alignment.Center).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
-        if (!left && panel != null) { Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line)); side() }
+        // I segni di arrivo, sopra tutto e senza prendere i tocchi.
+        marks.forEach { (m, label) -> LandingMark(m, label, ptr, W) }
+    }
+}
+
+/** Un segno dove si può lasciare la master: grigio, ambra quello di arrivo con l'etichetta; la calamita lo allunga verso il dito. */
+@Composable
+private fun LandingMark(m: it.pixelbox.cmwatch.rules.MasterLanding.Mark<*>, label: String, ptr: androidx.compose.ui.geometry.Offset, screenW: Float) {
+    val len = L.length(m, ptr.x, ptr.y)
+    val (dx, dy) = L.shift(m, ptr.x, ptr.y)
+    val w = if (m.vertical) 4f else len; val h = if (m.vertical) len else 4f
+    Box(
+        Modifier.offset((m.x + dx - w / 2).dp, (m.y + dy - h / 2).dp).size(w.dp, h.dp).graphicsLayer { alpha = L.alpha(m, ptr.x, ptr.y) }
+            .clip(RoundedCornerShape(2.dp)).background(if (m.on) V3.Wait else V3.Tx3).testTag(if (m.on) "segno-arrivo" else "segno"),
+    )
+    if (m.on) {
+        val right = m.x > screenW / 2
+        Row(
+            Modifier.offset(
+                x = if (m.vertical) (if (right) (m.x - 16 - 180).dp else (m.x + 16).dp) else (m.x - 90).dp,
+                y = if (m.vertical) (m.y + dy - 16).dp else (m.y - 46).dp,
+            ).clip(RoundedCornerShape(14.dp)).background(V3.S2).border(1.dp, V3.Line, RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(V3.Wait))
+            Spacer(Modifier.width(8.dp))
+            Text(label, style = V3.Small.copy(color = V3.Tx), maxLines = 1)
+        }
     }
 }
 
