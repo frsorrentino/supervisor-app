@@ -1072,6 +1072,9 @@ private fun details(s: Session): List<String> = listOfNotNull(
  * barretta del contesto. Aperta: il testo intero, i dettagli, le opzioni o i consigli e la conversazione.
  */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+/** Dentro una colonna della plancia del tablet: le liste senza riquadri (app-superfici-neutre-04-11). */
+internal val LocalInColumn = androidx.compose.runtime.staticCompositionLocalOf { false }
+
 @Composable
 private fun SummaryCard(
     r: Summary.Row, open: Boolean, onToggle: () -> Unit,
@@ -1145,11 +1148,13 @@ private fun SummaryCard(
         }
     }
     // Solo le card in attesa escono: le altre restano nel loro posto senza contenitori in più (stessa impaginazione di prima).
+    // Nelle colonne della plancia del tablet anche le sessioni in attesa sono righe libere con divisori (app-superfici-neutre-04-11).
+    val boxed = waiting && !LocalInColumn.current
     val cardBody: @Composable () -> Unit = {
-    if (!waiting && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    if (!boxed && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Row(
         // La chat si restringe verso la sua card durante il gesto indietro.
-        Modifier.fly("card-${s.id}").fillMaxWidth().then(if (waiting) Modifier.clip(V3.Shape).background(if (V3.day) V3.WaitFill else V3.S2).then(if (V3.day) Modifier.border(1.dp, V3.WaitLine, V3.Shape) else Modifier.border(1.dp, LitEdge, V3.Shape)) else Modifier).smoothSize()
+        Modifier.fly("card-${s.id}").fillMaxWidth().then(if (boxed) Modifier.clip(V3.Shape).background(if (V3.day) V3.WaitFill else V3.S2).then(if (V3.day) Modifier.border(1.dp, V3.WaitLine, V3.Shape) else Modifier.border(1.dp, LitEdge, V3.Shape)) else Modifier).smoothSize()
             // Franz, 03/10 17:05: il tocco sulla card porta dritto alla sessione; il tasto ▼ la apre sul posto.
             .handCursor().combinedClickable(onClick = onOpen, onLongClick = { menu = true }).contextClick { menu = true }
             .padding(end = 10.dp, top = 8.dp, bottom = 10.dp),

@@ -147,8 +147,10 @@
    fatto, rosso fallito; struttura e azioni restano neutre, l'unico pieno è bianco. I nomi vecchi (app.css, CmColors.kt)
    puntano ai nuovi, così anche i componenti condivisi dentro la home prendono lo stile senza cambiare codice. */
 .v3, dialog {
-  --bg: #0B0C0E; --s1: #121316; --s2: #1B1D22; --s3: #272A31; --line: #25272D;
-  --tx: #EDEEF0; --tx2: #969BA4; --tx3: #858A93; --act: #FFFFFF; --on-act: #0B0C0E;
+  /* Grigi neutri, una scala sola con gradini visibili (app-superfici-neutre-04-11, Franz 04/11 19:09): pagina, colonna, testate e
+     card, tasti e campi, bordi. Prima #0B0C0E, #121316, #1B1D22, #272A31, #25272D, grigio-blu. */
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EDEEF0; --tx2: #969BA4; --tx3: #858A93; --act: #FFFFFF; --on-act: #0B0B0B;
   --wait: #FFB23F; --busy: #5AA2FF; --good: #34D399; --red: #FF5A5F;
   --low: var(--s1); --surface: var(--s2); --high: var(--s3); --text: var(--tx); --text2: var(--tx2); --stale: var(--tx3);
   --icon: var(--tx2); --primary: var(--act); --on-primary: var(--on-act); --idle: var(--good); --gone: var(--red); --gone-dim: var(--red);
@@ -249,6 +251,9 @@
 :root:root .plancia .col .il, :root:root .plancia .col .card.wrows, :root:root .plancia .col .vlist, :root:root .plancia .col .panel { background: none; border: 0; box-shadow: none; }
 :root:root .plancia .col .lit:not(.col) { background: var(--lit-bg, var(--s2)); border: 1px solid var(--line); }
 :root:root .plancia .col .il.lit { background: none; border: 0; }
+/* Le liste delle colonne tutte nello stesso modo (app-superfici-neutre-04-11, Franz 04/11 19:09): righe libere con divisori, senza
+   riquadri dentro le colonne, anche le sessioni; la testata della colonna sta un gradino sopra (DeskHead, --s2). */
+:root:root .plancia .col .card.r { background: none; border: 0; border-radius: 0; box-shadow: none; border-bottom: 1px solid var(--line); }
 @media (prefers-color-scheme: light) {
   :root:root:not(.night-only) .lit, :root:root:not(.night-only) .onboard > .usageslot { background: var(--lit-bg, var(--s1)); border: 1px solid var(--line); }
   :root:root:not(.night-only) .col.lit { background: var(--s1); }

@@ -73,7 +73,7 @@ internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, onOpen: (
     val topPct = top?.third?.pct ?: 0
     val tag = when (kind) { "you" -> "home-box-aspetta"; "work" -> "home-box-lavoro"; "out" -> "home-box-esiti"; else -> "desk-head-tools" }
     Row(
-        Modifier.testTag(tag).fillMaxWidth().heightIn(min = 92.dp).background(V3.S1).handCursor().clickable(onClick = onOpen).padding(start = 18.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
+        Modifier.testTag(tag).fillMaxWidth().heightIn(min = 92.dp).background(V3.S2).handCursor().clickable(onClick = onOpen).padding(start = 18.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val (n, color) = when (kind) {
@@ -217,9 +217,9 @@ internal fun Plancia(
             Row(Modifier.weight(1f).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 cols.forEach { parts ->
                     val shape = RoundedCornerShape(14.dp)
-                    Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(Color(0xFF131313).copy(alpha = 0.6f)).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape)).testTag("plancia-col")) {
+                    Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(V3.S1).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape)).testTag("plancia-col")) {
                         // Una colonna con più categorie: una dopo l'altra nello stesso scorrimento, come nella PWA.
-                        column(parts)
+                        androidx.compose.runtime.CompositionLocalProvider(LocalInColumn provides true) { column(parts) }
                     }
                 }
             }

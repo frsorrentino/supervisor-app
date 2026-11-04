@@ -56,8 +56,8 @@
 
 <style>
   .chead { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 14px; align-items: center; width: 100%; min-height: 92px;
-    padding: 14px 14px 14px 18px; background: var(--s1); border-bottom: 1px solid var(--line); text-align: left; color: var(--tx); cursor: pointer; }
-  .chead:hover { background: var(--s2); }
+    padding: 14px 14px 14px 18px; background: var(--s2); border-bottom: 1px solid var(--line); text-align: left; color: var(--tx); cursor: pointer; }
+  .chead:hover { background: var(--s3); }
   .chead:focus-visible { outline: 2px solid var(--tx); outline-offset: -2px; }
   .n { font: 700 42px/1 var(--display); letter-spacing: -0.01em; }
   .n.wait { color: var(--wait); }

@@ -74,9 +74,10 @@ internal object V3 {
         val bg: Color, val s1: Color, val s2: Color, val s3: Color, val line: Color, val tx: Color, val tx2: Color, val tx3: Color, val act: Color, val onAct: Color,
         val wait: Color, val busy: Color, val good: Color, val red: Color, val waitFill: Color, val waitLine: Color, val redFill: Color,
     )
+    // Grigi neutri, una scala sola (app-superfici-neutre-04-11, come web/src/v3.css): prima #0B0C0E, #121316, #1B1D22, #272A31, #25272D.
     private val Night = Palette(
-        Color(0xFF0B0C0E), Color(0xFF121316), Color(0xFF1B1D22), Color(0xFF272A31), Color(0xFF25272D), Color(0xFFEDEEF0), Color(0xFF969BA4), Color(0xFF858A93), Color.White, Color(0xFF0B0C0E),
-        Color(0xFFFFB23F), Color(0xFF5AA2FF), Color(0xFF34D399), Color(0xFFFF5A5F), Color(0xFF121316), Color(0xFF25272D), Color(0xFF121316),
+        Color(0xFF0B0B0B), Color(0xFF111111), Color(0xFF181818), Color(0xFF222222), Color(0xFF2A2A2A), Color(0xFFEDEEF0), Color(0xFF969BA4), Color(0xFF858A93), Color.White, Color(0xFF0B0B0B),
+        Color(0xFFFFB23F), Color(0xFF5AA2FF), Color(0xFF34D399), Color(0xFFFF5A5F), Color(0xFF111111), Color(0xFF2A2A2A), Color(0xFF111111),
     )
     private val Day = Palette(
         Color(0xFFF1F4F8), Color.White, Color.White, Color(0xFFEAEEF4), Color(0xFFDFE4EB), Color(0xFF121418), Color(0xFF565C66), Color(0xFF60666F), Color(0xFF121418), Color.White,

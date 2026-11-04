@@ -115,7 +115,7 @@
   .clr { width: 44px; height: 44px; display: grid; place-items: center; color: var(--text2); border-radius: 22px; }
   .pills { display: flex; gap: 8px; padding: 0 16px 8px; overflow-x: auto; scrollbar-width: none; }
   .pill { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 17px; border: 1px solid rgb(255 255 255 / .14); font-size: 14px; font-weight: 500; color: var(--text2); flex: none; white-space: nowrap; }
-  .pill.on { background: var(--text); color: var(--bg, #0B0C0E); border-color: var(--text); }
+  .pill.on { background: var(--text); color: var(--bg, #0B0B0B); border-color: var(--text); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; flex: none; }
   .sep { width: 1px; height: 22px; background: rgb(255 255 255 / .14); align-self: center; flex: none; }
   .bar { height: 4px; margin: 4px 20px 0; border-radius: 2px; background: var(--b-track); overflow: hidden; }
