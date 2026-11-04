@@ -578,6 +578,11 @@
     if (wait != null) dwellTimer = setTimeout(() => placeDrag('move', x), wait + 5)
     const f = sideFrom
     aimAt(on === f.side ? f.r : mirrorRect(f.area, f.r), on === 'left' ? t.masterPosLeft : t.masterPosRight, () => { masterLeft = on === 'left' })
+    // Le destinazioni (app-trascina-destinazioni-04-11): l'altro lato tratteggiato con la sua etichetta, e la linea a metà
+    // schermo che si accende quando il dito la passa.
+    const other: Side = on === 'left' ? 'right' : 'left'
+    masterGhost.hint([{ b: other === f.side ? f.r : mirrorRect(f.area, f.r), text: other === 'left' ? t.masterPosLeft : t.masterPosRight }])
+    masterGhost.midline(W / 2, (x < W / 2) !== (f.side === 'left'))
   }
   // La maniglia della testata: il gesto continua sulla finestra, dopo 6 px.
   function sideGrip(e: PointerEvent) {
@@ -658,6 +663,8 @@
       clearTimeout(dwellTimer)
       if (wait != null) dwellTimer = setTimeout(() => apply(e), wait + 5)
       aimAt(rectFor(on), t.masterLand[on], () => { if (!masterOpen && on !== 'bar') masterHalf = masterNarrow(); masterLeft = side === 'left'; setHeight(on) })
+      // Gli altri posti possibili sul lato in cui si è, accennati (app-trascina-destinazioni-04-11).
+      masterGhost.hint(zs.map(z => z.key).filter(k => k !== on).map(k => ({ b: rectFor(k), text: t.masterLand[k] })))
     }
     follow(apply, (e) => {
       clearTimeout(dwellTimer)
@@ -1701,6 +1708,13 @@
   :global(.master-ghost-dim) { position: fixed; inset: 0; z-index: 70; pointer-events: none; background: rgb(0 0 0 / .22); }
   :global(.master-ghost) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border-radius: 14px; background: color-mix(in srgb, var(--wait) 16%, transparent); border: 2px solid color-mix(in srgb, var(--wait) 70%, transparent); }
   :global(.master-ghost > span) { position: absolute; left: 50%; top: 10px; translate: -50% 0; max-width: calc(100% - 16px); overflow: hidden; text-overflow: clip; white-space: nowrap; padding: 3px 10px; border-radius: 10px; background: var(--s2); color: var(--tx); font: 600 13px var(--display); }
+  /* Le altre destinazioni (app-trascina-destinazioni-04-11): contorno tratteggiato giallo leggero, senza riempimento, con l'etichetta
+     piccola; la linea sottile a metà schermo, accesa quando il dito l'ha passata. */
+  :global(.master-ghost-hint) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border-radius: 14px; border: 2px dashed color-mix(in srgb, var(--wait) 30%, transparent); }
+  :global(.master-ghost-hint > span) { position: absolute; left: 50%; top: 10px; translate: -50% 0; max-width: calc(100% - 16px); overflow: hidden; white-space: nowrap; padding: 3px 10px; border-radius: 10px; background: var(--s2); color: var(--tx2); font: 600 13px var(--display); }
+  :global(.master-ghost-mid) { position: fixed; z-index: 71; top: 0; bottom: 0; width: 2px; margin-left: -1px; pointer-events: none; background: color-mix(in srgb, var(--wait) 25%, transparent); transition: background .12s; }
+  :global(.master-ghost-mid.lit) { background: var(--wait); }
+  @media (prefers-reduced-motion: reduce) { :global(.master-ghost-mid) { transition: none; } }
   /* Il bordo della master si trascina senza transizioni sotto: le colonne seguono il dito subito. */
   .deskwrap.left { flex-direction: row-reverse; }
   .dstage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }

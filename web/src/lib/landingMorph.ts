@@ -18,6 +18,8 @@ const same = (a: Box, b: Box) => a.x === b.x && a.y === b.y && a.w === b.w && a.
 /** La sagoma di un gesto alla volta; `reduced`: col movimento ridotto niente scivolate e niente sfumature. */
 export function ghostPreview(reduced: () => boolean) {
   let dim: HTMLElement | null = null, box: HTMLElement | null = null, tag: HTMLElement | null = null, at: Box | null = null
+  // Le altre destinazioni (app-trascina-destinazioni-04-11): contorni tratteggiati con l'etichetta, e la linea a metà schermo.
+  let marks: HTMLElement[] = [], mid: HTMLElement | null = null
   const fadeOut = (el: HTMLElement, ms: number) => {
     // Il nome della transizione serve solo finché la master arriva: uscendo lo lascia a una sagoma nuova.
     el.style.viewTransitionName = 'none'
@@ -28,6 +30,10 @@ export function ghostPreview(reduced: () => boolean) {
     setTimeout(() => el.remove(), ms + 100)
   }
   const reset = () => { dim = box = tag = null; at = null }
+  const clearHints = (fade: boolean) => {
+    for (const el of [...marks, ...(mid ? [mid] : [])]) { if (fade) fadeOut(el, DIM_MS); else el.remove() }
+    marks = []; mid = null
+  }
   return {
     /** Mostra la sagoma su `b` con l'etichetta; se c'era già, scivola da dov'è adesso (anche a metà di una scivolata). */
     show(b: Box, text: string) {
@@ -50,10 +56,37 @@ export function ghostPreview(reduced: () => boolean) {
       tag!.textContent = text
       at = b
     },
+    /**
+     * Le altre destinazioni possibili (Franz 04/11 18:14: «dovrei vedere le due possibilità, altrimenti l'utente non sa dove può
+     * rilasciare»): un contorno tratteggiato giallo leggero con la sua etichetta, senza riempimento, per ogni posto che non è
+     * quello della sagoma. Si ridisegnano a ogni cambio: il contorno torna sul posto lasciato.
+     */
+    hint(places: { b: Box; text: string }[]) {
+      if (typeof document === 'undefined') return
+      while (marks.length > places.length) marks.pop()!.remove()
+      places.forEach((p, i) => {
+        let el = marks[i]
+        if (!el) {
+          el = document.createElement('div'); el.className = 'master-ghost-hint'; el.setAttribute('aria-hidden', 'true'); el.append(document.createElement('span'))
+          document.body.append(el); marks.push(el)
+          if (!reduced()) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: DIM_MS, easing: 'ease-out' })
+        }
+        Object.assign(el.style, css(p.b))
+        el.firstElementChild!.textContent = p.text
+      })
+    },
+    /** La linea verticale a metà schermo, oltre la quale la master va dall'altra parte; `lit`: il dito l'ha passata. */
+    midline(x: number | null, lit = false) {
+      if (typeof document === 'undefined') return
+      if (x == null) { mid?.remove(); mid = null; return }
+      if (!mid) { mid = document.createElement('div'); mid.className = 'master-ghost-mid'; mid.setAttribute('aria-hidden', 'true'); document.body.append(mid) }
+      mid.style.left = `${x}px`
+      mid.classList.toggle('lit', lit)
+    },
     /** Il rilascio: lo sfondo torna subito, la sagoma resta finché la master non è arrivata (`arrived`), poi sparisce. */
     land(arrived: Promise<unknown>) {
       const d = dim, g = box
-      reset()
+      reset(); clearHints(true)
       if (d) fadeOut(d, DIM_MS)
       // La master arriva in MOVE_MS: se la transizione non lo dice, la sagoma sparisce comunque poco dopo.
       if (g) void Promise.race([arrived.catch(() => {}), new Promise(r => setTimeout(r, MOVE_MS + 200))]).then(() => fadeOut(g, FADE_MS))
@@ -61,7 +94,7 @@ export function ghostPreview(reduced: () => boolean) {
     /** L'annullo: sfondo e sagoma spariscono subito, la master non si è mossa. */
     drop() {
       const d = dim, g = box
-      reset()
+      reset(); clearHints(true)
       if (d) fadeOut(d, DIM_MS)
       if (g) fadeOut(g, DIM_MS)
     },
