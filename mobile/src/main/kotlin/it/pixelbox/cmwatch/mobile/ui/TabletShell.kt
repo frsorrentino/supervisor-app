@@ -1113,3 +1113,31 @@ private fun SwapPill(name: String, swap: SwapPills, modifier: Modifier) {
     }
 }
 
+
+/**
+ * Con la master sotto la home la home sta nella colonna della master, e il filo fra home e colonne non c'è (app-bordo-aggiungi-
+ * sparito-04-11, come SwapPills.svelte con `aside.stackcol`): il + e il filo bianco di ogni sessione stanno sul bordo della
+ * colonna verso le sessioni aperte, all'altezza della sua scheda. `toEnd`: le colonne sono a destra.
+ */
+@Composable
+internal fun StackEdge(swap: SwapPills?, toEnd: Boolean, home: @Composable () -> Unit) {
+    val spots = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>() }
+    var box by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    Box(Modifier.fillMaxSize().onGloballyPositioned { c -> box = c.boundsInRoot() }) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides spots.takeIf { swap != null }) { home() }
+        val b = box
+        if (swap != null && b != null) {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            Box(Modifier.align(if (toEnd) Alignment.TopEnd else Alignment.TopStart).width(30.dp).fillMaxHeight().zIndex(2f)) {
+                spots.forEach { (name, r) ->
+                    val y = r.top + kotlin.math.min(r.height / 2f, with(density) { 44.dp.toPx() })
+                    if (y > b.top + with(density) { 20.dp.toPx() } && y < b.bottom - with(density) { 20.dp.toPx() }) {
+                        val yDp = with(density) { (y - b.top).toDp() }
+                        if (name in swap.shown) CloseLink(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
+                        else SwapPill(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
+                    }
+                }
+            }
+        }
+    }
+}

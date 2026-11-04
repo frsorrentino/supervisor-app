@@ -2151,6 +2151,13 @@ class MainActivity : ComponentActivity() {
         }
         // Sul tablet il Registro sta al posto delle colonne; Indietro le riporta.
         BackHandler(enabled = wide && tab == StartRoute.Tab.LAVORI && !settingsOpen && terminal == null && !queueOpen && !searchOpen) { tab = StartRoute.Tab.OVERVIEW }
+        // + apre accanto, il filo di quella già in colonna la chiude (app-scheda-sostituisce-04-11, come la PWA larga): accanto alla
+        // home, o sul bordo della colonna della master quando la home sta sopra la master (app-bordo-aggiungi-sparito-04-11).
+        val tabletSwap = it.pixelbox.cmwatch.mobile.ui.SwapPills(
+            tabletCols,
+            onAdd = { n -> if (n !in tabletCols) saveCols(it.pixelbox.cmwatch.rules.Tablet.add(tabletCols, n)) },
+            onClose = { n -> saveCols(tabletCols - n) },
+        )
         val tabletDesk: @Composable (it.pixelbox.cmwatch.contract.State, it.pixelbox.cmwatch.rules.Summary.Model, Boolean) -> Unit = { st, sm, homeHidden ->
             val zone = java.time.ZoneId.systemDefault()
             val rows = remember(sm) { it.pixelbox.cmwatch.rules.Tablet.groups(sm).flatMap { g -> g.second } }
@@ -2207,12 +2214,7 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 override = if (tab == StartRoute.Tab.LAVORI) ({ lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.BAR) }) else null,
-                // + apre accanto, il filo di quella già in colonna la chiude (app-scheda-sostituisce-04-11, come la PWA larga).
-                swap = it.pixelbox.cmwatch.mobile.ui.SwapPills(
-                    tabletCols,
-                    onAdd = { n -> if (n !in tabletCols) saveCols(it.pixelbox.cmwatch.rules.Tablet.add(tabletCols, n)) },
-                    onClose = { n -> saveCols(tabletCols - n) },
-                ),
+                swap = tabletSwap,
                 inspector = if (inspectorOn && first != null) ({
                     TabletInspector(it.pixelbox.cmwatch.rules.Tablet.inspect(first, timeline, now, zone), st.quota[first.account]?.h5, loading = timelineOk && timeline == null)
                 }) else null,
@@ -2254,7 +2256,8 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.MasterFrame(
                 place.left, place.panelWidth(),
                 panel = if (m != null && masterChat) ({
-                    if (stacked) it.pixelbox.cmwatch.mobile.ui.MasterStack(place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF, home = { summaryPage() },
+                    if (stacked) it.pixelbox.cmwatch.mobile.ui.MasterStack(place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF,
+                        home = { it.pixelbox.cmwatch.mobile.ui.StackEdge(tabletSwap.takeIf { tabletCols.isNotEmpty() && tab != StartRoute.Tab.LAVORI }, toEnd = place.left) { summaryPage() } },
                         master = { if (place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF) masterPanel(m, true) else masterBar(m) { keepPlace(place.stepStack()) } }, onStep = { keepPlace(place.stepStack()) })
                     else masterPanel(m, true)
                 }) else null,
