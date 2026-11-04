@@ -17,7 +17,7 @@
   <div class="il lit" data-testid={testid}>
     {#each rows.slice(0, n) as r (r.key)}
       {@const o = openKey === r.key}
-      <div class="ir">
+      <div class="ir" data-key={r.key}>
         <button class="row" aria-expanded={o} data-testid={`${testid}-${r.key}`} onclick={() => (openKey = o ? null : r.key)}>
           <!-- Il segno al centro della riga del titolo; per un suggerimento l'icona del suo tipo (app-suggerimenti-icone-03-11). -->
           <span class="lead {r.tone}">{#if r.icon}<span class="ms" aria-hidden="true">{SUG_ICON[r.icon] ?? SUG_ICON.other}</span>{:else}<span class="dot"></span>{/if}</span>

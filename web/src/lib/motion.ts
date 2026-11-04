@@ -40,10 +40,15 @@ const out = (t: number) => 1 - (1 - t) ** 4
 /** Voce 4: un solo passaggio per tutti i tasti che lavorano: tasto, conferma, attesa, esito. */
 export const pass = () => ({ duration: reducedMotion() ? 0 : 200, easing: out, css: (t: number) => `opacity: ${t}; transform: scale(${0.96 + 0.04 * t})` })
 
-/** Voce 5: la sezione si apre in altezza, così quel che sta sotto non salta. Con la riduzione delle animazioni, solo dissolvenza. */
-export const fold = (_: Element, { ms = 200 }: { ms?: number } = {}) => ({
+/**
+ * Voce 5: la sezione si apre in altezza, così quel che sta sotto non salta. Come un foglio (app-effetti-movimenti-04-11, punto
+ * 5): il contenuto scende dal bordo della testata piegato all'indietro di 14° e si distende mentre l'altezza cresce; chiudendo
+ * si ripiega. Con la riduzione delle animazioni, solo dissolvenza.
+ */
+export const SHEET_DEG = 14
+export const fold = (_: Element, { ms = 260 }: { ms?: number } = {}) => ({
   duration: ms, easing: out,
-  css: (t: number) => (reducedMotion() ? `opacity: ${t}` : `overflow: hidden; grid-template-rows: ${t}fr; opacity: ${t}`),
+  css: (t: number) => (reducedMotion() ? `opacity: ${t}` : `overflow: hidden; grid-template-rows: ${t}fr; opacity: ${Math.min(1, t * 1.6)}; transform: perspective(900px) rotateX(${(-SHEET_DEG * (1 - t)).toFixed(2)}deg); transform-origin: 50% 0`),
 })
 
 // Il cambio forma dei menu (Franz, 01/11: «l'animazione deve riguardare anche il contenuto»; growFromPress in PhoneTheme.kt):
@@ -155,3 +160,18 @@ export function morphStart(kind: 'open' | 'back'): Morph | null {
     done: () => named(dst, false),
   }
 }
+
+/**
+ * La linea del lavoro in corso che finisce (app-effetti-movimenti-04-11, punto 7): si raccoglie verso il centro prendendo il verde
+ * di «finito» fino a un punto, che poi si spegne. Col movimento ridotto sparisce e basta.
+ */
+export const GATHER_MS = 520
+export const gather = (_: Element) => ({
+  duration: reducedMotion() ? 0 : GATHER_MS,
+  css: (t: number, u: number) => {
+    const k = Math.min(1, u / 0.6)
+    const sx = 1 - 0.985 * (1 - (1 - k) ** 3)
+    const o = u > 0.6 ? 1 - (u - 0.6) / 0.4 : 1
+    return `transform: scaleX(${sx.toFixed(3)}); transform-origin: 50% 50%; background: var(--good); opacity: ${o.toFixed(3)}; --edge-sweep: none`
+  },
+})

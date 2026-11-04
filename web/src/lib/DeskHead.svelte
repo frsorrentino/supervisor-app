@@ -23,7 +23,7 @@
 </script>
 
 <button class="chead" data-testid={testid[kind]} onclick={onOpen}>
-  {#if kind === 'you'}<b class="n" class:wait={h.waiting > 0}>{h.waiting}</b>
+  {#if kind === 'you'}<b class="n" class:wait={h.waiting > 0} data-counter="you">{h.waiting}</b>
   {:else if kind === 'work'}<b class="n">{h.busy}</b>
   {:else if kind === 'out'}<b class="n">{h.outcomes ?? '–'}</b>
   {:else}<b class="n" style:color={top && topPct >= 75 ? tone(topPct) : null}>{top ? `${topPct}%` : '–'}</b>{/if}

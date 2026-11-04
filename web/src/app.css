@@ -40,7 +40,7 @@ button.tonal:active, button.filled:active, button.approve:active, button.mini:ac
 @media (prefers-reduced-motion: reduce) { button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active, button.vbtn:active { transform: none; } }
 /* Voce 1: la linea del lavoro in corso. Non si riempie: il relay non sa quanto manca. */
 .edge-line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; pointer-events: none; background: color-mix(in srgb, var(--busy) 22%, transparent); animation: edge-in 200ms ease-out; }
-.edge-line::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 30%; background: var(--busy); animation: edge-run 1.6s linear infinite; }
+.edge-line::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 30%; background: var(--busy); animation: edge-run 1.6s linear infinite; display: var(--edge-sweep, block); }
 @keyframes edge-in { from { opacity: 0; } }
 @keyframes edge-run { from { transform: translateX(-100%); } to { transform: translateX(334%); } }
 @media (prefers-reduced-motion: reduce) {

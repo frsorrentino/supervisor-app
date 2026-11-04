@@ -9,6 +9,8 @@
   import LoadFailed from './LoadFailed.svelte'
   import { confirmMs } from './leave'
   import Check from './Check.svelte'
+  import { toCounter } from './cardFx'
+  import { reducedMotion } from './motion'
   import { pass } from './motion'
   import ItemList from './ItemList.svelte'
   import { decision } from './itemRows'
@@ -34,7 +36,7 @@
   // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto scelto diventa la conferma e la scheda dopo entra con la sua
   // transizione, invece del cambio di colpo. Il comando parte subito; la scheda cambia dopo la conferma (leave.ts, confirmMs).
   let picked = $state<string | null>(null)
-  function act(id: string, key: string, send: () => void) { if (picked) return; picked = id; send(); setTimeout(() => { next(key); picked = null }, confirmMs('ok')) }
+  function act(id: string, key: string, send: () => void) { if (picked) return; picked = id; send(); setTimeout(() => { if (id !== 'not_now' && id !== 'drop') toCounter(document.querySelector(`[data-dgroup="${CSS.escape(key)}"]`), reducedMotion()); next(key); picked = null }, confirmMs('ok')) }
   async function decide(key: string, action: 'not_now' | 'drop', r?: string) { act(action, key, () => {}); await run(newCmd('decisione', null, key, undefined, undefined, action === 'drop' ? { action, reason: r } : { action, hours: 24 })) }
 </script>
 
@@ -52,7 +54,7 @@
   {:else}
     <span class="pos">{t.decisionsPosition(touched.size + 1, Math.min(howMany, page.groups.length))}</span>
     {#key g.key}
-    <div class="c" in:pass>{@render body(g, true)}</div>
+    <div class="c" in:pass data-dgroup={g.key}>{@render body(g, true)}</div>
     {/key}
   {/if}
 </div>

@@ -337,3 +337,13 @@ html.fx-close::view-transition-group(*.fx-col) { animation-duration: 420ms; }
 ::view-transition-old(neck-top) { transform-origin: top; animation: fx-neck 220ms var(--spring-fx) both; }
 ::view-transition-old(neck-bottom) { transform-origin: bottom; animation: fx-neck 220ms var(--spring-fx) both; }
 @keyframes fx-neck { to { transform: scaleY(0); } }
+
+/* Il foglio della master al telefono (app-effetti-movimenti-04-11, punto 3): aprendosi supera di poco l'arresto e torna, e
+   chiudendosi in basso fa un solo rimbalzo; la stessa molla di --spring-fx. */
+@media (max-width: 839px) and (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(master-morph) { animation-duration: 520ms; animation-timing-function: var(--spring-fx); }
+}
+/* Compatta ed estesa (punto 8): durante il cambio di misura gli angoli della master si piegano verso l'interno e tornano tondi
+   con la molla. */
+html.fx-corners::view-transition-group(master-morph) { overflow: clip; animation-name: -ua-view-transition-group-anim-master-morph, fx-corners; }
+@keyframes fx-corners { 0% { clip-path: inset(0 round 18px); } 40% { clip-path: inset(0 round 3px 3px 26px 26px); } 100% { clip-path: inset(0 round 18px); } }

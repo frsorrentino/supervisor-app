@@ -89,3 +89,38 @@ export function lift(card: HTMLElement, neighbor: HTMLElement | null, dir: 1 | -
 export function settle(card: HTMLElement): void {
   card.animate([{ transform: 'scaleY(1.04)', transformOrigin: 'top' }, { transform: 'scaleY(.985)', transformOrigin: 'top', offset: 0.55 }, { transform: 'none', transformOrigin: 'top' }], { duration: SETTLE_MS, easing: 'ease-out' })
 }
+
+/** I tempi della scheda confermata che va nel contatore (punto 4): il giro, la piega, il volo; il battito del contatore. */
+export const FLY_MS = 650, PULSE_MS = 220
+
+/**
+ * La scheda confermata (app-effetti-movimenti-04-11, punto 4): dopo la spunta una sua copia fa un giro su se stessa, si piega in
+ * una striscia e vola nel contatore di «Tocca a te» (`[data-counter="you"]`), che batte una volta; senza contatore in vista sale
+ * e sparisce. La scheda vera esce intanto con la sua transizione; `back` la rimette se il PC dice no.
+ */
+export function toCounter(el: Element | null, reduced: boolean): (() => void) | null {
+  if (!el || reduced || typeof document === 'undefined') return null
+  const r = el.getBoundingClientRect()
+  if (!r.width || !r.height) return null
+  const target = [...document.querySelectorAll<HTMLElement>('[data-counter="you"]')].find(x => { const b = x.getBoundingClientRect(); return b.width > 0 && b.bottom > 0 && b.top < innerHeight })
+  const t = target?.getBoundingClientRect()
+  const dx = t ? t.left + t.width / 2 - (r.left + r.width / 2) : 0
+  const dy = t ? t.top + t.height / 2 - (r.top + r.height / 2) : -60
+  const clone = el.cloneNode(true) as HTMLElement
+  Object.assign(clone.style, { position: 'fixed', left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: '0', zIndex: '80', pointerEvents: 'none', overflow: 'hidden', borderRadius: '12px', background: 'var(--s2)', transformOrigin: '50% 50%' })
+  clone.setAttribute('aria-hidden', 'true')
+  document.body.append(clone)
+  const real = el as HTMLElement
+  real.style.visibility = 'hidden'
+  const p = 'perspective(900px)'
+  const a = clone.animate([
+    { transform: `${p} rotateY(0deg)`, opacity: 1 },
+    { transform: `${p} rotateY(360deg)`, opacity: 1, offset: 0.35 },
+    { transform: `${p} scale(1, .12)`, opacity: 1, offset: 0.55 },
+    { transform: `translate(${dx}px, ${dy}px) scale(.08, .04)`, opacity: t ? 0.9 : 0 },
+  ], { duration: FLY_MS, easing: 'cubic-bezier(.45, 0, .25, 1)' })
+  const end = () => { clone.remove(); target?.animate([{ transform: 'none' }, { transform: 'scale(1.25)' }, { transform: 'none' }], { duration: PULSE_MS, easing: 'ease-out' }) }
+  a.onfinish = end; a.oncancel = () => clone.remove()
+  setTimeout(() => clone.remove(), FLY_MS + 200)
+  return () => { real.style.visibility = '' }
+}

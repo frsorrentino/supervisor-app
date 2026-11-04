@@ -23,7 +23,7 @@
   import { tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
   import { fade, slide } from 'svelte/transition'
-  import { bounceEase, bounceMs, finishScrollAllowed, fold, pass, reducedMotion } from './motion'
+  import { bounceEase, bounceMs, finishScrollAllowed, fold, gather, pass, reducedMotion } from './motion'
   import { rows as commitmentRowsOf } from './commitments'
   import type { Approval, Commitment, Session, State, DonePage } from './contract'
   import { cleanupOf } from './masterService'
@@ -751,7 +751,7 @@
     <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
          intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
     <div class="list lit">
-      {#each restFlat as [r, group] (r.session.name)}<div class="cw" class:finished={finishedNow.includes(r.session.name)} data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line"></span>{/if}</div>{/each}
+      {#each restFlat as [r, group] (r.session.name)}<div class="cw" class:finished={finishedNow.includes(r.session.name)} data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line" out:gather></span>{/if}</div>{/each}
     </div>
     {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   </div></div>{/if}
@@ -918,7 +918,7 @@
     {/if}
   {/if}
 {/snippet}
-{#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="newbody" data-testid={`corpo-${k}`} transition:slide={{ duration: reducedMotion() ? 0 : 200 }}>{@render newBody?.(k)}</div>{/if}{/snippet}
+{#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="newbody" data-testid={`corpo-${k}`}>{@render newBody?.(k)}</div></div>{/if}{/snippet}
 {#snippet secClosed()}
   <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
   {#if model.closed.length && shows('work')}
@@ -944,10 +944,10 @@
   {#if topDrag}<div class="offdrop" class:hot={offHot} style:top="{Math.max(0, edgeY)}px" data-testid={offHot ? 'cima-togli-acceso' : 'cima-togli'}>{t.homeOffTop}</div>{/if}
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
-      {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
+      {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
       {:else}
         {@const sig = catSignal(c.id)}
-        <button class="catrow cathead" class:amber={sig.amber} aria-expanded="false" onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
+        <button class="catrow cathead" class:amber={sig.amber} aria-expanded="false" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
           <span class="ic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span><b>{t.catName[c.id]}</b>
           <span class="catsig"><OneLine parts={sig.bits.map(b => ({ text: b.text, tone: b.red ? 'red' as const : b.mute ? 'mute' as const : undefined }))} /></span>
           <span class="ms arr" aria-hidden="true">expand_more</span>

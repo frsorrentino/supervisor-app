@@ -9,7 +9,7 @@ export const PLACES = ['.dpanel.under', 'aside.dpanel:not(.stackcol)', 'aside.mp
 
 /** I tempi: lo spostamento della master al rilascio (il gruppo `master-morph` in v3.css), lo scivolare della sagoma da un posto
  *  all'altro, lo sfondo che si scurisce, la sagoma che sparisce. */
-export const MOVE_MS = 700, SLIDE_MS = 200, DIM_MS = 160, FADE_MS = 200
+export const MOVE_MS = 700, SLIDE_MS = 200, HOP_MS = 320, DIM_MS = 160, FADE_MS = 200, SQUASH_MS = 280
 export const MOVE_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)'
 
 const css = (b: Box) => ({ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` })
@@ -51,7 +51,16 @@ export function ghostPreview(reduced: () => boolean) {
         const r = box.getBoundingClientRect()
         for (const a of box.getAnimations()) a.cancel()
         Object.assign(box.style, css(b))
-        if (!reduced()) box.animate([css({ x: r.left, y: r.top, w: r.width, h: r.height }), css(b)], { duration: SLIDE_MS, easing: MOVE_EASE })
+        if (!reduced()) {
+          // Si allunga nel verso del movimento (app-effetti-movimenti-04-11, punto 2); passando dall'altra parte dello schermo
+          // salta la riga di mezzo con un piccolo arco.
+          const from = { x: r.left, y: r.top, w: r.width, h: r.height }
+          const dx = b.x + b.w / 2 - (from.x + from.w / 2), dy = b.y + b.h / 2 - (from.y + from.h / 2)
+          const hop = Math.abs(dx) > window.innerWidth / 4
+          const mid = { x: (from.x + b.x) / 2, y: (from.y + b.y) / 2, w: (from.w + b.w) / 2, h: (from.h + b.h) / 2 }
+          const pull = hop ? 'translateY(-18px) scale(1.04, .96)' : Math.abs(dx) >= Math.abs(dy) ? 'scale(1.05, .97)' : 'scale(.97, 1.05)'
+          box.animate([{ ...css(from), transform: 'none' }, { ...css(mid), transform: pull }, { ...css(b), transform: 'none' }], { duration: hop ? HOP_MS : SLIDE_MS, easing: MOVE_EASE })
+        }
       }
       tag!.textContent = text
       at = b
@@ -104,4 +113,13 @@ export function ghostPreview(reduced: () => boolean) {
       if (g) fadeOut(g, DIM_MS)
     },
   }
+}
+
+/**
+ * L'atterraggio (app-effetti-movimenti-04-11, punto 2): arrivata al posto della sagoma, la master si schiaccia un poco verso il
+ * basso e torna con la molla. Col movimento ridotto niente.
+ */
+export function squash(el: Element | null, reduced: boolean) {
+  if (!el || reduced) return
+  el.animate([{ transform: 'scale(1.02, .96)', transformOrigin: '50% 100%' }, { transform: 'scale(.995, 1.01)', transformOrigin: '50% 100%', offset: 0.55 }, { transform: 'none', transformOrigin: '50% 100%' }], { duration: SQUASH_MS, easing: 'ease-out' })
 }

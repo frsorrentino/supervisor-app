@@ -4,7 +4,7 @@
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
   import { BAR_H, COLUMN, COMPACT_H, heightAt, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, type Height, type Rect, type Side } from './lib/masterLanding'
-  import { ghostPreview, MOVE_MS, PLACES } from './lib/landingMorph'
+  import { ghostPreview, MOVE_MS, PLACES, squash } from './lib/landingMorph'
   import { DRAG_PX, isDrag, masterTaps } from './lib/gesture'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
@@ -485,7 +485,7 @@
   // successiva; la maniglia trascinata si ferma sullo scatto più vicino nel verso del gesto. Di base compatta (Franz 17:44).
   const STACK_H = ['compact', 'half'] as const
   let stackH = $state<(typeof STACK_H)[number]>((STACK_H as readonly string[]).includes(load('cm.master_stack_h') ?? '') ? (load('cm.master_stack_h') as (typeof STACK_H)[number]) : 'compact')
-  function setStack(h: (typeof STACK_H)[number]) { smooth(() => { stackH = h; save('cm.master_stack_h', h) }) }
+  function setStack(h: (typeof STACK_H)[number]) { corners(() => { stackH = h; save('cm.master_stack_h', h) }) }
   function stepStack(d: 1 | -1, wrap = true) {
     const i = STACK_H.indexOf(stackH) + d
     setStack(STACK_H[wrap ? (i + STACK_H.length) % STACK_H.length : Math.max(0, Math.min(STACK_H.length - 1, i))])
@@ -568,7 +568,9 @@
       go()
       save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH)
     })
-    masterGhost.land(vt ? vt.finished : tick().then(() => new Promise(r => setTimeout(r, MOVE_MS))))
+    const arrived = vt ? vt.finished : tick().then(() => new Promise(r => setTimeout(r, MOVE_MS)))
+    masterGhost.land(arrived)
+    void arrived.catch(() => {}).then(() => squash(PLACES.map(q => document.querySelector(q)).find(Boolean) ?? null, reducedMotion()))
   }
   function revert() { aim = null; masterGhost.drop(); clearMarks() }
   // La testata: il lato, dalla metà dello schermo sotto il dito; la sagoma è il posto di adesso, o lo stesso specchiato.
@@ -823,13 +825,14 @@
     // Nella vista larga la home si riposiziona scheda per scheda, una sola coreografia nei due versi
     // (app-home-riposiziona-animata-04-11, `html.reflow` in v3.css).
     const reflow = wide && !m
-    if (reflow) { reflowN++; document.documentElement.classList.add('reflow'); oneName(focus) }
+    if (reflow) { reflowN++; document.documentElement.classList.add('reflow'); oneName(focus); wave() }
     const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : reflow ? async () => { const was = stacked; go(); await tick(); oneName(focus); order(was, stacked) } : go)
     for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
     if (m) vt.finished.catch(() => {}).finally(m.done)
     if (reflow) vt.finished.catch(() => {}).finally(() => {
       if (--reflowN > 0) return
       document.documentElement.classList.remove('reflow', 'reflow-master-first', 'reflow-home-first')
+      document.getElementById('fx-wave')?.remove()
       for (const el of document.querySelectorAll<HTMLElement>('[data-vt], .desk .col[data-col]')) { el.style.removeProperty('view-transition-name'); el.style.removeProperty('view-transition-class') }
     })
     return vt
@@ -840,6 +843,25 @@
   // Chi si muove prima (Franz 04/11 dal telefono: «durante la riduzione della master da una colonna a metà colonna alcuni elementi si
   // sovrappongono»): quando la master scende sotto la home si ritira prima lei e poi entrano le schede; quando risale escono prima
   // le schede e poi lei cresce. Così le une non passano mai sopra l'altra.
+  // A onda (app-effetti-movimenti-04-11, punto 6): ogni scheda parte un poco dopo quella sopra e a sinistra, 18 ms a passo e al
+  // massimo 160, così il riposizionamento corre come un'onda dall'angolo in alto a sinistra. I ritardi stanno in uno stile della
+  // transizione, tolto alla fine; la scheda che diventa colonna parte subito.
+  function wave() {
+    if (reducedMotion()) return
+    const els = [...document.querySelectorAll<HTMLElement>('[data-vt]')].map(el => ({ n: getComputedStyle(el).viewTransitionName, r: el.getBoundingClientRect() }))
+      .filter(x => x.n && x.n !== 'none' && !x.n.startsWith('col-') && x.r.width > 0 && x.r.bottom > 0 && x.r.top < window.innerHeight)
+      .sort((a, b) => (a.r.top + a.r.left / 3) - (b.r.top + b.r.left / 3))
+    const css = els.map((x, i) => `::view-transition-group(${CSS.escape(x.n)}) { animation-delay: ${Math.min(160, i * 18)}ms; }`).join('\n')
+    let st = document.getElementById('fx-wave') as HTMLStyleElement | null
+    if (!st) { st = document.createElement('style'); st.id = 'fx-wave'; document.head.append(st) }
+    st.textContent = css
+  }
+  // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): mentre la master cambia misura gli angoli si piegano verso
+  // l'interno e tornano con la molla (`html.fx-corners` in v3.css).
+  function corners(go: () => void) {
+    if (!reducedMotion()) { document.documentElement.classList.add('fx-corners'); setTimeout(() => document.documentElement.classList.remove('fx-corners'), 900) }
+    smooth(go)
+  }
   function order(was: boolean, now: boolean) {
     const c = document.documentElement.classList
     c.remove('reflow-master-first', 'reflow-home-first')
@@ -1641,7 +1663,7 @@
 {#snippet pskel()}<div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i><i></i></div>{/snippet}
 {#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} grip={wide ? sideGrip : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
-  onToggleKey={() => smooth(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
+  onToggleKey={() => corners(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
@@ -1777,9 +1799,10 @@
   .skel i.s { width: 50%; }
   .column.boot > :global(*) { animation: boot-in calc(var(--reflow-ms) * .35) var(--reflow-ease) both; }
   /* La plancia al primo stato: le colonne entrano una dopo l'altra, 60 ms fra l'una e l'altra. */
-  .pboot.boot { animation: boot-in calc(var(--reflow-ms) * .6) var(--reflow-ease) both; }
+  .pboot.boot { animation: boot-in calc(var(--reflow-ms) * .6) var(--spring-fx) both; }
   @media (prefers-reduced-motion: reduce) { .pboot.boot { animation: boot-fade 150ms ease-out both; } }
-  @keyframes boot-in { from { opacity: 0; translate: 0 6px; } }
+  /* A onda (app-effetti-movimenti-04-11, punto 6): ogni colonna sale di 14 px e si assesta con la molla, una dopo l'altra. */
+  @keyframes boot-in { from { opacity: 0; translate: 0 14px; scale: .985; } }
   @media (prefers-reduced-motion: reduce) { .column.boot > :global(*) { animation: boot-fade 150ms ease-out both; } }
   @keyframes boot-fade { from { opacity: 0; } }
   .cbody { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }

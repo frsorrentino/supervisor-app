@@ -7,6 +7,7 @@
   import { t } from './t'
   import LongText from './LongText.svelte'
   import Check from './Check.svelte'
+  import { toCounter } from './cardFx'
   import LoadFailed from './LoadFailed.svelte'
   import { slide } from 'svelte/transition'
   import { confirmMs, leave } from './leave'
@@ -46,9 +47,15 @@
   let picked = $state<Record<string, string>>({})
   // Le prove mandate restano via anche se la sezione si ridisegna (app-prova-ok-sparisce-04-11): partono da `proveSent`.
   let gone = $state<Record<string, true>>(Object.fromEntries([...proveSent].map(i => [i, true as const])))
+  const backs: Record<string, () => void> = {}
   const hooks = {
     pick: (ids: string[], v: string | null) => { const n = { ...picked }; for (const i of ids) { if (v) n[i] = v; else delete n[i] } picked = n },
-    hide: (ids: string[], v: boolean) => { const n = { ...gone }; for (const i of ids) { if (v) { n[i] = true; proveSent.add(i) } else { delete n[i]; proveSent.delete(i) } } gone = n },
+    hide: (ids: string[], v: boolean) => {
+      // Un Ok va nel contatore di Tocca a te (app-effetti-movimenti-04-11, punto 4).
+      if (v) for (const i of ids) if (picked[i] === 'ok') { const back = toCounter(document.querySelector(`.ir[data-key="${CSS.escape(i)}"]`), reducedMotion()); if (back) backs[i] = back }
+      if (!v) for (const i of ids) { backs[i]?.(); delete backs[i] }
+      const n = { ...gone }; for (const i of ids) { if (v) { n[i] = true; proveSent.add(i) } else { delete n[i]; proveSent.delete(i) } } gone = n
+    },
   }
   // L'Ok torna indietro solo per un rifiuto vero (`proveDone`); il Non va resta com'era.
   const send = (arg: string, res: 'ok' | 'ko', body?: string) => run(newCmd('prova', null, arg, body, undefined, { result: res })).then(r => (res === 'ok' ? proveDone(r?.ok ?? null, r?.text) : !!r?.ok))

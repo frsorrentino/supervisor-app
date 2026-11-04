@@ -12,7 +12,7 @@
   import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Line } from './lavori'
   import { doIt, mark, type Edit } from './recapAgenda'
   import type { RecapAction } from './recapActions'
-  import { fold as foldIn } from './motion'
+  import { fold as foldIn, gather } from './motion'
   import { t } from './t'
   import Icon from './Icon.svelte'
 
@@ -113,7 +113,7 @@
     <span class="ic" style="--t:{tone}"><Icon name={l.who === 'working' ? 'play' : l.who === 'you' ? 'hand' : 'hourglass'} size={16} color={tone} /></span>
     <span class="t"><span class="tt"><b>{l.short}</b>{#if l.n > 1}<span class="tag" style:color={tone}>{t.lavoriNTasks(l.n)}</span>{/if}</span>{#if lineMeta(l)}<small>{lineMeta(l)}</small>{/if}</span>
     {#if lineRight(l)}<span class="when">{lineRight(l)}</span>{/if}
-  {#if l.who === 'working'}<span class="edge-line"></span>{/if}
+  {#if l.who === 'working'}<span class="edge-line" out:gather></span>{/if}
   </div>
 {/snippet}
 {#snippet gantt(l: Line)}
