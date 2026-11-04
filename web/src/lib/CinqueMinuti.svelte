@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { CmdResult, DecisionGroup, DecisionItem, DecisionsPage, State } from './contract'
   import { decodeDecisions, readPage } from './decideDecode'
   import { buttons, canDrop, card as cardText, chooseAt, nextDecisions, viaApprove, withoutTests } from './decide'
@@ -24,7 +25,9 @@
   let failed = $state(false)
   // Contratto 1.107: le pause di prova stanno in Prova, fuse nella pre-release più nuova (app-sezioni-accorpate-03-11).
   async function load() { failed = false; let p: DecisionsPage | null = page; ({ page: p, failed } = readPage(await run(newCmd('decisioni', null)), decodeDecisions, page)); page = p ? withoutTests(p) : p }
-  $effect(() => { void load() })
+  // Una lettura all'apertura: dentro l'effetto `load` leggeva la pagina e ripartiva a ogni risposta, una richiesta al secondo al
+  // relay (04/11 18:19, i comandi del telefono in fila 8-15 s).
+  $effect(() => { untrack(() => void load()) })
   const g = $derived(page && howMany != null ? nextDecisions(page, touched, Math.max(0, howMany - touched.size))[0] ?? null : null)
   const next = (k: string) => { touched = new Set([...touched, k]) }
   // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto scelto diventa la conferma e la scheda dopo entra con la sua

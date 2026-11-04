@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { CmdResult, DecisionsPage, ProvePage } from './contract'
   import { decodeDecisions, decodeProve, readPage } from './decideDecode'
   import { allOk, cardKeys, proveDone, proveSent, screen, testCards, type TestCard } from './decide'
@@ -19,12 +20,14 @@
   // Senza risposta in tempo la pagina lo dice e offre Riprova, invece di restare «In arrivo dal PC» (app-pwa-decisioni-03-11).
   let failed = $state(false)
   async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('prove', null)), decodeProve, page)) }
-  $effect(() => { void load() })
+  // Una lettura all'apertura: dentro l'effetto `load` leggeva la pagina e ripartiva a ogni risposta, una richiesta al secondo al
+  // relay (04/11 18:19, i comandi del telefono in fila 8-15 s).
+  $effect(() => { untrack(() => void load()) })
   // Contratto 1.107 (app-sezioni-accorpate-03-11, scelta A): sopra il banco, le prove che aspettano Franz fuse per progetto nella
   // pre-release più nuova. «Tutto va» manda `provato` per ogni gruppo, «Una non va» chiede quale e perché (`non_va`).
   let dec = $state<DecisionsPage | null>(null)
   async function loadDec() { ({ page: dec } = readPage(await run(newCmd('decisioni', null)), decodeDecisions, dec)) }
-  $effect(() => { void loadDec() })
+  $effect(() => { untrack(() => void loadDec()) })
   const cards = $derived(dec ? testCards(dec) : [])
   let doneKeys = $state<Record<string, true>>({}), sentKeys = $state<Record<string, true>>({}), more = $state<Record<string, true>>({})
   let koCard = $state<TestCard | null>(null), koWhich = $state<string | null>(null), koWhy = $state('')

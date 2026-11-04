@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import ItemList from './ItemList.svelte'
   import { prima } from './itemRows'
   import type { CmdResult, PrimaRaccoltaPage, PrimaRaccoltaSummary } from './contract'
@@ -16,7 +17,7 @@
   let failed = $state(false)
   async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('prima_raccolta', null)), decodePrima, page)) }
   // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
-  $effect(() => { void summary?.done; void summary?.status; void load() })
+  $effect(() => { void summary?.done; void summary?.status; untrack(() => void load()) })
   // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato si accende subito e resta acceso finché la scheda cambia.
   let busy = $state<string | null>(null)
   async function touch(action: string, value?: string) { if (busy) return; busy = `${action}${value ?? ''}`; try { await run(newCmd('prima_raccolta_azione', null, null, undefined, undefined, { action, value })); await load() } finally { busy = null } }
