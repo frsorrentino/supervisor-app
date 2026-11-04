@@ -49,7 +49,7 @@
   let open = $state<Record<string, boolean>>({})
   const toggle = (k: string) => { open = { ...open, [k]: !open[k] } }
   // Senza una prova da mostrare l'esito in parole, mai il comando del controllo (Franz 24/10 18:36).
-  const proofFallback = (x: { outcome?: string }) => (x.outcome === 'failed' ? t.lavoriProofFailed : x.outcome === 'cancelled' ? t.lavoriProofCancelled : t.lavoriProofCheck)
+  const proofFallback = (x: { outcome?: string }) => (x.outcome === 'superseded' ? t.lavoriProofSuperseded : x.outcome === 'failed' ? t.lavoriProofFailed : x.outcome === 'cancelled' ? t.lavoriProofCancelled : t.lavoriProofCheck)
   const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`
   const yesterday = $derived(new Date(new Date(day + 'T12:00:00Z').getTime() - 86400000).toISOString().slice(0, 10))
@@ -213,17 +213,17 @@
       {@const isToday = d.date === day}
       {@const shown = isToday || !!open[`day:${d.date}`]}
       <button class="day" disabled={isToday} onclick={() => { toggle(`day:${d.date}`); if (!d.rows.length && d.n > 0) onLoadDay(d.date) }}>
-        <span>{(isToday ? t.lavoriToday(dm(d.date), d.n) : d.date === yesterday ? t.lavoriYesterday(dm(d.date), d.n) : t.lavoriDay(weekday(d.date), d.n)).toUpperCase()}</span><i></i>
+        <span>{(isToday ? t.lavoriToday(dm(d.date), d.n) : d.date === yesterday ? t.lavoriYesterday(dm(d.date), d.n) : t.lavoriDay(weekday(d.date), d.n) + (d.superseded ? ' · ' + t.lavoriSupersededN(d.superseded) : '')).toUpperCase()}</span><i></i>
         {#if !isToday}<svg class="turn" class:up={shown} viewBox="0 0 24 24" width="18" height="18"><path d="M6 9l6 6 6-6" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" /></svg>{/if}
       </button>
       {#if shown}<div class="fb" in:foldIn out:foldIn={{ ms: 150 }}><div class="foldin">
         {#each d.rows as x (x.task)}
           <div class="done">
             {#if x.outcome === 'failed'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--gone)" stroke-width="2.4" stroke-linecap="round" /></svg>
-            {:else if x.outcome === 'cancelled'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" /></svg>
+            {:else if x.outcome === 'cancelled' || x.outcome === 'superseded'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" /></svg>
             {:else}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linecap="round" /></svg>{/if}
             <span class="tm">{hhmm(x.at)}</span>
-            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? proofFallback(x)}</a>{:else}<span class="proof" class:plain={!x.proof}>{x.proof ?? proofFallback(x)}</span>{/if}</small></span>
+            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.outcome === 'superseded'}<span class="proof plain">{proofFallback(x)}</span>{:else if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? proofFallback(x)}</a>{:else}<span class="proof" class:plain={!x.proof}>{x.proof ?? proofFallback(x)}</span>{/if}</small></span>
           </div>
         {/each}
       </div></div>{/if}

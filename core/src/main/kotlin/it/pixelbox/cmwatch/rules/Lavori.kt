@@ -242,12 +242,17 @@ object Lavori {
     /**
      * Un compito chiuso: `proof` = la prova in una riga («release v2.3», «commit 9f8e7d6», il file, il comando del
      * controllo), null dagli eventi (la UI scrive «controllo verde»); `url` quando la prova ha un link; `outcome` ∈
-     * green|cancelled|failed.
+     * green|cancelled|failed|superseded (1.115: chiuso perché una pre-release più nuova porta il suo lavoro, mai verificato).
      */
     data class Done(val task: String, val title: String, val session: String?, val at: Long, val proof: String?, val url: String? = null, val outcome: String = "green")
 
-    /** `n` = quanti chiusi quel giorno; `rows` vuote con `n` > 0 = un giorno prima richiuso, da caricare con `done` di quel giorno. */
-    data class DoneDay(val date: LocalDate, val rows: List<Done>, val n: Int = rows.size)
+    /**
+     * `n` = quanti chiusi quel giorno, senza i superati; `superseded` = i superati (1.115), contati a parte perché non sono
+     * verificati; `rows` vuote con `n` > 0 = un giorno prima richiuso, da caricare con `done` di quel giorno.
+     */
+    data class DoneDay(val date: LocalDate, val rows: List<Done>, val n: Int = rows.count { it.outcome != SUPERSEDED }, val superseded: Int = rows.count { it.outcome == SUPERSEDED })
+
+    const val SUPERSEDED = "superseded"
 
     /**
      * La prova in una riga leggibile (Franz 24/10 18:36: «nemmeno questo»): una release o un commit col loro nome, un file col
@@ -294,5 +299,5 @@ object Lavori {
 
     /** La riga di home «fatto oggi N»: le righe della pagina di oggi dell'op `done` quando è caricata, altrimenti i `task_check` verdi di oggi dagli eventi. */
     fun doneToday(pages: Map<String, DonePage>, events: List<Event>, zone: ZoneId, today: LocalDate): Int =
-        pages[today.toString()]?.rows?.size ?: done(events, zone, today, days = 1).firstOrNull { it.date == today }?.rows?.size ?: 0
+        pages[today.toString()]?.rows?.count { it.outcome != SUPERSEDED } ?: done(events, zone, today, days = 1).firstOrNull { it.date == today }?.rows?.size ?: 0
 }

@@ -112,14 +112,15 @@ describe('lavori', () => {
 
   it("l'op done porta la prova e i giorni prima", () => {
     const page: DonePage = JSON.parse(root.result.find((r: { id: string }) => r.id.endsWith('0760')).text)
-    expect([page.date, page.rows.length, page.days]).toEqual(['2026-02-10', 4, [{ date: '2026-02-09', n: 3 }, { date: '2026-02-07', n: 1 }]])
+    expect([page.date, page.rows.length, page.days]).toEqual(['2026-02-10', 5, [{ date: '2026-02-09', n: 3 }, { date: '2026-02-07', n: 1 }]])
     const days = doneFromPages({ [page.date]: page }, zone)
-    expect(days.map(d => [d.date, d.n, d.rows.length])).toEqual([['2026-02-10', 4, 4], ['2026-02-09', 3, 0], ['2026-02-07', 1, 0]])
+    // Contratto 1.115: il superato sta fra le righe ma non nel conto dei chiusi; ha il suo conto.
+    expect(days.map(d => [d.date, d.n, d.rows.length, d.superseded ?? 0])).toEqual([['2026-02-10', 4, 5, 1], ['2026-02-09', 3, 0, 0], ['2026-02-07', 1, 0, 0]])
     const rows = days[0].rows
-    expect(rows.map(r => r.task)).toEqual(['atlas-release-2-3', 'ledger-migrations-010', 'notes-night-report', 'orbit-docs-lint'])
-    expect(rows.map(r => r.proof)).toEqual(['release v2.3', 'commit 9f8e7d6', 'docs/notte/2026-02-10-field-notes.md', null])
+    expect(rows.map(r => r.task)).toEqual(['atlas-release-2-3', 'ledger-migrations-010', 'notes-night-report', 'notes-map-zoom', 'orbit-docs-lint'])
+    expect(rows.map(r => r.proof)).toEqual(['release v2.3', 'commit 9f8e7d6', 'docs/notte/2026-02-10-field-notes.md', null, null])
     expect([rows[0].url, rows[2].url]).toEqual(['https://github.com/example/atlas-shop/releases/tag/v2.3', null])
-    expect(rows.map(r => r.outcome)).toEqual(['green', 'green', 'cancelled', 'failed'])
+    expect(rows.map(r => r.outcome)).toEqual(['green', 'green', 'cancelled', 'superseded', 'failed'])
     expect([rows[0].title, rows[0].session, rows[2].session, rows[0].at]).toEqual(['Release 2.3 of atlas-shop', 'atlas-shop', null, 1789211400])
     const older = { ...page, date: '2026-02-09', rows: page.rows.slice(0, 3), days: [] }
     const merged = doneFromPages({ [page.date]: page, [older.date]: older }, zone)

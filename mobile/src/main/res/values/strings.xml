@@ -1383,6 +1383,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_proof_check">controllo verde</string>
     <string name="lavori_proof_failed">controllo rosso</string>
     <string name="lavori_proof_cancelled">annullato</string>
+    <string name="lavori_proof_superseded">superata da una pre-release più nuova</string>
+    <string name="lavori_superseded_n">%1$d superate</string>
     <string name="lavori_done_empty">Niente di chiuso negli ultimi sette giorni</string>
     <string name="lavori_quota_note">La quota non è qui: resta in «Utilizzo e limiti».</string>
     <string name="lavori_old_relay">Aggiorna supervisor sul PC per vedere gli impegni del registro</string>

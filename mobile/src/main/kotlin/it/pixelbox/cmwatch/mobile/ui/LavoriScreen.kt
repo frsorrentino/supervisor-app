@@ -221,7 +221,7 @@ fun LavoriScreen(
                         isToday -> stringResource(R.string.lavori_today, dayMonth(day.date), day.n)
                         day.date == today.minusDays(1) -> stringResource(R.string.lavori_yesterday, dayMonth(day.date), day.n)
                         else -> stringResource(R.string.lavori_day, weekdayDayMonth(day.date), day.n)
-                    }
+                    } + (if (day.superseded > 0) " · " + stringResource(R.string.lavori_superseded_n, day.superseded) else "")
                     // Un giorno richiuso con il solo conteggio (1.77) si carica al tocco con `done` di quel giorno.
                     DayHeader(label, shown, if (isToday) null else ({ toggle(key); if (day.rows.isEmpty() && day.n > 0) onLoadDay(day.date.toString()) }))
                 }
@@ -429,7 +429,7 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
     ) {
         when (d.outcome) {
             "failed" -> Icon(Icons.Rounded.Close, null, tint = Cm.gone, modifier = Modifier.size(18.dp).padding(top = 1.dp))
-            "cancelled" -> Icon(Icons.Rounded.Remove, null, tint = Cm.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+            "cancelled", Lavori.SUPERSEDED -> Icon(Icons.Rounded.Remove, null, tint = Cm.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
             else -> Icon(Icons.Rounded.Check, null, tint = Cm.briefGoodInk, modifier = Modifier.size(18.dp).padding(top = 1.dp))
         }
         Text(hhmm(d.at, zone), style = MonoSmall.copy(fontSize = 12.5.sp))
@@ -441,9 +441,10 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
                 val url = d.url
                 Text(
                     // Senza prova l'esito in parole, mai il comando del controllo (Franz 24/10 18:36).
-                    (if (d.session != null) "· " else "") + (d.proof ?: stringResource(when (d.outcome) { "failed" -> R.string.lavori_proof_failed; "cancelled" -> R.string.lavori_proof_cancelled; else -> R.string.lavori_proof_check })),
-                    style = MaterialTheme.typography.bodySmall, color = if (d.proof != null) Cm.actionIcon else Cm.text2,
-                    modifier = if (url != null) Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { runCatching { uri.openUri(url) } } else Modifier,
+                    // Un superato (1.115) dice perché è chiuso, anche con una prova: non è verificato.
+                    (if (d.session != null) "· " else "") + (if (d.outcome == Lavori.SUPERSEDED) stringResource(R.string.lavori_proof_superseded) else d.proof ?: stringResource(when (d.outcome) { "failed" -> R.string.lavori_proof_failed; "cancelled" -> R.string.lavori_proof_cancelled; else -> R.string.lavori_proof_check })),
+                    style = MaterialTheme.typography.bodySmall, color = if (d.proof != null && d.outcome != Lavori.SUPERSEDED) Cm.actionIcon else Cm.text2,
+                    modifier = if (url != null && d.outcome != Lavori.SUPERSEDED) Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { runCatching { uri.openUri(url) } } else Modifier,
                 )
             }
         }

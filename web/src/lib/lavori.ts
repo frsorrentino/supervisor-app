@@ -198,10 +198,10 @@ export function inProgress(st: State, agenda: AgendaPage | null | undefined, now
   return { working, you, others, axis: ax, total: working.reduce((n, l) => n + l.n, 0) + you.reduce((n, l) => n + l.n, 0) + others.length }
 }
 
-/** Un compito chiuso; `proof` = la prova in una riga («release v2.3», «commit 9f8e7d6», il file, il comando), null dagli eventi; `url` col link; `outcome` ∈ green|cancelled|failed. */
+/** Un compito chiuso; `proof` = la prova in una riga («release v2.3», «commit 9f8e7d6», il file, il comando), null dagli eventi; `url` col link; `outcome` ∈ green|cancelled|failed|superseded (1.115: chiuso perché una pre-release più nuova porta il suo lavoro, mai verificato). */
 export type Done = { task: string; title: string; session: string | null; at: number; proof: string | null; url?: string | null; outcome?: string }
-/** `n` = quanti chiusi quel giorno; `rows` vuote con `n` > 0 = un giorno prima richiuso, da caricare con `done` di quel giorno. */
-export type DoneDay = { date: string; rows: Done[]; n: number }
+/** `n` = quanti chiusi quel giorno, senza i superati; `superseded` = i superati (1.115), contati a parte perché non sono verificati; `rows` vuote con `n` > 0 = un giorno prima richiuso, da caricare con `done` di quel giorno. */
+export type DoneDay = { date: string; rows: Done[]; n: number; superseded?: number }
 
 /**
  * La prova in una riga leggibile (Franz 24/10 18:36: «nemmeno questo»): una release o un commit col loro nome, un file col
@@ -225,7 +225,7 @@ export function doneFromPages(pages: Record<string, DonePage>, _zone: string): D
       const label = pr ? proofLabel(pr) : null
       return { task: r.task, title: r.title || r.task, session: r.session ?? null, at: r.at, proof: label, url: label ? pr?.url ?? null : null, outcome: r.outcome || 'green' }
     })
-    loaded.set(pg.date, { date: pg.date, rows, n: rows.length })
+    loaded.set(pg.date, { date: pg.date, rows, n: rows.filter(r => r.outcome !== 'superseded').length, superseded: rows.filter(r => r.outcome === 'superseded').length })
   }
   const refs = new Map<string, number>()
   for (const pg of Object.values(pages)) for (const ref of pg.days ?? []) if (!loaded.has(ref.date)) refs.set(ref.date, Math.max(refs.get(ref.date) ?? 0, ref.n))
@@ -254,5 +254,5 @@ export function done(events: Event[], zone: string, today: string, days = 7): Do
 
 /** La riga di home «fatto oggi N»: le righe della pagina di oggi dell'op `done` quando è caricata, altrimenti i `task_check` verdi di oggi dagli eventi. */
 export function doneToday(pages: Record<string, DonePage>, events: Event[], zone: string, today: string): number {
-  return pages[today]?.rows.length ?? (done(events, zone, today, 1).find(d => d.date === today)?.rows.length ?? 0)
+  return pages[today]?.rows.filter(r => r.outcome !== 'superseded').length ?? (done(events, zone, today, 1).find(d => d.date === today)?.rows.length ?? 0)
 }
