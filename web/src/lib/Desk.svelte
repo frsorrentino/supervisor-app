@@ -20,8 +20,11 @@
 
   const GAP = 12
   const PAD = 10
+  // Sul lato della maniglia il margine è quello delle card della home (13): la linea sta a metà fra le due (app-gutter-centrato-04-11).
+  const PAD_HANDLE = 13
+  const padLeft = $derived(homeRight ? PAD : PAD_HANDLE)
   let cw = $state(0)
-  const widthPx = $derived(Math.max(0, cw - 2 * PAD - GAP * (cols.length - 1)))
+  const widthPx = $derived(Math.max(0, cw - PAD - PAD_HANDLE - GAP * (cols.length - 1)))
   const unit = $derived(widthPx / TOTAL)
 
   // Il bordo che si trascina e di quanto; la colonna presa per la testata e di quanto.
@@ -30,7 +33,7 @@
   let dragged = $state(-1)
   let draggedPx = $state(0)
   const live = $derived((border >= 0 ? drag(shares, border, parts(borderPx, widthPx)) : shares).map(p => p * unit))
-  const lefts = $derived(live.reduce<number[]>((acc, w, i) => [...acc, i === 0 ? PAD : acc[i - 1] + live[i - 1] + GAP], []))
+  const lefts = $derived(live.reduce<number[]>((acc, w, i) => [...acc, i === 0 ? padLeft : acc[i - 1] + live[i - 1] + GAP], []))
   // La colonna sotto il centro di quella trascinata: lì cadrebbe, e intanto scivola già nel posto lasciato libero.
   const over = $derived.by(() => {
     if (dragged < 0) return -1

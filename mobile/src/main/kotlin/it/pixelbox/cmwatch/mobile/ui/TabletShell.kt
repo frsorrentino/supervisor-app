@@ -906,7 +906,7 @@ private fun DeskBody(
         Box(at(homeW + handleW, detailsW).width(total - homeW - handleW - detailsW).fillMaxHeight().then(if (dashboard) Modifier else Modifier.dotGrid())) {
             if (override != null) override()
             else if (columns.isEmpty()) empty()
-            else Columns(columns, shares, onSwap, onShares, column)
+            else Columns(columns, shares, onSwap, onShares, homeRight, column)
         }
         inspector?.let { i ->
             Row(at(total - detailsW, 0.dp).width(detailsW).fillMaxHeight()) {
@@ -967,13 +967,15 @@ private fun HomeSideHandle(homeRight: Boolean, onHomeSide: () -> Unit, onReset: 
  */
 @Composable
 private fun Columns(
-    columns: List<String>, shares: List<Int>, onSwap: (Int, Int) -> Unit, onShares: (List<Int>) -> Unit,
+    columns: List<String>, shares: List<Int>, onSwap: (Int, Int) -> Unit, onShares: (List<Int>) -> Unit, homeRight: Boolean,
     column: @Composable (name: String, drag: Modifier) -> Unit,
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
     val off = animationsOff()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().padding(10.dp)) {
+    // Sul lato della maniglia il margine è quello delle card della home (13): la linea sta a metà fra le due (app-gutter-centrato-04-11).
+    val (padStart, padEnd) = if (homeRight) 10.dp to 13.dp else 13.dp to 10.dp
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().padding(start = padStart, end = padEnd, top = 10.dp, bottom = 10.dp)) {
         val gapPx = with(density) { 12.dp.toPx() }
         val widthPx = constraints.maxWidth.toFloat() - gapPx * (columns.size - 1)
         val unit = widthPx / Tablet.Shares.TOTAL
