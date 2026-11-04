@@ -436,6 +436,9 @@ fun SummaryList(
         androidx.compose.runtime.snapshotFlow { if (listState.firstVisibleItemIndex > 0) 1000f else listState.firstVisibleItemScrollOffset.toFloat().coerceAtMost(1000f) }
             .collect { HomeScroll.px.floatValue = it }
     }
+    if (parts == null) androidx.compose.runtime.LaunchedEffect(listState) {
+        androidx.compose.runtime.snapshotFlow { listState.canScrollForward }.collect { HomeScroll.more.value = it }
+    }
     if (scrollMemo != null) androidx.compose.runtime.LaunchedEffect(listState) {
         androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
             .collect { (i, o) -> scrollMemo[0] = i; scrollMemo[1] = o }

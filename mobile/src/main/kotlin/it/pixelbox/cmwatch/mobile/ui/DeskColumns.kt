@@ -37,6 +37,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -397,7 +398,21 @@ private fun LandingMark(m: it.pixelbox.cmwatch.rules.MasterLanding.Mark<*>, labe
 @Composable
 internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @Composable () -> Unit, onStep: () -> Unit) {
     Column(Modifier.fillMaxSize().background(V3.Bg).testTag("master-sotto-home")) {
-        Box(Modifier.weight(1f).fillMaxWidth()) { home() }
+        // Gli ultimi 32 dp della home sfumano verso il fondo della colonna finché sotto c'è altro (app-home-sfuma-sopra-master-04-11,
+        // come la web): una maschera sul bordo, mai l'opacità delle righe; in fondo l'ultima riga si legge intera.
+        Box(Modifier.weight(1f).fillMaxWidth()
+            .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                if (HomeScroll.more.value) {
+                    val h = 32.dp.toPx()
+                    drawRect(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color.Black, 1f to Color.Transparent, startY = size.height - h, endY = size.height),
+                        topLeft = androidx.compose.ui.geometry.Offset(0f, size.height - h), size = androidx.compose.ui.geometry.Size(size.width, h),
+                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+                    )
+                }
+            }) { home() }
         Box(Modifier.fillMaxWidth().height(14.dp).handCursor().clickable(onClickLabel = stringResource(R.string.master_stack_step), onClick = onStep), contentAlignment = Alignment.Center) {
             Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
         }

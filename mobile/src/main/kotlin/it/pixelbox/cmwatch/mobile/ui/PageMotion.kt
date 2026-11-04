@@ -174,6 +174,8 @@ private fun MorphIn(press: androidx.compose.ui.geometry.Offset, content: @Compos
  */
 object HomeScroll {
     internal val px = androidx.compose.runtime.mutableFloatStateOf(0f)
+    /** Se sotto c'è ancora altro da scorrere (app-home-sfuma-sopra-master-04-11): la home sopra la master sfuma solo allora. */
+    internal val more = androidx.compose.runtime.mutableStateOf(false)
 }
 
 /** Il titolo della home: da 22 a 19 sp nei primi 90 dp di scorrimento, appoggiato in basso a sinistra (come la prova D). */

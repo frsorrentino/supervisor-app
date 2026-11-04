@@ -692,6 +692,21 @@
     heightGesture(y, null)
     window.addEventListener('pointerup', () => { barGesture = false }, { once: true })
   }
+  // Con la master sotto la home (app-home-sfuma-sopra-master-04-11, Franz 04/11 18:57): gli ultimi 32 px della home che scorre
+  // sfumano verso il fondo della colonna, solo finché sotto c'è altro; in fondo l'ultima riga si legge intera. Una maschera sul
+  // bordo, mai l'opacità delle righe.
+  function fadeEnd(top: HTMLElement) {
+    const check = () => {
+      const s = top.querySelector<HTMLElement>('section.home')
+      if (s) s.classList.toggle('fade-end', s.scrollTop + s.clientHeight < s.scrollHeight - 2)
+    }
+    top.addEventListener('scroll', check, true)
+    const ro = new ResizeObserver(check); ro.observe(top)
+    const mo = new MutationObserver(check); mo.observe(top, { childList: true, subtree: true })
+    check()
+    return { destroy() { top.removeEventListener('scroll', check, true); ro.disconnect(); mo.disconnect() } }
+  }
+
   function setHeight(h: Height) {
     if (h === 'bar') { masterOpen = false; return }
     masterOpen = true
@@ -1619,7 +1634,7 @@
   </div>
   {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top">{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top" use:fadeEnd>{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
   </div>
 {:else}
   <div class="phone">
@@ -1753,6 +1768,7 @@
   .dpanel.under .wgrip, .dpanel.under .hgrip { display: none; }
   .hstack { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .hs-top { flex: 1; min-height: 0; overflow: auto; }
+  .hs-top :global(section.home.fade-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
   /* Con home e master nella colonna della master, la griglia delle sessioni non tiene più il posto della home. */
   .deskwrap.stacked :global(.desk) { grid-template-columns: 0 0 minmax(0, 1fr); }
   .deskwrap.stacked :global(.desk.right) { grid-template-columns: minmax(0, 1fr) 0 0; }
