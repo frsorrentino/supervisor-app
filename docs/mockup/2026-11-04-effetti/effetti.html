@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Effetti da scegliere</title>
+<style>
+  :root {
+    --bg: #0B0C0E; --s1: #121316; --s2: #1B1D22; --s3: #272A31; --line: #25272D;
+    --tx: #EDEEF0; --tx2: #969BA4; --tx3: #858A93; --act: #FFFFFF; --on-act: #0B0C0E;
+    --wait: #FFB23F; --busy: #5AA2FF; --good: #34D399; --red: #FF5A5F;
+    --out: cubic-bezier(0.23, 1, 0.32, 1);
+    --spring: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--tx); font: 15.5px/1.45 system-ui, sans-serif; padding: 16px; max-width: 440px; margin: 0 auto; }
+  h1 { font: 700 22px/1.2 system-ui; margin: 4px 0 6px; }
+  .lead { color: var(--tx2); font-size: 14px; margin-bottom: 18px; }
+  section { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 16px; }
+  h2 { font: 700 18px/1.2 system-ui; display: flex; gap: 10px; align-items: baseline; }
+  h2 .k { font: 600 15px system-ui; color: var(--on-act); background: var(--act); border-radius: 999px; padding: 1px 9px; }
+  .what { color: var(--tx2); font-size: 14px; margin: 6px 0 12px; }
+  .stage { position: relative; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .play { margin-top: 10px; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 0; background: var(--s3); color: var(--tx); font: 600 15px system-ui; cursor: pointer; }
+  .play:active { transform: scale(.97); }
+  .note { color: var(--tx3); font-size: 12.5px; margin-top: 8px; }
+
+  /* A. Glifi di stato che cambiano forma */
+  .glyphs { display: flex; align-items: center; gap: 14px; padding: 16px; }
+  .glyphs svg { width: 56px; height: 56px; flex: none; }
+  .glyphs .ring { fill: none; stroke-width: 1.8; transition: stroke 300ms var(--out); }
+  .glyphs .mark { fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: d 420ms var(--spring), stroke 300ms var(--out); }
+  .glyphs .label { font: 600 17px system-ui; transition: color 300ms var(--out); }
+  .glyphs .sub { color: var(--tx2); font-size: 14px; }
+
+  /* B. Indietro predittivo */
+  .pb { height: 300px; }
+  .pb .home { position: absolute; inset: 0; padding: 14px; }
+  .pb .row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 12px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); margin-bottom: 8px; font: 600 17px system-ui; }
+  .pb .row small { margin-left: auto; color: var(--tx2); font: 400 14px system-ui; }
+  .pb .page { position: absolute; inset: 0; background: var(--s2); padding: 14px; transform-origin: 100% 50%; border-radius: 0; touch-action: pan-y; cursor: grab; }
+  .pb .page h3 { font: 700 22px system-ui; margin-bottom: 8px; }
+  .pb .page p { color: var(--tx2); font-size: 14px; }
+  .pb .edge { position: absolute; left: 0; top: 0; bottom: 0; width: 28px; }
+  .pb .hint { position: absolute; left: 8px; top: 50%; translate: 0 -50%; width: 30px; height: 30px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; opacity: 0; color: var(--tx); }
+
+  /* C. Tasti che cambiano forma alla pressione */
+  .press { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; }
+  .press button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 20px; background: var(--s3); color: var(--tx); font: 600 15px system-ui; cursor: pointer;
+    transition: border-radius 360ms var(--spring), scale 160ms var(--out); }
+  .press button.filled { background: var(--act); color: var(--on-act); }
+  .press button:active, .press button.down { border-radius: 9px; scale: .97; transition-duration: 120ms; }
+  .press .after { width: 100%; color: var(--tx3); font-size: 12.5px; }
+
+  /* D. Testata che si compatta scorrendo */
+  .ch { height: 320px; overflow-y: auto; scrollbar-width: none; }
+  .ch::-webkit-scrollbar { display: none; }
+  .ch header { position: sticky; top: 0; z-index: 1; background: var(--bg); padding: 12px 14px 8px; display: flex; align-items: baseline; gap: 10px; }
+  .ch header b { font: 700 30px/1.1 system-ui; transform-origin: 0 100%; }
+  .ch header span { color: var(--tx2); font-size: 14px; }
+  .ch .box3 { display: grid; grid-template-columns: repeat(3, 1fr); margin: 4px 12px 10px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .ch .box3 div { padding: 10px; border-left: 1px solid var(--line); }
+  .ch .box3 div:first-child { border-left: 0; }
+  .ch .box3 b { display: block; font: 700 34px/1 system-ui; }
+  .ch .box3 small { color: var(--tx2); font-size: 12.5px; }
+  .ch .item { margin: 0 12px 8px; min-height: 52px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); display: flex; align-items: center; padding: 0 12px; font: 600 17px system-ui; }
+  @supports (animation-timeline: scroll()) {
+    .ch header b { animation: shrink linear both; animation-timeline: scroll(nearest); animation-range: 0 90px; }
+    .ch header { animation: bar linear both; animation-timeline: scroll(nearest); animation-range: 40px 90px; }
+    .ch .box3 { animation: fold linear both; animation-timeline: scroll(nearest); animation-range: 0 110px; }
+  }
+  @keyframes shrink { to { scale: .62; } }
+  @keyframes bar { to { box-shadow: 0 1px 0 var(--line); } }
+  @keyframes fold { to { opacity: .25; scale: .96; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glyphs .mark { transition: stroke 150ms; } .press button { transition: none; }
+  }
+</style>
+</head>
+<body>
+<h1>Effetti da scegliere</h1>
+<p class="lead">Compito app-audit-grafica-animazioni-04-11, parte 3. Quattro effetti moderni della stessa famiglia del morphing: una forma che diventa un'altra. Ognuno si prova qui; nessuno entra nell'app senza la tua scelta.</p>
+
+<section id="a">
+  <h2><span class="k">A</span>Glifi di stato che cambiano forma</h2>
+  <p class="what">Quando una sessione passa da «lavora» a «fatto» o «fallita», il ▶ si piega nella spunta o nella ✗ invece di essere sostituito. Telegram e le icone restano quelle: cambia solo il passaggio. Telefono: <code>Morph</code> di graphics-shapes; web: transizione del tracciato SVG.</p>
+  <div class="stage glyphs">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><circle class="ring" cx="10" cy="10" r="8.2" stroke="var(--busy)"/><path class="mark" stroke="var(--busy)" d="M8.3 6.7 L13.6 10 M13.6 10 L8.3 13.3 M8.3 13.3 L8.3 6.7"/></svg>
+    <div><div class="label" style="color:var(--busy)">payments-api</div><div class="sub">al lavoro</div></div>
+  </div>
+  <button class="play" data-run="a">Riproduci: lavora, fatto, fallita</button>
+</section>
+
+<section id="b">
+  <h2><span class="k">B</span>Indietro predittivo</h2>
+  <p class="what">Il gesto Indietro di Android 14 e successivi: trascinando dal bordo la pagina rimpicciolisce e si arrotonda sotto il dito, e si vede già la home dietro; lasciata oltre metà, torna nella voce da cui era partita (il morphing al contrario). Prima di lasciare si può cambiare idea. Solo telefono: sul web il gesto lo gestisce il browser.</p>
+  <div class="stage pb">
+    <div class="home">
+      <div class="row">Utilizzo<small>5 h al 42%</small></div>
+      <div class="row">Sistema<small>carico basso</small></div>
+      <div class="row">Notte<small>3 lavori</small></div>
+    </div>
+    <div class="page"><div class="hint">←</div><h3>Sistema</h3><p>Trascina da sinistra verso destra, partendo dal bordo, come il gesto Indietro.</p></div>
+  </div>
+  <button class="play" data-run="b">Riproduci il gesto</button>
+  <p class="note">Si prova anche col dito o col mouse sulla pagina grigia.</p>
+</section>
+
+<section id="c">
+  <h2><span class="k">C</span>Tasti che cambiano forma alla pressione</h2>
+  <p class="what">Material 3 Expressive: alla pressione la pillola diventa un rettangolo morbido e torna con la molla. Si aggiunge alla scala 0,97 che c'è già, sugli stessi tasti. Telefono: <code>ButtonDefaults.shapes()</code> con la forma premuta; web: <code>border-radius</code> con la molla.</p>
+  <div class="stage press">
+    <button>Rifiuta</button><button class="filled">Approva</button><button>Parliamone</button>
+    <span class="after">Tieni premuto un tasto.</span>
+  </div>
+  <button class="play" data-run="c">Riproduci una pressione</button>
+</section>
+
+<section id="d">
+  <h2><span class="k">D</span>Testata che si compatta scorrendo</h2>
+  <p class="what">Scorrendo la home il titolo grande rimpicciolisce nella barra e il tabellone si ritira, legati al dito e non a un tempo: fermando il dito si ferma tutto. Telefono: <code>LargeTopAppBar</code> con <code>exitUntilCollapsedScrollBehavior</code>; web: <code>animation-timeline: scroll()</code>.</p>
+  <div class="stage ch" id="chs">
+    <header><b>Supervisor</b><span>4 aperte</span></header>
+    <div class="box3"><div><b style="color:var(--wait)">3</b><small>ferme</small></div><div><b>1</b><small>al lavoro</small></div><div><b>6</b><small>esiti oggi</small></div></div>
+    <div class="item">payments-api</div><div class="item">storefront</div><div class="item">blog</div><div class="item">admin-panel</div><div class="item">Utilizzo</div><div class="item">Sistema</div><div class="item">Plugin e skill</div><div class="item">Notte</div>
+  </div>
+  <button class="play" data-run="d">Riproduci lo scorrimento</button>
+</section>
+
+<script>
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+  // A: tre segmenti per ogni glifo, così il tracciato si interpola; quelli che avanzano collassano in un punto.
+  const G = {
+    busy: { d: 'M8.3 6.7 L13.6 10 M13.6 10 L8.3 13.3 M8.3 13.3 L8.3 6.7', c: 'var(--busy)', t: 'al lavoro' },
+    done: { d: 'M6.4 10.2 L8.8 12.6 M8.8 12.6 L13.6 7.6 M13.6 7.6 L13.6 7.6', c: 'var(--good)', t: 'fatto' },
+    red: { d: 'M7.3 7.3 L12.7 12.7 M12.7 7.3 L7.3 12.7 M10 10 L10 10', c: 'var(--red)', t: 'fallita' },
+  }
+  const a = document.querySelector('#a')
+  const setG = (k) => {
+    const g = G[k], mark = a.querySelector('.mark')
+    mark.style.d = `path('${g.d}')`; mark.setAttribute('stroke', g.c); a.querySelector('.ring').setAttribute('stroke', g.c)
+    a.querySelector('.label').style.color = g.c; a.querySelector('.sub').textContent = g.t
+  }
+  const runA = async () => { for (const k of ['busy', 'done', 'busy', 'red', 'busy']) { setG(k); await wait(1100) } }
+
+  // B: la pagina segue il dito; oltre metà va via verso la voce «Sistema», altrimenti torna.
+  const b = document.querySelector('#b'), page = b.querySelector('.page'), hint = b.querySelector('.hint'), target = b.querySelectorAll('.row')[1]
+  const pose = (p) => {
+    page.style.transition = 'none'
+    page.style.transform = `translateX(${p * 24}px) scale(${1 - 0.1 * p})`
+    page.style.borderRadius = `${28 * p}px`
+    hint.style.opacity = Math.min(1, p * 2)
+  }
+  const settle = (back) => {
+    page.style.transition = 'transform 380ms var(--out), border-radius 380ms var(--out), clip-path 380ms var(--out), opacity 380ms var(--out)'
+    hint.style.opacity = 0
+    if (!back) { page.style.transform = ''; page.style.borderRadius = '0'; return }
+    const r = target.getBoundingClientRect(), s = b.querySelector('.stage').getBoundingClientRect()
+    const top = r.top - s.top, left = r.left - s.left
+    page.style.transform = ''
+    page.style.clipPath = `inset(${top}px ${s.width - left - r.width}px ${s.height - top - r.height}px ${left}px round 14px)`
+    page.style.opacity = '0'
+    setTimeout(() => { page.style.transition = 'opacity 300ms var(--out)'; page.style.clipPath = ''; page.style.opacity = '1'; page.style.borderRadius = '0' }, 900)
+  }
+  let start = null
+  page.addEventListener('pointerdown', (e) => { start = e.clientX; page.setPointerCapture(e.pointerId) })
+  page.addEventListener('pointermove', (e) => { if (start != null) pose(Math.max(0, Math.min(1, (e.clientX - start) / 220))) })
+  const end = (e) => { if (start == null) return; const p = (e.clientX - start) / 220; start = null; settle(p > 0.5) }
+  page.addEventListener('pointerup', end); page.addEventListener('pointercancel', () => { start = null; settle(false) })
+  const runB = async () => {
+    for (let i = 0; i <= 20; i++) { pose(i / 20 * 0.35); await wait(16) }
+    for (let i = 7; i >= 0; i--) { pose(i / 20); await wait(16) }
+    settle(false); await wait(700)
+    for (let i = 0; i <= 30; i++) { pose(i / 30 * 0.8); await wait(16) }
+    settle(true)
+  }
+
+  // C: una pressione lunga e un rilascio sul tasto pieno.
+  const runC = async () => { const t = document.querySelector('#c .filled'); t.classList.add('down'); await wait(500); t.classList.remove('down') }
+
+  // D: lo scorrimento in su e in giù.
+  const ch = document.querySelector('#chs')
+  const runD = async () => { for (let y = 0; y <= 140; y += 4) { ch.scrollTop = y; await wait(16) } await wait(700); for (let y = 140; y >= 0; y -= 4) { ch.scrollTop = y; await wait(16) } }
+
+  const runs = { a: runA, b: runB, c: runC, d: runD }
+  for (const btn of document.querySelectorAll('.play')) btn.addEventListener('click', () => runs[btn.dataset.run]())
+</script>
+</body>
+</html>

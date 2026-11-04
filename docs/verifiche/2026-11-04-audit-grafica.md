@@ -31,4 +31,29 @@ Una regola per famiglia, applicata in un passo su tutti e due i lati, in un comm
 
 ## Dopo
 
-Da compilare a correzioni fatte, con gli stessi conteggi.
+Commit 6cb47311, web 0.2.1864. Conteggi rifatti con lo stesso metodo.
+
+| Famiglia | Telefono | Web | Cosa resta |
+|---|---|---|---|
+| Colori | `RecapSection` e `SearchScreen` sui token (`V3.Tx` su `V3.S3`, `V3.Wait` al 26%): di giorno la ricerca usa l'ambra del giorno | Le 7 variabili inesistenti puntano a token v3; nuovi `--accent` (= `--busy`, come `Cm.accent`), `--banner` e `--banner-ink` (= `V3.Banner`/`BannerInk`); `ReadingPill` su `--s3` | Gli aloni delle luci (`#FFC867`, ambra al 30% e al 10%) restano scritti a mano sui due lati, come approvati nel mockup luci2: sono solo della notte |
+| Testi | `cmType` in `PhoneTheme.kt` porta i ruoli Material sulla scala (bodyLarge 15,5, bodySmall 12,5, labelLarge 15, labelMedium 12,5, titleMedium 17, titleSmall 15); `labelSmall`, `headlineMedium` e `displaySmall` passano in Barlow; 61 misure scritte a mano portate al gradino (10 e 11,5 → 11; 12 e 13 → 12,5; 13,5 → 14; 16 → 15,5 o 15) | 240 dichiarazioni portate al gradino; corpo della pagina 15,5. Nella demo il testo in Barlow passa da 6 misure (13, 13,5, 14, 14,5, 15, 16) a 3 (12,5, 14, 15,5) | Due misure relative in `em` (10,4 e 12,9 px calcolati) e i campi di testo a 16 di proposito |
+| Card | Tutte a 14 (22 da 20) | 26 regole da 16 o 20 a 14; immagini e QR a 12 | — |
+| Fogli | 28 in alto (foglio modale da 14, conversazione da 24, master da 26); dialoghi 14 come sul web | 28 (da 26 in master, conversazione incorporata, chat) | Le testate delle colonne della plancia a 18 non sono fogli e restano |
+| Tasti | Tutti su `labelLarge`, ora Tasto 15 Semi Condensed 600 come `V3Pill` | Regola unica in `v3.css` per `.tonal`, `.filled`, `.approve`, `.vbtn` | Le opzioni della domanda MCP e alcune pillole piccole sono `button` senza classe e restano 500 Barlow 15,5 e 12,5 |
+| Icone | Non cambiate | Non cambiate | Il telefono usa 18 dp dove il web usa 20 px nelle righe: da vedere schermata per schermata, non con uno script |
+| Spazi | Non cambiati | Non cambiati | Interno card 14 contro 16 in Lavori e HomeBox |
+
+Golden: le misure cambiano quasi ogni schermata del telefono; i nuovi golden vengono dal run CI con la registrazione, non da win.
+
+## Morphing: dove una forma diventa un'altra
+
+| Punto | Telefono | Web | Stato |
+|---|---|---|---|
+| Card della sessione → pagina della sessione | `fly` con `sharedBounds` (`Fly.kt`) | Plancia: `page-fly`; telefono stretto: fila che scorre | C'era |
+| Barra della master → pannello | `MasterDock`, molla `CmMotion.panel` | `master-morph` sulla plancia | C'era |
+| Tasto → menu, foglio, dialogo | `growFromPress` | `growFromPress`, `installDialogGrow` | C'era (voce 16) |
+| Trascinamento della master → posto nuovo | — | `landingMorph.ts` | C'era (03/11) |
+| Tasto scelto → conferma nella card | `ActionPass`, pillola con la spunta | `pass` | C'era (voce 11) |
+| **Voce premuta → pagina, e ritorno** | **Nuovo**, `PageIn` in `PageMotion.kt`: la pagina si scopre da un riquadro attorno al punto premuto, 380 ms. Solo l'andata: tornando la home rientra da sinistra come prima | **Nuovo**, `morphStart` in `motion.ts` con le View Transitions: la voce (casella, riga, voce di menu, Cerca) diventa la pagina e la pagina torna nella voce, anche se la home è stata ridisegnata | Fatto: web 0.2.1866, telefono nella prossima pre-release |
+
+Prova sul web (0.2.1866, demo, Chrome): aprendo Cerca e tornando, il gruppo `morph` ha vecchia e nuova immagine nei due versi e nessun nome resta appeso dopo. Fotogramma a 150 ms: `docs/mockup/2026-11-04-effetti/morph-cerca-150ms.png`. Sul telefono non c'è un emulatore Wear né un telefono collegato: il movimento lo giudica Franz sulla pre-release.
