@@ -5,6 +5,7 @@
   import type { MenuKind } from './lib/sessionMenu'
   import { BAR_H, COLUMN, COMPACT_H, heightAt, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, type Height, type Rect, type Side } from './lib/masterLanding'
   import { ghostPreview, MOVE_MS, PLACES } from './lib/landingMorph'
+  import { DRAG_PX, isDrag, masterTaps } from './lib/gesture'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -525,9 +526,15 @@
   function clearMarks() {
     if (wFrame) cancelAnimationFrame(wFrame)
     wFrame = 0; clearTimeout(dwellTimer); dwellTimer = undefined
-    wDrag = null; document.body.style.userSelect = ''
+    wDrag = null; document.body.style.userSelect = ''; taps.released(performance.now())
   }
-  function begin() { document.body.style.userSelect = 'none' }
+  // Un solo riconoscitore per le maniglie della master (gesture.ts, app-master-gesti-senza-conflitti-04-11): un trascinamento
+  // annulla i clic in sospeso; dopo il rilascio il click e il dblclick del browser sulla master non arrivano.
+  const taps = masterTaps()
+  for (const ev of ['click', 'dblclick'] as const) window.addEventListener(ev, (e) => {
+    if (taps.swallow(performance.now()) && (e.target as Element | null)?.closest?.('.dpanel, .stackcol, .mbar, .mpanel')) { e.stopPropagation(); e.preventDefault() }
+  }, true)
+  function begin() { document.body.style.userSelect = 'none'; taps.dragged(performance.now()) }
   // Il rilascio: la master va al posto della sagoma, e la scelta si ricorda; la sagoma sparisce quando è arrivata.
   function commit() {
     const go = aim
@@ -561,7 +568,7 @@
   function sideGrip(e: PointerEvent) {
     const x0 = e.clientX, y0 = e.clientY
     let moved = false
-    follow((m) => { if (!moved && Math.hypot(m.clientX - x0, m.clientY - y0) < 6) return; moved = true; placeDrag('move', m.clientX) },
+    follow((m) => { if (!moved && !isDrag(m.clientX - x0, m.clientY - y0)) return; moved = true; placeDrag('move', m.clientX) },
       (m) => { if (!moved) return; placeDrag(m ? 'end' : 'cancel', 0) })
   }
   // La larghezza lasciata col bordo, in px; null = quella del tasto Allarga/Stringi (420 o 720). Una misura libera di prima
@@ -626,7 +633,7 @@
     const rectFor = (h: Height) => (side === side0 && h === h0 && here) || placeRect(area, side, h, w0, sizes)
     const hold = steady<Height>(h0)
     const apply = (e: PointerEvent) => {
-      if (!moved && Math.abs(e.clientY - y0) < 8) return
+      if (!moved && Math.abs(e.clientY - y0) <= DRAG_PX) return
       moved = true; begin()
       // Il margine (28 px oltre il confine) e poi la sosta: la banda nuova vince solo se resta sotto il dito.
       const cur = hold.current
@@ -643,8 +650,8 @@
       if (!moved) {
         // Un tocco senza trascinare: la maniglia della riga apre la master da quel lato, all'ultima altezza; quella sotto la home
         // passa all'altezza dopo, come prima.
-        if (pick) smooth(() => { masterLeft = pick === 'left'; masterOpen = true; masterHalf = masterNarrow(); save('cm.master_left', masterLeft ? '1' : '0') })
-        else if (stacked) stepStack(1)
+        if (pick) taps.tap(`bar-${pick}`, performance.now(), () => smooth(() => { masterLeft = pick === 'left'; masterOpen = true; masterHalf = masterNarrow(); save('cm.master_left', masterLeft ? '1' : '0') }))
+        else if (stacked) taps.tap('stack', performance.now(), () => stepStack(1))
         return
       }
       commit()
@@ -1510,7 +1517,7 @@
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
 {#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
-{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} grip={wide ? sideGrip : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
+{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} grip={wide ? sideGrip : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
   onToggleKey={() => smooth(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 

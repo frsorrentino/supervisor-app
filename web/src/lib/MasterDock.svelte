@@ -3,6 +3,7 @@
   import type { Snippet } from 'svelte'
   import type { Session } from './contract'
   import { hero as heroOf, type Entry } from './masterHome'
+  import { isDrag } from './gesture'
   import { t } from './t'
   import StateGlyph from './StateGlyph.svelte'
   import { glyphOf } from './rail'
@@ -58,7 +59,7 @@
     if (y0 == null) return
     const dy = e.screenY - y0
     if (onPlace) {
-      if (dragged || Math.hypot(e.clientX - x0, e.clientY - cy0) > 8) { if (!dragged) (e.currentTarget as Element).setPointerCapture?.(e.pointerId); dragged = true; onPlace('move', e.clientX, e.clientY) }
+      if (dragged || isDrag(e.clientX - x0, e.clientY - cy0)) { if (!dragged) (e.currentTarget as Element).setPointerCapture?.(e.pointerId); dragged = true; onPlace('move', e.clientX, e.clientY) }
       return
     }
     // Voce 9: la barra non si muove mai da sola (Franz, 01/11): chi la contiene sposta anche la conversazione, con `onDrag`.
