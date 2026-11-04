@@ -322,3 +322,18 @@ button.ck.done .lbl { opacity: 0; }
   button.ck, button.ck .lbl { transition: none; }
   .dck path { animation: none; stroke-dashoffset: 0; }
 }
+
+/* La scheda che diventa colonna (app-effetti-movimenti-04-11, punto 1, cardFx.ts; valori da tarare dal vivo). Aprendo: dopo i
+   200 ms del collo la scheda vola nella colonna in 400 ms con la molla, che supera di poco la misura e torna; le altre schede in
+   500 ms, così il totale resta nei 700 ms di HomeReflow; le colonne vicine si aprono con la molla in 450 ms. Chiudendo, l'inverso
+   in 420 ms e le colonne che si riuniscono con un minimo rimbalzo. I capi del collo si ritirano verso la scheda e verso il posto. */
+:root { --spring-fx: linear(0, .25, .6, .86, .98, 1.025, 1.028, 1.018, 1.008, 1.002, 1, .999, 1); }
+html.fx-open { --reflow-ms: 500ms; }
+html.fx-close { --reflow-ms: 420ms; }
+html.fx-open::view-transition-group(*.fx-focus), html.fx-open::view-transition-old(*.fx-focus), html.fx-open::view-transition-new(*.fx-focus) { animation-duration: 400ms; animation-timing-function: var(--spring-fx); }
+html.fx-close::view-transition-group(*.fx-focus) { animation-timing-function: var(--spring-fx); }
+html.fx-open::view-transition-group(*.fx-col), html.fx-close::view-transition-group(*.fx-col) { animation-duration: 450ms; animation-timing-function: var(--spring-fx); }
+html.fx-close::view-transition-group(*.fx-col) { animation-duration: 420ms; }
+::view-transition-old(neck-top) { transform-origin: top; animation: fx-neck 220ms var(--spring-fx) both; }
+::view-transition-old(neck-bottom) { transform-origin: bottom; animation: fx-neck 220ms var(--spring-fx) both; }
+@keyframes fx-neck { to { transform: scaleY(0); } }

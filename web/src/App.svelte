@@ -25,6 +25,7 @@
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack, tick } from 'svelte'
   import { morphStart } from './lib/motion'
+  import { lift, settle as settleCard } from './lib/cardFx'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
   import { blankState, decodeChanges, decodeDiff, transcriptArg, withAfterPage, withFirstPage, withTail } from './lib/contract'
@@ -851,16 +852,55 @@
       const n = el.dataset.vt!
       if (seen.has(n)) el.style.setProperty('view-transition-name', 'none'); else { seen.add(n); el.style.removeProperty('view-transition-name') }
     }
+    if (document.documentElement.matches('.fx-open, .fx-close')) for (const el of document.querySelectorAll<HTMLElement>('.desk .col[data-col]')) {
+      if (el.dataset.col === focus) continue
+      el.style.setProperty('view-transition-name', `col-${el.dataset.col!.replace(/[^A-Za-z0-9_-]/g, '_')}`)
+      el.style.setProperty('view-transition-class', 'home-reflow fx-col')
+    }
     if (!focus) return
     const col = document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(focus)}"]`)
     const el = col ?? document.querySelector<HTMLElement>(`[data-sess="${CSS.escape(focus)}"][data-vt]`)
     if (!el) return
     el.style.setProperty('view-transition-name', `col-${focus.replace(/[^A-Za-z0-9_-]/g, '_')}`)
-    el.style.setProperty('view-transition-class', 'home-reflow')
+    el.style.setProperty('view-transition-class', 'home-reflow fx-focus')
   }
   // La sessione che entra o esce, se è una sola.
   const changed = (a: string[], b: string[]) => { const d = [...a.filter(x => !b.includes(x)), ...b.filter(x => !a.includes(x))]; return d.length === 1 ? d[0] : null }
-  function setCols(c: string[]) { const f = changed(cols, c); smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }, null, f) }
+  // La scheda che diventa colonna (app-effetti-movimenti-04-11, punto 1, cardFx.ts): `from` è la scheda toccata, che prima si
+  // alza col collo; senza (il +, una ricerca, un avviso) solo lo split. Chiudendo, l'inverso più svelto e la scheda che riassorbe.
+  async function setCols(c: string[], focus: string | null = changed(cols, c), from: HTMLElement | null = null) {
+    const opening = focus != null && c.includes(focus) && !cols.includes(focus)
+    const closing = focus != null && cols.includes(focus) && !c.includes(focus)
+    const fx = wide && (opening || closing) && !reducedMotion() && !!document.startViewTransition && !document.hidden
+    let done = () => {}
+    if (fx) {
+      if (opening && from) {
+        // La colonna vicina al posto nuovo si tende verso di lui.
+        const at = c.indexOf(focus!), near = c[at - 1] ?? c[at + 1]
+        const el = near ? document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(near)}"]`) : null
+        done = await lift(from, el, c[at - 1] ? 1 : -1)
+      }
+      document.documentElement.classList.add(opening ? 'fx-open' : 'fx-close')
+    }
+    const vt = smooth(() => { done(); pinned = c; save('cm.columns', columnsPref(c)) }, null, focus)
+    if (!fx) return
+    // Anche se la transizione non dice di aver finito (pagina nascosta, transizione saltata) i tempi dell'effetto non restano.
+    let over = false
+    const end = () => {
+      if (over) return
+      over = true
+      document.documentElement.classList.remove('fx-open', 'fx-close')
+      if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }
+    }
+    void (vt?.finished ?? Promise.resolve()).catch(() => {}).finally(end)
+    setTimeout(end, 1200)
+  }
+  // La scheda di una sessione nella home, se si vede.
+  function cardOf(name: string): HTMLElement | null {
+    const el = document.querySelector<HTMLElement>(`[data-sess="${CSS.escape(name)}"][data-vt]`)
+    const r = el?.getBoundingClientRect()
+    return r && r.width > 0 && r.bottom > 0 && r.top < window.innerHeight ? el : null
+  }
   // Dal trascinamento niente View Transition: sfumerebbe due fotografie della plancia invece di far scorrere la colonna lasciata
   // fino al suo posto (Franz 03/11 22:50: «al rilascio c'è uno scatto»); il movimento lo fa la transizione di `left` in Desk.
   function dropCols(c: string[]) { pinned = c; save('cm.columns', columnsPref(c)) }
@@ -872,7 +912,7 @@
     const o = st.sessions.find(x => x.name === name)?.outcome
     if (o && !read.has(finishedKey(name, o.at))) read = new Set([...read, finishedKey(name, o.at)])
     if (name === MASTER) smooth(() => { masterOpen = true; open = null })
-    else if (wide) setCols(add(cols, name))
+    else if (wide) setCols(add(cols, name), name, cardOf(name))
     else smooth(() => { open = name })
   }
   // Le pagine del menu: sul telefono al posto della home, sulla plancia al posto delle colonne.
@@ -1049,7 +1089,7 @@
   function card(name: string) {
     if (name === MASTER || !wide) { pick(name); return }
     if (cols.includes(name)) document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(name)}"]`)?.animate([{ boxShadow: '0 0 0 2px var(--wait)' }, { boxShadow: '0 0 0 2px transparent' }], { duration: 1200, easing: 'ease-out' })
-    else setCols(replaceCol(cols, name))
+    else setCols(replaceCol(cols, name), name, cardOf(name))
   }
   // Telefono: si scorre di lato fra la home e le sessioni, come nell'app (HorizontalPager con SwipePages; 15/10 20:24: «non
   // funziona lo scroll tra sessioni?»). Mentre una sessione è aperta l'ordine delle pagine resta quello di prima, le nuove in
