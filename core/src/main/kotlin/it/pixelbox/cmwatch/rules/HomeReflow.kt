@@ -11,4 +11,15 @@ object HomeReflow {
     val EASE = floatArrayOf(0.23f, 1f, 0.32f, 1f)
     /** Col movimento ridotto: solo un'assolvenza breve. */
     const val REDUCED_FADE_MS = 150
+
+    /**
+     * A onda (app-effetti-movimenti-04-11, punto 6, come wave() della web): una scheda parte 18 ms dopo per ogni gradino di 48 dp
+     * verso il basso (un terzo verso destra), al massimo 160 ms; la durata si accorcia dello stesso tanto, così l'insieme resta
+     * nei DURATION_MS.
+     */
+    const val WAVE_STEP_MS = 18
+    const val WAVE_MAX_MS = 160
+    const val WAVE_STEP_DP = 48f
+    fun waveDelay(topDp: Float, leftDp: Float): Int =
+        (((topDp + leftDp / 3f).coerceAtLeast(0f) / WAVE_STEP_DP).toInt() * WAVE_STEP_MS).coerceAtMost(WAVE_MAX_MS)
 }

@@ -64,11 +64,18 @@ fun Modifier.reflow(key: String): Modifier {
     if (key == "r-" + LocalReflowFocus.current) return this
     val off = animationsOff()
     val e = it.pixelbox.cmwatch.rules.HomeReflow.EASE
+    val density = androidx.compose.ui.platform.LocalDensity.current.density
     return with(f.shared) {
         this@reflow.sharedBounds(
             rememberSharedContentState(key), f.anim,
             enter = EnterTransition.None, exit = ExitTransition.None,
-            boundsTransform = { _, _ -> if (off) snap() else tween(it.pixelbox.cmwatch.rules.HomeReflow.DURATION_MS, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3])) },
+            // A onda dall'angolo in alto a sinistra (punto 6): chi sta più in basso e più a destra parte poco dopo.
+            boundsTransform = { from, _ ->
+                if (off) snap() else {
+                    val d = it.pixelbox.cmwatch.rules.HomeReflow.waveDelay(from.top / density, from.left / density)
+                    tween(it.pixelbox.cmwatch.rules.HomeReflow.DURATION_MS - d, delayMillis = d, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3]))
+                }
+            },
             resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
         )
     }

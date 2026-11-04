@@ -1151,6 +1151,11 @@ private fun SummaryCard(
     // Nelle colonne della plancia del tablet anche le sessioni in attesa sono righe libere con divisori (app-superfici-neutre-04-11).
     val boxed = waiting && !LocalInColumn.current
     val cardTap = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    // Il collo (app-effetti-movimenti-04-11, punto 1): sul tablet la scheda si stacca dalla lista prima di diventare la colonna.
+    val neck = remember { Neck() }
+    val neckScope = androidx.compose.runtime.rememberCoroutineScope()
+    val neckOn = LocalReflow.current != null && !animationsOff()
+    val openNeck = { if (neckOn) neckScope.launch { neck.t.snapTo(0f); neck.t.animateTo(1f, androidx.compose.animation.core.tween(NeckGeo.MS, easing = androidx.compose.animation.core.LinearEasing)); onOpen(); kotlinx.coroutines.delay(40); neck.t.snapTo(0f) } else onOpen(); Unit }
     val cardBody: @Composable () -> Unit = {
     if (!boxed && !firstInList) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Row(
@@ -1158,7 +1163,7 @@ private fun SummaryCard(
         Modifier.fly("card-${s.id}").reflow("r-${s.name}").fillMaxWidth().then(if (boxed) Modifier.clip(V3.Shape).background(if (V3.day) V3.WaitFill else V3.S2).then(if (V3.day) Modifier.border(1.dp, V3.WaitLine, V3.Shape) else Modifier.border(1.dp, LitEdge, V3.Shape)) else Modifier).smoothSize()
             // Franz, 03/10 17:05: il tocco sulla card porta dritto alla sessione; il tasto ▼ la apre sul posto.
             // Al tocco la scheda si contrae al 98 % prima di diventare la pagina o la colonna (app-effetti-movimenti-04-11, punto 1).
-            .cardPress(cardTap).handCursor().combinedClickable(interactionSource = cardTap, indication = androidx.compose.material3.ripple(), onClick = onOpen, onLongClick = { menu = true }).contextClick { menu = true }
+            .neck(neck, V3.S2).cardPress(cardTap).handCursor().combinedClickable(interactionSource = cardTap, indication = androidx.compose.material3.ripple(), onClick = openNeck, onLongClick = { menu = true }).contextClick { menu = true }
             .padding(end = 10.dp, top = 8.dp, bottom = 10.dp),
     ) {
     // Il binario: il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora.

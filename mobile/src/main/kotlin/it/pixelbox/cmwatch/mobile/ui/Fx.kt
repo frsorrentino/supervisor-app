@@ -121,3 +121,47 @@ internal fun Modifier.bootWave(i: Int): Modifier {
     }
     return this.graphicsLayer { alpha = a.value.coerceIn(0f, 1f); translationY = (1f - a.value) * Fx.WAVE_RISE_DP * density }
 }
+
+/**
+ * Punto 1 sul tablet: il collo, come cardFx.ts della web. Al tocco la scheda si contrae al 98 % per 80 ms, poi si alza di 22 dp e
+ * fra lei e il suo posto resta un ponte della sua superficie che si stringe al centro (dal 100 al 25 % della larghezza) e si
+ * spezza a 200 ms; poi la scheda vola nella colonna coi bordi condivisi.
+ */
+internal class Neck { val t = Animatable(0f) }
+
+internal object NeckGeo {
+    const val MS = 200
+    const val PRESS_MS = 80
+    const val LIFT_DP = 22f
+    const val WAIST = 0.25f
+    private fun ease(x: Float) = 1f - (1f - x) * (1f - x) * (1f - x)
+    /** Quanto è alzata la scheda, da 0 a 1, al punto `t` del collo. */
+    fun up(t: Float): Float { val p = PRESS_MS.toFloat() / MS; return if (t < p) 0f else ease(((t - p) / (1f - p)).coerceIn(0f, 1f)) }
+    fun scale(t: Float): Float { val p = PRESS_MS.toFloat() / MS; return if (t < p) 1f - 0.02f * (t / p) else 0.98f + 0.02f * up(t) }
+    fun waist(t: Float): Float = 1f - (1f - WAIST) * Math.pow(t.coerceIn(0f, 1f).toDouble(), 1.6).toFloat()
+}
+
+/** Il collo sulla scheda: il ponte disegnato sotto, nel posto lasciato, e la scheda alzata sopra. */
+internal fun Modifier.neck(n: Neck, color: androidx.compose.ui.graphics.Color): Modifier = this
+    .drawBehind {
+        val t = n.t.value
+        if (t <= 0f || t >= 1f) return@drawBehind
+        val lift = NeckGeo.LIFT_DP * density * NeckGeo.up(t)
+        if (lift < 1f) return@drawBehind
+        val w = size.width; val top = size.height - lift; val bottom = size.height; val mid = (top + bottom) / 2f
+        val half = w * NeckGeo.waist(t) / 2f; val cx = w / 2f
+        val p = androidx.compose.ui.graphics.Path().apply {
+            moveTo(0f, top)
+            cubicTo(w * 0.12f, top, cx - half, mid - (mid - top) * 0.4f, cx - half, mid)
+            cubicTo(cx - half, mid + (bottom - mid) * 0.4f, w * 0.12f, bottom, 0f, bottom)
+            lineTo(w, bottom)
+            cubicTo(w * 0.88f, bottom, cx + half, mid + (bottom - mid) * 0.4f, cx + half, mid)
+            cubicTo(cx + half, mid - (mid - top) * 0.4f, w * 0.88f, top, w, top)
+            close()
+        }
+        drawPath(p, color)
+    }
+    .graphicsLayer {
+        val t = n.t.value
+        if (t > 0f) { val s = NeckGeo.scale(t); scaleX = s; scaleY = s; translationY = -NeckGeo.LIFT_DP * density * NeckGeo.up(t) }
+    }
