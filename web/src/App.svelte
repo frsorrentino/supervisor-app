@@ -608,55 +608,58 @@
     if (wDrag == null) return
     widthListen(false); commit()
   }
-  // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto; `side` anche il lato (la riga in basso).
-  function heightGesture(x0: number, y0: number, side: boolean) {
+  // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto. Il lato non lo decide il dito
+  // (app-master-riga-maniglie-04-11): `pick` è il lato della maniglia presa nella riga in basso, null = il lato di adesso; il
+  // gesto è solo verticale.
+  function heightGesture(y0: number, pick: Side | null) {
     let moved = false
-    // Le zone si calcolano una volta, all'inizio del gesto, per i due lati (app-trascina-rifinitura-04-11): rifarle a ogni
-    // movimento faceva sfarfallare il bersaglio dalla riga in basso. Anche le misure della sagoma.
+    // Le zone si calcolano una volta, all'inizio del gesto (app-trascina-rifinitura-04-11): rifarle a ogni movimento faceva
+    // sfarfallare il bersaglio dalla riga in basso. Anche le misure della sagoma.
     const W0 = window.innerWidth, H0 = window.innerHeight, under = !deskDashboard
-    const w0 = deskDashboard ? (masterHalf ? COLUMN : 720) : colWidth()
-    const cols: Record<Side, Rect> = { left: { x: 0, y: 0, w: w0, h: H0 }, right: { x: W0 - w0, y: 0, w: w0, h: H0 } }
-    const zones: Record<Side, ReturnType<typeof heightZones>> = { left: heightZones(cols.left, under), right: heightZones(cols.right, under) }
+    const w0 = barColW()
+    const side0: Side = masterLeft ? 'left' : 'right', side = pick ?? side0
+    const col: Rect = side === 'left' ? { x: 0, y: 0, w: w0, h: H0 } : { x: W0 - w0, y: 0, w: w0, h: H0 }
+    const zs = heightZones(col, under)
     const h0: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
-    const side0: Side = masterLeft ? 'left' : 'right'
     measureSizes()
     const area = areaRect(), here = placeNow()
-    const rectFor = (s: Side, h: Height) => (s === side0 && h === h0 && here) || placeRect(area, s, h, w0, sizes)
-    const hold = steady<Height>(h0), sideHold = steady<Side>(side0)
+    const rectFor = (h: Height) => (side === side0 && h === h0 && here) || placeRect(area, side, h, w0, sizes)
+    const hold = steady<Height>(h0)
     const apply = (e: PointerEvent) => {
       if (!moved && Math.abs(e.clientY - y0) < 8) return
       moved = true; begin()
-      const t0 = performance.now()
-      const rawSide: Side = side ? (Math.abs(e.clientX - W0 / 2) < 48 ? sideHold.current : sideAt(W0, e.clientX)) : side0
-      const sd = sideHold.feed(rawSide, t0)
-      const zs = zones[sd.on]
       // Il margine (28 px oltre il confine) e poi la sosta: la banda nuova vince solo se resta sotto il dito.
       const cur = hold.current
       const near = [heightAt(zs, e.clientY - 28), heightAt(zs, e.clientY), heightAt(zs, e.clientY + 28)]
       const raw = near.includes(cur) && near[1] !== cur && (near[0] === cur || near[2] === cur) ? cur : near[1]
-      const hd = hold.feed(raw, t0)
-      const on = hd.on, left = sd.on === 'left'
+      const { on, wait } = hold.feed(raw, performance.now())
       clearTimeout(dwellTimer)
-      const wait = Math.max(hd.wait ?? 0, sd.wait ?? 0)
-      if (wait > 0) dwellTimer = setTimeout(() => apply(e), wait + 5)
-      aimAt(rectFor(sd.on, on), t.masterLand[on], () => { masterLeft = left; setHeight(on) })
+      if (wait != null) dwellTimer = setTimeout(() => apply(e), wait + 5)
+      aimAt(rectFor(on), t.masterLand[on], () => { if (!masterOpen && on !== 'bar') masterHalf = masterNarrow(); masterLeft = side === 'left'; setHeight(on) })
     }
     follow(apply, (e) => {
       clearTimeout(dwellTimer)
       if (!e) { revert(); return }
-      // Un tocco senza trascinare: la maniglia sotto la home passa all'altezza dopo, come prima.
-      if (!moved) { if (stacked) stepStack(1); return }
+      if (!moved) {
+        // Un tocco senza trascinare: la maniglia della riga apre la master da quel lato, all'ultima altezza; quella sotto la home
+        // passa all'altezza dopo, come prima.
+        if (pick) smooth(() => { masterLeft = pick === 'left'; masterOpen = true; masterHalf = masterNarrow(); save('cm.master_left', masterLeft ? '1' : '0') })
+        else if (stacked) stepStack(1)
+        return
+      }
       commit()
     })
-    void x0
   }
-  function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientX, e.clientY, false) }
-  // La riga in basso (Franz 22:30 e 22:34): tirata su si apre, alle altezze del bordo superiore, sul lato sotto il dito.
+  function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientY, null) }
+  // La larghezza della colonna dove la master atterra: le maniglie della riga stanno sul suo asse, da un lato e dall'altro.
+  // Chiusa, la master si apre stretta o larga come l'ultima volta (masterNarrow), e nella plancia senza la misura del bordo.
+  const barColW = () => { const narrow = masterOpen ? masterHalf : masterNarrow(); return deskDashboard ? (narrow ? COLUMN : 720) : masterW ?? (narrow ? COLUMN : 720) }
+  // La riga in basso tirata su dal testo (Franz 22:30 e 22:34): si apre alle altezze del bordo superiore, sul lato di adesso.
   let barGesture = false
-  function barDrag(phase: 'move' | 'end' | 'cancel', x: number, y: number) {
+  function barDrag(phase: 'move' | 'end' | 'cancel', _x: number, y: number) {
     if (phase !== 'move' || barGesture) return
     barGesture = true
-    heightGesture(x, y, true)
+    heightGesture(y, null)
     window.addEventListener('pointerup', () => { barGesture = false }, { once: true })
   }
   function setHeight(h: Height) {
@@ -1477,7 +1480,7 @@
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
-{#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}<button class="hgrip bargrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientX, e.clientY, true) }}><i></i></button>{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+{#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} grip={wide ? sideGrip : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true })}
   onToggleKey={() => smooth(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
@@ -1670,7 +1673,10 @@
   .dpanel.under { flex: 1; width: auto; border: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgb(0 0 0 / .4); }
   .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 5px 12px; border-top: 1px solid var(--line); background: var(--s1); }
   .mbar { position: relative; }
-  .mbar .bargrip { top: -6px; left: 40%; right: 40%; }
+  /* Due maniglie sul bordo superiore della riga, ognuna sull'asse della colonna dove la master atterra da quel lato
+     (app-master-riga-maniglie-04-11): a metà colonna a sinistra, a W meno metà colonna a destra. */
+  .mbar .bargrip { top: -6px; left: auto; right: auto; width: 96px; translate: -50% 0; }
+  .mbar .bargrip.r { translate: 50% 0; }
   /* Il campo centrato in altezza con il testo della master e la freccia (Franz 03/11 18:01): niente margine in basso qui. */
   .mbar .mquick { padding: 0; align-self: center; }
   .mbar .mquick :global(.bar) { margin-top: 0; margin-bottom: 0; }

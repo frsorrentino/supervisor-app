@@ -108,7 +108,8 @@
       <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if when}<span class="mono">{when}</span>{/if}</span>
       {#if h}<span class="hl">{h.headline.replace(/\*\*|__|`/g, '')}</span>{/if}
     {:else}
-      <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if h}<span class="hl">{h.headline.replace(/\*\*|__|`/g, '')}</span>{/if}{#if when}<span class="mono">{when}</span>{/if}</span>
+      <!-- Nella riga in basso la risposta vera dall'inizio, su tre righe che sfumano (app-master-riga-maniglie-04-11). -->
+      <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if h}<span class="hl" class:full={bar}>{(bar ? h.text : h.headline).replace(/\*\*|__|`/g, '')}</span>{/if}{#if when}<span class="mono">{when}</span>{/if}</span>
     {/if}
   </span>
   {#if h && !bar}
@@ -176,8 +177,9 @@
   .col > .hl { display: block; }
   /* Senza i tasti tondi il testo della master prende il posto liberato, su due righe (app-master-tasti-compatti-03-11). */
   .dock.nokeys .col > .hl { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
-  /* Nella riga in basso la risposta va su due righe se serve (app-master-riga-risposta-04-11). */
+  /* Nella riga in basso la risposta vera dall'inizio, su tre righe nella stessa altezza delle due di prima, e la terza sfuma: si
+     capisce che continua, e un tocco apre la conversazione (app-master-riga-maniglie-04-11). */
   .dock.bar .l1 { align-items: flex-start; }
-  .dock.bar .l1 .hl { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; }
+  .dock.bar .l1 .hl.full { white-space: pre-line; font-size: 13px; line-height: 16px; max-height: 48px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
   .dock.bar .l1 .mn, .dock.bar .l1 .mono { line-height: 19px; }
 </style>

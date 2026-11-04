@@ -107,7 +107,8 @@ describe('al lavoro', () => {
 describe('ultimo esito', () => {
   it('la riga Esito fa da titolo', () => {
     const h = hero([claude('vecchia', at(5)), claude('Lanciata la sessione.\n\nEsito: Fase 2.2 avviata\nProssimi: distilla nella kb · prova la casa\nWatch: avviata', at(6))], s('master'))!
-    expect(h).toEqual({ headline: 'Fase 2.2 avviata', body: 'Lanciata la sessione.', steps: ['distilla nella kb', 'prova la casa'], blocking: new Set(), at: at(6) })
+    // `text`: la risposta dall'inizio per la riga in basso (app-master-riga-maniglie-04-11), senza la riga Watch.
+    expect(h).toEqual({ headline: 'Fase 2.2 avviata', body: 'Lanciata la sessione.', text: 'Lanciata la sessione.\n\nEsito: Fase 2.2 avviata', steps: ['distilla nella kb', 'prova la casa'], blocking: new Set(), at: at(6) })
   })
   it('i Prossimi col «!» sbloccano (contratto 1.38)', () => {
     const h = hero([claude('Fatto.\n\nEsito: piano pronto\nProssimi: !approva il piano · codice della 1.37', at(6))], s('master'))!
