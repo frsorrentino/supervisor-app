@@ -565,7 +565,7 @@
   // La testata: il lato, dalla metà dello schermo sotto il dito; la sagoma è il posto di adesso, o lo stesso specchiato.
   let sideHold: ReturnType<typeof steady<Side>> | null = null
   let sideFrom: { area: Rect; r: Rect; side: Side } | null = null
-  function placeDrag(phase: 'move' | 'end' | 'cancel', x: number) {
+  function placeDrag(phase: 'move' | 'end' | 'cancel', x: number, y = 0) {
     if (phase !== 'move') { sideHold = null; sideFrom = null; if (phase === 'end') commit(); else revert(); return }
     begin()
     const W = window.innerWidth
@@ -575,20 +575,21 @@
     const raw: Side = Math.abs(x - W / 2) < 48 ? sideHold.current : sideAt(W, x)
     const { on, wait } = sideHold.feed(raw, performance.now())
     clearTimeout(dwellTimer)
-    if (wait != null) dwellTimer = setTimeout(() => placeDrag('move', x), wait + 5)
+    if (wait != null) dwellTimer = setTimeout(() => placeDrag('move', x, y), wait + 5)
     const f = sideFrom
     aimAt(on === f.side ? f.r : mirrorRect(f.area, f.r), on === 'left' ? t.masterPosLeft : t.masterPosRight, () => { masterLeft = on === 'left' })
     // Le destinazioni (app-trascina-destinazioni-04-11): l'altro lato tratteggiato con la sua etichetta, e la linea a metà
     // schermo che si accende quando il dito la passa.
     const other: Side = on === 'left' ? 'right' : 'left'
     masterGhost.hint([{ b: other === f.side ? f.r : mirrorRect(f.area, f.r), text: other === 'left' ? t.masterPosLeft : t.masterPosRight }])
-    masterGhost.midline(W / 2, (x < W / 2) !== (f.side === 'left'))
+    const crossed = (x < W / 2) !== (f.side === 'left'), toward: Side = f.side === 'left' ? 'right' : 'left'
+    masterGhost.midline(W / 2, crossed, y, crossed ? t.masterMidRelease(toward === 'left' ? t.masterMidLeft : t.masterMidRight) : t.masterMidCross(toward === 'left' ? t.masterMidLeft : t.masterMidRight, toward === 'left' ? '←' : '→'))
   }
   // La maniglia della testata: il gesto continua sulla finestra, dopo 6 px.
   function sideGrip(e: PointerEvent) {
     const x0 = e.clientX, y0 = e.clientY
     let moved = false
-    follow((m) => { if (!moved && !isDrag(m.clientX - x0, m.clientY - y0)) return; moved = true; placeDrag('move', m.clientX) },
+    follow((m) => { if (!moved && !isDrag(m.clientX - x0, m.clientY - y0)) return; moved = true; placeDrag('move', m.clientX, m.clientY) },
       (m) => { if (!moved) return; placeDrag(m ? 'end' : 'cancel', 0) })
   }
   // La larghezza lasciata col bordo, in px; null = quella del tasto Allarga/Stringi (420 o 720). Una misura libera di prima
@@ -1727,8 +1728,11 @@
      piccola; la linea sottile a metà schermo, accesa quando il dito l'ha passata. */
   :global(.master-ghost-hint) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border-radius: 14px; border: 2px dashed color-mix(in srgb, var(--wait) 30%, transparent); }
   :global(.master-ghost-hint > span) { position: absolute; left: 50%; top: 10px; translate: -50% 0; max-width: calc(100% - 16px); overflow: hidden; white-space: nowrap; padding: 3px 10px; border-radius: 10px; background: var(--s2); color: var(--tx2); font: 600 13px var(--display); }
-  :global(.master-ghost-mid) { position: fixed; z-index: 71; top: 0; bottom: 0; width: 2px; margin-left: -1px; pointer-events: none; background: color-mix(in srgb, var(--wait) 25%, transparent); transition: background .12s; }
-  :global(.master-ghost-mid.lit) { background: var(--wait); }
+  :global(.master-ghost-mid) { position: fixed; z-index: 72; top: 0; bottom: 0; width: 0; margin-left: -1.5px; pointer-events: none; border-left: 3px dashed color-mix(in srgb, var(--wait) 55%, transparent); transition: border-color .12s; }
+  :global(.master-ghost-mid.crossed) { border-left-style: solid; border-color: var(--wait); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--wait) 60%, transparent)); }
+  /* La pillola sulla linea, all'altezza del dito: «Oltre questa linea: a sinistra ←», passata «Rilascia: a sinistra». */
+  :global(.master-ghost-mid > b) { position: absolute; left: 0; translate: -50% -50%; white-space: nowrap; padding: 6px 12px; border-radius: 14px; background: var(--s2); border: 1px solid color-mix(in srgb, var(--wait) 55%, transparent); color: var(--tx); font: 600 14px var(--display); box-shadow: 0 6px 18px rgb(0 0 0 / .45); }
+  :global(.master-ghost-mid.crossed > b) { background: var(--wait); border-color: var(--wait); color: #1a1300; }
   @media (prefers-reduced-motion: reduce) { :global(.master-ghost-mid) { transition: none; } }
   /* Il bordo della master si trascina senza transizioni sotto: le colonne seguono il dito subito. */
   .deskwrap.left { flex-direction: row-reverse; }

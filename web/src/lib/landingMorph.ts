@@ -76,12 +76,17 @@ export function ghostPreview(reduced: () => boolean) {
       })
     },
     /** La linea verticale a metà schermo, oltre la quale la master va dall'altra parte; `lit`: il dito l'ha passata. */
-    midline(x: number | null, lit = false) {
+    midline(x: number | null, lit = false, y: number | null = null, text = '') {
       if (typeof document === 'undefined') return
       if (x == null) { mid?.remove(); mid = null; return }
-      if (!mid) { mid = document.createElement('div'); mid.className = 'master-ghost-mid'; mid.setAttribute('aria-hidden', 'true'); document.body.append(mid) }
+      if (!mid) { mid = document.createElement('div'); mid.className = 'master-ghost-mid'; mid.setAttribute('aria-hidden', 'true'); mid.append(document.createElement('b')); document.body.append(mid) }
       mid.style.left = `${x}px`
-      mid.classList.toggle('lit', lit)
+      mid.classList.toggle('crossed', lit)
+      // La pillola sulla linea all'altezza del dito (Franz 04/11 dal telefono, «più evidente»): dice che basta passarla, e dove
+      // va la master; passata, che basta rilasciare.
+      const pill = mid.firstElementChild as HTMLElement
+      pill.textContent = text
+      pill.style.top = y == null ? '50%' : `${y}px`
     },
     /** Il rilascio: lo sfondo torna subito, la sagoma resta finché la master non è arrivata (`arrived`), poi sparisce. */
     land(arrived: Promise<unknown>) {
