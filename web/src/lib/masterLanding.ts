@@ -47,6 +47,29 @@ export function heightAt(zs: Zone<Height>[], y: number): Height {
   return zs[zs.length - 1].key
 }
 
+/** L'altezza della riga in basso e della master compatta sotto la home quando non c'è da misurarle. */
+export const BAR_H = 64, COMPACT_H = 180
+/** Sotto la home la colonna è home, maniglia e master con 12 px fra l'una e l'altra; la maniglia non occupa (margini negativi). */
+export const STACK_GAP = 24
+
+/**
+ * Il posto della master nell'area della pagina (la plancia o le colonne), per la sagoma dell'anteprima (scelta A,
+ * app-trascina-rifinitura-04-11): la colonna sul lato `side` larga `w`; sotto la home a metà o compatta, in fondo a quella
+ * colonna; la riga in basso a tutta larghezza.
+ */
+export function placeRect(area: Rect, side: Side, h: Height, w: number, size = { bar: BAR_H, compact: COMPACT_H }): Rect {
+  const bottom = area.y + area.h
+  if (h === 'bar') return { x: area.x, y: bottom - size.bar, w: area.w, h: size.bar }
+  const x = side === 'left' ? area.x : area.x + area.w - w
+  if (h === 'column') return { x, y: area.y, w, h: area.h }
+  const hh = h === 'half' ? (area.h - STACK_GAP) / 2 : size.compact
+  return { x, y: bottom - hh, w, h: hh }
+}
+/** Lo stesso posto dall'altro lato dell'area. */
+export const mirrorRect = (area: Rect, r: Rect): Rect => ({ ...r, x: 2 * area.x + area.w - r.x - r.w })
+/** La colonna della master larga `w`, ferma sul suo lato: il bordo verso le sessioni si sposta. */
+export const widthRect = (col: Rect, side: Side, w: number): Rect => ({ ...col, x: side === 'left' ? col.x : col.x + col.w - w, w })
+
 /** Quanto deve restare sotto il dito un bersaglio nuovo prima di prenderlo (app-trascina-rifinitura-04-11). */
 export const DWELL_MS = 140
 

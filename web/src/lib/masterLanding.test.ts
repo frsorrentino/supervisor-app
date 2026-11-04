@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLUMN, DWELL_MS, heightAt, heightZones, sideAt, sideZones, steady, widthAt, widthStops, WIDTH_MARGIN, type Height } from './masterLanding'
+import { BAR_H, COLUMN, DWELL_MS, heightAt, heightZones, mirrorRect, placeRect, sideAt, sideZones, steady, STACK_GAP, widthAt, widthRect, widthStops, WIDTH_MARGIN, type Height } from './masterLanding'
 
 // La master si sposta con la testata (solo il lato) e si misura dai bordi (app-master-trascina-03-11, Franz 03/11 22:08).
 describe('masterLanding', () => {
@@ -57,5 +57,29 @@ describe('la sosta prima di cambiare bersaglio (app-trascina-rifinitura-04-11)',
     s.feed('compact', 0)
     expect(s.feed('half', 100).wait).toBe(DWELL_MS)
     expect(s.feed('half', 100 + DWELL_MS).on).toBe('half')
+  })
+})
+
+describe('la sagoma dell\'anteprima (scelta A, app-trascina-rifinitura-04-11)', () => {
+  const area = { x: 0, y: 40, w: 1600, h: 1000 }
+  it('la colonna: alta quanto l\'area, sul suo lato, larga quanto la master', () => {
+    expect(placeRect(area, 'left', 'column', 420)).toEqual({ x: 0, y: 40, w: 420, h: 1000 })
+    expect(placeRect(area, 'right', 'column', 720)).toEqual({ x: 880, y: 40, w: 720, h: 1000 })
+  })
+  it('sotto la home: a metà divide la colonna con la home, compatta resta in fondo', () => {
+    const half = placeRect(area, 'right', 'half', 420)
+    expect(half).toEqual({ x: 1180, y: 40 + 1000 - (1000 - STACK_GAP) / 2, w: 420, h: (1000 - STACK_GAP) / 2 })
+    expect(placeRect(area, 'left', 'compact', 420, { bar: 60, compact: 200 })).toEqual({ x: 0, y: 840, w: 420, h: 200 })
+  })
+  it('la riga in basso: a tutta larghezza, in fondo', () => {
+    expect(placeRect(area, 'left', 'bar', 420)).toEqual({ x: 0, y: 1040 - BAR_H, w: 1600, h: BAR_H })
+  })
+  it('dall\'altro lato: lo stesso posto specchiato nell\'area', () => {
+    expect(mirrorRect({ x: 100, y: 0, w: 1500, h: 900 }, { x: 1180, y: 300, w: 420, h: 600 })).toEqual({ x: 100, y: 300, w: 420, h: 600 })
+  })
+  it('la larghezza: il lato della master resta fermo, si sposta il bordo verso le sessioni', () => {
+    const col = { x: 1180, y: 0, w: 420, h: 900 }
+    expect(widthRect(col, 'right', 800)).toEqual({ x: 800, y: 0, w: 800, h: 900 })
+    expect(widthRect({ ...col, x: 0 }, 'left', 800)).toEqual({ x: 0, y: 0, w: 800, h: 900 })
   })
 })

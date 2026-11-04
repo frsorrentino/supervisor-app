@@ -3,8 +3,8 @@
   import * as files from './lib/fileActions'
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
-  import { COLUMN, heightAt, heightZones, sideAt, steady, widthAt, widthStops, type Height, type Rect, type Side } from './lib/masterLanding'
-  import { landOn, markBox, PLACES } from './lib/landingMorph'
+  import { BAR_H, COLUMN, COMPACT_H, heightAt, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, type Height, type Rect, type Side } from './lib/masterLanding'
+  import { ghostPreview, MOVE_MS, PLACES } from './lib/landingMorph'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -483,31 +483,26 @@
   const masterNarrow = () => load('cm.master_wide') !== '1'
   function masterSize() { masterHalf = !masterHalf; save('cm.master_wide', masterHalf ? '0' : '1') }
   // I gesti della master nella plancia (Franz 03/11 22:06-22:08, app-master-trascina-03-11; masterLanding.ts): la testata
-  // trascinata cambia il lato; il bordo verso le sessioni allarga e stringe (scatti a colonna e metà schermo, libera fra i due);
-  // il bordo superiore, o la riga in basso tirata su, cambia l'altezza a scatti. Come le icone di Android (Franz 22:35, video
-  // delle 22:37): mentre si trascina la pagina si riorganizza già, il posto della master resta tratteggiato e un'etichetta segue
-  // il dito; al rilascio la scelta si ricorda, annullato il gesto tutto torna com'era.
-  type Snap = { open: boolean; left: boolean; under: boolean; h: (typeof STACK_H)[number] }
-  let snap: Snap | null = null
-  // I punti dove si può lasciare, come segni e non come aree (Franz 03/11 22:54): appena parte il gesto; quello di arrivo si
-  // ingrandisce e porta l'etichetta.
-  type Mark = { x: number; y: number; v: boolean; on: boolean; text: string }
-  let marks = $state<Mark[]>([])
-  // La calamita (Franz 03/11 23:01): dove sta il dito; un segno vicino si allunga e gli scivola incontro lungo il suo bordo.
-  let ptr = $state({ x: 0, y: 0 })
-  // Più forte dal 04/11 (app-trascina-rifinitura-04-11, «la calamita deve sentirsi»): sente il dito da 320 px e gli va incontro
-  // per più di metà strada; il segno preso resta teso verso il dito.
-  const pullOf = (m: Mark) => Math.max(0, 1 - Math.hypot(m.x - ptr.x, m.y - ptr.y) / 320)
-  function markStyle(m: Mark) {
-    const p = m.on ? Math.max(pullOf(m), 0.75) : pullOf(m), len = 48 + p * 104
-    const dx = m.v ? 0 : (ptr.x - m.x) * p * 0.55, dy = m.v ? (ptr.y - m.y) * p * 0.55 : 0
-    return `left:${m.x + dx}px; top:${m.y + dy}px; ${m.v ? `height:${len}px` : `width:${len}px`}; opacity:${0.45 + p * 0.55}`
+  // trascinata cambia il lato; il bordo verso le sessioni allarga e stringe (posti fissi a colonna e metà schermo); il bordo
+  // superiore, o la riga in basso tirata su, cambia l'altezza a scatti. Anteprima a fantasma (scelta A di Franz, 04/11 17:21,
+  // app-trascina-rifinitura-04-11): durante il gesto la pagina resta ferma, lo sfondo si scurisce appena e la sagoma gialla
+  // occupa il posto d'arrivo con la misura vera (landingMorph.ts); al rilascio la master va lì, annullato il gesto niente cambia.
+  const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  const masterGhost = ghostPreview(reducedMotion)
+  // Il posto che la sagoma mostra, da applicare al rilascio.
+  let aim: (() => void) | null = null
+  function aimAt(r: Rect, text: string, go: () => void) { aim = go; masterGhost.show(r, text) }
+  // Le misure di partenza della sagoma: l'area della pagina e il posto della master adesso.
+  const rectOf = (el: Element | null): Rect | null => { const r = el?.getBoundingClientRect(); return r && r.width > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null }
+  const areaRect = (): Rect => rectOf(document.querySelector('.deskwrap, .plancia')) ?? { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }
+  const placeNow = (): Rect | null => PLACES.map(q => rectOf(document.querySelector(q))).find(Boolean) ?? null
+  // La riga e la compatta si misurano quando ci sono; prima della prima volta valgono le misure di masterLanding.ts.
+  const sizes = { bar: BAR_H, compact: COMPACT_H }
+  function measureSizes() {
+    const bar = rectOf(document.querySelector('.mbar')), compact = rectOf(document.querySelector('.dpanel.under.compact'))
+    if (bar) sizes.bar = bar.h
+    if (compact) sizes.compact = compact.h
   }
-  // La larghezza lasciata col bordo, in px; null = quella del tasto Allarga/Stringi (420 o 720). Una misura libera di prima
-  // (fino al 04/11) torna al posto fisso più vicino.
-  const savedW = Number(load('cm.master_w')) || null
-  let masterW = $state<number | null>(savedW == null ? null : widthAt(savedW, window.innerWidth))
-  const colWidth = () => masterW ?? (masterHalf ? COLUMN : 720)
   // Il gesto continua sulla finestra: mentre la pagina si riorganizza l'elemento preso può sparire (la riga che diventa pannello).
   // Ogni gesto finisce in uno di quattro modi, e tutti passano da `onEnd`: rilascio, annullo del sistema, Esc, finestra che perde
   // il fuoco (app-trascina-rifinitura-04-11: dopo il rilascio restavano «Metà schermo» e la barra gialla).
@@ -522,78 +517,76 @@
     window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel)
     window.addEventListener('keydown', key); window.addEventListener('blur', cancel)
   }
-  // Il punto solo dove si tolgono i segni di un gesto: il fotogramma in attesa del bordo (che li riscriveva dopo il rilascio),
-  // la sosta in attesa, i segni, la selezione del testo.
+  // Il punto solo dove finisce un gesto: il fotogramma in attesa del bordo (che dopo il rilascio rimetteva l'anteprima), la sosta
+  // in attesa, la selezione del testo.
   let dwellTimer: ReturnType<typeof setTimeout> | undefined
   function clearMarks() {
     if (wFrame) cancelAnimationFrame(wFrame)
     wFrame = 0; clearTimeout(dwellTimer); dwellTimer = undefined
-    marks = []; wDrag = null; document.body.style.userSelect = ''
+    wDrag = null; document.body.style.userSelect = ''
   }
-  function begin() { snap ??= { open: masterOpen, left: masterLeft, under: masterUnder, h: stackH }; document.body.style.userSelect = 'none' }
-  // Al rilascio il segno giallo d'arrivo si allarga nel contorno del posto, poi svanisce (app-trascina-morphing-03-11, punto 2).
-  const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-  // Il riquadro giallo parte al rilascio e segue la master: aspetta che la transizione abbia messo il posto nuovo nella pagina,
-  // poi lo misura (app-trascina-rifinitura-04-11).
-  function landFrom(m: Mark | undefined, vt: ViewTransition | null = null) {
-    if (!m) return
-    const from = markBox(m)
-    void (vt ? vt.updateCallbackDone.catch(() => {}) : tick()).then(() => requestAnimationFrame(() => {
-      const el = PLACES.map(q => document.querySelector<HTMLElement>(q)).find(x => x && x.getBoundingClientRect().width > 0)
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      landOn(from, { x: r.left, y: r.top, w: r.width, h: r.height }, reducedMotion())
-    }))
-  }
+  function begin() { document.body.style.userSelect = 'none' }
+  // Il rilascio: la master va al posto della sagoma, e la scelta si ricorda; la sagoma sparisce quando è arrivata.
   function commit() {
-    landFrom(marks.find(m => m.on))
-    snap = null; clearMarks()
-    save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH)
+    const go = aim
+    aim = null; clearMarks()
+    if (!go) { masterGhost.drop(); return }
+    const vt = smooth(() => {
+      go()
+      save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH)
+    })
+    masterGhost.land(vt ? vt.finished : tick().then(() => new Promise(r => setTimeout(r, MOVE_MS))))
   }
-  function revert() {
-    if (snap) { masterOpen = snap.open; masterLeft = snap.left; masterUnder = snap.under; stackH = snap.h }
-    snap = null; clearMarks()
-  }
-  // La testata: il lato, dalla metà dello schermo sotto il dito. Il pannello resta lo stesso elemento: bastano i suoi eventi.
+  function revert() { aim = null; masterGhost.drop(); clearMarks() }
+  // La testata: il lato, dalla metà dello schermo sotto il dito; la sagoma è il posto di adesso, o lo stesso specchiato.
   let sideHold: ReturnType<typeof steady<Side>> | null = null
-  function placeDrag(phase: 'move' | 'end' | 'cancel', x: number, y: number) {
-    if (phase === 'cancel') { sideHold = null; smooth(revert); return }
-    if (phase === 'end') { sideHold = null; commit(); return }
+  let sideFrom: { area: Rect; r: Rect; side: Side } | null = null
+  function placeDrag(phase: 'move' | 'end' | 'cancel', x: number) {
+    if (phase !== 'move') { sideHold = null; sideFrom = null; if (phase === 'end') commit(); else revert(); return }
     begin()
-    const W = window.innerWidth, H = window.innerHeight
+    const W = window.innerWidth
+    sideFrom ??= { area: areaRect(), r: placeNow() ?? placeRect(areaRect(), masterLeft ? 'left' : 'right', 'column', colWidth()), side: masterLeft ? 'left' : 'right' }
     // Un margine di 48 px intorno al centro e la sosta: il lato non sfarfalla mentre il dito passa sul confine.
-    sideHold ??= steady<Side>(masterLeft ? 'left' : 'right')
+    sideHold ??= steady<Side>(sideFrom.side)
     const raw: Side = Math.abs(x - W / 2) < 48 ? sideHold.current : sideAt(W, x)
     const { on, wait } = sideHold.feed(raw, performance.now())
     clearTimeout(dwellTimer)
-    if (wait != null) dwellTimer = setTimeout(() => placeDrag('move', x, y), wait + 5)
-    ptr = { x, y }
-    if ((on === 'left') !== masterLeft) smooth(() => { masterLeft = on === 'left' })
-    marks = [{ x: 14, y: H / 2, v: true, on: on === 'left', text: t.masterPosLeft }, { x: W - 14, y: H / 2, v: true, on: on === 'right', text: t.masterPosRight }]
+    if (wait != null) dwellTimer = setTimeout(() => placeDrag('move', x), wait + 5)
+    const f = sideFrom
+    aimAt(on === f.side ? f.r : mirrorRect(f.area, f.r), on === 'left' ? t.masterPosLeft : t.masterPosRight, () => { masterLeft = on === 'left' })
   }
   // La maniglia della testata: il gesto continua sulla finestra, dopo 6 px.
   function sideGrip(e: PointerEvent) {
     const x0 = e.clientX, y0 = e.clientY
     let moved = false
-    follow((m) => { if (!moved && Math.hypot(m.clientX - x0, m.clientY - y0) < 6) return; moved = true; placeDrag('move', m.clientX, m.clientY) },
-      (m) => { if (!moved) return; if (m) placeDrag('end', m.clientX, m.clientY); else placeDrag('cancel', 0, 0) })
+    follow((m) => { if (!moved && Math.hypot(m.clientX - x0, m.clientY - y0) < 6) return; moved = true; placeDrag('move', m.clientX) },
+      (m) => { if (!moved) return; placeDrag(m ? 'end' : 'cancel', 0) })
   }
+  // La larghezza lasciata col bordo, in px; null = quella del tasto Allarga/Stringi (420 o 720). Una misura libera di prima
+  // (fino al 04/11) torna al posto fisso più vicino.
+  const savedW = Number(load('cm.master_w')) || null
+  let masterW = $state<number | null>(savedW == null ? null : widthAt(savedW, window.innerWidth))
+  const colWidth = () => masterW ?? (masterHalf ? COLUMN : 720)
   let wDrag: number | null = null
-  // La misura di prima, per l'annullo; Esc e la perdita del fuoco annullano anche qui.
-  let wStart: number | null = null
+  // La colonna all'inizio del gesto e la larghezza che la sagoma mostra; Esc e la perdita del fuoco annullano anche qui.
+  let wCol: Rect | null = null, wAim = 0
   const wKey = (e: KeyboardEvent) => { if (e.key === 'Escape') widthCancel() }
   function widthListen(on: boolean) {
     if (on) { window.addEventListener('keydown', wKey); window.addEventListener('blur', widthCancel) }
     else { window.removeEventListener('keydown', wKey); window.removeEventListener('blur', widthCancel) }
   }
-  function widthDown(e: PointerEvent) { e.preventDefault(); wDrag = e.clientX; wStart = masterW; document.body.style.userSelect = 'none'; widthListen(true); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }
+  function widthDown(e: PointerEvent) {
+    e.preventDefault(); wDrag = e.clientX; wAim = colWidth(); begin(); widthListen(true)
+    const el = e.currentTarget as HTMLElement
+    wCol = rectOf(el.parentElement); el.setPointerCapture(e.pointerId)
+  }
   function widthCancel() {
     if (wDrag == null) return
-    widthListen(false); clearMarks(); smooth(() => { masterW = wStart })
+    widthListen(false); revert()
   }
-  // Posti fissi e calamita (Franz 04/11 10:29-10:30): mentre il bordo si muove la master salta subito al posto più vicino, mai
-  // nel mezzo; un aggiornamento per fotogramma.
-  const widthOf = (x: number) => widthAt(masterLeft ? x : window.innerWidth - x, window.innerWidth, colWidth())
+  // Posti fissi e calamita (Franz 04/11 10:29-10:30): la sagoma salta al posto più vicino, mai nel mezzo; il posto mostrato tiene
+  // finché il dito non passa il punto di mezzo di tanto. Un aggiornamento per fotogramma.
+  const widthOf = (x: number) => widthAt(masterLeft ? x : window.innerWidth - x, window.innerWidth, wAim)
   let wFrame = 0, wX = 0
   function widthMove(e: PointerEvent) {
     if (wDrag == null) return
@@ -601,36 +594,38 @@
     if (wFrame) return
     wFrame = requestAnimationFrame(() => {
       wFrame = 0
-      const W = window.innerWidth, H = window.innerHeight, on = widthOf(wX)
-      ptr = { x: wX, y: H / 2 }
-      if (on !== colWidth()) smooth(() => { masterW = on })
-      const at = (w: number) => (masterLeft ? w : W - w)
-      marks = widthStops(W).map(s => (s === COLUMN ? { x: at(COLUMN), y: H / 2, v: true, on: on === s, text: t.masterLand.column } : { x: W / 2, y: H / 2, v: true, on: on === s, text: t.masterHalfScreen }))
+      const w = (wAim = widthOf(wX))
+      const col = wCol ?? placeRect(areaRect(), masterLeft ? 'left' : 'right', 'column', colWidth())
+      aimAt(widthRect(col, masterLeft ? 'left' : 'right', w), w === COLUMN ? t.masterLand.column : t.masterHalfScreen, () => {
+        masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2
+        save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
+      })
     })
   }
-  function widthUp(e: PointerEvent) {
+  function widthUp() {
     if (wDrag == null) return
-    const mark = marks.find(m => m.on)
-    widthListen(false); clearMarks()
-    const w = widthOf(e.clientX)
-    landFrom(mark, smooth(() => { masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2 }))
-    save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
+    widthListen(false); commit()
   }
   // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto; `side` anche il lato (la riga in basso).
   function heightGesture(x0: number, y0: number, side: boolean) {
     let moved = false
     // Le zone si calcolano una volta, all'inizio del gesto, per i due lati (app-trascina-rifinitura-04-11): rifarle a ogni
-    // movimento, con la pagina che intanto si riorganizza, faceva sfarfallare il bersaglio dalla riga in basso.
-    const W0 = window.innerWidth, H0 = window.innerHeight, w0 = colWidth(), under = !deskDashboard
+    // movimento faceva sfarfallare il bersaglio dalla riga in basso. Anche le misure della sagoma.
+    const W0 = window.innerWidth, H0 = window.innerHeight, under = !deskDashboard
+    const w0 = deskDashboard ? (masterHalf ? COLUMN : 720) : colWidth()
     const cols: Record<Side, Rect> = { left: { x: 0, y: 0, w: w0, h: H0 }, right: { x: W0 - w0, y: 0, w: w0, h: H0 } }
     const zones: Record<Side, ReturnType<typeof heightZones>> = { left: heightZones(cols.left, under), right: heightZones(cols.right, under) }
-    const now0 = (): Height => (!masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half')
-    const hold = steady<Height>(now0()), sideHold = steady<Side>(masterLeft ? 'left' : 'right')
+    const h0: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
+    const side0: Side = masterLeft ? 'left' : 'right'
+    measureSizes()
+    const area = areaRect(), here = placeNow()
+    const rectFor = (s: Side, h: Height) => (s === side0 && h === h0 && here) || placeRect(area, s, h, w0, sizes)
+    const hold = steady<Height>(h0), sideHold = steady<Side>(side0)
     const apply = (e: PointerEvent) => {
       if (!moved && Math.abs(e.clientY - y0) < 8) return
       moved = true; begin()
       const t0 = performance.now()
-      const rawSide: Side = side ? (Math.abs(e.clientX - W0 / 2) < 48 ? sideHold.current : sideAt(W0, e.clientX)) : masterLeft ? 'left' : 'right'
+      const rawSide: Side = side ? (Math.abs(e.clientX - W0 / 2) < 48 ? sideHold.current : sideAt(W0, e.clientX)) : side0
       const sd = sideHold.feed(rawSide, t0)
       const zs = zones[sd.on]
       // Il margine (28 px oltre il confine) e poi la sosta: la banda nuova vince solo se resta sotto il dito.
@@ -642,15 +637,11 @@
       clearTimeout(dwellTimer)
       const wait = Math.max(hd.wait ?? 0, sd.wait ?? 0)
       if (wait > 0) dwellTimer = setTimeout(() => apply(e), wait + 5)
-      if (on !== now0() || left !== masterLeft) smooth(() => { masterLeft = left; setHeight(on) })
-      const c = cols[sd.on], H = H0, cx = c.x + c.w / 2
-      ptr = { x: e.clientX, y: e.clientY }
-      const ys: [Height, number][] = deskDashboard ? [['column', 24], ['bar', H - 36]] : [['column', 24], ['half', H / 2], ['compact', H - 150], ['bar', H - 36]]
-      marks = ys.map(([k, y]) => ({ x: cx, y, v: false, on: k === on, text: t.masterLand[k] }))
+      aimAt(rectFor(sd.on, on), t.masterLand[on], () => { masterLeft = left; setHeight(on) })
     }
     follow(apply, (e) => {
       clearTimeout(dwellTimer)
-      if (!e) { smooth(revert); return }
+      if (!e) { revert(); return }
       // Un tocco senza trascinare: la maniglia sotto la home passa all'altezza dopo, come prima.
       if (!moved) { if (stacked) stepStack(1); return }
       commit()
@@ -1500,12 +1491,6 @@
   <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
   <div class="deskwrap" class:left={masterLeft} class:stacked>
-  {#if marks.length}
-    <!-- I punti di rilascio della master (app-master-trascina-03-11): segni, quello di arrivo grande e con l'etichetta. -->
-    <div class="marks" aria-hidden="true">
-      {#each marks as m (m.text)}<i class="mk" class:v={m.v} class:on={m.on} class:r={m.x > window.innerWidth / 2} style={markStyle(m)}>{#if m.on}<b class:v={m.v}><span class="dot"></span>{m.text}</b>{/if}</i>{/each}
-    </div>
-  {/if}
   <div class="dstage">
   <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
        accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
@@ -1615,21 +1600,11 @@
   .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
   /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
   .deskwrap { height: 100%; display: flex; min-height: 0; }
-  /* I punti di atterraggio (app-master-trascina-03-11): un velo su tutta la pagina, le zone tratteggiate; quella sotto il dito
-     piena e chiara, quella dove la master sta già col bordo pieno. */
-  /* I segni di rilascio della master: tacche gialle tenui, quella di arrivo piena, più grande e con l'etichetta. */
-  .marks { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
-  /* Il segno d'arrivo che diventa il contorno del posto (landingMorph.ts): giallo come il segno acceso. */
-  :global(.land-morph) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border: 2px solid var(--wait); box-shadow: 0 0 12px color-mix(in srgb, var(--wait) 45%, transparent); }
-  .mk { position: absolute; width: 48px; height: 4px; transform: translate(-50%, -50%); border-radius: 2px; background: var(--tx3); transition: left .12s ease-out, top .12s ease-out, width .12s ease-out, height .12s ease-out, background .15s; }
-  .mk.v { width: 4px; height: 48px; }
-  .mk.on { background: var(--wait); box-shadow: 0 0 12px color-mix(in srgb, var(--wait) 45%, transparent); }
-  .mk b { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 6px 12px; border-radius: 14px; background: var(--s2); border: 1px solid var(--line); color: var(--tx); font: 600 15px var(--display); box-shadow: 0 8px 24px rgb(0 0 0 / .4); }
-  .mk b .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--wait); }
-  .mk b.v { left: auto; bottom: auto; top: 50%; transform: translateY(-50%); }
-  .mk.v b.v { left: 16px; }
-  .mk.v.r b.v { left: auto; right: 16px; }
-  @media (prefers-reduced-motion: reduce) { .mk { transition: none; } }
+  /* L'anteprima a fantasma (landingMorph.ts; scelta A, app-trascina-rifinitura-04-11): lo sfondo appena più scuro e la sagoma
+     gialla traslucida del posto d'arrivo, con l'etichetta piccola dentro, in alto. */
+  :global(.master-ghost-dim) { position: fixed; inset: 0; z-index: 70; pointer-events: none; background: rgb(0 0 0 / .22); }
+  :global(.master-ghost) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border-radius: 14px; background: color-mix(in srgb, var(--wait) 16%, transparent); border: 2px solid color-mix(in srgb, var(--wait) 70%, transparent); }
+  :global(.master-ghost > span) { position: absolute; left: 50%; top: 10px; translate: -50% 0; max-width: calc(100% - 16px); overflow: hidden; text-overflow: clip; white-space: nowrap; padding: 3px 10px; border-radius: 10px; background: var(--s2); color: var(--tx); font: 600 13px var(--display); }
   /* Il bordo della master si trascina senza transizioni sotto: le colonne seguono il dito subito. */
   .deskwrap.left { flex-direction: row-reverse; }
   .dstage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
