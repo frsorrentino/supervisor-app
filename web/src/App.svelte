@@ -4,6 +4,7 @@
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
   import { clampWidth, COLUMN, heightAt, heightZones, sideAt, snapWidth, type Height, type Rect, type Side } from './lib/masterLanding'
+  import { landOn, markBox, PLACES } from './lib/landingMorph'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -21,7 +22,7 @@
   import { suggestionNames as suggestionNamesOf } from './lib/slotInfo'
   import { nightTitleParts, okAlso } from './lib/decide'
   import InAppBar from './lib/InAppBar.svelte'
-  import { setContext, untrack } from 'svelte'
+  import { setContext, untrack, tick } from 'svelte'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
   import { blankState, decodeChanges, decodeDiff, transcriptArg, withAfterPage, withFirstPage, withTail } from './lib/contract'
@@ -490,7 +491,20 @@
     window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel)
   }
   function begin() { snap ??= { open: masterOpen, left: masterLeft, under: masterUnder, h: stackH }; document.body.style.userSelect = 'none' }
+  // Al rilascio il segno giallo d'arrivo si allarga nel contorno del posto, poi svanisce (app-trascina-morphing-03-11, punto 2).
+  const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  function landFrom(m: Mark | undefined) {
+    if (!m) return
+    const from = markBox(m)
+    void tick().then(() => requestAnimationFrame(() => {
+      const el = PLACES.map(q => document.querySelector<HTMLElement>(q)).find(x => x && x.getBoundingClientRect().width > 0)
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      landOn(from, { x: r.left, y: r.top, w: r.width, h: r.height }, reducedMotion())
+    }))
+  }
   function commit() {
+    landFrom(marks.find(m => m.on))
     snap = null; marks = []; document.body.style.userSelect = ''
     save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH)
   }
@@ -537,6 +551,7 @@
   }
   function widthUp(e: PointerEvent) {
     if (wDrag == null) return
+    landFrom(marks.find(m => m.on))
     wDrag = null; resizing = false; marks = []; document.body.style.userSelect = ''
     const w = snapWidth(masterLeft ? e.clientX : window.innerWidth - e.clientX, window.innerWidth)
     smooth(() => { masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2 })
@@ -1515,6 +1530,8 @@
      piena e chiara, quella dove la master sta già col bordo pieno. */
   /* I segni di rilascio della master: tacche gialle tenui, quella di arrivo piena, più grande e con l'etichetta. */
   .marks { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+  /* Il segno d'arrivo che diventa il contorno del posto (landingMorph.ts): giallo come il segno acceso. */
+  :global(.land-morph) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border: 2px solid var(--wait); box-shadow: 0 0 12px color-mix(in srgb, var(--wait) 45%, transparent); }
   .mk { position: absolute; width: 48px; height: 4px; transform: translate(-50%, -50%); border-radius: 2px; background: var(--tx3); transition: left .12s ease-out, top .12s ease-out, width .12s ease-out, height .12s ease-out, background .15s; }
   .mk.v { width: 4px; height: 48px; }
   .mk.on { background: var(--wait); box-shadow: 0 0 12px color-mix(in srgb, var(--wait) 45%, transparent); }
