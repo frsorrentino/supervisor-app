@@ -10,6 +10,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.platform.testTag
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
@@ -815,6 +818,8 @@ fun TabletDesk(
     caption: (@Composable RowScope.() -> Unit)? = null,
     /** La home sta sopra la master nella colonna della master (app-tablet-come-pwa-03-11): qui non c'è, le colonne prendono il posto. */
     homeHidden: Boolean = false,
+    /** Le pillole + e › accanto alle sessioni della home, nel filo verso le colonne (app-sessione-sostituisci-03-11). */
+    swap: SwapPills? = null,
 ) {
     // La barra del titolo nostra (Franz, 05/10 11:21: «come fa Chrome»): in una finestra di Android 15 e successivi la barra
     // è trasparente (MainActivity) e la riempiamo noi, lasciando liberi i tasti di sistema. Senza barra (schermo intero,
@@ -833,12 +838,12 @@ fun TabletDesk(
                 CaptionStrip(Modifier.padding(start = with(density) { left.toDp() }, end = with(density) { right.toDp() }), caption)
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = false, homeHidden = homeHidden)
+                DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = false, homeHidden = homeHidden, swap = swap)
             }
         }
         return
     }
-    DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = true, homeHidden = homeHidden)
+    DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = true, homeHidden = homeHidden, swap = swap)
 }
 
 /** La barra del titolo dell'app: le colonne come schede a sinistra, a destra quello che serve (la quota); il resto si trascina. */
@@ -869,7 +874,11 @@ private fun DeskBody(
     columns: List<String>, shares: List<Int>, onSwap: (Int, Int) -> Unit, onShares: (List<Int>) -> Unit,
     column: @Composable (name: String, drag: Modifier) -> Unit, empty: @Composable () -> Unit,
     override: (@Composable () -> Unit)?, inspector: (@Composable () -> Unit)?, insets: Boolean, homeHidden: Boolean = false,
+    swap: SwapPills? = null,
 ) {
+    val spots = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>() }
+    var homeBox by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var handleBox by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     // La home cambia lato scivolando sopra le colonne, che scivolano dall'altra parte (Franz, 04/10 22:15: «spartane»). Le
     // parti restano nello stesso punto della composizione e cambiano solo posizione: la home non si ricrea e tiene lo
     // scorrimento.
@@ -908,13 +917,28 @@ private fun DeskBody(
         }
         // Le colonne di nuovo uguali, quando non lo sono (Franz, 05/10 12:30: «ci vuole un tasto per resettare le dimensioni»).
         val reset = if (columns.size > 1 && shares != Tablet.Shares.equal(columns.size)) ({ onShares(Tablet.Shares.equal(columns.size)) }) else null
-        if (!homeHidden) Box(at(homeW, total - homeW - handleW).width(handleW).fillMaxHeight()) { HomeSideHandle(homeRight, onHomeSide, reset) }
+        if (!homeHidden) Box(at(homeW, total - homeW - handleW).width(handleW).fillMaxHeight().onGloballyPositioned { c -> handleBox = c.boundsInRoot() }) { HomeSideHandle(homeRight, onHomeSide, reset) }
         // A metà strada la home passa sopra le colonne, con un'ombra che c'è solo mentre si sposta.
         if (!homeHidden) Box(
             at(0.dp, total - homeW).width(homeW).fillMaxHeight().zIndex(1f)
                 .graphicsLayer { shadowElevation = 32f * (1f - kotlin.math.abs(side * 2f - 1f)) }
-                .background(Cm.bg),
-        ) { home() }
+                .background(Cm.bg).onGloballyPositioned { c -> homeBox = c.boundsInRoot() },
+        ) { androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides spots.takeIf { swap != null }) { home() } }
+        // Le pillole sopra la home e il filo, all'altezza di ogni sessione della home (SwapPills.svelte).
+        if (swap != null && !homeHidden && columns.isNotEmpty() && override == null) {
+            val hb = homeBox; val gb = handleBox
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            if (hb != null && gb != null) Box(at(homeW, total - homeW - handleW).width(handleW).fillMaxHeight().zIndex(2f)) {
+                spots.forEach { (name, r) ->
+                    val y = r.top + kotlin.math.min(r.height / 2f, with(density) { 44.dp.toPx() })
+                    if (y > hb.top + with(density) { 20.dp.toPx() } && y < hb.bottom - with(density) { 20.dp.toPx() }) {
+                        val yDp = with(density) { (y - gb.top).toDp() }
+                        if (name in swap.shown) Box(Modifier.offset(y = yDp - 1.dp).width(handleW).height(2.dp).clip(RoundedCornerShape(1.dp)).background(Cm.text.copy(alpha = 0.8f)))
+                        else SwapPill(name, swap, homeRight, Modifier.align(Alignment.TopCenter).offset(y = yDp - 30.dp))
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1064,3 +1088,21 @@ class DraftStore(initial: Map<String, String> = emptyMap()) {
         )
     }
 }
+
+/** Le pillole + e › della home sul tablet: le sessioni già in colonna, quella in vista, e cosa fare al tocco. */
+data class SwapPills(val shown: List<String>, val current: String?, val onAdd: (String) -> Unit, val onSwap: (String) -> Unit)
+
+/** + apre accanto, › al posto di quella in vista (‹ con la home a destra); tenue, come nella PWA. */
+@Composable
+private fun SwapPill(name: String, swap: SwapPills, homeRight: Boolean, modifier: Modifier) {
+    Column(modifier.width(28.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surface).border(1.dp, Cm.line, RoundedCornerShape(14.dp)).graphicsLayer { alpha = 0.75f }.testTag("pillola-$name")) {
+        Box(Modifier.fillMaxWidth().height(30.dp).handCursor().clickable(onClickLabel = stringResource(R.string.swap_add, name)) { swap.onAdd(name) }, contentAlignment = Alignment.Center) {
+            Text("+", style = V3.Name.copy(fontSize = 20.sp, color = Cm.text))
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Cm.line))
+        Box(Modifier.fillMaxWidth().height(30.dp).handCursor().clickable(onClickLabel = swap.current?.let { stringResource(R.string.swap_replace, it) } ?: stringResource(R.string.swap_add, name)) { swap.onSwap(name) }, contentAlignment = Alignment.Center) {
+            Text(if (homeRight) "‹" else "›", style = V3.Name.copy(fontSize = 20.sp, color = Cm.text))
+        }
+    }
+}
+

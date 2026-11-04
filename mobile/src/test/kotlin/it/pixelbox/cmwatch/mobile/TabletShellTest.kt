@@ -110,7 +110,7 @@ class TabletShellTest {
 
     /** La vista unica (Franz, 04/10 16:36): la home del telefono di lato, le colonne, i dettagli se accesi. */
     @Composable
-    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false) = CmPhoneTheme(still = true) {
+    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false, swap: Boolean = false) = CmPhoneTheme(still = true) {
         val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
         val rows = Tablet.groups(summary).flatMap { it.second }
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
@@ -148,6 +148,7 @@ class TabletShellTest {
             },
             inspector = if (details) ({ TabletInspector(Tablet.inspect(selected, timeline, ts, zone), st.quota[selected.account]?.h5, loading = false) }) else null,
             homeHidden = homeHidden,
+            swap = if (swap) SwapPills(cols, cols.lastOrNull(), {}, {}) else null,
         )
     }
 
@@ -193,6 +194,9 @@ class TabletShellTest {
         )
     }
     @Test fun planciaEmpty() = paparazzi.snapshot { plancia(panel = false) }
+
+    // + e › accanto alle sessioni della home che non sono in colonna; il filo bianco su quella già aperta (atlas-shop).
+    @Test fun deskSwapPills() = paparazzi.snapshot { desk(listOf("atlas-shop"), listOf(12), swap = true) }
 
     // Con le sessioni aperte la master come nella PWA larga: aperta di lato a sinistra col tasto Posizione, la home dal suo lato.
     @Test fun deskMasterLeft() = paparazzi.snapshot {

@@ -2165,6 +2165,12 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 override = if (tab == StartRoute.Tab.LAVORI) ({ lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.BAR) }) else null,
+                // + apre accanto, › al posto dell'ultima colonna (app-sessione-sostituisci-03-11, come la PWA larga).
+                swap = it.pixelbox.cmwatch.mobile.ui.SwapPills(
+                    tabletCols, tabletCols.lastOrNull(),
+                    onAdd = { n -> if (n !in tabletCols) saveCols(it.pixelbox.cmwatch.rules.Tablet.add(tabletCols, n)) },
+                    onSwap = { n -> saveCols(if (tabletCols.isEmpty()) listOf(n) else tabletCols.dropLast(1) + n) },
+                ),
                 inspector = if (inspectorOn && first != null) ({
                     TabletInspector(it.pixelbox.cmwatch.rules.Tablet.inspect(first, timeline, now, zone), st.quota[first.account]?.h5, loading = timelineOk && timeline == null)
                 }) else null,

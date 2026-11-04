@@ -657,6 +657,10 @@ fun SummaryList(
         val card: @Composable (Summary.Row, Boolean) -> Unit = { r, first ->
             val s = r.session
             val id = r.group.name + ":" + s.name
+            // Dove sta la scheda, per le pillole + e › del tablet (app-tablet-come-pwa-03-11).
+            val spots = LocalSessionSpots.current
+            if (spots != null) androidx.compose.runtime.DisposableEffect(s.name) { onDispose { spots.remove(s.name) } }
+            Box(if (spots != null) Modifier.onGloballyPositioned { c -> spots[s.name] = c.boundsInRoot() } else Modifier) {
             SummaryCard(
                 r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
                 onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
@@ -673,6 +677,7 @@ fun SummaryList(
                 onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
                 doneFilled = s.name == primary && s.needsYou?.until != true, lastRed = lastRed[s.name], firstInList = first,
             )
+            }
         }
         if (allDone && parts == null) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
         // Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda stanno in
@@ -2187,3 +2192,7 @@ private object AlwaysOpen : androidx.compose.runtime.MutableState<Boolean> {
     override fun component1() = true
     override fun component2(): (Boolean) -> Unit = {}
 }
+
+/** Le schede di sessione della home e dove stanno: il filo del tablet ci mette accanto le pillole + e ›. */
+internal val LocalSessionSpots = androidx.compose.runtime.staticCompositionLocalOf<androidx.compose.runtime.snapshots.SnapshotStateMap<String, androidx.compose.ui.geometry.Rect>?> { null }
+
