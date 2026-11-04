@@ -264,3 +264,19 @@
 ::view-transition-old(morph) { width: 100%; height: 100%; object-fit: cover; object-position: left top; animation: 140ms ease-out both morph-out; }
 @keyframes morph-in { from { opacity: 0; } 30% { opacity: 1; } }
 @keyframes morph-out { to { opacity: 0; } }
+/* La home che si riposiziona (app-home-riposiziona-animata-04-11, Franz 04/11 18:02-18:04: «altrimenti l'utente ha difficoltà a
+   capire cosa succede»; «un'animazione corale ben orchestrata»): una sola coreografia nei due versi. Aprendo la prima sessione
+   la sua scheda si espande nella colonna mentre le altre schede della home scivolano verso la colonna unica; chiudendo l'ultima,
+   la colonna rientra nella sua scheda mentre la home si ridistribuisce. Ogni sezione e scheda ha il suo nome nel cambio
+   (`html.reflow`, `oneName` in App.svelte); le fotografie restano alla loro misura e il riquadro le ritaglia: il testo non si
+   stira e niente sparisce per ricomparire altrove. La sola dissolvenza è la cornice delle colonne. Durata e curva da qui sole,
+   le stesse del tablet (rules/HomeReflow.kt). */
+:root { --reflow-ms: 400ms; --reflow-ease: cubic-bezier(0.23, 1, 0.32, 1); }
+html.reflow [data-vt] { view-transition-name: var(--vt); view-transition-class: home-reflow; }
+::view-transition-group(*.home-reflow) { animation-duration: var(--reflow-ms); animation-timing-function: var(--reflow-ease); overflow: clip; border-radius: 14px; }
+::view-transition-old(*.home-reflow), ::view-transition-new(*.home-reflow) { width: 100%; height: 100%; object-fit: none; object-position: left top; animation-duration: var(--reflow-ms); animation-timing-function: var(--reflow-ease); }
+::view-transition-old(desk-cols), ::view-transition-new(desk-cols) { animation-duration: calc(var(--reflow-ms) / 2); }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*.home-reflow) { animation-duration: 0s; }
+  ::view-transition-old(*.home-reflow), ::view-transition-new(*.home-reflow) { animation-duration: 150ms; }
+}

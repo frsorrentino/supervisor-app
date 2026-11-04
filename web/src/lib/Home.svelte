@@ -169,6 +169,9 @@
   const edgeAt = (o: string[]) => Math.max(0, o.indexOf(EDGE))
   // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
   const shows = (c: CatId) => !part || part === c || part === 'top'
+  // Il nome di transizione di ogni sezione e scheda (app-home-riposiziona-animata-04-11): vale solo durante i cambi della vista
+  // larga (`html.reflow`, v3.css), così ognuna scivola dal posto e dalla misura di prima al nuovo, riconoscibile.
+  const vt = (k: string) => `home-${k.replace(/[^A-Za-z0-9_-]/g, '_')}`
   // Lo slot del tabellone (Franz 01/11 14:25): l'aggancio salvato nella lista, l'allarme della settimana passa davanti. Le colonne della plancia non ce l'hanno.
   // Lo slot di una voce sola non c'è più: le voci stanno sul tabellone, fino a quattro (app-tabellone-quattro-02-11); nello slot
   // entra solo Utilizzo con l'allarme della settimana, come prima.
@@ -924,11 +927,11 @@
 <!-- L'ordine scelto da Franz (Impostazioni, Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra. -->
 {#if part === 'top'}
   <!-- La fascia sopra le colonne della plancia larga: le voci in cima, affiancate. -->
-  <div class="topband" data-testid="home-cima">{#each up.filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}</div>
+  <div class="topband" data-testid="home-cima">{#each up.filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec" data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k as HomeSection)}</div>{/each}</div>
 {:else if part}
   <!-- Le voci In cima nella PWA larga stanno aperte in cima alla colonna della loro categoria, senza fascia sopra (Franz 03/11
        17:49, app-in-cima-largo-03-11): la schermata si presenta come se non fossero scelte. -->
-  {#each [...up.filter(k => catFor(k) === part), ...cats.flatMap(c => c.sections).filter(k => catFor(k) === part)].filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec">{@render secOf(k as HomeSection)}</div>{/each}
+  {#each [...up.filter(k => catFor(k) === part), ...cats.flatMap(c => c.sections).filter(k => catFor(k) === part)].filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec" data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k as HomeSection)}</div>{/each}
   {#if part === 'you' && closedToday(st)}<ToccaClosed today={closedToday(st)!} />{/if}
 {:else}
   {@const live = dragOrder ?? order}
@@ -951,12 +954,12 @@
       {/if}
       {#if c.open}
         {#each live.slice(edgeAt(live) + 1).filter(k => k !== listSkip && catFor(k) === c.id) as k (k)}
-          <div class="hsec" class:held={k === dragKey}>{@render secOf(k)}</div>
+          <div class="hsec" class:held={k === dragKey} data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k)}</div>
         {/each}
         <!-- Con Sistema o Sessioni sul tabellone, Plugin e skill e Chiuse restano nella loro categoria, che si sposta come le altre
              (Franz 03/11 18:54, app-risorse-categoria-03-11). -->
-        {#if c.id === 'tools' && up.includes('system')}<div class="hsec">{@render secPlugins()}</div>{/if}
-        {#if c.id === 'work' && up.includes('sessions')}<div class="hsec">{@render secClosed()}</div>{/if}
+        {#if c.id === 'tools' && up.includes('system')}<div class="hsec" data-vt={vt("plugins")} style:--vt={vt("plugins")}>{@render secPlugins()}</div>{/if}
+        {#if c.id === 'work' && up.includes('sessions')}<div class="hsec" data-vt={vt("closed")} style:--vt={vt("closed")}>{@render secClosed()}</div>{/if}
         <!-- Le voci uscite da sole oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113). -->
         {#if c.id === 'you' && closedToday(st)}<ToccaClosed today={closedToday(st)!} />{/if}
       {/if}
@@ -1004,7 +1007,7 @@
     <!-- app-attesa-dettagli-02-11: aperta, la scheda dice cosa si sceglie e cosa sta facendo; le statistiche vanno in fondo. -->
     {@const dt = detailOf(s, group, x.body)}
     {@const steps = x.steps.length ? x.steps : open ? dt.steps : []}
-    <div class="card r" data-sess={s.name} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
+    <div class="card r" data-sess={s.name} data-vt={vt(`s-${s.name}`)} style:--vt={vt(`s-${s.name}`)} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
       role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
       oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
       {#if ctx === s.name}

@@ -728,7 +728,7 @@
       if (next.length !== heldCols.length || next.some((n, i) => n !== heldCols[i])) heldCols = next
     })
   })
-  const dropCol = (n: string) => smooth(() => { heldCols = heldCols.filter(x => x !== n); if (leaving?.name === n) leaving = null })
+  const dropCol = (n: string) => smooth(() => { heldCols = heldCols.filter(x => x !== n); if (leaving?.name === n) leaving = null }, null, n)
   let pinned = $state<string[] | null>(columnsFromPref(load('cm.columns')))
   if (linked != null && known(linked) && linked !== MASTER) pinned = add(pinned ?? columns(null, live), linked)
   const cols = $derived(columns(pinned, [...live, ...heldCols]))
@@ -756,15 +756,44 @@
   // Il cambio con la transizione del browser, quando c'è (Chrome): niente ridisegni continui.
   // Con la pagina nascosta niente transizione: il browser la interrompe e la promessa rifiutata finiva in console (15/10).
   // `morph`: aprendo o chiudendo una pagina, la voce premuta diventa la pagina e ci torna (morphStart in motion.ts).
-  const smooth = (go: () => void, morph: 'open' | 'back' | null = null): ViewTransition | null => {
+  let reflowN = 0
+  // `focus`: la sessione che entra o esce dalle colonne; la sua scheda e la sua colonna sono la stessa cosa nel cambio.
+  const smooth = (go: () => void, morph: 'open' | 'back' | null = null, focus: string | null = null): ViewTransition | null => {
     if (!document.startViewTransition || document.hidden) { go(); return null }
     const m = morph ? morphStart(morph) : null
-    const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : go)
+    // Nella vista larga la home si riposiziona scheda per scheda, una sola coreografia nei due versi
+    // (app-home-riposiziona-animata-04-11, `html.reflow` in v3.css).
+    const reflow = wide && !m
+    if (reflow) { reflowN++; document.documentElement.classList.add('reflow'); oneName(focus) }
+    const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : reflow ? async () => { go(); await tick(); oneName(focus) } : go)
     for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
     if (m) vt.finished.catch(() => {}).finally(m.done)
+    if (reflow) vt.finished.catch(() => {}).finally(() => {
+      if (--reflowN > 0) return
+      document.documentElement.classList.remove('reflow')
+      for (const el of document.querySelectorAll<HTMLElement>('[data-vt], .desk .col[data-col]')) { el.style.removeProperty('view-transition-name'); el.style.removeProperty('view-transition-class') }
+    })
     return vt
   }
-  function setCols(c: string[]) { smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }) }
+  // I nomi del cambio, prima e dopo: un nome doppio annulla tutta la transizione, quindi il secondo resta senza. La sessione
+  // `focus` è una cosa sola: la sua colonna se c'è, se no la sua scheda, così aprendo la scheda si espande nella colonna e
+  // chiudendo la colonna rientra nella scheda, mentre le altre scivolano al loro posto.
+  function oneName(focus: string | null) {
+    const seen = new Set<string>()
+    for (const el of document.querySelectorAll<HTMLElement>('[data-vt]')) {
+      const n = el.dataset.vt!
+      if (seen.has(n)) el.style.setProperty('view-transition-name', 'none'); else { seen.add(n); el.style.removeProperty('view-transition-name') }
+    }
+    if (!focus) return
+    const col = document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(focus)}"]`)
+    const el = col ?? document.querySelector<HTMLElement>(`[data-sess="${CSS.escape(focus)}"][data-vt]`)
+    if (!el) return
+    el.style.setProperty('view-transition-name', `col-${focus.replace(/[^A-Za-z0-9_-]/g, '_')}`)
+    el.style.setProperty('view-transition-class', 'home-reflow')
+  }
+  // La sessione che entra o esce, se è una sola.
+  const changed = (a: string[], b: string[]) => { const d = [...a.filter(x => !b.includes(x)), ...b.filter(x => !a.includes(x))]; return d.length === 1 ? d[0] : null }
+  function setCols(c: string[]) { const f = changed(cols, c); smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }, null, f) }
   // Dal trascinamento niente View Transition: sfumerebbe due fotografie della plancia invece di far scorrere la colonna lasciata
   // fino al suo posto (Franz 03/11 22:50: «al rilascio c'è uno scatto»); il movimento lo fa la transizione di `left` in Desk.
   function dropCols(c: string[]) { pinned = c; save('cm.columns', columnsPref(c)) }
