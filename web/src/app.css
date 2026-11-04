@@ -29,10 +29,15 @@ html.night-only { color-scheme: dark; }
 }
 /* Voce 15: le cifre non tremolano quando cambiano. */
 html { font-variant-numeric: tabular-nums; }
+/* Effetto D: la timeline dello scorrimento della home (Home.svelte) vale anche per la testata, che le sta accanto (AppBar.svelte). */
+html { timeline-scope: --home-scroll; }
 /* Voce 6: il tasto cede alla pressione, non al rilascio. Senza rimbalzo. */
-button.tonal, button.filled, button.approve, button.mini, button.text { transition: transform var(--spring-fast-t) var(--spring-fast); }
-button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active { transform: scale(.97); transition-duration: 100ms; }
-@media (prefers-reduced-motion: reduce) { button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active { transform: none; } }
+button.tonal, button.filled, button.approve, button.mini, button.text, button.vbtn { transition: transform var(--spring-fast-t) var(--spring-fast), border-radius 360ms var(--spring-bounce); }
+button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active, button.vbtn:active { transform: scale(.97); transition-duration: 100ms, 120ms; }
+/* Effetto C (app-audit-grafica-animazioni-04-11, scelto da Franz il 04/11): premuta, la pillola diventa un rettangolo morbido e
+   torna con la molla al rilascio. `:root` per battere i raggi scritti nei componenti. */
+@media (prefers-reduced-motion: no-preference) { :root :is(button.tonal, button.filled, button.approve, button.vbtn):active { border-radius: 9px; } }
+@media (prefers-reduced-motion: reduce) { button.tonal:active, button.filled:active, button.approve:active, button.mini:active, button.text:active, button.vbtn:active { transform: none; } }
 /* Voce 1: la linea del lavoro in corso. Non si riempie: il relay non sa quanto manca. */
 .edge-line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; pointer-events: none; background: color-mix(in srgb, var(--busy) 22%, transparent); animation: edge-in 200ms ease-out; }
 .edge-line::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 30%; background: var(--busy); animation: edge-run 1.6s linear infinite; }

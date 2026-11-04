@@ -1658,4 +1658,12 @@
   .footer.exp { padding: 8px 12px 12px; }
   .wnote { padding: 12px 12px 12px 60px; }
   .sugg { margin-top: 10px; }
+  /* Effetto D: la home dà il suo scorrimento alla testata, e il tabellone si ritira mentre passa sotto, come sul telefono. */
+  .home { scroll-timeline: --home-scroll block; }
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .boardwrap { transform-origin: 50% 0; animation: board-fold linear both; animation-timeline: scroll(nearest); animation-range: 0 110px; }
+    }
+  }
+  @keyframes board-fold { to { opacity: .25; scale: .96; } }
 </style>

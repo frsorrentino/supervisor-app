@@ -66,14 +66,15 @@ private fun DecideCard(picked: Boolean = false, content: @Composable ColumnScope
 @Composable
 internal fun ConfirmButton(label: String, confirmed: Boolean, enabled: Boolean, faded: Boolean = false, outlined: Boolean = false, onClick: () -> Unit) {
     val view = androidx.compose.ui.platform.LocalView.current
+    val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "confirm-scale")
     val mod = Modifier.graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (faded) 0.35f else 1f }
     val tap = { view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); onClick() }
     // A riposo il tasto è quello di sempre (tonale o a contorno, con i colori del tema); solo la conferma lo fa verde.
     if (confirmed) FilledTonalButton(onClick = {}, enabled = false, modifier = mod,
         colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(disabledContainerColor = V3.Good, disabledContentColor = Cm.bg)) { Text("✓ $label") }
-    else if (outlined) OutlinedButton(onClick = tap, enabled = enabled, modifier = mod) { Text(label) }
-    else FilledTonalButton(onClick = tap, enabled = enabled, modifier = mod) { Text(label) }
+    else if (outlined) OutlinedButton(onClick = tap, enabled = enabled, modifier = mod, shape = pressShape(press), interactionSource = press) { Text(label) }
+    else FilledTonalButton(onClick = tap, enabled = enabled, modifier = mod, shape = pressShape(press), interactionSource = press) { Text(label) }
 }
 
 private fun Modifier.graphicsLayerAlpha(a: Float) = this.graphicsLayer { alpha = a }

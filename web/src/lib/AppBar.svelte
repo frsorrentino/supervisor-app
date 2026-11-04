@@ -166,4 +166,14 @@
   :global(.v3) .title b { font: 700 22px var(--display); letter-spacing: .005em; }
   :global(.v3) .open { font-size: 15px; color: var(--tx2); }
   :global(.v3) header { padding: 4px 4px 2px; }
+  /* Effetto D (app-audit-grafica-animazioni-04-11, scelto da Franz il 04/11): scorrendo la home il titolo scende da 22 a 19 e sotto
+     la testata compare il filo, legati allo scorrimento di `.home` (la timeline `--home-scroll`, dichiarata su html in app.css). */
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      header .title b { transform-origin: 0 100%; animation: ab-shrink linear both; animation-timeline: --home-scroll; animation-range: 0 90px; }
+      header { animation: ab-rule linear both; animation-timeline: --home-scroll; animation-range: 40px 90px; }
+    }
+  }
+  @keyframes ab-shrink { to { scale: .864; } }
+  @keyframes ab-rule { from { box-shadow: 0 1px 0 transparent; } to { box-shadow: 0 1px 0 var(--line); } }
 </style>

@@ -2,6 +2,14 @@ package it.pixelbox.cmwatch.mobile.ui
 
 
 import androidx.compose.runtime.getValue
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
@@ -110,6 +118,24 @@ internal object V3 {
 internal fun StateGlyph(kind: Rail.Glyph, ctx: Int? = null, size: Dp = 20.dp, square: Boolean = false, label: String? = null) {
     val col = V3.tone(kind)
     val m = if (label != null) Modifier.semantics { contentDescription = label } else Modifier
+    // Effetto A (app-audit-grafica-animazioni-04-11, scelto da Franz il 04/11): fra ▶, ✓ e ✗ il segno cambia forma con la molla
+    // invece di scattare. A riposo (`morph` null) si disegna come sempre, così le schermate ferme e i golden non cambiano.
+    val off = animationsOff()
+    val target = MARKS[kind]
+    var from by remember { mutableStateOf(target) }
+    var to by remember { mutableStateOf(target) }
+    val prog = remember { Animatable(1f) }
+    LaunchedEffect(target, off) {
+        val prev = to
+        if (target == null || prev == null || off) { from = target; to = target; prog.snapTo(1f); return@LaunchedEffect }
+        if (prev === target) return@LaunchedEffect
+        from = mix(from ?: prev, prev, prog.value); to = target
+        prog.snapTo(0f)
+        prog.animateTo(1f, spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMediumLow))
+    }
+    val f = from; val tt = to; val p = prog.value
+    val morph = if (f != null && tt != null && p < 1f && f !== tt) mix(f, tt, p) else null
+    val busyness = if (morph == null) 0f else ((if (f === MARKS[Rail.Glyph.BUSY]) 1f - p else 0f) + (if (tt === MARKS[Rail.Glyph.BUSY]) p else 0f)).coerceIn(0f, 1f)
     Canvas(m.size(size)) {
         val u = this.size.minDimension / 20f
         fun outline(width: Float, color: Color = col, effect: PathEffect? = null, sweep: Float = 360f) {
@@ -120,6 +146,13 @@ internal fun StateGlyph(kind: Rail.Glyph, ctx: Int? = null, size: Dp = 20.dp, sq
                 val e = if (sweep < 360f) PathEffect.dashPathEffect(floatArrayOf(sweep / 360f * 65.6f * u, 200f * u)) else effect
                 drawRoundRect(color, tl, sz, CornerRadius(4.5f * u), style = Stroke(width * u, cap = st.cap, pathEffect = e))
             } else drawArc(color, -90f, sweep, false, tl, sz, style = st)
+        }
+        if (morph != null) {
+            outline(if (kind == Rail.Glyph.BUSY) 2f else 1.8f, if (kind == Rail.Glyph.BUSY) col.copy(alpha = 0.28f) else col)
+            val pth = Path().apply { moveTo(morph[0] * u, morph[1] * u); for (i in 1..3) lineTo(morph[2 * i] * u, morph[2 * i + 1] * u); moveTo(morph[8] * u, morph[9] * u); lineTo(morph[10] * u, morph[11] * u) }
+            if (busyness > 0f) drawPath(Path().apply { moveTo(morph[0] * u, morph[1] * u); for (i in 1..3) lineTo(morph[2 * i] * u, morph[2 * i + 1] * u); close() }, col.copy(alpha = col.alpha * busyness))
+            drawPath(pth, col, style = Stroke((1.8f - 0.6f * busyness) * u, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            return@Canvas
         }
         when (kind) {
             Rail.Glyph.BUSY -> {
@@ -136,6 +169,15 @@ internal fun StateGlyph(kind: Rail.Glyph, ctx: Int? = null, size: Dp = 20.dp, sq
         }
     }
 }
+
+/** I segni di ▶, ✓ e ✗ con gli stessi sei punti (una spezzata di quattro e un tratto), così si interpolano; come `StateGlyph.svelte`. */
+private val MARKS: Map<Rail.Glyph, FloatArray> = mapOf(
+    Rail.Glyph.BUSY to floatArrayOf(8.3f, 6.7f, 13.6f, 10f, 8.3f, 13.3f, 8.3f, 6.7f, 8.3f, 6.7f, 8.3f, 6.7f),
+    Rail.Glyph.DONE to floatArrayOf(6.4f, 10.2f, 8.8f, 12.6f, 13.6f, 7.6f, 13.6f, 7.6f, 13.6f, 7.6f, 13.6f, 7.6f),
+    Rail.Glyph.RED to floatArrayOf(7.3f, 7.3f, 12.7f, 12.7f, 12.7f, 12.7f, 12.7f, 12.7f, 12.7f, 7.3f, 7.3f, 12.7f),
+)
+
+private fun mix(a: FloatArray, b: FloatArray, t: Float) = FloatArray(a.size) { a[it] + (b[it] - a[it]) * t }
 
 private fun DrawScope.polyline(u: Float, col: Color, vararg pts: Pair<Float, Float>) {
     val p = Path().apply { pts.forEachIndexed { i, (x, y) -> if (i == 0) moveTo(x * u, y * u) else lineTo(x * u, y * u) } }
@@ -288,7 +330,7 @@ internal fun V3Pill(text: String, filled: Boolean = false, confirmed: Boolean = 
     val bg by androidx.compose.animation.animateColorAsState(if (confirmed) V3.Good else if (filled) V3.Act else V3.S3, CmMotion.slow, label = "pill-bg")
     val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "pill-scale")
     val fg = if (confirmed) V3.Bg else if (filled) V3.OnAct else V3.Tx
-    androidx.compose.material3.Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press).graphicsLayer { scaleX = scale; scaleY = scale }, shape = androidx.compose.foundation.shape.CircleShape, color = bg, contentColor = fg) {
+    androidx.compose.material3.Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press).graphicsLayer { scaleX = scale; scaleY = scale }, shape = pressShape(press), color = bg, contentColor = fg) {
         Text(if (confirmed) "✓ $text" else text, style = V3.Name.copy(fontSize = 15.sp, color = fg), maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
     }
 }

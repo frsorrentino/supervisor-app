@@ -366,7 +366,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        BackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen || boxOpen != null || usageOpen) {
+        // Effetto B (app-audit-grafica-animazioni-04-11): Indietro predittivo, la pagina rimpicciolisce sotto il dito e rientra nella voce.
+        it.pixelbox.cmwatch.mobile.ui.PageBackHandler(enabled = settingsOpen || terminal != null || queueOpen || searchOpen || nightOpen || boxOpen != null || usageOpen) {
             when {
                 usageOpen -> usageOpen = false
                 nightOpen -> nightOpen = false
@@ -494,7 +495,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             if (featuresOpen) {
-                BackHandler { featuresOpen = false }
+                it.pixelbox.cmwatch.mobile.ui.PageBackHandler { featuresOpen = false }
                 it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.FeaturesScreen(remember { it.pixelbox.cmwatch.rules.Features.decode(assets.open("features.json").bufferedReader().use { r -> r.readText() }) }, onBack = { featuresOpen = false }, demo = remember {
                     val italian = resources.configuration.locales[0].language == "it"
                     val at = System.currentTimeMillis() / 1000
@@ -1231,12 +1232,12 @@ class MainActivity : ComponentActivity() {
         )
         resultOpen?.let { r ->
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.ResultViewer(fullResult(r), guardare, onBack = { resultOpen = null }) }
-            BackHandler { resultOpen = null }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { resultOpen = null }
             return
         }
         if (watchOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.GuardareScreen(resultsPage, resultsFailed, watchSession, guardare, onBack = { watchOpen = false }) }
-            BackHandler { watchOpen = false }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { watchOpen = false }
             return
         }
         if (proveOpen) {
@@ -1244,20 +1245,20 @@ class MainActivity : ComponentActivity() {
                 onOk = { ids -> decideRun(CmdOp.PROVA, ids, "ok", null, null, null) },
                 onKo = proveKo,
                 onScreen = { s -> proveOpen = false; goScreen(s) }) }
-            BackHandler { proveOpen = false }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { proveOpen = false }
             return
         }
         if (primaOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaScreen(primaPage, onBack = { primaOpen = false }, onTouch = touch,
                 onScreen = { s -> primaOpen = false; goScreen(s) }, onFeatures = { primaOpen = false; featuresOpen = true }) }
-            BackHandler { primaOpen = false }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { primaOpen = false }
             return
         }
         if (seguitiOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.SeguitiScreen(seguitiPage, seguitiFailed, onBack = { seguitiOpen = false }, onAction = act,
                 onLavori = { seguitiOpen = false; open = null; tab = StartRoute.Tab.LAVORI },
                 onMaster = { seguitiOpen = false; open = null; masterChat = true }) }
-            BackHandler { seguitiOpen = false }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { seguitiOpen = false }
             return
         }
         if (decisionsOpen) {
@@ -1268,7 +1269,7 @@ class MainActivity : ComponentActivity() {
                 onDrop = { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) },
                 onAsk = decAsk,
             ) }
-            BackHandler { decisionsOpen = false }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { decisionsOpen = false }
             return
         }
         // Contratto 1.83: la risposta a un server MCP. La scheda sparisce subito e torna solo se il relay rifiuta, col motivo.

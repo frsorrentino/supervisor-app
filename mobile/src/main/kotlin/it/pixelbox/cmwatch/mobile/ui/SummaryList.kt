@@ -426,6 +426,12 @@ fun SummaryList(
         }
     }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState(scrollMemo?.get(0) ?: 0, scrollMemo?.get(1) ?: 0)
+    // Effetto D: quanto è scesa la lista, per la testata che si compatta (`HomeScroll`); oltre la prima voce vale «molto».
+    if (parts == null) androidx.compose.runtime.DisposableEffect(listState) { onDispose { HomeScroll.px.floatValue = 0f } }
+    if (parts == null) androidx.compose.runtime.LaunchedEffect(listState) {
+        androidx.compose.runtime.snapshotFlow { if (listState.firstVisibleItemIndex > 0) 1000f else listState.firstVisibleItemScrollOffset.toFloat().coerceAtMost(1000f) }
+            .collect { HomeScroll.px.floatValue = it }
+    }
     if (scrollMemo != null) androidx.compose.runtime.LaunchedEffect(listState) {
         androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
             .collect { (i, o) -> scrollMemo[0] = i; scrollMemo[1] = o }
@@ -629,7 +635,7 @@ fun SummaryList(
         var slotContent: @Composable () -> Unit = {}
         if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
-                Box(moving().onGloballyPositioned { c -> boardBox = c }) {
+                Box(moving().onGloballyPositioned { c -> boardBox = c }.foldUnder(listState, "kpi-7")) {
                     Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, { b ->
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
                         // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre.
@@ -1688,7 +1694,7 @@ private fun MiniButton(text: String, filled: Boolean, confirmed: Boolean = false
     // `confirmed` (voce 11, app-feedback-azioni-02-11): il tasto toccato diventa la conferma, verde con la spunta.
     val bg by androidx.compose.animation.animateColorAsState(if (confirmed) V3.Good else if (filled) Cm.primary else Cm.surfaceHigh, CmMotion.slow, label = "mini-bg")
     val scale by androidx.compose.animation.core.animateFloatAsState(if (confirmed) 1.06f else 1f, CmMotion.bounceFloat, label = "mini-scale")
-    Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press).graphicsLayer { scaleX = scale; scaleY = scale }, shape = CircleShape, color = bg, contentColor = if (confirmed) V3.Bg else if (filled) Cm.onPrimary else Cm.text) {
+    Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press).graphicsLayer { scaleX = scale; scaleY = scale }, shape = pressShape(press), color = bg, contentColor = if (confirmed) V3.Bg else if (filled) Cm.onPrimary else Cm.text) {
         Text(if (confirmed) "✓ $text" else text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
 }

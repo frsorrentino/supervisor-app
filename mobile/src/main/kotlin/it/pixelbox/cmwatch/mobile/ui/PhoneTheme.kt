@@ -215,6 +215,23 @@ fun Modifier.pressScale(source: androidx.compose.foundation.interaction.MutableI
     return this.graphicsLayer { scaleX = s; scaleY = s }
 }
 
+/**
+ * Effetto C (app-audit-grafica-animazioni-04-11, scelto da Franz il 04/11): premuta, la pillola diventa un rettangolo morbido (9 dp)
+ * e torna con la molla al rilascio, come la regola `:active` in `app.css`. 20 dp su un tasto alto fino a 40 è ancora la pillola;
+ * con le animazioni spente, e negli snapshot, la pillola ferma.
+ */
+@Composable
+fun pressShape(source: androidx.compose.foundation.interaction.MutableInteractionSource): androidx.compose.ui.graphics.Shape {
+    if (animationsOff()) return androidx.compose.foundation.shape.CircleShape
+    val pressed by source.collectIsPressedAsState()
+    val r by androidx.compose.animation.core.animateDpAsState(
+        if (pressed) 9.dp else 20.dp,
+        if (pressed) androidx.compose.animation.core.tween(120) else androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow),
+        label = "press-shape",
+    )
+    return androidx.compose.foundation.shape.RoundedCornerShape(r)
+}
+
 /** Voce 13: le azioni decisive si sentono, una volta, alla conferma. */
 fun android.view.View.confirmHaptic() { performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM) }
 

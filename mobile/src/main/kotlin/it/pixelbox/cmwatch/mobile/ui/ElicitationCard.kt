@@ -142,8 +142,9 @@ private fun num(d: Double) = if (d == Math.floor(d)) d.toLong().toString() else 
 /** Il tasto della scheda: pieno per la scelta fatta e per «Invia», tonale per gli altri; spento finché il modulo non va. */
 @Composable
 private fun ElicitButton(text: String, filled: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+    val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Surface(
-        onClick = onClick, enabled = enabled, shape = CircleShape,
+        onClick = onClick, enabled = enabled, shape = pressShape(press), interactionSource = press,
         color = if (!enabled) Cm.surfaceHigh.copy(alpha = 0.5f) else if (filled) Cm.primary else Cm.surfaceHigh,
         contentColor = if (!enabled) Cm.text2 else if (filled) Cm.onPrimary else Cm.text,
     ) { Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) }
