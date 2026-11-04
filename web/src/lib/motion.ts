@@ -117,6 +117,11 @@ export function installDialogGrow() {
  */
 const MORPH = 'morph'
 let morphBack: { el: Element; key: string | null } | null = null
+/** La voce di partenza ridisegnata nel frattempo (la home torna da capo): la si ritrova per `data-testid` o per etichetta. */
+const keyOf = (el: Element): string | null => {
+  const id = el.getAttribute('data-testid'), label = el.getAttribute('aria-label')
+  return id ? `[data-testid="${CSS.escape(id)}"]` : label ? `${el.tagName.toLowerCase()}[aria-label="${CSS.escape(label)}"]` : null
+}
 const named = (el: Element | null, on: boolean) => { if (el instanceof HTMLElement || el instanceof SVGElement) el.style.viewTransitionName = on ? MORPH : '' }
 const onScreen = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight }
 
@@ -127,7 +132,7 @@ export function morphStart(kind: 'open' | 'back'): Morph | null {
   if (kind === 'open') {
     const src = recentPress()?.el ?? null
     if (!src || !src.isConnected || !onScreen(src) || src.closest('[data-morph-target]')) return null
-    morphBack = { el: src, key: src.getAttribute('data-testid') }
+    morphBack = { el: src, key: keyOf(src) }
     named(src, true)
     let dst: Element | null = null
     return {
@@ -144,7 +149,7 @@ export function morphStart(kind: 'open' | 'back'): Morph | null {
   return {
     before: () => named(from, false),
     after: () => {
-      const el = back.el.isConnected ? back.el : back.key ? document.querySelector(`[data-testid="${CSS.escape(back.key)}"]`) : null
+      const el = back.el.isConnected ? back.el : back.key ? document.querySelector(back.key) : null
       if (el && onScreen(el)) { dst = el; named(dst, true) }
     },
     done: () => named(dst, false),
