@@ -1543,6 +1543,9 @@
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
      schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
 <!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
+<!-- Lo scheletro di una colonna della plancia finché il relay non risponde (app-avvio-senza-salto-04-11, Franz 04/11: «compare
+     prima semivuota e poi di colpo piena»). -->
+{#snippet pskel()}<div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i><i></i></div>{/snippet}
 {#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} grip={wide ? sideGrip : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
   onToggleKey={() => smooth(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
@@ -1561,10 +1564,10 @@
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
-    {#snippet you()}<DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}{/snippet}
-    {#snippet work()}<DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}{/snippet}
-    {#snippet out()}<DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} />{/snippet}
-    {#snippet tools()}<DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />{/snippet}
+    {#snippet you()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="0ms"><DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}</div>{:else}{@render pskel()}{/if}{/snippet}
+    {#snippet work()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="60ms"><DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}</div>{:else}{@render pskel()}{/if}{/snippet}
+    {#snippet out()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="120ms"><DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
+    {#snippet tools()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="180ms"><DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet bar()}{@render masterBar()}{/snippet}
   </Plancia>
 {:else if wide}
@@ -1680,6 +1683,9 @@
   .skel i.h { height: 22px; width: 45%; margin-bottom: 10px; }
   .skel i.s { width: 50%; }
   .column.boot > :global(*) { animation: boot-in calc(var(--reflow-ms) * .35) var(--reflow-ease) both; }
+  /* La plancia al primo stato: le colonne entrano una dopo l'altra, 60 ms fra l'una e l'altra. */
+  .pboot.boot { animation: boot-in calc(var(--reflow-ms) * .6) var(--reflow-ease) both; }
+  @media (prefers-reduced-motion: reduce) { .pboot.boot { animation: boot-fade 150ms ease-out both; } }
   @keyframes boot-in { from { opacity: 0; translate: 0 6px; } }
   @media (prefers-reduced-motion: reduce) { .column.boot > :global(*) { animation: boot-fade 150ms ease-out both; } }
   @keyframes boot-fade { from { opacity: 0; } }
