@@ -248,6 +248,8 @@ class Repo(
         content: kotlinx.serialization.json.JsonObject? = null,
         /** Contratto 1.120, `close`: after o force. */
         closeWhen: String? = null,
+        /** Contratto 1.121, `feedback_app`. */
+        tech: Map<String, String>? = null, share: String? = null, hash: String? = null,
     ): String {
         // Contratto 1.52: la risposta vale per la domanda aperta adesso, anche se parte dalla coda dopo minuti.
         val question = if (op == CmdOp.ANSWER || op == CmdOp.ALLOW_ALL)
@@ -256,7 +258,7 @@ class Repo(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt, reopen = reopen,
             kind = kind, since = since, choice = choice, sid = sid, content = content, result = result, hours = hours, reason = reason, also = also, value = value, product = product, key = key, posS = posS,
-            closeWhen = closeWhen,
+            closeWhen = closeWhen, tech = tech, share = share, screenshotOk = share?.let { true }, hash = hash,
         )
         question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {
@@ -266,6 +268,16 @@ class Repo(
         }
         dispatch(cmd)
         return cmd.id
+    }
+
+    /**
+     * Contratto 1.121, `feedback_app`, primo passo: la schermata (se c'è, col sì della persona) in /share, poi tipo, testo e dati
+     * tecnici. Torna l'id del comando; la risposta, con la bozza e il suo hash, arriva in `resultsById`.
+     */
+    suspend fun feedbackDraft(kind: String, text: String, tech: Map<String, String>, image: ByteArray?, maxBytes: Int): String {
+        if (!online()) throw TransportException.Network("offline")
+        val shareId = image?.let { bytes -> UUID.randomUUID().toString().also { sid -> transport.share(sid, "image/jpeg", bytes, maxBytes, "feedback.jpg") } }
+        return command(CmdOp.FEEDBACK_APP, null, null, text, kind = kind, tech = tech, share = shareId)
     }
 
     /**

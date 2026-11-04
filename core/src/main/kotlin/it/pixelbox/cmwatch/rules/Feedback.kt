@@ -9,7 +9,8 @@ package it.pixelbox.cmwatch.rules
 object Feedback {
     enum class Kind { IDEA, BUG }
     data class Tech(val version: String, val commit: String, val device: String, val screen: String, val lang: String)
-    data class Draft(val kind: Kind, val title: String, val body: String, val photo: Boolean)
+    /** `text`: quello che la persona ha scritto, reso anonimo (al relay va questo, i dati tecnici a parte). */
+    data class Draft(val kind: Kind, val title: String, val body: String, val photo: Boolean, val text: String = "")
     data class Labels(val idea: String, val bug: String, val tech: String, val photo: String)
 
     private val EMAIL = Regex("""[\w.+-]+@[\w-]+(\.[\w-]+)+""")
@@ -40,6 +41,32 @@ object Feedback {
         val clean = anonymize(text.trim())
         val lines = mutableListOf(clean, "", "### ${l.tech}", "- app: ${tech.version} (${tech.commit})", "- ${tech.device}", "- ${tech.screen}", "- ${tech.lang}")
         if (photo) lines += listOf("", "_${l.photo}_")
-        return Draft(kind, "[${if (kind == Kind.IDEA) l.idea else l.bug}] ${titleOf(clean)}", lines.joinToString("\n"), photo)
+        return Draft(kind, "[${if (kind == Kind.IDEA) l.idea else l.bug}] ${titleOf(clean)}", lines.joinToString("\n"), photo, clean)
     }
+
+    /** Contratto 1.121, `feedback_app`: il tipo come lo vuole il relay. */
+    fun relayKind(k: Kind): String = if (k == Kind.BUG) "bug" else "suggerimento"
+
+    /** I dati tecnici per il relay: chiavi [a-z_], al massimo 10, valori tagliati a 80. */
+    fun relayTech(t: Tech): Map<String, String> = listOf("app_version" to t.version, "commit" to t.commit, "device" to t.device, "screen" to t.screen, "lang" to t.lang)
+        .filter { it.second.isNotBlank() }.take(10).associate { (k, v) -> k to v.take(80) }
+
+    private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+    /** L'hash della bozza del primo passo, o null se il testo non è una bozza. */
+    fun draftHash(text: String?): String? = runCatching {
+        (json.parseToJsonElement(text ?: "") as kotlinx.serialization.json.JsonObject)["hash"]?.let { (it as kotlinx.serialization.json.JsonPrimitive).content }
+    }.getOrNull()
+
+    data class Choice(val choice: String, val url: String?, val text: String)
+
+    /** L'invio dal foglio: il link di GitHub, o l'errore da dire. */
+    data class Sent(val url: String?, val error: String?)
+
+    /** L'esito del secondo passo, o null. */
+    fun choiceOf(text: String?): Choice? = runCatching {
+        val o = json.parseToJsonElement(text ?: "") as kotlinx.serialization.json.JsonObject
+        fun str(k: String) = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
+        Choice(str("choice") ?: return@runCatching null, str("url"), str("text").orEmpty())
+    }.getOrNull()
 }

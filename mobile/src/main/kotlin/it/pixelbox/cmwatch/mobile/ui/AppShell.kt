@@ -226,6 +226,8 @@ data class MenuActions(
     val onNight: (() -> Unit)? = null,
     /** Dove si è, per i dati tecnici del Feedback (app-feedback-menu-04-11); null = la home. */
     val screen: String? = null,
+    /** Contratto 1.121, `feedback_app`: manda la bozza (la foto in JPEG, se accesa) e la scelta github|anonymous|later; null = l'invio resta spento. */
+    val feedbackSend: (suspend (it.pixelbox.cmwatch.rules.Feedback.Draft, it.pixelbox.cmwatch.rules.Feedback.Tech, ByteArray?, String) -> it.pixelbox.cmwatch.rules.Feedback.Sent)? = null,
 )
 
 /**
@@ -298,5 +300,5 @@ internal fun AppMenu(menu: MenuActions, startOpen: Boolean = false) {
         Unit
     }
     if (open) AppMenuPanel(menu.host, menu.updated, menu.stale, menu.onLaunch, menu.onLavori, menu.onQuadro, menu.onSearch ?: {}, menu.onSettings, onDismiss = { open = false }, onNight = menu.onNight, onFeedback = onFeedback)
-    if (feedback) FeedbackSheet(menu.screen ?: stringResource(R.string.feedback_home), shot, onDismiss = { feedback = false; shot = null })
+    if (feedback) FeedbackSheet(menu.screen ?: stringResource(R.string.feedback_home), shot, menu.feedbackSend, onDismiss = { feedback = false; shot = null })
 }

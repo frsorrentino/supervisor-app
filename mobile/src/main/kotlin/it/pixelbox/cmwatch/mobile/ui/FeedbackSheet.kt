@@ -1,5 +1,7 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import kotlinx.coroutines.launch
+
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -46,12 +48,16 @@ import it.pixelbox.cmwatch.rules.Feedback
 /**
  * Feedback dal menù (app-feedback-menu-04-11, scelta A; come web/src/lib/Feedback.svelte): il tipo, il testo, i dati tecnici
  * aggiunti da soli e la foto della pagina, spenta di base e con l'anteprima; poi la bozza anonima con «Invia dal mio GitHub»,
- * «Invia anonimo» e «Non ora». [shot] è la pagina fotografata prima di aprire il foglio (null: non c'è); l'invio aspetta l'op
- * `feedback` del relay (supervisor-feedback-app-04-11), fino ad allora i due tasti d'invio sono spenti.
+ * «Invia anonimo» e «Non ora». [shot] è la pagina fotografata prima di aprire il foglio (null: non c'è). [send] (contratto 1.121,
+ * `feedback_app`) manda bozza e scelta; null: il relay non ha l'op, i due tasti d'invio sono spenti.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedbackSheet(screen: String, shot: Bitmap?, onDismiss: () -> Unit) {
+fun FeedbackSheet(
+    screen: String, shot: Bitmap?,
+    send: (suspend (Feedback.Draft, Feedback.Tech, ByteArray?, String) -> Feedback.Sent)?,
+    onDismiss: () -> Unit,
+) {
     val cfg = LocalConfiguration.current
     val tech = Feedback.Tech(
         BuildConfig.VERSION_NAME, BuildConfig.GIT_COMMIT,
@@ -64,6 +70,31 @@ fun FeedbackSheet(screen: String, shot: Bitmap?, onDismiss: () -> Unit) {
     var photo by rememberSaveable { mutableStateOf(false) }
     var draft by remember { mutableStateOf<Feedback.Draft?>(null) }
     val image = remember(shot) { shot?.asImageBitmap() }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    var sending by remember { mutableStateOf(false) }
+    var sentAs by remember { mutableStateOf<String?>(null) }
+    var github by remember { mutableStateOf<String?>(null) }
+    var result by remember { mutableStateOf<String?>(null) }
+    val failText = stringResource(R.string.feedback_send_fail, "%s")
+    val anonSent = stringResource(R.string.feedback_anon_sent); val githubHint = stringResource(R.string.feedback_github_hint); val kept = stringResource(R.string.feedback_kept)
+    fun go(d: Feedback.Draft, choice: String) {
+        val s = send ?: return
+        sending = true
+        scope.launch {
+            // La foto in JPEG, solo se accesa.
+            val jpg = if (d.photo) shot?.let { b -> java.io.ByteArrayOutputStream().also { o -> b.compress(Bitmap.CompressFormat.JPEG, 80, o) }.toByteArray() } else null
+            val r = s(d, tech, jpg, choice)
+            sending = false
+            r.error?.let { e -> result = failText.replace("%s", e); return@launch }
+            text = ""
+            when (choice) {
+                "github" -> { sentAs = choice; github = r.url; result = githubHint }
+                "anonymous" -> { sentAs = choice; result = anonSent; kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.CHECK_MS + 300); onDismiss() }
+                else -> { result = kept; kotlinx.coroutines.delay(900); onDismiss() }
+            }
+        }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = V3.S1) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.feedback_menu), style = V3.Section.copy(color = V3.Tx, fontSize = V3.Section.fontSize * 1.2f))
@@ -114,15 +145,22 @@ fun FeedbackSheet(screen: String, shot: Bitmap?, onDismiss: () -> Unit) {
                     Text(d.body, style = V3.Meter.copy(color = V3.Tx2))
                     if (d.photo && image != null) Image(image, stringResource(R.string.feedback_photo_attached), Modifier.fillMaxWidth().heightIn(max = 360.dp), contentScale = ContentScale.Fit)
                 }
-                Text(stringResource(R.string.feedback_not_yet), style = V3.Small.copy(color = V3.Tx2))
+                val note = result ?: if (send == null) stringResource(R.string.feedback_not_yet) else null
+                note?.let { Text(it, style = V3.Small.copy(color = V3.Tx2)) }
+                // Inviato (D3): il tasto usato prende la spunta disegnata.
                 Button(
-                    {}, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = false,
-                    colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct),
-                ) { Text(stringResource(R.string.feedback_send_github), style = V3.Name) }
+                    { go(d, "github") }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = send != null && !sending && sentAs == null,
+                    colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct, disabledContainerColor = if (sentAs == "github") CheckFill else V3.S3),
+                ) { CheckLabel(sentAs == "github") { Text(stringResource(R.string.feedback_send_github), style = V3.Name) } }
+                github?.let { u ->
+                    Button({ uri.openUri(u); onDismiss() }, Modifier.fillMaxWidth().heightIn(min = 48.dp), colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct)) {
+                        Text(stringResource(R.string.feedback_github_open), style = V3.Name)
+                    }
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    TextButton({}, enabled = false) { Text(stringResource(R.string.feedback_send_anon)) }
-                    TextButton({ draft = null }) { Text(stringResource(R.string.feedback_edit), color = V3.Tx) }
-                    TextButton(onDismiss) { Text(stringResource(R.string.feedback_later), color = V3.Tx) }
+                    TextButton({ go(d, "anonymous") }, enabled = send != null && !sending && sentAs == null) { CheckLabel(sentAs == "anonymous") { Text(stringResource(R.string.feedback_send_anon)) } }
+                    TextButton({ draft = null }, enabled = sentAs == null) { Text(stringResource(R.string.feedback_edit), color = V3.Tx) }
+                    TextButton({ if (send != null && sentAs == null) go(d, "later") else onDismiss() }, enabled = !sending) { Text(stringResource(R.string.feedback_later), color = V3.Tx) }
                 }
             }
         }

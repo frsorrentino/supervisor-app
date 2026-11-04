@@ -30,4 +30,28 @@ class FeedbackTest {
         assertFalse("Foto" in d.body)
         assertTrue("_Foto della pagina allegata_" in Feedback.draft(Feedback.Kind.IDEA, "x", tech, true, labels).body)
     }
+
+    // Contratto 1.121, `feedback_app`: le voci 1210-1214 di cmd-result-sample.json.
+    private val results = kotlinx.serialization.json.Json.parseToJsonElement(it.pixelbox.cmwatch.Fixtures.cmdResult).let { r -> (r as kotlinx.serialization.json.JsonObject).getValue("result") as kotlinx.serialization.json.JsonArray }
+        .map { e -> it.pixelbox.cmwatch.contract.ContractJson.json.decodeFromJsonElement(it.pixelbox.cmwatch.contract.CmdResult.serializer(), e) }
+    private fun res(n: String) = results.first { r -> r.id.endsWith(n) }
+
+    @Test fun theDraftHasItsHash() {
+        assertEquals("7c41e09a2b", Feedback.draftHash(res("00001210").text))
+        assertEquals(null, Feedback.draftHash(res("00001214").text))
+    }
+
+    @Test fun theChoiceSaysWhereItWent() {
+        assertTrue(Feedback.choiceOf(res("00001212").text)!!.url!!.startsWith("https://github.com/frsorrentino/supervisor/issues/new?"))
+        assertEquals("anonymous", Feedback.choiceOf(res("00001211").text)!!.choice)
+        assertEquals(null, Feedback.choiceOf(res("00001213").text)!!.url)
+    }
+
+    @Test fun kindAndTechAsTheRelayWantsThem() {
+        assertEquals("suggerimento", Feedback.relayKind(Feedback.Kind.IDEA))
+        assertEquals("bug", Feedback.relayKind(Feedback.Kind.BUG))
+        val t = Feedback.relayTech(tech.copy(device = "x".repeat(100)))
+        assertTrue(t.keys.all { Regex("[a-z_]+").matches(it) })
+        assertEquals(80, t.getValue("device").length)
+    }
 }

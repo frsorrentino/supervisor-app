@@ -249,6 +249,12 @@
     <string name="feedback_not_yet">Sending comes with the next supervisor update on the PC: the draft stays here until then.</string>
     <string name="feedback_home">Home</string>
     <string name="feedback_session">session %1$s</string>
+    <string name="feedback_no_answer">The PC did not answer in time.</string>
+    <string name="feedback_send_fail">Not sent: %1$s</string>
+    <string name="feedback_github_open">Open on GitHub</string>
+    <string name="feedback_github_hint">The report is already written: open it, attach the photo if you want and send it from your GitHub.</string>
+    <string name="feedback_anon_sent">Sent anonymously, without the photo. Thank you</string>
+    <string name="feedback_kept">It stays among the PC observations: nothing was sent.</string>
     <string name="follow_sub">A notification when a turn ends</string>
     <string name="unfollow_sub">No more notifications at the end of a turn</string>
     <string name="ask_master_sub">It reads it and answers in its own chat</string>
