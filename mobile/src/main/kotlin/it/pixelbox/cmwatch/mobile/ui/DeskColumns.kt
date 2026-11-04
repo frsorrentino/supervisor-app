@@ -41,6 +41,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -257,6 +259,7 @@ internal fun MasterFrame(
         L.Height.COMPACT to stringResource(R.string.master_land_compact), L.Height.BAR to stringResource(R.string.master_land_bar),
     )
     val midLeft = stringResource(R.string.master_mid_left); val midRight = stringResource(R.string.master_mid_right)
+    val gripLeft = stringResource(R.string.master_bar_grip_left); val gripRight = stringResource(R.string.master_bar_grip_right)
     val ctx = androidx.compose.ui.platform.LocalContext.current
     // Il gesto lo legge il telaio, che resta fermo: le maniglie dicono solo dove stanno (come `follow` della PWA).
     val grips = androidx.compose.runtime.remember { mutableMapOf<String, androidx.compose.ui.layout.LayoutCoordinates>() }
@@ -276,7 +279,9 @@ internal fun MasterFrame(
                 val pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial
                 val down = awaitFirstDown(requireUnconsumed = false, pass = pass)
                 val f = frame?.takeIf { it.isAttached } ?: return@awaitEachGesture
-                val key = grips.entries.firstOrNull { (_, c) -> c.isAttached && f.localBoundingBoxOf(c, false).contains(down.position) }?.key ?: return@awaitEachGesture
+                // La presa più piccola sotto il dito: la maniglia vince sulla riga che la contiene.
+                val key = grips.entries.filter { (_, c) -> c.isAttached && f.localBoundingBoxOf(c, false).contains(down.position) }
+                    .minByOrNull { (_, c) -> c.size.width.toLong() * c.size.height }?.key ?: return@awaitEachGesture
                 val p0 = placeNow ?: return@awaitEachGesture
                 val open0 = openNow
                 val W = size.width / density; val H = size.height / density
@@ -302,7 +307,12 @@ internal fun MasterFrame(
                     val ev = wait?.let { w -> withTimeoutOrNull(w + 5) { awaitPointerEvent(pass) } } ?: if (wait == null) awaitPointerEvent(pass) else null
                     if (ev != null) {
                         val c = ev.changes.firstOrNull { it.id == down.id } ?: break
-                        if (!c.pressed) { ended = true; break }
+                        if (!c.pressed) {
+                            ended = true
+                            // Un tocco su una maniglia della riga: la master si apre da quel lato, e la riga sotto non lo prende.
+                            if (!moved && key.startsWith("bar-")) { c.consume(); change?.invoke(p0.copy(left = key == "bar-left"), true, true) }
+                            break
+                        }
                         if (!moved && (c.position - down.position).getDistance() < viewConfiguration.touchSlop) continue
                         moved = true; c.consume(); last = c.position
                     }
@@ -331,8 +341,8 @@ internal fun MasterFrame(
                             aim = p0.widthDropped(widthNow, W) to open0
                         }
                         else -> {
-                            // La barra in basso sceglie anche il lato, dalla metà sotto il dito; il bordo superiore solo l'altezza.
-                            val l = if (key == "bar") L.sideAt(W, x) == L.Side.LEFT else p0.left
+                            // Solo verticale: il lato è quello della maniglia presa nella riga, se no quello di adesso.
+                            val l = when (key) { "bar-left" -> true; "bar-right" -> false; else -> p0.left }
                             val w = p0.panelWidth()
                             val zs = L.heightZones(L.Rect(if (l) 0f else W - w, 0f, w, H), underOk)
                             val (on, wt) = heightHold.feed(L.heightDragged(zs, y, heightHold.current), now); wait = wt
@@ -351,8 +361,9 @@ internal fun MasterFrame(
             }
         }),
     ) {
+        val W = maxWidth.value
         // Il pannello resta lo stesso nodo quando cambia lato: la riga si rovescia, l'ordine dei figli no.
-        val dir = if (left) androidx.compose.ui.unit.LayoutDirection.Ltr else androidx.compose.ui.unit.LayoutDirection.Rtl
+        val dir =if (left) androidx.compose.ui.unit.LayoutDirection.Ltr else androidx.compose.ui.unit.LayoutDirection.Rtl
         androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides dir) {
             Row(Modifier.fillMaxSize()) {
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
@@ -377,11 +388,22 @@ internal fun MasterFrame(
                     Column(Modifier.weight(1f).fillMaxHeight()) {
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
                         bar?.let { b ->
-                            Box(Modifier.fillMaxWidth().seen("bar")) {
+                            Box(Modifier.fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
                                 b()
-                                // La barra tirata su si apre, alle altezze del bordo superiore, sul lato sotto il dito.
-                                if (onPlace != null && place != null) Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-altezza").grip("bar")) {
-                                    Box(Modifier.align(Alignment.Center).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                                // Due maniglie sull'asse della colonna dove la master atterra, una per lato (app-master-riga-maniglie-04-11,
+                                // Franz 04/11 17:40): tirata su apre la master da quel lato, alle altezze del bordo superiore; un tocco la
+                                // apre da quel lato all'ultima misura. Il resto della riga tirato su apre sul lato di adesso.
+                                if (onPlace != null && place != null) {
+                                    val axis = place.panelWidth() / 2
+                                    listOf(true to axis, false to W - axis).forEach { (l, cx) ->
+                                        Box(
+                                            Modifier.offset(x = (cx - 36f).dp).width(72.dp).height(16.dp)
+                                                .semantics { contentDescription = if (l) gripLeft else gripRight }
+                                                .testTag(if (l) "master-maniglia-riga-sx" else "master-maniglia-riga-dx").grip(if (l) "bar-left" else "bar-right"),
+                                        ) {
+                                            Box(Modifier.align(Alignment.Center).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                                        }
+                                    }
                                 }
                             }
                         }

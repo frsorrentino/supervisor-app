@@ -34,6 +34,8 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -122,6 +124,8 @@ fun MasterDock(
     onClose: (() -> Unit)? = null,
     /** Le righe della risposta: 2 nella riga in basso del tablet (Franz 04/11 11:11, app-master-riga-risposta-04-11). */
     headlineLines: Int = 1,
+    /** La riga in basso del tablet: la risposta intera su tre righe che sfumano, al posto del titolo. */
+    full: Boolean = false,
     /**
      * La master a tutto schermo sul telefono (Franz, 08/10 18:15): una testata sola, nel colore della master fino alla barra di
      * stato. ⌄ va a sinistra, al posto della freccia indietro, e a destra il menu ≡ della home (`trailing`); angoli dritti.
@@ -206,7 +210,19 @@ fun MasterDock(
                     time?.let { Text(it, style = V3.Meter, maxLines = 1) }
                     if (!expanded) ctx?.let { Text(it, style = V3.Meter, maxLines = 1) }
                 }
-                hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = headlineLines, overflow = TextOverflow.Clip) }
+                // Nella riga in basso del tablet la risposta vera dall'inizio, su tre righe che sfumano: si capisce che continua, e
+                // un tocco apre la conversazione (app-master-riga-maniglie-04-11, come la web).
+                if (full) hero?.text?.takeIf { it.isNotBlank() }?.let { t ->
+                    Text(
+                        t.replace(Regex("""\*\*|__|`"""), ""), style = V3.Small.copy(fontSize = 13.sp, lineHeight = 16.sp), maxLines = 3, overflow = TextOverflow.Clip,
+                        modifier = Modifier.heightIn(max = 48.dp).graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(androidx.compose.ui.graphics.Brush.verticalGradient(0.55f to androidx.compose.ui.graphics.Color.Black, 1f to androidx.compose.ui.graphics.Color.Transparent), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                            },
+                    )
+                } ?: hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = headlineLines, overflow = TextOverflow.Clip) }
+                else hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = headlineLines, overflow = TextOverflow.Clip) }
             }
             // Durante la lettura il ▶ diventa ■ e la ferma (Franz, 03/10 17:25), come sotto le risposte della chat.
             val spoken = hero?.let { h -> listOf(h.headline, h.body).filter { it.isNotBlank() }.joinToString("\n") }

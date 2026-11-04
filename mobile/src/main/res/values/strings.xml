@@ -1830,6 +1830,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="master_mid_right">a destra</string>
     <string name="master_mid_cross">Oltre questa linea: %1$s %2$s</string>
     <string name="master_mid_release">Rilascia: %1$s</string>
+    <string name="master_bar_grip_left">Tira su per aprire la master a sinistra; un tocco la apre</string>
+    <string name="master_bar_grip_right">Tira su per aprire la master a destra; un tocco la apre</string>
     <string name="master_width_edge">Trascina per allargare o stringere la master</string>
     <string name="master_stack_step">Cambia altezza della master</string>
     <string name="swap_add">Apri %1$s accanto</string>

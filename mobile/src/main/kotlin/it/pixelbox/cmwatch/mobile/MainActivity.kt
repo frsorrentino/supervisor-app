@@ -1882,7 +1882,7 @@ class MainActivity : ComponentActivity() {
         val masterBar: @Composable (it.pixelbox.cmwatch.contract.Session, () -> Unit) -> Unit = { m, onToggle ->
             val ents = ChatFeed.pageEntries(m.name, chatName, entriesOwner, entries, feedCache)
             val hero = remember(ents, m.outcome) { it.pixelbox.cmwatch.rules.MasterHome.hero(ents, m) }
-            MasterDock(m, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, onToggle = onToggle, headlineLines = 2)
+            MasterDock(m, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, onToggle = onToggle, headlineLines = 2, full = true)
         }
         val summaryPage: @Composable () -> Unit = summaryPage@{
             val st = state

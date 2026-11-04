@@ -172,6 +172,8 @@ class MasterHomeTest {
         assertEquals("Fase 2.2 avviata", h.headline)
         assertEquals("Lanciata la sessione.", h.body)
         assertEquals(listOf("distilla nella kb", "prova la casa"), h.steps)
+        // La riga in basso del tablet: la risposta dall'inizio, senza Prossimi e senza Watch.
+        assertEquals("Lanciata la sessione.\n\nEsito: Fase 2.2 avviata", h.text)
         assertEquals(at(6), h.at)
     }
 

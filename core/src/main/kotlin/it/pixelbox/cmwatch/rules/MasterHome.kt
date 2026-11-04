@@ -99,7 +99,8 @@ object MasterHome {
 
     /** L'ultima risposta della master in testa alla casa (casa A, 02/10): titolo, resto del testo, consigli, ora. */
     /** `blocking`: i Prossimi che sbloccano (contratto 1.38), dal «!» o da `next_steps` della master. */
-    data class Hero(val headline: String, val body: String, val steps: List<String>, val at: Long?, val blocking: Set<String> = emptySet())
+    /** `text`: la risposta vera dall'inizio, senza la riga per l'orologio (la riga in basso del tablet, app-master-riga-maniglie-04-11). */
+    data class Hero(val headline: String, val body: String, val steps: List<String>, val at: Long?, val blocking: Set<String> = emptySet(), val text: String = "")
 
     /** Una sessione in corso, una riga: la domanda, lo strumento al lavoro o l'ultimo esito. */
     data class Running(val session: Session, val detail: String?)
@@ -122,12 +123,13 @@ object MasterHome {
         val lines = all.filterNot { it.trimStart().startsWith(WATCH) }
         val outcome = lines.indexOfFirst { it.trimStart().startsWith(OUTCOME) }
         val blocking = parsed.blocking + master.nextSteps.orEmpty().filter { it.blocking }.map { it.text }
-        if (outcome < 0 && watch != null) return Hero(watch, lines.joinToString("\n").trim(), parsed.steps, last?.at ?: master.outcome?.at, blocking)
+        val text = lines.joinToString("\n").trim()
+        if (outcome < 0 && watch != null) return Hero(watch, text, parsed.steps, last?.at ?: master.outcome?.at, blocking, text)
         val head = if (outcome >= 0) outcome else lines.indexOfFirst { it.isNotBlank() }
         if (head < 0) return null
         val headline = lines[head].trim().removePrefix(OUTCOME).trim()
         val body = lines.filterIndexed { i, _ -> i != head }.joinToString("\n").trim()
-        return Hero(headline, body, parsed.steps, last?.at ?: master.outcome?.at, blocking)
+        return Hero(headline, body, parsed.steps, last?.at ?: master.outcome?.at, blocking, text)
     }
 
     /** Le sessioni vive senza la master, nell'ordine della regia (in attesa, al lavoro, ferme). */
