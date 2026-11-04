@@ -1531,7 +1531,7 @@
   </Desk>
   {#if master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
-  {#if cols.length && !stacked && !page}<SwapPills shown={cols} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
+  {#if cols.length && !page}<SwapPills shown={cols} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
   </div>
   {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->

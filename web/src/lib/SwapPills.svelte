@@ -9,10 +9,18 @@
   let spots = $state<Spot[]>([])
   let hot = $state<string | null>(null)
   function measure() {
-    const desk = document.querySelector('.desk'), home = desk?.querySelector(':scope > aside.home'), handle = desk?.querySelector(':scope > .handle')
-    if (!home || !handle) { spots = []; return }
-    const hr = home.getBoundingClientRect(), gr = handle.getBoundingClientRect()
-    const x = gr.left + gr.width / 2
+    // Con la master sotto la home (app-bordo-aggiungi-sparito-04-11) la home sta nella colonna della master e il bordo è il
+    // lato di quella colonna verso le sessioni; la plancia tiene una home vuota e la maniglia senza larghezza, che i segni
+    // prendevano: senza schede, il + e il filo sparivano appena la master scendeva sotto la home.
+    const stack = document.querySelector('aside.stackcol')
+    const desk = document.querySelector('.desk')
+    const home = stack ? stack.querySelector('.hs-top') : desk?.querySelector(':scope > aside.home')
+    const handle = stack ? null : desk?.querySelector(':scope > .handle')
+    if (!home || (!handle && !stack)) { spots = []; return }
+    const hr = home.getBoundingClientRect()
+    let x: number
+    if (handle) { const gr = handle.getBoundingClientRect(); x = gr.left + gr.width / 2 }
+    else { const sr = stack!.getBoundingClientRect(); x = homeRight ? sr.left : sr.right }
     const out: Spot[] = []
     for (const el of home.querySelectorAll<HTMLElement>('[data-sess]')) {
       const r = el.getBoundingClientRect()
