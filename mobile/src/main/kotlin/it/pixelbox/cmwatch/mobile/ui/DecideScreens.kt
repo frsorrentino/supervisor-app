@@ -104,7 +104,7 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
             Text(stringResource(if (page.status == PrimaRaccolta.INTERRUPTED) R.string.prima_resume else R.string.prima_start))
         }
         if (PrimaRaccolta.askConsent(page)) DecideCard {
-            Text(page.askText.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+            LongText(page.askText.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.End)) {
                 // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato diventa la conferma finché la scheda cambia.
                 var tapped by remember(page.status, page.done) { mutableStateOf<String?>(null) }
@@ -119,7 +119,7 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
                     if (PrimaRaccolta.empty(s)) {
                         s.why?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
                         s.whenFills?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
-                    } else Text(s.text.orEmpty(), style = V3.Body)
+                    } else LongText(s.text.orEmpty(), style = V3.Body)
                     BancoProva.screen(s.dove)?.let { d -> TextButton(onClick = { onScreen(d) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.features_go)) } }
                 }
             }
@@ -190,7 +190,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                 val id = r.key
                 val pk = picked[id]
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(p.fai, style = V3.Body)
+                    LongText(p.fai, style = V3.Body)
                     Text(stringResource(R.string.prove_expected, p.atteso), style = V3.Small)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         BancoProva.screen(p.dove)?.let { s -> TextButton(onClick = { onScreen(s) }) { Text(stringResource(R.string.features_go)) } }
@@ -205,11 +205,11 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
         }
         if (!page?.ko.isNullOrEmpty()) {
             Text(stringResource(R.string.prove_reported), style = MonoSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
-            ItemList(page!!.ko.map { k -> ItemRows.proveKo(k) }, "prova-ko") { r -> page.ko.firstOrNull { "ko-${it.id}" == r.key }?.let { k -> Text(k.text, style = V3.Body) } }
+            ItemList(page!!.ko.map { k -> ItemRows.proveKo(k) }, "prova-ko") { r -> page.ko.firstOrNull { "ko-${it.id}" == r.key }?.let { k -> LongText(k.text, style = V3.Body) } }
         }
         if (!page?.red.isNullOrEmpty()) {
             Text(stringResource(R.string.prove_red), style = MonoSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
-            ItemList(page!!.red.map { x -> ItemRows.proveRed(x) }, "prova-rossa") { r -> page.red.firstOrNull { "red-${it.task}" == r.key }?.let { x -> Text(x.reason ?: stringResource(R.string.prove_red_running), style = V3.Body.copy(color = V3.Red)) } }
+            ItemList(page!!.red.map { x -> ItemRows.proveRed(x) }, "prova-rossa") { r -> page.red.firstOrNull { "red-${it.task}" == r.key }?.let { x -> LongText(x.reason ?: stringResource(R.string.prove_red_running), style = V3.Body.copy(color = V3.Red)) } }
         }
     }
     ko?.let { p ->
@@ -252,7 +252,7 @@ fun ProveFuseBody(cards: List<it.pixelbox.cmwatch.rules.ProveFuse.Card>, onAll: 
                 val name = c.release ?: c.web?.let { w -> stringResource(R.string.prove_card_web, w) } ?: c.project.substringAfterLast('/')
                 Text(stringResource(R.string.prove_card_title, name), style = MaterialTheme.typography.titleMedium, color = Cm.text)
                 Text(androidx.compose.ui.res.pluralStringResource(R.plurals.prove_card_contains, rows.size, rows.size), style = V3.Small)
-                (if (more) rows else rows.take(3)).forEach { r -> Text(r.text, style = V3.Body, modifier = Modifier.padding(start = 4.dp)) }
+                (if (more) rows else rows.take(3)).forEach { r -> LongText(r.text, style = V3.Body, modifier = Modifier.padding(start = 4.dp)) }
                 if (!more && rows.size > 3) TextButton(onClick = { more = true }) { Text(stringResource(R.string.prove_card_more, rows.size - 3)) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     val busy = keys.any { k -> k in sent }
@@ -277,7 +277,7 @@ fun ProveFuseBody(cards: List<it.pixelbox.cmwatch.rules.ProveFuse.Card>, onAll: 
                     c.rows.filter { r -> r.key !in done }.forEach { r ->
                         Row(Modifier.fillMaxWidth().clickable { which = r.key }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             androidx.compose.material3.RadioButton(selected = which == r.key, onClick = { which = r.key })
-                            Text(r.text, style = V3.Body)
+                            LongText(r.text, style = V3.Body)
                         }
                     }
                     OutlinedTextField(text, { text = it.take(300) }, label = { Text(stringResource(R.string.prove_ko_hint)) }, modifier = Modifier.fillMaxWidth())
@@ -359,8 +359,8 @@ private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         // Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte.
         val c = CinqueMinuti.card(g)
-        if (head) c.head.forEachIndexed { n, h -> Text(h, style = if (n == 0) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyMedium, color = if (n == 0) Cm.text else Cm.text2) }
-        else c.head.filter { it != g.title.trim() }.forEach { h -> Text(h, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+        if (head) c.head.forEachIndexed { n, h -> LongText(h, style = if (n == 0) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyMedium, color = if (n == 0) Cm.text else Cm.text2) }
+        else c.head.filter { it != g.title.trim() }.forEach { h -> LongText(h, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
         // Nella riga aperta dove e quanto sblocca stanno già sulla riga.
         if (head) Text(stringResource(if (g.where == "pc") R.string.decisions_at_pc else R.string.decisions_here) + if (g.weight > 1) " · " + stringResource(R.string.decisions_unblocks, g.weight) else "", style = MonoSmall, color = if (g.where == "pc") Cm.waiting else Cm.text2)
         g.items.forEachIndexed { n, i ->
@@ -369,7 +369,7 @@ private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> 
             HorizontalDivider(color = Cm.line)
             x.title?.let { Text(it, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = Cm.text) }
             x.plan?.let { PlanText(it) }
-            x.reason?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+            x.reason?.let { LongText(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
             CinqueMinuti.chooseAt(i)?.let { Text(stringResource(R.string.decisions_choose_at, it), style = MonoSmall, color = Cm.waiting) }
             val proceed = stringResource(R.string.decisions_proceed_prompt, name, i.task ?: i.session.orEmpty())
             val discuss = stringResource(R.string.sug_discuss_prompt, stringResource(R.string.decisions_discuss_about, name, i.task ?: i.session.orEmpty()))
@@ -423,7 +423,7 @@ private fun DecisionGroupBody(g: DecisionGroup, onApprove: (String, String?) -> 
 private fun PlanText(text: String) {
     var open by rememberSaveable(text) { mutableStateOf(false) }
     var cut by remember(text) { mutableStateOf(false) }
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text, maxLines = if (open) Int.MAX_VALUE else 4, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, onTextLayout = { r -> if (!open) cut = r.hasVisualOverflow })
+    LongText(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text, maxLines = if (open) Int.MAX_VALUE else 4, onTextLayout = { r -> if (!open) cut = r.hasVisualOverflow })
     if (cut || open) TextButton(onClick = { open = !open }) { Text(stringResource(if (open) R.string.permission_less else R.string.permission_more)) }
 }
 

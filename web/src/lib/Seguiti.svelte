@@ -6,6 +6,7 @@
   import { age, canAccept, canAlign, changedPaths, clean, fired, ordered, whenText } from './seguiti'
   import { newCmd } from './transport'
   import { t } from './t'
+  import LongText from './LongText.svelte'
   import LoadFailed from './LoadFailed.svelte'
   import { slide } from 'svelte/transition'
   import { leave } from './leave'
@@ -72,8 +73,8 @@
       <div class="in" data-testid={`altrove-${r.id}`}>
         <p class="m">{r.complete ? t.seguitiChecked(r.done, r.total) : t.seguitiPartial(r.done, r.total)}{r.at ? ` · ${whenText(r.at)}` : ''}</p>
         {#if r.running}<p class="m">{t.seguitiRunning}</p>{/if}
-        {#if r.positive.length}<p class="m">{t.seguitiFoundIn}</p>{#each r.positive as x (x)}<p>{x}</p>{/each}{/if}
-        {#if r.errors.length}<p class="m">{t.seguitiErrors}</p>{#each r.errors as x (x)}<p>{x}</p>{/each}{/if}
+        {#if r.positive.length}<p class="m">{t.seguitiFoundIn}</p>{#each r.positive as x (x)}<LongText text={x} />{/each}{/if}
+        {#if r.errors.length}<p class="m">{t.seguitiErrors}</p>{#each r.errors as x (x)}<LongText text={x} />{/each}{/if}
         {#if clean(r)}<p>{t.seguitiClean}</p>{/if}
         {#if r.task}<p>{t.seguitiCard(r.task)}</p><div class="ac"><span class="sp"></span><button class="text" onclick={onLavori}>{t.seguitiOpenLavori}</button></div>{/if}
       </div>{/if}{/snippet}</ItemList>
@@ -91,7 +92,7 @@
     {#if page.promemoria_scattati.length}
       <h3>{t.seguitiFiredTitle}</h3>
       {#each page.promemoria_scattati as p (p.id)}
-        <div class="c"><p>{p.text}</p>{#if p.at}<p class="m">{fired(p) ? t.seguitiFired(whenText(p.at)) : t.seguitiExpired(whenText(p.at))}</p>{/if}</div>
+        <div class="c"><LongText text={p.text} />{#if p.at}<p class="m">{fired(p) ? t.seguitiFired(whenText(p.at)) : t.seguitiExpired(whenText(p.at))}</p>{/if}</div>
       {/each}
     {/if}
   {/if}

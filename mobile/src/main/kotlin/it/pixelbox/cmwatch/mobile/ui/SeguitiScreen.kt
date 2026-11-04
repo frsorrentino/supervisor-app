@@ -74,7 +74,7 @@ fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?,
             Heading(stringResource(R.string.seguiti_fired_title))
             page.promemoriaScattati.forEach { p ->
                 Boxed {
-                    Text(p.text, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                    LongText(p.text, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                     p.at?.let { Text(stringResource(if (Seguiti.fired(p)) R.string.seguiti_fired else R.string.seguiti_expired, Seguiti.whenText(it)), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
                 }
             }
@@ -120,8 +120,8 @@ private fun RimastoCard(i: RimastoItem, onAction: (String, String?, String) -> U
 private fun AltroveCard(r: AltroveRun, onLavori: () -> Unit) = Card {
     Text((if (Seguiti.partial(r)) stringResource(R.string.seguiti_partial, r.done, r.total) else stringResource(R.string.seguiti_checked, r.done, r.total)) + (r.at?.let { " · " + Seguiti.whenText(it) } ?: ""), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     if (r.running) Text(stringResource(R.string.seguiti_running), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-    if (r.positive.isNotEmpty()) { Text(stringResource(R.string.seguiti_found_in), style = MaterialTheme.typography.bodyMedium, color = Cm.text2); r.positive.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text) } }
-    if (r.errors.isNotEmpty()) { Text(stringResource(R.string.seguiti_errors), style = MaterialTheme.typography.bodyMedium, color = Cm.text2); r.errors.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text) } }
+    if (r.positive.isNotEmpty()) { Text(stringResource(R.string.seguiti_found_in), style = MaterialTheme.typography.bodyMedium, color = Cm.text2); r.positive.forEach { LongText(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text) } }
+    if (r.errors.isNotEmpty()) { Text(stringResource(R.string.seguiti_errors), style = MaterialTheme.typography.bodyMedium, color = Cm.text2); r.errors.forEach { LongText(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text) } }
     if (Seguiti.clean(r)) Text(stringResource(R.string.seguiti_clean), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
     r.task?.let {
         Text(stringResource(R.string.seguiti_card, it), style = MaterialTheme.typography.bodyMedium, color = Cm.text)

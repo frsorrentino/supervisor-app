@@ -4,6 +4,7 @@
   import { buttons, canDrop, card as cardText, chooseAt, nextDecisions, viaApprove, withoutTests } from './decide'
   import { newCmd } from './transport'
   import { t } from './t'
+  import LongText from './LongText.svelte'
   import LoadFailed from './LoadFailed.svelte'
   import { confirmMs } from './leave'
   import { pass } from './motion'
@@ -55,7 +56,7 @@
 {#snippet body(g: DecisionGroup, head: boolean)}
   {@const cardOf = cardText(g)}
       <!-- Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte. -->
-      {#each cardOf.head as h, n (n)}{#if head}{#if n === 0}<b>{h}</b>{:else}<p class="m">{h}</p>{/if}{:else if h !== g.title.trim()}<p class="m">{h}</p>{/if}{/each}
+      {#each cardOf.head as h, n (n)}{#if head}{#if n === 0}<b>{h}</b>{:else}<div class="lw m"><LongText text={h} /></div>{/if}{:else if h !== g.title.trim()}<div class="lw m"><LongText text={h} /></div>{/if}{/each}
       <!-- Nella riga aperta dove e quanto sblocca stanno già sulla riga. -->
       {#if head}<span class="pos" class:pc={g.where === 'pc'}>{g.where === 'pc' ? t.decisionsAtPc : t.decisionsHere}{g.weight > 1 ? ` · ${t.decisionsUnblocks(g.weight)}` : ''}</span>{/if}
       {#each g.items as i, n (n)}
@@ -64,8 +65,8 @@
         {@const ref = i.task ?? i.session ?? ''}
         <hr />
         {#if x.title}<b class="i">{x.title}</b>{/if}
-        {#if x.plan}{@const k = `${g.key}-${n}`}<p class="plan" class:folded={!planOpen.has(k)}>{x.plan}</p>{#if x.plan.length > 160}<button class="text" onclick={() => { const s = new Set(planOpen); if (s.has(k)) s.delete(k); else s.add(k); planOpen = s }}>{planOpen.has(k) ? t.permissionLess : t.permissionMore}</button>{/if}{/if}
-        {#if x.reason}<p class="m">{x.reason}</p>{/if}
+        {#if x.plan}{@const k = `${g.key}-${n}`}<div class="lw"><LongText text={x.plan} pre clamp={planOpen.has(k) ? 0 : 4} /></div>{#if x.plan.length > 160}<button class="text" onclick={() => { const s = new Set(planOpen); if (s.has(k)) s.delete(k); else s.add(k); planOpen = s }}>{planOpen.has(k) ? t.permissionLess : t.permissionMore}</button>{/if}{/if}
+        {#if x.reason}<div class="lw m"><LongText text={x.reason} /></div>{/if}
         {@const at = chooseAt(i)}{#if at}<p class="pos pc">{t.decisionsChooseAt(at)}</p>{/if}
         {#if buttons(i).length}<div class="ac">{#each buttons(i) as btn, bi (bi)}
           {@const id = `${n}-${bi}`}{#if btn.kind === 'proceed'}<button class="tonal" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)) })}>{#if picked === id}✓ {/if}{t.decisionsProceed}</button>
@@ -100,13 +101,12 @@
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
   .in { display: flex; flex-direction: column; gap: 8px; }
   .c b { font-weight: 600; } .i { font-size: 14.5px; }
-  p { font-size: 14.5px; } .m { color: var(--text2); }
+  p, .lw { font-size: 14.5px; } .m { color: var(--text2); }
   .pos { font: 12px var(--mono); color: var(--text2); } .pc { color: var(--wait); }
   hr { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 0; }
   .ac { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; }
   .text { color: var(--icon); font-weight: 500; font-size: 14px; padding: 8px 4px; } .red { color: var(--gone); }
-  .plan { font-size: 14.5px; white-space: pre-wrap; overflow-wrap: anywhere; } .plan.folded { display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .out { border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; }
   input { width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 8px; font: inherit; }
 </style>

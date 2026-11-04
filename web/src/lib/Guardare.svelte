@@ -3,6 +3,7 @@
   import { line, note as cleanNote, NOTE_MAX, older, pos, splitSeen, thumb, type Line } from './guardare'
   import { newCmd } from './transport'
   import { t } from './t'
+  import LongText from './LongText.svelte'
   import CatIcon from './CatIcon.svelte'
   import ImageViewer from './ImageViewer.svelte'
   // «Da guardare» (app-da-guardare-02-11, mockup della master delle 08:16; contratto 1.106), porta di GuardareUi.kt: in home le
@@ -115,7 +116,7 @@
     {#if l.kind !== 'video' && l.kind !== 'image'}<button class="pill" onclick={() => onExternal(r)}>{t.watchOpenFile}</button>{/if}
     <p class="vline"><b>{t.watchVersionOf(r.version, r.versions)}</b><span class="mono">{[hm(r.at), l.seconds != null ? t.watchSeconds(l.seconds) : null].filter(Boolean).join(' · ')}</span></p>
     {#if r.changed?.trim()}<p class="changed"><b>{t.watchChanged}</b> {r.changed}</p>{/if}
-    {#if r.caption?.trim() && r.caption !== r.title}<p class="sub">{r.caption}</p>{/if}
+    {#if r.caption?.trim() && r.caption !== r.title}<div class="sub"><LongText text={r.caption} /></div>{/if}
     {#if r.replaced}<p class="sub warn">{t.watchReplaced}</p>{/if}
     <span class="acts">
       {#if r.seen_at == null}<button class="pill filled" class:done={seenIds.has(r.id)} disabled={seenIds.has(r.id)} onclick={() => seen(r)}><span class="ms" aria-hidden="true">check</span>{t.watchSeen}</button>{/if}

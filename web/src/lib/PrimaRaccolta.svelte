@@ -7,6 +7,7 @@
   import { askConsent, canStart, emptySection, finished, firstRoundOffer } from './primaRaccolta'
   import { newCmd } from './transport'
   import { t } from './t'
+  import LongText from './LongText.svelte'
   import LoadFailed from './LoadFailed.svelte'
   // «Prima raccolta» (contratto 1.100), porta di PrimaRaccoltaScreen: cosa si è trovato per ogni sezione; una vuota dice perché e quando si riempie.
   let { run, summary, onScreen, onFeatures }: { run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; summary: PrimaRaccoltaSummary | null | undefined; onScreen: (s: string) => void; onFeatures: () => void } = $props()
@@ -29,12 +30,12 @@
     {#if page.cost === 0}<p class="m">{t.primaFree}</p>{/if}
     {#if canStart(page)}<button class="tonal wide" class:done={busy === 'start'} disabled={!!busy} onclick={() => touch('start')}>{#if busy === 'start'}✓ {/if}{page.status === 'interrupted' ? t.primaResume : t.primaStart}</button>{/if}
     {#if askConsent(page)}
-      <div class="c"><p>{page.ask_text}</p><div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentno'} disabled={!!busy} onclick={() => touch('consent', 'no')}>{#if busy === 'consentno'}✓ {/if}{t.primaNo}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{t.primaYes}</button></div></div>
+      <div class="c"><LongText text={page.ask_text} /><div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentno'} disabled={!!busy} onclick={() => touch('consent', 'no')}>{#if busy === 'consentno'}✓ {/if}{t.primaNo}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{t.primaYes}</button></div></div>
     {/if}
     <!-- Le sezioni come righe (app-richiede-te-righe-02-11): il tocco apre il testo intero e «Vai». -->
     <ItemList rows={page.sections.map(prima)} testid="prima" name={(r) => t.primaSections[r.key] ?? r.key}>{#snippet card(r)}{@const s = page?.sections.find(x => x.key === r.key)}{#if s}
       <div class="in" data-testid={`prima-${s.key}`}>
-        {#if emptySection(s)}{#if s.why}<p class="m">{s.why}</p>{/if}{#if s.when}<p class="m">{s.when}</p>{/if}{:else}<p>{s.text}</p>{/if}
+        {#if emptySection(s)}{#if s.why}<p class="m">{s.why}</p>{/if}{#if s.when}<p class="m">{s.when}</p>{/if}{:else}<LongText text={s.text} />{/if}
         {#if screen(s.dove)}<div class="ac"><span class="sp"></span><button class="text" onclick={() => onScreen(screen(s.dove)!)}>{t.featuresGo}</button></div>{/if}
       </div>{/if}{/snippet}</ItemList>
     {#if firstRoundOffer(page)}

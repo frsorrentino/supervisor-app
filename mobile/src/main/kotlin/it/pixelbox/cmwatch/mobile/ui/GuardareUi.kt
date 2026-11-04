@@ -285,7 +285,7 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
                 append(" "); append(c)
             }, style = V3.Body)
         }
-        i.caption?.trim()?.takeIf { it.isNotEmpty() && it != i.title }?.let { Text(it, style = V3.Small) }
+        i.caption?.trim()?.takeIf { it.isNotEmpty() && it != i.title }?.let { LongText(it, style = V3.Small) }
         if (i.replaced == true) Text(stringResource(R.string.watch_replaced), style = V3.Small.copy(color = V3.Wait))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (i.seenAt == null) V3Pill("✓ " + stringResource(R.string.watch_seen), filled = true, confirmed = seen) { if (!seen) { seen = true; a.seen(i) } }
