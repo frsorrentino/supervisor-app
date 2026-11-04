@@ -1679,7 +1679,7 @@
   .skel i { display: block; height: 14px; border-radius: 7px; background: var(--s2); width: 70%; }
   .skel i.h { height: 22px; width: 45%; margin-bottom: 10px; }
   .skel i.s { width: 50%; }
-  .column.boot > :global(*) { animation: boot-in calc(var(--reflow-ms) * .6) var(--reflow-ease) both; }
+  .column.boot > :global(*) { animation: boot-in calc(var(--reflow-ms) * .35) var(--reflow-ease) both; }
   @keyframes boot-in { from { opacity: 0; translate: 0 6px; } }
   @media (prefers-reduced-motion: reduce) { .column.boot > :global(*) { animation: boot-fade 150ms ease-out both; } }
   @keyframes boot-fade { from { opacity: 0; } }

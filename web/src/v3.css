@@ -271,7 +271,8 @@
    (`html.reflow`, `oneName` in App.svelte); le fotografie restano alla loro misura e il riquadro le ritaglia: il testo non si
    stira e niente sparisce per ricomparire altrove. La sola dissolvenza è la cornice delle colonne. Durata e curva da qui sole,
    le stesse del tablet (rules/HomeReflow.kt). */
-:root { --reflow-ms: 400ms; --reflow-ease: cubic-bezier(0.23, 1, 0.32, 1); }
+/* Franz 04/11 dal telefono: «troppo veloce» alla chiusura della sessione; da 400 a 700 ms. */
+:root { --reflow-ms: 700ms; --reflow-ease: cubic-bezier(0.23, 1, 0.32, 1); }
 html.reflow [data-vt] { view-transition-name: var(--vt); view-transition-class: home-reflow; }
 ::view-transition-group(*.home-reflow) { animation-duration: var(--reflow-ms); animation-timing-function: var(--reflow-ease); overflow: clip; border-radius: 14px; }
 ::view-transition-old(*.home-reflow), ::view-transition-new(*.home-reflow) { width: 100%; height: 100%; object-fit: none; object-position: left top; animation-duration: var(--reflow-ms); animation-timing-function: var(--reflow-ease); }
