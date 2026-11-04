@@ -150,7 +150,8 @@
   /* Grigi neutri, una scala sola con gradini visibili (app-superfici-neutre-04-11, Franz 04/11 19:09): pagina, colonna, testate e
      card, tasti e campi, bordi. Prima #0B0C0E, #121316, #1B1D22, #272A31, #25272D, grigio-blu. */
   --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
-  --tx: #EDEEF0; --tx2: #969BA4; --tx3: #858A93; --act: #FFFFFF; --on-act: #0B0B0B;
+  /* Testo neutro con lo stesso contrasto (app-audit-superfici-luci-04-11): prima #EDEEF0, #969BA4, #858A93. */
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
   --wait: #FFB23F; --busy: #5AA2FF; --good: #34D399; --red: #FF5A5F;
   --low: var(--s1); --surface: var(--s2); --high: var(--s3); --text: var(--tx); --text2: var(--tx2); --stale: var(--tx3);
   --icon: var(--tx2); --primary: var(--act); --on-primary: var(--on-act); --idle: var(--good); --gone: var(--red); --gone-dim: var(--red);
@@ -206,8 +207,9 @@
    che ti aspetta in ambra chiaro, le righe rosse degli esiti in rosa. La doppia :root vince sui fogli dei componenti. */
 @media (prefers-color-scheme: light) {
   html.v3:not(.night-only), html:not(.night-only) .v3, html:not(.night-only) dialog {
-    --bg: #F1F4F8; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EAEEF4; --line: #DFE4EB;
-    --tx: #121418; --tx2: #565C66; --tx3: #60666F; --act: #121418; --on-act: #FFFFFF;
+    /* Di giorno la stessa scala neutra (app-audit-superfici-luci-04-11): prima #F1F4F8, #EAEEF4, #DFE4EB, #121418, #565C66, #60666F. */
+    --bg: #F4F4F4; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EDEDED; --line: #E4E4E4;
+    --tx: #141414; --tx2: #5B5B5B; --tx3: #656565; --act: #141414; --on-act: #FFFFFF;
     --wait: #9A5700; --busy: #1A64D6; --good: #0B7F55; --red: #C9302F;
     --banner: #FFF6E5; --banner-ink: var(--wait);
   }

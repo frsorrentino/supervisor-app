@@ -54,6 +54,14 @@ private fun scheme(day: Boolean) = (if (day) lightColorScheme() else darkColorSc
     outline = V3.Line, error = V3.Red,
     secondaryContainer = V3.S3, onSecondaryContainer = V3.Tx,
     tertiary = V3.Wait,
+    // Tutti i ruoli di superficie sui grigi neutri (app-audit-superfici-luci-04-11): lasciati ai valori di base del Material 3
+    // davano ai fogli dal basso, ai dialoghi, ai menu e agli interruttori i grigi violacei della sua palette, e la tinta
+    // d'elevazione li velava ancora.
+    surfaceContainerLowest = V3.Bg, surfaceContainerLow = V3.S1, surfaceContainerHighest = V3.S3,
+    surfaceBright = V3.S3, surfaceDim = V3.Bg, surfaceTint = androidx.compose.ui.graphics.Color.Transparent,
+    outlineVariant = V3.Line, secondary = V3.Tx2, onSecondary = V3.Bg,
+    primaryContainer = V3.S3, onPrimaryContainer = V3.Tx, tertiaryContainer = V3.S3, onTertiaryContainer = V3.Tx,
+    inverseSurface = V3.Tx, inverseOnSurface = V3.Bg, inversePrimary = V3.Bg, scrim = androidx.compose.ui.graphics.Color.Black,
 )
 
 /** Un raggio per famiglia, come il web (audit grafica 04/11): card, liste e dialoghi 14, riquadri interni 12, fogli dal basso 28 in alto. */

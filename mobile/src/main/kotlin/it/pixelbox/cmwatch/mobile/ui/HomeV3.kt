@@ -75,12 +75,14 @@ internal object V3 {
         val wait: Color, val busy: Color, val good: Color, val red: Color, val waitFill: Color, val waitLine: Color, val redFill: Color,
     )
     // Grigi neutri, una scala sola (app-superfici-neutre-04-11, come web/src/v3.css): prima #0B0C0E, #121316, #1B1D22, #272A31, #25272D.
+    // Testo e giorno neutri con lo stesso contrasto (app-audit-superfici-luci-04-11): prima #EDEEF0, #969BA4, #858A93; di giorno
+    // #F1F4F8, #EAEEF4, #DFE4EB, #121418, #565C66, #60666F.
     private val Night = Palette(
-        Color(0xFF0B0B0B), Color(0xFF111111), Color(0xFF181818), Color(0xFF222222), Color(0xFF2A2A2A), Color(0xFFEDEEF0), Color(0xFF969BA4), Color(0xFF858A93), Color.White, Color(0xFF0B0B0B),
+        Color(0xFF0B0B0B), Color(0xFF111111), Color(0xFF181818), Color(0xFF222222), Color(0xFF2A2A2A), Color(0xFFEEEEEE), Color(0xFF9B9B9B), Color(0xFF8A8A8A), Color.White, Color(0xFF0B0B0B),
         Color(0xFFFFB23F), Color(0xFF5AA2FF), Color(0xFF34D399), Color(0xFFFF5A5F), Color(0xFF111111), Color(0xFF2A2A2A), Color(0xFF111111),
     )
     private val Day = Palette(
-        Color(0xFFF1F4F8), Color.White, Color.White, Color(0xFFEAEEF4), Color(0xFFDFE4EB), Color(0xFF121418), Color(0xFF565C66), Color(0xFF60666F), Color(0xFF121418), Color.White,
+        Color(0xFFF4F4F4), Color.White, Color.White, Color(0xFFEDEDED), Color(0xFFE4E4E4), Color(0xFF141414), Color(0xFF5B5B5B), Color(0xFF656565), Color(0xFF141414), Color.White,
         Color(0xFF9A5700), Color(0xFF1A64D6), Color(0xFF0B7F55), Color(0xFFC9302F), Color(0xFFFFF6E5), Color(0xFFF2D7A2), Color(0xFFFFF3F2),
     )
     /** Un valore semplice, non uno stato di Compose: cambia solo col tema del sistema, che ricrea l'activity; scritto in composizione come stato chiudeva le composizioni delle prove successive. */

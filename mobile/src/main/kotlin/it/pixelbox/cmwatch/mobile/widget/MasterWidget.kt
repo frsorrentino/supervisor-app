@@ -82,8 +82,8 @@ class MasterWidgetReceiver : GlanceAppWidgetReceiver() {
 
 private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
 /** Il monocromo di partenza (Franz, 01/10 23:16): testo chiaro, grigi, una sola tinta per l'attesa. */
-private val INK = Color(0xFFEDEEF0)
-private val INK2 = Color(0xFF969BA4)
+private val INK = Color(0xFFEEEEEE)
+private val INK2 = Color(0xFF9B9B9B)
 private val WAIT = Color(0xFFFFB23F)
 
 @Composable

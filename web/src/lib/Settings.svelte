@@ -216,7 +216,8 @@
 
   </div></div>{/if}
 
-  {#if onFeatures}<div class="sec">
+  <!-- Una riga come le voci sopra, non un riquadro fra le righe (app-audit-superfici-luci-04-11). -->
+  {#if onFeatures}<div class="sec plain">
       <button class="srow" data-testid="impostazioni-cosa-sa-fare" onclick={onFeatures}>
         <span class="sic"><span class="ms" aria-hidden="true">auto_awesome</span></span>
         <span class="st"><b>{t.featuresTitle}</b><small>{t.featuresSub}</small></span>
@@ -335,6 +336,7 @@
   .gic { width: 52px; display: flex; justify-content: center; color: var(--tx2); flex: none; }
   .sec { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; overflow: hidden; }
   .srow { gap: 8px; min-height: 58px; padding: 9px 12px 9px 0; border-top: 1px solid var(--line); }
+  .sec.plain { background: none; border: 0; }
   .srow:first-child { border-top: 0; }
   button.srow:hover, label.srow:hover { background: var(--s2); }
   .sic { width: 52px; height: auto; background: none; border-radius: 0; }
