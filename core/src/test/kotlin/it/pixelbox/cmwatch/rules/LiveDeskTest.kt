@@ -213,11 +213,11 @@ class LiveDeskTest {
         val c = r.tap(Action.ACTIONS, t0 + 2_000).card()
         assertEquals(LiveCard.Kind.PICK, c.kind)
         // Ogni azione dice di chi è (Franz, 10/10 16:23: «mi ha letto una pista trasversale decontestualizzata»).
-        val i = c.options.indexOf("atlas shop: Review the seeds and the admin page")
+        val i = c.options.indexOf("atlas shop: Review the seeds")
         assertTrue(i >= 0)
         r.tap(Action.PICK, t0 + 3_000, index = i + 1)
         assertEquals(LiveCard.Kind.TELL, r.card().kind)
-        assertEquals(Send(CmdOp.PROMPT, "atlas-shop", "Review the seeds and the admin page", Tag.TELL), r.tick(t0 + 3_000 + 6_000).sent().single())
+        assertEquals(Send(CmdOp.PROMPT, "atlas-shop", "Review the seeds", Tag.TELL), r.tick(t0 + 3_000 + 6_000).sent().single())
     }
 
     @Test fun theRecapIntervalCyclesAndEndsOff() {

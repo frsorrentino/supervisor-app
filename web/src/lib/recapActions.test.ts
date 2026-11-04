@@ -12,9 +12,9 @@ describe('recapActions', () => {
     const orbit = a.filter(x => x.from === 'orbit-docs')
     expect(orbit).toHaveLength(1)
     expect(orbit[0].to).toBe('master'); expect(orbit[0].send).toBe('Riprendi orbit-docs: Publish the pricing page')
-    expect(a.find(x => x.text === 'Review the seeds and the admin page')?.to).toBe('atlas-shop')
+    expect(a.find(x => x.text === 'Review the seeds')?.to).toBe('atlas-shop')
     expect(new Set(a.map(x => x.text.toLowerCase())).size).toBe(a.length)
-    expect(orbit[0].recap).toBe(true); expect(a.find(x => x.text === 'Review the seeds and the admin page')?.recap).toBe(true)
+    expect(orbit[0].recap).toBe(true); expect(a.find(x => x.text === 'Review the seeds')?.recap).toBe(true)
     expect(a.find(x => x.text === 'ok to deploy on staging')?.recap).toBe(false)
   })
   it('nel Recap solo i «prossimo» del recap del giorno (Franz, 09/10 17:21)', () => {

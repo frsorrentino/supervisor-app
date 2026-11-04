@@ -4,7 +4,8 @@
 // relay non ha l'op `feedback` la bozza si prepara qui, con le stesse regole, e l'invio resta spento.
 export type FeedbackKind = 'idea' | 'bug'
 export type Tech = { version: string; commit: string; device: string; screen: string; lang: string }
-export type Draft = { kind: FeedbackKind; title: string; body: string; photo: boolean }
+/** `text`: quello che la persona ha scritto, reso anonimo (al relay va questo, i dati tecnici a parte). */
+export type Draft = { kind: FeedbackKind; title: string; body: string; photo: boolean; text: string }
 
 /** Il dispositivo in chiaro dal browser: navigatore e versione, sistema, misura della finestra. */
 export function deviceOf(ua: string, w: number, h: number): string {
@@ -50,7 +51,7 @@ export function draftOf(kind: FeedbackKind, text: string, tech: Tech, photo: boo
     `- ${tech.lang}`,
   ]
   if (photo) lines.push('', `_${labels.photo}_`)
-  return { kind, title: `[${labels.kind[kind]}] ${titleOf(clean)}`, body: lines.join('\n'), photo }
+  return { kind, title: `[${labels.kind[kind]}] ${titleOf(clean)}`, body: lines.join('\n'), photo, text: clean }
 }
 
 /**
@@ -80,4 +81,39 @@ export async function grabTab(hide: () => Promise<void>, show: () => void, maxW 
     stream?.getTracks().forEach(tr => tr.stop())
     show()
   }
+}
+
+/** Contratto 1.121, `feedback_app`: il tipo come lo vuole il relay. */
+export const relayKind = (k: FeedbackKind): 'suggerimento' | 'bug' => (k === 'bug' ? 'bug' : 'suggerimento')
+
+/** I dati tecnici per il relay: chiavi [a-z_], al massimo 10, valori tagliati a 80. */
+export function relayTech(tech: Tech): Record<string, string> {
+  const all: [string, string][] = [['app_version', tech.version], ['commit', tech.commit], ['device', tech.device], ['screen', tech.screen], ['lang', tech.lang]]
+  return Object.fromEntries(all.filter(([, v]) => v).slice(0, 10).map(([k, v]) => [k, v.slice(0, 80)]))
+}
+
+/** La bozza del primo passo, o null se il testo non è una bozza. */
+export function parseDraft(text: string | null | undefined): import('./contract').FeedbackDraft | null {
+  try {
+    const d = JSON.parse(text ?? '')
+    return typeof d?.hash === 'string' && typeof d?.title === 'string' ? d : null
+  } catch { return null }
+}
+
+/** L'esito del secondo passo, o null. */
+export function parseChoice(text: string | null | undefined): import('./contract').FeedbackChoice | null {
+  try {
+    const d = JSON.parse(text ?? '')
+    return typeof d?.choice === 'string' ? { choice: d.choice, url: typeof d.url === 'string' ? d.url : null, text: String(d.text ?? '') } : null
+  } catch { return null }
+}
+
+/** La foto della pagina (data URL) in byte, per /share. */
+export function bytesOf(dataUrl: string): { mime: string; data: Uint8Array } | null {
+  const m = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl)
+  if (!m) return null
+  const bin = atob(m[2])
+  const data = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i)
+  return { mime: m[1], data }
 }

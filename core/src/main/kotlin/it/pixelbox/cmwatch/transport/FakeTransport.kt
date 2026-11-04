@@ -375,7 +375,7 @@ class FakeTransport(
                 ok("seen")
             }
             CmdOp.RESULT_NOTE -> ok("note sent to ${current.value.results?.items?.firstOrNull { it.id == cmd.arg }?.session ?: "the session"}")
-            CmdOp.CONTI, CmdOp.CONTI_AZIONE, CmdOp.FEEDBACK_CONSENT, CmdOp.FEEDBACK_SEND, CmdOp.FEEDBACK_TEXT -> ko("${cmd.op}: not in this demo yet")
+            CmdOp.CONTI, CmdOp.CONTI_AZIONE, CmdOp.FEEDBACK_CONSENT, CmdOp.FEEDBACK_SEND, CmdOp.FEEDBACK_TEXT, CmdOp.FEEDBACK_APP -> ko("${cmd.op}: not in this demo yet")
             CmdOp.SEGUITI_AZIONE -> when (cmd.action) {
                 "allinea" -> ok("allinea-${cmd.product}-${cmd.key}")
                 "ok" -> ok("${cmd.key}: marked aligned with this version")

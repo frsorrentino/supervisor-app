@@ -357,7 +357,7 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
-  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text' | 'results' | 'result_seen' | 'result_note'
+  | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text' | 'feedback_app' | 'results' | 'result_seen' | 'result_note'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */
   | 'elicit'
   /** Contratto 1.84: la risposta a un suggerimento della master; arg = id, `action` = accept | later | never. */
@@ -376,6 +376,9 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */
   | 'changes' | 'diff'
+/** Contratto 1.121: la bozza del primo passo di `feedback_app` e l'esito del secondo. */
+export type FeedbackDraft = { hash: string; kind: string; label: string; title: string; body: string; screenshot: boolean; options: { id: string; label: string; description: string }[] }
+export type FeedbackChoice = { choice: 'github' | 'anonymous' | 'later'; url: string | null; text: string }
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
   /** Contratto 1.99: `prova`, `decisione`, gli id mostrati su un ok. */
@@ -388,6 +391,8 @@ export type Cmd = {
   pos_s?: number
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */
   question?: string
+  /** Contratto 1.121, `feedback_app`: primo passo kind, text, tech e la schermata (share, solo con screenshot_ok); secondo hash e choice. */
+  tech?: Record<string, string>; share?: string; screenshot_ok?: boolean; hash?: string
   /** Contratto 1.120, `close`: now (o assente), after = quando finisce, force = comunque. */
   when?: 'now' | 'after' | 'force'
   /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */

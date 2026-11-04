@@ -99,7 +99,7 @@ class RecapTextTest {
     @Test fun rows() {
         val r = RecapText.rows(s.recap)
         assertEquals("atlas-shop · Migrations 008-011 applied, tests green", r[0].done)
-        assertEquals("→ Review the seeds and the admin page", r[0].next)
+        assertEquals("→ Review the seeds", r[0].next)
         assertEquals("2 · —", RecapText.night(s.night, "—"))
         assertEquals("0 · atlas-shop", RecapText.night(s.night.copy(queued = 0, running = "atlas-shop"), "—"))
     }

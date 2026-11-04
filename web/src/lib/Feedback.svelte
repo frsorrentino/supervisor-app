@@ -5,11 +5,12 @@
   import { t } from './t'
   // Feedback dal menù (app-feedback-menu-04-11, scelta A): il tipo, il testo, i dati tecnici aggiunti da soli e la foto della
   // pagina, spenta di base e con l'anteprima; poi la bozza anonima con «Invia dal mio GitHub», «Invia anonimo» e «Non ora».
-  // `onSend` null: il relay non ha ancora l'op `feedback`, la bozza si vede ma non parte.
+  // L'invio (contratto 1.121, `feedback_app`): `onSend` manda la bozza e la scelta, e dice il link di GitHub o l'errore. Null:
+  // il relay non ha ancora l'op, la bozza si vede ma non parte.
   let { tech, onGrab, onSend, onDone }: {
     tech: Tech
     onGrab: (() => Promise<string | null>) | null
-    onSend: ((d: Draft, photo: string | null, as: 'github' | 'anon') => Promise<string | null>) | null
+    onSend: ((d: Draft, photo: string | null, as: 'github' | 'anon' | 'later') => Promise<{ url: string | null } | string>) | null
     onDone: () => void
   } = $props()
   // Il testo non scritto resta per la prossima volta, solo in questo browser.
@@ -24,6 +25,8 @@
   let sending = $state(false)
   // Mandato: la spunta si disegna sul tasto usato (D3, app-motion-loops-04-11), poi il foglio si chiude.
   let sentAs = $state<'github' | 'anon' | null>(null)
+  // «Invia dal mio GitHub»: il link dell'issue già scritta, da aprire col proprio account.
+  let github = $state<string | null>(null)
   let result = $state<string | null>(null)
   $effect(() => { const v = text; try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY) } catch { /* solo per questa visita */ } })
   const techLines = $derived([`app ${tech.version} (${tech.commit})`, tech.device, tech.screen, tech.lang])
@@ -40,11 +43,22 @@
   async function send(as: 'github' | 'anon') {
     if (!draft || !onSend) return
     sending = true
-    const err = await onSend(draft, photo, as).catch((e) => String(e))
+    const r = await onSend(draft, photo, as).catch((e) => String(e))
     sending = false
-    if (err) { result = t.feedbackSendFail(err); return }
-    text = ''; result = t.feedbackSent; sentAs = as
+    if (typeof r === 'string') { result = t.feedbackSendFail(r); return }
+    text = ''; sentAs = as
+    // Su GitHub la persona apre l'issue e la manda lei: il foglio resta col link.
+    if (as === 'github' && r.url) { github = r.url; result = t.feedbackGithubHint; return }
+    result = t.feedbackAnonSent
     setTimeout(onDone, confirmMs('ok') + 300)
+  }
+  // «Non ora»: con il relay la bozza resta fra le osservazioni del PC.
+  async function later() {
+    if (draft && onSend && !sentAs) {
+      const r = await onSend(draft, photo, 'later').catch((e) => String(e))
+      if (typeof r !== 'string') { text = ''; result = t.feedbackKept; setTimeout(onDone, 900); return }
+    }
+    onDone()
   }
 </script>
 
@@ -76,11 +90,12 @@
       {#if photo}<img class="shot" src={photo} alt={t.feedbackPhotoAttached} />{/if}
     </div>
     {#if result}<p class="note">{result}</p>{:else if !onSend}<p class="note">{t.feedbackNotYet}</p>{/if}
+    {#if github}<a class="fill gh" href={github} target="_blank" rel="noopener" onclick={() => setTimeout(onDone, 300)}>{t.feedbackGithubOpen}</a>{/if}
     <button class="fill ck" class:done={sentAs === 'github'} disabled={!onSend || sending || !!sentAs} onclick={() => send('github')}><span class="lbl">{t.feedbackSendGithub}</span>{#if sentAs === 'github'}<Check />{/if}</button>
     <div class="btns">
       <button class="tx2 ck" class:done={sentAs === 'anon'} disabled={!onSend || sending || !!sentAs} onclick={() => send('anon')}><span class="lbl">{t.feedbackSendAnon}</span>{#if sentAs === 'anon'}<Check />{/if}</button>
       <button class="tx2" onclick={() => (draft = null)}>{t.feedbackEdit}</button>
-      <button class="tx2" onclick={onDone}>{t.feedbackLater}</button>
+      <button class="tx2" disabled={sending || !!sentAs} onclick={later}>{t.feedbackLater}</button>
     </div>
   {/if}
 </div>
@@ -108,6 +123,7 @@
   pre { margin: 0 14px 14px; white-space: pre-wrap; font: 13.5px/1.45 var(--mono); color: var(--tx2); }
   .note { margin: 0 4px; font-size: 14px; color: var(--tx2); }
   .fill { min-height: 48px; border-radius: 24px; background: var(--act); color: var(--on-act); font: 600 17px var(--display); }
+  a.gh { display: flex; align-items: center; justify-content: center; text-decoration: none; }
   .fill:disabled, .tx2:disabled { opacity: .45; }
   .btns { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; }
   .tx2 { padding: 12px 14px; font-size: 15px; color: var(--tx); border-radius: 22px; }

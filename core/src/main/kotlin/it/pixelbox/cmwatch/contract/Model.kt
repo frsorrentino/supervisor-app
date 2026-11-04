@@ -163,6 +163,8 @@ enum class CmdOp {
     @SerialName("conti") CONTI, @SerialName("conti_azione") CONTI_AZIONE,
     /** Contratto 1.105: le note di claude-observe, il consenso «sempre anonimo», l'anteprima o l'invio (`hash`), il testo libero che diventa una issue pubblica; solo da un tocco. */
     @SerialName("feedback_consent") FEEDBACK_CONSENT, @SerialName("feedback_send") FEEDBACK_SEND, @SerialName("feedback_text") FEEDBACK_TEXT,
+    /** Contratto 1.121: il Feedback dal menu, in due passi (bozza col suo hash, poi la scelta). */
+    @SerialName("feedback_app") FEEDBACK_APP,
     /** Contratto 1.106: i risultati consegnati dalle sessioni (lettura passiva), «Visto» su una versione, la nota alla sessione. */
     @SerialName("results") RESULTS, @SerialName("result_seen") RESULT_SEEN, @SerialName("result_note") RESULT_NOTE,
     /** Contratto 1.99: Da provare e Da decidere. */

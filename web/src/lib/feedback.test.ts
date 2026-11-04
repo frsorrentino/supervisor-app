@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { anonymize, deviceOf, draftOf, titleOf } from './feedback'
+import { readFileSync } from 'node:fs'
+import { anonymize, bytesOf, deviceOf, draftOf, parseChoice, parseDraft, relayKind, relayTech, titleOf } from './feedback'
 
 // Feedback dal menù (app-feedback-menu-04-11).
 const labels = { kind: { idea: 'Suggerimento', bug: 'Bug' }, tech: 'Dati tecnici', photo: 'Foto della pagina allegata' }
@@ -27,5 +28,37 @@ describe('feedback', () => {
     expect(d.body).toContain('schermata: Lavori')
     expect(d.body).not.toContain('Foto')
     expect(draftOf('idea', 'x', tech, true, labels).body).toContain('_Foto della pagina allegata_')
+  })
+})
+
+// Contratto 1.121, `feedback_app`: le voci 1210-1214 di cmd-result-sample.json.
+describe('feedback_app', () => {
+  const sample = JSON.parse(readFileSync(new URL('../../../contract/cmd-result-sample.json', import.meta.url), 'utf8'))
+  const res = (n: string) => sample.result.find((r: { id: string }) => r.id.endsWith(n))
+  it('la bozza del primo passo ha hash, titolo e i tre tasti', () => {
+    const d = parseDraft(res('00001210').text)!
+    expect(d.hash).toBe('7c41e09a2b')
+    expect(d.screenshot).toBe(true)
+    expect(d.options.map(o => o.id)).toEqual(['github', 'anonymous', 'later'])
+    expect(parseDraft(res('00001214').text)).toBeNull()
+  })
+  it("l'esito del secondo: github col link, anonimo col link, più tardi senza", () => {
+    expect(parseChoice(res('00001212').text)!.url).toMatch(/^https:\/\/github\.com\/frsorrentino\/supervisor\/issues\/new\?/)
+    expect(parseChoice(res('00001211').text)!.choice).toBe('anonymous')
+    expect(parseChoice(res('00001213').text)).toEqual({ choice: 'later', url: null, text: expect.any(String) })
+  })
+  it('tipo e dati tecnici come li vuole il relay', () => {
+    expect(relayKind('idea')).toBe('suggerimento')
+    expect(relayKind('bug')).toBe('bug')
+    const t = relayTech({ version: '0.2.1', commit: 'abc', device: 'x'.repeat(100), screen: 'Home', lang: 'it' })
+    expect(Object.keys(t).every(k => /^[a-z_]+$/.test(k))).toBe(true)
+    expect(t.device.length).toBe(80)
+    // Le richieste del primo passo nella fixture usano le stesse chiavi.
+    const cmd = sample.cmds?.find?.((c: { id: string }) => c.id.endsWith('00001210')) ?? sample.cmd?.find?.((c: { id: string }) => c.id.endsWith('00001210'))
+    if (cmd) expect(Object.keys(cmd.tech).every((k: string) => /^[a-z_]+$/.test(k))).toBe(true)
+  })
+  it('la foto in byte per /share', () => {
+    expect(bytesOf('data:image/png;base64,AAEC')).toEqual({ mime: 'image/png', data: new Uint8Array([0, 1, 2]) })
+    expect(bytesOf('nope')).toBeNull()
   })
 })
