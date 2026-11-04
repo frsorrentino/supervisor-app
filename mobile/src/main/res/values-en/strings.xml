@@ -1765,6 +1765,6 @@ It starts at your last message to the master.</string>
     <string name="master_width_edge">Drag to widen or narrow the master</string>
     <string name="master_stack_step">Change the master height</string>
     <string name="swap_add">Open %1$s alongside</string>
-    <string name="swap_replace">Instead of %1$s</string>
+    <string name="swap_close">Close the %1$s column</string>
     <string name="reading_channel">Voice reading</string>
 </resources>

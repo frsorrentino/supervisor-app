@@ -121,6 +121,12 @@ object Tablet {
         else -> columns.dropLast(1) + name
     }
 
+    /**
+     * Il tocco su una scheda della home (Franz 04/11, app-scheda-sostituisce-04-11): al posto di quella in vista, l'ultima
+     * colonna; già in colonna niente; senza colonne la apre. Il + nel bordo aggiunge accanto (`add`).
+     */
+    fun replace(columns: List<String>, name: String): List<String> = if (name in columns) columns else columns.dropLast(1) + name
+
     /** Una colonna trascinata sopra un'altra: si scambiano di posto. */
     /**
      * L'anteprima di un trascinamento (Franz, 09/10 15:46): l'ordine e le larghezze come saranno dopo lo scambio, così al

@@ -933,8 +933,8 @@ private fun DeskBody(
                     val y = r.top + kotlin.math.min(r.height / 2f, with(density) { 44.dp.toPx() })
                     if (y > hb.top + with(density) { 20.dp.toPx() } && y < hb.bottom - with(density) { 20.dp.toPx() }) {
                         val yDp = with(density) { (y - gb.top).toDp() }
-                        if (name in swap.shown) Box(Modifier.offset(y = yDp - 1.dp).width(handleW).height(2.dp).clip(RoundedCornerShape(1.dp)).background(Cm.text.copy(alpha = 0.8f)))
-                        else SwapPill(name, swap, homeRight, Modifier.align(Alignment.TopCenter).offset(y = yDp - 30.dp))
+                        if (name in swap.shown) CloseLink(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
+                        else SwapPill(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
                     }
                 }
             }
@@ -1089,19 +1089,23 @@ class DraftStore(initial: Map<String, String> = emptyMap()) {
     }
 }
 
-/** Le pillole + e › della home sul tablet: le sessioni già in colonna, quella in vista, e cosa fare al tocco. */
-data class SwapPills(val shown: List<String>, val current: String?, val onAdd: (String) -> Unit, val onSwap: (String) -> Unit)
+/** Il segno accanto a ogni sessione della home sul tablet: le sessioni già in colonna e cosa fare al tocco. */
+data class SwapPills(val shown: List<String>, val onAdd: (String) -> Unit, val onClose: (String) -> Unit)
 
-/** + apre accanto, › al posto di quella in vista (‹ con la home a destra); tenue, come nella PWA. */
+/** Il filo bianco di una sessione già in colonna è il suo meno: il tocco la chiude (app-scheda-sostituisce-04-11, come la PWA). */
 @Composable
-private fun SwapPill(name: String, swap: SwapPills, homeRight: Boolean, modifier: Modifier) {
+private fun CloseLink(name: String, swap: SwapPills, modifier: Modifier) {
+    Box(modifier.size(30.dp).clip(RoundedCornerShape(15.dp)).handCursor().clickable(onClickLabel = stringResource(R.string.swap_close, name)) { swap.onClose(name) }.testTag("filo-$name"), contentAlignment = Alignment.Center) {
+        Box(Modifier.width(28.dp).height(2.dp).clip(RoundedCornerShape(1.dp)).background(Cm.text.copy(alpha = 0.8f)))
+    }
+}
+
+/** + apre accanto; tenue, come nella PWA. Sostituire è il tocco sulla scheda. */
+@Composable
+private fun SwapPill(name: String, swap: SwapPills, modifier: Modifier) {
     Column(modifier.width(28.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surface).border(1.dp, Cm.line, RoundedCornerShape(14.dp)).graphicsLayer { alpha = 0.75f }.testTag("pillola-$name")) {
         Box(Modifier.fillMaxWidth().height(30.dp).handCursor().clickable(onClickLabel = stringResource(R.string.swap_add, name)) { swap.onAdd(name) }, contentAlignment = Alignment.Center) {
             Text("+", style = V3.Name.copy(fontSize = 20.sp, color = Cm.text))
-        }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Cm.line))
-        Box(Modifier.fillMaxWidth().height(30.dp).handCursor().clickable(onClickLabel = swap.current?.let { stringResource(R.string.swap_replace, it) } ?: stringResource(R.string.swap_add, name)) { swap.onSwap(name) }, contentAlignment = Alignment.Center) {
-            Text(if (homeRight) "‹" else "›", style = V3.Name.copy(fontSize = 20.sp, color = Cm.text))
         }
     }
 }

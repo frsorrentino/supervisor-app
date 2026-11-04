@@ -1875,9 +1875,9 @@ class MainActivity : ComponentActivity() {
                     // Aprire una sessione che ha finito la toglie da «Ha finito», come in «Per te».
                     onOpen = { n ->
                         summary.rows.firstOrNull { r -> r.session.name == n && r.key != null }?.key?.let(markRead)
-                        // Sul tablet il tocco sulla scheda apre e chiude la sua colonna (Franz, 05/10 11:09); le altre strade
-                        // (ricerca, notifica, menu) aprono soltanto.
-                        if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.toggle(tabletCols, n)) else open = n
+                        // Sul tablet il tocco sulla scheda va al posto della colonna in vista; già in colonna resta (Franz 04/11,
+                        // app-scheda-sostituisce-04-11; prima apriva e chiudeva). Il + nel bordo aggiunge, il filo chiude.
+                        if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.replace(tabletCols, n)) else open = n
                     },
                     onAnswer = { n, k -> scope.launch { runCatching { app.repo.answer(n, k) } } },
                     onStep = sendPrompt, onService = forYouAction, onClosed = { closedOpen = true },
@@ -2171,11 +2171,11 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 override = if (tab == StartRoute.Tab.LAVORI) ({ lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.BAR) }) else null,
-                // + apre accanto, › al posto dell'ultima colonna (app-sessione-sostituisci-03-11, come la PWA larga).
+                // + apre accanto, il filo di quella già in colonna la chiude (app-scheda-sostituisce-04-11, come la PWA larga).
                 swap = it.pixelbox.cmwatch.mobile.ui.SwapPills(
-                    tabletCols, tabletCols.lastOrNull(),
+                    tabletCols,
                     onAdd = { n -> if (n !in tabletCols) saveCols(it.pixelbox.cmwatch.rules.Tablet.add(tabletCols, n)) },
-                    onSwap = { n -> saveCols(if (tabletCols.isEmpty()) listOf(n) else tabletCols.dropLast(1) + n) },
+                    onClose = { n -> saveCols(tabletCols - n) },
                 ),
                 inspector = if (inspectorOn && first != null) ({
                     TabletInspector(it.pixelbox.cmwatch.rules.Tablet.inspect(first, timeline, now, zone), st.quota[first.account]?.h5, loading = timelineOk && timeline == null)

@@ -106,7 +106,7 @@
       {#each [...cols].sort() as name (name)}
         {@const i = cols.indexOf(name)}
         {@const k = slot(i)}
-        <div class="col" class:dragging={dragged === i}
+        <div class="col" data-col={name} class:dragging={dragged === i}
           style="left:{dragged === i ? lefts[i] + draggedPx : lefts[k]}px;width:{live[k] ?? 0}px">
           {@render column(name, (e) => grabColumn(i, e))}
         </div>

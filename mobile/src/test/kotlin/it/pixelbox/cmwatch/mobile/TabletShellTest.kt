@@ -148,7 +148,7 @@ class TabletShellTest {
             },
             inspector = if (details) ({ TabletInspector(Tablet.inspect(selected, timeline, ts, zone), st.quota[selected.account]?.h5, loading = false) }) else null,
             homeHidden = homeHidden,
-            swap = if (swap) SwapPills(cols, cols.lastOrNull(), {}, {}) else null,
+            swap = if (swap) SwapPills(cols, {}, {}) else null,
         )
     }
 

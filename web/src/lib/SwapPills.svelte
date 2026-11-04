@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { t } from './t'
-  // La pillola + e › nel bordo fra la home e le colonne (Franz 03/11 18:22, app-sessione-sostituisci-03-11): accanto a ogni
-  // sessione della home, + la apre accanto, › al posto di quella in vista. Tenue a riposo, chiara al passaggio con le due
-  // scritte. La sessione già in colonna non ha la pillola: un filo bianco, centrato sulla sua riga, la lega al riquadro.
-  let { shown, current, homeRight, onAdd, onSwap }: { shown: string[]; current: string | null; homeRight: boolean; onAdd: (n: string) => void; onSwap: (n: string) => void } = $props()
+  // Il segno nel bordo fra la home e le colonne, accanto a ogni sessione della home (Franz 03/11 18:22 e 04/11,
+  // app-sessione-sostituisci-03-11, app-scheda-sostituisce-04-11): chiusa, + la apre accanto; già in colonna, il filo bianco
+  // che la lega al riquadro è il suo meno, e al passaggio diventa «− Chiudi». Sostituire è il clic sulla scheda.
+  let { shown, homeRight, onAdd, onClose }: { shown: string[]; homeRight: boolean; onAdd: (n: string) => void; onClose: (n: string) => void } = $props()
   type Spot = { name: string; y: number; x: number }
   let spots = $state<Spot[]>([])
   let hot = $state<string | null>(null)
@@ -32,15 +32,14 @@
 
 {#each spots as s (s.name)}
   {#if shown.includes(s.name)}
-    <i class="link" style:top="{s.y}px" style:left="{s.x - 14}px" aria-hidden="true"></i>
+    <button class="link" class:hot={hot === s.name} class:flip={homeRight} style:top="{s.y}px" style:left="{s.x}px" aria-label={t.swapClose(s.name)}
+      onpointerenter={() => (hot = s.name)} onpointerleave={() => (hot = null)} onclick={() => onClose(s.name)}><i></i>{#if hot === s.name}<span class="tip">{t.swapCloseShort}</span>{/if}</button>
   {:else}
     <div class="pill" class:hot={hot === s.name} class:flip={homeRight} style:top="{s.y}px" style:left="{s.x}px" role="group" aria-label={s.name}
       onpointerenter={() => (hot = s.name)} onpointerleave={() => (hot = null)}>
       <button aria-label={t.swapAdd(s.name)} title={t.swapAdd(s.name)} onclick={() => onAdd(s.name)}>+</button>
-      <button aria-label={current ? t.swapReplace(current) : t.swapAdd(s.name)} title={current ? t.swapReplace(current) : ''} onclick={() => onSwap(s.name)}>{homeRight ? '‹' : '›'}</button>
       {#if hot === s.name}
         <span class="tip tip1">{t.swapAddShort}</span>
-        {#if current}<span class="tip tip2">{t.swapReplace(current)}</span>{/if}
       {/if}
     </div>
   {/if}
@@ -50,11 +49,16 @@
   .pill { position: fixed; z-index: 30; transform: translate(-50%, -50%); width: 30px; display: flex; flex-direction: column; border-radius: 16px; background: var(--s1); border: 1px solid var(--line); opacity: .55; transition: opacity .15s, background-color .15s; }
   .pill.hot { opacity: 1; background: var(--s2); }
   .pill button { height: 30px; display: grid; place-items: center; font: 500 20px/1 var(--sans, inherit); color: var(--text); }
-  .pill button + button { border-top: 1px solid var(--line); }
   .pill button:hover { color: var(--accent); }
   .tip { position: absolute; left: calc(100% + 8px); white-space: nowrap; padding: 4px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; color: var(--text); pointer-events: none; }
   .pill.flip .tip { left: auto; right: calc(100% + 8px); }
-  .tip1 { top: 2px; } .tip2 { top: 32px; }
-  .link { position: fixed; z-index: 30; width: 28px; height: 2px; margin-top: -1px; background: var(--text); border-radius: 1px; opacity: .8; pointer-events: none; }
-  @media (prefers-reduced-motion: reduce) { .pill { transition: none; } }
+  .tip1 { top: 2px; }
+  /* Il filo: 28 x 2 a riposo, il tocco prende 30 x 30; al passaggio diventa la pillola del meno, come quella del +. */
+  .link { position: fixed; z-index: 30; transform: translate(-50%, -50%); width: 30px; height: 30px; display: grid; place-items: center; border-radius: 16px; border: 1px solid transparent; transition: background-color .15s, border-color .15s; }
+  .link i { width: 28px; height: 2px; border-radius: 1px; background: var(--text); opacity: .8; transition: width .15s; }
+  .link.hot { background: var(--s2); border-color: var(--line); }
+  .link.hot i { width: 12px; opacity: 1; }
+  .link .tip { top: 4px; }
+  .link.flip .tip { left: auto; right: calc(100% + 8px); }
+  @media (prefers-reduced-motion: reduce) { .pill, .link, .link i { transition: none; } }
 </style>

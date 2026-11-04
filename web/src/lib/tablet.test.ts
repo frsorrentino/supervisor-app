@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Session, State } from './contract'
 import { build } from './summary'
-import { add, columns, forecast, inspect, timelineArg, weekProjected, weekRunsOut, columnsFromPref, columnsPref, drag, equal, groups, parts, sharesFromPref, sharesPref, swap, toggle, wide } from './tablet'
+import { add, columns, forecast, inspect, timelineArg, weekProjected, weekRunsOut, columnsFromPref, columnsPref, drag, equal, groups, parts, sharesFromPref, sharesPref, replace, swap, toggle, wide } from './tablet'
 
 // Gli stessi casi di TabletTest in Kotlin (colonne e plancia).
 const at = (h: number, m = 0) => Date.UTC(2026, 9, 4, h - 2, m) / 1000
@@ -40,6 +40,10 @@ describe('colonne', () => {
   })
   it('il clic su una scheda aggiunge', () => {
     expect(add(['a'], 'b')).toEqual(['a', 'b']); expect(add(['a', 'b'], 'a')).toEqual(['a', 'b']); expect(add(['a', 'b', 'c', 'd'], 'e')).toEqual(['a', 'b', 'c', 'e'])
+  })
+  // Franz 04/11 (app-scheda-sostituisce-04-11): il clic sostituisce quella in vista, il + aggiunge.
+  it('il clic su una scheda va al posto di quella in vista', () => {
+    expect(replace(['a', 'b'], 'c')).toEqual(['a', 'c']); expect(replace([], 'c')).toEqual(['c']); expect(replace(['a', 'b'], 'a')).toEqual(['a', 'b'])
   })
   it('lo scambio', () => {
     expect(swap(['a', 'b', 'c'], 0, 2)).toEqual(['c', 'b', 'a']); expect(swap(['a', 'b', 'c'], 1, 1)).toEqual(['a', 'b', 'c']); expect(swap(['a', 'b', 'c'], 0, 5)).toEqual(['a', 'b', 'c'])

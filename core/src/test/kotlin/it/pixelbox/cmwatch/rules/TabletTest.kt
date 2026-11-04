@@ -147,6 +147,13 @@ class TabletTest {
         assertEquals(listOf("a", "b", "c", "e"), Tablet.add(listOf("a", "b", "c", "d"), "e"))
     }
 
+    // Franz 04/11 (app-scheda-sostituisce-04-11): il tocco sulla scheda va al posto di quella in vista, il + aggiunge.
+    @Test fun tapReplacesTheColumnInView() {
+        assertEquals(listOf("a", "c"), Tablet.replace(listOf("a", "b"), "c"))
+        assertEquals(listOf("c"), Tablet.replace(emptyList(), "c"))
+        assertEquals(listOf("a", "b"), Tablet.replace(listOf("a", "b"), "a"))
+    }
+
     // Trascinata sopra un'altra, una colonna scambia il posto con lei; fuori dalle colonne non succede niente.
     @Test fun swapExchangesTwoColumns() {
         assertEquals(listOf("c", "b", "a"), Tablet.swap(listOf("a", "b", "c"), 0, 2))

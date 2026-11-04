@@ -34,6 +34,11 @@ export const toggle = (cols: string[], name: string) =>
 /** Il clic su una scheda aggiunge; già in colonna niente; con quattro prende il posto dell'ultima. */
 export const add = (cols: string[], name: string) =>
   cols.includes(name) ? cols : cols.length < MAX_COLUMNS ? [...cols, name] : [...cols.slice(0, -1), name]
+/**
+ * Il clic su una scheda della home (Franz 04/11, app-scheda-sostituisce-04-11): al posto di quella in vista, l'ultima colonna;
+ * già in colonna niente (la pagina la illumina); senza colonne la apre. Il + nel bordo aggiunge accanto (`add`).
+ */
+export const replace = (cols: string[], name: string) => (cols.includes(name) ? cols : [...cols.slice(0, -1), name])
 /** Una colonna trascinata sopra un'altra: si scambiano di posto. */
 export function swap(cols: string[], from: number, to: number): string[] {
   if (from === to || from < 0 || to < 0 || from >= cols.length || to >= cols.length) return cols

@@ -98,7 +98,7 @@
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
   import { since as kpiSince, head as kpiHeadOf } from './lib/kpi'
-  import { add, columns, columnsFromPref, columnsPref, inspect, sharesFromPref, sharesPref, timelineArg, toggle as toggleCol, wide as isWide } from './lib/tablet'
+  import { add, columns, columnsFromPref, columnsPref, inspect, replace as replaceCol, sharesFromPref, sharesPref, timelineArg, wide as isWide } from './lib/tablet'
   import { refusalText, superseded } from './lib/questionRules'
   import { shouldRead, due, activity, behind, BG_PARALLEL, type LastRead, type BgRead } from './lib/readPlan'
   import { of as swipeOf, stable as swipeStable, step as swipeStep, type Pages } from './lib/swipePages'
@@ -919,7 +919,13 @@
   }
   const openQueue = (from: string | null = null) => { queueSkip = from; openPage('queue') }
   // Il tocco su una scheda della home: sulla plancia apre e chiude la sua colonna (Franz, 05/10 11:09), sul telefono apre.
-  function card(name: string) { if (name !== MASTER && wide) setCols(toggleCol(cols, name)); else pick(name) }
+  // Il clic sulla scheda va al posto della colonna in vista; già in colonna la illumina invece di chiuderla (Franz 04/11,
+  // app-scheda-sostituisce-04-11). Il + nel bordo aggiunge, il filo chiude.
+  function card(name: string) {
+    if (name === MASTER || !wide) { pick(name); return }
+    if (cols.includes(name)) document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(name)}"]`)?.animate([{ boxShadow: '0 0 0 2px var(--wait)' }, { boxShadow: '0 0 0 2px transparent' }], { duration: 1200, easing: 'ease-out' })
+    else setCols(replaceCol(cols, name))
+  }
   // Telefono: si scorre di lato fra la home e le sessioni, come nell'app (HorizontalPager con SwipePages; 15/10 20:24: «non
   // funziona lo scroll tra sessioni?»). Mentre una sessione è aperta l'ordine delle pagine resta quello di prima, le nuove in
   // fondo; si rifà tornando alla home. Si disegnano solo la pagina a schermo e le due accanto.
@@ -1495,7 +1501,7 @@
   </Desk>
   {#if master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
-  {#if cols.length && !stacked && !page}<SwapPills shown={cols} current={cols.at(-1) ?? null} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols([...cols, n]) }} onSwap={(n) => setCols(cols.length ? [...cols.slice(0, -1), n] : [n])} />{/if}
+  {#if cols.length && !stacked && !page}<SwapPills shown={cols} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
   </div>
   {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
