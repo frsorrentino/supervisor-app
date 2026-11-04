@@ -240,7 +240,8 @@
 /* 4. Web largo e tablet: lo sfondo è chiaro in alto al centro e scuro ai bordi; il telefono resta nero pieno. */
 @media (min-width: 900px) {
   /* Luce più discreta (Franz 03/11 17:46: «troppo forte»). */
-  :root:root .plancia.v3 { background: radial-gradient(75% 70% at 50% 0%, #181C24 0%, #101218 60%, #0A0B0E 100%); }
+  /* Solo grigi, senza il blu di prima (Franz 04/11 dal telefono): stessa luminosità di #181C24, #101218, #0A0B0E. */
+  :root:root .plancia.v3 { background: radial-gradient(75% 70% at 50% 0%, #1C1C1C 0%, #121212 60%, #0B0B0B 100%); }
 }
 /* 5. Plancia larga, una regola sola (app-pwa-coerenza-03-11, mockup del 03/11, scelta «Righe, schede azioni» di Franz): le colonne
    sono pannelli e solo loro hanno il riflesso; dentro, ogni voce è una riga col suo filetto, senza riquadro (Suggerimenti, Esiti di
