@@ -1774,6 +1774,7 @@ class MainActivity : ComponentActivity() {
             snap.freshness is Freshness.Stale, onLaunch = { launching = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
             onQuadro = goUsage, onSearch = { searchOpen = true }, onSettings = { settingsOpen = true },
             onNight = { nightOpen = true },
+            screen = open?.let { o -> androidx.compose.ui.res.stringResource(R.string.feedback_session, o) } ?: if (tab == StartRoute.Tab.LAVORI) androidx.compose.ui.res.stringResource(R.string.menu_lavori) else null,
         )
         val pageHeader: @Composable (String?) -> Unit = { page ->
             PageHeader(

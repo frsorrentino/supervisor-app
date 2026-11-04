@@ -31,6 +31,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -223,6 +224,8 @@ data class MenuActions(
     val onQuadro: () -> Unit, val onSearch: (() -> Unit)?, val onSettings: () -> Unit,
     /** La pagina Notte (specifica del 07/10); null = la voce non c'è. */
     val onNight: (() -> Unit)? = null,
+    /** Dove si è, per i dati tecnici del Feedback (app-feedback-menu-04-11); null = la home. */
+    val screen: String? = null,
 )
 
 /**
@@ -279,5 +282,21 @@ fun PageHeader(
 internal fun AppMenu(menu: MenuActions, startOpen: Boolean = false) {
     var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(startOpen) }
     IconButton(onClick = { open = true }) { Icon(Icons.Rounded.Menu, stringResource(R.string.menu), tint = Cm.actionIcon) }
-    if (open) AppMenuPanel(menu.host, menu.updated, menu.stale, menu.onLaunch, menu.onLavori, menu.onQuadro, menu.onSearch ?: {}, menu.onSettings, onDismiss = { open = false }, onNight = menu.onNight)
+    // Feedback (app-feedback-menu-04-11): la foto della pagina si fa subito, quando il menu si è chiuso e prima del foglio; si
+    // allega solo se la si accende.
+    var feedback by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var shot by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<android.graphics.Bitmap?>(null) }
+    val view = androidx.compose.ui.platform.LocalView.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val onFeedback = {
+        open = false
+        scope.launch {
+            repeat(2) { androidx.compose.runtime.withFrameNanos { } }
+            shot = runCatching { val r = view.rootView; android.graphics.Bitmap.createBitmap(r.width, r.height, android.graphics.Bitmap.Config.ARGB_8888).also { r.draw(android.graphics.Canvas(it)) } }.getOrNull()
+            feedback = true
+        }
+        Unit
+    }
+    if (open) AppMenuPanel(menu.host, menu.updated, menu.stale, menu.onLaunch, menu.onLavori, menu.onQuadro, menu.onSearch ?: {}, menu.onSettings, onDismiss = { open = false }, onNight = menu.onNight, onFeedback = onFeedback)
+    if (feedback) FeedbackSheet(menu.screen ?: stringResource(R.string.feedback_home), shot, onDismiss = { feedback = false; shot = null })
 }

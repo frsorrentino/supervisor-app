@@ -161,6 +161,8 @@ fun AppMenuPanel(
     onDismiss: () -> Unit,
     /** La pagina Notte (specifica del 07/10); null = la voce non c'è. */
     onNight: (() -> Unit)? = null,
+    /** Feedback (app-feedback-menu-04-11): un suggerimento o un bug; null = la voce non c'è. */
+    onFeedback: (() -> Unit)? = null,
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val live by it.pixelbox.cmwatch.mobile.live.LiveService.running.collectAsState()
@@ -175,6 +177,9 @@ fun AppMenuPanel(
         ) + listOf(
             MenuEntry(Icons.Outlined.DataUsage, stringResource(R.string.menu_quadro), stringResource(R.string.menu_quadro_sub), onClick = onQuadro),
             MenuEntry(Icons.Outlined.Search, stringResource(R.string.menu_search), stringResource(R.string.menu_search_sub), onClick = onSearch),
+        ) + listOfNotNull(
+            onFeedback?.let { f -> MenuEntry(Icons.Outlined.Feedback, stringResource(R.string.feedback_menu), stringResource(R.string.feedback_menu_sub), onClick = f) },
+        ) + listOf(
             // Modalità live (specifica 06/10): notiziario in cuffia, comandi dal watch; lo stesso tocco la spegne.
             MenuEntry(
                 Icons.Outlined.Headphones, stringResource(R.string.live_menu),
