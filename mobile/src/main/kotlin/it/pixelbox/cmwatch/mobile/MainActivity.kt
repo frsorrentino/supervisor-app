@@ -1,5 +1,10 @@
 package it.pixelbox.cmwatch.mobile
 
+import androidx.compose.material.icons.rounded.VerticalSplit
+import androidx.compose.material.icons.rounded.HorizontalSplit
+import androidx.compose.material.icons.rounded.OpenInFull
+import androidx.compose.material.icons.rounded.CloseFullscreen
+import androidx.compose.material.icons.rounded.Close
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -217,6 +222,9 @@ class MainActivity : ComponentActivity() {
         var masterChat by masterChatState
         // Sul tablet la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterChat`.
         var masterHalf by rememberSaveable { mutableStateOf(false) }
+        // Sul tablet lato, misura e posto della master come nella PWA larga (app-tablet-come-pwa-03-11), ricordati qui.
+        var place by remember { mutableStateOf(it.pixelbox.cmwatch.rules.MasterPlace.fromPref(getSharedPreferences("ui", MODE_PRIVATE).getString("master_place", null))) }
+        val keepPlace = { p: it.pixelbox.cmwatch.rules.MasterPlace -> place = p; getSharedPreferences("ui", MODE_PRIVATE).edit().putString("master_place", p.pref()).apply() }
         // Nome della sessione aperta; la master non è mai una pagina: aprirla, da qualunque strada, porta la home sulla sua chat.
         val openState = rememberSaveable { mutableStateOf<String?>(null) }
         val route = remember { OpenRoute(openState, tabState, masterChatState) }
@@ -1803,6 +1811,38 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // Il menu Posizione della master sul tablet (come masterMenu della PWA): lati, sotto la home con le sessioni aperte, misura, Chiudi.
+        val placeKeys: (Boolean) -> List<it.pixelbox.cmwatch.mobile.ui.PlaceKey> = { sessionsOpen ->
+            val icons = androidx.compose.material.icons.Icons.Rounded
+            place.copy(open = masterChat).menu(sessionsOpen).map { e ->
+                when (e.item) {
+                    it.pixelbox.cmwatch.rules.MasterPlace.Item.RIGHT -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_pos_right), icons.VerticalSplit, e.on) { keepPlace(place.pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.RIGHT)) }
+                    it.pixelbox.cmwatch.rules.MasterPlace.Item.LEFT -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_pos_left), icons.VerticalSplit, e.on) { keepPlace(place.pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.LEFT)) }
+                    it.pixelbox.cmwatch.rules.MasterPlace.Item.UNDER -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_pos_under), icons.HorizontalSplit, e.on) { keepPlace(place.pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.UNDER)) }
+                    it.pixelbox.cmwatch.rules.MasterPlace.Item.SIZE -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(if (place.narrow) R.string.master_widen else R.string.master_narrow), if (place.narrow) icons.OpenInFull else icons.CloseFullscreen) { keepPlace(place.pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.SIZE)) }
+                    it.pixelbox.cmwatch.rules.MasterPlace.Item.CLOSE -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_close_key), icons.Close) { masterChat = false }
+                }
+            }
+        }
+        // La master aperta sul tablet: la sua conversazione, con la testata e il tasto Posizione.
+        val masterPanel: @Composable (it.pixelbox.cmwatch.contract.Session, Boolean) -> Unit = { m, sessionsOpen ->
+            val ents = ChatFeed.pageEntries(m.name, chatName, entriesOwner, entries, feedCache)
+            val hero = remember(ents, m.outcome) { it.pixelbox.cmwatch.rules.MasterHome.hero(ents, m) }
+            sessionPage(
+                m, ents, null, true, null, null, true,
+                {
+                    MasterDock(
+                        m, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, onToggle = { masterChat = false }, expanded = true,
+                        screen = false, trailing = { AppMenu(menuActions) }, places = placeKeys(sessionsOpen),
+                    )
+                }, null,
+            )
+        }
+        val masterBar: @Composable (it.pixelbox.cmwatch.contract.Session, () -> Unit) -> Unit = { m, onToggle ->
+            val ents = ChatFeed.pageEntries(m.name, chatName, entriesOwner, entries, feedCache)
+            val hero = remember(ents, m.outcome) { it.pixelbox.cmwatch.rules.MasterHome.hero(ents, m) }
+            MasterDock(m, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, onToggle = onToggle)
+        }
         val summaryPage: @Composable () -> Unit = summaryPage@{
             val st = state
             if (st == null || summary == null) {
@@ -1900,8 +1940,6 @@ class MainActivity : ComponentActivity() {
                 val zone = java.time.ZoneId.systemDefault()
                 val head = remember(st, kpiPage, now) { it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, zone) }
                 val doneToday = remember(events, now / 3600) { it.pixelbox.cmwatch.rules.Lavori.done(events, zone, java.time.LocalDate.now(zone)).firstOrNull { d -> d.date == java.time.LocalDate.now(zone) }?.rows.orEmpty() }
-                val hero = master?.let { m -> remember(masterEntries, m.outcome) { it.pixelbox.cmwatch.rules.MasterHome.hero(masterEntries, m) } }
-                val speakMaster = { t: String -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }
                 it.pixelbox.cmwatch.mobile.ui.Plancia(
                     widthDp, it.pixelbox.cmwatch.rules.HomeCats.decode(st.homeOrder).map { c -> c.id },
                     head = { pageHeader(null) },
@@ -1924,25 +1962,13 @@ class MainActivity : ComponentActivity() {
                             }
                         })
                     },
-                    bar = { if (master != null && hero != null) MasterDock(master, hero, onSpeak = speakMaster, onToggle = { masterHalf = true; masterChat = true }) },
-                    panel = if (master != null && hero != null && masterChat) ({
-                        val collapse = { masterChat = false; masterHalf = false }
-                        sessionPage(
-                            master, masterEntries, null, true, null, null, true,
-                            {
-                                MasterDock(
-                                    master, hero, onSpeak = speakMaster, onToggle = if (masterHalf) ({ masterHalf = false }) else collapse, expanded = true,
-                                    toggleUp = masterHalf, onToggleKey = if (masterHalf) ({ masterHalf = false }) else ({ masterHalf = true }),
-                                    onClose = collapse, screen = false, trailing = { AppMenu(menuActions) },
-                                )
-                            }, null,
-                        )
-                    }) else null,
-                    panelWidthDp = if (masterHalf) 420 else 720,
+                    bar = { if (master != null) masterBar(master) { masterChat = true } },
+                    panel = if (master != null && masterChat) ({ masterPanel(master, false) }) else null,
+                    panelWidthDp = place.panelWidth().toInt(), panelLeft = place.left,
                 )
                 return@summaryPage
             }
-            if (master != null) {
+            if (master != null && !wide) {
                 val hero = remember(masterEntries, master.outcome) { it.pixelbox.cmwatch.rules.MasterHome.hero(masterEntries, master) }
                 val homeList: @Composable ColumnScope.((String) -> Unit, (String) -> Unit) -> Unit = { _, _ -> list() }
                 // Franz, 03/10 16:44: la master si espande dal basso a tutta pagina (la sua conversazione, con modello ed effort)
@@ -1974,7 +2000,8 @@ class MainActivity : ComponentActivity() {
             } else Column(Modifier.fillMaxSize()) {
                 pageHeader(null)
                 Box(Modifier.weight(1f)) { list() }
-                Box(Modifier.padding(16.dp)) {
+                // Sul tablet la master sta nel suo telaio, di lato o in fondo (app-tablet-come-pwa-03-11).
+                if (master == null) Box(Modifier.padding(16.dp)) {
                     MasterAbsent { scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, it.pixelbox.cmwatch.rules.ContextActions.MASTER, null) } } }
                 }
             }
@@ -2074,14 +2101,15 @@ class MainActivity : ComponentActivity() {
         }
         // Sul tablet il Registro sta al posto delle colonne; Indietro le riporta.
         BackHandler(enabled = wide && tab == StartRoute.Tab.LAVORI && !settingsOpen && terminal == null && !queueOpen && !searchOpen) { tab = StartRoute.Tab.OVERVIEW }
-        val tabletDesk: @Composable (it.pixelbox.cmwatch.contract.State, it.pixelbox.cmwatch.rules.Summary.Model) -> Unit = { st, sm ->
+        val tabletDesk: @Composable (it.pixelbox.cmwatch.contract.State, it.pixelbox.cmwatch.rules.Summary.Model, Boolean) -> Unit = { st, sm, homeHidden ->
             val zone = java.time.ZoneId.systemDefault()
             val rows = remember(sm) { it.pixelbox.cmwatch.rules.Tablet.groups(sm).flatMap { g -> g.second } }
             val lastRows = remember { mutableStateMapOf<String, it.pixelbox.cmwatch.rules.Summary.Row>() }
             androidx.compose.runtime.SideEffect { rows.forEach { r -> lastRows[r.session.name] = r } }
             val first = inspected?.let { n -> st.sessions.firstOrNull { x -> x.name == n } }
             TabletDesk(
-                home = { summaryPage() }, homeRight = homeRight,
+                // Con la master la home sta dal suo lato (App.svelte: homeRight = !masterLeft); nella pila sta sopra la master.
+                home = { summaryPage() }, homeRight = if (sm.master != null) !place.left else homeRight, homeHidden = homeHidden,
                 onHomeSide = { homeRight = !homeRight; tabletPrefs.edit().putBoolean("tablet_home_right", homeRight).apply() },
                 columns = tabletCols, shares = tabletShares,
                 // Lo scambio porta con sé la larghezza della colonna.
@@ -2162,7 +2190,21 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.LocalAgendaNight provides agendaNight,
         ) {
         it.pixelbox.cmwatch.mobile.ui.PageIn(fromStart = true, animate = cameBack) {
-        if (deskDashboard && state != null && summary != null) summaryPage() else if (wide && state != null && summary != null) tabletDesk(state, summary) else
+        if (deskDashboard && state != null && summary != null) summaryPage() else if (wide && state != null && summary != null) {
+            // Con le sessioni aperte la master come senza (variante A della PWA): chiusa la barra in fondo, aperta il pannello di lato,
+            // o sotto la home nella colonna della master.
+            val m = summary.master
+            val stacked = m != null && place.copy(open = masterChat).stacked(true)
+            it.pixelbox.cmwatch.mobile.ui.MasterFrame(
+                place.left, place.panelWidth(),
+                panel = if (m != null && masterChat) ({
+                    if (stacked) it.pixelbox.cmwatch.mobile.ui.MasterStack(place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF, home = { summaryPage() },
+                        master = { if (place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF) masterPanel(m, true) else masterBar(m) { keepPlace(place.stepStack()) } }, onStep = { keepPlace(place.stepStack()) })
+                    else masterPanel(m, true)
+                }) else null,
+                bar = if (m != null && !masterChat) ({ masterBar(m) { masterChat = true } }) else null,
+            ) { tabletDesk(state, summary, stacked) }
+        } else
         AppShell(
             tab, demo, onTab = { tab = it; open = null }, onSettings = { settingsOpen = true },
             sessions = state?.let { st -> PhoneBoard.sections(st).flatMap { sec -> sec.sessions } }.orEmpty(),

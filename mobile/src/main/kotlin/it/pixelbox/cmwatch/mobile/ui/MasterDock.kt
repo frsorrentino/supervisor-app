@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.platform.testTag
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.SpaceDashboard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.draw.clip
@@ -121,6 +125,11 @@ fun MasterDock(
      * stato. ⌄ va a sinistra, al posto della freccia indietro, e a destra il menu ≡ della home (`trailing`); angoli dritti.
      */
     screen: Boolean = false, trailing: (@Composable RowScope.() -> Unit)? = null,
+    /**
+     * Il tasto tondo Posizione accanto al ▶, come nella PWA larga (Franz 03/11 17:23; sul tablet app-tablet-come-pwa-03-11):
+     * apre le posizioni, la misura e Chiudi al posto dei tasti ▲ ▼. Null = i tasti di sempre.
+     */
+    places: List<PlaceKey>? = null,
 ) {
     val time = hero?.at?.let { DOCK_HM.format(Instant.ofEpochSecond(it).atZone(ZoneId.systemDefault())) }
     val ctx = master.context?.let { stringResource(R.string.ctx_short, it) }
@@ -177,8 +186,8 @@ fun MasterDock(
                 }
             }
             // La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42: cambiava lato e non la ritrovava).
-            toggleKey()
-            onClose?.let { close ->
+            if (places == null) toggleKey()
+            if (places == null) onClose?.let { close ->
                 val closeSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 FilledTonalIconButton(onClick = close, modifier = Modifier.size(44.dp), shape = rememberMorphShape(closeSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = closeSrc) {
                     Icon(Icons.Rounded.ExpandMore, stringResource(R.string.dock_close), tint = Cm.text)
@@ -208,8 +217,29 @@ fun MasterDock(
                     stringResource(if (reading) R.string.stop_reading else R.string.dock_listen), tint = Cm.text,
                 )
             }
+            places?.let { keys ->
+                var menu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                Box {
+                    val placeSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    FilledTonalIconButton(onClick = { menu = true }, modifier = Modifier.size(44.dp).testTag("master-posizione"), shape = rememberMorphShape(placeSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = placeSrc) {
+                        Icon(androidx.compose.material.icons.Icons.Rounded.SpaceDashboard, stringResource(R.string.master_place), tint = Cm.text)
+                    }
+                    androidx.compose.material3.DropdownMenu(menu, { menu = false }) {
+                        keys.forEach { k ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(k.label, style = V3.Body) }, onClick = { menu = false; k.onClick() },
+                                leadingIcon = { Icon(k.icon, null, tint = Cm.text) },
+                                trailingIcon = if (k.on) ({ Icon(Icons.Rounded.Check, null, tint = Cm.text) }) else null,
+                            )
+                        }
+                    }
+                }
+            }
             trailing?.invoke(this)
         }
         if (expanded && look.thread) MasterThread()
     }
 }
+
+/** Una voce del menu Posizione della master: il nome, l'icona, se è quella di adesso. */
+data class PlaceKey(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val on: Boolean = false, val onClick: () -> Unit)

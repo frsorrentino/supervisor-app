@@ -216,3 +216,37 @@ internal fun Plancia(
         if (!panelLeft && panel != null) { Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line)); side() }
     }
 }
+
+/**
+ * La master accanto a quello che c'è (App.svelte, `deskwrap`): chiusa la barra in fondo, aperta il pannello di lato alto quanto
+ * lo schermo, sul lato e nella misura scelti; `stack` mette nel pannello la home sopra e la master sotto (app-tablet-come-pwa-03-11).
+ */
+@Composable
+internal fun MasterFrame(left: Boolean, panelWidthDp: Float, panel: (@Composable () -> Unit)?, bar: (@Composable () -> Unit)?, content: @Composable () -> Unit) {
+    Row(Modifier.fillMaxSize().background(V3.Bg)) {
+        val side: @Composable () -> Unit = { panel?.let { p -> Box(Modifier.width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello")) { p() } } }
+        if (left && panel != null) { side(); Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line)) }
+        Column(Modifier.weight(1f).fillMaxHeight()) {
+            Box(Modifier.weight(1f).fillMaxWidth()) { content() }
+            bar?.invoke()
+        }
+        if (!left && panel != null) { Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line)); side() }
+    }
+}
+
+/**
+ * Home sopra e master sotto nella colonna della master (Franz 03/11 17:30-17:44): uno stacco di 12 dp, la master come scheda
+ * con gli angoli tondi in alto; compatta ha la sua misura, a metà prende metà colonna.
+ */
+@Composable
+internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @Composable () -> Unit, onStep: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(V3.Bg).testTag("master-sotto-home")) {
+        Box(Modifier.weight(1f).fillMaxWidth()) { home() }
+        Box(Modifier.fillMaxWidth().height(14.dp).handCursor().clickable(onClickLabel = stringResource(R.string.master_stack_step), onClick = onStep), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+        }
+        val shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+        Box((if (half) Modifier.weight(1f) else Modifier).fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape)) { master() }
+    }
+}
+

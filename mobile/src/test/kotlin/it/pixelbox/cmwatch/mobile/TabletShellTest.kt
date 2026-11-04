@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.unit.dp
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
@@ -109,7 +110,7 @@ class TabletShellTest {
 
     /** La vista unica (Franz, 04/10 16:36): la home del telefono di lato, le colonne, i dettagli se accesi. */
     @Composable
-    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false) = CmPhoneTheme(still = true) {
+    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false) = CmPhoneTheme(still = true) {
         val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
         val rows = Tablet.groups(summary).flatMap { it.second }
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
@@ -146,6 +147,7 @@ class TabletShellTest {
                 )
             },
             inspector = if (details) ({ TabletInspector(Tablet.inspect(selected, timeline, ts, zone), st.quota[selected.account]?.h5, loading = false) }) else null,
+            homeHidden = homeHidden,
         )
     }
 
@@ -191,6 +193,29 @@ class TabletShellTest {
         )
     }
     @Test fun planciaEmpty() = paparazzi.snapshot { plancia(panel = false) }
+
+    // Con le sessioni aperte la master come nella PWA larga: aperta di lato a sinistra col tasto Posizione, la home dal suo lato.
+    @Test fun deskMasterLeft() = paparazzi.snapshot {
+        val m = st.sessions.first { it.name == "master" }
+        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
+        CmPhoneTheme(still = true) {
+            MasterFrame(left = true, panelWidthDp = 420f, panel = {
+                MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true, places = listOf(PlaceKey("A destra", androidx.compose.material.icons.Icons.Rounded.Close) {}))
+            }, bar = null) { desk(listOf("atlas-shop"), listOf(12)) }
+        }
+    }
+
+    // Home sopra e master compatta sotto, nella colonna della master; le colonne prendono il posto della home.
+    @Test fun deskMasterUnder() = paparazzi.snapshot {
+        val m = st.sessions.first { it.name == "master" }
+        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
+        val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
+        CmPhoneTheme(still = true) {
+            MasterFrame(left = false, panelWidthDp = 420f, panel = {
+                MasterStack(half = false, home = { SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = ts) }, master = { MasterDock(m, hero, onSpeak = {}, onToggle = {}) }, onStep = {})
+            }, bar = null) { desk(listOf("atlas-shop", "ledger-api"), listOf(6, 6), homeHidden = true) }
+        }
+    }
     @Test fun planciaMasterOpen() = paparazzi.snapshot { plancia(panel = true) }
 
     // Contratto 1.72: la vista «Modifiche» si apre nella colonna della sessione; la home e l'altra colonna restano.

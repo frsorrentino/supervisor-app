@@ -813,6 +813,8 @@ fun TabletDesk(
     inspector: (@Composable () -> Unit)? = null,
     /** Quello che va nella barra del titolo della finestra, quando Android la lascia all'app (Pixel Tablet in finestra). */
     caption: (@Composable RowScope.() -> Unit)? = null,
+    /** La home sta sopra la master nella colonna della master (app-tablet-come-pwa-03-11): qui non c'è, le colonne prendono il posto. */
+    homeHidden: Boolean = false,
 ) {
     // La barra del titolo nostra (Franz, 05/10 11:21: «come fa Chrome»): in una finestra di Android 15 e successivi la barra
     // è trasparente (MainActivity) e la riempiamo noi, lasciando liberi i tasti di sistema. Senza barra (schermo intero,
@@ -831,12 +833,12 @@ fun TabletDesk(
                 CaptionStrip(Modifier.padding(start = with(density) { left.toDp() }, end = with(density) { right.toDp() }), caption)
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = false)
+                DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = false, homeHidden = homeHidden)
             }
         }
         return
     }
-    DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = true)
+    DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = true, homeHidden = homeHidden)
 }
 
 /** La barra del titolo dell'app: le colonne come schede a sinistra, a destra quello che serve (la quota); il resto si trascina. */
@@ -866,7 +868,7 @@ private fun DeskBody(
     home: @Composable () -> Unit, homeRight: Boolean, onHomeSide: () -> Unit,
     columns: List<String>, shares: List<Int>, onSwap: (Int, Int) -> Unit, onShares: (List<Int>) -> Unit,
     column: @Composable (name: String, drag: Modifier) -> Unit, empty: @Composable () -> Unit,
-    override: (@Composable () -> Unit)?, inspector: (@Composable () -> Unit)?, insets: Boolean,
+    override: (@Composable () -> Unit)?, inspector: (@Composable () -> Unit)?, insets: Boolean, homeHidden: Boolean = false,
 ) {
     // La home cambia lato scivolando sopra le colonne, che scivolano dall'altra parte (Franz, 04/10 22:15: «spartane»). Le
     // parti restano nello stesso punto della composizione e cambiano solo posizione: la home non si ricrea e tiene lo
@@ -882,8 +884,8 @@ private fun DeskBody(
         // Luce a metà intensità, come la PWA larga (Franz 03/11 17:46 e 18:12, app-luci-02-11).
         drawRect(androidx.compose.ui.graphics.Brush.radialGradient(0f to Color(0xFF181C24), 0.6f to Color(0xFF101218), 1f to Color(0xFF0A0B0E), center = Offset(size.width / 2f, 0f), radius = maxOf(size.width * 0.75f, 1f)))
     }).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
-        val homeW = 400.dp
-        val handleW = 28.dp
+        val homeW = if (homeHidden) 0.dp else 400.dp
+        val handleW = if (homeHidden) 0.dp else 28.dp
         val detailsW = if (inspector != null) 341.dp else 0.dp
         val total = maxWidth
         // Da sinistra: home, maniglia, colonne, dettagli; con la home a destra l'ordine si rovescia.
@@ -906,9 +908,9 @@ private fun DeskBody(
         }
         // Le colonne di nuovo uguali, quando non lo sono (Franz, 05/10 12:30: «ci vuole un tasto per resettare le dimensioni»).
         val reset = if (columns.size > 1 && shares != Tablet.Shares.equal(columns.size)) ({ onShares(Tablet.Shares.equal(columns.size)) }) else null
-        Box(at(homeW, total - homeW - handleW).width(handleW).fillMaxHeight()) { HomeSideHandle(homeRight, onHomeSide, reset) }
+        if (!homeHidden) Box(at(homeW, total - homeW - handleW).width(handleW).fillMaxHeight()) { HomeSideHandle(homeRight, onHomeSide, reset) }
         // A metà strada la home passa sopra le colonne, con un'ombra che c'è solo mentre si sposta.
-        Box(
+        if (!homeHidden) Box(
             at(0.dp, total - homeW).width(homeW).fillMaxHeight().zIndex(1f)
                 .graphicsLayer { shadowElevation = 32f * (1f - kotlin.math.abs(side * 2f - 1f)) }
                 .background(Cm.bg),

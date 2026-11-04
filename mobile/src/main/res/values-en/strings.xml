@@ -1747,4 +1747,18 @@ It starts at your last message to the master.</string>
     <string name="desk_win">Windows PC</string>
     <string name="desk_win_none">No remote host: the relay has read none.</string>
     <string name="desk_host_down">not answering</string>
+    <string name="master_place">Master position</string>
+    <string name="master_pos_right">On the right</string>
+    <string name="master_pos_left">On the left</string>
+    <string name="master_pos_under">Under the dashboard</string>
+    <string name="master_widen">Widen</string>
+    <string name="master_narrow">Narrow</string>
+    <string name="master_close_key">Close the master</string>
+    <string name="master_half_screen">Half the screen</string>
+    <string name="master_land_bar">One row at the bottom</string>
+    <string name="master_land_column">Full column</string>
+    <string name="master_land_half">Under the home, half</string>
+    <string name="master_land_compact">Under the home, compact</string>
+    <string name="master_width_edge">Drag to widen or narrow the master</string>
+    <string name="master_stack_step">Change the master height</string>
 </resources>

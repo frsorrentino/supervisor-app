@@ -1773,4 +1773,18 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="desk_win">PC Windows</string>
     <string name="desk_win_none">Nessun host remoto: il relay non ne ha letto nessuno.</string>
     <string name="desk_host_down">non risponde</string>
+    <string name="master_place">Posizione della master</string>
+    <string name="master_pos_right">A destra</string>
+    <string name="master_pos_left">A sinistra</string>
+    <string name="master_pos_under">Sotto la dashboard</string>
+    <string name="master_widen">Allarga</string>
+    <string name="master_narrow">Stringi</string>
+    <string name="master_close_key">Chiudi la master</string>
+    <string name="master_half_screen">Metà schermo</string>
+    <string name="master_land_bar">Una riga in basso</string>
+    <string name="master_land_column">Colonna intera</string>
+    <string name="master_land_half">Sotto la home, a metà</string>
+    <string name="master_land_compact">Sotto la home, compatta</string>
+    <string name="master_width_edge">Trascina per allargare o stringere la master</string>
+    <string name="master_stack_step">Cambia altezza della master</string>
 </resources>
