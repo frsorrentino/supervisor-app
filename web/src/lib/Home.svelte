@@ -1525,7 +1525,8 @@
   .ustop .ms:first-child { font-size: 18px; color: var(--tx2); }
   .ustop b { font: 600 15px var(--display); }
   .usmeter { flex: 1; position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
-  .usmeter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+  /* La riga Utilizzo è un .sec: senza height: auto vince l'altezza di 1 px di «.sec i» e il pieno è una riga sul bordo alto. */
+  .usmeter i { position: absolute; inset: 0 auto 0 0; height: auto; border-radius: 3px; }
   .usmeter s { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
   .uspct { font: 400 12.5px var(--mono); }
   .usnote { font-size: 14px; line-height: 1.3; color: var(--tx2); }
