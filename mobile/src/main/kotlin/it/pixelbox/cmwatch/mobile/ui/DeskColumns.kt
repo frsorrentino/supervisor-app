@@ -262,6 +262,8 @@ internal fun MasterFrame(
     val gripLeft = stringResource(R.string.master_bar_grip_left); val gripRight = stringResource(R.string.master_bar_grip_right)
     val ctx = androidx.compose.ui.platform.LocalContext.current
     // Il gesto lo legge il telaio, che resta fermo: le maniglie dicono solo dove stanno (come `follow` della PWA).
+    // Un solo riconoscitore: il doppio tocco su una maniglia è un gesto solo.
+    val taps = androidx.compose.runtime.remember { it.pixelbox.cmwatch.rules.MasterGestures.Taps() }
     val grips = androidx.compose.runtime.remember { mutableMapOf<String, androidx.compose.ui.layout.LayoutCoordinates>() }
     var frame by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
     // Le misure vere della riga e del pannello, per la sagoma del posto di adesso.
@@ -310,10 +312,12 @@ internal fun MasterFrame(
                         if (!c.pressed) {
                             ended = true
                             // Un tocco su una maniglia della riga: la master si apre da quel lato, e la riga sotto non lo prende.
-                            if (!moved && key.startsWith("bar-")) { c.consume(); change?.invoke(p0.copy(left = key == "bar-left"), true, true) }
+                            if (!moved && key.startsWith("bar-")) { c.consume(); if (taps.tap(key, c.uptimeMillis)) change?.invoke(p0.copy(left = key == "bar-left"), true, true) }
                             break
                         }
-                        if (!moved && (c.position - down.position).getDistance() < viewConfiguration.touchSlop) continue
+                        // Oltre 6 dp è un trascinamento, e vince sui tocchi (app-master-gesti-senza-conflitti-04-11).
+                        if (!moved && !it.pixelbox.cmwatch.rules.MasterGestures.isDrag((c.position.x - down.position.x) / density, (c.position.y - down.position.y) / density)) continue
+                        if (!moved) taps.dragged()
                         moved = true; c.consume(); last = c.position
                     }
                     wait = null
