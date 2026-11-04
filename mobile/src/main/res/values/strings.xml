@@ -1383,6 +1383,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_proof_check">controllo verde</string>
     <string name="lavori_proof_failed">controllo rosso</string>
     <string name="lavori_proof_cancelled">annullato</string>
+    <string name="download_started">Scarico %1$s: lo trovi nelle notifiche e in Download</string>
     <string name="lavori_proof_superseded">superata da una pre-release più nuova</string>
     <string name="lavori_superseded_n">%1$d superate</string>
     <string name="lavori_done_empty">Niente di chiuso negli ultimi sette giorni</string>

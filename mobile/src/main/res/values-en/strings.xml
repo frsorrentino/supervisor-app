@@ -1313,6 +1313,7 @@ It starts at your last message to the master.</string>
     <string name="lavori_proof_check">check green</string>
     <string name="lavori_proof_failed">check red</string>
     <string name="lavori_proof_cancelled">cancelled</string>
+    <string name="download_started">Downloading %1$s: find it in the notifications and in Downloads</string>
     <string name="lavori_proof_superseded">superseded by a newer pre-release</string>
     <string name="lavori_superseded_n">%1$d superseded</string>
     <string name="lavori_done_empty">Nothing closed in the last seven days</string>

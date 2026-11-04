@@ -121,6 +121,10 @@ class MainActivity : ComponentActivity() {
             android.view.WindowInsetsController.APPEARANCE_TRANSPARENT_CAPTION_BAR_BACKGROUND,
         )
         setContent {
+            // app-download-fuori-scheda-04-11: i link a file (APK, video, archivi) vanno al gestore dei download, non al browser.
+            val baseUri = androidx.compose.ui.platform.LocalUriHandler.current
+            val uriHandler = remember { DownloadLinks(this@MainActivity, baseUri) }
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalUriHandler provides uriHandler) {
             CmPhoneTheme {
                 val settings by app.prefs.flow.collectAsStateWithLifecycle(initialValue = null)
                 val ui by app.pairing.ui.collectAsStateWithLifecycle()
@@ -185,6 +189,7 @@ class MainActivity : ComponentActivity() {
                     } ?: run { pairInvite = null }
                 }
             }
+        }
         }
     }
 

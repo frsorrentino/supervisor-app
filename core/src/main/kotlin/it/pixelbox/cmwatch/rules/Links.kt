@@ -19,4 +19,23 @@ object Links {
         }
         (m.range.first..end).takeIf { end - m.range.first >= "http://x".length - 1 }
     }.toList()
+
+    /** Un link a un file da scaricare: il nome che avrà nei download e se è un APK da aprire nell'installatore. */
+    data class Download(val name: String, val apk: Boolean)
+
+    /**
+     * app-download-fuori-scheda-04-11 (Franz, 04/11 07:15: «i download da GitHub si fermano al 100%»): un link a un file (APK,
+     * video, audio, archivio) o a un allegato di una release GitHub non va al browser, che lo lasciava fermo al 100%, ma al
+     * gestore dei download di Android. Le pagine, PDF e immagini compresi, restano al browser. Solo `http(s)`.
+     */
+    fun download(url: String): Download? {
+        val m = Regex("""^https?://[^/?#]+(/[^?#]*)?""", RegexOption.IGNORE_CASE).find(url.trim()) ?: return null
+        val path = m.groupValues[1]
+        val name = path.substringAfterLast('/').takeIf { it.isNotEmpty() } ?: return null
+        val ext = name.substringAfterLast('.', "").lowercase()
+        if (ext !in FILE_EXT && !path.contains("/releases/download/")) return null
+        return Download(name, ext == "apk")
+    }
+
+    private val FILE_EXT = setOf("apk", "aab", "mp4", "mov", "webm", "mkv", "m4v", "mp3", "m4a", "wav", "ogg", "zip", "tar", "gz", "tgz", "7z", "rar", "xz", "dmg", "exe", "msi")
 }
