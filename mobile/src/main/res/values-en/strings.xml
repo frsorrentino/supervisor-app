@@ -546,7 +546,7 @@
     <string name="fy_next">%1$s · action</string>
     <string name="fy_scheduled_detail">The first one leaves at %1$s</string>
     <string name="fy_btn_answer">Answer</string>
-    <string name="fy_btn_handoff">Handoff and restart</string>
+    <string name="fy_btn_handoff">Handoff, then /clear</string>
     <string name="fy_btn_listen">Listen</string>
     <string name="fy_btn_add">Add</string>
     <string name="fy_btn_start">Start</string>

@@ -555,7 +555,7 @@
     <string name="fy_next">%1$s · azione</string>
     <string name="fy_scheduled_detail">Il primo parte alle %1$s</string>
     <string name="fy_btn_answer">Rispondi</string>
-    <string name="fy_btn_handoff">Handoff e riavvio</string>
+    <string name="fy_btn_handoff">Handoff, poi /clear</string>
     <string name="fy_btn_listen">Ascolta</string>
     <string name="fy_btn_add">Aggiungi</string>
     <string name="fy_btn_start">Avvia</string>
