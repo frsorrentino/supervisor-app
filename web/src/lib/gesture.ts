@@ -38,6 +38,22 @@ export function velocity(windowMs = 80) {
   }
 }
 
+/**
+ * Il cambio di lato che continua il gesto (MasterGestures.SIDE_SPRING_*, app-lato-animazione-06-11): una molla smorzata senza
+ * rimbalzo da `from` a 0 che parte con la velocità `v` del dito (px/s); le posizioni ogni sessantesimo di secondo, per WAAPI.
+ */
+export const SIDE_SPRING_STIFFNESS = 300
+export function springFrames(from: number, v: number, stiffness = SIDE_SPRING_STIFFNESS): number[] {
+  const w = Math.sqrt(stiffness), out: number[] = []
+  for (let i = 0; ; i++) {
+    const t = i / 60, x = (from + (v + w * from) * t) * Math.exp(-w * t)
+    out.push(x)
+    if ((i > 3 && Math.abs(x) < 0.5) || t > 1.2) break
+  }
+  out.push(0)
+  return out
+}
+
 type Pending = { key: string; at: number; id: ReturnType<typeof setTimeout> | null }
 
 /**

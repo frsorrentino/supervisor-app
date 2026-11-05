@@ -1,7 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DOUBLE_MS, isDrag, masterTaps, step, SWALLOW_MS } from './gesture'
+import { DOUBLE_MS, isDrag, masterTaps, springFrames, step, SWALLOW_MS } from './gesture'
 
 // Le maniglie della master senza conflitti fra clic, doppio clic e trascinamento (app-master-gesti-senza-conflitti-04-11).
+describe('il cambio di lato che continua il gesto (app-lato-animazione-06-11)', () => {
+  it('parte da dove l\'ha lasciato il dito, finisce a 0 senza rimbalzo, in circa 300 ms', () => {
+    const f = springFrames(400, 0)
+    expect(f[0]).toBe(400)
+    expect(f[f.length - 1]).toBe(0)
+    expect(f.every(x => x >= 0)).toBe(true)
+    expect(f.findIndex(x => x < 400 * 0.05) / 60).toBeLessThan(0.3)
+  })
+  it('la velocità del dito si vede all\'inizio: verso il posto accelera, al contrario prima prosegue un poco', () => {
+    expect(springFrames(400, -2000)[1]).toBeLessThan(springFrames(400, 0)[1])
+    expect(springFrames(-100, -1500)[1]).toBeLessThan(-100)
+  })
+})
+
 describe('il riconoscitore delle maniglie della master', () => {
   beforeEach(() => { vi.useFakeTimers() })
   afterEach(() => { vi.useRealTimers() })

@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.launch
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Kpi
@@ -280,6 +281,25 @@ internal fun MasterFrame(
     val openNow by androidx.compose.runtime.rememberUpdatedState(open)
     val underOk by androidx.compose.runtime.rememberUpdatedState(sessionsOpen)
     val change by androidx.compose.runtime.rememberUpdatedState(onPlace)
+    // Il cambio di lato continua il gesto (app-lato-animazione-06-11, Franz 06/11 00:40: l'atterraggio era «avulso dal contesto
+    // del movimento appena fatto»): il pannello segue il dito; al rilascio parte da lì con la velocità del dito, le colonne dal
+    // loro posto di prima, e arrivano insieme con una molla breve senza rimbalzo (MasterGestures.SIDE_SPRING_*). Px nel telaio.
+    var panelOff by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    var contentOff by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    var sideFade by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
+    val sideScope = androidx.compose.runtime.rememberCoroutineScope()
+    val motionOff by androidx.compose.runtime.rememberUpdatedState(animationsOff())
+    val sideSpring = androidx.compose.animation.core.spring<Float>(dampingRatio = it.pixelbox.cmwatch.rules.MasterGestures.SIDE_SPRING_DAMPING, stiffness = it.pixelbox.cmwatch.rules.MasterGestures.SIDE_SPRING_STIFFNESS)
+    fun settle(fromPanel: Float, fromContent: Float, velocity: Float) {
+        panelOff = fromPanel; contentOff = fromContent
+        if (motionOff) {
+            panelOff = 0f; contentOff = 0f
+            if (fromContent != 0f) { sideFade = 0f; sideScope.launch { androidx.compose.animation.core.animate(0f, 1f, animationSpec = androidx.compose.animation.core.tween(180)) { v, _ -> sideFade = v } } }
+            return
+        }
+        sideScope.launch { androidx.compose.animation.core.animate(fromPanel, 0f, velocity, sideSpring) { v, _ -> panelOff = v } }
+        if (fromContent != 0f) sideScope.launch { androidx.compose.animation.core.animate(fromContent, 0f, 0f, sideSpring) { v, _ -> contentOff = v } }
+    }
     val namesNow by androidx.compose.runtime.rememberUpdatedState(names)
     // L'atterraggio (punto 2): arrivata al posto della sagoma, la master si schiaccia un poco verso il basso e torna.
     var landed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
@@ -384,6 +404,8 @@ internal fun MasterFrame(
                     val x = last.x / density; val y = last.y / density
                     when (key) {
                         "side" -> {
+                            // Il pannello sotto il dito, di quanto si è spostato.
+                            if (!motionOff) panelOff = (x - x0) * density
                             // Un margine di 48 intorno al centro e la sosta: il lato non sfarfalla sul confine.
                             val raw = if (kotlin.math.abs(x - W / 2) < L.SIDE_MARGIN) sideHold.current else L.sideAt(W, x)
                             val (on, w) = sideHold.feed(raw, now); wait = w
@@ -401,6 +423,22 @@ internal fun MasterFrame(
                 }
                 val go = aim
                 hints = emptyList(); mid = null
+                if (key == "side") {
+                    // Dal punto e con la velocità del rilascio; annullato o sullo stesso lato, torna indietro allo stesso modo.
+                    val v = speed.calculateVelocity().x
+                    val panelPx = p0.panelWidth() * density; val gapPx = CORSIA_DP * density; val wPx = size.width.toFloat()
+                    val flip = moved && ended && go != null && go.first.left != p0.left
+                    if (flip) {
+                        val oldLeft = if (p0.left) 0f else wPx - panelPx
+                        val newLeft = if (go!!.first.left) 0f else wPx - panelPx
+                        val oldContent = if (p0.left) panelPx + gapPx else 0f
+                        val newContent = if (go.first.left) panelPx + gapPx else 0f
+                        change?.invoke(go.first, go.second, true)
+                        settle(oldLeft + panelOff - newLeft, oldContent - newContent, v)
+                    } else settle(panelOff, 0f, v)
+                    ghost = null
+                    return@awaitEachGesture
+                }
                 if (!moved || !ended || go == null) { ghost = null; return@awaitEachGesture }
                 change?.invoke(go.first, go.second, true)
                 ghost = null
@@ -416,7 +454,7 @@ internal fun MasterFrame(
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
                     if (panel != null) {
                         val canGrip = onPlace != null && place != null
-                        Box(Modifier.reflow("r-master").landing().width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
+                        Box(Modifier.zIndex(if (panelOff != 0f) 3f else 0f).graphicsLayer { translationX = panelOff; alpha = sideFade }.reflow("r-master").landing().width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
                             androidx.compose.runtime.CompositionLocalProvider(LocalEdgeSpots provides edge, LocalMasterGrip provides gripOf.takeIf { canGrip }) { panel() }
                             // La presa in alto: di lato cambia il lato (la sagoma passa alla metà dello schermo sotto il dito), in su o
                             // in giù l'altezza a scatti. Nella pila è la maniglia fra la home e la master.
@@ -428,9 +466,9 @@ internal fun MasterFrame(
                         // larghezza fra i posti fissi.
                         // Sopra i vicini: il filo esce dalla corsia fino alla colonna, e lo sfondo della plancia, composta dopo, lo copriva
                         // (prova 165 di Franz, 05/11 21:45: nella pila si fermava 18 px prima della colonna).
-                        Corsia(edge, androidx.compose.ui.Modifier.zIndex(1f).then(if (canGrip) Modifier.grip("width") else Modifier), grip = canGrip)
+                        Corsia(edge, androidx.compose.ui.Modifier.zIndex(if (panelOff != 0f) 3f else 1f).graphicsLayer { translationX = panelOff; alpha = sideFade }.then(if (canGrip) Modifier.grip("width") else Modifier), grip = canGrip)
                     }
-                    Column(Modifier.weight(1f).fillMaxHeight()) {
+                    Column(Modifier.weight(1f).fillMaxHeight().graphicsLayer { translationX = contentOff }) {
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
                         bar?.let { b ->
                             Box(Modifier.reflow("r-master").landing().fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
@@ -554,16 +592,9 @@ private fun GhostLayer(ghost: Ghost?, hints: List<Ghost>, mid: Mid?) {
         val y by androidx.compose.animation.core.animateDpAsState(gg.rect.y.dp, slide, label = "gy")
         val w by androidx.compose.animation.core.animateDpAsState(gg.rect.w.dp, slide, label = "gw")
         val h by androidx.compose.animation.core.animateDpAsState(gg.rect.h.dp, slide, label = "gh")
-        // Passando dall'altra parte dello schermo la sagoma salta la riga di mezzo con un piccolo arco.
-        val hop = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
-        val lastX = androidx.compose.runtime.remember { floatArrayOf(gg.rect.x) }
-        androidx.compose.runtime.LaunchedEffect(gg.rect.x) {
-            val jump = kotlin.math.abs(gg.rect.x - lastX[0]) > 300f
-            lastX[0] = gg.rect.x
-            if (jump && !off) { hop.animateTo(-18f, androidx.compose.animation.core.tween(140)); hop.animateTo(0f, Fx.spring()) }
-        }
+        // Senza l'arco di prima (app-lato-animazione-06-11): passando dall'altra parte la sagoma scivola, il pannello segue il dito.
         Box(
-            Modifier.offset(x, y + hop.value.dp).size(w, h).graphicsLayer { alpha = shown }.clip(shape).background(V3.Wait.copy(alpha = 0.16f))
+            Modifier.offset(x, y).size(w, h).graphicsLayer { alpha = shown }.clip(shape).background(V3.Wait.copy(alpha = 0.16f))
                 .border(2.dp, V3.Wait.copy(alpha = 0.70f), shape).testTag("master-sagoma"),
         ) { GhostTag(gg.text, V3.Tx) }
     }

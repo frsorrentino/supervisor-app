@@ -5,7 +5,7 @@
   import type { MenuKind } from './lib/sessionMenu'
   import { BAR_H, COLUMN, COMPACT_H, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, widthStops, type Height, type Rect, type Side } from './lib/masterLanding'
   import { ghostPreview, MOVE_MS, PLACES, squash } from './lib/landingMorph'
-  import { DRAG_PX, isDrag, masterTaps, step, velocity } from './lib/gesture'
+  import { DRAG_PX, isDrag, masterTaps, springFrames, step, velocity } from './lib/gesture'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -593,12 +593,48 @@
     const crossed = (x < W / 2) !== (f.side === 'left'), toward: Side = f.side === 'left' ? 'right' : 'left'
     masterGhost.midline(W / 2, crossed, y, crossed ? t.masterMidRelease(toward === 'left' ? t.masterMidLeft : t.masterMidRight) : t.masterMidCross(toward === 'left' ? t.masterMidLeft : t.masterMidRight, toward === 'left' ? '←' : '→'))
   }
+  // Il cambio di lato continua il gesto (app-lato-animazione-06-11, Franz 06/11 00:40: l'atterraggio era «avulso dal contesto
+  // del movimento appena fatto»): il pannello segue il dito; al rilascio cambia lato senza transizione di pagina, riparte da dove
+  // l'ha lasciato il dito con la sua velocità e la plancia dal suo posto di prima, insieme, con la molla breve senza rimbalzo
+  // (springFrames, come MasterFrame sul tablet); annullato torna indietro allo stesso modo. Col movimento ridotto, dissolvenza.
+  const sidePanel = () => document.querySelector<HTMLElement>('aside.stackcol, aside.dpanel:not(.stackcol), aside.mpanel')
+  const sideStage = () => document.querySelector<HTMLElement>('.deskwrap > .dstage, .plancia > .stage')
+  function springX(el: HTMLElement, from: number, v: number) {
+    const f = springFrames(from, v)
+    el.animate(f.map(x => ({ transform: `translateX(${x}px)` })), { duration: (f.length / 60) * 1000, easing: 'linear' })
+  }
+  function sideEnd(dx: number, v: number, cancelled: boolean) {
+    const go = cancelled ? null : aim
+    sideHold = null; sideFrom = null; aim = null
+    clearMarks(); masterGhost.drop()
+    const p0 = sidePanel()?.getBoundingClientRect(), s0 = sideStage()?.getBoundingClientRect()
+    const wasLeft = masterLeft
+    if (go) { go(); save('cm.master_left', masterLeft ? '1' : '0') }
+    void tick().then(() => {
+      const p = sidePanel(), s = sideStage()
+      if (!p) return
+      p.style.transform = ''; p.style.zIndex = ''
+      const changed = masterLeft !== wasLeft
+      if (reducedMotion()) { if (changed) p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 }); return }
+      const p1 = p.getBoundingClientRect()
+      springX(p, changed && p0 ? p0.left - p1.left : dx, v)
+      const s1 = s?.getBoundingClientRect()
+      if (changed && s && s0 && s1 && s0.left !== s1.left) springX(s, s0.left - s1.left, 0)
+    })
+  }
   // La maniglia della testata: il gesto continua sulla finestra, dopo 6 px.
   function sideGrip(e: PointerEvent) {
     const x0 = e.clientX, y0 = e.clientY
     let moved = false
-    follow((m) => { if (!moved && !isDrag(m.clientX - x0, m.clientY - y0)) return; moved = true; placeDrag('move', m.clientX, m.clientY) },
-      (m) => { if (!moved) return; placeDrag(m ? 'end' : 'cancel', 0) })
+    const speed = velocity()
+    const panel = reducedMotion() ? null : sidePanel()
+    follow((m) => {
+      speed.add(m.clientX, m.timeStamp)
+      if (!moved && !isDrag(m.clientX - x0, m.clientY - y0)) return
+      moved = true
+      if (panel) { panel.style.transform = `translateX(${m.clientX - x0}px)`; panel.style.zIndex = '60' }
+      placeDrag('move', m.clientX, m.clientY)
+    }, (m) => { if (!moved) return; sideEnd(m ? m.clientX - x0 : (panel ? Number(/-?[\d.]+/.exec(panel.style.transform)?.[0] ?? 0) : 0), speed.speed(), !m) })
   }
   // La larghezza lasciata col bordo, in px; null = quella del tasto Allarga/Stringi (420 o 720). Una misura libera di prima
   // (fino al 04/11) torna al posto fisso più vicino.

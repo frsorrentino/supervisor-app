@@ -58,4 +58,11 @@ object MasterGestures {
         val near = stops.indices.minBy { abs(stops[it] - at) }
         return if (dir > 0) maxOf(next, near) else minOf(next, near)
     }
+
+    /**
+     * Il cambio di lato che continua il gesto (app-lato-animazione-06-11): una molla smorzata senza rimbalzo, rigidità 300
+     * (ω ≈ 17): da ferma arriva al 95 % in circa 270 ms, partendo dalla velocità del dito. Le stesse in gesture.ts.
+     */
+    const val SIDE_SPRING_DAMPING = 1f
+    const val SIDE_SPRING_STIFFNESS = 300f
 }
