@@ -540,6 +540,7 @@ fun SessionSheet(
                             )
                             is ChatFeed.Item.Tool -> ToolLine(it.entry)
                             is ChatFeed.Item.Steps -> StepsCard(it)
+                            is ChatFeed.Item.Separator -> SeparatorBar(it, now)
                         }
                         }
                     }
@@ -1760,6 +1761,46 @@ private fun feedKey(i: ChatFeed.Item): String = when (i) {
     is ChatFeed.Item.Tool -> "t-" + i.entry.id
     // Dal primo passaggio: il gruppo che cresce in fondo resta lo stesso elemento della lista.
     is ChatFeed.Item.Steps -> "s-" + i.entries.first().id
+    is ChatFeed.Item.Separator -> "x-" + i.entry.id
+}
+
+/**
+ * Contratto 1.126 (app-barra-conversazioni-05-11, idea di Franz del 07/10): fra due conversazioni della sessione la barra con
+ * motivo e ora («/clear · 18:52») e sotto la riga di cosa ricorda la sessione da lì; la compattazione è una riga sola, più
+ * leggera. Motivo o memoria che l'app non conosce: il testo del relay.
+ */
+@Composable
+private fun SeparatorBar(sep: ChatFeed.Item.Separator, now: Long) {
+    val e = sep.entry
+    val reason = when (sep.reason) {
+        "clear" -> stringResource(R.string.sep_clear); "startup" -> stringResource(R.string.sep_startup)
+        "resume" -> stringResource(R.string.sep_resume); "restart" -> stringResource(R.string.sep_restart)
+        "compact" -> stringResource(R.string.sep_compact); else -> null
+    }
+    val memory = when (sep.memory) {
+        "none" -> stringResource(R.string.sep_memory_none); "handoff" -> stringResource(R.string.sep_memory_handoff)
+        "all" -> stringResource(R.string.sep_memory_all); "summary" -> stringResource(R.string.sep_memory_summary); else -> null
+    }
+    val whenText = e.at?.let { at ->
+        val zone = java.time.ZoneId.systemDefault()
+        val t = java.time.Instant.ofEpochSecond(at).atZone(zone)
+        val hm = t.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+        if (t.toLocalDate() == java.time.Instant.ofEpochSecond(now).atZone(zone).toLocalDate()) hm else "${t.dayOfMonth}/${t.monthValue} $hm"
+    }
+    val head = reason?.let { r -> listOfNotNull(r, whenText).joinToString(" · ") }
+    val tint = if (sep.light) Cm.text2.copy(alpha = .7f) else Cm.text2
+    Column(Modifier.fillMaxWidth().padding(vertical = if (sep.light) 6.dp else 12.dp).testTag("separatore"), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HorizontalDivider(Modifier.weight(1f), color = Cm.line.copy(alpha = if (sep.light) .5f else 1f))
+            Text(
+                if (sep.light) listOfNotNull(head ?: e.text, memory).joinToString(" · ") else head ?: e.text.orEmpty(),
+                style = if (sep.light) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                color = tint, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(4f, fill = false),
+            )
+            HorizontalDivider(Modifier.weight(1f), color = Cm.line.copy(alpha = if (sep.light) .5f else 1f))
+        }
+        if (!sep.light && head != null && memory != null) Text(memory, style = MaterialTheme.typography.bodySmall, color = Cm.text2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    }
 }
 
 /**

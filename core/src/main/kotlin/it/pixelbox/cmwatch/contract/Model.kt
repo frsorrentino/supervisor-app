@@ -879,6 +879,11 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val queued: Boolean = false,
     /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */
     val diff: StepDiff? = null,
+    /**
+     * Contratto 1.126, sulle voci `separator` fra due conversazioni della stessa sessione: `reason` clear | startup | resume |
+     * restart | compact, `memory` none | handoff | all | summary (cosa ricorda la sessione da lì), `handoff` il file annunciato.
+     */
+    val reason: String? = null, val memory: String? = null, val handoff: String? = null,
 )
 
 /** `in` comprende la cache letta e scritta; per il costo del turno conta di più `out`. */

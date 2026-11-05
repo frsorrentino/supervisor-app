@@ -56,7 +56,8 @@ class DiffContractTest {
         val pages = transcriptTexts()
         val raw = pages.flatMap { p -> Json.parseToJsonElement(p).jsonObject.getValue("entries").jsonArray.map { it.jsonObject } }
         assertTrue(raw.isNotEmpty())
-        assertTrue(raw.all { "diff" in it })
+        // Contratto 1.126: le voci `separator` non sono passi e non hanno `diff`.
+        assertTrue(raw.filter { it["role"]?.toString() != "\"separator\"" }.all { "diff" in it })
         val withDiff = pages.flatMap { ContractJson.decodeTranscript(it).entries }.filter { it.diff != null }.distinctBy { it.id }
         assertEquals(listOf("Edit"), withDiff.map { it.tool })
         assertEquals(StepDiff("/home/dev/storefront/src/checkout/totals.ts", "edit", 2, 1, listOf(totalsHunk), cut = false), withDiff.single().diff)

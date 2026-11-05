@@ -18,6 +18,7 @@ object ChatNews {
         is ChatFeed.Item.Claude -> i.entry.at
         is ChatFeed.Item.Tool -> i.entry.at
         is ChatFeed.Item.Steps -> i.entries.mapNotNull { it.at }.maxOrNull()
+        is ChatFeed.Item.Separator -> i.entry.at
     }
 
     /** L'ultimo momento della conversazione, da ricordare quando si lascia la pagina. */

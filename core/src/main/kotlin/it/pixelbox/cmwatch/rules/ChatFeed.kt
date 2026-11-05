@@ -16,6 +16,7 @@ object ChatFeed {
         is Item.Claude -> i.entry.id
         is Item.Tool -> i.entry.id
         is Item.Steps -> i.entries.firstOrNull()?.id
+        is Item.Separator -> i.entry.id
     }
 
     sealed interface Item {
@@ -31,7 +32,21 @@ object ChatFeed {
                 get() = entries.groupingBy { it.tool?.let(ToolText::short) ?: "?" }.eachCount().entries
                     .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key }).map { it.key to it.value }
         }
+
+        /**
+         * Contratto 1.126 (app-barra-conversazioni-05-11): fra due conversazioni della sessione (/clear, avvio, ripresa, riavvio)
+         * la barra con motivo e ora e la riga di cosa ricorda; `light` per la compattazione dentro una conversazione. `reason` e
+         * `memory` sconosciuti sono null: l'app mostra allora il `text` del relay.
+         */
+        data class Separator(val entry: TranscriptEntry) : Item {
+            val light: Boolean get() = entry.reason == "compact"
+            val reason: String? get() = entry.reason?.takeIf { it in REASONS }
+            val memory: String? get() = entry.memory?.takeIf { it in MEMORIES }
+        }
     }
+
+    val REASONS = setOf("clear", "startup", "resume", "restart", "compact")
+    val MEMORIES = setOf("none", "handoff", "all", "summary")
 
     /** I passaggi consecutivi diventano un gruppo; uno solo resta una riga. */
     fun group(items: List<Item>): List<Item> {
@@ -194,6 +209,7 @@ object ChatFeed {
                     } else Item.User(e)
                 }
                 "tool" -> Item.Tool(e)
+                "separator" -> Item.Separator(e)
                 else -> Item.Claude(e)
             }
         }
@@ -215,5 +231,6 @@ object ChatFeed {
         is Item.Claude -> i.entry.at ?: 0
         is Item.Tool -> i.entry.at ?: 0
         is Item.Steps -> i.entries.first().at ?: 0
+        is Item.Separator -> i.entry.at ?: 0
     }
 }

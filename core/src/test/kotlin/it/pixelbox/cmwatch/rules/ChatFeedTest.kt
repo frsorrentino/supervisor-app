@@ -14,6 +14,21 @@ class ChatFeedTest {
     private val first = ContractJson.decodeTranscript(results[19].text)
     private val after = ContractJson.decodeTranscript(results[20].text)
 
+    // Contratto 1.126: la pagina …1230 attraversa un /clear automatico dopo l'handoff, con la sua voce di separazione.
+    @Test fun aPageAcrossAClearHasItsSeparatorBetweenTheTwoConversations() {
+        val page = ContractJson.decodeTranscript(results.first { it.id.endsWith("00001230") }.text)
+        assertTrue(page.more)
+        val feed = ChatFeed.group(ChatFeed.merge(page.entries, emptyList(), page.more))
+        assertEquals(listOf("a", "|", "u", "a"), feed.map { i -> when (i) { is ChatFeed.Item.Separator -> "|"; is ChatFeed.Item.User -> "u"; is ChatFeed.Item.Claude -> "a"; else -> "?" } })
+        val sep = feed[1] as ChatFeed.Item.Separator
+        assertEquals("clear", sep.reason); assertEquals("handoff", sep.memory); assertFalse(sep.light)
+        assertEquals(1789215600L, sep.entry.at)
+        assertTrue(sep.entry.handoff!!.endsWith("handoff-2026-09-12.md"))
+        // Un motivo nuovo del relay: niente etichetta nostra, resta il testo del relay.
+        assertNull(ChatFeed.Item.Separator(sep.entry.copy(reason = "fork", memory = "x")).reason)
+        assertTrue(ChatFeed.Item.Separator(sep.entry.copy(reason = "compact", memory = "summary")).light)
+    }
+
     @Test fun parsesTheFixturePage() {
         // Contratto 1.72: in fondo alla pagina la voce Edit a8.0 col suo diff.
         assertEquals(19, first.entries.size)

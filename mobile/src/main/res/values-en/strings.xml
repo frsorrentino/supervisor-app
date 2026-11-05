@@ -417,6 +417,15 @@
     <string name="chat_waiting_pc">waiting for the PC for %1$d s</string>
     <string name="chat_updating">updating the conversation</string>
     <string name="chat_news">New</string>
+    <string name="sep_clear">/clear</string>
+    <string name="sep_startup">Start</string>
+    <string name="sep_resume">Resume</string>
+    <string name="sep_restart">Clean restart</string>
+    <string name="sep_compact">Compaction</string>
+    <string name="sep_memory_none">From here the session does not remember the conversation above</string>
+    <string name="sep_memory_handoff">From here the session remembers only the handoff</string>
+    <string name="sep_memory_all">From here the session remembers all of the conversation above</string>
+    <string name="sep_memory_summary">remembers a summary</string>
     <string name="turn_tokens">%1$d tokens written</string>
     <string name="remove_image">Remove the image</string>
     <string name="close">Close</string>

@@ -12,6 +12,14 @@ export type Item =
   | { type: 'tool'; entry: TranscriptEntry }
   /** Due o più passaggi di fila fra due messaggi: una card chiusa che si apre al tocco. */
   | { type: 'steps'; entries: TranscriptEntry[] }
+  /** Contratto 1.126 (ChatFeed.Item.Separator): fra due conversazioni della sessione, leggera per la compattazione. */
+  | { type: 'separator'; entry: TranscriptEntry }
+
+const REASONS = ['clear', 'startup', 'resume', 'restart', 'compact']
+const MEMORIES = ['none', 'handoff', 'all', 'summary']
+/** Motivo e memoria che l'app conosce; null = si mostra il `text` del relay. */
+export const sepReason = (e: TranscriptEntry) => (e.reason && REASONS.includes(e.reason) ? e.reason : null)
+export const sepMemory = (e: TranscriptEntry) => (e.memory && MEMORIES.includes(e.memory) ? e.memory : null)
 export type Page = 'fresh' | 'after' | 'before'
 
 export const PAGE = 50
@@ -106,7 +114,7 @@ export function merge(entries: TranscriptEntry[], sent: [Sent, Status][], more =
       }
       return { type: 'user', entry: e }
     }
-    return e.role === 'tool' ? { type: 'tool', entry: e } : { type: 'claude', entry: e }
+    return e.role === 'tool' ? { type: 'tool', entry: e } : e.role === 'separator' ? { type: 'separator', entry: e } : { type: 'claude', entry: e }
   })
   // I messaggi non ancora nella trascrizione, al loro orario; con pagine più vecchie da caricare quelli più vecchi della pagina aspettano la loro.
   const first = entries[0]?.at

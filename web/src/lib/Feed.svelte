@@ -6,7 +6,7 @@
   import type { Load } from './diff'
   import StepDiffRow from './StepDiffRow.svelte'
   import ImageViewer from './ImageViewer.svelte'
-  import { counts, type Item } from './chatFeed'
+  import { counts, sepMemory, sepReason, type Item } from './chatFeed'
   import type { Status } from './chatRules'
   import { blocks, cards, compact, type Table } from './markdown'
   import { kind, row } from './toolText'
@@ -53,7 +53,7 @@
   // riga «Nuovi» e un fondo che sfuma; l'ultima visita si ricorda lasciando la chat (Chat rimonta il Feed a ogni sessione).
   /** La voce della trascrizione di un elemento, per Cerca (app-cerca-pagina-03-11). */
   const entryOf = (it: Item): string | undefined => (it.type === 'steps' ? it.entries[0].id : it.type === 'mine' ? it.entry?.id : it.entry.id)
-  const itemKey = (it: Item) => (it.type === 'steps' ? `s-${it.entries[0].id}` : it.type === 'mine' ? `m-${it.sent.id}` : `${it.type[0]}-${it.entry.id}`)
+  const itemKey = (it: Item) => (it.type === 'steps' ? `s-${it.entries[0].id}` : it.type === 'mine' ? `m-${it.sent.id}` : it.type === 'separator' ? `x-${it.entry.id}` : `${it.type[0]}-${it.entry.id}`)
   // svelte-ignore state_referenced_locally
   const seenAt = readSeen(s.name)
   const newsFrom = $derived(firstNew(items, seenAt))
@@ -75,6 +75,15 @@
   }
 
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  // Contratto 1.126 (app-barra-conversazioni-05-11, SeparatorBar nell'app): motivo e ora, la data se non è oggi.
+  function sepHead(e: TranscriptEntry): string | null {
+    const r = sepReason(e)
+    if (!r) return null
+    if (e.at == null) return t.sepReason[r]
+    const d = new Date(e.at * 1000)
+    const today = new Date().toDateString() === d.toDateString()
+    return `${t.sepReason[r]} · ${today ? '' : `${d.getDate()}/${d.getMonth() + 1} `}${hm(e.at)}`
+  }
   const copy = (x: string) => navigator.clipboard?.writeText(x)
   const toolIcon = (e: TranscriptEntry): IconName => (e.error ? 'error' : kind(e.tool))
   const fileIcon = (f: TranscriptFile): IconName =>
@@ -274,6 +283,14 @@
     {@render claude(it.entry)}
   {:else if it.type === 'tool'}
     {@render tool(it.entry, true)}
+  {:else if it.type === 'separator'}
+    {@const head = sepHead(it.entry)}
+    {@const mem = sepMemory(it.entry)}
+    {@const light = it.entry.reason === 'compact'}
+    <div class="sep" class:light>
+      <div class="sepbar"><span>{light ? [head ?? it.entry.text, mem ? t.sepMemory[mem] : null].filter(Boolean).join(' · ') : head ?? it.entry.text ?? ''}</span></div>
+      {#if !light && head && mem}<p class="sepmem">{t.sepMemory[mem]}</p>{/if}
+    </div>
   {:else}
     {@render steps(it)}
   {/if}
@@ -318,6 +335,15 @@
   @keyframes fresh { from { background: rgb(255 255 255 / .08); box-shadow: 0 0 0 6px rgb(255 255 255 / .08); } to { background: transparent; box-shadow: 0 0 0 6px transparent; } }
   .news { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--icon); font-size: 12.5px; font-weight: 500; }
   .news::before, .news::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .45; }
+  /* La barra fra due conversazioni della sessione; per la compattazione una riga sola, più leggera. */
+  .sep { padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text2); }
+  .sepbar { width: 100%; display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; }
+  .sepbar::before, .sepbar::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .sepbar > span { max-width: 80%; text-align: center; }
+  .sepmem { margin: 0; font-size: 12.5px; text-align: center; }
+  .sep.light { padding: 6px 0; opacity: .7; }
+  .sep.light .sepbar { font-size: 11.5px; font-weight: 500; }
+  .sep.light .sepbar::before, .sep.light .sepbar::after { opacity: .5; }
   @media (prefers-reduced-motion: reduce) { .rise, .fresh, .rise.fresh { animation: none; } }
   .me { align-self: stretch; padding-left: 40px; display: flex; flex-direction: column; align-items: flex-end; }
   .att { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; margin-bottom: 4px; border-radius: 14px; background: var(--surface); color: var(--text2); font-size: 14px; overflow-wrap: anywhere; }

@@ -205,7 +205,8 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     const tail = JSON.parse(fixture('local-api.json')).exchanges.filter((x: { name: string }) => x.name === 'tail').map((x: { response: { body: unknown } }) => x.response.body)
     const all: TranscriptEntry[] = [...pages, ...tail].flatMap((p: { entries: TranscriptEntry[] }) => p.entries)
     expect(all.length).toBeGreaterThan(0)
-    expect(all.every(e => 'diff' in e)).toBe(true)
+    // Contratto 1.126: le voci `separator` non sono passi e non hanno `diff`.
+    expect(all.filter(e => e.role !== 'separator').every(e => 'diff' in e)).toBe(true)
     const withDiff = [...new Map(all.filter(e => e.diff).map(e => [e.id, e])).values()]
     expect(withDiff.map(e => e.tool)).toEqual(['Edit'])
     expect(withDiff[0].diff).toEqual({ path: '/home/dev/storefront/src/checkout/totals.ts', kind: 'edit', added: 2, removed: 1, hunks: [hunk], cut: false })

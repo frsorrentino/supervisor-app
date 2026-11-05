@@ -426,6 +426,15 @@
     <string name="chat_waiting_pc">in attesa del PC da %1$d s</string>
     <string name="chat_updating">aggiorno la conversazione</string>
     <string name="chat_news">Nuovi</string>
+    <string name="sep_clear">/clear</string>
+    <string name="sep_startup">Avvio</string>
+    <string name="sep_resume">Ripresa</string>
+    <string name="sep_restart">Riavvio pulito</string>
+    <string name="sep_compact">Compattazione</string>
+    <string name="sep_memory_none">Da qui la sessione non ricorda la conversazione sopra</string>
+    <string name="sep_memory_handoff">Da qui la sessione ricorda solo il passaggio di consegne</string>
+    <string name="sep_memory_all">Da qui la sessione ricorda tutta la conversazione sopra</string>
+    <string name="sep_memory_summary">ricorda un riassunto</string>
     <string name="turn_tokens">%1$d token scritti</string>
     <string name="remove_image">Togli l\'immagine</string>
     <string name="close">Chiudi</string>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { CmdResult, TranscriptEntry, TranscriptPage } from './contract'
 import type { Sent, Status } from './chatRules'
-import { anchor, append, arg, counts, group, loading, merge, older, olderArg, pageEntries, type Item } from './chatFeed'
+import { anchor, append, arg, counts, group, loading, merge, older, olderArg, pageEntries, sepMemory, sepReason, type Item } from './chatFeed'
 
 // Gli stessi casi di ChatFeedTest in Kotlin.
 const results: CmdResult[] = JSON.parse(readFileSync(new URL('../../../contract/cmd-result-sample.json', import.meta.url), 'utf8')).result
@@ -14,6 +14,19 @@ const mines = (feed: Item[]) => feed.filter((i): i is Extract<Item, { type: 'min
 const D: Status = 'delivered'
 
 describe('ChatFeed', () => {
+  // Contratto 1.126: la pagina …1230 attraversa un /clear automatico dopo l'handoff, con la sua voce di separazione.
+  it('una pagina oltre un /clear ha la sua barra fra le due conversazioni', async () => {
+    const { readFileSync } = await import('node:fs')
+    const sample = JSON.parse(readFileSync(new URL('../../../contract/cmd-result-sample.json', import.meta.url), 'utf8'))
+    const page = JSON.parse(sample.result.find((r: { id: string }) => r.id.endsWith('00001230')).text)
+    expect(page.more).toBe(true)
+    const feed = group(merge(page.entries, [], page.more))
+    expect(feed.map(i => i.type)).toEqual(['claude', 'separator', 'user', 'claude'])
+    const sep = feed[1] as Extract<Item, { type: 'separator' }>
+    expect(sepReason(sep.entry)).toBe('clear'); expect(sepMemory(sep.entry)).toBe('handoff')
+    expect(sepReason({ ...sep.entry, reason: 'fork' })).toBeNull()
+  })
+
   it('parses the fixture page', () => {
     // Contratto 1.72: in fondo alla pagina la voce Edit a8.0 col suo diff.
     expect(first.entries).toHaveLength(19)

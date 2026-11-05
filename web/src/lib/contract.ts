@@ -197,6 +197,8 @@ export type TranscriptEntry = {
   outcome_type?: string | null
   /** Contratto 1.72: il diff del passaggio, sulle voci tool di Edit, MultiEdit, Write e NotebookEdit. */
   diff?: StepDiff | null
+  /** Contratto 1.126, sulle voci `separator`: motivo, cosa ricorda la sessione da lì, il file dell'handoff. */
+  reason?: string | null; memory?: string | null; handoff?: string | null
 }
 /** Contratto 1.93: `reset` = l'id di `after` non c'è più (riavvio, /clear): le ultime voci prendono il posto della lista. */
 export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean; reset?: boolean }
