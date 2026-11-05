@@ -864,7 +864,8 @@
 {#snippet secSystem()}
   {#if sys && shows('tools')}
     {@render sec('system', t.homeSystem, 'memory', null, 'home-sez-sistema', sysOpen ? null : summaryLine(sys, lang), { isOpen: sysOpen, onclick: () => (sysManual = { level: sys.level, open: !sysOpen }), dot: sysOpen || sys.level === 'green' ? null : SYS_TONE[sys.level] })}
-        {#if sysOpen}
+        <!-- Lo stesso contenitore delle altre voci, con la molla all'apertura e alla chiusura (app-sistema-rimbalzo-05-11). -->
+        {#if sysOpen}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
           <div class="card wrows">
           <!-- Carico e Memoria come le righe di Utilizzo: etichetta, barra lunga, valore a destra, filo sopra (app-sistema-larghezza-05-11). -->
           <div data-testid="system_advice">
@@ -898,7 +899,7 @@
           </div>
           {#if kpiData?.kpi_health}<div class="exp full"><Kpi12 h={kpiData.kpi_health} /></div>{/if}
           </div>
-        {/if}
+        </div></div>{/if}
   {/if}
 {/snippet}
 {#snippet pluginsHead(isOpen: boolean, toggle: () => void, line: string)}

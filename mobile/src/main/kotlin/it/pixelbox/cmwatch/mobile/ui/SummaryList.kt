@@ -926,27 +926,27 @@ fun SummaryList(
             when (pin) {
                 "suggestions" -> if (sug != null) {
                     SlotInfoRow(slotDrag("suggestions"), stringResource(R.string.sug_title), icons.AutoAwesome, "home-sez-suggerimenti", count = sug.total.toString(), names = slotSuggestionNames(sug.all), open = suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) }
-                    if (suggestionsOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } }
+                    FoldIn(suggestionsOpen) { Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
                 }
                 "lavori" -> if (showLavori && lavoriInfo != null) LavoriSlotRow(lavoriInfo, now, slotDrag("lavori"), lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
                 else if (showLavori && (foryou != null || outside.isNotEmpty())) SlotRow(slotDrag("lavori"), stringResource(R.string.lavori_title), icons.Checklist, lavoriCount?.toString(), right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
                 "usage" -> if (hasUsage) {
                     if (weekSlot != null || usageAlarm != null) UsageSlotRow(weekSlot, now, slotDrag("usage"), usageOpen, usageAlarm) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     else SlotRow(slotDrag("usage"), stringResource(R.string.home_sec_usage), icons.DataUsage, tag = "home-sez-utilizzo", open = usageOpen) { usageOpen = !usageOpen; save("usage", usageOpen) }
-                    if (usageOpen) androidx.compose.runtime.CompositionLocalProvider(LocalUsageInSlot provides true) { usage!!() }
+                    FoldIn(usageOpen) { androidx.compose.runtime.CompositionLocalProvider(LocalUsageInSlot provides true) { usage!!() } }
                 }
                 "system" -> system?.let { sys ->
                     val sysOpen = SystemRules.isOpen(sys.level, sysManual)
                     SystemSlotRow(it.pixelbox.cmwatch.rules.SlotInfo.system(sys, kpiState?.hostsStatus.orEmpty(), kpiState?.sessions.orEmpty()), slotDrag("system"), sysOpen) { sysManual = SystemRules.Manual(sys.level, !sysOpen) }
-                    if (sysOpen) Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } }
+                    FoldIn(sysOpen) { Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SystemCard(sys, ops, onSystem); kpiData?.health?.let { Kpi12(it) } } }
                 }
                 "plugins" -> if (hasPlugins) {
                     PluginsSlotRow(it.pixelbox.cmwatch.rules.SlotInfo.plugins(plugins!!), zone, slotDrag("plugins"), pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }
-                    if (pluginsOpen) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) }
+                    FoldIn(pluginsOpen) { Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) } }
                 }
                 "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> newRow(pin)?.let { r ->
                     SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(pin, kpiState), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, pin) }
-                    if (r.open.value) Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { sectionBodies[pin]?.invoke() }
+                    FoldIn(r.open.value) { Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { sectionBodies[pin]?.invoke() } }
                 }
                 "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }
             }
