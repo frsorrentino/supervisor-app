@@ -572,7 +572,9 @@ fun SummaryList(
             }
         }
     }) {
-    // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando il compito finisce la riga diventa verde per poco.
+    // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando finisce la linea diventa verde e si spegne
+    // (WorkEdge), una volta. Niente più contorno verde su tutti i lati (app-fine-compito-verde-05-11, scelta B): ripartiva a ogni
+    // compito della sessione che passava a Franz o arrivava, e restava acceso minuti.
     val workingNow = androidx.compose.runtime.remember(kpiState, now) { kpiState?.let { st -> it.pixelbox.cmwatch.rules.Commitments.rows(st, now).filter { r -> !r.yourTurn }.mapNotNull { r -> r.c.session }.toSet() }.orEmpty() }
     val seenWait = androidx.compose.runtime.remember { mutableSetOf<Any>() }
     // Voce 10: la spunta solo alla transizione, da qualcuno che aspetta a nessuno.
@@ -583,7 +585,6 @@ fun SummaryList(
         val was = lastWait[0]; lastWait[0] = waitN
         if (was > 0 && waitN == 0 && !off) { allDone = true; kotlinx.coroutines.delay(2_500); allDone = false }
     }
-    val finishedNow = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateListOf<String>() }
     val rowAt = androidx.compose.runtime.remember { HashMap<String, Pair<Float, Float>>() }
     val wasWorking = androidx.compose.runtime.remember { mutableSetOf<String>() }
     val wasVisible = androidx.compose.runtime.remember { HashMap<String, Boolean>() }
@@ -602,7 +603,6 @@ fun SummaryList(
         val rows = model.rows.associateBy { it.session.name }
         val done = ended.filter { n -> rows[n]?.group.let { g -> g == Summary.Group.FINISHED || g == Summary.Group.STILL } }
         if (done.isEmpty()) return@LaunchedEffect
-        finishedNow += done
         finishScope.launch {
             // Il posto nuovo arriva con la molla; poi, se tutte le condizioni reggono, un solo scorrimento senza rimbalzo.
             kotlinx.coroutines.delay(650)
@@ -616,7 +616,6 @@ fun SummaryList(
                 listState.animateScrollBy(dist, androidx.compose.animation.core.spring(androidx.compose.animation.core.Spring.DampingRatioNoBouncy, androidx.compose.animation.core.Spring.StiffnessLow))
             }
         }
-        finishScope.launch { kotlinx.coroutines.delay(6_000); finishedNow.removeAll(done.toSet()) }
     }
     androidx.compose.foundation.lazy.LazyColumn(
         // In fondo lo spazio del controller della lettura, che si posa sopra la barra della master (09/10 16:50).
@@ -748,8 +747,7 @@ fun SummaryList(
                 Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     V3List { restRows.forEachIndexed { i, r -> androidx.compose.runtime.key(r.session.id) {
                         val name = r.session.name
-                        val edge by androidx.compose.animation.animateColorAsState(if (name in finishedNow) V3.Good else androidx.compose.ui.graphics.Color.Transparent, if (off) androidx.compose.animation.core.snap() else CmMotion.slow, label = "finished")
-                        Box((if (V3.day && r.group == Summary.Group.WAITING) Modifier.background(V3.WaitFill) else Modifier).bounceOnMove(i).onGloballyPositioned { c -> rowAt[name] = c.boundsInRoot().let { it.top to it.bottom } }.border(1.5.dp, edge)) {
+                        Box((if (V3.day && r.group == Summary.Group.WAITING) Modifier.background(V3.WaitFill) else Modifier).bounceOnMove(i).onGloballyPositioned { c -> rowAt[name] = c.boundsInRoot().let { it.top to it.bottom } }) {
                             card(r, i == 0)
                             WorkEdge(name in workingNow && r.group == Summary.Group.WORKING, Modifier.align(Alignment.BottomCenter))
                         } } } }

@@ -478,7 +478,8 @@
   const restGroups = $derived(groups.filter(([g]) => g !== 'waiting'))
   // Una sola chiave per voce: quando una riga cambia gruppo scivola al posto nuovo invece di sparire e ricomparire.
   const restFlat = $derived(restGroups.flatMap(([g, rows]) => rows.map(r => [r, g] as const)))
-  // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando il compito finisce la riga diventa verde per poco.
+  // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando finisce la linea diventa verde e si spegne
+  // (`gather`), una volta. Niente più contorno verde (app-fine-compito-verde-05-11, scelta B, come SummaryList.kt).
   const workingNow = $derived(new Set(st.commitments != null ? commitmentRowsOf(st, now).filter(r => !r.yourTurn).map(r => r.c.session) : []))
   // Voce 11: dopo l'ok il tasto scelto diventa la conferma. Se la card resta (il PC non risponde) i tasti tornano.
   let sentOk = $state<Record<string, string>>({})
@@ -491,7 +492,6 @@
     lastWait = n
     if (was > 0 && n === 0 && !reducedMotion()) { allDone = true; setTimeout(() => { allDone = false }, 2500) }
   })
-  let finishedNow = $state<string[]>([])
   let prevWorking = new Set<string>()
   const seenOnScreen = new Map<string, boolean>()
   let fingerDown = false, lastTouch = 0, lastAuto = 0
@@ -512,8 +512,6 @@
     prevWorking = new Set(cur)
     const done = ended.filter(n => restFlat.some(([r, g]) => r.session.name === n && g !== 'working'))
     if (!done.length) return
-    finishedNow = [...finishedNow, ...done]
-    setTimeout(() => { finishedNow = finishedNow.filter(n => !done.includes(n)) }, 6000)
     setTimeout(() => {
       const el = rowEl(done[0]); if (!el) return
       const b = el.getBoundingClientRect()
@@ -751,7 +749,7 @@
     <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
          intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
     <div class="list lit">
-      {#each restFlat as [r, group] (r.session.name)}<div class="cw" class:finished={finishedNow.includes(r.session.name)} data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line" out:gather></span>{/if}</div>{/each}
+      {#each restFlat as [r, group] (r.session.name)}<div class="cw" data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line" out:gather></span>{/if}</div>{/each}
     </div>
     {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   </div></div>{/if}
@@ -1592,7 +1590,6 @@
   .foldin { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
   .foldin > :global(*) { flex-shrink: 0; }
   .dragfly { transition: top var(--spring-bounce-t) var(--spring-bounce); }
-  .cw.finished { box-shadow: inset 0 0 0 1.5px var(--good); }
   .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
   .meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .meta .tool { color: var(--busy); }
