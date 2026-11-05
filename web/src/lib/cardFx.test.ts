@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { neckPath, nubPath, waistAt, WAIST } from './cardFx'
+import { LIFT_PX, NECK_MS, neckPath, nubPath, waistAt, WAIST } from './cardFx'
 
 // Il collo della scheda che diventa colonna (app-effetti-movimenti-04-11, punto 1).
 describe('cardFx', () => {
@@ -20,5 +20,9 @@ describe('cardFx', () => {
   it('un capo spezzato è una goccia appesa al suo bordo', () => {
     expect(nubPath(200, 0, 5)).toBe('M60 0 Q100 10 140 0 Z')
     expect(nubPath(200, 22, -5)).toBe('M60 22 Q100 12 140 22 Z')
+  })
+  it('il collo è breve e basso: il volo parte subito (Franz 05/11 10:23)', () => {
+    expect(NECK_MS).toBeLessThanOrEqual(140)
+    expect(LIFT_PX).toBeLessThanOrEqual(10)
   })
 })

@@ -903,6 +903,9 @@
         done = await lift(from, el, c[at - 1] ? 1 : -1)
       }
       document.documentElement.classList.add(opening ? 'fx-open' : 'fx-close')
+      // La chat della colonna che arriva si monta a volo finito: montata dentro la transizione fermava la pagina per un
+      // fotogramma lungo e il volo andava a scatti (app-volo-web-taratura-05-11, misura con la CPU rallentata).
+      if (opening) flyChat = focus
     }
     const vt = smooth(() => { done(); pinned = c; save('cm.columns', columnsPref(c)) }, null, focus)
     if (!fx) return
@@ -912,11 +915,16 @@
       if (over) return
       over = true
       document.documentElement.classList.remove('fx-open', 'fx-close')
+      flyChat = null
       if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }
     }
     void (vt?.finished ?? Promise.resolve()).catch(() => {}).finally(end)
-    setTimeout(end, 1200)
+    // Contati da quando il volo parte: su una macchina lenta la fotografia della pagina dura a lungo, e contati dal tocco
+    // finivano a metà volo, montando la chat della colonna in pieno movimento.
+    void (vt?.ready ?? Promise.resolve()).catch(() => {}).finally(() => setTimeout(end, 1200))
   }
+  // La colonna che sta arrivando in volo: fino all'arrivo al posto della chat lo scheletro.
+  let flyChat = $state<string | null>(null)
   // La scheda di una sessione nella home, se si vede.
   function cardOf(name: string): HTMLElement | null {
     const el = document.querySelector<HTMLElement>(`[data-sess="${CSS.escape(name)}"][data-vt]`)
@@ -1705,7 +1713,7 @@
           <div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i></div>
         {:else}
         {#if hr && !wco}<ColumnHead r={hr} now={now} onClose={() => (held ? dropCol(name) : setCols(cols.filter(c => c !== name)))} onGrab={grab} />{/if}
-        <div class="cbody">{@render chatOf(name, true)}
+        <div class="cbody">{#if flyChat === name}<div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i></div>{:else}{@render chatOf(name, true)}{/if}
           {#if phase}<CloseSplash {phase} column onArm={(w) => arm(name, w)} onDismiss={() => (leaving = null)} onHome={() => dropCol(name)} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(name)('reopen'); dropCol(name) } : null} />{/if}
         </div>
         {/if}

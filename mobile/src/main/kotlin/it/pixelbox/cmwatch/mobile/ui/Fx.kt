@@ -123,16 +123,16 @@ internal fun Modifier.bootWave(i: Int): Modifier {
 }
 
 /**
- * Punto 1 sul tablet: il collo, come cardFx.ts della web. Al tocco la scheda si contrae al 98 % per 80 ms, poi si alza di 22 dp e
+ * Punto 1 sul tablet: il collo, come cardFx.ts della web. Al tocco la scheda si contrae al 98 % per 50 ms, poi si alza di 10 dp e
  * fra lei e il suo posto resta un ponte della sua superficie che si stringe al centro (dal 100 al 25 % della larghezza) e si
- * spezza a 200 ms; poi la scheda vola nella colonna coi bordi condivisi.
+ * spezza a 140 ms; poi la scheda vola subito nella colonna coi bordi condivisi (tempi in rules/Morph.kt).
  */
 internal class Neck { val t = Animatable(0f) }
 
 internal object NeckGeo {
-    const val MS = 200
-    const val PRESS_MS = 80
-    const val LIFT_DP = 22f
+    const val MS = it.pixelbox.cmwatch.rules.Morph.NECK_MS
+    const val PRESS_MS = it.pixelbox.cmwatch.rules.Morph.NECK_PRESS_MS
+    const val LIFT_DP = it.pixelbox.cmwatch.rules.Morph.NECK_LIFT_DP
     const val WAIST = 0.25f
     private fun ease(x: Float) = 1f - (1f - x) * (1f - x) * (1f - x)
     /** Quanto è alzata la scheda, da 0 a 1, al punto `t` del collo. */

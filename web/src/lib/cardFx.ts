@@ -5,9 +5,12 @@
 // v3.css) porta la scheda nella colonna con la molla, e la colonna vicina, già tesa di 12 px verso il posto nuovo, si apre.
 // Il + apre senza scheda: solo lo split. Chiudendo, l'inverso più svelto (`html.fx-close`) e la scheda che riassorbe il collo.
 
-export const PRESS_MS = 80, NECK_MS = 200, CLOSE_MS = 420, SETTLE_MS = 220
+// Franz 05/11 10:23 (app-volo-web-taratura-05-11): «rimane in alto troppo tempo, forse sale un po' troppo». Il collo è più
+// breve e più basso, e si disegna senza JavaScript a ogni fotogramma (WAAPI sul `d` del ponte): il volo parte subito. Gli
+// stessi tempi sul tablet (rules/Morph.kt, `Morph.NECK_*`).
+export const PRESS_MS = 50, NECK_MS = 140, CLOSE_MS = 420, SETTLE_MS = 220
 /** Quanto si alza la scheda, e quanto si tende la colonna vicina verso il posto nuovo. */
-export const LIFT_PX = 22, STRETCH_PX = 12
+export const LIFT_PX = 10, STRETCH_PX = 12
 /** La vita del ponte quando si spezza, in frazione della larghezza. */
 export const WAIST = 0.25
 
@@ -44,6 +47,10 @@ const ease = (t: number) => 1 - (1 - t) ** 3
 export function lift(card: HTMLElement, neighbor: HTMLElement | null, dir: 1 | -1): Promise<() => void> {
   const r = card.getBoundingClientRect()
   const anims: Animation[] = []
+  // Alzata, la scheda sta sopra a quello che ha intorno, anche al titolo della sezione sopra di lei.
+  const was = { position: card.style.position, zIndex: card.style.zIndex }
+  if (getComputedStyle(card).position === 'static') card.style.position = 'relative'
+  card.style.zIndex = '59'
   anims.push(card.animate(
     [{ transform: 'none' }, { transform: 'scale(.98)', offset: PRESS_MS / NECK_MS }, { transform: `translateY(-${LIFT_PX}px)` }],
     { duration: NECK_MS, easing: 'linear', fill: 'forwards' },
@@ -61,27 +68,21 @@ export function lift(card: HTMLElement, neighbor: HTMLElement | null, dir: 1 | -
     return { s, p }
   }
   const a = svg('neck-top'), b = svg('neck-bottom')
-  const t0 = performance.now()
+  // Il ponte: fermo durante la pressione, poi si allunga mentre la scheda sale e si stringe fino alla vita.
+  const p = PRESS_MS / NECK_MS
+  const at = (t: number) => {
+    const up = t < p ? 0 : ease((t - p) / (1 - p)) * LIFT_PX
+    return { d: `path('${neckPath(r.width, LIFT_PX - up, LIFT_PX, waistAt(t))}')`, offset: t }
+  }
+  a.p.setAttribute('d', neckPath(r.width, LIFT_PX, LIFT_PX, 1))
+  anims.push(a.p.animate([0, p, 0.6, 0.8, 1].map(at), { duration: NECK_MS, fill: 'forwards' }))
   return new Promise(resolve => {
-    let ended = false
-    const end = () => {
-      if (ended) return
-      ended = true
-      // Spezzato: un capo resta appeso alla scheda alzata, l'altro al suo posto.
-      a.p.setAttribute('d', nubPath(r.width, 0, 5))
-      b.p.setAttribute('d', nubPath(r.width, LIFT_PX, -5))
-      resolve(() => { a.s.remove(); b.s.remove(); for (const x of anims) x.cancel() })
-    }
-    const frame = (now: number) => {
-      if (ended) return
-      const t = Math.min(1, (now - t0) / NECK_MS)
-      const up = t < PRESS_MS / NECK_MS ? 0 : ease((t - PRESS_MS / NECK_MS) / (1 - PRESS_MS / NECK_MS)) * LIFT_PX
-      a.p.setAttribute('d', neckPath(r.width, LIFT_PX - up, LIFT_PX, waistAt(t)))
-      if (t >= 1) end(); else requestAnimationFrame(frame)
-    }
-    requestAnimationFrame(frame)
-    // Senza fotogrammi (pagina in secondo piano) il collo finisce lo stesso.
-    setTimeout(end, NECK_MS + 60)
+    // Spezzato: un capo resta appeso alla scheda alzata, l'altro al suo posto.
+    setTimeout(() => {
+      a.p.setAttribute('d', nubPath(r.width, 0, 3))
+      b.p.setAttribute('d', nubPath(r.width, LIFT_PX, -3))
+      resolve(() => { a.s.remove(); b.s.remove(); for (const x of anims) x.cancel(); card.style.position = was.position; card.style.zIndex = was.zIndex })
+    }, NECK_MS)
   })
 }
 

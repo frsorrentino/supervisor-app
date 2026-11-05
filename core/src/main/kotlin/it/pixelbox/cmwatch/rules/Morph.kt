@@ -14,6 +14,15 @@ object Morph {
     /** cubic-bezier(0.33, 1, 0.68, 1), la stessa curva della web. */
     val OUT_EASE = floatArrayOf(0.33f, 1f, 0.68f, 1f)
 
+    /**
+     * Il collo della scheda che diventa colonna, prima del volo (app-volo-web-taratura-05-11, Franz 05/11 10:23: «rimane in alto
+     * troppo tempo, forse sale un po' troppo»): si contrae per 50 ms, sale di 10 dp e si spezza a 140 ms, poi il volo parte
+     * subito. Gli stessi tempi della web (`PRESS_MS`, `NECK_MS`, `LIFT_PX` in web/src/lib/cardFx.ts).
+     */
+    const val NECK_PRESS_MS = 50
+    const val NECK_MS = 140
+    const val NECK_LIFT_DP = 10f
+
     /** L'opacità del vecchio al tempo `ms` (la curva come 1 - (1 - x)³). */
     fun outAlpha(ms: Int): Float { val x = (ms.toFloat() / OUT_MS).coerceIn(0f, 1f); return (1f - x) * (1f - x) * (1f - x) }
     /** L'opacità del nuovo al tempo `ms`. */

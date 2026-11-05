@@ -17,4 +17,11 @@ class MorphTest {
         assertEquals(0f, Morph.inAlpha(Morph.IN_DELAY_MS), 0f)
         assertEquals(1f, Morph.inAlpha(Morph.IN_DELAY_MS + Morph.IN_MS), 0f)
     }
+
+    // Il collo è breve e basso: il volo parte subito.
+    @Test fun neckIsShortAndLow() {
+        assertTrue(Morph.NECK_PRESS_MS < Morph.NECK_MS)
+        assertTrue(Morph.NECK_MS <= 140)
+        assertTrue(Morph.NECK_LIFT_DP <= 10f)
+    }
 }
