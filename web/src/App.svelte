@@ -694,6 +694,29 @@
   // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto. Il lato non lo decide il dito
   // (app-master-riga-maniglie-04-11): `pick` è il lato della maniglia presa nella riga in basso, null = il lato di adesso; il
   // gesto è solo verticale.
+  // La master di adesso (riga, pannello, master nella pila) e la molla in verticale: come springX del cambio di lato.
+  const liftEl = () => PLACES.map(q => document.querySelector<HTMLElement>(q)).find(Boolean) ?? null
+  function springY(el: HTMLElement, from: number, v: number) {
+    const f = springFrames(from, v)
+    el.animate(f.map(y => ({ transform: `translateY(${y}px)` })), { duration: (f.length / 60) * 1000, easing: 'linear' })
+  }
+  // Il rilascio di un cambio d'altezza: senza transizione di pagina né schiacciamento, la master d'arrivo parte da dove il dito ha
+  // lasciato quella di prima, con la sua velocità, e va al suo posto con la molla breve senza rimbalzo.
+  function heightEnd(el0: HTMLElement | null, vy: number) {
+    const go = aim
+    aim = null; clearMarks(); masterGhost.drop()
+    const top0 = el0?.getBoundingClientRect().top ?? null
+    if (go) { go(); save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH) }
+    void tick().then(() => {
+      if (el0) { el0.style.transform = ''; el0.style.zIndex = '' }
+      const el = liftEl()
+      if (!el) return
+      if (reducedMotion()) { if (go) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 }); return }
+      if (top0 == null) return
+      const from = top0 - el.getBoundingClientRect().top
+      if (Math.abs(from) > 0.5) springY(el, from, vy)
+    })
+  }
   function heightGesture(y0: number, pick: Side | null) {
     let moved = false
     // Le zone si calcolano una volta, all'inizio del gesto (app-trascina-rifinitura-04-11): rifarle a ogni movimento faceva
@@ -718,15 +741,20 @@
       // Gli altri posti possibili sul lato in cui si è, accennati (app-trascina-destinazioni-04-11).
       masterGhost.hint(zs.map(z => z.key).filter(k => k !== on).map(k => ({ b: rectFor(k), text: t.masterLand[k] })))
     }
+    // Anche l'altezza continua il gesto (app-altezza-animazione-06-11): la master che si sposta segue il dito in verticale.
+    const el0 = reducedMotion() ? null : liftEl()
+    let dy = 0
     const apply = (e: PointerEvent) => {
       speed.add(e.clientY, e.timeStamp)
       if (!moved && Math.abs(e.clientY - y0) <= DRAG_PX) return
       moved = true; begin()
+      dy = e.clientY - y0
+      if (el0) { el0.style.transform = `translateY(${dy}px)`; el0.style.zIndex = '60' }
       aimH(keys[step(mids, from, e.clientY - y0)])
     }
     follow(apply, (e) => {
       clearTimeout(dwellTimer)
-      if (!e) { revert(); return }
+      if (!e) { revert(); if (el0) { el0.style.transform = ''; el0.style.zIndex = ''; springY(el0, dy, 0) } return }
       if (!moved) {
         // Un tocco senza trascinare: la maniglia della riga apre la master da quel lato, all'ultima altezza; quella sotto la home
         // passa all'altezza dopo, come prima.
@@ -735,7 +763,7 @@
         return
       }
       aimH(keys[step(mids, from, e.clientY - y0, speed.speed())])
-      commit()
+      heightEnd(el0, speed.speed())
     })
   }
   function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientY, null) }
