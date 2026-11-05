@@ -23,7 +23,8 @@
     const out: Spot[] = []
     for (const el of home.querySelectorAll<HTMLElement>('[data-sess]')) {
       const r = el.getBoundingClientRect()
-      const y = r.top + Math.min(r.height / 2, 44)
+      // A metà della riga, anche aperta (prova 165 di Franz, 05/11 21:45).
+      const y = r.top + r.height / 2
       if (y > hr.top + 20 && y < hr.bottom - 20) out.push({ name: el.dataset.sess!, y, x })
     }
     if (JSON.stringify(out) !== JSON.stringify(spots)) spots = out

@@ -974,7 +974,8 @@ internal fun Corsia(edge: EdgeSpots?, modifier: Modifier = Modifier, grip: Boole
         top?.invoke(this)
         val m = me; val a = edge?.area; val swap = edge?.swap
         if (edge != null && m != null && a != null && swap != null) edge.spots.forEach { (name, r) ->
-            val y = r.top + kotlin.math.min(r.height / 2f, with(density) { 44.dp.toPx() })
+            // A metà della riga, anche aperta (prova 165 di Franz, 05/11 21:45: col massimo di 44 dp dall'alto il + stava alto).
+            val y = r.top + r.height / 2f
             if (y > a.top + with(density) { 20.dp.toPx() } && y < a.bottom - with(density) { 20.dp.toPx() }) {
                 val yDp = with(density) { (y - m.top).toDp() }
                 if (name in swap.shown) CloseLink(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))

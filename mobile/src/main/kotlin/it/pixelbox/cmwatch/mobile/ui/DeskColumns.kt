@@ -52,6 +52,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Kpi
@@ -425,7 +426,9 @@ internal fun MasterFrame(
                         }
                         // La corsia verso le sessioni, come nella plancia: col + e il filo delle schede della pila; trascinata, la
                         // larghezza fra i posti fissi.
-                        Corsia(edge, if (canGrip) Modifier.grip("width") else Modifier, grip = canGrip)
+                        // Sopra i vicini: il filo esce dalla corsia fino alla colonna, e lo sfondo della plancia, composta dopo, lo copriva
+                        // (prova 165 di Franz, 05/11 21:45: nella pila si fermava 18 px prima della colonna).
+                        Corsia(edge, androidx.compose.ui.Modifier.zIndex(1f).then(if (canGrip) Modifier.grip("width") else Modifier), grip = canGrip)
                     }
                     Column(Modifier.weight(1f).fillMaxHeight()) {
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
