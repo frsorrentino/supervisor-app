@@ -1700,13 +1700,14 @@
      (app-sistema-larghezza-05-11, Franz 05/11 13:29: «decentrata e non sfrutta bene lo spazio»). */
   .exp.full { padding: 10px 14px 14px; }
   /* Le due righe in una griglia sola: le barre finiscono allo stesso punto anche col valore della memoria più lungo. */
-  .srows { display: grid; grid-template-columns: 100px minmax(0, 1fr) auto 24px; }
+  /* La barra non scende sotto 64 px: in una colonna stretta il valore lungo della memoria va a capo invece di schiacciarla. */
+  .srows { display: grid; grid-template-columns: 100px minmax(64px, 1fr) minmax(0, auto); }
   .srow { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; column-gap: 10px; align-items: center; min-height: 44px; padding: 6px 12px 6px 14px; border-top: 1px solid var(--line); }
   .srow:first-child { border-top: 0; }
   .slab { font: 600 15px var(--display); color: var(--tx); white-space: nowrap; }
   .smeter { position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
   .smeter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
-  .sval { font: 400 12.5px var(--mono); color: var(--tx); text-align: right; white-space: nowrap; }
+  .sval { font: 400 12.5px var(--mono); color: var(--tx); text-align: right; text-wrap: balance; }
   .srows + .exp.full { border-top: 1px solid var(--line); }
   .wnote { padding: 12px 12px 12px 60px; }
   .sugg { margin-top: 10px; }

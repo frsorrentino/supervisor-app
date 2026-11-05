@@ -97,10 +97,16 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
     val memV = stringResource(R.string.system_mem_v, SystemRules.num(s.memAvailableMb / 1024.0, c), SystemRules.num(s.memTotalMb / 1024.0, c))
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val valW = with(density) { listOf(loadV, memV).maxOf { v -> measurer.measure(v, V3.Meter).size.width }.toDp() + 1.dp }
+    val wide = with(density) { listOf(loadV, memV).maxOf { v -> measurer.measure(v, V3.Meter).size.width }.toDp() + 1.dp }
+    // La barra non scende sotto 64 dp: in una colonna stretta il valore lungo della memoria va a capo invece di schiacciarla.
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+    val valW = minOf(wide, maxWidth - 14.dp - 12.dp - 100.dp * density.fontScale - 20.dp - 64.dp).coerceAtLeast(48.dp)
+    Column {
     Meter(stringResource(R.string.system_load), (s.loadPerCore / 3).toFloat(), barTone(s.loadLevel), loadV, valW)
     Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Meter(stringResource(R.string.system_mem), 1f - s.memAvailableMb.toFloat() / s.memTotalMb.coerceAtLeast(1), barTone(s.memLevel), memV, valW)
+    }
+    }
     Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (s.consumers.isNotEmpty()) {
@@ -143,13 +149,13 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
 @Composable
 private fun Meter(label: String, fraction: Float, tone: Color, value: String, valW: androidx.compose.ui.unit.Dp) {
     val scale = androidx.compose.ui.platform.LocalDensity.current.fontScale
-    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(start = 14.dp, end = 12.dp + 24.dp + 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(start = 14.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1, softWrap = false, modifier = Modifier.width(100.dp * scale))
         Spacer(Modifier.width(10.dp))
         Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(V3.S3)) {
             Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(tone))
         }
         Spacer(Modifier.width(10.dp))
-        Text(value, style = V3.Meter.copy(color = V3.Tx), maxLines = 1, softWrap = false, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.width(valW))
+        Text(value, style = V3.Meter.copy(color = V3.Tx), maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.width(valW))
     }
 }
