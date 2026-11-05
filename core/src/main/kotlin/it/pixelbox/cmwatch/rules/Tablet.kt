@@ -183,6 +183,46 @@ object Tablet {
         }
     }
 
+    /**
+     * Le colonne a striscia (app-colonne-strette-05-11, scelta A di Franz, 05/11 21:55): con più sessioni aperte e la master
+     * larga nessuna colonna scende sotto [MIN_DP]; quelle in più diventano strisce da [STRIP_DP] col pallino, il nome in verticale
+     * e la X. Restano intere le usate più di recente; un tocco riapre una striscia e, senza posto, diventa striscia la colonna
+     * usata meno di recente. Le stesse regole in tablet.ts.
+     */
+    object Strips {
+        const val MIN_DP = 280f
+        const val STRIP_DP = 48f
+
+        /** `recent` con `name` in testa: la colonna usata adesso. */
+        fun touch(recent: List<String>, name: String): List<String> = listOf(name) + recent.filter { it != name }
+
+        /**
+         * Le colonne a striscia in [spaceDp] (lo spazio delle colonne senza gli stacchi): intere le più recenti di [recent] (poi
+         * nell'ordine delle colonne) finché ognuna ha almeno [MIN_DP]; almeno una sempre intera.
+         */
+        fun of(columns: List<String>, spaceDp: Float, recent: List<String>): Set<String> {
+            val n = columns.size
+            val full = (n downTo 1).firstOrNull { k -> k * MIN_DP + (n - k) * STRIP_DP <= spaceDp } ?: 1
+            if (full == n) return emptySet()
+            val keep = (recent.filter { it in columns } + columns).distinct().take(full).toSet()
+            return columns.filterNot { it in keep }.toSet()
+        }
+
+        /**
+         * Le larghezze in dp: [STRIP_DP] alle strisce; alle intere quello che resta secondo le loro parti, in parti uguali se ci
+         * sono strisce o se con le parti una scende sotto [MIN_DP] (e in parti uguali no).
+         */
+        fun widths(columns: List<String>, shares: List<Int>, spaceDp: Float, strips: Set<String>): List<Float> {
+            val fullIdx = columns.indices.filter { columns[it] !in strips }
+            val rest = (spaceDp - (columns.size - fullIdx.size) * STRIP_DP).coerceAtLeast(0f)
+            val parts = fullIdx.sumOf { shares.getOrElse(it) { 1 } }.coerceAtLeast(1)
+            val byShare = fullIdx.associateWith { rest * shares.getOrElse(it) { 1 } / parts }
+            // Con strisce le intere si dividono il resto in parti uguali; senza, valgono le parti finché nessuna scende sotto il minimo.
+            val equal = strips.isNotEmpty() || (byShare.values.any { it < MIN_DP } && rest / fullIdx.size >= MIN_DP)
+            return columns.indices.map { i -> if (columns[i] in strips) STRIP_DP else if (equal) rest / fullIdx.size else byShare.getValue(i) }
+        }
+    }
+
     fun columnsPref(columns: List<String>): String = columns.joinToString("\n")
     fun columnsFromPref(raw: String?): List<String>? = raw?.split('\n')?.filter { it.isNotBlank() }
 

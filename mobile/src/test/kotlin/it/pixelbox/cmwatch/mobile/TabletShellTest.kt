@@ -110,7 +110,7 @@ class TabletShellTest {
 
     /** La vista unica (Franz, 04/10 16:36): la home del telefono di lato, le colonne, i dettagli se accesi. */
     @Composable
-    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false, swap: Boolean = false) = CmPhoneTheme(still = true) {
+    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false, swap: Boolean = false, strips: Boolean = false) = CmPhoneTheme(still = true) {
         val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
         val rows = Tablet.groups(summary).flatMap { it.second }
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
@@ -124,6 +124,7 @@ class TabletShellTest {
                 }))
             },
             homeRight = homeRight, onHomeSide = {}, columns = cols, shares = shares, onSwap = { _, _ -> }, onShares = {},
+            strip = if (strips) ({ name, open -> DeskStrip(rows.first { it.session.name == name }.session, name, open) {} }) else null,
             column = { name, drag ->
                 val r = rows.first { it.session.name == name }
                 SessionSheet(
@@ -206,6 +207,18 @@ class TabletShellTest {
             MasterFrame(left = true, panelWidthDp = 420f, panel = {
                 MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true, places = listOf(PlaceKey("A destra", androidx.compose.material.icons.Icons.Rounded.Close) {}))
             }, bar = null) { desk(listOf("atlas-shop"), listOf(12)) }
+        }
+    }
+
+    // app-colonne-strette-05-11 (scelta A): la master larga lascia posto a una colonna leggibile; le altre due sono strisce col
+    // pallino, il nome in verticale e la X.
+    @Test fun deskStrips() = paparazzi.snapshot {
+        val m = st.sessions.first { it.name == "master" }
+        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
+        CmPhoneTheme(still = true) {
+            MasterFrame(left = true, panelWidthDp = 560f, panel = {
+                MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true)
+            }, bar = null) { desk(listOf("atlas-shop", "ledger-api", "field-notes"), listOf(4, 4, 4), strips = true) }
         }
     }
 

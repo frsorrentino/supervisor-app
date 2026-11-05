@@ -2220,6 +2220,12 @@ class MainActivity : ComponentActivity() {
                 },
                 override = if (tab == StartRoute.Tab.LAVORI) ({ lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.BAR) }) else null,
                 swap = tabletSwap,
+                // app-colonne-strette-05-11: la colonna senza posto leggibile è una striscia; la X la chiude come quella della testata.
+                strip = { name, open ->
+                    it.pixelbox.cmwatch.mobile.ui.DeskStrip(st.sessions.firstOrNull { x -> x.name == name }, name, open) {
+                        saveCols(it.pixelbox.cmwatch.rules.Tablet.toggle(tabletCols, name))
+                    }
+                },
                 inspector = if (inspectorOn && first != null) ({
                     TabletInspector(it.pixelbox.cmwatch.rules.Tablet.inspect(first, timeline, now, zone), st.quota[first.account]?.h5, loading = timelineOk && timeline == null)
                 }) else null,

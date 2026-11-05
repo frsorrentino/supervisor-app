@@ -75,6 +75,33 @@ function roundEven(x: number): number {
 /** I pixel trascinati in parti intere della larghezza delle colonne (lo scatto). */
 export const parts = (dragPx: number, widthPx: number) => (widthPx <= 0 ? 0 : roundEven(dragPx / (widthPx / TOTAL)) || 0)
 export const sharesPref = (shares: number[]) => shares.join(',')
+
+/**
+ * Le colonne a striscia (Tablet.Strips, app-colonne-strette-05-11, scelta A di Franz, 05/11 21:55): nessuna colonna sotto
+ * STRIP_MIN; quelle in più strisce da STRIP_W col pallino, il nome in verticale e la X. Restano intere le usate più di recente.
+ */
+export const STRIP_MIN = 280
+export const STRIP_W = 48
+/** `recent` con `name` in testa: la colonna usata adesso. */
+export const touchRecent = (recent: string[], name: string) => [name, ...recent.filter(n => n !== name)]
+/** Le colonne a striscia in `space` (lo spazio delle colonne senza gli stacchi); almeno una sempre intera. */
+export function stripsOf(cols: string[], space: number, recent: string[]): Set<string> {
+  const n = cols.length
+  let full = 1
+  for (let k = n; k >= 1; k--) if (k * STRIP_MIN + (n - k) * STRIP_W <= space) { full = k; break }
+  if (full === n) return new Set()
+  const keep = new Set([...new Set([...recent.filter(r => cols.includes(r)), ...cols])].slice(0, full))
+  return new Set(cols.filter(c => !keep.has(c)))
+}
+/** Le larghezze: STRIP_W alle strisce; con strisce le intere si dividono il resto in parti uguali, senza valgono le parti finché nessuna scende sotto il minimo. */
+export function stripWidths(cols: string[], shares: number[], space: number, strips: Set<string>): number[] {
+  const full = cols.map((_, i) => i).filter(i => !strips.has(cols[i]))
+  const rest = Math.max(0, space - (cols.length - full.length) * STRIP_W)
+  const total = Math.max(1, full.reduce((a, i) => a + (shares[i] ?? 1), 0))
+  const byShare = (i: number) => (rest * (shares[i] ?? 1)) / total
+  const eq = strips.size > 0 || (full.some(i => byShare(i) < STRIP_MIN) && rest / full.length >= STRIP_MIN)
+  return cols.map((c, i) => (strips.has(c) ? STRIP_W : eq ? rest / full.length : byShare(i)))
+}
 export function sharesFromPref(raw: string | null, n: number): number[] {
   const s = raw?.split(',').map(x => Number.parseInt(x.trim(), 10)).filter(x => Number.isFinite(x))
   return s && s.length === n && s.reduce((a, b) => a + b, 0) === TOTAL && s.every(p => p >= MIN) ? s : equal(n)

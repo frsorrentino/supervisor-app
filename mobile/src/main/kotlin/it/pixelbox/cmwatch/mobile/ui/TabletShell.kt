@@ -2,6 +2,8 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.ViewColumn
@@ -13,6 +15,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -821,6 +824,8 @@ fun TabletDesk(
     homeHidden: Boolean = false,
     /** Le pillole + e › accanto alle sessioni della home, nel filo verso le colonne (app-sessione-sostituisci-03-11). */
     swap: SwapPills? = null,
+    /** app-colonne-strette-05-11: la colonna a striscia, col tocco che la riapre; null = mai strisce. */
+    strip: (@Composable (name: String, onOpen: () -> Unit) -> Unit)? = null,
 ) {
     // La barra del titolo nostra (Franz, 05/10 11:21: «come fa Chrome»): in una finestra di Android 15 e successivi la barra
     // è trasparente (MainActivity) e la riempiamo noi, lasciando liberi i tasti di sistema. Senza barra (schermo intero,
@@ -839,12 +844,12 @@ fun TabletDesk(
                 CaptionStrip(Modifier.padding(start = with(density) { left.toDp() }, end = with(density) { right.toDp() }), caption)
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = false, homeHidden = homeHidden, swap = swap)
+                DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = false, homeHidden = homeHidden, swap = swap, strip = strip)
             }
         }
         return
     }
-    DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = true, homeHidden = homeHidden, swap = swap)
+    DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = true, homeHidden = homeHidden, swap = swap, strip = strip)
 }
 
 /** La barra del titolo dell'app: le colonne come schede a sinistra, a destra quello che serve (la quota); il resto si trascina. */
@@ -875,7 +880,7 @@ private fun DeskBody(
     columns: List<String>, shares: List<Int>, onSwap: (Int, Int) -> Unit, onShares: (List<Int>) -> Unit,
     column: @Composable (name: String, drag: Modifier) -> Unit, empty: @Composable () -> Unit,
     override: (@Composable () -> Unit)?, inspector: (@Composable () -> Unit)?, insets: Boolean, homeHidden: Boolean = false,
-    swap: SwapPills? = null,
+    swap: SwapPills? = null, strip: (@Composable (name: String, onOpen: () -> Unit) -> Unit)? = null,
 ) {
     val edge = androidx.compose.runtime.remember { EdgeSpots() }
     androidx.compose.runtime.SideEffect { edge.swap = swap.takeIf { !homeHidden && columns.isNotEmpty() && override == null } }
@@ -907,7 +912,7 @@ private fun DeskBody(
         Box(at(homeW + handleW, detailsW).width(total - homeW - handleW - detailsW).fillMaxHeight().then(if (dashboard) Modifier else Modifier.dotGrid())) {
             if (override != null) override()
             else if (columns.isEmpty()) empty()
-            else Columns(columns, shares, onSwap, onShares, homeRight, column)
+            else Columns(columns, shares, onSwap, onShares, homeRight, column, strip)
         }
         inspector?.let { i ->
             Row(at(total - detailsW, 0.dp).width(detailsW).fillMaxHeight()) {
@@ -1000,8 +1005,13 @@ internal fun Corsia(edge: EdgeSpots?, modifier: Modifier = Modifier, grip: Boole
 private fun Columns(
     columns: List<String>, shares: List<Int>, onSwap: (Int, Int) -> Unit, onShares: (List<Int>) -> Unit, homeRight: Boolean,
     column: @Composable (name: String, drag: Modifier) -> Unit,
+    strip: (@Composable (name: String, onOpen: () -> Unit) -> Unit)? = null,
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
+    // Le colonne dalla usata più di recente (app-colonne-strette-05-11): una nuova entra in testa, un tocco la porta in testa.
+    val recent = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+    androidx.compose.runtime.LaunchedEffect(columns) { columns.filter { it !in recent }.reversed().forEach { recent.add(0, it) }; recent.retainAll(columns) }
+    fun touch(name: String) { if (recent.firstOrNull() != name) { val next = Tablet.Strips.touch(recent, name); recent.clear(); recent.addAll(next) } }
     val off = animationsOff()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     // Il margine delle card della home (13) dai due lati: la linea della corsia sta a metà (app-gutter-centrato-04-11), e con la
@@ -1011,13 +1021,17 @@ private fun Columns(
         val gapPx = with(density) { 12.dp.toPx() }
         val widthPx = constraints.maxWidth.toFloat() - gapPx * (columns.size - 1)
         val unit = widthPx / Tablet.Shares.TOTAL
+        // Sotto la larghezza leggibile le colonne in più sono strisce: larghezze fisse, niente bordi né scambi da trascinare.
+        val strips = if (strip == null) emptySet() else Tablet.Strips.of(columns, widthPx / density.density, recent)
+        val stripMode = strips.isNotEmpty()
+        val stripWidths = if (stripMode) Tablet.Strips.widths(columns, shares, widthPx / density.density, strips).map { it * density.density } else null
         var border by remember { mutableStateOf(-1) }
         var borderPx by remember { mutableStateOf(0f) }
         var dragged by remember { mutableStateOf<String?>(null) }
         var draggedPx by remember { mutableStateOf(0f) }
         // Le larghezze di adesso: col bordo trascinato già a scatti, con la stessa regola del rilascio (la colonna che cresce
         // prende da tutte le altre).
-        val live = (if (border >= 0) Tablet.Shares.drag(shares, border, Tablet.Shares.parts(borderPx, widthPx)) else shares).map { it * unit }
+        val live = stripWidths ?: (if (border >= 0) Tablet.Shares.drag(shares, border, Tablet.Shares.parts(borderPx, widthPx)) else shares).map { it * unit }
         val lefts = live.runningFold(0f) { x, w -> x + w + gapPx }
         // La colonna sotto il centro di quella trascinata: lì cadrebbe, e intanto scivola già nel posto lasciato libero
         // (Franz, 04/10 22:15: lo scambio era «spartano»).
@@ -1028,8 +1042,8 @@ private fun Columns(
         // Dove va ogni colonna: già il risultato dello scambio, con le larghezze che lo scambio porta con sé (Franz, 09/10
         // 15:46: al rilascio le colonne si ricollocavano a scatti, perché l'anteprima dava alla colonna scavalcata la larghezza
         // del posto e non la sua).
-        val (order, orderShares) = Tablet.preview(columns, shares, from, over)
-        val liveP = if (border >= 0) live else orderShares.map { it * unit }
+        val (order, orderShares) = if (stripMode) columns to shares else Tablet.preview(columns, shares, from, over)
+        val liveP = if (border >= 0 || stripMode) live else orderShares.map { it * unit }
         val leftsP = liveP.runningFold(0f) { x, w -> x + w + gapPx }
         val spec: androidx.compose.animation.core.AnimationSpec<Float> =
             if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio = 0.82f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow)
@@ -1053,7 +1067,7 @@ private fun Columns(
                 val lift by androidx.compose.animation.core.animateFloatAsState(if (dragging) 1f else 0f, if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), label = "lift")
                 val appear = remember { androidx.compose.animation.core.Animatable(if (off) 1f else 0f) }
                 androidx.compose.runtime.LaunchedEffect(Unit) { appear.animateTo(1f, androidx.compose.animation.core.tween(220)) }
-                val drag = Modifier.grabCursor().pointerInput(name, columns) {
+                val drag = if (stripMode) Modifier else Modifier.grabCursor().pointerInput(name, columns) {
                     detectDragGestures(
                         onDragStart = { dragged = name; draggedPx = 0f },
                         onDragEnd = {
@@ -1078,13 +1092,19 @@ private fun Columns(
                             alpha = appear.value
                         }
                         .clip(RoundedCornerShape(14.dp))
-                        .border(1.dp, if (dragging) Cm.actionIcon.copy(alpha = 0.55f) else Cm.line, RoundedCornerShape(14.dp)),
-                ) { column(name, drag) }
+                        .border(1.dp, if (dragging) Cm.actionIcon.copy(alpha = 0.55f) else Cm.line, RoundedCornerShape(14.dp))
+                        .pointerInput(name) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                touch(name)
+                            }
+                        },
+                ) { if (name in strips) strip!!(name) { touch(name) } else column(name, drag) }
             }
         }
         columns.indices.forEach { i ->
             // Il bordo dopo la colonna: si trascina, e al rilascio scatta al dodicesimo più vicino.
-            if (i < columns.size - 1) Box(
+            if (i < columns.size - 1 && !stripMode) Box(
                 Modifier.offset { androidx.compose.ui.unit.IntOffset((lefts[i] + live[i]).roundToInt(), 0) }
                     .width(with(density) { gapPx.toDp() }).fillMaxHeight().resizeCursor()
                     .pointerInput(columns, shares) {
@@ -1121,6 +1141,31 @@ class DraftStore(initial: Map<String, String> = emptyMap()) {
             restore = { l -> DraftStore(l.chunked(2).filter { it.size == 2 }.associate { it[0] to it[1] }) },
         )
     }
+}
+
+/**
+ * La colonna a striscia (app-colonne-strette-05-11, scelta A): la X in alto, il pallino di stato e il nome in verticale, ruotato;
+ * il tocco la riapre e, senza posto, diventa striscia la colonna usata meno di recente.
+ */
+@Composable
+internal fun DeskStrip(s: Session?, name: String, onOpen: () -> Unit, onClose: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().background(Cm.bg).handCursor().clickable(onClickLabel = stringResource(R.string.strip_open, name), onClick = onOpen)
+            .padding(vertical = 8.dp).testTag("striscia-$name"),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        IconButton(onClick = onClose, modifier = Modifier.size(32.dp).handCursor()) {
+            Icon(Icons.Rounded.Close, stringResource(R.string.tablet_close_column, name), tint = Cm.text2, modifier = Modifier.size(18.dp))
+        }
+        s?.let { SessionBadge(it, 22.dp) }
+        Text(name, style = MaterialTheme.typography.titleSmall, color = Cm.text, maxLines = 1, softWrap = false, modifier = Modifier.weight(1f, fill = false).sideways())
+    }
+}
+
+/** Il testo ruotato di un quarto di giro, dal basso in alto: misurato sulla lunghezza della striscia, occupa la sua altezza. */
+private fun Modifier.sideways(): Modifier = this.layout { m, c ->
+    val p = m.measure(androidx.compose.ui.unit.Constraints(maxWidth = c.maxHeight))
+    layout(p.height, p.width) { p.placeWithLayer(-(p.width - p.height) / 2, (p.width - p.height) / 2) { rotationZ = -90f } }
 }
 
 /** Il segno accanto a ogni sessione della home sul tablet: le sessioni già in colonna e cosa fare al tocco. */

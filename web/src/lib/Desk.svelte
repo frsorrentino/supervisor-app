@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
-  import { drag, equal, parts, swap as swapCols, TOTAL } from './tablet'
+  import { untrack, type Snippet } from 'svelte'
+  import { drag, equal, parts, stripsOf, stripWidths, swap as swapCols, touchRecent, TOTAL } from './tablet'
   import { t } from './t'
 
   // La plancia (TabletDesk, seconda versione): la home di lato, a sinistra o a destra con ⇄; da una a quattro sessioni in
   // colonne affiancate. Una colonna presa per la testata e lasciata sopra un'altra scambia il posto con lei; i bordi fra le
   // colonne si trascinano a scatti di un dodicesimo (la colonna che cresce prende da tutte le altre).
-  let { cols, shares, homeRight, onCols, onShares, onHomeSide, home, column, empty, override = null, details = null, tab = null }: {
+  let { cols, shares, homeRight, onCols, onShares, onHomeSide, home, column, empty, override = null, details = null, tab = null, strip = null }: {
     cols: string[]; shares: number[]; homeRight: boolean
     onCols: (c: string[]) => void; onShares: (s: number[]) => void; onHomeSide?: (() => void) | null
     home: Snippet; column: Snippet<[string, (e: PointerEvent) => void]>; empty: Snippet
@@ -16,6 +16,8 @@
     tab?: Snippet<[string, (e: PointerEvent) => void]> | null
     /** I dettagli della prima colonna, dall'altra parte della home (TabletInspector). */
     details?: Snippet | null
+    /** app-colonne-strette-05-11: la colonna a striscia, col tocco che la riapre; null = mai strisce. */
+    strip?: Snippet<[string, () => void]> | null
   } = $props()
 
   const GAP = 12
@@ -27,13 +29,24 @@
   let cw = $state(0)
   const widthPx = $derived(Math.max(0, cw - PAD - PAD_HANDLE - GAP * (cols.length - 1)))
   const unit = $derived(widthPx / TOTAL)
+  // Le colonne dalla usata più di recente (Tablet.Strips): una nuova entra in testa, un tocco la porta in testa. Sotto la larghezza
+  // leggibile le colonne in più sono strisce: larghezze fisse, niente bordi né scambi da trascinare.
+  let recent = $state<string[]>([])
+  $effect(() => {
+    const c = cols
+    const r = untrack(() => recent)
+    const next = [...c.filter(n => !r.includes(n)), ...r.filter(n => c.includes(n))]
+    if (next.join('\n') !== r.join('\n')) recent = next
+  })
+  const touch = (name: string) => { if (recent[0] !== name) recent = touchRecent(recent, name) }
+  const strips = $derived(strip ? stripsOf(cols, widthPx, recent) : new Set<string>())
 
   // Il bordo che si trascina e di quanto; la colonna presa per la testata e di quanto.
   let border = $state(-1)
   let borderPx = $state(0)
   let dragged = $state(-1)
   let draggedPx = $state(0)
-  const live = $derived((border >= 0 ? drag(shares, border, parts(borderPx, widthPx)) : shares).map(p => p * unit))
+  const live = $derived(strips.size ? stripWidths(cols, shares, widthPx, strips) : (border >= 0 ? drag(shares, border, parts(borderPx, widthPx)) : shares).map(p => p * unit))
   const lefts = $derived(live.reduce<number[]>((acc, w, i) => [...acc, i === 0 ? padLeft : acc[i - 1] + live[i - 1] + GAP], []))
   // La colonna sotto il centro di quella trascinata: lì cadrebbe, e intanto scivola già nel posto lasciato libero.
   const over = $derived.by(() => {
@@ -46,7 +59,7 @@
   const slot = (i: number) => (dragged >= 0 && i === over && over !== dragged ? dragged : i)
 
   function grabColumn(i: number, e: PointerEvent) {
-    if (e.button !== 0) return
+    if (e.button !== 0 || strips.size) return
     const el = e.currentTarget as HTMLElement
     const x0 = e.clientX
     let moved = false
@@ -110,15 +123,15 @@
       {#each [...cols].sort() as name (name)}
         {@const i = cols.indexOf(name)}
         {@const k = slot(i)}
-        <div class="col" data-col={name} class:dragging={dragged === i}
+        <div class="col" data-col={name} class:dragging={dragged === i} onpointerdowncapture={() => touch(name)}
           style="left:{dragged === i ? lefts[i] + draggedPx : lefts[k]}px;width:{live[k] ?? 0}px">
-          {@render column(name, (e) => grabColumn(i, e))}
+          {#if strip && strips.has(name)}{@render strip(name, () => touch(name))}{:else}{@render column(name, (e) => grabColumn(i, e))}{/if}
         </div>
         {#if tab}
           <div class="tabslot" class:dragging={dragged === i} style="left:{dragged === i ? lefts[i] + draggedPx : lefts[k]}px;max-width:{live[k] ?? 0}px">{@render tab(name, (e) => grabColumn(i, e))}</div>
         {/if}
       {/each}
-      {#each cols.slice(0, -1) as _, i}
+      {#each strips.size ? [] : cols.slice(0, -1) as _, i}
         <div class="border" class:on={border === i} style="left:{lefts[i] + live[i]}px" role="separator" aria-orientation="vertical"
           onpointerdown={(e) => grabBorder(i, e)}><i></i></div>
       {/each}

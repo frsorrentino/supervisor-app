@@ -8,6 +8,28 @@ import java.time.ZoneId
 
 /** Il tablet (piano 04/10, approvato da Franz): plancia e colonne sugli schermi larghi. */
 class TabletTest {
+    // app-colonne-strette-05-11 (scelta A): intere le più recenti finché hanno 280 dp, le altre strisce da 48.
+    @Test fun narrowColumnsBecomeStripsLeastRecentFirst() {
+        val cols = listOf("a", "b", "c")
+        assertEquals(emptySet<String>(), Tablet.Strips.of(cols, 900f, emptyList()))
+        // Due intere e una striscia: 2 x 280 + 48 = 608.
+        assertEquals(setOf("a"), Tablet.Strips.of(cols, 700f, listOf("c", "b")))
+        // Una sola intera, la più recente; anche senza posto per nessuna.
+        assertEquals(setOf("a", "c"), Tablet.Strips.of(cols, 400f, listOf("b")))
+        assertEquals(setOf("b", "c"), Tablet.Strips.of(cols, 100f, emptyList()))
+        // Riaperta una striscia, diventa striscia la meno recente.
+        val recent = Tablet.Strips.touch(listOf("c", "b"), "a")
+        assertEquals(listOf("a", "c", "b"), recent)
+        assertEquals(setOf("b"), Tablet.Strips.of(cols, 700f, recent))
+    }
+
+    @Test fun stripsTake48AndTheFullColumnsShareTheRest() {
+        val cols = listOf("a", "b", "c")
+        assertEquals(listOf(48f, 326f, 326f), Tablet.Strips.widths(cols, listOf(4, 4, 4), 700f, setOf("a")))
+        // Senza strisce valgono le parti.
+        assertEquals(listOf(300f, 300f, 600f), Tablet.Strips.widths(cols, listOf(3, 3, 6), 1200f, emptySet()))
+    }
+
     private val zone = ZoneId.of("Europe/Rome")
     private fun at(h: Int, m: Int = 0) = LocalDate.of(2026, 10, 3).atTime(h, m).atZone(zone).toEpochSecond()
     private fun s(name: String, st: SessionState = SessionState.IDLE, since: Long = at(9)) =

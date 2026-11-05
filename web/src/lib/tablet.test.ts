@@ -1,13 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import type { Session, State } from './contract'
 import { build } from './summary'
-import { add, columns, forecast, inspect, timelineArg, weekProjected, weekRunsOut, columnsFromPref, columnsPref, drag, equal, groups, parts, sharesFromPref, sharesPref, replace, swap, toggle, wide } from './tablet'
+import { stripsOf, stripWidths, touchRecent, add, columns, forecast, inspect, timelineArg, weekProjected, weekRunsOut, columnsFromPref, columnsPref, drag, equal, groups, parts, sharesFromPref, sharesPref, replace, swap, toggle, wide } from './tablet'
 
 // Gli stessi casi di TabletTest in Kotlin (colonne e plancia).
 const at = (h: number, m = 0) => Date.UTC(2026, 9, 4, h - 2, m) / 1000
 const s = (name: string, state: Session['state'] = 'idle', since = at(9)): Session => ({ id: name, name, account: 'personale', project: name, state, since })
 const st = (...ss: Session[]): State => ({ v: 1, ts: at(15), host: 'pc', sessions: ss, quota: {}, projects: [], night: { queued: 0 }, recap: { date: '', items: [] } })
 const summary = (state: State) => build(state, [], at(15), new Set())
+
+describe('colonne a striscia (app-colonne-strette-05-11)', () => {
+  const cols = ['a', 'b', 'c']
+  it('intere le più recenti finché hanno 280, le altre strisce', () => {
+    expect([...stripsOf(cols, 900, [])]).toEqual([])
+    expect([...stripsOf(cols, 700, ['c', 'b'])]).toEqual(['a'])
+    expect([...stripsOf(cols, 400, ['b'])]).toEqual(['a', 'c'])
+    expect([...stripsOf(cols, 100, [])]).toEqual(['b', 'c'])
+    const recent = touchRecent(['c', 'b'], 'a')
+    expect(recent).toEqual(['a', 'c', 'b'])
+    expect([...stripsOf(cols, 700, recent)]).toEqual(['b'])
+  })
+  it('strisce da 48, le intere si dividono il resto', () => {
+    expect(stripWidths(cols, [4, 4, 4], 700, new Set(['a']))).toEqual([48, 326, 326])
+    expect(stripWidths(cols, [3, 3, 6], 1200, new Set())).toEqual([300, 300, 600])
+  })
+})
 
 describe('plancia', () => {
   it('da 840', () => { expect(wide(839)).toBe(false); expect(wide(840)).toBe(true); expect(wide(1280)).toBe(true) })

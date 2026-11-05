@@ -24,6 +24,7 @@
   import { nightTitleParts, okAlso } from './lib/decide'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack, tick } from 'svelte'
+  import Badge from './lib/Badge.svelte'
   import { morphStart } from './lib/motion'
   import { flatten, lift, settle as settleCard } from './lib/cardFx'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
@@ -1718,6 +1719,17 @@
   <Desk {cols} {shares} homeRight={master ? !masterLeft : homeRight} tab={wco ? columnTab : null} onCols={dropCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={master ? null : () => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
     {#snippet home()}{#if !stacked}{@render homePane()}{/if}{/snippet}
+    <!-- app-colonne-strette-05-11 (scelta A): la colonna senza posto leggibile è una striscia; la X la toglie come quella della testata. -->
+    {#snippet strip(name, open)}
+      {@const ses = st.sessions.find(x => x.name === name)}
+      <div class="cstrip" role="button" tabindex="0" aria-label={t.stripOpen(name)} title={name} onclick={open} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }}>
+        <button class="sx" aria-label={t.tabletClose(name)} title={t.tabletClose(name)} onclick={(e) => { e.stopPropagation(); setCols(cols.filter(c => c !== name)) }}>
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+        </button>
+        {#if ses}<Badge s={ses} size={22} />{/if}
+        <span class="sname">{name}</span>
+      </div>
+    {/snippet}
     {#snippet column(name, grab)}
       {@const held = heldCols.includes(name)}
       {@const phase = splashOf(name, true)}
@@ -1848,6 +1860,10 @@
   .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
   /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
   .deskwrap { height: 100%; display: flex; min-height: 0; }
+  /* La striscia (app-colonne-strette-05-11): la X in alto, il pallino, il nome in verticale dal basso in alto. */
+  .cstrip { height: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; background: var(--bg); min-height: 0; }
+  .cstrip .sx { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 16px; color: var(--text2); }
+  .cstrip .sname { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; overflow: hidden; min-height: 0; font: 600 14px var(--display); color: var(--text); }
   /* L'anteprima a fantasma (landingMorph.ts; scelta A, app-trascina-rifinitura-04-11): lo sfondo appena più scuro e la sagoma
      gialla traslucida del posto d'arrivo, con l'etichetta piccola dentro, in alto. */
   :global(.master-ghost-dim) { position: fixed; inset: 0; z-index: 70; pointer-events: none; background: rgb(0 0 0 / .22); }
