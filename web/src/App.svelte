@@ -1104,24 +1104,28 @@
     void tick().then(() => fbDlg?.showModal())
   }
   const fbTech = $derived({ version: __APP_VERSION__, commit: __APP_COMMIT__, device: deviceOf(navigator.userAgent, window.innerWidth, window.innerHeight), screen: t.feedbackScreen(fbScreen), lang: t.feedbackLang(locale) })
-  let fbDraft: { key: string; hash: string } | null = null
-  async function fbSend(d: Draft, photo: string | null, as: 'github' | 'anon' | 'later'): Promise<{ url: string | null } | string> {
+  // Il primo passo parte a «Prepara la bozza» (contratto 1.123): così la riga del PC sulla schermata e il tasto GitHub, solo per
+  // chi legge il repo privato dei feedback, ci sono prima dei tasti. La bozza vale una volta.
+  let fbDraft: string | null = null
+  async function fbPrepare(d: Draft, photo: string | null): Promise<{ notice: string | null; github: boolean } | string> {
     if (!tr) return t.noAnswer
-    const key = JSON.stringify([d.kind, d.body, photo?.length ?? 0, photo?.slice(-64)])
-    if (fbDraft?.key !== key) {
-      let share: string | undefined
-      const b = photo ? bytesOf(photo) : null
-      if (b) { share = crypto.randomUUID(); await tr.share(share, b.mime, b.data, b.mime === 'image/jpeg' ? 'feedback.jpg' : 'feedback.png') }
-      const r = await run(newCmd('feedback_app', null, null, d.text.slice(0, 4000), undefined, { kind: relayKind(d.kind), tech: relayTech(fbTech), share }))
-      const dr = r?.ok ? parseDraft(r.text) : null
-      if (!dr) return r?.text || t.noAnswer
-      fbDraft = { key, hash: dr.hash }
-    }
-    const r = await run(newCmd('feedback_app', null, null, undefined, undefined, { hash: fbDraft.hash, choice: as === 'anon' ? 'anonymous' : as }))
+    fbDraft = null
+    let share: string | undefined
+    const b = photo ? bytesOf(photo) : null
+    if (b) { share = crypto.randomUUID(); await tr.share(share, b.mime, b.data, b.mime === 'image/jpeg' ? 'feedback.jpg' : 'feedback.png') }
+    const r = await run(newCmd('feedback_app', null, null, d.text.slice(0, 4000), undefined, { kind: relayKind(d.kind), tech: relayTech(fbTech), share }))
+    const dr = r?.ok ? parseDraft(r.text) : null
+    if (!dr) return r?.text || t.noAnswer
+    fbDraft = dr.hash
+    return { notice: dr.screenshot ? dr.screenshot_notice ?? null : null, github: dr.github_ok === true }
+  }
+  async function fbSend(as: 'github' | 'anon' | 'later'): Promise<{ url: string | null; text: string } | string> {
+    if (!tr || !fbDraft) return t.noAnswer
+    const r = await run(newCmd('feedback_app', null, null, undefined, undefined, { hash: fbDraft, choice: as === 'anon' ? 'anonymous' : as }))
     const c = r?.ok ? parseChoice(r.text) : null
     if (!c) return r?.text || t.noAnswer
     fbDraft = null
-    return { url: c.url }
+    return { url: c.url, text: c.text }
   }
   const fbGrab = () => grabTab(async () => { fbDlg?.close(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))) }, () => { if (fbOn) fbDlg?.showModal() })
   const openPage = (p: PageName | null) => { if (p === 'overview') goUsage(); else smooth(() => { page = p; if (p !== 'queue') queueSkip = null }, page && !p ? 'back' : !page && p ? 'open' : null) }
@@ -1794,7 +1798,7 @@
 {#if fbOn}
 <dialog bind:this={fbDlg} class="sheet fbsheet" aria-label={t.feedbackTitle} onclick={(e) => e.target === e.currentTarget && (fbOn = false)} oncancel={() => (fbOn = false)}>
   <h2>{t.feedbackTitle}</h2>
-  <Feedback tech={fbTech} onGrab={'getDisplayMedia' in (navigator.mediaDevices ?? {}) ? fbGrab : null} onSend={st.ops?.includes('feedback_app') ? fbSend : null} onDone={() => (fbOn = false)} />
+  <Feedback tech={fbTech} onGrab={'getDisplayMedia' in (navigator.mediaDevices ?? {}) ? fbGrab : null} onPrepare={st.ops?.includes('feedback_app') ? fbPrepare : null} onSend={st.ops?.includes('feedback_app') ? fbSend : null} onDone={() => (fbOn = false)} />
 </dialog>
 {/if}
 

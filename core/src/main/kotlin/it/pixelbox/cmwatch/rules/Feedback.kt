@@ -58,15 +58,36 @@ object Feedback {
         (json.parseToJsonElement(text ?: "") as kotlinx.serialization.json.JsonObject)["hash"]?.let { (it as kotlinx.serialization.json.JsonPrimitive).content }
     }.getOrNull()
 
-    data class Choice(val choice: String, val url: String?, val text: String)
+    /**
+     * La bozza del PC dopo il primo passo (contratto 1.123): con la schermata `notice` è la riga da mostrare prima dei tasti;
+     * `githubOk` true solo se il gh del PC legge il repo privato dei feedback (campo assente = no).
+     */
+    data class Prepared(val hash: String, val notice: String?, val githubOk: Boolean)
 
-    /** L'invio dal foglio: il link di GitHub, o l'errore da dire. */
-    data class Sent(val url: String?, val error: String?)
+    fun preparedOf(text: String?): Prepared? = runCatching {
+        val o = json.parseToJsonElement(text ?: "") as kotlinx.serialization.json.JsonObject
+        fun prim(k: String) = o[k] as? kotlinx.serialization.json.JsonPrimitive
+        val hash = prim("hash")?.takeIf { it.isString }?.content ?: return@runCatching null
+        val shot = prim("screenshot")?.content == "true"
+        Prepared(hash, prim("screenshot_notice")?.takeIf { shot && it.isString }?.content, prim("github_ok")?.content == "true")
+    }.getOrNull()
+
+    /** L'esito del secondo passo; `screenshotUrl` il link dell'immagine per github (contratto 1.123). */
+    data class Choice(val choice: String, val url: String?, val text: String, val screenshotUrl: String? = null)
+
+    /** Il primo passo dal foglio: la riga sulla schermata e se c'è GitHub, o l'errore da dire. */
+    data class Ready(val notice: String?, val github: Boolean, val error: String?)
+
+    /** L'invio dal foglio: il link di GitHub e il testo del PC (che dice anche se la schermata non è partita), o l'errore. */
+    data class Sent(val url: String?, val error: String?, val text: String? = null)
+
+    /** I due passi del Feedback, dati da chi ha il relay. */
+    class Link(val prepare: suspend (Draft, Tech, ByteArray?) -> Ready, val choose: suspend (String) -> Sent)
 
     /** L'esito del secondo passo, o null. */
     fun choiceOf(text: String?): Choice? = runCatching {
         val o = json.parseToJsonElement(text ?: "") as kotlinx.serialization.json.JsonObject
         fun str(k: String) = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
-        Choice(str("choice") ?: return@runCatching null, str("url"), str("text").orEmpty())
+        Choice(str("choice") ?: return@runCatching null, str("url"), str("text").orEmpty(), str("screenshot_url"))
     }.getOrNull()
 }

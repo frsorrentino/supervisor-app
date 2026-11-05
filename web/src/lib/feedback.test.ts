@@ -31,7 +31,7 @@ describe('feedback', () => {
   })
 })
 
-// Contratto 1.121, `feedback_app`: le voci 1210-1214 di cmd-result-sample.json.
+// Contratti 1.121 e 1.123, `feedback_app`: le voci 1210-1214 di cmd-result-sample.json.
 describe('feedback_app', () => {
   const sample = JSON.parse(readFileSync(new URL('../../../contract/cmd-result-sample.json', import.meta.url), 'utf8'))
   const res = (n: string) => sample.result.find((r: { id: string }) => r.id.endsWith(n))
@@ -40,12 +40,17 @@ describe('feedback_app', () => {
     expect(d.hash).toBe('7c41e09a2b')
     expect(d.screenshot).toBe(true)
     expect(d.options.map(o => o.id)).toEqual(['github', 'anonymous', 'later'])
+    // 1.123: con la schermata la riga da mostrare prima dei tasti; github_ok assente, quindi niente GitHub.
+    expect(d.screenshot_notice).toMatch(/maintainer/)
+    expect(d.github_ok).toBeUndefined()
     expect(parseDraft(res('00001214').text)).toBeNull()
   })
   it("l'esito del secondo: github col link, anonimo col link, più tardi senza", () => {
-    expect(parseChoice(res('00001212').text)!.url).toMatch(/^https:\/\/github\.com\/frsorrentino\/supervisor\/issues\/new\?/)
+    expect(parseChoice(res('00001212').text)!.url).toMatch(/^https:\/\/github\.com\/frsorrentino\/supervisor-feedback\/issues\/new\?/)
+    expect(parseChoice(res('00001212').text)!.screenshot_url).toMatch(/^https:\/\/github\.com\/frsorrentino\/supervisor-feedback\/raw\//)
     expect(parseChoice(res('00001211').text)!.choice).toBe('anonymous')
-    expect(parseChoice(res('00001213').text)).toEqual({ choice: 'later', url: null, text: expect.any(String) })
+    expect(parseChoice(res('00001213').text)).toEqual({ choice: 'later', url: null, text: expect.any(String), screenshot_url: null })
+    expect(parseChoice(res('00001211').text)!.text).toMatch(/with the screenshot/)
   })
   it('tipo e dati tecnici come li vuole il relay', () => {
     expect(relayKind('idea')).toBe('suggerimento')

@@ -1803,7 +1803,7 @@ class MainActivity : ComponentActivity() {
             onQuadro = goUsage, onSearch = { searchOpen = true }, onSettings = { settingsOpen = true },
             onNight = { nightOpen = true },
             screen = open?.let { o -> androidx.compose.ui.res.stringResource(R.string.feedback_session, o) } ?: if (tab == StartRoute.Tab.LAVORI) androidx.compose.ui.res.stringResource(R.string.menu_lavori) else null,
-            feedbackSend = if (!demo && state?.ops?.contains("feedback_app") == true) ({ d, tech, jpg, choice -> feedbackSend(d, tech, jpg, choice) }) else null,
+            feedbackSend = if (!demo && state?.ops?.contains("feedback_app") == true) feedbackLink else null,
         )
         val pageHeader: @Composable (String?) -> Unit = { page ->
             PageHeader(
@@ -2798,32 +2798,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** La bozza di `feedback_app` già mandata, per testo, tipo e foto: vale una volta, la scelta la consuma. */
-    private var feedbackDraft: Pair<String, String>? = null
+    /** La bozza di `feedback_app` già mandata: vale una volta, la scelta la consuma. */
+    private var feedbackDraft: String? = null
+
+    private suspend fun feedbackWait(id: String) = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }.also { app.repo.forget(id) }
 
     /**
-     * Il Feedback dal menu (contratto 1.121, `feedback_app`): il primo passo manda tipo, testo, dati tecnici e la foto (se accesa)
-     * e riceve la bozza col suo hash; il secondo manda la scelta. Senza risposta in 60 s, o con un rifiuto, il motivo da dire.
+     * Il Feedback dal menu (contratti 1.121 e 1.123, `feedback_app`). Il primo passo parte a «Prepara la bozza»: manda tipo,
+     * testo, dati tecnici e la foto (se accesa) e riceve la bozza col suo hash, la riga sulla schermata e se GitHub è per chi la
+     * manda; il secondo manda la scelta. Senza risposta in 60 s, o con un rifiuto, il motivo da dire.
      */
-    private suspend fun feedbackSend(d: it.pixelbox.cmwatch.rules.Feedback.Draft, tech: it.pixelbox.cmwatch.rules.Feedback.Tech, jpg: ByteArray?, choice: String): it.pixelbox.cmwatch.rules.Feedback.Sent {
-        val fb = it.pixelbox.cmwatch.rules.Feedback
-        suspend fun wait(id: String) = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }.also { app.repo.forget(id) }
-        val key = "${d.kind}|${d.text}|${jpg != null}"
-        val hash = feedbackDraft?.takeIf { it.first == key }?.second ?: run {
+    private val feedbackLink = it.pixelbox.cmwatch.rules.Feedback.Link(
+        prepare = { d, tech, jpg ->
+            val fb = it.pixelbox.cmwatch.rules.Feedback
+            feedbackDraft = null
             val maxBytes = app.repo.snapshot.value.state?.share?.maxBytes ?: 0
-            val id = runCatching { app.repo.feedbackDraft(fb.relayKind(d.kind), d.text.take(4000), fb.relayTech(tech), jpg?.takeIf { maxBytes > 0 }, maxBytes) }
-                .getOrElse { e -> return it.pixelbox.cmwatch.rules.Feedback.Sent(null, e.message ?: "offline") }
-            val r = wait(id) ?: return it.pixelbox.cmwatch.rules.Feedback.Sent(null, getString(R.string.feedback_no_answer))
-            val h = fb.draftHash(r.text.takeIf { r.ok }) ?: return it.pixelbox.cmwatch.rules.Feedback.Sent(null, r.text)
-            feedbackDraft = key to h
-            h
-        }
-        val id = runCatching { app.repo.command(CmdOp.FEEDBACK_APP, null, null, choice = choice, hash = hash) }.getOrElse { e -> return it.pixelbox.cmwatch.rules.Feedback.Sent(null, e.message ?: "offline") }
-        val r = wait(id) ?: return it.pixelbox.cmwatch.rules.Feedback.Sent(null, getString(R.string.feedback_no_answer))
-        val c = fb.choiceOf(r.text.takeIf { r.ok }) ?: return it.pixelbox.cmwatch.rules.Feedback.Sent(null, r.text)
-        feedbackDraft = null
-        return it.pixelbox.cmwatch.rules.Feedback.Sent(c.url, null)
-    }
+            val id = runCatching { app.repo.feedbackDraft(fb.relayKind(d.kind), d.text.take(4000), fb.relayTech(tech), jpg?.takeIf { maxBytes > 0 }, maxBytes) }.getOrNull()
+            val r = id?.let { feedbackWait(it) }
+            val p = fb.preparedOf(r?.text?.takeIf { r.ok })
+            if (p == null) it.pixelbox.cmwatch.rules.Feedback.Ready(null, false, r?.text ?: getString(R.string.feedback_no_answer))
+            else { feedbackDraft = p.hash; it.pixelbox.cmwatch.rules.Feedback.Ready(p.notice, p.githubOk, null) }
+        },
+        choose = { choice ->
+            val fb = it.pixelbox.cmwatch.rules.Feedback
+            val hash = feedbackDraft
+            val id = hash?.let { h -> runCatching { app.repo.command(CmdOp.FEEDBACK_APP, null, null, choice = choice, hash = h) }.getOrNull() }
+            val r = id?.let { feedbackWait(it) }
+            val c = fb.choiceOf(r?.text?.takeIf { r.ok })
+            if (c == null) it.pixelbox.cmwatch.rules.Feedback.Sent(null, r?.text ?: getString(R.string.feedback_no_answer))
+            else { feedbackDraft = null; it.pixelbox.cmwatch.rules.Feedback.Sent(c.url, null, c.text) }
+        },
+    )
 
     private fun attachImage(session: String, uri: Uri, text: String, maxBytes: Int, retryId: String? = null) {
         app.scope.launch {

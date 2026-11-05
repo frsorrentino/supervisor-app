@@ -257,9 +257,9 @@
     <string name="feedback_session">sessione %1$s</string>
     <string name="feedback_no_answer">Il PC non ha risposto in tempo.</string>
     <string name="feedback_send_fail">Non inviato: %1$s</string>
-    <string name="feedback_github_hint">La segnalazione è già scritta: si apre su GitHub, allega la foto se vuoi e mandala.</string>
     <string name="feedback_sent">Inviato, grazie</string>
-    <string name="feedback_anon_sent">Inviato anonimo, senza la foto. Grazie</string>
+    <string name="feedback_send">Invia</string>
+    <string name="feedback_preparing">Preparo la bozza sul PC</string>
     <string name="feedback_kept">Resta fra le osservazioni del PC: non è partito niente.</string>
     <string name="follow_sub">Una notifica quando finisce un turno</string>
     <string name="unfollow_sub">Niente più notifiche a fine turno</string>

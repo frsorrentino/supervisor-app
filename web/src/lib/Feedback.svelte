@@ -5,12 +5,14 @@
   import { t } from './t'
   // Feedback dal menù (app-feedback-menu-04-11, scelta A): il tipo, il testo, i dati tecnici aggiunti da soli e la foto della
   // pagina, spenta di base e con l'anteprima; poi la bozza anonima con «Invia dal mio GitHub», «Invia anonimo» e «Non ora».
-  // L'invio (contratto 1.121, `feedback_app`): `onSend` manda la bozza e la scelta, e dice il link di GitHub o l'errore. Null:
-  // il relay non ha ancora l'op, la bozza si vede ma non parte.
-  let { tech, onGrab, onSend, onDone }: {
+  // L'invio (contratti 1.121 e 1.123, `feedback_app`): `onPrepare` manda la bozza con la schermata e dice la riga sulla
+  // schermata da mostrare prima dei tasti e se «Invia dal mio GitHub» è per chi la manda; `onSend` manda la scelta e dice il link
+  // e il testo del PC (che dice anche se la schermata non è partita e perché). Null: il relay non ha l'op, la bozza non parte.
+  let { tech, onGrab, onPrepare, onSend, onDone }: {
     tech: Tech
     onGrab: (() => Promise<string | null>) | null
-    onSend: ((d: Draft, photo: string | null, as: 'github' | 'anon' | 'later') => Promise<{ url: string | null } | string>) | null
+    onPrepare: ((d: Draft, photo: string | null) => Promise<{ notice: string | null; github: boolean } | string>) | null
+    onSend: ((as: 'github' | 'anon' | 'later') => Promise<{ url: string | null; text: string } | string>) | null
     onDone: () => void
   } = $props()
   // Il testo non scritto resta per la prossima volta, solo in questo browser.
@@ -28,6 +30,9 @@
   // «Invia dal mio GitHub»: il link dell'issue già scritta, da aprire col proprio account.
   let github = $state<string | null>(null)
   let result = $state<string | null>(null)
+  // La bozza del PC: null mentre arriva; la riga sulla schermata, e GitHub solo per chi può leggere il repo privato (github_ok).
+  let prep = $state<{ notice: string | null; github: boolean } | null>(null)
+  let prepFail = $state<string | null>(null)
   $effect(() => { const v = text; try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY) } catch { /* solo per questa visita */ } })
   // Un'immagine scelta liberamente (Franz 05/11 08:37), anche una schermata di questo foglio: ridotta a 1600 px, in JPEG.
   let picked = $state(false)
@@ -56,33 +61,38 @@
     grabbing = false
     photoFail = !photo
   }
-  function prepare() {
-    draft = draftOf(kind, text, tech, !!photo, { kind: { idea: t.feedbackIdea, bug: t.feedbackKindBug }, tech: t.feedbackTech, photo: t.feedbackPhotoAttached })
+  async function prepare() {
+    const d = (draft = draftOf(kind, text, tech, !!photo, { kind: { idea: t.feedbackIdea, bug: t.feedbackKindBug }, tech: t.feedbackTech, photo: t.feedbackPhotoAttached }))
+    prep = null; prepFail = null; result = null
+    if (!onPrepare) return
+    const r = await onPrepare(d, photo).catch((e) => String(e))
+    if (draft !== d) return
+    if (typeof r === 'string') prepFail = t.feedbackSendFail(r); else prep = r
   }
   async function send(as: 'github' | 'anon') {
-    if (!draft || !onSend) return
+    if (!draft || !onSend || !prep) return
     sending = true
-    const r = await onSend(draft, photo, as).catch((e) => String(e))
+    const r = await onSend(as).catch((e) => String(e))
     sending = false
     if (typeof r === 'string') { result = t.feedbackSendFail(r); return }
     text = ''; sentAs = as
-    // Su GitHub la persona apre l'issue e la manda lei: il foglio resta col link.
+    // Il testo del PC: com'è andata, e se la schermata non è partita il perché (contratto 1.123).
+    result = r.text || t.feedbackSent
     // Su GitHub la segnalazione già scritta si apre da sé, subito, finché il browser lo permette dopo il tocco; dopo la spunta
     // il foglio si chiude come con l'anonimo (app-feedback-dopo-invio-05-11, Franz 05/11 08:37). Se il browser blocca la
     // finestra restano il link e «Chiudi».
     if (as === 'github' && r.url) {
       const w = window.open(r.url, '_blank')
-      if (!w) { github = r.url; result = t.feedbackGithubHint; return }
+      if (!w) { github = r.url; return }
       w.opener = null
     }
-    result = as === 'anon' ? t.feedbackAnonSent : as === 'github' && r.url ? t.feedbackGithubOpened : t.feedbackSent
     setTimeout(onDone, confirmMs('ok') + 300)
   }
   // «Non ora»: con il relay la bozza resta fra le osservazioni del PC.
   async function later() {
-    if (draft && onSend && !sentAs) {
-      const r = await onSend(draft, photo, 'later').catch((e) => String(e))
-      if (typeof r !== 'string') { text = ''; result = t.feedbackKept; setTimeout(onDone, 900); return }
+    if (draft && onSend && prep && !sentAs) {
+      const r = await onSend('later').catch((e) => String(e))
+      if (typeof r !== 'string') { text = ''; result = r.text || t.feedbackKept; setTimeout(onDone, 900); return }
     }
     onDone()
   }
@@ -116,13 +126,20 @@
       <pre>{draft.body}</pre>
       {#if photo}<img class="shot" src={photo} alt={t.feedbackPhotoAttached} />{/if}
     </div>
-    {#if result}<p class="note">{result}</p>{:else if !onSend}<p class="note">{t.feedbackNotYet}</p>{/if}
+    <!-- Prima dei tasti la riga del PC sulla schermata (contratto 1.123): chi la vede e che va guardata prima di inviare. -->
+    {#if result}<p class="note">{result}</p>
+    {:else if !onSend || !onPrepare}<p class="note">{t.feedbackNotYet}</p>
+    {:else if prepFail}<p class="note">{prepFail}</p>
+    {:else if !prep}<p class="note">{t.feedbackPreparing}</p>
+    {:else if prep.notice}<p class="note notice">{prep.notice}</p>{/if}
     {#if github}<a class="fill gh" href={github} target="_blank" rel="noopener" onclick={() => setTimeout(onDone, 300)}>{t.feedbackGithubOpen}</a>{/if}
-    <button class="fill ck" class:done={sentAs === 'github'} disabled={!onSend || sending || !!sentAs} onclick={() => send('github')}><span class="lbl">{t.feedbackSendGithub}</span>{#if sentAs === 'github'}<Check />{/if}</button>
+    <!-- «Invia dal mio GitHub» solo per chi può leggere il repo privato dei feedback (github_ok); senza, l'invio è il tasto pieno. -->
+    {#if prep?.github}<button class="fill ck" class:done={sentAs === 'github'} disabled={sending || !!sentAs} onclick={() => send('github')}><span class="lbl">{t.feedbackSendGithub}</span>{#if sentAs === 'github'}<Check />{/if}</button>
+    {:else}<button class="fill ck" class:done={sentAs === 'anon'} disabled={!prep || sending || !!sentAs} onclick={() => send('anon')}><span class="lbl">{t.feedbackSend}</span>{#if sentAs === 'anon'}<Check />{/if}</button>{/if}
     <!-- Mandata su GitHub resta il link da aprire: e «Chiudi», per uscire anche senza aprirlo (Franz 05/11 08:37). -->
     {#if github}<div class="btns"><button class="tx2" onclick={onDone}>{t.closeWord}</button></div>
     {:else}<div class="btns">
-      <button class="tx2 ck" class:done={sentAs === 'anon'} disabled={!onSend || sending || !!sentAs} onclick={() => send('anon')}><span class="lbl">{t.feedbackSendAnon}</span>{#if sentAs === 'anon'}<Check />{/if}</button>
+      {#if prep?.github}<button class="tx2 ck" class:done={sentAs === 'anon'} disabled={sending || !!sentAs} onclick={() => send('anon')}><span class="lbl">{t.feedbackSendAnon}</span>{#if sentAs === 'anon'}<Check />{/if}</button>{/if}
       <button class="tx2" disabled={!!sentAs} onclick={() => (draft = null)}>{t.feedbackEdit}</button>
       <button class="tx2" disabled={sending || !!sentAs} onclick={later}>{t.feedbackLater}</button>
     </div>{/if}
@@ -151,6 +168,7 @@
   h3 { margin: 0 14px 6px; font: 600 16px var(--display); color: var(--tx); }
   pre { margin: 0 14px 14px; white-space: pre-wrap; font: 13.5px/1.45 var(--mono); color: var(--tx2); }
   .note { margin: 0 4px; font-size: 14px; color: var(--tx2); }
+  .note.notice { color: var(--tx); }
   .fill { min-height: 48px; border-radius: 24px; background: var(--act); color: var(--on-act); font: 600 17px var(--display); }
   a.gh { display: flex; align-items: center; justify-content: center; text-decoration: none; }
   .fill:disabled, .tx2:disabled { opacity: .45; }

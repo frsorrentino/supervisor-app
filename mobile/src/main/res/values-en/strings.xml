@@ -254,9 +254,9 @@
     <string name="feedback_session">session %1$s</string>
     <string name="feedback_no_answer">The PC did not answer in time.</string>
     <string name="feedback_send_fail">Not sent: %1$s</string>
-    <string name="feedback_github_hint">The report is already written: it opens on GitHub, attach the photo if you want and send it.</string>
     <string name="feedback_sent">Sent, thank you</string>
-    <string name="feedback_anon_sent">Sent anonymously, without the photo. Thank you</string>
+    <string name="feedback_send">Send</string>
+    <string name="feedback_preparing">Preparing the draft on the PC</string>
     <string name="feedback_kept">It stays among the PC observations: nothing was sent.</string>
     <string name="follow_sub">A notification when a turn ends</string>
     <string name="unfollow_sub">No more notifications at the end of a turn</string>

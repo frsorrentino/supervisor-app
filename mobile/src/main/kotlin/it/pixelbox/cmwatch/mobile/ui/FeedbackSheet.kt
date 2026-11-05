@@ -55,7 +55,7 @@ import it.pixelbox.cmwatch.rules.Feedback
 @Composable
 fun FeedbackSheet(
     screen: String, shot: Bitmap?,
-    send: (suspend (Feedback.Draft, Feedback.Tech, ByteArray?, String) -> Feedback.Sent)?,
+    send: Feedback.Link?,
     onDismiss: () -> Unit,
 ) {
     val cfg = LocalConfiguration.current
@@ -83,28 +83,40 @@ fun FeedbackSheet(
     var sentAs by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<String?>(null) }
     val failText = stringResource(R.string.feedback_send_fail, "%s")
-    val anonSent = stringResource(R.string.feedback_anon_sent); val githubHint = stringResource(R.string.feedback_github_hint); val kept = stringResource(R.string.feedback_kept); val sentText = stringResource(R.string.feedback_sent)
-    fun go(d: Feedback.Draft, choice: String) {
+    val kept = stringResource(R.string.feedback_kept); val sentText = stringResource(R.string.feedback_sent)
+    // La bozza del PC (contratto 1.123): null mentre arriva; la riga sulla schermata, e GitHub solo per chi legge il repo privato.
+    var ready by remember { mutableStateOf<Feedback.Ready?>(null) }
+    fun prepare(d: Feedback.Draft) {
+        draft = d; ready = null; result = null
         val s = send ?: return
-        sending = true
         scope.launch {
             // La foto in JPEG, solo se accesa.
             val jpg = if (d.photo) bitmap?.let { b -> java.io.ByteArrayOutputStream().also { o -> b.compress(Bitmap.CompressFormat.JPEG, 80, o) }.toByteArray() } else null
-            val r = s(d, tech, jpg, choice)
+            val r = s.prepare(d, tech, jpg)
+            if (draft === d) ready = r
+        }
+    }
+    fun go(choice: String) {
+        val s = send ?: return
+        sending = true
+        scope.launch {
+            val r = s.choose(choice)
             sending = false
             r.error?.let { e -> result = failText.replace("%s", e); return@launch }
             text = ""
+            // Il testo del PC: com'è andata, e se la schermata non è partita il perché (contratto 1.123).
+            val said = r.text?.takeIf { it.isNotBlank() }
             when (choice) {
                 // Dopo la spunta la segnalazione già scritta si apre da sé su GitHub e il foglio si chiude, come l'anonimo
                 // (app-feedback-dopo-invio-05-11, Franz 05/11 08:37).
                 "github" -> {
-                    sentAs = choice; result = if (r.url != null) githubHint else sentText
+                    sentAs = choice; result = said ?: sentText
                     kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.CHECK_MS + 300)
                     r.url?.let { u -> runCatching { uri.openUri(u) } }
                     onDismiss()
                 }
-                "anonymous" -> { sentAs = choice; result = anonSent; kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.CHECK_MS + 300); onDismiss() }
-                else -> { result = kept; kotlinx.coroutines.delay(900); onDismiss() }
+                "anonymous" -> { sentAs = choice; result = said ?: sentText; kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.CHECK_MS + 900); onDismiss() }
+                else -> { result = said ?: kept; kotlinx.coroutines.delay(900); onDismiss() }
             }
         }
     }
@@ -151,7 +163,7 @@ fun FeedbackSheet(
                     if (photo && image != null) Image(image, stringResource(R.string.feedback_photo_attached), Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 14.dp).heightIn(max = 360.dp), contentScale = ContentScale.Fit)
                 }
                 Button(
-                    { draft = Feedback.draft(kind, text, tech, photo && image != null, labels) }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = text.isNotBlank(),
+                    { prepare(Feedback.draft(kind, text, tech, photo && image != null, labels)) }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = text.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct),
                 ) { Text(stringResource(R.string.feedback_prepare), style = V3.Name.copy(color = androidx.compose.ui.graphics.Color.Unspecified)) }
             } else {
@@ -162,17 +174,28 @@ fun FeedbackSheet(
                     Text(d.body, style = V3.Meter.copy(color = V3.Tx2))
                     if (d.photo && image != null) Image(image, stringResource(R.string.feedback_photo_attached), Modifier.fillMaxWidth().heightIn(max = 360.dp), contentScale = ContentScale.Fit)
                 }
-                val note = result ?: if (send == null) stringResource(R.string.feedback_not_yet) else null
-                note?.let { Text(it, style = V3.Small.copy(color = V3.Tx2)) }
-                // Inviato (D3): il tasto usato prende la spunta disegnata.
+                // Prima dei tasti la riga del PC sulla schermata (contratto 1.123): chi la vede e che va guardata prima di inviare.
+                val r = ready
+                val note = result ?: when {
+                    send == null -> stringResource(R.string.feedback_not_yet)
+                    r == null -> stringResource(R.string.feedback_preparing)
+                    r.error != null -> failText.replace("%s", r.error!!)
+                    else -> r.notice
+                }
+                note?.let { Text(it, style = V3.Small.copy(color = if (result == null && r?.notice != null && r.error == null) V3.Tx else V3.Tx2)) }
+                val ok = send != null && r != null && r.error == null && !sending && sentAs == null
+                // «Invia dal mio GitHub» solo per chi può leggere il repo privato dei feedback (github_ok); senza, l'invio è il tasto
+                // pieno. Inviato (D3): il tasto usato prende la spunta disegnata.
+                val github = r?.github == true
+                val full = if (github) "github" else "anonymous"
                 Button(
-                    { go(d, "github") }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = send != null && !sending && sentAs == null,
-                    colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct, disabledContainerColor = if (sentAs == "github") CheckFill else V3.S3),
-                ) { CheckLabel(sentAs == "github") { Text(stringResource(R.string.feedback_send_github), style = V3.Name.copy(color = androidx.compose.ui.graphics.Color.Unspecified)) } }
+                    { go(full) }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = ok,
+                    colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct, disabledContainerColor = if (sentAs == full) CheckFill else V3.S3),
+                ) { CheckLabel(sentAs == full) { Text(stringResource(if (github) R.string.feedback_send_github else R.string.feedback_send), style = V3.Name.copy(color = androidx.compose.ui.graphics.Color.Unspecified)) } }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    TextButton({ go(d, "anonymous") }, enabled = send != null && !sending && sentAs == null) { CheckLabel(sentAs == "anonymous") { Text(stringResource(R.string.feedback_send_anon)) } }
-                    TextButton({ draft = null }, enabled = sentAs == null && !sending) { Text(stringResource(R.string.feedback_edit), color = V3.Tx) }
-                    TextButton({ if (send != null && sentAs == null) go(d, "later") else onDismiss() }, enabled = !sending) { Text(stringResource(R.string.feedback_later), color = V3.Tx) }
+                    if (github) TextButton({ go("anonymous") }, enabled = ok) { CheckLabel(sentAs == "anonymous") { Text(stringResource(R.string.feedback_send_anon)) } }
+                    TextButton({ draft = null; ready = null }, enabled = sentAs == null && !sending) { Text(stringResource(R.string.feedback_edit), color = V3.Tx) }
+                    TextButton({ if (ok) go("later") else onDismiss() }, enabled = !sending) { Text(stringResource(R.string.feedback_later), color = V3.Tx) }
                 }
             }
         }

@@ -377,8 +377,10 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */
   | 'changes' | 'diff'
 /** Contratto 1.121: la bozza del primo passo di `feedback_app` e l'esito del secondo. */
-export type FeedbackDraft = { hash: string; kind: string; label: string; title: string; body: string; screenshot: boolean; options: { id: string; label: string; description: string }[] }
-export type FeedbackChoice = { choice: 'github' | 'anonymous' | 'later'; url: string | null; text: string }
+/** Contratto 1.123: `screenshot_notice` con la schermata (null senza); `github_ok` true solo se il gh del PC legge il repo privato dei feedback (assente = no). */
+export type FeedbackDraft = { hash: string; kind: string; label: string; title: string; body: string; screenshot: boolean; screenshot_notice?: string | null; github_ok?: boolean; options: { id: string; label: string; description: string }[] }
+/** Contratto 1.123: `screenshot_url`, il link dell'immagine per github, null altrimenti. */
+export type FeedbackChoice = { choice: 'github' | 'anonymous' | 'later'; url: string | null; text: string; screenshot_url: string | null }
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
   /** Contratto 1.99: `prova`, `decisione`, gli id mostrati su un ok. */

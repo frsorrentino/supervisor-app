@@ -104,7 +104,7 @@ export function parseDraft(text: string | null | undefined): import('./contract'
 export function parseChoice(text: string | null | undefined): import('./contract').FeedbackChoice | null {
   try {
     const d = JSON.parse(text ?? '')
-    return typeof d?.choice === 'string' ? { choice: d.choice, url: typeof d.url === 'string' ? d.url : null, text: String(d.text ?? '') } : null
+    return typeof d?.choice === 'string' ? { choice: d.choice, url: typeof d.url === 'string' ? d.url : null, text: String(d.text ?? ''), screenshot_url: typeof d.screenshot_url === 'string' ? d.screenshot_url : null } : null
   } catch { return null }
 }
 

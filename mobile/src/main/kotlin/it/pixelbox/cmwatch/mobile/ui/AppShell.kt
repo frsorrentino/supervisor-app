@@ -226,8 +226,8 @@ data class MenuActions(
     val onNight: (() -> Unit)? = null,
     /** Dove si è, per i dati tecnici del Feedback (app-feedback-menu-04-11); null = la home. */
     val screen: String? = null,
-    /** Contratto 1.121, `feedback_app`: manda la bozza (la foto in JPEG, se accesa) e la scelta github|anonymous|later; null = l'invio resta spento. */
-    val feedbackSend: (suspend (it.pixelbox.cmwatch.rules.Feedback.Draft, it.pixelbox.cmwatch.rules.Feedback.Tech, ByteArray?, String) -> it.pixelbox.cmwatch.rules.Feedback.Sent)? = null,
+    /** Contratti 1.121 e 1.123, `feedback_app`: i due passi, la bozza (la foto in JPEG, se accesa) e la scelta; null = l'invio resta spento. */
+    val feedbackSend: it.pixelbox.cmwatch.rules.Feedback.Link? = null,
 )
 
 /**

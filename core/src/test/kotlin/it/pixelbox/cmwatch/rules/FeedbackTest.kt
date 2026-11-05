@@ -31,7 +31,7 @@ class FeedbackTest {
         assertTrue("_Foto della pagina allegata_" in Feedback.draft(Feedback.Kind.IDEA, "x", tech, true, labels).body)
     }
 
-    // Contratto 1.121, `feedback_app`: le voci 1210-1214 di cmd-result-sample.json.
+    // Contratti 1.121 e 1.123, `feedback_app`: le voci 1210-1214 di cmd-result-sample.json.
     private val results = kotlinx.serialization.json.Json.parseToJsonElement(it.pixelbox.cmwatch.Fixtures.cmdResult).let { r -> (r as kotlinx.serialization.json.JsonObject).getValue("result") as kotlinx.serialization.json.JsonArray }
         .map { e -> it.pixelbox.cmwatch.contract.ContractJson.json.decodeFromJsonElement(it.pixelbox.cmwatch.contract.CmdResult.serializer(), e) }
     private fun res(n: String) = results.first { r -> r.id.endsWith(n) }
@@ -41,8 +41,21 @@ class FeedbackTest {
         assertEquals(null, Feedback.draftHash(res("00001214").text))
     }
 
+    // 1.123: con la schermata la riga da mostrare prima dei tasti; github_ok assente vuol dire niente GitHub.
+    @Test fun theDraftSaysTheScreenshotNoticeAndHidesGithubWithoutGithubOk() {
+        val p = Feedback.preparedOf(res("00001210").text)!!
+        assertEquals("7c41e09a2b", p.hash)
+        assertTrue(p.notice!!.contains("maintainer"))
+        assertEquals(false, p.githubOk)
+        assertEquals(true, Feedback.preparedOf(res("00001210").text!!.replaceFirst("{", "{\"github_ok\": true, "))!!.githubOk)
+        assertEquals(null, Feedback.preparedOf(res("00001214").text))
+    }
+
     @Test fun theChoiceSaysWhereItWent() {
-        assertTrue(Feedback.choiceOf(res("00001212").text)!!.url!!.startsWith("https://github.com/frsorrentino/supervisor/issues/new?"))
+        assertTrue(Feedback.choiceOf(res("00001212").text)!!.url!!.startsWith("https://github.com/frsorrentino/supervisor-feedback/issues/new?"))
+        assertTrue(Feedback.choiceOf(res("00001212").text)!!.screenshotUrl!!.startsWith("https://github.com/frsorrentino/supervisor-feedback/raw/"))
+        assertEquals(null, Feedback.choiceOf(res("00001211").text)!!.screenshotUrl)
+        assertTrue(Feedback.choiceOf(res("00001211").text)!!.text.contains("with the screenshot"))
         assertEquals("anonymous", Feedback.choiceOf(res("00001211").text)!!.choice)
         assertEquals(null, Feedback.choiceOf(res("00001213").text)!!.url)
     }
