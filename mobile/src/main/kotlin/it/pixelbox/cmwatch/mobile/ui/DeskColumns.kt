@@ -420,8 +420,8 @@ internal fun MasterFrame(
                             androidx.compose.runtime.CompositionLocalProvider(LocalEdgeSpots provides edge, LocalMasterGrip provides gripOf.takeIf { canGrip }) { panel() }
                             // La presa in alto: di lato cambia il lato (la sagoma passa alla metà dello schermo sotto il dito), in su o
                             // in giù l'altezza a scatti. Nella pila è la maniglia fra la home e la master.
-                            if (canGrip && !stacked) Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-lato").grip("top")) {
-                                Box(Modifier.align(Alignment.Center).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                            if (canGrip && !stacked) Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-lato").grip("top"), contentAlignment = Alignment.Center) {
+                                TopGripMark(sideways = true)
                             }
                         }
                         // La corsia verso le sessioni, come nella plancia: col + e il filo delle schede della pila; trascinata, la
@@ -459,6 +459,26 @@ internal fun MasterFrame(
         // La sagoma, le altre destinazioni e la linea di mezzo, sopra tutto e senza prendere i tocchi.
         GhostLayer(ghost, hints, mid)
     }
+}
+
+/**
+ * Il segno della presa in alto della master, uguale in testa al pannello e fra home e master: la barretta, e con i gesti le due
+ * frecce ‹ › che dicono che di lato cambia il lato (Franz 05/11 21:49: «non vedo il drag per il cambio lato»).
+ */
+@Composable
+private fun TopGripMark(sideways: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (sideways) Chevron(left = true)
+        Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+        if (sideways) Chevron(left = false)
+    }
+}
+
+@Composable
+private fun Chevron(left: Boolean) = androidx.compose.foundation.Canvas(Modifier.width(6.dp).height(10.dp)) {
+    val s = 1.5.dp.toPx(); val x0 = if (left) size.width else 0f; val x1 = if (left) 0f else size.width
+    drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(x0, 0f), androidx.compose.ui.geometry.Offset(x1, size.height / 2), s, androidx.compose.ui.graphics.StrokeCap.Round)
+    drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(x1, size.height / 2), androidx.compose.ui.geometry.Offset(x0, size.height), s, androidx.compose.ui.graphics.StrokeCap.Round)
 }
 
 /** Le prese del telaio per chi sta nel pannello (la maniglia della pila); null senza gesti. */
@@ -581,7 +601,7 @@ internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @C
         val grip = LocalMasterGrip.current
         Box(Modifier.fillMaxWidth().height(14.dp).handCursor().clickable(onClickLabel = stringResource(R.string.master_stack_step), onClick = onStep), contentAlignment = Alignment.Center) {
             Box(Modifier.width(72.dp).fillMaxHeight().then(grip?.invoke("top") ?: Modifier).testTag("master-maniglia-pila"), contentAlignment = Alignment.Center) {
-                Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                TopGripMark(sideways = grip != null)
             }
         }
         // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): cambiando misura gli angoli si piegano verso l'interno e tornano
