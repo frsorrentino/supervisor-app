@@ -1699,6 +1699,8 @@ class MainActivity : ComponentActivity() {
                             more = more && session.name == chatName,
                             model = tunePicks[session.name + "/model"].let { p -> Tune.model(session, p, p?.let { results[it.cmd] }, now) },
                             effort = tunePicks[session.name + "/effort"].let { p -> Tune.effort(session, p, p?.let { results[it.cmd] }, now) },
+                            modelNext = tunePicks[session.name + "/model"].let { p -> Tune.nextTurn(session, p, p?.let { results[it.cmd] }, now) },
+                            effortNext = tunePicks[session.name + "/effort"].let { p -> Tune.nextTurn(session, p, p?.let { results[it.cmd] }, now) },
                             home = home, grid = home != null && homeOpen, header = header, dock = dock, bar = bar, homeOpen = homeOpen, appBar = appBar, halfStops = home != null && wide, half = masterHalf,
                             headerLead = lead, draftState = drafts.state(session),
                             results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> l.groups.isNotEmpty() }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l) { watchSession = session.name; watchOpen = true } } },

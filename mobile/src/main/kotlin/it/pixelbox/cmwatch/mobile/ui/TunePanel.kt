@@ -59,6 +59,8 @@ fun TunePanel(
     onModel: (String) -> Unit, onEffort: (String) -> Unit,
     /** Contratto 1.69: il gruppo Permessi, solo se il relay sa cambiarla (null = no). */
     session: it.pixelbox.cmwatch.contract.Session? = null, onPermission: ((String) -> Unit)? = null,
+    /** Contratto 1.125: la scelta fatta durante il turno vale dal prossimo (Tune.nextTurn). */
+    modelNext: Boolean = false, effortNext: Boolean = false,
     onDismiss: () -> Unit,
 ) = PanelShell(
     onDismiss,
@@ -72,13 +74,13 @@ fun TunePanel(
     choices.models.forEach { m ->
         val label = m.label ?: ModelText.short(m) ?: m.id
         val on = Tune.sameModel(m.id, model)
-        ModelRow(label, modelSub(m.id), on, recommended = !on && advice != null && Tune.sameModel(m.id, advice.model)) { close(); onModel(m.id) }
+        ModelRow(label, if (on && modelNext) stringResource(R.string.tune_next_turn) else modelSub(m.id), on, recommended = !on && advice != null && Tune.sameModel(m.id, advice.model)) { close(); onModel(m.id) }
     }
     SectionLabel(stringResource(R.string.effort_title))
     EffortGroup(choices.efforts, effort, advice?.effort) { close(); onEffort(it) }
     effort?.let { e ->
         Text(
-            listOfNotNull(e, effortSub(e)).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Cm.text2,
+            listOfNotNull(e, if (effortNext) stringResource(R.string.tune_next_turn) else null, effortSub(e)).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Cm.text2,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 6.dp),
         )
     }

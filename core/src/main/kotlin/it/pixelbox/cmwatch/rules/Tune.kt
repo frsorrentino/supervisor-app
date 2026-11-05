@@ -3,6 +3,7 @@ package it.pixelbox.cmwatch.rules
 import it.pixelbox.cmwatch.contract.CmdResult
 import it.pixelbox.cmwatch.contract.Model
 import it.pixelbox.cmwatch.contract.Session
+import it.pixelbox.cmwatch.contract.SessionState
 
 /**
  * Modello ed effort scelti dal telefono (segnalazioni 01/10 20:22 e 20:25). Il PC legge i due valori dalla trascrizione,
@@ -31,6 +32,13 @@ object Tune {
         val p = pick?.takeIf { held(it, result, now) && it.effort != null } ?: return s.effort
         return if (s.effort == p.was) p.effort else s.effort
     }
+
+    /**
+     * Contratto 1.125: a sessione occupata il PC accetta la scelta e la applica a fine turno; lo stato la mostra subito.
+     * Il selettore dice «dal prossimo turno» finché dura il turno in cui è stata fatta.
+     */
+    fun nextTurn(s: Session, pick: Pick?, result: CmdResult?, now: Long): Boolean =
+        pick != null && held(pick, result, now) && s.state == SessionState.BUSY && pick.at >= s.since
 
     private fun held(p: Pick, result: CmdResult?, now: Long) = result?.ok != false && now - p.at < HOLD_S
 }

@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { Session } from './contract'
-import { modelKind, notes, permissionLabel, quotaLabel, resetLabel, sameModel, shortModel, tone, wider } from './header'
+import { modelKind, nextTurn, notes, permissionLabel, quotaLabel, resetLabel, sameModel, shortModel, tone, wider } from './header'
 
 // Gli stessi casi di ModelTextTest, TuneTest, ContextActionsTest, SessionMetersTest e SessionsTextTest in Kotlin.
 describe('modello', () => {
+  it('contratto 1.125: dal prossimo turno finché dura il turno della scelta', () => {
+    expect(nextTurn({ state: 'busy', since: 90 }, 100)).toBe(true)
+    expect(nextTurn({ state: 'idle', since: 0 }, 100)).toBe(false)
+    expect(nextTurn({ state: 'busy', since: 150 }, 100)).toBe(false)
+    expect(nextTurn({ state: 'busy', since: 90 }, null)).toBe(false)
+  })
   it('famiglia, per la riga che lo spiega nel pannello', () => {
     expect(['claude-opus-5-5[1m]', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-haiku-4-5', 'claude-x'].map(modelKind))
       .toEqual(['opus', 'fable', 'sonnet', 'haiku', null])

@@ -242,6 +242,8 @@ fun SessionSheet(
     canTonight: Boolean = false,
     /** Modello ed effort da mostrare: la scelta fatta dal telefono finché il PC non la riporta (`Tune`). */
     model: it.pixelbox.cmwatch.contract.Model? = s.model, effort: String? = s.effort,
+    /** Contratto 1.125: modello ed effort scelti durante il turno, che valgono dal prossimo (Tune.nextTurn). */
+    modelNext: Boolean = false, effortNext: Boolean = false,
     /** La casa della master: «Per te» e il Quadro sopra la chat; si chiudono quando si scorre indietro per rileggere. */
     top: (@Composable () -> Unit)? = null,
     /** Contratto 1.106 (app-da-guardare-02-11): la riga «Risultati» fissa in cima alla chat, con quello che la sessione ha consegnato. */
@@ -470,7 +472,7 @@ fun SessionSheet(
                 exit = androidx.compose.animation.shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
             ) {
                 SheetHeader(
-                    s, now, choices, canTune, actions, showTerminal = feed == null, model = model, effort = effort, bg = if (home != null) MasterHigh else Cm.bg,
+                    s, now, choices, canTune, actions, showTerminal = feed == null, model = model, effort = effort, modelNext = modelNext, effortNext = effortNext, bg = if (home != null) MasterHigh else Cm.bg,
                     canExit = slash?.contains("exit") == true && s.state != SessionState.GONE, quota = accountQuota, lead = headerLead, notesInHeader = notesInHeader,
                     onChanges = if (actions.changes != null) ({ changesOpen = true }) else null,
                 )
@@ -2254,6 +2256,7 @@ private const val HALF_SHARE = 0.55f
 private fun SheetHeader(
     s: Session, now: Long, choices: Choices?, canTune: Boolean, actions: SheetActions, showTerminal: Boolean,
     model: it.pixelbox.cmwatch.contract.Model? = s.model, effort: String? = s.effort,
+    modelNext: Boolean = false, effortNext: Boolean = false,
     /** Il fondo della testata: il foglio per la master, il nero per le altre. */
     bg: androidx.compose.ui.graphics.Color = Cm.bg,
     /** Contratto 1.25: il PC accetta /exit per questa sessione; il menu offre di chiuderla, dopo una conferma. */
@@ -2343,7 +2346,7 @@ private fun SheetHeader(
     if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) })
     if (ctxSheet) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false } }
     // Il pannello Modello ed effort, dalla pillola (bozza approvata da Franz il 07/10 alle 00:06).
-    if (picker != null && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = null }, session = s, onPermission = actions.setPermission)
+    if (picker != null && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = null }, session = s, onPermission = actions.setPermission, modelNext = modelNext, effortNext = effortNext)
 }
 
 /** La proposta del contesto pieno sopra il campo (contratto 1.37): «Contesto al 64%», «Fallo», ×. */

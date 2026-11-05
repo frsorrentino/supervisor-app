@@ -385,7 +385,7 @@ const it = {
   soon: 'Questa pagina arriva nel prossimo passo.',
   home: 'Home', toLatest: "Torna all'ultimo messaggio", dockMaster: 'MASTER', dockListen: "Ascolta l'ultimo esito della master", dockConversation: 'Apri la conversazione della master', dockCollapse: 'Riduci la master', dockClose: 'Chiudi', more: 'Altro', cancel: 'Annulla',
   notes: { goal: 'Obiettivo', lowPriority: 'bassa priorità', lowPriorityOffered: 'bassa priorità proposta', noWindow: 'senza finestra' },
-  modelTitle: 'Modello', effortTitle: 'Effort', tuneHead: 'Modello ed effort · vale per questa sessione',
+  modelTitle: 'Modello', effortTitle: 'Effort', tuneHead: 'Modello ed effort · vale per questa sessione', tuneNextTurn: 'dal prossimo turno',
   modelSub: {
     opus: 'Di punta: pianifica, scrive e verifica', fable: 'Il più forte nei giudizi, costa di più',
     sonnet: 'Esegue bene compiti chiari, costa meno', haiku: 'Compiti semplici e veloci',
@@ -817,7 +817,7 @@ const en: typeof it = {
   soon: 'This page comes in the next step.',
   home: 'Home', toLatest: 'Back to the latest message', dockMaster: 'MASTER', dockListen: "Listen to the master's last outcome", dockConversation: "Open the master's conversation", dockCollapse: 'Collapse the master', dockClose: 'Close', more: 'More', cancel: 'Cancel',
   notes: { goal: 'Goal', lowPriority: 'low priority', lowPriorityOffered: 'low priority offered', noWindow: 'no window' },
-  modelTitle: 'Model', effortTitle: 'Effort', tuneHead: 'Model and effort · this session only',
+  modelTitle: 'Model', effortTitle: 'Effort', tuneHead: 'Model and effort · this session only', tuneNextTurn: 'from the next turn',
   modelSub: {
     opus: 'Top model: plans, writes and verifies', fable: 'Strongest at judgment, costs more',
     sonnet: 'Handles clear tasks well, costs less', haiku: 'Simple, quick tasks',

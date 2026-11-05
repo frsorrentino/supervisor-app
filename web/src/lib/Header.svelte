@@ -3,7 +3,7 @@
   import { growFromPress } from './motion'
   import CloseDialog from './CloseDialog.svelte'
   import type { CmdOp, Model, Session, State } from './contract'
-  import { modelKind, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
+  import { modelKind, nextTurn, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
   import { t } from './t'
   import Badge from './Badge.svelte'
   import SessionsMenu from './SessionsMenu.svelte'
@@ -36,10 +36,17 @@
   } = $props()
 
   // La scelta resta in vista finché il PC non la conferma (Tune.model): qui finché si resta sulla sessione.
-  let picked = $state<{ model?: Model; effort?: string; followed?: boolean }>({})
+  // Contratto 1.125: lo stato riporta la scelta subito, anche a sessione occupata; da lì vale lo stato, e `at` resta per
+  // dire «dal prossimo turno» finché dura il turno in cui è stata fatta (Tune.nextTurn).
+  let picked = $state<{ model?: Model; effort?: string; followed?: boolean; modelAt?: number; effortAt?: number }>({})
   $effect(() => { s.name; picked = {} })
+  $effect(() => { if (picked.model && sameModel(s.model?.id, picked.model.id)) picked.model = undefined })
+  $effect(() => { if (picked.effort && s.effort === picked.effort) picked.effort = undefined })
   const model = $derived(picked.model ?? s.model)
   const effort = $derived(picked.effort ?? s.effort)
+  const modelNext = $derived(nextTurn(s, picked.modelAt))
+  const effortNext = $derived(nextTurn(s, picked.effortAt))
+  const nowS = () => Math.floor(Date.now() / 1000)
   const followed = $derived(picked.followed ?? !!s.followed)
   const tunable = $derived(!!st.choices && s.state !== 'gone')
   const quota = $derived(st.quota[s.account])
@@ -121,8 +128,8 @@
   let ctx: HTMLDialogElement | undefined = $state()
   let closer: CloseDialog | undefined = $state()
   function close(d?: HTMLDialogElement) { d?.close() }
-  function setModel(m: Model) { picked.model = m; onCmd('model', m.id); close(tune); close(ctx) }
-  function setEffort(e: string) { picked.effort = e; onCmd('effort', e); close(tune) }
+  function setModel(m: Model) { picked.model = m; picked.modelAt = nowS(); onCmd('model', m.id); close(tune); close(ctx) }
+  function setEffort(e: string) { picked.effort = e; picked.effortAt = nowS(); onCmd('effort', e); close(tune) }
   // Contratto 1.69: più autonomia chiede un secondo tocco; toglierne parte subito.
   let armed = $state<string | null>(null)
   const permName = (m: string | null | undefined) => t.perm.names[m || 'default'] ?? m ?? ''
@@ -151,8 +158,8 @@
   function useAdvice() {
     if (!advice) return
     const go = adviceSteps(advice, st.choices, model?.id, effort)
-    if (go.model) { picked.model = go.model; onCmd('model', go.model.id) }
-    if (go.effort) { picked.effort = go.effort; onCmd('effort', go.effort) }
+    if (go.model) { picked.model = go.model; picked.modelAt = nowS(); onCmd('model', go.model.id) }
+    if (go.effort) { picked.effort = go.effort; picked.effortAt = nowS(); onCmd('effort', go.effort) }
     close(tune)
   }
   // Clic sul fondo del dialogo: si chiude, come il foglio dell'app.
@@ -322,7 +329,7 @@
           <span class="circ">{label.charAt(0).toUpperCase()}</span>
           <span class="tx">
             <span class="tt">{label}{#if !on && advice && sameModel(m.id, advice.model)}<span class="rec">{t.adviceTag}</span>{/if}</span>
-            {#if kind}<span class="ts">{t.modelSub[kind]}</span>{/if}
+            {#if on && modelNext}<span class="ts next">{t.tuneNextTurn}</span>{:else if kind}<span class="ts">{t.modelSub[kind]}</span>{/if}
           </span>
           {#if on}<svg class="ok" viewBox="0 0 24 24" width="24" height="24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>{/if}
         </button>
@@ -334,7 +341,7 @@
         <button class:on={e === effort} role="radio" aria-checked={e === effort} style:flex-grow={e.length + 2} onclick={() => setEffort(e)}>{e}{#if e !== effort && advice?.effort === e}<i title={t.adviceTag}></i>{/if}</button>
       {/each}
     </div>
-    {#if effort}<p class="ed">{[effort, t.effortSub[effort]].filter(Boolean).join(' · ')}</p>{/if}
+    {#if effort}<p class="ed">{[effort, effortNext ? t.tuneNextTurn : null, t.effortSub[effort]].filter(Boolean).join(' · ')}</p>{/if}
     {#if canChange(st, s)}
       <p class="grp">{t.perm.title}</p>
       <div class="perms" role="radiogroup" aria-label={t.perm.title}>

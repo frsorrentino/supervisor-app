@@ -759,6 +759,7 @@
     <string name="advice_dot">C\'è un consiglio per modello ed effort</string>
     <string name="advice_cost">Sta lavorando: cambiare adesso ricarica circa %1$s token di cache. Conviene al prossimo compito.</string>
     <string name="tune_head">Modello ed effort · vale per questa sessione</string>
+    <string name="tune_next_turn">dal prossimo turno</string>
     <string name="advice_head">Consiglio per questo compito</string>
     <string name="advice_same">Va bene così: %1$s</string>
     <string name="advice_use">Usa il consiglio</string>

@@ -19,6 +19,9 @@ export function shortModel(m: Model | null | undefined): string | null {
 /** «claude-opus-5-5[1m]» e «claude-opus-5-5» sono lo stesso modello. */
 export const sameModel = (a?: string | null, b?: string | null) => a != null && b != null && a.split('[')[0] === b.split('[')[0]
 
+/** Contratto 1.125 (Tune.nextTurn): una scelta fatta durante il turno vale dal prossimo; `at` in secondi, null se rifiutata. */
+export const nextTurn = (s: Pick<Session, 'state' | 'since'>, at: number | null | undefined) => at != null && s.state === 'busy' && at >= s.since
+
 /** La finestra da 1M dello stesso modello, se c'è fra le scelte e la sessione non la usa già. */
 /** La famiglia del modello, per la riga che lo spiega nel pannello Modello ed effort; sconosciuta: null. */
 export const modelKind = (id: string) => (['opus', 'fable', 'sonnet', 'haiku'] as const).find(k => id.includes(k)) ?? null

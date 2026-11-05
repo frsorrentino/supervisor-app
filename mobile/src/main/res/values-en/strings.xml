@@ -703,6 +703,7 @@
     <string name="advice_dot">There is advice for model and effort</string>
     <string name="advice_cost">Working: switching now reloads about %1$s cache tokens. Better at the next task.</string>
     <string name="tune_head">Model and effort · this session only</string>
+    <string name="tune_next_turn">from the next turn</string>
     <string name="advice_head">Advice for this task</string>
     <string name="advice_same">Fine as it is: %1$s</string>
     <string name="advice_use">Use the advice</string>
