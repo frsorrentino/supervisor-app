@@ -703,6 +703,23 @@
     })
   }
   function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientY, null) }
+  // La presa in alto e la maniglia della pila, come nell'app (app-cambio-lato-come-app-05-11, Franz 05/11 23:53): trascinate di
+  // lato cambiano lato, in su o in giù l'altezza; il primo movimento oltre i 6 px decide. Un tocco resta quello di sempre.
+  function topDown(e: PointerEvent) {
+    e.preventDefault()
+    const x0 = e.clientX, y0 = e.clientY
+    const stop = () => { window.removeEventListener('pointermove', first); window.removeEventListener('pointerup', tap); window.removeEventListener('pointercancel', stop) }
+    const tap = () => { stop(); heightGesture(y0, null); window.dispatchEvent(new PointerEvent('pointerup', { clientX: x0, clientY: y0 })) }
+    const first = (m: PointerEvent) => {
+      if (!isDrag(m.clientX - x0, m.clientY - y0)) return
+      stop()
+      if (Math.abs(m.clientX - x0) > Math.abs(m.clientY - y0)) sideGrip(e)
+      else heightGesture(y0, null)
+      // Il gesto scelto riparte da qui: il movimento che l'ha deciso conta già.
+      window.dispatchEvent(new PointerEvent('pointermove', { clientX: m.clientX, clientY: m.clientY }))
+    }
+    window.addEventListener('pointermove', first); window.addEventListener('pointerup', tap); window.addEventListener('pointercancel', stop)
+  }
   // La larghezza della colonna dove la master atterra: le maniglie della riga stanno sul suo asse, da un lato e dall'altro.
   // Chiusa, la master si apre stretta o larga come l'ultima volta (masterNarrow), e nella plancia senza la misura del bordo.
   const barColW = () => { const narrow = masterOpen ? masterHalf : masterNarrow(); return deskDashboard ? (narrow ? COLUMN : 720) : masterW ?? (narrow ? COLUMN : 720) }
@@ -1686,7 +1703,7 @@
      prima semivuota e poi di colpo piena»). -->
 {#snippet pskel()}<div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i><i></i></div>{/snippet}
 {#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
-{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} grip={wide ? sideGrip : undefined} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
+{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
   onToggleKey={() => corners(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
 
@@ -1757,9 +1774,9 @@
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
   {#if cols.length && !page}<SwapPills shown={cols} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
   </div>
-  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button>{@render masterPanel()}</aside>{/if}
+  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel()}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top" use:fadeEnd>{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={heightDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top" use:fadeEnd>{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={topDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
   </div>
 {:else}
   <div class="phone">
@@ -1902,6 +1919,11 @@
   .hgrip { position: absolute; z-index: 5; top: 0; left: 30%; right: 30%; height: 12px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
   .hgrip i { width: 48px; height: 4px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, width .15s; }
   .hgrip:hover i, .hgrip:active i { opacity: 1; width: 72px; background: var(--tx2); }
+  /* ‹ ━ ›: la presa in alto e la maniglia della pila cambiano anche lato, di traverso (come TopGripMark nell'app). */
+  .hgrip.top, .hstack .grip { display: flex; align-items: center; justify-content: center; gap: 5px; cursor: move; }
+  .hgrip.top::before, .hgrip.top::after, .hstack .grip::before, .hstack .grip::after { content: ''; width: 5px; height: 5px; border-left: 1.5px solid var(--tx3); border-bottom: 1.5px solid var(--tx3); opacity: .8; }
+  .hgrip.top::before, .hstack .grip::before { transform: rotate(45deg); }
+  .hgrip.top::after, .hstack .grip::after { transform: rotate(-135deg); }
   .dpanel.under .wgrip, .dpanel.under .hgrip { display: none; }
   .hstack { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .hs-top { flex: 1; min-height: 0; overflow: auto; }
