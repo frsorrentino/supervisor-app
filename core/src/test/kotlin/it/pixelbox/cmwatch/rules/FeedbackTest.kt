@@ -41,13 +41,13 @@ class FeedbackTest {
         assertEquals(null, Feedback.draftHash(res("00001214").text))
     }
 
-    // 1.123: con la schermata la riga da mostrare prima dei tasti; github_ok assente vuol dire niente GitHub.
+    // 1.123: con la schermata la riga da mostrare prima dei tasti. 1.124: github_ok true mostra GitHub, assente lo nasconde.
     @Test fun theDraftSaysTheScreenshotNoticeAndHidesGithubWithoutGithubOk() {
         val p = Feedback.preparedOf(res("00001210").text)!!
         assertEquals("7c41e09a2b", p.hash)
         assertTrue(p.notice!!.contains("maintainer"))
-        assertEquals(false, p.githubOk)
-        assertEquals(true, Feedback.preparedOf(res("00001210").text!!.replaceFirst("{", "{\"github_ok\": true, "))!!.githubOk)
+        assertEquals(true, p.githubOk)
+        assertEquals(false, Feedback.preparedOf(res("00001210").text!!.replace("\"github_ok\": true, ", ""))!!.githubOk)
         assertEquals(null, Feedback.preparedOf(res("00001214").text))
     }
 

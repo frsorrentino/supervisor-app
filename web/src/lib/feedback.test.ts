@@ -40,9 +40,9 @@ describe('feedback_app', () => {
     expect(d.hash).toBe('7c41e09a2b')
     expect(d.screenshot).toBe(true)
     expect(d.options.map(o => o.id)).toEqual(['github', 'anonymous', 'later'])
-    // 1.123: con la schermata la riga da mostrare prima dei tasti; github_ok assente, quindi niente GitHub.
+    // 1.123: con la schermata la riga da mostrare prima dei tasti. 1.124: github_ok, true solo se il PC legge il repo privato.
     expect(d.screenshot_notice).toMatch(/maintainer/)
-    expect(d.github_ok).toBeUndefined()
+    expect(d.github_ok).toBe(true)
     expect(parseDraft(res('00001214').text)).toBeNull()
   })
   it("l'esito del secondo: github col link, anonimo col link, più tardi senza", () => {
