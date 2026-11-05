@@ -445,8 +445,17 @@ internal fun MasterFrame(
                                             Modifier.offset(x = (cx - 36f).dp).width(72.dp).height(16.dp)
                                                 .semantics { contentDescription = if (l) gripLeft else gripRight }
                                                 .testTag(if (l) "master-maniglia-riga-sx" else "master-maniglia-riga-dx").grip(if (l) "bar-left" else "bar-right"),
+                                            contentAlignment = Alignment.Center,
                                         ) {
-                                            Box(Modifier.align(Alignment.Center).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                                            // ⌃ sopra la barretta: tirata su, la master sale in colonna da quel lato (web-maniglia-riga-colonna-06-11).
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                androidx.compose.foundation.Canvas(Modifier.width(10.dp).height(5.dp)) {
+                                                    val st = 1.5.dp.toPx()
+                                                    drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(0f, size.height), androidx.compose.ui.geometry.Offset(size.width / 2, 0f), st, androidx.compose.ui.graphics.StrokeCap.Round)
+                                                    drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(size.width / 2, 0f), androidx.compose.ui.geometry.Offset(size.width, size.height), st, androidx.compose.ui.graphics.StrokeCap.Round)
+                                                }
+                                                Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+                                            }
                                         }
                                     }
                                 }

@@ -1703,6 +1703,9 @@
      prima semivuota e poi di colpo piena»). -->
 {#snippet pskel()}<div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i><i></i></div>{/snippet}
 {#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+<!-- Il pannello della master nel cruscotto con le prese di quello accanto alle colonne (web-maniglia-riga-colonna-06-11, Franz
+     06/11 00:05): la presa in alto ‹ ━ › porta alla riga in basso o cambia lato, la corsia la larghezza; come MasterFrame sul tablet. -->
+{#snippet masterPanelGrips()}<button class="wgrip" class:onleft={masterLeft} aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel()}{/snippet}
 {#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
   onToggleKey={() => corners(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
 
@@ -1716,7 +1719,7 @@
 {:else if embed}
   <div class="embedded v3">{@render chatOf(MASTER, true)}</div>
 {:else if wide && deskDashboard}
-  <Plancia {width} order={decodeCats(st.home_order).map(c => c.id)} top={null} panel={master && masterOpen ? masterPanel : null} panelWide={!masterHalf} panelLeft={masterLeft}>
+  <Plancia {width} order={decodeCats(st.home_order).map(c => c.id)} top={null} panel={master && masterOpen ? masterPanelGrips : null} panelWide={!masterHalf} panelLeft={masterLeft}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
@@ -1911,7 +1914,7 @@
   /* I bordi della master (app-master-trascina-03-11): quello verso le sessioni allarga e stringe, quello in alto cambia l'altezza. */
   .dpanel { position: relative; }
   .wgrip { position: absolute; z-index: 5; top: 0; bottom: 0; left: -28px; width: 28px; cursor: ew-resize; touch-action: none; }
-  .deskwrap.left .wgrip { left: auto; right: -28px; }
+  .deskwrap.left .wgrip, .wgrip.onleft { left: auto; right: -28px; }
   .wgrip::before { content: ''; position: absolute; left: 13.5px; top: 0; bottom: 0; width: 1px; background: var(--line); }
   .stackcol > .wgrip::before { display: none; }
   .wgrip::after { content: ''; position: absolute; left: 12px; top: 50%; width: 4px; height: 48px; margin-top: -24px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, height .15s, margin-top .15s; }
@@ -1961,7 +1964,9 @@
   .mbar { position: relative; }
   /* Due maniglie sul bordo superiore della riga, ognuna sull'asse della colonna dove la master atterra da quel lato
      (app-master-riga-maniglie-04-11): a metà colonna a sinistra, a W meno metà colonna a destra. */
-  .mbar .bargrip { top: -6px; left: auto; right: auto; width: 96px; translate: -50% 0; }
+  .mbar .bargrip { top: -12px; height: 20px; left: auto; right: auto; width: 96px; translate: -50% 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  /* ⌃ sopra la barretta: tirata su, la master sale in colonna da quel lato (web-maniglia-riga-colonna-06-11, come le ‹ › della presa in alto). */
+  .mbar .bargrip::before { content: ''; width: 6px; height: 6px; margin-top: 3px; border-left: 1.5px solid var(--tx3); border-top: 1.5px solid var(--tx3); transform: rotate(45deg); opacity: .8; }
   .mbar .bargrip.r { translate: 50% 0; }
   /* Il campo centrato in altezza con il testo della master e la freccia (Franz 03/11 18:01): niente margine in basso qui. */
   .mbar .mquick { padding: 0; align-self: center; }

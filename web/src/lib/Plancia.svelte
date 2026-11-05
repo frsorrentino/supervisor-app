@@ -38,9 +38,10 @@
   .cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 12px; padding: 12px; }
   .topband { flex: none; max-height: 40%; overflow-y: auto; border-top: 1px solid var(--line); }
   .col { min-width: 0; min-height: 0; overflow-y: auto; padding-bottom: 24px; border-radius: 14px; --lit-bg: var(--s1); --lit-angle: 150deg; }
-  .mpanel { flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); border-left: 1px solid var(--line); }
+  /* La corsia di 28 px verso le colonne, come il pannello accanto alle sessioni (la disegna la presa della larghezza). */
+  .mpanel { position: relative; flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); margin-left: 28px; }
   .mpanel.wide { width: 720px; }
   /* Il pannello a sinistra: le colonne si stringono dall'altra parte. */
   .plancia.left { flex-direction: row-reverse; }
-  .plancia.left .mpanel { border-left: 0; border-right: 1px solid var(--line); }
+  .plancia.left .mpanel { margin-left: 0; margin-right: 28px; }
 </style>
