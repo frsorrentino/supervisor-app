@@ -789,13 +789,6 @@
     <string name="ctx_nudge">Contesto al %1$d%%</string>
     <string name="ctx_nudge_sub">Handoff, poi /clear</string>
     <string name="ctx_nudge_go">Fallo</string>
-    <string name="decision_save">Salva come decisione</string>
-    <string name="decision_sub">La master la scrive nella sua memoria: la leggono il giro novità e le sessioni.</string>
-    <string name="decision_for">Vale per</string>
-    <string name="decision_all">Tutti i progetti</string>
-    <string name="decision_ok">Salva</string>
-    <string name="decision_new">Salva una decisione</string>
-    <string name="decision_sent">Decisione mandata alla master</string>
     <string name="approvals_group">Da approvare</string>
     <string name="approval_prod">Produzione</string>
     <string name="approval_what">Esce</string>

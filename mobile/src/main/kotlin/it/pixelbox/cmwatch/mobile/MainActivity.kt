@@ -1672,13 +1672,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             } },
-                            decision = if (state?.ops?.contains("decision") == true) ({ text, project ->
-                                scope.launch {
-                                    runCatching { app.repo.command(CmdOp.DECISION, null, project, text) }.onSuccess {
-                                        android.widget.Toast.makeText(this@MainActivity, getString(R.string.decision_sent), android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }) else null,
                             askMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.takeIf { m -> m.name != session.name }?.let { m -> { askMasterAbout(m.name, session.name) } },
                             changes = readChanges(session.name),
                             menuState = state, mine = mineOf(session.name), openMine = { k -> openMine(session.name, k) },

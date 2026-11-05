@@ -69,21 +69,6 @@ export function clearDue(s: Session | undefined, sentAt: number): boolean {
   return !!s && s.state === 'idle' && (s.outcome?.at ?? 0) >= sentAt
 }
 
-/** D. Il testo di una decisione: al massimo 2000 caratteri, come accetta il relay. */
-export const DECISION_MAX = 2000
-
-/** Il progetto a cui vale la decisione: l'ultimo pezzo del percorso della sessione. */
-export const decisionProject = (s: Session): string | null => s.project.split('/').filter(Boolean).at(-1) ?? null
-
-/** La bozza da una risposta di Claude: senza le righe «Prossimi:» e «Watch:», tagliata a fine parola, senza puntini. */
-export function decisionDraft(text: string): string {
-  const body = parseSteps(text).text.split('\n').filter(l => !l.trimStart().startsWith('Watch:')).join('\n').trim()
-  if (body.length <= DECISION_MAX) return body
-  const cut = body.slice(0, DECISION_MAX)
-  const space = cut.search(/\s\S*$/)
-  return (space > 0 ? cut.slice(0, space) : cut).trimEnd()
-}
-
 /** E. La pulizia: compito chiuso o doppione, solo a sessione ferma; «Chiudi» solo senza finestra e con /exit permesso. */
 export type Cleanup = { kind: 'finished' | 'duplicate'; of: string | null; canClose: boolean }
 

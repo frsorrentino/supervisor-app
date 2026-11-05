@@ -41,21 +41,6 @@ object MasterService {
     /** La nota dell'approvazione; vuota vale «ok», come il default del relay. */
     fun approveText(note: String): String = note.trim().ifEmpty { "ok" }
 
-    /** Il testo di una decisione: al massimo 2000 caratteri, come accetta il relay. */
-    const val DECISION_MAX = 2000
-
-    /** Il progetto a cui vale la decisione: l'ultimo pezzo del percorso della sessione. */
-    fun decisionProject(s: Session): String? = s.project.split('/').lastOrNull { it.isNotBlank() }
-
-    /** La bozza da una risposta di Claude: senza le righe «Prossimi:» e «Watch:», tagliata a fine parola, senza puntini. */
-    fun decisionDraft(text: String): String {
-        val body = NextSteps.parse(text).text.lines().filterNot { it.trimStart().startsWith("Watch:") }.joinToString("\n").trim()
-        if (body.length <= DECISION_MAX) return body
-        val cut = body.take(DECISION_MAX)
-        val space = Regex("\\s\\S*$").find(cut)?.range?.first ?: -1
-        return (if (space > 0) cut.take(space) else cut).trimEnd()
-    }
-
     /** La pulizia: compito chiuso o doppione, solo a sessione ferma; «Chiudi» solo senza finestra e con /exit permesso. */
     data class Cleanup(val kind: Kind, val of: String?, val canClose: Boolean) {
         enum class Kind { FINISHED, DUPLICATE }

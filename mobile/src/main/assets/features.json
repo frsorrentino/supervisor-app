@@ -1944,40 +1944,6 @@
    "image": "quota_finita.webp"
   },
   {
-   "key": "segnalibro",
-   "group": "find",
-   "name": {
-    "it": "Segnalibro",
-    "en": "Bookmark"
-   },
-   "what": {
-    "it": "Segna una risposta nella chat per ritrovarla.",
-    "en": "Marks an answer in the chat to find it again."
-   },
-   "where": {
-    "it": "Sotto una risposta",
-    "en": "Under an answer"
-   },
-   "state": "ready",
-   "version": "0.2.972",
-   "when": {
-    "it": "Ti serve per tornare a una risposta importante.",
-    "en": "Useful to get back to an important answer."
-   },
-   "how": {
-    "it": "Tocca il segnalibro sotto la risposta.",
-    "en": "Tap the bookmark under the answer."
-   },
-   "route": null,
-   "section": null,
-   "phone": {
-    "file": "mobile/src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/SessionSheet.kt",
-    "needle": "Bookmark"
-   },
-   "web": null,
-   "image": "segnalibro.webp"
-  },
-  {
    "key": "banco_prova",
    "group": "you",
    "name": {

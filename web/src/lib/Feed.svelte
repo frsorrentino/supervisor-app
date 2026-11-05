@@ -38,7 +38,7 @@
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
-  let { flash = null, s, items, now, onFile = () => {}, onFiles = () => {}, onDecision, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { flash?: string | null; s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void; onDecision?: (text: string) => void
+  let { flash = null, s, items, now, onFile = () => {}, onFiles = () => {}, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { flash?: string | null; s: Session; items: Item[]; now: number; onFile?: (path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) => void; onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void
     /** Contratto 1.72: «Mostra tutto» sotto un passaggio, l'op `diff`; null = il relay non la conosce. */
     onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null
     /** Le sessioni dello stato e l'apertura di una: il link di una di loro nel testo diventa il tasto «Apri in supervisor» (Franz, 21/10 19:04). */
@@ -122,7 +122,6 @@
       {#if reading}<svg viewBox="0 0 24 24" width="18" height="18"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" /></svg>
       {:else}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>{/if}
     </button>
-    {#if onDecision}<button class="sm" aria-label={t.decisionSave} title={t.decisionSave} onclick={() => onDecision(text)}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg></button>{/if}
     {#if at}<span class="time">{hm(at)}</span>{/if}
   </div>
 {/snippet}

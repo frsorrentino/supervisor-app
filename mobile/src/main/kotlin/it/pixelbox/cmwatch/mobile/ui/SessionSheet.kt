@@ -190,8 +190,6 @@ data class SheetActions(
     val openSession: (String) -> Unit = {},
     /** Contratto 1.37: «Handoff, poi /clear» (il /clear parte a turno finito, lo gestisce chi tiene lo stato); 1.51: null senza comando. */
     val handoff: (() -> Unit)? = {},
-    /** Contratto 1.37: una decisione per la memoria della master; `project` null = vale per tutti; null = op non supportata. */
-    val decision: ((text: String, project: String?) -> Unit)? = null,
     /** Contratto 1.72: la vista «Modifiche», op `changes` con `file` = il percorso relativo o null; null = il relay non la conosce. */
     val changes: (suspend (file: String?) -> DiffRules.Load<ChangesView>)? = null,
     /** Il menu unico della sessione (app-menu-sessione-03-11): lo stato per la regola, i numeri di Tocca a te e dove portano. */
@@ -347,14 +345,6 @@ fun SessionSheet(
     val openedAt = remember(s.name) { android.os.SystemClock.uptimeMillis() }
     val cascaded = remember(s.name) { mutableSetOf<String>() }
     val tinted = remember(s.name) { mutableSetOf<String>() }
-    // Contratto 1.37: «Salva come decisione», dalla risposta di Claude o dal + della master (campo vuoto).
-    var decisionDraft by remember { mutableStateOf<String?>(null) }
-    val decide: ((String) -> Unit)? = actions.decision?.let { _ -> { t: String -> decisionDraft = it.pixelbox.cmwatch.rules.MasterService.decisionDraft(t) } }
-    decisionDraft?.let { d ->
-        DecisionSheet(d, project = if (home != null) null else it.pixelbox.cmwatch.rules.MasterService.decisionProject(s), onDismiss = { decisionDraft = null }) { text, project ->
-            actions.decision?.invoke(text, project); decisionDraft = null
-        }
-    }
     val recurring = LocalRecurring.current
     val recurringRows by remember(recurring, home == null, idle, draftHolder) {
         derivedStateOf {
@@ -536,7 +526,7 @@ fun SessionSheet(
                             is ChatFeed.Item.User -> UserBubble(it.entry, onResend = { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
                             is ChatFeed.Item.Claude -> ClaudeBubble(
                                 it.entry.text.orEmpty(), it.entry.at, ttsMinChars, actions.speak, cut = it.entry.cut, turn = it.entry.turn,
-                                onSpeakFrom = actions.speakFrom, onDecision = decide, sessions = actions.sessions, onOpenSession = actions.openSession, outcomeType = it.entry.outcomeType,
+                                onSpeakFrom = actions.speakFrom, sessions = actions.sessions, onOpenSession = actions.openSession, outcomeType = it.entry.outcomeType,
                             )
                             is ChatFeed.Item.Tool -> ToolLine(it.entry)
                             is ChatFeed.Item.Steps -> StepsCard(it)
@@ -804,7 +794,6 @@ fun SessionSheet(
             s, draftHolder, onDraft = { draft = it }, ops, canAttach, actions, onSent = { draft = ""; follow = true }, quota, phrases, canTonight, slash,
             toMaster = home != null, canAttachFiles = canAttachFiles, fieldSuggestion = stepsBox.field,
             onRecurring = if (recurringRows.isEmpty()) null else ({ boxes.recurring(!boxes.recurringOpen) }), recurringOpen = boxes.recurringOpen,
-            onDecisionNew = if (home != null && decide != null) ({ decisionDraft = "" }) else null,
         )
     }
     // Contratto 1.72: la vista «Modifiche» sopra la sessione: sul telefono ne prende la pagina, sul tablet la colonna.
@@ -853,7 +842,6 @@ private fun Composer(
     /** Il tasto ⟳ delle azioni ricorrenti della master nel campo; null senza azioni. */
     onRecurring: (() -> Unit)? = null, recurringOpen: Boolean = false,
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
-    onDecisionNew: (() -> Unit)? = null,
 ) {
     val draft = draftState.value
     var images by rememberSaveable(s.id) { mutableStateOf(listOf<Uri>()) }
@@ -1027,8 +1015,8 @@ private fun Composer(
                 )
             else androidx.compose.material3.OutlinedTextFieldDefaults.colors(),
             // Le azioni ricorrenti della master stanno nel menu del + (Franz, 05/10 07:27: il ⟳ nel campo stringeva troppo).
-            leadingIcon = if (canAttach || onRecurring != null || onDecisionNew != null) ({
-                AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring, onDecision = onDecisionNew) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) }
+            leadingIcon = if (canAttach || onRecurring != null) ({
+                AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) }
             }) else null,
             trailingIcon = { Row(verticalAlignment = Alignment.CenterVertically) {
                 if (inField != null && draft.isBlank()) TextButton(onClick = { onDraft(inField) }) { Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon) }
@@ -1316,7 +1304,7 @@ private fun UriThumb(uri: Uri, modifier: Modifier) {
  * (Paparazzi) non c'è, e il tasto resta disegnato senza selettore.
  */
 @Composable
-private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecurring: (() -> Unit)? = null, onDecision: (() -> Unit)? = null, onPicked: (List<Uri>) -> Unit) {
+private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecurring: (() -> Unit)? = null, onPicked: (List<Uri>) -> Unit) {
     val icon: @Composable () -> Unit = { Icon(Icons.Rounded.Add, stringResource(R.string.attach_image), tint = Cm.actionIcon) }
     if (androidx.activity.compose.LocalActivityResultRegistryOwner.current == null) { IconButton(onClick = {}, content = icon); return }
     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -1334,7 +1322,6 @@ private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecur
         PressMenu(expanded = menu, onDismiss = { menu = false }) {
             AttachMenuItems(
                 attach = attach, files = files, onRecurring = onRecurring?.let { r -> { menu = false; r() } },
-                onDecision = onDecision?.let { d -> { menu = false; d() } },
                 onGallery = { menu = false; pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 onCamera = {
                     menu = false
@@ -1356,7 +1343,6 @@ private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecur
 @Composable
 internal fun AttachMenuItems(
     attach: Boolean, files: Boolean, onRecurring: (() -> Unit)?, onGallery: () -> Unit, onCamera: () -> Unit, onFile: () -> Unit,
-    onDecision: (() -> Unit)? = null,
 ) {
     if (attach) {
         DropdownMenuItem(text = { Text(stringResource(R.string.attach_gallery)) }, leadingIcon = { Icon(Icons.Rounded.Image, null, tint = Cm.actionIcon) }, onClick = onGallery)
@@ -1366,38 +1352,6 @@ internal fun AttachMenuItems(
     if (onRecurring != null) {
         if (attach) androidx.compose.material3.HorizontalDivider(color = Cm.line)
         DropdownMenuItem(text = { Text(stringResource(R.string.recurring_open)) }, leadingIcon = { Icon(Icons.Rounded.Autorenew, null, tint = Cm.actionIcon) }, onClick = onRecurring)
-    }
-    if (onDecision != null) DropdownMenuItem(text = { Text(stringResource(R.string.decision_new)) }, leadingIcon = { Icon(Icons.Rounded.BookmarkBorder, null, tint = Cm.actionIcon) }, onClick = onDecision)
-}
-
-/** Contratto 1.37: il foglio «Salva come decisione»: il testo da correggere e per quale progetto vale. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DecisionSheet(draft: String, project: String?, onDismiss: () -> Unit, onSave: (String, String?) -> Unit) {
-    var text by remember(draft) { mutableStateOf(draft) }
-    var all by remember(project) { mutableStateOf(project == null) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Cm.surface) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.decision_save), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
-            Text(stringResource(R.string.decision_sub), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-            androidx.compose.material3.OutlinedTextField(
-                text, { v -> text = v.take(it.pixelbox.cmwatch.rules.MasterService.DECISION_MAX) }, modifier = Modifier.fillMaxWidth(), minLines = 3,
-            )
-            if (project != null) {
-                Text(stringResource(R.string.decision_for), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.material3.FilterChip(selected = !all, onClick = { all = false }, label = { Text(project) })
-                    androidx.compose.material3.FilterChip(selected = all, onClick = { all = true }, label = { Text(stringResource(R.string.decision_all)) })
-                }
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Cm.text2) }
-                Button(
-                    onClick = { onSave(text.trim(), if (all) null else project) }, enabled = text.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
-                ) { Text(stringResource(R.string.decision_ok)) }
-            }
-        }
     }
 }
 
@@ -1883,8 +1837,6 @@ private fun ClaudeBubble(
     /** Mostra i consigli della riga `Prossimi:` (solo l'ultima risposta); la riga non si vede mai nel testo. */
     withSteps: Boolean = false, onStep: (String) -> Unit = {}, onSendStep: (String) -> Unit = {},
     onSpeakFrom: (String, Int) -> Unit = { _, _ -> },
-    /** Contratto 1.37: «Salva come decisione» con il testo della risposta; null = op non supportata. */
-    onDecision: ((String) -> Unit)? = null,
     /** Le sessioni dello stato: il link di una di loro nel testo diventa il tasto «Apri in supervisor» (Franz, 21/10 19:04). */
     sessions: List<Session> = emptyList(), onOpenSession: (String) -> Unit = {},
 ) {
@@ -1956,7 +1908,6 @@ private fun ClaudeBubble(
                     tint = Cm.actionIcon, modifier = Modifier.size(20.dp),
                 )
             }
-            onDecision?.let { d -> SmallAction(Icons.Rounded.BookmarkBorder, stringResource(R.string.decision_save)) { d(text) } }
             at?.let { Text(hhmm(it), style = MaterialTheme.typography.labelMedium, color = Cm.text2, modifier = Modifier.padding(start = 4.dp)) }
         }
     }

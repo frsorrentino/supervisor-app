@@ -28,9 +28,9 @@
   import { blockingOf, parseSteps } from './nextSteps'
   import { t } from './t'
   import { waitingPc } from './durations'
-  import { ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffPrompt } from './masterService'
+  import { ctxNudge, handoffPrompt } from './masterService'
   import { reducedMotion } from './motion'
-  let { focus = null, onFocused = () => {}, resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, onDecision, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
+  let { focus = null, onFocused = () => {}, resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
     /** Contratto 1.106: la riga «Risultati» in cima alla chat. */
     resultsRow?: import('svelte').Snippet | null
     /** La voce da portare in vista, da Cerca (app-cerca-pagina-03-11). */
@@ -44,8 +44,8 @@
     /** Un file della conversazione (contratto 1.24): il PC lo manda e si apre in una scheda. */
     onFile: (path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) => void
     onFiles?: (fs: { path: string; key: string }[], act: 'save' | 'share' | 'prepare') => void
-    /** Contratto 1.37: «Handoff, poi /clear» (prompt e /clear a turno finito, li gestisce App) e «Salva come decisione». */
-    onHandoff: () => void; onDecision: (text: string, project: string | null) => void
+    /** Contratto 1.37: «Handoff, poi /clear» (prompt e /clear a turno finito, li gestisce App). */
+    onHandoff: () => void
     /** L'avviso delle altre sessioni sotto la barra (Elsewhere). */
     elsewhere?: Alert | null; elsewhereAway?: import('./elsewhere').Away | null; onElsewhere?: () => void; onElsewhereDismiss?: () => void
     /** Da quando (ms) una lettura della conversazione aspetta il PC; null se nessuna è in volo (piano prestazioni, Task 7). */
@@ -136,9 +136,6 @@
     dismissed = { ...dismissed, [s.name]: nudge! }
     try { localStorage.setItem('cm.ctx_dismissed', JSON.stringify(dismissed)) } catch { /* resta per la sessione */ }
   }
-  // «Salva come decisione»: la bozza dalla risposta di Claude (o vuota dal + della master), il progetto della sessione.
-  const canDecide = $derived(!!st.ops?.includes('decision'))
-  let decisionDlg: HTMLDialogElement | undefined = $state()
   // File trascinati sulla colonna: vanno nel campo come quelli scelti con il +.
   let dragging = $state(false)
   const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files')
@@ -147,16 +144,6 @@
     e.preventDefault()
     dragging = false
     if (composer?.addFiles([...(e.dataTransfer?.files ?? [])])) composer.focus()
-  }
-  let decisionText = $state('')
-  let decisionAll = $state(false)
-  const project = $derived(s.name === MASTER ? null : decisionProject(s))
-  function openDecision(text: string) { decisionText = decisionDraft(text); decisionAll = project == null; decisionDlg?.showModal() }
-  function saveDecision() {
-    const text = decisionText.trim()
-    if (!text) return
-    onDecision(text, decisionAll ? null : project)
-    decisionDlg?.close()
   }
   // In fondo alla conversazione: subito all'apertura (e dopo che la colonna ha preso la sua misura), con l'animazione
   // quando arriva qualcosa di nuovo, ma solo se si era già in fondo: chi sta rileggendo più su resta dov'è (Franz, 06/10 10:03).
@@ -236,7 +223,7 @@
         {onAnswer} onSession={onPick} onSpeak={(x) => toggle(x, s.name)} {events} {sent} {read} {onRead} onPrompt={onPromptTo} {onCmd} />
     {:else}
     {#if onOlder}<button class="older" onclick={() => { atEnd = false; onOlder() }}>{t.loadOlder}</button>{/if}
-    {#key s.name}<Feed {flash} {s} {items} now={st.ts} {onFile} {onFiles} onDecision={canDecide ? openDecision : undefined} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
+    {#key s.name}<Feed {flash} {s} {items} now={st.ts} {onFile} {onFiles} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
     <!-- A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC. -->
     <!-- Senza messaggi, esito, domanda e lavoro in corso una riga, invece di una pagina che sembra rotta (SessionSheet). -->
     {#if !items.length && !s.outcome && !s.question && s.state !== 'busy' && s.state !== 'awaiting' && waitingSince == null}<p class="emptychat">{t.chatEmpty}</p>{/if}
@@ -294,29 +281,13 @@
     onAnswerText={(arg) => onCmd('answer', arg)} onSlash={(c, a) => onCmd('slash', c, a ?? undefined)} onStop={() => onCmd('interrupt')}
     onReopen={() => onCmd('reopen')} {onAttach}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
-    onDecision={canDecide ? () => openDecision('') : null} {onSendAt} {onSendTo} />
+    {onSendAt} {onSendTo} />
   {#if changesOpen && onChanges}
     <!-- Contratto 1.72: sopra la sessione; sulla plancia resta nella sua colonna. -->
     <div class="chgwrap"><Changes {s} load={onChanges} onClose={() => (changesOpen = false)} /></div>
   {/if}
 </section>
 
-<dialog bind:this={decisionDlg} class="sheet" onclick={(e) => e.target === e.currentTarget && decisionDlg?.close()}>
-  <h3>{t.decisionSave}</h3>
-  <p class="sub">{t.decisionSub}</p>
-  <textarea bind:value={decisionText} rows="4" maxlength={DECISION_MAX}></textarea>
-  {#if project}
-    <p class="lab">{t.decisionFor}</p>
-    <div class="pick">
-      <button class:on={!decisionAll} aria-pressed={!decisionAll} onclick={() => (decisionAll = false)}>{project}</button>
-      <button class:on={decisionAll} aria-pressed={decisionAll} onclick={() => (decisionAll = true)}>{t.decisionAll}</button>
-    </div>
-  {/if}
-  <div class="btns">
-    <button class="text2" onclick={() => decisionDlg?.close()}>{t.cancel}</button>
-    <button class="filled" disabled={!decisionText.trim()} onclick={saveDecision}>{t.decisionOk}</button>
-  </div>
-</dialog>
 
 <style>
   .chgwrap { position: absolute; inset: 0; z-index: 16; }

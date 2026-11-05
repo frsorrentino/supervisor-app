@@ -102,14 +102,6 @@ class MasterServiceTest {
         assertFalse(ContextActions.clearDue(null, 1000))
     }
 
-    @Test fun decisionProjectAndDraft() {
-        assertEquals("atlas-shop", MasterService.decisionProject(atlas))
-        assertEquals("I prezzi includono l'IVA.", MasterService.decisionDraft("I prezzi includono l'IVA.\n\nProssimi: a · b\nWatch: ok"))
-        val long = MasterService.decisionDraft("parola ".repeat(400))
-        assertTrue(long.length <= MasterService.DECISION_MAX)
-        assertFalse(long.endsWith("…")); assertFalse(long.endsWith(" "))
-    }
-
     @Test fun cleanupOnlyWhenStoppedAndCloseOnlyWithoutWindow() {
         val stopped = field.copy(state = SessionState.IDLE, attached = false)
         val later = stopped.since + MasterService.CLEANUP_QUIET_S

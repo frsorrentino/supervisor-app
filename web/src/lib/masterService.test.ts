@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { decodeState, type Session, type State } from './contract'
 import { MASTER } from './summary'
 import {
-  adviceOf, adviceSteps, approveText, canClear, cleanupOf, CLEANUP_QUIET_S, closeStateOf, clearDue, ctxBand, ctxNudge, decisionDraft, decisionProject, DECISION_MAX, handoffCommand, handoffPrompt, tokens,
+  adviceOf, adviceSteps, approveText, canClear, cleanupOf, CLEANUP_QUIET_S, closeStateOf, clearDue, ctxBand, ctxNudge, handoffCommand, handoffPrompt, tokens,
 } from './masterService'
 
 const st: State = decodeState(readFileSync(new URL('../../../contract/state-1-question.json', import.meta.url), 'utf8'))
@@ -93,20 +93,6 @@ describe('C. contesto pieno', () => {
     expect(clearDue({ ...field, state: 'idle', outcome: { short: 'x', full: 'x', at: 900 } }, sent)).toBe(false)
     expect(clearDue({ ...field, state: 'idle', outcome: { short: 'x', full: 'x', at: 1100 } }, sent)).toBe(true)
     expect(clearDue(undefined, sent)).toBe(false)
-  })
-})
-
-describe('D. salva come decisione', () => {
-  it('il progetto è l\'ultimo pezzo del percorso', () => {
-    expect(decisionProject(atlas)).toBe('atlas-shop')
-  })
-  it('la bozza toglie Prossimi e Watch, e sta nei 2000 caratteri senza puntini', () => {
-    const d = decisionDraft('I prezzi includono l\'IVA.\n\nProssimi: a · b\nWatch: ok')
-    expect(d).toBe('I prezzi includono l\'IVA.')
-    const long = decisionDraft('parola '.repeat(400))
-    expect(long.length).toBeLessThanOrEqual(DECISION_MAX)
-    expect(long.endsWith('…')).toBe(false)
-    expect(long.endsWith(' ')).toBe(false)
   })
 })
 

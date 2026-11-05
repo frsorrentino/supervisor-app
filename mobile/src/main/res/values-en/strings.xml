@@ -733,13 +733,6 @@
     <string name="ctx_nudge">Context at %1$d%%</string>
     <string name="ctx_nudge_sub">Handoff, then /clear</string>
     <string name="ctx_nudge_go">Do it</string>
-    <string name="decision_save">Save as decision</string>
-    <string name="decision_sub">The master writes it in its memory: the news round and the sessions read it.</string>
-    <string name="decision_for">Applies to</string>
-    <string name="decision_all">All projects</string>
-    <string name="decision_ok">Save</string>
-    <string name="decision_new">Save a decision</string>
-    <string name="decision_sent">Decision sent to the master</string>
     <string name="approvals_group">To approve</string>
     <string name="approval_prod">Production</string>
     <string name="approval_what">Ships</string>

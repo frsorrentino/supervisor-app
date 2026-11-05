@@ -15,12 +15,11 @@
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
-  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onDecision = null, onSendAt = null, onSendTo = null }: {
+  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onSendAt = null, onSendTo = null }: {
     st: State; s: Session; draft: string; field: string | null; toMaster: boolean
     onSend: (text: string) => void; onAnswerText: (arg: string) => void; onSlash: (cmd: string, args: string | null) => void
     onStop: () => void; onReopen: () => void; onAttach: (files: File[], text: string) => void; onRecurring: (() => void) | null
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
-    onDecision?: (() => void) | null
     /** Contratto 1.63, «Manda alle…»: il testo e l'ora (epoch s); null = il relay non lo sa fare. */
     onSendAt?: ((text: string, at: number) => void) | null
     /** «@nome» nella chat della master: il messaggio a quella sessione (Franz, 14/10 21:55). */
@@ -155,7 +154,6 @@
             {#if onRecurring}
               <hr />
               <button type="button" role="menuitem" onclick={() => { menu = false; onRecurring?.() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16M16 16h5v5" /></svg>{t.recurringOpen}</button>
-            {#if toMaster && onDecision}<button type="button" role="menuitem" onclick={() => { menu = false; onDecision?.() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>{t.decisionNew}</button>{/if}
             {/if}
           </div>
         {/if}
