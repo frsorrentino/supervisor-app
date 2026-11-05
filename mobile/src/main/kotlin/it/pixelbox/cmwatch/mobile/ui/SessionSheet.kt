@@ -2732,9 +2732,11 @@ private fun MeterPills(
         val parts = { q: androidx.compose.ui.layout.Placeable -> base(q).let { if (inline) listOf(it[0], chP) + it.drop(1) else it } }
         val need = { q: androidx.compose.ui.layout.Placeable -> needOf(parts(q)) }
         val q = quotas.firstOrNull { need(it) <= room } ?: quotas.last()
-        val shown = parts(q)
+        // Il menu ⋮ sempre in fondo e libero (app-menu-tre-puntini-05-11, Franz 05/11 23:58): se neanche la quota più corta ci
+        // sta, la quota esce dalla riga (è anche nella home), come nella web.
+        val shown = if (need(q) <= room || q.width == 0) parts(q) else parts(q).filter { it !== q }
         val h = (shown + moreP).maxOf { it.height }
-        val w = if (fill && c.hasBoundedWidth) c.maxWidth else minOf(need(q), c.maxWidth)
+        val w = if (fill && c.hasBoundedWidth) c.maxWidth else minOf(needOf(shown), c.maxWidth)
         layout(w, h) {
             var x = 0
             shown.forEach { p -> p.placeRelative(x, (h - p.height) / 2); x += p.width + gap }

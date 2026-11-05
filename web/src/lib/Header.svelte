@@ -102,8 +102,19 @@
     return steps.findIndex(([f, e, c]) => cut(f, e, c) <= width)
   })
   const chInline = $derived(chLevel >= 0)
-  const noEffort = $derived(chLevel >= 3)
-  const ctxPct = $derived(chLevel >= 4)
+  // Il menu ⋮ sempre in fondo alla riga (app-menu-tre-puntini-05-11, Franz 05/11 23:58: a 415 px con ctx spariva): anche senza
+  // la pillola delle modifiche, se la quota più corta non ci sta, si accorcia prima il contesto («62%»), poi il modello senza
+  // effort, poi la quota esce dalla riga (è anche nella home).
+  const squeeze = $derived.by(() => {
+    if (width === 0 || modelFullW === 0 || chInline) return 0
+    const q = quota?.h5 != null && width >= 300 ? formW.tiny : 0
+    const ctxCut = s.context != null ? Math.max(0, ctxLongW - ctxPctW) : 0
+    const fits = [fixed + q, fixed + q - ctxCut, fixed + q - ctxCut - effW, fixed - ctxCut - effW]
+    const i = fits.findIndex(n => n <= width)
+    return i < 0 ? 3 : i
+  })
+  const noEffort = $derived(chLevel >= 3 || squeeze >= 2)
+  const ctxPct = $derived(chLevel >= 4 || squeeze >= 1)
   $effect(() => { if (!noEffort && modelW) modelFullW = modelW })
   $effect(() => { if (!ctxPct && !compact && ctxW) ctxFullW = ctxW })
   const quotaForm = $derived.by<QuotaForm>(() => {
@@ -200,7 +211,7 @@
     <span class="ghost" aria-hidden="true"><span class="gl" bind:offsetWidth={effW}>{effort ? ` · ${effort}` : ''}</span>{#if s.context != null}<span class="gl" bind:offsetWidth={ctxLongW}>{t.ctx(s.context)}</span><span class="gl" bind:offsetWidth={ctxPctW}>{`${s.context}%`}</span>{/if}</span>
     {#if !wide}<span class="sp"></span>{/if}
     <!-- In una colonna stretta la quota lascia il posto a modello, contesto e menu (è anche nella home). -->
-    {#if quota?.h5 != null && (width === 0 || width >= 300)}
+    {#if quota?.h5 != null && (width === 0 || width >= 300) && squeeze < 3}
       {@const bare = quotaForm === 'tiny'}
       <!-- Nella forma più corta l'anello lascia il posto a «5h», e il colore delle soglie passa al testo. -->
       <button class="mpill" class:bare title={reset ? t.quotaResetDesc(quota.h5, reset) : undefined} onclick={onUsage}>
@@ -387,7 +398,7 @@
   .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); flex: none; }
   .ib:hover { background: var(--surface); }
   .back { color: var(--text); width: 36px; }
-  .pill { display: flex; align-items: center; min-width: min-content; overflow: hidden; background: var(--surface); border-radius: 999px; height: 31px; padding: 0 6px 0 12px; font-size: 12.5px; font-weight: 500; white-space: nowrap; flex: 0 1 auto; }
+  .pill { display: flex; align-items: center; min-width: 0; overflow: hidden; background: var(--surface); border-radius: 999px; height: 31px; padding: 0 6px 0 12px; font-size: 12.5px; font-weight: 500; white-space: nowrap; flex: 0 1 auto; }
   /* Le pillole di quota e contesto, alte e larghe come quella del modello (variante A, 09/10). */
   .mpill { display: flex; align-items: center; gap: 5px; background: var(--surface); border-radius: 999px; height: 33px; padding: 0 10px 0 8px; font-size: 12.5px; font-weight: 500; white-space: nowrap; flex: none; color: var(--text); }
   /* Il testo al centro sulle maiuscole e le cifre, non sulla riga del carattere: con Roboto a 13 px stavano 1 px sopra il
@@ -478,7 +489,9 @@
   .cpill b { font-weight: 500; }
   .plus { color: var(--b-good); }
   .minus { color: var(--b-alert); }
-  .anchor { position: relative; }
+  .anchor { position: relative; flex: none; }
+  /* Se neanche così ci sta, il nome del modello si taglia: il menu ⋮ non esce mai dalla riga. */
+  .pill .lbl { min-width: 0; overflow: hidden; }
   .scrim { position: fixed; inset: 0; z-index: 9; cursor: default; }
   /* Il menu a pannello dell'app (AppMenuPanel): 380 px su desktop, voci con la spiegazione sotto. */
   .panel { position: absolute; right: 4px; top: 46px; z-index: 10; width: min(380px, calc(100vw - 24px)); background: var(--surface); border-radius: 20px; padding: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); }
