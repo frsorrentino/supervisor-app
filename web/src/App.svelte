@@ -1755,12 +1755,14 @@
 {:else if embed}
   <div class="embedded v3">{@render chatOf(MASTER, true)}</div>
 {:else if wide && deskDashboard}
-  <Plancia {width} order={decodeCats(st.home_order).map(c => c.id)} top={null} panel={master && masterOpen ? masterPanelGrips : null} panelWide={!masterHalf} panelLeft={masterLeft}>
+  <!-- Le sessioni prima (app-sessioni-evidenti-06-11, scelta J2 di Franz, 06/11 00:52): Sessioni, Tocca a te con Esiti chiuso in
+       fondo, Risorse; le altre nell'ordine della home. -->
+  <Plancia {width} order={['work', ...decodeCats(st.home_order).map(c => c.id).filter(id => id !== 'work' && id !== 'out')]} top={null} panel={master && masterOpen ? masterPanelGrips : null} panelWide={!masterHalf} panelLeft={masterLeft}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
-    {#snippet you()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="0ms"><DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}</div>{:else}{@render pskel()}{/if}{/snippet}
-    {#snippet work()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="60ms"><DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}</div>{:else}{@render pskel()}{/if}{/snippet}
+    {#snippet you()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="0ms"><DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}<button class="outclosed" data-testid="plancia-esiti-chiuso" onclick={() => openPage('box-esiti')}><span class="ms" aria-hidden="true">sports_score</span><b>{t.deskOutClosed}</b><small>{kpiHeadOf(st, kpiPage, now).outcomes ?? 0}</small><span class="ms ch" aria-hidden="true">chevron_right</span></button></div>{:else}{@render pskel()}{/if}{/snippet}
+    {#snippet work()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="60ms"><DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} open={summary.open} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}</div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet out()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="120ms"><DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet tools()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="180ms"><DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet bar()}{@render masterBar()}{/snippet}
@@ -1916,6 +1918,13 @@
   .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
   /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
   .deskwrap { height: 100%; display: flex; min-height: 0; }
+  /* Esiti chiuso in fondo a Tocca a te (J2): come i titoli dei gruppi; il tocco apre il foglio degli esiti. */
+  .outclosed { width: calc(100% - 24px); margin: 4px 12px 0; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; text-align: left; color: var(--tx); }
+  .outclosed:hover { background: var(--s2); }
+  .outclosed .ms { color: var(--tx2); font-size: 20px; }
+  .outclosed b { font: 600 17px var(--display); }
+  .outclosed small { color: var(--tx2); font-size: 13px; }
+  .outclosed .ch { margin-left: auto; }
   /* La striscia (app-colonne-strette-05-11): la X in alto, il pallino, il nome in verticale dal basso in alto. */
   .cstrip { height: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; background: var(--bg); min-height: 0; }
   .cstrip .sx { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 16px; color: var(--text2); }

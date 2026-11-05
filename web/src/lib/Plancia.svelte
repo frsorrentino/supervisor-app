@@ -10,8 +10,8 @@
     panel?: Snippet | null; panelWide?: boolean; panelLeft?: boolean
   } = $props()
   const PANEL = 420, PANEL_WIDE = 720, COL = 320
-  const n = $derived(Math.max(1, Math.min(4, Math.floor((width - (panel ? (panelWide ? PANEL_WIDE : PANEL) : 0)) / COL))))
   const all = $derived(order.map(id => ({ you, work, out, tools } as Record<string, Snippet>)[id]).filter(Boolean))
+  const n = $derived(Math.max(1, Math.min(all.length, Math.floor((width - (panel ? (panelWide ? PANEL_WIDE : PANEL) : 0)) / COL))))
   // Le colonne che non stanno: in fondo all'ultima che si vede.
   const shownCols = $derived(all.slice(0, n).map((c, i) => (i === n - 1 ? all.slice(i) : [c])))
 </script>

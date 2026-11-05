@@ -16,12 +16,14 @@
   const fy = $derived(forYouOf(st, agenda, now, day))
   const later = $derived(fy.outside.length + fy.claude.length)
   const dn = $derived((Object.keys(donePages).length ? doneFromPages(donePages, zone) : doneOf(events, zone, day)).find(d => d.date === day)?.rows ?? [])
+  // Chiuso (app-sessioni-evidenti-06-11, scelta J2): titolo e numero sotto le sessioni; il tocco lo apre sul posto.
+  let tasksOpen = $state(false)
   const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
 </script>
 
 {#if part === 'progress'}
-  <div class="vsec"><span class="ic"><span class="ms" aria-hidden="true">checklist</span></span>{t.deskTasks}{#if ip.total}<small>{ip.total}</small>{/if}<span class="rt">{t.deskFromRegistry}</span></div>
-  <div class="vlist">
+  <button class="vsec vtog" aria-expanded={tasksOpen} onclick={() => (tasksOpen = !tasksOpen)}><span class="ic"><span class="ms" aria-hidden="true">checklist</span></span>{t.deskTasks}{#if ip.total}<small>{ip.total}</small>{/if}<span class="rt">{t.deskFromRegistry}</span><span class="ms tg" aria-hidden="true">{tasksOpen ? 'expand_less' : 'expand_more'}</span></button>
+  {#if tasksOpen}<div class="vlist">
     {#each lines.slice(0, MAX) as l, i (i)}
       <button class="vrow" onclick={onLavori}>
         <span class="ic"><span class="ms" aria-hidden="true">event_list</span></span>
@@ -29,7 +31,7 @@
       </button>
     {/each}
     <button class="vrow" onclick={onLavori}><span class="ic"></span><span class="tx"><b>{t.deskAllTasks}</b></span>{#if later}<span class="mono">{t.deskLater(later)}</span>{/if}<span class="ms" aria-hidden="true" style="color:var(--tx3)">chevron_right</span></button>
-  </div>
+  </div>{/if}
 {:else}
   <div class="vsec"><span class="ic"><span class="ms" aria-hidden="true">task_alt</span></span>{t.deskDoneToday}{#if dn.length}<small>{dn.length}</small>{/if}</div>
   <div class="vlist">
@@ -46,3 +48,9 @@
     {/if}
   </div>
 {/if}
+
+<style>
+  /* «Compiti in corso» chiuso: il titolo è il tasto che apre la lista (app-sessioni-evidenti-06-11, J2). */
+  .vtog { width: 100%; text-align: left; cursor: pointer; }
+  .vtog .tg { margin-left: 8px; color: var(--tx3); font-size: 20px; }
+</style>

@@ -10,7 +10,8 @@
   // apre la sua pagina come i tre box della home (stessi data-testid). Si colora solo chi ti aspetta; i rossi restano rossi;
   // la quota delle 5 ore è neutra e diventa ambra da 75 % e rossa da 90 %, con la tacca di quanto è passato della finestra.
   type Kind = 'you' | 'work' | 'out' | 'tools'
-  let { kind, h, st, now, sub = null, onOpen = () => {} }: { kind: Kind; h: Head; st: State; now: number; sub?: string | null; onOpen?: () => void } = $props()
+  // `open`: le sessioni aperte; con lui la testa di «In corso» diventa quella delle Sessioni (app-sessioni-evidenti-06-11, J2).
+  let { kind, h, st, now, sub = null, open = null, onOpen = () => {} }: { kind: Kind; h: Head; st: State; now: number; sub?: string | null; open?: number | null; onOpen?: () => void } = $props()
   // quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana.
   const rings = $derived(shown(Object.entries(st.quota)).map(([name, r]) => [name, r, quotaBar(r.h5, r.w7, r.reset_h5, r.reset_w7, now, r.stale)] as const).filter(([, , b]) => b))
   // In testa la quota più alta fra gli account aggiornati: è quella che ferma il lavoro.
@@ -24,16 +25,16 @@
 
 <button class="chead" data-testid={testid[kind]} onclick={onOpen}>
   {#if kind === 'you'}<b class="n" class:wait={h.waiting > 0} data-counter="you">{h.waiting}</b>
-  {:else if kind === 'work'}<b class="n">{h.busy}</b>
+  {:else if kind === 'work'}<b class="n">{open ?? h.busy}</b>
   {:else if kind === 'out'}<b class="n">{h.outcomes ?? '–'}</b>
   {:else}<b class="n" style:color={top && topPct >= 75 ? tone(topPct) : null}>{top ? `${topPct}%` : '–'}</b>{/if}
   <span class="tt">
-    <span class="t">{title[kind]}</span>
+    <span class="t">{kind === 'work' && open != null ? t.deskSessionsTitle : title[kind]}</span>
     <span class="s">
       {#if kind === 'you'}{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}
       {:else if kind === 'out'}{t.deskOutSub}{#if h.red}, <em>{t.kpi7Red(h.red)}</em>{/if}
       {:else if kind === 'tools'}{#if top?.[2]?.week}{paceText(top[2].delta, top[2].day) ?? t.deskToolsWeek}{:else}{t.deskToolsSub(top ? resetLabel(top[1].reset_h5, now) : null)}{/if}
-      {:else}{t.kpi7Busy}{/if}
+      {:else if open != null}{t.deskSessionsSub(open, h.busy)}{:else}{t.kpi7Busy}{/if}
     </span>
     {#if kind === 'tools'}
       {#each rings as [name, r, b] (name)}

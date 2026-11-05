@@ -1063,6 +1063,7 @@
         <!-- La quota 5h sta una volta sola, nel tabellone; qui il contesto e l'ora dell'ultimo rosso di oggi. -->
         {#if s.context != null && (group === 'waiting' || group === 'working')}<span class="mono">{t.ctx(s.context)}</span>{/if}
         {#if group !== 'waiting' && lastRed.get(s.name)}<span class="redtag"><StateGlyph kind="red" size={14} />{hhmm(lastRed.get(s.name)!)}</span>{/if}
+        {#if part === 'work'}<button class="apri" onclick={(e) => { e.stopPropagation(); onPick(s.name) }}>{t.deskOpen}</button>{/if}
         <button class="chev" aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); expanded = open ? null : s.name }}>
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
@@ -1345,6 +1346,9 @@
   .stale { color: var(--wait); }
   .chev { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .chev:hover { background: var(--surface); }
+  /* «Apri» nella colonna delle sessioni del cruscotto (app-sessioni-evidenti-06-11, J2). */
+  .apri { flex: none; padding: 5px 14px; border-radius: 999px; background: var(--s3); color: var(--tx); font: 600 13.5px var(--display); }
+  .apri:hover { filter: brightness(1.15); }
   .goal { font-size: 12.5px; color: var(--b-label); }
   .said, .doing { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px; }
   .said small, .doing small { font-size: 11px; color: var(--b-label); }
