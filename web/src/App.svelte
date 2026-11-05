@@ -25,7 +25,7 @@
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack, tick } from 'svelte'
   import { morphStart } from './lib/motion'
-  import { lift, settle as settleCard } from './lib/cardFx'
+  import { flatten, lift, settle as settleCard } from './lib/cardFx'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
   import { blankState, decodeChanges, decodeDiff, transcriptArg, withAfterPage, withFirstPage, withTail } from './lib/contract'
@@ -921,6 +921,7 @@
     void (vt?.finished ?? Promise.resolve()).catch(() => {}).finally(end)
     // Contati da quando il volo parte: su una macchina lenta la fotografia della pagina dura a lungo, e contati dal tocco
     // finivano a metà volo, montando la chat della colonna in pieno movimento.
+    void vt?.ready.then(flatten, () => {})
     void (vt?.ready ?? Promise.resolve()).catch(() => {}).finally(() => setTimeout(end, 1200))
   }
   // La colonna che sta arrivando in volo: fino all'arrivo al posto della chat lo scheletro.

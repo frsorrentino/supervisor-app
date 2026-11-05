@@ -350,6 +350,10 @@ html.fx-close::view-transition-group(*.fx-col) { animation-duration: 420ms; }
 ::view-transition-old(neck-bottom) { transform-origin: bottom; animation: fx-neck 160ms var(--spring-fx) both; }
 /* La scheda che vola e i capi del collo passano sopra a tutto, anche al titolo Sessioni (Franz 05/11 10:23: «finisce sotto il
    titolo Sessioni»): i gruppi si disegnano nell'ordine della pagina, e la scheda in alto veniva prima del titolo. */
+/* Il volo solo con transform (flatten in cardFx.ts, Franz 05/11: «va bene testo stirato»): il gruppo si scala dall'angolo in
+   alto a sinistra e le fotografie lo riempiono. */
+html:is(.fx-open, .fx-close)::view-transition-group(*.home-reflow) { transform-origin: 0 0; }
+html:is(.fx-open, .fx-close)::view-transition-old(*.home-reflow), html:is(.fx-open, .fx-close)::view-transition-new(*.home-reflow) { object-fit: fill; }
 ::view-transition-group(*.fx-focus) { z-index: 3; }
 ::view-transition-group(neck-top), ::view-transition-group(neck-bottom) { z-index: 4; }
 @keyframes fx-neck { to { transform: scaleY(0); } }

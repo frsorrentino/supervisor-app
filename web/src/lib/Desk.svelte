@@ -145,6 +145,9 @@
   .col { position: absolute; top: 10px; bottom: 10px; border-radius: 18px; border: 1px solid rgb(255 255 255 / .12); overflow: hidden; background: var(--bg);
     transition: left .32s cubic-bezier(.2, .8, .2, 1), width .32s cubic-bezier(.2, .8, .2, 1), scale .2s, box-shadow .2s; animation: appear .22s ease-out; }
   .resizing .col, .resizing .tabslot { transition: none; }
+  /* Durante il volo scheda↔colonna (html.fx-open/fx-close) la colonna è già alla sua misura quando la transizione la fotografa:
+     con la sua transizione di larghezza la fotografia era una striscia di 2 px e la scheda ci volava dentro (app-volo-web-taratura-05-11). */
+  :global(html:is(.fx-open, .fx-close)) .col, :global(html:is(.fx-open, .fx-close)) .tabslot { transition: none; animation: none; }
   .tabslot { position: absolute; top: 6px; height: calc(env(titlebar-area-height, 40px) - 5px); z-index: 3; display: flex;
     transition: left .32s cubic-bezier(.2, .8, .2, 1), max-width .32s cubic-bezier(.2, .8, .2, 1); }
   .tabslot.dragging { transition: none; z-index: 4; }

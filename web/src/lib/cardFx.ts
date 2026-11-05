@@ -86,6 +86,34 @@ export function lift(card: HTMLElement, neighbor: HTMLElement | null, dir: 1 | -
   })
 }
 
+/**
+ * Il volo solo con transform (Franz 05/11 11:2x: «va bene testo stirato», app-volo-web-taratura-05-11). Il browser anima
+ * larghezza e altezza dei gruppi della View Transition sul thread principale, e sul Chromebook il volo andava a scatti: qui ogni
+ * gruppo resta alla misura d'arrivo e parte scalato alla misura di partenza, con lo stesso tempo e la stessa curva; le
+ * fotografie dentro riempiono il gruppo (v3.css, `html.fx-open`/`html.fx-close`), quindi durante il volo il testo si stira.
+ * Da chiamare a `vt.ready`.
+ */
+export function flatten(): void {
+  const root = document.documentElement
+  for (const a of document.getAnimations()) {
+    const e = a.effect as KeyframeEffect | null
+    const pe = e?.pseudoElement
+    if (!e || !pe || !pe.startsWith('::view-transition-group(') || pe.includes('neck-') || pe.includes('master-morph')) continue
+    const [k0] = e.getKeyframes()
+    if (!k0 || k0.width == null || k0.height == null) continue
+    const timing = e.getTiming()
+    a.cancel()
+    const cs = getComputedStyle(root, pe)
+    const w = parseFloat(cs.width), h = parseFloat(cs.height), w0 = parseFloat(String(k0.width)), h0 = parseFloat(String(k0.height))
+    if (!(w > 0 && h > 0 && w0 > 0 && h0 > 0)) continue
+    const to = cs.transform === 'none' ? 'matrix(1, 0, 0, 1, 0, 0)' : cs.transform
+    root.animate(
+      [{ transform: `${k0.transform ?? to} scale(${w0 / w}, ${h0 / h})`, easing: (k0.easing as string | undefined) ?? 'linear' }, { transform: to }],
+      { ...timing, pseudoElement: pe } as KeyframeAnimationOptions,
+    )
+  }
+}
+
 /** Chiudendo, la scheda tornata riassorbe il collo: si allunga di poco verso il basso e si assesta. */
 export function settle(card: HTMLElement): void {
   card.animate([{ transform: 'scaleY(1.04)', transformOrigin: 'top' }, { transform: 'scaleY(.985)', transformOrigin: 'top', offset: 0.55 }, { transform: 'none', transformOrigin: 'top' }], { duration: SETTLE_MS, easing: 'ease-out' })
