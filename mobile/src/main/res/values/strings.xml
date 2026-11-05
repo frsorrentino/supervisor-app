@@ -242,6 +242,9 @@
     <string name="feedback_photo">Allega una foto della pagina</string>
     <string name="feedback_photo_sub">La pagina dove eri, prima di aprire Feedback</string>
     <string name="feedback_photo_attached">Foto della pagina allegata</string>
+    <string name="feedback_photo_pick">Scegli un\'immagine dalla galleria</string>
+    <string name="feedback_photo_picked">Allega l\'immagine scelta</string>
+    <string name="feedback_photo_picked_sub">Al posto della foto della pagina</string>
     <string name="feedback_prepare">Prepara la bozza</string>
     <string name="feedback_draft">Bozza anonima</string>
     <string name="feedback_draft_sub">Email, cartelle personali, chiavi e indirizzi sono già tolti. È questo che parte.</string>
@@ -254,8 +257,8 @@
     <string name="feedback_session">sessione %1$s</string>
     <string name="feedback_no_answer">Il PC non ha risposto in tempo.</string>
     <string name="feedback_send_fail">Non inviato: %1$s</string>
-    <string name="feedback_github_open">Apri su GitHub</string>
-    <string name="feedback_github_hint">La segnalazione è già scritta: aprila, allega la foto se vuoi e mandala dal tuo GitHub.</string>
+    <string name="feedback_github_hint">La segnalazione è già scritta: si apre su GitHub, allega la foto se vuoi e mandala.</string>
+    <string name="feedback_sent">Inviato, grazie</string>
     <string name="feedback_anon_sent">Inviato anonimo, senza la foto. Grazie</string>
     <string name="feedback_kept">Resta fra le osservazioni del PC: non è partito niente.</string>
     <string name="follow_sub">Una notifica quando finisce un turno</string>

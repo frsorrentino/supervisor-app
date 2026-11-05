@@ -69,27 +69,40 @@ fun FeedbackSheet(
     var text by rememberSaveable { mutableStateOf("") }
     var photo by rememberSaveable { mutableStateOf(false) }
     var draft by remember { mutableStateOf<Feedback.Draft?>(null) }
-    val image = remember(shot) { shot?.asImageBitmap() }
+    // La foto si sceglie anche dalla galleria (Franz 05/11 08:37): così si manda anche un errore di questo foglio.
+    var picked by remember { mutableStateOf<Bitmap?>(null) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val pick = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { u ->
+        u?.let { picked = galleryBitmap(ctx, it); if (picked != null) photo = true }
+    }
+    val bitmap = picked ?: shot
+    val image = remember(bitmap) { bitmap?.asImageBitmap() }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val uri = androidx.compose.ui.platform.LocalUriHandler.current
     var sending by remember { mutableStateOf(false) }
     var sentAs by remember { mutableStateOf<String?>(null) }
-    var github by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<String?>(null) }
     val failText = stringResource(R.string.feedback_send_fail, "%s")
-    val anonSent = stringResource(R.string.feedback_anon_sent); val githubHint = stringResource(R.string.feedback_github_hint); val kept = stringResource(R.string.feedback_kept)
+    val anonSent = stringResource(R.string.feedback_anon_sent); val githubHint = stringResource(R.string.feedback_github_hint); val kept = stringResource(R.string.feedback_kept); val sentText = stringResource(R.string.feedback_sent)
     fun go(d: Feedback.Draft, choice: String) {
         val s = send ?: return
         sending = true
         scope.launch {
             // La foto in JPEG, solo se accesa.
-            val jpg = if (d.photo) shot?.let { b -> java.io.ByteArrayOutputStream().also { o -> b.compress(Bitmap.CompressFormat.JPEG, 80, o) }.toByteArray() } else null
+            val jpg = if (d.photo) bitmap?.let { b -> java.io.ByteArrayOutputStream().also { o -> b.compress(Bitmap.CompressFormat.JPEG, 80, o) }.toByteArray() } else null
             val r = s(d, tech, jpg, choice)
             sending = false
             r.error?.let { e -> result = failText.replace("%s", e); return@launch }
             text = ""
             when (choice) {
-                "github" -> { sentAs = choice; github = r.url; result = githubHint }
+                // Dopo la spunta la segnalazione già scritta si apre da sé su GitHub e il foglio si chiude, come l'anonimo
+                // (app-feedback-dopo-invio-05-11, Franz 05/11 08:37).
+                "github" -> {
+                    sentAs = choice; result = if (r.url != null) githubHint else sentText
+                    kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.CHECK_MS + 300)
+                    r.url?.let { u -> runCatching { uri.openUri(u) } }
+                    onDismiss()
+                }
                 "anonymous" -> { sentAs = choice; result = anonSent; kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.CHECK_MS + 300); onDismiss() }
                 else -> { result = kept; kotlinx.coroutines.delay(900); onDismiss() }
             }
@@ -122,21 +135,25 @@ fun FeedbackSheet(
                     Spacer(Modifier.heightIn(min = 6.dp))
                     for (l in listOf("app ${tech.version} (${tech.commit})", tech.device, tech.screen, tech.lang)) Text(l, style = V3.Meter.copy(color = V3.Tx2))
                 }
-                // Dove la pagina non si è potuta fotografare la riga non c'è.
-                if (image != null) Column(Modifier.fillMaxWidth().background(V3.S2, V3.Shape)) {
-                    Row(Modifier.fillMaxWidth().clickable(role = Role.Switch) { photo = !photo }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                // La foto della pagina, o un'immagine scelta dalla galleria; senza nessuna delle due, solo la scelta.
+                Column(Modifier.fillMaxWidth().background(V3.S2, V3.Shape)) {
+                    if (image != null) Row(Modifier.fillMaxWidth().clickable(role = Role.Switch) { photo = !photo }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.feedback_photo), style = V3.Name.copy(color = V3.Tx))
-                            Text(stringResource(R.string.feedback_photo_sub), style = V3.Small.copy(color = V3.Tx2))
+                            Text(stringResource(if (picked != null) R.string.feedback_photo_picked else R.string.feedback_photo), style = V3.Name.copy(color = V3.Tx))
+                            Text(stringResource(if (picked != null) R.string.feedback_photo_picked_sub else R.string.feedback_photo_sub), style = V3.Small.copy(color = V3.Tx2))
                         }
                         Switch(photo, { photo = it })
                     }
-                    if (photo) Image(image, stringResource(R.string.feedback_photo_attached), Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 14.dp).heightIn(max = 360.dp), contentScale = ContentScale.Fit)
+                    TextButton(
+                        { pick.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        Modifier.padding(horizontal = 4.dp),
+                    ) { Text(stringResource(R.string.feedback_photo_pick), color = V3.Tx) }
+                    if (photo && image != null) Image(image, stringResource(R.string.feedback_photo_attached), Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 14.dp).heightIn(max = 360.dp), contentScale = ContentScale.Fit)
                 }
                 Button(
                     { draft = Feedback.draft(kind, text, tech, photo && image != null, labels) }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = text.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct),
-                ) { Text(stringResource(R.string.feedback_prepare), style = V3.Name) }
+                ) { Text(stringResource(R.string.feedback_prepare), style = V3.Name.copy(color = androidx.compose.ui.graphics.Color.Unspecified)) }
             } else {
                 Column(Modifier.fillMaxWidth().background(V3.S2, V3.Shape).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(stringResource(R.string.feedback_draft), style = V3.Name.copy(color = V3.Tx))
@@ -151,18 +168,22 @@ fun FeedbackSheet(
                 Button(
                     { go(d, "github") }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = send != null && !sending && sentAs == null,
                     colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct, disabledContainerColor = if (sentAs == "github") CheckFill else V3.S3),
-                ) { CheckLabel(sentAs == "github") { Text(stringResource(R.string.feedback_send_github), style = V3.Name) } }
-                github?.let { u ->
-                    Button({ uri.openUri(u); onDismiss() }, Modifier.fillMaxWidth().heightIn(min = 48.dp), colors = ButtonDefaults.buttonColors(containerColor = V3.Act, contentColor = V3.OnAct)) {
-                        Text(stringResource(R.string.feedback_github_open), style = V3.Name)
-                    }
-                }
+                ) { CheckLabel(sentAs == "github") { Text(stringResource(R.string.feedback_send_github), style = V3.Name.copy(color = androidx.compose.ui.graphics.Color.Unspecified)) } }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     TextButton({ go(d, "anonymous") }, enabled = send != null && !sending && sentAs == null) { CheckLabel(sentAs == "anonymous") { Text(stringResource(R.string.feedback_send_anon)) } }
-                    TextButton({ draft = null }, enabled = sentAs == null) { Text(stringResource(R.string.feedback_edit), color = V3.Tx) }
+                    TextButton({ draft = null }, enabled = sentAs == null && !sending) { Text(stringResource(R.string.feedback_edit), color = V3.Tx) }
                     TextButton({ if (send != null && sentAs == null) go(d, "later") else onDismiss() }, enabled = !sending) { Text(stringResource(R.string.feedback_later), color = V3.Tx) }
                 }
             }
         }
     }
 }
+
+/** L'immagine scelta, ridotta a 1600 px sul lato lungo: la segnalazione resta leggera. Null se non si legge. */
+private fun galleryBitmap(ctx: android.content.Context, uri: android.net.Uri): Bitmap? = runCatching {
+    android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(ctx.contentResolver, uri)) { dec, info, _ ->
+        val long = maxOf(info.size.width, info.size.height)
+        if (long > 1600) dec.setTargetSize(info.size.width * 1600 / long, info.size.height * 1600 / long)
+        dec.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+    }
+}.getOrNull()

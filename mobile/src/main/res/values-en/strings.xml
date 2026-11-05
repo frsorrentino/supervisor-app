@@ -239,6 +239,9 @@
     <string name="feedback_photo">Attach a picture of the page</string>
     <string name="feedback_photo_sub">The page you were on, before opening Feedback</string>
     <string name="feedback_photo_attached">Picture of the page attached</string>
+    <string name="feedback_photo_pick">Choose an image from the gallery</string>
+    <string name="feedback_photo_picked">Attach the chosen image</string>
+    <string name="feedback_photo_picked_sub">Instead of the picture of the page</string>
     <string name="feedback_prepare">Prepare the draft</string>
     <string name="feedback_draft">Anonymous draft</string>
     <string name="feedback_draft_sub">Emails, personal folders, keys and addresses are already removed. This is what goes out.</string>
@@ -251,8 +254,8 @@
     <string name="feedback_session">session %1$s</string>
     <string name="feedback_no_answer">The PC did not answer in time.</string>
     <string name="feedback_send_fail">Not sent: %1$s</string>
-    <string name="feedback_github_open">Open on GitHub</string>
-    <string name="feedback_github_hint">The report is already written: open it, attach the photo if you want and send it from your GitHub.</string>
+    <string name="feedback_github_hint">The report is already written: it opens on GitHub, attach the photo if you want and send it.</string>
+    <string name="feedback_sent">Sent, thank you</string>
     <string name="feedback_anon_sent">Sent anonymously, without the photo. Thank you</string>
     <string name="feedback_kept">It stays among the PC observations: nothing was sent.</string>
     <string name="follow_sub">A notification when a turn ends</string>

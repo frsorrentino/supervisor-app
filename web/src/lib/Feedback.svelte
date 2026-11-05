@@ -29,9 +29,28 @@
   let github = $state<string | null>(null)
   let result = $state<string | null>(null)
   $effect(() => { const v = text; try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY) } catch { /* solo per questa visita */ } })
+  // Un'immagine scelta liberamente (Franz 05/11 08:37), anche una schermata di questo foglio: ridotta a 1600 px, in JPEG.
+  let picked = $state(false)
+  async function pickImage(e: Event) {
+    const f = (e.currentTarget as HTMLInputElement).files?.[0]
+    ;(e.currentTarget as HTMLInputElement).value = ''
+    if (!f) return
+    const url = await shrink(f).catch(() => null)
+    photoFail = !url
+    if (url) { photo = url; picked = true }
+  }
+  async function shrink(f: Blob): Promise<string> {
+    const img = await createImageBitmap(f)
+    const k = Math.min(1, 1600 / Math.max(img.width, img.height))
+    const c = document.createElement('canvas')
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k)
+    c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+    img.close()
+    return c.toDataURL('image/jpeg', 0.85)
+  }
   const techLines = $derived([`app ${tech.version} (${tech.commit})`, tech.device, tech.screen, tech.lang])
   async function togglePhoto() {
-    if (photo) { photo = null; return }
+    if (photo) { photo = null; picked = false; return }
     photoFail = false; grabbing = true
     photo = await (onGrab?.() ?? Promise.resolve(null)).catch(() => null)
     grabbing = false
@@ -48,8 +67,15 @@
     if (typeof r === 'string') { result = t.feedbackSendFail(r); return }
     text = ''; sentAs = as
     // Su GitHub la persona apre l'issue e la manda lei: il foglio resta col link.
-    if (as === 'github' && r.url) { github = r.url; result = t.feedbackGithubHint; return }
-    result = t.feedbackAnonSent
+    // Su GitHub la segnalazione già scritta si apre da sé, subito, finché il browser lo permette dopo il tocco; dopo la spunta
+    // il foglio si chiude come con l'anonimo (app-feedback-dopo-invio-05-11, Franz 05/11 08:37). Se il browser blocca la
+    // finestra restano il link e «Chiudi».
+    if (as === 'github' && r.url) {
+      const w = window.open(r.url, '_blank')
+      if (!w) { github = r.url; result = t.feedbackGithubHint; return }
+      w.opener = null
+    }
+    result = as === 'anon' ? t.feedbackAnonSent : as === 'github' && r.url ? t.feedbackGithubOpened : t.feedbackSent
     setTimeout(onDone, confirmMs('ok') + 300)
   }
   // «Non ora»: con il relay la bozza resta fra le osservazioni del PC.
@@ -73,14 +99,15 @@
       <div class="row"><span class="tx"><b>{t.feedbackTech}</b><small>{t.feedbackTechSub}</small></span></div>
       <ul>{#each techLines as l}<li class="mono">{l}</li>{/each}</ul>
     </div>
-    <!-- Dove il browser non sa riprendere la scheda (telefono) la foto non c'è. -->
-    {#if onGrab}<div class="card">
-      <button class="row" role="switch" aria-checked={!!photo} disabled={grabbing} onclick={togglePhoto}>
-        <span class="tx"><b>{t.feedbackPhoto}</b><small class:warn={photoFail}>{photoFail ? t.feedbackPhotoFail : t.feedbackPhotoSub}</small></span>
+    <!-- La foto della pagina dove il browser sa riprendere la scheda (non al telefono), e sempre un'immagine scelta. -->
+    <div class="card">
+      {#if onGrab || picked}<button class="row" role="switch" aria-checked={!!photo} disabled={grabbing} onclick={togglePhoto}>
+        <span class="tx"><b>{picked ? t.feedbackPhotoPicked : t.feedbackPhoto}</b><small class:warn={photoFail}>{photoFail ? t.feedbackPhotoFail : picked ? t.feedbackPhotoPickedSub : t.feedbackPhotoSub}</small></span>
         <span class="sw" aria-hidden="true"><span></span></span>
-      </button>
+      </button>{/if}
+      <label class="tx2 pick">{t.feedbackPhotoPick}<input type="file" accept="image/*" onchange={pickImage} /></label>
       {#if photo}<img class="shot" src={photo} alt={t.feedbackPhotoAttached} />{/if}
-    </div>{/if}
+    </div>
     <button class="fill" disabled={!text.trim()} onclick={prepare}>{t.feedbackPrepare}</button>
   {:else}
     <div class="card">
@@ -92,11 +119,13 @@
     {#if result}<p class="note">{result}</p>{:else if !onSend}<p class="note">{t.feedbackNotYet}</p>{/if}
     {#if github}<a class="fill gh" href={github} target="_blank" rel="noopener" onclick={() => setTimeout(onDone, 300)}>{t.feedbackGithubOpen}</a>{/if}
     <button class="fill ck" class:done={sentAs === 'github'} disabled={!onSend || sending || !!sentAs} onclick={() => send('github')}><span class="lbl">{t.feedbackSendGithub}</span>{#if sentAs === 'github'}<Check />{/if}</button>
-    <div class="btns">
+    <!-- Mandata su GitHub resta il link da aprire: e «Chiudi», per uscire anche senza aprirlo (Franz 05/11 08:37). -->
+    {#if github}<div class="btns"><button class="tx2" onclick={onDone}>{t.closeWord}</button></div>
+    {:else}<div class="btns">
       <button class="tx2 ck" class:done={sentAs === 'anon'} disabled={!onSend || sending || !!sentAs} onclick={() => send('anon')}><span class="lbl">{t.feedbackSendAnon}</span>{#if sentAs === 'anon'}<Check />{/if}</button>
-      <button class="tx2" onclick={() => (draft = null)}>{t.feedbackEdit}</button>
+      <button class="tx2" disabled={!!sentAs} onclick={() => (draft = null)}>{t.feedbackEdit}</button>
       <button class="tx2" disabled={sending || !!sentAs} onclick={later}>{t.feedbackLater}</button>
-    </div>
+    </div>{/if}
   {/if}
 </div>
 
@@ -128,5 +157,8 @@
   .btns { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; }
   .tx2 { padding: 12px 14px; font-size: 15px; color: var(--tx); border-radius: 22px; }
   .tx2:hover:not(:disabled) { background: var(--s2); }
+  .pick { display: inline-block; margin: 2px 4px 6px; cursor: pointer; }
+  .pick input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .pick:focus-within { outline: 2px solid var(--tx2); }
   @media (prefers-reduced-motion: reduce) { .sw, .sw span { transition: none; } }
 </style>

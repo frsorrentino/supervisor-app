@@ -1084,11 +1084,11 @@
   let fbDraft: { key: string; hash: string } | null = null
   async function fbSend(d: Draft, photo: string | null, as: 'github' | 'anon' | 'later'): Promise<{ url: string | null } | string> {
     if (!tr) return t.noAnswer
-    const key = JSON.stringify([d.kind, d.body, !!photo])
+    const key = JSON.stringify([d.kind, d.body, photo?.length ?? 0, photo?.slice(-64)])
     if (fbDraft?.key !== key) {
       let share: string | undefined
       const b = photo ? bytesOf(photo) : null
-      if (b) { share = crypto.randomUUID(); await tr.share(share, b.mime, b.data, 'feedback.png') }
+      if (b) { share = crypto.randomUUID(); await tr.share(share, b.mime, b.data, b.mime === 'image/jpeg' ? 'feedback.jpg' : 'feedback.png') }
       const r = await run(newCmd('feedback_app', null, null, d.text.slice(0, 4000), undefined, { kind: relayKind(d.kind), tech: relayTech(fbTech), share }))
       const dr = r?.ok ? parseDraft(r.text) : null
       if (!dr) return r?.text || t.noAnswer
