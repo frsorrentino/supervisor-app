@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { ResultGroup, ResultItem, ResultsPage, State } from './contract'
-import { line, note, ofSession, older, pos, seenByPath, splitSeen, thumb } from './guardare'
+import { lastKey, line, note, ofSession, older, pos, seenByPath, shown, splitSeen, thumb } from './guardare'
 
 // Gemello di GuardareTest.kt (contratto 1.106, app-da-guardare-02-11), con le fixture vere.
 const fixture = (n: string) => JSON.parse(readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8'))
@@ -36,6 +36,15 @@ describe('guardare', () => {
     expect(ofSession(page, 'orbit-docs').latest?.version).toBe(3)
     expect(ofSession(page, 'atlas-shop').groups).toEqual([])
     expect(ofSession(null, 'x').latest).toBeNull()
+  })
+  it('la X chiude la riga fino al risultato successivo (app-risultati-x-05-11)', () => {
+    const l = ofSession(page, 'orbit-docs')
+    const key = lastKey(l)!
+    expect(shown(l, null)).toBe(true); expect(shown(l, key)).toBe(false)
+    const g0 = l.groups[0]
+    const next = { groups: [...l.groups, { ...g0, at: g0.at + 60, items: g0.items.map(i => ({ ...i, id: i.id + '-n', at: i.at + 60 })) }] }
+    expect(shown(next, key)).toBe(true)
+    expect(shown(ofSession(page, 'atlas-shop'), null)).toBe(false)
   })
   it('app-risultati-visti-03-11: in cima alla chat solo un lavoro non visto, altrimenti nessuna anteprima', () => {
     const seen = { ...page!, groups: page!.groups.map(g => ({ ...g, unseen: false })) }

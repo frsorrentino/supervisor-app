@@ -216,6 +216,9 @@ class MainActivity : ComponentActivity() {
         val results by app.repo.resultsById.collectAsStateWithLifecycle()
         // Modello ed effort scelti dal telefono, per sessione: «nome/model», «nome/effort» (`Tune`).
         val tunePicks = remember { androidx.compose.runtime.mutableStateMapOf<String, Tune.Pick>() }
+        // La riga «Risultati» chiusa con la X, per sessione: il risultato più recente di allora (Guardare.lastKey).
+        val resultsPrefs = remember { getSharedPreferences("results_closed", MODE_PRIVATE) }
+        val resultsClosed = remember { androidx.compose.runtime.mutableStateMapOf<String, String>().apply { resultsPrefs.all.forEach { (k, v) -> (v as? String)?.let { put(k, it) } } } }
         var refreshing by remember { mutableStateOf(false) }
         val scope = rememberCoroutineScope()
         val samples by app.repo.quotaSamples.collectAsStateWithLifecycle()
@@ -1696,7 +1699,11 @@ class MainActivity : ComponentActivity() {
                             effortNext = tunePicks[session.name + "/effort"].let { p -> Tune.nextTurn(session, p, p?.let { results[it.cmd] }, now) },
                             home = home, grid = home != null && homeOpen, header = header, dock = dock, bar = bar, homeOpen = homeOpen, appBar = appBar, halfStops = home != null && wide, half = masterHalf,
                             headerLead = lead, draftState = drafts.state(session),
-                            results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> l.groups.isNotEmpty() }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l) { watchSession = session.name; watchOpen = true } } },
+                            results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> it.pixelbox.cmwatch.rules.Guardare.shown(l, resultsClosed[session.name]) }?.let { l -> {
+                                it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l, onClose = {
+                                    it.pixelbox.cmwatch.rules.Guardare.lastKey(l)?.let { k -> resultsClosed[session.name] = k; resultsPrefs.edit().putString(session.name, k).apply() }
+                                }) { watchSession = session.name; watchOpen = true }
+                            } },
                             // Con l'ispettore obiettivo e bassa priorità stanno lì: in testata non si ripetono (revisione della master, 04/10).
                             notesInHeader = lead == null || !inspectorOn,
                             canAttachFiles = state?.share?.any == true,

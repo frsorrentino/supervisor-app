@@ -35,6 +35,15 @@ object Guardare {
     /** Il file da aprire: per un mockup l'immagine se c'è (si guarda), altrimenti il file stesso. */
     fun main(i: ResultItem): TranscriptFile = TranscriptFile(i.path, i.mime, i.size)
 
+    /**
+     * La X della riga «Risultati» (app-risultati-x-05-11, Franz 05/11 23:59: «aggiungere la x per chiuderla, ma che comunque
+     * ritorni al risultato successivo»): chiusa, si ricorda il risultato più recente della sessione; la riga torna quando ne
+     * arriva uno diverso. Null senza risultati.
+     */
+    fun lastKey(line: SessionLine): String? = line.groups.flatMap { g -> g.items.map { it.at to it.id } + (g.at to g.title) }.maxByOrNull { it.first }?.let { (at, id) -> "$at/$id" }
+
+    fun shown(line: SessionLine, closed: String?): Boolean = line.groups.isNotEmpty() && lastKey(line) != closed
+
     /** Nella sessione, la riga «Risultati»: i suoi lavori dalla pagina, il numero e l'ultimo («Film, versione 8»). */
     data class SessionLine(val groups: List<ResultGroup>, val latest: ResultItem?)
     fun ofSession(page: ResultsPage?, session: String): SessionLine {

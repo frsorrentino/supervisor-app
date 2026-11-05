@@ -58,6 +58,17 @@ class GuardareTest {
         assertNull(Guardare.ofSession(null, "x").latest)
     }
 
+    // app-risultati-x-05-11: chiusa con la X resta chiusa finché non arriva un risultato più recente.
+    @Test fun theClosedRowComesBackWithTheNextResult() {
+        val l = Guardare.ofSession(page, "orbit-docs")
+        val key = Guardare.lastKey(l)!!
+        assertTrue(Guardare.shown(l, null)); assertFalse(Guardare.shown(l, key))
+        val g0 = l.groups.first()
+        val next = Guardare.SessionLine(l.groups + g0.copy(at = g0.at + 60, items = g0.items.map { it.copy(id = it.id + "-n", at = it.at + 60) }), l.latest)
+        assertTrue(Guardare.shown(next, key))
+        assertFalse(Guardare.shown(Guardare.ofSession(page, "atlas-shop"), null))
+    }
+
     @Test fun onlyAnUnseenWorkIsThePreviewOnTopOfTheChat() {
         // app-risultati-visti-03-11: tutto visto, nessuna anteprima; con un visto più recente, l'anteprima è il non visto.
         val seen = page.copy(groups = page.groups.map { it.copy(unseen = false) })

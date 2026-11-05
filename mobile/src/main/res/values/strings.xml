@@ -1770,6 +1770,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="watch_your_note">Tua nota: «%1$s»</string>
     <string name="watch_seen_word">vista</string>
     <string name="watch_results">Risultati</string>
+    <string name="watch_results_close">Chiudi i risultati fino al prossimo</string>
     <string name="watch_open_file">Apri il file</string>
     <string name="watch_replaced">Il file sul PC è stato riscritto: questa versione non c\'è più.</string>
     <string name="watch_empty">Niente di nuovo da guardare.</string>

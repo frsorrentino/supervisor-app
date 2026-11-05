@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -215,7 +216,7 @@ fun GuardareScreen(page: ResultsPage?, failed: Boolean, session: String?, a: Gua
 
 /** Nella chat, in cima: «Risultati N» e l'ultimo consegnato; il tocco apre la pagina della sessione. */
 @Composable
-fun ResultsChatRow(line: Guardare.SessionLine, onOpen: () -> Unit) {
+fun ResultsChatRow(line: Guardare.SessionLine, onClose: (() -> Unit)? = null, onOpen: () -> Unit) {
     if (line.groups.isEmpty()) return
     val l = line.latest?.let { Guardare.line(it) }
     Row(
@@ -231,6 +232,12 @@ fun ResultsChatRow(line: Guardare.SessionLine, onOpen: () -> Unit) {
             if (l != null) Text(titleOf(l), style = V3.Small, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false))
         }
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx2)
+        // La X la chiude fino al risultato successivo (app-risultati-x-05-11).
+        onClose?.let { close ->
+            androidx.compose.material3.IconButton(onClick = close, modifier = Modifier.size(32.dp).testTag("chat-risultati-chiudi")) {
+                Icon(Icons.Rounded.Close, stringResource(R.string.watch_results_close), tint = V3.Tx2, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }
 

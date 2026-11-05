@@ -1734,6 +1734,7 @@ It starts at your last message to the master.</string>
     <string name="watch_your_note">Your note: «%1$s»</string>
     <string name="watch_seen_word">seen</string>
     <string name="watch_results">Results</string>
+    <string name="watch_results_close">Close the results until the next one</string>
     <string name="watch_open_file">Open the file</string>
     <string name="watch_replaced">The file on the PC was rewritten: this version is gone.</string>
     <string name="watch_empty">Nothing new to look at.</string>

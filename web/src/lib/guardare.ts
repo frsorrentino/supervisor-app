@@ -25,6 +25,14 @@ export function thumb(i: ResultItem): TranscriptFile | null {
 }
 
 /** Nella sessione, la riga «Risultati»: i suoi lavori e l'ultima versione consegnata. */
+/** La X della riga «Risultati» (Guardare.lastKey, app-risultati-x-05-11): il risultato più recente della sessione. */
+export function lastKey(l: { groups: ResultGroup[] }): string | null {
+  let best: [number, string] | null = null
+  for (const g of l.groups) for (const [at, id] of [...g.items.map(i => [i.at, i.id] as [number, string]), [g.at, g.title] as [number, string]]) if (!best || at > best[0]) best = [at, id]
+  return best ? `${best[0]}/${best[1]}` : null
+}
+export const shown = (l: { groups: ResultGroup[] }, closed: string | null | undefined) => l.groups.length > 0 && lastKey(l) !== (closed ?? null)
+
 export function ofSession(page: ResultsPage | null | undefined, session: string): { groups: ResultGroup[]; latest: ResultItem | null } {
   const groups = (page?.groups ?? []).filter(g => g.session === session)
   // Solo un lavoro non visto fa da anteprima (Franz 03/11 19:54: «anche se visto tutto è rimasto Icona di Progress Bars»).
