@@ -1521,7 +1521,11 @@
   .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }
   .topedge.on.hot { border: 2px solid var(--tx); }
   .topband { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 16px; padding: 8px 16px; }
-  .catrow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 6px; padding: 6px 12px 6px 0; border-radius: 14px; text-align: left; color: var(--tx); }
+  .catrow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; margin-top: 6px; padding: 4px 12px 4px 0; border-radius: 14px; text-align: left; color: var(--tx); }
+  /* Le categorie chiuse una sotto l'altra al passo delle righe del riquadro, 48 px (app-categorie-chiuse-fitte-05-11, Franz 05/11:
+     «un po' troppo rade»): niente margine e niente spazio della home fra due chiuse; resta lo stacco dal riquadro sopra. */
+  .hcat:has(> .catrow) + .hcat:has(> .catrow) { margin-top: -8px; }
+  .hcat:has(> .catrow) + .hcat > .catrow { margin-top: 0; }
   .catrow .ic { flex: none; width: 52px; display: grid; place-items: center; color: var(--tx2); }
   .catrow b { font: 700 18px/22px var(--display); white-space: nowrap; }
   /* Su una riga (app-riassunti-una-riga-03-11): prende lo spazio che avanza, le parti che non entrano cadono (OneLine). */

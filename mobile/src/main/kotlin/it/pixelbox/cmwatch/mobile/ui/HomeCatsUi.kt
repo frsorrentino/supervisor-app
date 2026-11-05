@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -162,20 +163,29 @@ internal fun TopEdge(dragging: Boolean, hot: Boolean, modifier: Modifier = Modif
     }
 }
 
+/** Lo spazio della lista della home fra due voci (`spacedBy` in SummaryList). */
+internal val CAT_LIST_GAP = 8.dp
+
 /**
  * Categoria chiusa: una riga con a destra il segnale; in ambra quando c'è qualcosa (Franz: «un segnale, non uno spostamento»).
  * `open`: aperta sul posto, la riga diventa la testata della card.
  */
 @Composable
-internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolean, modifier: Modifier = Modifier, onToggle: () -> Unit) {
+internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolean, modifier: Modifier = Modifier, tight: Boolean = false, onToggle: () -> Unit) {
     val shape = if (open) CatPeekTop else V3.Shape
-    var m = Modifier.fillMaxWidth().padding(top = 6.dp)
+    // Sotto un'altra categoria chiusa (`tight`) al passo delle righe del riquadro, 48 dp (app-categorie-chiuse-fitte-05-11, Franz
+    // 05/11: «un po' troppo rade»): niente margine e la riga sale sullo spazio della lista fra le due; resta lo stacco dal riquadro.
+    var m = if (tight) Modifier.fillMaxWidth().layout { me, c ->
+        val gap = CAT_LIST_GAP.roundToPx()
+        val p = me.measure(c)
+        layout(p.width, (p.height - gap).coerceAtLeast(0)) { p.place(0, -gap) }
+    } else Modifier.fillMaxWidth().padding(top = 6.dp)
     m = when {
         open -> m.background(V3.S2, shape)
         amber -> m.background(V3.Wait.copy(alpha = 0.14f), shape)
         else -> m
     }
-    Row(m.then(modifier).handCursor().clickable(onClick = onToggle).testTag("home-cat-$id").heightIn(min = 52.dp).padding(start = 0.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(m.then(modifier).handCursor().clickable(onClick = onToggle).testTag("home-cat-$id").heightIn(min = 48.dp).padding(start = 0.dp, end = 12.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) { Icon(catIcon(id), null, tint = V3.Tx2, modifier = Modifier.capAlign(V3.Section).size(22.dp)) }
         Spacer(Modifier.width(8.dp))
         // Nome e segnale sulla stessa riga; il segnale prende quello che avanza (app-riassunti-una-riga-03-11).
