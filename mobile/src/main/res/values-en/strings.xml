@@ -631,6 +631,7 @@
     <string name="tablet_in_column">in a column</string>
     <string name="tablet_add_column">+ column</string>
     <string name="tablet_close_column">Remove %1$s from the columns</string>
+    <string name="master_grab">Drag to move the master to the other side</string>
     <string name="strip_open">Open %1$s</string>
     <string name="tablet_bar">Bar</string>
     <string name="tablet_bar_fixed">Fixed</string>

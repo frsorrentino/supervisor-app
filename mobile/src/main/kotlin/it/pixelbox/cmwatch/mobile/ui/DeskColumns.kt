@@ -307,7 +307,7 @@ internal fun MasterFrame(
                     val hw = maxOf(b.width, minPx) / 2; val hh = maxOf(b.height, minPx) / 2
                     return androidx.compose.ui.geometry.Rect(b.center.x - hw, b.center.y - hh, b.center.x + hw, b.center.y + hh)
                 }
-                var key = grips.entries.filter { (_, c) -> c.isAttached && hit(f.localBoundingBoxOf(c, false)).contains(down.position) }
+                val key = grips.entries.filter { (_, c) -> c.isAttached && hit(f.localBoundingBoxOf(c, false)).contains(down.position) }
                     .minByOrNull { (_, c) -> c.size.width.toLong() * c.size.height }?.key ?: return@awaitEachGesture
                 val p0 = placeNow ?: return@awaitEachGesture
                 val open0 = openNow
@@ -372,11 +372,7 @@ internal fun MasterFrame(
                         }
                         // Oltre 6 dp è un trascinamento, e vince sui tocchi (app-master-gesti-senza-conflitti-04-11).
                         if (!moved && !it.pixelbox.cmwatch.rules.MasterGestures.isDrag((c.position.x - down.position.x) / density, (c.position.y - down.position.y) / density)) continue
-                        if (!moved) {
-                            taps.dragged()
-                            // La presa in alto: di lato cambia il lato, in su o in giù l'altezza.
-                            if (key == "top") key = if (kotlin.math.abs(c.position.x - down.position.x) > kotlin.math.abs(c.position.y - down.position.y)) "side" else "height"
-                        }
+                        if (!moved) taps.dragged()
                         moved = true; c.consume(); last = c.position
                     }
                     wait = null
@@ -418,10 +414,10 @@ internal fun MasterFrame(
                         val canGrip = onPlace != null && place != null
                         Box(Modifier.reflow("r-master").landing().width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
                             androidx.compose.runtime.CompositionLocalProvider(LocalEdgeSpots provides edge, LocalMasterGrip provides gripOf.takeIf { canGrip }) { panel() }
-                            // La presa in alto: di lato cambia il lato (la sagoma passa alla metà dello schermo sotto il dito), in su o
-                            // in giù l'altezza a scatti. Nella pila è la maniglia fra la home e la master.
-                            if (canGrip && !stacked) Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-lato").grip("top"), contentAlignment = Alignment.Center) {
-                                TopGripMark(sideways = true)
+                            // La presa in alto: l'altezza a scatti, come la PWA (app-cambio-lato-come-pwa-05-11); il lato si cambia con la
+                            // presa ⠿ della testata della master (MasterDock). Nella pila è la maniglia fra la home e la master.
+                            if (canGrip && !stacked) Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-alto").grip("height"), contentAlignment = Alignment.Center) {
+                                TopGripMark()
                             }
                         }
                         // La corsia verso le sessioni, come nella plancia: col + e il filo delle schede della pila; trascinata, la
@@ -461,24 +457,25 @@ internal fun MasterFrame(
     }
 }
 
+/** Il segno della presa dell'altezza, uguale in testa al pannello e fra home e master: la barretta, come `.hgrip i` della PWA. */
+@Composable
+private fun TopGripMark() = Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+
 /**
- * Il segno della presa in alto della master, uguale in testa al pannello e fra home e master: la barretta, e con i gesti le due
- * frecce ‹ › che dicono che di lato cambia il lato (Franz 05/11 21:49: «non vedo il drag per il cambio lato»).
+ * La presa ⠿ del cambio lato nella testata della master, come `.grab` di MasterDock.svelte (app-cambio-lato-come-pwa-05-11, Franz
+ * 05/11 23:19: «terrei la soluzione pwa»): sei puntini, 32×40; trascinata, la sagoma passa al lato sotto il dito. Solo dove il
+ * telaio prende i gesti.
  */
 @Composable
-private fun TopGripMark(sideways: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (sideways) Chevron(left = true)
-        Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
-        if (sideways) Chevron(left = false)
+internal fun SideGrab() {
+    val grip = LocalMasterGrip.current ?: return
+    val label = stringResource(R.string.master_grab)
+    Box(Modifier.size(32.dp, 40.dp).then(grip("side")).semantics { contentDescription = label }.testTag("master-presa-lato"), contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(Modifier.size(20.dp)) {
+            val r = 1.6.dp.toPx() * size.width / 20.dp.toPx()
+            listOf(9f, 15f).forEach { x -> listOf(6f, 12f, 18f).forEach { y -> drawCircle(V3.Tx2, r, androidx.compose.ui.geometry.Offset(x / 24f * size.width, y / 24f * size.height)) } }
+        }
     }
-}
-
-@Composable
-private fun Chevron(left: Boolean) = androidx.compose.foundation.Canvas(Modifier.width(6.dp).height(10.dp)) {
-    val s = 1.5.dp.toPx(); val x0 = if (left) size.width else 0f; val x1 = if (left) 0f else size.width
-    drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(x0, 0f), androidx.compose.ui.geometry.Offset(x1, size.height / 2), s, androidx.compose.ui.graphics.StrokeCap.Round)
-    drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(x1, size.height / 2), androidx.compose.ui.geometry.Offset(x0, size.height), s, androidx.compose.ui.graphics.StrokeCap.Round)
 }
 
 /**
@@ -600,12 +597,12 @@ private fun androidx.compose.foundation.layout.BoxScope.GhostTag(text: String, c
 internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @Composable () -> Unit, onStep: () -> Unit) {
     Column(Modifier.fillMaxSize().background(V3.Bg).testTag("master-sotto-home")) {
         Box(Modifier.weight(1f).fillMaxWidth().homeFadeEnd()) { home() }
-        // La maniglia fra le due: un tocco cambia misura; trascinata è la presa in alto della master (lato e altezza), come la
-        // testa del pannello (app-tablet-barre-bordi-05-11: prima solo il tocco).
+        // La maniglia fra le due: un tocco cambia misura; trascinata cambia l'altezza, come la testa del pannello e come la PWA
+        // (app-tablet-barre-bordi-05-11: prima solo il tocco; app-cambio-lato-come-pwa-05-11: il lato dalla presa ⠿).
         val grip = LocalMasterGrip.current
         Box(Modifier.fillMaxWidth().height(14.dp).handCursor().clickable(onClickLabel = stringResource(R.string.master_stack_step), onClick = onStep), contentAlignment = Alignment.Center) {
-            Box(Modifier.width(72.dp).fillMaxHeight().then(grip?.invoke("top") ?: Modifier).testTag("master-maniglia-pila"), contentAlignment = Alignment.Center) {
-                TopGripMark(sideways = grip != null)
+            Box(Modifier.width(72.dp).fillMaxHeight().then(grip?.invoke("height") ?: Modifier).testTag("master-maniglia-pila"), contentAlignment = Alignment.Center) {
+                TopGripMark()
             }
         }
         // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): cambiando misura gli angoli si piegano verso l'interno e tornano
