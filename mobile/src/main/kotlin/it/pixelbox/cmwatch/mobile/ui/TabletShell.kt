@@ -925,7 +925,13 @@ private fun DeskBody(
             at(0.dp, total - homeW).width(homeW).fillMaxHeight().zIndex(1f)
                 .graphicsLayer { shadowElevation = 32f * (1f - kotlin.math.abs(side * 2f - 1f)) }
                 .background(Cm.bg).onGloballyPositioned { c -> edge.area = c.boundsInRoot() },
-        ) { androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides edge.spots.takeIf { swap != null }) { home() } }
+        ) {
+            // La home finisce dove finiscono le colonne, 10 dp sopra il fondo, e sfuma come nella pila (prova di Franz, 05/11 21:54:
+            // con la master in riga la home passava sotto la riga e le colonne si fermavano prima).
+            Box(Modifier.fillMaxSize().padding(bottom = 10.dp).homeFadeEnd()) {
+                androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides edge.spots.takeIf { swap != null }) { home() }
+            }
+        }
     }
 }
 

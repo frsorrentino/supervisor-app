@@ -481,6 +481,24 @@ private fun Chevron(left: Boolean) = androidx.compose.foundation.Canvas(Modifier
     drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(x1, size.height / 2), androidx.compose.ui.geometry.Offset(x0, size.height), s, androidx.compose.ui.graphics.StrokeCap.Round)
 }
 
+/**
+ * Gli ultimi 32 dp della home sfumano verso il fondo finché sotto c'è altro (app-home-sfuma-sopra-master-04-11, come la web): una
+ * maschera sul bordo, mai l'opacità delle righe; in fondo l'ultima riga si legge intera. Uguale nella pila e nella plancia.
+ */
+internal fun Modifier.homeFadeEnd(): Modifier = this
+    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        if (HomeScroll.more.value) {
+            val h = 32.dp.toPx()
+            drawRect(
+                androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color.Black, 1f to Color.Transparent, startY = size.height - h, endY = size.height),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, size.height - h), size = androidx.compose.ui.geometry.Size(size.width, h),
+                blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+            )
+        }
+    }
+
 /** Le prese del telaio per chi sta nel pannello (la maniglia della pila); null senza gesti. */
 internal val LocalMasterGrip = androidx.compose.runtime.staticCompositionLocalOf<((String) -> Modifier)?> { null }
 
@@ -581,21 +599,7 @@ private fun androidx.compose.foundation.layout.BoxScope.GhostTag(text: String, c
 @Composable
 internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @Composable () -> Unit, onStep: () -> Unit) {
     Column(Modifier.fillMaxSize().background(V3.Bg).testTag("master-sotto-home")) {
-        // Gli ultimi 32 dp della home sfumano verso il fondo della colonna finché sotto c'è altro (app-home-sfuma-sopra-master-04-11,
-        // come la web): una maschera sul bordo, mai l'opacità delle righe; in fondo l'ultima riga si legge intera.
-        Box(Modifier.weight(1f).fillMaxWidth()
-            .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
-            .drawWithContent {
-                drawContent()
-                if (HomeScroll.more.value) {
-                    val h = 32.dp.toPx()
-                    drawRect(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color.Black, 1f to Color.Transparent, startY = size.height - h, endY = size.height),
-                        topLeft = androidx.compose.ui.geometry.Offset(0f, size.height - h), size = androidx.compose.ui.geometry.Size(size.width, h),
-                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
-                    )
-                }
-            }) { home() }
+        Box(Modifier.weight(1f).fillMaxWidth().homeFadeEnd()) { home() }
         // La maniglia fra le due: un tocco cambia misura; trascinata è la presa in alto della master (lato e altezza), come la
         // testa del pannello (app-tablet-barre-bordi-05-11: prima solo il tocco).
         val grip = LocalMasterGrip.current
