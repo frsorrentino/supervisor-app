@@ -10,6 +10,34 @@ export const SWALLOW_MS = 400
 
 export const isDrag = (dx: number, dy: number) => Math.hypot(dx, dy) > DRAG_PX
 
+// La corsa breve (app-master-corsa-breve-05-11, Franz 05/11 11:23; rules/MasterGestures.kt, `step`): fra posizioni fisse al
+// rilascio conta la direzione. Oltre COMMIT_PX nella direzione presa, o con un colpo oltre FLICK_PX_S, la posizione dopo in
+// quella direzione; sotto si torna dov'era. La velocità si proietta come nei fogli di iOS: tratti e colpi lunghi saltano di più.
+export const COMMIT_PX = 24
+export const FLICK_PX_S = 500
+export const PROJECT_S = 0.499
+
+/** La posizione al rilascio fra `stops` (in ordine crescente lungo l'asse), da `from`, con lo spostamento e la velocità (px/s). */
+export function step(stops: number[], from: number, delta: number, velocity = 0): number {
+  if (stops.length < 2) return from
+  const dir = Math.abs(velocity) >= FLICK_PX_S ? Math.sign(velocity) : Math.abs(delta) >= COMMIT_PX ? Math.sign(delta) : 0
+  if (!dir) return from
+  const next = Math.min(stops.length - 1, Math.max(0, from + dir))
+  const at = stops[from] + delta + velocity * PROJECT_S
+  let near = 0
+  for (let i = 1; i < stops.length; i++) if (Math.abs(stops[i] - at) < Math.abs(stops[near] - at)) near = i
+  return dir > 0 ? Math.max(next, near) : Math.min(next, near)
+}
+
+/** La velocità del dito negli ultimi 80 ms, in px/s: `add(x, t)` a ogni movimento, `speed()` al rilascio. */
+export function velocity(windowMs = 80) {
+  const pts: { x: number; t: number }[] = []
+  return {
+    add(x: number, t: number) { pts.push({ x, t }); while (pts.length > 2 && t - pts[0].t > windowMs) pts.shift() },
+    speed(): number { if (pts.length < 2) return 0; const a = pts[0], b = pts[pts.length - 1]; return b.t > a.t ? ((b.x - a.x) / (b.t - a.t)) * 1000 : 0 },
+  }
+}
+
 type Pending = { key: string; at: number; id: ReturnType<typeof setTimeout> | null }
 
 /**

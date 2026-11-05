@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DOUBLE_MS, isDrag, masterTaps, SWALLOW_MS } from './gesture'
+import { DOUBLE_MS, isDrag, masterTaps, step, SWALLOW_MS } from './gesture'
 
 // Le maniglie della master senza conflitti fra clic, doppio clic e trascinamento (app-master-gesti-senza-conflitti-04-11).
 describe('il riconoscitore delle maniglie della master', () => {
@@ -48,5 +48,24 @@ describe('il riconoscitore delle maniglie della master', () => {
     vi.advanceTimersByTime(DOUBLE_MS)
     expect(double).not.toHaveBeenCalled()
     expect(single).toHaveBeenCalledTimes(1)
+  })
+})
+
+// La corsa breve (app-master-corsa-breve-05-11), gli stessi casi di MasterGesturesTest.kt.
+describe('step', () => {
+  const stops = [0, 300, 700, 1000]
+  it('conta la direzione oltre 24 px', () => {
+    expect(step(stops, 1, 10)).toBe(1)
+    expect(step(stops, 1, -23)).toBe(1)
+    expect(step(stops, 1, 24)).toBe(2)
+    expect(step(stops, 1, -30)).toBe(0)
+    expect(step(stops, 1, 650)).toBe(3)
+    expect(step(stops, 3, 80)).toBe(3)
+  })
+  it('il colpo conta e si proietta', () => {
+    expect(step(stops, 1, 5, 600)).toBe(2)
+    expect(step(stops, 1, 30, -800)).toBe(0)
+    expect(step(stops, 1, 40, 1500)).toBe(3)
+    expect(step(stops, 1, 5, 400)).toBe(1)
   })
 })

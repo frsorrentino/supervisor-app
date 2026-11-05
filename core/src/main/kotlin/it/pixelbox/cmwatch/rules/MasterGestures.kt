@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.rules
 
+import kotlin.math.abs
 import kotlin.math.hypot
 
 /**
@@ -27,5 +28,34 @@ object MasterGestures {
             return true
         }
         fun dragged() { key = null }
+    }
+
+    /**
+     * La corsa breve (app-master-corsa-breve-05-11, Franz 05/11 11:23: «serve che si possa rilasciare e passare alla posizione
+     * della direzione presa, molto prima nella corsa»). Fra posizioni fisse al rilascio conta la direzione: oltre COMMIT_DP nella
+     * direzione presa, o con un colpo oltre FLICK_DP_S, la master va alla posizione dopo in quella direzione; sotto torna dov'era.
+     * Come i fogli di iOS la velocità si proietta (PROJECT_S: dove arriverebbe il dito rallentando): un tratto o un colpo
+     * lunghi saltano più posizioni. Le stesse soglie sulla web (gesture.ts), in px CSS.
+     */
+    const val COMMIT_DP = 24f
+    const val FLICK_DP_S = 500f
+    /** La proiezione di iOS, decelerazione 0,998 per millisecondo: v · 0,998 / (1 − 0,998) / 1000 secondi. */
+    const val PROJECT_S = 0.499f
+
+    /**
+     * La posizione al rilascio fra `stops` (le posizioni lungo l'asse del gesto, in ordine crescente), partendo da `from`, con il
+     * dito spostato di `delta` e la velocità `velocity` al rilascio, nelle stesse unità al secondo.
+     */
+    fun step(stops: List<Float>, from: Int, delta: Float, velocity: Float = 0f): Int {
+        if (stops.size < 2) return from
+        val dir = when {
+            abs(velocity) >= FLICK_DP_S -> if (velocity > 0f) 1 else -1
+            abs(delta) >= COMMIT_DP -> if (delta > 0f) 1 else -1
+            else -> return from
+        }
+        val next = (from + dir).coerceIn(0, stops.lastIndex)
+        val at = stops[from] + delta + velocity * PROJECT_S
+        val near = stops.indices.minBy { abs(stops[it] - at) }
+        return if (dir > 0) maxOf(next, near) else minOf(next, near)
     }
 }

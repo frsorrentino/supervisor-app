@@ -3,9 +3,9 @@
   import * as files from './lib/fileActions'
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
-  import { BAR_H, COLUMN, COMPACT_H, heightAt, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, type Height, type Rect, type Side } from './lib/masterLanding'
+  import { BAR_H, COLUMN, COMPACT_H, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, widthStops, type Height, type Rect, type Side } from './lib/masterLanding'
   import { ghostPreview, MOVE_MS, PLACES, squash } from './lib/landingMorph'
-  import { DRAG_PX, isDrag, masterTaps } from './lib/gesture'
+  import { DRAG_PX, isDrag, masterTaps, step, velocity } from './lib/gesture'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -616,8 +616,13 @@
     if (on) { window.addEventListener('keydown', wKey); window.addEventListener('blur', widthCancel) }
     else { window.removeEventListener('keydown', wKey); window.removeEventListener('blur', widthCancel) }
   }
+  // La corsa breve (app-master-corsa-breve-05-11): conta la direzione presa dal posto di partenza, non la metà della corsa.
+  let wFrom = 0, wSpeed = velocity()
   function widthDown(e: PointerEvent) {
     e.preventDefault(); wDrag = e.clientX; wAim = colWidth(); begin(); widthListen(true)
+    const st0 = widthStops(window.innerWidth)
+    wFrom = st0.reduce((b, v, i) => (Math.abs(v - wAim) < Math.abs(st0[b] - wAim) ? i : b), 0)
+    wSpeed = velocity(); wSpeed.add(e.clientX, e.timeStamp)
     const el = e.currentTarget as HTMLElement
     wCol = rectOf(el.parentElement); el.setPointerCapture(e.pointerId)
   }
@@ -625,27 +630,33 @@
     if (wDrag == null) return
     widthListen(false); revert()
   }
-  // Posti fissi e calamita (Franz 04/11 10:29-10:30): la sagoma salta al posto più vicino, mai nel mezzo; il posto mostrato tiene
-  // finché il dito non passa il punto di mezzo di tanto. Un aggiornamento per fotogramma.
-  const widthOf = (x: number) => widthAt(masterLeft ? x : window.innerWidth - x, window.innerWidth, wAim)
+  // Posti fissi (Franz 04/11 10:29-10:30): la sagoma salta a un posto, mai nel mezzo. Quale lo dice la direzione: oltre 24 px il
+  // posto dopo da quella parte, sotto quello di partenza (step in gesture.ts). Un aggiornamento per fotogramma.
+  const widthOf = (x: number, v = 0) => {
+    const st0 = widthStops(window.innerWidth), sgn = masterLeft ? 1 : -1
+    return st0[step(st0, wFrom, (x - (wDrag ?? x)) * sgn, v * sgn)] ?? wAim
+  }
   let wFrame = 0, wX = 0
-  function widthMove(e: PointerEvent) {
-    if (wDrag == null) return
-    wX = e.clientX
-    if (wFrame) return
-    wFrame = requestAnimationFrame(() => {
-      wFrame = 0
-      const w = (wAim = widthOf(wX))
-      const col = wCol ?? placeRect(areaRect(), masterLeft ? 'left' : 'right', 'column', colWidth())
-      aimAt(widthRect(col, masterLeft ? 'left' : 'right', w), w === COLUMN ? t.masterLand.column : t.masterHalfScreen, () => {
-        masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2
-        save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
-      })
+  function aimWidth(w: number) {
+    wAim = w
+    const col = wCol ?? placeRect(areaRect(), masterLeft ? 'left' : 'right', 'column', colWidth())
+    aimAt(widthRect(col, masterLeft ? 'left' : 'right', w), w === COLUMN ? t.masterLand.column : t.masterHalfScreen, () => {
+      masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2
+      save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
     })
   }
-  function widthUp() {
+  function widthMove(e: PointerEvent) {
     if (wDrag == null) return
-    widthListen(false); commit()
+    wX = e.clientX; wSpeed.add(e.clientX, e.timeStamp)
+    if (wFrame) return
+    wFrame = requestAnimationFrame(() => { wFrame = 0; aimWidth(widthOf(wX)) })
+  }
+  function widthUp(e?: PointerEvent) {
+    if (wDrag == null) return
+    widthListen(false)
+    // Al rilascio conta anche il colpo: la velocità decide la direzione e si proietta.
+    if (e) { cancelAnimationFrame(wFrame); wFrame = 0; aimWidth(widthOf(e.clientX, wSpeed.speed())) }
+    commit()
   }
   // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto. Il lato non lo decide il dito
   // (app-master-riga-maniglie-04-11): `pick` è il lato della maniglia presa nella riga in basso, null = il lato di adesso; il
@@ -663,20 +674,22 @@
     measureSizes()
     const area = areaRect(), here = placeNow()
     const rectFor = (h: Height) => (side === side0 && h === h0 && here) || placeRect(area, side, h, w0, sizes)
-    const hold = steady<Height>(h0)
-    const apply = (e: PointerEvent) => {
-      if (!moved && Math.abs(e.clientY - y0) <= DRAG_PX) return
-      moved = true; begin()
-      // Il margine (28 px oltre il confine) e poi la sosta: la banda nuova vince solo se resta sotto il dito.
-      const cur = hold.current
-      const near = [heightAt(zs, e.clientY - 28), heightAt(zs, e.clientY), heightAt(zs, e.clientY + 28)]
-      const raw = near.includes(cur) && near[1] !== cur && (near[0] === cur || near[2] === cur) ? cur : near[1]
-      const { on, wait } = hold.feed(raw, performance.now())
-      clearTimeout(dwellTimer)
-      if (wait != null) dwellTimer = setTimeout(() => apply(e), wait + 5)
+    // La corsa breve (app-master-corsa-breve-05-11): le bande dall'alto in basso, e al rilascio conta la direzione presa dalla
+    // banda di partenza; oltre 24 px, o con un colpo, la banda dopo da quella parte (step in gesture.ts).
+    const keys = zs.map(z => z.key), mids = zs.map(z => z.rect.y + z.rect.h / 2)
+    const from = Math.max(0, keys.indexOf(h0))
+    const speed = velocity()
+    speed.add(y0, performance.now())
+    const aimH = (on: Height) => {
       aimAt(rectFor(on), t.masterLand[on], () => { if (!masterOpen && on !== 'bar') masterHalf = masterNarrow(); masterLeft = side === 'left'; setHeight(on) })
       // Gli altri posti possibili sul lato in cui si è, accennati (app-trascina-destinazioni-04-11).
       masterGhost.hint(zs.map(z => z.key).filter(k => k !== on).map(k => ({ b: rectFor(k), text: t.masterLand[k] })))
+    }
+    const apply = (e: PointerEvent) => {
+      speed.add(e.clientY, e.timeStamp)
+      if (!moved && Math.abs(e.clientY - y0) <= DRAG_PX) return
+      moved = true; begin()
+      aimH(keys[step(mids, from, e.clientY - y0)])
     }
     follow(apply, (e) => {
       clearTimeout(dwellTimer)
@@ -688,6 +701,7 @@
         else if (stacked) taps.tap('stack', performance.now(), () => stepStack(1))
         return
       }
+      aimH(keys[step(mids, from, e.clientY - y0, speed.speed())])
       commit()
     })
   }

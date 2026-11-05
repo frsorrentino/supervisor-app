@@ -147,7 +147,10 @@ fun MasterDock(
         if (!expanded && look.thread) MasterThread()
         // Franz, 03/10 17:05: anche col gesto. Trascinare in su la barra ridotta la espande, trascinarla in giù da espansa la
         // riduce. Sulla barra e non dal bordo dello schermo, dove Android tiene il gesto per la schermata Home.
-        val threshold = with(androidx.compose.ui.platform.LocalDensity.current) { 40.dp.toPx() }
+        // La corsa breve (app-master-corsa-breve-05-11): basta un tratto di 24 dp nella direzione presa, o un colpo, come sul
+        // tablet e sulla web (MasterGestures).
+        val density = androidx.compose.ui.platform.LocalDensity.current.density
+        val threshold = it.pixelbox.cmwatch.rules.MasterGestures.COMMIT_DP * density
         val up by androidx.compose.runtime.rememberUpdatedState(onUp)
         val down by androidx.compose.runtime.rememberUpdatedState(onDown)
         // Voce 9: la conversazione segue il dito 1:1 con la sua barra; al rilascio riparte con la velocità del dito, senza rimbalzo.
@@ -160,7 +163,7 @@ fun MasterDock(
                 onDragStart = { total = 0f; speed.resetTracking() },
                 onDragEnd = {
                     val v = speed.calculateVelocity().y
-                    val flick = kotlin.math.abs(v) > 1200f
+                    val flick = kotlin.math.abs(v) >= it.pixelbox.cmwatch.rules.MasterGestures.FLICK_DP_S * density
                     when {
                         if (flick) v < 0f else total < -threshold -> up?.invoke() ?: run { if (!expanded) onToggle() }
                         if (flick) v > 0f else total > threshold -> down?.invoke() ?: run { if (expanded) onToggle() }

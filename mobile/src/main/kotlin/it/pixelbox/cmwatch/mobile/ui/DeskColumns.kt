@@ -305,8 +305,35 @@ internal fun MasterFrame(
                 var aim: Pair<it.pixelbox.cmwatch.rules.MasterPlace, Boolean>? = null
                 var widthNow = p0.panelWidth()
                 val sideHold = L.Steady(if (p0.left) L.Side.LEFT else L.Side.RIGHT)
-                val heightHold = L.Steady(h0)
+                // La corsa breve (app-master-corsa-breve-05-11): per larghezza e altezza conta la direzione presa dal posto di
+                // partenza; oltre 24 dp, o con un colpo, il posto dopo da quella parte (MasterGestures.step).
+                val speed = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                val x0 = down.position.x / density; val y0 = down.position.y / density
+                val wStops = L.widthStops(W)
+                val wFrom = wStops.indices.minBy { kotlin.math.abs(wStops[it] - p0.panelWidth()) }
                 val col0 = rectFor(p0.left, L.Height.COLUMN, p0.panelWidth())
+                fun aimAt(key: String, x: Float, y: Float, vx: Float = 0f, vy: Float = 0f) {
+                    if (key == "width") {
+                        // Posti fissi (Franz 04/11 10:29-10:30): la sagoma salta a un posto, mai nel mezzo; quale lo dice la direzione.
+                        val sgn = if (p0.left) 1f else -1f
+                        widthNow = wStops[it.pixelbox.cmwatch.rules.MasterGestures.step(wStops, wFrom, (x - x0) * sgn, vx * sgn)]
+                        ghost = Ghost(L.widthRect(col0, p0.left, widthNow), namesNow.getValue(if (widthNow == L.COLUMN) L.WidthStop.COLUMN else L.WidthStop.HALF_SCREEN))
+                        hints = wStops.filter { it != widthNow }.map { s -> Ghost(L.widthRect(col0, p0.left, s), namesNow.getValue(if (s == L.COLUMN) L.WidthStop.COLUMN else L.WidthStop.HALF_SCREEN)) }
+                        aim = p0.widthDropped(widthNow, W) to open0
+                        return
+                    }
+                    // Solo verticale: il lato è quello della maniglia presa nella riga, se no quello di adesso.
+                    val l = when (key) { "bar-left" -> true; "bar-right" -> false; else -> p0.left }
+                    val w = p0.panelWidth()
+                    val zs = L.heightZones(L.Rect(if (l) 0f else W - w, 0f, w, H), underOk)
+                    val mids = zs.map { z -> z.rect.y + z.rect.h / 2f }
+                    val from = zs.indexOfFirst { z -> z.key == h0 }.coerceAtLeast(0)
+                    val on = zs[it.pixelbox.cmwatch.rules.MasterGestures.step(mids, from, y - y0, vy)].key
+                    ghost = Ghost(rectFor(l, on, w), namesNow.getValue(on))
+                    hints = zs.map { z -> z.key }.filter { k -> k != on }.map { k -> Ghost(rectFor(l, k, w), namesNow.getValue(k)) }
+                    val next = p0.copy(left = l).withHeight(on)
+                    aim = next to next.open
+                }
                 var ended = false
                 var last = down.position
                 var wait: Long? = null
@@ -315,8 +342,11 @@ internal fun MasterFrame(
                     val ev = wait?.let { w -> withTimeoutOrNull(w + 5) { awaitPointerEvent(pass) } } ?: if (wait == null) awaitPointerEvent(pass) else null
                     if (ev != null) {
                         val c = ev.changes.firstOrNull { it.id == down.id } ?: break
+                        speed.addPosition(c.uptimeMillis, c.position)
                         if (!c.pressed) {
                             ended = true
+                            // Al rilascio conta anche il colpo: la velocità decide la direzione e si proietta.
+                            if (moved && key != "side") { val v = speed.calculateVelocity(); aimAt(key, last.x / density, last.y / density, v.x / density, v.y / density) }
                             // Un tocco su una maniglia della riga: la master si apre da quel lato, e la riga sotto non lo prende.
                             if (!moved && key.startsWith("bar-")) { c.consume(); if (taps.tap(key, c.uptimeMillis)) change?.invoke(p0.copy(left = key == "bar-left"), true, true) }
                             break
@@ -343,24 +373,7 @@ internal fun MasterFrame(
                             mid = Mid(W / 2, y, crossed, if (crossed) ctx.getString(R.string.master_mid_release, toward) else ctx.getString(R.string.master_mid_cross, toward, if (p0.left) "→" else "←"))
                             aim = p0.copy(left = onLeft) to open0
                         }
-                        "width" -> {
-                            // Posti fissi e calamita (Franz 04/11 10:29-10:30): la sagoma salta al posto più vicino, mai nel mezzo.
-                            widthNow = L.widthAt(if (p0.left) x else W - x, W, widthNow)
-                            ghost = Ghost(L.widthRect(col0, p0.left, widthNow), namesNow.getValue(if (widthNow == L.COLUMN) L.WidthStop.COLUMN else L.WidthStop.HALF_SCREEN))
-                            hints = L.widthStops(W).filter { it != widthNow }.map { s -> Ghost(L.widthRect(col0, p0.left, s), namesNow.getValue(if (s == L.COLUMN) L.WidthStop.COLUMN else L.WidthStop.HALF_SCREEN)) }
-                            aim = p0.widthDropped(widthNow, W) to open0
-                        }
-                        else -> {
-                            // Solo verticale: il lato è quello della maniglia presa nella riga, se no quello di adesso.
-                            val l = when (key) { "bar-left" -> true; "bar-right" -> false; else -> p0.left }
-                            val w = p0.panelWidth()
-                            val zs = L.heightZones(L.Rect(if (l) 0f else W - w, 0f, w, H), underOk)
-                            val (on, wt) = heightHold.feed(L.heightDragged(zs, y, heightHold.current), now); wait = wt
-                            ghost = Ghost(rectFor(l, on, w), namesNow.getValue(on))
-                            hints = zs.map { it.key }.filter { it != on }.map { k -> Ghost(rectFor(l, k, w), namesNow.getValue(k)) }
-                            val next = p0.copy(left = l).withHeight(on)
-                            aim = next to next.open
-                        }
+                        else -> aimAt(key, x, y)
                     }
                 }
                 val go = aim
