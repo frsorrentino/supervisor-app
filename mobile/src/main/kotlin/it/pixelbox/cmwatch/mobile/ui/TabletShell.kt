@@ -1122,8 +1122,10 @@ data class SwapPills(val shown: List<String>, val onAdd: (String) -> Unit, val o
 /** Il filo bianco di una sessione già in colonna è il suo meno: il tocco la chiude (app-scheda-sostituisce-04-11, come la PWA). */
 @Composable
 private fun CloseLink(name: String, swap: SwapPills, modifier: Modifier) {
-    Box(modifier.size(30.dp).clip(RoundedCornerShape(15.dp)).handCursor().clickable(onClickLabel = stringResource(R.string.swap_close, name)) { swap.onClose(name) }.testTag("filo-$name"), contentAlignment = Alignment.Center) {
+    // Il tocco (e il suo alone) nel tondo da 30; il filo fuori dal ritaglio, lungo dalla colonna alla scheda.
+    Box(modifier.size(30.dp).testTag("filo-$name"), contentAlignment = Alignment.Center) {
         Box(Modifier.requiredWidth(FILO_DP.dp).height(2.dp).clip(RoundedCornerShape(1.dp)).background(Cm.text.copy(alpha = 0.8f)))
+        Box(Modifier.matchParentSize().clip(RoundedCornerShape(15.dp)).handCursor().clickable(onClickLabel = stringResource(R.string.swap_close, name)) { swap.onClose(name) })
     }
 }
 
