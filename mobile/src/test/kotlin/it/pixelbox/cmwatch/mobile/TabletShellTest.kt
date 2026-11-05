@@ -116,7 +116,7 @@ class TabletShellTest {
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
         TabletDesk(
             home = {
-                SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, showLavori = cols.isNotEmpty(), showUsage = cols.isNotEmpty(), footer = if (cols.isEmpty()) null else ({
+                SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = ts, showLavori = cols.isNotEmpty(), showUsage = cols.isNotEmpty(), footer = if (cols.isEmpty()) null else ({
                     androidx.compose.foundation.layout.Column(
                         androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),

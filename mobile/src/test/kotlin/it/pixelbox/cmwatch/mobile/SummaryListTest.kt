@@ -26,7 +26,7 @@ class SummaryListTest {
 
     @Composable private fun page(state: State, open: String? = null) = CmPhoneTheme(still = true) {
         Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-            SummaryList(model(state), {}, { _, _ -> }, { _, _ -> }, {}, {}, initiallyOpen = open)
+            SummaryList(model(state), {}, { _, _ -> }, { _, _ -> }, {}, {}, initiallyOpen = open, now = state.ts)
         }
     }
 
@@ -187,7 +187,7 @@ class SummaryListTest {
             ),
             closed = st.sessions.map { it.copy(state = SessionState.GONE) },
         )
-        CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, startOpen = setOf("sessions", "other")) } }
+        CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, startOpen = setOf("sessions", "other"), now = st.ts) } }
     }
 
     // Mockup approvato da Franz l'08/10 alle 12:57: sezioni richiudibili e in testa il riquadro Notte.
@@ -196,7 +196,7 @@ class SummaryListTest {
         val night = it.pixelbox.cmwatch.rules.NightPage.of(rep, java.time.ZoneId.of("Europe/Rome"))
         CmPhoneTheme(still = true) {
             Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-                SummaryList(model(st), {}, { _, _ -> }, { _, _ -> }, {}, {}, nightDate = night.day, nightPage = night, usage = { Text("quota") })
+                SummaryList(model(st), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, nightDate = night.day, nightPage = night, usage = { Text("quota") })
             }
         }
     }
@@ -210,7 +210,7 @@ class SummaryListTest {
         val m = model(one).copy(service = listOf(MasterHome.Row(MasterHome.Kind.NIGHT, "", null, number = 1, at = st.ts)))
         CmPhoneTheme(still = true) {
             Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-                SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, startOpen = setOf("other"), nightPage = night,
+                SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, startOpen = setOf("other"), nightPage = night,
                     tonight = it.pixelbox.cmwatch.rules.TonightCard.of(st.night.copy(items = items), st.ts))
             }
         }

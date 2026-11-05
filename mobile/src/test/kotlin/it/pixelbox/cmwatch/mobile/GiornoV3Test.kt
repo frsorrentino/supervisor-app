@@ -29,7 +29,7 @@ class GiornoV3Test {
 
     @Test fun home() = paparazzi.snapshot {
         CmPhoneTheme(still = true, day = true) {
-            Column(Modifier.background(V3.Bg)) { SummaryList(Summary.build(st, emptyList(), emptyList(), st.ts, zone, emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}) }
+            Column(Modifier.background(V3.Bg)) { SummaryList(Summary.build(st, emptyList(), emptyList(), st.ts, zone, emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts) }
         }
     }
 
