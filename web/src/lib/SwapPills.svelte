@@ -9,18 +9,17 @@
   let spots = $state<Spot[]>([])
   let hot = $state<string | null>(null)
   function measure() {
-    // Con la master sotto la home (app-bordo-aggiungi-sparito-04-11) la home sta nella colonna della master e il bordo è il
-    // lato di quella colonna verso le sessioni; la plancia tiene una home vuota e la maniglia senza larghezza, che i segni
-    // prendevano: senza schede, il + e il filo sparivano appena la master scendeva sotto la home.
+    // Con la master sotto la home (app-bordo-aggiungi-sparito-04-11) la home sta nella colonna della master; i segni stanno
+    // sempre a metà della corsia, che nella pila resta fra le sessioni e la colonna (app-tablet-barre-bordi-05-11: sul bordo
+    // della colonna coprivano le schede).
     const stack = document.querySelector('aside.stackcol')
     const desk = document.querySelector('.desk')
     const home = stack ? stack.querySelector('.hs-top') : desk?.querySelector(':scope > aside.home')
-    const handle = stack ? null : desk?.querySelector(':scope > .handle')
-    if (!home || (!handle && !stack)) { spots = []; return }
+    const handle = desk?.querySelector(':scope > .handle')
+    if (!home || !handle) { spots = []; return }
     const hr = home.getBoundingClientRect()
-    let x: number
-    if (handle) { const gr = handle.getBoundingClientRect(); x = gr.left + gr.width / 2 }
-    else { const sr = stack!.getBoundingClientRect(); x = homeRight ? sr.left : sr.right }
+    const gr = handle.getBoundingClientRect()
+    const x = gr.left + gr.width / 2
     const out: Spot[] = []
     for (const el of home.querySelectorAll<HTMLElement>('[data-sess]')) {
       const r = el.getBoundingClientRect()
@@ -61,9 +60,10 @@
   .tip { position: absolute; left: calc(100% + 8px); white-space: nowrap; padding: 4px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; color: var(--text); pointer-events: none; }
   .pill.flip .tip { left: auto; right: calc(100% + 8px); }
   .tip1 { top: 2px; }
-  /* Il filo: 28 x 2 a riposo, il tocco prende 30 x 30; al passaggio diventa la pillola del meno, come quella del +. */
+  /* Il filo: dalla colonna alla scheda (13 + 28 + 13) a riposo, il tocco prende 30 x 30; al passaggio diventa la pillola del
+     meno, come quella del +. */
   .link { position: fixed; z-index: 30; transform: translate(-50%, -50%); width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 16px; border: 1px solid transparent; transition: background-color .15s, border-color .15s; }
-  .link i { width: 28px; height: 2px; border-radius: 1px; background: var(--text); opacity: .8; transition: width .15s; }
+  .link i { width: 54px; flex: none; height: 2px; border-radius: 1px; background: var(--text); opacity: .8; transition: width .15s; }
   .link.hot { background: var(--s2); border-color: var(--line); }
   .link.hot i { width: 12px; opacity: 1; }
   .link .tip { top: 4px; }

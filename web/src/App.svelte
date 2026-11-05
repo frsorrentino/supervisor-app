@@ -1874,11 +1874,18 @@
   .dpanel { flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); border-left: 1px solid var(--line); }
   .dpanel.wide { width: 720px; }
   .deskwrap.left .dpanel { border-left: 0; border-right: 1px solid var(--line); }
+  /* La corsia, una per tutte le posizioni della master come nell'app (app-tablet-barre-bordi-05-11): fra le sessioni e il
+     pannello 28 px con la linea a metà; la presa della larghezza è tutta la corsia. Nella pila la corsia è quella della plancia. */
+  .deskwrap > .dpanel { border-left: 0; border-right: 0; margin-left: 28px; }
+  .deskwrap.left > .dpanel { margin-left: 0; margin-right: 28px; }
+  .deskwrap > .dpanel.stackcol { margin: 0; }
   /* I bordi della master (app-master-trascina-03-11): quello verso le sessioni allarga e stringe, quello in alto cambia l'altezza. */
   .dpanel { position: relative; }
-  .wgrip { position: absolute; z-index: 5; top: 0; bottom: 0; left: -5px; width: 10px; cursor: ew-resize; touch-action: none; }
-  .deskwrap.left .wgrip { left: auto; right: -5px; }
-  .wgrip::after { content: ''; position: absolute; left: 3px; top: 50%; width: 4px; height: 48px; margin-top: -24px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, height .15s, margin-top .15s; }
+  .wgrip { position: absolute; z-index: 5; top: 0; bottom: 0; left: -28px; width: 28px; cursor: ew-resize; touch-action: none; }
+  .deskwrap.left .wgrip { left: auto; right: -28px; }
+  .wgrip::before { content: ''; position: absolute; left: 13.5px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .stackcol > .wgrip::before { display: none; }
+  .wgrip::after { content: ''; position: absolute; left: 12px; top: 50%; width: 4px; height: 48px; margin-top: -24px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, height .15s, margin-top .15s; }
   .wgrip:hover::after, .wgrip:active::after { opacity: 1; height: 72px; margin-top: -36px; background: var(--tx2); }
   .hgrip { position: absolute; z-index: 5; top: 0; left: 30%; right: 30%; height: 12px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
   .hgrip i { width: 48px; height: 4px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, width .15s; }
@@ -1888,16 +1895,23 @@
   .hs-top { flex: 1; min-height: 0; overflow: auto; }
   .hs-top :global(section.home.fade-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
   /* Con home e master nella colonna della master, la griglia delle sessioni non tiene più il posto della home. */
-  .deskwrap.stacked :global(.desk) { grid-template-columns: 0 0 minmax(0, 1fr); }
-  .deskwrap.stacked :global(.desk.right) { grid-template-columns: minmax(0, 1fr) 0 0; }
-  .deskwrap.stacked :global(.desk.details) { grid-template-columns: 0 0 minmax(0, 1fr) 341px; }
-  .deskwrap.stacked :global(.desk.right.details) { grid-template-columns: 341px minmax(0, 1fr) 0 0; }
-  .deskwrap.stacked :global(.desk > .home), .deskwrap.stacked :global(.desk > .handle) { display: none; }
+  /* La maniglia della plancia resta: è la corsia fra le sessioni e la colonna della pila, col + e il filo delle schede. */
+  .deskwrap.stacked :global(.desk) { grid-template-columns: 0 28px minmax(0, 1fr); }
+  .deskwrap.stacked :global(.desk.right) { grid-template-columns: minmax(0, 1fr) 28px 0; }
+  .deskwrap.stacked :global(.desk.details) { grid-template-columns: 0 28px minmax(0, 1fr) 341px; }
+  .deskwrap.stacked :global(.desk.right.details) { grid-template-columns: 341px minmax(0, 1fr) 28px 0; }
+  .deskwrap.stacked :global(.desk > .home) { display: none; }
   .dpanel.stackcol { background: var(--bg); }
   .hstack[data-h='compact'] > .dpanel.under { flex: none; }
   .hstack .grip { flex: none; height: 14px; margin: -8px 0 -6px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
   .hstack .grip i { width: 48px; height: 4px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, width .15s; }
   .hstack .grip:hover i, .hstack .grip:active i { opacity: 1; width: 72px; background: var(--tx2); }
+  /* Col dito le prese sottili si toccano su 28 px, il segno resta quello (app-tablet-barre-bordi-05-11). */
+  @media (pointer: coarse) {
+    .hgrip { height: 28px; }
+    .mbar .bargrip { top: -14px; }
+    .hstack .grip { height: 28px; margin: -15px 0 -13px; }
+  }
   .dpanel.under.compact .mchat :global(section.chat > :not(.bar)) { display: none; }
   .dpanel.under.compact .mchat { flex: none; }
   /* Compatta: il testo della master si legge tutto scorrendo con la rotella, nelle due righe che occupa (Franz 03/11 22:01). */

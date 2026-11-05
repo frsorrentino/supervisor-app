@@ -19,8 +19,9 @@
   } = $props()
 
   const GAP = 12
-  const PAD = 10
-  // Sul lato della maniglia il margine è quello delle card della home (13): la linea sta a metà fra le due (app-gutter-centrato-04-11).
+  // Il margine delle card della home (13) dai due lati: la linea della corsia sta a metà (app-gutter-centrato-04-11), e con la
+  // master di lato la corsia c'è anche dall'altra parte (app-tablet-barre-bordi-05-11).
+  const PAD = 13
   const PAD_HANDLE = 13
   const padLeft = $derived(homeRight ? PAD : PAD_HANDLE)
   let cw = $state(0)
