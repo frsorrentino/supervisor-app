@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -88,15 +90,19 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
     val c = italian()
     var ask by remember { mutableStateOf<String?>(null) }
     var sent by remember { mutableStateOf(setOf<String>()) }
-    Column(
-        Modifier.fillMaxWidth().testTag("system_advice").clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Meter(stringResource(R.string.system_load), (s.loadPerCore / 3).toFloat(), barTone(s.loadLevel), stringResource(R.string.system_load_v, SystemRules.num(s.loadPerCore, c)))
-        Meter(
-            stringResource(R.string.system_mem), 1f - s.memAvailableMb.toFloat() / s.memTotalMb.coerceAtLeast(1), barTone(s.memLevel),
-            stringResource(R.string.system_mem_v, SystemRules.num(s.memAvailableMb / 1024.0, c), SystemRules.num(s.memTotalMb / 1024.0, c)),
-        )
+    Column(Modifier.fillMaxWidth().testTag("system_advice").clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow)) {
+    // Carico e Memoria come le righe di Utilizzo (app-sistema-larghezza-05-11, Franz 05/11 13:29): etichetta, barra lunga, valore
+    // a destra in una colonna comune alle due, filo fra le righe e lo spazio della freccia vuoto; da bordo a bordo.
+    val loadV = stringResource(R.string.system_load_v, SystemRules.num(s.loadPerCore, c))
+    val memV = stringResource(R.string.system_mem_v, SystemRules.num(s.memAvailableMb / 1024.0, c), SystemRules.num(s.memTotalMb / 1024.0, c))
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val valW = with(density) { listOf(loadV, memV).maxOf { v -> measurer.measure(v, V3.Meter).size.width }.toDp() + 1.dp }
+    Meter(stringResource(R.string.system_load), (s.loadPerCore / 3).toFloat(), barTone(s.loadLevel), loadV, valW)
+    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    Meter(stringResource(R.string.system_mem), 1f - s.memAvailableMb.toFloat() / s.memTotalMb.coerceAtLeast(1), barTone(s.memLevel), memV, valW)
+    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (s.consumers.isNotEmpty()) {
             val groups = mapOf("claude" to R.string.system_group_claude, "chrome_bridge" to R.string.system_group_chrome_bridge, "relay" to R.string.system_group_relay, "other" to R.string.system_group_other)
             val line = s.consumers.map { g ->
@@ -131,15 +137,19 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
             }
         }
     }
+    }
 }
 
 @Composable
-private fun Meter(label: String, fraction: Float, tone: Color, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.width(76.dp))
-        Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
-            Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().background(tone))
+private fun Meter(label: String, fraction: Float, tone: Color, value: String, valW: androidx.compose.ui.unit.Dp) {
+    val scale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(start = 14.dp, end = 12.dp + 24.dp + 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1, softWrap = false, modifier = Modifier.width(100.dp * scale))
+        Spacer(Modifier.width(10.dp))
+        Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(V3.S3)) {
+            Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(tone))
         }
-        Text(value, style = MonoSmall, color = Cm.text2, maxLines = 1)
+        Spacer(Modifier.width(10.dp))
+        Text(value, style = V3.Meter.copy(color = V3.Tx), maxLines = 1, softWrap = false, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.width(valW))
     }
 }

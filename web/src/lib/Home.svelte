@@ -866,11 +866,11 @@
     {@render sec('system', t.homeSystem, 'memory', null, 'home-sez-sistema', sysOpen ? null : summaryLine(sys, lang), { isOpen: sysOpen, onclick: () => (sysManual = { level: sys.level, open: !sysOpen }), dot: sysOpen || sys.level === 'green' ? null : SYS_TONE[sys.level] })}
         {#if sysOpen}
           <div class="card wrows">
-          <div class="exp sys full" data-testid="system_advice">
-      <div class="kv sysm">
-        <span>{t.sysLoad}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{barTone(sys.load_level)}"></span></span><span class="ctxv">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></span>
-        <span>{t.sysMem}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, (1 - sys.mem_available_mb / Math.max(1, sys.mem_total_mb)) * 100)}%;background:{barTone(sys.mem_level)}"></span></span><span class="ctxv">{t.sysMemV(sysNum(sys.mem_available_mb / 1024, lang), sysNum(sys.mem_total_mb / 1024, lang))}</span></span>
-      </div>
+          <!-- Carico e Memoria come le righe di Utilizzo: etichetta, barra lunga, valore a destra, filo sopra (app-sistema-larghezza-05-11). -->
+          <div data-testid="system_advice">
+          <div class="srows"><div class="srow"><span class="slab">{t.sysLoad}</span><span class="smeter"><i style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{barTone(sys.load_level)}"></i></span><span class="sval">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></div>
+          <div class="srow"><span class="slab">{t.sysMem}</span><span class="smeter"><i style="width:{Math.min(100, (1 - sys.mem_available_mb / Math.max(1, sys.mem_total_mb)) * 100)}%;background:{barTone(sys.mem_level)}"></i></span><span class="sval">{t.sysMemV(sysNum(sys.mem_available_mb / 1024, lang), sysNum(sys.mem_total_mb / 1024, lang))}</span></div></div>
+          <div class="exp sys full">
       <!-- Lo stato tagliato a 8 KB arriva spesso senza consumatori: allora niente riga, il livello e i consigli restano.
            Un consumatore per riga: in una riga sola il testo era tagliato a metà altezza (app-home-riordino-29-10). -->
       {#if sys.consumers.length}<p class="mono2 who">{#each consumersLine(sys, lang).split(' · ') as c, i (i)}<span>{c}</span>{/each}</p>{/if}
@@ -894,6 +894,7 @@
           {/each}
         </div>
       {:else}<p class="okt mono2">{t.sysCalm}</p>{/if}
+          </div>
           </div>
           {#if kpiData?.kpi_health}<div class="exp full"><Kpi12 h={kpiData.kpi_health} /></div>{/if}
           </div>
@@ -1698,6 +1699,15 @@
   /* Sistema aperto usa tutta la larghezza come le righe di Utilizzo, senza il rientro della colonna delle icone
      (app-sistema-larghezza-05-11, Franz 05/11 13:29: «decentrata e non sfrutta bene lo spazio»). */
   .exp.full { padding: 10px 14px 14px; }
+  /* Le due righe in una griglia sola: le barre finiscono allo stesso punto anche col valore della memoria più lungo. */
+  .srows { display: grid; grid-template-columns: 100px minmax(0, 1fr) auto 24px; }
+  .srow { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; column-gap: 10px; align-items: center; min-height: 44px; padding: 6px 12px 6px 14px; border-top: 1px solid var(--line); }
+  .srow:first-child { border-top: 0; }
+  .slab { font: 600 15px var(--display); color: var(--tx); white-space: nowrap; }
+  .smeter { position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
+  .smeter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+  .sval { font: 400 12.5px var(--mono); color: var(--tx); text-align: right; white-space: nowrap; }
+  .srows + .exp.full { border-top: 1px solid var(--line); }
   .wnote { padding: 12px 12px 12px 60px; }
   .sugg { margin-top: 10px; }
   /* Effetto D: la home dà il suo scorrimento alla testata, che si compatta (AppBar). Il tabellone resta sempre pieno: sbiadiva
