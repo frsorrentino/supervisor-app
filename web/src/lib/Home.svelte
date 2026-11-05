@@ -866,7 +866,7 @@
     {@render sec('system', t.homeSystem, 'memory', null, 'home-sez-sistema', sysOpen ? null : summaryLine(sys, lang), { isOpen: sysOpen, onclick: () => (sysManual = { level: sys.level, open: !sysOpen }), dot: sysOpen || sys.level === 'green' ? null : SYS_TONE[sys.level] })}
         {#if sysOpen}
           <div class="card wrows">
-          <div class="exp sys" data-testid="system_advice">
+          <div class="exp sys full" data-testid="system_advice">
       <div class="kv sysm">
         <span>{t.sysLoad}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, sys.load_per_core / 3 * 100)}%;background:{barTone(sys.load_level)}"></span></span><span class="ctxv">{t.sysLoadV(sysNum(sys.load_per_core, lang))}</span></span>
         <span>{t.sysMem}</span><span class="trackrow"><span class="track"><span class="fill" style="width:{Math.min(100, (1 - sys.mem_available_mb / Math.max(1, sys.mem_total_mb)) * 100)}%;background:{barTone(sys.mem_level)}"></span></span><span class="ctxv">{t.sysMemV(sysNum(sys.mem_available_mb / 1024, lang), sysNum(sys.mem_total_mb / 1024, lang))}</span></span>
@@ -895,7 +895,7 @@
         </div>
       {:else}<p class="okt mono2">{t.sysCalm}</p>{/if}
           </div>
-          {#if kpiData?.kpi_health}<div class="exp"><Kpi12 h={kpiData.kpi_health} /></div>{/if}
+          {#if kpiData?.kpi_health}<div class="exp full"><Kpi12 h={kpiData.kpi_health} /></div>{/if}
           </div>
         {/if}
   {/if}
@@ -1695,6 +1695,9 @@
   .gh.cat svg, .gh.cat i { display: none; }
   .exp { padding: 2px 12px 12px 60px; }
   .footer.exp { padding: 8px 12px 12px; }
+  /* Sistema aperto usa tutta la larghezza come le righe di Utilizzo, senza il rientro della colonna delle icone
+     (app-sistema-larghezza-05-11, Franz 05/11 13:29: «decentrata e non sfrutta bene lo spazio»). */
+  .exp.full { padding: 10px 14px 14px; }
   .wnote { padding: 12px 12px 12px 60px; }
   .sugg { margin-top: 10px; }
   /* Effetto D: la home dà il suo scorrimento alla testata, che si compatta (AppBar). Il tabellone resta sempre pieno: sbiadiva
