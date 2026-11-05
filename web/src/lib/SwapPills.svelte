@@ -5,7 +5,10 @@
   // app-sessione-sostituisci-03-11, app-scheda-sostituisce-04-11): chiusa, + la apre accanto; già in colonna, il filo bianco
   // che la lega al riquadro è il suo meno, e al passaggio diventa «− Chiudi». Sostituire è il clic sulla scheda.
   let { shown, homeRight, onAdd, onClose }: { shown: string[]; homeRight: boolean; onAdd: (n: string) => void; onClose: (n: string) => void } = $props()
-  type Spot = { name: string; y: number; x: number }
+  // `a`, `b`: dove comincia e finisce il filo, dal bordo della colonna (13 px oltre la corsia, il margine delle colonne) al bordo
+  // della scheda della home (app-tablet-barre-bordi-05-11: Franz 23:17 dalla PWA, il filo da 54 px partiva dal bordo del tasto
+  // invece che dal suo centro, ed entrava nella scheda).
+  type Spot = { name: string; y: number; x: number; a: number; b: number }
   let spots = $state<Spot[]>([])
   let hot = $state<string | null>(null)
   function measure() {
@@ -25,7 +28,9 @@
       const r = el.getBoundingClientRect()
       // A metà della riga, anche aperta (prova 165 di Franz, 05/11 21:45).
       const y = r.top + r.height / 2
-      if (y > hr.top + 20 && y < hr.bottom - 20) out.push({ name: el.dataset.sess!, y, x })
+      const col = homeRight ? gr.left - 13 : gr.right + 13
+      const card = homeRight ? r.left : r.right
+      if (y > hr.top + 20 && y < hr.bottom - 20) out.push({ name: el.dataset.sess!, y, x, a: Math.min(col, card), b: Math.max(col, card) })
     }
     if (JSON.stringify(out) !== JSON.stringify(spots)) spots = out
   }
@@ -40,6 +45,7 @@
 
 {#each spots as s (s.name)}
   {#if shown.includes(s.name)}
+    {#if hot !== s.name}<i class="wire" aria-hidden="true" style:top="{s.y}px" style:left="{s.a}px" style:width="{s.b - s.a}px"></i>{/if}
     <button class="link" class:hot={hot === s.name} class:flip={homeRight} style:top="{s.y}px" style:left="{s.x}px" aria-label={t.swapClose(s.name)}
       onpointerenter={() => (hot = s.name)} onpointerleave={() => (hot = null)} onclick={() => onClose(s.name)}><i></i>{#if hot === s.name}<span class="tip">{t.swapCloseShort}</span>{/if}</button>
   {:else}
@@ -61,10 +67,11 @@
   .tip { position: absolute; left: calc(100% + 8px); white-space: nowrap; padding: 4px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; color: var(--text); pointer-events: none; }
   .pill.flip .tip { left: auto; right: calc(100% + 8px); }
   .tip1 { top: 2px; }
-  /* Il filo: dalla colonna alla scheda (13 + 28 + 13) a riposo, il tocco prende 30 x 30; al passaggio diventa la pillola del
-     meno, come quella del +. */
+  /* Il filo (.wire) va dalla colonna alla scheda; il tocco prende 30 x 30 a metà della corsia; al passaggio il filo lascia il
+     posto alla pillola del meno, come quella del +. */
   .link { position: fixed; z-index: 30; transform: translate(-50%, -50%); width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 16px; border: 1px solid transparent; transition: background-color .15s, border-color .15s; }
-  .link i { width: 54px; flex: none; height: 2px; border-radius: 1px; background: var(--text); opacity: .8; transition: width .15s; }
+  .wire { position: fixed; z-index: 30; height: 2px; margin-top: -1px; border-radius: 1px; background: var(--text); opacity: .8; pointer-events: none; }
+  .link i { width: 0; flex: none; height: 2px; border-radius: 1px; background: var(--text); opacity: .8; transition: width .15s; }
   .link.hot { background: var(--s2); border-color: var(--line); }
   .link.hot i { width: 12px; opacity: 1; }
   .link .tip { top: 4px; }
