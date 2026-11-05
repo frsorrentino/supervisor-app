@@ -165,18 +165,21 @@ internal fun TopEdge(dragging: Boolean, hot: Boolean, modifier: Modifier = Modif
 
 /** Lo spazio della lista della home fra due voci (`spacedBy` in SummaryList). */
 internal val CAT_LIST_GAP = 8.dp
+/** Lo stacco fra due categorie chiuse evidenziate di seguito. */
+internal val CAT_AMBER_GAP = 4.dp
 
 /**
  * Categoria chiusa: una riga con a destra il segnale; in ambra quando c'è qualcosa (Franz: «un segnale, non uno spostamento»).
  * `open`: aperta sul posto, la riga diventa la testata della card.
  */
 @Composable
-internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolean, modifier: Modifier = Modifier, tight: Boolean = false, onToggle: () -> Unit) {
+internal fun CatRow(id: String, bits: List<CatBit>, amber: Boolean, open: Boolean, modifier: Modifier = Modifier, tight: Boolean = false, afterAmber: Boolean = false, onToggle: () -> Unit) {
     val shape = if (open) CatPeekTop else V3.Shape
     // Sotto un'altra categoria chiusa (`tight`) al passo delle righe del riquadro, 48 dp (app-categorie-chiuse-fitte-05-11, Franz
     // 05/11: «un po' troppo rade»): niente margine e la riga sale sullo spazio della lista fra le due; resta lo stacco dal riquadro.
     var m = if (tight) Modifier.fillMaxWidth().layout { me, c ->
-        val gap = CAT_LIST_GAP.roundToPx()
+        // Due evidenziate di seguito restano staccate di 4 dp: i fondi ambra non si toccano.
+        val gap = (CAT_LIST_GAP - if (afterAmber) CAT_AMBER_GAP else 0.dp).roundToPx()
         val p = me.measure(c)
         layout(p.width, (p.height - gap).coerceAtLeast(0)) { p.place(0, -gap) }
     } else Modifier.fillMaxWidth().padding(top = 6.dp)

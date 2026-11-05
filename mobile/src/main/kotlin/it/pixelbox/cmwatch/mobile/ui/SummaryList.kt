@@ -1023,7 +1023,7 @@ fun SummaryList(
             else item(key = "cat-${c.id}") {
                 Box(movingIn("cat:${c.id}")()) {
                     val (bits, amber) = catBits(c.id)
-                    CatRow(c.id, bits, amber, false, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), tight = ci > 0 && !shownCats[ci - 1].open) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) }
+                    CatRow(c.id, bits, amber, false, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), tight = ci > 0 && !shownCats[ci - 1].open, afterAmber = amber && ci > 0 && !shownCats[ci - 1].open && catBits(shownCats[ci - 1].id).second) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) }
                 }
             }
             if (!c.open) return@forEachIndexed

@@ -1526,6 +1526,8 @@
      «un po' troppo rade»): niente margine e niente spazio della home fra due chiuse; resta lo stacco dal riquadro sopra. */
   .hcat:has(> .catrow) + .hcat:has(> .catrow) { margin-top: -8px; }
   .hcat:has(> .catrow) + .hcat > .catrow { margin-top: 0; }
+  /* Due evidenziate di seguito restano staccate di 4 px: i fondi ambra non si toccano. */
+  .hcat:has(> .catrow.amber) + .hcat:has(> .catrow.amber) { margin-top: -4px; }
   .catrow .ic { flex: none; width: 52px; display: grid; place-items: center; color: var(--tx2); }
   .catrow b { font: 700 18px/22px var(--display); white-space: nowrap; }
   /* Su una riga (app-riassunti-una-riga-03-11): prende lo spazio che avanza, le parti che non entrano cadono (OneLine). */
