@@ -645,7 +645,6 @@
     <string name="tablet_in_column">in colonna</string>
     <string name="tablet_add_column">+ colonna</string>
     <string name="tablet_close_column">Togli %1$s dalle colonne</string>
-    <string name="master_grab">Trascina per spostare la master di lato</string>
     <string name="strip_open">Apri %1$s</string>
     <string name="tablet_bar">Barra</string>
     <string name="tablet_bar_fixed">Fissa</string>

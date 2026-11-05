@@ -204,8 +204,6 @@ fun MasterDock(
             // Il badge di stato solo quando la master ti aspetta o è chiusa; altrimenti la scintilla di Claude, che gira mentre
             // lavora. Il cerchio rosso era l'elemento più saturo della schermata e nel Material 3 il rosso è «errore» (22:27).
             // Stile «Studio e Diretta» (30/10): al posto della scintilla e del badge il glifo dello stato, con l'anello del contesto.
-            // La presa ⠿ del cambio lato, come la PWA, solo nel pannello e nella pila del tablet.
-            SideGrab()
             StateGlyph(it.pixelbox.cmwatch.rules.Rail.glyph(master), master.context, size = 18.dp, square = !it.pixelbox.cmwatch.rules.Accounts.personal(master.account, master.accountKind), label = label)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
