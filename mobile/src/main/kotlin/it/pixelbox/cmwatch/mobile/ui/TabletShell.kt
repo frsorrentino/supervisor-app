@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.ViewColumn
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.pointerInput
@@ -876,9 +877,8 @@ private fun DeskBody(
     override: (@Composable () -> Unit)?, inspector: (@Composable () -> Unit)?, insets: Boolean, homeHidden: Boolean = false,
     swap: SwapPills? = null,
 ) {
-    val spots = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>() }
-    var homeBox by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
-    var handleBox by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    val edge = androidx.compose.runtime.remember { EdgeSpots() }
+    androidx.compose.runtime.SideEffect { edge.swap = swap.takeIf { !homeHidden && columns.isNotEmpty() && override == null } }
     // La home cambia lato scivolando sopra le colonne, che scivolano dall'altra parte (Franz, 04/10 22:15: «spartane»). Le
     // parti restano nello stesso punto della composizione e cambiano solo posizione: la home non si ricrea e tiene lo
     // scorrimento.
@@ -895,7 +895,7 @@ private fun DeskBody(
         drawRect(androidx.compose.ui.graphics.Brush.radialGradient(0f to Color(0xFF1C1C1C), 0.6f to Color(0xFF121212), 1f to Color(0xFF0B0B0B), center = Offset(size.width / 2f, 0f), radius = maxOf(size.width * 0.75f, 1f)))
     }).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
         val homeW = if (homeHidden) 0.dp else 400.dp
-        val handleW = if (homeHidden) 0.dp else 28.dp
+        val handleW = if (homeHidden) 0.dp else CORSIA_DP.dp
         val detailsW = if (inspector != null) 341.dp else 0.dp
         val total = maxWidth
         // Da sinistra: home, maniglia, colonne, dettagli; con la home a destra l'ordine si rovescia.
@@ -918,46 +918,69 @@ private fun DeskBody(
         }
         // Le colonne di nuovo uguali, quando non lo sono (Franz, 05/10 12:30: «ci vuole un tasto per resettare le dimensioni»).
         val reset = if (columns.size > 1 && shares != Tablet.Shares.equal(columns.size)) ({ onShares(Tablet.Shares.equal(columns.size)) }) else null
-        if (!homeHidden) Box(at(homeW, total - homeW - handleW).width(handleW).fillMaxHeight().onGloballyPositioned { c -> handleBox = c.boundsInRoot() }) { HomeSideHandle(homeRight, onHomeSide, reset) }
+        // La corsia fra la home e le colonne, con ⇄ e il ripristino in alto e il + o il filo di ogni sessione (Corsia).
+        if (!homeHidden) Corsia(edge, at(homeW, total - homeW - handleW).zIndex(2f)) { HomeSideButtons(homeRight, onHomeSide, reset) }
         // A metà strada la home passa sopra le colonne, con un'ombra che c'è solo mentre si sposta.
         if (!homeHidden) Box(
             at(0.dp, total - homeW).width(homeW).fillMaxHeight().zIndex(1f)
                 .graphicsLayer { shadowElevation = 32f * (1f - kotlin.math.abs(side * 2f - 1f)) }
-                .background(Cm.bg).onGloballyPositioned { c -> homeBox = c.boundsInRoot() },
-        ) { androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides spots.takeIf { swap != null }) { home() } }
-        // Le pillole sopra la home e il filo, all'altezza di ogni sessione della home (SwapPills.svelte).
-        if (swap != null && !homeHidden && columns.isNotEmpty() && override == null) {
-            val hb = homeBox; val gb = handleBox
-            val density = androidx.compose.ui.platform.LocalDensity.current
-            if (hb != null && gb != null) Box(at(homeW, total - homeW - handleW).width(handleW).fillMaxHeight().zIndex(2f)) {
-                spots.forEach { (name, r) ->
-                    val y = r.top + kotlin.math.min(r.height / 2f, with(density) { 44.dp.toPx() })
-                    if (y > hb.top + with(density) { 20.dp.toPx() } && y < hb.bottom - with(density) { 20.dp.toPx() }) {
-                        val yDp = with(density) { (y - gb.top).toDp() }
-                        if (name in swap.shown) CloseLink(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
-                        else SwapPill(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
-                    }
-                }
-            }
-        }
+                .background(Cm.bg).onGloballyPositioned { c -> edge.area = c.boundsInRoot() },
+        ) { androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides edge.spots.takeIf { swap != null }) { home() } }
     }
 }
 
-/** Il filo fra la home e le colonne, con ⇄ in alto: un clic porta la home dall'altro lato. */
+/** In alto nella corsia della plancia: ⇄ porta la home dall'altro lato, sotto il ripristino delle larghezze. */
 @Composable
-private fun HomeSideHandle(homeRight: Boolean, onHomeSide: () -> Unit, onReset: (() -> Unit)? = null) {
-    Box(Modifier.width(28.dp).fillMaxHeight()) {
+private fun androidx.compose.foundation.layout.BoxScope.HomeSideButtons(homeRight: Boolean, onHomeSide: () -> Unit, onReset: (() -> Unit)? = null) {
+    Box(
+        Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
+            .handCursor().clickable(onClickLabel = stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), onClick = onHomeSide).handCursor(),
+        contentAlignment = Alignment.Center,
+    ) { Icon(Icons.Rounded.SwapHoriz, stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), tint = Cm.text2, modifier = Modifier.size(18.dp)) }
+    if (onReset != null) Box(
+        Modifier.align(Alignment.TopCenter).padding(top = 46.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
+            .handCursor().clickable(onClickLabel = stringResource(R.string.tablet_reset_widths), onClick = onReset),
+        contentAlignment = Alignment.Center,
+    ) { Icon(Icons.Rounded.ViewColumn, stringResource(R.string.tablet_reset_widths), tint = Cm.text2, modifier = Modifier.size(18.dp)) }
+}
+
+/** La larghezza della corsia, e del filo: dalla colonna alla scheda della home, i due margini da 13 e la corsia. */
+internal const val CORSIA_DP = 28
+private const val FILO_DP = 13 + CORSIA_DP + 13
+
+/** Le schede della home viste dalla corsia: dove stanno, l'area della home che le mostra e cosa fare al tocco. */
+internal class EdgeSpots {
+    val spots = androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>()
+    var area by mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
+    var swap by mutableStateOf<SwapPills?>(null)
+}
+
+/** Il telaio della master dà la sua corsia alla home che sta nella pila (StackEdge). */
+internal val LocalEdgeSpots = androidx.compose.runtime.staticCompositionLocalOf<EdgeSpots?> { null }
+
+/**
+ * La corsia, una per tutte le posizioni della master (app-tablet-barre-bordi-05-11): fra le colonne e la home della plancia,
+ * e fra le colonne e il pannello della master, anche con la home nella pila. 28 dp con la linea a metà; il + e il filo di ogni
+ * sessione all'altezza della sua scheda, il filo lungo dalla colonna alla scheda; `grip`, il bordo della master che si
+ * trascina, prende tutta la corsia e ha la presa a metà.
+ */
+@Composable
+internal fun Corsia(edge: EdgeSpots?, modifier: Modifier = Modifier, grip: Boolean = false, top: (@Composable androidx.compose.foundation.layout.BoxScope.() -> Unit)? = null) {
+    var me by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    Box(modifier.width(CORSIA_DP.dp).fillMaxHeight().onGloballyPositioned { c -> me = c.boundsInRoot() }.testTag("corsia")) {
         Box(Modifier.align(Alignment.Center).width(1.dp).fillMaxHeight().background(Cm.line))
-        Box(
-            Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
-                .handCursor().clickable(onClickLabel = stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), onClick = onHomeSide).handCursor(),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.SwapHoriz, stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), tint = Cm.text2, modifier = Modifier.size(18.dp)) }
-        if (onReset != null) Box(
-            Modifier.align(Alignment.TopCenter).padding(top = 46.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
-                .handCursor().clickable(onClickLabel = stringResource(R.string.tablet_reset_widths), onClick = onReset),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.ViewColumn, stringResource(R.string.tablet_reset_widths), tint = Cm.text2, modifier = Modifier.size(18.dp)) }
+        if (grip) Box(Modifier.align(Alignment.Center).width(4.dp).height(48.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3).testTag("master-bordo"))
+        top?.invoke(this)
+        val m = me; val a = edge?.area; val swap = edge?.swap
+        if (edge != null && m != null && a != null && swap != null) edge.spots.forEach { (name, r) ->
+            val y = r.top + kotlin.math.min(r.height / 2f, with(density) { 44.dp.toPx() })
+            if (y > a.top + with(density) { 20.dp.toPx() } && y < a.bottom - with(density) { 20.dp.toPx() }) {
+                val yDp = with(density) { (y - m.top).toDp() }
+                if (name in swap.shown) CloseLink(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
+                else SwapPill(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
+            }
+        }
     }
 }
 
@@ -974,8 +997,9 @@ private fun Columns(
     val density = androidx.compose.ui.platform.LocalDensity.current
     val off = animationsOff()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    // Sul lato della maniglia il margine è quello delle card della home (13): la linea sta a metà fra le due (app-gutter-centrato-04-11).
-    val (padStart, padEnd) = if (homeRight) 10.dp to 13.dp else 13.dp to 10.dp
+    // Il margine delle card della home (13) dai due lati: la linea della corsia sta a metà (app-gutter-centrato-04-11), e con la
+    // master di lato la corsia c'è anche dall'altra parte (app-tablet-barre-bordi-05-11).
+    val (padStart, padEnd) = 13.dp to 13.dp
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().padding(start = padStart, end = padEnd, top = 10.dp, bottom = 10.dp)) {
         val gapPx = with(density) { 12.dp.toPx() }
         val widthPx = constraints.maxWidth.toFloat() - gapPx * (columns.size - 1)
@@ -1099,7 +1123,7 @@ data class SwapPills(val shown: List<String>, val onAdd: (String) -> Unit, val o
 @Composable
 private fun CloseLink(name: String, swap: SwapPills, modifier: Modifier) {
     Box(modifier.size(30.dp).clip(RoundedCornerShape(15.dp)).handCursor().clickable(onClickLabel = stringResource(R.string.swap_close, name)) { swap.onClose(name) }.testTag("filo-$name"), contentAlignment = Alignment.Center) {
-        Box(Modifier.width(28.dp).height(2.dp).clip(RoundedCornerShape(1.dp)).background(Cm.text.copy(alpha = 0.8f)))
+        Box(Modifier.requiredWidth(FILO_DP.dp).height(2.dp).clip(RoundedCornerShape(1.dp)).background(Cm.text.copy(alpha = 0.8f)))
     }
 }
 
@@ -1115,30 +1139,17 @@ private fun SwapPill(name: String, swap: SwapPills, modifier: Modifier) {
 
 
 /**
- * Con la master sotto la home la home sta nella colonna della master, e il filo fra home e colonne non c'è (app-bordo-aggiungi-
- * sparito-04-11, come SwapPills.svelte con `aside.stackcol`): il + e il filo bianco di ogni sessione stanno sul bordo della
- * colonna verso le sessioni aperte, all'altezza della sua scheda. `toEnd`: le colonne sono a destra.
+ * Con la master sotto la home la home sta nella colonna della master (app-bordo-aggiungi-sparito-04-11, come SwapPills.svelte
+ * con `aside.stackcol`): il + e il filo bianco di ogni sessione stanno nella corsia del telaio fra la colonna e le sessioni
+ * aperte, come nella plancia (app-tablet-barre-bordi-05-11: dentro la colonna coprivano le schede).
  */
 @Composable
-internal fun StackEdge(swap: SwapPills?, toEnd: Boolean, home: @Composable () -> Unit) {
-    val spots = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>() }
-    var box by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
-    Box(Modifier.fillMaxSize().onGloballyPositioned { c -> box = c.boundsInRoot() }) {
-        androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides spots.takeIf { swap != null }) { home() }
-        val b = box
-        if (swap != null && b != null) {
-            val density = androidx.compose.ui.platform.LocalDensity.current
-            Box(Modifier.align(if (toEnd) Alignment.TopEnd else Alignment.TopStart).width(30.dp).fillMaxHeight().zIndex(2f)) {
-                spots.forEach { (name, r) ->
-                    val y = r.top + kotlin.math.min(r.height / 2f, with(density) { 44.dp.toPx() })
-                    if (y > b.top + with(density) { 20.dp.toPx() } && y < b.bottom - with(density) { 20.dp.toPx() }) {
-                        val yDp = with(density) { (y - b.top).toDp() }
-                        if (name in swap.shown) CloseLink(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
-                        else SwapPill(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
-                    }
-                }
-            }
-        }
+internal fun StackEdge(swap: SwapPills?, home: @Composable () -> Unit) {
+    val edge = LocalEdgeSpots.current ?: remember { EdgeSpots() }
+    androidx.compose.runtime.SideEffect { edge.swap = swap }
+    androidx.compose.runtime.DisposableEffect(edge) { onDispose { edge.swap = null; edge.area = null; edge.spots.clear() } }
+    Box(Modifier.fillMaxSize().onGloballyPositioned { c -> edge.area = c.boundsInRoot() }) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides edge.spots.takeIf { swap != null }) { home() }
     }
 }
 

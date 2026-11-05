@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -247,8 +251,11 @@ internal fun MasterFrame(
     left: Boolean, panelWidthDp: Float, panel: (@Composable () -> Unit)?, bar: (@Composable () -> Unit)?,
     place: it.pixelbox.cmwatch.rules.MasterPlace? = null, open: Boolean = panel != null, sessionsOpen: Boolean = false,
     onPlace: ((it.pixelbox.cmwatch.rules.MasterPlace, Boolean, Boolean) -> Unit)? = null,
+    /** La home sta sopra la master nel pannello: la presa in alto è la maniglia fra le due (MasterStack), non la testa del pannello. */
+    stacked: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val edge = androidx.compose.runtime.remember { EdgeSpots() }
     var ghost by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Ghost?>(null) }
     var hints by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<List<Ghost>>(emptyList()) }
     var mid by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Mid?>(null) }
@@ -280,15 +287,26 @@ internal fun MasterFrame(
     androidx.compose.runtime.LaunchedEffect(landed) { if (landed > 0 && !squashOff) { squash.snapTo(0.96f); squash.animateTo(1f, Fx.spring()) } }
     fun Modifier.landing() = this.graphicsLayer { scaleY = squash.value; scaleX = 2f - squash.value; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f) }
     fun Modifier.grip(key: String) = this.onGloballyPositioned { c -> grips[key] = c }
+    val gripOf: (String) -> Modifier = { k -> Modifier.grip(k) }
     fun Modifier.seen(key: String) = this.onGloballyPositioned { c -> seen[key] = c }
     androidx.compose.foundation.layout.BoxWithConstraints(
-        Modifier.fillMaxSize().background(V3.Bg).onGloballyPositioned { frame = it }.then(if (onPlace == null) Modifier else Modifier.pointerInput(Unit) {
+        // Il telaio sta dentro le barre di sistema (app-tablet-barre-bordi-05-11): il pannello saliva sotto la barra di stato, con la
+        // maniglia in alto dove il gesto lo prende Android; la riga scendeva sulla barra dei gesti.
+        Modifier.fillMaxSize().background(V3.Bg)
+            .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.statusBars.union(androidx.compose.foundation.layout.WindowInsets.navigationBars))
+            .onGloballyPositioned { frame = it }.then(if (onPlace == null) Modifier else Modifier.pointerInput(Unit) {
             awaitEachGesture {
                 val pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial
                 val down = awaitFirstDown(requireUnconsumed = false, pass = pass)
                 val f = frame?.takeIf { it.isAttached } ?: return@awaitEachGesture
-                // La presa più piccola sotto il dito: la maniglia vince sulla riga che la contiene.
-                val key = grips.entries.filter { (_, c) -> c.isAttached && f.localBoundingBoxOf(c, false).contains(down.position) }
+                // La presa più piccola sotto il dito: la maniglia vince sulla riga che la contiene. Ogni presa si tocca su almeno
+                // 48 dp per lato attorno al suo centro, anche dove il segno è sottile (app-tablet-barre-bordi-05-11).
+                val minPx = 48.dp.toPx()
+                fun hit(b: androidx.compose.ui.geometry.Rect): androidx.compose.ui.geometry.Rect {
+                    val hw = maxOf(b.width, minPx) / 2; val hh = maxOf(b.height, minPx) / 2
+                    return androidx.compose.ui.geometry.Rect(b.center.x - hw, b.center.y - hh, b.center.x + hw, b.center.y + hh)
+                }
+                var key = grips.entries.filter { (_, c) -> c.isAttached && hit(f.localBoundingBoxOf(c, false)).contains(down.position) }
                     .minByOrNull { (_, c) -> c.size.width.toLong() * c.size.height }?.key ?: return@awaitEachGesture
                 val p0 = placeNow ?: return@awaitEachGesture
                 val open0 = openNow
@@ -353,7 +371,11 @@ internal fun MasterFrame(
                         }
                         // Oltre 6 dp è un trascinamento, e vince sui tocchi (app-master-gesti-senza-conflitti-04-11).
                         if (!moved && !it.pixelbox.cmwatch.rules.MasterGestures.isDrag((c.position.x - down.position.x) / density, (c.position.y - down.position.y) / density)) continue
-                        if (!moved) taps.dragged()
+                        if (!moved) {
+                            taps.dragged()
+                            // La presa in alto: di lato cambia il lato, in su o in giù l'altezza.
+                            if (key == "top") key = if (kotlin.math.abs(c.position.x - down.position.x) > kotlin.math.abs(c.position.y - down.position.y)) "side" else "height"
+                        }
                         moved = true; c.consume(); last = c.position
                     }
                     wait = null
@@ -392,22 +414,18 @@ internal fun MasterFrame(
             Row(Modifier.fillMaxSize()) {
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
                     if (panel != null) {
+                        val canGrip = onPlace != null && place != null
                         Box(Modifier.reflow("r-master").landing().width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
-                            panel()
-                            if (onPlace != null && place != null) {
-                                // La maniglia del lato, in testa: trascinata, la sagoma passa alla metà dello schermo sotto il dito.
-                                Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-lato").grip("side")) {
-                                    Box(Modifier.align(Alignment.Center).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
-                                }
-                                // Il bordo verso le sessioni: la larghezza fra i posti fissi.
-                                Box(Modifier.align(if (left) Alignment.CenterEnd else Alignment.CenterStart).width(12.dp).fillMaxHeight().testTag("master-bordo").grip("width")) {
-                                    Box(Modifier.align(Alignment.Center).width(4.dp).height(48.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
-                                }
-                                // Il bordo superiore: l'altezza a scatti (colonna, sotto la home a metà o compatta, riga).
-                                Box(Modifier.align(Alignment.TopStart).fillMaxWidth(0.3f).height(10.dp).grip("height"))
+                            androidx.compose.runtime.CompositionLocalProvider(LocalEdgeSpots provides edge, LocalMasterGrip provides gripOf.takeIf { canGrip }) { panel() }
+                            // La presa in alto: di lato cambia il lato (la sagoma passa alla metà dello schermo sotto il dito), in su o
+                            // in giù l'altezza a scatti. Nella pila è la maniglia fra la home e la master.
+                            if (canGrip && !stacked) Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-lato").grip("top")) {
+                                Box(Modifier.align(Alignment.Center).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
                             }
                         }
-                        Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
+                        // La corsia verso le sessioni, come nella plancia: col + e il filo delle schede della pila; trascinata, la
+                        // larghezza fra i posti fissi.
+                        Corsia(edge, if (canGrip) Modifier.grip("width") else Modifier, grip = canGrip)
                     }
                     Column(Modifier.weight(1f).fillMaxHeight()) {
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
@@ -439,6 +457,9 @@ internal fun MasterFrame(
         GhostLayer(ghost, hints, mid)
     }
 }
+
+/** Le prese del telaio per chi sta nel pannello (la maniglia della pila); null senza gesti. */
+internal val LocalMasterGrip = androidx.compose.runtime.staticCompositionLocalOf<((String) -> Modifier)?> { null }
 
 /** Un posto della sagoma o di una destinazione, in dp nel telaio, con la sua etichetta. */
 internal data class Ghost(val rect: L.Rect, val text: String)
@@ -552,8 +573,13 @@ internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @C
                     )
                 }
             }) { home() }
+        // La maniglia fra le due: un tocco cambia misura; trascinata è la presa in alto della master (lato e altezza), come la
+        // testa del pannello (app-tablet-barre-bordi-05-11: prima solo il tocco).
+        val grip = LocalMasterGrip.current
         Box(Modifier.fillMaxWidth().height(14.dp).handCursor().clickable(onClickLabel = stringResource(R.string.master_stack_step), onClick = onStep), contentAlignment = Alignment.Center) {
-            Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+            Box(Modifier.width(72.dp).fillMaxHeight().then(grip?.invoke("top") ?: Modifier).testTag("master-maniglia-pila"), contentAlignment = Alignment.Center) {
+                Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+            }
         }
         // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): cambiando misura gli angoli si piegano verso l'interno e tornano
         // tondi con la molla.

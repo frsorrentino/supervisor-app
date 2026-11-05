@@ -2253,12 +2253,12 @@ class MainActivity : ComponentActivity() {
                 place.left, place.panelWidth(),
                 panel = if (m != null && masterChat) ({
                     if (stacked) it.pixelbox.cmwatch.mobile.ui.MasterStack(place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF,
-                        home = { it.pixelbox.cmwatch.mobile.ui.StackEdge(tabletSwap.takeIf { tabletCols.isNotEmpty() && tab != StartRoute.Tab.LAVORI }, toEnd = place.left) { summaryPage() } },
+                        home = { it.pixelbox.cmwatch.mobile.ui.StackEdge(tabletSwap.takeIf { tabletCols.isNotEmpty() && tab != StartRoute.Tab.LAVORI }) { summaryPage() } },
                         master = { if (place.stack == it.pixelbox.cmwatch.rules.MasterLanding.Height.HALF) masterPanel(m, true) else masterBar(m) { keepPlace(place.stepStack()) } }, onStep = { keepPlace(place.stepStack()) })
                     else masterPanel(m, true)
                 }) else null,
                 bar = if (m != null && !masterChat) ({ masterBar(m) { masterChat = true } }) else null,
-                place = place, open = masterChat, sessionsOpen = true,
+                place = place, open = masterChat, sessionsOpen = true, stacked = stacked,
                 onPlace = if (m != null) ({ p, o, commit -> if (commit) keepPlace(p) else place = p; masterChat = o }) else null,
             ) { tabletDesk(st, summary, stacked) }
         }
