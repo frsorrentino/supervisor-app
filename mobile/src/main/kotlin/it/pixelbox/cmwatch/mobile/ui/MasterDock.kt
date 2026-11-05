@@ -34,7 +34,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.draw.clip
@@ -209,16 +208,11 @@ fun MasterDock(
                     time?.let { Text(it, style = V3.Meter, maxLines = 1) }
                     if (!expanded) ctx?.let { Text(it, style = V3.Meter, maxLines = 1) }
                 }
-                // Nella riga in basso del tablet la risposta vera dall'inizio, su tre righe che sfumano: si capisce che continua, e
-                // un tocco apre la conversazione (app-master-riga-maniglie-04-11, come la web).
+                // Nella riga in basso del tablet la risposta vera dall'inizio: due righe intere e poi i puntini, niente sfumatura
+                // (app-master-riga-testo-05-11, Franz 05/11 11:16, scelta A, come la web); un tocco apre la conversazione.
                 if (full) hero?.text?.takeIf { it.isNotBlank() }?.let { t ->
                     Text(
-                        t.replace(Regex("""\*\*|__|`"""), ""), style = V3.Small.copy(fontSize = 13.sp, lineHeight = 16.sp), maxLines = 3, overflow = TextOverflow.Clip,
-                        modifier = Modifier.heightIn(max = 48.dp).graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(androidx.compose.ui.graphics.Brush.verticalGradient(0.55f to androidx.compose.ui.graphics.Color.Black, 1f to androidx.compose.ui.graphics.Color.Transparent), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
-                            },
+                        t.replace(Regex("""\*\*|__|`"""), ""), style = V3.Small.copy(fontSize = 13.sp, lineHeight = 16.sp), maxLines = 2, overflow = TextOverflow.Ellipsis,
                     )
                 } ?: hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = headlineLines, overflow = TextOverflow.Clip) }
                 else hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = headlineLines, overflow = TextOverflow.Clip) }

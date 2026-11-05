@@ -181,6 +181,7 @@
   /* Nella riga in basso la risposta vera dall'inizio, su tre righe nella stessa altezza delle due di prima, e la terza sfuma: si
      capisce che continua, e un tocco apre la conversazione (app-master-riga-maniglie-04-11). */
   .dock.bar .l1 { align-items: flex-start; }
-  .dock.bar .l1 .hl.full { white-space: pre-line; font-size: 13px; line-height: 16px; max-height: 48px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
+  /* Due righe intere e poi i puntini, come la master senza tasti; niente sfumatura (app-master-riga-testo-05-11, Franz 05/11 11:16, scelta A). */
+  .dock.bar .l1 .hl.full { white-space: pre-line; font-size: 13px; line-height: 16px; max-height: 32px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; text-overflow: ellipsis; }
   .dock.bar .l1 .mn, .dock.bar .l1 .mono { line-height: 19px; }
 </style>
