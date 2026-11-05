@@ -27,9 +27,11 @@ import java.util.Base64
 class FirebaseTransportTest {
     private val server = MockWebServer()
     private val key = ByteArray(32).also { SecureRandom().nextBytes(it) }
-    private val store = HashMap<String, String>()          // path → JSON (RTDB finto)
-    private val requests = ArrayList<RecordedRequest>()
-    private var streamBody = ""
+    // Il server finto scrive dal suo thread mentre il test legge (app-test-firebase-instabile-05-11: la verifica CI 42034635554
+    // cadde con ConcurrentModificationException contando le richieste): strutture sicure fra thread.
+    private val store = java.util.concurrent.ConcurrentHashMap<String, String>()          // path → JSON (RTDB finto)
+    private val requests = java.util.concurrent.CopyOnWriteArrayList<RecordedRequest>()
+    @Volatile private var streamBody = ""
     private var clock = 1789210800L
     private var refuseSeen = false
     private var slowSeenMs = 0L
