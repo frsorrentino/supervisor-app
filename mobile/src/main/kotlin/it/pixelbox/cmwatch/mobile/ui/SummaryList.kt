@@ -188,8 +188,6 @@ fun SummaryList(
     onSpeak: ((String) -> Unit)? = null,
     /** Dove la lista era arrivata (primo elemento e scarto), tenuto da chi la ospita: ricreata, riparte da lì (09/10 17:23). */
     scrollMemo: IntArray? = null,
-    /** Contratto 1.68: il banner della casa della master, le voci di «Serve te» delle altre sessioni; il tocco porta alla prima. */
-    attention: List<it.pixelbox.cmwatch.contract.Attention> = emptyList(), onAttention: () -> Unit = {},
     /** P6 (21/10): la card dell'aggiornamento in cima quando una release nuova è pronta; null o senza release = niente. */
     update: AppUpdater.Ui? = null, onInstallUpdate: (AppUpdate.Release) -> Unit = {}, onDismissUpdate: (String) -> Unit = {},
     /** Contratto 1.90, la sezione «Sistema»: null con un relay precedente; `onSystem` null = sola lettura (demo, relay senza l'op). */
@@ -630,9 +628,8 @@ fun SummaryList(
         if (parts == null && update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }
         // Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto.
         if (parts == null) elicitations.forEach { e -> item(key = "elicit-${e.id}") { Box(moving()) { ElicitationCard(e, now, onElicit) } } }
-        if (parts == null && attention.isNotEmpty()) item(key = "attention-banner") {
-            Box(moving()) { AttentionBanner(attention) { sessionsOpen = true; save("sessions", true); onAttention() } }
-        }
+        // Niente barra «N ti aspetta(no)» in cima (app-per-te-ti-aspetta-05-11, Franz 05/11 13:48, scelta A, come la web): chi
+        // aspetta lo dicono il riquadro e «Ti aspettano»; nelle sessioni resta la scheda con Rispondi (ElsewherePill).
         // Strada B (Franz 23/10 23:08, mockup del 23/10): un lavoro di una sessione aperta sta nella sua scheda, come gli ok;
         // in Lavori restano quelli senza sessione, in una lista compatta.
         val placed = foryou?.let { Lavori.place(it, model.rows.map { r -> r.session.name }.toSet(), Summary.attachedTasks(model.rows)) }
@@ -1979,28 +1976,6 @@ private fun NightCount(icon: androidx.compose.ui.graphics.vector.ImageVector, te
     modifier = Modifier.clip(CircleShape).background(Cm.surfaceHigh).padding(start = 10.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
 )
 
-/**
- * Contratto 1.68 (Franz, 14/10 22:45): in cima alla casa della master quante cose aspettano Franz nelle altre sessioni, coi
- * nomi; il tocco porta alla prima. Ambra come le card che aspettano.
- */
-@Composable
-private fun AttentionBanner(items: List<it.pixelbox.cmwatch.contract.Attention>, onClick: () -> Unit) {
-    val names = items.mapNotNull { it.session }.distinct().joinToString(", ")
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(V3.Banner).handCursor().clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            pluralStringResource(R.plurals.attention_banner, items.size, items.size), style = MaterialTheme.typography.titleSmall,
-            color = Cm.briefWarnInk, fontWeight = FontWeight.SemiBold, maxLines = 1,
-        )
-        if (names.isNotEmpty()) Text(
-            names, style = MaterialTheme.typography.bodyMedium, color = Cm.briefWarnInk, maxLines = 1,
-            overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
-        )
-    }
-}
 
 /**
  * L'aggiornamento dentro l'app (P6, approvata da Franz il 21/10 alle 23:58): in cima alla home la release nuova di GitHub

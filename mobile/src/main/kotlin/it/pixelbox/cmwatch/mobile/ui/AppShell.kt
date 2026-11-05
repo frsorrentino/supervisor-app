@@ -239,8 +239,6 @@ fun PageHeader(
     page: String?, sessions: List<Session>, openCount: Int, now: Long, onPick: (String?) -> Unit, onClosed: () -> Unit,
     menu: MenuActions, quota: (@Composable () -> Unit)? = null, showQuota: Boolean = false,
     menuStartOpen: Boolean = false, sessionMenuStartOpen: Boolean = false,
-    /** Contratto 1.66: quante cose servono a Franz (`state.attention` senza le voci della master), e il tocco che porta alla prima. */
-    attention: Int = 0, onAttention: () -> Unit = {},
 ) {
     Column(Modifier.fillMaxWidth().background(if (page == null) V3.Bg else Cm.bg).then(if (page == null) Modifier.compactRule(V3.Line) else Modifier)) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -252,7 +250,7 @@ fun PageHeader(
                 Row(Modifier.weight(1f).padding(start = 12.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.home_title), style = V3.Section.copy(fontSize = 22.sp, lineHeight = 26.sp), color = V3.Tx, modifier = Modifier.alignByBaseline().compactTitle())
                     // Accanto al titolo solo se la larghezza lo permette, mai a schiacciare il resto (Franz 30/10 22:01).
-                    if (attention == 0 && androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 400) Text(
+                    if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 400) Text(
                         if (LocalStill.current) "0.2" else it.pixelbox.cmwatch.mobile.BuildConfig.VERSION_NAME, style = V3.Meter, maxLines = 1,
                         modifier = Modifier.testTag("versione-titolo").alignByBaseline(),
                     )
@@ -261,15 +259,8 @@ fun PageHeader(
                         maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.alignByBaseline(),
                     )
                 }
-                if (attention > 0) androidx.compose.material3.Surface(
-                    onClick = onAttention, shape = androidx.compose.foundation.shape.CircleShape, color = Cm.waiting.copy(alpha = 0.18f),
-                    contentColor = Cm.waiting, modifier = Modifier.handCursor(),
-                ) {
-                    Text(
-                        pluralStringResource(R.plurals.attention_count, attention, attention), style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
-                }
+                // Niente «N per te» qui (app-per-te-ti-aspetta-05-11, Franz 05/11 13:48, scelta A, come la web dal 29/10): chi
+                // aspetta lo dicono il riquadro e l'elenco «Ti aspettano» della home.
                 // La lente solo nella home: la ricerca è di tutte le sessioni, e in una sessione la testa ha già abbastanza comandi.
                 menu.onSearch?.let { IconButton(onClick = it) { Icon(Icons.Rounded.Search, stringResource(R.string.search), tint = Cm.text2) } }
             }

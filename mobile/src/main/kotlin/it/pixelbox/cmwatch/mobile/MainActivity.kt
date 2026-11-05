@@ -1809,11 +1809,6 @@ class MainActivity : ComponentActivity() {
             PageHeader(
                 page, state?.let { st -> PhoneBoard.sections(st).flatMap { sec -> sec.sessions } }.orEmpty(), summary?.open ?: 0, now,
                 onPick = { n -> open = n; if (n == null) tab = StartRoute.Tab.OVERVIEW }, onClosed = { closedOpen = true }, menu = menuActions,
-                // Contratto 1.66: il tocco porta alla prima voce; una domanda, un turno fallito o una quota finita stanno nella
-                // sua sessione, un task rosso nella sessione che lo lavora. Le voci della master non si contano, come nel
-                // banner (Franz, 21/10 21:15): quello che chiede sta nella sua barra e nel campo di scrittura.
-                attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }?.size ?: 0,
-                onAttention = { state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }?.firstOrNull()?.session?.let { n -> if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.toggle(tabletCols.filter { c -> c != n }, n)) else open = n } },
                 quota = state?.let { st -> {
                     val rings = remember(st, events, samples, now, snap.freshness) {
                         PhoneOverview.build(st, events, samples, now, java.time.ZoneId.systemDefault(), stale = snap.freshness is Freshness.Stale).rings
@@ -1920,13 +1915,6 @@ class MainActivity : ComponentActivity() {
                 SummaryList(
                     summary, onQuota = goUsage, parts = parts, partHead = partHead, partFoot = partFoot,
                     update = updateUi.takeIf { BuildConfig.SELF_UPDATE }, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
-                    // Contratto 1.68: il banner con le voci di «Serve te» delle altre sessioni; il tocco porta alla prima.
-                    attention = state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }.orEmpty(),
-                    onAttention = {
-                        state?.let { st -> it.pixelbox.cmwatch.rules.StrongAlert.forMaster(st) }?.firstNotNullOfOrNull { a -> a.session }?.let { n ->
-                            if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.toggle(tabletCols.filter { c -> c != n }, n)) else open = n
-                        }
-                    },
                     // Aprire una sessione che ha finito la toglie da «Ha finito», come in «Per te».
                     onOpen = { n ->
                         summary.rows.firstOrNull { r -> r.session.name == n && r.key != null }?.key?.let(markRead)

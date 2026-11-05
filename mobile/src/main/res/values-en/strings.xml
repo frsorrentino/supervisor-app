@@ -1155,14 +1155,6 @@ It starts at your last message to the master.</string>
     <string name="project_new_go">Next</string>
     <string name="project_new_create">Create %1$s</string>
     <string name="reopening">Reopening %1$s</string>
-    <plurals name="attention_count">
-        <item quantity="one">%d for you</item>
-        <item quantity="other">%d for you</item>
-    </plurals>
-    <plurals name="attention_banner">
-        <item quantity="one">%d is waiting for you</item>
-        <item quantity="other">%d are waiting for you</item>
-    </plurals>
     <string name="mention_sent">Sent to %1$s</string>
     <string name="slash_phrase_clear">clear the context</string>
     <string name="slash_phrase_compact">compact the conversation</string>
