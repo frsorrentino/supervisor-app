@@ -268,9 +268,12 @@
 /* La master che cambia posto al rilascio, mentre la sagoma dell'anteprima resta sopra finché arriva (landingMorph.ts, app-trascina-rifinitura-04-11). */
 ::view-transition-group(master-morph) { animation-duration: var(--reflow-ms); animation-timing-function: var(--reflow-ease); }
 ::view-transition-group(morph) { animation-duration: 380ms; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); border-radius: 14px; overflow: clip; }
-::view-transition-new(morph) { width: 100%; height: 100%; object-fit: cover; object-position: left top; animation: 380ms cubic-bezier(0.23, 1, 0.32, 1) both morph-in; }
-::view-transition-old(morph) { width: 100%; height: 100%; object-fit: cover; object-position: left top; animation: 140ms ease-out both morph-out; }
-@keyframes morph-in { from { opacity: 0; } 30% { opacity: 1; } }
+/* La voce e la pagina si danno il cambio, mai due testi pieni uno sopra l'altro (app-volo-titolo-telefono-05-11, Franz 05/11,
+   regola Morph in core/rules/Morph.kt, la stessa di telefono e tablet): quella che esce sparisce in 140 ms, quella che entra
+   parte a 100 ms e arriva piena in 200. */
+::view-transition-new(morph) { width: 100%; height: 100%; object-fit: cover; object-position: left top; animation: morph-in 200ms linear 100ms both; }
+::view-transition-old(morph) { width: 100%; height: 100%; object-fit: cover; object-position: left top; animation: morph-out 140ms cubic-bezier(0.33, 1, 0.68, 1) both; }
+@keyframes morph-in { from { opacity: 0; } }
 @keyframes morph-out { to { opacity: 0; } }
 /* La home che si riposiziona (app-home-riposiziona-animata-04-11, Franz 04/11 18:02-18:04: «altrimenti l'utente ha difficoltà a
    capire cosa succede»; «un'animazione corale ben orchestrata»): una sola coreografia nei due versi. Aprendo la prima sessione
@@ -304,6 +307,15 @@ html.reflow-home-first::view-transition-group(master-morph), html.reflow-home-fi
 }
 @media (prefers-reduced-motion: reduce) {
   html.reflow-master-first::view-transition-group(*.home-reflow), html.reflow-home-first::view-transition-group(master-morph) { animation-delay: 0s; }
+}
+/* La scheda che diventa colonna si dà il cambio come la voce e la pagina (morph, sopra): la vecchia sparisce in 140 ms, la nuova
+   parte 100 ms dopo e arriva piena in 200, dall'inizio del suo gruppo; i bordi restano sulla loro molla. Le schede che solo
+   scivolano e la master che cambia posto restano piene (Franz 04/11). */
+:root { --morph-home-at: 0ms; }
+html.reflow-master-first { --morph-home-at: calc(var(--reflow-ms) * .4); }
+@media (prefers-reduced-motion: no-preference) {
+  html:root:root::view-transition-old(*.fx-focus) { animation: morph-out 140ms cubic-bezier(0.33, 1, 0.68, 1) var(--morph-home-at) both; }
+  html:root:root::view-transition-new(*.fx-focus) { animation: morph-in 200ms linear calc(var(--morph-home-at) + 100ms) both; }
 }
 
 /* La spunta disegnata (D3, app-motion-loops-04-11, Franz 04/11 21:13-21:24): al tocco il tasto si abbassa a .94; confermato,

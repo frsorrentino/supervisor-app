@@ -2302,6 +2302,9 @@ class MainActivity : ComponentActivity() {
             // colonna aperta e la master passano da una vista all'altra coi bordi condivisi (reflow); il resto entra ed esce
             // fermo; col movimento ridotto solo un'assolvenza breve.
             val reflowOff = animationsOff()
+            // La sessione che è diventata colonna l'ultima volta: chiudendola, la sua scheda della plancia le dà il cambio.
+            val reflowCard = remember { arrayOfNulls<String>(1) }
+            tabletCols.singleOrNull()?.let { reflowCard[0] = it }
             AnimatedContent(
                 DeskView(deskDashboard, tabletCols),
                 transitionSpec = {
@@ -2315,6 +2318,7 @@ class MainActivity : ComponentActivity() {
                 LocalDeskDash provides view.dash, LocalDeskCols provides view.cols,
                 // La prima colonna aperta prende il nome della sua scheda.
                 LocalReflowFocus provides view.cols.singleOrNull()?.takeIf { !view.dash },
+                it.pixelbox.cmwatch.mobile.ui.LocalReflowCard provides reflowCard[0],
             ) {
             if (view.dash) summaryPage() else deskFrame(state, summary)
             }

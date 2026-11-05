@@ -26,7 +26,17 @@ val LocalFly = compositionLocalOf<Fly?> { null }
 /** La durata del volo card ↔ scheda. */
 const val FLY_MS = 320
 
-/** La card si allarga fino a diventare la scheda, senza dissolvenza finale; con le animazioni spente, subito. */
+/**
+ * La scheda che diventa pagina o colonna e il ritorno (app-volo-titolo-telefono-05-11, regola Morph): quello che esce sparisce
+ * presto, quello che entra arriva dopo, mai due testi pieni uno sopra l'altro; i bordi restano sulla loro molla.
+ */
+internal fun morphEnter(off: Boolean): EnterTransition = if (off) EnterTransition.None
+    else fadeIn(tween(it.pixelbox.cmwatch.rules.Morph.IN_MS, delayMillis = it.pixelbox.cmwatch.rules.Morph.IN_DELAY_MS, easing = androidx.compose.animation.core.LinearEasing))
+
+internal fun morphExit(off: Boolean): ExitTransition = if (off) ExitTransition.None
+    else it.pixelbox.cmwatch.rules.Morph.OUT_EASE.let { e -> fadeOut(tween(it.pixelbox.cmwatch.rules.Morph.OUT_MS, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3]))) }
+
+/** La card si allarga fino a diventare la scheda, e i due contenuti si danno il cambio (morphEnter, morphExit); con le animazioni spente, subito. */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun Modifier.fly(key: String): Modifier {
@@ -35,7 +45,7 @@ fun Modifier.fly(key: String): Modifier {
     return with(f.shared) {
         this@fly.sharedBounds(
             rememberSharedContentState(key), f.anim,
-            enter = EnterTransition.None, exit = ExitTransition.None,
+            enter = morphEnter(off), exit = morphExit(off),
             // La scheda si allarga nella pagina e gli angoli si assestano con la molla (app-effetti-movimenti-04-11, punto 1).
             boundsTransform = { _, _ -> if (off) snap() else Fx.spring() },
             resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
@@ -54,6 +64,9 @@ val LocalReflow = compositionLocalOf<Fly?> { null }
 /** La sessione che nella home cede il suo nome alla colonna aperta (`oneName(focus)` della web). */
 val LocalReflowFocus = compositionLocalOf<String?> { null }
 
+/** La sessione che diventa colonna, o lo è stata per ultima: la sua scheda della plancia e la colonna si danno il cambio (Morph). */
+val LocalReflowCard = compositionLocalOf<String?> { null }
+
 /** La plancia o le colonne, per il contenuto che entra o esce: durante la coreografia ci sono tutte e due. */
 val LocalDeskDash = compositionLocalOf<Boolean?> { null }
 
@@ -63,12 +76,14 @@ fun Modifier.reflow(key: String): Modifier {
     val f = LocalReflow.current ?: return this
     if (key == "r-" + LocalReflowFocus.current) return this
     val off = animationsOff()
+    val card = LocalDeskDash.current == true && key == "r-" + LocalReflowCard.current
     val e = it.pixelbox.cmwatch.rules.HomeReflow.EASE
     val density = androidx.compose.ui.platform.LocalDensity.current.density
     return with(f.shared) {
         this@reflow.sharedBounds(
             rememberSharedContentState(key), f.anim,
-            enter = EnterTransition.None, exit = ExitTransition.None,
+            // Le schede che solo scivolano restano piene (Franz 04/11); la scheda della plancia che diventa colonna si dà il cambio con lei.
+            enter = if (card) morphEnter(off) else EnterTransition.None, exit = if (card) morphExit(off) else ExitTransition.None,
             // A onda dall'angolo in alto a sinistra (punto 6): chi sta più in basso e più a destra parte poco dopo.
             boundsTransform = { from, _ ->
                 if (off) snap() else {
@@ -92,7 +107,7 @@ fun Modifier.reflowColumn(name: String): Modifier {
     return with(f.shared) {
         this@reflowColumn.sharedBounds(
             rememberSharedContentState("r-$name"), f.anim,
-            enter = EnterTransition.None, exit = ExitTransition.None,
+            enter = morphEnter(off), exit = morphExit(off),
             // La scheda vola nella colonna con la molla che supera di poco la misura e torna (punto 1).
             boundsTransform = { _, _ -> if (off) snap() else Fx.spring() },
             resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
