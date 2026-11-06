@@ -124,6 +124,8 @@ fun SummaryList(
     footer: (@Composable () -> Unit)? = null,
     /** L'ok a un compito (contratto 1.37), dalla sezione Lavori; la nota vuota vale «ok». */
     onApprove: (task: String, note: String, choice: String?) -> Unit = { _, _, _ -> },
+    /** Tocca a te dentro le sessioni (app-sessioni-compatte-06-11): decisioni e verifiche per sessione, e il loro corpo. */
+    todo: Map<String, Pair<Int, Int>> = emptyMap(), sessionTodo: (@Composable (String) -> Unit)? = null,
     /** Contratto 1.80: il tasto «Fatto» di una ferma nella card (op `attention_done`). */
     onDone: (AttentionQueue.Done) -> Unit = {},
     /** Contratto 1.37: «Chiudi» per le sessioni finite o doppie senza finestra; `canExit` = il PC accetta /exit. */
@@ -689,7 +691,7 @@ fun SummaryList(
                 onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                 menuState = menuState, mine = mineOf(s.name), onMine = onMine?.let { m -> { k -> m(s.name, k) } },
                 onOpenInClaude = onOpenInClaude?.let { o -> { o(s.name) } }, onRestartClean = onRestartClean?.let { o -> { o(s.name) } },
-                onApprove = onApprove, onDone = onDone,
+                onApprove = onApprove, todo = todo[r.session.name], sessionTodo = sessionTodo, onDone = onDone,
                 works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
                 kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
                 kpiTurns = kpiData?.let { d -> it.pixelbox.cmwatch.rules.Kpi.turnsOf(d, s.name) },
@@ -1120,6 +1122,7 @@ private fun SummaryCard(
     onMine: ((it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit)? = null, onOpenInClaude: (() -> Unit)? = null, onRestartClean: (() -> Unit)? = null,
     /** L'ok a un compito del registro che questa sessione chiede (Franz 23/10: «Approva» nella scheda della sessione). */
     onApprove: (task: String, note: String, choice: String?) -> Unit = { _, _, _ -> },
+    todo: Pair<Int, Int>? = null, sessionTodo: (@Composable (String) -> Unit)? = null,
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone: (AttentionQueue.Done) -> Unit = {},
     /** Strada B (23/10): i lavori di questa sessione che aspettano te, ognuno col suo tasto (Fatto o Avvia). */
@@ -1272,7 +1275,14 @@ private fun SummaryCard(
         val old = Summary.staleHours(r, now)
         // Chiusa, una sessione al lavoro è una riga: lo strumento in mono (app-home-riordino-29-10).
         val toolLine = s.tool?.takeIf { r.group == Summary.Group.WORKING && !open }
-        if (toolLine != null) Text(toolLine, style = V3.Meter, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fadeEnd())
+        val chips = todo?.takeIf { compact && (it.first > 0 || it.second > 0) }
+        if (chips != null) Row(Modifier.fillMaxWidth().fadeEnd(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // Le richieste della sessione in testa alla riga: la scheda chiusa resta della sua misura (app-sessioni-compatte-06-11).
+            if (chips.first > 0) TodoChip(stringResource(R.string.todo_decide, chips.first), true)
+            if (chips.second > 0) TodoChip(stringResource(R.string.todo_verify, chips.second), false)
+            Text(toolLine ?: body, style = if (toolLine != null) V3.Meter else if (waiting) V3.Body else V3.Small, color = if (waiting || toolLine != null) V3.Tx else V3.Tx2, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+        }
+        else if (toolLine != null) Text(toolLine, style = V3.Meter, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fadeEnd())
         else if (body.isNotBlank()) Text(
             if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
                 append(body); append("  ")
@@ -1284,6 +1294,7 @@ private fun SummaryCard(
             modifier = if (open) Modifier else Modifier.fadeEnd(),
         )
         // Contratto 1.84: la richiesta di un'altra sessione per un compito di questa dice chi la fa.
+        if (open && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp)) { sessionTodo(s.name) }
         if (waiting && !compact) Summary.askedFor(s)?.let { a ->
             Text(if (a.task != null) stringResource(R.string.asked_for_task, a.from, a.task!!) else stringResource(R.string.asked_for, a.from), style = MonoSmall)
         }
@@ -1737,6 +1748,14 @@ private fun Modifier.fadeEnd(): Modifier = this
             blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
         )
     }
+
+/** Il chip di una richiesta nella riga chiusa (app-sessioni-compatte-06-11): ambra per Decidi, tenue per Verifica. */
+@Composable
+private fun TodoChip(text: String, wait: Boolean) {
+    val c = if (wait) V3.Wait else V3.Tx2
+    Text(text, style = V3.Small.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c), maxLines = 1, softWrap = false,
+        modifier = Modifier.clip(CircleShape).background(V3.S1).border(1.dp, if (wait) V3.Wait.copy(alpha = 0.5f) else V3.Line, CircleShape).padding(horizontal = 10.dp, vertical = 2.dp))
+}
 
 /** «Superata» su una carta di scelta (app-scelte-chiudibili-06-11): chi la fornisce chiude la carta; null = niente tasto. */
 internal val LocalApprovalClose = androidx.compose.runtime.staticCompositionLocalOf<((String) -> Unit)?> { null }

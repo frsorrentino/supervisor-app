@@ -300,6 +300,17 @@ fun ProveFuseBody(cards: List<it.pixelbox.cmwatch.rules.ProveFuse.Card>, onAll: 
 fun CinqueMinutiScreen(page: DecisionsPage?, onBack: () -> Unit, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null, onAsk: (String) -> Unit = {}) = DecidePage(stringResource(R.string.decisions_title), "cinque-minuti", onBack) { CinqueMinutiBody(page, onApprove, onDone, onNotNow, onDrop, startHowMany, onAsk) }
 
 /**
+ * Le decisioni di una sessione dentro la sua scheda aperta (app-sessioni-compatte-06-11): tutte aperte, coi dettagli e i tasti.
+ */
+@Composable
+fun SessionDecisions(groups: List<it.pixelbox.cmwatch.contract.DecisionGroup>, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, onAsk: (String) -> Unit) {
+    var touched by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        groups.filter { it.key !in touched }.forEach { g -> DecideCard { DecisionGroupBody(g, onApprove, onDone, onNotNow, onDrop, onAsk) { touched = touched + g.key } } }
+    }
+}
+
+/**
  * In home (`rows`, app-richiede-te-righe-02-11): le decisioni come righe, le prime tre e «altre N»; il tocco apre la scheda coi tasti.
  * Nella pagina: Franz sceglie quante, poi una alla volta.
  */

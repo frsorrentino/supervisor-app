@@ -1132,12 +1132,12 @@ class MainActivity : ComponentActivity() {
             if (primaOpen || "prima_raccolta" in inlineOpen || "decisioni" in inlineOpen) read(CmdOp.PRIMA_RACCOLTA)?.let { t -> runCatching { ContractJson.decodePrimaRaccolta(t) }.onSuccess { p -> primaPage = p } }
             // Il tasto da «Cosa sa fare» c'è anche con un relay vecchio: la pagina dice che non riesce a leggere, non carica per sempre.
             if (seguitiOpen || "seguiti" in inlineOpen) { val t = read(CmdOp.SEGUITI); seguitiFailed = t == null; t?.let { x -> runCatching { ContractJson.decodeSeguiti(x) }.onSuccess { p -> seguitiPage = p } } }
-            if (proveOpen || "prove" in inlineOpen) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
+            if (proveOpen || "prove" in inlineOpen || (state?.prove?.n ?: 0) > 0) read(CmdOp.PROVE)?.let { t -> runCatching { ContractJson.decodeProve(t) }.onSuccess { p -> provePage = p } }
             // Sempre (app-sezioni-accorpate-03-11): il numero di Decidi e le prove fuse vengono dalla pagina, senza le pause di prova.
             read(CmdOp.DECISIONI)?.let { t -> runCatching { ContractJson.decodeDecisions(t) }.onSuccess { p -> decisionsPage = p } }
         }
         val inlineKey = inlineOpen.toList()
-        LaunchedEffect(proveOpen, decisionsOpen, inlineKey, state?.decisions?.n) { if (state?.decisions != null || proveOpen || decisionsOpen || inlineKey.isNotEmpty()) readDecide() }
+        LaunchedEffect(proveOpen, decisionsOpen, inlineKey, state?.decisions?.n, state?.prove?.n) { if (state?.decisions != null || state?.prove != null || proveOpen || decisionsOpen || inlineKey.isNotEmpty()) readDecide() }
         // La pagina segue la raccolta: ogni sezione finita cambia il riassunto nello stato.
         LaunchedEffect(primaOpen, state?.primaRaccolta) { if (primaOpen || "prima_raccolta" in inlineOpen || "decisioni" in inlineOpen) readDecide() }
         LaunchedEffect(seguitiOpen, state?.seguiti) { if (seguitiOpen || "seguiti" in inlineOpen) readDecide() }
@@ -1318,6 +1318,31 @@ class MainActivity : ComponentActivity() {
             session = { name -> resultOpen = null; watchOpen = false; open = name },
             external = { r -> val f = it.pixelbox.cmwatch.rules.Guardare.main(r); withFile(r.session.orEmpty(), "result:${r.id}:${f.path}", f, false) { file, mime -> viewFile(file, mime ?: f.mime) } },
         )
+        // Tocca a te dentro le sessioni (app-sessioni-compatte-06-11, Franz 06/11 20:25): le decisioni e le verifiche di una sessione
+        // aperta stanno nella sua scheda; in Tocca a te resta solo quello che non è di una sessione aperta.
+        val todoLive = liveNames.filter { n -> n != it.pixelbox.cmwatch.rules.ContextActions.MASTER }.toSet()
+        val proveSession: (it.pixelbox.cmwatch.contract.ProveItem) -> String? = { p -> p.session ?: state?.commitments?.firstOrNull { c -> c.task == p.task }?.session }
+        val decHome = decisionsPage?.let(it.pixelbox.cmwatch.rules.ProveFuse::withoutTests)
+        val decOfSession: (it.pixelbox.cmwatch.contract.DecisionGroup) -> Boolean = { g -> g.items.any { i -> i.session != null && i.session in todoLive } }
+        val proveWhere: ((String?) -> Boolean) -> it.pixelbox.cmwatch.contract.ProvePage? = { keep -> provePage?.let { p ->
+            val gs = p.groups.map { g -> g.copy(prove = g.prove.filter { x -> keep(proveSession(x)) }) }.filter { g -> g.prove.isNotEmpty() }
+            p.copy(groups = gs, n = gs.sumOf { g -> g.prove.size })
+        } }
+        val sessTodo: Map<String, Pair<Int, Int>> = buildMap {
+            val d = mutableMapOf<String, Int>(); val v = mutableMapOf<String, Int>()
+            decHome?.groups?.forEach { g -> g.items.forEach { i -> i.session?.takeIf { x -> x in todoLive }?.let { x -> d[x] = (d[x] ?: 0) + 1 } } }
+            provePage?.groups?.forEach { g -> g.prove.forEach { x -> proveSession(x)?.takeIf { n -> n in todoLive }?.let { n -> v[n] = (v[n] ?: 0) + 1 } } }
+            (d.keys + v.keys).forEach { n -> put(n, (d[n] ?: 0) to (v[n] ?: 0)) }
+        }
+        val decNotNow: (String) -> Unit = { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }
+        val decDrop: (String, String) -> Unit = { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }
+        val sessionTodo: @Composable (String) -> Unit = { name ->
+            androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+                val gs = decHome?.groups.orEmpty().filter { g -> g.items.any { i -> i.session == name } }
+                if (gs.isNotEmpty()) it.pixelbox.cmwatch.mobile.ui.SessionDecisions(gs, decApprove, decDone, decNotNow, decDrop, decAsk)
+                if ((sessTodo[name]?.second ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(proveWhere { x -> x == name }?.copy(ko = emptyList(), red = emptyList()), { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
+            }
+        }
         val sectionBodies: Map<String, @Composable () -> Unit> = mapOf(
             "da_guardare" to { Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } } },
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
@@ -1325,14 +1350,14 @@ class MainActivity : ComponentActivity() {
             // Contratto 1.107: sopra il banco, le prove che aspettano Franz fuse nella pre-release più nuova (app-sezioni-accorpate-03-11).
             "prove" to { Inline("prove") { androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
                 decisionsPage?.let { p -> it.pixelbox.cmwatch.mobile.ui.ProveFuseBody(it.pixelbox.cmwatch.rules.ProveFuse.cards(p), { keys -> keys.map { k -> decideRun(CmdOp.DECISIONE, k, "provato", null, null, null) }.all { ok -> ok } }, { k, why -> decideRun(CmdOp.DECISIONE, k, "non_va", null, why, null) }) }
-                if (state?.prove?.let { p -> p.n + p.ko + p.red > 0 } == true) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
+                if (state?.prove?.let { p -> p.n + p.ko + p.red > 0 } == true) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(proveWhere { x -> x == null || x !in todoLive }, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
                 // Verifica porta anche i lavori consegnati da guardare (app-tocca-sezioni-06-11).
                 if ((state?.results?.nUnseen ?: 0) > 0) Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } }
             } } },
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             "decisioni" to { Inline("decisioni") { androidx.compose.foundation.layout.Column {
                 if (state?.primaRaccolta != null) it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true }
-                if ((state?.decisions?.n ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decisionsPage?.let(it.pixelbox.cmwatch.rules.ProveFuse::withoutTests), decApprove, decDone, { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }, { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }, onAsk = decAsk, rows = true)
+                if ((state?.decisions?.n ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decHome?.let { p -> p.copy(groups = p.groups.filterNot(decOfSession)) }, decApprove, decDone, decNotNow, decDrop, onAsk = decAsk, rows = true)
             } } },
         )
         resultOpen?.let { r ->
@@ -1978,7 +2003,7 @@ class MainActivity : ComponentActivity() {
             // `parts`: una colonna della plancia del tablet (app-tablet-come-pwa-03-11), con la testata e il fondo di ogni categoria.
             val listPart: @Composable (List<String>?, (@Composable (String) -> Unit)?, (@Composable (String) -> Unit)?) -> Unit = { parts, partHead, partFoot ->
                 SummaryList(
-                    summary, onQuota = goUsage, parts = parts, partHead = partHead, partFoot = partFoot,
+                    summary, onQuota = goUsage, parts = parts, partHead = partHead, partFoot = partFoot, todo = sessTodo, sessionTodo = sessionTodo,
                     update = updateUi.takeIf { BuildConfig.SELF_UPDATE }, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
                     // Aprire una sessione che ha finito la toglie da «Ha finito», come in «Per te».
                     onOpen = { n ->

@@ -1828,4 +1828,6 @@ It starts at your last message to the master.</string>
     <string name="approval_confirm">Confirm</string>
     <string name="card_choose">Choose</string>
     <string name="card_reply">Reply</string>
+    <string name="todo_decide">Decide %1$d</string>
+    <string name="todo_verify">Verify %1$d</string>
 </resources>

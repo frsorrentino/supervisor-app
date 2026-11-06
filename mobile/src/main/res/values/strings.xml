@@ -1856,4 +1856,6 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="approval_confirm">Conferma</string>
     <string name="card_choose">Scegli</string>
     <string name="card_reply">Rispondi</string>
+    <string name="todo_decide">Decidi %1$d</string>
+    <string name="todo_verify">Verifica %1$d</string>
 </resources>
