@@ -25,6 +25,8 @@
   import { nightTitleParts, okAlso } from './lib/decide'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack, tick } from 'svelte'
+  import type { Attachment } from 'svelte/attachments'
+  import { moveInto, offstage, park } from './lib/park'
   import Badge from './lib/Badge.svelte'
   import { morphStart } from './lib/motion'
   import { flatten, lift, settle as settleCard } from './lib/cardFx'
@@ -1187,6 +1189,25 @@
   const deskDashboard = $derived(wide && !cols.length && !page)
   // Il cruscotto a tre colonne (21/10) ha sempre il riquadro della notte: il rapporto si chiede appena c'è.
   $effect(() => { if (deskDashboard && st.night?.report && !night.report && !night.loading && !night.error) untrack(() => loadNight()) })
+  // Cruscotto e plancia montati una volta (app-fluidita-montaggio-06-11, lib/park.ts): all'avvio solo quello che si vede; l'altro
+  // la prima volta che la pagina è ferma, così il primo cambio non lo rifà.
+  let keepBoth = $state(false)
+  $effect(() => {
+    if (!wide || !ready || keepBoth) return
+    if (!window.requestIdleCallback) { const id = setTimeout(() => (keepBoth = true), 2000); return () => clearTimeout(id) }
+    const id = requestIdleCallback(() => (keepBoth = true), { timeout: 5000 })
+    return () => cancelIdleCallback(id)
+  })
+  // La chat della master, una sola: sta nel pannello di quello che si vede (cruscotto o plancia), fuori dal documento se lì il
+  // pannello non c'è (la master in una colonna ha la sua).
+  const mchatHosts: Record<'dash' | 'desk', HTMLElement | null> = $state({ dash: null, desk: null })
+  let mchatNode = $state<HTMLElement | null>(null)
+  const chatHost = (where: 'dash' | 'desk'): Attachment<HTMLElement> => (el) => {
+    mchatHosts[where] = el
+    return () => { if (mchatHosts[where] === el) mchatHosts[where] = null }
+  }
+  const chatNode: Attachment<HTMLElement> = (el) => { mchatNode = el; return () => { mchatNode = null; el.remove() } }
+  $effect(() => { const n = mchatNode, h = mchatHosts[deskDashboard ? 'dash' : 'desk']; if (n) moveInto(n, h ?? offstage) })
   let masterInject = $state<{ text: string; n: number } | null>(null)
   // «Fatto» su una pausa che aspetta te (pagina Lavori, 22/10): la master riprende il compito; nessuna op nuova.
   function doneForPerson(c: import('./lib/contract').Commitment) { sendTo(MASTER, t.lavoriDonePrompt(c.paused?.reason ?? '', c.task)) }
@@ -1849,9 +1870,9 @@
 {#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
 <!-- Il pannello della master nel cruscotto con le prese di quello accanto alle colonne (web-maniglia-riga-colonna-06-11, Franz
      06/11 00:05): la presa in alto ‹ ━ › porta alla riga in basso o cambia lato, la corsia la larghezza; come MasterFrame sul tablet. -->
-{#snippet masterPanelGrips()}<button class="wgrip" class:onleft={masterLeft} aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel()}{/snippet}
-{#snippet masterPanel()}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
-  onToggleKey={() => corners(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat">{@render chatOf(MASTER, true)}</div>{/if}{/snippet}
+{#snippet masterPanelGrips()}<button class="wgrip" class:onleft={masterLeft} aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('dash')}{/snippet}
+{#snippet masterPanel(where: 'dash' | 'desk')}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
+  onToggleKey={() => corners(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat" {@attach chatHost(where)}></div>{/if}{/snippet}
 
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
@@ -1862,7 +1883,11 @@
   </DockEmbed>
 {:else if embed}
   <div class="embedded v3">{@render chatOf(MASTER, true)}</div>
-{:else if wide && deskDashboard}
+{:else if wide}
+  <!-- Cruscotto e plancia montati una volta (app-fluidita-montaggio-06-11, lib/park.ts): quello che non si vede resta montato fuori
+       dal documento; il secondo si monta la prima volta che la pagina è ferma, e da lì aprire e chiudere una sessione li scambia
+       invece di rifarli. La chat della master è una sola e passa nel pannello di quello che si vede. -->
+  {#if keepBoth || deskDashboard}<div class="wslot"><div class="wslot" {@attach park(deskDashboard)}>
   <!-- Le sessioni prima (app-sessioni-evidenti-06-11, scelta J2 di Franz, 06/11 00:52): Sessioni, Tocca a te con Esiti chiuso in
        fondo, Risorse; le altre nell'ordine della home. -->
   <Plancia {width} order={['work', ...decodeCats(st.home_order).map(c => c.id).filter(id => id !== 'work' && id !== 'out')]} top={null} panel={master && masterOpen ? masterPanelGrips : null} panelWide={!masterHalf} panelLeft={masterLeft}>
@@ -1875,10 +1900,11 @@
     {#snippet tools()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="180ms"><DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet bar()}{@render masterBar()}{/snippet}
   </Plancia>
-{:else if wide}
+  </div></div>{/if}
   <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
-  <div class="deskwrap" class:left={masterLeft} class:stacked>
+  {#if keepBoth || !deskDashboard}<div class="wslot">
+  <div class="deskwrap" class:left={masterLeft} class:stacked {@attach park(!deskDashboard)}>
   <div class="dstage">
   <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
        accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
@@ -1914,19 +1940,21 @@
     {/snippet}
     <!-- Senza colonne il cruscotto a tre colonne (Franz, 21/10 13:02): cosa serve da te, il lavoro, numeri e strumenti. -->
     {#snippet empty()}
-      <Dash {st} {now} cols={dashColumns(width)} night={nightModel} {nightTitle} nightLoading={night.loading} onNight={() => openPage('night')}
+      {#if !deskDashboard}<Dash {st} {now} cols={dashColumns(width)} night={nightModel} {nightTitle} nightLoading={night.loading} onNight={() => openPage('night')}
         {lavoriLeft} {lavoriRight} quota={quotaPanels} onPick={card} onTalk={talk}
-        onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />
+        onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />{/if}
     {/snippet}
   </Desk>
   {#if master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
   {#if cols.length && !page}<SwapPills shown={cols} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
   </div>
-  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel()}</aside>{/if}
+  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('desk')}</aside>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top" use:fadeEnd>{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={topDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel()}</div></div></aside>{/if}
+  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top" use:fadeEnd>{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={topDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel('desk')}</div></div></aside>{/if}
   </div>
+  </div>{/if}
+  {#if master && (masterOpen || stacked)}<div class="wslot"><div class="wslot" {@attach chatNode}>{@render chatOf(MASTER, true)}</div></div>{/if}
 {:else}
   <div class="phone">
     <InAppBar />
@@ -2141,4 +2169,5 @@
   .mup { flex: none; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; background: var(--s3); color: var(--tx); }
   .mquick { flex: 1; min-width: 0; }
   .mchat { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .wslot { display: contents; }
 </style>
