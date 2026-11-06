@@ -1,0 +1,58 @@
+name: Deploy web
+
+# La web la pubblica la CI (app-pipeline-veloce-06-11, Franz 06/11 21:20 «ok, procedi» sulla proposta delle 21:07): prima
+# la sessione costruiva dist su win e la master la copiava e la pubblicava a mano, 5-10 minuti e un passaggio fragile.
+# A ogni push sul ramo dell'app che tocca la web: build, deploy su Firebase Hosting e controllo che online ci sia il
+# bundle appena costruito. La chiave è dell'account di servizio supervisor-web-deploy, col solo ruolo Firebase Hosting
+# Admin (segreto FIREBASE_DEPLOY_KEY); nessun altro accesso al progetto.
+
+on:
+  push:
+    branches: [tab-emoji/**]
+    paths: ['web/**', 'contract/**', '.github/workflows/deploy-web.yml']
+  workflow_dispatch:
+
+# Un deploy alla volta per ramo: l'ultimo push vince.
+concurrency:
+  group: deploy-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # La versione in alto conta i commit (vite.config.ts): con la copia superficiale sarebbe 0.2.1.
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - name: Build
+        working-directory: web
+        run: npm ci --no-audit --no-fund && npm run build
+      - name: Deploy su Firebase Hosting
+        working-directory: web
+        env:
+          FIREBASE_DEPLOY_KEY: ${{ secrets.FIREBASE_DEPLOY_KEY }}
+        run: |
+          key="$RUNNER_TEMP/firebase-key.json"
+          printf '%s' "$FIREBASE_DEPLOY_KEY" > "$key"
+          GOOGLE_APPLICATION_CREDENTIALS="$key" npx --yes firebase-tools@15 deploy --only hosting --project claude-master-relay-3761 --non-interactive
+          rm -f "$key"
+      # «Web pronta» non vuol dire online (06/11 11:21: online c'era ancora la 0.2.2004): il nome del bundle nell'index dei
+      # due indirizzi deve essere quello appena costruito.
+      - name: Online c'è il bundle nuovo
+        working-directory: web
+        run: |
+          want=$(grep -o 'main-[A-Za-z0-9_-]*\.js' dist/index.html | head -1)
+          test -n "$want"
+          for u in https://supervisor-francescosorrentino.web.app https://supervisor.francescosorrentino.com; do
+            got=""
+            for i in 1 2 3 4 5 6; do
+              got=$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$u/?v=$GITHUB_RUN_ID-$i" | grep -o 'main-[A-Za-z0-9_-]*\.js' | head -1 || true)
+              [ "$got" = "$want" ] && break
+              sleep 10
+            done
+            echo "$u: $got (atteso $want)"
+            [ "$got" = "$want" ]
+          done
+          echo "::notice title=Web online::$want, $(grep -o -E '0\.2\.[0-9]+' dist/assets/$want | sort -V | tail -1)"

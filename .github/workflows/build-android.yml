@@ -28,6 +28,8 @@ jobs:
       HAS_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
     outputs:
       signed: ${{ steps.names.outputs.signed }}
+      # changed quando la verifica degli snapshot è fallita e la CI ha registrato le immagini nuove (app-pipeline-veloce-06-11).
+      snapshots: ${{ github.event.inputs.record != 'true' && steps.record.outcome == 'success' && 'changed' || 'same' }}
     steps:
       - uses: actions/checkout@v4
         # La versione mostrata conta i commit: con la copia superficiale sarebbe 0.2.1.
@@ -53,17 +55,30 @@ jobs:
       - name: Unit tests
         # Il telefono ha due flavor dal 26/10: github (release e ADB, con l'aggiornamento interno) e play (bundle per Play).
         run: ./gradlew :core:testDebugUnitTest :mobile:testGithubDebugUnitTest :mobile:testPlayDebugUnitTest --console=plain
+      # Gli snapshot non fermano più la pre-release (app-pipeline-veloce-06-11, Franz 06/11 21:20 «ok, procedi» sulla
+      # proposta delle 21:07): ogni modifica grafica voluta faceva fallire la build, e servivano un record a mano e una
+      # seconda build, circa 25 minuti. Ora la verifica fallisce senza fermare la build; se è fallita, la CI registra le
+      # immagini nuove, le carica come artifact, le mette sul ramo goldens/<sha> (job goldens) e lo scrive nelle note
+      # della pre-release. Un errore vero dei test fa fallire anche il record, e la build si ferma come prima.
       - name: Screenshot tests (Paparazzi, verify)
+        id: verify_wear
+        continue-on-error: true
         if: hashFiles('wear/src/test/snapshots/**') != '' && github.event.inputs.record != 'true'
         run: ./gradlew :wear:verifyPaparazziDebug --console=plain
       - name: Screenshot tests del telefono (Paparazzi, verify)
+        id: verify_mobile
+        continue-on-error: true
         if: hashFiles('mobile/src/test/snapshots/**') != '' && github.event.inputs.record != 'true'
         run: ./gradlew :mobile:verifyPaparazziGithubDebug --console=plain
       - name: Screenshot tests (Paparazzi, record)
-        if: github.event.inputs.record == 'true'
+        id: record
+        if: github.event.inputs.record == 'true' || steps.verify_wear.outcome == 'failure' || steps.verify_mobile.outcome == 'failure'
         run: ./gradlew :wear:recordPaparazziDebug :mobile:recordPaparazziGithubDebug --console=plain
+      - name: Snapshot cambiati
+        if: github.event.inputs.record != 'true' && steps.record.outcome == 'success'
+        run: echo "::warning title=Snapshot cambiati::le immagini nuove sono nell'artifact paparazzi-snapshots e sul ramo goldens/${GITHUB_SHA::8}"
       - name: Upload snapshots
-        if: github.event.inputs.record == 'true'
+        if: steps.record.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: paparazzi-snapshots
@@ -129,6 +144,7 @@ jobs:
       - name: Pre-release
         env:
           GH_TOKEN: ${{ github.token }}
+          SNAPSHOTS: ${{ needs.build.outputs.snapshots }}
         run: |
           apk=$(find apk -path '*mobile/build/outputs/apk/release/mobile-release.apk' | head -1)
           test -n "$apk"
@@ -139,5 +155,33 @@ jobs:
           if [ -n "$prev" ] && git rev-parse -q --verify "refs/tags/$prev" >/dev/null; then range="$prev..$GITHUB_SHA"; else range="-n 10 $GITHUB_SHA"; fi
           git log --no-merges --format='- %s' $range | head -40 > notes.md
           [ -s notes.md ] || echo "- $(git log -1 --format=%s "$GITHUB_SHA")" > notes.md
+          if [ "$SNAPSHOTS" = changed ]; then
+            printf '\n%s\n' "Snapshot cambiati: le immagini nuove sono sul ramo goldens/${GITHUB_SHA::8} e nell'artifact paparazzi-snapshots del run $GITHUB_RUN_ID; i golden vanno presi sul ramo dell'app." >> notes.md
+          fi
           cp "$apk" mobile-release.apk
           gh release create "$tag" mobile-release.apk --prerelease --target "$GITHUB_SHA" --title "$ver · ${GITHUB_REF_NAME} · $short" --notes-file notes.md
+
+  # I golden nuovi su un ramo a sé (app-pipeline-veloce-06-11): la sessione dell'app li prende con git, senza gh e senza
+  # che la master li copi a mano; controlla le immagini e porta sul ramo dell'app solo quelle attese. Un push col
+  # GITHUB_TOKEN non fa partire altri workflow.
+  goldens:
+    needs: build
+    if: needs.build.outputs.snapshots == 'changed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: paparazzi-snapshots, path: . }
+      - name: Ramo goldens
+        run: |
+          br="goldens/${GITHUB_SHA::8}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$br"
+          git add wear/src/test/snapshots mobile/src/test/snapshots
+          if git diff --cached --quiet; then echo "nessuna immagine diversa dal commit"; exit 0; fi
+          git commit -q -m "test: goldens recorded by CI on ${GITHUB_SHA::8}, to check before taking them on the app branch"
+          git push -f origin "$br"
+          echo "::notice title=Golden::ramo $br"
