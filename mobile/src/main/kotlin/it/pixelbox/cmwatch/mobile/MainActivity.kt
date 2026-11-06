@@ -1112,15 +1112,13 @@ class MainActivity : ComponentActivity() {
             else { okPending.remove(task); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_LONG).show() }
         } }
         // «Superata» su una carta di scelta (app-scelte-chiudibili-06-11, Franz 06/11 15:06: «sempre possibile chiudere queste
-        // scelte»): la carta sparisce subito e l'op `approval_close` (contratto 1.129) la chiude nel registro. Con un relay che non la
-        // conosce ancora, o se non risponde, la chiusura la chiede la master; la carta torna dopo due minuti se è ancora lì.
+        // scelte»): la carta sparisce subito e l'op `approval_close` (contratto 1.129) la chiude nel registro. Il relay risponde ok
+        // anche se il compito non aspettava più; se rifiuta o non risponde, la carta torna col motivo e si può ritoccare.
         val closeTask: (String) -> Unit = { task -> okPending.add(task); scope.launch {
             val id = runCatching { app.repo.command(CmdOp.APPROVAL_CLOSE, null, task, getString(R.string.approval_close_reason)) }.getOrNull()
-            val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
-            if (r?.ok == true) { android.widget.Toast.makeText(this@MainActivity, getString(R.string.approval_closed), android.widget.Toast.LENGTH_SHORT).show(); return@launch }
-            sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, getString(R.string.approval_close_prompt, task))
-            kotlinx.coroutines.delay(120_000)
-            okPending.remove(task)
+            val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+            if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(R.string.approval_closed), android.widget.Toast.LENGTH_SHORT).show()
+            else { okPending.remove(task); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.approval_close_refused), android.widget.Toast.LENGTH_LONG).show() }
         } }
         // Le voci aperte sul posto nella home (Franz 02/11 08:05): il corpo si segna qui, così si legge come la pagina.
         val inlineOpen = remember { mutableStateListOf<String>() }

@@ -290,14 +290,13 @@
     else okPending = new Set([...okPending].filter(x => x !== task))
   }
   // «Superata» su una carta di scelta (app-scelte-chiudibili-06-11, Franz 06/11 15:06): la carta sparisce subito e l'op
-  // `approval_close` (contratto 1.129) la chiude nel registro; con un relay che non la conosce, o senza risposta, la chiusura la
-  // chiede la master e la carta torna dopo due minuti se è ancora lì.
+  // `approval_close` (contratto 1.129) la chiude nel registro; ok anche se il compito non aspettava più. Se il relay rifiuta, la
+  // carta torna (il motivo in basso, da `run`).
   async function closeApproval(task: string) {
     okPending = new Set([...okPending, task])
     const r = await run(newCmd('approval_close', null, task, t.approvalCloseReason))
-    if (r?.ok) { say(`✓ ${t.approvalClosed}`); return }
-    sendTo(MASTER, t.approvalClosePrompt(task))
-    setTimeout(() => { okPending = new Set([...okPending].filter(x => x !== task)) }, 120_000)
+    if (r?.ok) say(`✓ ${t.approvalClosed}`)
+    else okPending = new Set([...okPending].filter(x => x !== task))
   }
   // Contratto 1.83: la risposta a un server MCP. La scheda sparisce subito e torna solo se il relay rifiuta (il motivo in basso).
   let elicitSent = $state(new Set<string>())

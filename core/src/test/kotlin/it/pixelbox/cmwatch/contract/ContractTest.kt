@@ -305,7 +305,8 @@ class ContractTest {
         val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
         // Manca «unfollow»; dal contratto 1.72 anche «changes» e «diff», il cui risultato ha la sua fixture (changes-sample.json).
         // Dal 1.97 anche «home_order», senza esempio in questa fixture: il risultato è quello solito, e lo stato lo prova homeOrderInTheState.
-        // Il 1.129 «approval_close» (app-scelte-chiudibili-06-11) entra qui finché la fixture del relay non ne ha un esempio.
+        // Dal 1.129 anche «approval_close» (app-scelte-chiudibili-06-11): la risposta è l'oggetto in `text`, senza esempio in questa
+        // fixture (contract-1.129: «No fixture change»); l'op la portano le fixture di stato in `ops`.
         assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.HOME_ORDER, CmdOp.APPROVAL_CLOSE), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
         // Contratto 1.12: due risultati in più, «model» riuscito ed «effort» rifiutato su una sessione occupata.
         // Contratto 1.13: uno in più, il launch con il primo messaggio. Contratto 1.17: night_add e night_remove.

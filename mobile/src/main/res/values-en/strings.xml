@@ -1824,6 +1824,6 @@ It starts at your last message to the master.</string>
     <string name="approval_superseded">Superseded, close</string>
     <string name="approval_close_reason">superseded</string>
     <string name="approval_closed">Closed as superseded</string>
-    <string name="approval_close_prompt">Close card %1$s as superseded: Franz closed it from the app.</string>
+    <string name="approval_close_refused">Card not closed: try again</string>
     <string name="approval_confirm">Confirm</string>
 </resources>

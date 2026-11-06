@@ -41,7 +41,8 @@ class CommitmentsTest {
     // Contratto 1.79: il titolo breve `short` (1-28 caratteri, una riga, mai «…»), esplicito dal registro o ricavato dal titolo.
     @Test fun theFixturesCarryTheShortTitleOf179() {
         assertEquals(listOf("Migrations", "SEO pages"), idle.commitments!!.map { it.short })
-        assertEquals("Publish the orbit docs site", stale.commitments!!.single().short)
+        // Dal 1.129 la fixture del relay ha il titolo breve esplicito del registro.
+        assertEquals("Orbit docs", stale.commitments!!.single().short)
         assertEquals(listOf("Release 1.4 di ledger-api", "APK del Gantt sul telefono"), night.commitments.map { it.short })
         assertTrue((idle.commitments!! + stale.commitments!! + night.commitments).all { it.short!!.length in 1..28 && '\n' !in it.short!! && '…' !in it.short!! })
         assertNull(Commitment(task = "x", title = "y").short)
