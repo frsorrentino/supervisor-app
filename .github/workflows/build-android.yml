@@ -4,7 +4,9 @@ name: Build Android APKs
 
 on:
   push:
-    branches: [main, master, feature/**]
+    # Il ramo dell'app (app-ci-prerelease-auto-06-11, Franz 06/11 15:36: «automatizza build e pre-release»): a ogni push la
+    # build e, se passa, la pre-release.
+    branches: [main, master, feature/**, tab-emoji/**]
     paths: ['core/**', 'wear/**', 'mobile/**', 'ui-tokens/**', 'gradle/**', 'contract/**', '*.gradle.kts', 'gradle.properties', '.github/workflows/build-android.yml']
   workflow_dispatch:
     inputs:
@@ -24,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
+    outputs:
+      signed: ${{ steps.names.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
         # La versione mostrata conta i commit: con la copia superficiale sarebbe 0.2.1.
@@ -85,12 +89,14 @@ jobs:
       # I nomi di sempre nell'artifact: mobile-release.apk è l'asset che l'app installata cerca nelle release
       # (AppUpdate.ASSET) e che scaricano install-watch.sh e le pre-release; mobile-release.aab va a Play.
       - name: Telefono, nomi di sempre
+        id: names
         run: |
           mkdir -p mobile/build/outputs/apk/debug mobile/build/outputs/apk/release mobile/build/outputs/bundle/release
           cp mobile/build/outputs/apk/github/debug/mobile-github-debug.apk mobile/build/outputs/apk/debug/mobile-debug.apk
           if [ -f mobile/build/outputs/apk/github/release/mobile-github-release.apk ]; then
             cp mobile/build/outputs/apk/github/release/mobile-github-release.apk mobile/build/outputs/apk/release/mobile-release.apk
             cp mobile/build/outputs/bundle/playRelease/mobile-play-release.aab mobile/build/outputs/bundle/release/mobile-release.aab
+            echo "signed=true" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/upload-artifact@v4
         with:
@@ -104,3 +110,34 @@ jobs:
             mobile/build/outputs/bundle/release/*.aab
           # 47 MB a build: con 30 giorni la quota Actions (0,5 GB-mese) finiva in pochi giorni di push. L'APK si scarica subito.
           retention-days: 1
+
+  # La pre-release da sola (app-ci-prerelease-auto-06-11): a ogni push sul ramo dell'app, se la build è passata con l'APK firmato,
+  # una pre-release sullo sha del push con mobile-release.apk, l'asset che l'app cerca (AppUpdate.ASSET) e che la Home propone come
+  # la più recente (published_at). Tag univoco; nelle note i messaggi dei commit dall'ultima release. Una build fallita non
+  # pubblica niente; un push nuovo annulla anche questo job (concurrency sopra).
+  prerelease:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/tab-emoji/') && needs.build.outputs.signed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/download-artifact@v4
+        with: { name: cmwatch-apk, path: apk }
+      - name: Pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(find apk -path '*mobile/build/outputs/apk/release/mobile-release.apk' | head -1)
+          test -n "$apk"
+          short=$(git rev-parse --short=8 "$GITHUB_SHA")
+          tag="auto-$(date -u +%Y-%m-%d-%H%M)-$short"
+          ver="0.2.$(git rev-list --count "$GITHUB_SHA")"
+          prev=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || true)
+          if [ -n "$prev" ] && git rev-parse -q --verify "refs/tags/$prev" >/dev/null; then range="$prev..$GITHUB_SHA"; else range="-n 10 $GITHUB_SHA"; fi
+          git log --no-merges --format='- %s' $range | head -40 > notes.md
+          [ -s notes.md ] || echo "- $(git log -1 --format=%s "$GITHUB_SHA")" > notes.md
+          cp "$apk" mobile-release.apk
+          gh release create "$tag" mobile-release.apk --prerelease --target "$GITHUB_SHA" --title "$ver · ${GITHUB_REF_NAME} · $short" --notes-file notes.md
