@@ -1826,4 +1826,6 @@ It starts at your last message to the master.</string>
     <string name="approval_closed">Closed as superseded</string>
     <string name="approval_close_refused">Card not closed: try again</string>
     <string name="approval_confirm">Confirm</string>
+    <string name="card_choose">Choose</string>
+    <string name="card_reply">Reply</string>
 </resources>

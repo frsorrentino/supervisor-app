@@ -332,9 +332,10 @@ internal fun V3Pill(text: String, filled: Boolean = false, confirmed: Boolean = 
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // `confirmed` (voce 11, Franz 02/11 15:38): il tasto toccato diventa la conferma, verde con la spunta, e cresce un poco.
     // D3 (app-motion-loops-04-11): confermato, verde scuro col bordo, l'etichetta sparisce e la spunta si disegna.
-    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) CheckFill else if (filled) V3.Act else V3.S3, androidx.compose.animation.core.tween(it.pixelbox.cmwatch.rules.Leave.CHECK_LABEL_MS), label = "pill-bg")
-    val fg = if (confirmed) V3.Tx else if (filled) V3.OnAct else V3.Tx
-    androidx.compose.material3.Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press), shape = pressShape(press), color = bg, contentColor = fg, border = if (confirmed) androidx.compose.foundation.BorderStroke(1.dp, CheckLine) else null) {
+    // Tasti B (app-sessioni-compatte-06-11): pieno è il velo ambra di Tocca a te col suo bordo, mai il bianco.
+    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) CheckFill else if (filled) V3.Wait.copy(alpha = 0.14f) else V3.S3, androidx.compose.animation.core.tween(it.pixelbox.cmwatch.rules.Leave.CHECK_LABEL_MS), label = "pill-bg")
+    val fg = if (confirmed) V3.Tx else if (filled) V3.Wait else V3.Tx
+    androidx.compose.material3.Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press), shape = pressShape(press), color = bg, contentColor = fg, border = if (confirmed) androidx.compose.foundation.BorderStroke(1.dp, CheckLine) else if (filled) androidx.compose.foundation.BorderStroke(1.dp, V3.Wait.copy(alpha = 0.6f)) else null) {
         Box(Modifier.padding(horizontal = 16.dp, vertical = 9.dp)) { CheckLabel(confirmed) { Text(text, style = V3.Name.copy(fontSize = 15.sp, color = fg), maxLines = 1, softWrap = false) } }
     }
 }
