@@ -399,6 +399,12 @@ class FakeTransport(
                     }
                 }
             }
+            // Contratto 1.129: chiusa come superata; ok anche se il compito non aspettava più (closed false).
+            CmdOp.APPROVAL_CLOSE -> if (cmd.arg.isNullOrBlank()) ko("no task") else {
+                val was = s.approvals.any { it.task == cmd.arg }
+                current.value = current.value.let { st -> st.copy(approvals = st.approvals.filter { it.task != cmd.arg }) }
+                ok("""{"task": "${cmd.arg}", "closed": $was, "state": "${if (was) "superseded" else "unknown"}"}""")
+            }
             CmdOp.DECISION -> if (cmd.text.isNullOrBlank()) ko("empty decision") else ok("decision sent to the master")
             // Contratto 1.44: la demo legge la fixture inventata del rapporto della notte.
             CmdOp.NIGHT -> runCatching { load("night-report-sample") }.map { ok(it) }.getOrElse { ko("no night report yet") }

@@ -289,6 +289,16 @@
     if (r?.ok) say(`✓ ${t.approved}`)
     else okPending = new Set([...okPending].filter(x => x !== task))
   }
+  // «Superata» su una carta di scelta (app-scelte-chiudibili-06-11, Franz 06/11 15:06): la carta sparisce subito e l'op
+  // `approval_close` (contratto 1.129) la chiude nel registro; con un relay che non la conosce, o senza risposta, la chiusura la
+  // chiede la master e la carta torna dopo due minuti se è ancora lì.
+  async function closeApproval(task: string) {
+    okPending = new Set([...okPending, task])
+    const r = await run(newCmd('approval_close', null, task, t.approvalCloseReason))
+    if (r?.ok) { say(`✓ ${t.approvalClosed}`); return }
+    sendTo(MASTER, t.approvalClosePrompt(task))
+    setTimeout(() => { okPending = new Set([...okPending].filter(x => x !== task)) }, 120_000)
+  }
   // Contratto 1.83: la risposta a un server MCP. La scheda sparisce subito e torna solo se il relay rifiuta (il motivo in basso).
   let elicitSent = $state(new Set<string>())
   async function elicit(e: Elicitation, action: 'accept' | 'decline', values: Values) {
@@ -1799,7 +1809,7 @@
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
 {#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused, armable: !!leaving.armable } : null} onCloseArm={arm} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
-        onApprove={approve} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+        onApprove={approve} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
 {#snippet masterQuick()}

@@ -1849,4 +1849,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="swap_add">Apri %1$s accanto</string>
     <string name="swap_close">Chiudi la colonna di %1$s</string>
     <string name="reading_channel">Lettura vocale</string>
+    <string name="approval_superseded">Superata, chiudi</string>
+    <string name="approval_close_reason">superata</string>
+    <string name="approval_closed">Chiusa come superata</string>
+    <string name="approval_close_prompt">Chiudi come superata la carta %1$s: Franz l\'ha chiusa dall\'app.</string>
+    <string name="approval_confirm">Conferma</string>
 </resources>

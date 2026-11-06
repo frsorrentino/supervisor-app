@@ -1692,11 +1692,19 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
     if (ask) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
 }
 
-/** Un ok del registro dentro la card della sessione che lo chiede: il titolo e «Approva», che apre la stessa finestra della scheda. */
+/** «Superata» su una carta di scelta (app-scelte-chiudibili-06-11): chi la fornisce chiude la carta; null = niente tasto. */
+internal val LocalApprovalClose = androidx.compose.runtime.staticCompositionLocalOf<((String) -> Unit)?> { null }
+
+/**
+ * Un ok del registro dentro la card della sessione che lo chiede: il titolo e «Approva», o un tasto per opzione. La conferma sta
+ * nella carta, senza finestra (app-scelte-chiudibili-06-11, Franz 06/11 15:06): sul telefono il tocco su A, B o C non arrivava al
+ * relay, e la finestra era il passaggio che poteva fermarlo. «Superata» la chiude sempre.
+ */
 @Composable
 private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (String, String, String?) -> Unit) {
     var ask by rememberSaveable(a.task) { mutableStateOf(false) }
     var choice by rememberSaveable(a.task) { mutableStateOf<String?>(null) }
+    val close = LocalApprovalClose.current
     // Franz 24/10 09:22: con le opzioni il titolo intero sopra e i tasti sotto, che vanno a capo fra loro.
     val withOptions = it.pixelbox.cmwatch.rules.Approvals.choices(a).isNotEmpty()
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1710,9 +1718,21 @@ private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (S
             }
         }
         if (withOptions) Box(Modifier.padding(start = 28.dp)) { OkButtons(a, filled = true) { o -> choice = o; ask = true } }
+        if (ask) {
+            // La conferma sul posto: cosa si manda, poi Conferma o Annulla.
+            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+            androidx.compose.foundation.layout.FlowRow(Modifier.padding(start = 28.dp).testTag("carta-conferma"), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+                Text(choice?.let { stringResource(R.string.choose_short, it) } ?: stringResource(R.string.approve_short), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+                MiniButton(stringResource(R.string.approval_confirm), filled = true) { ask = false; onApprove(a.task, "", choice) }
+                MiniButton(stringResource(R.string.cancel), filled = false) { ask = false; choice = null }
+            }
+        }
         Box(Modifier.padding(start = 28.dp)) { OkInfo(a) }
+        if (close != null && !ask) Text(
+            stringResource(R.string.approval_superseded), style = MaterialTheme.typography.labelLarge, color = Cm.text2,
+            modifier = Modifier.padding(start = 28.dp).clip(RoundedCornerShape(8.dp)).handCursor().clickable { close(a.task) }.padding(horizontal = 6.dp, vertical = 8.dp).testTag("carta-superata"),
+        )
     }
-    if (ask) ApproveDialog(a, choice, onConfirm = { n -> ask = false; onApprove(a.task, n, choice) }, onDismiss = { ask = false })
 }
 
 /** Strada B: un lavoro nella scheda della sua sessione: glifo nel colore del gruppo, titolo breve, «da te · chiede alle HH:MM» o «può partire», e il tasto. */

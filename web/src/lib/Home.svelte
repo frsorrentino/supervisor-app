@@ -76,7 +76,7 @@
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
   import { closedToday, toccaCounts } from './toccaRules'
   import ToccaClosed from './ToccaClosed.svelte'
-  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
+  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -120,6 +120,8 @@
     onAnswer: (session: string, n: number) => void; onStep: (session: string, text: string) => void
     /** Contratto 1.37: l'ok a un compito (`approve`) e «Chiudi» per una sessione finita o doppione (/exit). */
     onApprove?: (task: string, note: string, choice?: string) => void; onClose?: (name: string) => void
+    /** «Superata» su una carta di scelta (app-scelte-chiudibili-06-11): null = niente tasto. */
+    onApprovalClose?: ((task: string) => void) | null
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone?: (d: Done) => void | Promise<boolean>
     /** L'ok di una ferma nata dal «!» di «Prossimi:»: manda la voce alla sessione (queue.ts, okOf). */
@@ -1129,6 +1131,7 @@
               {@render okButtons(a, false)}
             </div>
             <OkInfo {a} />
+            {#if onApprovalClose}<button class="superata" data-testid="carta-superata" onclick={(e) => { e.stopPropagation(); onApprovalClose?.(a.task) }}>{t.approvalSuperseded}</button>{/if}
           {/each}
         </div>
       {/if}
@@ -1616,6 +1619,8 @@
   .foldin { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
   .foldin > :global(*) { flex-shrink: 0; }
   .dragfly { transition: top var(--spring-bounce-t) var(--spring-bounce); }
+  .superata { align-self: flex-start; margin-left: 28px; min-height: 32px; padding: 0 6px; border-radius: 8px; font: 600 14px var(--display); color: var(--tx2); }
+  .superata:hover { background: var(--surface); }
   .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
   .meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .meta .tool { color: var(--busy); }

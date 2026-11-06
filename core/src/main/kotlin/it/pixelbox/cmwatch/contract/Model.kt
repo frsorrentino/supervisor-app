@@ -97,6 +97,11 @@ enum class CmdOp {
     @SerialName("pair_add") PAIR_ADD,
     /** Contratto 1.37: l'ok a un compito che lo aspetta; `arg` = id del compito, `text` facoltativo («ok»). */
     @SerialName("approve") APPROVE,
+    /**
+     * Contratto 1.129: chiude come superata una carta che aspetta l'ok o una scelta; `arg` = id del compito, `text` = motivo
+     * facoltativo. Ok anche se il compito non aspettava più (`closed: false`): l'app chiude sempre la carta.
+     */
+    @SerialName("approval_close") APPROVAL_CLOSE,
     /** Contratto 1.37: una decisione da salvare nella memoria della master; `text` obbligatorio, `arg` = progetto o null. */
     @SerialName("decision") DECISION,
     /** Contratto 1.39: togliere un dispositivo accoppiato; `arg` = uid. Solo «Scollega questo browser», col proprio uid. */

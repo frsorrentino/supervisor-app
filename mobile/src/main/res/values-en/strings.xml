@@ -1821,4 +1821,9 @@ It starts at your last message to the master.</string>
     <string name="swap_add">Open %1$s alongside</string>
     <string name="swap_close">Close the %1$s column</string>
     <string name="reading_channel">Voice reading</string>
+    <string name="approval_superseded">Superseded, close</string>
+    <string name="approval_close_reason">superseded</string>
+    <string name="approval_closed">Closed as superseded</string>
+    <string name="approval_close_prompt">Close card %1$s as superseded: Franz closed it from the app.</string>
+    <string name="approval_confirm">Confirm</string>
 </resources>

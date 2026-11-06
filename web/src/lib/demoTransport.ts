@@ -296,6 +296,13 @@ export class DemoTransport implements Transport {
           return ok(`removed ${dv.name}`)
         }
         // Contratto 1.37: la demo toglie il compito approvato dalla lista.
+        // Contratto 1.129: chiusa come superata; ok anche se il compito non aspettava più.
+        case 'approval_close': {
+          if (!cmd.arg) return ko('no task')
+          const was = s.approvals.some(a => a.task === cmd.arg)
+          this.set({ ...s, approvals: s.approvals.filter(a => a.task !== cmd.arg) })
+          return ok(JSON.stringify({ task: cmd.arg, closed: was, state: was ? 'superseded' : 'unknown' }))
+        }
         case 'approve':
           if (!s.approvals.some(a => a.task === cmd.arg)) return ko(`${cmd.arg}: no task waiting for an ok`)
           this.set({ ...s, approvals: s.approvals.filter(a => a.task !== cmd.arg) })

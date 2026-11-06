@@ -358,7 +358,7 @@ export type SystemStatus = {
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
-  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
+  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
   | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text' | 'feedback_app' | 'results' | 'result_seen' | 'result_note'
