@@ -1088,6 +1088,8 @@
     const end = () => {
       if (over) return
       over = true
+      // Le colonne ferme durante il volo non ripartono con la loro dissolvenza d'ingresso togliendo fx-open (data-shown, Desk.svelte).
+      for (const el of document.querySelectorAll<HTMLElement>('.desk .col[data-col]')) el.dataset.shown = ''
       document.documentElement.classList.remove('fx-open', 'fx-close')
       preChat = null
       if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }

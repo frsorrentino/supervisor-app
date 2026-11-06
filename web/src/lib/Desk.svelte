@@ -123,7 +123,7 @@
       {#each [...cols].sort() as name (name)}
         {@const i = cols.indexOf(name)}
         {@const k = slot(i)}
-        <div class="col" data-col={name} class:dragging={dragged === i} onpointerdowncapture={() => touch(name)}
+        <div class="col" data-col={name} class:dragging={dragged === i} onpointerdowncapture={() => touch(name)} onanimationend={(e) => { if (e.target === e.currentTarget) e.currentTarget.dataset.shown = '' }}
           style="left:{dragged === i ? lefts[i] + draggedPx : lefts[k]}px;width:{live[k] ?? 0}px">
           {#if strip && strips.has(name)}{@render strip(name, () => touch(name))}{:else}{@render column(name, (e) => grabColumn(i, e))}{/if}
         </div>
@@ -168,8 +168,11 @@
   .landslot { position: absolute; top: 10px; bottom: 10px; z-index: 1; border: 2px dashed var(--wait); border-radius: 18px; background: color-mix(in srgb, var(--wait) 8%, transparent); transition: left .32s cubic-bezier(.2, .8, .2, 1), width .32s cubic-bezier(.2, .8, .2, 1); pointer-events: none; }
   @media (prefers-reduced-motion: reduce) { .landslot { transition: none; } }
   .col.dragging { transition: scale .2s, box-shadow .2s; z-index: 2; scale: 1.025; box-shadow: 0 18px 50px rgb(0 0 0 / .6); border-color: color-mix(in srgb, var(--icon) 55%, transparent); }
-  /* Solo dissolvenza: niente scala che riparte dopo il volo (app-sessione-apertura-06-11). */
+  /* Solo dissolvenza: niente scala che riparte dopo il volo (app-sessione-apertura-06-11). Una volta comparsa, la colonna non
+     ricompare più (app-cambio-sessione-fermo-06-11, Franz 06/11 12:09: «si ricarica dopo la prima animazione»): il volo le toglie
+     l'animazione e rimettendola il browser la faceva ripartire, la colonna appena arrivata tornava trasparente e sfumava di nuovo. */
   @keyframes appear { from { opacity: 0; } }
+  .col:global([data-shown]) { animation: none; }
   .border { position: absolute; top: 0; bottom: 0; width: 12px; cursor: col-resize; display: grid; place-items: center; touch-action: none; }
   .border i { width: 4px; height: 40px; border-radius: 2px; background: var(--line); }
   .border:hover i, .border.on i { background: var(--icon); }

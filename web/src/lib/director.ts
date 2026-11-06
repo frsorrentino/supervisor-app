@@ -240,5 +240,6 @@ export async function fly(f: Flight): Promise<void> {
   opened()
   for (const g of gone) g.remove()
   if (to) to.style.zIndex = ''
-  for (const el of new Set([...cols, ...newCols])) { el.style.transition = ''; el.style.animation = '' }
+  // Arrivate: l'ingresso delle colonne non riparte (data-shown in Desk.svelte), rimettere l'animazione la faceva ricominciare.
+  for (const el of new Set([...cols, ...newCols])) { if (el.matches('.col')) el.dataset.shown = ''; el.style.transition = ''; el.style.animation = '' }
 }
