@@ -42,6 +42,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -292,6 +294,12 @@ internal fun MasterFrame(
 ) {
     val edge = androidx.compose.runtime.remember { EdgeSpots() }
     var ghost by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Ghost?>(null) }
+    // Il blocco che cambia forma mentre se ne cambia l'altezza (app-master-morph-m3-06-11, come lib/morphBlob.ts nella web): al posto
+    // della master che si spostava intera. La riga e il pannello si registrano mentre si disegnano, e il blocco ne mostra la copia
+    // che sfuma.
+    var blob by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<BlobDraw?>(null) }
+    val barLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+    val panelLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     var hints by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<List<Ghost>>(emptyList()) }
     var mid by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Mid?>(null) }
     val names = mapOf<Any, String>(
@@ -331,6 +339,19 @@ internal fun MasterFrame(
         lift.y = from
         if (motionOff) { lift.y = 0f; if (from != 0f) { lift.alpha = 0f; sideScope.launch { androidx.compose.animation.core.animate(0f, 1f, animationSpec = androidx.compose.animation.core.tween(180)) { v, _ -> lift.alpha = v } } }; return }
         sideScope.launch { androidx.compose.animation.core.animate(from, 0f, velocity, sideSpring) { v, _ -> lift.y = v } }
+    }
+    // La forma va al posto `to` con la molla del cambio di lato, dalla velocità del rilascio (dp/s in verticale); poi lascia il
+    // posto alla master vera, che compare sfumando se è arrivata in un posto nuovo.
+    fun landBlob(to: it.pixelbox.cmwatch.rules.MorphBlob.Shape, vy: Float, arrived: Boolean) {
+        val b0 = blob ?: return
+        val span = to.y - b0.shape.y
+        val vq = if (kotlin.math.abs(span) > 1f) (vy / span).coerceIn(-20f, 20f) else 0f
+        sideScope.launch {
+            androidx.compose.animation.core.animate(0f, 1f, vq, sideSpring) { q, _ -> blob = blob?.copy(shape = it.pixelbox.cmwatch.rules.MorphBlob.mix(b0.shape, to, q)) }
+            blob = null
+            if (arrived) { lift.alpha = 0f; androidx.compose.animation.core.animate(0f, 1f, animationSpec = androidx.compose.animation.core.tween(140)) { v, _ -> lift.alpha = v } }
+            else lift.alpha = 1f
+        }
     }
     fun settle(fromPanel: Float, fromContent: Float, velocity: Float) {
         panelOff = fromPanel; contentOff = fromContent
@@ -393,6 +414,8 @@ internal fun MasterFrame(
                 val wStops = L.widthStops(W)
                 val wFrom = wStops.indices.minBy { kotlin.math.abs(wStops[it] - p0.panelWidth()) }
                 val col0 = rectFor(p0.left, L.Height.COLUMN, p0.panelWidth())
+                // Il posto di partenza del blocco che cambia forma: la riga, il pannello o la master nella pila, con le misure vere.
+                val from0 = rectFor(p0.left, h0, p0.panelWidth())
                 fun aimAt(key: String, x: Float, y: Float, vx: Float = 0f, vy: Float = 0f) {
                     if (key == "width") {
                         // Posti fissi (Franz 04/11 10:29-10:30): la sagoma salta a un posto, mai nel mezzo; quale lo dice la direzione.
@@ -461,8 +484,14 @@ internal fun MasterFrame(
                             aim = p0.copy(left = onLeft) to open0
                         }
                         else -> {
-                            if (key != "width" && !motionOff) lift.y = (y - y0) * density
                             aimAt(key, x, y)
+                            // Il blocco segue il dito cambiando forma verso il posto indicato dalla sagoma; la master vera resta nascosta.
+                            val to = ghost?.rect
+                            if (key != "width" && !motionOff && to != null) {
+                                val pr = it.pixelbox.cmwatch.rules.MorphBlob.progress(from0, to, y - y0)
+                                blob = BlobDraw(it.pixelbox.cmwatch.rules.MorphBlob.shape(from0, to, pr, x, y), it.pixelbox.cmwatch.rules.MorphBlob.contentAlpha(pr), it.pixelbox.cmwatch.rules.MorphBlob.gripAlpha(pr), h0 == L.Height.BAR)
+                                lift.alpha = 0f
+                            }
                         }
                     }
                 }
@@ -487,7 +516,15 @@ internal fun MasterFrame(
                 if (key != "width") {
                     // Dal punto e con la velocità del rilascio; annullato, la master torna su o giù allo stesso modo.
                     val v = speed.calculateVelocity().y
-                    if (moved && ended && go != null) {
+                    if (blob != null) {
+                        // Il blocco completa la forma sul posto nuovo con la molla, o torna a quello di partenza.
+                        if (moved && ended && go != null) {
+                            val hN = go.first.copy(open = go.second).height(underOk)
+                            val target = rectFor(go.first.left, hN, go.first.panelWidth())
+                            change?.invoke(go.first, go.second, true)
+                            landBlob(it.pixelbox.cmwatch.rules.MorphBlob.still(target), v / density, true)
+                        } else landBlob(it.pixelbox.cmwatch.rules.MorphBlob.still(from0), v / density, false)
+                    } else if (moved && ended && go != null) {
                         val hN = go.first.copy(open = go.second).height(underOk)
                         val oldTop = rectFor(p0.left, h0, p0.panelWidth()).y * density + lift.y
                         val newTop = rectFor(go.first.left, hN, go.first.panelWidth()).y * density
@@ -511,7 +548,7 @@ internal fun MasterFrame(
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
                     if (panel != null) {
                         val canGrip = onPlace != null && place != null
-                        Box(Modifier.zIndex(if (panelOff != 0f || lift.y != 0f) 3f else 0f).graphicsLayer { translationX = panelOff; alpha = sideFade * (if (stacked) 1f else lift.alpha); if (!stacked) translationY = lift.y }.reflow("r-master").landing().width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
+                        Box(Modifier.zIndex(if (panelOff != 0f || lift.y != 0f) 3f else 0f).graphicsLayer { translationX = panelOff; alpha = sideFade * (if (stacked) 1f else lift.alpha); if (!stacked) translationY = lift.y }.drawWithContent { panelLayer.record { this@drawWithContent.drawContent() }; drawLayer(panelLayer) }.reflow("r-master").landing().width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
                             androidx.compose.runtime.CompositionLocalProvider(LocalEdgeSpots provides edge, LocalMasterGrip provides gripOf.takeIf { canGrip }, LocalMasterLift provides lift) { panel() }
                             // La presa in alto: di lato cambia il lato (la sagoma passa alla metà dello schermo sotto il dito), in su o
                             // in giù l'altezza a scatti. Nella pila è la maniglia fra la home e la master.
@@ -528,7 +565,7 @@ internal fun MasterFrame(
                     Column(Modifier.weight(1f).fillMaxHeight().graphicsLayer { translationX = contentOff }) {
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
                         bar?.let { b ->
-                            Box(Modifier.zIndex(if (lift.y != 0f) 3f else 0f).graphicsLayer { translationY = lift.y; alpha = lift.alpha }.reflow("r-master").landing().fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
+                            Box(Modifier.zIndex(if (lift.y != 0f) 3f else 0f).graphicsLayer { translationY = lift.y; alpha = lift.alpha }.drawWithContent { barLayer.record { this@drawWithContent.drawContent() }; drawLayer(barLayer) }.reflow("r-master").landing().fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
                                 b()
                                 // Due maniglie sull'asse della colonna dove la master atterra, una per lato (app-master-riga-maniglie-04-11,
                                 // Franz 04/11 17:40): tirata su apre la master da quel lato, alle altezze del bordo superiore; un tocco la
@@ -562,6 +599,7 @@ internal fun MasterFrame(
         }
         // La sagoma, le altre destinazioni e la linea di mezzo, sopra tutto e senza prendere i tocchi.
         GhostLayer(ghost, hints, mid)
+        blob?.let { b -> BlobLayer(b, if (b.fromBar) barLayer else panelLayer) }
     }
 }
 
@@ -617,6 +655,23 @@ internal val LocalMasterGrip = androidx.compose.runtime.staticCompositionLocalOf
 
 /** Un posto della sagoma o di una destinazione, in dp nel telaio, con la sua etichetta. */
 internal data class Ghost(val rect: L.Rect, val text: String)
+
+/** Il blocco che cambia forma: dove sta (dp), quanto si vede la copia della master di partenza e quanto la presa. */
+internal data class BlobDraw(val shape: it.pixelbox.cmwatch.rules.MorphBlob.Shape, val content: Float, val grip: Float, val fromBar: Boolean)
+
+/** Il blocco sopra la plancia: superficie, bordo e ombra della master, la copia di partenza che sfuma, la presa che compare. */
+@Composable
+internal fun BlobLayer(b: BlobDraw, copy: androidx.compose.ui.graphics.layer.GraphicsLayer) {
+    val s = b.shape
+    val shape = RoundedCornerShape(topStart = s.rTop.dp, topEnd = s.rTop.dp, bottomStart = s.rBottom.dp, bottomEnd = s.rBottom.dp)
+    Box(
+        Modifier.offset(s.x.dp, s.y.dp).size(s.w.dp, s.h.dp).zIndex(5f)
+            .shadow(16.dp, shape).clip(shape).background(V3.S1).border(1.dp, V3.Line, shape),
+    ) {
+        if (b.content > 0f) androidx.compose.foundation.Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = b.content }) { drawLayer(copy) }
+        Box(Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(48.dp, 4.dp).graphicsLayer { alpha = b.grip }.clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+    }
+}
 /** La linea a metà schermo del gesto del lato: `crossed` quando il dito l'ha passata; la pillola all'altezza del dito. */
 internal data class Mid(val x: Float, val y: Float, val crossed: Boolean, val text: String)
 

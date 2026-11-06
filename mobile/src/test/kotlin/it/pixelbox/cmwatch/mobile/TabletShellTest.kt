@@ -1,6 +1,7 @@
 package it.pixelbox.cmwatch.mobile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -199,6 +200,22 @@ class TabletShellTest {
 
     // + e › accanto alle sessioni della home che non sono in colonna; il filo bianco su quella già aperta (atlas-shop).
     @Test fun deskSwapPills() = paparazzi.snapshot { desk(listOf("atlas-shop"), listOf(12), swap = true) }
+
+    // app-master-morph-m3-06-11: il blocco della master a metà fra la riga in fondo e la colonna di destra, col dito sopra di lui:
+    // il bordo alto allungato e arrotondato, gli angoli in basso tondi, la presa che compare (la copia della riga è vuota qui).
+    @Test fun masterMorphMidway() = paparazzi.snapshot {
+        CmPhoneTheme(still = true) {
+            androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(V3.Bg)) {
+                val bar = it.pixelbox.cmwatch.rules.MasterLanding.Rect(0f, 840f, 1440f, 60f)
+                val col = it.pixelbox.cmwatch.rules.MasterLanding.Rect(1020f, 0f, 420f, 900f)
+                val p = 0.5f
+                BlobLayer(
+                    BlobDraw(it.pixelbox.cmwatch.rules.MorphBlob.shape(bar, col, p, 1100f, 300f), it.pixelbox.cmwatch.rules.MorphBlob.contentAlpha(p), it.pixelbox.cmwatch.rules.MorphBlob.gripAlpha(p), true),
+                    androidx.compose.ui.graphics.rememberGraphicsLayer(),
+                )
+            }
+        }
+    }
 
     // Con le sessioni aperte la master come nella PWA larga: aperta di lato a sinistra col tasto Posizione, la home dal suo lato.
     @Test fun deskMasterLeft() = paparazzi.snapshot {
