@@ -686,6 +686,7 @@ fun SummaryList(
                 onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
                 onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
                 doneFilled = s.name == primary && s.needsYou?.until != true, lastRed = lastRed[s.name], firstInList = first,
+                openKey = parts != null,
             )
             }
         }
@@ -1095,6 +1096,8 @@ private fun SummaryCard(
     todayShare: Int? = null,
     /** Stile «Studio e Diretta»: il «Fatto» è pieno solo per la prima che aspetta; l'ora dell'ultimo rosso di oggi; `firstInList` senza il filo sopra. */
     doneFilled: Boolean = false, lastRed: Long? = null, firstInList: Boolean = true,
+    /** «Apri» accanto al nome, nella colonna delle sessioni della plancia (app-sessioni-evidenti-06-11, J2). */
+    openKey: Boolean = false,
 ) {
     val s = r.session
     // La card si segna sullo schermo finché è composta (transizione C): aperta da qui, la sessione vola da lei.
@@ -1188,6 +1191,9 @@ private fun SummaryCard(
             if (!waiting && lastRed != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 StateGlyph(it.pixelbox.cmwatch.rules.Rail.Glyph.RED, size = 14.dp)
                 Text(hhmmOf(lastRed), style = V3.Meter.copy(color = V3.Red), maxLines = 1)
+            }
+            if (openKey) androidx.compose.material3.Surface(onClick = onOpen, shape = CircleShape, color = V3.S3, modifier = Modifier.handCursor().testTag("apri-${s.name}")) {
+                Text(stringResource(R.string.desk_open), style = V3.Small.copy(color = V3.Tx, fontWeight = FontWeight.SemiBold), modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp))
             }
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
                 androidx.compose.material3.Icon(

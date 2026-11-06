@@ -1808,6 +1808,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <!-- La plancia del tablet come la PWA larga (app-tablet-come-pwa-03-11). -->
     <string name="desk_you_empty">Niente che aspetti te</string>
     <string name="desk_out_sub">esiti oggi</string>
+    <string name="desk_open">Apri</string>
+    <string name="desk_sessions_title">Sessioni</string>
+    <string name="desk_sessions_sub">%1$d aperte · %2$d al lavoro</string>
+    <string name="desk_out_closed">Esiti</string>
     <string name="desk_tools_sub">quota 5 ore</string>
     <string name="desk_tools_sub_reset">quota 5 ore, si azzera alle %1$s</string>
     <string name="desk_tools_week">quota della settimana</string>

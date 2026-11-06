@@ -75,7 +75,7 @@ private fun tone(pct: Int): Color = if (pct >= 90) V3.Red else if (pct >= 75) V3
  * la tacca di quanto è passato della finestra.
  */
 @Composable
-internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, onOpen: () -> Unit) {
+internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, open: Int? = null, onOpen: () -> Unit) {
     val rings = UtilizzoRules.shownQuota(st.quota).mapNotNull { (name, r) -> UtilizzoRules.bar(r.h5, r.w7, r.resetH5, r.resetW7, now, r.stale)?.let { b -> Triple(name, r, b) } }
     val top = rings.filter { (_, r, _) -> !r.stale }.maxByOrNull { (_, _, b) -> b.pct }
     val topPct = top?.third?.pct ?: 0
@@ -86,17 +86,18 @@ internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, onOpen: (
     ) {
         val (n, color) = when (kind) {
             "you" -> h.waiting.toString() to (if (h.waiting > 0) V3.Wait else V3.Tx)
-            "work" -> h.busy.toString() to V3.Tx
+            // Con `open` la testa di «In corso» è quella delle Sessioni (app-sessioni-evidenti-06-11, J2).
+            "work" -> (open ?: h.busy).toString() to V3.Tx
             "out" -> (h.outcomes?.toString() ?: "–") to V3.Tx
             else -> (if (top != null) "$topPct%" else "–") to (if (top != null && topPct >= 75) tone(topPct) else V3.Tx)
         }
         Text(n, style = V3.Section.copy(fontSize = 42.sp, lineHeight = 42.sp, fontWeight = FontWeight.Bold, color = color))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(catName(kind), style = V3.Section.copy(fontSize = 19.sp, lineHeight = 22.sp))
+            Text(if (kind == "work" && open != null) stringResource(R.string.desk_sessions_title) else catName(kind), style = V3.Section.copy(fontSize = 19.sp, lineHeight = 22.sp))
             val sub = when (kind) {
                 "you" -> if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, maxOf(1L, ((h.oldestWaitS ?: 0L) + 30) / 60).toInt()) else stringResource(R.string.kpi7_none_waiting)
-                "work" -> stringResource(R.string.kpi7_busy)
+                "work" -> if (open != null) stringResource(R.string.desk_sessions_sub, open, h.busy) else stringResource(R.string.kpi7_busy)
                 "out" -> stringResource(R.string.desk_out_sub)
                 else -> top?.third?.let { b ->
                     if (b.week) b.delta?.let { d -> paceText(d, b.day) } ?: stringResource(R.string.desk_tools_week)
@@ -130,6 +131,24 @@ internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, onOpen: (
 private fun paceText(delta: Int, day: Int?): String {
     val p = if (delta < 0) stringResource(R.string.usage_below_pace, -delta) else if (delta > 0) stringResource(R.string.usage_above_pace, delta) else stringResource(R.string.week_even)
     return if (day != null) stringResource(R.string.week_day_pace, day, p) else p
+}
+
+/**
+ * Esiti chiuso in fondo a Tocca a te (app-sessioni-evidenti-06-11, J2): come il titolo di un gruppo, col numero di oggi; il tocco
+ * apre il foglio degli esiti. Come `.outclosed` della web.
+ */
+@Composable
+internal fun DeskOutClosed(n: Int?, onOpen: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).handCursor().clickable(onClick = onOpen).padding(horizontal = 14.dp, vertical = 12.dp).testTag("plancia-esiti-chiuso"),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Icon(Icons.Outlined.TaskAlt, null, tint = V3.Tx2, modifier = Modifier.size(20.dp))
+        Text(stringResource(R.string.desk_out_closed), style = V3.Section.copy(fontSize = 17.sp))
+        Text((n ?: 0).toString(), style = V3.Small)
+        Spacer(Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(22.dp))
+    }
 }
 
 /** Il titolo di un gruppo di righe nella colonna (il `vsec` della PWA). */

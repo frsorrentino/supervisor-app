@@ -1780,6 +1780,10 @@ It starts at your last message to the master.</string>
     <!-- The tablet plancia like the wide PWA (app-tablet-come-pwa-03-11). -->
     <string name="desk_you_empty">Nothing waiting for you</string>
     <string name="desk_out_sub">outcomes today</string>
+    <string name="desk_open">Open</string>
+    <string name="desk_sessions_title">Sessions</string>
+    <string name="desk_sessions_sub">%1$d open · %2$d working</string>
+    <string name="desk_out_closed">Outcomes</string>
     <string name="desk_tools_sub">5-hour quota</string>
     <string name="desk_tools_sub_reset">5-hour quota, resets at %1$s</string>
     <string name="desk_tools_week">weekly quota</string>
