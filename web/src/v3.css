@@ -315,7 +315,7 @@ html.reflow-home-first::view-transition-group(master-morph), html.reflow-home-fi
    parte 100 ms dopo e arriva piena in 200, dall'inizio del suo gruppo; i bordi restano sulla loro molla. Le schede che solo
    scivolano e la master che cambia posto restano piene (Franz 04/11). */
 :root { --morph-home-at: 0ms; }
-html.reflow-master-first { --morph-home-at: calc(var(--reflow-ms) * .4); }
+html.reflow-master-first::view-transition { --morph-home-at: calc(var(--reflow-ms) * .4); }
 @media (prefers-reduced-motion: no-preference) {
   html:root:root::view-transition-old(*.fx-focus) { animation: morph-out 140ms cubic-bezier(0.33, 1, 0.68, 1) var(--morph-home-at) both; }
   html:root:root::view-transition-new(*.fx-focus) { animation: morph-in 200ms linear calc(var(--morph-home-at) + 100ms) both; }
@@ -346,8 +346,10 @@ button.ck.done .lbl { opacity: 0; }
 /* Il volo d'apertura e le colonne si posano con la molla breve senza rimbalzo dei gesti della master (app-sessione-apertura-06-11,
    Franz 06/11 01:17: dopo l'apertura «riparte un bounce»): 1 − (1 + ωt)·e^(−ωt) con ω² = 300 (springFrames), in 400 ms. */
 :root { --spring-land: linear(0, .154, .404, .615, .764, .86, .919, .954, .974, .986, 1); }
-html.fx-open { --reflow-ms: 500ms; }
-html.fx-close { --reflow-ms: 420ms; }
+/* Le durate del volo solo sull'albero della transizione (app-fluidita-montaggio-06-11): una variabile cambiata su <html> passa a
+   tutti gli elementi della pagina, e il browser ne rifaceva lo stile all'inizio e alla fine di ogni apertura e chiusura. */
+html.fx-open::view-transition { --reflow-ms: 500ms; }
+html.fx-close::view-transition { --reflow-ms: 420ms; }
 html.fx-open::view-transition-group(*.fx-focus), html.fx-open::view-transition-old(*.fx-focus), html.fx-open::view-transition-new(*.fx-focus) { animation-duration: 400ms; animation-timing-function: var(--spring-land); }
 html.fx-close::view-transition-group(*.fx-focus) { animation-timing-function: var(--spring-land); }
 html.fx-open::view-transition-group(*.fx-col), html.fx-close::view-transition-group(*.fx-col) { animation-duration: 400ms; animation-timing-function: var(--spring-land); }
