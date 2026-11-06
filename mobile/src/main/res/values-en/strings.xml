@@ -1670,7 +1670,7 @@ It starts at your last message to the master.</string>
     <string name="home_prima_interrupted">stopped</string>
     <string name="home_prima_done">done</string>
     <!-- La home per categorie (app-home-categorie-02-11). -->
-    <string name="cat_you">Your turn</string>
+    <string name="cat_you">From the master</string>
     <string name="cat_work">Sessions</string>
     <string name="cat_out">Outcomes</string>
     <string name="cat_tools">Resources</string>
@@ -1785,7 +1785,7 @@ It starts at your last message to the master.</string>
     <string name="desk_out_sub">outcomes today</string>
     <string name="desk_open">Open</string>
     <string name="desk_sessions_title">Sessions</string>
-    <string name="desk_sessions_sub">%1$d open · %2$d working</string>
+    <string name="desk_sessions_sub">%1$s · %2$d working</string>
     <string name="desk_tools_sub">5-hour quota</string>
     <string name="desk_tools_sub_reset">5-hour quota, resets at %1$s</string>
     <string name="desk_tools_week">weekly quota</string>
@@ -1830,4 +1830,9 @@ It starts at your last message to the master.</string>
     <string name="card_reply">Reply</string>
     <string name="todo_decide">Decide %1$d</string>
     <string name="todo_verify">Verify %1$d</string>
+    <string name="desk_master_todo">%1$d to do</string>
+    <string name="desk_master_none">nothing to do</string>
+    <plurals name="desk_master_sug"><item quantity="one">%1$d suggestion</item><item quantity="other">%1$d suggestions</item></plurals>
+    <string name="desk_sessions_none">none waiting</string>
+    <plurals name="desk_sessions_wait"><item quantity="one">waiting for you</item><item quantity="other">waiting for you</item></plurals>
 </resources>

@@ -947,6 +947,8 @@
     return out
   })
   const decOfSession = (g: DecisionGroup) => g.items.some(i => !!i.session && liveSet.has(i.session))
+  // La testata di «Dalla master»: quello che Franz ha da fare fuori dalle sessioni aperte; i suggerimenti sono contesto.
+  const fromMaster = $derived({ todo: todoDec.filter(g => !decOfSession(g)).length + todoProve.filter(p => { const s = provaSession(p); return !(s && liveSet.has(s)) }).length + (st.prima_raccolta ? 1 : 0), sug: sug.shown.length })
   $effect(() => {
     void st.decisions?.n; void st.prove?.n
     if (!tr) return
@@ -1954,7 +1956,7 @@
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
-    {#snippet you()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="0ms"><DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}</div>{:else}{@render pskel()}{/if}{/snippet}
+    {#snippet you()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="0ms"><DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} master={fromMaster} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}</div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet work()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="60ms"><DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} open={summary.open} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}<DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet out()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="120ms"><DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet tools()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="180ms"><DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} /></div>{:else}{@render pskel()}{/if}{/snippet}

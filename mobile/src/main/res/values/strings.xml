@@ -1704,7 +1704,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_prima_interrupted">interrotta</string>
     <string name="home_prima_done">fatta</string>
     <!-- La home per categorie (app-home-categorie-02-11). -->
-    <string name="cat_you">Tocca a te</string>
+    <string name="cat_you">Dalla master</string>
     <string name="cat_work">Sessioni</string>
     <string name="cat_out">Esiti</string>
     <string name="cat_tools">Risorse</string>
@@ -1813,7 +1813,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="desk_out_sub">esiti oggi</string>
     <string name="desk_open">Apri</string>
     <string name="desk_sessions_title">Sessioni</string>
-    <string name="desk_sessions_sub">%1$d aperte · %2$d al lavoro</string>
+    <string name="desk_sessions_sub">%1$s · %2$d al lavoro</string>
     <string name="desk_tools_sub">quota 5 ore</string>
     <string name="desk_tools_sub_reset">quota 5 ore, si azzera alle %1$s</string>
     <string name="desk_tools_week">quota della settimana</string>
@@ -1858,4 +1858,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="card_reply">Rispondi</string>
     <string name="todo_decide">Decidi %1$d</string>
     <string name="todo_verify">Verifica %1$d</string>
+    <string name="desk_master_todo">%1$d da fare</string>
+    <string name="desk_master_none">niente da fare</string>
+    <plurals name="desk_master_sug"><item quantity="one">%1$d suggerimento</item><item quantity="other">%1$d suggerimenti</item></plurals>
+    <string name="desk_sessions_none">nessuna ti aspetta</string>
+    <plurals name="desk_sessions_wait"><item quantity="one">ti aspetta</item><item quantity="other">ti aspettano</item></plurals>
 </resources>

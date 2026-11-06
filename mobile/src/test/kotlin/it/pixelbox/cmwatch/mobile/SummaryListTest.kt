@@ -24,13 +24,15 @@ class SummaryListTest {
     private val st = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
     private fun model(state: State) = Summary.build(state, emptyList(), emptyList(), state.ts, ZoneId.of("Europe/Rome"), emptySet())
 
-    @Composable private fun page(state: State, open: String? = null) = CmPhoneTheme(still = true) {
+    @Composable private fun page(state: State, open: String? = null, todo: Map<String, Pair<Int, Int>> = emptyMap()) = CmPhoneTheme(still = true) {
         Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-            SummaryList(model(state), {}, { _, _ -> }, { _, _ -> }, {}, {}, initiallyOpen = open, now = state.ts)
+            SummaryList(model(state), {}, { _, _ -> }, { _, _ -> }, {}, {}, initiallyOpen = open, now = state.ts, todo = todo)
         }
     }
 
     @Test fun summaryClosed() = paparazzi.snapshot { page(st) }
+    // app-sessioni-compatte-06-11, passo 4: i chip «Decidi N» e «Verifica N» in testa alla riga; la scheda chiusa resta della sua misura.
+    @Test fun summaryTodoChips() = paparazzi.snapshot { page(st, todo = mapOf("ledger-api" to (1 to 1), "field-notes" to (0 to 2))) }
     @Test fun summaryOpen() = paparazzi.snapshot { page(st, open = "WAITING:ledger-api") }
     // app-attesa-dettagli-02-11: aperta, una ferma dice la proposta e mette tutte le scelte come tasti (secondo giro della notte).
     @Test fun summaryOpenWaitingProposal() = paparazzi.snapshot {

@@ -1343,6 +1343,8 @@ class MainActivity : ComponentActivity() {
                 if ((sessTodo[name]?.second ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(proveWhere { x -> x == name }?.copy(ko = emptyList(), red = emptyList()), { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
             }
         }
+        // La testata di «Dalla master»: quello che Franz ha da fare fuori dalle sessioni aperte; i suggerimenti sono contesto.
+        val masterTodo = ((decHome?.groups.orEmpty().count { g -> !decOfSession(g) }) + (proveWhere { x -> x == null || x !in todoLive }?.n ?: 0) + (if (state?.primaRaccolta != null) 1 else 0))
         val sectionBodies: Map<String, @Composable () -> Unit> = mapOf(
             "da_guardare" to { Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } } },
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
@@ -2094,7 +2096,7 @@ class MainActivity : ComponentActivity() {
                     head = { pageHeader(null) },
                     column = { parts ->
                         listPart(parts, { part ->
-                            it.pixelbox.cmwatch.mobile.ui.DeskHead(part, head, st, now, open = summary.open.takeIf { part == "work" }) {
+                            it.pixelbox.cmwatch.mobile.ui.DeskHead(part, head, st, now, open = summary.open.takeIf { part == "work" }, master = (masterTodo to it.pixelbox.cmwatch.rules.Suggestions.visible(st, sugDone.toSet(), now).shown.size).takeIf { part == "you" }) {
                                 when (part) {
                                     "you" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.WAITING
                                     "work" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.BUSY
