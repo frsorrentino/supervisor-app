@@ -57,20 +57,30 @@ private fun Modifier.fullUnder(f: Fly, key: String, bounds: BoundsTransform): Mo
     ).drawBehind { if (f.shared.isTransitionActive) drawOutline(shape.createOutline(size, layoutDirection, this), fill) }
 }
 
+/**
+ * Il contenuto che vola si scopre dall'angolo invece di reimpaginarsi (app-telefono-volo-pagina-06-11, scelta A di Franz 06/11
+ * 16:03, come `::view-transition-new(morph)` della web): misurato subito alla sua misura d'arrivo, non scalato, fermo in alto a
+ * sinistra e ritagliato dal riquadro che cresce, con gli angoli della scheda. Prima `RemeasureToBounds` lo reimpaginava a ogni
+ * fotogramma dentro i bordi della scheda, con le righe che si stringevano e si riallargavano.
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+private val UNCOVER = SharedTransitionScope.ResizeMode.scaleToBounds(androidx.compose.ui.layout.ContentScale.None, androidx.compose.ui.Alignment.TopStart)
+
 /** La card si allarga fino a diventare la scheda, e i due contenuti si danno il cambio (morphEnter, morphExit); con le animazioni spente, subito. */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun Modifier.fly(key: String): Modifier {
     val f = LocalFly.current?.takeIf { it.enabled } ?: return this
     val off = animationsOff()
-    // La scheda si allarga nella pagina e gli angoli si assestano con la molla (app-effetti-movimenti-04-11, punto 1).
-    val bounds = BoundsTransform { _, _ -> if (off) snap() else Fx.spring() }
+    // La scheda si allarga nella pagina con la molla breve senza rimbalzo (app-telefono-volo-pagina-06-11, come --spring-land).
+    val bounds = BoundsTransform { _, _ -> if (off) snap() else Fx.land() }
     return with(f.shared) {
         (if (off) this@fly else this@fly.fullUnder(f, key, bounds)).sharedBounds(
             rememberSharedContentState(key), f.anim,
             enter = morphEnter(off), exit = morphExit(off),
             boundsTransform = bounds,
-            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = 1f,
+            resizeMode = UNCOVER, zIndexInOverlay = 1f,
+            clipInOverlayDuringTransition = OverlayClip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),
         )
     }
 }
@@ -110,12 +120,17 @@ fun Modifier.reflow(key: String): Modifier {
     }
     return with(f.shared) {
         // La scheda della plancia che diventa colonna ha sotto il fondo pieno (fullUnder).
-        (if (card && !off) this@reflow.fullUnder(f, key, bounds) else this@reflow).sharedBounds(
+        // Le schede che solo scivolano restano piene (Franz 04/11) e si rimisurano senza deformarsi; la scheda della plancia che
+        // diventa colonna si dà il cambio con lei e si scopre dall'angolo (UNCOVER).
+        if (card) (if (!off) this@reflow.fullUnder(f, key, bounds) else this@reflow).sharedBounds(
             rememberSharedContentState(key), f.anim,
-            // Le schede che solo scivolano restano piene (Franz 04/11); la scheda della plancia che diventa colonna si dà il cambio con lei.
-            enter = if (card) morphEnter(off) else EnterTransition.None, exit = if (card) morphExit(off) else ExitTransition.None,
-            boundsTransform = bounds,
-            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = if (card) 1f else 0f,
+            enter = morphEnter(off), exit = morphExit(off),
+            boundsTransform = bounds, resizeMode = UNCOVER, zIndexInOverlay = 1f,
+            clipInOverlayDuringTransition = OverlayClip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),
+        ) else this@reflow.sharedBounds(
+            rememberSharedContentState(key), f.anim,
+            enter = EnterTransition.None, exit = ExitTransition.None,
+            boundsTransform = bounds, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = 0f,
         )
     }
 }
@@ -135,7 +150,8 @@ fun Modifier.reflowColumn(name: String): Modifier {
             rememberSharedContentState("r-$name"), f.anim,
             enter = morphEnter(off), exit = morphExit(off),
             boundsTransform = bounds,
-            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = 1f,
+            resizeMode = UNCOVER, zIndexInOverlay = 1f,
+            clipInOverlayDuringTransition = OverlayClip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),
         )
     }
 }
