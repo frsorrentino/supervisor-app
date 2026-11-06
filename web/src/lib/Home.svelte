@@ -450,6 +450,17 @@
   const workGroups = $derived(placedOut.groups.filter(g => g.category !== 'closed'))
   // La Notte è una voce sua (secNotte), non un gruppo di Lavori (app-home-tre-categorie-06-11).
   const nightGroup = $derived(workGroups.find(g => g.category === 'night') ?? null)
+  // Il tasto della scelta della scheda chiusa (app-sessioni-compatte-06-11): dice cosa c'è da fare; il tocco apre la scheda, dove si
+  // legge tutto e si sceglie. Niente si approva o si risponde dalla riga.
+  function verbOf(r: Row, group: Group, c: ReturnType<typeof cleanupOf>): string | null {
+    const s = r.session
+    if (group === 'waiting' && s.question) return s.question.options?.length ? t.cmpChoose : t.cmpReply
+    if (r.approvals.length) return t.approve
+    if (group === 'waiting' && okOf(s)) return t.attentionOk
+    if (group === 'waiting' && doneOf(s)) return t.attentionDone
+    if (c?.canClose) return t.cleanupCloseShort
+    return null
+  }
   // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli (lavoriDetails).
   let openWork = $state<string | null>(null)
   const workKey = (r: LavoriRow, i: number) => r.approval?.task ?? r.commitment?.task ?? (r.agenda?.key || null) ?? `${r.kind}-${i}`
@@ -1040,7 +1051,11 @@
     <!-- app-attesa-dettagli-02-11: aperta, la scheda dice cosa si sceglie e cosa sta facendo; le statistiche vanno in fondo. -->
     {@const dt = detailOf(s, group, x.body)}
     {@const steps = x.steps.length ? x.steps : open ? dt.steps : []}
-    <div class="card r" data-sess={s.name} data-vt={vt(`s-${s.name}`)} style:--vt={vt(`s-${s.name}`)} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
+    <!-- Le sessioni compatte (app-sessioni-compatte-06-11, Franz 06/11 14:56, ibrido A+C): chiusa, la scheda ha la misura delle altre,
+         col nome, il contesto, la prossima azione su una riga e il tasto della scelta; il tasto e la freccia la aprono ad accordion con
+         tutto il testo per capire, leggere e fare la scelta. Il tocco sulla scheda apre la sessione. -->
+    {@const verb = !open ? verbOf(r, group, c) : null}
+    <div class="card r" data-sess={s.name} data-vt={vt(`s-${s.name}`)} style:--vt={vt(`s-${s.name}`)} class:shut={!open && closing !== s.name && confirming !== s.name} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
       role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
       oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
       {#if ctx === s.name}
@@ -1096,6 +1111,7 @@
         {#if s.context != null && (group === 'waiting' || group === 'working')}<span class="mono">{t.ctx(s.context)}</span>{/if}
         {#if group !== 'waiting' && lastRed.get(s.name)}<span class="redtag"><StateGlyph kind="red" size={14} />{hhmm(lastRed.get(s.name)!)}</span>{/if}
         {#if part === 'work'}<button class="apri" onclick={(e) => { e.stopPropagation(); onPick(s.name) }}>{t.deskOpen}</button>{/if}
+        {#if verb}<button class="verb" class:wait={group === 'waiting'} data-testid="scheda-scelta" onclick={(e) => { e.stopPropagation(); expanded = s.name }}>{verb}</button>{/if}
         <button class="chev" aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); expanded = open ? null : s.name }}>
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
@@ -1105,11 +1121,11 @@
         <!-- Chiusa, una sessione al lavoro è una riga: lo strumento, da quanto dura il turno, il contesto (app-home-riordino-29-10). -->
         {@const [tool, ...rest] = s.tool.split(' ')}
         <p class="meta mono2"><span class="tool">{tool}</span>{rest.join(' ')}</p>
-      {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open && group !== 'waiting'} class:strong={group === 'waiting' || open} class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
-      {#if group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
+      {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open} class:strong={group === 'waiting' || open} class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
+      {#if open && group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
       {#if open && dt.doing}<p class="doing" data-testid="scheda-sta-facendo"><small>{t.detailDoing}</small><span class="mono2">{dt.doing}</span></p>{/if}
       {#if open && dt.said}<div class="said" data-testid="scheda-ultimo-messaggio"><small>{t.detailSaid(hhmm(dt.saidAt!))}</small><p>{dt.said.replace(/\*\*|__|`/g, '')}</p></div>{/if}
-      {#if group === 'waiting' && !s.question}
+      {#if open && group === 'waiting' && !s.question}
         {@const d = doneOf(s)}
         {@const ok = okOf(s)}
         {@const wp = wPicked[wKey(s)]}
@@ -1119,8 +1135,8 @@
         {:else if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} class:done={wp === 'done'} disabled={!!wp} onclick={(e) => { e.stopPropagation(); wAct(s, 'done', () => onDone(d)) }}>{#if wp === 'done'}✓ {/if}{t.attentionDone}</button></div></div>{/if}
       {/if}
       <!-- Aperta, una ferma mostra anche le altre voci di «Prossimi:» come tasti, subito sotto l'Ok (app-attesa-dettagli-02-11). -->
-      {#if steps.length && group === 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
-      {#if r.approvals.length}
+      {#if open && steps.length && group === 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
+      {#if open && r.approvals.length}
         <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
         <div class="oks">
           {#each r.approvals as a (a.task)}
@@ -1135,8 +1151,8 @@
           {/each}
         </div>
       {/if}
-      {#if onSessionCmd}<HeadsUpNote {s} {now} onPropose={(text) => onSessionCmd(s.name, 'prompt', text)} />{/if}
-      {#if mine.length}
+      {#if open && onSessionCmd}<HeadsUpNote {s} {now} onPropose={(text) => onSessionCmd(s.name, 'prompt', text)} />{/if}
+      {#if open && mine.length}
         <!-- Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok. -->
         <div class="oks">
           {#each mine as w, i (`w-${i}`)}
@@ -1149,7 +1165,7 @@
           {/each}
         </div>
       {/if}
-      {#if svc.length}
+      {#if open && svc.length}
         <!-- Franz 24/10 00:46: un suggerimento che riguarda questa sessione (il contesto alto) sta qui, con il suo tasto tonale. -->
         <div class="oks">
           {#each svc as r, i (`svc-${i}`)}
@@ -1162,11 +1178,11 @@
           {/each}
         </div>
       {/if}
-      {#if group === 'waiting' && s.question}
+      {#if open && group === 'waiting' && s.question}
         <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={s.name === primary} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
       {/if}
-      {#if steps.length && group !== 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
-      {#if c}
+      {#if open && steps.length && group !== 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
+      {#if c && (open || closing === s.name || confirming === s.name)}
         <div class="clean">
           <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
           <span>{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b> · {c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(new Date(s.outcome.at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })) : t.cleanupFinished}{/if}</span>
@@ -1619,9 +1635,12 @@
   .foldin { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
   .foldin > :global(*) { flex-shrink: 0; }
   .dragfly { transition: top var(--spring-bounce-t) var(--spring-bounce); }
+  /* Una riga che sfuma al bordo, mai «…» (regole di larghezza, Franz 12/09). */
+  .body.one { display: block; -webkit-line-clamp: unset; line-clamp: unset; white-space: nowrap; overflow: hidden; text-overflow: clip; -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); }
   .superata { align-self: flex-start; margin-left: 28px; min-height: 32px; padding: 0 6px; border-radius: 8px; font: 600 14px var(--display); color: var(--tx2); }
   .superata:hover { background: var(--surface); }
-  .body.one { -webkit-line-clamp: 1; line-clamp: 1; white-space: normal; }
+  .verb { flex: none; height: 32px; padding: 0 14px; border-radius: 16px; font: 600 14px var(--display); color: var(--tx); background: var(--s2, var(--surface)); white-space: nowrap; }
+  .verb.wait { color: var(--wait); border: 1px solid color-mix(in srgb, var(--wait) 60%, transparent); background: color-mix(in srgb, var(--wait) 12%, transparent); }
   .meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .meta .tool { color: var(--busy); }
   .who { display: flex; flex-direction: column; gap: 1px; }
@@ -1678,6 +1697,9 @@
   .card.waiting { background: var(--s2); }
   .card.r { flex-direction: row; align-items: flex-start; gap: 8px; padding: 12px 12px 12px 0; }
   .card.r .cnt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  /* Chiuse, tutte della stessa misura anche con tasti o testi diversi (app-sessioni-compatte-06-11, Franz 06/11 20:25); aperte
+     secondo il contenuto. */
+  .card.r.shut { height: 86px; overflow: hidden; }
   /* Il glifo sul centro delle maiuscole del nome (app-suggerimenti-icone-03-11): misurato 2,4 px più in alto con 1 px di margine. */
   .rail { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 3.4px; }
   .rt { font: 700 15px/1 var(--display); letter-spacing: .01em; color: var(--tx2); white-space: nowrap; }
