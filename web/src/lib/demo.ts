@@ -315,8 +315,19 @@ export function world(now: number): World {
   const benchHunk = (n: number) => ({ old_start: 0, old_lines: 0, new_start: 1, new_lines: bench.length, lines: bench.slice(0, n).map(l => `+${l}`) })
   const benchStep: StepDiff = { path: '/w/blog/bench/results.csv', kind: 'create', added: bench.length, removed: 0, hunks: [benchHunk(200)], cut: true }
   const fullDiffs: Record<string, StepDiff> = { 'blog/w1': { ...benchStep, hunks: [benchHunk(bench.length)], cut: false } }
+  // La mattina della master prima del giro di adesso: una chat lunga, che scorre, per vedere il morph della master partire dal
+  // punto in vista (app-fluidita-06-11).
+  const morning: [string, string, string, string][] = [
+    ['Apri la giornata: cosa è rimasto di ieri?', 'Ieri sono rimasti tre lavori: il deploy di payments-api, le prove del checkout e la copertina del blog.', 'Open the day: what is left from yesterday?', 'Three jobs are left from yesterday: the payments-api deploy, the checkout tests and the blog cover.'],
+    ['Comincia dalle prove del checkout', 'Le prove del checkout girano su storefront: 42 su 44 verdi, due rosse sui totali con i buoni regalo.', 'Start with the checkout tests', 'The checkout tests run on storefront: 42 of 44 green, two red on totals with gift cards.'],
+    ['Perché i buoni regalo sbagliano i totali?', 'Il buono si sottrae prima delle tasse invece che dopo: la regola sta in due posti diversi del carrello.', 'Why do gift cards break the totals?', 'The card is subtracted before tax instead of after: the rule lives in two places of the cart.'],
+    ['Correggilo in un posto solo', 'Fatto: la regola vive in totals.ts, con un test per il buono più grande del totale.', 'Fix it in one place', 'Done: the rule lives in totals.ts, with a test for a card larger than the total.'],
+    ['E la copertina del blog?', 'La copertina è pronta in due varianti, chiara e scura; aspetta la tua scelta.', 'And the blog cover?', 'The cover is ready in two variants, light and dark; it waits for your pick.'],
+    ['Prendi la scura', 'Presa la scura: la mando alla sessione del blog insieme al testo del post.', 'Take the dark one', 'Dark one taken: I send it to the blog session with the post text.'],
+  ]
   const transcripts: Record<string, TranscriptEntry[]> = {
     master: [
+      ...morning.flatMap(([q, a, qe, ae], i) => [said(`m${i}u`, en ? qe : q, now - 5400 + i * 600), claude(`m${i}a`, en ? ae : a, now - 5400 + i * 600 + 40)]),
       claude('a0', en
         ? 'demo-cover is ready for you, the other jobs are running.\n\n**For you**\n1. Send the cover image to the blog session.\n2. Log in to the payment sandbox.\n\n**Not tested:** the checkout on a real phone.\n\nEsito: two things wait for you.'
         : 'demo-cover è pronto per te, gli altri lavori vanno avanti.\n\n**Da te**\n1. Manda l\'immagine di copertina alla sessione del blog.\n2. Fai il login nella sandbox dei pagamenti.\n\n**Non provato:** il checkout su un telefono vero.\n\nEsito: due cose aspettano te.', now - 900, { outcome_type: 'waiting' }),

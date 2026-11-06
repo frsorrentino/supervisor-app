@@ -97,7 +97,7 @@ describe('demo_allineata', () => {
     for (const s of st.suggestions!) expect(names, s.text).toContain(s.text.split(':')[0])
   })
   it('demo_allineata: in chat si vedono il riquadro, Non provato e il nome di un compito', () => {
-    const text = w.transcripts.master[0].text ?? ''
+    const text = w.transcripts.master.find(e => e.id === 'a0')!.text ?? ''
     expect(splitLabels(text).map(p => p.kind)).toEqual(['plain', 'you', 'untested', 'plain'])
     expect(replaceNames(text, taskNames(st.commitments))).toContain('](https://task.invalid/demo-cover)')
   })
@@ -113,7 +113,7 @@ describe('demo_allineata', () => {
     const p = await read('prove'), g = await read('decisioni')
     expect(st.prove?.n).toBe(p.n); expect(st.decisions?.n).toBe(g.n); expect(p.n).toBeGreaterThan(0); expect(g.groups.length).toBeGreaterThan(0)
     expect(st.approvals.every(a => a.untested && a.undo)).toBe(true)
-    expect(w.transcripts.master[0].outcome_type).toBe('waiting')
+    expect(w.transcripts.master.find(e => e.id === 'a0')!.outcome_type).toBe('waiting')
     expect(st.sessions.some(s => s.heads_up?.text)).toBe(true)
     await d.send(newCmd('prova', null, '1,2', undefined, undefined, { result: 'ok' }))
     expect(d.state.prove).toBeNull()
