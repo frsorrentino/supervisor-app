@@ -1,4 +1,5 @@
 import type { Event, EventKind } from './contract'
+import { dtf } from './dtf'
 
 // «Oggi», porta di DayBars.kt: una barra per ora con il lavoro delle sessioni, dagli eventi. Le barre arrivano fino
 // all'ora corrente, mai oltre: ore future vuote direbbero «non hai fatto niente» invece di «non è ancora successo».
@@ -9,7 +10,7 @@ const WORK: EventKind[] = ['launched', 'answered', 'outcome', 'question', 'resum
 
 /** Mezzanotte locale del giorno di `t` nel fuso: l'offset si cerca due volte per reggere i cambi dell'ora legale. */
 function startOfDay(t: number, timeZone?: string): number {
-  const parts = (e: number) => Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+  const parts = (e: number) => Object.fromEntries(dtf('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
     .formatToParts(new Date(e * 1000)).map(x => [x.type, x.value]))
   const asUtc = (e: number) => { const p = parts(e); return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) / 1000 }
   const p = parts(t)

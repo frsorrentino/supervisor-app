@@ -2,6 +2,7 @@
 // le ricerche recenti e i filtri; i risultati raggruppati per sessione, dal gruppo col risultato più recente. Il relay cerca sempre
 // 7 giorni di tutte le sessioni (contratto 1.27): i filtri si applicano qui.
 import { fold, type Hit } from './search'
+import { dtf } from './dtf'
 
 /** `session` null = tutte; `today` false = 7 giorni; `closed` = anche le sessioni chiuse. */
 export type Filter = { session: string | null; today: boolean; closed: boolean }
@@ -34,7 +35,7 @@ export function remember(list: Recent[], r: Recent): Recent[] {
 export type When = { kind: 'time'; hhmm: string } | { kind: 'yesterday' } | { kind: 'weekday'; day: number } | { kind: 'date'; ddmm: string }
 
 const parts = (at: number, timeZone?: string) => {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short', hourCycle: 'h23' })
+  const p = Object.fromEntries(dtf('en-GB', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short', hourCycle: 'h23' })
     .formatToParts(new Date(at * 1000)).map(x => [x.type, x.value]))
   return { y: +p.year, m: +p.month, d: +p.day, hh: p.hour, mm: p.minute, wd: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(p.weekday) + 1 }
 }

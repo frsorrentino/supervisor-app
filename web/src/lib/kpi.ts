@@ -1,6 +1,7 @@
 import type { KpiChecksDay, KpiData, KpiSuggestions, KpiTask, KpiTasks, KpiTurn, KpiWaits, Session, State, TimelineEvent, TimelinePage } from './contract'
 import { shareable } from './questionRules'
 import { stop } from './strongAlert'
+import { dtf } from './dtf'
 
 // I KPI coi dati che il relay ha già (proposte 6, 11, 15 e 18 del 25/10, compito app-kpi-medie-25-10), porta di Kpi.kt:
 // tutto dalla cronologia di oggi (contratto 1.29) e dallo stato. La cronologia non registra le attese: «ti aspetta» vale
@@ -25,7 +26,7 @@ export const waitingSince = (s: Session): number | null => s.question?.asked_at 
 
 /** La mezzanotte di oggi nel fuso del browser (o in quello dato, per i test). */
 export function midnight(now: number, timeZone?: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', hour: 'numeric', minute: 'numeric', second: 'numeric' }).formatToParts(new Date(now * 1000))
+  const parts = dtf('en-US', { timeZone, hourCycle: 'h23', hour: 'numeric', minute: 'numeric', second: 'numeric' }).formatToParts(new Date(now * 1000))
   const n = (t: string) => Number(parts.find(p => p.type === t)?.value ?? 0)
   return now - (n('hour') * 3600 + n('minute') * 60 + n('second'))
 }

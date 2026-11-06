@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { dtf } from './dtf'
   import { locale } from './lang'
   // Colonne per giorno (proposte 9 e 17): l'etichetta sopra, le parti dal basso, il giorno della settimana sotto.
   type Col = { date: string; parts: { f: number; color: string }[]; label: string; red?: number }
   let { cols, aria }: { cols: Col[]; aria: string } = $props()
   const H = 56
-  const fmt = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' })
+  const fmt = dtf(locale, { weekday: 'short', timeZone: 'UTC' })
   const wd = (d: string) => { const x = new Date(`${d}T12:00:00Z`); return isNaN(x.getTime()) ? d.slice(-2) : fmt.format(x).replace(/\.$/, '') }
 </script>
 

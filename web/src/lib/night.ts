@@ -2,6 +2,7 @@
 // da Franz il 07/10 alle 21:50): solo i conti. Date e durate a parole le scrive la pagina con t.ts.
 import type { Option } from './contract'
 import { locale } from './lang'
+import { dtf } from './dtf'
 
 export type NightReport = {
   schema?: string; v?: number; generated_at?: number; date?: string
@@ -40,8 +41,8 @@ export type NightPage = {
   needs: Need[]; cards: Card[]; axis: { label: string; at: number }[]; projects: Project[]
 }
 
-const ymd = (t: number, timeZone: string) => new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t * 1000))
-const hm = (t: number, timeZone: string) => new Intl.DateTimeFormat(locale, { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(t * 1000))
+const ymd = (t: number, timeZone: string) => dtf('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t * 1000))
+const hm = (t: number, timeZone: string) => dtf(locale, { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(t * 1000))
 
 /** `now`: sessioni vive e approvazioni in attesa adesso; «Da fare per te» tiene solo quello ancora vero (Franz, 08/10 14:20). */
 export function page(r: NightReport, timeZone: string, now?: { live: Set<string>; pending: Set<string>; asking?: Set<string> }): NightPage {

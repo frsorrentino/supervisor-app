@@ -1,6 +1,7 @@
 import type { QuotaAccount, State } from './contract'
 import { publishedTs, since, STALE_AFTER_S, type Freshness } from './durations'
 import { locale } from './lang'
+import { dtf } from './dtf'
 
 // Contenuto della schermata «brief mattutino», porta di BriefCards.kt (e di Accounts.isPersonalQuota, QuotaText.fraction):
 // una card per dato. Qui si decide cosa si vede e con che testo; le card a zero non si mostrano.
@@ -46,7 +47,7 @@ export const isPersonalQuota = (name: string, q: QuotaAccount) =>
 
 /** «gio» e «04:00» di un istante nel fuso, in italiano. */
 function dayHm(epoch: number, timeZone?: string) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat(locale, { timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+  const p = Object.fromEntries(dtf(locale, { timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
     .formatToParts(new Date(epoch * 1000)).map(x => [x.type, x.value]))
   return { hm: `${p.hour}:${p.minute}`, weekday: `${p.weekday} ${p.hour}:${p.minute}` }
 }

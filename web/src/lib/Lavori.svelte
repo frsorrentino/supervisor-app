@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dtf } from './dtf'
   // La pagina unica «Lavori» (mockup approvato da Franz il 22/10, LavoriScreen.kt): al posto di Registro, Recap e della
   // sezione Impegni della home. Quattro blocchi per domanda: Per te (ognuno col suo tasto), In corso (un compito per riga
   // con la barra dei sette giorni), Stanotte (la coda, solo qui), Fatto (per giorno, con la prova). La quota resta in
@@ -50,11 +51,11 @@
   const toggle = (k: string) => { open = { ...open, [k]: !open[k] } }
   // Senza una prova da mostrare l'esito in parole, mai il comando del controllo (Franz 24/10 18:36).
   const proofFallback = (x: { outcome?: string }) => (x.outcome === 'superseded' ? t.lavoriProofSuperseded : x.outcome === 'failed' ? t.lavoriProofFailed : x.outcome === 'cancelled' ? t.lavoriProofCancelled : t.lavoriProofCheck)
-  const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
+  const hhmm = (s: number) => dtf(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`
   const yesterday = $derived(new Date(new Date(day + 'T12:00:00Z').getTime() - 86400000).toISOString().slice(0, 10))
   function weekday(d: string): string {
-    const w = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(d + 'T12:00:00Z'))
+    const w = dtf(locale, { weekday: 'long' }).format(new Date(d + 'T12:00:00Z'))
     return `${w.charAt(0).toUpperCase()}${w.slice(1)} ${dm(d)}`
   }
   function sub(r: ForYou): string | null {

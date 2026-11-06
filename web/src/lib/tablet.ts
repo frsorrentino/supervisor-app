@@ -1,6 +1,7 @@
 import type { Session, TimelineEvent, TimelinePage } from './contract'
 import { type Group, type Model, type Row } from './summary'
 import { WINDOW_S, type Pace } from './quotaHistory'
+import { dtf } from './dtf'
 
 // La plancia degli schermi larghi, porta di Tablet.kt: la colonna delle sessioni con la master al suo posto, le sessioni
 // in colonne affiancate (al massimo quattro), le larghezze a scatti di un dodicesimo.
@@ -109,12 +110,12 @@ export function sharesFromPref(raw: string | null, n: number): number[] {
 
 /** Mezzanotte locale del giorno di `now`, nel fuso dato (quello del browser se manca). */
 function midnight(now: number, timeZone?: string): number {
-  const day = new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(now * 1000))
+  const day = dtf('en-CA', { timeZone }).format(new Date(now * 1000))
   // L'istante di mezzanotte di quel giorno: si parte da mezzanotte UTC e si corregge dello scarto del fuso, due volte per
   // reggere il cambio dell'ora legale.
   let t = Date.parse(`${day}T00:00:00Z`) / 1000
   for (let i = 0; i < 2; i++) {
-    const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    const p = Object.fromEntries(dtf('en-GB', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
       .formatToParts(new Date(t * 1000)).map(x => [x.type, x.value]))
     const local = Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) / 1000
     t -= local - Date.parse(`${day}T00:00:00Z`) / 1000

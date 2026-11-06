@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dtf } from './dtf'
   import { pass } from './motion'
   import type { Snippet } from 'svelte'
   import type { PluginsPage, State } from './contract'
@@ -41,7 +42,7 @@
   $effect(() => { if (open && !page && !loading) refresh() })
   const act = runner.act
   function updateAll() { asking = false; runner.updateAll(toUpdate) }
-  const hm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
+  const hm = (s: number) => dtf(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   const checked = $derived(page?.checked_at ?? st.plugins?.checked_at ?? null)
 </script>
 

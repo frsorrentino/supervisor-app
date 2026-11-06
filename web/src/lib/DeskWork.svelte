@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dtf } from './dtf'
   import type { AgendaPage, DonePage, Event, State } from './contract'
   import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd } from './lavori'
   import { since } from './durations'
@@ -18,7 +19,7 @@
   const dn = $derived((Object.keys(donePages).length ? doneFromPages(donePages, zone) : doneOf(events, zone, day)).find(d => d.date === day)?.rows ?? [])
   // Chiuso (app-sessioni-evidenti-06-11, scelta J2): titolo e numero sotto le sessioni; il tocco lo apre sul posto.
   let tasksOpen = $state(false)
-  const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
+  const hhmm = (s: number) => dtf(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
 </script>
 
 {#if part === 'progress'}

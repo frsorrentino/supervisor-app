@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dtf } from './dtf'
   import { readable, readableWaiting } from './slashText'
   import { locale } from './lang'
   import type { Card, NightPage } from './night'
@@ -14,7 +15,7 @@
     onApprove: (task: string) => void; onSend: (session: string, text: string) => void
   } = $props()
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const hm = (s: number) => new Intl.DateTimeFormat(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
+  const hm = (s: number) => dtf(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   let opened = $state<string | null>(null)
   const times = (c: Card) => (c.end == null ? t.nightSince(hm(c.start)) : `${hm(c.start)}–${hm(c.end)} · ${t.nightShort(c.durationS ?? 0)}`)
   const tone: Record<string, string> = { ok: 'var(--good)', stopped: 'var(--gone-dim)', running: 'var(--icon)', question: 'var(--advice)', partial: 'var(--b-warn)' }

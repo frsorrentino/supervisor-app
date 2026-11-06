@@ -1,6 +1,7 @@
 import type { Event, Session, State } from './contract'
 import { blockingOf, parseSteps } from './nextSteps'
 import { FINISHED_S, MASTER, finishedKey, type Sent } from './summary'
+import { dtf } from './dtf'
 
 // La casa della master, porta di MasterHome.kt: l'ultimo esito in testa, «Per te» e il gruppo «al lavoro». «Per te» in
 // ordine di urgenza: domande, turni finiti, contesto dall'80 %, resoconto della notte (la mattina, finché non è letto), notte
@@ -26,7 +27,7 @@ export const nextKey = (project: string, next: string) => `next:${project}:${nex
 
 /** Giorno ISO e ora locali di un istante, nel fuso dato (quello del browser se manca). */
 export function local(epoch: number, timeZone?: string): { day: string; hour: number } {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
+  const p = Object.fromEntries(dtf('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
     .formatToParts(new Date(epoch * 1000)).map(x => [x.type, x.value]))
   return { day: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) }
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dtf } from './dtf'
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
   import Check from './Check.svelte'
   import OneLine from './OneLine.svelte'
@@ -434,7 +435,7 @@
     return r.who?.trim() || null
   }
   function fyOutside(r: LavoriRow) { if (r.agenda) onEdit({ item: 'done', row: r.agenda }); else if (r.commitment) onDoneForPerson(r.commitment) }
-  const hhmm = (s: number) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
+  const hhmm = (s: number) => dtf(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(s * 1000))
   // Come la home dell'app: chi ha finito resta finché non lo apri o non gli scrivi (Summary.kt con sent e read).
   const model = $derived(build(st, sent, now, read))
   const outside = $derived(outsideGroups(forYou(st, events, sent, now, { read, limit: Infinity }).rows.filter(r => r.kind !== 'question' && r.kind !== 'finished'), model.closed))

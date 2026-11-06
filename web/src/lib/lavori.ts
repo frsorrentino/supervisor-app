@@ -6,6 +6,7 @@
 import type { AgendaPage, AgendaRow, Approval, Commitment, DonePage, Event, State } from './contract'
 import { PERSON, rows as commitmentRows, type Row } from './commitments'
 import { agendaModel } from './recapAgenda'
+import { dtf } from './dtf'
 
 export type Kind = 'ok' | 'outside' | 'claude'
 /** Una riga di «Per te»: `who` = chi chiede o chi si sblocca; `at` = quando (epoch s) o null. */
@@ -82,7 +83,7 @@ export type Axis = { start: number; end: number; days: [string, number][]; now: 
 export const MIN_BAR = 0.01
 
 const parts = (t: number, zone: string) => {
-  const o = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+  const o = Object.fromEntries(dtf('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
     .formatToParts(new Date(t * 1000)).filter(p => p.type !== 'literal').map(p => [p.type, Number(p.value)]))
   return o as { year: number; month: number; day: number; hour: number; minute: number; second: number }
 }
