@@ -27,7 +27,8 @@
   import { setContext, untrack, tick } from 'svelte'
   import Badge from './lib/Badge.svelte'
   import { morphStart } from './lib/motion'
-  import { flatten, lift, settle as settleCard } from './lib/cardFx'
+  import { lift, settle as settleCard } from './lib/cardFx'
+  import { fly, retractNeck } from './lib/director'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
   import { blankState, decodeChanges, decodeDiff, transcriptArg, withAfterPage, withFirstPage, withTail } from './lib/contract'
@@ -1045,36 +1046,22 @@
   async function setCols(c: string[], focus: string | null = changed(cols, c), from: HTMLElement | null = null) {
     const opening = focus != null && c.includes(focus) && !cols.includes(focus)
     const closing = focus != null && cols.includes(focus) && !c.includes(focus)
-    const fx = wide && (opening || closing) && !reducedMotion() && !!document.startViewTransition && !document.hidden
+    const fx = wide && (opening || closing) && !reducedMotion() && !document.hidden
+    if (!fx) { smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }, null, focus); return }
     let done = () => {}
-    if (fx) {
-      if (opening && from) {
-        // La colonna vicina al posto nuovo si tende verso di lui.
-        const at = c.indexOf(focus!), near = c[at - 1] ?? c[at + 1]
-        const el = near ? document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(near)}"]`) : null
-        done = await lift(from, el, c[at - 1] ? 1 : -1)
-      }
-      document.documentElement.classList.add(opening ? 'fx-open' : 'fx-close')
-      // La chat della colonna che arriva si monta a volo finito: montata dentro la transizione fermava la pagina per un
-      // fotogramma lungo e il volo andava a scatti (app-volo-web-taratura-05-11, misura con la CPU rallentata).
-      if (opening) flyChat = focus
+    if (opening && from) {
+      // La colonna vicina al posto nuovo si tende verso di lui.
+      const at = c.indexOf(focus!), near = c[at - 1] ?? c[at + 1]
+      const el = near ? document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(near)}"]`) : null
+      done = await lift(from, el, c[at - 1] ? 1 : -1)
     }
-    const vt = smooth(() => { done(); pinned = c; save('cm.columns', columnsPref(c)) }, null, focus)
-    if (!fx) return
-    // Anche se la transizione non dice di aver finito (pagina nascosta, transizione saltata) i tempi dell'effetto non restano.
-    let over = false
-    const end = () => {
-      if (over) return
-      over = true
-      document.documentElement.classList.remove('fx-open', 'fx-close')
-      flyChat = null
-      if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }
-    }
-    void (vt?.finished ?? Promise.resolve()).catch(() => {}).finally(end)
-    // Contati da quando il volo parte: su una macchina lenta la fotografia della pagina dura a lungo, e contati dal tocco
-    // finivano a metà volo, montando la chat della colonna in pieno movimento.
-    void vt?.ready.then(flatten, () => {})
-    void (vt?.ready ?? Promise.resolve()).catch(() => {}).finally(() => setTimeout(end, 1200))
+    // La chat della colonna che arriva si monta a volo finito: montata durante il volo fermava la pagina per un fotogramma
+    // lungo e il volo andava a scatti (app-volo-web-taratura-05-11, misura con la CPU rallentata).
+    if (opening) flyChat = focus
+    // Il regista (lib/director.ts, app-fluidita-06-11) al posto della View Transition: stessi effetti, solo transform e opacity.
+    await fly({ focus: focus!, opening, card: () => (opening ? from : null) ?? cardOf(focus!), go: async () => { retractNeck(); done(); pinned = c; save('cm.columns', columnsPref(c)); await tick() } })
+    flyChat = null
+    if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }
   }
   // La colonna che sta arrivando in volo: fino all'arrivo al posto della chat lo scheletro.
   let flyChat = $state<string | null>(null)
