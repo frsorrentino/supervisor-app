@@ -734,12 +734,14 @@ fun SessionSheet(
                 // La home sta sotto e arretra in proporzione (dissolvenza e scala 0,96); la sua barra resta al posto suo, così il
                 // dito che l'ha presa continua a guidare il pannello che ora la copre.
                 if (showList || homeOpen) Column(Modifier.fillMaxSize()) {
-                    // Il contenuto della home scorre da sé: il riepilogo è una lista «pigra» (transizione 4).
+                    // Il contenuto della home scorre da sé: il riepilogo è una lista «pigra» (transizione 4). Sopra la barra della master
+                    // sfuma come nella pila del tablet, finché sotto c'è altro (homeFadeEnd; app-sfumatura-master-home-06-11, Franz 06/11
+                    // 12:52: prima il testo delle schede si interrompeva di netto sul bordo della barra).
                     Column(
                         Modifier.weight(1f).fillMaxWidth().graphicsLayer {
                             val q = masterAt.value
                             alpha = 1f - q; scaleX = 1f - .04f * q; scaleY = 1f - .04f * q
-                        },
+                        }.then(if (home != null) Modifier.homeFadeEnd() else Modifier),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         h({ draft = it }, { t -> actions.send(PhonePrimary.Target.PROMPT, t) })

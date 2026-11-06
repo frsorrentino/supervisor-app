@@ -1768,7 +1768,7 @@
     {#snippet quick()}{@render masterQuick()}{/snippet}
     {#snippet list()}
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />
-      <div class="list">{@render homeView(null)}</div>
+      <div class="list" use:fadeEnd>{@render homeView(null)}</div>
       {#if !master && ready}
         <!-- Senza master (MasterHome.kt): una card con «Riapri», invece della barra che non c'è. -->
         <div class="nomaster"><span><b>{t.masterAbsent}</b><small>{t.masterAbsentDetail}</small></span>
@@ -2134,7 +2134,8 @@
   .dpanel.under .wgrip, .dpanel.under .hgrip { display: none; }
   .hstack { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .hs-top { flex: 1; min-height: 0; overflow: auto; }
-  .hs-top :global(section.home.fade-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
+  /* La stessa sfumatura sopra la barra della master al telefono (app-sfumatura-master-home-06-11, Franz 06/11 12:52). */
+  .list :global(section.home.fade-end), .hs-top :global(section.home.fade-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
   /* Con home e master nella colonna della master, la griglia delle sessioni non tiene più il posto della home. */
   /* La maniglia della plancia resta: è la corsia fra le sessioni e la colonna della pila, col + e il filo delle schede. */
   .deskwrap.stacked :global(.desk) { grid-template-columns: 0 28px minmax(0, 1fr); }
