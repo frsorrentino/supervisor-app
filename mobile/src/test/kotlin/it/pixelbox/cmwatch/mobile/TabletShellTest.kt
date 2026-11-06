@@ -183,7 +183,7 @@ class TabletShellTest {
             1440, listOf("work", "you", "tools"), head = {},
             column = { parts ->
                 SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, parts = parts, now = ts, kpiState = st,
-                    partHead = { p -> DeskHead(p, head, st, ts, open = summary.open.takeIf { p == "work" }) {} },
+                    partHead = { p -> DeskHead(p, head, st, ts, open = summary.open.takeIf { p == "work" }, master = (0 to 0).takeIf { p == "you" }) {} },
                     partFoot = { p ->
                         androidx.compose.foundation.layout.Column {
                             if (p == "tools") DeskTools(st) {}
