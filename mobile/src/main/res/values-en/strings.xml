@@ -1694,10 +1694,12 @@ It starts at your last message to the master.</string>
     <string name="reorder_cat_closed">closed</string>
     <string name="reorder_foot">Order and categories also apply to the web app columns.</string>
     <string name="home_sec_watch">To look at</string>
+    <string name="home_sec_verify">Verify</string>
+    <string name="home_verify_look">%1$d to look at</string>
     <string name="home_sec_test">Test</string>
     <string name="home_sec_decide">Decide</string>
     <string name="home_sec_look">Look</string>
-    <string name="home_sec_follow">Follow</string>
+    <string name="home_sec_follow">Resume</string>
     <string name="prove_card_title">Test %1$s</string>
     <string name="prove_card_web">web %1$s</string>
     <plurals name="prove_card_contains">

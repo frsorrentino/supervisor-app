@@ -75,7 +75,7 @@ private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
     // La categoria presa nella home (app-categorie-trascina-02-11).
     "cat:you", "cat:work", "cat:out", "cat:tools" -> catIcon(key.removePrefix("cat:")) to catName(key.removePrefix("cat:"))
     "seguiti" -> Icons.Outlined.Update to stringResource(R.string.home_sec_follow)
-    "prove" -> Icons.Outlined.Science to stringResource(R.string.home_sec_test)
+    "prove" -> Icons.Outlined.Science to stringResource(R.string.home_sec_verify)
     "decisioni" -> Icons.Outlined.Timer to stringResource(R.string.home_sec_decide)
     "sessions" -> Icons.Outlined.PlayCircle to stringResource(R.string.home_sec_sessions)
     "suggestions" -> Icons.Outlined.AutoAwesome to stringResource(R.string.sug_title)

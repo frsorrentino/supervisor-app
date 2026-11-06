@@ -1267,7 +1267,9 @@ class MainActivity : ComponentActivity() {
             // Contratto 1.107: sopra il banco, le prove che aspettano Franz fuse nella pre-release più nuova (app-sezioni-accorpate-03-11).
             "prove" to { Inline("prove") { androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
                 decisionsPage?.let { p -> it.pixelbox.cmwatch.mobile.ui.ProveFuseBody(it.pixelbox.cmwatch.rules.ProveFuse.cards(p), { keys -> keys.map { k -> decideRun(CmdOp.DECISIONE, k, "provato", null, null, null) }.all { ok -> ok } }, { k, why -> decideRun(CmdOp.DECISIONE, k, "non_va", null, why, null) }) }
-                it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
+                if (state?.prove?.let { p -> p.n + p.ko + p.red > 0 } == true) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(provePage, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
+                // Verifica porta anche i lavori consegnati da guardare (app-tocca-sezioni-06-11).
+                if ((state?.results?.nUnseen ?: 0) > 0) Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } }
             } } },
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             "decisioni" to { Inline("decisioni") { androidx.compose.foundation.layout.Column {

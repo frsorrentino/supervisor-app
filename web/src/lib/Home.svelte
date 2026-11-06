@@ -186,7 +186,7 @@
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
   // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
-  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecTest }, decisioni: { icon: 'timer', name: t.homeSecDecide }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch } })
+  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: { icon: 'timer', name: t.homeSecDecide }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch } })
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
@@ -657,11 +657,13 @@
   }
   const seguitiN = $derived(seguitiTotal(st.seguiti))
   // Il testo a destra delle voci nuove (Franz 02/11 09:41): quello che il numero non dice, come le altre voci.
+  const hasProve = $derived(!!st.prove && st.prove.n + st.prove.ko + st.prove.red > 0)
   const say = (b: Bit[]) => b.map(x => t.homeBit(x.part, x.n)).join(' · ') || null
   function rightOf(k: string): string | null {
     if (k === 'prima_raccolta') return st.prima_raccolta ? t.homePrima[st.prima_raccolta.status] ?? null : null
     if (k === 'seguiti') return st.seguiti ? say(seguitiBits(st.seguiti)) : null
-    if (k === 'prove') return st.prove ? say(proveBits(st.prove)) : null
+    // Verifica (app-tocca-sezioni-06-11): le prove, poi quanti lavori consegnati aspettano di essere guardati.
+    if (k === 'prove') return [st.prove ? say(proveBits(st.prove)) : null, st.results?.n_unseen ? t.homeVerifyLook(st.results.n_unseen) : null].filter(Boolean).join(' · ') || null
     // Prima raccolta sta dentro Decidi (app-sezioni-accorpate-03-11): finché non è fatta, il suo stato apre il riassunto.
     if (k === 'decisioni') { const p = st.prima_raccolta && st.prima_raccolta.status !== 'done' ? `${t.primaTitle} ${t.homePrima[st.prima_raccolta.status] ?? ''}`.trim() : null; return [p, st.decisions ? say(decBits(st.decisions)) : null].filter(Boolean).join(' · ') || null }
     // Da guardare, chiusa: l'ultimo consegnato.
@@ -917,8 +919,8 @@
        provare chiedono te, Da seguire e Prima raccolta sono lavoro in corso. -->
   {#if newBody && (!part || part === catFor(k))}
     {#if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.homeSecFollow, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
-    {:else if k === 'prove' && st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}{@render sec('prove', t.homeSecTest, 'checklist', String(toccaCounts(st).prove), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: toccaCounts(st).prove > 0 })}{@render nuovaBody(k)}
-    {:else if (k as string) === 'da_guardare' && st.results?.n_unseen}{@render sec(k, t.homeSecWatch, 'svg:eye', String(st.results.n_unseen), 'home-da-guardare', !open[k] ? rightOf(k) : null)}{@render nuovaBody(k)}
+    <!-- Verifica: le prove e i lavori da guardare in una voce sola (app-tocca-sezioni-06-11). -->
+    {:else if k === 'prove' && (hasProve || st.results?.n_unseen)}{@render sec('prove', t.homeSecVerify, 'checklist', String(toccaCounts(st).prove + (st.results?.n_unseen ?? 0)), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: toccaCounts(st).prove > 0 })}{@render nuovaBody(k)}
     {:else if k === 'decisioni' && (st.decisions?.n || st.prima_raccolta)}{@render sec('decisioni', t.homeSecDecide, 'timer', toccaCounts(st).decidi ? String(toccaCounts(st).decidi) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
     {/if}
   {/if}

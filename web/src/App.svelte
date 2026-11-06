@@ -1682,7 +1682,8 @@
 {#snippet sectionBody(k: string)}
   {#if k === 'seguiti'}<Seguiti {run} summary={st.seguiti} onLavori={() => openPage('lavori')} onMaster={() => { openPage(null); pick(MASTER) }} />
   {:else if k === 'prima_raccolta'}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
-  {:else if k === 'prove'}<DaProvare {run} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />
+  <!-- Verifica (app-tocca-sezioni-06-11): le prove, poi i lavori consegnati da guardare. -->
+  {:else if k === 'prove'}{#if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
   <!-- Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A). -->
   {:else if k === 'decisioni'}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}
   {:else if k === 'da_guardare'}{@render guardare('body')}{/if}

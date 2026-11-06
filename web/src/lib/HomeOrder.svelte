@@ -14,7 +14,7 @@
   const putTop = (k: HomeKey) => { const r = toTop(cats, top, k); top = r.top; cats = r.cats }
   const dropTop = (k: HomeKey) => { const r = fromTop(cats, top, k); top = r.top; cats = r.cats }
   const SEC: Record<string, { icon: string; name: string }> = {
-    seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecTest }, decisioni: { icon: 'timer', name: t.homeSecDecide },
+    seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: { icon: 'timer', name: t.homeSecDecide },
     sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle },
     lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem },
     // Le tre sezioni nuove (app-da-guardare-02-11, app-rendiconti-2-02-11): hanno già il loro posto; icone disegnate, non sono nel font.

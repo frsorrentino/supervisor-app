@@ -10,9 +10,9 @@ object HomeCats {
     data class Cat(val id: String, val open: Boolean, val sections: List<String>)
 
     val DEFAULT = listOf(
-        // Tocca a te accorpa le voci che chiedono Franz (Franz 03/11 16:02, app-sezioni-accorpate-03-11, scelta A): Prova, Decidi,
-        // Guarda e Segui. Prima raccolta non è più una voce: sta dentro Decidi finché c'è.
-        Cat("you", true, listOf("prove", "decisioni", "da_guardare", "seguiti", "suggestions")),
+        // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (le prove e i lavori da guardare: `prove` porta
+        // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
+        Cat("you", true, listOf("decisioni", "prove", "seguiti", "suggestions")),
         Cat("work", true, listOf("sessions", "lavori")),
         Cat("out", false, listOf("esiti", "rendiconti")),
         Cat("tools", false, listOf("usage", "system", "pagella")),
@@ -21,9 +21,13 @@ object HomeCats {
      * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
      * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
      */
-    const val REV = "rev:3"
-    /** Un ordine `rev:2` (prima delle voci accorpate) tiene categorie, chiuse e cima; dentro Tocca a te riprende una volta l'ordine di partenza. */
+    const val REV = "rev:4"
+    /**
+     * Un ordine `rev:2` (prima delle voci accorpate) o `rev:3` (prima delle quattro sezioni) tiene categorie, chiuse e cima; dentro
+     * Tocca a te riprende una volta l'ordine di partenza.
+     */
     private const val REV2 = "rev:2"
+    private const val REV3 = "rev:3"
     private const val SHUT = "shut:"
     private const val TOP = "top:"
     /** Il bordo dello spazio in cima nella lista piatta del trascinamento: sopra c'è la cima, sotto le categorie. */
@@ -35,8 +39,8 @@ object HomeCats {
     fun decode(saved: List<String>?): List<Cat> {
         val list = saved.orEmpty()
         val up = top(saved)
-        val fresh = list.isNotEmpty() && REV !in list && REV2 !in list
-        val youOld = REV !in list && REV2 in list
+        val fresh = list.isNotEmpty() && REV !in list && REV2 !in list && REV3 !in list
+        val youOld = REV !in list && (REV2 in list || REV3 in list)
         val all = list.filter { catOf(it) != null && it !in up }.distinct()
         val keys = all.filter { (!fresh || (catOf(it) != "you" && catOf(it) != "tools")) && !(youOld && catOf(it) == "you") }
         val order = if (fresh) DEFAULT.map { it.id } else (all.map { catOf(it)!! } + DEFAULT.map { it.id }).distinct()

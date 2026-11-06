@@ -325,7 +325,12 @@ fun SummaryList(
             // Con la domanda aperta chiede Franz: in ambra come le altre voci di Tocca a te (master 02/11 02:08, app-bug-notte-03-11).
             "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open, p.status == "ask") }
             "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.home_sec_follow, icons.Update, n.toString(), "home-seguiti", open) }
-            "prove" -> st.prove?.takeIf { p -> p.n + p.ko + p.red > 0 }?.let { p -> val n = it.pixelbox.cmwatch.rules.ToccaRules.counts(st).prove; NewRow(R.string.home_sec_test, icons.Science, n.toString(), "home-da-provare", open, n > 0) }
+            // Verifica (app-tocca-sezioni-06-11): le prove e i lavori consegnati da guardare in una voce sola.
+            "prove" -> {
+                val n = it.pixelbox.cmwatch.rules.ToccaRules.counts(st).prove
+                val look = st.results?.nUnseen ?: 0
+                if (st.prove?.let { p -> p.n + p.ko + p.red > 0 } == true || look > 0) NewRow(R.string.home_sec_verify, icons.Science, (n + look).toString(), "home-da-provare", open, n > 0) else null
+            }
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             "decisioni" -> it.pixelbox.cmwatch.rules.ToccaRules.counts(st).decidi.takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.home_sec_decide, icons.Timer, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }
             // Contratto 1.106 (app-da-guardare-02-11): c'è finché qualcosa di consegnato non è ancora visto.
@@ -1871,7 +1876,13 @@ private fun esitiLine(out: it.pixelbox.cmwatch.rules.Kpi.Outcomes): String? {
 private fun newRight(key: String, st: it.pixelbox.cmwatch.contract.State?): String? {
     st ?: return null
     val bits = when (key) {
-        "prove" -> st.prove?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.prove(x) }
+        // Verifica: le prove, poi quanti lavori consegnati aspettano di essere guardati (app-tocca-sezioni-06-11).
+        "prove" -> {
+            val p = if (st.prove != null) newRight("prove_only", st) else null
+            val l = st.results?.nUnseen?.takeIf { n -> n > 0 }?.let { n -> stringResource(R.string.home_verify_look, n) }
+            return listOfNotNull(p, l).joinToString(" · ").ifEmpty { null }
+        }
+        "prove_only" -> st.prove?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.prove(x) }
         // Prima raccolta sta dentro Decidi: finché non è fatta, il suo stato apre il riassunto (app-sezioni-accorpate-03-11).
         "decisioni" -> {
             val p = if (st.primaRaccolta?.status.let { x -> x != null && x != "done" }) newRight("prima_raccolta", st)?.let { s -> "${stringResource(R.string.prima_title)} $s" } else null
