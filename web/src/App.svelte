@@ -1057,6 +1057,7 @@
     // transizione. Fra cruscotto e plancia, nei due versi, resta la View Transition: il cruscotto vecchio sfuma mentre le schede
     // attraversano lo schermo, e il regista non lo rifà (fotogrammi del 06/11, scelta B della master).
     if (!cols.length || !c.length) { await viaTransition(c, focus, opening, closing, from); return }
+    if (opening) preChat = focus
     let done = () => {}
     if (opening && from) {
       // La colonna vicina al posto nuovo si tende verso di lui.
@@ -1064,18 +1065,17 @@
       const el = near ? document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(near)}"]`) : null
       done = await lift(from, el, c[at - 1] ? 1 : -1)
     }
-    // La chat della colonna che arriva si monta a volo finito: montata durante il volo fermava la pagina per un fotogramma
-    // lungo e il volo andava a scatti (app-volo-web-taratura-05-11, misura con la CPU rallentata).
-    if (opening) flyChat = focus
+    // La chat della colonna che arriva è già montata (preChat), e il volo non si ferma per lei (app-volo-web-taratura-05-11).
     // Il regista (lib/director.ts, app-fluidita-06-11) al posto della View Transition: stessi effetti, solo transform e opacity.
     await fly({ focus: focus!, opening, card: () => (opening ? from : null) ?? cardOf(focus!), go: async () => { retractNeck(); done(); pinned = c; save('cm.columns', columnsPref(c)); await tick() } })
-    flyChat = null
+    preChat = null
     if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }
   }
   // Apertura e chiusura con la View Transition (fino a 44720875 per tutte): il collo, poi la transizione coi tempi di
   // `html.fx-open`/`fx-close` e il volo solo con transform (flatten).
   async function viaTransition(c: string[], focus: string | null, opening: boolean, closing: boolean, from: HTMLElement | null) {
     if (!document.startViewTransition) { pinned = c; save('cm.columns', columnsPref(c)); return }
+    if (opening) preChat = focus
     let done = () => {}
     if (opening && from) {
       const at = c.indexOf(focus!), near = c[at - 1] ?? c[at + 1]
@@ -1083,14 +1083,13 @@
       done = await lift(from, el, c[at - 1] ? 1 : -1)
     }
     document.documentElement.classList.add(opening ? 'fx-open' : 'fx-close')
-    if (opening) flyChat = focus
     const vt = smooth(() => { done(); pinned = c; save('cm.columns', columnsPref(c)) }, null, focus)
     let over = false
     const end = () => {
       if (over) return
       over = true
       document.documentElement.classList.remove('fx-open', 'fx-close')
-      flyChat = null
+      preChat = null
       if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }
     }
     void (vt?.finished ?? Promise.resolve()).catch(() => {}).finally(end)
@@ -1098,8 +1097,6 @@
     void vt?.ready.then(flatten, () => {})
     void (vt?.ready ?? Promise.resolve()).catch(() => {}).finally(() => setTimeout(end, 1200))
   }
-  // La colonna che sta arrivando in volo: fino all'arrivo al posto della chat lo scheletro.
-  let flyChat = $state<string | null>(null)
   // La scheda di una sessione nella home, se si vede.
   function cardOf(name: string): HTMLElement | null {
     const el = document.querySelector<HTMLElement>(`[data-sess="${CSS.escape(name)}"][data-vt]`)
@@ -1209,6 +1206,29 @@
   }
   const chatNode: Attachment<HTMLElement> = (el) => { mchatNode = el; return () => { mchatNode = null; el.remove() } }
   $effect(() => { const n = mchatNode, h = mchatHosts[deskDashboard ? 'dash' : 'desk']; if (n) moveInto(n, h ?? offstage) })
+  // Le chat delle colonne, una per sessione, montate fuori dalla colonna e spostate nel suo posto (app-cambio-sessione-fermo-06-11,
+  // Franz 06/11 11:32-11:38: «l'animazione rimane ferma per un secondo», «il reload dopo l'animazione»): la colonna in arrivo volava
+  // con lo scheletro e la chat si montava a volo finito, 100-135 ms di fermo a CPU 4x e il riquadro che si riempiva come ricaricato.
+  // Ora la chat di quella che arriva si monta al tocco, fuori dal documento, mentre la scheda si alza, e vola già piena. La master
+  // in colonna resta com'era.
+  let preChat = $state<string | null>(null)
+  const colChats = $derived(wide ? [...new Set([...cols, preChat])].filter((n): n is string => !!n && n !== MASTER) : [])
+  const colHostEl = new Map<string, HTMLElement>(), colChatEl = new Map<string, HTMLElement>()
+  const colHost = (name: string): Attachment<HTMLElement> => (el) => {
+    colHostEl.set(name, el)
+    const c = colChatEl.get(name)
+    if (c) moveInto(c, el)
+    return () => {
+      if (colHostEl.get(name) === el) colHostEl.delete(name)
+      const n = colChatEl.get(name)
+      if (n && n.parentElement === el) offstage.append(n)
+    }
+  }
+  const colChat = (name: string): Attachment<HTMLElement> => (el) => {
+    colChatEl.set(name, el)
+    moveInto(el, colHostEl.get(name) ?? offstage)
+    return () => { if (colChatEl.get(name) === el) colChatEl.delete(name); el.remove() }
+  }
   let masterInject = $state<{ text: string; n: number } | null>(null)
   // «Fatto» su una pausa che aspetta te (pagina Lavori, 22/10): la master riprende il compito; nessuna op nuova.
   function doneForPerson(c: import('./lib/contract').Commitment) { sendTo(MASTER, t.lavoriDonePrompt(c.paused?.reason ?? '', c.task)) }
@@ -1933,7 +1953,7 @@
           <div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i></div>
         {:else}
         {#if hr && !wco}<ColumnHead r={hr} now={now} onClose={() => (held ? dropCol(name) : setCols(cols.filter(c => c !== name)))} onGrab={grab} />{/if}
-        <div class="cbody">{#if flyChat === name}<div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i></div>{:else}{@render chatOf(name, true)}{/if}
+        <div class="cbody">{#if name === MASTER}{@render chatOf(name, true)}{:else}<div class="wslot" {@attach colHost(name)}></div>{/if}
           {#if phase}<CloseSplash {phase} column onArm={(w) => arm(name, w)} onDismiss={() => (leaving = null)} onHome={() => dropCol(name)} onReopen={phase.kind === 'closed' && st.ops?.includes('reopen') ? () => { cmd(name)('reopen'); dropCol(name) } : null} />{/if}
         </div>
         {/if}
@@ -1956,6 +1976,7 @@
   </div>
   </div>{/if}
   {#if master && (masterOpen || stacked)}<div class="wslot"><div class="wslot" {@attach chatNode}>{@render chatOf(MASTER, true)}</div></div>{/if}
+  {#each colChats as n (n)}<div class="wslot"><div class="wslot" {@attach colChat(n)}>{@render chatOf(n, true)}</div></div>{/each}
 {:else}
   <div class="phone">
     <InAppBar />
