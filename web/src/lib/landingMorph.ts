@@ -52,14 +52,10 @@ export function ghostPreview(reduced: () => boolean) {
         for (const a of box.getAnimations()) a.cancel()
         Object.assign(box.style, css(b))
         if (!reduced()) {
-          // Si allunga nel verso del movimento (app-effetti-movimenti-04-11, punto 2); passando dall'altra parte dello schermo
-          // salta la riga di mezzo con un piccolo arco.
+          // Scivola dritta al posto nuovo, senza arco né allungamento che torna (app-lato-animazione-06-11, prova 277 di Franz:
+          // «il trascinamento laterale della master ha ancora il rimbalzo»).
           const from = { x: r.left, y: r.top, w: r.width, h: r.height }
-          const dx = b.x + b.w / 2 - (from.x + from.w / 2), dy = b.y + b.h / 2 - (from.y + from.h / 2)
-          const hop = Math.abs(dx) > window.innerWidth / 4
-          const mid = { x: (from.x + b.x) / 2, y: (from.y + b.y) / 2, w: (from.w + b.w) / 2, h: (from.h + b.h) / 2 }
-          const pull = hop ? 'translateY(-18px) scale(1.04, .96)' : Math.abs(dx) >= Math.abs(dy) ? 'scale(1.05, .97)' : 'scale(.97, 1.05)'
-          box.animate([{ ...css(from), transform: 'none' }, { ...css(mid), transform: pull }, { ...css(b), transform: 'none' }], { duration: hop ? HOP_MS : SLIDE_MS, easing: MOVE_EASE })
+          box.animate([{ ...css(from) }, { ...css(b) }], { duration: SLIDE_MS, easing: MOVE_EASE })
         }
       }
       tag!.textContent = text

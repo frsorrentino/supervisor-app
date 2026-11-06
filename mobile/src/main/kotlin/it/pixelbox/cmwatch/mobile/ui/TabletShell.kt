@@ -890,7 +890,8 @@ private fun DeskBody(
     val off = animationsOff()
     val side by androidx.compose.animation.core.animateFloatAsState(
         if (homeRight) 1f else 0f,
-        if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio = 0.86f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow),
+        // La molla senza rimbalzo dei gesti della master: la home cambia lato insieme a lei (app-lato-animazione-06-11, prova 277).
+        if (off) androidx.compose.animation.core.snap() else Fx.land(),
         label = "homeSide",
     )
     // Luce 4 (app-luci-02-11): sul tablet lo sfondo è chiaro in alto al centro e scuro ai bordi; di giorno il fondo di sempre.

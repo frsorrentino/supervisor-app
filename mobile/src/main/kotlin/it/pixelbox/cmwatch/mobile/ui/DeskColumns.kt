@@ -622,7 +622,8 @@ private fun GhostLayer(ghost: Ghost?, hints: List<Ghost>, mid: Mid?) {
     if (shown == 0f && ghost == null) return
     val ease = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
     // Elastica: si allunga nel movimento e si assesta con la molla (app-effetti-movimenti-04-11, punto 2).
-    val slide: androidx.compose.animation.core.AnimationSpec<androidx.compose.ui.unit.Dp> = if (off) androidx.compose.animation.core.snap() else Fx.spring()
+    // La sagoma scivola con la molla senza rimbalzo dei gesti (app-lato-animazione-06-11, prova 277: «ha ancora il rimbalzo»).
+    val slide: androidx.compose.animation.core.AnimationSpec<androidx.compose.ui.unit.Dp> = if (off) androidx.compose.animation.core.snap() else Fx.land()
     Box(Modifier.fillMaxSize().graphicsLayer { alpha = shown }.background(Color.Black.copy(alpha = 0.22f)))
     val shape = RoundedCornerShape(14.dp)
     hints.forEach { h ->
