@@ -53,6 +53,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.ExpandLess
 import kotlinx.coroutines.launch
 import it.pixelbox.cmwatch.contract.State
 import it.pixelbox.cmwatch.mobile.R
@@ -151,14 +153,24 @@ internal fun DeskOutClosed(n: Int?, onOpen: () -> Unit) {
     }
 }
 
-/** Il titolo di un gruppo di righe nella colonna (il `vsec` della PWA). */
+/**
+ * Il titolo di un gruppo di righe nella colonna (il `vsec` della PWA). Con `open` è il tasto che lo apre e lo chiude, con la
+ * freccia, come le sezioni di Tocca a te (web-pubblicazioni-voci-06-11: le sezioni di Risorse).
+ */
 @Composable
-private fun DeskSec(icon: ImageVector, title: String, count: Int? = null) {
-    Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun DeskSec(icon: ImageVector, title: String, count: Int? = null, open: Boolean? = null, onToggle: () -> Unit = {}) {
+    Row(
+        Modifier.fillMaxWidth().then(if (open != null) Modifier.handCursor().clickable(onClick = onToggle) else Modifier).padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(12.dp))
         Text(title, style = V3.Name.copy(fontSize = 15.sp))
         count?.let { Text(it.toString(), style = V3.Meter, modifier = Modifier.padding(start = 6.dp)) }
+        if (open != null) {
+            Spacer(Modifier.weight(1f))
+            Icon(if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.size(20.dp))
+        }
     }
 }
 
@@ -206,15 +218,17 @@ internal fun DeskDone(rows: List<Lavori.Done>, onLavori: () -> Unit) {
 /** In fondo a Risorse (DeskTools.svelte): il PC Windows e i ricorrenti. */
 @Composable
 internal fun DeskTools(st: State, onTalk: (String) -> Unit) {
-    DeskSec(Icons.Outlined.Computer, stringResource(R.string.desk_win))
-    if (st.hostsStatus.isEmpty()) DeskRow(null, stringResource(R.string.desk_win_none), null, onClick = null)
-    st.hostsStatus.forEach { h ->
+    var winOpen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(true) }
+    var recurringOpen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(true) }
+    DeskSec(Icons.Outlined.Computer, stringResource(R.string.desk_win), open = winOpen, onToggle = { winOpen = !winOpen })
+    if (winOpen && st.hostsStatus.isEmpty()) DeskRow(null, stringResource(R.string.desk_win_none), null, onClick = null)
+    if (winOpen) st.hostsStatus.forEach { h ->
         val ram = if (h.ramUsed != null && h.ramTotal != null && h.ramTotal!! > 0) "RAM ${h.ramUsed!! * 100 / h.ramTotal!!}%" else null
         DeskRow(if (h.up) Rail.Glyph.DONE else Rail.Glyph.RED, h.name, if (h.up) ram else stringResource(R.string.desk_host_down), onClick = null)
     }
     st.recurring?.takeIf { it.isNotEmpty() }?.let { rs ->
-        DeskSec(Icons.Outlined.Repeat, stringResource(R.string.recurring))
-        rs.forEach { r -> DeskRow(null, r.label, null, onClick = { onTalk(r.prompt) }) }
+        DeskSec(Icons.Outlined.Repeat, stringResource(R.string.recurring), rs.size, open = recurringOpen, onToggle = { recurringOpen = !recurringOpen })
+        if (recurringOpen) rs.forEach { r -> DeskRow(null, r.label, null, onClick = { onTalk(r.prompt) }) }
     }
 }
 

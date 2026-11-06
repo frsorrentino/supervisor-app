@@ -140,7 +140,7 @@ const it = {
   dashCpu: (p: number) => `CPU ${p} %`, dashRam: (u: string, n: string) => `RAM ${u} di ${n} GB`, dashDisk: (f: string, n: string) => `disco ${f} GB liberi di ${n}`,
   dashHostDown: (e: string) => `Non raggiungibile: ${e}`, dashHostRead: (ago: string) => `letto ${ago} fa`, dashHostNow: 'letto adesso',
   dashHostSessions: (n: number) => n === 1 ? '1 sessione' : `${n} sessioni`, dashHostNoSessions: 'nessuna sessione',
-  dashPublished: 'Pubblicazioni di oggi', dashPublishedNone: 'Ancora niente di pubblicato oggi.',
+  pubOpen: 'Apri', pubProve: 'Prove', pubReload: 'Ricarica', dashPublished: 'Pubblicazioni di oggi', dashPublishedNone: 'Ancora niente di pubblicato oggi.',
   dashPubKind: { release: 'Release', push: 'Push', deploy: 'Deploy' } as Record<string, string>,
   dashLaunch: 'Lancio rapido', dashLaunchGo: (p: string) => `Lancia ${p}`,
   // La pagina unica «Lavori» (mockup approvato il 22/10): Registro, Recap e Impegni in una pagina sola.
@@ -582,7 +582,7 @@ const en: typeof it = {
   dashCpu: (p: number) => `CPU ${p}%`, dashRam: (u: string, n: string) => `RAM ${u} of ${n} GB`, dashDisk: (f: string, n: string) => `disk ${f} GB free of ${n}`,
   dashHostDown: (e: string) => `Unreachable: ${e}`, dashHostRead: (ago: string) => `read ${ago} ago`, dashHostNow: 'read just now',
   dashHostSessions: (n: number) => n === 1 ? '1 session' : `${n} sessions`, dashHostNoSessions: 'no sessions',
-  dashPublished: 'Published today', dashPublishedNone: 'Nothing published today yet.',
+  pubOpen: 'Open', pubProve: 'Tests', pubReload: 'Reload', dashPublished: 'Published today', dashPublishedNone: 'Nothing published today yet.',
   dashPubKind: { release: 'Release', push: 'Push', deploy: 'Deploy' } as Record<string, string>,
   dashLaunch: 'Quick launch', dashLaunchGo: (p: string) => `Launch ${p}`,
   // The single «Lavori» page (mockup approved on 22/10): Register, Recap and Commitments in one page.

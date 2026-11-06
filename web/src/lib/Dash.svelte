@@ -2,7 +2,7 @@
   import type { Snippet } from 'svelte'
   import Icon from './Icon.svelte'
   import type { Project, State } from './contract'
-  import { hostNumbers, publishedRows, recentProjects, sessionsByState, waitingFor } from './dash'
+  import { hostNumbers, recentProjects, sessionsByState, waitingFor } from './dash'
   import { since } from './durations'
   import type { NightPage } from './night'
   import { readable } from './slashText'
@@ -23,7 +23,6 @@
   const recent = $derived(recentProjects(st))
   const recurring = $derived(st.recurring ?? [])
   const hosts = $derived(st.hosts_status ?? [])
-  const published = $derived(publishedRows(st.published_today))
   let chosen = $state<Project | null>(null)
   const hhmm = (s: number) => new Date(s * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 </script>
@@ -101,15 +100,6 @@
           {#if h.at}<small class="ago">{now - h.at < 60 ? t.dashHostNow : t.dashHostRead(since(h.at, now))}</small>{/if}
         </div>
       {:else}<small class="sub">{t.dashWinNone}</small>{/each}
-    </div>
-    <div class="box">
-      <h4>{t.dashPublished}</h4>
-      {#each published as p, i (i)}
-        <svelte:element this={p.url ? 'a' : 'div'} class="row" href={p.url ?? undefined} target={p.url ? '_blank' : undefined} rel={p.url ? 'noopener' : undefined}>
-          <span class="txt"><b>{t.dashPubKind[p.kind] ?? p.kind} · {p.name}</b><small>{p.text}</small></span>
-          <small class="ago">{hhmm(p.at)}</small>
-        </svelte:element>
-      {:else}<small class="sub">{t.dashPublishedNone}</small>{/each}
     </div>
     {#if recurring.length || recent.length}
       <div class="box">

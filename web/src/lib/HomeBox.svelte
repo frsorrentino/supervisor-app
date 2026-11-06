@@ -4,6 +4,7 @@
 
 <script lang="ts">
   import type { State, TimelinePage } from './contract'
+  import { publishedRows } from './dash'
   import { groupsBySession, groupsByType, head, outcomes as outcomesOf, stillRows, waitingRows, workingRows, type OutcomeType, type WaitKind } from './kpi'
   import { fold as foldIn } from './motion'
   import { since } from './durations'
@@ -11,7 +12,13 @@
   import { t } from './t'
   // Le pagine dietro i tre box in alto della home (compito app-box-cliccabili-29-10, mockup approvato da Franz il 29/10
   // alle 18:57), porta di HomeBoxScreen.kt: il numero spiegato in una frase, sotto le righe che lo fanno.
-  let { box, st, page, now, onSession }: { box: Box; st: State; page: TimelinePage | null; now: number; onSession: (name: string) => void } = $props()
+  let { box, st, page, now, onSession, onProve = null }: { box: Box; st: State; page: TimelinePage | null; now: number; onSession: (name: string) => void; onProve?: (() => void) | null } = $props()
+  // Le pubblicazioni di oggi stanno negli Esiti (web-pubblicazioni-voci-06-11, Franz 06/11 01:46: «sposta»): un gruppo che si apre
+  // e si chiude col titolo, e su ogni voce le sue azioni: Apri (la release o il commit su GitHub, la web), Prove per una release,
+  // Ricarica per una web pubblicata dopo quella aperta.
+  const published = $derived(publishedRows(st.published_today))
+  let pubOpen = $state(true)
+  const running = Number(__APP_VERSION__?.split('.').pop() ?? 0)
 
   const PAGE = 20
   const h = $derived(head(st, page, now))
@@ -92,6 +99,30 @@
   {:else}
     <div class="hero"><b class="n">{h.outcomes ?? '–'}</b>
       <p>{out ? t.boxOutcomesHead(out.red.length) : t.boxOutcomesLoading}</p></div>
+    <button class="sec gh plain" aria-expanded={pubOpen} data-testid="esiti-pubblicazioni" onclick={() => (pubOpen = !pubOpen)}>
+      <span>{t.dashPublished}</span><i></i><small>{published.length}</small>
+      <svg class="turn" class:up={pubOpen} viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </button>
+    {#if pubOpen}<div class="fb" in:foldIn out:foldIn={{ ms: 150 }}><div class="foldin">
+      {#if published.length}
+        <div class="card">
+          {#each published as p, i (i)}
+            <div class="row pub">
+              <span class="ic g"><Icon name="upload" size={16} /></span>
+              <span class="bd">
+                <span class="hd"><b>{t.dashPubKind[p.kind] ?? p.kind} · {p.name}</b><span>{hm(p.at)}</span></span>
+                <span class="tx">{p.text}</span>
+                <span class="acts">
+                  {#if p.url}<a class="tonal mini" href={p.url} target="_blank" rel="noopener">{t.pubOpen}</a>{/if}
+                  {#if p.kind === 'release' && onProve}<button class="tonal mini" onclick={onProve}>{t.pubProve}</button>{/if}
+                  {#if p.kind === 'deploy' && /0\.2\.(\d+)/.test(p.text) && Number(/0\.2\.(\d+)/.exec(p.text)![1]) > running}<button class="tonal mini" onclick={() => location.reload()}>{t.pubReload}</button>{/if}
+                </span>
+              </span>
+            </div>
+          {/each}
+        </div>
+      {:else}<p class="note">{t.dashPublishedNone}</p>{/if}
+    </div></div>{/if}
     {#if out}
       {#if out.red.length}
         <div class="sec red"><span>{t.boxRed}</span><i></i><small>{out.red.length}</small></div>
@@ -148,6 +179,8 @@
 </div>
 
 <style>
+  .row.pub .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .row.pub .acts a { text-decoration: none; }
   .box { padding: 0 12px 24px; max-width: 720px; }
   .hero { display: flex; gap: 14px; align-items: flex-start; background: var(--low); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
   .n { font-size: 44px; font-weight: 500; line-height: 1; flex: none; }
