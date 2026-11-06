@@ -1703,7 +1703,9 @@
   .approve, .tonal, .text.mini, .close, .confirm button, .obtn, .ghact { font: 600 15px var(--display); letter-spacing: .02em; }
   .approve.mini, .tonal { min-height: 40px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; }
   .tonal { background: var(--s3); color: var(--tx); }
-  .approve { background: var(--act); color: var(--on-act); }
+  /* Tasti B (app-sessioni-compatte-06-11, Franz 06/11 18:52: «i tasti a sfondo bianco stonano»): l'azione principale col velo e il
+     bordo ambra di Tocca a te, la secondaria tonale. */
+  .approve { background: color-mix(in srgb, var(--wait) 14%, transparent); color: var(--wait); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 60%, transparent); }
   .text.mini { color: var(--tx2); }
   .chip { background: var(--s3); color: var(--tx); font: 600 15px var(--display); min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 18px; }
   /* I tasti di Prossimi restano alti 36 px, l'area di tocco arriva a 48 (app-bug-notte-03-11). */

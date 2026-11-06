@@ -61,9 +61,10 @@
   :global(.v3) .opts, :global(.v3) .opts.row { flex-direction: column; gap: 8px; }
   :global(.v3) .opt, :global(.v3) .row .opt { min-height: 52px; padding: 9px 14px 10px; border-radius: 12px; background: var(--s3); color: var(--tx); text-align: left; white-space: normal; font: 600 15px/1.25 var(--display); }
   :global(.v3) .opt.filled { background: var(--s3); color: var(--tx); }
-  :global(.v3) .opt.rec { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 70%, transparent); }
+  /* La consigliata come l'azione principale dei tasti B (app-sessioni-compatte-06-11): velo e bordo ambra. */
+  :global(.v3) .opt.rec { background: color-mix(in srgb, var(--wait) 14%, var(--s3)); color: var(--wait); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 60%, transparent); }
   :global(.v3) .k { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1.2px var(--tx3); font: 500 11px/1 var(--mono); color: var(--tx2); }
-  :global(.v3) .rec .k { background: var(--tx); box-shadow: none; color: var(--s3); }
+  :global(.v3) .rec .k { background: var(--wait); box-shadow: none; color: var(--bg); }
   :global(.v3) .opt small, :global(.v3) .opt.filled small { margin: 2px 0 0 28px; font: 400 12.5px/1.3 var(--sans); color: var(--tx2); opacity: 1; }
   :global(.v3) .opt:hover { filter: none; background: color-mix(in srgb, var(--tx) 8%, var(--s3)); }
 </style>

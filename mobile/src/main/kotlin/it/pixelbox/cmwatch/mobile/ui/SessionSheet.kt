@@ -2489,20 +2489,21 @@ private fun OptionButton(
     note: String? = null, number: Int? = null, outlined: Boolean = false,
 ) {
     Surface(
-        border = if (outlined) androidx.compose.foundation.BorderStroke(1.5.dp, V3.Tx.copy(alpha = 0.9f)) else null,
-        color = if (filled) Cm.primary else tonal, contentColor = if (filled) Cm.onPrimary else Cm.text,
+        // Tasti B (app-sessioni-compatte-06-11): la consigliata e l'azione principale col velo e il bordo ambra, mai il bianco pieno.
+        border = if (outlined || filled) androidx.compose.foundation.BorderStroke(1.dp, V3.Wait.copy(alpha = 0.6f)) else null,
+        color = if (outlined || filled) V3.Wait.copy(alpha = 0.14f).compositeOver(tonal) else tonal, contentColor = if (outlined || filled) V3.Wait else Cm.text,
         shape = shape,
         modifier = modifier.heightIn(min = 44.dp).clip(shape).handCursor().combinedClickable(onClick = onClick, onLongClick = onLongClick),
     ) {
         Row(Modifier.padding(horizontal = if (number != null) 14.dp else 18.dp, vertical = 10.dp), horizontalArrangement = if (center) Arrangement.Center else Arrangement.spacedBy(10.dp)) {
             number?.let { n ->
-                Box(Modifier.size(22.dp).clip(CircleShape).background(if (outlined) V3.Tx else androidx.compose.ui.graphics.Color.Transparent).then(if (outlined) Modifier else Modifier.border(1.5.dp, V3.Tx2, CircleShape)), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(22.dp).clip(CircleShape).background(if (outlined) V3.Wait else androidx.compose.ui.graphics.Color.Transparent).then(if (outlined) Modifier else Modifier.border(1.5.dp, V3.Tx2, CircleShape)), contentAlignment = Alignment.Center) {
                     Text(n.toString(), style = V3.Meter.copy(color = if (outlined) V3.Bg else V3.Tx2))
                 }
             }
             Column {
                 Text(label, style = MaterialTheme.typography.labelLarge.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize), maxLines = if (center) 1 else Int.MAX_VALUE, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
-                if (note != null) Text(note, style = MaterialTheme.typography.bodySmall, color = if (filled) Cm.onPrimary.copy(alpha = 0.8f) else Cm.text2)
+                if (note != null) Text(note, style = MaterialTheme.typography.bodySmall, color = Cm.text2)
             }
         }
     }

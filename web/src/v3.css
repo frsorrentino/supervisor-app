@@ -152,7 +152,9 @@
   --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
   /* Testo neutro con lo stesso contrasto (app-audit-superfici-luci-04-11): prima #EDEEF0, #969BA4, #858A93. */
   --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
-  --wait: #FFB23F; --busy: #5AA2FF; --good: #34D399; --red: #FF5A5F;
+  /* Salvia per successo e avanzamento (app-sessioni-compatte-06-11, scelta di Franz 06/11 20:25): il verde menta #34D399 e il blu
+     #5AA2FF stonavano accanto all'ambra di Tocca a te; della stessa luminosità dei grigi, sotto l'ambra. */
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #93B89B; --red: #FF5A5F;
   --low: var(--s1); --surface: var(--s2); --high: var(--s3); --text: var(--tx); --text2: var(--tx2); --stale: var(--tx3);
   --icon: var(--tx2); --primary: var(--act); --on-primary: var(--on-act); --idle: var(--good); --gone: var(--red); --gone-dim: var(--red);
   --b-warn: var(--wait); --b-good: var(--good); --b-ring: var(--busy); --b-alert: var(--red); --b-track: var(--s3); --b-label: var(--tx2);
@@ -213,7 +215,7 @@
     /* Di giorno la stessa scala neutra (app-audit-superfici-luci-04-11): prima #F1F4F8, #EAEEF4, #DFE4EB, #121418, #565C66, #60666F. */
     --bg: #F4F4F4; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EDEDED; --line: #E4E4E4;
     --tx: #141414; --tx2: #5B5B5B; --tx3: #656565; --act: #141414; --on-act: #FFFFFF;
-    --wait: #9A5700; --busy: #1A64D6; --good: #0B7F55; --red: #C9302F;
+    --wait: #9A5700; --busy: #4A6A9C; --good: #4E7A5B; --red: #C9302F;
     --banner: #FFF6E5; --banner-ink: var(--wait);
   }
   :root:root:not(.night-only) .card { border: 1px solid var(--line); }

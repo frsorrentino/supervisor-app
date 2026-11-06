@@ -1767,14 +1767,15 @@ private fun OkButtons(a: it.pixelbox.cmwatch.contract.Approval, filled: Boolean,
     }
 }
 
-/** Il tasto piccolo delle righe (come l'Approva della scheda): pieno per quello che sblocca una sessione, tonale per l'agenda. */
+/** Il tasto piccolo delle righe (come l'Approva della scheda): l'azione principale col velo e il bordo ambra (tasti B,
+ * app-sessioni-compatte-06-11; prima bianca), tonale per l'agenda. */
 @Composable
 private fun MiniButton(text: String, filled: Boolean, confirmed: Boolean = false, onClick: () -> Unit) {
     val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // `confirmed` (voce 11, app-feedback-azioni-02-11): il tasto toccato diventa la conferma, verde con la spunta.
     // D3 (app-motion-loops-04-11): confermato, verde scuro col bordo, l'etichetta sparisce e la spunta si disegna.
-    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) CheckFill else if (filled) Cm.primary else Cm.surfaceHigh, androidx.compose.animation.core.tween(it.pixelbox.cmwatch.rules.Leave.CHECK_LABEL_MS), label = "mini-bg")
-    Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press), shape = pressShape(press), color = bg, contentColor = if (confirmed) V3.Tx else if (filled) Cm.onPrimary else Cm.text, border = if (confirmed) androidx.compose.foundation.BorderStroke(1.dp, CheckLine) else null) {
+    val bg by androidx.compose.animation.animateColorAsState(if (confirmed) CheckFill else if (filled) V3.Wait.copy(alpha = 0.14f) else Cm.surfaceHigh, androidx.compose.animation.core.tween(it.pixelbox.cmwatch.rules.Leave.CHECK_LABEL_MS), label = "mini-bg")
+    Surface(onClick = { if (!confirmed) onClick() }, interactionSource = press, modifier = Modifier.pressScale(press), shape = pressShape(press), color = bg, contentColor = if (confirmed) V3.Tx else if (filled) V3.Wait else Cm.text, border = if (confirmed) androidx.compose.foundation.BorderStroke(1.dp, CheckLine) else if (filled) androidx.compose.foundation.BorderStroke(1.dp, V3.Wait.copy(alpha = 0.6f)) else null) {
         Box(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) { CheckLabel(confirmed) { Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false) } }
     }
 }
