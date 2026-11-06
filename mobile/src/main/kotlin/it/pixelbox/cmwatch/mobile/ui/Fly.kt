@@ -6,6 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.unit.dp
 
 /** Le scene del «volo» card → scheda (design 24/09, «Movimento»); assenti negli snapshot, dove il modificatore non fa nulla. */
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -36,19 +39,38 @@ internal fun morphEnter(off: Boolean): EnterTransition = if (off) EnterTransitio
 internal fun morphExit(off: Boolean): ExitTransition = if (off) ExitTransition.None
     else it.pixelbox.cmwatch.rules.Morph.OUT_EASE.let { e -> fadeOut(tween(it.pixelbox.cmwatch.rules.Morph.OUT_MS, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3]))) }
 
+/**
+ * Il riquadro resta pieno mentre i due contenuti si danno il cambio (app-morph-senza-stacco-06-11, Franz 06/11 08:56: «un piccolo
+ * stacco di fade out e fade in»): sotto di loro un fondo col colore della pagina vola con gli stessi limiti e non sparisce, e si
+ * disegna solo durante il volo. Prima i due contenuti sfumavano col loro fondo, e per un decimo di secondo si vedeva la pagina
+ * dietro. Il fondo vecchio lascia il posto al nuovo per tutto il volo; i contenuti stanno sopra (zIndexInOverlay).
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun Modifier.fullUnder(f: Fly, key: String, bounds: BoundsTransform): Modifier = with(f.shared) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+    val fill = Cm.bg
+    this@fullUnder.sharedBounds(
+        rememberSharedContentState("$key#fondo"), f.anim,
+        enter = EnterTransition.None, exit = fadeOut(tween(FLY_MS)),
+        boundsTransform = bounds, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = 0f,
+    ).drawBehind { if (f.shared.isTransitionActive) drawOutline(shape.createOutline(size, layoutDirection, this), fill) }
+}
+
 /** La card si allarga fino a diventare la scheda, e i due contenuti si danno il cambio (morphEnter, morphExit); con le animazioni spente, subito. */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun Modifier.fly(key: String): Modifier {
     val f = LocalFly.current?.takeIf { it.enabled } ?: return this
     val off = animationsOff()
+    // La scheda si allarga nella pagina e gli angoli si assestano con la molla (app-effetti-movimenti-04-11, punto 1).
+    val bounds = BoundsTransform { _, _ -> if (off) snap() else Fx.spring() }
     return with(f.shared) {
-        this@fly.sharedBounds(
+        (if (off) this@fly else this@fly.fullUnder(f, key, bounds)).sharedBounds(
             rememberSharedContentState(key), f.anim,
             enter = morphEnter(off), exit = morphExit(off),
-            // La scheda si allarga nella pagina e gli angoli si assestano con la molla (app-effetti-movimenti-04-11, punto 1).
-            boundsTransform = { _, _ -> if (off) snap() else Fx.spring() },
-            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+            boundsTransform = bounds,
+            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = 1f,
         )
     }
 }
@@ -79,19 +101,21 @@ fun Modifier.reflow(key: String): Modifier {
     val card = LocalDeskDash.current == true && key == "r-" + LocalReflowCard.current
     val e = it.pixelbox.cmwatch.rules.HomeReflow.EASE
     val density = androidx.compose.ui.platform.LocalDensity.current.density
+    // A onda dall'angolo in alto a sinistra (punto 6): chi sta più in basso e più a destra parte poco dopo.
+    val bounds = BoundsTransform { from, _ ->
+        if (off) snap() else {
+            val d = it.pixelbox.cmwatch.rules.HomeReflow.waveDelay(from.top / density, from.left / density)
+            tween(it.pixelbox.cmwatch.rules.HomeReflow.DURATION_MS - d, delayMillis = d, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3]))
+        }
+    }
     return with(f.shared) {
-        this@reflow.sharedBounds(
+        // La scheda della plancia che diventa colonna ha sotto il fondo pieno (fullUnder).
+        (if (card && !off) this@reflow.fullUnder(f, key, bounds) else this@reflow).sharedBounds(
             rememberSharedContentState(key), f.anim,
             // Le schede che solo scivolano restano piene (Franz 04/11); la scheda della plancia che diventa colonna si dà il cambio con lei.
             enter = if (card) morphEnter(off) else EnterTransition.None, exit = if (card) morphExit(off) else ExitTransition.None,
-            // A onda dall'angolo in alto a sinistra (punto 6): chi sta più in basso e più a destra parte poco dopo.
-            boundsTransform = { from, _ ->
-                if (off) snap() else {
-                    val d = it.pixelbox.cmwatch.rules.HomeReflow.waveDelay(from.top / density, from.left / density)
-                    tween(it.pixelbox.cmwatch.rules.HomeReflow.DURATION_MS - d, delayMillis = d, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3]))
-                }
-            },
-            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+            boundsTransform = bounds,
+            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = if (card) 1f else 0f,
         )
     }
 }
@@ -104,13 +128,14 @@ fun Modifier.reflowColumn(name: String): Modifier {
     val f = LocalReflow.current ?: return this
     val off = animationsOff()
     val e = it.pixelbox.cmwatch.rules.HomeReflow.EASE
+    // La scheda vola nella colonna e si posa con la molla breve senza rimbalzo (app-sessione-apertura-06-11).
+    val bounds = BoundsTransform { _, _ -> if (off) snap() else Fx.land() }
     return with(f.shared) {
-        this@reflowColumn.sharedBounds(
+        (if (off) this@reflowColumn else this@reflowColumn.fullUnder(f, "r-$name", bounds)).sharedBounds(
             rememberSharedContentState("r-$name"), f.anim,
             enter = morphEnter(off), exit = morphExit(off),
-            // La scheda vola nella colonna e si posa con la molla breve senza rimbalzo (app-sessione-apertura-06-11).
-            boundsTransform = { _, _ -> if (off) snap() else Fx.land() },
-            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+            boundsTransform = bounds,
+            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = 1f,
         )
     }
 }

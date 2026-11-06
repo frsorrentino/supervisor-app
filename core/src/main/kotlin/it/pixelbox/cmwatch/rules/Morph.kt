@@ -8,9 +8,13 @@ package it.pixelbox.cmwatch.rules
 object Morph {
     /** Il vecchio sparisce in 140 ms, svelto all'inizio. */
     const val OUT_MS = 140
-    /** Il nuovo parte quando il vecchio è quasi trasparente e arriva pieno in 200 ms. */
-    const val IN_DELAY_MS = 100
-    const val IN_MS = 200
+    /**
+     * Il nuovo parte quando il vecchio è quasi trasparente e arriva pieno in 180 ms (app-morph-senza-stacco-06-11: prima 100 e
+     * 200). Sotto i due contenuti il riquadro resta pieno, col fondo della pagina (`fullUnder` in mobile/ui/Fly.kt,
+     * `::view-transition-group` in web/src/v3.css): Franz 06/11 08:56 vedeva «un piccolo stacco di fade out e fade in».
+     */
+    const val IN_DELAY_MS = 80
+    const val IN_MS = 180
     /** cubic-bezier(0.33, 1, 0.68, 1), la stessa curva della web. */
     val OUT_EASE = floatArrayOf(0.33f, 1f, 0.68f, 1f)
 
