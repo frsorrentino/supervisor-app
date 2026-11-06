@@ -220,7 +220,10 @@ export function world(now: number): World {
     // Contratto 1.75: win acceso e le tre pubblicazioni di state-2-idle, spostate su adesso come il resto.
     ...(() => { const idle = decodeState(dress(idleRaw)), di = now - idle.ts
       return { hosts_status: idle.hosts_status.map(h => ({ ...h, at: now - 40 })), published_today: idle.published_today.map(x => ({ ...x, at: x.at + di })) } })(),
-    quota: Object.fromEntries(Object.entries(base.quota).map(([k, q]) => [k, { ...q, reset_h5: q.h5 != null && q.reset_h5 != null ? now + WINDOW_LEFT_S : sh(q.reset_h5), reset_w7: sh(q.reset_w7) }])),
+    // La settimana personale coi suoi punti, sul ritmo pari a un terzo della settimana: «36% ora» e «ritmo pari» si cercavano lo
+    // stesso posto, e il 100% cade prima del rinnovo (web-plancia-j2-ripasso-06-11).
+    quota: Object.fromEntries(Object.entries(base.quota).map(([k, q]) => [k, { ...q, reset_h5: q.h5 != null && q.reset_h5 != null ? now + WINDOW_LEFT_S : sh(q.reset_h5), reset_w7: sh(q.reset_w7),
+      ...(k === 'personal' && q.reset_w7 != null ? { w7_points: { start: sh(q.reset_w7)! - 7 * 86400, steps: [[2, 1], [10, 6], [20, 12], [30, 18], [40, 25], [50, 31], [56, 35]] as [number, number][] } } : {}) }])),
     projects: base.projects.map(p => ({ ...p, last_used: sh(p.last_used) })),
     approvals: base.approvals.map(a => ({ ...a, requested_at: a.requested_at + d, untested: en ? 'a real phone' : 'un telefono vero', undo: 'in-parte', undo_how: en ? 'pull the build' : 'si ritira la build' })),
     devices: base.devices?.map(x => ({ ...x, seen: sh(x.seen) })) ?? null,
@@ -387,6 +390,8 @@ export function world(now: number): World {
     { state: 'aperto', scope: 'postazione', blocks: 'claude', title: en ? 'Clear the orphan plugin caches' : 'Pulisci le cache orfane dei plugin', ref: en ? 'after restarting every session' : 'dopo aver riavviato le sessioni', key: 'd4' },
     { state: 'sospeso', scope: 'agenzia', blocks: 'terzi', title: en ? 'Staging of storefront not reachable from the CLI' : 'Lo staging di storefront non si raggiunge dalla CLI', ref: '', until: isoDay(now + 5 * 86400), key: 'd5' },
     { state: 'aperto', scope: 'agenzia', blocks: 'terzi', title: en ? 'Client answer on the domain' : 'Risposta del cliente sul dominio', ref: '', key: 'd6' },
+    // Un titolo lungo con un progetto lungo: il progetto cede il posto al titolo (web-plancia-j2-ripasso-06-11).
+    { state: 'aperto', scope: 'joyconceptstore-com', blocks: 'claude', title: en ? 'Joy: October SEO batch, skipped, and its report' : 'Joy: lotto SEO di ottobre, saltato, e il suo report', ref: '', key: 'd8' },
     { state: 'fatto', scope: 'postazione', blocks: 'nessuno', title: en ? 'Backups of the workstation every night' : 'Backup della postazione ogni notte', ref: 'crontab', key: 'd7' },
   ] }
 
