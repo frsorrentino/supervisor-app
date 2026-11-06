@@ -24,7 +24,7 @@ describe('Salva tutti: lo zip dei file', () => {
     const dir = mkdtempSync(join(tmpdir(), 'zip-'))
     const f = join(dir, 'x.zip')
     writeFileSync(f, z)
-    const list = execFileSync(process.platform === 'win32' ? 'python' : 'python3', ['-I', '-c', 'import sys,zipfile;z=zipfile.ZipFile(sys.argv[1]);assert z.testzip() is None;print("|".join(n+":"+z.read(n).hex() for n in z.namelist()))', f]).toString().trim()
+    const list = execFileSync(process.platform === 'win32' ? 'python' : 'python3', ['-I', '-X', 'utf8', '-c', 'import sys,zipfile;z=zipfile.ZipFile(sys.argv[1]);assert z.testzip() is None;print("|".join(n+":"+z.read(n).hex() for n in z.namelist()))', f]).toString().trim()
     expect(list).toBe(`nota è.md:${Buffer.from('# ciao\n').toString('hex')}|dati.bin:000102ff|nota è (2).md:${Buffer.from('due').toString('hex')}`)
   })
 })
