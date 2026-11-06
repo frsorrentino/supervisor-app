@@ -27,7 +27,7 @@
   import { setContext, untrack, tick } from 'svelte'
   import Badge from './lib/Badge.svelte'
   import { morphStart } from './lib/motion'
-  import { lift, settle as settleCard } from './lib/cardFx'
+  import { flatten, lift, settle as settleCard } from './lib/cardFx'
   import { fly, retractNeck } from './lib/director'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
@@ -1048,6 +1048,10 @@
     const closing = focus != null && cols.includes(focus) && !c.includes(focus)
     const fx = wide && (opening || closing) && !reducedMotion() && !document.hidden
     if (!fx) { smooth(() => { pinned = c; save('cm.columns', columnsPref(c)) }, null, focus); return }
+    // Il regista solo da plancia a plancia (seconda colonna, chiusura di una fra più): lì il volo è identico a quello della
+    // transizione. Fra cruscotto e plancia, nei due versi, resta la View Transition: il cruscotto vecchio sfuma mentre le schede
+    // attraversano lo schermo, e il regista non lo rifà (fotogrammi del 06/11, scelta B della master).
+    if (!cols.length || !c.length) { await viaTransition(c, focus, opening, closing, from); return }
     let done = () => {}
     if (opening && from) {
       // La colonna vicina al posto nuovo si tende verso di lui.
@@ -1062,6 +1066,32 @@
     await fly({ focus: focus!, opening, card: () => (opening ? from : null) ?? cardOf(focus!), go: async () => { retractNeck(); done(); pinned = c; save('cm.columns', columnsPref(c)); await tick() } })
     flyChat = null
     if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }
+  }
+  // Apertura e chiusura con la View Transition (fino a 44720875 per tutte): il collo, poi la transizione coi tempi di
+  // `html.fx-open`/`fx-close` e il volo solo con transform (flatten).
+  async function viaTransition(c: string[], focus: string | null, opening: boolean, closing: boolean, from: HTMLElement | null) {
+    if (!document.startViewTransition) { pinned = c; save('cm.columns', columnsPref(c)); return }
+    let done = () => {}
+    if (opening && from) {
+      const at = c.indexOf(focus!), near = c[at - 1] ?? c[at + 1]
+      const el = near ? document.querySelector<HTMLElement>(`.desk .col[data-col="${CSS.escape(near)}"]`) : null
+      done = await lift(from, el, c[at - 1] ? 1 : -1)
+    }
+    document.documentElement.classList.add(opening ? 'fx-open' : 'fx-close')
+    if (opening) flyChat = focus
+    const vt = smooth(() => { done(); pinned = c; save('cm.columns', columnsPref(c)) }, null, focus)
+    let over = false
+    const end = () => {
+      if (over) return
+      over = true
+      document.documentElement.classList.remove('fx-open', 'fx-close')
+      flyChat = null
+      if (closing) { const el = cardOf(focus!); if (el) settleCard(el) }
+    }
+    void (vt?.finished ?? Promise.resolve()).catch(() => {}).finally(end)
+    // Contati da quando il volo parte: su una macchina lenta la fotografia della pagina dura a lungo.
+    void vt?.ready.then(flatten, () => {})
+    void (vt?.ready ?? Promise.resolve()).catch(() => {}).finally(() => setTimeout(end, 1200))
   }
   // La colonna che sta arrivando in volo: fino all'arrivo al posto della chat lo scheletro.
   let flyChat = $state<string | null>(null)

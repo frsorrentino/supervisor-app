@@ -7,7 +7,8 @@
 // molla senza rimbalzo. Il testo si stira durante il volo come prima (flatten, Franz 05/11 11:2x: «va bene testo stirato»).
 
 export type Box = { x: number; y: number; w: number; h: number }
-type Snap = { el: HTMLElement; b: Box }
+/** `lists`: per una colonna, scorrimento e altezza delle sue liste di chat, per rifarne la copia ferma al punto in vista. */
+type Snap = { el: HTMLElement; b: Box; lists?: [number, number][] }
 
 /** Le curve di v3.css: la molla breve senza rimbalzo (--spring-land) e quella della home (--reflow-ease). */
 export const SPRING_LAND = 'linear(0, .154, .404, .615, .764, .86, .919, .954, .974, .986, 1)'
@@ -45,22 +46,25 @@ function snapshot(): Map<string, Snap> {
   }
   for (const el of document.querySelectorAll<HTMLElement>('.desk .col[data-col]')) {
     const b = box(el.getBoundingClientRect())
-    if (b.w > 0) m.set(`col:${el.dataset.col}`, { el, b })
+    if (b.w > 0) m.set(`col:${el.dataset.col}`, { el, b, lists: [...el.querySelectorAll<HTMLElement>('.lines')].map(l => [l.scrollTop, l.clientHeight]) })
   }
   return m
 }
 
 /**
- * La copia leggera di quello che esce dal volo: la scheda intera (pochi nodi), o della colonna solo la superficie con la testata,
- * senza la chat. Ferma sullo schermo dove stava l'originale, sopra la pagina.
+ * La copia di quello che esce dal volo, ferma sullo schermo dove stava l'originale, sopra la pagina: come la fotografia della
+ * transizione, con quello che si vedeva. Le liste della chat riprendono l'altezza e lo scorrimento che avevano (`lists`).
  */
-function ghostOf(el: HTMLElement, b: Box, light: boolean): HTMLElement {
-  const g = el.cloneNode(!light) as HTMLElement
-  if (light) { const head = el.querySelector(':scope > * > header, :scope header'); if (head) g.append(head.cloneNode(true)) }
+function ghostOf(el: HTMLElement, b: Box, lists: [number, number][] = []): HTMLElement {
+  const g = el.cloneNode(true) as HTMLElement
   g.removeAttribute('data-vt'); g.removeAttribute('data-col'); g.removeAttribute('data-sess')
   g.setAttribute('aria-hidden', 'true')
   Object.assign(g.style, { position: 'fixed', left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px`, margin: '0', zIndex: '61', pointerEvents: 'none', transformOrigin: '0 0', transition: 'none', animation: 'none', contentVisibility: 'visible' })
   document.body.append(g)
+  const ls = [...g.querySelectorAll<HTMLElement>('.lines')]
+  const hold = () => ls.forEach((l, i) => { const x = lists[i]; if (x && l.scrollTop !== x[0]) l.scrollTop = x[0] })
+  ls.forEach((l, i) => { const x = lists[i]; if (x) Object.assign(l.style, { height: `${x[1]}px`, flex: 'none', overflow: 'hidden' }) })
+  hold(); requestAnimationFrame(() => { hold(); requestAnimationFrame(hold) })
   return g
 }
 
@@ -183,7 +187,7 @@ export async function fly(f: Flight): Promise<void> {
   // La scheda o la colonna che vola, e la sua copia che sfuma.
   const from = f.opening ? f.card() : before.get(colKey)?.el ?? null
   const fromBox = from ? (f.opening ? box(from.getBoundingClientRect()) : before.get(colKey)!.b) : null
-  const ghost = from && fromBox ? ghostOf(from, fromBox, !f.opening) : null
+  const ghost = from && fromBox ? ghostOf(from, fromBox, f.opening ? [] : before.get(colKey)?.lists) : null
   const cols = [...document.querySelectorAll<HTMLElement>('.desk .col[data-col], .desk .tabslot')]
   const quiet = (els: HTMLElement[]) => els.forEach(el => { el.style.transition = 'none'; el.style.animation = 'none' })
   quiet(cols)
@@ -204,6 +208,16 @@ export async function fly(f: Flight): Promise<void> {
     if (!p) { if (!isCol) waits.push(play(a.el, [{ opacity: 0 }, { opacity: 1 }], o).finished.catch(() => {})); continue }
     if (Math.abs(p.b.x - a.b.x) < 0.5 && Math.abs(p.b.y - a.b.y) < 0.5 && Math.abs(p.b.w - a.b.w) < 0.5 && Math.abs(p.b.h - a.b.h) < 0.5) continue
     moves.set(a.el, { from: p.b, to: a.b, delay: o.delay, dur: o.duration, ease: isCol ? landAt : reflowAt })
+  }
+  // Quello che esce senza un posto dopo (la colonna sostituita da una scheda, app-scheda-sostituisce-04-11): nella transizione
+  // la sua fotografia sfumava dov'era, coi tempi del suo gruppo. Qui una copia leggera fa lo stesso.
+  const gone: HTMLElement[] = []
+  for (const [k, b] of before) {
+    if (after.has(k) || b.el === from || k === `vt:${tapped?.dataset.vt}`) continue
+    const isCol = k.startsWith('col:')
+    const g = ghostOf(b.el, b.b, b.lists)
+    gone.push(g)
+    play(g, [{ opacity: 1 }, { opacity: 0 }], { duration: isCol ? t.cols : t.home, easing: isCol ? SPRING_LAND : REFLOW_EASE, fill: 'forwards' })
   }
   const opened = unclip([...moves.keys()])
   for (const [el, m] of moves) {
@@ -230,6 +244,7 @@ export async function fly(f: Flight): Promise<void> {
   await Promise.all(waits)
   opened()
   ghost?.remove()
+  for (const g of gone) g.remove()
   if (to) to.style.zIndex = ''
   for (const el of new Set([...cols, ...newCols])) { el.style.transition = ''; el.style.animation = '' }
 }
