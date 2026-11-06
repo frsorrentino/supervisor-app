@@ -7,6 +7,7 @@
   import { personal } from './badge'
   import { freshness } from './durations'
   import { t } from './t'
+  import { tapVersion } from './meterSwitch.svelte'
   import { growFromPress } from './motion'
   import { resetLabel } from './header'
   import { shown } from './quotaLine'
@@ -48,7 +49,8 @@
 {:else}
 <header>
   <div class="bar">
-    <span class="title"><b>{quota ? t.summaryTitle : t.appTitle}</b><span class="ver" data-testid="versione-titolo">{__APP_VERSION__}</span><span class="open">{t.summaryOpen(openCount)}</span></span>
+    <span class="title"><b>{quota ? t.summaryTitle : t.appTitle}</b><!-- Tre tocchi sul numero di versione accendono e spengono il contatore dei fotogrammi (app-fluidita-06-11). -->
+    <span class="ver" data-testid="versione-titolo" role="presentation" onpointerup={() => tapVersion()}>{__APP_VERSION__}</span><span class="open">{t.summaryOpen(openCount)}</span></span>
     <!-- Ricarica (Franz 04/11, app-pwa-ricarica-04-11): nella PWA installata non c'è il tasto del browser; fa quello che fa Ctrl+R,
          che resta anche da tastiera. La pagina arriva dalla rete se c'è (sw.ts), quindi porta l'ultima versione. -->
     <button class="ib" aria-label={t.reload} title={t.reload} data-testid="ricarica" onclick={() => location.reload()}>

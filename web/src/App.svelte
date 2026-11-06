@@ -82,6 +82,8 @@
   import SuggestionsCard from './lib/SuggestionsCard.svelte'
   import { readPreview, type Preview } from './lib/closeFinished'
   import Search from './lib/Search.svelte'
+  import FrameMeter from './lib/FrameMeter.svelte'
+  import { meter } from './lib/meterSwitch.svelte'
   import Settings from './lib/Settings.svelte'
   import Feedback from './lib/Feedback.svelte'
   import { bytesOf, deviceOf, grabTab, parseChoice, parseDraft, relayKind, relayTech, type Draft } from './lib/feedback'
@@ -1949,6 +1951,8 @@
   </div>
 {/if}
 <AddDevice bind:this={addDlg} origin={CANONICAL} ask={() => tr ? tr.send(newCmd('pair_add', null, null)) : Promise.resolve(null)} />
+<!-- Il contatore dei fotogrammi nascosto (app-fluidita-06-11): montato solo quando è acceso. -->
+{#if meter.on}<FrameMeter />{/if}
 {#if reading}
   <div class="embedded reading">
     <div class="rbar"><button class="rclose" aria-label={t.close} onclick={() => (reading = null)}>✕</button><b>{reading}</b><small>{t.readOnly}</small></div>
