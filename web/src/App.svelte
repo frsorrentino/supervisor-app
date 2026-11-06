@@ -1955,12 +1955,13 @@
   /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
   .deskwrap { height: 100%; display: flex; min-height: 0; }
   /* Esiti chiuso in fondo a Tocca a te (J2): come i titoli dei gruppi; il tocco apre il foglio degli esiti. */
-  .outclosed { width: calc(100% - 24px); margin: 4px 12px 0; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; text-align: left; color: var(--tx); }
-  .outclosed:hover { background: var(--s2); }
-  .outclosed .ms { color: var(--tx2); font-size: 20px; }
-  .outclosed b { font: 600 17px var(--display); }
-  .outclosed small { color: var(--tx2); font-size: 13px; }
-  .outclosed .ch { margin-left: auto; }
+  /* Le stesse misure dei titoli dei gruppi (.sec della home: 18/700, icona a 8 px, numero 15/600; web-tocca-apribile-06-11):
+     icona allineata a 13 px e stesso passo fra le righe. */
+  .outclosed { width: calc(100% - 24px); margin: 28px 12px 2px; display: flex; align-items: center; padding: 0 13px 0 0; text-align: left; color: var(--tx); background: none; border: 0; cursor: pointer; }
+  .outclosed .ms { color: var(--tx2); font-size: 20px; margin-right: 8px; }
+  .outclosed b { font: 700 18px var(--display); }
+  .outclosed small { margin-left: 8px; padding: 1px 8px; color: var(--tx2); font: 600 15px var(--display); }
+  .outclosed .ch { margin-left: auto; margin-right: 0; }
   /* La striscia (app-colonne-strette-05-11): la X in alto, il pallino, il nome in verticale dal basso in alto. */
   .cstrip { height: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; background: var(--bg); min-height: 0; }
   .cstrip .sx { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 16px; color: var(--text2); }

@@ -51,6 +51,7 @@
 
 <style>
   /* «Compiti in corso» chiuso: il titolo è il tasto che apre la lista (app-sessioni-evidenti-06-11, J2). */
-  .vtog { width: 100%; text-align: left; cursor: pointer; }
+  /* Come gli altri titoli (.vsec): senza il riempimento del tasto, che lo spostava di 6 px (web-tocca-apribile-06-11). */
+  .vtog { width: 100%; text-align: left; cursor: pointer; padding: 0 13px 0 0; background: none; border: 0; }
   .vtog .tg { margin-left: 8px; color: var(--tx3); font-size: 20px; }
 </style>

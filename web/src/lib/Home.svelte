@@ -398,6 +398,10 @@
   // Nella PWA larga le voci In cima si aprono una volta nella loro colonna (app-in-cima-largo-03-11).
   $effect(() => { if (part && part !== 'top') for (const k of up) if (catFor(k) === part && !untrack(() => open[k])) open[k] = true })
   let open = $state<Record<string, boolean>>((() => { try { return { ...SEC_START, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { ...SEC_START } } })())
+  // I gruppi di Tocca a te: anche nelle colonne del cruscotto il titolo è un tasto che li apre e li chiude sul posto, come
+  // «Compiti in corso» (web-tocca-apribile-06-11, Franz 06/11 01:24: «non sono più chiudibili e apribili», il titolo si
+  // selezionava come testo).
+  const GROUPS = new Set(['seguiti', 'prove', 'da_guardare', 'decisioni', 'prima_raccolta', 'suggestions'])
   function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
   // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe con un tasto
   // (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
@@ -682,8 +686,9 @@
         {#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if info.number}<span class="uspct">{info.number}</span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span></span>
       {#if info.names}<SlotNames names={info.names} />{:else if info.line}<span class="usnote"><OneLine parts={oneLineParts(info.line).map(text => ({ text }))} start /></span>{:else if info.note}<span class="usnote">{info.note}</span>{/if}
     </button>
-  {:else if part && !o.onclick}
-    <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. -->
+  {:else if part && !o.onclick && !GROUPS.has(key)}
+    <!-- Nelle colonne della plancia le sezioni restano aperte: lo spazio c'è, e ogni colonna ha già il suo argomento. I gruppi di
+         Tocca a te no: si aprono e si chiudono col titolo come nella home (web-tocca-apribile-06-11). -->
     <div class="sec static" data-testid={testid}><span class="ic">{#if icon.startsWith('svg:')}<CatIcon name={icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{icon}</span>{/if}</span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
     <!-- L'unica struttura delle voci della home (Franz 31/10 17:04). -->
@@ -731,7 +736,7 @@
 {#snippet secSuggestions()}
 {#if shows('you') && suggestions && suggestionsN}
   {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti', !part && !open.suggestions && suggestionsAt ? t.homeLastAt(hhmm(suggestionsAt)) : null, { hot: true })}
-  {#if part || open.suggestions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div></div>{/if}
+  {#if open.suggestions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div></div>{/if}
 {/if}
 {/snippet}
 {#snippet secSessions()}
