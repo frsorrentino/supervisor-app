@@ -1046,7 +1046,7 @@ private fun Columns(
         val liveP = if (border >= 0 || stripMode) live else orderShares.map { it * unit }
         val leftsP = liveP.runningFold(0f) { x, w -> x + w + gapPx }
         val spec: androidx.compose.animation.core.AnimationSpec<Float> =
-            if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio = 0.82f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow)
+            if (off) androidx.compose.animation.core.snap() else Fx.land()
         columns.forEachIndexed { i, name ->
             androidx.compose.runtime.key(name) {
                 val slot = order.indexOf(name).takeIf { it >= 0 } ?: i
@@ -1086,7 +1086,8 @@ private fun Columns(
                         .width(with(density) { w.value.toDp() }).fillMaxHeight()
                         .zIndex(if (dragging) 2f else if (lift > 0f) 1f else 0f)
                         .graphicsLayer {
-                            val s = (1f + 0.025f * lift) * (0.96f + 0.04f * appear.value)
+                            // Una colonna nuova entra solo sfumando: niente scala che riparte dopo il volo (app-sessione-apertura-06-11).
+                            val s = 1f + 0.025f * lift
                             scaleX = s; scaleY = s
                             shadowElevation = 28f * lift
                             alpha = appear.value

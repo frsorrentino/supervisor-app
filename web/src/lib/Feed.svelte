@@ -62,8 +62,10 @@
   function motion(it: Item, i: number, n: number): { cls: string; rank: number } {
     if (!born) { born = new Set(items.map(itemKey)); openedAt = performance.now() }
     if (!born.has(itemKey(it))) return { cls: 'rise', rank: 0 }
-    const r = rank(i, n)
-    return r != null && performance.now() - openedAt < 1000 ? { cls: 'rise', rank: r } : { cls: '', rank: 0 }
+    // All'apertura niente onda: la chat arriva col volo ed è già al suo posto (app-sessione-apertura-06-11, Franz 06/11 01:17:
+    // dopo l'apertura «riparte un bounce»). Sale solo quello che arriva dopo.
+    void rank; void n; void i
+    return { cls: '', rank: 0 }
   }
   onDestroy(() => saveSeen(s.name, latest(items)))
 

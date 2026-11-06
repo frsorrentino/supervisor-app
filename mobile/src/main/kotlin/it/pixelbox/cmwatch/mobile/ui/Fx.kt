@@ -29,6 +29,11 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 object Fx {
     /** La molla che supera di poco la misura e torna (--spring-fx della web, circa 2,5 %). */
     fun <T> spring() = spring<T>(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow)
+    /**
+     * La molla breve senza rimbalzo dei gesti della master (MasterGestures.SIDE_SPRING_*), anche per il volo d'apertura di una
+     * sessione e le colonne che si spostano (app-sessione-apertura-06-11, Franz 06/11 01:17: dopo l'apertura «riparte un bounce»).
+     */
+    fun <T> land() = spring<T>(dampingRatio = it.pixelbox.cmwatch.rules.MasterGestures.SIDE_SPRING_DAMPING, stiffness = it.pixelbox.cmwatch.rules.MasterGestures.SIDE_SPRING_STIFFNESS)
     /** La scheda che si contrae al tocco (punto 1). */
     const val PRESS = 0.98f
     /** Le sezioni si aprono come un foglio, piegate all'indietro di tanto (punto 5). */

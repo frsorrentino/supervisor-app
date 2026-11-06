@@ -1663,7 +1663,8 @@ private fun sizeLabel(b: Long): String = when {
 @Composable
 private fun Modifier.cascadeIn(rank: Int?, opening: Boolean, done: MutableSet<String>, key: String): Modifier {
     val off = animationsOff()
-    val first = remember(key) { rank != null && !off && done.add(key) }
+    // All'apertura niente onda (app-sessione-apertura-06-11): la chat arriva col volo, sale solo quello che arriva dopo.
+    val first = remember(key) { rank != null && !off && !opening && done.add(key) }
     if (!first) return this
     val p = remember(key) { androidx.compose.animation.core.Animatable(0f) }
     val wait = if (opening) (rank ?: 0) * ChatNews.STAGGER_MS else 0L

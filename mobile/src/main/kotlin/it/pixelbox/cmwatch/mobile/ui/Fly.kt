@@ -108,8 +108,8 @@ fun Modifier.reflowColumn(name: String): Modifier {
         this@reflowColumn.sharedBounds(
             rememberSharedContentState("r-$name"), f.anim,
             enter = morphEnter(off), exit = morphExit(off),
-            // La scheda vola nella colonna con la molla che supera di poco la misura e torna (punto 1).
-            boundsTransform = { _, _ -> if (off) snap() else Fx.spring() },
+            // La scheda vola nella colonna e si posa con la molla breve senza rimbalzo (app-sessione-apertura-06-11).
+            boundsTransform = { _, _ -> if (off) snap() else Fx.land() },
             resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
         )
     }

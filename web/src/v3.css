@@ -340,11 +340,14 @@ button.ck.done .lbl { opacity: 0; }
    500 ms, così il totale resta nei 700 ms di HomeReflow; le colonne vicine si aprono con la molla in 450 ms. Chiudendo, l'inverso
    in 420 ms e le colonne che si riuniscono con un minimo rimbalzo. I capi del collo si ritirano verso la scheda e verso il posto. */
 :root { --spring-fx: linear(0, .25, .6, .86, .98, 1.025, 1.028, 1.018, 1.008, 1.002, 1, .999, 1); }
+/* Il volo d'apertura e le colonne si posano con la molla breve senza rimbalzo dei gesti della master (app-sessione-apertura-06-11,
+   Franz 06/11 01:17: dopo l'apertura «riparte un bounce»): 1 − (1 + ωt)·e^(−ωt) con ω² = 300 (springFrames), in 400 ms. */
+:root { --spring-land: linear(0, .154, .404, .615, .764, .86, .919, .954, .974, .986, 1); }
 html.fx-open { --reflow-ms: 500ms; }
 html.fx-close { --reflow-ms: 420ms; }
-html.fx-open::view-transition-group(*.fx-focus), html.fx-open::view-transition-old(*.fx-focus), html.fx-open::view-transition-new(*.fx-focus) { animation-duration: 400ms; animation-timing-function: var(--spring-fx); }
-html.fx-close::view-transition-group(*.fx-focus) { animation-timing-function: var(--spring-fx); }
-html.fx-open::view-transition-group(*.fx-col), html.fx-close::view-transition-group(*.fx-col) { animation-duration: 450ms; animation-timing-function: var(--spring-fx); }
+html.fx-open::view-transition-group(*.fx-focus), html.fx-open::view-transition-old(*.fx-focus), html.fx-open::view-transition-new(*.fx-focus) { animation-duration: 400ms; animation-timing-function: var(--spring-land); }
+html.fx-close::view-transition-group(*.fx-focus) { animation-timing-function: var(--spring-land); }
+html.fx-open::view-transition-group(*.fx-col), html.fx-close::view-transition-group(*.fx-col) { animation-duration: 400ms; animation-timing-function: var(--spring-land); }
 html.fx-close::view-transition-group(*.fx-col) { animation-duration: 420ms; }
 ::view-transition-old(neck-top) { transform-origin: top; animation: fx-neck 160ms var(--spring-fx) both; }
 ::view-transition-old(neck-bottom) { transform-origin: bottom; animation: fx-neck 160ms var(--spring-fx) both; }

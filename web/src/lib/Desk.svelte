@@ -168,7 +168,8 @@
   .landslot { position: absolute; top: 10px; bottom: 10px; z-index: 1; border: 2px dashed var(--wait); border-radius: 18px; background: color-mix(in srgb, var(--wait) 8%, transparent); transition: left .32s cubic-bezier(.2, .8, .2, 1), width .32s cubic-bezier(.2, .8, .2, 1); pointer-events: none; }
   @media (prefers-reduced-motion: reduce) { .landslot { transition: none; } }
   .col.dragging { transition: scale .2s, box-shadow .2s; z-index: 2; scale: 1.025; box-shadow: 0 18px 50px rgb(0 0 0 / .6); border-color: color-mix(in srgb, var(--icon) 55%, transparent); }
-  @keyframes appear { from { opacity: 0; scale: .96; } }
+  /* Solo dissolvenza: niente scala che riparte dopo il volo (app-sessione-apertura-06-11). */
+  @keyframes appear { from { opacity: 0; } }
   .border { position: absolute; top: 0; bottom: 0; width: 12px; cursor: col-resize; display: grid; place-items: center; touch-action: none; }
   .border i { width: 4px; height: 40px; border-radius: 2px; background: var(--line); }
   .border:hover i, .border.on i { background: var(--icon); }
