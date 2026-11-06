@@ -66,6 +66,8 @@ import java.util.Locale
 @Composable
 fun SearchScreen(
     sent: List<Sent>, events: List<Event>, onOpen: (session: String?, entry: String?) -> Unit, initial: String = "",
+    /** Contratto 1.127: un risultato di una conversazione chiusa, aperta in sola lettura per sid sul punto trovato. */
+    onOpenClosed: ((session: String, entry: String, sid: String) -> Unit)? = null,
     remote: Boolean = false, page: SearchPage? = null, loading: Boolean = false, known: Set<String> = emptySet(),
     onQuery: (String) -> Unit = {}, sessions: List<Session> = emptyList(), now: Long = System.currentTimeMillis() / 1000,
 ) {
@@ -151,10 +153,11 @@ fun SearchScreen(
                                 maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
                         }
                         g.hits.forEach { h ->
-                            val can = h.kind != ChatSearch.Kind.CONVERSATION || h.live == true || h.session in known
+                            val closed = onOpenClosed != null && h.kind == ChatSearch.Kind.CONVERSATION && h.live == false && h.session != null && h.entry != null && h.sid != null
+                            val can = h.kind != ChatSearch.Kind.CONVERSATION || h.live == true || h.session in known || closed
                             HorizontalDivider(color = V3.Line)
                             Row(
-                                Modifier.fillMaxWidth().then(if (can) Modifier.handCursor().clickable { onOpen(h.session, h.entry) } else Modifier).padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
+                                Modifier.fillMaxWidth().then(if (can) Modifier.handCursor().clickable { if (closed && h.session !in known) onOpenClosed!!(h.session!!, h.entry!!, h.sid!!) else onOpen(h.session, h.entry) } else Modifier).padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Text(whenText(SearchView.whenOf(h.at, now, zone)), style = V3.Meter.copy(color = V3.Tx3, fontSize = 12.5.sp, lineHeight = 20.sp), maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = 42.dp))

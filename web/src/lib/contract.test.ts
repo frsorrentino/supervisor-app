@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readPreview } from './closeFinished'
 import { readFileSync } from 'node:fs'
-import { blankState, decodeChanges, decodeDiff, decodeState, withAfterPage, withFirstPage, tailKey, transcriptArg, withTail, type Cmd, type CmdResult, type TranscriptEntry } from './contract'
+import { blankState, decodeChanges, decodeDiff, decodeState, withAfterPage, withFirstPage, tailKey, transcriptArg, withTail, type Cmd, type CmdResult, type SearchPage, type TranscriptEntry, type TranscriptPage } from './contract'
 import { newCmd } from './transport'
 
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
@@ -210,6 +210,17 @@ describe('contratto 1.72, il diff dal telefono (gli stessi casi di DiffContractT
     const withDiff = [...new Map(all.filter(e => e.diff).map(e => [e.id, e])).values()]
     expect(withDiff.map(e => e.tool)).toEqual(['Edit'])
     expect(withDiff[0].diff).toEqual({ path: '/home/dev/storefront/src/checkout/totals.ts', kind: 'edit', added: 2, removed: 1, hunks: [hunk], cut: false })
+  })
+  it('contratto 1.127: il risultato di prima di un /clear col suo sid, e la pagina attorno con anchor e more_after', () => {
+    const root = JSON.parse(fixture('cmd-result-sample.json'))
+    const res = (end: string) => root.result.find((r: { id: string }) => r.id.endsWith(end))
+    const hit = (JSON.parse(res('1240').text) as SearchPage).hits![0]
+    expect([hit.session, hit.live, hit.entry, hit.sid]).toEqual(['atlas-shop', true, 'a4.0', '4a7d0c19-8e52-4b3f-a6d1-2c9e5f80b713'])
+    expect(root.cmd.find((c: { id: string }) => c.id.endsWith('1241')).arg).toBe('7:around=a4.0')
+    const page = JSON.parse(res('1241').text) as TranscriptPage
+    expect([page.anchor, page.more, page.more_after]).toEqual(['a4.0', true, true])
+    expect(page.entries.some(e => e.id === 'a4.0') && page.entries.some(e => e.role === 'separator')).toBe(true)
+    expect((JSON.parse(res('0170').text) as SearchPage).hits!.every(h => h.sid)).toBe(true)
   })
   it('il passaggio intero di `diff`; quello che non è un diff o una vista si rifiuta', () => {
     expect(decodeDiff(JSON.stringify({ path: '/w/a.ts', kind: 'create', added: 1, removed: 0, hunks: [], cut: false })).kind).toBe('create')

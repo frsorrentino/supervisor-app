@@ -418,6 +418,7 @@
     <string name="connect_pc">Collega il PC</string>
     <string name="connect_pc_sub">Inquadra il QR che il PC mostra con supervisor relay pair</string>
     <string name="load_older">Carica i messaggi precedenti</string>
+    <string name="load_newer">Carica i messaggi successivi</string>
     <string name="origin_pc">dal PC</string>
     <string name="origin_watch">dall\'orologio</string>
     <string name="origin_phone">dal telefono</string>

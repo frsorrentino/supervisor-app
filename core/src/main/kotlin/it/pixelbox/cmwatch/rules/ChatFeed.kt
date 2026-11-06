@@ -71,6 +71,8 @@ object ChatFeed {
 
     fun arg(lastId: String?): String = if (lastId == null) "$PAGE" else "$PAGE:after=$lastId"
     fun olderArg(firstId: String): String = "$PAGE:before=$firstId"
+    /** Contratto 1.127: le voci attorno a quella di un risultato di Cerca, metà prima e metà dopo. */
+    fun aroundArg(entry: String): String = "$PAGE:around=$entry"
 
     /**
      * Una pagina nuova sulla lista che c'è: `AFTER` in coda, `BEFORE` in testa, `FRESH` al posto. Una voce già presente

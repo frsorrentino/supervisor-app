@@ -327,6 +327,9 @@ export function world(now: number): World {
   ]
   const transcripts: Record<string, TranscriptEntry[]> = {
     master: [
+      // La notte prima: venti giri, così un risultato vecchio della ricerca apre una pagina con altre voci dopo (contratto 1.127).
+      ...Array.from({ length: 20 }, (_, k) => [said(`n${k}u`, en ? `Night round ${k + 1}: anything to report?` : `Giro della notte ${k + 1}: novità?`, now - 30000 + k * 1200, 'pc'),
+        claude(`n${k}a`, k === 3 ? (en ? 'Round 4: the lighthouse backup finished, 212 files copied.' : 'Giro 4: il backup del faro è finito, 212 file copiati.') : (en ? `Round ${k + 1}: nothing new, the sessions are still.` : `Giro ${k + 1}: niente di nuovo, le sessioni sono ferme.`), now - 30000 + k * 1200 + 30)]).flat(),
       ...morning.flatMap(([q, a, qe, ae], i) => [said(`m${i}u`, en ? qe : q, now - 5400 + i * 600), claude(`m${i}a`, en ? ae : a, now - 5400 + i * 600 + 40)]),
       claude('a0', en
         ? 'demo-cover is ready for you, the other jobs are running.\n\n**For you**\n1. Send the cover image to the blog session.\n2. Log in to the payment sandbox.\n\n**Not tested:** the checkout on a real phone.\n\nEsito: two things wait for you.'
@@ -439,7 +442,7 @@ export function demoSearch(w: Pick<World, 'state' | 'transcripts'>, q: string): 
     if (!line) return []
     const snippet = line.slice(0, 160)
     const i = snippet.toLowerCase().indexOf(needle)
-    return i < 0 ? [] : [{ session, live: w.state.sessions.some(s => s.name === session && s.state !== 'gone'), entry: e.id, role: e.role, at: e.at ?? null, snippet, match: [i, i + needle.length] }]
+    return i < 0 ? [] : [{ session, live: w.state.sessions.some(s => s.name === session && s.state !== 'gone'), entry: e.id, role: e.role, at: e.at ?? null, snippet, match: [i, i + needle.length], sid: `demo-${session}` }]
   }))
   return { hits, more: false }
 }

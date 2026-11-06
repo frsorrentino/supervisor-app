@@ -63,9 +63,20 @@ export class DemoTransport implements Transport {
   /** Le voci di prova di una conversazione, come le darebbe `transcript`. */
   private transcript(name: string, arg: string | null | undefined): CmdResult['text'] | null {
     const all: TranscriptEntry[] = this.world.transcripts[name] ?? []
+    const n = Number(arg?.split(':')[0]) || 50
     const after = arg?.match(/after=(.+)$/)?.[1]
-    if (after) { const i = all.findIndex(e => e.id === after); return i < 0 ? null : JSON.stringify({ entries: all.slice(i + 1), more: false }) }
-    return JSON.stringify({ entries: all.slice(-(Number(arg) || 50)), more: false })
+    if (after) { const i = all.findIndex(e => e.id === after); return i < 0 ? null : JSON.stringify({ entries: all.slice(i + 1, i + 1 + n), more: false }) }
+    const before = arg?.match(/before=(.+)$/)?.[1]
+    if (before) { const i = all.findIndex(e => e.id === before); return i < 0 ? null : JSON.stringify({ entries: all.slice(Math.max(0, i - n), i), more: i - n > 0 }) }
+    // Contratto 1.127: le `n` voci attorno a una voce, metà prima e metà dopo, spostate dall'altra parte vicino ai capi.
+    const around = arg?.match(/around=(.+)$/)?.[1]
+    if (around) {
+      const i = all.findIndex(e => e.id === around)
+      if (i < 0) return null
+      const from = Math.max(0, Math.min(i - Math.floor(n / 2), all.length - n)), to = Math.min(all.length, from + n)
+      return JSON.stringify({ entries: all.slice(from, to), more: from > 0, more_after: to < all.length, anchor: around })
+    }
+    return JSON.stringify({ entries: all.slice(-n), more: all.length > n })
   }
 
   async send(cmd: Cmd): Promise<CmdResult> {

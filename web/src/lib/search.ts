@@ -6,7 +6,7 @@ import type { Sent } from './chatRules'
 export type Kind = 'sent' | 'outcome' | 'event' | 'conversation'
 /** `start`/`end`: la parte trovata dentro `line`. `ref`: unico per risultato. `live`: solo per i risultati del relay. */
 /** `entry`: l'id della voce in `transcript`, per aprire la conversazione lì (app-cerca-pagina-03-11). */
-export type Hit = { session: string | null; at: number; line: string; start: number; end: number; kind: Kind; ref: string; live?: boolean | null; entry?: string | null }
+export type Hit = { session: string | null; at: number; line: string; start: number; end: number; kind: Kind; ref: string; live?: boolean | null; entry?: string | null; sid?: string | null }
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi)
 
@@ -15,7 +15,7 @@ export function withConversations(local: Hit[], page: SearchPage): Hit[] {
   const remote: Hit[] = (page.hits ?? []).map((h, i) => {
     const start = clamp(h.match?.[0] ?? 0, 0, h.snippet.length)
     const end = clamp(h.match?.[1] ?? start, start, h.snippet.length)
-    return { session: h.session, at: h.at ?? 0, line: h.snippet, start, end, kind: 'conversation', ref: `CONV-${h.session}-${h.entry ?? i}-${i}`, live: h.live, entry: h.entry ?? null }
+    return { session: h.session, at: h.at ?? 0, line: h.snippet, start, end, kind: 'conversation', ref: `CONV-${h.session}-${h.entry ?? i}-${i}`, live: h.live, entry: h.entry ?? null, sid: h.sid ?? null }
   })
   return [...remote, ...local.filter(h => h.kind === 'event' && h.session == null)].sort((a, b) => b.at - a.at)
 }

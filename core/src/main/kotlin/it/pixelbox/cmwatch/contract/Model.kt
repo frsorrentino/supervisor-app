@@ -982,6 +982,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
 @Serializable data class SearchHit(
     val session: String, val live: Boolean, val project: String? = null, val entry: String? = null,
     val role: String? = null, val at: Long? = null, val snippet: String, val match: List<Int> = emptyList(),
+    /** Contratto 1.127: la conversazione del risultato; prima di un /clear di una sessione viva, il suo nome e `live` true. */
+    val sid: String? = null,
 )
 
 @Serializable data class SearchPage(val hits: List<SearchHit> = emptyList(), val more: Boolean = false)
@@ -1017,7 +1019,11 @@ data class PairAddInvite(val qr: String?, val code: String, val exp: Long)
  * Contratto 1.93: `reset` = la pagina `after` chiedeva un id che non c'è più (riavvio, /clear, conversazione nuova): sono
  * le ultime voci e prendono il posto della lista. Assente nelle altre pagine.
  */
-@Serializable data class TranscriptPage(val entries: List<TranscriptEntry> = emptyList(), val more: Boolean = false, val reset: Boolean = false)
+/** Contratto 1.127: con `n:around=<id>` la pagina porta `anchor` (l'id chiesto) e `more_after` (voci più nuove dopo). */
+@Serializable data class TranscriptPage(
+    val entries: List<TranscriptEntry> = emptyList(), val more: Boolean = false, val reset: Boolean = false,
+    val anchor: String? = null, @SerialName("more_after") val moreAfter: Boolean = false,
+)
 
 /**
  * Contratto 1.59: `/tail/<id>`, le ultime voci di una sessione viva che il relay riscrive quando la trascrizione cambia (al

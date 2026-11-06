@@ -30,7 +30,7 @@
   import { waitingPc } from './durations'
   import { ctxNudge, handoffPrompt } from './masterService'
   import { reducedMotion } from './motion'
-  let { focus = null, onFocused = () => {}, resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
+  let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
     /** Contratto 1.106: la riga «Risultati» in cima alla chat. */
     resultsRow?: import('svelte').Snippet | null
     /** La voce da portare in vista, da Cerca (app-cerca-pagina-03-11). */
@@ -62,6 +62,8 @@
     onUsage?: () => void
     /** Contratto 1.22: c'è una pagina più vecchia della conversazione; il tasto in cima la chiede. */
     onOlder?: (() => void) | null
+    /** Contratto 1.127: aperta sul punto di un risultato, le voci dopo e l'ultima. */
+    onNewer?: (() => void) | null; onLatest?: (() => void) | null
     /** Sul telefono: «Vai a» sul nome e il ≡ dell'app nella testata. */
     onGo?: ((name: string | null) => void) | null; onReopen?: ((name: string) => void) | null; appMenu?: import('svelte').Snippet | null
     /** Contratto 1.72: «Mostra tutto» sotto un passaggio, l'op `diff` con l'id della voce; null = il relay non la conosce. */
@@ -162,8 +164,11 @@
     if (!el) return
     held = true; settled = true; atEnd = false; handled = focus
     const id = focus
+    // Un salto, ripetuto per due fotogrammi: le voci fuori schermo hanno content-visibility e un'altezza stimata, e mentre si
+    // disegnano la voce cercata si sposta; uno scorrimento morbido finiva più su (app-ricerca-al-punto-06-11).
+    const center = () => el.scrollIntoView({ block: 'center', behavior: 'auto' })
     requestAnimationFrame(() => {
-      el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' })
+      center(); requestAnimationFrame(() => { center(); requestAnimationFrame(center) })
       flash = id; setTimeout(() => { if (flash === id) flash = null }, 2200)
     })
     onFocused()
@@ -224,6 +229,7 @@
     {:else}
     {#if onOlder}<button class="older" onclick={() => { atEnd = false; onOlder() }}>{t.loadOlder}</button>{/if}
     {#key s.name}<Feed {flash} {s} {items} now={st.ts} {onFile} {onFiles} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
+    {#if onNewer}<button class="older" data-testid="chat-successivi" onclick={() => { atEnd = false; onNewer() }}>{t.loadNewer}</button>{/if}
     <!-- A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC. -->
     <!-- Senza messaggi, esito, domanda e lavoro in corso una riga, invece di una pagina che sembra rotta (SessionSheet). -->
     {#if !items.length && !s.outcome && !s.question && s.state !== 'busy' && s.state !== 'awaiting' && waitingSince == null}<p class="emptychat">{t.chatEmpty}</p>{/if}
@@ -252,8 +258,10 @@
       <p class="resolved">✓ {t.resolvedAtTerminal} · {optionText(s.resolved.text)}</p>
     {/if}
     {/if}
-    {#if !atEnd && !home}
-      <div class="toend"><button aria-label={t.toLatest} title={t.toLatest} onclick={() => { if (!list) return; atEnd = true; auto = true; list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' }) }}>
+    <!-- Aperta sul punto di un risultato con voci più nuove dopo (contratto 1.127): il tasto c'è anche in fondo alla pagina e
+         porta all'ultima voce vera, non al fondo di quello che è caricato. -->
+    {#if (!atEnd || onLatest) && !home}
+      <div class="toend"><button aria-label={t.toLatest} title={t.toLatest} data-testid="chat-in-fondo" onclick={() => { if (!list) return; onLatest?.(); atEnd = true; auto = true; list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' }) }}>
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
       </button></div>
     {/if}

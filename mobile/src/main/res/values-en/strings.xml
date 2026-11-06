@@ -409,6 +409,7 @@
     <string name="connect_pc">Connect the PC</string>
     <string name="connect_pc_sub">Scan the QR the PC shows with supervisor relay pair</string>
     <string name="load_older">Load earlier messages</string>
+    <string name="load_newer">Load later messages</string>
     <string name="origin_pc">from the PC</string>
     <string name="origin_watch">from the watch</string>
     <string name="origin_phone">from the phone</string>

@@ -331,7 +331,15 @@ class ContractTest {
         // Contratto 1.69 (relay 0.8.25): due permission_mode, uno riuscito e uno fuori dal giro di Shift+Tab.
         // Contratto 1.73: tre della pagina Studio (studio, calendario spento, prompt con scope), tutti riusciti.
         // Contratto 1.74: due nights, con due notti e vuoto.
-        assertEquals(138, results.size); assertEquals(37, results.count { !it.ok })   // 1.126: transcript oltre un /clear, riuscito; 1.125: model a sessione occupata riuscito, e l'effort …0121 ora riuscito; 1.121: feedback_app bozza, anonimo, github e più tardi riusciti, la schermata senza consenso rifiutata; 1.120: close con when after e when force, riusciti; 1.112: una lettura rimpiazzata, rifiutata; 1.107: provato e non_va, riusciti; 1.106: results, result_seen e result_note, tutti riusciti; 1.105: feedback_consent, feedback_send anteprima e invio, feedback_text, tutti riusciti; 1.95: plugins, plugin_check, plugin_update riuscito e uno da confermare al PC, plugin_update_all senza niente; 1.96: kpi; 1.91: sys_unit_stop riuscito, poi lo stesso rifiutato; 1.90: sys_kill riuscito, poi lo stesso rifiutato; 1.88: suggestion choose fuori dalle opzioni (rifiutato), discuss, choose accettato; 1.84: close_preview e close, ognuno riuscito e rifiutato; 1.87: suggestion riuscito e «already gone» (ok); 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
+        // Contratto 1.127: …1240 un risultato di prima di un /clear di una sessione viva, col suo sid; …1241 la pagina attorno.
+        val hit = ContractJson.decodeSearch(results.first { it.id.endsWith("1240") }.text).hits.single()
+        assertTrue(hit.live); assertEquals("atlas-shop", hit.session); assertEquals("a4.0", hit.entry); assertEquals("4a7d0c19-8e52-4b3f-a6d1-2c9e5f80b713", hit.sid)
+        assertEquals("7:around=a4.0", cmds.first { it.id.endsWith("1241") }.arg)
+        val around = ContractJson.decodeTranscript(results.first { it.id.endsWith("1241") }.text)
+        assertEquals("a4.0", around.anchor); assertTrue(around.moreAfter); assertTrue(around.more); assertTrue(around.entries.any { it.id == "a4.0" })
+        assertTrue(around.entries.any { it.role == "separator" })
+        assertTrue(ContractJson.decodeSearch(results.first { it.id.endsWith("0170") }.text).hits.all { it.sid != null })
+        assertEquals(140, results.size); assertEquals(37, results.count { !it.ok })   // 1.127: search prima di un /clear e pagina attorno, riusciti; 1.126: transcript oltre un /clear, riuscito; 1.125: model a sessione occupata riuscito, e l'effort …0121 ora riuscito; 1.121: feedback_app bozza, anonimo, github e più tardi riusciti, la schermata senza consenso rifiutata; 1.120: close con when after e when force, riusciti; 1.112: una lettura rimpiazzata, rifiutata; 1.107: provato e non_va, riusciti; 1.106: results, result_seen e result_note, tutti riusciti; 1.105: feedback_consent, feedback_send anteprima e invio, feedback_text, tutti riusciti; 1.95: plugins, plugin_check, plugin_update riuscito e uno da confermare al PC, plugin_update_all senza niente; 1.96: kpi; 1.91: sys_unit_stop riuscito, poi lo stesso rifiutato; 1.90: sys_kill riuscito, poi lo stesso rifiutato; 1.88: suggestion choose fuori dalle opzioni (rifiutato), discuss, choose accettato; 1.84: close_preview e close, ognuno riuscito e rifiutato; 1.87: suggestion riuscito e «already gone» (ok); 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)
@@ -392,7 +400,8 @@ class ContractTest {
         assertEquals(CmdOp.REPORT, pdf.op); assertEquals("phone", pdf.device)
         assertEquals("sent Preventivo cliente.pdf to atlas-shop", results.first { it.id == pdf.id }.text)
         assertTrue(ContractJson.decodeState(Fixtures.stateIdle).share!!.any)
-        val search = cmds.single { it.op == CmdOp.SEARCH }
+        val search = cmds.single { it.op == CmdOp.SEARCH && it.arg == "tuesday" }
+        assertEquals(2, cmds.count { it.op == CmdOp.SEARCH })   // 1.127: anche …1240, prima di un /clear
         assertNull(search.session); assertEquals("tuesday", search.arg)
         val hits = ContractJson.decodeSearch(results.first { it.id == search.id }.text)
         assertEquals(5, hits.hits.size)

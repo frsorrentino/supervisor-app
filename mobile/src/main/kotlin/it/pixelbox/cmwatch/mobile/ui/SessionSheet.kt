@@ -218,6 +218,8 @@ fun SessionSheet(
     feed: List<ChatFeed.Item>? = null, more: Boolean = false, onOlder: () -> Unit = {},
     /** Da Cerca (app-cerca-pagina-03-11): la voce da portare in vista; [onFocused] quando è fatto o non si trova. */
     focus: String? = null, onFocused: () -> Unit = {},
+    /** Contratto 1.127: aperta sul punto di un risultato, con voci più nuove dopo: «successivi» e il tasto dell'ultimo vero. */
+    newer: Boolean = false, onNewer: () -> Unit = {}, onLatest: () -> Unit = {},
     /** La conversazione vera sta arrivando: niente chat di ripiego nel frattempo, che poi salterebbe (dal vivo 30/09 23:36). */
     loadingFeed: Boolean = false,
     /** Da quando (ms) una lettura della conversazione aspetta il PC; null se nessuna è in volo (piano prestazioni, Task 7). */
@@ -534,6 +536,9 @@ fun SessionSheet(
                         }
                         }
                     }
+                    if (newer) item(key = "newer") {
+                        TextButton(onClick = { follow = false; onNewer() }, modifier = Modifier.fillMaxWidth().testTag("chat-successivi")) { Text(stringResource(R.string.load_newer), color = Cm.actionIcon) }
+                    }
                     // A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC, o che la copia
                     // a schermo è più vecchia dell'ultima attività e si sta aggiornando.
                     val waitSecs = ChatFeed.waitingPc(true, waitingSince, waitClock.value)
@@ -607,13 +612,15 @@ fun SessionSheet(
             // mai visto»): c'è mentre rileggi più su; il tocco scende in fondo e la chat torna a seguire.
             val behind by remember(list) { derivedStateOf { list.canScrollForward } }
             androidx.compose.animation.AnimatedVisibility(
-                visible = !follow && behind && feed != null,
+                // Sul punto di un risultato con voci più nuove il tasto c'è anche in fondo alla pagina e porta all'ultima vera.
+                visible = ((!follow && behind) || newer) && feed != null,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 12.dp + if (niche) 0.dp else readingRoom()),
                 enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.8f),
                 exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.8f),
             ) {
                 androidx.compose.material3.SmallFloatingActionButton(
                     onClick = {
+                        if (newer) onLatest()
                         follow = true
                         listScope.launch { list.scrollToEnd(animate = true) }
                     },

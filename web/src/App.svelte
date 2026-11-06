@@ -401,21 +401,60 @@
     transcripts = { ...transcripts, [name]: o.entries }
     olderOf = { ...olderOf, [name]: o.more }
   }
-  // Un risultato di Cerca apre la conversazione nel punto trovato (app-cerca-pagina-03-11): si caricano le pagine più vecchie
-  // finché la voce non c'è, al massimo 8 da 50; poi la chat la porta in vista e la fa lampeggiare.
+  // Un risultato di Cerca apre la conversazione nel punto trovato (app-cerca-pagina-03-11): la chat lo porta in vista e lo fa
+  // lampeggiare. Contratto 1.127 (app-ricerca-al-punto-06-11, Franz 06/11 01:09: «mi apre semplicemente la master sull'ultimo
+  // messaggio»): la pagina attorno alla voce, anche di prima di un /clear, al posto della chat; da lì si scorre in su con
+  // «precedenti» e in giù con «successivi», e «Vai in fondo» torna all'ultimo. Finché ci sono voci più nuove la lettura
+  // continua delle nuove si ferma, se no riempirebbe la chat da sola. Con un relay di prima: pagine più vecchie finché la
+  // voce non c'è, al massimo 8 da 50.
   let focusOf = $state<Record<string, string>>({})
+  let newerOf = $state<Record<string, boolean>>({})
+  const AROUND_N = 50
+  const jumping = new Set<string>()
+  function focusOn(name: string, entry: string) {
+    // Resta per 3 s: la chat aperta può essere rimontata e la nuova istanza deve trovarlo.
+    focusOf = { ...focusOf, [name]: entry }
+    setTimeout(() => { if (focusOf[name] === entry) { const { [name]: _, ...rest } = focusOf; focusOf = rest } }, 3000)
+  }
   async function jumpTo(name: string, entry: string) {
+    if (tr) {
+      jumping.add(name)
+      try {
+        const r = await tr.send(transcriptCmd(name, `${AROUND_N}:around=${entry}`)).catch(() => null)
+        const p: TranscriptPage | null = r?.ok ? JSON.parse(r.text) : null
+        if (p && p.anchor != null) {
+          transcripts = { ...transcripts, [name]: p.entries }
+          olderOf = { ...olderOf, [name]: !!p.more }
+          newerOf = { ...newerOf, [name]: !!p.more_after }
+          paged.add(name)
+          focusOn(name, entry)
+          return
+        }
+      } finally { jumping.delete(name) }
+    }
     for (let i = 0; i < 40 && !untrack(() => transcripts[name])?.length; i++) await new Promise(r => setTimeout(r, 250))
     for (let i = 0; i < 8; i++) {
-      if (untrack(() => transcripts[name])?.some(e => e.id === entry)) {
-        // Resta per 3 s: la chat aperta può essere rimontata e la nuova istanza deve trovarlo.
-        focusOf = { ...focusOf, [name]: entry }
-        setTimeout(() => { if (focusOf[name] === entry) { const { [name]: _, ...rest } = focusOf; focusOf = rest } }, 3000)
-        return
-      }
+      if (untrack(() => transcripts[name])?.some(e => e.id === entry)) { focusOn(name, entry); return }
       if (!untrack(() => olderOf[name])) return
       await loadOlder(name)
     }
+  }
+  /** «Successivi»: la pagina dopo l'ultima voce; più corta di una pagina intera vuol dire che si è arrivati in fondo. */
+  async function loadNewer(name: string) {
+    const last = untrack(() => transcripts[name])?.at(-1)?.id
+    if (!tr || !last) return
+    const r = await run(transcriptCmd(name, `${AROUND_N}:after=${last}`))
+    if (!r?.ok) return
+    const p: TranscriptPage = JSON.parse(r.text)
+    transcripts = { ...transcripts, [name]: withAfterPage(untrack(() => transcripts[name]) ?? [], p) }
+    if (p.entries.length < AROUND_N) newerOf = { ...newerOf, [name]: false }
+  }
+  /** «Vai in fondo»: si lascia il punto trovato e si torna alla pagina delle ultime voci, con la lettura continua. */
+  function toLatest(name: string) {
+    newerOf = { ...newerOf, [name]: false }
+    transcripts = { ...transcripts, [name]: [] }
+    paged.delete(name)
+    void loadTranscript(name)
   }
   /** Vero quando la lettura è arrivata, anche senza voci nuove. */
   // Contratto 1.82: una conversazione chiusa aperta dalla Notte si legge per sid, in sola lettura.
@@ -427,7 +466,7 @@
     return sid ? newCmd('transcript', null, arg, undefined, undefined, { sid }) : newCmd('transcript', name, arg)
   }
   async function loadTranscript(name: string): Promise<boolean> {
-    if (!tr || loadingT.has(name)) return false
+    if (!tr || loadingT.has(name) || jumping.has(name) || untrack(() => newerOf[name])) return false
     loadingT.add(name)
     try {
       const have = untrack(() => transcripts[name]) ?? []
@@ -439,6 +478,8 @@
         return false
       }
       const p: TranscriptPage = JSON.parse(r.text)
+      // Arrivata mentre la chat saltava al punto di un risultato: la pagina attorno vince.
+      if (jumping.has(name) || untrack(() => newerOf[name])) return true
       if (!after || p.reset) { olderOf = { ...olderOf, [name]: !!p.more }; paged.add(name) }
       if (after && !p.entries.length && !p.reset) return true
       transcripts = { ...transcripts, [name]: after ? withAfterPage(have, p) : withFirstPage(have, p) }
@@ -1647,7 +1688,7 @@
     onAnswer={answer} onCmd={cmd(name)} {events} {sent} {read} onRead={(k) => (read = new Set([...read, k]))} onPromptTo={sendTo} onAttach={(fs, x) => attach(name, fs, x)} onFile={(p, a, k) => fileAction(name, p, a, k)} onFiles={(fs, a) => filesAction(name, fs, a)} onHandoff={() => handoff(name)}
     wide={false} {slots} elsewhere={elsewhereFor(name)} elsewhereAway={embed ? (() => { const a = elsewhereFor(name); return a ? awayOf(a, st.sessions, location.origin) : null })() : null} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, ...alertKeys(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
-    inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} onOlder={olderOf[name] ? () => loadOlder(name) : null}
+    inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} onOlder={olderOf[name] ? () => loadOlder(name) : null} onNewer={newerOf[name] ? () => loadNewer(name) : null} onLatest={newerOf[name] ? () => toLatest(name) : null}
     onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu} menuMove={null}
     onDiff={st.ops?.includes('diff') ? (id) => ask(tr, newCmd('diff', name, id), decodeDiff) : null}
     onChanges={st.ops?.includes('changes') ? (f) => ask(tr, newCmd('changes', name, f == null ? null : fileArg(f)), decodeChanges) : null} />
@@ -1727,7 +1768,7 @@
         onApprove={(task) => approve(task, '')} onSend={(n, text) => sendTo(n, text)} />
     {:else if p === 'search'}
       <Search {sent} {events} remote onQuery={search} page={searchPage}
-        known={new Set(st.sessions.map(x => x.name))} sessions={st.sessions} now={st.ts} onOpen={(n, entry) => { if (n) { openPage(null); pick(n); if (entry) jumpTo(n, entry) } else openPage('lavori') }} />
+        known={new Set(st.sessions.map(x => x.name))} sessions={st.sessions} now={st.ts} onOpen={(n, entry, sid, live) => { if (n && live === false && sid && entry) { sidOf = { ...sidOf, [n]: sid }; openPage(null); reading = n; void jumpTo(n, entry) } else if (n) { openPage(null); pick(n); if (entry) jumpTo(n, entry) } else openPage('lavori') }} />
     {:else if p === 'usage'}
       <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
     {:else if p === 'guardare'}

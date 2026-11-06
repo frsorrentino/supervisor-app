@@ -201,7 +201,8 @@ export type TranscriptEntry = {
   reason?: string | null; memory?: string | null; handoff?: string | null
 }
 /** Contratto 1.93: `reset` = l'id di `after` non c'è più (riavvio, /clear): le ultime voci prendono il posto della lista. */
-export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean; reset?: boolean }
+/** Contratto 1.127: con `n:around=<id>` la pagina porta `anchor` (l'id chiesto) e `more_after` (voci più nuove dopo). */
+export type TranscriptPage = { entries: TranscriptEntry[]; more?: boolean; reset?: boolean; anchor?: string | null; more_after?: boolean }
 // Contratto 1.72, il diff dal telefono: un pezzo come in `git diff -U3`, le righe che cominciano per «-», «+» o spazio.
 export type Hunk = { old_start: number; old_lines: number; new_start: number; new_lines: number; lines: string[] }
 /** Il diff di un passaggio di modifica; `kind` edit | create | overwrite; `cut` = oltre 200 righe, il resto con l'op `diff`. */
@@ -257,7 +258,8 @@ export const withFirstPage = (have: TranscriptEntry[], page: TranscriptPage): Tr
   have.length ? withTail(page.entries, { session: '', id: '', at: 0, entries: have }) : page.entries
 
 // Ricerca (contratto 1.27): `match` = [inizio, fine] dentro `snippet`.
-export type SearchHit = { session: string; live: boolean; project?: string | null; entry?: string | null; role?: string | null; at?: number | null; snippet: string; match?: number[] }
+/** Contratto 1.127: `sid`, la conversazione del risultato; prima di un /clear di una sessione viva, il suo nome e `live` true. */
+export type SearchHit = { session: string; live: boolean; project?: string | null; entry?: string | null; role?: string | null; at?: number | null; snippet: string; match?: number[]; sid?: string | null }
 export type SearchPage = { hits?: SearchHit[]; more?: boolean }
 
 /** Contratto 1.29: la cronologia di oggi; `live` distingue la stessa cartella viva e chiusa. */

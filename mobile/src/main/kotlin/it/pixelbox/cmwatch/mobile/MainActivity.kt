@@ -769,6 +769,7 @@ class MainActivity : ComponentActivity() {
             val searchPage = searchResult?.takeIf { it.ok }?.let { r -> runCatching { ContractJson.decodeSearch(r.text) }.getOrNull() }
             it.pixelbox.cmwatch.mobile.ui.PageIn { SearchScreen(
                 chatLog, events, onOpen = { n, entry -> searchOpen = false; if (n != null) { open = n; searchFocus = entry?.let { e -> n to e } } else { open = null; tab = StartRoute.Tab.LAVORI } },
+                onOpenClosed = { n, entry, sid -> searchOpen = false; sidOf[n] = sid; tab = StartRoute.Tab.OVERVIEW; open = n; searchFocus = n to entry },
                 remote = state?.ops?.contains("search") == true, page = searchPage, loading = searchId != null && searchResult == null,
                 known = state?.sessions?.map { it.name }?.toSet().orEmpty(), sessions = state?.sessions.orEmpty(),
                 onQuery = { q ->
@@ -895,6 +896,12 @@ class MainActivity : ComponentActivity() {
         val feedMore = remember { mutableStateMapOf<String, Boolean>() }
         var olderId by remember { mutableStateOf<String?>(null) }
         var olderTries by remember { mutableStateOf(0) }
+        // Contratto 1.127 (app-ricerca-al-punto-06-11, Franz 06/11 01:09: «mi apre semplicemente la master sull'ultimo
+        // messaggio»): un risultato di Cerca apre la conversazione con la pagina attorno alla voce, anche di prima di un /clear.
+        // Per sessione: true finché ci sono voci più nuove dopo la pagina (e mentre la pagina arriva); intanto le letture
+        // continue di quella conversazione si fermano, se no la riempirebbero da sole. «Successivi» e «ultimo» la riportano giù.
+        val aroundOf = remember { mutableStateMapOf<String, Boolean>() }
+        var focusReady by remember { mutableStateOf<Pair<String, String>?>(null) }
         var unsupported by remember { mutableStateOf(false) }
         // Da quando la lettura in volo aspetta il PC: la riga «in attesa del PC» della chat (piano prestazioni, Task 7).
         var readSince by remember { mutableStateOf<Long?>(null) }
@@ -905,6 +912,45 @@ class MainActivity : ComponentActivity() {
         // subito quelle con novità. La sessione aperta resta del lettore qui sotto; una risposta che arriva dopo si unisce
         // senza doppioni.
         val shownChat by rememberUpdatedState(chatName)
+        // Una pagina della conversazione `name`, aspettata come fa il lettore di sfondo; null se non arriva o è rifiutata.
+        suspend fun transcriptPage(name: String, arg: String): it.pixelbox.cmwatch.contract.TranscriptPage? {
+            val sid = transcriptSid(name)
+            val id = runCatching { app.repo.command(CmdOp.TRANSCRIPT, name.takeIf { sid == null }, arg, sid = sid) }.getOrNull() ?: return null
+            val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+            app.repo.forget(id)
+            return r?.takeIf { it.ok }?.let { runCatching { ContractJson.decodeTranscript(it.text) }.getOrNull() }
+        }
+        fun showPage(name: String, list: List<it.pixelbox.cmwatch.contract.TranscriptEntry>, m: Boolean?) {
+            feedCache[name] = list; m?.let { feedMore[name] = it }
+            if (shownChat == name) { entries = list; entriesOwner = name; m?.let { more = it } }
+        }
+        LaunchedEffect(searchFocus) {
+            val (name, entry) = searchFocus ?: return@LaunchedEffect
+            focusReady = null
+            aroundOf[name] = true
+            val page = transcriptPage(name, ChatFeed.aroundArg(entry))
+            // Un relay di prima risponde senza `anchor`: resta la ricerca di prima, all'indietro dalla chat aperta.
+            if (page?.anchor != null) { showPage(name, page.entries, page.more); if (page.moreAfter) aroundOf[name] = true else aroundOf.remove(name) }
+            else aroundOf.remove(name)
+            focusReady = name to entry
+        }
+        // «Successivi»: la pagina dopo l'ultima voce; più corta di una pagina intera vuol dire che si è arrivati in fondo.
+        val loadNewer: (String) -> Unit = { name ->
+            scope.launch {
+                val last = feedCache[name]?.lastOrNull()?.id ?: return@launch
+                val page = transcriptPage(name, ChatFeed.arg(last)) ?: return@launch
+                showPage(name, ChatFeed.append(feedCache[name].orEmpty(), page, ChatFeed.Page.AFTER), null)
+                if (page.entries.size < ChatFeed.PAGE) aroundOf.remove(name)
+            }
+        }
+        // «Ultimo»: si lascia il punto trovato e si torna alle ultime voci; le letture continue ripartono da lì.
+        val toLatest: (String) -> Unit = { name ->
+            scope.launch {
+                val page = transcriptPage(name, ChatFeed.arg(null))
+                aroundOf.remove(name)
+                if (page != null) showPage(name, page.entries, page.more)
+            }
+        }
         // Le colonne del tablet hanno il loro lettore.
         val readCols by rememberUpdatedState(if (columnsOn) tabletCols else emptyList())
         val bgReads = remember { mutableStateMapOf<String, ChatFeed.Read>() }
@@ -914,6 +960,7 @@ class MainActivity : ComponentActivity() {
             if (!transcriptOk || unsupported) return@LaunchedEffect
             suspend fun readOne(s: it.pixelbox.cmwatch.contract.Session) {
                 val name = s.name
+                if (aroundOf[name] == true) return
                 val sig = ChatFeed.activity(s)
                 val t = System.currentTimeMillis()
                 bgReads[name] = ChatFeed.Read(sig, t)
@@ -973,6 +1020,8 @@ class MainActivity : ComponentActivity() {
                 readSince = null
                 while (true) {
                     val cur = app.repo.snapshot.value.state?.sessions?.firstOrNull { it.name == name }
+                    // Ferma su un punto trovato: la lettura in volo si lascia cadere e non se ne chiedono altre.
+                    if (aroundOf[name] == true) { pendingId?.let { app.repo.forget(it) }; pendingId = null; readSince = null; delay(1_000); continue }
                     pendingId?.let { app.repo.resultsById.value[it] }?.let { r ->
                         when {
                             r.ok -> runCatching { ContractJson.decodeTranscript(r.text) }.onSuccess { page ->
@@ -1726,7 +1775,10 @@ class MainActivity : ComponentActivity() {
                             },
                             onElsewhereDismiss = { elsewhere?.let { a -> elsewhereSeen += it.pixelbox.cmwatch.rules.Elsewhere.run { a.seenKeys } } },
                             // Da Cerca (app-cerca-pagina-03-11): la chat si apre sul passaggio trovato.
-                            focus = searchFocus?.takeIf { f -> f.first == session.name }?.second, onFocused = { searchFocus = null },
+                            focus = focusReady?.takeIf { f -> f.first == session.name }?.second, onFocused = { focusReady = null; searchFocus = null },
+                            // Non mentre la pagina attorno alla voce sta arrivando: allora la chat mostra ancora quella di prima.
+                            newer = aroundOf[session.name] == true && !(searchFocus?.first == session.name && focusReady == null),
+                            onNewer = { loadNewer(session.name) }, onLatest = { toLatest(session.name) },
                             onOlder = {
                                 val first = entries.firstOrNull()?.id
                                 if (first != null && olderId == null) scope.launch { olderId = runCatching { transcriptSid(session.name).let { sid -> app.repo.command(CmdOp.TRANSCRIPT, session.name.takeIf { sid == null }, ChatFeed.olderArg(first), sid = sid) } }.getOrNull() }
@@ -2133,6 +2185,7 @@ class MainActivity : ComponentActivity() {
                         var mode = ChatFeed.Page.FRESH
                         var prev = app.repo.snapshot.value.state?.sessions?.firstOrNull { x -> x.name == name }
                         while (true) {
+                            if (aroundOf[name] == true) { pendingId?.let { id -> app.repo.forget(id) }; pendingId = null; delay(1_000); continue }
                             val cur = app.repo.snapshot.value.state?.sessions?.firstOrNull { x -> x.name == name }
                             pendingId?.let { id -> app.repo.resultsById.value[id] }?.let { r ->
                                 val have = feedCache[name].orEmpty()

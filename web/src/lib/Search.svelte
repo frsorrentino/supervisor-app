@@ -14,7 +14,7 @@
   // sessione col passaggio trovato evidenziato, e un tocco apre la conversazione lì. Un evento senza sessione apre il Registro.
   let { sent, events, remote, onQuery, page = null, loading = false, known, onOpen, timeZone, sessions = [], now = Math.floor(Date.now() / 1000) }: {
     sent: Sent[]; events: Event[]; remote: boolean; onQuery: (q: string) => void; page?: SearchPage | null; loading?: boolean
-    known: Set<string>; onOpen: (session: string | null, entry?: string | null) => void; timeZone?: string; sessions?: Session[]; now?: number
+    known: Set<string>; onOpen: (session: string | null, entry?: string | null, sid?: string | null, live?: boolean | null) => void; timeZone?: string; sessions?: Session[]; now?: number
   } = $props()
 
   const KEY = 'cm.search_recent'
@@ -48,7 +48,8 @@
     const w = whenOf(at, now, timeZone)
     return w.kind === 'time' ? w.hhmm : w.kind === 'yesterday' ? t.searchYesterday : w.kind === 'weekday' ? t.searchWeekdays[w.day - 1] : w.ddmm
   }
-  const canOpen = (h: Hit) => h.kind !== 'conversation' || h.live === true || (h.session != null && known.has(h.session))
+  // Contratto 1.127: una conversazione chiusa con il suo sid si apre in sola lettura sul punto trovato.
+  const canOpen = (h: Hit) => h.kind !== 'conversation' || h.live === true || (h.session != null && known.has(h.session)) || (h.live === false && !!h.sid && !!h.entry)
   function useRecent(r: Recent) { filter = { ...filter, session: r.session && open.some(s => s.name === r.session) ? r.session : null }; query = r.q; field?.focus() }
 </script>
 
@@ -94,7 +95,7 @@
         <header class="gh"><i class="dot" style:background={g.session == null ? 'var(--text2)' : g.live === false ? 'var(--tx3)' : color(g.session)}></i><b>{g.session ?? t.lavoriTitle}</b><span class="n">{g.hits.length}</span>{#if g.live != null}<span class="st">{g.live ? t.searchOpenOne : t.searchClosed}</span>{/if}</header>
         {#each g.hits as h (h.ref)}
           {@const ok = canOpen(h)}
-          <svelte:element this={ok ? 'button' : 'div'} class="hit" class:open={ok} role={ok ? undefined : 'group'} onclick={ok ? () => onOpen(h.session, h.entry ?? null) : undefined}>
+          <svelte:element this={ok ? 'button' : 'div'} class="hit" class:open={ok} role={ok ? undefined : 'group'} onclick={ok ? () => onOpen(h.session, h.entry ?? null, h.sid ?? null, h.live ?? null) : undefined}>
             <span class="at">{when(h.at)}</span>
             <span class="tx">{h.line.slice(0, h.start)}<mark>{h.line.slice(h.start, h.end)}</mark>{h.line.slice(h.end)}</span>
             {#if ok}<svg class="chev" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 6 6 6-6 6" /></svg>{/if}
