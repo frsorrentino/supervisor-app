@@ -103,19 +103,23 @@ internal val CatPeekTop = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
 internal val CatPeekEnd = RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp)
 
 /**
- * Categoria aperta: il nome in maiuscoletto sopra le sue sezioni, con il filo che la separa dalla precedente. Il tocco la chiude e la
- * scelta resta (app-home-in-cima-02-11): la freccia a destra lo dice.
+ * La testata di una categoria: il nome in maiuscoletto con il filo che la separa dalla precedente. Il tocco la apre o la chiude e la
+ * scelta resta (app-home-in-cima-02-11): la freccia a destra lo dice. Chiusa (`bits`), la stessa testata col riepilogo accanto
+ * (app-categorie-testate-06-11, scelta A di Franz 06/11: prima era una riga come le sottosezioni e sembrava una voce dentro la
+ * categoria sopra).
  */
 @Composable
-internal fun CatLabel(id: String, modifier: Modifier = Modifier, amber: Boolean = false, divider: Boolean = true, onToggle: () -> Unit = {}) {
+internal fun CatLabel(id: String, modifier: Modifier = Modifier, amber: Boolean = false, divider: Boolean = true, bits: List<CatBit>? = null, onToggle: () -> Unit = {}) {
+    val open = bits == null
     androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().testTag("home-cat-$id").then(modifier).handCursor().clickable(onClick = onToggle)) {
         // Subito sotto In cima il filo c'è già, quello del bordo (TopEdge): non si raddoppia.
         if (divider) HorizontalDivider(Modifier.padding(top = 12.dp), thickness = 1.dp, color = V3.Line)
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 12.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             // Aperta, l'ambra resta sull'etichetta con la sua icona (app-richiede-te-righe-02-11, mockup punto 3).
-            if (amber) Icon(catIcon(id), null, tint = V3.Wait, modifier = Modifier.padding(top = 6.dp, end = 6.dp).size(16.dp))
-            Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 12.5.sp, letterSpacing = 1.2.sp, color = if (amber) V3.Wait else V3.Tx3), modifier = Modifier.weight(1f).padding(top = 8.dp, bottom = 2.dp))
-            TurnArrow(true, V3.Tx3, Modifier.size(20.dp))
+            if (amber && open) Icon(catIcon(id), null, tint = V3.Wait, modifier = Modifier.padding(top = 6.dp, end = 6.dp).size(16.dp))
+            Text(catName(id).uppercase(), style = V3.Small.copy(fontSize = 12.5.sp, letterSpacing = 1.2.sp, color = if (amber && open) V3.Wait else V3.Tx3), modifier = (if (open) Modifier.weight(1f) else Modifier).padding(top = 8.dp, bottom = if (open) 2.dp else 6.dp), maxLines = 1, softWrap = false)
+            if (bits != null) OneLineParts(bits, V3.Small.copy(fontSize = 13.5.sp), if (amber) V3.Wait else V3.Tx3, Modifier.weight(1f).padding(start = 12.dp, top = 8.dp, bottom = 6.dp))
+            TurnArrow(open, V3.Tx3, Modifier.size(20.dp))
         }
     }
 }

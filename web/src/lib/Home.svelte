@@ -975,8 +975,10 @@
       {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
       {:else}
         {@const sig = catSignal(c.id)}
-        <button class="catrow cathead" class:amber={sig.amber} aria-expanded="false" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
-          <span class="ic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span><b>{t.catName[c.id]}</b>
+        <!-- Chiusa, la stessa testata di una aperta, col riepilogo accanto (app-categorie-testate-06-11, scelta A di Franz 06/11
+             «allinea anche da pwa»): prima era una riga come le sottosezioni e sembrava una voce dentro la categoria sopra. -->
+        <button class="catlabel cathead shut" class:amber={sig.amber} aria-expanded="false" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
+          <span>{t.catName[c.id]}</span>
           <span class="catsig"><OneLine parts={sig.bits.map(b => ({ text: b.text, tone: b.red ? 'red' as const : b.mute ? 'mute' as const : undefined }))} /></span>
           <span class="ms arr" aria-hidden="true">expand_more</span>
         </button>
@@ -1533,7 +1535,11 @@
   .hcat { display: flex; flex-direction: column; gap: 8px; }
   .catlabel { display: none; width: 100%; align-items: center; justify-content: space-between; margin: 10px 0 0; padding: 8px 12px 2px 4px; border-top: 1px solid var(--line); font: 500 12.5px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); text-align: left; cursor: pointer; }
   .catlabel .arr { font-size: 20px; letter-spacing: 0; rotate: 180deg; }
-  .hcat:has(.hsec > *) .catlabel { display: flex; }
+  .hcat:has(.hsec > *) .catlabel, .catlabel.shut { display: flex; }
+  .catlabel.shut { gap: 12px; padding-bottom: 6px; }
+  .catlabel.shut .arr { rotate: 0deg; color: var(--tx3); }
+  .catlabel .catsig { letter-spacing: 0; text-transform: none; font-size: 13.5px; color: var(--tx3); }
+  .catlabel.shut.amber .catsig { color: var(--wait); }
   /* Lo spazio in cima (app-home-in-cima-02-11): il bordo è una linea vuota; durante il trascinamento la striscia dove lasciare. */
   .topedge { height: 1px; flex: none; }
   .topedge.line:not(.on) { height: 0; margin-top: 10px; border-top: 1px solid var(--line); }
@@ -1554,21 +1560,8 @@
   .topedge.on { height: auto; min-height: 48px; margin: 8px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); }
   .topedge.on.hot { border: 2px solid var(--tx); }
   .topband { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 16px; padding: 8px 16px; }
-  .catrow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; margin-top: 6px; padding: 4px 12px 4px 0; border-radius: 14px; text-align: left; color: var(--tx); }
-  /* Le categorie chiuse una sotto l'altra al passo delle righe del riquadro, 48 px (app-categorie-chiuse-fitte-05-11, Franz 05/11:
-     «un po' troppo rade»): niente margine e niente spazio della home fra due chiuse; resta lo stacco dal riquadro sopra. */
-  .hcat:has(> .catrow) + .hcat:has(> .catrow) { margin-top: -8px; }
-  .hcat:has(> .catrow) + .hcat > .catrow { margin-top: 0; }
-  /* Due evidenziate di seguito restano staccate di 4 px: i fondi ambra non si toccano. */
-  .hcat:has(> .catrow.amber) + .hcat:has(> .catrow.amber) { margin-top: -4px; }
-  .catrow .ic { flex: none; width: 52px; display: grid; place-items: center; color: var(--tx2); }
-  .catrow b { font: 700 18px/22px var(--display); white-space: nowrap; }
   /* Su una riga (app-riassunti-una-riga-03-11): prende lo spazio che avanza, le parti che non entrano cadono (OneLine). */
   .catsig { flex: 1 1 0; min-width: 0; text-align: right; font-size: 14px; line-height: 19px; color: var(--tx2); }
-    .catrow.amber { background: color-mix(in srgb, var(--wait) 14%, transparent); }
-  .catrow.amber .catsig { color: var(--wait); }
-  .catrow .arr { flex: none; color: var(--tx3); transition: rotate .2s; }
-  .catrow .arr.up { rotate: 180deg; }
   .hsec.held, .hcat.held { opacity: .35; }
   /* Una voce del tabellone con la riga dello slot: nel suo riquadro, come i tre numeri (app-tabellone-aperte-02-11). */
   .onboard > :global(.usageslot), .onboard > :global(.secwrap > .usageslot) { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; }
