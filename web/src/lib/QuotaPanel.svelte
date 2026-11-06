@@ -48,17 +48,29 @@
     // finiva sulla linea del ritmo pari (Franz, 29/10 20:32, app-home-riordino-29-10); sempre dentro i bordi.
     const ht = v.fullAt != null ? t.weekHundredAt(dayTime(v.fullAt)) : proj ? t.weekAtRenewal(v.projected!) : null
     const hundred = ht && proj ? { text: ht, x: Math.min(fullX != null ? xr : xr - 10, Math.max(PAD + tw(ht), proj.x + (fullX != null ? 4 : -10))), y: fullX != null ? Y100 - 5 : Math.min(YB - 2, proj.y + 20) } : null
-    const left100 = !hundred || hundred.y > Y100 || hundred.x - tw(hundred.text) > PAD + tw('100%') + 8
+    // «100%» a sinistra solo se la scritta del 100% non sta sulla sua stessa riga: «100%  100% lunedì 01:35» lo diceva due volte
+    // (web-plancia-j2-ripasso-06-11).
+    const left100 = !hundred || hundred.y > Y100
     // «ritmo pari» lungo la diagonale, a un quinto della settimana, dalla parte opposta alla linea: sotto se la quota è
     // avanti sul ritmo pari, sopra se è indietro.
     const deg = (Math.atan2(Y100 - YB, xr - PAD) * 180) / Math.PI
     const ahead = v.pct > v.nowX * 100
-    const even = { x: x(0.2), y: YB + (Y100 - YB) * 0.2 + (ahead ? 12 : -4), deg }
     const nl = t.rhythmNow(v.pct)
     const above = now.y - 8 > Y100 + 14
     const nowLabel = now.x - 7 - tw(nl) >= PAD
       ? { x: now.x - 7, y: above ? now.y - 8 : now.y + 16, anchor: 'end' }
       : { x: Math.min(now.x + 7, xr - tw(nl)), y: above ? now.y - 8 : now.y + 16, anchor: 'start' }
+    // Il riquadro di «ritmo pari» messo a `f` della settimana, e quello di «20% ora» col suo punto: a inizio settimana, col
+    // consumo sul ritmo pari, finivano uno sopra l'altro (web-plancia-j2-ripasso-06-11). Si sceglie il primo posto libero.
+    const nlBox = { l: nowLabel.anchor === 'end' ? nowLabel.x - tw(nl) : nowLabel.x, r: nowLabel.anchor === 'end' ? nowLabel.x : nowLabel.x + tw(nl), t: nowLabel.y - 12, b: nowLabel.y + 3 }
+    const dotBox = { l: now.x - 8, r: now.x + 8, t: now.y - 8, b: now.y + 8 }
+    const evenAt = (f: number) => ({ x: x(f), y: YB + (Y100 - YB) * f + (ahead ? 12 : -4), deg })
+    const evenBox = (e: { x: number; y: number }) => {
+      const len = tw(t.weekEven), rad = (deg * Math.PI) / 180, ex = e.x + Math.cos(rad) * len, ey = e.y + Math.sin(rad) * len
+      return { l: e.x, r: ex, t: Math.min(e.y, ey) - 11, b: Math.max(e.y, ey) + 3 }
+    }
+    const hit = (a: { l: number; r: number; t: number; b: number }, b: { l: number; r: number; t: number; b: number }) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
+    const even = [0.2, 0.45, 0.7].map(evenAt).find(e => !hit(evenBox(e), nlBox) && !hit(evenBox(e), dotBox)) ?? evenAt(0.2)
     const line = v.points.map(([px, p]) => `${x(px)},${y(p)}`).join(' ')
     const aria = v.fullAt != null ? t.weekHundredAt(dayTime(v.fullAt)) : v.projected != null ? t.weekAtRenewal(v.projected) : t.weekEven
     return { xr, now, proj, hundred, left100, even, nowLabel, line, aria, dayX: (i: number) => x((i + 0.5) / 7) }

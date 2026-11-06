@@ -316,7 +316,8 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
             rows -> {
                 val left = page.groups.filter { it.key !in touched }
                 if (left.isEmpty()) Text(stringResource(R.string.decisions_done), style = V3.Body, modifier = Modifier.padding(4.dp))
-                ItemList(left.map { ItemRows.decision(it) }, "decisione") { r ->
+                // «altre N» conta le decisioni, come il numero di Decidi, non i gruppi (web-plancia-j2-ripasso-06-11).
+                ItemList(left.map { ItemRows.decision(it) }, "decisione", more = { rest -> rest.sumOf { r -> left.firstOrNull { it.key == r.key }?.items?.size?.takeIf { n -> n > 0 } ?: 1 } }) { r ->
                     val g = left.first { it.key == r.key }
                     DecisionGroupBody(g, onApprove, onDone, onNotNow, onDrop, onAsk) { touched = touched + g.key }
                 }

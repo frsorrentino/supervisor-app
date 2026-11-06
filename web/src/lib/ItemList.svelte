@@ -6,7 +6,8 @@
   import { SUG_ICON } from './sugIcons'
   // Le voci dentro le sezioni come righe di sessione (app-richiede-te-righe-02-11, mockup richiede-te.png punto 4), porta di
   // ItemList in ItemRowsUi.kt: pallino, nome, dato a destra, sotto cosa c'è; le prime tre e «altre N»; il tocco apre la scheda.
-  let { rows, testid, right = rightText, name = (r: Row) => r.name, card }: { rows: Row[]; testid: string; right?: (r: Row) => string; name?: (r: Row) => string; card: Snippet<[Row]> } = $props()
+  // `more`: quante cose dicono le righe nascoste in «altre N»; di solito le righe, per Decidi le decisioni dei gruppi (web-plancia-j2-ripasso-06-11).
+  let { rows, testid, right = rightText, name = (r: Row) => r.name, more = (rest: Row[]) => rest.length, card }: { rows: Row[]; testid: string; right?: (r: Row) => string; name?: (r: Row) => string; more?: (rest: Row[]) => number; card: Snippet<[Row]> } = $props()
   let openKey = $state<string | null>(null)
   let all = $state(false)
   const n = $derived(shown(rows.length, all))
@@ -26,7 +27,7 @@
         {#if o}<div class="card" transition:slide={{ duration: reduced ? 0 : 200 }}>{@render card(r)}</div>{/if}
       </div>
     {/each}
-    {#if n < rows.length}<button class="more" data-testid={`${testid}-altre`} onclick={() => (all = true)}>{t.itemMore(rows.length - n)}</button>{/if}
+    {#if n < rows.length}<button class="more" data-testid={`${testid}-altre`} onclick={() => (all = true)}>{t.itemMore(more(rows.slice(n)))}</button>{/if}
   </div>
 {/if}
 

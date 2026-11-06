@@ -46,7 +46,8 @@
   {:else if rows}
     {@const left = page.groups.filter(x => !touched.has(x.key))}
     {#if !left.length}<p>{t.decisionsDone}</p>{/if}
-    <ItemList rows={left.map(decision)} testid="decisione">{#snippet card(r)}{@const x = left.find(y => y.key === r.key)}{#if x}<div class="in">{@render body(x, false)}</div>{/if}{/snippet}</ItemList>
+    <!-- «altre N» conta le decisioni, come il numero di Decidi, non i gruppi (web-plancia-j2-ripasso-06-11: 12 con 3 righe e «altre 5»). -->
+    <ItemList rows={left.map(decision)} testid="decisione" more={(rest) => rest.reduce((a, r) => a + (left.find(y => y.key === r.key)?.items.length || 1), 0)}>{#snippet card(r)}{@const x = left.find(y => y.key === r.key)}{#if x}<div class="in">{@render body(x, false)}</div>{/if}{/snippet}</ItemList>
   {:else if howMany == null}
     <div class="c"><p>{t.decisionsHead(page.n, page.here, page.tasks)}</p><p class="m">{t.decisionsHowMany}</p>
       <div class="ac">{#each [1, 3, 5].filter(n => n === 1 || n <= page!.groups.length) as n (n)}<button class="tonal" onclick={() => (howMany = n)}>{n}</button>{/each}<button class="tonal" onclick={() => (howMany = page!.groups.length)}>{t.decisionsAll}</button></div></div>

@@ -658,6 +658,15 @@
   const seguitiN = $derived(seguitiTotal(st.seguiti))
   // Il testo a destra delle voci nuove (Franz 02/11 09:41): quello che il numero non dice, come le altre voci.
   const hasProve = $derived(!!st.prove && st.prove.n + st.prove.ko + st.prove.red > 0)
+  // Il progetto accanto al titolo di un compito cede il posto al titolo: se il titolo non ci sta intero, il progetto non si
+  // vede (web-plancia-j2-ripasso-06-11: «Joy: lotto SE» sotto «joyconceptstore-com»; ctxRoom della scheda del tablet).
+  function metaRoom(el: HTMLElement) {
+    const name = el.parentElement?.querySelector<HTMLElement>('.name')
+    if (!name || typeof ResizeObserver !== 'function') return
+    const fit = () => { el.hidden = false; el.hidden = name.scrollWidth > name.clientWidth + 1 }
+    const ro = new ResizeObserver(fit); ro.observe(el.parentElement!); fit()
+    return { destroy: () => ro.disconnect() }
+  }
   const say = (b: Bit[]) => b.map(x => t.homeBit(x.part, x.n)).join(' · ') || null
   function rightOf(k: string): string | null {
     if (k === 'prima_raccolta') return st.prima_raccolta ? t.homePrima[st.prima_raccolta.status] ?? null : null
@@ -1216,7 +1225,7 @@
       <div class="top">
         <WorkBadge kind={r.kind} shape={r.agenda ? mark(r.agenda.scope) : 'none'} />
         <span class="nm"><span class="name">{fyShort(r)}</span></span>
-        {#if fyMeta(r)}<span class="mono">{fyMeta(r)}</span>{/if}
+        {#if fyMeta(r)}<span class="mono fymeta" use:metaRoom>{fyMeta(r)}</span>{/if}
         <button class="chev" aria-label={openW ? t.close : t.open} onclick={() => (openWork = openW ? null : k)}>
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={openW ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
@@ -1377,7 +1386,8 @@
   .tonal { background: var(--high); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   /* Strada B (23/10): la lista compatta dei lavori senza sessione e la riga di un lavoro nella scheda della sua sessione. */
   .wkv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; overflow-wrap: anywhere; }
-  .okt.col { display: flex; flex-direction: column; gap: 1px; } .okt.col b { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; }
+  /* Il titolo dell'avviso va a capo nella colonna stretta: «Contesto di win:supervisor-app a» si tagliava (web-plancia-j2-ripasso-06-11). */
+  .okt.col { display: flex; flex-direction: column; gap: 1px; } .okt.col b { font-weight: 500; font-size: 15px; overflow-wrap: anywhere; }
   .mono2 { font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--text2); }
   .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .opts button { white-space: nowrap; }

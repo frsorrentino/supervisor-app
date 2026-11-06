@@ -105,6 +105,8 @@ internal fun ItemList(
     rows: List<ItemRows.Row>, tag: String, right: @Composable (ItemRows.Row) -> String = { itemRight(it) }, name: @Composable (ItemRows.Row) -> String = { it.name },
     /** Le righe confermate che escono (app-effetti-movimenti-04-11, punto 4): restano nella lista e se ne vanno con confirmedExit. */
     gone: Set<String> = emptySet(),
+    /** Quante cose dicono le righe nascoste in «altre N»: di solito le righe, per Decidi le decisioni dei gruppi (web-plancia-j2-ripasso-06-11). */
+    more: (List<ItemRows.Row>) -> Int = { it.size },
     card: @Composable (ItemRows.Row) -> Unit,
 ) {
     if (rows.none { it.key !in gone }) return
@@ -128,7 +130,7 @@ internal fun ItemList(
         if (n < live) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             Box(Modifier.fillMaxWidth().heightIn(min = 44.dp).handCursor().clickable { all = true }.testTag("$tag-altre"), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.item_more, live - n), style = V3.Small.copy(color = V3.Tx2))
+                Text(stringResource(R.string.item_more, more(rows.filter { it.key !in gone }.drop(n))), style = V3.Small.copy(color = V3.Tx2))
             }
         }
     }
