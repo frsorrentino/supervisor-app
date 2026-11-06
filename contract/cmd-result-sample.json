@@ -1327,6 +1327,34 @@
       "device": "phone",
       "id": "6f1c2d3e-1241-4000-8000-000000001241",
       "op": "transcript"
+    },
+    {
+      "id": "6f1c2d3e-1290-4000-8000-000000001290",
+      "op": "approval_close",
+      "session": null,
+      "arg": "atlas-pages-layout",
+      "text": "not needed any more",
+      "device": "phone",
+      "issued": 1789216100,
+      "by": "phone-pixel8"
+    },
+    {
+      "id": "6f1c2d3e-1291-4000-8000-000000001291",
+      "op": "approval_close",
+      "session": null,
+      "arg": "atlas-release-2-4",
+      "device": "phone",
+      "issued": 1789216110,
+      "by": "phone-pixel8"
+    },
+    {
+      "id": "6f1c2d3e-1292-4000-8000-000000001292",
+      "op": "approval_close",
+      "session": null,
+      "arg": "atlas-gone-task",
+      "device": "phone",
+      "issued": 1789216120,
+      "by": "phone-pixel8"
     }
   ],
   "result": [
@@ -2175,6 +2203,24 @@
       "ok": true,
       "text": "{\"entries\": [{\"tool\": null, \"note\": null, \"error\": null, \"cut\": false, \"turn\": null, \"files\": null, \"origin\": \"app\", \"queued\": false, \"diff\": null, \"id\": \"u3.0\", \"role\": \"user\", \"text\": \"And the second listing?\", \"at\": 1789212400}, {\"tool\": null, \"note\": null, \"error\": null, \"cut\": false, \"turn\": null, \"files\": null, \"origin\": null, \"queued\": false, \"diff\": null, \"id\": \"a3.0\", \"role\": \"assistant\", \"text\": \"The second one ships in two days.\", \"at\": 1789212420}, {\"tool\": null, \"note\": null, \"error\": null, \"cut\": false, \"turn\": null, \"files\": null, \"origin\": \"app\", \"queued\": false, \"diff\": null, \"id\": \"u4.0\", \"role\": \"user\", \"text\": \"Compare the prices\", \"at\": 1789212430}, {\"tool\": null, \"note\": null, \"error\": null, \"cut\": false, \"turn\": null, \"files\": null, \"origin\": null, \"queued\": false, \"diff\": null, \"id\": \"a4.0\", \"role\": \"assistant\", \"text\": \"The red jacket is 89 € on the first listing and 74 € on the second, same size and seller rating.\", \"at\": 1789212440}, {\"tool\": null, \"note\": null, \"error\": null, \"cut\": false, \"turn\": null, \"files\": null, \"origin\": \"app\", \"queued\": false, \"diff\": null, \"id\": \"u5.0\", \"role\": \"user\", \"text\": \"Fine, now the shipping labels\", \"at\": 1789212500}, {\"tool\": null, \"note\": null, \"error\": null, \"cut\": false, \"turn\": null, \"files\": null, \"origin\": null, \"queued\": false, \"diff\": null, \"id\": \"a5.0\", \"role\": \"assistant\", \"text\": \"The handoff is in docs/handoff-2026-09-12.md: the session continues from it after /clear.\", \"at\": 1789212560}, {\"id\": \"sep-5e0c41aa-9b2f-1789212600\", \"role\": \"separator\", \"reason\": \"clear\", \"at\": 1789212600, \"memory\": \"handoff\", \"handoff\": \"/home/dev/storefront/docs/handoff-2026-09-12.md\", \"text\": \"/clear at 18:10: from here the session remembers only the handoff\"}], \"more\": true, \"more_after\": true, \"anchor\": \"a4.0\"}",
       "at": 1789216011
+    },
+    {
+      "id": "6f1c2d3e-1290-4000-8000-000000001290",
+      "ok": true,
+      "text": "{\"task\": \"atlas-pages-layout\", \"closed\": true, \"state\": \"running\", \"text\": \"atlas-pages-layout: card closed, the task is back to running\"}",
+      "at": 1789216101
+    },
+    {
+      "id": "6f1c2d3e-1291-4000-8000-000000001291",
+      "ok": true,
+      "text": "{\"task\": \"atlas-release-2-4\", \"closed\": false, \"state\": \"approved\", \"text\": \"atlas-release-2-4: it no longer waited for an ok (approved), the card closes\"}",
+      "at": 1789216111
+    },
+    {
+      "id": "6f1c2d3e-1292-4000-8000-000000001292",
+      "ok": false,
+      "text": "atlas-gone-task: unknown task",
+      "at": 1789216121
     }
   ]
 }
