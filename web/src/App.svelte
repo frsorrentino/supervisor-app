@@ -6,6 +6,7 @@
   import { BAR_H, COLUMN, COMPACT_H, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, widthStops, type Height, type Rect, type Side } from './lib/masterLanding'
   import { ghostPreview, MOVE_MS, PLACES, squash } from './lib/landingMorph'
   import { DRAG_PX, isDrag, masterTaps, springFrames, step, velocity } from './lib/gesture'
+  import { morphBlob } from './lib/morphBlob'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -702,7 +703,7 @@
   }
   // Il rilascio di un cambio d'altezza: senza transizione di pagina né schiacciamento, la master d'arrivo parte da dove il dito ha
   // lasciato quella di prima, con la sua velocità, e va al suo posto con la molla breve senza rimbalzo.
-  function heightEnd(el0: HTMLElement | null, vy: number) {
+  function heightEnd(el0: HTMLElement | null, vy: number, blob: ReturnType<typeof morphBlob> | null = null, vp = 0) {
     const go = aim
     aim = null; clearMarks(); masterGhost.drop()
     const top0 = el0?.getBoundingClientRect().top ?? null
@@ -710,6 +711,8 @@
     void tick().then(() => {
       if (el0) { el0.style.transform = ''; el0.style.zIndex = '' }
       const el = liftEl()
+      // Col blocco che cambia forma, la molla completa la forma sul posto vero; senza posto nuovo, torna indietro.
+      if (blob) { if (el && go) blob.land(el, vp); else blob.back(vp); return }
       if (!el) return
       if (reducedMotion()) { if (go) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 }); return }
       if (top0 == null) return
@@ -736,25 +739,29 @@
     const from = Math.max(0, keys.indexOf(h0))
     const speed = velocity()
     speed.add(y0, performance.now())
+    let aimR: Rect | null = null
     const aimH = (on: Height) => {
-      aimAt(rectFor(on), t.masterLand[on], () => { if (!masterOpen && on !== 'bar') masterHalf = masterNarrow(); masterLeft = side === 'left'; setHeight(on) })
+      aimR = rectFor(on)
+      aimAt(aimR, t.masterLand[on], () => { if (!masterOpen && on !== 'bar') masterHalf = masterNarrow(); masterLeft = side === 'left'; setHeight(on) })
       // Gli altri posti possibili sul lato in cui si è, accennati (app-trascina-destinazioni-04-11).
       masterGhost.hint(zs.map(z => z.key).filter(k => k !== on).map(k => ({ b: rectFor(k), text: t.masterLand[k] })))
     }
     // Anche l'altezza continua il gesto (app-altezza-animazione-06-11): la master che si sposta segue il dito in verticale.
+    // Il blocco cambia forma col dito (app-master-morph-m3-06-11, morphBlob): al posto della master che si alzava intera.
     const el0 = reducedMotion() ? null : liftEl()
+    let blob: ReturnType<typeof morphBlob> | null = null
     let dy = 0
     const apply = (e: PointerEvent) => {
       speed.add(e.clientY, e.timeStamp)
       if (!moved && Math.abs(e.clientY - y0) <= DRAG_PX) return
       moved = true; begin()
       dy = e.clientY - y0
-      if (el0) { el0.style.transform = `translateY(${dy}px)`; el0.style.zIndex = '60' }
       aimH(keys[step(mids, from, e.clientY - y0)])
+      if (el0 && aimR) { blob ??= morphBlob(el0); blob.move(aimR, dy, e.clientX, e.clientY) }
     }
     follow(apply, (e) => {
       clearTimeout(dwellTimer)
-      if (!e) { revert(); if (el0) { el0.style.transform = ''; el0.style.zIndex = ''; springY(el0, dy, 0) } return }
+      if (!e) { revert(); blob?.back(0); return }
       if (!moved) {
         // Un tocco senza trascinare: la maniglia della riga apre la master da quel lato, all'ultima altezza; quella sotto la home
         // passa all'altezza dopo, come prima.
@@ -763,7 +770,8 @@
         return
       }
       aimH(keys[step(mids, from, e.clientY - y0, speed.speed())])
-      heightEnd(el0, speed.speed())
+      const span = (aimR && blob ? aimR.y - blob.from.y : 0) || 1
+      heightEnd(el0, speed.speed(), blob, speed.speed() / span)
     })
   }
   function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientY, null) }
