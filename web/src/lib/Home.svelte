@@ -76,7 +76,7 @@
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
   import { closedToday, toccaCounts } from './toccaRules'
   import ToccaClosed from './ToccaClosed.svelte'
-  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
+  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -120,6 +120,8 @@
     onAnswer: (session: string, n: number) => void; onStep: (session: string, text: string) => void
     /** Contratto 1.37: l'ok a un compito (`approve`) e «Chiudi» per una sessione finita o doppione (/exit). */
     onApprove?: (task: string, note: string, choice?: string) => void; onClose?: (name: string) => void
+    /** Tocca a te dentro le sessioni (app-sessioni-compatte-06-11): quante decisioni e verifiche ha ogni sessione, e il loro corpo. */
+    todo?: Record<string, { d: number; v: number }>; sessionTodo?: import('svelte').Snippet<[string]> | null
     /** «Superata» su una carta di scelta (app-scelte-chiudibili-06-11): null = niente tasto. */
     onApprovalClose?: ((task: string) => void) | null
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
@@ -1123,7 +1125,8 @@
         <!-- Chiusa, una sessione al lavoro è una riga: lo strumento, da quanto dura il turno, il contesto (app-home-riordino-29-10). -->
         {@const [tool, ...rest] = s.tool.split(' ')}
         <p class="meta mono2"><span class="tool">{tool}</span>{rest.join(' ')}</p>
-      {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open} class:strong={group === 'waiting' || open} class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
+      {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open} class:strong={group === 'waiting' || open} class:stale={old != null}>{#if !open && (todo[s.name]?.d || todo[s.name]?.v)}<span class="tdchips">{#if todo[s.name].d}<span class="tdc w">{t.todoChips.d(todo[s.name].d)}</span>{/if}{#if todo[s.name].v}<span class="tdc">{t.todoChips.v(todo[s.name].v)}</span>{/if}</span>{/if}{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
+      {#if open && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v)}<div class="tdbody" role="presentation" onclick={(e) => e.stopPropagation()}>{@render sessionTodo(s.name)}</div>{/if}
       {#if open && group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
       {#if open && dt.doing}<p class="doing" data-testid="scheda-sta-facendo"><small>{t.detailDoing}</small><span class="mono2">{dt.doing}</span></p>{/if}
       {#if open && dt.said}<div class="said" data-testid="scheda-ultimo-messaggio"><small>{t.detailSaid(hhmm(dt.saidAt!))}</small><p>{dt.said.replace(/\*\*|__|`/g, '')}</p></div>{/if}
@@ -1702,6 +1705,11 @@
   /* Chiuse, tutte della stessa misura anche con tasti o testi diversi (app-sessioni-compatte-06-11, Franz 06/11 20:25); aperte
      secondo il contenuto. */
   .card.r.shut { height: 86px; overflow: hidden; }
+  /* I chip delle richieste in testa alla riga della prossima azione: la scheda chiusa resta della sua misura. */
+  .tdchips { display: inline-flex; gap: 6px; margin-right: 8px; vertical-align: 1px; }
+  .tdc { flex: none; height: 22px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; font: 600 13px var(--display); color: var(--tx2); background: var(--s1); border: 1px solid var(--line); white-space: nowrap; }
+  .tdc.w { color: var(--wait); border-color: color-mix(in srgb, var(--wait) 50%, transparent); }
+  .tdbody { display: flex; flex-direction: column; gap: 8px; cursor: auto; }
   /* Il glifo sul centro delle maiuscole del nome (app-suggerimenti-icone-03-11): misurato 2,4 px più in alto con 1 px di margine. */
   .rail { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 3.4px; }
   .rt { font: 700 15px/1 var(--display); letter-spacing: .01em; color: var(--tx2); white-space: nowrap; }

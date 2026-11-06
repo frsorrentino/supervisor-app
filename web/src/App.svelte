@@ -17,6 +17,8 @@
   import { DemoTransport } from './lib/demoTransport'
   import Features from './lib/Features.svelte'
   import DaProvare from './lib/DaProvare.svelte'
+  import { decodeDecisions, decodeProve, readPage } from './lib/decideDecode'
+  import type { DecisionGroup, ProvePage } from './lib/contract'
   import PrimaRaccolta from './lib/PrimaRaccolta.svelte'
   import Seguiti from './lib/Seguiti.svelte'
   import { autoOpen as primaAutoOpen } from './lib/primaRaccolta'
@@ -930,6 +932,29 @@
   // Le colonne sono le sessioni della lista, senza la master: una master rimasta fra le scelte salvate si toglie da sé.
   const summary = $derived(build(st, sent, now, read))
   const live = $derived(summary.rows.map(r => r.session.name).filter(n => n !== MASTER))
+  // Tocca a te dentro le sessioni (app-sessioni-compatte-06-11, Franz 06/11 18:28-20:25): le decisioni e le verifiche di una
+  // sessione aperta stanno nella sua scheda; in Tocca a te resta solo quello che non è di una sessione aperta. Le pagine si leggono
+  // quando cambiano i loro totali nello stato, non a ogni spinta.
+  type ProvaItem = ProvePage['groups'][number]['prove'][number]
+  let todoDec = $state<DecisionGroup[]>([]), todoProve = $state<ProvaItem[]>([])
+  const liveSet = $derived(new Set(live))
+  const sessOfTask = (task: string) => st.commitments?.find(c => c.task === task)?.session ?? null
+  const provaSession = (p: ProvaItem) => p.session ?? sessOfTask(p.task)
+  const todo = $derived.by(() => {
+    const out: Record<string, { d: number; v: number }> = {}
+    for (const g of todoDec) for (const i of g.items) if (i.session && liveSet.has(i.session)) (out[i.session] ??= { d: 0, v: 0 }).d++
+    for (const p of todoProve) { const s = provaSession(p); if (s && liveSet.has(s)) (out[s] ??= { d: 0, v: 0 }).v++ }
+    return out
+  })
+  const decOfSession = (g: DecisionGroup) => g.items.some(i => !!i.session && liveSet.has(i.session))
+  $effect(() => {
+    void st.decisions?.n; void st.prove?.n
+    if (!tr) return
+    untrack(() => {
+      void run(newCmd('decisioni', null)).then(r => { const { page } = readPage(r, decodeDecisions, null); if (page) todoDec = page.groups })
+      void run(newCmd('prove', null)).then(r => { const { page } = readPage(r, decodeProve, null); if (page) todoProve = page.groups.flatMap(g => g.prove) })
+    })
+  })
   // La colonna di una sessione appena chiusa resta sotto il pannello di chiusura finché il pannello non la toglie.
   let heldCols = $state<string[]>([])
   let shownCols: string[] = []
@@ -1790,13 +1815,15 @@
 {/snippet}
 
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
-{#snippet decisionsBody(rows = false)}<CinqueMinuti {rows} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{/snippet}
+<!-- Le decisioni e le verifiche di una sessione, nella sua scheda aperta (app-sessioni-compatte-06-11). -->
+{#snippet sessionTodo(name: string)}<CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.session === name)} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{#if todo[name]?.v}<DaProvare {run} only={(p) => provaSession(p) === name} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{/snippet}
+{#snippet decisionsBody(rows = false)}<CinqueMinuti {rows} only={(g) => !decOfSession(g)} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{/snippet}
 <!-- I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto nella home (Franz 02/11 08:05). -->
 {#snippet sectionBody(k: string)}
   {#if k === 'seguiti'}<Seguiti {run} summary={st.seguiti} onLavori={() => openPage('lavori')} onMaster={() => { openPage(null); pick(MASTER) }} />
   {:else if k === 'prima_raccolta'}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
   <!-- Verifica (app-tocca-sezioni-06-11): le prove, poi i lavori consegnati da guardare. -->
-  {:else if k === 'prove'}{#if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
+  {:else if k === 'prove'}{#if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} only={(p) => { const s = provaSession(p); return !(s && liveSet.has(s)) }} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
   <!-- Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A). -->
   {:else if k === 'decisioni'}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}
   {:else if k === 'da_guardare'}{@render guardare('body')}{/if}
@@ -1808,7 +1835,7 @@
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
 {#snippet homeView(part: 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused, armable: !!leaving.armable } : null} onCloseArm={arm} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
-        onApprove={approve} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+        onApprove={approve} {todo} {sessionTodo} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
 {#snippet masterQuick()}

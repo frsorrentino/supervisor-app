@@ -15,7 +15,8 @@
   import ItemList from './ItemList.svelte'
   import { prove, proveKo, proveRed } from './itemRows'
   // «Da provare» (contratto 1.99, banco_prova), porta di DaProvareScreen. Sul web vale l'ultima versione online: nessuna prova aspetta un'installazione.
-  let { run, onScreen, onShot }: { run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onScreen: (s: string) => void; onShot: (f: File, note: string) => void } = $props()
+  // `only` (app-sessioni-compatte-06-11): solo le verifiche di una sessione, dentro la sua scheda; o solo quelle senza.
+  let { run, onScreen, onShot, only = null }: { only?: ((p: ProvePage['groups'][number]['prove'][number]) => boolean) | null; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onScreen: (s: string) => void; onShot: (f: File, note: string) => void } = $props()
   let page = $state<ProvePage | null>(null)
   let ko = $state<ProvePage['groups'][number]['prove'][number] | null>(null)
   let text = $state(''), shot = $state<File | null>(null)
@@ -61,7 +62,7 @@
   const send = (arg: string, res: 'ok' | 'ko', body?: string) => run(newCmd('prova', null, arg, body, undefined, { result: res })).then(r => (res === 'ok' ? proveDone(r?.ok ?? null, r?.text) : !!r?.ok))
   // La lista si rilegge dopo ogni esito, anche un rifiuto.
   async function result(ids: string[], arg: string, res: 'ok' | 'ko', body?: string) { await leave(ids, res, () => send(arg, res, body), hooks); void load() }
-  const shown = (g: ProvePage['groups'][number]) => g.prove.filter(p => !gone[String(p.id)])
+  const shown = (g: ProvePage['groups'][number]) => g.prove.filter(p => !gone[String(p.id)] && (only?.(p) ?? true))
   const outMs = () => (reducedMotion() ? 0 : 160)
   async function sendKo() { const p = ko!; const b = text.trim(), f = shot; ko = null; text = ''; shot = null; await result([String(p.id)], String(p.id), 'ko', b); if (f) onShot(f, t.proveKoShotNote(p.short ?? p.task)) }
 </script>

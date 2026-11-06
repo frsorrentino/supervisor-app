@@ -16,7 +16,8 @@
   import { decision } from './itemRows'
   // «Da decidere» (contratto 1.99, cinque_minuti), porta di CinqueMinutiScreen: quante vuoi, una alla volta, le più pesanti per prime. Niente timer.
   // In home (`rows`, app-richiede-te-righe-02-11): le decisioni come righe, le prime tre e «altre N»; il tocco apre la scheda coi tasti.
-  let { run, onApprove, onDone, onAsk, rows = false }: { rows?: boolean; st: State; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void } = $props()
+  // `only` (app-sessioni-compatte-06-11): solo le decisioni di una sessione, dentro la sua scheda; o solo quelle senza sessione aperta.
+  let { run, onApprove, onDone, onAsk, rows = false, only = null, allOpen = false }: { allOpen?: boolean; only?: ((g: DecisionGroup) => boolean) | null; rows?: boolean; st: State; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void } = $props()
   let planOpen = $state(new Set<string>())
   let page = $state<DecisionsPage | null>(null)
   let howMany = $state<number | null>(null)
@@ -44,10 +45,10 @@
   {#if !page}{#if failed}<LoadFailed onRetry={() => void load()} />{:else}<p class="m">{t.proveLoading}</p>{/if}
   {:else if !page.groups.length && !touched.size}<p class="m">{t.decisionsNone}</p>
   {:else if rows}
-    {@const left = page.groups.filter(x => !touched.has(x.key))}
+    {@const left = page.groups.filter(x => !touched.has(x.key) && (only?.(x) ?? true))}
     {#if !left.length}<p>{t.decisionsDone}</p>{/if}
     <!-- «altre N» conta le decisioni, come il numero di Decidi, non i gruppi (web-plancia-j2-ripasso-06-11: 12 con 3 righe e «altre 5»). -->
-    <ItemList rows={left.map(decision)} testid="decisione" more={(rest) => rest.reduce((a, r) => a + (left.find(y => y.key === r.key)?.items.length || 1), 0)}>{#snippet card(r)}{@const x = left.find(y => y.key === r.key)}{#if x}<div class="in">{@render body(x, false)}</div>{/if}{/snippet}</ItemList>
+    <ItemList {allOpen} rows={left.map(decision)} testid="decisione" more={(rest) => rest.reduce((a, r) => a + (left.find(y => y.key === r.key)?.items.length || 1), 0)}>{#snippet card(r)}{@const x = left.find(y => y.key === r.key)}{#if x}<div class="in">{@render body(x, false)}</div>{/if}{/snippet}</ItemList>
   {:else if howMany == null}
     <div class="c"><p>{t.decisionsHead(page.n, page.here, page.tasks)}</p><p class="m">{t.decisionsHowMany}</p>
       <div class="ac">{#each [1, 3, 5].filter(n => n === 1 || n <= page!.groups.length) as n (n)}<button class="tonal" onclick={() => (howMany = n)}>{n}</button>{/each}<button class="tonal" onclick={() => (howMany = page!.groups.length)}>{t.decisionsAll}</button></div></div>
@@ -76,11 +77,11 @@
         {#if x.reason}<div class="lw m"><LongText text={x.reason} /></div>{/if}
         {@const at = chooseAt(i)}{#if at}<p class="pos pc">{t.decisionsChooseAt(at)}</p>{/if}
         {#if buttons(i).length}<div class="ac">{#each buttons(i) as btn, bi (bi)}
-          {@const id = `${n}-${bi}`}{#if btn.kind === 'proceed'}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)) })}><span class="lbl">{t.decisionsProceed}</span>{#if picked === id}<Check />{/if}</button>
+          {@const id = `${n}-${bi}`}{#if btn.kind === 'proceed'}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, ''); else onAsk(t.decisionsProceedPrompt(name, ref)) })}><span class="lbl">{t.decisionsProceedOn(i.short ?? name)}</span>{#if picked === id}<Check />{/if}</button>
           {:else if btn.kind === 'discuss'}<button class="out ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.sugDiscussPrompt(t.decisionsDiscussAbout(name, ref))))}><span class="lbl">{t.decisionsDiscuss}</span>{#if picked === id}<Check />{/if}</button>
           {:else if btn.kind === 'works'}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onAsk(t.decisionsWorksPrompt(name, ref)))}><span class="lbl">{t.decisionsWorks}</span>{#if picked === id}<Check />{/if}</button>
           {:else if btn.kind === 'broken'}<button class="out" class:fade={!!picked} disabled={!!picked} onclick={() => { broken = `${g.key}-${n}`; what = '' }}>{t.decisionsBroken}</button>
-          {:else if btn.kind === 'done'}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onDone(i))}><span class="lbl">{t.agendaDone}</span>{#if picked === id}<Check />{/if}</button>
+          {:else if btn.kind === 'done'}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => onDone(i))}><span class="lbl">{t.decisionsDoneOn(i.short ?? name)}</span>{#if picked === id}<Check />{/if}</button>
           {:else}<button class="tonal ck" class:done={picked === id} class:fade={!!picked && picked !== id} onclick={() => act(id, g.key, () => { if (viaApprove(i)) onApprove(i.task!, '', btn.label); else onAsk(`${t.decisionsChoicePrompt(name, ref)} ${btn.label}`) })}><span class="lbl">{btn.label}</span>{#if picked === id}<Check />{/if}</button>{/if}
         {/each}</div>{/if}
         {#if broken === `${g.key}-${n}`}
