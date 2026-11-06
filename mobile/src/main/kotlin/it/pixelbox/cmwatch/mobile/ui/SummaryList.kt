@@ -754,11 +754,10 @@ fun SummaryList(
                 val boardNames = (waitRows + restRows).map { r -> r.session.name }.filter { x -> x != it.pixelbox.cmwatch.rules.ContextActions.MASTER }.distinct()
                 // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).
                 if ("sessions" in liveTop) BoardCard(moving(), boardAbove("sessions"), boardBelow("sessions")) { SlotRow(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, names = boardNames, onToggle = toggle) }
-                // Un livello solo (app-sessioni-compatte-06-11, bozza 6): nella home la lista sta sotto il tabellone senza la riga
-                // «Sessioni N»; nelle colonne della plancia la testata resta.
-                else if (parts != null) Box(moving()) { V3Section(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, onToggle = toggle) }
+                // Un livello solo (app-sessioni-compatte-06-11, bozze 6 e 19): la lista sta sotto il tabellone o sotto la testata della
+                // colonna, senza la riga «Sessioni N».
             }
-            val listOpen = sessionsOpen || (parts == null && "sessions" !in liveTop)
+            val listOpen = parts != null || sessionsOpen || "sessions" !in liveTop
             if (listOpen) renderWaiting()
             justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
             // Una lista sola nell'ordine dei gruppi: il glifo dice lo stato al posto delle intestazioni.

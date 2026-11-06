@@ -777,7 +777,8 @@
   {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
   <!-- Un livello solo (app-sessioni-compatte-06-11, bozza 6): nella home la lista sta subito sotto il tabellone, senza la riga
        «Sessioni N»; sul tabellone e nelle colonne della plancia la testata resta. -->
-  {#if part || up.includes('sessions')}{@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length ? 'var(--wait)' : null })}{/if}
+  <!-- Nella colonna Sessioni della plancia niente riga «Sessioni N»: la testata della colonna la dice già (bozza 19). -->
+  {#if part !== 'work' && up.includes('sessions')}{@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length ? 'var(--wait)' : null })}{/if}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
