@@ -157,6 +157,9 @@
   --icon: var(--tx2); --primary: var(--act); --on-primary: var(--on-act); --idle: var(--good); --gone: var(--red); --gone-dim: var(--red);
   --b-warn: var(--wait); --b-good: var(--good); --b-ring: var(--busy); --b-alert: var(--red); --b-track: var(--s3); --b-label: var(--tx2);
   --b-second: var(--tx2); --b-week: var(--tx2); --advice: var(--tx2); --prod: var(--red);
+  /* I grafici di quota e utilizzo (app-grafici-colore-06-11, scelta A di Franz): linee, barre e anello in grigio chiaro; il giallo
+     solo per il punto di adesso e il segno del ritmo; il rosso solo oltre il ritmo. */
+  --q-line: var(--tx2); --q-now: var(--wait); --q-over: var(--red);
   /* Come Cm.accent e V3.Banner/BannerInk sul telefono: la fascia d'avviso è ambra piena di notte, ambra chiaro di giorno. */
   --accent: var(--busy); --banner: var(--wait); --banner-ink: var(--on-act);
   --master-highest: var(--s2); --master-high: var(--s1); --master-container: var(--s1); --master-low: var(--bg); --master-key: var(--s3);
@@ -239,8 +242,8 @@
 :root:root .sec.hot::before { content: ""; position: absolute; left: 4px; top: 24%; bottom: 24%; width: 2.5px; border-radius: 3px; background: #FFC867; box-shadow: 0 0 5px 1px rgba(255, 178, 63, .65), 0 0 14px 3px rgba(255, 178, 63, .16); }
 :root:root .sec.hot small { background: rgba(255, 178, 63, .10); outline: 1px solid rgba(255, 178, 63, .28); outline-offset: -1px; }
 :root:root .sec.hot .ic { filter: drop-shadow(0 0 3px rgba(255, 178, 63, .45)); }
-/* 3. Nel grafico della settimana brilla solo il punto di oggi. */
-:root:root .nowdot { fill: #F6F6F6; filter: drop-shadow(0 0 3px rgba(255, 255, 255, .9)) drop-shadow(0 0 8px rgba(255, 255, 255, .35)); }
+/* 3. Nel grafico della settimana brilla solo il punto di oggi, giallo come il segno del ritmo (app-grafici-colore-06-11). */
+:root:root .nowdot { fill: var(--q-now); filter: drop-shadow(0 0 3px rgba(255, 178, 63, .8)) drop-shadow(0 0 8px rgba(255, 178, 63, .3)); }
 /* 4. Web largo e tablet: lo sfondo è chiaro in alto al centro e scuro ai bordi; il telefono resta nero pieno. */
 @media (min-width: 900px) {
   /* Luce più discreta (Franz 03/11 17:46: «troppo forte»). */
@@ -260,7 +263,7 @@
   :root:root:not(.night-only) .lit, :root:root:not(.night-only) .onboard > .usageslot { background: var(--lit-bg, var(--s1)); border: 1px solid var(--line); }
   :root:root:not(.night-only) .col.lit { background: var(--s1); }
   :root:root:not(.night-only) .plancia.v3 { background: var(--bg); }
-  :root:root:not(.night-only) .nowdot { fill: var(--b-week); filter: none; }
+  :root:root:not(.night-only) .nowdot { fill: var(--q-now); filter: none; }
   :root:root:not(.night-only) .sec.hot::before { box-shadow: none; background: var(--wait); }
 }
 /* Il morphing delle pagine (morphStart in lib/motion.ts): il gruppo va dalla voce premuta alla pagina con la molla lenta, senza

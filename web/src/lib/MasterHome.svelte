@@ -174,7 +174,7 @@
         <button class="qcell">
           <span class="qtext">{h5 == null ? (r.w7 == null ? t.quotaOld(name) : t.quotaWeekOnly(name, r.w7)) : t.quota(name, h5, r.w7 ?? 0)}</span>
           {#if r.stale && (h5 != null || r.w7 != null)}<span class="qtext stale">{t.quotaLineStale}</span>{/if}
-          <span class="qtrack"><span style="width:{Math.min(100, Math.max(0, h5 ?? r.w7 ?? 0))}%;background:{r.stale ? 'var(--text2)' : h5 == null ? 'var(--b-week)' : 'var(--b-ring)'}"></span></span>
+          <span class="qtrack"><span style="width:{Math.min(100, Math.max(0, h5 ?? r.w7 ?? 0))}%;background:{r.stale ? 'var(--tx3)' : 'var(--q-line)'}"></span></span>
         </button>
       {/each}
     </div>

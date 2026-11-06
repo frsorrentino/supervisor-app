@@ -26,7 +26,7 @@
       {@const x = h * STEP + (STEP - BW) / 2}
       {#if !b}<circle cx={x + BW / 2} cy={H - 2} r="2" fill="var(--b-track)" />
       {:else}{@const tall = b.count === 0 ? 3 : (H * b.count) / top}
-        <rect {x} y={H - tall} width={BW} height={tall} rx={BW / 2} fill={b.count === 0 ? 'var(--b-track)' : 'var(--b-ring)'} />{/if}
+        <rect {x} y={H - tall} width={BW} height={tall} rx={BW / 2} fill={b.count === 0 ? 'var(--b-track)' : 'var(--q-line)'} />{/if}
     {/each}
   </svg>
   <div class="hours">{#each ['0', '6', '12', '18'] as h}<span>{h}</span>{/each}</div>
@@ -44,7 +44,7 @@
   .urow { display: flex; align-items: center; gap: 10px; font-size: 14px; }
   .un { width: 42%; flex: none; white-space: nowrap; overflow: hidden; }
   .urow i { flex: 1; height: 8px; border-radius: 4px; background: var(--b-track); position: relative; overflow: hidden; }
-  .urow i b { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--b-ring); }
+  .urow i b { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--q-line); }
   .urow.dim i b { background: var(--text2); opacity: .5; }
   .urow em { font: 12.5px var(--mono); color: var(--text2); font-style: normal; min-width: 40px; text-align: right; }
 </style>

@@ -118,7 +118,7 @@ internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, open: Int
                             Box(Modifier.fillMaxWidth(b.pct.coerceIn(0, 100) / 100f).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(if (r.stale) V3.Tx3 else tone(b.pct)))
                         }
                         // La tacca di quanto è passato della finestra.
-                        tick?.let { t -> Box(Modifier.fillMaxWidth((t / 100f).coerceIn(0.01f, 1f)).fillMaxHeight()) { Box(Modifier.align(Alignment.CenterEnd).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(V3.Tx)) } }
+                        tick?.let { t -> Box(Modifier.fillMaxWidth((t / 100f).coerceIn(0.01f, 1f)).fillMaxHeight()) { Box(Modifier.align(Alignment.CenterEnd).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(Cm.qNow)) } }
                     }
                     if (rings.size > 1) Text("${b.pct}%", style = V3.Meter.copy(fontSize = 12.5.sp, color = if (r.stale) V3.Tx3 else V3.Tx2), modifier = Modifier.padding(start = 8.dp))
                 }

@@ -144,12 +144,12 @@
             <line x1={PAD} y1={Y100} x2={g.xr} y2={Y100} stroke="var(--text2)" stroke-dasharray="3 4" />
             {#if g.left100}<text x={PAD} y={Y100 - 5} class="ax">100%</text>{/if}
             {#if g.hundred}<text x={g.hundred.x} y={Y100 - 5} class="ax val" text-anchor="end">{g.hundred.text}</text>{/if}
-            <polyline points={g.line} fill="none" stroke="var(--b-ring)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <polyline points={g.line} fill="none" stroke="var(--q-line)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             {#if g.proj}
-              <line x1={g.now.x} y1={g.now.y} x2={g.proj.x} y2={g.proj.y} stroke="var(--b-ring)" stroke-width="2" stroke-dasharray="6 5" />
-              <circle cx={g.proj.x} cy={g.proj.y} r="4" fill={r.fullAt ? 'var(--b-alert)' : 'var(--b-ring)'} />
+              <line x1={g.now.x} y1={g.now.y} x2={g.proj.x} y2={g.proj.y} stroke="var(--q-line)" stroke-width="2" stroke-dasharray="6 5" />
+              <circle cx={g.proj.x} cy={g.proj.y} r="4" fill={r.fullAt ? 'var(--b-alert)' : 'var(--q-line)'} />
             {/if}
-            <circle cx={g.now.x} cy={g.now.y} r="4" fill="var(--b-ring)" />
+            <circle cx={g.now.x} cy={g.now.y} r="4" fill="var(--q-now)" />
             <text x={g.nowLabel.x} y={g.nowLabel.y} class="ax val" text-anchor={g.nowLabel.anchor}>{t.rhythmNow(r.pct)}</text>
             <text x={PAD} y={CH - 2} class="ax">{hm(r.start)}</text>
             {#if g.nowTime}<text x={g.nowTime} y={CH - 2} class="ax" text-anchor="middle">{hm(now)}</text>{/if}
@@ -179,13 +179,13 @@
           <line x1={PAD} y1={YB} x2={g.xr} y2={Y100} stroke="var(--text2)" stroke-opacity=".7" />
           <text transform="translate({g.even.x},{g.even.y}) rotate({g.even.deg})" class="ax">{t.weekEven}</text>
           {#if g.hundred}<rect class="halo" x={g.hundred.x - tw(g.hundred.text) - 4} y={g.hundred.y - 12} width={tw(g.hundred.text) + 8} height="16" rx="5" /><text x={g.hundred.x} y={g.hundred.y} class="ax val" text-anchor="end">{g.hundred.text}</text>{/if}
-          {#if g.line}<polyline points={g.line} fill="none" stroke="var(--b-week)" stroke-width="2" stroke-linejoin="round" />{/if}
+          {#if g.line}<polyline points={g.line} fill="none" stroke="var(--q-line)" stroke-width="2" stroke-linejoin="round" />{/if}
           {#if g.proj}
-            <line x1={g.now.x} y1={g.now.y} x2={g.proj.x} y2={g.proj.y} stroke="var(--b-week)" stroke-width="2" stroke-dasharray="6 5" />
-            <circle cx={g.proj.x} cy={g.proj.y} r="4" fill={wk.fullAt ? 'var(--b-alert)' : 'var(--b-week)'} />
+            <line x1={g.now.x} y1={g.now.y} x2={g.proj.x} y2={g.proj.y} stroke="var(--q-line)" stroke-width="2" stroke-dasharray="6 5" />
+            <circle cx={g.proj.x} cy={g.proj.y} r="4" fill={wk.fullAt ? 'var(--b-alert)' : 'var(--q-line)'} />
           {/if}
           <!-- Luce 3 (app-luci-02-11): la linea resta normale, brilla solo il punto di oggi. -->
-          <circle class="nowdot" cx={g.now.x} cy={g.now.y} r="4" fill="var(--b-week)" />
+          <circle class="nowdot" cx={g.now.x} cy={g.now.y} r="4" fill="var(--q-now)" />
           <text x={g.nowLabel.x} y={g.nowLabel.y} class="ax val" text-anchor={g.nowLabel.anchor}>{t.rhythmNow(wk.pct)}</text>
           {#each wd as d (d.index)}<text x={g.dayX(d.index)} y={WH - 2} class="ax" class:today={d.today} text-anchor="middle">{dayShort(d.start)}</text>{/each}
         </svg>
@@ -196,8 +196,8 @@
       {@const sum = o.sessions + o.automations + o.requests}
       <span class="lab">{t.weekOriginsTitle(ring.w7).toUpperCase()}</span>
       {#if sum > 0}
-        <span class="orig"><i style="flex:{o.sessions};background:var(--b-ring)"></i><i style="flex:{o.automations};background:var(--b-alert)"></i><i style="flex:{o.requests};background:var(--b-good)"></i></span>
-        <span class="origl"><span style="flex:{o.sessions} 1 auto;color:var(--b-ring)">{t.weekOriginSessions(Math.round(o.sessions))}</span><span style="flex:{o.automations} 1 auto;color:var(--b-alert)">{t.weekOriginAutomations(Math.round(o.automations))}</span><span style="flex:{o.requests} 1 auto;color:var(--b-good)">{t.weekOriginRequests(Math.round(o.requests))}</span></span>
+        <span class="orig"><i style="flex:{o.sessions};background:var(--q-line)"></i><i style="flex:{o.automations};background:var(--b-alert)"></i><i style="flex:{o.requests};background:var(--b-good)"></i></span>
+        <span class="origl"><span style="flex:{o.sessions} 1 auto;color:var(--q-line)">{t.weekOriginSessions(Math.round(o.sessions))}</span><span style="flex:{o.automations} 1 auto;color:var(--b-alert)">{t.weekOriginAutomations(Math.round(o.automations))}</span><span style="flex:{o.requests} 1 auto;color:var(--b-good)">{t.weekOriginRequests(Math.round(o.requests))}</span></span>
       {/if}
     {/if}
     <!-- 2B: la spesa di ogni giorno contro il budget di 100/7; sopra la riga ambra. -->
@@ -210,7 +210,7 @@
           {#each b.bars as x (x.d.index)}
             {#if x.d.future}<rect x={x.x} y={b.yBudget} width={x.w} height={BB - b.yBudget} rx="3" fill="none" stroke="var(--text2)" stroke-opacity=".6" stroke-dasharray="3 3" />
             {:else if x.d.spent != null}
-              <rect x={x.x} y={x.y} width={x.w} height={BB - x.y} rx="3" fill={x.d.spent > BUDGET ? 'var(--b-warn)' : 'var(--b-ring)'} />
+              <rect x={x.x} y={x.y} width={x.w} height={BB - x.y} rx="3" fill={x.d.spent > BUDGET ? 'var(--q-over)' : 'var(--q-line)'} />
               <text x={x.x + x.w / 2} y={x.y - 4} class="ax val" text-anchor="middle">{x.d.spent}</text>
             {/if}
             <text x={x.x + x.w / 2} y={BH - 2} class="ax" class:today={x.d.today} text-anchor="middle">{x.d.today ? t.weekToday : dayShort(x.d.start)}</text>
@@ -247,11 +247,12 @@
   .bl { font-size: 12.5px; color: var(--text2); }
   .bv { font: 12.5px var(--mono); text-align: right; min-width: 3.2em; }
   .bar { position: relative; height: 10px; border-radius: 5px; background: var(--b-track); }
-  .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--b-ring); }
-  .bar i.over { background: var(--b-warn); border-radius: 0 5px 5px 0; }
-  .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text); }
+  /* Grigio chiaro, il segno del ritmo in giallo, il rosso solo per il pezzo oltre il ritmo (app-grafici-colore-06-11, scelta A). */
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--q-line); }
+  .bar i.over { background: var(--q-over); border-radius: 0 5px 5px 0; }
+  .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--q-now); }
   .ahead { font: 12.5px var(--mono); color: var(--text2); overflow-wrap: anywhere; }
-  .ahead.warn { color: var(--b-warn); }
+  .ahead.warn { color: var(--q-over); }
   .ax.alert { fill: var(--b-alert); }
   .ax.today { fill: var(--text); font-weight: 700; }
   .orig { display: flex; gap: 3px; height: 10px; }
@@ -262,12 +263,12 @@
   .txt { font-size: 12.5px; color: var(--text); }
   .txt.dim { color: var(--text2); }
   .mini { height: 4px; border-radius: 2px; background: var(--b-track); overflow: hidden; display: block; }
-  .mini i { display: block; height: 100%; background: var(--b-ring); }
+  .mini i { display: block; height: 100%; background: var(--q-line); }
   hr { border: 0; height: 1px; background: var(--line); margin: 2px 0; }
   .week { position: relative; height: 10px; border-radius: 5px; background: var(--b-track); display: block; }
   .week i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; }
-  .proj { background: color-mix(in srgb, var(--b-week) 35%, transparent); }
-  .used { background: var(--b-week); }
-  .mark { left: 80% !important; width: 1.5px; top: -2px !important; bottom: -2px !important; background: var(--b-warn); border-radius: 0 !important; }
+  .proj { background: color-mix(in srgb, var(--q-line) 35%, transparent); }
+  .used { background: var(--q-line); }
+  .mark { left: 80% !important; width: 1.5px; top: -2px !important; bottom: -2px !important; background: var(--q-now); border-radius: 0 !important; }
   .halo { fill: var(--low); }
 </style>

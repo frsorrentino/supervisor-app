@@ -260,7 +260,7 @@ internal fun Meter(pct: Int, projected: Int?, tick: Float?, modifier: Modifier, 
         drawRoundRect(V3.S3, Offset(0f, y), androidx.compose.ui.geometry.Size(size.width, h), r)
         if (projected != null && projected > pct) drawLine(V3.Tx3, Offset(size.width * pct / 100f, size.height / 2), Offset(size.width * projected / 100f, size.height / 2), h, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
         if (pct > 0) drawRoundRect(tone, Offset(0f, y), androidx.compose.ui.geometry.Size(size.width * pct / 100f, h), r)
-        tick?.let { drawRect(V3.Tx, Offset(size.width * it / 100f - 1.dp.toPx(), 0f), androidx.compose.ui.geometry.Size(2.dp.toPx(), size.height)) }
+        tick?.let { drawRect(Cm.qNow, Offset(size.width * it / 100f - 1.dp.toPx(), 0f), androidx.compose.ui.geometry.Size(2.dp.toPx(), size.height)) }
     }
 }
 
@@ -281,7 +281,7 @@ private fun Curve(r: PhoneOverview.Ring, now: Long, modifier: Modifier) {
             drawPath(line, V3.Tx2, style = Stroke(2.dp.toPx()))
             r.pace?.projected?.let { p -> drawLine(V3.Tx3, Offset(x(pts.last().ts), y(pts.last().pct)), Offset(size.width, y(p)), 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx()))) }
         }
-        tick?.let { val tx = size.width * it / 100f; drawLine(V3.Tx, Offset(tx, 0f), Offset(tx, size.height), 2.dp.toPx()) }
+        tick?.let { val tx = size.width * it / 100f; drawLine(Cm.qNow, Offset(tx, 0f), Offset(tx, size.height), 2.dp.toPx()) }
     }
 }
 

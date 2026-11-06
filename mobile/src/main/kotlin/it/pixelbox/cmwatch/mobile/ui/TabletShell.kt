@@ -115,7 +115,7 @@ private val Mono get() = TextStyle(fontFamily = V3.Mono, fontFeatureSettings = "
 private val MonoLabel = Mono.copy(fontSize = 11.sp, letterSpacing = 1.5.sp)
 
 @Composable
-private fun MiniBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Cm.briefRing) {
+private fun MiniBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Cm.qLine) {
     Box(modifier.height(4.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
         Box(Modifier.fillMaxHeight().fillMaxWidth(fraction.coerceIn(0f, 1f)).background(color))
     }
@@ -150,12 +150,12 @@ fun QuotaRing(ring: PhoneOverview.Ring, size: androidx.compose.ui.unit.Dp = 64.d
                 size = Size(this.size.width - 2 * inset, this.size.height - 2 * inset), style = Stroke(w, cap = StrokeCap.Round),
             )
             arc(w / 2, Cm.briefTrack, 360f)
-            ring.h5?.takeIf { !stale }?.let { arc(w / 2, if (it >= 90) Cm.briefAlertRing else Cm.briefRing, 360f * it.coerceIn(0, 100) / 100f) }
+            ring.h5?.takeIf { !stale }?.let { arc(w / 2, if (it >= 90) Cm.briefAlertRing else Cm.qLine, 360f * it.coerceIn(0, 100) / 100f) }
             // quota-senza-cinque-ore: senza il dato l'anello fuori è la settimana, quello dentro resta vuoto.
-            if (ring.h5 == null) ring.w7?.let { arc(w / 2, Cm.briefWeek, 360f * it.coerceIn(0, 100) / 100f) }
+            if (ring.h5 == null) ring.w7?.let { arc(w / 2, Cm.qLine, 360f * it.coerceIn(0, 100) / 100f) }
             val inner = w / 2 + w + 3.dp.toPx()
             arc(inner, Cm.briefTrack, 360f)
-            if (ring.h5 != null) ring.w7?.let { arc(inner, Cm.briefWeek, 360f * it.coerceIn(0, 100) / 100f) }
+            if (ring.h5 != null) ring.w7?.let { arc(inner, Cm.qLine, 360f * it.coerceIn(0, 100) / 100f) }
         }
         AccountMark(ring.personal, size = size * 0.2f)
     }
@@ -308,7 +308,7 @@ fun TodayPanel(bars: List<it.pixelbox.cmwatch.rules.DayBars.Bar>, usage: it.pixe
                 }
                 val tall = if (count == 0) 3.dp.toPx() else size.height * count / peak
                 drawRoundRect(
-                    if (count == 0) Cm.briefTrack else Cm.briefRing, Offset(x, size.height - tall), Size(w, tall),
+                    if (count == 0) Cm.briefTrack else Cm.qLine, Offset(x, size.height - tall), Size(w, tall),
                     androidx.compose.ui.geometry.CornerRadius(w / 2, w / 2),
                 )
             }
@@ -325,7 +325,7 @@ private fun UsageBar(name: String, pct: Int, dim: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(name, style = MaterialTheme.typography.bodyMedium, color = Cm.text, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fillMaxWidth(0.42f))
         Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Cm.briefTrack)) {
-            Box(Modifier.fillMaxWidth((pct.coerceIn(0, 100)) / 100f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(if (dim) Cm.text2.copy(alpha = 0.5f) else Cm.briefRing))
+            Box(Modifier.fillMaxWidth((pct.coerceIn(0, 100)) / 100f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(if (dim) Cm.text2.copy(alpha = 0.5f) else Cm.qLine))
         }
         Text("$pct %", style = Mono.copy(fontSize = 12.5.sp), modifier = Modifier.width(40.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
@@ -407,8 +407,8 @@ private fun WeekBar(pct: Int, projected: Int?) {
     Canvas(Modifier.fillMaxWidth().height(10.dp)) {
         val r = androidx.compose.ui.geometry.CornerRadius(size.height / 2)
         drawRoundRect(Cm.briefTrack, cornerRadius = r)
-        projected?.let { drawRoundRect(Cm.briefWeek.copy(alpha = 0.35f), size = Size(size.width * it / 100f, size.height), cornerRadius = r) }
-        drawRoundRect(Cm.briefWeek, size = Size(size.width * pct.coerceIn(0, 100) / 100f, size.height), cornerRadius = r)
+        projected?.let { drawRoundRect(Cm.qLine.copy(alpha = 0.35f), size = Size(size.width * it / 100f, size.height), cornerRadius = r) }
+        drawRoundRect(Cm.qLine, size = Size(size.width * pct.coerceIn(0, 100) / 100f, size.height), cornerRadius = r)
         val x80 = size.width * 0.8f
         drawLine(Cm.briefWarn, Offset(x80, -2f), Offset(x80, size.height + 2f), strokeWidth = 1.5.dp.toPx())
     }
@@ -431,9 +431,9 @@ private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
         Tick(e)
     }
     row(stringResource(R.string.rhythm_quota), r.pct) {
-        Box(Modifier.fillMaxWidth(minOf(r.pct, r.elapsed).coerceIn(0, 100) / 100f).fillMaxHeight().background(Cm.briefRing))
+        Box(Modifier.fillMaxWidth(minOf(r.pct, r.elapsed).coerceIn(0, 100) / 100f).fillMaxHeight().background(Cm.qLine))
         if (r.ahead > 0) androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-            Box(Modifier.padding(start = maxWidth * e).width(maxWidth * ((r.pct.coerceAtMost(100) - r.elapsed) / 100f)).fillMaxHeight().background(Cm.briefWarn))
+            Box(Modifier.padding(start = maxWidth * e).width(maxWidth * ((r.pct.coerceAtMost(100) - r.elapsed) / 100f)).fillMaxHeight().background(Cm.qOver))
         }
         Tick(e)
     }
@@ -443,7 +443,7 @@ private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
             r.ahead < 0 -> androidx.compose.ui.res.pluralStringResource(R.plurals.rhythm_behind, -r.ahead, -r.ahead)
             else -> stringResource(R.string.rhythm_even)
         },
-        style = Mono.copy(fontSize = 12.5.sp, color = if (r.ahead > 0) Cm.briefWarn else Cm.text2),
+        style = Mono.copy(fontSize = 12.5.sp, color = if (r.ahead > 0) Cm.qOver else Cm.text2),
     )
 }
 
@@ -451,7 +451,7 @@ private fun RhythmBars(r: it.pixelbox.cmwatch.rules.Rhythm5h.View) {
 @Composable
 private fun androidx.compose.foundation.layout.BoxScope.Tick(at: Float) {
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-        Box(Modifier.padding(start = (maxWidth * at - 1.dp).coerceAtLeast(0.dp)).width(2.dp).fillMaxHeight().background(Cm.text))
+        Box(Modifier.padding(start = (maxWidth * at - 1.dp).coerceAtLeast(0.dp)).width(2.dp).fillMaxHeight().background(Cm.qNow))
     }
 }
 
@@ -503,7 +503,7 @@ private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, m
         val h100 = measurer.measure("100%", label)
         if (l + h100.size.width + 8.dp.toPx() < leftFree) drawText(h100, topLeft = Offset(l, above - h100.size.height))
         val line = Path().apply { r.points.forEachIndexed { i, (px, p) -> if (i == 0) moveTo(x(px), y(p)) else lineTo(x(px), y(p)) } }
-        drawPath(line, Cm.briefRing, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        drawPath(line, Cm.qLine, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
         val dot = Offset(x(r.nowX), y(r.pct))
         val proj = when {
             fullX != null -> Offset(fullX, y100)
@@ -511,10 +511,10 @@ private fun RhythmChart(r: it.pixelbox.cmwatch.rules.Rhythm5h.View, now: Long, m
             else -> null
         }
         proj?.let {
-            drawLine(Cm.briefRing, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
-            drawCircle(if (fullX != null) Cm.briefAlertRing else Cm.briefRing, 4.dp.toPx(), it)
+            drawLine(Cm.qLine, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
+            drawCircle(if (fullX != null) Cm.briefAlertRing else Cm.qLine, 4.dp.toPx(), it)
         }
-        drawCircle(Cm.briefRing, 4.dp.toPx(), dot)
+        drawCircle(Cm.qNow, 4.dp.toPx(), dot)
         // «62% ora» a sinistra del punto, o a destra se a sinistra non ci sta; sotto se sopra tocca la riga del 100%.
         val n = measurer.measure(nowText, strong)
         val ny = if (dot.y - 8.dp.toPx() - n.size.height > y100 + 4.dp.toPx()) dot.y - 6.dp.toPx() - n.size.height else dot.y + 6.dp.toPx()
@@ -591,15 +591,15 @@ private fun WeekChart(c: Week7.Chart, days: List<Week7.Day>, modifier: Modifier)
         if (endBelow || l + h100.size.width + 8.dp.toPx() < leftFree) drawText(h100, topLeft = Offset(l, y100 - 4.dp.toPx() - h100.size.height))
         if (c.points.isNotEmpty()) {
             val line = Path().apply { c.points.forEachIndexed { i, (px, p) -> if (i == 0) moveTo(x(px), y(p)) else lineTo(x(px), y(p)) } }
-            drawPath(line, Cm.briefWeek, style = Stroke(2.dp.toPx(), join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            drawPath(line, Cm.qLine, style = Stroke(2.dp.toPx(), join = androidx.compose.ui.graphics.StrokeJoin.Round))
         }
         proj?.let {
-            drawLine(Cm.briefWeek, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
-            drawCircle(if (fullX != null) Cm.briefAlertRing else Cm.briefWeek, 4.dp.toPx(), it)
+            drawLine(Cm.qLine, dot, it, strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
+            drawCircle(if (fullX != null) Cm.briefAlertRing else Cm.qLine, 4.dp.toPx(), it)
         }
         // Luce 3 (app-luci-02-11): la linea resta normale, brilla solo il punto di oggi (due velature, niente sfocature).
-        if (!V3.day) { drawCircle(Color.White.copy(alpha = 0.10f), 9.dp.toPx(), dot); drawCircle(Color.White.copy(alpha = 0.25f), 6.dp.toPx(), dot) }
-        drawCircle(if (V3.day) Cm.briefWeek else Color(0xFFF6F6F6), 4.dp.toPx(), dot)
+        if (!V3.day) { drawCircle(Cm.qNow.copy(alpha = 0.10f), 9.dp.toPx(), dot); drawCircle(Cm.qNow.copy(alpha = 0.25f), 6.dp.toPx(), dot) }
+        drawCircle(Cm.qNow, 4.dp.toPx(), dot)
         val n = measurer.measure(nowText, strong)
         val ny = if (dot.y - 8.dp.toPx() - n.size.height > y100 + 4.dp.toPx()) dot.y - 6.dp.toPx() - n.size.height else dot.y + 6.dp.toPx()
         val nx = if (dot.x - 7.dp.toPx() - n.size.width >= l) dot.x - 7.dp.toPx() - n.size.width else minOf(dot.x + 7.dp.toPx(), xr - n.size.width)
@@ -619,7 +619,7 @@ private fun WeekOriginsBar(w7: Int, o: it.pixelbox.cmwatch.contract.WeekOrigins)
     Text(stringResource(R.string.week_origins_title, stringResource(if (it.pixelbox.cmwatch.rules.PhoneOverview.elidesArticle(w7)) R.string.week_origins_art_elided else R.string.week_origins_art), w7).uppercase(), style = MonoLabel)
     if (o.sessions + o.automations + o.requests <= 0) return
     val parts = listOf(
-        Triple(o.sessions, Cm.briefRing, R.string.week_origin_sessions),
+        Triple(o.sessions, Cm.qLine, R.string.week_origin_sessions),
         Triple(o.automations, Cm.briefAlertRing, R.string.week_origin_automations),
         Triple(o.requests, Cm.briefGood, R.string.week_origin_requests),
     )
@@ -655,7 +655,7 @@ private fun WeekDaysChart(days: List<Week7.Day>, modifier: Modifier) {
                 style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx()))),
             ) else if (spent != null) {
                 val ty = y(spent.toDouble())
-                drawRoundRect(if (spent > Week7.BUDGET) Cm.briefWarn else Cm.briefRing, Offset(bx, ty), Size(bw, bb - ty), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()))
+                drawRoundRect(if (spent > Week7.BUDGET) Cm.qOver else Cm.qLine, Offset(bx, ty), Size(bw, bb - ty), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()))
                 val v = measurer.measure("$spent", strong)
                 drawText(v, topLeft = Offset(bx + bw / 2 - v.size.width / 2f, ty - 4.dp.toPx() - v.size.height))
             }

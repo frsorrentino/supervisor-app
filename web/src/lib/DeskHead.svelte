@@ -71,6 +71,7 @@
   .q + .q { margin-top: 5px; }
   .meter { flex: 1; position: relative; height: 6px; border-radius: 3px; background: var(--s3); }
   .meter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
-  .meter b { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--tx); }
+  /* Il segno del ritmo in giallo, come nei grafici di Utilizzo (app-grafici-colore-06-11). */
+  .meter b { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--q-now); }
   .pct { font: 400 12.5px var(--mono); color: var(--tx2); }
 </style>

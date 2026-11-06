@@ -2,7 +2,7 @@
   import type { Ring } from './overview'
   import AccountMark from './AccountMark.svelte'
   // Il doppio anello del polso (Utilizzo unito, approvato da Franz il 09/10 alle 16:17), come QuotaRing nell'app: le 5 ore
-  // fuori, azzurre (rosse dal 90%), la settimana dentro, lavanda; al centro il segno dell'account. Un dato vecchio non
+  // fuori, la settimana dentro, in grigio chiaro (rosse dal 90%; app-grafici-colore-06-11); al centro il segno dell'account. Un dato vecchio non
   // disegna le 5 ore.
   let { ring, size = 64, stale = ring.stale }: { ring: Ring; size?: number; stale?: boolean } = $props()
   const w = $derived(size * 0.1)
@@ -18,13 +18,13 @@
     <circle cx={c} cy={c} r={r1} fill="none" stroke="var(--b-track)" stroke-width={w} />
     <circle cx={c} cy={c} r={r2} fill="none" stroke="var(--b-track)" stroke-width={w} />
     {#if ring.h5 != null && !stale}
-      <circle cx={c} cy={c} r={r1} fill="none" stroke={ring.h5 >= 90 ? 'var(--b-alert)' : 'var(--b-ring)'} stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r1, ring.h5)} transform="rotate(-90 {c} {c})" />
+      <circle cx={c} cy={c} r={r1} fill="none" stroke={ring.h5 >= 90 ? 'var(--b-alert)' : 'var(--q-line)'} stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r1, ring.h5)} transform="rotate(-90 {c} {c})" />
     {/if}
     <!-- quota-senza-cinque-ore: senza il dato l'anello fuori è la settimana, quello dentro resta vuoto. -->
     {#if ring.h5 == null && ring.w7 != null}
-      <circle cx={c} cy={c} r={r1} fill="none" stroke="var(--b-week)" stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r1, ring.w7)} transform="rotate(-90 {c} {c})" />
+      <circle cx={c} cy={c} r={r1} fill="none" stroke="var(--q-line)" stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r1, ring.w7)} transform="rotate(-90 {c} {c})" />
     {:else if ring.w7 != null}
-      <circle cx={c} cy={c} r={r2} fill="none" stroke="var(--b-week)" stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r2, ring.w7)} transform="rotate(-90 {c} {c})" />
+      <circle cx={c} cy={c} r={r2} fill="none" stroke="var(--q-line)" stroke-width={w} stroke-linecap="round" stroke-dasharray={dash(r2, ring.w7)} transform="rotate(-90 {c} {c})" />
     {/if}
   </svg>
   <span class="mark"><AccountMark personal={ring.personal} size={Math.round(size * 0.2)} /></span>

@@ -318,8 +318,8 @@ private fun MiniGauge(h5: Int?, w7: Int?, stale: Boolean) {
             drawArc(Cm.briefTrack, 135f, 270f, false, topLeft = tl, size = sz, style = Stroke(w, cap = StrokeCap.Round))
             if (pct != null && pct > 0) drawArc(color, 135f, 270f * (pct.coerceIn(0, 100) / 100f), false, topLeft = tl, size = sz, style = Stroke(w, cap = StrokeCap.Round))
         }
-        arc(w / 2, h5, if (stale) Cm.text2 else Cm.briefRing)
-        arc(w / 2 + w * 1.6f, w7, if (stale) Cm.text2.copy(alpha = 0.6f) else Cm.briefWeek)
+        arc(w / 2, h5, if (stale) Cm.text2 else Cm.qLine)
+        arc(w / 2 + w * 1.6f, w7, if (stale) Cm.text2.copy(alpha = 0.6f) else Cm.qLine)
     }
 }
 
@@ -444,7 +444,7 @@ fun QuotaBars(rings: List<PhoneOverview.Ring>, onOpen: () -> Unit, stacked: Bool
                 )
                 if (r.stale && (h5 != null || r.w7 != null)) Text(stringResource(R.string.quota_line_stale), style = MaterialTheme.typography.labelSmall, color = Cm.waiting, maxLines = 1, softWrap = false)
                 Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
-                    Box(Modifier.fillMaxWidth(((h5 ?: r.w7 ?: 0).coerceIn(0, 100)) / 100f).fillMaxHeight().background(if (r.stale) Cm.text2 else if (h5 == null) Cm.briefWeek else Cm.briefRing))
+                    Box(Modifier.fillMaxWidth(((h5 ?: r.w7 ?: 0).coerceIn(0, 100)) / 100f).fillMaxHeight().background(if (r.stale) Cm.text2 else Cm.qLine))
                 }
             }
     }
