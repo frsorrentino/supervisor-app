@@ -80,6 +80,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -1173,8 +1174,12 @@ private fun SummaryCard(
         railText?.let { x -> Text(x, style = V3.RailText.copy(color = if (glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.STILL) V3.Tx2 else V3.tone(glyph)), maxLines = 1) }
     }
     Spacer(Modifier.width(8.dp))
+    // Con «Apri» in una colonna stretta il nome viene prima del contesto: sotto 300 dp «ctx» lascia il posto, e il nome non va più
+    // a capo a metà (app-sessioni-evidenti-06-11, golden planciaMasterOpen: «ledger / -api»).
+    var rowW by remember { mutableStateOf(Int.MAX_VALUE) }
+    val ctxRoom = !openKey || rowW >= with(androidx.compose.ui.platform.LocalDensity.current) { 300.dp.roundToPx() }
     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.onSizeChanged { rowW = it.width }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2).
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
@@ -1187,7 +1192,7 @@ private fun SummaryCard(
             // La quota delle 5 ore dell'account al posto dell'età della sessione (Franz, 03/10 20:31: «non è un'informazione
             // rilevante»); il dato vecchio nel colore dell'attesa, come nel Quadro.
             // La quota 5h sta una volta sola, nel tabellone; qui il contesto e l'ora dell'ultimo rosso di oggi.
-            if (s.context != null && (waiting || r.group == Summary.Group.WORKING)) Text(stringResource(R.string.ctx_short, s.context!!), style = V3.Meter, maxLines = 1)
+            if (ctxRoom && s.context != null && (waiting || r.group == Summary.Group.WORKING)) Text(stringResource(R.string.ctx_short, s.context!!), style = V3.Meter, maxLines = 1)
             if (!waiting && lastRed != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 StateGlyph(it.pixelbox.cmwatch.rules.Rail.Glyph.RED, size = 14.dp)
                 Text(hhmmOf(lastRed), style = V3.Meter.copy(color = V3.Red), maxLines = 1)
