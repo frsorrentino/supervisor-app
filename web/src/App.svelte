@@ -925,14 +925,15 @@
     // Nella vista larga la home si riposiziona scheda per scheda, una sola coreografia nei due versi
     // (app-home-riposiziona-animata-04-11, `html.reflow` in v3.css).
     const reflow = wide && !m
-    if (reflow) { reflowN++; document.documentElement.classList.add('reflow'); oneName(focus); wave() }
+    const delays = reflow ? waveDelays() : null
+    if (reflow) { reflowN++; document.documentElement.classList.add('reflow'); oneName(focus) }
     const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : reflow ? async () => { const was = stacked; go(); await tick(); oneName(focus); order(was, stacked) } : go)
     for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
+    if (delays?.size) vt.ready.then(() => waveApply(delays), () => {})
     if (m) vt.finished.catch(() => {}).finally(m.done)
     if (reflow) vt.finished.catch(() => {}).finally(() => {
       if (--reflowN > 0) return
       document.documentElement.classList.remove('reflow', 'reflow-master-first', 'reflow-home-first')
-      document.getElementById('fx-wave')?.remove()
       for (const el of document.querySelectorAll<HTMLElement>('[data-vt], .desk .col[data-col]')) { el.style.removeProperty('view-transition-name'); el.style.removeProperty('view-transition-class') }
     })
     return vt
@@ -946,15 +947,25 @@
   // A onda (app-effetti-movimenti-04-11, punto 6): ogni scheda parte un poco dopo quella sopra e a sinistra, 18 ms a passo e al
   // massimo 160, così il riposizionamento corre come un'onda dall'angolo in alto a sinistra. I ritardi stanno in uno stile della
   // transizione, tolto alla fine; la scheda che diventa colonna parte subito.
-  function wave() {
-    if (reducedMotion()) return
-    const els = [...document.querySelectorAll<HTMLElement>('[data-vt]')].map(el => ({ n: getComputedStyle(el).viewTransitionName, r: el.getBoundingClientRect() }))
-      .filter(x => x.n && x.n !== 'none' && !x.n.startsWith('col-') && x.r.width > 0 && x.r.bottom > 0 && x.r.top < window.innerHeight)
+  // L'onda senza toccare i fogli di stile (app-fluidita-06-11): prima si leggeva lo stile calcolato di ogni scheda e si scriveva
+  // uno <style> con un ritardo per gruppo, poi lo si toglieva; ogni cambio di foglio rifaceva lo stile di tutta la pagina (fino a
+  // 1 s a CPU 4x). Ora l'ordine viene dai nomi (data-vt) e dalle posizioni, e i ritardi vanno alle animazioni della transizione.
+  function waveDelays(): Map<string, number> {
+    const m = new Map<string, number>()
+    if (reducedMotion()) return m
+    const els = [...document.querySelectorAll<HTMLElement>('[data-vt]')].map(el => ({ n: el.dataset.vt!, r: el.getBoundingClientRect() }))
+      .filter(x => x.n && !x.n.startsWith('col-') && x.r.width > 0 && x.r.bottom > 0 && x.r.top < window.innerHeight)
       .sort((a, b) => (a.r.top + a.r.left / 3) - (b.r.top + b.r.left / 3))
-    const css = els.map((x, i) => `::view-transition-group(${CSS.escape(x.n)}) { animation-delay: ${Math.min(160, i * 18)}ms; }`).join('\n')
-    let st = document.getElementById('fx-wave') as HTMLStyleElement | null
-    if (!st) { st = document.createElement('style'); st.id = 'fx-wave'; document.head.append(st) }
-    st.textContent = css
+    els.forEach((x, i) => { if (!m.has(x.n)) m.set(x.n, Math.min(160, i * 18)) })
+    return m
+  }
+  function waveApply(delays: Map<string, number>) {
+    for (const a of document.documentElement.getAnimations({ subtree: true })) {
+      const pe = (a.effect as KeyframeEffect | null)?.pseudoElement ?? ''
+      const n = /^::view-transition-group\((.+)\)$/.exec(pe)?.[1]
+      const d = n == null ? undefined : delays.get(n) ?? delays.get(n.replace(/\\(.)/g, '$1'))
+      if (d) a.effect?.updateTiming({ delay: d })
+    }
   }
   // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): mentre la master cambia misura gli angoli si piegano verso
   // l'interno e tornano con la molla (`html.fx-corners` in v3.css).

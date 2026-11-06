@@ -334,6 +334,9 @@
   .rise.fresh { animation: rise 200ms cubic-bezier(0.3, 0, 0.2, 1) both, fresh 2s ease-out 600ms both; animation-delay: calc(var(--rank) * 30ms), 600ms; }
   /* Il bagliore dei messaggi nuovi in grigio, senza l'azzurro di prima (app-audit-superfici-luci-04-11). */
   @keyframes fresh { from { background: rgb(255 255 255 / .08); box-shadow: 0 0 0 6px rgb(255 255 255 / .08); } to { background: transparent; box-shadow: 0 0 0 6px transparent; } }
+  /* Le voci fuori schermo non si impaginano né si disegnano (app-fluidita-06-11): il browser le salta finché non entrano in vista,
+     ricordando la loro ultima altezza; nelle colonne con chat lunghe è la lista virtualizzata. */
+  .it { content-visibility: auto; contain-intrinsic-size: auto 120px; }
   .news { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--icon); font-size: 12.5px; font-weight: 500; }
   .news::before, .news::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .45; }
   /* La barra fra due conversazioni della sessione; per la compattazione una riga sola, più leggera. */
