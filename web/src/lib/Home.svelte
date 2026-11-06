@@ -773,13 +773,15 @@
 {#if shows('work') && (restGroups.length || justClosed || waitRows.length)}
   <!-- Lo stesso numero di «N aperte» in testata: le sessioni vive, senza la master (app-home-nomi-02-11, punto 6). -->
   {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
-  {@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length ? 'var(--wait)' : null })}
+  <!-- Un livello solo (app-sessioni-compatte-06-11, bozza 6): nella home la lista sta subito sotto il tabellone, senza la riga
+       «Sessioni N»; sul tabellone e nelle colonne della plancia la testata resta. -->
+  {#if part || up.includes('sessions')}{@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length ? 'var(--wait)' : null })}{/if}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
     </div>
   {/if}
-  {#if part || open.sessions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
+  {#if part || open.sessions || !up.includes('sessions')}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     {@render waitingBlock()}
     <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
          intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
@@ -985,7 +987,7 @@
   {#if topDrag}<div class="offdrop" class:hot={offHot} style:top="{Math.max(0, edgeY)}px" data-testid={offHot ? 'cima-togli-acceso' : 'cima-togli'}>{t.homeOffTop}</div>{/if}
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
-      {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
+      {#if c.id === 'work'}<!-- Un livello solo (app-sessioni-compatte-06-11): niente «SESSIONI», la lista sotto il tabellone. -->{:else if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
       {:else}
         {@const sig = catSignal(c.id)}
         <!-- Chiusa, la stessa testata di una aperta, col riepilogo accanto (app-categorie-testate-06-11, scelta A di Franz 06/11
@@ -996,7 +998,7 @@
           <span class="ms arr" aria-hidden="true">expand_more</span>
         </button>
       {/if}
-      {#if c.open}
+      {#if c.open || c.id === 'work'}
         {#each live.slice(edgeAt(live) + 1).filter(k => k !== listSkip && catFor(k) === c.id) as k (k)}
           <div class="hsec" class:held={k === dragKey} data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k)}</div>
         {/each}
