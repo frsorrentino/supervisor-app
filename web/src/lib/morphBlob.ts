@@ -48,15 +48,32 @@ export function morphBlob(src: HTMLElement) {
   const el = document.createElement('div')
   el.className = 'master-blob'
   el.style.cssText = 'position:fixed;z-index:65;overflow:hidden;pointer-events:none;background:var(--s1);border:1px solid var(--line);box-shadow:0 10px 32px rgb(0 0 0 / .45)'
+  // La copia riprende lo scorrimento dell'originale: clonata, la chat ripartiva dall'inizio invece che dal punto in vista
+  // (app-fluidita-06-11). Si segnano gli elementi scorsi, si clona, si ricopia lo scorrimento una volta nel documento.
+  const scrolled = [...src.querySelectorAll<HTMLElement>('*')].filter(e => e.scrollTop > 0 || e.scrollLeft > 0)
+  scrolled.forEach((e, i) => e.setAttribute('data-blob-scroll', String(i)))
   const copy = src.cloneNode(true) as HTMLElement
+  scrolled.forEach(e => e.removeAttribute('data-blob-scroll'))
   copy.style.cssText += `;position:absolute;left:0;top:0;width:${r.width}px;height:${r.height}px;margin:0;transform:none`
   const grip = document.createElement('i')
   grip.style.cssText = 'position:absolute;left:50%;top:10px;width:48px;height:4px;margin-left:-24px;border-radius:2px;background:var(--tx3);opacity:0'
   el.append(copy, grip)
   document.body.appendChild(el)
+  // Fuori dal suo posto la lista perde l'altezza che la fa scorrere: le si dà quella vera. Lo scorrimento si dà quando il blocco
+  // ha già la sua forma (prima la copia non ha misura e resta a 0) e si ridà a ogni movimento finché non tiene.
+  const keep: [HTMLElement, number, number][] = []
+  copy.querySelectorAll<HTMLElement>('[data-blob-scroll]').forEach(c => {
+    const o = scrolled[Number(c.getAttribute('data-blob-scroll'))]
+    c.removeAttribute('data-blob-scroll')
+    if (!o) return
+    c.style.height = `${o.clientHeight}px`; c.style.flex = 'none'; c.style.overflow = 'hidden'
+    keep.push([c, o.scrollTop, o.scrollLeft])
+  })
+  const hold = () => { for (const [c, top, left] of keep) { if (c.scrollTop !== top) c.scrollTop = top; if (c.scrollLeft !== left) c.scrollLeft = left } }
   src.style.visibility = 'hidden'
   let now: Shape = { ...from, rTop: 0, rBottom: 0 }
   Object.assign(el.style, css(now))
+  hold()
   const settle = (to: Shape, v: number, done: () => void) => {
     const start = now
     const f = springFrames(1, -v)
@@ -69,6 +86,7 @@ export function morphBlob(src: HTMLElement) {
       const p = progress(from, to, dy)
       now = blobShape(from, to, p, fx, fy)
       Object.assign(el.style, css(now))
+      hold()
       copy.style.opacity = String(Math.max(0, 1 - p * 1.6))
       grip.style.opacity = String(Math.max(0, p * 1.4 - 0.4))
     },
