@@ -50,7 +50,9 @@ export function morphBlob(src: HTMLElement) {
   el.style.cssText = 'position:fixed;z-index:65;overflow:hidden;pointer-events:none;background:var(--s1);border:1px solid var(--line);box-shadow:0 10px 32px rgb(0 0 0 / .45)'
   // La copia riprende lo scorrimento dell'originale: clonata, la chat ripartiva dall'inizio invece che dal punto in vista
   // (app-fluidita-06-11). Si segnano gli elementi scorsi, si clona, si ricopia lo scorrimento una volta nel documento.
-  const scrolled = [...src.querySelectorAll<HTMLElement>('*')].filter(e => e.scrollTop > 0 || e.scrollLeft > 0)
+  // Solo le liste della chat scorrono nel pannello: leggere lo scorrimento di ogni nodo costava 70-100 ms a CPU 4× con una chat
+  // lunga all'avvio del gesto.
+  const scrolled = [...src.querySelectorAll<HTMLElement>('.lines')].filter(e => e.scrollTop > 0 || e.scrollLeft > 0)
   scrolled.forEach((e, i) => e.setAttribute('data-blob-scroll', String(i)))
   const copy = src.cloneNode(true) as HTMLElement
   scrolled.forEach(e => e.removeAttribute('data-blob-scroll'))
