@@ -13,9 +13,6 @@ type Snap = { el: HTMLElement; b: Box; lists?: [number, number][] }
 /** Le curve di v3.css: la molla breve senza rimbalzo (--spring-land) e quella della home (--reflow-ease). */
 export const SPRING_LAND = 'linear(0, .154, .404, .615, .764, .86, .919, .954, .974, .986, 1)'
 export const REFLOW_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)'
-const MORPH_OUT = 'cubic-bezier(0.33, 1, 0.68, 1)'
-/** La regola Morph (core/rules/Morph.kt): il vecchio sparisce in 140 ms, il nuovo parte a 80 e arriva pieno in 180. */
-const MORPH = { out: 140, inDelay: 80, in: 180 } as const
 /** I tempi di `html.fx-open` e `html.fx-close`: la home, le colonne, la scheda o colonna che vola. */
 export const TIMES = { open: { home: 500, cols: 400, focus: 400 }, close: { home: 420, cols: 420, focus: 420 } } as const
 /** L'onda: 18 ms a passo, al massimo 160 (waveDelays in App.svelte). */
@@ -186,10 +183,9 @@ export async function fly(f: Flight): Promise<void> {
   const tapped = f.opening ? f.card() : null
   if (tapped?.dataset.vt) before.delete(`vt:${tapped.dataset.vt}`)
   const colKey = `col:${f.focus}`
-  // La scheda o la colonna che vola, e la sua copia che sfuma.
+  // Da dove parte la scheda o la colonna che vola.
   const from = f.opening ? f.card() : before.get(colKey)?.el ?? null
   const fromBox = from ? (f.opening ? box(from.getBoundingClientRect()) : before.get(colKey)!.b) : null
-  const ghost = from && fromBox ? ghostOf(from, fromBox, f.opening ? [] : before.get(colKey)?.lists) : null
   const cols = [...document.querySelectorAll<HTMLElement>('.desk .col[data-col], .desk .tabslot')]
   const quiet = (els: HTMLElement[]) => els.forEach(el => { el.style.transition = 'none'; el.style.animation = 'none' })
   quiet(cols)
@@ -237,18 +233,11 @@ export async function fly(f: Flight): Promise<void> {
     const o = { duration: t.focus, easing: SPRING_LAND }
     to.style.zIndex = '60'
     waits.push(play(to, [{ transform: invert(fromBox, toBox), transformOrigin: '0 0' }, { transform: 'none', transformOrigin: '0 0' }], o).finished.catch(() => {}))
-    // Il riquadro resta pieno (app-morph-senza-stacco-06-11, Franz 06/11 08:56): quello che arriva ha subito il suo fondo, e sfuma
-    // solo il suo contenuto; sopra, la copia di quello che esce sparisce intera. Prima sfumavano tutti e due interi, e fra la
-    // copia quasi trasparente e il nuovo non ancora arrivato si vedeva la pagina dietro.
-    for (const c of to.children) play(c, [{ opacity: 0 }, { opacity: 1 }], { duration: MORPH.in, delay: MORPH.inDelay, easing: 'linear', fill: 'backwards' })
-    if (ghost) {
-      play(ghost, [{ transform: 'none' }, { transform: invert(toBox, fromBox) }], o)
-      play(ghost, [{ opacity: 1 }, { opacity: 0 }], { duration: MORPH.out, easing: MORPH_OUT, fill: 'forwards' })
-    }
+    // Senza dissolvenze (app-morph-senza-stacco-06-11, scelta A, regola Morph): quello che arriva è pieno dal primo fotogramma e
+    // vola da solo; prima una copia di quello che usciva sfumava sopra, e il contenuto spariva e ricompariva («lo stacco»).
   }
   await Promise.all(waits)
   opened()
-  ghost?.remove()
   for (const g of gone) g.remove()
   if (to) to.style.zIndex = ''
   for (const el of new Set([...cols, ...newCols])) { el.style.transition = ''; el.style.animation = '' }

@@ -30,14 +30,14 @@ val LocalFly = compositionLocalOf<Fly?> { null }
 const val FLY_MS = 320
 
 /**
- * La scheda che diventa pagina o colonna e il ritorno (app-volo-titolo-telefono-05-11, regola Morph): quello che esce sparisce
- * presto, quello che entra arriva dopo, mai due testi pieni uno sopra l'altro; i bordi restano sulla loro molla.
+ * La scheda che diventa pagina o colonna e il ritorno (app-volo-titolo-telefono-05-11, regola Morph): mai due testi uno sopra
+ * l'altro e mai un riquadro vuoto (app-morph-senza-stacco-06-11, scelta A): niente dissolvenze, dal primo fotogramma quello che
+ * entra è pieno (Morph.inAlpha) e quello che esce non si vede (Morph.outAlpha); sotto, il fondo pieno (fullUnder); i bordi
+ * restano sulla loro molla.
  */
-internal fun morphEnter(off: Boolean): EnterTransition = if (off) EnterTransition.None
-    else fadeIn(tween(it.pixelbox.cmwatch.rules.Morph.IN_MS, delayMillis = it.pixelbox.cmwatch.rules.Morph.IN_DELAY_MS, easing = androidx.compose.animation.core.LinearEasing))
+internal fun morphEnter(off: Boolean): EnterTransition = EnterTransition.None
 
-internal fun morphExit(off: Boolean): ExitTransition = if (off) ExitTransition.None
-    else it.pixelbox.cmwatch.rules.Morph.OUT_EASE.let { e -> fadeOut(tween(it.pixelbox.cmwatch.rules.Morph.OUT_MS, easing = androidx.compose.animation.core.CubicBezierEasing(e[0], e[1], e[2], e[3]))) }
+internal fun morphExit(off: Boolean): ExitTransition = if (off) ExitTransition.None else fadeOut(snap())
 
 /**
  * Il riquadro resta pieno mentre i due contenuti si danno il cambio (app-morph-senza-stacco-06-11, Franz 06/11 08:56: «un piccolo

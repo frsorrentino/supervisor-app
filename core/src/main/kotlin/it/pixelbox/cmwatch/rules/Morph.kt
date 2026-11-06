@@ -2,21 +2,12 @@ package it.pixelbox.cmwatch.rules
 
 /**
  * La scheda che diventa pagina o colonna, e il ritorno (app-volo-titolo-telefono-05-11, Franz 05/11 08:26): una regola sola per
- * telefono, tablet e web. Quello che esce sparisce presto, quello che entra arriva dopo: mai due testi pieni uno sopra l'altro.
- * I bordi restano sulla loro molla; qui solo le dissolvenze dei due contenuti (`morph-out`, `morph-in` in web/src/v3.css).
+ * telefono, tablet e web. Mai due testi uno sopra l'altro, e mai un riquadro vuoto (app-morph-senza-stacco-06-11, scelta A
+ * della master; Franz 06/11 09:40: «da pwa lo stacco c'è sempre»): niente dissolvenze, dal primo fotogramma del volo quello che
+ * entra è pieno e sta sopra, su fondo opaco, e quello che esce non si vede. Il riquadro cresce e il nuovo si scopre dall'angolo
+ * in alto a sinistra, alla sua misura. I bordi restano sulla loro molla (`morph` e `fx-focus` in web/src/v3.css, `Fly.kt`).
  */
 object Morph {
-    /** Il vecchio sparisce in 140 ms, svelto all'inizio. */
-    const val OUT_MS = 140
-    /**
-     * Il nuovo parte quando il vecchio è quasi trasparente e arriva pieno in 180 ms (app-morph-senza-stacco-06-11: prima 100 e
-     * 200). Sotto i due contenuti il riquadro resta pieno, col fondo della pagina (`fullUnder` in mobile/ui/Fly.kt,
-     * `::view-transition-group` in web/src/v3.css): Franz 06/11 08:56 vedeva «un piccolo stacco di fade out e fade in».
-     */
-    const val IN_DELAY_MS = 80
-    const val IN_MS = 180
-    /** cubic-bezier(0.33, 1, 0.68, 1), la stessa curva della web. */
-    val OUT_EASE = floatArrayOf(0.33f, 1f, 0.68f, 1f)
 
     /**
      * Il collo della scheda che diventa colonna, prima del volo (app-volo-web-taratura-05-11, Franz 05/11 10:23: «rimane in alto
@@ -27,8 +18,8 @@ object Morph {
     const val NECK_MS = 140
     const val NECK_LIFT_DP = 10f
 
-    /** L'opacità del vecchio al tempo `ms` (la curva come 1 - (1 - x)³). */
-    fun outAlpha(ms: Int): Float { val x = (ms.toFloat() / OUT_MS).coerceIn(0f, 1f); return (1f - x) * (1f - x) * (1f - x) }
-    /** L'opacità del nuovo al tempo `ms`. */
-    fun inAlpha(ms: Int): Float = ((ms - IN_DELAY_MS).toFloat() / IN_MS).coerceIn(0f, 1f)
+    /** L'opacità di quello che esce al tempo `ms` del volo: nascosto dal primo fotogramma. */
+    @Suppress("UNUSED_PARAMETER") fun outAlpha(ms: Int): Float = 0f
+    /** L'opacità di quello che entra al tempo `ms` del volo: pieno dal primo fotogramma. */
+    @Suppress("UNUSED_PARAMETER") fun inAlpha(ms: Int): Float = 1f
 }
