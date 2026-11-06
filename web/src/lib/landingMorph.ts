@@ -9,7 +9,7 @@ export const PLACES = ['.dpanel.under', 'aside.dpanel:not(.stackcol)', 'aside.mp
 
 /** I tempi: lo spostamento della master al rilascio (il gruppo `master-morph` in v3.css), lo scivolare della sagoma da un posto
  *  all'altro, lo sfondo che si scurisce, la sagoma che sparisce. */
-export const MOVE_MS = 700, SLIDE_MS = 200, HOP_MS = 320, DIM_MS = 160, FADE_MS = 200, SQUASH_MS = 280
+export const MOVE_MS = 700, SLIDE_MS = 200, HOP_MS = 320, DIM_MS = 160, FADE_MS = 200
 export const MOVE_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)'
 
 const css = (b: Box) => ({ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` })
@@ -111,11 +111,3 @@ export function ghostPreview(reduced: () => boolean) {
   }
 }
 
-/**
- * L'atterraggio (app-effetti-movimenti-04-11, punto 2): arrivata al posto della sagoma, la master si schiaccia un poco verso il
- * basso e torna con la molla. Col movimento ridotto niente.
- */
-export function squash(el: Element | null, reduced: boolean) {
-  if (!el || reduced) return
-  el.animate([{ transform: 'scale(1.02, .96)', transformOrigin: '50% 100%' }, { transform: 'scale(.995, 1.01)', transformOrigin: '50% 100%', offset: 0.55 }, { transform: 'none', transformOrigin: '50% 100%' }], { duration: SQUASH_MS, easing: 'ease-out' })
-}

@@ -4,7 +4,7 @@
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
   import { BAR_H, COLUMN, COMPACT_H, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, widthStops, type Height, type Rect, type Side } from './lib/masterLanding'
-  import { ghostPreview, MOVE_MS, PLACES, squash } from './lib/landingMorph'
+  import { ghostPreview, MOVE_MS, PLACES } from './lib/landingMorph'
   import { DRAG_PX, isDrag, masterTaps, springFrames, step, velocity } from './lib/gesture'
   import { morphBlob } from './lib/morphBlob'
   import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
@@ -603,7 +603,9 @@
     if (taps.swallow(performance.now()) && (e.target as Element | null)?.closest?.('.dpanel, .stackcol, .mbar, .mpanel')) { e.stopPropagation(); e.preventDefault() }
   }, true)
   function begin() { document.body.style.userSelect = 'none'; taps.dragged(performance.now()) }
-  // Il rilascio: la master va al posto della sagoma, e la scelta si ricorda; la sagoma sparisce quando è arrivata.
+  // Il rilascio: la master va al posto della sagoma, e la scelta si ricorda; la sagoma sparisce quando è arrivata. Arrivata si
+  // ferma (app-altezza-senza-rimbalzo-06-11, Franz 06/11 10:59): lo schiacciamento d'atterraggio la allungava oltre la misura e
+  // la riportava indietro, il rimbalzo dopo il ridimensionamento.
   function commit() {
     const go = aim
     aim = null; clearMarks()
@@ -614,7 +616,6 @@
     })
     const arrived = vt ? vt.finished : tick().then(() => new Promise(r => setTimeout(r, MOVE_MS)))
     masterGhost.land(arrived)
-    void arrived.catch(() => {}).then(() => squash(PLACES.map(q => document.querySelector(q)).find(Boolean) ?? null, reducedMotion()))
   }
   function revert() { aim = null; masterGhost.drop(); clearMarks() }
   // La testata: il lato, dalla metà dello schermo sotto il dito; la sagoma è il posto di adesso, o lo stesso specchiato.

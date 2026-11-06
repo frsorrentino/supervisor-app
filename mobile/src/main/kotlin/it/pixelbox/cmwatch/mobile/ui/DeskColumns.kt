@@ -330,7 +330,12 @@ internal fun MasterFrame(
     var sideFade by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
     val sideScope = androidx.compose.runtime.rememberCoroutineScope()
     val motionOff by androidx.compose.runtime.rememberUpdatedState(animationsOff())
-    val sideSpring = androidx.compose.animation.core.spring<Float>(dampingRatio = it.pixelbox.cmwatch.rules.MasterGestures.SIDE_SPRING_DAMPING, stiffness = it.pixelbox.cmwatch.rules.MasterGestures.SIDE_SPRING_STIFFNESS)
+    // Da `from` a 0 con la velocità del rilascio, senza mai superare l'arrivo (app-altezza-senza-rimbalzo-06-11, MasterGestures.land).
+    suspend fun landTo(from: Float, velocity: Float, set: (Float) -> Unit) {
+        val l = it.pixelbox.cmwatch.rules.MasterGestures.land(from, velocity)
+        val spec = androidx.compose.animation.core.spring<Float>(dampingRatio = it.pixelbox.cmwatch.rules.MasterGestures.SIDE_SPRING_DAMPING, stiffness = l.stiffness)
+        androidx.compose.animation.core.animate(from, 0f, l.velocity, spec) { v, _ -> set(v) }
+    }
     // Anche l'altezza continua il gesto (app-altezza-animazione-06-11, Franz 06/11 00:55): la master che si sposta (la riga, il
     // pannello o la master nella pila) segue il dito in verticale; al rilascio quella d'arrivo parte da dove il dito ha lasciato
     // l'altra, con la sua velocità, e va al suo posto con la stessa molla. Niente schiacciamento d'atterraggio.
@@ -338,7 +343,7 @@ internal fun MasterFrame(
     fun settleLift(from: Float, velocity: Float) {
         lift.y = from
         if (motionOff) { lift.y = 0f; if (from != 0f) { lift.alpha = 0f; sideScope.launch { androidx.compose.animation.core.animate(0f, 1f, animationSpec = androidx.compose.animation.core.tween(180)) { v, _ -> lift.alpha = v } } }; return }
-        sideScope.launch { androidx.compose.animation.core.animate(from, 0f, velocity, sideSpring) { v, _ -> lift.y = v } }
+        sideScope.launch { landTo(from, velocity) { lift.y = it } }
     }
     // La forma va al posto `to` con la molla del cambio di lato, dalla velocità del rilascio (dp/s in verticale); poi lascia il
     // posto alla master vera, che compare sfumando se è arrivata in un posto nuovo.
@@ -347,7 +352,7 @@ internal fun MasterFrame(
         val span = to.y - b0.shape.y
         val vq = if (kotlin.math.abs(span) > 1f) (vy / span).coerceIn(-20f, 20f) else 0f
         sideScope.launch {
-            androidx.compose.animation.core.animate(0f, 1f, vq, sideSpring) { q, _ -> blob = blob?.copy(shape = it.pixelbox.cmwatch.rules.MorphBlob.mix(b0.shape, to, q)) }
+            landTo(-1f, vq) { d -> blob = blob?.copy(shape = it.pixelbox.cmwatch.rules.MorphBlob.mix(b0.shape, to, 1f + d)) }
             blob = null
             if (arrived) { lift.alpha = 0f; androidx.compose.animation.core.animate(0f, 1f, animationSpec = androidx.compose.animation.core.tween(140)) { v, _ -> lift.alpha = v } }
             else lift.alpha = 1f
@@ -360,16 +365,10 @@ internal fun MasterFrame(
             if (fromContent != 0f) { sideFade = 0f; sideScope.launch { androidx.compose.animation.core.animate(0f, 1f, animationSpec = androidx.compose.animation.core.tween(180)) { v, _ -> sideFade = v } } }
             return
         }
-        sideScope.launch { androidx.compose.animation.core.animate(fromPanel, 0f, velocity, sideSpring) { v, _ -> panelOff = v } }
-        if (fromContent != 0f) sideScope.launch { androidx.compose.animation.core.animate(fromContent, 0f, 0f, sideSpring) { v, _ -> contentOff = v } }
+        sideScope.launch { landTo(fromPanel, velocity) { panelOff = it } }
+        if (fromContent != 0f) sideScope.launch { landTo(fromContent, 0f) { contentOff = it } }
     }
     val namesNow by androidx.compose.runtime.rememberUpdatedState(names)
-    // L'atterraggio (punto 2): arrivata al posto della sagoma, la master si schiaccia un poco verso il basso e torna.
-    var landed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
-    val squash = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(1f) }
-    val squashOff = animationsOff()
-    androidx.compose.runtime.LaunchedEffect(landed) { if (landed > 0 && !squashOff) { squash.snapTo(0.96f); squash.animateTo(1f, Fx.spring()) } }
-    fun Modifier.landing() = this.graphicsLayer { scaleY = squash.value; scaleX = 2f - squash.value; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f) }
     fun Modifier.grip(key: String) = this.onGloballyPositioned { c -> grips[key] = c }
     val gripOf: (String) -> Modifier = { k -> Modifier.grip(k) }
     fun Modifier.seen(key: String) = this.onGloballyPositioned { c -> seen[key] = c }
@@ -548,7 +547,7 @@ internal fun MasterFrame(
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
                     if (panel != null) {
                         val canGrip = onPlace != null && place != null
-                        Box(Modifier.zIndex(if (panelOff != 0f || lift.y != 0f) 3f else 0f).graphicsLayer { translationX = panelOff; alpha = sideFade * (if (stacked) 1f else lift.alpha); if (!stacked) translationY = lift.y }.drawWithContent { panelLayer.record { this@drawWithContent.drawContent() }; drawLayer(panelLayer) }.reflow("r-master").landing().width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
+                        Box(Modifier.zIndex(if (panelOff != 0f || lift.y != 0f) 3f else 0f).graphicsLayer { translationX = panelOff; alpha = sideFade * (if (stacked) 1f else lift.alpha); if (!stacked) translationY = lift.y }.drawWithContent { panelLayer.record { this@drawWithContent.drawContent() }; drawLayer(panelLayer) }.reflow("r-master").width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
                             androidx.compose.runtime.CompositionLocalProvider(LocalEdgeSpots provides edge, LocalMasterGrip provides gripOf.takeIf { canGrip }, LocalMasterLift provides lift) { panel() }
                             // La presa in alto: di lato cambia il lato (la sagoma passa alla metà dello schermo sotto il dito), in su o
                             // in giù l'altezza a scatti. Nella pila è la maniglia fra la home e la master.
@@ -565,7 +564,7 @@ internal fun MasterFrame(
                     Column(Modifier.weight(1f).fillMaxHeight().graphicsLayer { translationX = contentOff }) {
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
                         bar?.let { b ->
-                            Box(Modifier.zIndex(if (lift.y != 0f) 3f else 0f).graphicsLayer { translationY = lift.y; alpha = lift.alpha }.drawWithContent { barLayer.record { this@drawWithContent.drawContent() }; drawLayer(barLayer) }.reflow("r-master").landing().fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
+                            Box(Modifier.zIndex(if (lift.y != 0f) 3f else 0f).graphicsLayer { translationY = lift.y; alpha = lift.alpha }.drawWithContent { barLayer.record { this@drawWithContent.drawContent() }; drawLayer(barLayer) }.reflow("r-master").fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
                                 b()
                                 // Due maniglie sull'asse della colonna dove la master atterra, una per lato (app-master-riga-maniglie-04-11,
                                 // Franz 04/11 17:40): tirata su apre la master da quel lato, alle altezze del bordo superiore; un tocco la
@@ -771,14 +770,14 @@ internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @C
             }
         }
         // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): cambiando misura gli angoli si piegano verso l'interno e tornano
-        // tondi con la molla.
+        // tondi con la molla senza rimbalzo dei rilasci (app-altezza-senza-rimbalzo-06-11; prima passavano i 18 dp e tornavano).
         val corner = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(18f) }
         val cornersOff = animationsOff()
         val firstHalf = androidx.compose.runtime.remember { booleanArrayOf(half) }
         androidx.compose.runtime.LaunchedEffect(half) {
             if (half == firstHalf[0] || cornersOff) return@LaunchedEffect
             firstHalf[0] = half
-            corner.animateTo(3f, androidx.compose.animation.core.tween(Fx.CORNERS_MS * 2 / 5)); corner.animateTo(18f, Fx.spring())
+            corner.animateTo(3f, androidx.compose.animation.core.tween(Fx.CORNERS_MS * 2 / 5)); corner.animateTo(18f, Fx.land())
         }
         val shape = RoundedCornerShape(topStart = corner.value.dp, topEnd = corner.value.dp)
         // La master nella pila segue il dito quando se ne cambia l'altezza (app-altezza-animazione-06-11, MasterLift).
