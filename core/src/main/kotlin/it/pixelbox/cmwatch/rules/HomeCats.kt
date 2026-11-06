@@ -13,21 +13,25 @@ object HomeCats {
         // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (le prove e i lavori da guardare: `prove` porta
         // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
         Cat("you", true, listOf("decisioni", "prove", "seguiti", "suggestions")),
-        Cat("work", true, listOf("sessions", "lavori")),
-        Cat("out", false, listOf("esiti", "rendiconti")),
+        // Tre categorie come la plancia larga (app-home-tre-categorie-06-11, Franz 06/11 11:57-12:2x): Sessioni porta sotto di sé la
+        // Notte (voce sua, fuori da Esiti), In corso (Lavori) ed Esiti (con Rendiconti, chiusa di partenza); la categoria Esiti
+        // non c'è più.
+        Cat("work", true, listOf("sessions", "notte", "lavori", "esiti", "rendiconti")),
         Cat("tools", false, listOf("usage", "system", "pagella")),
     )
     /**
      * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
      * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
      */
-    const val REV = "rev:4"
+    const val REV = "rev:5"
     /**
      * Un ordine `rev:2` (prima delle voci accorpate) o `rev:3` (prima delle quattro sezioni) tiene categorie, chiuse e cima; dentro
      * Tocca a te riprende una volta l'ordine di partenza.
      */
     private const val REV2 = "rev:2"
     private const val REV3 = "rev:3"
+    /** Un ordine fino a `rev:4` (quattro categorie): dentro Sessioni riprende una volta l'ordine di partenza, Esiti dopo In corso. */
+    private const val REV4 = "rev:4"
     private const val SHUT = "shut:"
     private const val TOP = "top:"
     /** Il bordo dello spazio in cima nella lista piatta del trascinamento: sopra c'è la cima, sotto le categorie. */
@@ -39,10 +43,11 @@ object HomeCats {
     fun decode(saved: List<String>?): List<Cat> {
         val list = saved.orEmpty()
         val up = top(saved)
-        val fresh = list.isNotEmpty() && REV !in list && REV2 !in list && REV3 !in list
+        val fresh = list.isNotEmpty() && REV !in list && REV2 !in list && REV3 !in list && REV4 !in list
         val youOld = REV !in list && (REV2 in list || REV3 in list)
+        val workOld = list.isNotEmpty() && REV !in list
         val all = list.filter { catOf(it) != null && it !in up }.distinct()
-        val keys = all.filter { (!fresh || (catOf(it) != "you" && catOf(it) != "tools")) && !(youOld && catOf(it) == "you") }
+        val keys = all.filter { (!fresh || (catOf(it) != "you" && catOf(it) != "tools")) && !(youOld && catOf(it) == "you") && !(workOld && catOf(it) == "work") }
         val order = if (fresh) DEFAULT.map { it.id } else (all.map { catOf(it)!! } + DEFAULT.map { it.id }).distinct()
         val closed = list.firstOrNull { it.startsWith(SHUT) }?.removePrefix(SHUT)?.split(",")
         return order.map { id ->
@@ -86,8 +91,12 @@ object HomeCats {
     fun dragTarget(order: List<String>, held: String, y: Float, mids: Map<String, Float>, present: Set<String>, fromBoard: Boolean = true): List<String> {
         // Una voce del tabellone scavalca le altre voci del tabellone e il bordo, di qualunque categoria siano; una sezione presa in una
         // categoria resta lì: sul tabellone ci va solo rilasciandola sul riquadro (Franz 02/11 20:45, app-tabellone-quattro-02-11).
-        val up = order.indexOf(EDGE).let { e -> if (e < 0 || !fromBoard) emptySet() else order.take(e + 1).toSet() }
-        return HomeOrder.dragTarget(order, held, y, mids, present.filter { it in up || catFor(it) == catFor(held) }.toSet())
+        val e = order.indexOf(EDGE)
+        val up = if (e < 0 || !fromBoard) emptySet() else order.take(e + 1).toSet()
+        // Una sezione presa nella sua categoria scavalca solo le vicine sotto il bordo: sul tabellone possono stare voci della stessa
+        // categoria (Esiti sopra, Sessioni sotto: app-home-tre-categorie-06-11).
+        val below = if (e < 0) order.toSet() else order.drop(e + 1).toSet()
+        return HomeOrder.dragTarget(order, held, y, mids, present.filter { it in up || (catFor(it) == catFor(held) && (fromBoard || it in below)) }.toSet())
     }
 
     // Lo spazio in cima (Franz 02/11 19:18, app-home-in-cima-02-11): sezioni di qualsiasi categoria, nell'ordine scelto. Una voce

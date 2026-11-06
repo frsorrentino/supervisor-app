@@ -166,7 +166,7 @@
   // piatto. Nella plancia larga stanno nella fascia sopra le colonne (part 'top') e le colonne non le ripetono.
   const up = $derived(sentOrder && sentOrder.from === savedKey && !part ? sentOrder.top : topOf(st.home_order))
   // Le sezioni che la home sa disegnare: l'ordine salvato di sempre più Da guardare, che esiste dal contratto 1.106.
-  const SHOWN: string[] = [...DEFAULT_ORDER, 'da_guardare']
+  const SHOWN: string[] = [...DEFAULT_ORDER, 'da_guardare', 'notte']
   const order = $derived(flatCats(up, cats).filter(k => k === EDGE || SHOWN.includes(k)) as HomeSection[])
   const edgeAt = (o: string[]) => Math.max(0, o.indexOf(EDGE))
   // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
@@ -373,8 +373,10 @@
   // testata (app-home-in-cima-02-11); poi la pagina ci scorre.
   function openCat(b: import('./HomeBox.svelte').Box) {
     // Il primo riquadro conta le sessioni ferme, che stanno in Sessioni (app-home-nomi-02-11): apre In corso e Sessioni.
-    const id: CatId = b === 'aspetta' || b === 'lavoro' ? 'work' : 'out'
+    // Esiti sta dentro Sessioni (app-home-tre-categorie-06-11): il suo riquadro apre Sessioni e la sottosezione Esiti.
+    const id: CatId = b === 'aspetta' || b === 'lavoro' ? 'work' : cats.some(c => c.id === 'out') ? 'out' : 'work'
     if (b === 'aspetta' && !open.sessions) toggleSec('sessions')
+    if (b !== 'aspetta' && b !== 'lavoro' && !open.esiti) toggleSec('esiti')
     if (cats.some(c => c.id === id && !c.open)) setCats(toggleCat(cats, id))
     requestAnimationFrame(() => document.querySelector(`[data-testid="cat-${id}"]`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }))
   }
@@ -395,7 +397,8 @@
   // Chiave nuova col riordino (app-home-riordino-29-10): Notte e Utilizzo partono chiuse col numero in vista, anche per chi
   // le aveva aperte; sessioni, lavori ed esiti aperti.
   const SEC = 'home-sections-2'
-  const SEC_START = { suggestions: true, sessions: true, lavori: true, esiti: true, usage: false, night: false }
+  // Esiti sta dentro Sessioni e parte chiusa (app-home-tre-categorie-06-11).
+  const SEC_START = { suggestions: true, sessions: true, lavori: true, esiti: false, usage: false, night: false }
   // Nella PWA larga le voci In cima si aprono una volta nella loro colonna (app-in-cima-largo-03-11).
   $effect(() => { if (part && part !== 'top') for (const k of up) if (catFor(k) === part && !untrack(() => open[k])) open[k] = true })
   let open = $state<Record<string, boolean>>((() => { try { return { ...SEC_START, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { ...SEC_START } } })())
@@ -443,6 +446,8 @@
   const placedOut = $derived(placeOutside(outside, new Set(model.rows.map(r => r.session.name))))
   // Da riprendere, Stanotte, Da sistemare e Programmati sono lavori: stanno in «Lavori»; le chiuse hanno la loro riga.
   const workGroups = $derived(placedOut.groups.filter(g => g.category !== 'closed'))
+  // La Notte è una voce sua (secNotte), non un gruppo di Lavori (app-home-tre-categorie-06-11).
+  const nightGroup = $derived(workGroups.find(g => g.category === 'night') ?? null)
   // Franz 24/10 00:44: ogni voce di Lavori è una scheda della famiglia; il chevron apre i dettagli (lavoriDetails).
   let openWork = $state<string | null>(null)
   const workKey = (r: LavoriRow, i: number) => r.approval?.task ?? r.commitment?.task ?? (r.agenda?.key || null) ?? `${r.kind}-${i}`
@@ -712,7 +717,7 @@
 {/snippet}
 
 <section class="home" class:part={!!part} class:topdrag={topDrag}>
-{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed' && !up.includes('sessions')}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed' && !up.includes('sessions')}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'notte'}{@render secNotte()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {@const live = dragOrder ?? order}
  <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->
@@ -773,9 +778,31 @@
 {/if}
 {#if part === 'work' && afterSessions}{@render afterSessions()}{/if}
 {/snippet}
+{#snippet secNotte()}
+<!-- La Notte, voce sua sotto le sessioni e fuori da Esiti (app-home-tre-categorie-06-11, Franz 06/11: «Notte deve essere visibile
+     fuori da esito»): sempre in vista, senza una testata da aprire; prima stava dentro Lavori. -->
+{#if shows('work') && nightGroup}
+  {#each nightGroup.rows as r, i (`n-${i}`)}
+    {#if r.kind !== 'night'}
+      {@const x = serviceText(r)}
+      <div class="card wrows"><div class="wrow"><span class="wic"><span class="ms">bedtime</span></span><span class="otext"><b>{x.title}</b>{#if x.detail}<small>{x.detail}</small>{/if}</span><button class="tonal mini" onclick={() => onService(r)}>{x.action}</button></div></div>
+    {:else if tonightCard.items.length}
+      {@render tonight(r)}
+    {:else}
+      <!-- La Notte su una riga (stile «Studio e Diretta», 30/10): la coda di stanotte e com'è andata la notte scorsa; il tocco apre
+           la pagina Notte, «Aggiungi» mette in coda. -->
+      <div class="card wrows" data-testid="home-notte">
+        <div class="wrow orow" role="button" tabindex="0" onclick={onNight} onkeydown={(e) => e.key === 'Enter' && onNight()}><span class="wic"><span class="ms">bedtime</span></span>
+          <span class="otext"><b>{t.homeNight}</b><small class="txt">{t.homeNightRow(0, night ? night.counts.done : null, night ? night.cards.length : null)}</small></span>
+          <button class="tonal mini" onclick={(e) => { e.stopPropagation(); onService(r) }}>{t.fyAdd}</button></div>
+      </div>
+    {/if}
+  {/each}
+{/if}
+{/snippet}
 {#snippet secLavori()}
-{#if shows('work') && showLavori && (fy || workGroups.length)}
-  {#if !part}{@render sec('lavori', t.lavoriTitle, 'checklist', lavoriCount ? String(lavoriCount) : null, 'home-sez-lavori', open.lavori ? null : (lavoriLine || null), { dot: looseOk.length ? 'var(--wait)' : null })}{/if}
+{#if shows('work') && showLavori && (fy || workGroups.some(g => g.category !== 'night'))}
+  {#if !part}{@render sec('lavori', t.lavoriProgress, 'checklist', lavoriCount ? String(lavoriCount) : null, 'home-sez-lavori', open.lavori ? null : (lavoriLine || null), { dot: looseOk.length ? 'var(--wait)' : null })}{/if}
   {#if part || open.lavori}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     <!-- Gli ok ai compiti senza una sessione aperta (Franz 02/11 23:57): in cima ai lavori, con la loro card ambra. -->
     {#each looseOk as r, i (workKey(r, i))}{@render workCard(r, i, !primary && i === 0)}{/each}
@@ -786,24 +813,7 @@
     {/if}
     <!-- Da riprendere, Stanotte, Da sistemare e Programmati, che stavano in «Altro», sono lavori (Franz 29/10 20:32). -->
     {#each workGroups as g (g.category)}
-      {#if g.category === 'night'}
-        {#each g.rows as r, i (`n-${i}`)}
-          {#if r.kind !== 'night'}
-            {@const x = serviceText(r)}
-            <div class="card wrows"><div class="wrow"><span class="wic"><span class="ms">bedtime</span></span><span class="otext"><b>{x.title}</b>{#if x.detail}<small>{x.detail}</small>{/if}</span><button class="tonal mini" onclick={() => onService(r)}>{x.action}</button></div></div>
-          {:else if tonightCard.items.length}
-            {@render tonight(r)}
-          {:else}
-            <!-- La Notte su una riga (stile «Studio e Diretta», 30/10): la coda di stanotte e com'è andata la notte scorsa, che
-                 prima stava in una sezione chiusa in fondo; il tocco apre la pagina Notte, «Aggiungi» mette in coda. -->
-            <div class="card wrows">
-              <div class="wrow orow" role="button" tabindex="0" onclick={onNight} onkeydown={(e) => e.key === 'Enter' && onNight()}><span class="wic"><span class="ms">bedtime</span></span>
-                <span class="otext"><b>{t.homeNight}</b><small class="txt">{t.homeNightRow(0, night ? night.counts.done : null, night ? night.cards.length : null)}</small></span>
-                <button class="tonal mini" onclick={(e) => { e.stopPropagation(); onService(r) }}>{t.fyAdd}</button></div>
-            </div>
-          {/if}
-        {/each}
-      {:else}
+      {#if g.category !== 'night'}
         {#if part}<div class="sec static"><span class="ic"><span class="ms">{g.category === 'resume' ? 'replay' : g.category === 'scheduled' ? 'timer' : 'event_list'}</span></span><span class="st">{catLabel(g.category)}</span><small>{outsideCount(g)}</small></div>{:else}
         <h2 class="gh cat" style="--t:{g.category === 'fix' ? 'var(--wait)' : 'var(--text2)'}">
           <svg viewBox="0 0 24 24" width="16" height="16"><path d={CAT_ICON[g.category]} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -830,10 +840,11 @@
 {/if}
 {/snippet}
 {#snippet secEsiti()}
-{#if shows('out') && out}
-  <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. -->
-  {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', esitiCount, 'home-sez-esiti', !part && !open.esiti ? esitiLine : null)}
-  {#if part || open.esiti}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
+{#if (shows('work') || shows('out')) && out}
+  <!-- Gli esiti di oggi dalla cronologia: i rossi in cima, poi «Tutti gli esiti» apre la pagina del terzo box. Dentro Sessioni,
+       chiusa di partenza anche nella colonna della plancia (app-home-tre-categorie-06-11). -->
+  {@render sec('esiti', part && out.red.length ? t.deskRedToday : t.homeOutcomes, 'sports_score', esitiCount, 'home-sez-esiti', !open.esiti ? esitiLine : null)}
+  {#if open.esiti}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     <div class="card wrows">
       {#each out.red.length ? out.red.slice(0, 3) : out.settledRows.slice(0, 2) as d, i (i)}
         <button class:row-red={d.ref != null} class="wrow orow" onclick={() => (liveNames.has(d.session) ? onPick(d.session) : onBox('esiti'))}>

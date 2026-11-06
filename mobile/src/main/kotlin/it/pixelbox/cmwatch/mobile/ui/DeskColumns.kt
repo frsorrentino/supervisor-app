@@ -138,24 +138,6 @@ private fun paceText(delta: Int, day: Int?): String {
 }
 
 /**
- * Esiti chiuso in fondo a Tocca a te (app-sessioni-evidenti-06-11, J2): come il titolo di un gruppo, col numero di oggi; il tocco
- * apre il foglio degli esiti. Come `.outclosed` della web.
- */
-@Composable
-internal fun DeskOutClosed(n: Int?, onOpen: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).handCursor().clickable(onClick = onOpen).padding(horizontal = 14.dp, vertical = 12.dp).testTag("plancia-esiti-chiuso"),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Icon(Icons.Outlined.TaskAlt, null, tint = V3.Tx2, modifier = Modifier.size(20.dp))
-        Text(stringResource(R.string.desk_out_closed), style = V3.Section.copy(fontSize = 17.sp))
-        Text((n ?: 0).toString(), style = V3.Small)
-        Spacer(Modifier.weight(1f))
-        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(22.dp))
-    }
-}
-
-/**
  * Il titolo di un gruppo di righe nella colonna (il `vsec` della PWA). Con `open` è il tasto che lo apre e lo chiude, con la
  * freccia, come le sezioni di Tocca a te (web-pubblicazioni-voci-06-11: le sezioni di Risorse).
  */

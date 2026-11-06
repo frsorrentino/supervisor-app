@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.DataUsage
@@ -79,7 +80,8 @@ private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
     "decisioni" -> Icons.Outlined.Timer to stringResource(R.string.home_sec_decide)
     "sessions" -> Icons.Outlined.PlayCircle to stringResource(R.string.home_sec_sessions)
     "suggestions" -> Icons.Outlined.AutoAwesome to stringResource(R.string.sug_title)
-    "lavori" -> Icons.Outlined.Checklist to stringResource(R.string.lavori_title)
+    "notte" -> Icons.Rounded.Bedtime to stringResource(R.string.home_sec_night)
+    "lavori" -> Icons.Outlined.Checklist to stringResource(R.string.lavori_progress)
     "esiti" -> Icons.Outlined.SportsScore to stringResource(R.string.box_outcomes_title)
     // Le tre sezioni nuove (app-da-guardare-02-11, app-rendiconti-2-02-11): in Riordina hanno già il loro posto.
     "da_guardare" -> Icons.Outlined.Visibility to stringResource(R.string.home_sec_look)

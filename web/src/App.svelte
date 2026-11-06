@@ -1913,12 +1913,13 @@
   {#if keepBoth || deskDashboard}<div class="wslot"><div class="wslot" {@attach park(deskDashboard)}>
   <!-- Le sessioni prima (app-sessioni-evidenti-06-11, scelta J2 di Franz, 06/11 00:52): Sessioni, Tocca a te con Esiti chiuso in
        fondo, Risorse; le altre nell'ordine della home. -->
+  <!-- Tre colonne come la home (app-home-tre-categorie-06-11): Sessioni (con Notte, In corso, Esiti e Fatto oggi), Tocca a te, Risorse. -->
   <Plancia {width} order={['work', ...decodeCats(st.home_order).map(c => c.id).filter(id => id !== 'work' && id !== 'out')]} top={null} panel={master && masterOpen ? masterPanelGrips : null} panelWide={!masterHalf} panelLeft={masterLeft}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
-    {#snippet you()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="0ms"><DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}<button class="outclosed" data-testid="plancia-esiti-chiuso" onclick={() => openPage('box-esiti')}><span class="ms" aria-hidden="true">sports_score</span><b>{t.deskOutClosed}</b><small>{kpiHeadOf(st, kpiPage, now).outcomes ?? 0}</small><span class="ms ch" aria-hidden="true">chevron_right</span></button></div>{:else}{@render pskel()}{/if}{/snippet}
-    {#snippet work()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="60ms"><DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} open={summary.open} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}</div>{:else}{@render pskel()}{/if}{/snippet}
+    {#snippet you()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="0ms"><DeskHead kind="you" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-aspetta')} />{@render homeView('you')}</div>{:else}{@render pskel()}{/if}{/snippet}
+    {#snippet work()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="60ms"><DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} open={summary.open} onOpen={() => openPage('box-lavoro')} />{@render homeView('work')}<DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet out()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="120ms"><DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet tools()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="180ms"><DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet bar()}{@render masterBar()}{/snippet}
@@ -2083,11 +2084,6 @@
   /* Esiti chiuso in fondo a Tocca a te (J2): come i titoli dei gruppi; il tocco apre il foglio degli esiti. */
   /* Le stesse misure dei titoli dei gruppi (.sec della home: 18/700, icona a 8 px, numero 15/600; web-tocca-apribile-06-11):
      icona allineata a 13 px e stesso passo fra le righe. */
-  .outclosed { width: calc(100% - 24px); margin: 28px 12px 2px; display: flex; align-items: center; padding: 0 13px 0 0; text-align: left; color: var(--tx); background: none; border: 0; cursor: pointer; }
-  .outclosed .ms { color: var(--tx2); font-size: 20px; margin-right: 8px; }
-  .outclosed b { font: 700 18px var(--display); }
-  .outclosed small { margin-left: 8px; padding: 1px 8px; color: var(--tx2); font: 600 15px var(--display); }
-  .outclosed .ch { margin-left: auto; margin-right: 0; }
   /* La striscia (app-colonne-strette-05-11): la X in alto, il pallino, il nome in verticale dal basso in alto. */
   .cstrip { height: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; background: var(--bg); min-height: 0; }
   .cstrip .sx { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 16px; color: var(--text2); }

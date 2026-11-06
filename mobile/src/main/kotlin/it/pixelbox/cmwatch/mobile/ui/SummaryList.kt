@@ -141,7 +141,8 @@ fun SummaryList(
     /** «Utilizzo»: le schede della quota, nella sua sezione richiudibile. */
     usage: (@Composable () -> Unit)? = null,
     /** Le sezioni aperte la prima volta, prima che tu le apra o chiuda. */
-    startOpen: Set<String> = setOf("sessions", "suggestions", "lavori", "esiti"),
+    // Esiti sta dentro Sessioni e parte chiusa (app-home-tre-categorie-06-11).
+    startOpen: Set<String> = setOf("sessions", "suggestions", "lavori"),
     /**
      * La sessione appena chiusa dal pannello di chiusura, con la riga «chiusa alle …» (Franz, 08/10 18:59, volo al contrario):
      * la sua card in cima alle sessioni è dove la pagina atterra tornando alla home; poi si richiude da sola.
@@ -649,8 +650,10 @@ fun SummaryList(
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
                         // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre.
                         // Il primo riquadro conta le sessioni ferme, che stanno in Sessioni (app-home-nomi-02-11): apre In corso e Sessioni.
-                        val id = when (b) { HomeBox.WAITING -> "work"; HomeBox.BUSY -> "work"; HomeBox.OUTCOMES -> "out" }
+                        // Esiti sta dentro Sessioni (app-home-tre-categorie-06-11): il suo riquadro apre Sessioni e la sottosezione Esiti.
+                        val id = "work"
                         if (b == HomeBox.WAITING && !sessionsOpen) { sessionsOpen = true; save("sessions", true) }
+                        if (b == HomeBox.OUTCOMES && !esitiOpen) { esitiOpen = true; save("esiti", true) }
                         if (catsNow.any { c -> c.id == id && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, id))
                         catFocus = id
                     }, onQuota, joined = up.any { k -> k != pin }, slot = { slotContent() })
@@ -709,7 +712,10 @@ fun SummaryList(
             items(waitRows.size, key = { keys[it] }) { i -> Box(moving().growIn(seenWait.isNotEmpty() && keys[i] !in seenWait)) { androidx.compose.runtime.SideEffect { seenWait += keys[i] }; card(waitRows[i], true) } }
             if (restRows.isNotEmpty()) item(key = "rest-group") { Box(moving()) { WaitGroupLabel(stringResource(R.string.home_sessions_others), null) } }
         } }
-        val outside = outsidePlaced.groups.filter { g -> g.category != OutsideSessions.Category.CLOSED }
+        // La Notte è una voce sua sotto le sessioni, fuori da Lavori ed Esiti (app-home-tre-categorie-06-11, Franz 06/11: «Notte deve
+        // essere visibile fuori da esito»).
+        val nightGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.NIGHT }
+        val outside = outsidePlaced.groups.filter { g -> g.category != OutsideSessions.Category.CLOSED && g.category != OutsideSessions.Category.NIGHT }
         val closedGroup = outsidePlaced.groups.firstOrNull { g -> g.category == OutsideSessions.Category.CLOSED }
         // Contratto 1.84 (scheda A): i suggerimenti dopo le sessioni (Franz 30/10 16:44), fuori dal numero di chi aspetta: un consiglio non blocca nessuno.
         val sug = suggestions?.takeIf { it.shown.isNotEmpty() }
@@ -772,12 +778,39 @@ fun SummaryList(
                 if (suggestionsOpen) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
             }
         }
+        val renderNotte: () -> Unit = {
+            val g = nightGroup
+            if (g != null) {
+                val moving = movingIn("notte")
+                // Con la coda di stanotte la sua scheda; senza, la Notte su una riga (la coda e com'è andata la notte scorsa; il tocco
+                // apre la pagina) e le altre righe della notte. Sempre in vista, senza una testata da aprire.
+                if (tonight?.items?.isNotEmpty() == true) item(key = "notte-card") { Box(moving()) { OutsideCard(g.rows, onService, tonight, nightPage, onNight, g.category) } }
+                else item(key = "notte") {
+                    Box(moving().testTag("home-notte")) {
+                        V3List {
+                            g.rows.forEachIndexed { i, row ->
+                                if (row.kind == MasterHome.Kind.NIGHT) V3Row(i == 0, onNight, { Icon(Icons.Rounded.Bedtime, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { V3Pill(stringResource(R.string.fy_btn_add)) { onService(row) } }) {
+                                    Text(stringResource(R.string.home_sec_night), style = V3.Name)
+                                    Text(nightPage?.let { p -> stringResource(R.string.home_night_row, p.counts.done, p.cards.size) } ?: stringResource(R.string.fy_night_empty_short), style = V3.Small)
+                                } else {
+                                    val (title, detail, action) = serviceText(row)
+                                    V3Row(i == 0, null, { Icon(Icons.Rounded.Bedtime, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { V3Pill(stringResource(action)) { onService(row) } }) {
+                                        Text(title, style = V3.Name)
+                                        detail?.let { d -> Text(d, style = V3.Small, maxLines = 2, overflow = TextOverflow.Clip) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         val renderLavori: () -> Unit = {
         val moving = movingIn("lavori")
         if (showLavori && (foryou != null || outside.isNotEmpty())) {
             val laterRows = placed?.loose?.let { it.outside + it.claude }.orEmpty()
             if (listSkip != "lavori") dragPresent += "lavori"
-            if (listSkip != "lavori" && "lavori" !in liveTop) item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_title), androidx.compose.material.icons.Icons.Outlined.Checklist, lavoriCount?.toString(), right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, dot = if (looseOk.isNotEmpty()) V3.Wait else null, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
+            if (listSkip != "lavori" && "lavori" !in liveTop) item(key = "sec-lavori") { Box(moving()) { V3Section(sectionDrag("lavori"), stringResource(R.string.lavori_progress), androidx.compose.material.icons.Icons.Outlined.Checklist, lavoriCount?.toString(), right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen, dot = if (looseOk.isNotEmpty()) V3.Wait else null, onToggle = { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }) } }
             if (lavoriOpen) {
                 // Gli ok ai compiti senza una sessione aperta (Franz 02/11 23:57): in cima ai lavori, con la loro card ambra.
                 looseOk.forEachIndexed { i, r ->
@@ -793,22 +826,13 @@ fun SummaryList(
                     val k = r.commitment?.task ?: r.agenda?.key?.takeIf { it.isNotBlank() } ?: "${r.kind}-$i"
                     item(key = "lv-$k") { Box(moving()) { WorkCard(r, openWork == k, { openWork = if (openWork == k) null else k }, onApprove, onDoneForPerson, onAgendaEdit, onStart) } }
                 }
-                outside.filter { g -> g.category == OutsideSessions.Category.NIGHT && tonight?.items?.isNotEmpty() == true }.forEach { g ->
-                    item(key = "out-${g.category}-card") { Box(moving()) { OutsideCard(g.rows, onService, tonight, nightPage, onNight, g.category) } }
-                }
                 item(key = "lv-list") {
                     Box(moving()) {
                         V3List {
                             var first = true
                             outside.forEach { g ->
                                 g.rows.forEach { row ->
-                                    if (g.category == OutsideSessions.Category.NIGHT && row.kind == MasterHome.Kind.NIGHT) {
-                                        // La Notte su una riga: la coda di stanotte e com'è andata la notte scorsa; il tocco apre la pagina.
-                                        if (tonight?.items?.isNotEmpty() != true) V3Row(first, onNight, { Icon(Icons.Rounded.Bedtime, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { V3Pill(stringResource(R.string.fy_btn_add)) { onService(row) } }) {
-                                            Text(stringResource(R.string.home_sec_night), style = V3.Name)
-                                            Text(nightPage?.let { p -> stringResource(R.string.home_night_row, p.counts.done, p.cards.size) } ?: stringResource(R.string.fy_night_empty_short), style = V3.Small)
-                                        }
-                                    } else {
+                                    run {
                                         val (title, detail, action) = serviceText(row)
                                         V3Row(first, null, { Icon(categoryIcon(g.category), null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }, { V3Pill(stringResource(action)) { onService(row) } }) {
                                             Text(stringResource(categoryLabel(g.category)), style = V3.Meter)
@@ -966,6 +990,7 @@ fun SummaryList(
                 // Chiuse sta dentro Sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
                 "sessions" -> { renderSessions(); if (listSkip != "closed" && "sessions" !in liveTop) renderClosed() }
                 "suggestions" -> renderSuggestions()
+                "notte" -> renderNotte()
                 "lavori" -> renderLavori()
                 "esiti" -> renderEsiti()
                 "usage" -> renderUsage()

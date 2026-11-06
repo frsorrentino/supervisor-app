@@ -5,28 +5,32 @@ import { dragTarget, move, pinned, withPin, type HomeSection } from './homeOrder
 
 export type CatId = 'you' | 'work' | 'out' | 'tools'
 /** Le chiavi di sezione: quelle di oggi più le tre nuove, che si disegnano quando esistono (app-da-guardare-02-11, app-rendiconti-2-02-11). */
-export type HomeKey = Exclude<HomeSection, 'plugins' | 'closed'> | 'da_guardare' | 'rendiconti' | 'pagella'
+export type HomeKey = Exclude<HomeSection, 'plugins' | 'closed'> | 'da_guardare' | 'rendiconti' | 'pagella' | 'notte'
 export type Cat = { id: CatId; open: boolean; sections: HomeKey[] }
 
 export const DEFAULT_CATS: Cat[] = [
   // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (le prove e i lavori da guardare: `prove` porta
   // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
   { id: 'you', open: true, sections: ['decisioni', 'prove', 'seguiti', 'suggestions'] },
-  { id: 'work', open: true, sections: ['sessions', 'lavori'] },
-  { id: 'out', open: false, sections: ['esiti', 'rendiconti'] },
+  // Tre categorie come la plancia larga (app-home-tre-categorie-06-11, Franz 06/11 11:57-12:2x): Sessioni porta sotto di sé la
+  // Notte (voce sua, fuori da Esiti), In corso (Lavori) ed Esiti (con Rendiconti, chiusa di partenza); la categoria Esiti non c'è
+  // più. `out` resta solo come colonna della plancia.
+  { id: 'work', open: true, sections: ['sessions', 'notte', 'lavori', 'esiti', 'rendiconti'] },
   { id: 'tools', open: false, sections: ['usage', 'system', 'pagella'] },
 ]
 /**
  * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
  * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
  */
-export const REV = 'rev:4'
+export const REV = 'rev:5'
 /**
  * Un ordine `rev:2` (prima delle voci accorpate) o `rev:3` (prima delle quattro sezioni) tiene categorie, chiuse e cima; dentro
  * Tocca a te riprende una volta l'ordine di partenza.
  */
 const REV2 = 'rev:2'
 const REV3 = 'rev:3'
+/** Un ordine fino a `rev:4` (quattro categorie): dentro Sessioni riprende una volta l'ordine di partenza, Esiti dopo In corso. */
+const REV4 = 'rev:4'
 const SHUT = 'shut:'
 const TOP = 'top:'
 /** Il bordo dello spazio in cima nella lista piatta del trascinamento: sopra c'è la cima, sotto le categorie. */
@@ -38,10 +42,11 @@ export const catOf = (key: string): CatId | null => DEFAULT_CATS.find(c => (c.se
 export function decode(saved: string[] | null | undefined): Cat[] {
   const list = saved ?? []
   const up = top(saved) as string[]
-  const fresh = list.length > 0 && !list.includes(REV) && !list.includes(REV2) && !list.includes(REV3)
+  const fresh = list.length > 0 && !list.includes(REV) && !list.includes(REV2) && !list.includes(REV3) && !list.includes(REV4)
   const youOld = !list.includes(REV) && (list.includes(REV2) || list.includes(REV3))
+  const workOld = list.length > 0 && !list.includes(REV)
   const all = [...new Set(list.filter(k => catOf(k) && !up.includes(k)))] as HomeKey[]
-  const keys = all.filter(k => (!fresh || (catOf(k) !== 'you' && catOf(k) !== 'tools')) && !(youOld && catOf(k) === 'you'))
+  const keys = all.filter(k => (!fresh || (catOf(k) !== 'you' && catOf(k) !== 'tools')) && !(youOld && catOf(k) === 'you') && !(workOld && catOf(k) === 'work'))
   const order = fresh ? DEFAULT_CATS.map(c => c.id) : [...new Set([...all.map(k => catOf(k)!), ...DEFAULT_CATS.map(c => c.id)])]
   const shut = list.find(k => k.startsWith(SHUT))
   const closed = shut == null ? null : shut.slice(SHUT.length).split(',')
@@ -84,7 +89,10 @@ export function dragCats(order: HomeSection[], held: HomeSection, y: number, mid
   // categoria resta lì: sul tabellone ci va solo rilasciandola sul riquadro (Franz 02/11 20:45, app-tabellone-quattro-02-11).
   const e = (order as string[]).indexOf(EDGE)
   const up = e < 0 || !fromBoard ? [] : (order as string[]).slice(0, e + 1)
-  const mine = Object.fromEntries(Object.entries(mids).filter(([k]) => up.includes(k) || catFor(k) === catFor(held))) as Partial<Record<HomeSection, number>>
+  // Una sezione presa nella sua categoria scavalca solo le vicine sotto il bordo: sul tabellone possono stare voci della stessa
+  // categoria (Esiti sopra, Sessioni sotto: app-home-tre-categorie-06-11).
+  const below = e < 0 ? (order as string[]) : (order as string[]).slice(e + 1)
+  const mine = Object.fromEntries(Object.entries(mids).filter(([k]) => up.includes(k) || (catFor(k) === catFor(held) && (fromBoard || below.includes(k))))) as Partial<Record<HomeSection, number>>
   return dragTarget(order, held, y, mine)
 }
 

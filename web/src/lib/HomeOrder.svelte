@@ -16,7 +16,7 @@
   const SEC: Record<string, { icon: string; name: string }> = {
     seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: { icon: 'timer', name: t.homeSecDecide },
     sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle },
-    lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem },
+    notte: { icon: 'bedtime', name: t.homeNight }, lavori: { icon: 'checklist', name: t.lavoriProgress }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem },
     // Le tre sezioni nuove (app-da-guardare-02-11, app-rendiconti-2-02-11): hanno già il loro posto; icone disegnate, non sono nel font.
     da_guardare: { icon: 'svg:eye', name: t.homeSecWatch }, rendiconti: { icon: 'svg:doc', name: t.homeSecReports }, pagella: { icon: 'svg:medal', name: t.homeSecScorecard },
   }

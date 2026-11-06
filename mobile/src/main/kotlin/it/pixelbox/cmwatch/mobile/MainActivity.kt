@@ -2054,8 +2054,8 @@ class MainActivity : ComponentActivity() {
                     place = place, open = masterChat, sessionsOpen = false, onPlace = if (master != null) onPlace else null,
                 ) {
                 it.pixelbox.cmwatch.mobile.ui.Plancia(
-                    // Le sessioni prima (app-sessioni-evidenti-06-11, scelta J2 di Franz, 06/11 00:52): Sessioni, Tocca a te con Esiti
-                    // chiuso in fondo, Risorse; le altre nell'ordine della home.
+                    // Le sessioni prima (app-sessioni-evidenti-06-11, scelta J2 di Franz, 06/11 00:52): Sessioni, Tocca a te, Risorse; le
+                    // altre nell'ordine della home. Esiti, la Notte e Fatto oggi stanno nella colonna Sessioni (app-home-tre-categorie-06-11).
                     widthDp, listOf("work") + it.pixelbox.cmwatch.rules.HomeCats.decode(st.homeOrder).map { c -> c.id }.filter { id -> id != "work" && id != "out" },
                     head = { pageHeader(null) },
                     column = { parts ->
@@ -2071,7 +2071,7 @@ class MainActivity : ComponentActivity() {
                         }, { part ->
                             Column(Modifier.fillMaxWidth()) {
                                 when (part) {
-                                    "you" -> it.pixelbox.cmwatch.mobile.ui.DeskOutClosed(head.outcomes) { boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.OUTCOMES }
+                                    "work" -> it.pixelbox.cmwatch.mobile.ui.DeskDone(doneToday) { open = null; tab = StartRoute.Tab.LAVORI }
                                     "out" -> { it.pixelbox.cmwatch.mobile.ui.DeskNight(boxPage, loading = nightRef != null && boxPage == null) { nightOpen = true }; it.pixelbox.cmwatch.mobile.ui.DeskDone(doneToday) { open = null; tab = StartRoute.Tab.LAVORI } }
                                     "tools" -> it.pixelbox.cmwatch.mobile.ui.DeskTools(st) { p -> sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, p) }
                                 }

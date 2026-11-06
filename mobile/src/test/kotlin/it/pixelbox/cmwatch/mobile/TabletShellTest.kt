@@ -179,14 +179,13 @@ class TabletShellTest {
         val m = summary.master!!
         val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
         Plancia(
-            // La plancia di J2 (app-sessioni-evidenti-06-11): Sessioni, Tocca a te con Esiti chiuso in fondo, Risorse.
+            // La plancia di J2 (app-sessioni-evidenti-06-11): Sessioni (con Esiti dentro, app-home-tre-categorie-06-11), Tocca a te, Risorse.
             1440, listOf("work", "you", "tools"), head = {},
             column = { parts ->
                 SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, parts = parts, now = ts, kpiState = st,
                     partHead = { p -> DeskHead(p, head, st, ts, open = summary.open.takeIf { p == "work" }) {} },
                     partFoot = { p ->
                         androidx.compose.foundation.layout.Column {
-                            if (p == "you") DeskOutClosed(head.outcomes) {}
                             if (p == "tools") DeskTools(st) {}
                         }
                     },
