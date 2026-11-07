@@ -120,6 +120,8 @@ import it.pixelbox.cmwatch.mobile.update.AppUpdater
 fun SummaryList(
     model: Summary.Model, onOpen: (String) -> Unit, onAnswer: (String, Int) -> Unit, onStep: (String, String) -> Unit,
     onService: (MasterHome.Row) -> Unit, onClosed: () -> Unit, initiallyOpen: String? = null,
+    /** Cosa è aperto, tenuto dall'Activity perché resti quando la lista si rifà (app-frecce-plancia-tablet-07-11). */
+    folds: HomeFolds? = null,
     /** Il tablet (Franz, 04/10 14:31): nell'altezza in più, sotto, le schede di «Utilizzo e limiti». */
     footer: (@Composable () -> Unit)? = null,
     /** L'ok a un compito (contratto 1.37), dalla sezione Lavori; la nota vuota vale «ok». */
@@ -292,20 +294,20 @@ fun SummaryList(
         val full = it.pixelbox.cmwatch.rules.HomeCats.encode(next, savedPinNow, upNow) ?: emptyList()
         sentOrder.send(full); saveOrder?.invoke(full)
     }
-    var expanded by rememberSaveable { mutableStateOf(initiallyOpen) }
+    val f = folds ?: remember { HomeFolds(HomeFolds.cardOf(initiallyOpen)) }
     var openWork by rememberSaveable { mutableStateOf<String?>(null) }
     // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate anche alla prossima apertura. File nuovo col
     // riordino (app-home-riordino-29-10): Utilizzo parte chiusa anche per chi l'aveva aperta, come nella web.
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { runCatching { ctx.getSharedPreferences("home_sections_2", android.content.Context.MODE_PRIVATE) }.getOrNull() }
-    fun section(key: String): androidx.compose.runtime.MutableState<Boolean> = if (parts != null) AlwaysOpen else mutableStateOf(runCatching { prefs?.getBoolean(key, key in startOpen) }.getOrNull() ?: (key in startOpen))
+    fun section(key: String): androidx.compose.runtime.MutableState<Boolean> = if (parts != null) f.state("plancia.$key", true) else mutableStateOf(runCatching { prefs?.getBoolean(key, key in startOpen) }.getOrNull() ?: (key in startOpen))
     var sessionsOpen by remember { section("sessions") }
     var usageOpen by remember { section("usage") }
     var esitiOpen by remember { section("esiti") }
     var suggestionsOpen by remember { section("suggestions") }
     var lavoriOpen by remember { section("lavori") }
     var pluginsOpen by remember { section("plugins") }
-    var laterOpen by remember { mutableStateOf(false) }
+    var laterOpen by remember(f) { f.state("later", false) }
     var sysManual by remember { mutableStateOf<SystemRules.Manual?>(null) }
     // I KPI: per ogni sessione i suoi eventi di oggi, la voce viva prima di una chiusa omonima.
     val kpiEvents = remember(kpiPage) { kpiPage?.sessions?.sortedBy { it.live }?.associate { it.session to it.events } }
@@ -317,7 +319,8 @@ fun SummaryList(
         androidx.compose.runtime.LaunchedEffect(names) { previewDone = false; preview = closePreview?.invoke(names); previewDone = true }
         CloseFinishedDialog(preview, previewDone, onDismiss = { closeAsk = null; preview = null }) { ok -> closeAsk = null; preview = null; onCloseMany(ok) }
     }
-    fun save(key: String, v: Boolean) { runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
+    // Le sezioni della plancia non toccano quelle salvate della home del telefono.
+    fun save(key: String, v: Boolean) { if (parts == null) runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
     /** `hot`: ha qualcosa per Franz, filo e numero in ambra (app-richiede-te-righe-02-11). */
     class NewRow(val title: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val count: String, val tag: String, val open: androidx.compose.runtime.MutableState<Boolean>, val hot: Boolean = false)
     val newOpen = remember { (it.pixelbox.cmwatch.rules.HomeOrder.TOP + "da_guardare").associateWith { k -> section(k) } }
@@ -678,13 +681,12 @@ fun SummaryList(
         val lastRed = it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, zone)?.red.orEmpty().sortedBy { d -> d.at }.associate { d -> d.session to d.at }
         val card: @Composable (Summary.Row, Boolean) -> Unit = { r, first ->
             val s = r.session
-            val id = r.group.name + ":" + s.name
             // Dove sta la scheda, per le pillole + e › del tablet (app-tablet-come-pwa-03-11).
             val spots = LocalSessionSpots.current
             if (spots != null) androidx.compose.runtime.DisposableEffect(s.name) { onDispose { spots.remove(s.name) } }
             Box(if (spots != null) Modifier.onGloballyPositioned { c -> spots[s.name] = c.boundsInRoot() } else Modifier) {
             SummaryCard(
-                r, expanded == id, onToggle = { expanded = if (expanded == id) null else id },
+                r, f.isOpen(s.name), onToggle = { f.toggle(s.name) },
                 onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
                 firstFilled = false, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, refused = closeRefused?.takeIf { r -> r.first == s.name }?.second, onRefusedSeen = onCloseSeen,
                 onArm = onCloseArm?.takeIf { closeArmable }?.let { f -> { w: String -> f(s.name, w) } }, now = now,
@@ -2358,15 +2360,6 @@ internal fun rememberSentOrder(relay: List<String>?): SentOrder = remember { Sen
 private fun slotSuggestionNames(all: List<it.pixelbox.cmwatch.contract.Suggestion>): List<String> {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     return remember(all) { it.pixelbox.cmwatch.rules.SlotInfo.suggestionNames(all) { k -> ctx.getString(sugKindLabel(k)) } }
-}
-
-/** Le sezioni di una colonna della plancia: sempre aperte, il tocco sulla testata non le chiude (Home.svelte, `part`). */
-private object AlwaysOpen : androidx.compose.runtime.MutableState<Boolean> {
-    override var value: Boolean
-        get() = true
-        set(_) {}
-    override fun component1() = true
-    override fun component2(): (Boolean) -> Unit = {}
 }
 
 /** Le schede di sessione della home e dove stanno: il filo del tablet ci mette accanto le pillole + e ›. */

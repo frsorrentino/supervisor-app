@@ -266,6 +266,8 @@ class MainActivity : ComponentActivity() {
         var decisionsOpen by rememberSaveable { mutableStateOf(false) }
         var provePage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.ProvePage?>(null) }
         var decisionsPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.DecisionsPage?>(null) }
+        // Le frecce della home e della plancia (app-frecce-plancia-tablet-07-11): quello che è aperto resta quando la lista si rifà.
+        val homeFolds = remember { it.pixelbox.cmwatch.mobile.ui.HomeFolds() }
         // Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno).
         val attentionDone: (it.pixelbox.cmwatch.rules.AttentionQueue.Done) -> Unit = { d -> scope.launch { runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, d.ref, kind = d.kind, since = d.since) } } }
         // La chat dal cui banner si è aperta la coda: non è in fila, come nel conto del banner (23/10, come la web).
@@ -2005,7 +2007,7 @@ class MainActivity : ComponentActivity() {
             // `parts`: una colonna della plancia del tablet (app-tablet-come-pwa-03-11), con la testata e il fondo di ogni categoria.
             val listPart: @Composable (List<String>?, (@Composable (String) -> Unit)?, (@Composable (String) -> Unit)?) -> Unit = { parts, partHead, partFoot ->
                 SummaryList(
-                    summary, onQuota = goUsage, parts = parts, partHead = partHead, partFoot = partFoot, todo = sessTodo, sessionTodo = sessionTodo,
+                    summary, onQuota = goUsage, parts = parts, partHead = partHead, partFoot = partFoot, todo = sessTodo, sessionTodo = sessionTodo, folds = homeFolds,
                     update = updateUi.takeIf { BuildConfig.SELF_UPDATE }, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
                     // Aprire una sessione che ha finito la toglie da «Ha finito», come in «Per te».
                     onOpen = { n ->
