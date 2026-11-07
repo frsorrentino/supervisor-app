@@ -20,6 +20,9 @@ object ContractJson {
     fun decodePrimaRaccolta(raw: String): PrimaRaccoltaPage = json.decodeFromString(PrimaRaccoltaPage.serializer(), raw)
     fun decodeProve(raw: String): ProvePage = json.decodeFromString(ProvePage.serializer(), raw)
     fun decodeDecisions(raw: String): DecisionsPage = json.decodeFromString(DecisionsPage.serializer(), raw)
+    /** Contratto 1.130: `attese` (la pagina) e `attesa` (una voce con `msg`). */
+    fun decodeWaits(raw: String): WaitsPage = json.decodeFromString(WaitsPage.serializer(), raw)
+    fun decodeWait(raw: String): WaitItem = json.decodeFromString(WaitItem.serializer(), raw)
     fun decodeNightReport(raw: String): NightReport = json.decodeFromString(NightReport.serializer(), raw)
     /** Contratto 1.74: il `text` dell'op `nights`, i rapporti salvati. */
     fun decodeNights(raw: String): NightList = json.decodeFromString(NightList.serializer(), raw)

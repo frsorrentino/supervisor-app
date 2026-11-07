@@ -16,6 +16,16 @@ class FakeTransport(
     private val load: (String) -> String,
     private val now: () -> Long = { System.currentTimeMillis() / 1000 },
 ) : Transport {
+    /** La risposta d'esempio a `op` con questo `arg`, o quella con un arg che non c'è (contratto 1.130, `attesa` di una voce chiusa). */
+    fun sampleResult(op: String, arg: String?): Pair<Boolean, String> {
+        val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }
+        fun str(o: kotlinx.serialization.json.JsonElement, k: String) = ((o as kotlinx.serialization.json.JsonObject)[k] as? kotlinx.serialization.json.JsonPrimitive)?.content
+        val cmds = (root["cmd"] as kotlinx.serialization.json.JsonArray).filter { str(it, "op") == op }
+        val id = (cmds.firstOrNull { str(it, "arg") == arg } ?: cmds.last()).let { str(it, "id") }
+        val r = (root["result"] as kotlinx.serialization.json.JsonArray).first { str(it, "id") == id }
+        return (str(r, "ok") == "true") to str(r, "text").orEmpty()
+    }
+
     fun sampleText(op: String): String {
         val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }
         fun str(o: kotlinx.serialization.json.JsonElement, k: String) = ((o as kotlinx.serialization.json.JsonObject)[k] as? kotlinx.serialization.json.JsonPrimitive)?.content
@@ -405,6 +415,9 @@ class FakeTransport(
                 current.value = current.value.let { st -> st.copy(approvals = st.approvals.filter { it.task != cmd.arg }) }
                 ok("""{"task": "${cmd.arg}", "closed": $was, "state": "${if (was) "superseded" else "unknown"}"}""")
             }
+            // Contratto 1.130: le attese della fixture; `attesa` con l'id della fixture ha il pezzo di trascrizione, le altre sono chiuse.
+            CmdOp.ATTESE -> ok(sampleText("attese"))
+            CmdOp.ATTESA -> sampleResult("attesa", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
             CmdOp.DECISION -> if (cmd.text.isNullOrBlank()) ko("empty decision") else ok("decision sent to the master")
             // Contratto 1.44: la demo legge la fixture inventata del rapporto della notte.
             CmdOp.NIGHT -> runCatching { load("night-report-sample") }.map { ok(it) }.getOrElse { ko("no night report yet") }

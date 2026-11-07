@@ -14,7 +14,9 @@ export type Question = { id: string; kind: 'permission' | 'ask' | 'plan'; text: 
 /** Contratto 1.55: una domanda risolta al terminale, nello stato per 5 minuti. */
 /** Contratto 1.66: question | turn_failed | quota_limit | task_red. */
 /** Contratto 1.80: `closes` = come si chiude da sola (answer | prompt | check); `expires_at` per needs_you (epoch s). */
-export type Attention = { kind: string; session?: string | null; ref?: string | null; title: string; since: number; closes?: string | null; expires_at?: number | null }
+export type Attention = { kind: string; session?: string | null; ref?: string | null; title: string; since: number; closes?: string | null; expires_at?: number | null
+  /** Contratto 1.130: l'id della domanda che aspetta, per aprire la sua scheda «Ti aspetta». */
+  wid?: string | null }
 export type Resolved = { id: string; text: string; at: number; by: string }
 /** Contratto 1.60: `preview` = short e full senza segreti, solo quando il relay ha nascosto qualcosa. */
 export type Outcome = { short: string; full: string; at: number; preview?: { short: string; full: string } | null }
@@ -68,13 +70,13 @@ export type SuggestionKind = 'recurring' | 'cleanup' | 'deadline' | 'quota' | 'c
 export type Suggestion = { id: string; kind: SuggestionKind | string; key: string; text: string; prompt?: string; at: number; expires_at?: number | null; rank?: number | null; source?: 'script' | 'master' | string | null; options?: string[] | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
 /** Contratto 1.99: `untested`, `undo`, `undo_how`, `precedent`, `also`, ognuno solo se dichiarato: assente vuol dire «non dichiarato». */
-export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null }
+export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null; wid?: string | null }
 export type ProveSummary = { n: number; builds: number; red: number; ko: number }
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
 /** Contratto 1.113: il conto unico di Tocca a te; `today` le voci chiuse da sole oggi (`kind` pause, prova, needs_you; `rule` 1-4). */
 export type ToccaClosed = { task: string; short?: string | null; kind: string; rule: number; at: number }
 export type ToccaState = { n: number; prove: number; decidi: number; today?: { n: number; items: ToccaClosed[] } | null }
-export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number }
+export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number; wid?: string | null }
 /** Contratto 1.106: un file consegnato da una sessione con SendUserFile; `caption`, `files`, `notes`, `replaced` solo nell'op `results`. */
 export type ResultItem = {
   id: string; session?: string | null; title: string; kind: 'video' | 'mockup' | 'image' | 'document' | 'other' | string; mime?: string | null
@@ -108,7 +110,7 @@ export type DecisionItem = { kind: string; task?: string | null; short?: string 
   /** Contratto 1.104: l'inizio del piano e cosa si aspetta (ok, choice, pc, other); `title` è il titolo intero. */
   plan_start?: string | null; asks?: string | null
   /** Contratto 1.107: la pausa aspetta che la persona provi qualcosa; `release` il tag della pre-release, `web` la versione web. */
-  prova?: Prova | null }
+  prova?: Prova | null; wid?: string | null }
 export type Prova = { project?: string | null; release?: string | null; web?: string | null }
 export type DecisionGroup = { key: string; title: string; cause?: string | null; items: DecisionItem[]; unblocks: string[]; weight: number; where?: string | null; since: number; note?: string | null; refs: string[] }
 export type DecisionsPage = { at: number; n: number; here: number; tasks: number; snoozed: number; groups: DecisionGroup[] }
@@ -358,7 +360,7 @@ export type SystemStatus = {
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
-  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
+  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'attese' | 'attesa' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
   | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text' | 'feedback_app' | 'results' | 'result_seen' | 'result_note'
@@ -444,3 +446,18 @@ export function decodeState(raw: string): State {
 
 /** Lo stato prima del primo /state del relay: vuoto, così i dati di prova non si mescolano mai a quelli veri. */
 export const blankState = (ts: number): State => decodeState(JSON.stringify({ v: 1, ts, host: '' }))
+
+/**
+ * Contratto 1.130 (app-scheda-ti-aspetta-07-11): una domanda che aspetta la persona, con un id stabile. `type` carta o chat; `kind`
+ * ok, choice, pausa, prova, login, prossimi, needs_you, question; `answer` l'op che risponde, la stessa dei tasti della carta;
+ * `msg` solo da `attesa`, dove la domanda è stata spiegata.
+ */
+export type WaitOption = { n: number; label: string; value: string; recommended?: boolean; description?: string | null }
+export type WaitAnswer = { op: string; arg?: string | null; session?: string | null; kind?: string | null; done?: WaitAnswer | null }
+export type WaitMsg = { session?: string | null; session_id?: string | null; id?: string | null; uuid?: string | null; text: string; key?: string | null; at?: number | null }
+export type WaitItem = {
+  id: string; type: string; kind: string; label: string; label_text: string; session?: string | null; task?: string | null; text: string
+  options?: WaitOption[] | null; at: number; card?: { what?: string; where?: string; untested?: string; undo?: string; undo_how?: string } | null
+  link?: string | null; answer?: WaitAnswer | null; msg?: WaitMsg | null
+}
+export type WaitsPage = { at: number; items: WaitItem[] }

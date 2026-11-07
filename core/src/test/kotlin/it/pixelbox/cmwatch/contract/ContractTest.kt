@@ -203,7 +203,7 @@ class ContractTest {
         val project = form.fields!!.first()
         assertEquals(listOf("DOCS", "SHOP", "OPS"), project.options!!.map { it.value }); assertEquals("Shop", project.options!![1].label)
         assertTrue(project.required); assertEquals(false, form.fields!![1].defaultValue?.jsonPrimitive?.boolean)
-        assertEquals(3, form.fields!![2].minLength); assertEquals(80, form.fields!![2].maxLength); assertEquals("One line for the issue list", form.fields!![2].description)
+        assertEquals(3, form.fields!![2].minLength); assertEquals(80, form.fields!![2].maxLength); assertEquals("One line", form.fields!![2].description)
         assertEquals(1.0, form.fields!![3].min); assertEquals(13.0, form.fields!![3].max)
         assertEquals(120, form.expiresAt - form.askedAt)
         assertEquals("url", link.mode); assertEquals("https://www.figma.com/oauth?client_id=demo", link.url); assertNull(link.fields)
@@ -344,7 +344,7 @@ class ContractTest {
         assertEquals("a4.0", around.anchor); assertTrue(around.moreAfter); assertTrue(around.more); assertTrue(around.entries.any { it.id == "a4.0" })
         assertTrue(around.entries.any { it.role == "separator" })
         assertTrue(ContractJson.decodeSearch(results.first { it.id.endsWith("0170") }.text).hits.all { it.sid != null })
-        assertEquals(143, results.size); assertEquals(38, results.count { !it.ok })   // 1.129: approval_close chiusa, già approvata (ok) e sconosciuta (rifiutata); 1.127: search prima di un /clear e pagina attorno, riusciti; 1.126: transcript oltre un /clear, riuscito; 1.125: model a sessione occupata riuscito, e l'effort …0121 ora riuscito; 1.121: feedback_app bozza, anonimo, github e più tardi riusciti, la schermata senza consenso rifiutata; 1.120: close con when after e when force, riusciti; 1.112: una lettura rimpiazzata, rifiutata; 1.107: provato e non_va, riusciti; 1.106: results, result_seen e result_note, tutti riusciti; 1.105: feedback_consent, feedback_send anteprima e invio, feedback_text, tutti riusciti; 1.95: plugins, plugin_check, plugin_update riuscito e uno da confermare al PC, plugin_update_all senza niente; 1.96: kpi; 1.91: sys_unit_stop riuscito, poi lo stesso rifiutato; 1.90: sys_kill riuscito, poi lo stesso rifiutato; 1.88: suggestion choose fuori dalle opzioni (rifiutato), discuss, choose accettato; 1.84: close_preview e close, ognuno riuscito e rifiutato; 1.87: suggestion riuscito e «already gone» (ok); 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
+        assertEquals(146, results.size); assertEquals(39, results.count { !it.ok })   // 1.130: attese, attesa con msg e attesa di una voce chiusa (rifiutata); 1.129: approval_close chiusa, già approvata (ok) e sconosciuta (rifiutata); 1.127: search prima di un /clear e pagina attorno, riusciti; 1.126: transcript oltre un /clear, riuscito; 1.125: model a sessione occupata riuscito, e l'effort …0121 ora riuscito; 1.121: feedback_app bozza, anonimo, github e più tardi riusciti, la schermata senza consenso rifiutata; 1.120: close con when after e when force, riusciti; 1.112: una lettura rimpiazzata, rifiutata; 1.107: provato e non_va, riusciti; 1.106: results, result_seen e result_note, tutti riusciti; 1.105: feedback_consent, feedback_send anteprima e invio, feedback_text, tutti riusciti; 1.95: plugins, plugin_check, plugin_update riuscito e uno da confermare al PC, plugin_update_all senza niente; 1.96: kpi; 1.91: sys_unit_stop riuscito, poi lo stesso rifiutato; 1.90: sys_kill riuscito, poi lo stesso rifiutato; 1.88: suggestion choose fuori dalle opzioni (rifiutato), discuss, choose accettato; 1.84: close_preview e close, ognuno riuscito e rifiutato; 1.87: suggestion riuscito e «already gone» (ok); 1.77: done riuscito, senza registro, data sbagliata; 1.80: attention_done riuscito e «nothing to close»; 1.81: approve con choice riuscito e rifiutato; 1.82: transcript per sid riuscito e rifiutato; 1.83: elicit riuscito, valore fuori dalle opzioni, link
         assertTrue(results.any { it.ok && it.text == "field-notes: permissions now acceptEdits" })
         assertTrue(results.any { !it.ok && it.text == "work-ledger-api: bypassPermissions is not in this session's Shift+Tab cycle, left on plan" })
         assertEquals("bad parts", results.first { it.id.endsWith("0481-4000-8000-000000000481") }.text)
@@ -656,4 +656,22 @@ class ContractTest {
         assertEquals(listOf(NextStep("ok to deploy on staging", true), NextStep("review the test seeds", false)), s.sessions.first { it.name == "atlas-shop" }.nextSteps)
         assertNull(s.sessions.first { it.name == "field-notes" }.nextSteps)
     }
+
+    /** Contratto 1.130: `attese` e `attesa` della fixture, il wid nello stato (app-scheda-ti-aspetta-07-11). */
+    @Test fun waits() {
+        val fake = it.pixelbox.cmwatch.transport.FakeTransport(load = { java.io.File("../contract/$it.json").readText() })
+        val page = ContractJson.decodeWaits(fake.sampleText("attese"))
+        assertEquals(listOf("wd2f87e85e2", "wb973ef3ed0"), page.items.map { it.id })
+        val c = page.items[0]
+        assertEquals("choice", c.kind); assertEquals("choose", c.label); assertEquals("approve", c.answer?.op); assertEquals("atlas-release-2-4", c.answer?.arg)
+        assertEquals(true, c.options?.first()?.recommended); assertEquals("production (shop.example.com)", c.card?.where)
+        assertEquals("attention_done", page.items[1].answer?.done?.op)
+        val one = ContractJson.decodeWait(fake.sampleResult("attesa", "wd2f87e85e2").second)
+        assertEquals("5d2e8f1a-3c47-4b9e-8a61-7e0d9c4b2f18.0", one.msg?.id); assertEquals("Should I release now or tomorrow morning?", one.msg?.key)
+        assertEquals(false, fake.sampleResult("attesa", "w0000000000").first)
+        val st = ContractJson.decodeState(java.io.File("../contract/state-1-question.json").readText())
+        assert(st.ops.orEmpty().containsAll(listOf("attese", "attesa")))
+        assert(st.approvals.all { it.wid != null })
+    }
+
 }

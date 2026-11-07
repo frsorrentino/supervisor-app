@@ -102,6 +102,9 @@ enum class CmdOp {
      * facoltativo. Ok anche se il compito non aspettava più (`closed: false`): l'app chiude sempre la carta.
      */
     @SerialName("approval_close") APPROVAL_CLOSE,
+    /** Contratto 1.130: le domande che aspettano la persona e una sola, con il pezzo di trascrizione (letture passive). */
+    @SerialName("attese") ATTESE,
+    @SerialName("attesa") ATTESA,
     /** Contratto 1.37: una decisione da salvare nella memoria della master; `text` obbligatorio, `arg` = progetto o null. */
     @SerialName("decision") DECISION,
     /** Contratto 1.39: togliere un dispositivo accoppiato; `arg` = uid. Solo «Scollega questo browser», col proprio uid. */
@@ -214,6 +217,8 @@ enum class CmdOp {
  */
 @Serializable data class Attention(
     val kind: String, val session: String? = null, val ref: String? = null, val title: String = "", val since: Long = 0,
+    /** Contratto 1.130: l'id della domanda che aspetta (question, needs_you, turn_blocking), per aprire la sua scheda «Ti aspetta». */
+    val wid: String? = null,
     /** Contratto 1.80: come si chiude da sola: answer (la domanda), prompt (il prompt dopo o la chiusura), check (lo verifica il relay). */
     val closes: String? = null,
     /** Contratto 1.80: per needs_you, quando scade (epoch s). */
@@ -368,6 +373,8 @@ enum class CmdOp {
 @Serializable data class Approval(
     val task: String, val title: String, val what: String? = null, val where: String? = null, val deploy: Boolean = false,
     @SerialName("requested_at") val requestedAt: Long = 0,
+    /** Contratto 1.130: l'id della domanda che aspetta. */
+    val wid: String? = null,
     /** Contratto 1.81: le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
     val options: List<String>? = null,
     /** Contratto 1.99, ognuno solo se dichiarato: assente vuol dire «non dichiarato», il relay non li riempie mai. */
@@ -445,7 +452,7 @@ enum class CmdOp {
 @Serializable data class ToccaClosed(val task: String, val short: String? = null, val kind: String = "", val rule: Int = 0, val at: Long = 0)
 
 /** Contratto 1.99, op `prove`. `dove` è una chiave libera che l'app traduce in una schermata. */
-@Serializable data class ProveItem(val id: Long, val task: String, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val at: Long = 0)
+@Serializable data class ProveItem(val id: Long, val task: String, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val at: Long = 0, val wid: String? = null)
 @Serializable data class ProveGroup(val build: String, val n: Int = 0, val at: Long = 0, val tasks: List<String> = emptyList(), val prove: List<ProveItem> = emptyList())
 @Serializable data class ProveKo(val id: Long, val task: String, val short: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val text: String = "", val at: Long = 0)
 @Serializable data class ProveRed(val task: String, val short: String? = null, val reason: String? = null, val at: Long = 0)
@@ -460,6 +467,8 @@ enum class CmdOp {
     @SerialName("plan_start") val planStart: String? = null, val asks: String? = null,
     /** Contratto 1.107: la pausa aspetta che la persona provi qualcosa; `release` il tag della pre-release, `web` la versione web. */
     val prova: Prova? = null,
+    /** Contratto 1.130: l'id della domanda che aspetta. */
+    val wid: String? = null,
 )
 @Serializable data class Prova(val project: String? = null, val release: String? = null, val web: String? = null)
 @Serializable data class DecisionGroup(val key: String, val title: String = "", val cause: String? = null, val items: List<DecisionItem> = emptyList(), val unblocks: List<String> = emptyList(), val weight: Int = 0, val where: String? = null, val since: Long = 0, val note: String? = null, val refs: List<String> = emptyList())
@@ -1105,3 +1114,25 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
 @Serializable data class KpiWaits(val now: List<KpiWaitNow> = emptyList(), val week: List<KpiWaitDay> = emptyList())
 @Serializable data class KpiWaitNow(val session: String, val kind: String, val since: Long)
 @Serializable data class KpiWaitDay(val date: String, @SerialName("median_min") val medianMin: Double? = null, val n: Int = 0)
+
+/**
+ * Contratto 1.130 (app-scheda-ti-aspetta-07-11): una domanda che aspetta la persona, con un id stabile. `type` carta (dal registro)
+ * o chat; `kind` ok, choice, pausa, prova, login, prossimi, needs_you, question; `label` decide, choose, verify, reply e
+ * `labelText` nella lingua del relay; `answer` l'op che risponde, la stessa dei tasti della carta; `msg` solo da `attesa`.
+ */
+@Serializable data class WaitItem(
+    val id: String, val type: String = "", val kind: String = "", val label: String = "", @SerialName("label_text") val labelText: String = "",
+    val session: String? = null, val task: String? = null, val text: String = "", val options: List<WaitOption>? = null, val at: Long = 0,
+    val card: WaitCard? = null, val link: String? = null, val answer: WaitAnswer? = null, val msg: WaitMsg? = null,
+)
+@Serializable data class WaitOption(val n: Int, val label: String, val value: String = label, val recommended: Boolean = false, val description: String? = null)
+@Serializable data class WaitCard(
+    val what: String? = null, val where: String? = null, val untested: String? = null, val undo: String? = null, @SerialName("undo_how") val undoHow: String? = null,
+)
+@Serializable data class WaitAnswer(val op: String, val arg: String? = null, val session: String? = null, val kind: String? = null, val done: WaitAnswer? = null)
+/** Dove la domanda è stata spiegata: `id` la voce della trascrizione (per `n:around=<id>`), `key` la frase da accendere. */
+@Serializable data class WaitMsg(
+    val session: String? = null, @SerialName("session_id") val sessionId: String? = null, val id: String? = null, val uuid: String? = null,
+    val text: String = "", val key: String? = null, val at: Long? = null,
+)
+@Serializable data class WaitsPage(val at: Long = 0, val items: List<WaitItem> = emptyList())
