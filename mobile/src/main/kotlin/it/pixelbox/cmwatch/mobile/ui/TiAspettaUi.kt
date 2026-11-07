@@ -202,3 +202,12 @@ fun TiAspettaEmpty(text: String, onBack: () -> Unit) {
         Text(text, style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
 }
+
+/** Sul tablet la scheda sta al posto delle colonne, in un pannello come quello di una sessione: il grigio e il bordo delle schede. */
+@Composable
+fun TiAspettaColumn(content: @Composable () -> Unit) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+    Box(Modifier.fillMaxSize().padding(vertical = 10.dp).clip(shape).background(V3.S1).border(1.dp, V3.Line, shape)) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalPageBg provides V3.S1) { content() }
+    }
+}

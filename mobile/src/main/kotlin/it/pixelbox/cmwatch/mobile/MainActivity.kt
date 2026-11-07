@@ -1420,14 +1420,15 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { seguitiOpen = false }
             return
         }
-        waitOpen?.let { wid ->
+        // La scheda «Ti aspetta»: sul telefono una pagina, sul tablet nella colonna di destra, larga (mockup approvato il 07/11 alle 21:04).
+        val waitPage: @Composable (String, Boolean) -> Unit = { wid, wideNow ->
             val item = waitItem?.takeIf { x -> x.id == wid }
-            it.pixelbox.cmwatch.mobile.ui.PageIn {
+            run {
                 if (item == null) it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(
                     androidx.compose.ui.res.stringResource(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
                 ) { waitOpen = null }
                 else it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(
-                    it.pixelbox.cmwatch.rules.TiAspetta.pageOf(item, waitOthers), now, wide = false, onBack = { waitOpen = null },
+                    it.pixelbox.cmwatch.rules.TiAspetta.pageOf(item, waitOthers), now, wide = wideNow, onBack = { waitOpen = null },
                     // «Apri nella trascrizione»: la sessione e la voce, come un risultato della ricerca; una sessione chiusa col suo id.
                     onJump = { src ->
                         src.entry?.let { e ->
@@ -1464,6 +1465,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+        if (!wide) waitOpen?.let { wid ->
+            it.pixelbox.cmwatch.mobile.ui.PageIn { waitPage(wid, false) }
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { waitOpen = null }
             return
         }
@@ -2013,7 +2017,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         // Il cruscotto del tablet (variante B): senza colonne né Registro, Recap e Utilizzo stanno a destra e non nella home.
-        val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.LAVORI
+        val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.LAVORI && waitOpen == null
         // Le proposte 8, 9, 10, 12, 13 e 17 (contratto 1.96, compito app-kpi-dati-relay-25-10): l'op `kpi`, una lettura passiva
         // ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op.
         val kpiDataOk = !demo && state?.ops?.contains("kpi") == true
@@ -2393,7 +2397,11 @@ class MainActivity : ComponentActivity() {
                         usage = usageContent,
                     )
                 },
-                override = if (tab == StartRoute.Tab.LAVORI) ({ lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.BAR) }) else null,
+                // La scheda «Ti aspetta» al posto delle colonne, un pannello come quello di una sessione: il grigio e il bordo delle schede.
+                override = waitOpen?.let { w -> ({
+                    it.pixelbox.cmwatch.mobile.ui.TiAspettaColumn { waitPage(w, true) }
+                    it.pixelbox.cmwatch.mobile.ui.PageBackHandler { waitOpen = null }
+                }) } ?: if (tab == StartRoute.Tab.LAVORI) ({ lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.BAR) }) else null,
                 swap = tabletSwap,
                 // app-colonne-strette-05-11: la colonna senza posto leggibile è una striscia; la X la chiude come quella della testata.
                 strip = { name, open ->

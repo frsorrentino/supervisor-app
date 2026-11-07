@@ -111,7 +111,7 @@ class TabletShellTest {
 
     /** La vista unica (Franz, 04/10 16:36): la home del telefono di lato, le colonne, i dettagli se accesi. */
     @Composable
-    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false, swap: Boolean = false, strips: Boolean = false, day: Boolean = false) = CmPhoneTheme(still = true, day = day) {
+    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false, swap: Boolean = false, strips: Boolean = false, day: Boolean = false, override: (@Composable () -> Unit)? = null) = CmPhoneTheme(still = true, day = day) {
         val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
         val rows = Tablet.groups(summary).flatMap { it.second }
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
@@ -151,6 +151,7 @@ class TabletShellTest {
             inspector = if (details) ({ TabletInspector(Tablet.inspect(selected, timeline, ts, zone), st.quota[selected.account]?.h5, loading = false) }) else null,
             homeHidden = homeHidden,
             swap = if (swap) SwapPills(cols, {}, {}) else null,
+            override = override,
         )
     }
 
@@ -159,6 +160,20 @@ class TabletShellTest {
     // app-superfici-plancia-07-11: un solo fondo su tutta la tela e il pannello della sessione come le schede, anche di giorno.
     @Test fun tabletDeskDay() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(8, 4), day = true) }
     @org.junit.After fun night() { it.pixelbox.cmwatch.mobile.ui.V3.day = false }
+    // app-scheda-ti-aspetta-07-11: la scheda «Ti aspetta» nella colonna di destra, la carta e «Da dove viene» affiancate (mockup del 07/11 21:04).
+    @Test fun tabletTiAspetta() {
+        val fake = it.pixelbox.cmwatch.transport.FakeTransport(load = { File("../contract/$it.json").readText() })
+        val all = ContractJson.decodeWaits(fake.sampleText("attese")).items
+        val chat = all.first { w -> w.type == "chat" }
+        val one = ContractJson.decodeWait(fake.sampleResult("attesa", "wd2f87e85e2").second)
+        paparazzi.snapshot { desk(emptyList(), emptyList(), override = {
+            it.pixelbox.cmwatch.mobile.ui.TiAspettaColumn {
+                it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(it.pixelbox.cmwatch.rules.TiAspetta.pageOf(chat.copy(msg = one.msg), all), chat.at + 300, wide = true, onBack = {}, onJump = {}, onOther = {}) {
+                    it.pixelbox.cmwatch.mobile.ui.WaitCardBody(chat, onOption = {}, onOwnWords = {})
+                }
+            }
+        }) }
+    }
 
     // La home a destra (un clic su ⇄), i dettagli dall'altro lato, due colonne uguali.
     @Test fun tabletDeskHomeRightDetails() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(6, 6), homeRight = true, details = true) }
