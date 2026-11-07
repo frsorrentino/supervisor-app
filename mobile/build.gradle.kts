@@ -71,6 +71,8 @@ android {
         unitTests.isIncludeAndroidResources = true
         // Gli screenshot di Play (StoreShotsTest): -Pstore.shots=true e -Pstore.locale=it|en.
         unitTests.all { t ->
+            // Il messaggio delle asserzioni nel log della CI (app-frecce-plancia-tablet-07-11): senza, si vedeva solo la riga.
+            t.testLogging { exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL; events("failed") }
             t.systemProperty("store.shots", project.findProperty("store.shots")?.toString() ?: "false")
             t.systemProperty("store.locale", project.findProperty("store.locale")?.toString() ?: "it")
             // Tutti gli snapshot di giorno, senza golden da committare: -Pv3.day=true (docs/v3-giorno.md).
