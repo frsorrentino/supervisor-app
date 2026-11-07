@@ -1295,7 +1295,11 @@ private fun SummaryCard(
             modifier = if (open) Modifier else Modifier.fadeEnd(),
         )
         // Contratto 1.84: la richiesta di un'altra sessione per un compito di questa dice chi la fa.
-        if (open && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp)) { sessionTodo(s.name) }
+        // Le sottoschede partono dal bordo del contenuto della scheda, non dalla colonna del titolo (app-superfici-plancia-07-11):
+        // si allargano a sinistra sopra il binario, a 12 dp dal bordo.
+        if (open && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp).bleedStart(V3.Rail + 8.dp - 12.dp)) {
+            androidx.compose.runtime.CompositionLocalProvider(LocalSubCard provides true) { sessionTodo(s.name) }
+        }
         if (waiting && !compact) Summary.askedFor(s)?.let { a ->
             Text(if (a.task != null) stringResource(R.string.asked_for_task, a.from, a.task!!) else stringResource(R.string.asked_for, a.from), style = MonoSmall)
         }
@@ -2365,3 +2369,9 @@ private fun slotSuggestionNames(all: List<it.pixelbox.cmwatch.contract.Suggestio
 /** Le schede di sessione della home e dove stanno: il filo del tablet ci mette accanto le pillole + e ›. */
 internal val LocalSessionSpots = androidx.compose.runtime.staticCompositionLocalOf<androidx.compose.runtime.snapshots.SnapshotStateMap<String, androidx.compose.ui.geometry.Rect>?> { null }
 
+/** Il contenuto si allarga di `d` a sinistra, oltre il bordo della colonna che lo contiene (le sottoschede sopra il binario). */
+private fun Modifier.bleedStart(d: androidx.compose.ui.unit.Dp): Modifier = this.then(androidx.compose.ui.Modifier.layout { m, c ->
+    val e = d.roundToPx()
+    val p = m.measure(c.copy(minWidth = (c.minWidth + e).coerceAtMost(c.maxWidth + e), maxWidth = if (c.hasBoundedWidth) c.maxWidth + e else c.maxWidth))
+    layout((p.width - e).coerceAtLeast(0), p.height) { p.place(-e, 0) }
+})

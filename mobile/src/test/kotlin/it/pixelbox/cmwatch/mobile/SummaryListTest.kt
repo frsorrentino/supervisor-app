@@ -24,15 +24,22 @@ class SummaryListTest {
     private val st = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
     private fun model(state: State) = Summary.build(state, emptyList(), emptyList(), state.ts, ZoneId.of("Europe/Rome"), emptySet())
 
-    @Composable private fun page(state: State, open: String? = null, todo: Map<String, Pair<Int, Int>> = emptyMap()) = CmPhoneTheme(still = true) {
+    @Composable private fun page(state: State, open: String? = null, todo: Map<String, Pair<Int, Int>> = emptyMap(), sessionTodo: (@Composable (String) -> Unit)? = null, day: Boolean = false) = CmPhoneTheme(still = true, day = day) {
         Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-            SummaryList(model(state), {}, { _, _ -> }, { _, _ -> }, {}, {}, initiallyOpen = open, now = state.ts, todo = todo)
+            SummaryList(model(state), {}, { _, _ -> }, { _, _ -> }, {}, {}, initiallyOpen = open, now = state.ts, todo = todo, sessionTodo = sessionTodo)
         }
     }
 
     @Test fun summaryClosed() = paparazzi.snapshot { page(st) }
     // app-sessioni-compatte-06-11, passo 4: i chip «Decidi N» e «Verifica N» in testa alla riga; la scheda chiusa resta della sua misura.
     @Test fun summaryTodoChips() = paparazzi.snapshot { page(st, todo = mapOf("ledger-api" to (1 to 1), "field-notes" to (0 to 2))) }
+    // app-superfici-plancia-07-11, variante B «Bordo leggero»: le verifiche nella scheda aperta partono dal bordo del contenuto,
+    // con un bordo tenue e il dato sotto il titolo; di notte e di giorno.
+    private val prove = it.pixelbox.cmwatch.contract.ContractJson.decodeProve(it.pixelbox.cmwatch.transport.FakeTransport(load = { File("../contract/$it.json").readText() }).sampleText("prove"))
+    private val subCards: @Composable (String) -> Unit = { _ -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove.copy(ko = emptyList(), red = emptyList()), { _ -> it.pixelbox.cmwatch.rules.BancoProva.Build.INSTALLED }, { true }, { _, _, _ -> true }, {}) }
+    @Test fun summaryOpenSubCards() = paparazzi.snapshot { page(st, open = "WAITING:ledger-api", todo = mapOf("ledger-api" to (0 to 2)), sessionTodo = subCards) }
+    @Test fun summaryOpenSubCardsDay() = paparazzi.snapshot { page(st, open = "WAITING:ledger-api", todo = mapOf("ledger-api" to (0 to 2)), sessionTodo = subCards, day = true) }
+    @org.junit.After fun night() { it.pixelbox.cmwatch.mobile.ui.V3.day = false }
     @Test fun summaryOpen() = paparazzi.snapshot { page(st, open = "WAITING:ledger-api") }
     // app-attesa-dettagli-02-11: aperta, una ferma dice la proposta e mette tutte le scelte come tasti (secondo giro della notte).
     @Test fun summaryOpenWaitingProposal() = paparazzi.snapshot {

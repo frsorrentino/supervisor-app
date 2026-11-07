@@ -78,22 +78,29 @@ internal fun ItemRowView(r: ItemRows.Row, right: String, first: Boolean, open: B
     if (!first) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
     var m = Modifier.fillMaxWidth().heightIn(min = 52.dp).handCursor().clickable(onClick = onClick)
     if (tag != null) m = m.testTag(tag)
-    Row(m.padding(top = 10.dp, bottom = 10.dp, end = 12.dp), verticalAlignment = Alignment.Top) {
+    // Nella sottoscheda (B «Bordo leggero», app-superfici-plancia-07-11): meno margine, il pallino accanto al titolo e il dato nella
+    // riga sotto il titolo, mai a destra su una riga sua.
+    val sub = LocalSubCard.current
+    Row(m.padding(start = if (sub) 11.dp else 0.dp, top = if (sub) 9.dp else 10.dp, bottom = if (sub) 9.dp else 10.dp, end = if (sub) 11.dp else 12.dp), verticalAlignment = Alignment.Top) {
         // Il segno al centro della riga del titolo (20 sp come V3.Name); per un suggerimento l'icona del suo tipo (app-suggerimenti-icone-03-11).
-        Box(Modifier.width(V3.Rail).height(with(androidx.compose.ui.platform.LocalDensity.current) { V3.Name.lineHeight.toDp() }), contentAlignment = Alignment.Center) {
+        Box(Modifier.width(if (sub) 18.dp else V3.Rail).height(with(androidx.compose.ui.platform.LocalDensity.current) { V3.Name.lineHeight.toDp() }), contentAlignment = Alignment.Center) {
             val icon = r.icon
             if (icon != null) androidx.compose.material3.Icon(sugKindIcon(icon), null, tint = itemTone(r.tone), modifier = Modifier.capAlign(V3.Name).size(18.dp))
             else Box(Modifier.capAlign(V3.Name).size(8.dp).clip(CircleShape).background(itemTone(r.tone)))
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(if (sub) 6.dp else 8.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (sub) {
+                Text(name, style = V3.Name)
+                if (right.isNotEmpty()) Text(right, style = V3.Meter)
+            } else
             // Nome e dato: il dato a destra se ci sta, altrimenti sotto il nome, mai in colonna (V3Split).
             V3Split(text = { Text(name, style = V3.Name) }) { if (right.isNotEmpty()) Text(right, style = V3.Meter, textAlign = TextAlign.End) }
             // Due righe al più, tagliate senza «…» (regole di forma, Franz 12/09): il testo intero sta nella scheda.
             if (!open) r.sub?.let { Text(it, style = V3.Small, maxLines = 2, overflow = TextOverflow.Clip) }
         }
     }
-    FoldIn(open) { Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { card() } }
+    FoldIn(open) { Column(Modifier.fillMaxWidth().padding(start = if (sub) 11.dp else 12.dp, end = if (sub) 11.dp else 12.dp, bottom = if (sub) 11.dp else 12.dp)) { card() } }
 }
 
 /**
@@ -115,20 +122,24 @@ internal fun ItemList(
     var all by rememberSaveable(tag) { mutableStateOf(false) }
     val live = rows.count { it.key !in gone }
     val n = ItemRows.shown(live, all)
-    V3List {
+    // Nella sottoscheda ogni riga è un riquadro suo, uno sotto l'altro (B «Bordo leggero», app-superfici-plancia-07-11).
+    val sub = LocalSubCard.current
+    val wrap: @Composable (@Composable () -> Unit) -> Unit = if (sub) ({ c -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { c() } }) else ({ c -> V3List(c) })
+    wrap {
         rows.take(n + rows.count { it.key in gone }).forEachIndexed { i, r ->
             androidx.compose.runtime.key(r.key) {
                 // Divisore e riga in una colonna: dentro AnimatedVisibility, che li sovrapporrebbe come un Box, la riga perdeva il divisore
                 // (1 px più in alto da lì in giù nei golden di 9622c048).
                 androidx.compose.animation.AnimatedVisibility(r.key !in gone, enter = androidx.compose.animation.EnterTransition.None, exit = confirmedExit(off)) {
-                    Column(Modifier.fillMaxWidth()) {
-                        ItemRowView(r, right(r), i == 0, openKey == r.key, name(r), "$tag-${r.key}", onClick = { openKey = if (openKey == r.key) null else r.key }) { card(r) }
-                    }
+                    val row: @Composable () -> Unit = { Column(Modifier.fillMaxWidth()) {
+                        ItemRowView(r, right(r), i == 0 || sub, openKey == r.key, name(r), "$tag-${r.key}", onClick = { openKey = if (openKey == r.key) null else r.key }) { card(r) }
+                    } }
+                    if (sub) V3List(row) else row()
                 }
             }
         }
         if (n < live) {
-            Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+            if (!sub) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             Box(Modifier.fillMaxWidth().heightIn(min = 44.dp).handCursor().clickable { all = true }.testTag("$tag-altre"), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.item_more, more(rows.filter { it.key !in gone }.drop(n))), style = V3.Small.copy(color = V3.Tx2))
             }

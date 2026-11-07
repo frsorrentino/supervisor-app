@@ -156,7 +156,9 @@
   /* La griglia di puntini dietro le colonne (TechStyle.dotGrid). */
   .cols { grid-area: cols; position: relative; min-width: 0; overflow: hidden; view-transition-name: desk-cols;
     background-image: radial-gradient(rgb(255 255 255 / .07) 1px, transparent 1.4px); background-size: 16px 16px; }
-  .col { position: absolute; top: 10px; bottom: 10px; border-radius: 18px; border: 1px solid rgb(255 255 255 / .12); overflow: hidden; background: var(--bg);
+  /* La colonna della sessione è una scheda come quelle della home: il loro grigio e il loro bordo; dentro, il suo grigio fa da fondo
+     (app-superfici-plancia-07-11). */
+  .col { position: absolute; top: 10px; bottom: 10px; border-radius: 18px; border: 1px solid var(--line); overflow: hidden; --bg: var(--s1); background: var(--bg);
     transition: left .32s cubic-bezier(.2, .8, .2, 1), width .32s cubic-bezier(.2, .8, .2, 1), scale .2s, box-shadow .2s; animation: appear .22s ease-out; }
   .resizing .col, .resizing .tabslot { transition: none; }
   /* Durante il volo scheda↔colonna (html.fx-open/fx-close) la colonna è già alla sua misura quando la transizione la fotografa:

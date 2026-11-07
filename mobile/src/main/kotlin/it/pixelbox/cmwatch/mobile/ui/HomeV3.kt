@@ -301,8 +301,18 @@ internal val LitEdge = Brush.linearGradient(
 /** La lista a filo: un fondo solo, con le righe separate dal filo. */
 @Composable
 internal fun V3List(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) { content() }
+    // Dentro una scheda (LocalSubCard) la lista è una sottoscheda, «Bordo leggero» di Franz (app-superfici-plancia-07-11, 07/11 17:56):
+    // niente fondo suo, un bordo tenue e angoli più stretti.
+    if (LocalSubCard.current) Column(Modifier.fillMaxWidth().clip(SubShape).border(1.dp, V3.S3, SubShape)) { content() }
+    else Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()) { content() }
 }
+
+/** Le liste dentro la scheda aperta di una sessione sono sottoschede (app-superfici-plancia-07-11, variante B «Bordo leggero»). */
+internal val LocalSubCard = androidx.compose.runtime.staticCompositionLocalOf { false }
+internal val SubShape = RoundedCornerShape(10.dp)
+
+/** Il fondo della pagina dove sta la sessione: sul tablet il pannello è una scheda (S1), altrove il fondo (app-superfici-plancia-07-11). */
+internal val LocalPageBg = androidx.compose.runtime.staticCompositionLocalOf<androidx.compose.ui.graphics.Color?> { null }
 
 /**
  * Una riga della lista col binario: icona o glifo a sinistra, poi il testo, in fondo quello che serve. `meter`: un riepilogo a

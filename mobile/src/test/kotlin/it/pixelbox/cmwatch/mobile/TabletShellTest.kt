@@ -111,7 +111,7 @@ class TabletShellTest {
 
     /** La vista unica (Franz, 04/10 16:36): la home del telefono di lato, le colonne, i dettagli se accesi. */
     @Composable
-    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false, swap: Boolean = false, strips: Boolean = false) = CmPhoneTheme(still = true) {
+    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false, swap: Boolean = false, strips: Boolean = false, day: Boolean = false) = CmPhoneTheme(still = true, day = day) {
         val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
         val rows = Tablet.groups(summary).flatMap { it.second }
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
@@ -156,6 +156,9 @@ class TabletShellTest {
 
     // La home a sinistra e due colonne, la prima larga due terzi (8 dodicesimi).
     @Test fun tabletDesk() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(8, 4)) }
+    // app-superfici-plancia-07-11: un solo fondo su tutta la tela e il pannello della sessione come le schede, anche di giorno.
+    @Test fun tabletDeskDay() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(8, 4), day = true) }
+    @org.junit.After fun night() { it.pixelbox.cmwatch.mobile.ui.V3.day = false }
 
     // La home a destra (un clic su ⇄), i dettagli dall'altro lato, due colonne uguali.
     @Test fun tabletDeskHomeRightDetails() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(6, 6), homeRight = true, details = true) }

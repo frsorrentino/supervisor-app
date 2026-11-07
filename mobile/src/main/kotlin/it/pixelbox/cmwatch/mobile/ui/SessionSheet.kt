@@ -423,7 +423,7 @@ fun SessionSheet(
     }
     // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
     Box(Modifier.fillMaxSize()) {
-    Column(Modifier.fly("card-${s.id}").fillMaxSize().background(Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
+    Column(Modifier.fly("card-${s.id}").fillMaxSize().background(LocalPageBg.current ?: Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
         // Sul telefono la frazione guida tutta l'apertura: 0 la home, 1 la conversazione. La tiene la pagina e non la barra, perché
         // col dito si muove tutto il pannello e la barra non è che la sua cima (Franz, 01/11).
         val masterAt = remember { androidx.compose.animation.core.Animatable(homePull ?: if (homeOpen) 0f else 1f) }
@@ -453,7 +453,7 @@ fun SessionSheet(
         val ime = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
         // Tutto quello che sta sopra il campo in una sessione: barra, intestazione, avviso, conversazione, consigli.
         val masterVoice = home != null && LocalMasterLook.current.voice
-        val chatArea: @Composable ColumnScope.() -> Unit = { androidx.compose.runtime.CompositionLocalProvider(LocalVoiceAccent provides masterVoice, LocalBubble provides (if (home != null) MasterHighest else null)) {
+        val chatArea: @Composable ColumnScope.() -> Unit = { androidx.compose.runtime.CompositionLocalProvider(LocalVoiceAccent provides masterVoice, LocalBubble provides (if (home != null) MasterHighest else if (V3.day && LocalPageBg.current != null) V3.S3 else null)) {
             // Fissa sopra la chat e compatta (Franz, 30/09 22:01: scorreva con la chat ed era troppo grande).
             bar?.invoke()
             // Nella chat della master, mentre rileggi più su, la testata rientra come le barre che si comprimono del Material 3
@@ -464,7 +464,7 @@ fun SessionSheet(
                 exit = androidx.compose.animation.shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
             ) {
                 SheetHeader(
-                    s, now, choices, canTune, actions, showTerminal = feed == null, model = model, effort = effort, modelNext = modelNext, effortNext = effortNext, bg = if (home != null) MasterHigh else Cm.bg,
+                    s, now, choices, canTune, actions, showTerminal = feed == null, model = model, effort = effort, modelNext = modelNext, effortNext = effortNext, bg = if (home != null) MasterHigh else LocalPageBg.current ?: Cm.bg,
                     canExit = slash?.contains("exit") == true && s.state != SessionState.GONE, quota = accountQuota, lead = headerLead, notesInHeader = notesInHeader,
                     onChanges = if (actions.changes != null) ({ changesOpen = true }) else null,
                 )
@@ -862,7 +862,7 @@ private fun Composer(
     val mode = if (image != null && base != PhonePrimary.Composer.REOPEN && base != PhonePrimary.Composer.SEND && base != PhonePrimary.Composer.SEND_TONAL)
         (if (PhonePrimary.button(s, "x") == PhonePrimary.Button.OPTION) PhonePrimary.Composer.SEND_TONAL else PhonePrimary.Composer.SEND) else base
     // Il campo della master sta sul fondo della master, velato di celeste e piatto (Celeste velato, Franz 06/10 21:23).
-    val bar = Modifier.fillMaxWidth().background(if (toMaster) MasterHigh else Cm.bg)
+    val bar = Modifier.fillMaxWidth().background(if (toMaster) MasterHigh else LocalPageBg.current ?: Cm.bg)
         .imePadding().padding(horizontal = 12.dp, vertical = 10.dp)
     // Contratto 1.65: anche una sessione chiusa ha il campo; scrivendo, Invia la riapre e le consegna il messaggio.
     Column(bar, verticalArrangement = Arrangement.spacedBy(8.dp)) {

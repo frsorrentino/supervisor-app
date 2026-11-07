@@ -1711,6 +1711,16 @@
   .tdc { flex: none; height: 22px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; font: 600 13px var(--display); color: var(--tx2); background: var(--s1); border: 1px solid var(--line); white-space: nowrap; }
   .tdc.w { color: var(--wait); border-color: color-mix(in srgb, var(--wait) 50%, transparent); }
   .tdbody { display: flex; flex-direction: column; gap: 8px; cursor: auto; }
+  /* Le sottoschede, «Bordo leggero» di Franz (app-superfici-plancia-07-11, 07/11 17:56): dal bordo del contenuto della scheda (12 px,
+     sopra il binario) e non dalla colonna del titolo; niente fondo, un bordo tenue, meno margine, il dato sotto il titolo. */
+  .card.r .tdbody { margin-left: -48px; }
+  .card.r .tdbody :global(.il) { border-radius: 10px; background: none; border: 1px solid var(--s3); }
+  .card.r .tdbody :global(.il .row) { padding: 9px 11px; min-height: 0; }
+  .card.r .tdbody :global(.il .lead) { width: 18px; margin-right: 6px; }
+  .card.r .tdbody :global(.il .top) { flex-direction: column; align-items: flex-start; }
+  .card.r .tdbody :global(.il .rt) { margin-left: 0; text-align: left; }
+  .card.r .tdbody :global(.il .card) { padding: 0 11px 11px; }
+  .card.r .tdbody :global(.h) { padding-left: 12px; }
   /* Il glifo sul centro delle maiuscole del nome (app-suggerimenti-icone-03-11): misurato 2,4 px più in alto con 1 px di margine. */
   .rail { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 3.4px; }
   .rt { font: 700 15px/1 var(--display); letter-spacing: .01em; color: var(--tx2); white-space: nowrap; }

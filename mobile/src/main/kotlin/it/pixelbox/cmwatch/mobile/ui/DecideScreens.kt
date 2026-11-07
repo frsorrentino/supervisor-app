@@ -182,7 +182,8 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
             val ids = g.prove.map { it.id.toString() }
             val shown = g.prove.filter { it.id.toString() !in gone }
             androidx.compose.animation.AnimatedVisibility(shown.isNotEmpty(), enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(if (off) 0 else 160)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if (off) 0 else 160))) {
-            Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            // La riga della build allineata al testo delle sottoschede (12 dp dal bordo, app-superfici-plancia-07-11).
+            Row(Modifier.fillMaxWidth().padding(start = if (LocalSubCard.current) 12.dp else 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(g.build, style = MonoSmall, modifier = Modifier.weight(1f))
                 val allPicked = ids.all { picked[it] == "ok" }
                 if (b != BancoProva.Build.TO_INSTALL && shown.size > 1) ConfirmButton(stringResource(R.string.prove_all_ok), confirmed = allPicked, enabled = ids.none { it in picked }) { act(ids, "ok") { onOk(BancoProva.allOk(g)) } }

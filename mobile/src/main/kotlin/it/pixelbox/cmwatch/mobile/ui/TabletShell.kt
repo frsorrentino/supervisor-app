@@ -787,7 +787,7 @@ private fun dayTime(epoch: Long): String =
 @Composable
 fun TabletColumnHeader(r: Summary.Row, now: Long, onClose: () -> Unit, drag: Modifier = Modifier) {
     val s = r.session
-    Column(Modifier.fillMaxWidth().background(Cm.bg).then(drag)) {
+    Column(Modifier.fillMaxWidth().background(LocalPageBg.current ?: Cm.bg).then(drag)) {
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SessionBadge(s, 24.dp)
             Text(s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, modifier = Modifier.weight(1f))
@@ -894,12 +894,9 @@ private fun DeskBody(
         if (off) androidx.compose.animation.core.snap() else Fx.land(),
         label = "homeSide",
     )
-    // Luce 4 (app-luci-02-11): sul tablet lo sfondo è chiaro in alto al centro e scuro ai bordi; di giorno il fondo di sempre.
-    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().then(if (V3.day) Modifier.background(Cm.bg) else Modifier.drawBehind {
-        // Luce a metà intensità, come la PWA larga (Franz 03/11 17:46 e 18:12, app-luci-02-11).
-        // Solo grigi (Franz 04/11, app-luci-grigie-04-11): stessa luminosità di #181C24, #101218, #0A0B0E.
-        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(0f to Color(0xFF1C1C1C), 0.6f to Color(0xFF121212), 1f to Color(0xFF0B0B0B), center = Offset(size.width / 2f, 0f), radius = maxOf(size.width * 0.75f, 1f)))
-    }).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
+    // Un solo fondo, il più scuro, su tutta la tela, corsia compresa (app-superfici-plancia-07-11, Franz 07/11 17:02: il grigio più
+    // scuro della home contro quello più chiaro dietro le sessioni faceva asimmetria). Prima la luce 4 (app-luci-02-11).
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().background(Cm.bg).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
         val homeW = if (homeHidden) 0.dp else 400.dp
         val handleW = if (homeHidden) 0.dp else CORSIA_DP.dp
         val detailsW = if (inspector != null) 341.dp else 0.dp
@@ -1093,7 +1090,8 @@ private fun Columns(
                             shadowElevation = 28f * lift
                             alpha = appear.value
                         }
-                        .clip(RoundedCornerShape(14.dp))
+                        // Il pannello della sessione è una scheda come quelle della home: il loro grigio e il loro bordo.
+                        .clip(RoundedCornerShape(14.dp)).background(V3.S1)
                         .border(1.dp, if (dragging) Cm.actionIcon.copy(alpha = 0.55f) else Cm.line, RoundedCornerShape(14.dp))
                         .pointerInput(name) {
                             awaitEachGesture {
@@ -1101,7 +1099,7 @@ private fun Columns(
                                 touch(name)
                             }
                         },
-                ) { if (name in strips) strip!!(name) { touch(name) } else column(name, drag) }
+                ) { if (name in strips) strip!!(name) { touch(name) } else androidx.compose.runtime.CompositionLocalProvider(LocalPageBg provides V3.S1) { column(name, drag) } }
             }
         }
         columns.indices.forEach { i ->
