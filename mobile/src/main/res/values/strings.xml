@@ -1868,4 +1868,15 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="quote_all">Cita tutto</string>
     <string name="quote_from">dalla risposta delle %1$s</string>
     <string name="quote_remove">Togli la citazione</string>
+    <!-- La scheda «Ti aspetta» (app-scheda-ti-aspetta-07-11). -->
+    <string name="ti_aspetta_title">Ti aspetta</string>
+    <string name="ti_aspetta_since">da %1$s</string>
+    <string name="ti_aspetta_source">Da dove viene</string>
+    <string name="ti_aspetta_reply_at">%1$s · risposta delle %2$s</string>
+    <string name="ti_aspetta_jump">Apri nella trascrizione →</string>
+    <string name="ti_aspetta_others">Ti aspettano anche</string>
+    <string name="ti_aspetta_decide">Decidi</string>
+    <string name="ti_aspetta_choose">Scegli</string>
+    <string name="ti_aspetta_verify">Verifica</string>
+    <string name="ti_aspetta_answer">Rispondi</string>
 </resources>

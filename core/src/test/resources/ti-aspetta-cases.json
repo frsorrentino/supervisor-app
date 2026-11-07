@@ -1,0 +1,90 @@
+{
+ "marks": [
+  {
+   "name": "la domanda nel testo",
+   "text": "Staging è verde. Pubblico la 2.4 solo con il tuo ok: manca un telefono vero.",
+   "ask": "Pubblico la 2.4 solo con il tuo ok",
+   "out": [
+    [
+     "Staging è verde. ",
+     false
+    ],
+    [
+     "Pubblico la 2.4 solo con il tuo ok",
+     true
+    ],
+    [
+     ": manca un telefono vero.",
+     false
+    ]
+   ]
+  },
+  {
+   "name": "maiuscole e spazi diversi",
+   "text": "Lo pubblico adesso o\ndomattina?",
+   "ask": "lo pubblico  adesso o domattina?",
+   "out": [
+    [
+     "Lo pubblico adesso o\ndomattina?",
+     true
+    ]
+   ]
+  },
+  {
+   "name": "domanda assente",
+   "text": "Ho riletto il post.",
+   "ask": "Lo pubblico adesso?",
+   "out": [
+    [
+     "Ho riletto il post.",
+     false
+    ]
+   ]
+  },
+  {
+   "name": "domanda vuota",
+   "text": "Testo.",
+   "ask": "  ",
+   "out": [
+    [
+     "Testo.",
+     false
+    ]
+   ]
+  }
+ ],
+ "age": [
+  {
+   "s": 0,
+   "out": "1 min"
+  },
+  {
+   "s": 59,
+   "out": "1 min"
+  },
+  {
+   "s": 1500,
+   "out": "25 min"
+  },
+  {
+   "s": 3599,
+   "out": "59 min"
+  },
+  {
+   "s": 3600,
+   "out": "1 h"
+  },
+  {
+   "s": 86399,
+   "out": "23 h"
+  },
+  {
+   "s": 86400,
+   "out": "1 g"
+  },
+  {
+   "s": 259200,
+   "out": "3 g"
+  }
+ ]
+}

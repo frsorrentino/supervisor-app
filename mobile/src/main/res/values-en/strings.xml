@@ -1840,4 +1840,15 @@ It starts at your last message to the master.</string>
     <string name="quote_all">Quote all</string>
     <string name="quote_from">from the reply at %1$s</string>
     <string name="quote_remove">Remove the quote</string>
+    <!-- La scheda «Ti aspetta» (app-scheda-ti-aspetta-07-11). -->
+    <string name="ti_aspetta_title">Waiting for you</string>
+    <string name="ti_aspetta_since">for %1$s</string>
+    <string name="ti_aspetta_source">Where it comes from</string>
+    <string name="ti_aspetta_reply_at">%1$s · reply at %2$s</string>
+    <string name="ti_aspetta_jump">Open in the transcript →</string>
+    <string name="ti_aspetta_others">Also waiting for you</string>
+    <string name="ti_aspetta_decide">Decide</string>
+    <string name="ti_aspetta_choose">Choose</string>
+    <string name="ti_aspetta_verify">Verify</string>
+    <string name="ti_aspetta_answer">Reply</string>
 </resources>
