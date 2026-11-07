@@ -86,5 +86,31 @@
    "s": 259200,
    "out": "3 g"
   }
+ ],
+ "links": [
+  {
+   "link": "https://supervisor.example.com/#/attesa/wd2f87e85e2",
+   "out": "wd2f87e85e2"
+  },
+  {
+   "link": "https://supervisor.example.com/?demo#/attesa/w00000000a1",
+   "out": "w00000000a1"
+  },
+  {
+   "link": "https://supervisor.example.com/#/attesa/wD2F87E85E2",
+   "out": null
+  },
+  {
+   "link": "https://supervisor.example.com/#/attesa/w123",
+   "out": null
+  },
+  {
+   "link": "https://supervisor.example.com/#storefront",
+   "out": null
+  },
+  {
+   "link": "https://github.com/frsorrentino/supervisor/releases",
+   "out": null
+  }
  ]
 }

@@ -17,6 +17,7 @@
   import { DemoTransport } from './lib/demoTransport'
   import Features from './lib/Features.svelte'
   import DaProvare from './lib/DaProvare.svelte'
+  import TiAspettaView from './lib/TiAspettaView.svelte'
   import { decodeDecisions, decodeProve, readPage } from './lib/decideDecode'
   import type { DecisionGroup, ProvePage } from './lib/contract'
   import PrimaRaccolta from './lib/PrimaRaccolta.svelte'
@@ -107,7 +108,7 @@
   import ReadingPill from './lib/ReadingPill.svelte'
   import CloseSplash from './lib/CloseSplash.svelte'
   import { closeRefusals, closeSplash, ghostSession, type Leaving } from './lib/closeSplash'
-  import { askedSession } from './lib/sessionLinks'
+  import { askedSession, askedWait } from './lib/sessionLinks'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
   import { since as kpiSince, head as kpiHeadOf } from './lib/kpi'
@@ -508,6 +509,20 @@
   const wide = $derived(isWide(width))
   // `?s=nome` (notifiche e Telegram, Franz 21/10 19:04) o `#nome` apre quella sessione (link diretto, e i provini).
   const linked = askedSession(location.search, location.hash)
+  // Contratto 1.130: `#/attesa/<id>` apre la scheda «Ti aspetta», dal link nel testo della master o di una sessione e da fuori.
+  let waitId = $state<string | null>(askedWait(location.hash))
+  $effect(() => {
+    const onHash = () => { const w = askedWait(location.hash); if (w) { waitId = w; openPage('attesa') } }
+    // Un link nel testo apre la scheda dentro l'app, senza ricaricare la pagina.
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
+      const w = a ? askedWait(new URL(a.href, location.href).hash) : null
+      if (!w) return
+      e.preventDefault(); waitId = w; openPage('attesa')
+    }
+    window.addEventListener('hashchange', onHash); document.addEventListener('click', onClick, true)
+    return () => { window.removeEventListener('hashchange', onHash); document.removeEventListener('click', onClick, true) }
+  })
   const known = (n: string) => (!!tr && !demo) || st.sessions.some(s => s.name === n && s.state !== 'gone')
 
   // La master vive nella home: ridotta è la barra in fondo, espansa occupa la home (mai una colonna o una pagina a parte).
@@ -1162,7 +1177,7 @@
   const askedPage = asked === 'diary' || asked === 'recap' ? 'lavori' : asked
   // Da guardare (contratto 1.106): la pagina di tutti i risultati o di una sessione, e il risultato da aprire.
   let watchSession = $state<string | null>(null), watchOpenId = $state<string | null>(null)
-  let page = $state<PageName | null>(askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'homeorder', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
+  let page = $state<PageName | null>(askedWait(location.hash) ? 'attesa' : askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'homeorder', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
   // La pagina Notte (specifica del 07/10, approvata alle 21:50): il rapporto si chiede al PC con l'op `night` (contratto 1.44)
   // quando la pagina si apre e col tasto aggiorna; nella demo è la fixture inventata.
   let night = $state<{ report: NightReport | null; error: string | null; loading: boolean }>({ report: null, error: null, loading: false })
@@ -1322,7 +1337,7 @@
     try { seen = localStorage.getItem('cm.primaSeen') === '1' } catch { /* senza memoria non si riapre a ogni giro */ }
     if (primaAutoOpen(s, seen)) { try { localStorage.setItem('cm.primaSeen', '1') } catch { /* come sopra */ } ; untrack(() => openPage('prima-raccolta')) }
   })
-  const pageTitle: Record<PageName, string> = $derived({ seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.search, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.watchPageTitle })
+  const pageTitle: Record<PageName, string> = $derived({ attesa: t.tiAspettaTitle, seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.search, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.watchPageTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -1855,6 +1870,15 @@
 {/snippet}
 
 {#snippet pageView(p: PageName)}
+  <!-- La scheda «Ti aspetta» (contratto 1.130, app-scheda-ti-aspetta-07-11): ha la sua testata, con la sessione e da quanto aspetta. -->
+  {#if p === 'attesa' && waitId}
+  <TiAspettaView id={waitId} {st} now={st.ts} wide={wide} {run} onBack={() => { waitId = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(null) }}
+    onOpenWait={(w) => (waitId = w)} onJump={(n, entry, sid) => { const live = st.sessions.some(x => x.name === n && x.state !== 'gone'); waitId = null; openPage(null); if (!live && sid) { sidOf = { ...sidOf, [n]: sid }; reading = n } else pick(n); void jumpTo(n, entry) }}
+    onSession={(n) => { waitId = null; openPage(null); pick(n) }} onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
+    onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}
+    onAnswer={(n, x) => cmd(n)('answer', String(x))} onPrompt={(n, text) => sendTo(n, text)} onAttentionDone={(kind, ref) => attentionDone({ kind, ref })}
+    onScreen={(s) => { waitId = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)} />
+  {:else}
   <Page title={pageTitle[p]} v3 onBack={() => openPage(null)}>
     {#if p === 'launch'}
       <Launch {st} onSession={(n, reopen) => { if (reopen) cmd(n)('reopen'); else { openPage(null); pick(n) } }}
@@ -1899,7 +1923,7 @@
     {:else}
       <p class="soon">{t.soon}</p>
     {/if}
-  </Page>
+  </Page>{/if}
 {/snippet}
 
 <!-- Un account fermo (dato vecchio) non ha il suo riquadro se l'altro è aggiornato, come nella riga in alto (Franz, 08/10 20:32). -->

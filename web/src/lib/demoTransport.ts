@@ -2,7 +2,7 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
 import { lang } from './lang'
-import { decisionsDemo, kpiDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, resultsDemo, seguitiDemo, world, type World } from './demo'
+import { decisionsDemo, waitsDemo, kpiDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, resultsDemo, seguitiDemo, world, type World } from './demo'
 import type { DecisionsPage, PrimaRaccoltaPage, ProvePage, ResultsPage, SeguitiPage } from './contract'
 import { NIGHT_TARGET } from './recapAgenda'
 
@@ -237,6 +237,9 @@ export class DemoTransport implements Transport {
         }
         case 'prove': return ok(JSON.stringify(this.prove ??= proveDemo(this.now())))
         case 'decisioni': return ok(JSON.stringify(this.decisions ??= decisionsDemo(this.now())))
+        // Contratto 1.130: le domande che aspettano; `attesa` dà la voce col pezzo di trascrizione, una chiusa è un rifiuto come nel relay.
+        case 'attese': return ok(JSON.stringify({ at: this.now(), items: waitsDemo(this.now()).map(({ msg: _m, ...w }) => w) }))
+        case 'attesa': { const w = waitsDemo(this.now()).find(x => x.id === cmd.arg); return w ? ok(JSON.stringify(w)) : ko(`${cmd.arg}: nessuna attesa aperta con questo id`) }
         case 'kpi': return ok(JSON.stringify(kpiDemo(this.now())))
         // Contratto 1.83: la risposta a una domanda MCP la toglie da Tocca a te.
         case 'elicit': { this.set({ ...s, elicitations: (s.elicitations ?? []).filter(e => e.id !== cmd.session && e.id !== (cmd.arg ?? '').split(' ')[0]) }); return ok('answered') }

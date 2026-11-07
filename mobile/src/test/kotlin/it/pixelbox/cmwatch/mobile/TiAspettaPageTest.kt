@@ -40,6 +40,18 @@ class TiAspettaPageTest {
 
     @After fun night() { V3.day = false }
 
+    // Contratto 1.130: una domanda nata in chat (i Prossimi della fixture) con le sue scelte, la consigliata in ambra.
+    @Test fun phoneChat() {
+        val all = ContractJson.decodeWaits(fake.sampleText("attese")).items
+        val chat = all.first { w -> w.type == "chat" }
+        val one = ContractJson.decodeWait(fake.sampleResult("attesa", "wd2f87e85e2").second)
+        paparazzi.snapshot { CmPhoneTheme(still = true) {
+            TiAspettaPage(TiAspetta.pageOf(chat.copy(msg = one.msg), all), chat.at + 300, wide = false, onBack = {}, onJump = {}, onOther = {}) {
+                it.pixelbox.cmwatch.mobile.ui.WaitCardBody(chat, onOption = {}, onOwnWords = {})
+            }
+        } }
+    }
+
     @Test fun phone() = paparazzi.snapshot { CmPhoneTheme(still = true) { TiAspettaPage(page, now, wide = false, onBack = {}, onJump = {}, onOther = {}, card = card) } }
     @Test fun phoneDay() = paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { TiAspettaPage(page, now, wide = false, onBack = {}, onJump = {}, onOther = {}, card = card) } }
     // Nella colonna del tablet: la carta e «Da dove viene» affiancate, sul grigio delle schede.

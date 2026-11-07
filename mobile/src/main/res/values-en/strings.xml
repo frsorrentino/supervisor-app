@@ -1851,4 +1851,11 @@ It starts at your last message to the master.</string>
     <string name="ti_aspetta_choose">Choose</string>
     <string name="ti_aspetta_verify">Verify</string>
     <string name="ti_aspetta_answer">Reply</string>
+    <string name="ti_aspetta_recommended">recommended</string>
+    <string name="ti_aspetta_done">Done</string>
+    <string name="ti_aspetta_by_master">The master does it</string>
+    <string name="ti_aspetta_own_words">Reply in your own words</string>
+    <string name="ti_aspetta_gone">Not waiting any more: it was already closed.</string>
+    <string name="ti_aspetta_failed">I cannot read it from the PC.</string>
+    <string name="ti_aspetta_loading">Reading it from the PC</string>
 </resources>

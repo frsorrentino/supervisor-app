@@ -25,7 +25,11 @@ class DownloadLinks(private val activity: Activity, private val fallback: UriHan
     private val apks = mutableSetOf<Long>()
     private var listening = false
 
+    /** Contratto 1.130: un link `#/attesa/<id>` apre la scheda «Ti aspetta» dentro l'app (app-scheda-ti-aspetta-07-11). */
+    var onWait: ((String) -> Unit)? = null
+
     override fun openUri(uri: String) {
+        it.pixelbox.cmwatch.rules.TiAspetta.waitOf(uri)?.let { w -> onWait?.let { f -> f(w); return } }
         val d = Links.download(uri) ?: return fallback.openUri(uri)
         val dm = activity.getSystemService(DownloadManager::class.java) ?: return fallback.openUri(uri)
         val req = DownloadManager.Request(Uri.parse(uri))

@@ -287,6 +287,31 @@ class MainActivity : ComponentActivity() {
         var nightOpen by rememberSaveable { mutableStateOf(false) }
         // Contratto 1.82: le conversazioni chiuse aperte dalla Notte, per nome mostrato: si leggono per sid, in sola lettura.
         val sidOf = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
+        // La scheda «Ti aspetta» (contratto 1.130, app-scheda-ti-aspetta-07-11): un link `#/attesa/<id>` nel testo la apre qui dentro.
+        var waitOpen by remember { mutableStateOf<String?>(null) }
+        var waitItem by remember { mutableStateOf<it.pixelbox.cmwatch.contract.WaitItem?>(null) }
+        var waitOthers by remember { mutableStateOf(emptyList<it.pixelbox.cmwatch.contract.WaitItem>()) }
+        var waitGone by remember { mutableStateOf(false) }
+        var waitFailed by remember { mutableStateOf(false) }
+        val linkHandler = androidx.compose.ui.platform.LocalUriHandler.current
+        androidx.compose.runtime.SideEffect { (linkHandler as? DownloadLinks)?.onWait = { w -> waitOpen = w } }
+        LaunchedEffect(waitOpen) {
+            val w = waitOpen ?: return@LaunchedEffect
+            waitItem = null; waitGone = false; waitFailed = false
+            suspend fun ask(op: CmdOp, arg: String?): it.pixelbox.cmwatch.contract.CmdResult? {
+                val id = runCatching { app.repo.command(op, null, arg) }.getOrNull() ?: return null
+                val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+                app.repo.forget(id)
+                return r
+            }
+            val one = ask(CmdOp.ATTESA, w)
+            when {
+                one == null -> waitFailed = true
+                !one.ok -> waitGone = true
+                else -> runCatching { ContractJson.decodeWait(one.text) }.onSuccess { x -> waitItem = x }.onFailure { waitFailed = true }
+            }
+            ask(CmdOp.ATTESE, null)?.takeIf { r -> r.ok }?.let { r -> runCatching { ContractJson.decodeWaits(r.text) }.onSuccess { p -> waitOthers = p.items } }
+        }
         fun transcriptSid(name: String): String? = sidOf[name]?.takeIf { app.repo.snapshot.value.state?.sessions?.none { s -> s.name == name && s.state != SessionState.GONE } != false }
         // «Parlane con la master» (piano del 09/10): il testo da mettere nel campo della master, poi la sua chat aperta.
         var talkDraft by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1393,6 +1418,53 @@ class MainActivity : ComponentActivity() {
                 onLavori = { seguitiOpen = false; open = null; tab = StartRoute.Tab.LAVORI },
                 onMaster = { seguitiOpen = false; open = null; masterChat = true }) }
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { seguitiOpen = false }
+            return
+        }
+        waitOpen?.let { wid ->
+            val item = waitItem?.takeIf { x -> x.id == wid }
+            it.pixelbox.cmwatch.mobile.ui.PageIn {
+                if (item == null) it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(
+                    androidx.compose.ui.res.stringResource(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
+                ) { waitOpen = null }
+                else it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(
+                    it.pixelbox.cmwatch.rules.TiAspetta.pageOf(item, waitOthers), now, wide = false, onBack = { waitOpen = null },
+                    // «Apri nella trascrizione»: la sessione e la voce, come un risultato della ricerca; una sessione chiusa col suo id.
+                    onJump = { src ->
+                        src.entry?.let { e ->
+                            val live = state?.sessions?.any { x -> x.name == src.session && x.state != SessionState.GONE } == true
+                            val sid = item.msg?.sessionId
+                            waitOpen = null
+                            if (!live && sid != null) { sidOf[src.session] = sid; tab = StartRoute.Tab.OVERVIEW }
+                            open = src.session; searchFocus = src.session to e
+                        }
+                    },
+                    onOther = { k -> waitOpen = k },
+                ) {
+                    // La carta che l'app ha già, trovata col wid: le decisioni del registro e le verifiche; le domande nate in chat coi loro tasti.
+                    val groups = decisionsPage?.groups.orEmpty().filter { g -> g.items.any { i -> i.wid == item.id } }
+                    val prove = provePage?.let { p ->
+                        val gs = p.groups.map { g -> g.copy(prove = g.prove.filter { x -> x.wid == item.id }) }.filter { g -> g.prove.isNotEmpty() }
+                        p.copy(groups = gs, n = gs.sumOf { g -> g.prove.size }, ko = emptyList(), red = emptyList())
+                    }?.takeIf { p -> p.groups.isNotEmpty() }
+                    when {
+                        groups.isNotEmpty() -> it.pixelbox.cmwatch.mobile.ui.SessionDecisions(groups, decApprove, decDone, decNotNow, decDrop, decAsk)
+                        prove != null -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
+                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, onOption = { o ->
+                            val a = item.answer
+                            when (a?.op) {
+                                "answer" -> (a.session ?: item.session)?.let { ses -> o?.let { opt -> scope.launch { runCatching { app.repo.answer(ses, opt.n) } } } }
+                                "prompt" -> a.arg?.let { ses ->
+                                    o?.let { opt -> sendPrompt(ses, opt.value) }
+                                    a.done?.let { d -> if (d.arg != null && d.kind != null) attentionDone(it.pixelbox.cmwatch.rules.AttentionQueue.Done(d.kind!!, d.arg!!)) }
+                                }
+                                "attention_done" -> a.arg?.let { ref -> attentionDone(it.pixelbox.cmwatch.rules.AttentionQueue.Done(a.kind ?: "needs_you", ref)) }
+                                "approve" -> a.arg?.let { task -> decApprove(task, o?.value) }
+                            }
+                        }, onOwnWords = item.session?.let { ses -> { waitOpen = null; open = ses } })
+                    }
+                }
+            }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { waitOpen = null }
             return
         }
         if (decisionsOpen) {

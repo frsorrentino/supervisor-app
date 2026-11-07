@@ -33,6 +33,21 @@ object TiAspetta {
         )
     }
 
+    /** L'etichetta del relay (decide, choose, verify, reply) come tipo della carta. */
+    fun kindOf(label: String): Kind = when (label) { "choose" -> Kind.CHOOSE; "verify" -> Kind.VERIFY; "reply" -> Kind.ANSWER; else -> Kind.DECIDE }
+
+    /** La pagina di una voce di `attesa` (con `msg`) e delle altre di `attese`; il titolo di un'altra è il «cosa» della carta o la domanda. */
+    fun pageOf(item: it.pixelbox.cmwatch.contract.WaitItem, others: List<it.pixelbox.cmwatch.contract.WaitItem>): Page = Page(
+        item.id, kindOf(item.label), item.session, item.at,
+        item.msg?.let { m -> Source(m.session ?: item.session.orEmpty(), m.at, m.text, m.key, m.id) },
+        others.filter { o -> o.id != item.id }.map { o -> Other(o.id, kindOf(o.label), o.card?.what?.takeIf { w -> w.isNotBlank() } ?: o.text, o.session, o.at) },
+    )
+
+    private val LINK = Regex("#/attesa/(w[0-9a-f]{10})$")
+
+    /** Contratto 1.130: l'id di una domanda da un link `<web_app_url>/#/attesa/<id>`; null per ogni altro indirizzo. */
+    fun waitOf(link: String): String? = LINK.find(link.trim())?.groupValues?.get(1)
+
     /** Da quanto aspetta: minuti (almeno 1), poi ore, poi giorni. */
     fun age(seconds: Long): String = when {
         seconds < 3600 -> "${maxOf(1, seconds / 60)} min"

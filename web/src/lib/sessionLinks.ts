@@ -69,9 +69,16 @@ function isLabel(line: string): boolean {
 }
 
 /** La sessione chiesta dall'indirizzo: `?s=<nome>` (notifiche e Telegram), altrimenti `#nome` di prima. */
+/** Contratto 1.130: `#/attesa/<id>` (id «w» e 10 cifre esadecimali) apre la scheda «Ti aspetta»; null per ogni altro indirizzo. */
+export function askedWait(hash: string): string | null {
+  return /^#\/attesa\/(w[0-9a-f]{10})$/.exec(hash.trim())?.[1] ?? null
+}
+
 export function askedSession(search: string, hash: string): string | null {
   const q = new URLSearchParams(search).get('s')?.trim()
   if (q) return q
+  // Un indirizzo della web (`#/attesa/…`) non è il nome di una sessione.
+  if (hash.startsWith('#/')) return null
   let h: string
   try { h = decodeURIComponent(hash.slice(1)) } catch { h = hash.slice(1) }
   // Niente chiesto è null, mai '' (23/10): con '' la web locale apriva la pagina di una sessione senza nome e la striscia

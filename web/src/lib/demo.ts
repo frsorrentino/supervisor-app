@@ -8,7 +8,7 @@ import { decodeChanges, decodeState } from './contract'
 import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry, PrimaRaccoltaPage, SeguitiPage, ResultItem, ResultsPage } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
-import type { Commitment, DecisionsPage, KpiData, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
+import type { Commitment, DecisionsPage, WaitItem, KpiData, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
 import { midnight } from './kpi'
 import type { NightReport } from './night'
 import { lang } from './lang'
@@ -138,7 +138,7 @@ export const kpiDemo = (now: number): KpiData => {
 }
 
 export const decisionsDemo = (now: number): DecisionsPage => ({ at: now, n: 3, here: 2, tasks: 4, snoozed: 0, groups: [
-  { key: 'demo-a', title: en ? 'Cover image for the post' : 'Immagine di copertina del post', cause: null, unblocks: ['demo-cover', 'demo-docs'], weight: 2, where: 'here', since: now - 1200, note: null, refs: ['demo-cover'], items: [{ kind: 'pause', task: 'demo-cover', short: en ? 'Cover image' : 'Immagine di copertina', session: 'blog', reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', since: now - 1200, where: 'here', asks: 'other' }] },
+  { key: 'demo-a', title: en ? 'Cover image for the post' : 'Immagine di copertina del post', cause: null, unblocks: ['demo-cover', 'demo-docs'], weight: 2, where: 'here', since: now - 1200, note: null, refs: ['demo-cover'], items: [{ wid: 'w00000000a1', kind: 'pause', task: 'demo-cover', short: en ? 'Cover image' : 'Immagine di copertina', session: 'blog', reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', since: now - 1200, where: 'here', asks: 'other' }] },
   { key: 'demo-c', title: en ? 'Try the new checkout on the phone' : 'Prova il nuovo checkout sul telefono', cause: null, unblocks: ['demo-checkout'], weight: 1, where: 'here', since: now - 300, note: null, refs: ['demo-checkout'], items: [{ kind: 'pause', task: 'demo-checkout', short: en ? 'New checkout' : 'Nuovo checkout', session: 'storefront', reason: en ? 'Waits for you to try build 0.4.12 on the phone' : 'Aspetta la tua prova della versione 0.4.12 sul telefono', since: now - 300, where: 'here', asks: 'other' }] },
   { key: 'demo-b', title: en ? 'Log in to the payment sandbox' : 'Login nella sandbox dei pagamenti', cause: null, unblocks: ['demo-cart'], weight: 1, where: 'pc', since: now - 420, note: null, refs: [], items: [{ kind: 'needs_you', task: null, session: 'storefront', reason: en ? 'Log in to the sandbox' : 'Fai il login nella sandbox', since: now - 420, where: 'pc', asks: 'pc' }] },
 ] })
@@ -482,3 +482,19 @@ function nightEn(v: unknown): unknown {
   if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, nightEn(x)]))
   return v
 }
+
+/**
+ * Contratto 1.130 nella demo (app-scheda-ti-aspetta-07-11): due domande che aspettano, la pausa di blog del registro (la stessa voce
+ * di decisionsDemo, col suo wid) e una scelta nata in chat su payments-api; `attesa` aggiunge il pezzo di trascrizione.
+ */
+export const waitsDemo = (now: number): WaitItem[] => [
+  { id: 'w00000000a1', type: 'carta', kind: 'pausa', label: 'decide', label_text: en ? 'Decide' : 'Decidi', session: 'blog', task: 'demo-cover',
+    text: en ? 'Send me the cover image' : "Mandami l'immagine di copertina", options: null, at: now - 1200, card: null, link: '#/attesa/w00000000a1',
+    answer: { op: 'decisione', arg: 'demo-a' },
+    msg: { session: 'blog', id: 'demo-blog-cover', text: en ? 'The post is ready and the links are checked.\n\nI need the cover image: send it to me and I publish with the newsletter.' : "Il post è pronto e i link sono controllati.\n\nMi serve l'immagine di copertina: mandamela e pubblico con la newsletter.", key: en ? 'I need the cover image' : "Mi serve l'immagine di copertina", at: now - 1260 } },
+  { id: 'w00000000b2', type: 'chat', kind: 'prossimi', label: 'choose', label_text: en ? 'Choose' : 'Scegli', session: 'payments-api', task: null,
+    text: en ? 'Which branch name for the refunds fix?' : 'Che nome do al branch della correzione dei rimborsi?', at: now - 720, card: null, link: '#/attesa/w00000000b2',
+    options: [{ n: 1, label: 'hotfix/refunds', value: 'hotfix/refunds', recommended: true, description: en ? 'it goes out with 2.8.1' : 'esce con la 2.8.1' }, { n: 2, label: 'release/2.9', value: 'release/2.9' }],
+    answer: { op: 'prompt', arg: 'payments-api', done: { op: 'attention_done', arg: 'payments-api', kind: 'turn_blocking' } },
+    msg: { session: 'payments-api', id: 'demo-pay-branch', text: en ? 'The refunds fix is ready and the tests pass.\n\nWhich branch name for the refunds fix? hotfix/refunds goes out with 2.8.1.' : 'La correzione dei rimborsi è pronta e i test passano.\n\nChe nome do al branch della correzione dei rimborsi? hotfix/refunds esce con la 2.8.1.', key: en ? 'Which branch name for the refunds fix?' : 'Che nome do al branch della correzione dei rimborsi?', at: now - 760 } },
+]
