@@ -45,7 +45,7 @@ class SlotSubitoTest {
             }
         }
         paparazzi.gif(view, end = 500, fps = 60)
-        assertEquals(mine, seen.last())
+        assertEquals("slot-subito: l'effetto della gif non è arrivato in fondo (${seen.size} composizioni, ultima ${seen.last()})", mine, seen.last())
         assertEquals("la riga compare subito, non torna indietro", 1, seen.dropWhile { it != mine }.distinct().size)
     }
 
