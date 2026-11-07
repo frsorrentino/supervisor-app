@@ -511,6 +511,8 @@
   const linked = askedSession(location.search, location.hash)
   // Contratto 1.130: `#/attesa/<id>` apre la scheda «Ti aspetta», dal link nel testo della master o di una sessione e da fuori.
   let waitId = $state<string | null>(askedWait(location.hash))
+  // Da Tocca a te: il tocco su una voce che aspetta apre la sua scheda.
+  const openWait = (w: string) => { waitId = w; openPage('attesa') }
   $effect(() => {
     const onHash = () => { const w = askedWait(location.hash); if (w) { waitId = w; openPage('attesa') } }
     // Un link nel testo apre la scheda dentro l'app, senza ricaricare la pagina.
@@ -1834,13 +1836,13 @@
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
 <!-- Le decisioni e le verifiche di una sessione, nella sua scheda aperta (app-sessioni-compatte-06-11). -->
 {#snippet sessionTodo(name: string)}<CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.session === name)} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{#if todo[name]?.v}<DaProvare {run} only={(p) => provaSession(p) === name} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{/snippet}
-{#snippet decisionsBody(rows = false)}<CinqueMinuti {rows} only={(g) => !decOfSession(g)} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{/snippet}
+{#snippet decisionsBody(rows = false)}<CinqueMinuti {rows} onWait={openWait} only={(g) => !decOfSession(g)} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{/snippet}
 <!-- I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto nella home (Franz 02/11 08:05). -->
 {#snippet sectionBody(k: string)}
   {#if k === 'seguiti'}<Seguiti {run} summary={st.seguiti} onLavori={() => openPage('lavori')} onMaster={() => { openPage(null); pick(MASTER) }} />
   {:else if k === 'prima_raccolta'}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
   <!-- Verifica (app-tocca-sezioni-06-11): le prove, poi i lavori consegnati da guardare. -->
-  {:else if k === 'prove'}{#if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} only={(p) => { const s = provaSession(p); return !(s && liveSet.has(s)) }} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
+  {:else if k === 'prove'}{#if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} onWait={openWait} only={(p) => { const s = provaSession(p); return !(s && liveSet.has(s)) }} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
   <!-- Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A). -->
   {:else if k === 'decisioni'}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}
   {:else if k === 'da_guardare'}{@render guardare('body')}{/if}

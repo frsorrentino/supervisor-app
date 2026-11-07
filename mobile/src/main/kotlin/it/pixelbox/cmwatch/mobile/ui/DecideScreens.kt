@@ -155,7 +155,7 @@ fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onB
 internal object ProveSent { val ids = androidx.compose.runtime.mutableStateListOf<String>() }
 
 @Composable
-fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit) {
+fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit, onWait: ((String) -> Unit)? = null) {
     var ko by remember { mutableStateOf<ProveItem?>(null) }
     // Franz 02/11 15:38: Ok non blocca più e la scheda non sparisce di colpo (Leave): conferma sul tasto, uscita in altezza,
     // le altre salgono; se il PC dice no, la scheda torna.
@@ -192,7 +192,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
             if (b == BancoProva.Build.TO_INSTALL) Text(stringResource(R.string.prove_install_first), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, modifier = Modifier.padding(horizontal = 4.dp))
             if (b == BancoProva.Build.UNKNOWN) Text(stringResource(R.string.prove_build_unknown), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
             // Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok.
-            ItemList(g.prove.map { p -> ItemRows.prove(p, b != BancoProva.Build.TO_INSTALL) }, "prova-${g.build}", gone = gone.toSet()) { r ->
+            ItemList(g.prove.map { p -> ItemRows.prove(p, b != BancoProva.Build.TO_INSTALL) }, "prova-${g.build}", gone = gone.toSet(), onOpen = onWait?.let { f -> { r -> g.prove.firstOrNull { p -> p.id.toString() == r.key }?.wid?.let { w -> f(w); true } ?: false } }) { r ->
                 val p = g.prove.first { it.id.toString() == r.key }
                 val id = r.key
                 val pk = picked[id]
@@ -316,7 +316,7 @@ fun SessionDecisions(groups: List<it.pixelbox.cmwatch.contract.DecisionGroup>, o
  * Nella pagina: Franz sceglie quante, poi una alla volta.
  */
 @Composable
-fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null, onAsk: (String) -> Unit = {}, rows: Boolean = false) {
+fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit, onDone: (DecisionItem) -> Unit, onNotNow: (String) -> Unit, onDrop: (String, String) -> Unit, startHowMany: Int? = null, onAsk: (String) -> Unit = {}, rows: Boolean = false, onWait: ((String) -> Unit)? = null) {
     var howMany by rememberSaveable { mutableStateOf(startHowMany) }
     var touched by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val off = animationsOff()
@@ -329,7 +329,7 @@ fun CinqueMinutiBody(page: DecisionsPage?, onApprove: (String, String?) -> Unit,
                 val left = page.groups.filter { it.key !in touched }
                 if (left.isEmpty()) Text(stringResource(R.string.decisions_done), style = V3.Body, modifier = Modifier.padding(4.dp))
                 // «altre N» conta le decisioni, come il numero di Decidi, non i gruppi (web-plancia-j2-ripasso-06-11).
-                ItemList(left.map { ItemRows.decision(it) }, "decisione", more = { rest -> rest.sumOf { r -> left.firstOrNull { it.key == r.key }?.items?.size?.takeIf { n -> n > 0 } ?: 1 } }) { r ->
+                ItemList(left.map { ItemRows.decision(it) }, "decisione", more = { rest -> rest.sumOf { r -> left.firstOrNull { it.key == r.key }?.items?.size?.takeIf { n -> n > 0 } ?: 1 } }, onOpen = onWait?.let { f -> { r -> left.firstOrNull { g -> g.key == r.key }?.items?.firstNotNullOfOrNull { i -> i.wid }?.let { w -> f(w); true } ?: false } }) { r ->
                     val g = left.first { it.key == r.key }
                     DecisionGroupBody(g, onApprove, onDone, onNotNow, onDrop, onAsk) { touched = touched + g.key }
                 }

@@ -8,7 +8,9 @@
   // ItemList in ItemRowsUi.kt: pallino, nome, dato a destra, sotto cosa c'è; le prime tre e «altre N»; il tocco apre la scheda.
   // `more`: quante cose dicono le righe nascoste in «altre N»; di solito le righe, per Decidi le decisioni dei gruppi (web-plancia-j2-ripasso-06-11).
   // `allOpen` (app-sessioni-compatte-06-11): dentro la scheda di una sessione tutte aperte, coi dettagli e i tasti.
-  let { rows, testid, allOpen = false, right = rightText, name = (r: Row) => r.name, more = (rest: Row[]) => rest.length, card }: { rows: Row[]; testid: string; allOpen?: boolean; right?: (r: Row) => string; name?: (r: Row) => string; more?: (rest: Row[]) => number; card: Snippet<[Row]> } = $props()
+  let { rows, testid, allOpen = false, right = rightText, name = (r: Row) => r.name, more = (rest: Row[]) => rest.length, card, onOpen = null }: { rows: Row[]; testid: string; allOpen?: boolean; right?: (r: Row) => string; name?: (r: Row) => string; more?: (rest: Row[]) => number; card: Snippet<[Row]>
+    /** Contratto 1.130: true se il tocco ha aperto la scheda «Ti aspetta» della riga, che allora non si apre sul posto. */
+    onOpen?: ((r: Row) => boolean) | null } = $props()
   let openKey = $state<string | null>(null)
   let all = $state(false)
   const n = $derived(allOpen ? rows.length : shown(rows.length, all))
@@ -20,7 +22,7 @@
     {#each rows.slice(0, n) as r (r.key)}
       {@const o = allOpen || openKey === r.key}
       <div class="ir" data-key={r.key}>
-        <button class="row" aria-expanded={o} data-testid={`${testid}-${r.key}`} onclick={() => (openKey = o ? null : r.key)}>
+        <button class="row" aria-expanded={o} data-testid={`${testid}-${r.key}`} onclick={() => { if (!onOpen?.(r)) openKey = o ? null : r.key }}>
           <!-- Il segno al centro della riga del titolo; per un suggerimento l'icona del suo tipo (app-suggerimenti-icone-03-11). -->
           <span class="lead {r.tone}">{#if r.icon}<span class="ms" aria-hidden="true">{SUG_ICON[r.icon] ?? SUG_ICON.other}</span>{:else}<span class="dot"></span>{/if}</span>
           <span class="tx"><span class="top"><b>{name(r)}</b>{#if right(r)}<span class="rt">{right(r)}</span>{/if}</span>{#if !o && r.sub}<span class="sub">{r.sub}</span>{/if}</span>

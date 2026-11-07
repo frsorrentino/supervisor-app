@@ -17,7 +17,7 @@
   // «Da decidere» (contratto 1.99, cinque_minuti), porta di CinqueMinutiScreen: quante vuoi, una alla volta, le più pesanti per prime. Niente timer.
   // In home (`rows`, app-richiede-te-righe-02-11): le decisioni come righe, le prime tre e «altre N»; il tocco apre la scheda coi tasti.
   // `only` (app-sessioni-compatte-06-11): solo le decisioni di una sessione, dentro la sua scheda; o solo quelle senza sessione aperta.
-  let { run, onApprove, onDone, onAsk, rows = false, only = null, allOpen = false }: { allOpen?: boolean; only?: ((g: DecisionGroup) => boolean) | null; rows?: boolean; st: State; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void } = $props()
+  let { run, onApprove, onDone, onAsk, rows = false, only = null, allOpen = false, onWait = null }: { onWait?: ((wid: string) => void) | null; allOpen?: boolean; only?: ((g: DecisionGroup) => boolean) | null; rows?: boolean; st: State; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void } = $props()
   let planOpen = $state(new Set<string>())
   let page = $state<DecisionsPage | null>(null)
   let howMany = $state<number | null>(null)
@@ -48,7 +48,7 @@
     {@const left = page.groups.filter(x => !touched.has(x.key) && (only?.(x) ?? true))}
     {#if !left.length}<p>{t.decisionsDone}</p>{/if}
     <!-- «altre N» conta le decisioni, come il numero di Decidi, non i gruppi (web-plancia-j2-ripasso-06-11: 12 con 3 righe e «altre 5»). -->
-    <ItemList {allOpen} rows={left.map(decision)} testid="decisione" more={(rest) => rest.reduce((a, r) => a + (left.find(y => y.key === r.key)?.items.length || 1), 0)}>{#snippet card(r)}{@const x = left.find(y => y.key === r.key)}{#if x}<div class="in">{@render body(x, false)}</div>{/if}{/snippet}</ItemList>
+    <ItemList {allOpen} rows={left.map(decision)} testid="decisione" onOpen={onWait ? (r) => { const w = left.find(g => g.key === r.key)?.items.find(i => i.wid)?.wid; if (w) onWait(w); return !!w } : null} more={(rest) => rest.reduce((a, r) => a + (left.find(y => y.key === r.key)?.items.length || 1), 0)}>{#snippet card(r)}{@const x = left.find(y => y.key === r.key)}{#if x}<div class="in">{@render body(x, false)}</div>{/if}{/snippet}</ItemList>
   {:else if howMany == null}
     <div class="c"><p>{t.decisionsHead(page.n, page.here, page.tasks)}</p><p class="m">{t.decisionsHowMany}</p>
       <div class="ac">{#each [1, 3, 5].filter(n => n === 1 || n <= page!.groups.length) as n (n)}<button class="tonal" onclick={() => (howMany = n)}>{n}</button>{/each}<button class="tonal" onclick={() => (howMany = page!.groups.length)}>{t.decisionsAll}</button></div></div>

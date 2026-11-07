@@ -114,6 +114,8 @@ internal fun ItemList(
     gone: Set<String> = emptySet(),
     /** Quante cose dicono le righe nascoste in «altre N»: di solito le righe, per Decidi le decisioni dei gruppi (web-plancia-j2-ripasso-06-11). */
     more: (List<ItemRows.Row>) -> Int = { it.size },
+    /** Contratto 1.130 (app-scheda-ti-aspetta-07-11): true se il tocco ha aperto la scheda «Ti aspetta» della riga, che allora non si apre sul posto. */
+    onOpen: ((ItemRows.Row) -> Boolean)? = null,
     card: @Composable (ItemRows.Row) -> Unit,
 ) {
     if (rows.none { it.key !in gone }) return
@@ -132,7 +134,7 @@ internal fun ItemList(
                 // (1 px più in alto da lì in giù nei golden di 9622c048).
                 androidx.compose.animation.AnimatedVisibility(r.key !in gone, enter = androidx.compose.animation.EnterTransition.None, exit = confirmedExit(off)) {
                     val row: @Composable () -> Unit = { Column(Modifier.fillMaxWidth()) {
-                        ItemRowView(r, right(r), i == 0 || sub, openKey == r.key, name(r), "$tag-${r.key}", onClick = { openKey = if (openKey == r.key) null else r.key }) { card(r) }
+                        ItemRowView(r, right(r), i == 0 || sub, openKey == r.key, name(r), "$tag-${r.key}", onClick = { if (onOpen?.invoke(r) != true) openKey = if (openKey == r.key) null else r.key }) { card(r) }
                     } }
                     if (sub) V3List(row) else row()
                 }
