@@ -30,6 +30,7 @@
   import { waitingPc } from './durations'
   import { ctxNudge, handoffPrompt } from './masterService'
   import { reducedMotion } from './motion'
+  import { cut, type Quote } from './quotes'
   let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
     /** Contratto 1.106: la riga «Risultati» in cima alla chat. */
     resultsRow?: import('svelte').Snippet | null
@@ -87,6 +88,27 @@
   let changesOpen = $state(false)
   $effect.pre(() => { const name = s.name; if (name !== shown) { drafts[shown] = draft; draft = drafts[name] ?? ''; shown = name; changesOpen = false } })
   let list: HTMLElement | undefined = $state()
+  // Citare la trascrizione (app-citazione-trascrizione-07-11, Franz 07/11 20:06): selezionando un pezzo di un messaggio, vicino
+  // alla selezione «Cita» e «Cita tutto»; i pezzi vanno sopra il campo e partono in Markdown con la risposta (Composer).
+  let quotes = $state<Quote[]>([])
+  let quoteId = 0
+  $effect(() => { void s.name; untrack(() => { quotes = [] }) })
+  let qsel = $state<{ x: number; y: number; text: string; all: string; at: number | null } | null>(null)
+  function selected() {
+    const sel = document.getSelection()
+    if (!sel || sel.isCollapsed || !sel.rangeCount || !list) { qsel = null; return }
+    const n = sel.anchorNode
+    const el = (n instanceof Element ? n : n?.parentElement)?.closest<HTMLElement>('[data-quote]')
+    if (!el || !list.contains(el)) { qsel = null; return }
+    const r = sel.getRangeAt(0).getBoundingClientRect()
+    qsel = { x: r.left + r.width / 2, y: r.top, text: sel.toString(), all: el.dataset.quote ?? '', at: Number(el.dataset.quoteAt) || null }
+  }
+  $effect(() => { document.addEventListener('selectionchange', selected); return () => document.removeEventListener('selectionchange', selected) })
+  function quote(text: string, at: number | null) {
+    const c = cut(text)
+    if (c) quotes = [...quotes, { id: quoteId++, text: c, at }]
+    document.getSelection()?.removeAllRanges(); qsel = null
+  }
   // Con pagine più vecchie da caricare i messaggi mandati prima della pagina aspettano la loro: sotto «Carica i messaggi
   // precedenti» c'erano solo i prompt di Franz con «elaborato», senza le risposte (04/11 20:31, rendicontazione-ak).
   const items = $derived(group(merge(entries, mine, onOlder != null)))
@@ -289,7 +311,13 @@
     onAnswerText={(arg) => onCmd('answer', arg)} onSlash={(c, a) => onCmd('slash', c, a ?? undefined)} onStop={() => onCmd('interrupt')}
     onReopen={() => onCmd('reopen')} {onAttach}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
-    {onSendAt} {onSendTo} />
+    {onSendAt} {onSendTo} bind:quotes />
+  {#if qsel}{@const p = qsel}
+    <div class="qpick" role="toolbar" style="left:{p.x}px;top:{p.y}px">
+      <button type="button" data-testid="cita" onmousedown={(e) => e.preventDefault()} onclick={() => quote(p.text, p.at)}>{t.quote}</button>
+      <button type="button" data-testid="cita-tutto" onmousedown={(e) => e.preventDefault()} onclick={() => quote(p.all, p.at)}>{t.quoteAll}</button>
+    </div>
+  {/if}
   {#if changesOpen && onChanges}
     <!-- Contratto 1.72: sopra la sessione; sulla plancia resta nella sua colonna. -->
     <div class="chgwrap"><Changes {s} load={onChanges} onClose={() => (changesOpen = false)} /></div>
@@ -329,6 +357,10 @@
   .toend button { position: absolute; right: 0; bottom: 8px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--high); color: var(--icon); box-shadow: 0 4px 16px rgb(0 0 0 / .4); }
   .toend button:hover { filter: brightness(1.15); }
   .chat.master .toend button { background: var(--master-highest); }
+  /* «Cita» e «Cita tutto» sopra la selezione, come il menu di sistema del telefono. */
+  .qpick { position: fixed; z-index: 30; transform: translate(-50%, calc(-100% - 8px)); display: flex; gap: 2px; padding: 4px; border-radius: 12px; background: var(--s3); border: 1px solid var(--line); box-shadow: 0 6px 20px rgb(0 0 0 / .35); }
+  .qpick button { padding: 8px 12px; border-radius: 8px; font: 600 14px var(--display); color: var(--tx); white-space: nowrap; }
+  .qpick button:hover { background: var(--s2); }
   .lines { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
   .qlimit { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; padding: 16px; border-radius: 24px; border: 2px solid var(--gone); background: var(--high); max-width: 760px; }
   .qlimit p { margin: 0 0 4px; }

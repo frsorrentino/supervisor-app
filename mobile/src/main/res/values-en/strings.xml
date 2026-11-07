@@ -1835,4 +1835,9 @@ It starts at your last message to the master.</string>
     <plurals name="desk_master_sug"><item quantity="one">%1$d suggestion</item><item quantity="other">%1$d suggestions</item></plurals>
     <string name="desk_sessions_none">none waiting</string>
     <plurals name="desk_sessions_wait"><item quantity="one">waiting for you</item><item quantity="other">waiting for you</item></plurals>
+    <!-- Citare la trascrizione (app-citazione-trascrizione-07-11). -->
+    <string name="quote">Quote</string>
+    <string name="quote_all">Quote all</string>
+    <string name="quote_from">from the reply at %1$s</string>
+    <string name="quote_remove">Remove the quote</string>
 </resources>

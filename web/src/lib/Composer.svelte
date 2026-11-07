@@ -4,6 +4,7 @@
   import type { Session, State } from './contract'
   import { mode as modeOf, suggestionKey, slashConfirm, slashParse, slashSuggest } from './composer'
   import { textArg } from './questionRules'
+  import { markdown, type Quote } from './quotes'
   import { t } from './t'
   import { sendAtEpoch } from './chatRules'
   import { parseMention, suggestMention } from './mention'
@@ -15,7 +16,7 @@
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
-  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onSendAt = null, onSendTo = null }: {
+  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onSendAt = null, onSendTo = null, quotes = $bindable([]) }: {
     st: State; s: Session; draft: string; field: string | null; toMaster: boolean
     onSend: (text: string) => void; onAnswerText: (arg: string) => void; onSlash: (cmd: string, args: string | null) => void
     onStop: () => void; onReopen: () => void; onAttach: (files: File[], text: string) => void; onRecurring: (() => void) | null
@@ -24,6 +25,8 @@
     onSendAt?: ((text: string, at: number) => void) | null
     /** «@nome» nella chat della master: il messaggio a quella sessione (Franz, 14/10 21:55). */
     onSendTo?: ((name: string, text: string) => void) | null
+    /** I pezzi citati dalla trascrizione, sopra il campo; partono con la risposta in Markdown (app-citazione-trascrizione-07-11). */
+    quotes?: Quote[]
   } = $props()
   let picking = $state(false)
   let when = $state(`${String((new Date().getHours() + 1) % 24).padStart(2, '0')}:00`)
@@ -83,6 +86,8 @@
     area?.focus()
   }
   onDestroy(() => dictation?.cancel())
+  const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const withQuotes = (text: string) => { if (!quotes.length) return text; const out = markdown(quotes.map(q => q.text), text); quotes = []; return out }
   function send() {
     dictation?.cancel()
     const text = draft.trim()
@@ -95,10 +100,10 @@
     if (cmd?.cmd === 'exit') { exitArgs = cmd.args; closer?.ask(s); return }
     if (cmd && slashConfirm(cmd.cmd)) { confirm = cmd; confirmDlg?.showModal(); return }
     if (cmd) onSlash(cmd.cmd, cmd.args)
-    else if (files.length) { onAttach(files.map(f => f.file), text); files.forEach(f => f.url && URL.revokeObjectURL(f.url)); files = [] }
+    else if (files.length) { onAttach(files.map(f => f.file), withQuotes(text)); files.forEach(f => f.url && URL.revokeObjectURL(f.url)); files = [] }
     else if (!text) return
-    else if (s.question) onAnswerText(textArg(text))
-    else onSend(text)
+    else if (s.question) onAnswerText(textArg(withQuotes(text)))
+    else onSend(withQuotes(text))
     draft = ''
   }
   // Invio manda, Maiusc+Invio va a capo, come sul tablet con la tastiera fisica. Tab con un suggerimento visibile e il campo
@@ -136,6 +141,16 @@
     {/if}
     {#if hints.length}
       <div class="chips">{#each hints as c}<button class="chip" onclick={() => { draft = `/${c} `; area?.focus() }}>/{c}</button>{/each}</div>
+    {/if}
+    {#if quotes.length}
+      <div class="quotes" data-testid="citazioni">
+        {#each quotes as q (q.id)}
+          <div class="quote" data-testid="citazione-{q.id}">
+            <span class="qt">{#if q.at}<small>{t.quoteFrom(hm(q.at))}</small>{/if}<span>{q.text}</span></span>
+            <button type="button" class="qx" aria-label={t.quoteRemove} data-testid="citazione-togli-{q.id}" onclick={() => (quotes = quotes.filter(x => x.id !== q.id))}><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg></button>
+          </div>
+        {/each}
+      </div>
     {/if}
     {#if narrow && field && !draft.trim()}
       <button type="button" class="sugrow" onclick={() => { draft = field ?? ''; area?.focus() }}><i>{field}</i><span>{t.use}</span></button>
@@ -221,6 +236,14 @@
   .x { position: absolute; top: 2px; right: 2px; width: 26px; height: 26px; border-radius: 50%; background: rgb(0 0 0 / .6); color: #fff; display: grid; place-items: center; }
   .chip { font: 14px var(--mono); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); white-space: nowrap; }
   .chip:hover { background: var(--surface); }
+  /* Le citazioni sopra il campo, come le sottoschede: bordo tenue, la riga a sinistra, tre righe al più (app-citazione-trascrizione-07-11). */
+  .quotes { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .quote { display: flex; align-items: flex-start; border: 1px solid var(--s3); border-left: 3px solid var(--tx3); border-radius: 10px; padding: 8px 4px 8px 10px; }
+  .qt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .qt small { font: 12.5px var(--mono); color: var(--tx2); }
+  .qt span { font-size: 14px; line-height: 19px; color: var(--tx); display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; }
+  .qx { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; }
+  .qx:hover { background: var(--s2); }
   .field { display: flex; align-items: center; gap: 4px; border: 1px solid rgb(255 255 255 / .25); border-radius: 28px; padding: 0 8px 0 4px; min-height: 56px; }
   .field:focus-within { border-color: var(--icon); border-width: 2px; padding: 0 7px 0 3px; }
   /* Il campo della master nel corallo di Claude, come il filo della sua barra (Franz, 06/10 09:45). */

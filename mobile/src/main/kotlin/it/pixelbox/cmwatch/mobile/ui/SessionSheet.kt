@@ -286,6 +286,8 @@ fun SessionSheet(
     notesInHeader: Boolean = true,
     /** Negli snapshot: la vista «Modifiche» già aperta con questa risposta (contratto 1.72). */
     changesShown: DiffRules.Load<ChangesView>? = null,
+    /** Negli snapshot: le citazioni già sopra il campo (app-citazione-trascrizione-07-11). */
+    quoteStart: QuoteDraft? = null,
 ) {
     // L'orologio dell'attesa del PC gira solo con una lettura in volo, e si legge solo dentro la lista: il tic di ogni
     // secondo non ricompone la scheda (la digitazione lenta del 05/10 veniva da letture in cima).
@@ -421,6 +423,9 @@ fun SessionSheet(
         if (at >= 0) list.animateScrollToItem(at + if (more) 1 else 0) else list.scrollToEnd(animate = true)
         retried = null
     }
+    // Le citazioni della trascrizione stanno con la sessione, sopra il suo campo (app-citazione-trascrizione-07-11).
+    val quoteDraft = remember(s.id) { quoteStart ?: QuoteDraft() }
+    androidx.compose.runtime.CompositionLocalProvider(LocalQuoteDraft provides quoteDraft) {
     // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fly("card-${s.id}").fillMaxSize().background(LocalPageBg.current ?: Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
@@ -811,6 +816,7 @@ fun SessionSheet(
         s, loadChanges, onClose = { changesOpen = false }, modifier = Modifier.fillMaxSize(), start = changesShown,
     )
     }
+    }
 }
 
 /**
@@ -853,6 +859,8 @@ private fun Composer(
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
 ) {
     val draft = draftState.value
+    // I pezzi citati dalla trascrizione partono con la risposta, in Markdown (app-citazione-trascrizione-07-11).
+    val quoteDraft = LocalQuoteDraft.current
     var images by rememberSaveable(s.id) { mutableStateOf(listOf<Uri>()) }
     // clear ed exit svuotano o chiudono la sessione: prima si chiede (Franz, 02/10 11:12).
     var confirm by remember(s.id) { mutableStateOf<it.pixelbox.cmwatch.rules.Slash.Parsed?>(null) }
@@ -866,6 +874,7 @@ private fun Composer(
         .imePadding().padding(horizontal = 12.dp, vertical = 10.dp)
     // Contratto 1.65: anche una sessione chiusa ha il campo; scrivendo, Invia la riapre e le consegna il messaggio.
     Column(bar, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        quoteDraft?.let { QuoteChips(it) }
         quota?.let { w ->
             val can = draft.isNotBlank() && s.question == null && images.isEmpty()
             QuotaLine(w, draft.trim(), canDefer = can, canTonight = can && canTonight, actions, onDeferred = onSent, night = canTonight)
@@ -919,9 +928,10 @@ private fun Composer(
                 else -> {
                     // Più allegati in un messaggio solo, se il relay lo sa fare (Franz, 10/10 16:52: «ancora su 2 post»).
                     val many = actions.attachMany
-                    if (images.size > 1 && many != null) many(images, draft.trim())
-                    else if (images.isNotEmpty()) images.forEachIndexed { i, uri -> actions.attach(uri, if (i == 0) draft.trim() else "") }
-                    else PhonePrimary.target(s, draft)?.let { actions.send(it, draft.trim()) }
+                    val out = quoteDraft?.take(draft) ?: draft.trim()
+                    if (images.size > 1 && many != null) many(images, out)
+                    else if (images.isNotEmpty()) images.forEachIndexed { i, uri -> actions.attach(uri, if (i == 0) out else "") }
+                    else PhonePrimary.target(s, draft)?.let { actions.send(it, out) }
                     images = emptyList()
                     onSent()
                 }
@@ -1458,7 +1468,7 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
                     m.attachments.forEach { AttachmentThumb(it, maxW = 150.dp, maxH = 150.dp) }
                 }
                 // Pressione lunga = selezione di una parte del testo, con la barra di sistema per copiarla (Franz, 02/10 20:31).
-                if (m.text.isNotBlank()) SelectionContainer { Text(linked(m.text), style = MaterialTheme.typography.bodyLarge, color = Cm.text) }
+                if (m.text.isNotBlank()) Quotable(m.text, m.sentAt) { SelectionContainer { Text(linked(m.text), style = MaterialTheme.typography.bodyLarge, color = Cm.text) } }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1490,7 +1500,7 @@ private fun UserBubble(e: TranscriptEntry, onResend: (String) -> Unit) {
     val text = e.text.orEmpty()
     Column(Modifier.fillMaxWidth().padding(start = 40.dp), horizontalAlignment = Alignment.End) {
         Surface(color = LocalBubble.current ?: Cm.surface, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)) {
-            SelectionContainer { Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) }
+            Quotable(text, e.at) { SelectionContainer { Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) } }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             val from = when (e.origin) {
@@ -1882,10 +1892,10 @@ private fun ClaudeBubble(
                     }
                 // Fuori dalla lettura il testo si seleziona a pezzi con la pressione lunga (Franz, 02/10 20:31); durante la lettura
                 // il tocco sui paragrafi resta per ripartire da lì.
-                } else SelectionContainer {
+                } else Quotable(stripped.text, at) { SelectionContainer {
                     val shown = it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(stripped.text, stringResource(R.string.outcome_label))
                     ChatBody(shown, outcomeType)
-                }
+                } }
                 // Un tasto per sessione linkata, nell'ordine in cui compare; la pressione lunga apre il link com'era.
                 stripped.buttons.forEach { b -> SessionButton(b, onOpen = { onOpenSession(b.session) }) }
                 // Variante C: «Prossimi» e i consigli in colonna; tocco = nel campo, pressione lunga = invio.

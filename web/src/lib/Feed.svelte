@@ -152,7 +152,7 @@
   {@const c = cost(e)}
   {@const typed = outcomeType(e.outcome_type)}
   {@const es = typed === 'none' ? { body: sl.text, outcome: null } : splitOutcome(sl.text, t.outcomeLabel)}
-  <div class="claude">
+  <div class="claude" data-quote={text} data-quote-at={e.at ?? ''}>
     <div class="ctext">
       {#each splitLabels(replaceNames(es.body, taskNames(commitments))) as part}
         {#if part.kind === 'you'}
@@ -250,8 +250,9 @@
   </div>
 {/snippet}
 
-{#snippet bubble(text: string, low: boolean)}
-  <div class="bubble" class:low><p><Md {text} /></p></div>
+<!-- data-quote: il testo che «Cita tutto» mette sopra il campo, con l'ora (app-citazione-trascrizione-07-11). -->
+{#snippet bubble(text: string, low: boolean, at: number | null = null)}
+  <div class="bubble" class:low data-quote={text} data-quote-at={at ?? ''}><p><Md {text} /></p></div>
 {/snippet}
 
 {#each items as it, i (itemKey(it))}
@@ -263,7 +264,7 @@
     <div class="me">
       {#if it.sent.attachment}<span class="att"><Icon name="file" size={16} />{it.sent.attachment}</span>{/if}
       {#each it.sent.attachments ?? [] as a}<span class="att"><Icon name="file" size={16} />{a}</span>{/each}
-      {#if it.sent.text}{@render bubble(it.sent.text, false)}{/if}
+      {#if it.sent.text}{@render bubble(it.sent.text, false, it.sent.sentAt)}{/if}
       <div class="mrow">
         <span class="mark" style="color:{tone}"><span class="pop" use:popOnChange={it.status}><Icon name={ic} size={16} color={tone} /></span>{it.status === 'scheduled' ? t.chatStatus.scheduled(hm(it.sent.scheduledFor ?? it.sent.sentAt)) : t.chatStatus[it.status]('')}</span>
         {#if it.status !== 'scheduled'}<span class="time">{hm(it.sent.sentAt)}</span>{/if}
@@ -272,7 +273,7 @@
     </div>
   {:else if it.type === 'user'}
     <div class="me">
-      {@render bubble(it.entry.text ?? '', true)}
+      {@render bubble(it.entry.text ?? '', true, it.entry.at ?? null)}
       <div class="mrow">
         {#if it.entry.origin && t.origin[it.entry.origin]}<span class="meta">{t.origin[it.entry.origin]}</span>{/if}
         {#if it.entry.queued}<span class="meta stale">· {t.chatStatus.queued('')}</span>{/if}

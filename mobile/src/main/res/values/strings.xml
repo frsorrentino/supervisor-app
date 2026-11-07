@@ -1863,4 +1863,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <plurals name="desk_master_sug"><item quantity="one">%1$d suggerimento</item><item quantity="other">%1$d suggerimenti</item></plurals>
     <string name="desk_sessions_none">nessuna ti aspetta</string>
     <plurals name="desk_sessions_wait"><item quantity="one">ti aspetta</item><item quantity="other">ti aspettano</item></plurals>
+    <!-- Citare la trascrizione (app-citazione-trascrizione-07-11). -->
+    <string name="quote">Cita</string>
+    <string name="quote_all">Cita tutto</string>
+    <string name="quote_from">dalla risposta delle %1$s</string>
+    <string name="quote_remove">Togli la citazione</string>
 </resources>
