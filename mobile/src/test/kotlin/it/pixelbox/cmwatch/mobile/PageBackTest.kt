@@ -1,6 +1,8 @@
 package it.pixelbox.cmwatch.mobile
 
+import androidx.compose.runtime.snapshots.Snapshot
 import it.pixelbox.cmwatch.mobile.ui.PageBack
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
@@ -17,6 +19,16 @@ import org.junit.Test
  * con `leaving` a 1, a trasparenza zero.
  */
 class PageBackTest {
+    /**
+     * Ogni prova in uno snapshot suo, buttato alla fine, come HomeFoldsTest: `PageBack` scritto fuori da una composizione nello
+     * snapshot globale della JVM rompeva le gif di Paparazzi delle classi dopo (SlotSubitoTest, SuggFocusTest). `runBlocking`
+     * resta sul filo dello snapshot.
+     */
+    private fun isolated(body: suspend CoroutineScope.() -> Unit) {
+        val s = Snapshot.takeMutableSnapshot()
+        try { s.enter { runBlocking { body() } } } finally { s.dispose() }
+    }
+
     private fun gestureDone() { PageBack.progress.floatValue = 0.4f; PageBack.leaving.floatValue = 1f; PageBack.commit() }
 
     private fun assertClean() {
@@ -25,7 +37,7 @@ class PageBackTest {
         assertFalse(PageBack.takeCommitted())
     }
 
-    @Test fun pageThatLeavesCancelsTheWaitAndTheGestureStillResets() = runBlocking {
+    @Test fun pageThatLeavesCancelsTheWaitAndTheGestureStillResets() = isolated {
         gestureDone()
         val waiting = CompletableDeferred<Unit>()
         val job = launch { PageBack.settle { waiting.complete(Unit); awaitCancellation() } }
@@ -34,7 +46,7 @@ class PageBackTest {
         assertClean()
     }
 
-    @Test fun pageThatStaysResetsAfterTheFrames() = runBlocking {
+    @Test fun pageThatStaysResetsAfterTheFrames() = isolated {
         gestureDone()
         PageBack.settle { }
         assertClean()
