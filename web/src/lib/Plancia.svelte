@@ -3,14 +3,16 @@
   // La plancia della web larga senza sessioni aperte (pwa2, approvata da Franz il 30/10 alle 10:5x, stile «Studio e Diretta»):
   // la testata fuori dalla griglia, quattro colonne per argomento con la loro cifra in testa (Richiede te, Attività e code,
   // Esiti, Numeri e strumenti) e la master come barra in fondo; a metà o aperta è un pannello a destra alto quanto lo schermo,
-  // 420 o 720 px. Le colonne sono quante ne stanno a 320 px l'una; quelle che non stanno scendono in fondo all'ultima.
+  // 420 o 720 px. Le colonne sono quante ne stanno a 360 px l'una (320 fino alle sessioni a sé, app-home-sessioni-a-se-08-11: nella colonna
+  // delle sessioni nome, tasto e scelta devono starci); quelle che non stanno scendono in fondo all'ultima.
   // L'ordine delle colonne è quello delle categorie della home (app-home-categorie-02-11), lo stesso di Riordina.
-  let { width, head, you, work, out, tools, bar, top = null, panel = null, panelWide = false, panelLeft = false, order = ['you', 'work', 'out', 'tools'] }: {
-    width: number; head: Snippet; top?: Snippet | null; you: Snippet; work: Snippet; out: Snippet; tools: Snippet; bar: Snippet; order?: string[]
+  // `sessions` (app-home-sessioni-a-se-08-11): la colonna delle sessioni, che stanno a sé; `work` è quella di Lavori.
+  let { width, head, sessions, you, work, out, tools, bar, top = null, panel = null, panelWide = false, panelLeft = false, order = ['sessions', 'you', 'work', 'tools'] }: {
+    width: number; head: Snippet; top?: Snippet | null; sessions: Snippet; you: Snippet; work: Snippet; out: Snippet; tools: Snippet; bar: Snippet; order?: string[]
     panel?: Snippet | null; panelWide?: boolean; panelLeft?: boolean
   } = $props()
-  const PANEL = 420, PANEL_WIDE = 720, COL = 320
-  const all = $derived(order.map(id => ({ you, work, out, tools } as Record<string, Snippet>)[id]).filter(Boolean))
+  const PANEL = 420, PANEL_WIDE = 720, COL = 360
+  const all = $derived(order.map(id => ({ sessions, you, work, out, tools } as Record<string, Snippet>)[id]).filter(Boolean))
   const n = $derived(Math.max(1, Math.min(all.length, Math.floor((width - (panel ? (panelWide ? PANEL_WIDE : PANEL) : 0)) / COL))))
   // Le colonne che non stanno: in fondo all'ultima che si vede.
   const shownCols = $derived(all.slice(0, n).map((c, i) => (i === n - 1 ? all.slice(i) : [c])))

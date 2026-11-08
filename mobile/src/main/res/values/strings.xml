@@ -1705,7 +1705,11 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_prima_done">fatta</string>
     <!-- La home per categorie (app-home-categorie-02-11). -->
     <string name="cat_you">Dalla master</string>
-    <string name="cat_work">Sessioni</string>
+    <string name="cat_work">Lavori</string>
+    <!-- app-home-sessioni-a-se-08-11: Lavori chiusa e la sua colonna della plancia. -->
+    <string name="cat_sig_progress">%1$d in corso</string>
+    <plurals name="cat_sig_outcomes"><item quantity="one">%1$d esito</item><item quantity="other">%1$d esiti</item></plurals>
+    <plurals name="desk_lavori_sub"><item quantity="one">in corso · %1$d esito oggi</item><item quantity="other">in corso · %1$d esiti oggi</item></plurals>
     <string name="cat_out">Esiti</string>
     <string name="cat_tools">Risorse</string>
     <string name="cat_sig_today">%1$d oggi</string>

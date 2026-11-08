@@ -434,10 +434,15 @@ fun SummaryList(
                 ).ifEmpty { none } to (d + p + s > 0 || pr != null)
             }
             else -> {
-                // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).
-                val n = if ("sessions" in up) 0 else model.open
-                val w = if ("sessions" in up) 0 else model.rows.count { r -> r.group == Summary.Group.WAITING && r.session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER }
-                (listOfNotNull(w.takeIf { x -> x > 0 }?.let { x -> CatBit(pluralStringResource(R.plurals.home_sessions_waiting, x, x), V3.Wait) }, n.takeIf { x -> x > 0 }?.let { x -> CatBit("${stringResource(R.string.home_sec_sessions)} $x") }).ifEmpty { none }) to (w > 0)
+                // Lavori chiusa (app-home-sessioni-a-se-08-11, tavola A): «N in corso · N esiti» nell'ordine della lista aperta; un
+                // rosso fra gli esiti è rosso nella riga.
+                val out = if ("esiti" in up) null else it.pixelbox.cmwatch.rules.Kpi.outcomes(kpiPage, now, java.time.ZoneId.systemDefault())
+                val done = (out?.settled ?: 0) + (out?.red?.size ?: 0)
+                val p = lavoriCount?.takeIf { "lavori" !in up } ?: 0
+                inOrder(listOf(
+                    "lavori" to p.takeIf { x -> x > 0 }?.let { x -> CatBit(stringResource(R.string.cat_sig_progress, x)) },
+                    "esiti" to done.takeIf { x -> x > 0 }?.let { x -> CatBit(pluralStringResource(R.plurals.cat_sig_outcomes, x, x), if (out?.red.isNullOrEmpty()) null else V3.Red) },
+                )).ifEmpty { none } to false
             }
         }
     }
@@ -462,7 +467,7 @@ fun SummaryList(
         listState.scrollToItem(0)
         repeat(40) {
             androidx.compose.runtime.withFrameNanos { }
-            val at = listState.layoutInfo.visibleItemsInfo.firstOrNull { i -> i.key == "cat-$id" }
+            val at = listState.layoutInfo.visibleItemsInfo.firstOrNull { i -> i.key == id }
             if (at != null) { listState.animateScrollToItem(at.index); catFocus = null; return@LaunchedEffect }
             if (!listState.canScrollForward) { catFocus = null; return@LaunchedEffect }
             listState.scrollBy(600f)
@@ -656,13 +661,13 @@ fun SummaryList(
                     Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, { b ->
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
                         // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre.
-                        // Il primo riquadro conta le sessioni ferme, che stanno in Sessioni (app-home-nomi-02-11): apre In corso e Sessioni.
-                        // Esiti sta dentro Sessioni (app-home-tre-categorie-06-11): il suo riquadro apre Sessioni e la sottosezione Esiti.
-                        val id = "work"
-                        if (b == HomeBox.WAITING && !sessionsOpen) { sessionsOpen = true; save("sessions", true) }
-                        if (b == HomeBox.OUTCOMES && !esitiOpen) { esitiOpen = true; save("esiti", true) }
-                        if (catsNow.any { c -> c.id == id && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, id))
-                        catFocus = id
+                        // I primi due riquadri contano le sessioni, che stanno a sé sotto il tabellone (app-home-sessioni-a-se-08-11): ci
+                        // scorrono. Esiti sta in Lavori: il suo riquadro apre Lavori e la sottosezione Esiti.
+                        if (b == HomeBox.OUTCOMES) {
+                            if (!esitiOpen) { esitiOpen = true; save("esiti", true) }
+                            if (catsNow.any { c -> c.id == "work" && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, "work"))
+                            catFocus = "cat-work"
+                        } else catFocus = "sec-sessions"
                     }, onQuota, joined = up.any { k -> k != pin }, slot = { slotContent() })
                     val held = dragKey
                     // Sul tabellone si rilascia una sezione che non c'è ancora; con quattro voci lo dice, e il rilascio non cambia niente.
@@ -995,8 +1000,8 @@ fun SummaryList(
             if (k == listSkip) return
             when (k) {
                 "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> renderNew(k)
-                // Chiuse sta dentro Sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
-                "sessions" -> { renderSessions(); if (listSkip != "closed" && "sessions" !in liveTop) renderClosed() }
+                // Chiuse sta sotto le sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
+                "sessions" -> { renderSessions(); if (listSkip != "closed") renderClosed() }
                 "suggestions" -> renderSuggestions()
                 "notte" -> renderNotte()
                 "lavori" -> renderLavori()
@@ -1037,11 +1042,11 @@ fun SummaryList(
                 elicitations.forEach { e -> item(key = "elicit-${e.id}") { Box(Modifier.animateItem()) { ElicitationCard(e, now, onElicit) } } }
                 if (allDone) item(key = "all-done") { Box(Modifier.animateItem().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
             }
-            val keys = (up.filter { k -> catFor(k) == part } + cats.firstOrNull { c -> c.id == part }?.sections.orEmpty()).distinct()
+            // La colonna Sessioni (app-home-sessioni-a-se-08-11): le sessioni stanno a sé, con Chiuse.
+            val keys = if (part == "sessions") listOf("sessions") else (up.filter { k -> catFor(k) == part } + cats.firstOrNull { c -> c.id == part }?.sections.orEmpty()).distinct()
             val before = dragPresent.size
             keys.forEach(::renderKey)
             if (part == "tools" && "system" in up && "plugins" !in keys) renderPlugins()
-            if (part == "work" && "sessions" in up && "closed" !in keys) renderClosed()
             if (part == "you") kpiState?.let(it.pixelbox.cmwatch.rules.ToccaRules::closedToday)?.let { td -> item(key = "tocca-closed") { ToccaClosedRow(td, Modifier.animateItem()) } }
             if (part == "you" && dragPresent.size == before) item(key = "you-empty") { Text(stringResource(R.string.desk_you_empty), Modifier.padding(horizontal = 6.dp, vertical = 10.dp), color = V3.Tx2, style = MaterialTheme.typography.bodyMedium) }
             partFoot?.let { f -> item(key = "foot-$part") { f(part) } }
@@ -1052,25 +1057,24 @@ fun SummaryList(
         // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
         if (dragKey != null && dragKey in up) dragPresent += edge
         item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
+        // Le sessioni a sé (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): sempre aperte, senza testata di categoria,
+        // sotto il tabellone e sopra le categorie, con Chiuse; non si spostano.
+        renderKey("sessions")
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
-            // Un livello solo: la categoria Sessioni non ha l'etichetta «SESSIONI» ed è sempre aperta (app-sessioni-compatte-06-11).
-            val oneLevel = parts == null && c.id == "work"
-            if (oneLevel) Unit
-            else if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second, divider = true) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
+            if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second, divider = true) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }
             else item(key = "cat-${c.id}") {
                 Box(movingIn("cat:${c.id}")()) {
                     val (bits, amber) = catBits(c.id)
                     CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = amber, divider = true, bits = bits){ if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) }
                 }
             }
-            if (!c.open && !oneLevel) return@forEachIndexed
+            if (!c.open) return@forEachIndexed
             val before = dragPresent.size
             (liveBelow?.filter { k -> catFor(k) == c.id } ?: c.sections).forEach(::renderKey)
-            // Con Sistema o Sessioni sul tabellone, Plugin e skill e Chiuse restano nella loro categoria, che si sposta come le altre
-            // (Franz 03/11 18:54, app-risorse-categoria-03-11).
+            // Con Sistema sul tabellone, Plugin e skill restano nella loro categoria, che si sposta come le altre (Franz 03/11 18:54,
+            // app-risorse-categoria-03-11).
             if (c.id == "tools" && "system" in liveTop && listSkip != "plugins" && "plugins" !in liveTop) renderPlugins()
-            if (c.id == "work" && "sessions" in liveTop && listSkip != "closed" && "closed" !in liveTop) renderClosed()
             // Le voci uscite da sole oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113).
             if (c.id == "you") kpiState?.let(it.pixelbox.cmwatch.rules.ToccaRules::closedToday)?.let { td -> item(key = "tocca-closed") { ToccaClosedRow(td, Modifier.animateItem()) } }
             catHas[c.id] = dragPresent.size > before

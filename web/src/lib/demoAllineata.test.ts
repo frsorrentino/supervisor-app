@@ -86,9 +86,9 @@ describe('demo_allineata', () => {
     expect(topOf(st.home_order)[0]).toBe('usage')
     expect(weekSlot(st.quota, NOW)).not.toBeNull()
   })
-  it('demo_allineata: la home della demo è quella predefinita per categorie, con Utilizzo e Sessioni sul tabellone (app-tabellone-quattro-02-11)', () => {
-    expect(topOf(st.home_order)).toEqual(['usage', 'sessions'])
-    const want = DEFAULT_CATS.map(c => [c.id, c.open, c.sections.filter(k => k !== 'sessions' && k !== 'usage')])
+  it('demo_allineata: la home della demo è quella predefinita per categorie, con Utilizzo sul tabellone (app-home-sessioni-a-se-08-11)', () => {
+    expect(topOf(st.home_order)).toEqual(['usage'])
+    const want = DEFAULT_CATS.map(c => [c.id, c.open, c.sections.filter(k => k !== 'usage')])
     expect(decodeCats(st.home_order).map(c => [c.id, c.open, c.sections])).toEqual(want)
   })
   it('demo_allineata: ogni suggerimento ha un progetto della demo prima dei due punti', () => {

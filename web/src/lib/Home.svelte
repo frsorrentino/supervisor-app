@@ -84,9 +84,9 @@
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
     onQuota?: () => void
-    /** Una colonna della plancia (pwa2, Franz 30/10): «you» le attese e i suggerimenti, «work» sessioni e lavori, «out» gli
-     *  esiti, «tools» Altro; senza, la home intera col tabellone. */
-    part?: 'you' | 'work' | 'out' | 'tools' | 'top' | null
+    /** Una colonna della plancia (pwa2, Franz 30/10): «sessions» le sessioni (app-home-sessioni-a-se-08-11), «you» le attese e i
+     *  suggerimenti, «work» i lavori (Notte, In corso, Esiti), «out» gli esiti, «tools» Altro; senza, la home intera col tabellone. */
+    part?: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null
     /** Contratto 1.97: l'ordine scelto trascinando un titolo di sezione; null = il relay non lo sa fare, o una colonna della plancia. */
     onHomeOrder?: ((arg: string | null) => void) | null
     /** Nella colonna «Attività e code» della plancia: i compiti in corso del registro, subito dopo le sessioni Claude. */
@@ -175,6 +175,8 @@
   const edgeAt = (o: string[]) => Math.max(0, o.indexOf(EDGE))
   // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
   const shows = (c: CatId) => !part || part === c || part === 'top'
+  // Le sessioni stanno a sé (app-home-sessioni-a-se-08-11): nella home sotto il tabellone, nella plancia nella colonna loro.
+  const showsSessions = !part || part === 'sessions'
   // Il nome di transizione di ogni sezione e scheda (app-home-riposiziona-animata-04-11): vale solo durante i cambi della vista
   // larga (`html.reflow`, v3.css), così ognuna scivola dal posto e dalla misura di prima al nuovo, riconoscibile.
   const vt = (k: string) => `home-${k.replace(/[^A-Za-z0-9_-]/g, '_')}`
@@ -367,22 +369,23 @@
       const bits: { text: string; mute?: boolean }[] = [...(d ? [{ text: t.catSigDecide(d) }] : []), ...(p ? [{ text: t.catSigTest(p) }] : []), ...(pr ? [{ text: `${t.primaTitle} ${t.homePrima.ask}` }] : []), ...(s ? [{ text: t.catSigSuggestions(s), mute: true }] : [])]
       return { bits: bits.length ? bits : none, amber: d + p + s > 0 || pr }
     }
-    // Lo stesso numero di «N aperte» e di Sessioni; chi aspetta Franz accende la riga (Ti aspettano sta in Sessioni).
-    const n = up.includes('sessions') ? 0 : model.open
-    const w = up.includes('sessions') ? 0 : waitRows.filter(r => r.session.name !== 'master').length
-    const bits = [...(w ? [{ text: t.homeSessionsWaiting(w) }] : []), ...(n ? [{ text: `${t.homeSessions} ${n}` }] : [])]
-    return { bits: bits.length ? bits : none, amber: w > 0 }
+    // Lavori chiusa (app-home-sessioni-a-se-08-11, tavola A): «N in corso · N esiti» nell'ordine della lista aperta; un rosso fra gli
+    // esiti è rosso nella riga.
+    const lo = up.includes('esiti') ? null : out
+    const done = (lo?.settled ?? 0) + (lo?.red.length ?? 0)
+    const bits = inOrder<{ text: string; red?: boolean }>([['lavori', !up.includes('lavori') && lavoriCount ? { text: t.catSigProgress(lavoriCount) } : null], ['esiti', done ? { text: t.catSigOutcomes(done), red: !!lo?.red.length } : null]])
+    return { bits: bits.length ? bits : none, amber: false }
   }
   // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco sulla
   // testata (app-home-in-cima-02-11); poi la pagina ci scorre.
   function openCat(b: import('./HomeBox.svelte').Box) {
-    // Il primo riquadro conta le sessioni ferme, che stanno in Sessioni (app-home-nomi-02-11): apre In corso e Sessioni.
-    // Esiti sta dentro Sessioni (app-home-tre-categorie-06-11): il suo riquadro apre Sessioni e la sottosezione Esiti.
-    const id: CatId = b === 'aspetta' || b === 'lavoro' ? 'work' : cats.some(c => c.id === 'out') ? 'out' : 'work'
-    if (b === 'aspetta' && !open.sessions) toggleSec('sessions')
-    if (b !== 'aspetta' && b !== 'lavoro' && !open.esiti) toggleSec('esiti')
-    if (cats.some(c => c.id === id && !c.open)) setCats(toggleCat(cats, id))
-    requestAnimationFrame(() => document.querySelector(`[data-testid="cat-${id}"]`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }))
+    // I primi due riquadri contano le sessioni, che stanno a sé sotto il tabellone (app-home-sessioni-a-se-08-11): ci scorrono.
+    // Esiti sta in Lavori: il suo riquadro apre Lavori e la sottosezione Esiti.
+    const sessions = b === 'aspetta' || b === 'lavoro'
+    const id: CatId = cats.some(c => c.id === 'out') ? 'out' : 'work'
+    if (!sessions && !open.esiti) toggleSec('esiti')
+    if (!sessions && cats.some(c => c.id === id && !c.open)) setCats(toggleCat(cats, id))
+    requestAnimationFrame(() => document.querySelector(sessions ? '[data-testid="home-sessioni"]' : `[data-testid="cat-${id}"]`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }))
   }
   const slotTone = (w: { pct: number; stale: boolean; alarm: boolean }) => (w.stale ? 'var(--tx3)' : w.pct >= 90 ? 'var(--red)' : w.pct >= 75 || w.alarm ? 'var(--wait)' : 'var(--tx2)')
   const lowerFirst = (x: string | null) => (x ? x[0].toLowerCase() + x.slice(1) : x)
@@ -732,7 +735,7 @@
 {/snippet}
 
 <section class="home" class:part={!!part} class:topdrag={topDrag}>
-{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{#if listSkip !== 'closed' && !up.includes('sessions')}{@render secClosed()}{/if}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'notte'}{@render secNotte()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{@render secClosed()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'notte'}{@render secNotte()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {@const live = dragOrder ?? order}
  <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->
@@ -772,7 +775,7 @@
 {/if}
 {/snippet}
 {#snippet secSessions()}
-{#if shows('work') && (restGroups.length || justClosed || waitRows.length)}
+{#if showsSessions && (restGroups.length || justClosed || waitRows.length)}
   <!-- Lo stesso numero di «N aperte» in testata: le sessioni vive, senza la master (app-home-nomi-02-11, punto 6). -->
   {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
   <!-- Un livello solo (app-sessioni-compatte-06-11, bozza 6): nella home la lista sta subito sotto il tabellone, senza la riga
@@ -794,7 +797,6 @@
     {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   </div></div>{/if}
 {/if}
-{#if part === 'work' && afterSessions}{@render afterSessions()}{/if}
 {/snippet}
 {#snippet secNotte()}
 <!-- La Notte, voce sua sotto le sessioni e fuori da Esiti (app-home-tre-categorie-06-11, Franz 06/11: «Notte deve essere visibile
@@ -967,7 +969,7 @@
 {#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="newbody" data-testid={`corpo-${k}`}>{@render newBody?.(k)}</div></div>{/if}{/snippet}
 {#snippet secClosed()}
   <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
-  {#if model.closed.length && shows('work')}
+  {#if model.closed.length && showsSessions}
     {@render sec('closed', t.catClosed, 'inventory_2', String(model.closed.length), 'home-sez-chiuse', null, { nav: true, onclick: () => closedDlg?.showModal() })}
   {/if}
 {/snippet}
@@ -975,7 +977,10 @@
 {#if part === 'top'}
   <!-- La fascia sopra le colonne della plancia larga: le voci in cima, affiancate. -->
   <div class="topband" data-testid="home-cima">{#each up.filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec" data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k as HomeSection)}</div>{/each}</div>
+{:else if part === 'sessions'}
+  <div class="hsec" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{@render secClosed()}</div>
 {:else if part}
+  {#if part === 'work' && afterSessions}{@render afterSessions()}{/if}
   <!-- Le voci In cima nella PWA larga stanno aperte in cima alla colonna della loro categoria, senza fascia sopra (Franz 03/11
        17:49, app-in-cima-largo-03-11): la schermata si presenta come se non fossero scelte. -->
   {#each [...up.filter(k => catFor(k) === part), ...cats.flatMap(c => c.sections).filter(k => catFor(k) === part)].filter(k => SHOWN.includes(k)) as k (k)}<div class="hsec" data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k as HomeSection)}</div>{/each}
@@ -988,9 +993,12 @@
   <!-- Con delle voci In cima, il filo le separa dalle categorie anche quando la prima è chiusa (Franz 03/11 10:3x, app-in-cima-uguali-03-11). -->
   <div class="topedge" data-sec-head={EDGE}></div>
   {#if topDrag}<div class="offdrop" class:hot={offHot} style:top="{Math.max(0, edgeY)}px" data-testid={offHot ? 'cima-togli-acceso' : 'cima-togli'}>{t.homeOffTop}</div>{/if}
+  <!-- Le sessioni a sé (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): sempre aperte, senza testata di categoria,
+       sotto il tabellone e sopra le categorie, con Chiuse; non si spostano. -->
+  <div class="hsec" data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{@render secClosed()}</div>
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
-      {#if c.id === 'work'}<!-- Un livello solo (app-sessioni-compatte-06-11): niente «SESSIONI», la lista sotto il tabellone. -->{:else if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
+      {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
       {:else}
         {@const sig = catSignal(c.id)}
         <!-- Chiusa, la stessa testata di una aperta, col riepilogo accanto (app-categorie-testate-06-11, scelta A di Franz 06/11
@@ -1001,14 +1009,13 @@
           <span class="ms arr" aria-hidden="true">expand_more</span>
         </button>
       {/if}
-      {#if c.open || c.id === 'work'}
+      {#if c.open}
         {#each live.slice(edgeAt(live) + 1).filter(k => k !== listSkip && catFor(k) === c.id) as k (k)}
           <div class="hsec" class:held={k === dragKey} data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k)}</div>
         {/each}
-        <!-- Con Sistema o Sessioni sul tabellone, Plugin e skill e Chiuse restano nella loro categoria, che si sposta come le altre
-             (Franz 03/11 18:54, app-risorse-categoria-03-11). -->
+        <!-- Con Sistema sul tabellone, Plugin e skill restano nella loro categoria, che si sposta come le altre (Franz 03/11 18:54,
+             app-risorse-categoria-03-11). -->
         {#if c.id === 'tools' && up.includes('system')}<div class="hsec" data-vt={vt("plugins")} style:--vt={vt("plugins")}>{@render secPlugins()}</div>{/if}
-        {#if c.id === 'work' && up.includes('sessions')}<div class="hsec" data-vt={vt("closed")} style:--vt={vt("closed")}>{@render secClosed()}</div>{/if}
         <!-- Le voci uscite da sole oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113). -->
         {#if c.id === 'you' && closedToday(st)}<ToccaClosed today={closedToday(st)!} />{/if}
       {/if}
@@ -1115,7 +1122,7 @@
         <!-- La quota 5h sta una volta sola, nel tabellone; qui il contesto e l'ora dell'ultimo rosso di oggi. -->
         {#if s.context != null && (group === 'waiting' || group === 'working')}<span class="mono">{t.ctx(s.context)}</span>{/if}
         {#if group !== 'waiting' && lastRed.get(s.name)}<span class="redtag"><StateGlyph kind="red" size={14} />{hhmm(lastRed.get(s.name)!)}</span>{/if}
-        {#if part === 'work'}<button class="apri" onclick={(e) => { e.stopPropagation(); onPick(s.name) }}>{t.deskOpen}</button>{/if}
+        {#if part === 'sessions'}<button class="apri" onclick={(e) => { e.stopPropagation(); onPick(s.name) }}>{t.deskOpen}</button>{/if}
         {#if verb}<button class="verb" class:wait={group === 'waiting'} data-testid="scheda-scelta" onclick={(e) => { e.stopPropagation(); expanded = s.name }}>{verb}</button>{/if}
         <button class="chev" aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); expanded = open ? null : s.name }}>
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -1736,6 +1743,10 @@
   .name { font: 600 17px/1.2 var(--display); }
   .idc { width: 8px; height: 8px; border-radius: 50%; flex: none; } .idc.sq { border-radius: 2px; }
   .card .top .mono { font: 400 12.5px var(--mono); letter-spacing: 0; color: var(--tx2); max-width: none; }
+  /* Nella colonna stretta delle sessioni (quattro colonne, app-home-sessioni-a-se-08-11) il nome tiene il suo posto: cede prima il
+     contesto, poi il nome si taglia. */
+  .nm { min-width: min(45%, 110px); }
+  .card .top .mono { flex: 0 1 auto; min-width: 0; }
   .redtag { display: inline-flex; align-items: center; gap: 5px; font: 500 12.5px var(--mono); color: var(--red); white-space: nowrap; flex: none; }
   .chev { width: 28px; height: 28px; color: var(--tx3); }
   .body { color: var(--tx2); }

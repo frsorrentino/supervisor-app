@@ -1671,7 +1671,11 @@ It starts at your last message to the master.</string>
     <string name="home_prima_done">done</string>
     <!-- La home per categorie (app-home-categorie-02-11). -->
     <string name="cat_you">From the master</string>
-    <string name="cat_work">Sessions</string>
+    <string name="cat_work">Work</string>
+    <!-- app-home-sessioni-a-se-08-11: Lavori chiusa e la sua colonna della plancia. -->
+    <string name="cat_sig_progress">%1$d in progress</string>
+    <plurals name="cat_sig_outcomes"><item quantity="one">%1$d outcome</item><item quantity="other">%1$d outcomes</item></plurals>
+    <plurals name="desk_lavori_sub"><item quantity="one">in progress · %1$d outcome today</item><item quantity="other">in progress · %1$d outcomes today</item></plurals>
     <string name="cat_out">Outcomes</string>
     <string name="cat_tools">Resources</string>
     <string name="cat_sig_today">%1$d today</string>

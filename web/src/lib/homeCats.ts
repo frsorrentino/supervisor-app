@@ -12,17 +12,18 @@ export const DEFAULT_CATS: Cat[] = [
   // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (le prove e i lavori da guardare: `prove` porta
   // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
   { id: 'you', open: true, sections: ['decisioni', 'prove', 'seguiti', 'suggestions'] },
-  // Tre categorie come la plancia larga (app-home-tre-categorie-06-11, Franz 06/11 11:57-12:2x): Sessioni porta sotto di sé la
-  // Notte (voce sua, fuori da Esiti), In corso (Lavori) ed Esiti (con Rendiconti, chiusa di partenza); la categoria Esiti non c'è
-  // più. `out` resta solo come colonna della plancia.
-  { id: 'work', open: true, sections: ['sessions', 'notte', 'lavori', 'esiti', 'rendiconti'] },
+  // Lavori (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la Notte, In corso, Esiti e Rendiconti, una categoria che
+  // si chiude e si sposta come le altre, chiusa di partenza col riassunto «N in corso · N esiti». Le sessioni non sono più qui:
+  // stanno a sé, sempre aperte, sotto il tabellone, così tenerle in vista non porta più In corso ed Esiti sopra Dalla master. Prima
+  // (app-home-tre-categorie-06-11) Sessioni portava sotto di sé queste quattro voci. `out` resta solo come colonna della plancia.
+  { id: 'work', open: false, sections: ['notte', 'lavori', 'esiti', 'rendiconti'] },
   { id: 'tools', open: false, sections: ['usage', 'system', 'pagella'] },
 ]
 /**
  * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
  * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
  */
-export const REV = 'rev:5'
+export const REV = 'rev:6'
 /**
  * Un ordine `rev:2` (prima delle voci accorpate) o `rev:3` (prima delle quattro sezioni) tiene categorie, chiuse e cima; dentro
  * Tocca a te riprende una volta l'ordine di partenza.
@@ -31,6 +32,11 @@ const REV2 = 'rev:2'
 const REV3 = 'rev:3'
 /** Un ordine fino a `rev:4` (quattro categorie): dentro Sessioni riprende una volta l'ordine di partenza, Esiti dopo In corso. */
 const REV4 = 'rev:4'
+/**
+ * Un ordine fino a `rev:5` (Sessioni con le sue voci): Lavori va una volta subito dopo Dalla master, chiusa (app-home-sessioni-a-se-08-11);
+ * le altre categorie, le chiuse e il tabellone restano quelli di Franz.
+ */
+const REV5 = 'rev:5'
 const SHUT = 'shut:'
 const TOP = 'top:'
 /** Il bordo dello spazio in cima nella lista piatta del trascinamento: sopra c'è la cima, sotto le categorie. */
@@ -38,22 +44,26 @@ export const EDGE = 'edge:top'
 
 export const catOf = (key: string): CatId | null => DEFAULT_CATS.find(c => (c.sections as string[]).includes(key))?.id ?? null
 
-/** Le chiavi sconosciute si ignorano (anche `closed` e `plugins` di ieri, ora dentro Sessioni e Sistema), le mancanti si accodano nella loro categoria. */
+/** Le chiavi sconosciute si ignorano (anche `sessions` e `closed`, che stanno a sé, e `plugins` di ieri, ora dentro Sistema), le mancanti si accodano nella loro categoria. */
 export function decode(saved: string[] | null | undefined): Cat[] {
   const list = saved ?? []
   const up = top(saved) as string[]
-  const fresh = list.length > 0 && !list.includes(REV) && !list.includes(REV2) && !list.includes(REV3) && !list.includes(REV4)
-  const youOld = !list.includes(REV) && (list.includes(REV2) || list.includes(REV3))
-  const workOld = list.length > 0 && !list.includes(REV)
+  const fresh = list.length > 0 && !list.includes(REV) && !list.includes(REV2) && !list.includes(REV3) && !list.includes(REV4) && !list.includes(REV5)
+  const youOld = !list.includes(REV) && !list.includes(REV5) && (list.includes(REV2) || list.includes(REV3))
+  const workOld = list.length > 0 && !list.includes(REV) && !list.includes(REV5)
+  const workAfterYou = list.length > 0 && !list.includes(REV)
   const all = [...new Set(list.filter(k => catOf(k) && !up.includes(k)))] as HomeKey[]
   const keys = all.filter(k => (!fresh || (catOf(k) !== 'you' && catOf(k) !== 'tools')) && !(youOld && catOf(k) === 'you') && !(workOld && catOf(k) === 'work'))
-  const order = fresh ? DEFAULT_CATS.map(c => c.id) : [...new Set([...all.map(k => catOf(k)!), ...DEFAULT_CATS.map(c => c.id)])]
+  const kept = fresh ? DEFAULT_CATS.map(c => c.id) : [...new Set([...all.map(k => catOf(k)!), ...DEFAULT_CATS.map(c => c.id)])]
+  const rest = kept.filter(id => id !== 'work'), you = rest.indexOf('you')
+  const order = workAfterYou ? [...rest.slice(0, you + 1), 'work' as CatId, ...rest.slice(you + 1)] : kept
   const shut = list.find(k => k.startsWith(SHUT))
   const closed = shut == null ? null : shut.slice(SHUT.length).split(',')
   return order.map(id => {
     const d = DEFAULT_CATS.find(c => c.id === id)!
     const mine = keys.filter(k => catOf(k) === id)
-    return { id, open: closed ? !closed.includes(id) : d.open, sections: [...mine, ...d.sections.filter(k => !mine.includes(k) && !up.includes(k))] }
+    const open = workAfterYou && id === 'work' ? false : closed ? !closed.includes(id) : d.open
+    return { id, open, sections: [...mine, ...d.sections.filter(k => !mine.includes(k) && !up.includes(k))] }
   })
 }
 
@@ -80,8 +90,8 @@ export const reorder = (cats: Cat[], flat: string[]): Cat[] =>
     return { ...c, sections: c.sections.map(k => (moved.includes(k) ? moved[i++] : k)) }
   })
 
-/** La categoria di una voce della home: Chiuse sta dentro Sessioni, Plugin e skill dentro Sistema. */
-export const catFor = (k: string): CatId | null => (k === 'closed' ? 'work' : k === 'plugins' ? 'tools' : catOf(k))
+/** La categoria di una voce della home: Plugin e skill dentro Sistema; le sessioni e Chiuse stanno a sé, fuori dalle categorie. */
+export const catFor = (k: string): CatId | null => (k === 'closed' ? null : k === 'plugins' ? 'tools' : catOf(k))
 
 /** Il trascinamento sul posto della home, dentro la categoria della voce presa: le vicine di un'altra categoria non contano. */
 export function dragCats(order: HomeSection[], held: HomeSection, y: number, mids: Partial<Record<HomeSection, number>>, fromBoard = true): HomeSection[] {

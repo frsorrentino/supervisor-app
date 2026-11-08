@@ -266,8 +266,9 @@ export function world(now: number): World {
     // Utilizzo agganciato: dalla prima schermata si vede il dato in più dello slot.
     // La home per categorie (app-home-categorie-02-11), con Utilizzo agganciato allo slot e Sessioni nello spazio in cima
     // (app-home-in-cima-02-11), così la prima schermata mostra anche quello.
-    // Il tabellone a quattro voci (app-tabellone-quattro-02-11): Utilizzo e Sessioni ci stanno sopra, aperte.
-    home_order: JSON.parse(encodeCats(toTop(toTop(DEFAULT_CATS, [], 'usage').cats, ['usage'], 'sessions').cats, null, ['usage', 'sessions'])!) as string[],
+    // Il tabellone a quattro voci (app-tabellone-quattro-02-11): Utilizzo ci sta sopra; le sessioni stanno a sé, subito sotto
+    // (app-home-sessioni-a-se-08-11).
+    home_order: JSON.parse(encodeCats(toTop(DEFAULT_CATS, [], 'usage').cats, null, ['usage'])!) as string[],
     // Contratto 1.90: la macchina tranquilla, così «Sistema» parte chiuso come di solito.
     system: { at: now - 30, cores: 8, load1: 3.4, load_per_core: 0.42, mem_total_mb: 16000, mem_available_mb: 10100, level: 'green', load_level: 'green', mem_level: 'green',
       consumers: [{ group: 'node', count: 6, cpu: 1.4, rss_mb: 1800 }, { group: 'chrome', count: 9, cpu: 0.6, rss_mb: 1200 }], advice: [] } satisfies SystemStatus,

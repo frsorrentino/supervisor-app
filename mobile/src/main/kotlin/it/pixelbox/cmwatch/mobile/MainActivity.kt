@@ -2160,16 +2160,17 @@ class MainActivity : ComponentActivity() {
                     place = place, open = masterChat, sessionsOpen = false, onPlace = if (master != null) onPlace else null,
                 ) {
                 it.pixelbox.cmwatch.mobile.ui.Plancia(
-                    // Le sessioni prima (app-sessioni-evidenti-06-11, scelta J2 di Franz, 06/11 00:52): Sessioni, Tocca a te, Risorse; le
-                    // altre nell'ordine della home. Esiti, la Notte e Fatto oggi stanno nella colonna Sessioni (app-home-tre-categorie-06-11).
-                    widthDp, listOf("work") + it.pixelbox.cmwatch.rules.HomeCats.decode(st.homeOrder).map { c -> c.id }.filter { id -> id != "work" && id != "out" },
+                    // Le sessioni a sé (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la colonna Sessioni prima, poi le
+                    // categorie nell'ordine della home, Lavori (Notte, In corso, Esiti e Fatto oggi) in una colonna sua.
+                    widthDp, listOf("sessions") + it.pixelbox.cmwatch.rules.HomeCats.decode(st.homeOrder).map { c -> c.id }.filter { id -> id != "out" },
                     head = { pageHeader(null) },
                     column = { parts ->
                         listPart(parts, { part ->
-                            it.pixelbox.cmwatch.mobile.ui.DeskHead(part, head, st, now, open = summary.open.takeIf { part == "work" }, master = (masterTodo to it.pixelbox.cmwatch.rules.Suggestions.visible(st, sugDone.toSet(), now).shown.size).takeIf { part == "you" }) {
+                            it.pixelbox.cmwatch.mobile.ui.DeskHead(if (part == "sessions") "work" else part, head, st, now, open = summary.open.takeIf { part == "sessions" }, master = (masterTodo to it.pixelbox.cmwatch.rules.Suggestions.visible(st, sugDone.toSet(), now).shown.size).takeIf { part == "you" }, progress = (lavoriCount ?: 0).takeIf { part == "work" }) {
                                 when (part) {
                                     "you" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.WAITING
-                                    "work" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.BUSY
+                                    "sessions" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.BUSY
+                                    "work" -> { open = null; tab = StartRoute.Tab.LAVORI }
                                     "out" -> boxOpen = it.pixelbox.cmwatch.mobile.ui.HomeBox.OUTCOMES
                                     else -> goUsage()
                                 }

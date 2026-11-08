@@ -13,17 +13,18 @@ object HomeCats {
         // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (le prove e i lavori da guardare: `prove` porta
         // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
         Cat("you", true, listOf("decisioni", "prove", "seguiti", "suggestions")),
-        // Tre categorie come la plancia larga (app-home-tre-categorie-06-11, Franz 06/11 11:57-12:2x): Sessioni porta sotto di sé la
-        // Notte (voce sua, fuori da Esiti), In corso (Lavori) ed Esiti (con Rendiconti, chiusa di partenza); la categoria Esiti
-        // non c'è più.
-        Cat("work", true, listOf("sessions", "notte", "lavori", "esiti", "rendiconti")),
+        // Lavori (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la Notte, In corso, Esiti e Rendiconti, una categoria
+        // che si chiude e si sposta come le altre. Le sessioni non sono più qui: stanno a sé, sempre aperte, sotto il tabellone, così
+        // tenerle in vista non porta più In corso ed Esiti sopra Dalla master. Prima (app-home-tre-categorie-06-11) Sessioni
+        // portava sotto di sé queste quattro voci. Chiusa di partenza, col riassunto «N in corso · N esiti» (tavola A).
+        Cat("work", false, listOf("notte", "lavori", "esiti", "rendiconti")),
         Cat("tools", false, listOf("usage", "system", "pagella")),
     )
     /**
      * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
      * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
      */
-    const val REV = "rev:5"
+    const val REV = "rev:6"
     /**
      * Un ordine `rev:2` (prima delle voci accorpate) o `rev:3` (prima delle quattro sezioni) tiene categorie, chiuse e cima; dentro
      * Tocca a te riprende una volta l'ordine di partenza.
@@ -32,6 +33,11 @@ object HomeCats {
     private const val REV3 = "rev:3"
     /** Un ordine fino a `rev:4` (quattro categorie): dentro Sessioni riprende una volta l'ordine di partenza, Esiti dopo In corso. */
     private const val REV4 = "rev:4"
+    /**
+     * Un ordine fino a `rev:5` (Sessioni con le sue voci): Lavori va una volta subito dopo Dalla master, chiusa (app-home-sessioni-a-se-08-11);
+     * le altre categorie, le chiuse e il tabellone restano quelli di Franz.
+     */
+    private const val REV5 = "rev:5"
     private const val SHUT = "shut:"
     private const val TOP = "top:"
     /** Il bordo dello spazio in cima nella lista piatta del trascinamento: sopra c'è la cima, sotto le categorie. */
@@ -39,21 +45,24 @@ object HomeCats {
 
     fun catOf(key: String): String? = DEFAULT.firstOrNull { key in it.sections }?.id
 
-    /** Le chiavi sconosciute si ignorano (anche `closed` e `plugins` di ieri, ora dentro Sessioni e Sistema), le mancanti si accodano nella loro categoria. */
+    /** Le chiavi sconosciute si ignorano (anche `sessions` e `closed`, che stanno a sé, e `plugins` di ieri, ora dentro Sistema), le mancanti si accodano nella loro categoria. */
     fun decode(saved: List<String>?): List<Cat> {
         val list = saved.orEmpty()
         val up = top(saved)
-        val fresh = list.isNotEmpty() && REV !in list && REV2 !in list && REV3 !in list && REV4 !in list
-        val youOld = REV !in list && (REV2 in list || REV3 in list)
-        val workOld = list.isNotEmpty() && REV !in list
+        val fresh = list.isNotEmpty() && REV !in list && REV2 !in list && REV3 !in list && REV4 !in list && REV5 !in list
+        val youOld = REV !in list && REV5 !in list && (REV2 in list || REV3 in list)
+        val workOld = list.isNotEmpty() && REV !in list && REV5 !in list
+        val workAfterYou = list.isNotEmpty() && REV !in list
         val all = list.filter { catOf(it) != null && it !in up }.distinct()
         val keys = all.filter { (!fresh || (catOf(it) != "you" && catOf(it) != "tools")) && !(youOld && catOf(it) == "you") && !(workOld && catOf(it) == "work") }
-        val order = if (fresh) DEFAULT.map { it.id } else (all.map { catOf(it)!! } + DEFAULT.map { it.id }).distinct()
+        val saved = if (fresh) DEFAULT.map { it.id } else (all.map { catOf(it)!! } + DEFAULT.map { it.id }).distinct()
+        val order = if (!workAfterYou) saved else (saved - "work").let { o -> o.indexOf("you").let { i -> o.take(i + 1) + "work" + o.drop(i + 1) } }
         val closed = list.firstOrNull { it.startsWith(SHUT) }?.removePrefix(SHUT)?.split(",")
         return order.map { id ->
             val d = DEFAULT.single { it.id == id }
             val mine = keys.filter { catOf(it) == id }
-            Cat(id, closed?.let { id !in it } ?: d.open, mine + d.sections.filter { it !in mine && it !in up })
+            val open = if (workAfterYou && id == "work") false else closed?.let { id !in it } ?: d.open
+            Cat(id, open, mine + d.sections.filter { it !in mine && it !in up })
         }
     }
 
@@ -84,8 +93,8 @@ object HomeCats {
         c.copy(sections = c.sections.map { k -> if (k in flat) moved.next() else k })
     }
 
-    /** La categoria di una voce della home: Chiuse sta dentro Sessioni, Plugin e skill dentro Sistema. */
-    fun catFor(key: String): String? = when (key) { "closed" -> "work"; "plugins" -> "tools"; else -> catOf(key) }
+    /** La categoria di una voce della home: Plugin e skill dentro Sistema; le sessioni e Chiuse stanno a sé, fuori dalle categorie. */
+    fun catFor(key: String): String? = when (key) { "closed" -> null; "plugins" -> "tools"; else -> catOf(key) }
 
     /** Il trascinamento sul posto della home, dentro la categoria della voce presa: le vicine di un'altra categoria non contano. */
     fun dragTarget(order: List<String>, held: String, y: Float, mids: Map<String, Float>, present: Set<String>, fromBoard: Boolean = true): List<String> {

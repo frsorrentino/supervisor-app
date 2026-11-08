@@ -79,7 +79,7 @@ private fun tone(pct: Int): Color = if (pct >= 90) V3.Red else if (pct >= 75) V3
  * la tacca di quanto è passato della finestra.
  */
 @Composable
-internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, open: Int? = null, master: Pair<Int, Int>? = null, onOpen: () -> Unit) {
+internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, open: Int? = null, master: Pair<Int, Int>? = null, progress: Int? = null, onOpen: () -> Unit) {
     val rings = UtilizzoRules.shownQuota(st.quota).mapNotNull { (name, r) -> UtilizzoRules.bar(r.h5, r.w7, r.resetH5, r.resetW7, now, r.stale)?.let { b -> Triple(name, r, b) } }
     val top = rings.filter { (_, r, _) -> !r.stale }.maxByOrNull { (_, _, b) -> b.pct }
     val topPct = top?.third?.pct ?: 0
@@ -92,7 +92,8 @@ internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, open: Int
             // «Dalla master» conta solo quello che Franz ha da fare; Sessioni solo quelle che lo aspettano (app-sessioni-compatte-06-11).
             "you" -> (master?.first ?: h.waiting).let { x -> x.toString() to (if (x > 0) V3.Wait else V3.Tx) }
             // Con `open` la testa di «In corso» è quella delle Sessioni (app-sessioni-evidenti-06-11, J2).
-            "work" -> if (open != null) h.waiting.toString() to (if (h.waiting > 0) V3.Wait else V3.Tx) else h.busy.toString() to V3.Tx
+            // Lavori (app-home-sessioni-a-se-08-11): i compiti in corso; gli esiti di oggi dopo «·».
+            "work" -> if (open != null) h.waiting.toString() to (if (h.waiting > 0) V3.Wait else V3.Tx) else if (progress != null) progress.toString() to V3.Tx else h.busy.toString() to V3.Tx
             "out" -> (h.outcomes?.toString() ?: "–") to V3.Tx
             else -> (if (top != null) "$topPct%" else "–") to (if (top != null && topPct >= 75) tone(topPct) else V3.Tx)
         }
@@ -106,7 +107,7 @@ internal fun DeskHead(kind: String, h: Kpi.Head, st: State, now: Long, open: Int
                     master.second.takeIf { x -> x > 0 }?.let { x -> pluralStringResource(R.plurals.desk_master_sug, x, x) },
                 ).joinToString(" · ")
                 else if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, maxOf(1L, ((h.oldestWaitS ?: 0L) + 30) / 60).toInt()) else stringResource(R.string.kpi7_none_waiting)
-                "work" -> if (open != null) stringResource(R.string.desk_sessions_sub, if (h.waiting == 0) stringResource(R.string.desk_sessions_none) else pluralStringResource(R.plurals.desk_sessions_wait, h.waiting), h.busy) else stringResource(R.string.kpi7_busy)
+                "work" -> if (open != null) stringResource(R.string.desk_sessions_sub, if (h.waiting == 0) stringResource(R.string.desk_sessions_none) else pluralStringResource(R.plurals.desk_sessions_wait, h.waiting), h.busy) else if (progress != null) pluralStringResource(R.plurals.desk_lavori_sub, h.outcomes ?: 0, h.outcomes ?: 0) else stringResource(R.string.kpi7_busy)
                 "out" -> stringResource(R.string.desk_out_sub)
                 else -> top?.third?.let { b ->
                     if (b.week) b.delta?.let { d -> paceText(d, b.day) } ?: stringResource(R.string.desk_tools_week)
@@ -223,7 +224,7 @@ internal fun DeskTools(st: State, onTalk: (String) -> Unit) {
 
 /**
  * La plancia (Plancia.svelte): la testata fuori dalla griglia, le colonne per categoria nell'ordine della home, quante ne
- * stanno a 320 dp tolto il pannello della master, quelle in più in fondo all'ultima; la barra della master in fondo, o il
+ * stanno a 360 dp tolto il pannello della master, quelle in più in fondo all'ultima; la barra della master in fondo, o il
  * pannello di lato alto quanto lo schermo.
  */
 @Composable

@@ -7,9 +7,9 @@ import org.junit.Test
 class PlanciaTest {
     private val order = listOf("you", "work", "out", "tools")
 
-    // Quante colonne da 320 ci stanno, tolto il pannello della master: da 1 a 4.
+    // Quante colonne da 360 ci stanno, tolto il pannello della master: da 1 a 4 (320 fino ad app-home-sessioni-a-se-08-11).
     @Test fun columnsThatFit() {
-        assertEquals(4, Plancia.count(1280f, null))
+        assertEquals(3, Plancia.count(1280f, null)); assertEquals(4, Plancia.count(1440f, null))
         assertEquals(2, Plancia.count(1280f, 420f))
         assertEquals(1, Plancia.count(1280f, 720f))
         assertEquals(1, Plancia.count(200f, null))
