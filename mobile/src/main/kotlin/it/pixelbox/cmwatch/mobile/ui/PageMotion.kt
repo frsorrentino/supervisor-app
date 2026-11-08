@@ -60,6 +60,15 @@ object PageBack {
     internal fun commit() { committed = true }
     internal fun takeCommitted(): Boolean = committed.also { committed = false }
     internal fun reset() { progress.floatValue = 0f; leaving.floatValue = 0f; committed = false }
+
+    /**
+     * Dopo l'Indietro: `frames` e poi tutto a zero, anche se la coroutine viene cancellata prima. La coroutine del gesto vive nella
+     * composizione della pagina: la pagina che esce la cancella al primo fotogramma, e senza lo zero `leaving` restava a 1 e la
+     * pagina aperta dopo entrava a trasparenza zero, nera fino al gesto Indietro (app-ti-aspetta-nera-08-11).
+     */
+    internal suspend fun settle(frames: suspend () -> Unit) {
+        try { frames() } finally { reset() }
+    }
 }
 
 /**
@@ -86,8 +95,7 @@ fun PageBackHandler(enabled: Boolean = true, onBack: () -> Unit) {
         }
         back.value()
         // Due fotogrammi: la pagina è uscita e la home ha letto `takeCommitted`; se la pagina resta (un Indietro interno), torna intera.
-        repeat(2) { androidx.compose.runtime.withFrameNanos { } }
-        PageBack.reset()
+        PageBack.settle { repeat(2) { androidx.compose.runtime.withFrameNanos { } } }
     }
 }
 
