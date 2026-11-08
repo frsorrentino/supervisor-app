@@ -1876,9 +1876,8 @@
   {#if p === 'attesa' && waitId}
   <TiAspettaView id={waitId} {st} now={st.ts} wide={wide} {run} onBack={() => { waitId = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(null) }}
     onOpenWait={(w) => (waitId = w)} onJump={(n, entry, sid) => { const live = st.sessions.some(x => x.name === n && x.state !== 'gone'); waitId = null; openPage(null); if (!live && sid) { sidOf = { ...sidOf, [n]: sid }; reading = n } else pick(n); void jumpTo(n, entry) }}
-    onSession={(n) => { waitId = null; openPage(null); pick(n) }} onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
+    onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
     onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}
-    onAnswer={(n, x) => cmd(n)('answer', String(x))} onPrompt={(n, text) => sendTo(n, text)} onAttentionDone={(kind, ref) => attentionDone({ kind, ref })}
     onScreen={(s) => { waitId = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)} />
   {:else}
   <Page title={pageTitle[p]} v3 onBack={() => openPage(null)}>

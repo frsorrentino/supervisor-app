@@ -457,7 +457,10 @@ export type WaitAnswer = { op: string; arg?: string | null; session?: string | n
 export type WaitMsg = { session?: string | null; session_id?: string | null; id?: string | null; uuid?: string | null; text: string; key?: string | null; at?: number | null }
 export type WaitItem = {
   id: string; type: string; kind: string; label: string; label_text: string; session?: string | null; task?: string | null; text: string
-  options?: WaitOption[] | null; at: number; card?: { what?: string; where?: string; untested?: string; undo?: string; undo_how?: string } | null
+  options?: WaitOption[] | null; at: number; card?: { what?: string; where?: string; untested?: string; undo?: string; undo_how?: string; deploy?: boolean } | null
   link?: string | null; answer?: WaitAnswer | null; msg?: WaitMsg | null
+  /** Contratto 1.131: una riga per gli elenchi e i tasti della carta, ognuno col comando del relay già pronto. */
+  title?: string | null; actions?: WaitAction[] | null
 }
+export type WaitAction = { label: string; style: 'primary' | 'option' | 'secondary'; cmd: Record<string, unknown> & { op: string; session?: string | null; arg?: string | null }; text_field?: string | null; recommended?: boolean }
 export type WaitsPage = { at: number; items: WaitItem[] }

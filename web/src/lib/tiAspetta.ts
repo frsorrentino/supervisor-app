@@ -8,6 +8,18 @@ export type Other = { key: string; kind: Kind; title: string; session: string | 
 export type Page = { key: string; kind: Kind; session: string | null; since: number; source: Source | null; others: Other[] }
 export type Seg = { text: string; on: boolean }
 
+/** Contratto 1.131: una scelta numerata (option, o primary con recommended), il tasto pieno o un tasto tonale. Come TiAspetta.lookOf. */
+export type Look = 'option' | 'main' | 'tonal'
+export function lookOf(a: { style: string; recommended?: boolean }): Look {
+  if (a.style === 'option' || (a.style === 'primary' && a.recommended)) return 'option'
+  return a.style === 'primary' ? 'main' : 'tonal'
+}
+
+/** Il comando del tasto con il testo scritto dalla persona nel campo `text_field` (text, reason o arg). */
+export function cmdOf<C extends Record<string, unknown>>(a: { cmd: C; text_field?: string | null }, written: string | null): C {
+  return a.text_field ? { ...a.cmd, [a.text_field]: (written ?? '').trim() } : a.cmd
+}
+
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** Il testo con la frase della domanda accesa; maiuscole e spazi non contano. Senza frase o se non c'è, tutto spento. */

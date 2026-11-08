@@ -1447,21 +1447,13 @@ class MainActivity : ComponentActivity() {
                         val gs = p.groups.map { g -> g.copy(prove = g.prove.filter { x -> x.wid == item.id }) }.filter { g -> g.prove.isNotEmpty() }
                         p.copy(groups = gs, n = gs.sumOf { g -> g.prove.size }, ko = emptyList(), red = emptyList())
                     }?.takeIf { p -> p.groups.isNotEmpty() }
+                    // Contratto 1.131: i tasti del relay per ogni carta; senza `actions` (un relay di prima) la carta che l'app ha già.
                     when {
+                        item.actions != null -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item) { a, written -> scope.launch { runCatching { app.repo.commandOf(a, written) } } }
                         groups.isNotEmpty() -> it.pixelbox.cmwatch.mobile.ui.SessionDecisions(groups, decApprove, decDone, decNotNow, decDrop, decAsk)
                         prove != null -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
-                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, onOption = { o ->
-                            val a = item.answer
-                            when (a?.op) {
-                                "answer" -> (a.session ?: item.session)?.let { ses -> o?.let { opt -> scope.launch { runCatching { app.repo.answer(ses, opt.n) } } } }
-                                "prompt" -> a.arg?.let { ses ->
-                                    o?.let { opt -> sendPrompt(ses, opt.value) }
-                                    a.done?.let { d -> if (d.arg != null && d.kind != null) attentionDone(it.pixelbox.cmwatch.rules.AttentionQueue.Done(d.kind!!, d.arg!!)) }
-                                }
-                                "attention_done" -> a.arg?.let { ref -> attentionDone(it.pixelbox.cmwatch.rules.AttentionQueue.Done(a.kind ?: "needs_you", ref)) }
-                                "approve" -> a.arg?.let { task -> decApprove(task, o?.value) }
-                            }
-                        }, onOwnWords = item.session?.let { ses -> { waitOpen = null; open = ses } })
+                        // Contratto 1.131: i tasti del relay, ognuno col suo comando già pronto.
+                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item) { a, written -> scope.launch { runCatching { app.repo.commandOf(a, written) } } }
                     }
                 }
             }

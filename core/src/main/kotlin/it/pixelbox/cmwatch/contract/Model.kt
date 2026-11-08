@@ -1124,10 +1124,22 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val id: String, val type: String = "", val kind: String = "", val label: String = "", @SerialName("label_text") val labelText: String = "",
     val session: String? = null, val task: String? = null, val text: String = "", val options: List<WaitOption>? = null, val at: Long = 0,
     val card: WaitCard? = null, val link: String? = null, val answer: WaitAnswer? = null, val msg: WaitMsg? = null,
+    /** Contratto 1.131: una riga per gli elenchi (il nome breve del compito per una carta, la domanda per la chat) e i tasti della carta. */
+    val title: String? = null, val actions: List<WaitAction>? = null,
+)
+/**
+ * Contratto 1.131: un tasto della carta. `style` primary, option o secondary; `cmd` il comando del relay già pronto (op, session, arg e i
+ * campi dell'op), l'app aggiunge id, issued, by e device; `textField` il campo di `cmd` che la persona scrive prima di mandare.
+ */
+@Serializable data class WaitAction(
+    val label: String, val style: String = "secondary", val cmd: kotlinx.serialization.json.JsonObject,
+    @SerialName("text_field") val textField: String? = null, val recommended: Boolean = false,
 )
 @Serializable data class WaitOption(val n: Int, val label: String, val value: String = label, val recommended: Boolean = false, val description: String? = null)
 @Serializable data class WaitCard(
     val what: String? = null, val where: String? = null, val untested: String? = null, val undo: String? = null, @SerialName("undo_how") val undoHow: String? = null,
+    /** Contratto 1.131: cosa o dove nominano la produzione; la carta porta il segno «produzione». */
+    val deploy: Boolean = false,
 )
 @Serializable data class WaitAnswer(val op: String, val arg: String? = null, val session: String? = null, val kind: String? = null, val done: WaitAnswer? = null)
 /** Dove la domanda è stata spiegata: `id` la voce della trascrizione (per `n:around=<id>`), `key` la frase da accendere. */

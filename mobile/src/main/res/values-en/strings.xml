@@ -1858,4 +1858,10 @@ It starts at your last message to the master.</string>
     <string name="ti_aspetta_gone">Not waiting any more: it was already closed.</string>
     <string name="ti_aspetta_failed">I cannot read it from the PC.</string>
     <string name="ti_aspetta_loading">Reading it from the PC</string>
+    <string name="ti_aspetta_production">production</string>
+    <string name="ti_aspetta_what">What</string>
+    <string name="ti_aspetta_where">Where</string>
+    <string name="ti_aspetta_untested">Not tested</string>
+    <string name="ti_aspetta_undo">Undo</string>
+    <string name="ti_aspetta_send">Send</string>
 </resources>

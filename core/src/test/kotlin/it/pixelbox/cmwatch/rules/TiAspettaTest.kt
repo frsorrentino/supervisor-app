@@ -36,6 +36,22 @@ class TiAspettaTest {
         assertEquals(true, TiAspetta.marks(p.source!!.text, p.source!!.ask).any { it.on })
     }
 
+    /** Contratto 1.131: i tasti della fixture, come si mostrano e il testo scritto nel campo giusto del comando. */
+    @Test fun actionsOfTheFixture() {
+        val fake = it.pixelbox.cmwatch.transport.FakeTransport(load = { java.io.File("../contract/$it.json").readText() })
+        val all = it.pixelbox.cmwatch.contract.ContractJson.decodeWaits(fake.sampleText("attese")).items
+        val choice = all.first { w -> w.kind == "choice" }
+        assertEquals("Release 2.4", choice.title); assertEquals(true, choice.card?.deploy)
+        val acts = choice.actions!!
+        assertEquals(listOf(TiAspetta.Look.OPTION, TiAspetta.Look.OPTION, TiAspetta.Look.TONAL), acts.map(TiAspetta::lookOf))
+        assertEquals("Release now (recommended)", (TiAspetta.cmdOf(acts[0], null)["choice"] as kotlinx.serialization.json.JsonPrimitive).content)
+        assertEquals("superseded by the hotfix", (TiAspetta.cmdOf(acts[2], " superseded by the hotfix ")["text"] as kotlinx.serialization.json.JsonPrimitive).content)
+        val next = all.first { w -> w.kind == "prossimi" }.actions!!
+        val reply = next.first { x -> x.textField == "arg" }
+        assertEquals("Commit now", (TiAspetta.cmdOf(reply, "Commit now")["arg"] as kotlinx.serialization.json.JsonPrimitive).content)
+        assertEquals("turn_blocking", (next.last().cmd["kind"] as kotlinx.serialization.json.JsonPrimitive).content)
+    }
+
     @Test fun age() = file["age"]!!.jsonArray.forEach { c ->
         val o = c.jsonObject
         assertEquals(o["out"]!!.jsonPrimitive.content, TiAspetta.age(o["s"]!!.jsonPrimitive.long))

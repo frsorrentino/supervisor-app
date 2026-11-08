@@ -145,52 +145,97 @@ internal fun kindLabel(k: TiAspetta.Kind): String = stringResource(
 )
 
 /**
- * La carta di una domanda nata in chat (contratto 1.130: Prossimi, AskUserQuestion, needs_you senza voce nel registro): l'etichetta,
- * la domanda e le scelte numerate, la consigliata in ambra; senza scelte un tasto solo per chiuderla. `onOption(null)` è quel tasto.
- * Dopo il tocco i tasti si spengono e resta acceso quello scelto. «Rispondi con parole tue» apre la sessione.
+ * La carta di una domanda con i tasti del relay (contratto 1.131, `actions`): l'etichetta e il segno «produzione», il titolo, la
+ * domanda e i campi della carta; le scelte numerate con la consigliata in ambra, un solo tasto pieno, gli altri tonali. Un tasto con
+ * `textField` chiede prima il testo (il motivo di un «Non va», una risposta libera) e poi manda. Dopo l'invio i tasti si spengono e
+ * resta acceso quello toccato. `onSend` riceve il tasto e il testo scritto; il comando lo compone Repo.commandOf.
  */
 @Composable
-fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onOption: (it.pixelbox.cmwatch.contract.WaitOption?) -> Unit, onOwnWords: (() -> Unit)?) {
+fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onSend: (it.pixelbox.cmwatch.contract.WaitAction, String?) -> Unit) {
     var sent by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf<Int?>(null) }
+    var writing by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf<Int?>(null) }
+    var written by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf("") }
+    val actions = item.actions.orEmpty()
+    fun go(i: Int, a: it.pixelbox.cmwatch.contract.WaitAction) {
+        if (sent != null) return
+        if (a.textField != null && writing != i) { writing = i; written = ""; return }
+        sent = i; writing = null
+        onSend(a, written.takeIf { a.textField != null })
+    }
     val shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
     Column(
         Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Wait.copy(alpha = 0.45f), shape).padding(14.dp).testTag("ti-aspetta-carta"),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(item.labelText.uppercase(), style = V3.Small.copy(fontSize = 12.sp, letterSpacing = 1.sp, color = V3.Tx3))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(item.labelText.uppercase(), style = V3.Small.copy(fontSize = 12.sp, letterSpacing = 1.sp, color = V3.Tx3))
+            if (item.card?.deploy == true) Text(
+                stringResource(R.string.ti_aspetta_production).uppercase(),
+                style = V3.Small.copy(fontSize = 12.sp, color = V3.Wait),
+                modifier = Modifier.border(1.dp, V3.Wait.copy(alpha = 0.55f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+            )
+        }
+        item.title?.takeIf { t -> t.isNotBlank() && t != item.text }?.let { t -> Text(t, style = V3.Name.copy(fontSize = 18.sp)) }
         Text(item.text, style = V3.Body.copy(color = V3.Tx))
-        val opts = item.options.orEmpty()
-        if (opts.isNotEmpty()) opts.forEach { o ->
-            val rec = o.recommended
+        item.card?.let { c ->
+            listOfNotNull(
+                c.what?.let { R.string.ti_aspetta_what to it }, c.where?.let { R.string.ti_aspetta_where to it },
+                c.untested?.let { R.string.ti_aspetta_untested to it }, (c.undoHow ?: c.undo)?.let { R.string.ti_aspetta_undo to it },
+            ).filter { (_, v) -> v.isNotBlank() && v != item.text }.forEach { (k, v) ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(k), style = V3.Small.copy(color = V3.Tx3), modifier = Modifier.width(96.dp))
+                    Text(v, style = V3.Small.copy(color = V3.Tx), modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        var n = 0
+        actions.forEachIndexed { i, a ->
+            if (TiAspetta.lookOf(a) != TiAspetta.Look.OPTION) return@forEachIndexed
+            n += 1
+            val num = n
+            val rec = a.recommended
+            val on = sent == i
             val oshape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
-            val on = sent == o.n
             Row(
                 Modifier.fillMaxWidth().clip(oshape)
                     .background(if (rec) V3.Wait.copy(alpha = 0.14f) else V3.S2)
                     .border(1.dp, if (on) V3.Good else if (rec) V3.Wait.copy(alpha = 0.6f) else androidx.compose.ui.graphics.Color.Transparent, oshape)
-                    .then(if (sent == null) Modifier.handCursor().clickable { sent = o.n; onOption(o) } else Modifier)
+                    .then(if (sent == null) Modifier.handCursor().clickable { go(i, a) } else Modifier)
                     .graphicsLayer { alpha = if (sent != null && !on) 0.45f else 1f }
-                    .padding(horizontal = 12.dp, vertical = 10.dp).testTag("ti-aspetta-scelta-${o.n}"),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp).testTag("ti-aspetta-scelta-$num"),
+                horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     Modifier.size(24.dp).clip(CircleShape).background(if (rec) V3.Wait else androidx.compose.ui.graphics.Color.Transparent)
                         .border(1.5.dp, if (rec) V3.Wait else V3.Tx2, CircleShape),
                     contentAlignment = Alignment.Center,
-                ) { Text(o.n.toString(), style = V3.Meter.copy(color = if (rec) V3.Bg else V3.Tx2)) }
+                ) { Text(num.toString(), style = V3.Meter.copy(color = if (rec) V3.Bg else V3.Tx2)) }
                 Column(Modifier.weight(1f)) {
-                    Text(o.label, style = V3.Name.copy(fontSize = 15.sp, color = if (rec) V3.Wait else V3.Tx))
-                    val sub = listOfNotNull(if (rec) stringResource(R.string.ti_aspetta_recommended) else null, o.description).joinToString(" · ")
-                    if (sub.isNotEmpty()) Text(sub, style = V3.Small)
+                    Text(a.label, style = V3.Name.copy(fontSize = 15.sp, color = if (rec) V3.Wait else V3.Tx))
+                    if (rec) Text(stringResource(R.string.ti_aspetta_recommended), style = V3.Small)
                 }
             }
-        } else if (item.answer != null) V3Pill(stringResource(R.string.ti_aspetta_done), filled = sent == null) { if (sent == null) { sent = 0; onOption(null) } }
-        else Text(stringResource(R.string.ti_aspetta_by_master), style = V3.Small)
-        onOwnWords?.let { f ->
-            Box(Modifier.clip(CircleShape).background(V3.S3).handCursor().clickable(onClick = f).padding(horizontal = 16.dp, vertical = 9.dp)) {
-                Text(stringResource(R.string.ti_aspetta_own_words), style = V3.Small.copy(color = V3.Tx, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold))
+        }
+        val pills = actions.withIndex().filter { (_, a) -> TiAspetta.lookOf(a) != TiAspetta.Look.OPTION }
+        if (pills.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            pills.forEach { (i, a) ->
+                Box(Modifier.graphicsLayer { alpha = if (sent != null && sent != i) 0.45f else 1f }.testTag("ti-aspetta-tasto-$i")) {
+                    V3Pill(a.label, filled = TiAspetta.lookOf(a) == TiAspetta.Look.MAIN, confirmed = sent == i) { go(i, a) }
+                }
             }
         }
+        writing?.let { i ->
+            val a = actions.getOrNull(i) ?: return@let
+            androidx.compose.material3.OutlinedTextField(
+                written, { v -> written = v.take(2000) }, modifier = Modifier.fillMaxWidth().testTag("ti-aspetta-testo"),
+                label = { Text(a.label) }, minLines = 2,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                V3Pill(stringResource(R.string.ti_aspetta_send), filled = true) { if (written.isNotBlank() || a.textField == "text") go(i, a) }
+                V3Pill(stringResource(R.string.cancel)) { writing = null }
+            }
+        }
+        if (actions.isEmpty()) Text(stringResource(R.string.ti_aspetta_by_master), style = V3.Small)
     }
 }
 

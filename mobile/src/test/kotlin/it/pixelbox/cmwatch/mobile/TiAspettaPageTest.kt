@@ -47,7 +47,7 @@ class TiAspettaPageTest {
         val one = ContractJson.decodeWait(fake.sampleResult("attesa", "wd2f87e85e2").second)
         paparazzi.snapshot { CmPhoneTheme(still = true) {
             TiAspettaPage(TiAspetta.pageOf(chat.copy(msg = one.msg), all), chat.at + 300, wide = false, onBack = {}, onJump = {}, onOther = {}) {
-                it.pixelbox.cmwatch.mobile.ui.WaitCardBody(chat, onOption = {}, onOwnWords = {})
+                it.pixelbox.cmwatch.mobile.ui.WaitCardBody(chat) { _, _ -> }
             }
         } }
     }

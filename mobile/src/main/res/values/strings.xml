@@ -1886,4 +1886,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="ti_aspetta_gone">Non aspetta più: è già stata chiusa.</string>
     <string name="ti_aspetta_failed">Non riesco a leggerla dal PC.</string>
     <string name="ti_aspetta_loading">La leggo dal PC</string>
+    <string name="ti_aspetta_production">produzione</string>
+    <string name="ti_aspetta_what">Cosa</string>
+    <string name="ti_aspetta_where">Dove</string>
+    <string name="ti_aspetta_untested">Non provato</string>
+    <string name="ti_aspetta_undo">Annullare</string>
+    <string name="ti_aspetta_send">Manda</string>
 </resources>

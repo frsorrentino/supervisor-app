@@ -491,10 +491,23 @@ export const waitsDemo = (now: number): WaitItem[] => [
   { id: 'w00000000a1', type: 'carta', kind: 'pausa', label: 'decide', label_text: en ? 'Decide' : 'Decidi', session: 'blog', task: 'demo-cover',
     text: en ? 'Send me the cover image' : "Mandami l'immagine di copertina", options: null, at: now - 1200, card: null, link: '#/attesa/w00000000a1',
     answer: { op: 'decisione', arg: 'demo-a' },
+    title: en ? 'Cover image' : 'Immagine di copertina',
+    actions: [
+      { label: en ? 'Reply' : 'Rispondi', style: 'primary', cmd: { op: 'prompt', session: 'blog' }, text_field: 'arg' },
+      { label: en ? 'Not now' : 'Non ora', style: 'secondary', cmd: { op: 'decisione', session: null, arg: 'demo-a', action: 'not_now' } },
+      { label: en ? 'Drop it' : 'Lascia perdere', style: 'secondary', cmd: { op: 'decisione', session: null, arg: 'demo-a', action: 'drop' }, text_field: 'reason' },
+    ],
     msg: { session: 'blog', id: 'demo-blog-cover', text: en ? 'The post is ready and the links are checked.\n\nI need the cover image: send it to me and I publish with the newsletter.' : "Il post è pronto e i link sono controllati.\n\nMi serve l'immagine di copertina: mandamela e pubblico con la newsletter.", key: en ? 'I need the cover image' : "Mi serve l'immagine di copertina", at: now - 1260 } },
   { id: 'w00000000b2', type: 'chat', kind: 'prossimi', label: 'choose', label_text: en ? 'Choose' : 'Scegli', session: 'payments-api', task: null,
     text: en ? 'Which branch name for the refunds fix?' : 'Che nome do al branch della correzione dei rimborsi?', at: now - 720, card: null, link: '#/attesa/w00000000b2',
     options: [{ n: 1, label: 'hotfix/refunds', value: 'hotfix/refunds', recommended: true, description: en ? 'it goes out with 2.8.1' : 'esce con la 2.8.1' }, { n: 2, label: 'release/2.9', value: 'release/2.9' }],
     answer: { op: 'prompt', arg: 'payments-api', done: { op: 'attention_done', arg: 'payments-api', kind: 'turn_blocking' } },
+    title: en ? 'Branch name for the refunds fix' : 'Nome del branch dei rimborsi',
+    actions: [
+      { label: 'hotfix/refunds', style: 'primary', recommended: true, cmd: { op: 'prompt', session: 'payments-api', arg: 'hotfix/refunds' } },
+      { label: 'release/2.9', style: 'option', cmd: { op: 'prompt', session: 'payments-api', arg: 'release/2.9' } },
+      { label: en ? 'Reply' : 'Rispondi', style: 'secondary', cmd: { op: 'prompt', session: 'payments-api' }, text_field: 'arg' },
+      { label: en ? 'Done' : 'Fatto', style: 'secondary', cmd: { op: 'attention_done', session: null, arg: 'payments-api', kind: 'turn_blocking' } },
+    ],
     msg: { session: 'payments-api', id: 'demo-pay-branch', text: en ? 'The refunds fix is ready and the tests pass.\n\nWhich branch name for the refunds fix? hotfix/refunds goes out with 2.8.1.' : 'La correzione dei rimborsi è pronta e i test passano.\n\nChe nome do al branch della correzione dei rimborsi? hotfix/refunds esce con la 2.8.1.', key: en ? 'Which branch name for the refunds fix?' : 'Che nome do al branch della correzione dei rimborsi?', at: now - 760 } },
 ]

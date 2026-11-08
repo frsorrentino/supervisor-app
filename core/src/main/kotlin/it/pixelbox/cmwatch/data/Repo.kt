@@ -202,6 +202,17 @@ class Repo(
     suspend fun refresh(): Boolean = runCatching { accept(transport.fetchState()) }.isSuccess
 
     suspend fun answer(session: String, n: Int) = command(CmdOp.ANSWER, session, n.toString())
+
+    /**
+     * Contratto 1.131: il comando di un tasto della scheda «Ti aspetta», già pronto dal relay (op, session, arg e i campi dell'op);
+     * qui si aggiungono id, issued, by e device. Null se l'op non è una di quelle che l'app conosce.
+     */
+    suspend fun commandOf(a: it.pixelbox.cmwatch.contract.WaitAction, written: String?): String? {
+        val o = it.pixelbox.cmwatch.rules.TiAspetta.cmdOf(a, written)
+        fun str(k: String) = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
+        val op = runCatching { kotlinx.serialization.json.Json.decodeFromJsonElement(CmdOp.serializer(), o["op"]!!) }.getOrNull() ?: return null
+        return command(op, str("session"), str("arg"), text = str("text"), action = str("action"), kind = str("kind"), choice = str("choice"), result = str("result"), reason = str("reason"))
+    }
     suspend fun prompt(session: String, text: String) = command(CmdOp.PROMPT, session, text)
     /** Contratto 1.10: testo libero a una domanda aperta, dalla voce «Type something.». */
     suspend fun answerText(session: String, text: String) = command(CmdOp.ANSWER, session, it.pixelbox.cmwatch.rules.QuestionRules.textArg(text))

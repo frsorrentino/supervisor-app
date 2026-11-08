@@ -169,7 +169,7 @@ class TabletShellTest {
         paparazzi.snapshot { desk(emptyList(), emptyList(), override = {
             it.pixelbox.cmwatch.mobile.ui.TiAspettaColumn {
                 it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(it.pixelbox.cmwatch.rules.TiAspetta.pageOf(chat.copy(msg = one.msg), all), chat.at + 300, wide = true, onBack = {}, onJump = {}, onOther = {}) {
-                    it.pixelbox.cmwatch.mobile.ui.WaitCardBody(chat, onOption = {}, onOwnWords = {})
+                    it.pixelbox.cmwatch.mobile.ui.WaitCardBody(chat) { _, _ -> }
                 }
             }
         }) }
