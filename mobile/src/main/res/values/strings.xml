@@ -1879,6 +1879,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="ti_aspetta_reply_at">%1$s · risposta delle %2$s</string>
     <string name="ti_aspetta_jump">Apri nella trascrizione →</string>
     <string name="ti_aspetta_others">Ti aspettano anche</string>
+    <string name="ti_aspetta_others_open">Mostra le altre</string>
+    <string name="ti_aspetta_others_close">Nascondi le altre</string>
     <string name="ti_aspetta_decide">Decidi</string>
     <string name="ti_aspetta_choose">Scegli</string>
     <string name="ti_aspetta_verify">Verifica</string>

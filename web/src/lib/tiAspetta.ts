@@ -20,6 +20,15 @@ export function cmdOf<C extends Record<string, unknown>>(a: { cmd: C; text_field
   return a.text_field ? { ...a.cmd, [a.text_field]: (written ?? '').trim() } : a.cmd
 }
 
+/**
+ * La pagina a cui torna la scheda chiusa, con Indietro o dopo una risposta (Franz 08/11 21:38: «deve riportarmi alla schermata
+ * precedente, da dove sono arrivato», app-ti-aspetta-lista-chiusa-08-11): quella aperta quando si è aperta la scheda; da un'altra
+ * scheda resta la prima; aperta da un link, la home (null).
+ */
+export function backTo<P extends string>(kept: P | null, current: P | 'attesa' | null): P | null {
+  return current === 'attesa' ? kept : current
+}
+
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** Il testo con la frase della domanda accesa; maiuscole e spazi non contano. Senza frase o se non c'è, tutto spento. */

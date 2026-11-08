@@ -23,12 +23,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,13 +54,16 @@ import java.time.format.DateTimeFormatter
  * La scheda «Ti aspetta» (app-scheda-ti-aspetta-07-11, mockup approvato da Franz il 07/11 alle 21:04): la testata con la sessione e
  * da quanto aspetta; la carta coi tasti (`card`, quella di Decidi, Scegli, Verifica o Rispondi); «Da dove viene» col pezzo di
  * trascrizione, la frase della domanda accesa e «Apri nella trascrizione»; in fondo le altre che aspettano. `wide` (tablet, nella
- * colonna): la carta e «Da dove viene» affiancate e la × al posto della freccia indietro.
+ * colonna): la carta e «Da dove viene» affiancate e la × al posto della freccia indietro. «Ti aspettano anche» parte chiusa e si
+ * apre col tocco (app-ti-aspetta-lista-chiusa-08-11); `othersOpen` solo per i test.
  */
 @Composable
 fun TiAspettaPage(
     page: TiAspetta.Page, now: Long, wide: Boolean, onBack: () -> Unit, onJump: (TiAspetta.Source) -> Unit, onOther: (String) -> Unit,
-    card: @Composable () -> Unit,
+    othersOpen: Boolean = false, card: @Composable () -> Unit,
 ) {
+    // Non si salva: ogni scheda, anche un'altra aperta da questa lista, parte con la lista chiusa.
+    var open by remember(page.key) { mutableStateOf(othersOpen) }
     Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).testTag("ti-aspetta-${page.key}")) {
         Row(Modifier.fillMaxWidth().padding(start = if (wide) 18.dp else 6.dp, end = 6.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
@@ -78,7 +85,7 @@ fun TiAspettaPage(
                 card()
                 page.source?.let { SourceBlock(it, onJump) }
             }
-            if (page.others.isNotEmpty()) Others(page.others, now, onOther)
+            if (page.others.isNotEmpty()) Others(page.others, now, open, { open = !open }, onOther)
         }
     }
 }
@@ -116,12 +123,30 @@ private fun SourceBlock(src: TiAspetta.Source, onJump: (TiAspetta.Source) -> Uni
     }
 }
 
-/** Le altre domande che aspettano: pallino ambra, titolo, l'etichetta e la sessione in mono, la freccia. */
+/** Le chiavi delle altre domande disegnate nella lista, per i test (app-ti-aspetta-lista-chiusa-08-11). */
+internal val LocalWaitRows = staticCompositionLocalOf<((String) -> Unit)?> { null }
+
+/**
+ * Le altre domande che aspettano: la riga «Ti aspettano anche N» con la freccia apre e richiude la lista (Franz 08/11 21:38: «la
+ * lista sotto deve essere chiusa e apribile»); ogni voce col pallino ambra, il titolo, l'etichetta e la sessione in mono, la freccia.
+ */
 @Composable
-private fun Others(others: List<TiAspetta.Other>, now: Long, onOther: (String) -> Unit) {
-    SecLabel(stringResource(R.string.ti_aspetta_others), others.size)
+private fun Others(others: List<TiAspetta.Other>, now: Long, open: Boolean, onToggle: () -> Unit, onOther: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(SubShape).handCursor().clickable(onClick = onToggle).padding(end = 6.dp).testTag("ti-aspetta-altre"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f)) { SecLabel(stringResource(R.string.ti_aspetta_others), others.size) }
+        Icon(
+            Icons.Rounded.KeyboardArrowDown, stringResource(if (open) R.string.ti_aspetta_others_close else R.string.ti_aspetta_others_open), tint = V3.Tx2,
+            modifier = Modifier.graphicsLayer { rotationZ = if (open) 180f else 0f },
+        )
+    }
+    if (!open) return
+    val rows = LocalWaitRows.current
     V3List {
         others.forEachIndexed { i, o ->
+            rows?.invoke(o.key)
             if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 52.dp).handCursor().clickable { onOther(o.key) }.padding(horizontal = 12.dp, vertical = 10.dp).testTag("ti-aspetta-altra-${o.key}"),
@@ -237,6 +262,18 @@ fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onSend: (it.pixelb
         }
         if (actions.isEmpty()) Text(stringResource(R.string.ti_aspetta_by_master), style = V3.Small)
     }
+}
+
+/**
+ * Una risposta dalla scheda chiude la scheda, che torna alla schermata da cui era stata aperta come il gesto Indietro; aperta da un
+ * link, la home (Franz 08/11 21:38: «quando clicco ok deve riportarmi alla schermata precedente», app-ti-aspetta-lista-chiusa-08-11).
+ * Il comando parte prima; le verifiche chiudono solo se il PC ha preso l'ok o il «Non va».
+ */
+internal class WaitAnswer(private val close: () -> Unit) {
+    fun <A> one(send: (A) -> Unit): (A) -> Unit = { a -> send(a); close() }
+    fun <A, B> two(send: (A, B) -> Unit): (A, B) -> Unit = { a, b -> send(a, b); close() }
+    fun <A> taken(send: suspend (A) -> Boolean): suspend (A) -> Boolean = { a -> send(a).also { ok -> if (ok) close() } }
+    fun <A, B, C> taken(send: suspend (A, B, C) -> Boolean): suspend (A, B, C) -> Boolean = { a, b, c -> send(a, b, c).also { ok -> if (ok) close() } }
 }
 
 /** La scheda mentre si legge, o quando la domanda non aspetta più: la freccia indietro e una riga. */

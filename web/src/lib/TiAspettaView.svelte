@@ -11,6 +11,8 @@
   // `attese`. La carta in alto ha i tasti del relay (`actions`, ognuno col suo comando già pronto); un relay senza `actions` mostra la
   // carta che l'app ha già, trovata col wid (CinqueMinuti per le decisioni, DaProvare per le verifiche). «Apri nella trascrizione»
   // salta alla voce `msg.id`.
+  // Dopo una risposta (un tasto, Approva o Chiudi senza ok, l'ok di una verifica) la scheda si chiude con onBack e torna alla pagina
+  // da cui era stata aperta (app-ti-aspetta-lista-chiusa-08-11).
   let { id, st, now, wide = false, run, onBack, onOpenWait, onJump, onApprove, onDone, onAsk, onScreen, onShot }: {
     id: string; st: State; now: number; wide?: boolean
     run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>
@@ -47,6 +49,7 @@
     sent = i; writing = null
     const c = cmdOf(a, a.text_field ? written : null)
     void run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>)
+    onBack()
   }
   const rows = (w: WaitItem) => [[t.tiAspettaWhat, w.card?.what], [t.tiAspettaWhere, w.card?.where], [t.tiAspettaUntested, w.card?.untested], [t.tiAspettaUndo, w.card?.undo_how || w.card?.undo]]
     .filter(([, v]) => !!v && v !== w.text) as [string, string][]
@@ -58,7 +61,7 @@
       {#if legacy && item.kind === 'prova'}
         <DaProvare {run} only={(p) => p.wid === w.id} {onScreen} {onShot} />
       {:else if legacy && w.type === 'carta'}
-        <CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.wid === w.id)} {st} {run} {onApprove} {onDone} {onAsk} />
+        <CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.wid === w.id)} {st} {run} onApprove={(task, note, choice) => { onApprove(task, note, choice); onBack() }} onDone={(i) => { onDone(i); onBack() }} {onAsk} />
       {:else}
         {@const acts = w.actions ?? []}
         <div class="wc" data-testid="ti-aspetta-carta">

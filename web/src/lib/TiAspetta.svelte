@@ -5,12 +5,15 @@
   // La scheda «Ti aspetta» (app-scheda-ti-aspetta-07-11, mockup approvato da Franz il 07/11 alle 21:04): la testata con la sessione
   // e da quanto aspetta; la carta coi tasti (`card`, quella di Decidi, Scegli, Verifica o Rispondi); «Da dove viene» col pezzo di
   // trascrizione, la frase della domanda accesa e «Apri nella trascrizione»; le altre che aspettano. `wide`: la carta e «Da dove
-  // viene» affiancate e la × al posto della freccia indietro. Come TiAspettaPage in Kotlin.
+  // viene» affiancate e la × al posto della freccia indietro. «Ti aspettano anche» parte chiusa e si apre col tocco, anche quando da
+  // qui si apre un'altra scheda (app-ti-aspetta-lista-chiusa-08-11). Come TiAspettaPage in Kotlin.
   let { page, now, wide = false, card, onBack, onJump, onOther }: {
     page: Page; now: number; wide?: boolean; card: Snippet
     onBack: () => void; onJump: (s: Source) => void; onOther: (key: string) => void
   } = $props()
   const label: Record<Kind, string> = { decide: t.tiAspettaKind.decide, choose: t.tiAspettaKind.choose, verify: t.tiAspettaKind.verify, answer: t.tiAspettaKind.answer }
+  let open = $state(false), openKey = ''
+  $effect.pre(() => { if (page.key !== openKey) { openKey = page.key; open = false } })
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 </script>
 
@@ -35,7 +38,11 @@
       {/if}
     </div>
     {#if page.others.length}
-      <p class="lbl">{t.tiAspettaOthers} <i>{page.others.length}</i></p>
+      <button class="lbl tog" class:open aria-expanded={open} aria-label="{t.tiAspettaOthers} {page.others.length}, {open ? t.tiAspettaOthersClose : t.tiAspettaOthersOpen}" data-testid="ti-aspetta-altre" onclick={() => (open = !open)}>
+        <span>{t.tiAspettaOthers} <i>{page.others.length}</i></span>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 9l6 6 6-6" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </button>
+      {#if open}
       <div class="others">
         {#each page.others as o (o.key)}
           <button class="row" data-testid="ti-aspetta-altra-{o.key}" onclick={() => onOther(o.key)}>
@@ -45,6 +52,7 @@
           </button>
         {/each}
       </div>
+      {/if}
     {/if}
   </div>
 </section>
@@ -64,6 +72,9 @@
   .src { display: flex; flex-direction: column; gap: 8px; }
   .lbl { font: 600 12px var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); margin: 4px 2px 0; }
   .lbl i { font-style: normal; color: var(--wait); margin-left: 6px; }
+  .tog { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin: 0; padding: 0 6px 0 2px; text-align: left; cursor: pointer; }
+  .tog svg { transition: transform .2s; }
+  .tog.open svg { transform: rotate(180deg); }
   .box { border: 1px solid var(--s3); border-radius: 10px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
   .box small { font: 12.5px var(--mono); color: var(--tx2); }
   blockquote { border-left: 3px solid var(--tx3); padding: 2px 0 2px 12px; font-size: 15px; line-height: 22px; color: var(--tx2); white-space: pre-wrap; }

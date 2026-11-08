@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { age, cmdOf, lookOf, marks } from './tiAspetta'
+import { age, backTo, cmdOf, lookOf, marks } from './tiAspetta'
 import { decodeWaits } from './decideDecode'
 import { askedWait } from './sessionLinks'
 
@@ -10,6 +10,13 @@ const file = JSON.parse(readFileSync(new URL('../../../core/src/test/resources/t
 }
 
 describe('tiAspetta', () => {
+  // app-ti-aspetta-lista-chiusa-08-11: la scheda chiusa torna alla pagina da cui si è aperta; da un'altra scheda, alla prima; da un link, alla home.
+  it('back to where it was opened', () => {
+    expect(backTo(null, 'box-aspetta')).toBe('box-aspetta')
+    expect(backTo('box-aspetta', 'attesa')).toBe('box-aspetta')
+    expect(backTo(null, null)).toBe(null)
+    expect(backTo(null, 'attesa')).toBe(null)
+  })
   for (const c of file.marks) it(c.name, () => expect(marks(c.text, c.ask)).toEqual(c.out.map(([text, on]) => ({ text, on }))))
   it('links', () => { for (const c of file.links) expect(askedWait(new URL(c.link).hash)).toBe(c.out) })
   it('actions of the fixture', () => {

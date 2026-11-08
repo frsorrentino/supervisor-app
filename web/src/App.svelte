@@ -110,6 +110,7 @@
   import CloseSplash from './lib/CloseSplash.svelte'
   import { closeRefusals, closeSplash, ghostSession, type Leaving } from './lib/closeSplash'
   import { askedSession, askedWait } from './lib/sessionLinks'
+  import { backTo } from './lib/tiAspetta'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
   import { since as kpiSince, head as kpiHeadOf } from './lib/kpi'
@@ -513,15 +514,18 @@
   // Contratto 1.130: `#/attesa/<id>` apre la scheda «Ti aspetta», dal link nel testo della master o di una sessione e da fuori.
   let waitId = $state<string | null>(askedWait(location.hash))
   // Da Tocca a te: il tocco su una voce che aspetta apre la sua scheda.
-  const openWait = (w: string) => { waitId = w; openPage('attesa') }
+  // La pagina da cui si è aperta la scheda: Indietro e una risposta tornano lì; aperta da un link, la home (app-ti-aspetta-lista-chiusa-08-11).
+  let waitFrom = $state<PageName | null>(null)
+  const openWait = (w: string) => { waitFrom = backTo(waitFrom, page); waitId = w; openPage('attesa') }
+  const closeWait = () => { const to = waitFrom; waitId = null; waitFrom = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
   $effect(() => {
-    const onHash = () => { const w = askedWait(location.hash); if (w) { waitId = w; openPage('attesa') } }
+    const onHash = () => { const w = askedWait(location.hash); if (w) openWait(w) }
     // Un link nel testo apre la scheda dentro l'app, senza ricaricare la pagina.
     const onClick = (e: MouseEvent) => {
       const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
       const w = a ? askedWait(new URL(a.href, location.href).hash) : null
       if (!w) return
-      e.preventDefault(); waitId = w; openPage('attesa')
+      e.preventDefault(); openWait(w)
     }
     window.addEventListener('hashchange', onHash); document.addEventListener('click', onClick, true)
     return () => { window.removeEventListener('hashchange', onHash); document.removeEventListener('click', onClick, true) }
@@ -1487,9 +1491,12 @@
     })
   })
   addEventListener('popstate', () => {
-    if (skipPop) { skipPop = false; return }
+    // Chiusa la scheda aperta da un link, il passo indietro torna sull'indirizzo `#/attesa/…`: lo si toglie prima che hashchange
+    // la riapra (app-ti-aspetta-lista-chiusa-08-11).
+    if (skipPop) { skipPop = false; if (!waitId && askedWait(location.hash)) history.replaceState(history.state, '', location.pathname + location.search); return }
     pushed = Math.max(0, pushed - 1)
-    if (page) openPage(null)
+    if (page === 'attesa') closeWait()
+    else if (page) openPage(null)
     else if (!wide && open) smooth(() => { open = null })
     else if (masterOpen) smooth(() => { masterOpen = false })
   })
@@ -1875,11 +1882,11 @@
 {#snippet pageView(p: PageName)}
   <!-- La scheda «Ti aspetta» (contratto 1.130, app-scheda-ti-aspetta-07-11): ha la sua testata, con la sessione e da quanto aspetta. -->
   {#if p === 'attesa' && waitId}
-  <TiAspettaView id={waitId} {st} now={st.ts} wide={wide} {run} onBack={() => { waitId = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(null) }}
-    onOpenWait={(w) => (waitId = w)} onJump={(n, entry, sid) => { const live = st.sessions.some(x => x.name === n && x.state !== 'gone'); waitId = null; openPage(null); if (!live && sid) { sidOf = { ...sidOf, [n]: sid }; reading = n } else pick(n); void jumpTo(n, entry) }}
+  <TiAspettaView id={waitId} {st} now={st.ts} wide={wide} {run} onBack={closeWait}
+    onOpenWait={(w) => (waitId = w)} onJump={(n, entry, sid) => { const live = st.sessions.some(x => x.name === n && x.state !== 'gone'); waitId = null; waitFrom = null; openPage(null); if (!live && sid) { sidOf = { ...sidOf, [n]: sid }; reading = n } else pick(n); void jumpTo(n, entry) }}
     onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
     onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}
-    onScreen={(s) => { waitId = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)} />
+    onScreen={(s) => { waitId = null; waitFrom = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)} />
   {:else}
   <Page title={pageTitle[p]} v3 onBack={() => openPage(null)}>
     {#if p === 'launch'}

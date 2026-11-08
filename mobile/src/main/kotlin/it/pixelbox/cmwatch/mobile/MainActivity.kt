@@ -1423,6 +1423,9 @@ class MainActivity : ComponentActivity() {
         // La scheda «Ti aspetta»: sul telefono una pagina, sul tablet nella colonna di destra, larga (mockup approvato il 07/11 alle 21:04).
         val waitPage: @Composable (String, Boolean) -> Unit = { wid, wideNow ->
             val item = waitItem?.takeIf { x -> x.id == wid }
+            // Dopo una risposta la scheda si chiude e torna dove era Franz (app-ti-aspetta-lista-chiusa-08-11).
+            val answer = it.pixelbox.cmwatch.mobile.ui.WaitAnswer { if (waitOpen == wid) waitOpen = null }
+            val send = answer.two<it.pixelbox.cmwatch.contract.WaitAction, String?> { a, written -> scope.launch { runCatching { app.repo.commandOf(a, written) } } }
             run {
                 if (item == null) it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(
                     androidx.compose.ui.res.stringResource(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
@@ -1449,11 +1452,11 @@ class MainActivity : ComponentActivity() {
                     }?.takeIf { p -> p.groups.isNotEmpty() }
                     // Contratto 1.131: i tasti del relay per ogni carta; senza `actions` (un relay di prima) la carta che l'app ha già.
                     when {
-                        item.actions != null -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item) { a, written -> scope.launch { runCatching { app.repo.commandOf(a, written) } } }
-                        groups.isNotEmpty() -> it.pixelbox.cmwatch.mobile.ui.SessionDecisions(groups, decApprove, decDone, decNotNow, decDrop, decAsk)
-                        prove != null -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
+                        item.actions != null -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, send)
+                        groups.isNotEmpty() -> it.pixelbox.cmwatch.mobile.ui.SessionDecisions(groups, answer.two(decApprove), answer.one(decDone), answer.one(decNotNow), answer.two(decDrop), decAsk)
+                        prove != null -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove, { tag -> app.updater.buildOf(tag) }, answer.taken<String> { ids -> proveOkRun(ids) }, answer.taken(proveKo), goScreen)
                         // Contratto 1.131: i tasti del relay, ognuno col suo comando già pronto.
-                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item) { a, written -> scope.launch { runCatching { app.repo.commandOf(a, written) } } }
+                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, send)
                     }
                 }
             }

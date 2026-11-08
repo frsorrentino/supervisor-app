@@ -5,6 +5,7 @@ import app.cash.paparazzi.Paparazzi
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.mobile.ui.LocalPageBg
+import it.pixelbox.cmwatch.mobile.ui.LocalWaitRows
 import it.pixelbox.cmwatch.mobile.ui.SessionDecisions
 import it.pixelbox.cmwatch.mobile.ui.TiAspettaPage
 import it.pixelbox.cmwatch.mobile.ui.V3
@@ -52,7 +53,22 @@ class TiAspettaPageTest {
         } }
     }
 
-    @Test fun phone() = paparazzi.snapshot { CmPhoneTheme(still = true) { TiAspettaPage(page, now, wide = false, onBack = {}, onJump = {}, onOther = {}, card = card) } }
+    // app-ti-aspetta-lista-chiusa-08-11: «Ti aspettano anche 2» parte chiusa, la riga con la freccia e nessuna voce disegnata.
+    @Test fun phone() {
+        val rows = mutableListOf<String>()
+        paparazzi.snapshot { CmPhoneTheme(still = true) { androidx.compose.runtime.CompositionLocalProvider(LocalWaitRows provides { k -> rows += k }) {
+            TiAspettaPage(page, now, wide = false, onBack = {}, onJump = {}, onOther = {}, card = card)
+        } } }
+        org.junit.Assert.assertEquals(emptyList<String>(), rows)
+    }
+    // Aperta col tocco sulla riga: le due voci sotto, la freccia girata.
+    @Test fun phoneOthersOpen() {
+        val rows = mutableSetOf<String>()
+        paparazzi.snapshot { CmPhoneTheme(still = true) { androidx.compose.runtime.CompositionLocalProvider(LocalWaitRows provides { k -> rows += k }) {
+            TiAspettaPage(page, now, wide = false, onBack = {}, onJump = {}, onOther = {}, othersOpen = true, card = card)
+        } } }
+        org.junit.Assert.assertEquals(setOf("branch", "carrello"), rows)
+    }
     @Test fun phoneDay() = paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { TiAspettaPage(page, now, wide = false, onBack = {}, onJump = {}, onOther = {}, card = card) } }
     // Nella colonna del tablet: la carta e «Da dove viene» affiancate, sul grigio delle schede.
     @Test fun column() {

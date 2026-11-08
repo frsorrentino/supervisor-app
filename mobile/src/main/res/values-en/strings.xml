@@ -1851,6 +1851,8 @@ It starts at your last message to the master.</string>
     <string name="ti_aspetta_reply_at">%1$s · reply at %2$s</string>
     <string name="ti_aspetta_jump">Open in the transcript →</string>
     <string name="ti_aspetta_others">Also waiting for you</string>
+    <string name="ti_aspetta_others_open">Show the others</string>
+    <string name="ti_aspetta_others_close">Hide the others</string>
     <string name="ti_aspetta_decide">Decide</string>
     <string name="ti_aspetta_choose">Choose</string>
     <string name="ti_aspetta_verify">Verify</string>
