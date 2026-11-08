@@ -79,12 +79,13 @@ internal object V3 {
     // #F1F4F8, #EAEEF4, #DFE4EB, #121418, #565C66, #60666F.
     private val Night = Palette(
         Color(0xFF0B0B0B), Color(0xFF111111), Color(0xFF181818), Color(0xFF222222), Color(0xFF2A2A2A), Color(0xFFEEEEEE), Color(0xFF9B9B9B), Color(0xFF8A8A8A), Color.White, Color(0xFF0B0B0B),
-        // Salvia per successo e avanzamento (app-sessioni-compatte-06-11, come web/src/v3.css): prima #5AA2FF e #34D399.
-        Color(0xFFFFB23F), Color(0xFF8FA8D2), Color(0xFF93B89B), Color(0xFFFF5A5F), Color(0xFF111111), Color(0xFF2A2A2A), Color(0xFF111111),
+        // Verde Erba per successo e avanzamento (app-verde-nuovo-08-11, scelta di Franz 08/11 14:08, come web/src/v3.css): prima la
+        // salvia #93B89B (app-sessioni-compatte-06-11), e prima ancora #5AA2FF e #34D399.
+        Color(0xFFFFB23F), Color(0xFF8FA8D2), Color(0xFF71D083), Color(0xFFFF5A5F), Color(0xFF111111), Color(0xFF2A2A2A), Color(0xFF111111),
     )
     private val Day = Palette(
         Color(0xFFF4F4F4), Color.White, Color.White, Color(0xFFEDEDED), Color(0xFFE4E4E4), Color(0xFF141414), Color(0xFF5B5B5B), Color(0xFF656565), Color(0xFF141414), Color.White,
-        Color(0xFF9A5700), Color(0xFF4A6A9C), Color(0xFF4E7A5B), Color(0xFFC9302F), Color(0xFFFFF6E5), Color(0xFFF2D7A2), Color(0xFFFFF3F2),
+        Color(0xFF9A5700), Color(0xFF4A6A9C), Color(0xFF2A7E3B), Color(0xFFC9302F), Color(0xFFFFF6E5), Color(0xFFF2D7A2), Color(0xFFFFF3F2),
     )
     /** Un valore semplice, non uno stato di Compose: cambia solo col tema del sistema, che ricrea l'activity; scritto in composizione come stato chiudeva le composizioni delle prove successive. */
     var day = false
