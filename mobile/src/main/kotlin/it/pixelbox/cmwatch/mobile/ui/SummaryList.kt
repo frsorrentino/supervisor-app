@@ -111,6 +111,9 @@ import it.pixelbox.cmwatch.rules.AppUpdate
 import it.pixelbox.cmwatch.rules.Commitments
 import it.pixelbox.cmwatch.mobile.update.AppUpdater
 
+/** Le righe del nome di ogni scheda di sessione disegnata, per i test della plancia (app-home-sessioni-a-se-08-11). */
+internal val LocalNameLines = androidx.compose.runtime.staticCompositionLocalOf<((String, Int) -> Unit)?> { null }
+
 /**
  * Il riepilogo unico (design 03/10, tavola 4): ogni sessione una volta, nei gruppi del bisogno, una riga aperta alla
  * volta; aperta mostra anche i dettagli delle vecchie card di Sessioni. Sotto, «Chiuse · N» e le righe di servizio.
@@ -1246,8 +1249,13 @@ private fun SummaryCard(
         Row(Modifier.onSizeChanged { rowW = it.width }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2).
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Su una riga sola, tagliato se non ci sta, come il nome nella web (`.name`, nowrap) e nelle altre righe di sessione:
+                // nella colonna Sessioni a quattro colonne andava a capo a metà, «ledger- / api» (app-home-sessioni-a-se-08-11).
+                val nameLines = LocalNameLines.current
                 Text(
                     s.name, style = V3.Name, modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
+                    onTextLayout = { l -> nameLines?.invoke(s.name, l.lineCount) },
                 )
                 PermissionGlyph(it.pixelbox.cmwatch.rules.PermissionModes.homeGlyph(s), 14.dp)
             }

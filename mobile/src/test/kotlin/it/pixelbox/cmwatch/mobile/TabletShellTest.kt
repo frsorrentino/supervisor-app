@@ -214,7 +214,16 @@ class TabletShellTest {
             panel = if (panel) ({ MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true) }) else null,
         )
     }
-    @Test fun planciaEmpty() = paparazzi.snapshot { plancia(panel = false) }
+    /**
+     * A 1440 dp le colonne sono quattro e quella delle sessioni è più stretta (app-home-sessioni-a-se-08-11): il nome di ogni sessione
+     * resta su una riga, come nelle altre viste; prima «ledger-api» andava a capo a metà.
+     */
+    @Test fun planciaEmpty() {
+        val lines = mutableMapOf<String, Int>()
+        paparazzi.snapshot { androidx.compose.runtime.CompositionLocalProvider(LocalNameLines provides { n, c -> lines[n] = c }) { plancia(panel = false) } }
+        org.junit.Assert.assertTrue(lines.keys.containsAll(listOf("ledger-api", "atlas-shop", "field-notes")))
+        org.junit.Assert.assertEquals(lines.keys.associateWith { 1 }, lines)
+    }
 
     // + e › accanto alle sessioni della home che non sono in colonna; il filo bianco su quella già aperta (atlas-shop).
     @Test fun deskSwapPills() = paparazzi.snapshot { desk(listOf("atlas-shop"), listOf(12), swap = true) }
