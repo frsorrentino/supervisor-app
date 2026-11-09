@@ -2054,7 +2054,7 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
     )
     pinch?.let { p ->
         // Sopra tutto, senza prendere i tocchi: le dita restano sull'anteprima, che continua a leggere il gesto.
-        androidx.compose.ui.window.Popup(properties = androidx.compose.ui.window.PopupProperties(focusable = false, clippingEnabled = false)) {
+        androidx.compose.ui.window.Popup(popupPositionProvider = OverlayAtOrigin, properties = androidx.compose.ui.window.PopupProperties(focusable = false, clippingEnabled = false)) {
             val d = androidx.compose.ui.platform.LocalDensity.current
             Box(Modifier.fillMaxSize().onGloballyPositioned { c -> layerAt = c.localToScreen(androidx.compose.ui.geometry.Offset.Zero) }
                 .background(Cm.bg.copy(alpha = ((p.scale - 1f) / 0.6f).coerceIn(0f, 0.92f)))) {
@@ -2071,6 +2071,20 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
         }
     }
     if (full) ImageViewer(path, start, onShown = { pinch = null }) { full = false; start = null; pinch = null }
+}
+
+/**
+ * La finestra sovrapposta del pizzico sta all'origine della finestra dell'app e non si sposta mai (app-pinch-primo-tocco-09-11, Franz
+ * 09/11 08:19: «il pinch to zoom non è centrato al primo tocco»). Un Popup nasce in alto a sinistra e, appena misurato, si sposta dove
+ * dice il provider; lo spostamento della sola finestra non richiama onGloballyPositioned, così col provider di serie (sotto la bolla)
+ * `layerAt` restava quello di partenza e l'immagine cresceva spostata in basso a destra di quanto la bolla dista dall'alto: sotto le
+ * dita il velo scuro.
+ */
+internal object OverlayAtOrigin : androidx.compose.ui.window.PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: androidx.compose.ui.unit.IntRect, windowSize: androidx.compose.ui.unit.IntSize,
+        layoutDirection: androidx.compose.ui.unit.LayoutDirection, popupContentSize: androidx.compose.ui.unit.IntSize,
+    ) = androidx.compose.ui.unit.IntOffset.Zero
 }
 
 /** Il pizzico in corso sull'anteprima, in pixel dello schermo: dove è cominciato, dove sono le dita, quanto è cresciuta. */
