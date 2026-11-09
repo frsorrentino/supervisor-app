@@ -491,7 +491,9 @@
   .minus { color: var(--b-alert); }
   .anchor { position: relative; flex: none; }
   /* Se neanche così ci sta, il nome del modello si taglia: il menu ⋮ non esce mai dalla riga. */
-  .pill .lbl { min-width: 0; overflow: hidden; }
+  /* Taglia solo di lato (app-pillola-p-tagliata-09-11, Franz 09/11 10:09): col riquadro portato alla linea di base da text-box,
+     overflow: hidden tagliava le gambe di p, g, q e y («Opus»). */
+  .pill .lbl { min-width: 0; overflow-x: clip; overflow-y: visible; }
   .scrim { position: fixed; inset: 0; z-index: 9; cursor: default; }
   /* Il menu a pannello dell'app (AppMenuPanel): 380 px su desktop, voci con la spiegazione sotto. */
   .panel { position: absolute; right: 4px; top: 46px; z-index: 10; width: min(380px, calc(100vw - 24px)); background: var(--surface); border-radius: 20px; padding: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); }
