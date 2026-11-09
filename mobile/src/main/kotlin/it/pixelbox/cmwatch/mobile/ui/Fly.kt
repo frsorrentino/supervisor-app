@@ -30,6 +30,26 @@ val LocalFly = compositionLocalOf<Fly?> { null }
 const val FLY_MS = 320
 
 /**
+ * Il dito guida il volo (app-scorrimento-prima-sessione-09-11, video di Franz del 09/11 15:42): la frazione va verso quella del
+ * dito un fotogramma alla volta, mai più svelta del tocco (0 → 1 in [FLY_MS]). Un salto lungo in un fotogramma solo, come uno
+ * slancio, rompeva i bordi condivisi: la scheda spariva per qualche fotogramma e la pagina compariva piena di colpo, coi titoli
+ * della scheda sopra la sua testata. Annullata da un valore nuovo del dito, riparte dalla frazione raggiunta; [go] falso (il dito
+ * lasciato) la ferma prima del passo dopo, che toglierebbe il volo al rilascio.
+ */
+suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.follow(to: Float, target: String?, go: () -> Boolean = { true }) {
+    while (go()) {
+        val from = if (targetState == target && currentState != target) fraction else 0f
+        val next = if (to > from) minOf(to, from + FLY_STEP) else maxOf(to, from - FLY_STEP)
+        seekTo(next, target)
+        if (next == to) return
+        androidx.compose.runtime.withFrameNanos { }
+    }
+}
+
+/** Il passo più lungo del dito in un fotogramma: quello del tocco a 60 Hz. */
+const val FLY_STEP = 1000f / 60f / FLY_MS
+
+/**
  * La scheda che diventa pagina o colonna e il ritorno (app-volo-titolo-telefono-05-11, regola Morph): mai due testi uno sopra
  * l'altro e mai un riquadro vuoto (app-morph-senza-stacco-06-11, scelta A): niente dissolvenze, dal primo fotogramma quello che
  * entra è pieno (Morph.inAlpha) e quello che esce non si vede (Morph.outAlpha); sotto, il fondo pieno (fullUnder); i bordi
@@ -75,13 +95,19 @@ fun Modifier.fly(key: String): Modifier {
     // La scheda si allarga nella pagina con la molla breve senza rimbalzo (app-telefono-volo-pagina-06-11, come --spring-land).
     val bounds = BoundsTransform { _, _ -> if (off) snap() else Fx.land() }
     return with(f.shared) {
-        (if (off) this@fly else this@fly.fullUnder(f, key, bounds)).sharedBounds(
-            rememberSharedContentState(key), f.anim,
+        // Il fondo vola dentro la scheda (app-scorrimento-prima-sessione-09-11, video di Franz del 09/11 15:42), non sotto di lei
+        // come per il tablet (fullUnder): quello aveva la misura ferma del suo contenuto e non volava, copriva di nero la home
+        // dietro la scheda che cresceva, svaniva sopra di lei al ritorno e lasciava vuoto il posto della card. Una card di «Le
+        // altre» ha il fondo del suo gruppo, non uno suo: tornando volava trasparente, col suo nome sopra quello delle altre.
+        val card = rememberSharedContentState(key)
+        val fill = Cm.surface
+        this@fly.sharedBounds(
+            card, f.anim,
             enter = morphEnter(off), exit = morphExit(off),
             boundsTransform = bounds,
             resizeMode = UNCOVER, zIndexInOverlay = 1f,
             clipInOverlayDuringTransition = OverlayClip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),
-        )
+        ).drawBehind { if (f.shared.isTransitionActive && card.isMatchFound) drawRect(fill) }
     }
 }
 

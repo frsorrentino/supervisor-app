@@ -444,6 +444,10 @@ class MainActivity : ComponentActivity() {
         var flyTarget by rememberSaveable { mutableStateOf(open) }
         var swipeSet by remember { mutableStateOf(false) }
         val seek = remember { SeekableTransitionState(flyTarget) }
+        // La sessione che il dito sta aprendo dalla home: la sua conversazione si legge dall'inizio del gesto, come per il tocco
+        // (app-scorrimento-prima-sessione-09-11). Prima la chat diventava quella della sessione solo al rilascio, con la pagina
+        // già grande, e per un fotogramma si vedeva il suo inizio («Carica i messaggi precedenti») prima dell'ultimo messaggio.
+        var pullFirst by remember { mutableStateOf<String?>(null) }
         val systemBack = remember { mutableStateOf(false) }
         val flyStale = remember { androidx.compose.runtime.mutableIntStateOf(0) }
         // Transizione C (Franz, 09/10 20:15): fra home e sessione il volo, nei due versi; fra sessioni lo scorrimento. La card
@@ -877,7 +881,7 @@ class MainActivity : ComponentActivity() {
         val saveCols: (List<String>) -> Unit = { next -> pinned = next; tabletPrefs.edit().putString("tablet_columns", it.pixelbox.cmwatch.rules.Tablet.columnsPref(next)).apply() }
         val saveShares: (List<Int>) -> Unit = { s -> val raw = it.pixelbox.cmwatch.rules.Tablet.Shares.pref(s); sharesRaw = raw; tabletPrefs.edit().putString("tablet_shares", raw).apply() }
         // Sul tablet la conversazione della home è quella della master; le colonne leggono la loro qui sotto.
-        val chatName = if (wide) masterName else open ?: masterName?.takeIf { tab == StartRoute.Tab.OVERVIEW }
+        val chatName = if (wide) masterName else open ?: pullFirst ?: masterName?.takeIf { tab == StartRoute.Tab.OVERVIEW }
         // I dettagli a destra (spenti di default, si accendono dalle Impostazioni): della prima colonna, se c'è posto.
         val inspectorOn = wide && tabletDetails && tab != StartRoute.Tab.LAVORI && tabletCols.isNotEmpty() && it.pixelbox.cmwatch.rules.Tablet.inspector(widthDp)
         // Sul tablet aprire una sessione, da qualunque strada (scheda della home, ricerca, notifica, menu), la mette in colonna.
@@ -2604,12 +2608,11 @@ class MainActivity : ComponentActivity() {
                             val widthPx = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() }
                             val stateNow by rememberUpdatedState(state)
                             var pulled by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-                            LaunchedEffect(flyStale.intValue) { pulled = 0f }
-                            var first by remember { mutableStateOf<String?>(null) }
+                            LaunchedEffect(flyStale.intValue) { pulled = 0f; pullFirst = null }
                             LaunchedEffect(seek) {
-                                androidx.compose.runtime.snapshotFlow { pulled }.collect { d ->
-                                    val f = first
-                                    if (d > 0f && f != null) seek.seekTo((d / widthPx).coerceIn(0f, 0.999f), targetState = f)
+                                androidx.compose.runtime.snapshotFlow { pulled }.collectLatest { d ->
+                                    val f = pullFirst
+                                    if (d > 0f && f != null) seek.follow((d / widthPx).coerceIn(0f, 0.999f), f) { pulled > 0f }
                                 }
                             }
                             Box(Modifier.fillMaxSize().pointerInput(masterChat) {
@@ -2623,7 +2626,7 @@ class MainActivity : ComponentActivity() {
                                         ?: return@awaitEachGesture
                                     val f = it.pixelbox.cmwatch.rules.SwipePages.of(stateNow, null).firstOrNull { p -> p != null } ?: return@awaitEachGesture
                                     flyByCard = cardsOnScreen.containsKey(f)
-                                    first = f
+                                    pullFirst = f
                                     speed.resetTracking()
                                     speed.addPointerInputChange(drag)
                                     pulled = -over
@@ -2636,10 +2639,11 @@ class MainActivity : ComponentActivity() {
                                         }
                                     } finally {
                                         // Gesto cancellato (pointerInput che riparte): il rilascio non arriverà, si torna indietro.
-                                        if (!done && pulled > 0f) { pulled = 0f; scope.launch { seek.animateTo(null) } }
+                                        if (!done && pulled > 0f) { pulled = 0f; pullFirst = null; scope.launch { seek.animateTo(null) } }
                                     }
-                                    if (done && pulled > 0f && (pulled / widthPx > 0.33f || speed.calculateVelocity().x < -1200f)) { pulled = 0f; open = f }
-                                    else if (pulled > 0f) { pulled = 0f; scope.launch { seek.animateTo(null) } }
+                                    if (done && pulled > 0f && (pulled / widthPx > 0.33f || speed.calculateVelocity().x < -1200f)) { pulled = 0f; open = f; pullFirst = null }
+                                    else if (pulled > 0f) { pulled = 0f; pullFirst = null; scope.launch { seek.animateTo(null) } }
+                                    else pullFirst = null
                                 }
                             }) { summaryPage() }
                         } else {
@@ -2695,7 +2699,7 @@ class MainActivity : ComponentActivity() {
                         var dragged by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
                         LaunchedEffect(flyStale.intValue) { dragged = 0f }
                         LaunchedEffect(seek) {
-                            androidx.compose.runtime.snapshotFlow { dragged }.collect { d -> if (d > 0f) seek.seekTo((d / widthPx).coerceIn(0f, 0.999f), targetState = null) }
+                            androidx.compose.runtime.snapshotFlow { dragged }.collectLatest { d -> if (d > 0f) seek.follow((d / widthPx).coerceIn(0f, 0.999f), null) { dragged > 0f } }
                         }
                         val backDrag = remember(pager) {
                             object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
@@ -2731,8 +2735,8 @@ class MainActivity : ComponentActivity() {
                                 if (n == null) summaryPage()
                                 return@HorizontalPager
                             }
-                            // La conversazione della pagina: quella dal vivo per la sessione aperta, l'ultima letta per le vicine.
-                            val pageEntries = ChatFeed.pageEntries(session.name, open, entriesOwner, entries, feedCache)
+                            // La conversazione della pagina: quella dal vivo per la sessione aperta (o che il dito sta aprendo), l'ultima letta per le vicine.
+                            val pageEntries = ChatFeed.pageEntries(session.name, chatName, entriesOwner, entries, feedCache)
                             Box(Modifier.fillMaxSize()) {
                                 sessionPage(session, pageEntries, null, true, null, null, true, { pageHeader(session.name) }, null)
                                 if (session.name == open) splash?.let { ph ->
