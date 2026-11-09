@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Checklist
@@ -80,6 +81,7 @@ private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
     "decisioni" -> Icons.Outlined.Timer to stringResource(R.string.home_sec_decide)
     "sessions" -> Icons.Outlined.PlayCircle to stringResource(R.string.home_sec_sessions)
     "suggestions" -> Icons.Outlined.AutoAwesome to stringResource(R.string.sug_title)
+    "monitors" -> Icons.AutoMirrored.Outlined.ShowChart to stringResource(R.string.monitors_title)
     "notte" -> Icons.Rounded.Bedtime to stringResource(R.string.home_sec_night)
     "lavori" -> Icons.Outlined.Checklist to stringResource(R.string.lavori_progress)
     "esiti" -> Icons.Outlined.SportsScore to stringResource(R.string.box_outcomes_title)

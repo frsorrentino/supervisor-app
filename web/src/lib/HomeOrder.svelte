@@ -18,7 +18,7 @@
     sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle },
     notte: { icon: 'bedtime', name: t.homeNight }, lavori: { icon: 'checklist', name: t.lavoriProgress }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem },
     // Le tre sezioni nuove (app-da-guardare-02-11, app-rendiconti-2-02-11): hanno già il loro posto; icone disegnate, non sono nel font.
-    da_guardare: { icon: 'svg:eye', name: t.homeSecWatch }, rendiconti: { icon: 'svg:doc', name: t.homeSecReports }, pagella: { icon: 'svg:medal', name: t.homeSecScorecard },
+    da_guardare: { icon: 'svg:eye', name: t.homeSecWatch }, monitors: { icon: 'svg:chart', name: t.monitorsTitle }, rendiconti: { icon: 'svg:doc', name: t.homeSecReports }, pagella: { icon: 'svg:medal', name: t.homeSecScorecard },
   }
 
   // Il trascinamento dalla maniglia: la voce segue il puntatore e scavalca la vicina quando ne passa la metà, come nella home.

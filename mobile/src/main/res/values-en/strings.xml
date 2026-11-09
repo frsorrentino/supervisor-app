@@ -1870,4 +1870,31 @@ It starts at your last message to the master.</string>
     <string name="ti_aspetta_untested">Not tested</string>
     <string name="ti_aspetta_undo">Undo</string>
     <string name="ti_aspetta_send">Send</string>
+    <!-- Monitors (app-monitoraggi-09-11) -->
+    <string name="monitors_title">Monitors</string>
+    <string name="monitors_look">%d to look at</string>
+    <string name="monitors_new">New monitor</string>
+    <string name="monitors_new_hint">write «monitor» to the master</string>
+    <string name="monitors_new_draft">"monitor "</string>
+    <string name="monitor_last">last check %s</string>
+    <string name="monitor_state_look">To look at</string>
+    <string name="monitor_state_ok">Steady</string>
+    <string name="monitor_alerts">Alerts</string>
+    <string name="monitor_edit">Edit</string>
+    <string name="monitor_example">Example</string>
+    <string name="monitor_stop">Stop</string>
+    <string name="monitor_ask">Ask the master</string>
+    <string name="monitor_max">max %s</string>
+    <string name="monitor_max_on">%1$s on %2$s</string>
+    <string name="monitor_limit">limit %s</string>
+    <string name="monitor_yes">yes</string>
+    <string name="monitor_no">no</string>
+    <string name="monitor_days_ok">%1$d of %2$d days</string>
+    <string name="monitor_ask_draft">"About the monitor «%s»: "</string>
+    <string name="monitor_stop_draft">Stop the monitor «%s»</string>
+    <string name="monitor_alerts_draft">"Change the alerts of the monitor «%s»: "</string>
+    <plurals name="cat_sig_monitors">
+        <item quantity="one">%d monitor to look at</item>
+        <item quantity="other">%d monitors to look at</item>
+    </plurals>
 </resources>

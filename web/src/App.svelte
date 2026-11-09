@@ -111,6 +111,8 @@
   import { closeRefusals, closeSplash, ghostSession, type Leaving } from './lib/closeSplash'
   import { askedSession, askedWait } from './lib/sessionLinks'
   import { backTo } from './lib/tiAspetta'
+  import MonitorView from './lib/MonitorView.svelte'
+  import { monitorsDemo } from './lib/demo'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
   import { since as kpiSince, head as kpiHeadOf } from './lib/kpi'
@@ -516,6 +518,11 @@
   // Da Tocca a te: il tocco su una voce che aspetta apre la sua scheda.
   // La pagina da cui si è aperta la scheda: Indietro e una risposta tornano lì; aperta da un link, la home (app-ti-aspetta-lista-chiusa-08-11).
   let waitFrom = $state<PageName | null>(null)
+  // I Monitoraggi (app-monitoraggi-09-11): nella demo i dati dei mockup; col relay arrivano col contratto `monitors`, non ancora
+  // uscito, e fino ad allora la sezione non c'è. La scheda aperta, per id.
+  const monitors = demo ? monitorsDemo() : null
+  let monitorId = $state<string | null>(null)
+  const openMonitor = (id: string) => { monitorId = id; openPage('monitor') }
   const openWait = (w: string) => { waitFrom = backTo(waitFrom, page); waitId = w; openPage('attesa') }
   const closeWait = () => { const to = waitFrom; waitId = null; waitFrom = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
   $effect(() => {
@@ -1344,7 +1351,7 @@
     try { seen = localStorage.getItem('cm.primaSeen') === '1' } catch { /* senza memoria non si riapre a ogni giro */ }
     if (primaAutoOpen(s, seen)) { try { localStorage.setItem('cm.primaSeen', '1') } catch { /* come sopra */ } ; untrack(() => openPage('prima-raccolta')) }
   })
-  const pageTitle: Record<PageName, string> = $derived({ attesa: t.tiAspettaTitle, seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.search, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.watchPageTitle })
+  const pageTitle: Record<PageName, string> = $derived({ attesa: t.tiAspettaTitle, seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.search, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.watchPageTitle, monitor: t.monitorsTitle })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -1860,7 +1867,7 @@
   getFile={(r, f, quiet) => getFile(r.session ?? '', f.path, `result:${r.id}:${f.path}`, quiet).then(x => x?.blob ?? null)}
   onExternal={(r) => fileAction(r.session ?? '', r.path, 'open', `result:${r.id}:${r.path}`)} onSession={(n) => { openPage(null); pick(n) }}
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
-{#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
+{#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} {monitors} onMonitor={openMonitor} onNewMonitor={() => talk(t.monitorsNewDraft)} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused, armable: !!leaving.armable } : null} onCloseArm={arm} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} {todo} {sessionTodo} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
@@ -1887,6 +1894,11 @@
     onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
     onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}
     onScreen={(s) => { waitId = null; waitFrom = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)} />
+  {:else if p === 'monitor' && monitors?.some(x => x.id === monitorId)}{@const m = monitors.find(x => x.id === monitorId)!}
+  <!-- Ferma, Chiedi alla master e Modifica degli avvisi passano dalla chat della master col testo già scritto, finché il contratto
+       non porta i comandi (app-monitoraggi-09-11). -->
+  <MonitorView {m} {wide} onBack={() => { monitorId = null; openPage(null) }} onStop={() => { monitorId = null; talk(t.monitorStopDraft(m.name)) }}
+    onAsk={() => { monitorId = null; talk(t.monitorAskDraft(m.name)) }} onEditAlerts={() => { monitorId = null; talk(t.monitorAlertsDraft(m.name)) }} />
   {:else}
   <Page title={pageTitle[p]} v3 onBack={() => openPage(null)}>
     {#if p === 'launch'}

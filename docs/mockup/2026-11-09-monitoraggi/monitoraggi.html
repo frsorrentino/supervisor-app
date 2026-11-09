@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoraggi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Tavolozza notte di HomeV3.kt (verde Erba della 0.2.2051). Ogni tavola è il primo schermo del telefono, 360 × 800.
+     Grafici: una serie per grafico (piccoli multipli), quindi un solo colore neutro; ambra solo per lo stato «da guardare». */
+  :root { --bg:#0B0B0B; --s1:#111111; --s2:#181818; --s3:#222222; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#9B9B9B; --tx3:#6E6E6E;
+          --wait:#FFB23F; --good:#71D083; --ink:#D6D6D6; --grid:#232323; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, "DejaVu Sans", sans-serif; }
+  .mono { font-family: "Geist Mono", "DejaVu Sans Mono", monospace; }
+  .cd { font-family: "Barlow Semi Condensed", Barlow, sans-serif; }
+  .panel { display: none; position: relative; width: 360px; height: 800px; overflow: hidden; background: var(--bg); }
+  .panel.on { display: block; }
+  body.all { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; }
+  body.all .panel { display: block; }
+  .tag { position: absolute; top: 8px; right: 10px; z-index: 5; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700;
+         font-size: 14px; padding: 3px 10px; border-radius: 999px; background: #3a2a17; color: #f5c27a; }
+  .content { padding: 0 10px; }
+
+  /* home */
+  .scrolled { padding-top: 40px; }
+  .cat { display: flex; align-items: center; gap: 10px; padding: 13px 8px; border-top: 1px solid var(--line); }
+  .cat .k { color: var(--tx2); font-size: 12px; letter-spacing: .1em; }
+  .cat .rt { margin-left: auto; font-size: 14px; display: flex; gap: 8px; align-items: center; color: var(--tx2); }
+  .cat .rt.amb { color: var(--wait); }
+  .card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 10px; }
+  .sech { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+  .sech .nm { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 17px; }
+  .sech .ct { color: var(--tx2); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16px; }
+  .sech .rt { margin-left: auto; font-size: 14px; color: var(--wait); }
+  .mon { display: grid; grid-template-columns: 16px 1fr auto; column-gap: 9px; padding: 10px 12px; border-bottom: 1px solid var(--line); align-items: start; }
+  .mon .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; background: var(--tx3); }
+  .mon .dot.amb { background: var(--wait); }
+  .mon .dot.ok { background: var(--good); }
+  .mon .nm { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16.5px; line-height: 20px; }
+  .mon .sub { color: var(--tx2); font-size: 14px; line-height: 18px; margin-top: 2px; }
+  .mon .sub.amb { color: var(--wait); }
+  .mon .rt { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .mon .val { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 17px; line-height: 20px; }
+  .add { display: flex; align-items: center; gap: 8px; padding: 10px 12px; color: var(--tx2); font-size: 14.5px; background: #141414; }
+  .add b { color: var(--tx); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15.5px; }
+  .rowsec { display: flex; align-items: center; gap: 10px; padding: 12px 12px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+  .rowsec:last-child { border-bottom: none; }
+  .rowsec b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16px; }
+  .rowsec .rt { margin-left: auto; color: var(--tx2); }
+  .master { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); padding: 0 10px 10px; }
+  .mbar { display: flex; align-items: center; gap: 10px; background: var(--s2); border-radius: 18px; padding: 9px 10px; margin-bottom: 8px; }
+  .mbar .c { width: 32px; height: 32px; border-radius: 50%; background: var(--s3); display: flex; align-items: center; justify-content: center; color: var(--tx2); }
+  .mbar .tx { flex: 1; font-size: 14px; color: var(--tx2); line-height: 18px; }
+  .mbar .tx b { color: var(--tx); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 15px; margin-right: 6px; }
+  .input { border: 1.5px solid var(--line); border-radius: 18px; padding: 12px 14px; color: var(--tx2); font-size: 16px; }
+
+  /* schede */
+  .top { display: flex; align-items: center; gap: 10px; padding: 34px 14px 6px; }
+  .top .back { font-size: 26px; color: var(--tx2); line-height: 20px; width: 18px; }
+  .top .t { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 21px; }
+  .top .more { margin-left: auto; color: var(--tx2); font-size: 20px; }
+  .meta { color: var(--tx2); font-size: 13.5px; padding: 0 16px 10px 42px; }
+  .verdict { margin: 0 10px 10px; padding: 11px 12px; border-radius: 12px; background: var(--s1); border: 1px solid var(--line); font-size: 15px; line-height: 20px; }
+  .verdict .st { display: flex; align-items: center; gap: 6px; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 13px;
+                 color: var(--wait); letter-spacing: .04em; margin-bottom: 4px; }
+  .verdict .st.ok { color: var(--good); }
+  .verdict .st i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; }
+  .sm { display: grid; grid-template-columns: 1fr 86px; column-gap: 8px; padding: 9px 12px 8px; border-bottom: 1px solid var(--line); }
+  .sm:last-child { border-bottom: none; }
+  .sm .nm { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15.5px; line-height: 18px; }
+  .sm .cf { color: var(--tx3); font-size: 12px; margin-left: 4px; font-family: Barlow, sans-serif; font-weight: 400; }
+  .sm .nums { text-align: right; }
+  .sm .now { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 17px; line-height: 20px; }
+  .sm .mn { color: var(--tx2); font-size: 12.5px; line-height: 16px; }
+  .sm .dl { font-size: 12.5px; line-height: 16px; color: var(--tx2); }
+  .sm .amb { color: var(--wait); }
+  .lbl { color: var(--tx2); font-size: 12px; letter-spacing: .08em; padding: 4px 16px 6px; }
+  .box { margin: 0 10px 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); font-size: 14px; line-height: 19px; color: var(--tx2); }
+  .box b { color: var(--tx); font-weight: 500; }
+  .box .lk { float: right; color: var(--tx); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; }
+  .chip { display: inline-block; border: 1px solid #5a4a1a; background: #2a2412; color: #f5c27a; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+  .btns { position: absolute; left: 10px; right: 10px; bottom: 14px; display: flex; gap: 8px; }
+  .btn { flex: 1; text-align: center; padding: 12px 0; border-radius: 14px; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 16px; border: 1px solid var(--line); color: var(--tx); }
+  .btn.fill { background: var(--tx); color: #111; border-color: var(--tx); }
+  .chart { margin: 0 10px 10px; padding: 8px 6px 4px; border-radius: 12px; background: var(--s1); border: 1px solid var(--line); }
+  .chart .h { display: flex; align-items: baseline; gap: 8px; padding: 2px 6px 4px; }
+  .chart .h b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15.5px; }
+  .chart .h span { color: var(--tx2); font-size: 12.5px; margin-left: auto; }
+  table.st { width: calc(100% - 20px); margin: 0 10px 10px; border-collapse: collapse; font-size: 14px; }
+  table.st td { padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  table.st td.n { text-align: right; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 15px; }
+  table.st td.d { text-align: right; color: var(--tx2); font-size: 13px; width: 70px; }
+  .foot { color: var(--tx3); font-size: 12px; line-height: 16px; padding: 0 16px; }
+
+  /* chat */
+  .chat { padding: 0 10px; }
+  .me { margin: 8px 0 10px auto; max-width: 250px; background: var(--s3); border-radius: 16px 16px 4px 16px; padding: 9px 12px; font-size: 15.5px; line-height: 20px; }
+  .ans { font-size: 15px; line-height: 21px; color: var(--tx); margin: 4px 2px 10px; }
+  .prop { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .prop .k { color: var(--tx2); font-size: 12px; letter-spacing: .1em; padding: 11px 12px 2px; }
+  .prop .t { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 19px; padding: 0 12px 8px; }
+  .prop .r { display: grid; grid-template-columns: 72px 1fr; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 14.5px; line-height: 19px; }
+  .prop .r span:first-child { color: var(--tx2); }
+  .prop .bb { display: flex; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+  .prop .bb .btn { padding: 10px 0; }
+  .tg { margin-top: 14px; }
+  .tg .k { color: var(--tx2); font-size: 12px; letter-spacing: .1em; margin: 0 2px 6px; }
+  .tg .m { background: #1b2733; border-radius: 14px 14px 14px 4px; padding: 9px 12px; font-size: 15px; line-height: 20px; max-width: 300px; }
+  .tg .m u { color: #6ab3f3; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- A · Home scorsa in basso: Monitoraggi è la prima sezione di Risorse. -->
+<section class="panel" id="p-a"><span class="tag">A · In Risorse</span>
+  <div class="content scrolled">
+    <div class="cat"><span class="k mono">DALLA MASTER</span><span class="rt amb">1 suggerimento · 11 da decidere ⌄</span></div>
+    <div class="cat"><span class="k mono">LAVORI</span><span class="rt">7 in corso · 19 esiti ⌄</span></div>
+    <div class="cat" style="margin-bottom:8px"><span class="k mono">RISORSE</span><span class="rt amb">2 da guardare ⌃</span></div>
+    <div class="card">
+      <div class="sech"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2"><path d="M3 17l5-6 4 3 7-8"/><path d="M3 21h18"/></svg>
+        <span class="nm">Monitoraggi</span><span class="ct">3</span><span class="rt">2 da guardare</span></div>
+      <div class="mon"><span class="dot amb"></span>
+        <div><div class="nm">Prezzi portatili</div><div class="sub amb">Yoga 9i al minimo, −10% dall'08/11</div></div>
+        <div class="rt"><span class="val">1.749 €</span><svg class="spark" data-s="yoga" width="64" height="18"></svg></div></div>
+      <div class="mon"><span class="dot ok"></span>
+        <div><div class="nm">Adozione dei plugin</div><div class="sub">utenti dello Store, −1 in 7 giorni</div></div>
+        <div class="rt"><span class="val">130</span><svg class="spark" data-s="cws" width="64" height="18"></svg></div></div>
+      <div class="mon"><span class="dot amb"></span>
+        <div><div class="nm">Disco C: di win</div><div class="sub amb">sotto i 5 GB da 3 giorni: lo pulisco?</div></div>
+        <div class="rt"><span class="val">1,3 GB</span><svg class="spark" data-s="disk" width="64" height="18"></svg></div></div>
+      <div class="add"><span style="font-size:18px">+</span><span><b>Nuovo monitoraggio</b> · scrivi «monitora …»</span></div>
+    </div>
+    <div class="card">
+      <div class="rowsec"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2.4"><path d="M12 3a9 9 0 1 0 9 9"/></svg><b>Utilizzo</b><span class="rt mono" style="font-size:13px">46% sett. ›</span></div>
+      <div class="rowsec"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg><b>Sistema</b><span class="rt">2 PC · tutto a posto ›</span></div>
+      <div class="rowsec"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg><b>Plugin e skill</b><span class="rt">5 ›</span></div>
+    </div>
+  </div>
+  <div class="master">
+    <div class="mbar"><span class="c">⌃</span><span class="tx"><b>Master</b><span class="mono" style="font-size:12.5px">08:40 ctx 31%</span><br>mockup dei Monitoraggi</span><span class="c">▶</span></div>
+    <div class="input">+&nbsp;&nbsp;Scrivi alla master</div>
+  </div>
+</section>
+
+<!-- B · Scheda Prezzi portatili: un grafico piccolo per modello, così le linee non si sovrappongono. -->
+<section class="panel" id="p-b"><span class="tag">B · Prezzi</span>
+  <div class="top"><span class="back">‹</span><span class="t">Prezzi portatili</span><span class="more">⋯</span></div>
+  <div class="meta">4 modelli · negozi affidabili · ultimo controllo 28/11 18:00</div>
+  <div class="verdict"><div class="st"><i></i>DA GUARDARE</div>Yoga 9i al minimo: <b>1.749 €</b>, −10% dall'08/11. Gli altri sono risaliti dopo il Black Friday.</div>
+  <div class="card" style="margin:0 10px 10px" id="multiples"></div>
+  <div class="box"><span class="lk">Modifica</span><b>Avvisi</b> · un nuovo minimo · Yoga 9i sotto 1.800 €</div>
+  <div class="foot"><span class="chip">Esempio</span>vero solo l'08/11. Linea tratteggiata: Black Friday (27/11) · punto: minimo · controllo alle 9, 13 e 18 fino al 01/12.</div>
+  <div class="btns"><span class="btn">Ferma</span><span class="btn fill">Chiedi alla master</span></div>
+</section>
+
+<!-- C · Scheda Adozione: numeri veri dal 24/09, solo quelli affidabili. -->
+<section class="panel" id="p-c"><span class="tag">C · Adozione</span>
+  <div class="top"><span class="back">‹</span><span class="t">Adozione dei plugin</span><span class="more">⋯</span></div>
+  <div class="meta">5 plugin · istantanea di oggi alle 06:47 · dati veri</div>
+  <div class="verdict"><div class="st ok"><i></i>STABILE</div>Settimana stabile: <b>130 utenti</b> nello Store (−1 in 7 giorni), 350 download npm.</div>
+  <div class="chart"><div class="h"><b>Utenti nello Store</b><span>chrome-bridge · 24/09–09/11</span></div><svg id="cws" width="326" height="104"></svg></div>
+  <div class="chart"><div class="h"><b>Download npm al giorno</b><span>ultimi 30 giorni</span></div><svg id="npm" width="326" height="84"></svg></div>
+  <table class="st">
+    <tr><td>chrome-bridge</td><td class="n">★ 7</td><td class="d">+0 in 7 g</td></tr>
+    <tr><td>fable-director</td><td class="n">★ 4</td><td class="d">+0 in 7 g</td></tr>
+    <tr><td>supervisor</td><td class="n">★ 2</td><td class="d">+0 in 7 g</td></tr>
+  </table>
+  <div class="foot" style="padding-bottom:4px">Arrivi in 14 giorni: aocr.org 17 (fable-director), Google 6, Bing 3, github.com 3.</div>
+  <div class="foot">I cloni di GitHub non contano: li fanno la CI e i nostri account. Il numero affidabile è quello dello Store.</div>
+</section>
+
+<!-- D · Un monitoraggio nuovo nasce in chat; Telegram diventa una riga col link. -->
+<section class="panel" id="p-d"><span class="tag">D · Nuovo</span>
+  <div class="top"><span class="back">‹</span><span class="t">Master</span><span class="more">⋯</span></div>
+  <div class="chat" style="margin-top:6px">
+    <div class="me">monitora lo spazio libero su C: di win</div>
+    <div class="ans">Lo misuro ogni ora con uno script, senza costo di modello. Se va bene così, attivalo:</div>
+    <div class="prop">
+      <div class="k mono">NUOVO MONITORAGGIO</div>
+      <div class="t">Disco C: di win</div>
+      <div class="r"><span>Misura</span><span>spazio libero su C:, ogni ora</span></div>
+      <div class="r"><span>Avviso</span><span>sotto 5 GB, in Dalla master con la proposta di pulizia</span></div>
+      <div class="r"><span>Grafico</span><span>ultimi 30 giorni</span></div>
+      <div class="r"><span>Dove</span><span>Risorse › Monitoraggi</span></div>
+      <div class="bb"><span class="btn">Modifica</span><span class="btn fill">Attiva</span></div>
+    </div>
+    <div class="tg">
+      <div class="k mono">TELEGRAM · AL POSTO DEL REPORT</div>
+      <div class="m">Adozione: settimana stabile, 130 utenti nello Store (−1). <u>Apri Monitoraggi</u></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Dati. Adozione: veri (.claude/adozione/adozione.jsonl). Prezzi e disco: esempio, vero solo l'08/11.
+  const CWS = [109,112,112,114,115,115,115,115,115,115,112,112,112,112,115,118,123,123,121,121,121,121,123,124,124,123,124,127,128,129,127,128,128,135,133,133,132,131,131,126,126,127,129,134,130];
+  const NPM = [92,33,29,25,0,0,98,381,54,0,0,0,15,218,44,206,33,27,706,606,73,36,52,207,26,22,21,23,20,31];
+  const step = (pairs, n) => { const out = []; let v = pairs[0][1]; for (let d = 0; d < n; d++) { for (const [at, val] of pairs) if (d >= at) v = val; out.push(v); } return out; };
+  const N = 21; // 08/11 → 28/11
+  const MODELS = [
+    { k: 'yoga', nm: 'Yoga 9i', cf: '512 GB', s: step([[0,1937],[4,1899],[11,1849],[17,1799],[19,1749]], N), at: true },
+    { k: 'msi',  nm: 'MSI Flip', cf: '1 TB', s: step([[0,1670],[7,1649],[14,1599],[19,1579],[20,1629]], N) },
+    { k: 'g14',  nm: 'G14', cf: 'RTX 5070', s: step([[0,2549],[6,2499],[13,2399],[19,2299],[20,2349]], N) },
+    { k: 'xps',  nm: 'XPS 14', cf: '1 TB', s: step([[0,2599],[8,2549],[15,2499],[19,2379],[20,2449]], N) },
+  ];
+  const DISK = [9.8,9.1,8.7,8.0,7.2,6.9,6.1,5.5,4.8,4.0,3.1,2.8,2.6,1.3];
+  const eur = v => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
+  const D = 24; // asse dei giorni: 08/11 → 01/12, i dati arrivano a oggi (28/11)
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; };
+  const path = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+
+  // Sparkline delle righe: una serie, colore neutro, punto finale.
+  const SPARK = { yoga: MODELS[0].s, cws: CWS.slice(-30), disk: DISK };
+  document.querySelectorAll('svg.spark').forEach(svg => {
+    const s = SPARK[svg.dataset.s], w = +svg.getAttribute('width'), h = +svg.getAttribute('height');
+    const lo = Math.min(...s), hi = Math.max(...s), y = v => hi === lo ? h / 2 : 2 + (h - 4) * (1 - (v - lo) / (hi - lo));
+    const pts = s.map((v, i) => [2 + (w - 6) * i / (s.length - 1), y(v)]);
+    el('path', { d: path(pts), fill: 'none', stroke: '#BDBDBD', 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, svg);
+    const e = pts[pts.length - 1]; el('circle', { cx: e[0], cy: e[1], r: 2.6, fill: '#EEEEEE' }, svg);
+  });
+
+  // B: piccoli multipli, uno per modello, stessa scala dei giorni; ognuno con la sua scala dei prezzi.
+  const mult = document.getElementById('multiples');
+  MODELS.forEach(m => {
+    const now = m.s[m.s.length - 1], first = m.s[0], mn = Math.min(...m.s), mi = m.s.lastIndexOf(mn);
+    const pct = Math.round((now - first) / first * 100);
+    const row = document.createElement('div'); row.className = 'sm';
+    row.innerHTML = `<div><div class="nm">${m.nm}<span class="cf">${m.cf}</span></div><svg width="222" height="40"></svg></div>
+      <div class="nums"><div class="now">${eur(now)}</div><div class="mn ${m.at ? 'amb' : ''}">${m.at ? 'al minimo' : 'min ' + eur(mn)}</div><div class="dl">${pct < 0 ? '−' + (-pct) : pct}% dall'08/11</div></div>`;
+    mult.appendChild(row);
+    const svg = row.querySelector('svg'), w = 222, h = 40, lo = Math.min(...m.s), hi = Math.max(...m.s);
+    const x = i => 3 + (w - 8) * i / (D - 1), y = v => 5 + (h - 10) * (1 - (v - lo) / (hi - lo));
+    el('line', { x1: 0, x2: w, y1: h - 1, y2: h - 1, stroke: 'var(--grid)', 'stroke-width': 1 }, svg);
+    el('line', { x1: x(19), x2: x(19), y1: 0, y2: h, stroke: '#5A5A5A', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, svg);
+    const pts = m.s.map((v, i) => [x(i), y(v)]);
+    // gradini: il prezzo resta uguale fino al cambio
+    const st = []; pts.forEach((p, i) => { if (i) st.push([p[0], pts[i - 1][1]]); st.push(p); });
+    el('path', { d: path(st), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+    if (!m.at) el('circle', { cx: x(mi), cy: y(mn), r: 3.5, fill: 'var(--s1)', stroke: 'var(--ink)', 'stroke-width': 1.6 }, svg);
+    const e = pts[pts.length - 1];
+    el('circle', { cx: e[0], cy: e[1], r: 4, fill: m.at ? 'var(--wait)' : '#EEEEEE', stroke: 'var(--s1)', 'stroke-width': 2 }, svg);
+  });
+  // asse dei giorni sotto l'ultimo multiplo: le quattro righe hanno gli stessi giorni
+  const ax = document.createElement('div'); ax.style.cssText = 'padding:0 12px 8px';
+  ax.innerHTML = '<svg width="222" height="14"></svg>'; mult.appendChild(ax);
+  [['08/11', 0, 'start'], ['15/11', 7, 'middle'], ['22/11', 14, 'middle'], ['01/12', D - 1, 'end']].forEach(([lab, i, a]) => {
+    const t = el('text', { x: 3 + (222 - 8) * i / (D - 1), y: 11, 'text-anchor': a, fill: '#6E6E6E', 'font-size': 10.5, 'font-family': 'Geist Mono, monospace' }, ax.firstChild); t.textContent = lab; });
+
+  // C: utenti dello Store (linea) e download npm (barre): due grafici, un asse ciascuno.
+  (function () {
+    const svg = document.getElementById('cws'), w = 326, h = 104, L = 30, R = 8, T = 10, B = 18, lo = 100, hi = 140;
+    const x = i => L + (w - L - R) * i / (CWS.length - 1), y = v => T + (h - T - B) * (1 - (v - lo) / (hi - lo));
+    [100, 120, 140].forEach(g => { el('line', { x1: L, x2: w - R, y1: y(g), y2: y(g), stroke: 'var(--grid)', 'stroke-width': 1 }, svg);
+      const t = el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', fill: '#6E6E6E', 'font-size': 10.5, 'font-family': 'Geist Mono, monospace' }, svg); t.textContent = g; });
+    [['24/09', 0], ['13/10', 19], ['09/11', CWS.length - 1]].forEach(([lab, i]) => { const t = el('text', { x: x(i), y: h - 3, 'text-anchor': i ? (i === CWS.length - 1 ? 'end' : 'middle') : 'start', fill: '#6E6E6E', 'font-size': 10.5, 'font-family': 'Geist Mono, monospace' }, svg); t.textContent = lab; });
+    el('path', { d: path(CWS.map((v, i) => [x(i), y(v)])), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+    const mx = CWS.indexOf(Math.max(...CWS));
+    el('circle', { cx: x(mx), cy: y(CWS[mx]), r: 4, fill: 'var(--ink)', stroke: 'var(--s1)', 'stroke-width': 2 }, svg);
+    let t = el('text', { x: x(mx), y: y(CWS[mx]) - 7, 'text-anchor': 'middle', fill: '#9B9B9B', 'font-size': 11, 'font-family': 'Barlow, sans-serif' }, svg); t.textContent = 'max 135';
+    const e = CWS.length - 1; el('circle', { cx: x(e), cy: y(CWS[e]), r: 4, fill: '#EEEEEE', stroke: 'var(--s1)', 'stroke-width': 2 }, svg);
+    t = el('text', { x: x(e) - 6, y: y(CWS[e]) + 16, 'text-anchor': 'end', fill: '#EEEEEE', 'font-size': 11.5, 'font-weight': 600, 'font-family': 'Barlow, sans-serif' }, svg); t.textContent = '130';
+  })();
+  (function () {
+    const svg = document.getElementById('npm'), w = 326, h = 84, L = 30, R = 8, T = 8, B = 18, hi = 800;
+    const bw = (w - L - R) / NPM.length, y = v => T + (h - T - B) * (1 - v / hi);
+    [0, 400, 800].forEach(g => { el('line', { x1: L, x2: w - R, y1: y(g), y2: y(g), stroke: 'var(--grid)', 'stroke-width': 1 }, svg);
+      const t = el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', fill: '#6E6E6E', 'font-size': 10.5, 'font-family': 'Geist Mono, monospace' }, svg); t.textContent = g; });
+    NPM.forEach((v, i) => { if (!v) return; const top = y(v), x0 = L + i * bw + 1; const hh = y(0) - top;
+      el('path', { d: `M${x0} ${y(0)} V${top + Math.min(2, hh)} q0 -2 2 -2 h${bw - 6} q2 0 2 2 V${y(0)} Z`, fill: 'var(--ink)' }, svg); });
+    [['10/10', 0, 'start'], ['28/10', 18, 'middle'], ['08/11', NPM.length - 1, 'end']].forEach(([lab, i, a]) => { const t = el('text', { x: L + i * bw + (a === 'end' ? bw : a === 'middle' ? bw / 2 : 0), y: h - 3, 'text-anchor': a, fill: '#6E6E6E', 'font-size': 10.5, 'font-family': 'Geist Mono, monospace' }, svg); t.textContent = lab; });
+    const t = el('text', { x: L + 18 * bw - 4, y: y(706) + 9, 'text-anchor': 'end', fill: '#9B9B9B', 'font-size': 11, 'font-family': 'Barlow, sans-serif' }, svg); t.textContent = '706 il 28/10';
+  })();
+
+  const q = new URLSearchParams(location.search).get('p') || 'all';
+  if (q === 'all') document.body.classList.add('all'); else document.getElementById('p-' + q)?.classList.add('on');
+</script>
+</body>
+</html>

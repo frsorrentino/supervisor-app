@@ -39,6 +39,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -151,7 +152,8 @@ fun SummaryList(
     usage: (@Composable () -> Unit)? = null,
     /** Le sezioni aperte la prima volta, prima che tu le apra o chiuda. */
     // Esiti sta dentro Sessioni e parte chiusa (app-home-tre-categorie-06-11).
-    startOpen: Set<String> = setOf("sessions", "suggestions", "lavori"),
+    // I Monitoraggi aperti la prima volta, come nella web (app-monitoraggi-09-11).
+    startOpen: Set<String> = setOf("sessions", "suggestions", "lavori", "monitors"),
     /**
      * La sessione appena chiusa dal pannello di chiusura, con la riga «chiusa alle …» (Franz, 08/10 18:59, volo al contrario):
      * la sua card in cima alle sessioni è dove la pagina atterra tornando alla home; poi si richiude da sola.
@@ -169,6 +171,11 @@ fun SummaryList(
     /** Contratto 1.84 (scheda A): i suggerimenti della master, dopo chi ti aspetta; `onSuggestion` = accept | discuss | later | never, o choose con l'opzione (1.88). */
     suggestions: it.pixelbox.cmwatch.rules.Suggestions.Visible? = null,
     onSuggestion: (it.pixelbox.cmwatch.contract.Suggestion, String, String?) -> Unit = { _, _, _ -> },
+    /**
+     * I Monitoraggi (app-monitoraggi-09-11): l'ultima sezione di Dalla master, una riga per monitoraggio; null o vuota = la sezione non
+     * c'è. `onMonitor` apre la scheda, `onNewMonitor` la chat della master con «monitora » nel campo.
+     */
+    monitors: List<it.pixelbox.cmwatch.rules.Monitors.Monitor>? = null, onMonitor: (String) -> Unit = {}, onNewMonitor: () -> Unit = {},
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo le finite, poi la chiusura; null = il relay non le ha. */
     closePreview: (suspend (List<String>) -> it.pixelbox.cmwatch.rules.CloseFinished.Preview?)? = null,
     onCloseMany: (List<String>) -> Unit = {},
@@ -326,10 +333,16 @@ fun SummaryList(
     fun save(key: String, v: Boolean) { if (parts == null) runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
     /** `hot`: ha qualcosa per Franz, filo e numero in ambra (app-richiede-te-righe-02-11). */
     class NewRow(val title: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val count: String, val tag: String, val open: androidx.compose.runtime.MutableState<Boolean>, val hot: Boolean = false)
-    val newOpen = remember { (it.pixelbox.cmwatch.rules.HomeOrder.TOP + "da_guardare").associateWith { k -> section(k) } }
+    val newOpen = remember { (it.pixelbox.cmwatch.rules.HomeOrder.TOP + "da_guardare" + "monitors").associateWith { k -> section(k) } }
+    // I corpi delle voci per chiave; i Monitoraggi il loro (app-monitoraggi-09-11).
+    val bodies: Map<String, @Composable () -> Unit> = monitors?.takeIf { it.isNotEmpty() }?.let { ms -> sectionBodies + ("monitors" to @Composable { MonitorsCard(ms, onMonitor, onNewMonitor) }) } ?: sectionBodies
     fun newRow(key: String): NewRow? {
-        if (key !in sectionBodies) return null
+        if (key !in bodies) return null
         val icons = androidx.compose.material.icons.Icons.Outlined
+        // Grigia finché nessuno è da guardare: allora il numero si accende (app-monitoraggi-09-11).
+        if (key == "monitors") return monitors?.let { ms ->
+            NewRow(R.string.monitors_title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ShowChart, ms.size.toString(), "home-sez-monitoraggi", newOpen.getValue(key), it.pixelbox.cmwatch.rules.Monitors.looking(ms) > 0)
+        }
         val st = kpiState ?: return null
         val open = newOpen[key] ?: return null
         return when (key) {
@@ -350,6 +363,10 @@ fun SummaryList(
         }
     }
     fun toggleNew(r: NewRow, key: String) { r.open.value = !r.open.value; save(key, r.open.value) }
+    // Il riassunto a destra di una voce chiusa: per i Monitoraggi quanti sono da guardare, altrimenti niente.
+    @Composable fun rightOf(key: String): String? =
+        if (key == "monitors") monitors?.let(it.pixelbox.cmwatch.rules.Monitors::looking)?.takeIf { n -> n > 0 }?.let { n -> stringResource(R.string.monitors_look, n) }
+        else newRight(key, kpiState)
     // Rilasciata sul tabellone, la voce resta aperta col suo contenuto in vista (Franz 02/11 20:45).
     // Presa una voce di In cima, le voci di In cima restano con la sola testata, così sotto si vede il bersaglio (Franz 03/11 12:05,
     // app-cima-rilascio-reset-03-11). Al rilascio tornano come erano: niente si salva.
@@ -427,14 +444,17 @@ fun SummaryList(
                 val s = if ("suggestions" in up) 0 else suggestions?.takeIf { x -> x.shown.isNotEmpty() }?.total ?: 0
                 // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
                 val pr = kpiState?.primaRaccolta?.takeIf { x -> x.status == "ask" && "decisioni" !in up }
+                // I Monitoraggi solo quando uno è da guardare, in ambra; altrimenti non contano (app-monitoraggi-09-11).
+                val mo = if ("monitors" in up) 0 else monitors?.let(it.pixelbox.cmwatch.rules.Monitors::looking) ?: 0
                 // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e
                 // per ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
                 listOfNotNull(
                     d.takeIf { n -> n > 0 }?.let { n -> CatBit(stringResource(R.string.cat_sig_decide, n)) },
                     p.takeIf { n -> n > 0 }?.let { n -> CatBit(stringResource(R.string.cat_sig_test, n)) },
                     pr?.let { CatBit("${stringResource(R.string.prima_title)} ${stringResource(R.string.home_prima_ask)}") },
+                    mo.takeIf { n -> n > 0 }?.let { n -> CatBit(pluralStringResource(R.plurals.cat_sig_monitors, n, n)) },
                     s.takeIf { n -> n > 0 }?.let { n -> CatBit(pluralStringResource(R.plurals.cat_sig_suggestions, n, n), V3.Tx2) },
-                ).ifEmpty { none } to (d + p + s > 0 || pr != null)
+                ).ifEmpty { none } to (d + p + s + mo > 0 || pr != null)
             }
             else -> {
                 // Lavori chiusa (app-home-sessioni-a-se-08-11, tavola A): «N in corso · N esiti» nell'ordine della lista aperta; un
@@ -952,8 +972,8 @@ fun SummaryList(
             val r = newRow(key) ?: return
             val moving = movingIn(key)
             dragPresent += key
-            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(key, kpiState), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, key) } } }
-            if (r.open.value) item(key = "$key-body") { Box(moving()) { sectionBodies[key]?.invoke() } }
+            item(key = "sec-$key") { Box(moving()) { V3Section(sectionDrag(key), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else rightOf(key), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, key) } } }
+            if (r.open.value) item(key = "$key-body") { Box(moving()) { bodies[key]?.invoke() } }
         }
         val renderClosed: () -> Unit = {
             val moving = movingIn("closed")
@@ -989,9 +1009,9 @@ fun SummaryList(
                     PluginsSlotRow(it.pixelbox.cmwatch.rules.SlotInfo.plugins(plugins!!), zone, slotDrag("plugins"), pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }
                     FoldIn(pluginsOpen) { Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) } }
                 }
-                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> newRow(pin)?.let { r ->
-                    SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else newRight(pin, kpiState), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, pin) }
-                    FoldIn(r.open.value) { Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { sectionBodies[pin]?.invoke() } }
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors" -> newRow(pin)?.let { r ->
+                    SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else rightOf(pin), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, pin) }
+                    FoldIn(r.open.value) { Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { bodies[pin]?.invoke() } }
                 }
                 "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }
             }
@@ -1002,7 +1022,7 @@ fun SummaryList(
         fun renderKey(k: String) {
             if (k == listSkip) return
             when (k) {
-                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> renderNew(k)
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors" -> renderNew(k)
                 // Chiuse sta sotto le sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
                 "sessions" -> { renderSessions(); if (listSkip != "closed") renderClosed() }
                 "suggestions" -> renderSuggestions()
@@ -1025,7 +1045,7 @@ fun SummaryList(
                 "system" -> system != null
                 "plugins" -> hasPlugins
                 "closed" -> closedGroup != null
-                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare" -> newRow(k) != null
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors" -> newRow(k) != null
                 else -> false
             }
             if (!has) { renderKey(k); return }

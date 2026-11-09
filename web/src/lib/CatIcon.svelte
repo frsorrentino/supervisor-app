@@ -13,6 +13,8 @@
     <path d="M4.5 17.5a8 8 0 1 1 15 0" /><path d="M12 15l4-5" />
   {:else if name === 'eye'}
     <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="3" />
+  {:else if name === 'chart'}
+    <path d="M3.5 19.5h17" /><path d="M5 15.5l4.5-5 3.5 3 6-7" />
   {:else if name === 'doc'}
     <path d="M6 3.5h8l4 4V20.5H6z" /><path d="M14 3.5v4h4M9 12h6M9 16h6" />
   {:else if name === 'medal'}

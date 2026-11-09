@@ -12,7 +12,9 @@ object HomeCats {
     val DEFAULT = listOf(
         // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (le prove e i lavori da guardare: `prove` porta
         // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
-        Cat("you", true, listOf("decisioni", "prove", "seguiti", "suggestions")),
+        // Monitoraggi in fondo (app-monitoraggi-09-11, Franz 09/11 09:08: cose esterne, non lo stato della macchina): un ordine salvato
+        // prima la prende da sé in fondo a Dalla master, come ogni chiave mancante.
+        Cat("you", true, listOf("decisioni", "prove", "seguiti", "suggestions", "monitors")),
         // Lavori (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la Notte, In corso, Esiti e Rendiconti, una categoria
         // che si chiude e si sposta come le altre. Le sessioni non sono più qui: stanno a sé, sempre aperte, sotto il tabellone, così
         // tenerle in vista non porta più In corso ed Esiti sopra Dalla master. Prima (app-home-tre-categorie-06-11) Sessioni

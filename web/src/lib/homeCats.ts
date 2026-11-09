@@ -5,13 +5,14 @@ import { dragTarget, move, pinned, withPin, type HomeSection } from './homeOrder
 
 export type CatId = 'you' | 'work' | 'out' | 'tools'
 /** Le chiavi di sezione: quelle di oggi più le tre nuove, che si disegnano quando esistono (app-da-guardare-02-11, app-rendiconti-2-02-11). */
-export type HomeKey = Exclude<HomeSection, 'plugins' | 'closed'> | 'da_guardare' | 'rendiconti' | 'pagella' | 'notte'
+export type HomeKey = Exclude<HomeSection, 'plugins' | 'closed'> | 'da_guardare' | 'rendiconti' | 'pagella' | 'notte' | 'monitors'
 export type Cat = { id: CatId; open: boolean; sections: HomeKey[] }
 
 export const DEFAULT_CATS: Cat[] = [
   // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (le prove e i lavori da guardare: `prove` porta
   // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
-  { id: 'you', open: true, sections: ['decisioni', 'prove', 'seguiti', 'suggestions'] },
+  // Monitoraggi in fondo (app-monitoraggi-09-11): un ordine salvato prima la prende da sé in fondo a Dalla master.
+  { id: 'you', open: true, sections: ['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'] },
   // Lavori (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la Notte, In corso, Esiti e Rendiconti, una categoria che
   // si chiude e si sposta come le altre, chiusa di partenza col riassunto «N in corso · N esiti». Le sessioni non sono più qui:
   // stanno a sé, sempre aperte, sotto il tabellone, così tenerle in vista non porta più In corso ed Esiti sopra Dalla master. Prima

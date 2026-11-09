@@ -76,7 +76,9 @@
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
   import { closedToday, toccaCounts } from './toccaRules'
   import ToccaClosed from './ToccaClosed.svelte'
-  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null }: {
+  import MonitorsList from './MonitorsList.svelte'
+  import { looking as monitorsLooking, type Monitor } from './monitors'
+  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -107,6 +109,8 @@
     /** Contratto 1.84 (scheda A): la scheda dei suggerimenti della master, dopo chi ti aspetta; assente nel cruscotto.
      *  `suggestionsN`: quanti ne mostra, perché «Ti aspettano» compaia anche quando ci sono solo loro. */
     suggestions?: Snippet; suggestionsN?: number; suggestionsTotal?: number; suggestionsAt?: number
+    /** I Monitoraggi (app-monitoraggi-09-11): l'ultima sezione di Dalla master; null o vuota = la sezione non c'è. */
+    monitors?: Monitor[] | null; onMonitor?: (id: string) => void; onNewMonitor?: () => void
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -170,7 +174,7 @@
   // piatto. Nella plancia larga stanno nella fascia sopra le colonne (part 'top') e le colonne non le ripetono.
   const up = $derived(sentOrder && sentOrder.from === savedKey && !part ? sentOrder.top : topOf(st.home_order))
   // Le sezioni che la home sa disegnare: l'ordine salvato di sempre più Da guardare, che esiste dal contratto 1.106.
-  const SHOWN: string[] = [...DEFAULT_ORDER, 'da_guardare', 'notte']
+  const SHOWN: string[] = [...DEFAULT_ORDER, 'da_guardare', 'notte', 'monitors']
   const order = $derived(flatCats(up, cats).filter(k => k === EDGE || SHOWN.includes(k)) as HomeSection[])
   const edgeAt = (o: string[]) => Math.max(0, o.indexOf(EDGE))
   // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
@@ -193,7 +197,7 @@
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
   // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
-  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: { icon: 'timer', name: t.homeSecDecide }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch } })
+  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: { icon: 'timer', name: t.homeSecDecide }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch }, monitors: { icon: 'svg:chart', name: t.monitorsTitle } })
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
@@ -364,10 +368,12 @@
       const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
       // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
       const pr = !up.includes('decisioni') && st.prima_raccolta?.status === 'ask'
+      // I Monitoraggi solo quando uno è da guardare, in ambra; altrimenti non contano (app-monitoraggi-09-11).
+      const mo = up.includes('monitors') || !monitors ? 0 : monitorsLooking(monitors)
       // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e per
       // ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
-      const bits: { text: string; mute?: boolean }[] = [...(d ? [{ text: t.catSigDecide(d) }] : []), ...(p ? [{ text: t.catSigTest(p) }] : []), ...(pr ? [{ text: `${t.primaTitle} ${t.homePrima.ask}` }] : []), ...(s ? [{ text: t.catSigSuggestions(s), mute: true }] : [])]
-      return { bits: bits.length ? bits : none, amber: d + p + s > 0 || pr }
+      const bits: { text: string; mute?: boolean }[] = [...(d ? [{ text: t.catSigDecide(d) }] : []), ...(p ? [{ text: t.catSigTest(p) }] : []), ...(pr ? [{ text: `${t.primaTitle} ${t.homePrima.ask}` }] : []), ...(mo ? [{ text: t.catSigMonitors(mo) }] : []), ...(s ? [{ text: t.catSigSuggestions(s), mute: true }] : [])]
+      return { bits: bits.length ? bits : none, amber: d + p + s + mo > 0 || pr }
     }
     // Lavori chiusa (app-home-sessioni-a-se-08-11, tavola A): «N in corso · N esiti» nell'ordine della lista aperta; un rosso fra gli
     // esiti è rosso nella riga.
@@ -405,7 +411,7 @@
   // le aveva aperte; sessioni, lavori ed esiti aperti.
   const SEC = 'home-sections-2'
   // Esiti sta dentro Sessioni e parte chiusa (app-home-tre-categorie-06-11).
-  const SEC_START = { suggestions: true, sessions: true, lavori: true, esiti: false, usage: false, night: false }
+  const SEC_START = { suggestions: true, sessions: true, lavori: true, esiti: false, usage: false, night: false, monitors: true }
   // Nella PWA larga le voci In cima si aprono una volta nella loro colonna (app-in-cima-largo-03-11).
   $effect(() => { if (part && part !== 'top') for (const k of up) if (catFor(k) === part && !untrack(() => open[k])) open[k] = true })
   let open = $state<Record<string, boolean>>((() => { try { return { ...SEC_START, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { ...SEC_START } } })())
@@ -735,7 +741,7 @@
 {/snippet}
 
 <section class="home" class:part={!!part} class:topdrag={topDrag}>
-{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{@render secClosed()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'notte'}{@render secNotte()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{@render secClosed()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'notte'}{@render secNotte()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else if (k as string) === 'monitors'}{@render secMonitors()}{:else}{@render secClosed()}{/if}{/snippet}
 {#snippet slotBox()}
  {@const live = dragOrder ?? order}
  <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->
@@ -772,6 +778,13 @@
 {#if shows('you') && suggestions && suggestionsN}
   {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti', !part && !open.suggestions && suggestionsAt ? t.homeLastAt(hhmm(suggestionsAt)) : null, { hot: true })}
   {#if open.suggestions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div></div>{/if}
+{/if}
+{/snippet}
+<!-- I Monitoraggi (app-monitoraggi-09-11): l'ultima sezione di Dalla master; il numero si accende quando uno è da guardare. -->
+{#snippet secMonitors()}
+{#if shows('you') && monitors?.length}{@const n = monitorsLooking(monitors)}
+  {@render sec('monitors', t.monitorsTitle, 'svg:chart', String(monitors.length), 'home-sez-monitoraggi', !open.monitors && n ? t.monitorsLook(n) : null, { hot: n > 0 })}
+  {#if open.monitors}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><MonitorsList items={monitors} onOpen={onMonitor} onNew={onNewMonitor} /></div></div>{/if}
 {/if}
 {/snippet}
 {#snippet secSessions()}

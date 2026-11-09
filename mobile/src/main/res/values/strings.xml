@@ -1898,4 +1898,31 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="ti_aspetta_untested">Non provato</string>
     <string name="ti_aspetta_undo">Annullare</string>
     <string name="ti_aspetta_send">Manda</string>
+    <!-- I Monitoraggi (app-monitoraggi-09-11) -->
+    <string name="monitors_title">Monitoraggi</string>
+    <string name="monitors_look">%d da guardare</string>
+    <string name="monitors_new">Nuovo monitoraggio</string>
+    <string name="monitors_new_hint">scrivi «monitora» alla master</string>
+    <string name="monitors_new_draft">"monitora "</string>
+    <string name="monitor_last">ultimo controllo %s</string>
+    <string name="monitor_state_look">Da guardare</string>
+    <string name="monitor_state_ok">Stabile</string>
+    <string name="monitor_alerts">Avvisi</string>
+    <string name="monitor_edit">Modifica</string>
+    <string name="monitor_example">Esempio</string>
+    <string name="monitor_stop">Ferma</string>
+    <string name="monitor_ask">Chiedi alla master</string>
+    <string name="monitor_max">max %s</string>
+    <string name="monitor_max_on">%1$s il %2$s</string>
+    <string name="monitor_limit">limite %s</string>
+    <string name="monitor_yes">sì</string>
+    <string name="monitor_no">no</string>
+    <string name="monitor_days_ok">%1$d su %2$d giorni</string>
+    <string name="monitor_ask_draft">"Sul monitoraggio «%s»: "</string>
+    <string name="monitor_stop_draft">Ferma il monitoraggio «%s»</string>
+    <string name="monitor_alerts_draft">"Cambia gli avvisi del monitoraggio «%s»: "</string>
+    <plurals name="cat_sig_monitors">
+        <item quantity="one">%d monitoraggio da guardare</item>
+        <item quantity="other">%d monitoraggi da guardare</item>
+    </plurals>
 </resources>

@@ -293,6 +293,10 @@ class MainActivity : ComponentActivity() {
         var waitOthers by remember { mutableStateOf(emptyList<it.pixelbox.cmwatch.contract.WaitItem>()) }
         var waitGone by remember { mutableStateOf(false) }
         var waitFailed by remember { mutableStateOf(false) }
+        // I Monitoraggi (app-monitoraggi-09-11): la scheda aperta, per id. I dati arrivano col contratto `monitors` del relay
+        // (supervisor-monitoraggi-09-11), non ancora uscito: fino ad allora la sezione non c'è e le schermate si vedono nei test.
+        var monitorOpen by remember { mutableStateOf<String?>(null) }
+        val monitorsNow: List<it.pixelbox.cmwatch.rules.Monitors.Monitor>? = null
         val linkHandler = androidx.compose.ui.platform.LocalUriHandler.current
         androidx.compose.runtime.SideEffect { (linkHandler as? DownloadLinks)?.onWait = { w -> waitOpen = w } }
         LaunchedEffect(waitOpen) {
@@ -1466,6 +1470,22 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { waitOpen = null }
             return
         }
+        // La scheda di un monitoraggio: Ferma, Chiedi alla master e Modifica degli avvisi passano dalla chat della master, col testo
+        // già scritto nel campo, finché il contratto non porta i comandi (app-monitoraggi-09-11).
+        val monitorPage: @Composable (it.pixelbox.cmwatch.rules.Monitors.Monitor, Boolean) -> Unit = { m, wideNow ->
+            it.pixelbox.cmwatch.mobile.ui.MonitorPage(
+                m, wideNow, onBack = { monitorOpen = null },
+                onStop = { monitorOpen = null; talkDraft = getString(R.string.monitor_stop_draft, m.name) },
+                onAsk = { monitorOpen = null; talkDraft = getString(R.string.monitor_ask_draft, m.name) },
+                onEditAlerts = { monitorOpen = null; talkDraft = getString(R.string.monitor_alerts_draft, m.name) },
+            )
+        }
+        val monitorShown = monitorOpen?.let { id -> monitorsNow?.firstOrNull { m -> m.id == id } }
+        if (!wide) monitorShown?.let { m ->
+            it.pixelbox.cmwatch.mobile.ui.PageIn { monitorPage(m, false) }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { monitorOpen = null }
+            return
+        }
         if (decisionsOpen) {
             it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.CinqueMinutiScreen(decisionsPage, onBack = { decisionsOpen = false },
                 onApprove = decApprove,
@@ -2012,7 +2032,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         // Il cruscotto del tablet (variante B): senza colonne né Registro, Recap e Utilizzo stanno a destra e non nella home.
-        val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.LAVORI && waitOpen == null
+        val deskDashboard = wide && tabletCols.isEmpty() && tab != StartRoute.Tab.LAVORI && waitOpen == null && monitorOpen == null
         // Le proposte 8, 9, 10, 12, 13 e 17 (contratto 1.96, compito app-kpi-dati-relay-25-10): l'op `kpi`, una lettura passiva
         // ogni 5 minuti con l'app in primo piano, solo se il relay ha l'op.
         val kpiDataOk = !demo && state?.ops?.contains("kpi") == true
@@ -2098,6 +2118,7 @@ class MainActivity : ComponentActivity() {
                     closeRefused = leaving?.let { l -> l.refused?.let { why -> l.name to why } }, closeArmable = leaving?.armable == true, onCloseSeen = { leaving = null }, onCloseArm = armClose,
                     elicitations = it.pixelbox.cmwatch.rules.Elicit.open(state, now).filter { e -> e.id !in elicitSent }, onElicit = answerElicit,
                     suggestions = state?.let { st -> it.pixelbox.cmwatch.rules.Suggestions.visible(st, sugDone.toSet(), now) }, onSuggestion = answerSuggestion,
+                    monitors = monitorsNow, onMonitor = { id -> monitorOpen = id }, onNewMonitor = { talkDraft = getString(R.string.monitors_new_draft) },
                     closePreview = if (state?.ops?.contains("close_preview") == true && state.ops?.contains("close") == true) ({ names ->
                         val id = runCatching { app.repo.closePreview(names) }.getOrNull()
                         val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
@@ -2397,6 +2418,9 @@ class MainActivity : ComponentActivity() {
                 override = waitOpen?.let { w -> ({
                     it.pixelbox.cmwatch.mobile.ui.TiAspettaColumn { waitPage(w, true) }
                     it.pixelbox.cmwatch.mobile.ui.PageBackHandler { waitOpen = null }
+                }) } ?: monitorShown?.let { m -> ({
+                    it.pixelbox.cmwatch.mobile.ui.TiAspettaColumn { monitorPage(m, true) }
+                    it.pixelbox.cmwatch.mobile.ui.PageBackHandler { monitorOpen = null }
                 }) } ?: if (tab == StartRoute.Tab.LAVORI) ({ lavoriPage(it.pixelbox.cmwatch.mobile.ui.LavoriHeader.BAR) }) else null,
                 swap = tabletSwap,
                 // app-colonne-strette-05-11: la colonna senza posto leggibile è una striscia; la X la chiude come quella della testata.

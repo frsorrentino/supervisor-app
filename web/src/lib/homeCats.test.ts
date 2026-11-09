@@ -9,7 +9,7 @@ describe('homeCats', () => {
     const d = decode(null)
     expect(ids(d)).toEqual(['you', 'work', 'tools'])
     // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (prove e Da guardare), Riprendi, Suggerimenti.
-    expect(d.map(c => c.sections)).toEqual([['decisioni', 'prove', 'seguiti', 'suggestions'], ['notte', 'lavori', 'esiti', 'rendiconti'], ['usage', 'system', 'pagella']])
+    expect(d.map(c => c.sections)).toEqual([['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'], ['notte', 'lavori', 'esiti', 'rendiconti'], ['usage', 'system', 'pagella']])
     // Le sessioni stanno a sé, fuori dalle categorie; Lavori parte chiusa (tavola A).
     expect(catOf('sessions')).toBeNull()
     expect(d.map(c => c.open)).toEqual([true, false, false])
@@ -34,7 +34,7 @@ describe('homeCats', () => {
     // Utilizzo, agganciato allo slot, sale sul tabellone; senza il marcatore le categorie riprendono l'ordine dei riquadri
     // e Tocca a te quello di partenza (app-home-nomi-02-11).
     expect(ids(d)).toEqual(['you', 'work', 'tools'])
-    expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions'])
+    expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(d.flatMap(c => c.sections)).not.toContain('closed')
     expect(d.flatMap(c => c.sections)).not.toContain('plugins')
     expect(d.flatMap(c => c.sections)).not.toContain('sessions')
@@ -48,7 +48,7 @@ describe('homeCats', () => {
   })
   it('una sezione non esce dalla sua categoria', () => {
     expect(moveSection(DEFAULT_CATS, 'you', 1, 9)).toEqual(DEFAULT_CATS)
-    expect(moveSection(DEFAULT_CATS, 'you', 2, 0)[0].sections).toEqual(['seguiti', 'decisioni', 'prove', 'suggestions'])
+    expect(moveSection(DEFAULT_CATS, 'you', 2, 0)[0].sections).toEqual(['seguiti', 'decisioni', 'prove', 'suggestions', 'monitors'])
     expect(catOf('rendiconti')).toBe('work')
     expect(catOf('notte')).toBe('work')
     expect(catOf('closed')).toBeNull()
@@ -57,7 +57,7 @@ describe('homeCats', () => {
     const r = reorder(toggle(DEFAULT_CATS, 'work'), ['prove', 'lavori', 'decisioni', 'esiti'])
     expect(ids(r)).toEqual(['you', 'work', 'tools'])
     // Le chiavi che la lista trascinata non ha (non disegnate) tengono il loro posto.
-    expect(r[0].sections).toEqual(['prove', 'decisioni', 'seguiti', 'suggestions'])
+    expect(r[0].sections).toEqual(['prove', 'decisioni', 'seguiti', 'suggestions', 'monitors'])
     expect(r.map(c => c.open)).toEqual([true, true, false])
   })
   it('le chiavi non disegnate tengono il posto dopo un trascinamento', () => {
@@ -95,7 +95,7 @@ describe('homeCats', () => {
     expect(toTop(DEFAULT_CATS, [], 'sessions' as HomeKey)).toEqual({ top: [], cats: DEFAULT_CATS })
     expect(saved.length <= 16 && saved.every(k => k.length <= 32)).toBe(true)
     const all = DEFAULT_CATS.flatMap(c => c.sections)
-    expect((JSON.parse(encode(DEFAULT_CATS.map(c => ({ ...c, sections: [] })), 'usage', all)!) as string[]).length).toBe(14)
+    expect((JSON.parse(encode(DEFAULT_CATS.map(c => ({ ...c, sections: [] })), 'usage', all)!) as string[]).length).toBe(15)
     expect(top(['sessions', 'shut:tools'])).toEqual([])
     expect(top(['top:esiti', 'top:boh', 'top:esiti'])).toEqual(['esiti'])
     expect(encode(DEFAULT_CATS, null, [])).toBeNull()
@@ -103,7 +103,7 @@ describe('homeCats', () => {
   it('la lista trascinata ha il bordo dopo la cima', () => {
     const f = flat(['esiti'], decode(['top:esiti']))
     expect(f.slice(0, 3)).toEqual(['esiti', EDGE, 'decisioni'])
-    expect(f.length).toBe(12)
+    expect(f.length).toBe(13)
   })
   it('settle divide al bordo', () => {
     const cats = decode(null)
@@ -114,7 +114,7 @@ describe('homeCats', () => {
     const down = [EDGE, 'suggestions', 'esiti', ...flat(r1.top, r1.cats).filter(k => !['esiti', EDGE, 'suggestions'].includes(k))]
     const r2 = settle(r1.cats, down)
     expect(r2.top).toEqual([])
-    expect(r2.cats[0].sections).toEqual(['suggestions', 'decisioni', 'prove', 'seguiti'])
+    expect(r2.cats[0].sections).toEqual(['suggestions', 'decisioni', 'prove', 'seguiti', 'monitors'])
     expect(r2.cats[1].sections).toContain('esiti')
     expect(r2.cats.map(c => c.open)).toEqual(cats.map(c => c.open))
     const r3 = settle(cats, ['lavori', EDGE, 'esiti'])
@@ -133,11 +133,11 @@ describe('homeCats', () => {
   it('Riordina mette e toglie dalla cima', () => {
     const a = toTop(DEFAULT_CATS, ['esiti'], 'prove')
     expect(a.top).toEqual(['esiti', 'prove'])
-    expect(a.cats[0].sections).toEqual(['decisioni', 'seguiti', 'suggestions'])
+    expect(a.cats[0].sections).toEqual(['decisioni', 'seguiti', 'suggestions', 'monitors'])
     const b = fromTop(a.cats, a.top, 'prove')
     expect(b.top).toEqual(['esiti'])
     // Torna al suo posto, non in fondo (app-cima-rilascio-reset-03-11).
-    expect(b.cats[0].sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions'])
+    expect(b.cats[0].sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(toTop(a.cats, a.top, 'prove')).toEqual(a)
     expect(fromTop(b.cats, b.top, 'prove')).toEqual(b)
   })
@@ -166,7 +166,7 @@ describe("app-home-nomi-02-11: l'ordine nuovo una volta", () => {
     const old = ['top:esiti', 'usage', 'sessions', 'lavori', 'seguiti', 'suggestions', 'prove', 'decisioni', 'prima_raccolta', 'system', 'pagella', 'da_guardare', 'rendiconti', 'shut:tools']
     const d = decode(old)
     expect(d.map(c => c.id)).toEqual(['you', 'work', 'tools'])
-    expect(d[0].sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions'])
+    expect(d[0].sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(d[1].sections).toEqual(['notte', 'lavori', 'rendiconti'])
     expect(d[2].sections).toEqual(['usage', 'system', 'pagella'])
     expect(d.map(c => c.open)).toEqual([true, false, false])
@@ -197,21 +197,21 @@ describe('app-sezioni-accorpate-03-11: Tocca a te riprende una volta il suo ordi
     const d = decode(old)
     // Lavori va subito dopo Dalla master (app-home-sessioni-a-se-08-11).
     expect(d.map(c => c.id)).toEqual(['tools', 'you', 'work'])
-    expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions'])
+    expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(d.find(c => c.id === 'work')!.sections).toEqual(['notte', 'lavori', 'rendiconti'])
     expect(d.map(c => c.open)).toEqual([true, true, false])
     expect(top(old)).toEqual(['esiti'])
     const saved = JSON.parse(encode(moveSection(d, 'you', 3, 0), null, top(old))!) as string[]
     expect(saved).toContain(REV)
     expect(REV).toBe('rev:6')
-    expect(decode(saved).find(c => c.id === 'you')!.sections).toEqual(['suggestions', 'decisioni', 'prove', 'seguiti'])
+    expect(decode(saved).find(c => c.id === 'you')!.sections).toEqual(['suggestions', 'decisioni', 'prove', 'seguiti', 'monitors'])
   })
   // app-tocca-sezioni-06-11: Da guardare non è più una voce (sta in Verifica) e Tocca a te riparte una volta da Decidi.
   it("un ordine rev:3 tiene categorie, chiuse e cima; Da guardare sparisce e Tocca a te riparte da Decidi", () => {
     const old = ['top:sessions', 'usage', 'system', 'pagella', 'lavori', 'suggestions', 'seguiti', 'da_guardare', 'prove', 'decisioni', 'esiti', 'rendiconti', 'shut:out', 'rev:3']
     const d = decode(old)
     expect(d.map(c => c.id)).toEqual(['tools', 'you', 'work'])
-    expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions'])
+    expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(d.flatMap(c => c.sections)).not.toContain('da_guardare')
     expect(d.map(c => c.open)).toEqual([true, true, false])
     // Le sessioni non stanno più sul tabellone: sono a sé, sotto (app-home-sessioni-a-se-08-11).
@@ -236,5 +236,19 @@ describe('app-home-sessioni-a-se-08-11: le sessioni a sé, Lavori dopo Dalla mas
     // Da rev:6 in poi Lavori resta dove Franz lo mette, anche prima di Dalla master.
     expect(ids(decode(JSON.parse(encode(moveCat(d, 1, 0), null)!)))).toEqual(['work', 'you', 'tools'])
     expect(ids(decode(['usage', 'lavori', 'decisioni', 'rev:5']))).toEqual(['tools', 'you', 'work'])
+  })
+})
+
+describe('app-monitoraggi-09-11: Monitoraggi in fondo a Dalla master', () => {
+  const ids = (c: Cat[]) => c.map(x => x.id)
+  it('un ordine rev:6 la prende in fondo a Dalla master; il resto resta di Franz', () => {
+    const old = ['top:esiti', 'notte', 'lavori', 'rendiconti', 'suggestions', 'decisioni', 'seguiti', 'prove', 'usage', 'system', 'pagella', 'shut:you,tools', 'rev:6']
+    const d = decode(old)
+    expect(ids(d)).toEqual(['work', 'you', 'tools'])
+    expect(d.find(c => c.id === 'you')!.sections).toEqual(['suggestions', 'decisioni', 'seguiti', 'prove', 'monitors'])
+    expect(d.map(c => c.open)).toEqual([true, false, false])
+    expect(top(old)).toEqual(['esiti'])
+    const moved = JSON.parse(encode(moveSection(d, 'you', 4, 0), null, top(old))!) as string[]
+    expect(decode(moved).find(c => c.id === 'you')!.sections).toEqual(['monitors', 'suggestions', 'decisioni', 'seguiti', 'prove'])
   })
 })
