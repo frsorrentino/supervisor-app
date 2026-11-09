@@ -105,6 +105,8 @@ enum class CmdOp {
     /** Contratto 1.130: le domande che aspettano la persona e una sola, con il pezzo di trascrizione (letture passive). */
     @SerialName("attese") ATTESE,
     @SerialName("attesa") ATTESA,
+    /** Contratto 1.132: le schede dei Monitoraggi; senza arg l'elenco, con arg un id quella sola. */
+    @SerialName("monitors") MONITORS,
     /** Contratto 1.37: una decisione da salvare nella memoria della master; `text` obbligatorio, `arg` = progetto o null. */
     @SerialName("decision") DECISION,
     /** Contratto 1.39: togliere un dispositivo accoppiato; `arg` = uid. Solo «Scollega questo browser», col proprio uid. */
@@ -365,6 +367,8 @@ enum class CmdOp {
     @SerialName("expires_at") val expiresAt: Long? = null,
     /** Contratto 1.88: posto nella coda (0-9, 0 in cima; assente = 5), chi l'ha scritta (`script` | `master`), le 2-4 opzioni di una `choice`. Il `prompt` non è più nello stato. */
     val rank: Int? = null, val source: String? = null, val options: List<String>? = null,
+    /** Contratto 1.132: il link della scheda di un monitoraggio (`kind: monitor`); assente sulle altre voci. */
+    val link: String? = null,
 )
 
 /** Contratto 1.84: una sessione nei token di oggi; `share` = la parte sul totale dell'account (0..1). */
@@ -597,6 +601,8 @@ enum class CmdOp {
     val seguiti: SeguitiSummary? = null,
     /** Contratto 1.106: «Da guardare», l'ultima versione di ogni lavoro consegnato non ancora visto; assente a indice vuoto. */
     val results: ResultsSummary? = null,
+    /** Contratto 1.132: quanti Monitoraggi, quanti da guardare, l'ora dell'ultimo valore; assente senza monitoraggi. */
+    val monitors: MonitorsSummary? = null,
     /** Contratto 1.75: una voce per macchina confermata, dalla fotografia del poller. */
     @SerialName("hosts_status") val hostsStatus: List<HostStatus> = emptyList(),
     /** Contratto 1.76: la vista «Impegni» del registro, prima i fermi poi per `idle_s`; null con un relay precedente, vuota senza impegni. */
@@ -1148,3 +1154,29 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val text: String = "", val key: String? = null, val at: Long? = null,
 )
 @Serializable data class WaitsPage(val at: Long = 0, val items: List<WaitItem> = emptyList())
+
+/** Contratto 1.132: `/state.monitors`. */
+@Serializable data class MonitorsSummary(val n: Int = 0, val watch: Int = 0, val at: Long? = null)
+
+/**
+ * Contratto 1.132: la scheda di un monitoraggio, dall'op `monitors`. `value` e `delta` già scritti nella lingua della
+ * configurazione; `status` `ok | watch` (watch = una soglia scattata adesso); `example` = dati non veri, da dire. Le forme:
+ * tile, line, multiples, bars, meter (con `max`, `limit`, `pct`), table (con `rows`), status (`value` «sì» o «no»).
+ */
+@Serializable data class MonitorCard(
+    val id: String, val title: String = "", val form: String = "", val unit: String? = null, val status: String = "ok",
+    val verdict: String? = null, @SerialName("verdict_at") val verdictAt: Long? = null,
+    val value: String? = null, val delta: String? = null, @SerialName("delta_pct") val deltaPct: Double? = null,
+    @SerialName("delta_since") val deltaSince: Long? = null, val at: Long? = null, val source: String? = null, val every: String? = null,
+    val example: Boolean = false, val alerts: List<MonitorAlert> = emptyList(), val hits: List<MonitorAlert> = emptyList(),
+    val series: List<MonitorSeries> = emptyList(), val link: String? = null,
+    val max: Double? = null, val limit: String? = null, val pct: Double? = null, val rows: List<MonitorRow> = emptyList(),
+)
+@Serializable data class MonitorAlert(val kind: String = "", val value: Double? = null, val series: String? = null, val text: String = "")
+/** `points` al massimo 60, `[ts, valore]`; `n`, `min` e `max` contano tutta la storia. */
+@Serializable data class MonitorSeries(
+    val name: String? = null, val points: List<List<Double>> = emptyList(), val n: Int = 0, val last: Double? = null,
+    @SerialName("last_text") val lastText: String? = null, val min: Double? = null, val max: Double? = null,
+)
+@Serializable data class MonitorRow(val name: String = "", val value: String = "", val text: String? = null)
+@Serializable data class MonitorsPage(val at: Long = 0, val items: List<MonitorCard> = emptyList())

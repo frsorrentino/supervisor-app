@@ -11,7 +11,6 @@ import it.pixelbox.cmwatch.mobile.ui.MonitorPage
 import it.pixelbox.cmwatch.mobile.ui.SummaryList
 import it.pixelbox.cmwatch.mobile.ui.TiAspettaColumn
 import it.pixelbox.cmwatch.mobile.ui.V3
-import it.pixelbox.cmwatch.rules.Monitors
 import it.pixelbox.cmwatch.rules.Summary
 import org.junit.After
 import org.junit.Rule
@@ -20,13 +19,13 @@ import java.io.File
 import java.time.ZoneId
 
 /**
- * I Monitoraggi coi dati dei mockup (app-monitoraggi-09-11): la sezione in fondo a «Dalla master», la riga chiusa della categoria
+ * I Monitoraggi coi dati dei mockup nella forma del contratto 1.132 (app-monitoraggi-09-11): la sezione in fondo a «Dalla master», la riga chiusa della categoria
  * che li nomina in ambra solo se uno è da guardare, e la scheda di ogni monitoraggio, che insieme coprono le sette forme del
  * catalogo: a 360 dp di notte e di giorno, a 320 dp col testo a 1,3 e nella colonna del tablet.
  */
 class MonitorsScreenTest {
     @get:Rule val paparazzi = Paparazzi(deviceConfig = phone(360), theme = "android:Theme.Material.NoActionBar")
-    private val items = Monitors.decode(File("../core/src/test/resources/monitors-mockup.json").readText()).items
+    private val items = ContractJson.decodeMonitors(File("../core/src/test/resources/monitors-mockup.json").readText()).items
     private val st = ContractJson.decodeState(File("../contract/state-3-stale.json").readText())
 
     private fun phone(dp: Int, font: Float = 1f, h: Int = 2600) = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), fontScale = font, screenHeight = h)
@@ -58,23 +57,30 @@ class MonitorsScreenTest {
     }
     private fun small(id: String) { paparazzi.unsafeUpdateConfig(deviceConfig = phone(320, 1.3f, 3400)); page(id) }
 
-    // Prezzi (mockup B): multiples a gradini, la linea del Black Friday, il pallino ambra sul minimo dello Yoga.
+    // Prezzi (mockup B): multiples, il pallino ambra sull'ultimo valore dello Yoga che ha fatto scattare la soglia, la nota Esempio.
     @Test fun pagePrices() = page("prezzi-portatili")
     @Test fun pagePricesDay() = page("prezzi-portatili", day = true)
     @Test fun pagePrices320Font13() = small("prezzi-portatili")
     @Test fun pagePricesTablet() = tablet("prezzi-portatili")
     @Test fun pagePricesTabletDay() = tablet("prezzi-portatili", day = true)
-    // Adozione (mockup C): line col massimo e l'ultimo valore, bars dei download, table delle stelle, le note.
-    @Test fun pageAdoption() = page("adozione-plugin")
-    @Test fun pageAdoptionDay() = page("adozione-plugin", day = true)
-    @Test fun pageAdoption320Font13() = small("adozione-plugin")
-    @Test fun pageAdoptionTablet() = tablet("adozione-plugin")
-    @Test fun pageAdoptionTabletDay() = tablet("adozione-plugin", day = true)
-    // Le tre forme che i mockup non mostrano: tile, meter (oltre il limite, in ambra) e status.
-    @Test fun pageTile() = page("stelle-github")
-    @Test fun pageTileDay() = page("stelle-github", day = true)
-    @Test fun pageTile320Font13() = small("stelle-github")
-    @Test fun pageTileTablet() = tablet("stelle-github")
+    // Adozione (mockup C), una scheda per forma come vuole il contratto: line (utenti nello Store), bars (download npm), table (stelle).
+    @Test fun pageLine() = page("utenti-store")
+    @Test fun pageLineDay() = page("utenti-store", day = true)
+    @Test fun pageLine320Font13() = small("utenti-store")
+    @Test fun pageLineTablet() = tablet("utenti-store")
+    @Test fun pageBars() = page("download-npm")
+    @Test fun pageBarsDay() = page("download-npm", day = true)
+    @Test fun pageBars320Font13() = small("download-npm")
+    @Test fun pageBarsTablet() = tablet("download-npm")
+    @Test fun pageTable() = page("stelle-github")
+    @Test fun pageTableDay() = page("stelle-github", day = true)
+    @Test fun pageTable320Font13() = small("stelle-github")
+    @Test fun pageTableTablet() = tablet("stelle-github")
+    // Le forme che i mockup non mostrano: tile, meter (soglia scattata, in ambra) e status.
+    @Test fun pageTile() = page("adozione")
+    @Test fun pageTileDay() = page("adozione", day = true)
+    @Test fun pageTile320Font13() = small("adozione")
+    @Test fun pageTileTablet() = tablet("adozione")
     @Test fun pageMeter() = page("quota-gemini")
     @Test fun pageMeterDay() = page("quota-gemini", day = true)
     @Test fun pageMeter320Font13() = small("quota-gemini")

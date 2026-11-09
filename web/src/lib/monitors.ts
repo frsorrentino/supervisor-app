@@ -1,34 +1,29 @@
 // I Monitoraggi (app-monitoraggi-09-11, mockup approvati da Franz il 09/11 alle 08:32, sezione in «Dalla master» dalle 09:08): cose
-// esterne che la master tiene d'occhio restituite come grafici. Le stesse regole di Monitors.kt, coi dati dei mockup in
-// core/src/test/resources/monitors-mockup.json. Il modello è provvisorio finché non esce il contratto `monitors` del relay.
-
-export type Mark = { day: string; label: string }
-export type Series = { name?: string | null; sub?: string | null; values: (number | null)[]; value?: string | null; note?: string | null; delta?: string | null; look?: boolean }
-export type Row = { name: string; value: string; note?: string | null; look?: boolean }
-export type Chart = {
-  form: string; title?: string | null; sub?: string | null; unit?: string | null; step?: boolean; days?: string[]; marks?: Mark[]
-  series?: Series[]; value?: string | null; delta?: string | null; limit?: number | null; rows?: Row[]
-}
-/** `status`: `ok` (pallino verde) o `look` (da guardare: una soglia è scattata, l'unico caso in ambra). */
-export type Monitor = {
-  id: string; name: string; status: string; text: string; value?: string | null; spark?: number[]; source?: string | null; at?: number | null
-  summary?: string | null; alerts?: string | null; example?: string | null; notes?: string[]; charts?: Chart[]
-}
-export type MonitorsPage = { items: Monitor[] }
+// esterne che la master tiene d'occhio restituite come grafici. Contratto 1.132: `/state.monitors` col conto, l'op `monitors` con
+// le schede, una forma per scheda da un catalogo chiuso. Le stesse regole di Monitors.kt, con gli stessi casi.
+import type { MonitorCard, MonitorSeries, MonitorsSummary } from './contract'
 
 /** Il catalogo chiuso delle forme; una forma che l'app non conosce non si disegna. */
 export const FORMS = ['tile', 'line', 'multiples', 'bars', 'meter', 'table', 'status'] as const
 export type Form = (typeof FORMS)[number]
-export const formOf = (c: Chart): Form | null => ((FORMS as readonly string[]).includes(c.form) ? (c.form as Form) : null)
+export const formOf = (c: Pick<MonitorCard, 'form'>): Form | null => ((FORMS as readonly string[]).includes(c.form) ? (c.form as Form) : null)
 
-export const isLook = (m: Monitor) => m.status === 'look'
-/** Quanti sono da guardare: la riga chiusa di «Dalla master» nomina i Monitoraggi solo allora, in ambra. */
-export const looking = (items: Monitor[]) => items.filter(isLook).length
+/** Da guardare: una soglia è scattata adesso (`status: watch`), l'unico caso in ambra. */
+export const isLook = (c: Pick<MonitorCard, 'status'>) => c.status === 'watch'
+/** Quanti sono da guardare: dallo stato se c'è, se no dalle schede. */
+export const looking = (summary: MonitorsSummary | null | undefined, items: MonitorCard[] | null | undefined) => summary?.watch ?? (items ?? []).filter(isLook).length
+
+export const values = (s: MonitorSeries): (number | null)[] => s.points.map(p => p[1] ?? null)
+export const times = (s: MonitorSeries): number[] => s.points.map(p => p[0] ?? 0)
+/** La sparkline di una riga: i valori della prima serie. */
+export const spark = (c: MonitorCard): number[] => (c.series[0] ? values(c.series[0]).filter((v): v is number => v != null) : [])
+/** La frase sotto il titolo: quella della master se c'è, altrimenti la variazione. */
+export const line = (c: MonitorCard): string => (c.verdict?.trim() ? c.verdict : c.delta ?? '')
 
 /** Una scala per grafico, mai due assi: circa tre tacche, passo 1, 2, 2,5 o 5 per una potenza di dieci; le barre da zero. */
 export type Scale = { lo: number; hi: number; ticks: number[] }
-export function scale(values: (number | null)[], fromZero = false): Scale {
-  const vs = values.filter((v): v is number => v != null)
+export function scale(vals: (number | null)[], fromZero = false): Scale {
+  const vs = vals.filter((v): v is number => v != null)
   if (!vs.length) return { lo: 0, hi: 1, ticks: [0, 1] }
   const min = fromZero ? Math.min(0, ...vs) : Math.min(...vs)
   const max = Math.max(...vs)
@@ -43,18 +38,40 @@ export function scale(values: (number | null)[], fromZero = false): Scale {
 /** Da 0 (in basso) a 1 (in alto). */
 export const yOf = (s: Scale, v: number) => (s.hi <= s.lo ? 0.5 : (v - s.lo) / (s.hi - s.lo))
 
-const idx = (values: (number | null)[], pick: (a: number, b: number) => boolean): number | null => {
+const idx = (vals: (number | null)[], pick: (a: number, b: number) => boolean): number | null => {
   let best: number | null = null
-  values.forEach((v, i) => { if (v != null && (best == null || pick(v, values[best]!))) best = i })
+  vals.forEach((v, i) => { if (v != null && (best == null || pick(v, vals[best]!))) best = i })
   return best
 }
 /** Il punto più basso, il più alto e l'ultimo di una serie, dove il grafico mette il pallino. */
-export const minIndex = (values: (number | null)[]) => idx(values, (a, b) => a < b)
-export const maxIndex = (values: (number | null)[]) => idx(values, (a, b) => a > b)
-export const lastIndex = (values: (number | null)[]) => { for (let i = values.length - 1; i >= 0; i--) if (values[i] != null) return i; return null }
+export const minIndex = (vals: (number | null)[]) => idx(vals, (a, b) => a < b)
+export const maxIndex = (vals: (number | null)[]) => idx(vals, (a, b) => a > b)
+export const lastIndex = (vals: (number | null)[]) => { for (let i = vals.length - 1; i >= 0; i--) if (vals[i] != null) return i; return null }
 
-/** Al tocco, il giorno più vicino al dito: `x` da 0 a 1, `n` giorni. */
-export const dayAt = (x: number, n: number) => (n <= 1 ? 0 : Math.round(Math.min(1, Math.max(0, x)) * (n - 1)))
+/** L'asse del tempo, lo stesso per tutte le serie di una scheda; dove sta un istante, da 0 a 1. */
+export function span(c: MonitorCard): [number, number] {
+  const all = c.series.flatMap(times)
+  return all.length ? [Math.min(...all), Math.max(...all)] : [0, 0]
+}
+export const xOf = (t: number, sp: [number, number]) => (sp[1] <= sp[0] ? 1 : (t - sp[0]) / (sp[1] - sp[0]))
+/** Al tocco, il punto più vicino al dito: `x` da 0 a 1 sull'asse del tempo. */
+export function nearest(ts: number[], x: number, sp: [number, number]): number | null {
+  const at = Math.min(1, Math.max(0, x))
+  let best: number | null = null
+  ts.forEach((t, i) => { if (best == null || Math.abs(xOf(t, sp) - at) < Math.abs(xOf(ts[best], sp) - at)) best = i })
+  return best
+}
 
-/** Quanto è pieno il metro (il limite ai quattro quinti) e se il valore l'ha passato. */
-export const meter = (value: number, limit: number): [number, boolean] => [limit <= 0 ? 1 : Math.min(1, Math.max(0, value / limit / 1.25)), value >= limit]
+/** Quanto è pieno il metro, da 0 a 1 (`pct` del relay, se no l'ultimo valore su `max`); la soglia, se c'è, nella stessa scala. */
+export function meter(c: MonitorCard): [number, number | null] {
+  const last = c.series[0]?.last ?? null
+  const fill = c.pct != null ? c.pct / 100 : last != null && (c.max ?? 0) > 0 ? last / c.max! : 0
+  const a = c.alerts.find(x => x.kind === 'above' || x.kind === 'below')
+  const mark = a?.value != null && (c.max ?? 0) > 0 ? Math.min(1, Math.max(0, a.value / c.max!)) : null
+  return [Math.min(1, Math.max(0, fill)), mark]
+}
+/** Status: sì (1) o no (0) per ogni giorno. */
+export const up = (v: number | null | undefined) => (v ?? 0) > 0
+
+/** Contratto 1.132: l'id di un monitoraggio da un link `<web_app_url>/#/monitor/<id>`; null per ogni altro indirizzo. */
+export const monitorOf = (link: string): string | null => /#\/monitor\/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$/.exec(link.trim())?.[1] ?? null

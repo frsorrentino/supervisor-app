@@ -31,6 +31,8 @@
   <span class="txt">
     {#if split(s.text)[1]}<span class="body">{split(s.text)[1]}</span>{/if}
     <span class="btns">
+      <!-- Contratto 1.132: la voce di un monitoraggio porta il link della sua scheda, che la web apre dentro l'app (app-monitoraggi-09-11). -->
+      {#if s.link}<a class="text" href={s.link} data-testid="suggerimento-grafico">{t.sugOpenChart}</a>{/if}
       {#if more.has(s.id)}
         <button class="text" onclick={() => answer(s, 'discuss')}>{t.sugDiscuss}</button>
         <button class="text" onclick={() => answer(s, 'later')}>{t.sugLater}</button>
@@ -44,7 +46,8 @@
   .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }
   .body { font-size: 15px; line-height: 1.4; color: var(--tx); }
   .btns { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; margin-top: 8px; }
-  .btns button { font: 600 15px var(--display); letter-spacing: .02em; white-space: nowrap; }
+  .btns button, .btns a { font: 600 15px var(--display); letter-spacing: .02em; white-space: nowrap; }
+  .btns a.text { display: inline-flex; align-items: center; text-decoration: none; color: var(--tx); }
   .tonal { min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); }
   .tonal:hover { background: color-mix(in srgb, var(--tx) 8%, var(--s3)); }
   .text { min-height: 40px; padding: 0 10px; border-radius: 20px; color: var(--tx2); }

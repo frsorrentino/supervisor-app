@@ -1886,6 +1886,10 @@ It starts at your last message to the master.</string>
     <string name="monitor_ask">Ask the master</string>
     <string name="monitor_max">max %s</string>
     <string name="monitor_max_on">%1$s on %2$s</string>
+    <string name="monitor_min">min %s</string>
+    <string name="monitor_every">every %s</string>
+    <string name="monitor_example_text">example data, not real</string>
+    <string name="sug_open_chart">Open the chart</string>
     <string name="monitor_limit">limit %s</string>
     <string name="monitor_yes">yes</string>
     <string name="monitor_no">no</string>

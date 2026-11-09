@@ -293,12 +293,14 @@ class MainActivity : ComponentActivity() {
         var waitOthers by remember { mutableStateOf(emptyList<it.pixelbox.cmwatch.contract.WaitItem>()) }
         var waitGone by remember { mutableStateOf(false) }
         var waitFailed by remember { mutableStateOf(false) }
-        // I Monitoraggi (app-monitoraggi-09-11): la scheda aperta, per id. I dati arrivano col contratto `monitors` del relay
-        // (supervisor-monitoraggi-09-11), non ancora uscito: fino ad allora la sezione non c'è e le schermate si vedono nei test.
+        // I Monitoraggi (app-monitoraggi-09-11, contratto 1.132): le schede dall'op `monitors`, rilette quando `/state.monitors` dice
+        // che c'è un valore nuovo; senza monitoraggi la sezione non c'è. La scheda aperta, per id: dalla home, da un link
+        // `#/monitor/<id>` o da un suggerimento; una scheda che l'elenco non ha ancora si legge da sola.
         var monitorOpen by remember { mutableStateOf<String?>(null) }
-        val monitorsNow: List<it.pixelbox.cmwatch.rules.Monitors.Monitor>? = null
+        var monitorsNow by remember { mutableStateOf<List<it.pixelbox.cmwatch.contract.MonitorCard>?>(null) }
+        var monitorOne by remember { mutableStateOf<it.pixelbox.cmwatch.contract.MonitorCard?>(null) }
         val linkHandler = androidx.compose.ui.platform.LocalUriHandler.current
-        androidx.compose.runtime.SideEffect { (linkHandler as? DownloadLinks)?.onWait = { w -> waitOpen = w } }
+        androidx.compose.runtime.SideEffect { (linkHandler as? DownloadLinks)?.let { d -> d.onWait = { w -> waitOpen = w }; d.onMonitor = { m -> monitorOpen = m } } }
         LaunchedEffect(waitOpen) {
             val w = waitOpen ?: return@LaunchedEffect
             waitItem = null; waitGone = false; waitFailed = false
@@ -315,6 +317,23 @@ class MainActivity : ComponentActivity() {
                 else -> runCatching { ContractJson.decodeWait(one.text) }.onSuccess { x -> waitItem = x }.onFailure { waitFailed = true }
             }
             ask(CmdOp.ATTESE, null)?.takeIf { r -> r.ok }?.let { r -> runCatching { ContractJson.decodeWaits(r.text) }.onSuccess { p -> waitOthers = p.items } }
+        }
+        val monitorsSum = snap.state?.monitors
+        val monitorsOp = snap.state?.ops?.contains("monitors") == true
+        LaunchedEffect(monitorsSum?.at, monitorsSum?.n, monitorsOp) {
+            if (!monitorsOp || (monitorsSum?.n ?: 0) == 0) { monitorsNow = null; return@LaunchedEffect }
+            val id = runCatching { app.repo.command(CmdOp.MONITORS, null, null) }.getOrNull() ?: return@LaunchedEffect
+            val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+            app.repo.forget(id)
+            r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeMonitors(x.text) }.onSuccess { p -> monitorsNow = p.items } }
+        }
+        LaunchedEffect(monitorOpen) {
+            val m = monitorOpen ?: return@LaunchedEffect
+            if (monitorsNow?.any { x -> x.id == m } == true || !monitorsOp) return@LaunchedEffect
+            val id = runCatching { app.repo.command(CmdOp.MONITORS, null, m) }.getOrNull() ?: return@LaunchedEffect
+            val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { x -> x.containsKey(id) }[id] }
+            app.repo.forget(id)
+            r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeMonitor(x.text) }.onSuccess { c -> monitorOne = c } }
         }
         fun transcriptSid(name: String): String? = sidOf[name]?.takeIf { app.repo.snapshot.value.state?.sessions?.none { s -> s.name == name && s.state != SessionState.GONE } != false }
         // «Parlane con la master» (piano del 09/10): il testo da mettere nel campo della master, poi la sua chat aperta.
@@ -1472,15 +1491,15 @@ class MainActivity : ComponentActivity() {
         }
         // La scheda di un monitoraggio: Ferma, Chiedi alla master e Modifica degli avvisi passano dalla chat della master, col testo
         // già scritto nel campo, finché il contratto non porta i comandi (app-monitoraggi-09-11).
-        val monitorPage: @Composable (it.pixelbox.cmwatch.rules.Monitors.Monitor, Boolean) -> Unit = { m, wideNow ->
+        val monitorPage: @Composable (it.pixelbox.cmwatch.contract.MonitorCard, Boolean) -> Unit = { m, wideNow ->
             it.pixelbox.cmwatch.mobile.ui.MonitorPage(
                 m, wideNow, onBack = { monitorOpen = null },
-                onStop = { monitorOpen = null; talkDraft = getString(R.string.monitor_stop_draft, m.name) },
-                onAsk = { monitorOpen = null; talkDraft = getString(R.string.monitor_ask_draft, m.name) },
-                onEditAlerts = { monitorOpen = null; talkDraft = getString(R.string.monitor_alerts_draft, m.name) },
+                onStop = { monitorOpen = null; talkDraft = getString(R.string.monitor_stop_draft, m.title) },
+                onAsk = { monitorOpen = null; talkDraft = getString(R.string.monitor_ask_draft, m.title) },
+                onEditAlerts = { monitorOpen = null; talkDraft = getString(R.string.monitor_alerts_draft, m.title) },
             )
         }
-        val monitorShown = monitorOpen?.let { id -> monitorsNow?.firstOrNull { m -> m.id == id } }
+        val monitorShown = monitorOpen?.let { id -> monitorsNow?.firstOrNull { m -> m.id == id } ?: monitorOne?.takeIf { m -> m.id == id } }
         if (!wide) monitorShown?.let { m ->
             it.pixelbox.cmwatch.mobile.ui.PageIn { monitorPage(m, false) }
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { monitorOpen = null }

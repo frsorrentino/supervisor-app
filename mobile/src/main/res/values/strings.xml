@@ -1914,6 +1914,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="monitor_ask">Chiedi alla master</string>
     <string name="monitor_max">max %s</string>
     <string name="monitor_max_on">%1$s il %2$s</string>
+    <string name="monitor_min">min %s</string>
+    <string name="monitor_every">ogni %s</string>
+    <string name="monitor_example_text">dati d\'esempio, non veri</string>
+    <string name="sug_open_chart">Apri il grafico</string>
     <string name="monitor_limit">limite %s</string>
     <string name="monitor_yes">sì</string>
     <string name="monitor_no">no</string>

@@ -1,6 +1,6 @@
 import stateRaw from '../../../contract/state-1-question.json?raw'
 import monitorsMockup from '../../../core/src/test/resources/monitors-mockup.json'
-import type { Monitor, MonitorsPage } from './monitors'
+import type { MonitorCard, MonitorsPage } from './contract'
 import { DEFAULT_CATS, encode as encodeCats, toTop } from './homeCats'
 import idleRaw from '../../../contract/state-2-idle.json?raw'
 import changesRaw from '../../../contract/changes-sample.json?raw'
@@ -491,10 +491,10 @@ function nightEn(v: unknown): unknown {
  * di decisionsDemo, col suo wid) e una scelta nata in chat su payments-api; `attesa` aggiunge il pezzo di trascrizione.
  */
 /**
- * I Monitoraggi della demo (app-monitoraggi-09-11): i dati dei mockup approvati, gli stessi dei test di Kotlin e della web, finché
- * il contratto `monitors` del relay non esce.
+ * I Monitoraggi della demo (app-monitoraggi-09-11): i dati dei mockup approvati nella forma del contratto 1.132, una scheda per forma,
+ * gli stessi dei test di Kotlin e della web.
  */
-export const monitorsDemo = (): Monitor[] => structuredClone((monitorsMockup as MonitorsPage).items)
+export const monitorsDemo = (): MonitorCard[] => structuredClone((monitorsMockup as MonitorsPage).items)
 
 export const waitsDemo = (now: number): WaitItem[] => [
   { id: 'w00000000a1', type: 'carta', kind: 'pausa', label: 'decide', label_text: en ? 'Decide' : 'Decidi', session: 'blog', task: 'demo-cover',

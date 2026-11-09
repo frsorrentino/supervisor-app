@@ -418,6 +418,8 @@ class FakeTransport(
             // Contratto 1.130: le attese della fixture; `attesa` con l'id della fixture ha il pezzo di trascrizione, le altre sono chiuse.
             CmdOp.ATTESE -> ok(sampleText("attese"))
             CmdOp.ATTESA -> sampleResult("attesa", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
+            // Contratto 1.132: l'elenco dei Monitoraggi della fixture; con un id la sua scheda, un id che non c'è più è un errore.
+            CmdOp.MONITORS -> if (cmd.arg == null) ok(sampleText("monitors")) else sampleResult("monitors", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
             CmdOp.DECISION -> if (cmd.text.isNullOrBlank()) ko("empty decision") else ok("decision sent to the master")
             // Contratto 1.44: la demo legge la fixture inventata del rapporto della notte.
             CmdOp.NIGHT -> runCatching { load("night-report-sample") }.map { ok(it) }.getOrElse { ko("no night report yet") }

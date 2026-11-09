@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { isLook, scale, yOf, type Monitor } from './monitors'
+  import type { MonitorCard } from './contract'
+  import { isLook, line, scale, spark as sparkOf, yOf } from './monitors'
   import { t } from './t'
   // La sezione Monitoraggi nella home (app-monitoraggi-09-11, mockup A): una riga per monitoraggio come le righe delle sessioni,
   // pallino (verde, ambra se da guardare), nome e frase sotto, a destra il valore con la sparkline; in fondo «Nuovo monitoraggio».
   // Come MonitorsCard in Kotlin.
-  let { items, onOpen, onNew }: { items: Monitor[]; onOpen: (id: string) => void; onNew: () => void } = $props()
+  let { items, onOpen, onNew }: { items: MonitorCard[]; onOpen: (id: string) => void; onNew: () => void } = $props()
   const spark = (vs: number[]) => {
     const s = scale(vs)
     return vs.map((v, i) => `${i ? 'L' : 'M'}${((i * 60) / Math.max(1, vs.length - 1) + 2).toFixed(1)} ${((1 - yOf(s, v)) * 16 + 2).toFixed(1)}`).join(' ')
@@ -15,10 +16,10 @@
   {#each items as m (m.id)}
     <button class="row" data-testid="monitor-{m.id}" onclick={() => onOpen(m.id)}>
       <span class="rail"><i class:look={isLook(m)}></i></span>
-      <span class="tx"><b>{m.name}</b>{#if m.text}<small class:look={isLook(m)}>{m.text}</small>{/if}</span>
+      <span class="tx"><b>{m.title}</b>{#if line(m)}<small class:look={isLook(m)}>{line(m)}</small>{/if}</span>
       <span class="val">
         {#if m.value}<b>{m.value}</b>{/if}
-        {#if (m.spark?.length ?? 0) >= 2}{@const vs = m.spark!}{@const s = scale(vs)}
+        {#if sparkOf(m).length >= 2}{@const vs = sparkOf(m)}{@const s = scale(vs)}
           <svg viewBox="0 0 64 20" width="64" height="20" aria-hidden="true"><path d={spark(vs)} /><circle cx="62" cy={(1 - yOf(s, vs[vs.length - 1])) * 16 + 2} r="2.4" /></svg>
         {/if}
       </span>

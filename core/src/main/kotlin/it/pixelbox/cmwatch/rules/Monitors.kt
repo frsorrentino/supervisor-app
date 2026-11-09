@@ -1,55 +1,39 @@
 package it.pixelbox.cmwatch.rules
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import it.pixelbox.cmwatch.contract.MonitorCard
+import it.pixelbox.cmwatch.contract.MonitorSeries
+import it.pixelbox.cmwatch.contract.MonitorsSummary
 
 /**
  * I Monitoraggi (app-monitoraggi-09-11, mockup approvati da Franz il 09/11 alle 08:32, sezione in «Dalla master» dalle 09:08): cose
- * esterne che la master tiene d'occhio (prezzi, adozione dei plugin) restituite come grafici. Una riga per monitoraggio nella home
- * e una scheda col grafico nella forma scelta da un catalogo chiuso. monitors.ts nella web, con la stessa fixture.
- *
- * Il modello è provvisorio: segue i dati dei mockup (core/src/test/resources/monitors-mockup.json) finché non esce il contratto
- * `monitors` del relay (supervisor-monitoraggi-09-11); allora i nomi dei campi si allineano a quello.
+ * esterne che la master tiene d'occhio restituite come grafici. Contratto 1.132: `/state.monitors` col conto, l'op `monitors` con
+ * le schede, una forma per scheda da un catalogo chiuso. monitors.ts nella web, con gli stessi casi.
  */
 object Monitors {
-    @Serializable data class Page(val items: List<Monitor> = emptyList())
-
-    /** `status`: `ok` (pallino verde) o `look` (da guardare: una soglia è scattata, l'unico caso in ambra). */
-    @Serializable data class Monitor(
-        val id: String, val name: String, val status: String = "ok", val text: String = "", val value: String? = null,
-        val spark: List<Double> = emptyList(), val source: String? = null, val at: Long? = null, val summary: String? = null,
-        val alerts: String? = null, val example: String? = null, val notes: List<String> = emptyList(), val charts: List<Chart> = emptyList(),
-    ) { val look get() = status == "look" }
-
-    /**
-     * Un grafico: `form` dal catalogo chiuso, `days` l'asse dei giorni (le serie hanno un valore per giorno, null dove non c'è
-     * ancora), `marks` le linee tratteggiate di un giorno (il Black Friday), `step` i prezzi che cambiano a gradini.
-     */
-    @Serializable data class Chart(
-        val form: String, val title: String? = null, val sub: String? = null, val unit: String? = null, val step: Boolean = false,
-        val days: List<String> = emptyList(), val marks: List<Mark> = emptyList(), val series: List<Series> = emptyList(),
-        val value: String? = null, val delta: String? = null, val limit: Double? = null, val rows: List<Row> = emptyList(),
-    )
-    @Serializable data class Series(
-        val name: String? = null, val sub: String? = null, val values: List<Double?> = emptyList(), val value: String? = null,
-        val note: String? = null, val delta: String? = null, val look: Boolean = false,
-    )
-    @Serializable data class Mark(val day: String, val label: String)
-    @Serializable data class Row(val name: String, val value: String, val note: String? = null, val look: Boolean = false)
-
-    private val json = Json { ignoreUnknownKeys = true }
-    fun decode(text: String): Page = json.decodeFromString(Page.serializer(), text)
-
     /**
      * Il catalogo chiuso delle forme (references/choosing-a-form.md della skill dataviz): un valore con variazione e sparkline, una
      * serie nel tempo, più serie con gli stessi giorni (un grafico piccolo per serie), conteggi per giorno, un valore contro un
      * limite, righe, sì/no coi giorni. Una forma che l'app non conosce non si disegna.
      */
     enum class Form(val key: String) { TILE("tile"), LINE("line"), MULTIPLES("multiples"), BARS("bars"), METER("meter"), TABLE("table"), STATUS("status") }
-    fun formOf(c: Chart): Form? = Form.entries.firstOrNull { it.key == c.form }
+    fun formOf(c: MonitorCard): Form? = Form.entries.firstOrNull { it.key == c.form }
 
-    /** Quanti sono da guardare: la riga chiusa di «Dalla master» nomina i Monitoraggi solo allora, in ambra; altrimenti non contano. */
-    fun looking(items: List<Monitor>): Int = items.count { it.look }
+    /** Da guardare: una soglia è scattata adesso (`status: watch`), l'unico caso in ambra. */
+    fun look(c: MonitorCard): Boolean = c.status == "watch"
+
+    /** Quanti sono da guardare: la riga chiusa di «Dalla master» nomina i Monitoraggi solo allora; dallo stato se c'è, se no dalle schede. */
+    fun looking(summary: MonitorsSummary?, items: List<MonitorCard>?): Int = summary?.watch ?: items.orEmpty().count(::look)
+
+    /** I valori di una serie, nell'ordine dei punti. */
+    fun values(s: MonitorSeries): List<Double?> = s.points.map { p -> p.getOrNull(1) }
+    /** Gli istanti dei punti (secondi). */
+    fun times(s: MonitorSeries): List<Long> = s.points.map { p -> p.getOrNull(0)?.toLong() ?: 0L }
+
+    /** La sparkline di una riga: i valori della prima serie. */
+    fun spark(c: MonitorCard): List<Double> = c.series.firstOrNull()?.let(::values).orEmpty().filterNotNull()
+
+    /** La frase sotto il titolo: quella della master se c'è, altrimenti la variazione. */
+    fun line(c: MonitorCard): String = c.verdict?.takeIf { it.isNotBlank() } ?: c.delta.orEmpty()
 
     /**
      * Una scala per grafico, mai due assi: da un multiplo del passo sotto il minimo a uno sopra il massimo, con circa tre tacche; le
@@ -76,16 +60,37 @@ object Monitors {
         return listOf(1.0, 2.0, 2.5, 5.0, 10.0).first { it * p >= raw - 1e-9 } * p
     }
 
-    /** Il punto più basso e l'ultimo di una serie (gli indici dei giorni), dove il grafico mette il pallino; null senza valori. */
+    /** Il punto più basso, il più alto e l'ultimo di una serie (indici), dove il grafico mette il pallino; null senza valori. */
     fun minIndex(values: List<Double?>): Int? = values.withIndex().filter { it.value != null }.minByOrNull { it.value!! }?.index
-    fun lastIndex(values: List<Double?>): Int? = values.indexOfLast { it != null }.takeIf { it >= 0 }
-    /** Il massimo, segnato sulla linea come nel mockup C («max 135»). */
     fun maxIndex(values: List<Double?>): Int? = values.withIndex().filter { it.value != null }.maxByOrNull { it.value!! }?.index
+    fun lastIndex(values: List<Double?>): Int? = values.indexOfLast { it != null }.takeIf { it >= 0 }
 
-    /** Al tocco, il giorno più vicino al dito: `x` da 0 a 1 sulla larghezza del grafico, `n` giorni. */
-    fun dayAt(x: Float, n: Int): Int = if (n <= 1) 0 else kotlin.math.round(x.coerceIn(0f, 1f) * (n - 1)).toInt()
+    /**
+     * L'asse del tempo di un grafico: da `from` a `to` (secondi), dove sta un istante, da 0 a 1. Con più serie (multiples) l'asse è
+     * lo stesso per tutte: i giorni uguali.
+     */
+    fun span(c: MonitorCard): Pair<Long, Long> {
+        val all = c.series.flatMap(::times)
+        return (all.minOrNull() ?: 0L) to (all.maxOrNull() ?: 0L)
+    }
+    fun x(t: Long, span: Pair<Long, Long>): Float = if (span.second <= span.first) 1f else ((t - span.first).toDouble() / (span.second - span.first)).toFloat()
 
-    /** Quanto è pieno il metro, da 0 a 1, e se il valore ha passato il limite. */
-    fun meter(value: Double, limit: Double): Pair<Float, Boolean> =
-        (if (limit <= 0) 1f else (value / limit / 1.25).toFloat().coerceIn(0f, 1f)) to (value >= limit)
+    /** Al tocco, il punto più vicino al dito: `x` da 0 a 1 sull'asse del tempo. */
+    fun nearest(times: List<Long>, x: Float, span: Pair<Long, Long>): Int? =
+        times.indices.minByOrNull { i -> kotlin.math.abs(x(times[i], span) - x.coerceIn(0f, 1f)) }
+
+    /** Quanto è pieno il metro, da 0 a 1 (`pct` del relay, se no l'ultimo valore su `max`); la soglia, se c'è, nella stessa scala. */
+    fun meter(c: MonitorCard): Pair<Float, Float?> {
+        val last = c.series.firstOrNull()?.last
+        val fill = (c.pct?.div(100) ?: if (last != null && (c.max ?: 0.0) > 0) last / c.max!! else 0.0).toFloat().coerceIn(0f, 1f)
+        val mark = c.alerts.firstOrNull { it.kind == "above" || it.kind == "below" }?.value?.let { v -> c.max?.takeIf { it > 0 }?.let { (v / it).toFloat().coerceIn(0f, 1f) } }
+        return fill to mark
+    }
+
+    /** Status: sì (1) o no (0) per ogni giorno. */
+    fun up(v: Double?): Boolean = (v ?: 0.0) > 0
+
+    private val LINK = Regex("#/monitor/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$")
+    /** Contratto 1.132: l'id di un monitoraggio da un link `<web_app_url>/#/monitor/<id>`; null per ogni altro indirizzo. */
+    fun idOf(link: String): String? = LINK.find(link.trim())?.groupValues?.get(1)
 }

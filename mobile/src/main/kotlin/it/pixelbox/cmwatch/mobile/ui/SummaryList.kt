@@ -175,7 +175,7 @@ fun SummaryList(
      * I Monitoraggi (app-monitoraggi-09-11): l'ultima sezione di Dalla master, una riga per monitoraggio; null o vuota = la sezione non
      * c'è. `onMonitor` apre la scheda, `onNewMonitor` la chat della master con «monitora » nel campo.
      */
-    monitors: List<it.pixelbox.cmwatch.rules.Monitors.Monitor>? = null, onMonitor: (String) -> Unit = {}, onNewMonitor: () -> Unit = {},
+    monitors: List<it.pixelbox.cmwatch.contract.MonitorCard>? = null, onMonitor: (String) -> Unit = {}, onNewMonitor: () -> Unit = {},
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo le finite, poi la chiusura; null = il relay non le ha. */
     closePreview: (suspend (List<String>) -> it.pixelbox.cmwatch.rules.CloseFinished.Preview?)? = null,
     onCloseMany: (List<String>) -> Unit = {},
@@ -341,7 +341,7 @@ fun SummaryList(
         val icons = androidx.compose.material.icons.Icons.Outlined
         // Grigia finché nessuno è da guardare: allora il numero si accende (app-monitoraggi-09-11).
         if (key == "monitors") return monitors?.let { ms ->
-            NewRow(R.string.monitors_title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ShowChart, ms.size.toString(), "home-sez-monitoraggi", newOpen.getValue(key), it.pixelbox.cmwatch.rules.Monitors.looking(ms) > 0)
+            NewRow(R.string.monitors_title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ShowChart, ms.size.toString(), "home-sez-monitoraggi", newOpen.getValue(key), it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, ms) > 0)
         }
         val st = kpiState ?: return null
         val open = newOpen[key] ?: return null
@@ -365,7 +365,7 @@ fun SummaryList(
     fun toggleNew(r: NewRow, key: String) { r.open.value = !r.open.value; save(key, r.open.value) }
     // Il riassunto a destra di una voce chiusa: per i Monitoraggi quanti sono da guardare, altrimenti niente.
     @Composable fun rightOf(key: String): String? =
-        if (key == "monitors") monitors?.let(it.pixelbox.cmwatch.rules.Monitors::looking)?.takeIf { n -> n > 0 }?.let { n -> stringResource(R.string.monitors_look, n) }
+        if (key == "monitors") monitors?.let { ms -> it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, ms) }?.takeIf { n -> n > 0 }?.let { n -> stringResource(R.string.monitors_look, n) }
         else newRight(key, kpiState)
     // Rilasciata sul tabellone, la voce resta aperta col suo contenuto in vista (Franz 02/11 20:45).
     // Presa una voce di In cima, le voci di In cima restano con la sola testata, così sotto si vede il bersaglio (Franz 03/11 12:05,
@@ -445,7 +445,7 @@ fun SummaryList(
                 // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
                 val pr = kpiState?.primaRaccolta?.takeIf { x -> x.status == "ask" && "decisioni" !in up }
                 // I Monitoraggi solo quando uno è da guardare, in ambra; altrimenti non contano (app-monitoraggi-09-11).
-                val mo = if ("monitors" in up) 0 else monitors?.let(it.pixelbox.cmwatch.rules.Monitors::looking) ?: 0
+                val mo = if ("monitors" in up || (monitors == null && kpiState?.monitors == null)) 0 else it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, monitors)
                 // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e
                 // per ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
                 listOfNotNull(

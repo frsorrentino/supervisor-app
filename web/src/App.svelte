@@ -18,7 +18,9 @@
   import Features from './lib/Features.svelte'
   import DaProvare from './lib/DaProvare.svelte'
   import TiAspettaView from './lib/TiAspettaView.svelte'
-  import { decodeDecisions, decodeProve, readPage } from './lib/decideDecode'
+  import { decodeDecisions, decodeMonitor, decodeMonitors, decodeProve, readPage } from './lib/decideDecode'
+  import { monitorOf } from './lib/monitors'
+  import type { MonitorCard } from './lib/contract'
   import type { DecisionGroup, ProvePage } from './lib/contract'
   import PrimaRaccolta from './lib/PrimaRaccolta.svelte'
   import Seguiti from './lib/Seguiti.svelte'
@@ -518,21 +520,39 @@
   // Da Tocca a te: il tocco su una voce che aspetta apre la sua scheda.
   // La pagina da cui si è aperta la scheda: Indietro e una risposta tornano lì; aperta da un link, la home (app-ti-aspetta-lista-chiusa-08-11).
   let waitFrom = $state<PageName | null>(null)
-  // I Monitoraggi (app-monitoraggi-09-11): nella demo i dati dei mockup; col relay arrivano col contratto `monitors`, non ancora
-  // uscito, e fino ad allora la sezione non c'è. La scheda aperta, per id.
-  const monitors = demo ? monitorsDemo() : null
-  let monitorId = $state<string | null>(null)
-  const openMonitor = (id: string) => { monitorId = id; openPage('monitor') }
+  // I Monitoraggi (app-monitoraggi-09-11, contratto 1.132): nella demo i dati dei mockup; col relay le schede dall'op `monitors`,
+  // rilette quando `/state.monitors` dice che c'è un valore nuovo; senza monitoraggi la sezione non c'è. La scheda aperta, per id:
+  // dalla home, da un link `#/monitor/<id>` o da un suggerimento; una scheda che l'elenco non ha ancora si legge da sola.
+  let monitors = $state<MonitorCard[] | null>(demo ? monitorsDemo() : null)
+  let monitorOne = $state<MonitorCard | null>(null)
+  let monitorId = $state<string | null>(monitorOf(location.hash))
+  let monitorFrom = $state<PageName | null>(null)
+  const openMonitor = (id: string) => { if (page !== 'monitor') monitorFrom = page; monitorId = id; openPage('monitor') }
+  const closeMonitor = () => { const to = monitorFrom; monitorId = null; monitorFrom = null; if (location.hash.startsWith('#/monitor/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
+  $effect(() => {
+    const sum = st.monitors, can = st.ops?.includes('monitors')
+    if (demo || !can) return
+    void sum?.at
+    if (!sum?.n) { untrack(() => { monitors = null }); return }
+    void run(newCmd('monitors', null)).then(r => { const { page } = readPage(r, decodeMonitors, null); if (page) monitors = page.items })
+  })
+  $effect(() => {
+    const id = monitorId
+    if (!id || demo || untrack(() => monitors)?.some(x => x.id === id)) return
+    void run(newCmd('monitors', null, id)).then(r => { const { page } = readPage(r, decodeMonitor, null); if (page && monitorId === id) monitorOne = page })
+  })
+  const monitorShown = $derived(monitors?.find(x => x.id === monitorId) ?? (monitorOne?.id === monitorId ? monitorOne : null))
   const openWait = (w: string) => { waitFrom = backTo(waitFrom, page); waitId = w; openPage('attesa') }
   const closeWait = () => { const to = waitFrom; waitId = null; waitFrom = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
   $effect(() => {
-    const onHash = () => { const w = askedWait(location.hash); if (w) openWait(w) }
+    const onHash = () => { const w = askedWait(location.hash); if (w) openWait(w); const m = monitorOf(location.hash); if (m) openMonitor(m) }
     // Un link nel testo apre la scheda dentro l'app, senza ricaricare la pagina.
     const onClick = (e: MouseEvent) => {
       const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
-      const w = a ? askedWait(new URL(a.href, location.href).hash) : null
-      if (!w) return
-      e.preventDefault(); openWait(w)
+      const hash = a ? new URL(a.href, location.href).hash : ''
+      const w = askedWait(hash), m = monitorOf(hash)
+      if (!w && !m) return
+      e.preventDefault(); if (w) openWait(w); else if (m) openMonitor(m)
     }
     window.addEventListener('hashchange', onHash); document.addEventListener('click', onClick, true)
     return () => { window.removeEventListener('hashchange', onHash); document.removeEventListener('click', onClick, true) }
@@ -1191,7 +1211,7 @@
   const askedPage = asked === 'diary' || asked === 'recap' ? 'lavori' : asked
   // Da guardare (contratto 1.106): la pagina di tutti i risultati o di una sessione, e il risultato da aprire.
   let watchSession = $state<string | null>(null), watchOpenId = $state<string | null>(null)
-  let page = $state<PageName | null>(askedWait(location.hash) ? 'attesa' : askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'homeorder', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
+  let page = $state<PageName | null>(askedWait(location.hash) ? 'attesa' : monitorOf(location.hash) ? 'monitor' : askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'homeorder', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
   // La pagina Notte (specifica del 07/10, approvata alle 21:50): il rapporto si chiede al PC con l'op `night` (contratto 1.44)
   // quando la pagina si apre e col tasto aggiorna; nella demo è la fixture inventata.
   let night = $state<{ report: NightReport | null; error: string | null; loading: boolean }>({ report: null, error: null, loading: false })
@@ -1500,9 +1520,12 @@
   addEventListener('popstate', () => {
     // Chiusa la scheda aperta da un link, il passo indietro torna sull'indirizzo `#/attesa/…`: lo si toglie prima che hashchange
     // la riapra (app-ti-aspetta-lista-chiusa-08-11).
-    if (skipPop) { skipPop = false; if (!waitId && askedWait(location.hash)) history.replaceState(history.state, '', location.pathname + location.search); return }
+    if (skipPop) { skipPop = false; if ((!waitId && askedWait(location.hash)) || (!monitorId && monitorOf(location.hash))) history.replaceState(history.state, '', location.pathname + location.search); return }
+    // Un indirizzo nuovo `#/attesa/…` o `#/monitor/…` (scritto o aperto da fuori) è un passo avanti, non Indietro: lo apre hashchange.
+    if (history.state?.cm == null && (askedWait(location.hash) || monitorOf(location.hash))) return
     pushed = Math.max(0, pushed - 1)
     if (page === 'attesa') closeWait()
+    else if (page === 'monitor') closeMonitor()
     else if (page) openPage(null)
     else if (!wide && open) smooth(() => { open = null })
     else if (masterOpen) smooth(() => { masterOpen = false })
@@ -1867,7 +1890,7 @@
   getFile={(r, f, quiet) => getFile(r.session ?? '', f.path, `result:${r.id}:${f.path}`, quiet).then(x => x?.blob ?? null)}
   onExternal={(r) => fileAction(r.session ?? '', r.path, 'open', `result:${r.id}:${r.path}`)} onSession={(n) => { openPage(null); pick(n) }}
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
-{#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} {monitors} onMonitor={openMonitor} onNewMonitor={() => talk(t.monitorsNewDraft)} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
+{#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} {monitors} monitorsSum={stShown.monitors ?? null} onMonitor={openMonitor} onNewMonitor={() => talk(t.monitorsNewDraft)} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused, armable: !!leaving.armable } : null} onCloseArm={arm} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} {todo} {sessionTodo} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
@@ -1894,11 +1917,11 @@
     onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
     onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}
     onScreen={(s) => { waitId = null; waitFrom = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)} />
-  {:else if p === 'monitor' && monitors?.some(x => x.id === monitorId)}{@const m = monitors.find(x => x.id === monitorId)!}
+  {:else if p === 'monitor' && monitorShown}{@const m = monitorShown}
   <!-- Ferma, Chiedi alla master e Modifica degli avvisi passano dalla chat della master col testo già scritto, finché il contratto
        non porta i comandi (app-monitoraggi-09-11). -->
-  <MonitorView {m} {wide} onBack={() => { monitorId = null; openPage(null) }} onStop={() => { monitorId = null; talk(t.monitorStopDraft(m.name)) }}
-    onAsk={() => { monitorId = null; talk(t.monitorAskDraft(m.name)) }} onEditAlerts={() => { monitorId = null; talk(t.monitorAlertsDraft(m.name)) }} />
+  <MonitorView {m} {wide} onBack={closeMonitor} onStop={() => { closeMonitor(); talk(t.monitorStopDraft(m.title)) }}
+    onAsk={() => { closeMonitor(); talk(t.monitorAskDraft(m.title)) }} onEditAlerts={() => { closeMonitor(); talk(t.monitorAlertsDraft(m.title)) }} />
   {:else}
   <Page title={pageTitle[p]} v3 onBack={() => openPage(null)}>
     {#if p === 'launch'}
