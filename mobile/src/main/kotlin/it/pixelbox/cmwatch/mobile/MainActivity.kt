@@ -2576,19 +2576,7 @@ class MainActivity : ComponentActivity() {
             SharedTransitionLayout {
                 val sideOff = animationsOff()
                 flight.AnimatedContent(
-                    transitionSpec = {
-                        val opening = targetState != null
-                        val ease = androidx.compose.animation.core.tween<androidx.compose.ui.unit.IntOffset>(FLY_MS, easing = it.pixelbox.cmwatch.mobile.ui.CmMotion.easing)
-                        when {
-                            // La card che vola: lo fanno i bordi condivisi, il resto non si muove.
-                            flyByCard || sideOff -> EnterTransition.None togetherWith ExitTransition.None
-                            // Senza card la pagina entra da destra sopra la home, che arretra un poco; esce dallo stesso lato.
-                            opening -> (slideInHorizontally(it.pixelbox.cmwatch.mobile.ui.CmMotion.bounce) { w -> w / 3 } + fadeIn(androidx.compose.animation.core.tween(FLY_MS))) togetherWith
-                                (slideOutHorizontally(ease) { w -> -w / 10 } + fadeOut(androidx.compose.animation.core.tween(FLY_MS / 2)))
-                            else -> ((slideInHorizontally(it.pixelbox.cmwatch.mobile.ui.CmMotion.bounce) { w -> -w / 10 } + fadeIn(androidx.compose.animation.core.tween(FLY_MS))) togetherWith
-                                (slideOutHorizontally(ease) { w -> w / 3 } + fadeOut(androidx.compose.animation.core.tween(FLY_MS)))).apply { targetContentZIndex = -1f }
-                        }
-                    },
+                    transitionSpec = { it.pixelbox.cmwatch.mobile.ui.flySpec(targetState != null, flyByCard, sideOff) },
                     contentKey = { it != null },
                 ) { name ->
                     CompositionLocalProvider(LocalFly provides Fly(this@SharedTransitionLayout, this@AnimatedContent, enabled = flyByCard)) {

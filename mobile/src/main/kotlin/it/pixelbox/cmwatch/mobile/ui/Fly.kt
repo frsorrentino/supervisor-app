@@ -35,8 +35,17 @@ const val FLY_MS = 320
  * slancio, rompeva i bordi condivisi: la scheda spariva per qualche fotogramma e la pagina compariva piena di colpo, coi titoli
  * della scheda sopra la sua testata. Annullata da un valore nuovo del dito, riparte dalla frazione raggiunta; [go] falso (il dito
  * lasciato) la ferma prima del passo dopo, che toglierebbe il volo al rilascio.
+ *
+ * Un volo ancora in corso verso un'altra meta finisce lì prima che il dito lo prenda (secondo video di Franz, 09/11 18:18,
+ * 4,65-5,01 s): richiusa la sessione col dito, il volo del ritorno dura ancora mezzo secondo dopo che la card è quasi al suo
+ * posto, e il dito che la riapriva lo interrompeva a metà. La pagina che usciva rientrava dal suo stato di uscita: la card
+ * spariva per due fotogrammi e la pagina entrava trasparente sopra la home.
  */
 suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.follow(to: Float, target: String?, go: () -> Boolean = { true }) {
+    if (currentState != targetState && targetState != target) {
+        snapTo(targetState)
+        repeat(2) { androidx.compose.runtime.withFrameNanos { } }
+    }
     while (go()) {
         val from = if (targetState == target && currentState != target) fraction else 0f
         val next = if (to > from) minOf(to, from + FLY_STEP) else maxOf(to, from - FLY_STEP)
@@ -48,6 +57,20 @@ suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.fol
 
 /** Il passo più lungo del dito in un fotogramma: quello del tocco a 60 Hz. */
 const val FLY_STEP = 1000f / 60f / FLY_MS
+
+/** Il cambio fra la home e la sessione del telefono (transizione C, Franz 09/10 20:15). */
+fun flySpec(opening: Boolean, flyByCard: Boolean, sideOff: Boolean): ContentTransform {
+    val ease = tween<androidx.compose.ui.unit.IntOffset>(FLY_MS, easing = CmMotion.easing)
+    return when {
+        // La card che vola: lo fanno i bordi condivisi, il resto non si muove.
+        flyByCard || sideOff -> EnterTransition.None togetherWith ExitTransition.None
+        // Senza card la pagina entra da destra sopra la home, che arretra un poco; esce dallo stesso lato.
+        opening -> (slideInHorizontally(CmMotion.bounce) { w -> w / 3 } + fadeIn(tween(FLY_MS))) togetherWith
+            (slideOutHorizontally(ease) { w -> -w / 10 } + fadeOut(tween(FLY_MS / 2)))
+        else -> ((slideInHorizontally(CmMotion.bounce) { w -> -w / 10 } + fadeIn(tween(FLY_MS))) togetherWith
+            (slideOutHorizontally(ease) { w -> w / 3 } + fadeOut(tween(FLY_MS)))).apply { targetContentZIndex = -1f }
+    }
+}
 
 /**
  * La scheda che diventa pagina o colonna e il ritorno (app-volo-titolo-telefono-05-11, regola Morph): mai due testi uno sopra

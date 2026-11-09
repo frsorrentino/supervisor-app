@@ -57,21 +57,25 @@ import java.time.ZoneId
  * `follow`, al rilascio `open` cambia e il volo va a destinazione da dove è arrivato.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
-private object Swipe {
+internal object Swipe {
     val st: State = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
     val none = SheetActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {})
     const val NAME = "field-notes"
 
-    /** Il dito: le frazioni dello schermo che percorre, una per fotogramma, poi il rilascio. */
-    class Finger(val path: List<Float>, val opening: Boolean, val release: Boolean = true)
+    /** Il dito: dopo [wait] fotogrammi, le frazioni dello schermo che percorre, una per fotogramma, poi il rilascio. */
+    class Finger(val path: List<Float>, val opening: Boolean, val release: Boolean = true, val wait: Int = 0)
 
     /**
      * La home e la pagina della sessione, col fondo della pagina [pageBg] (nei test che misurano, una tinta che la home non ha);
      * il dito parte dopo dieci fotogrammi fermi.
      */
-    @Composable fun Stage(finger: Finger, pageBg: Color? = null) = CmPhoneTheme(day = false) { CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalPageBg provides pageBg) {
+    @Composable fun Stage(finger: Finger, pageBg: Color? = null) = Stage(listOf(finger), pageBg)
+
+    /** I gesti uno dopo l'altro, come Franz nel video: aprire, richiudere, riaprire. */
+    @Composable fun Stage(fingers: List<Finger>, pageBg: Color? = null) = CmPhoneTheme(day = false) { CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalPageBg provides pageBg) {
         val cards = remember { mutableStateMapOf<String, Int>() }
-        var open by remember { mutableStateOf(if (finger.opening) null else NAME) }
+        var open by remember { mutableStateOf(if (fingers.first().opening) null else NAME) }
+        var opening by remember { mutableStateOf(true) }
         var flyTarget by remember { mutableStateOf(open) }
         var flyByCard by remember { mutableStateOf(true) }
         val seek = remember { SeekableTransitionState(flyTarget) }
@@ -82,12 +86,12 @@ private object Swipe {
         }
         LaunchedEffect(flyTarget) { seek.animateTo(flyTarget, if (seek.fraction == 0f) tween(it.pixelbox.cmwatch.mobile.ui.FLY_MS, easing = LinearEasing) else null) }
         LaunchedEffect(seek) {
-            snapshotFlow { pulled }.collectLatest { d -> if (d > 0f) seek.follow(d, if (finger.opening) NAME else null) { pulled > 0f } }
+            snapshotFlow { pulled }.collectLatest { d -> if (d > 0f) seek.follow(d, if (opening) NAME else null) { pulled > 0f } }
         }
         val flight = rememberTransition(seek, label = "fly")
         CompositionLocalProvider(LocalCardsOnScreen provides cards) {
             SharedTransitionLayout(Modifier.fillMaxSize().background(V3.Bg)) {
-                flight.AnimatedContent(transitionSpec = { EnterTransition.None togetherWith ExitTransition.None }, contentKey = { it != null }) { name ->
+                flight.AnimatedContent(transitionSpec = { it.pixelbox.cmwatch.mobile.ui.flySpec(targetState != null, flyByCard, false) }, contentKey = { it != null }) { name ->
                     CompositionLocalProvider(LocalFly provides Fly(this@SharedTransitionLayout, this@AnimatedContent, enabled = flyByCard)) {
                         if (name == null) Column(Modifier.fillMaxSize()) {
                             SummaryList(Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts)
@@ -98,11 +102,15 @@ private object Swipe {
         }
         LaunchedEffect(Unit) {
             repeat(10) { withFrameNanos {} }
-            if (finger.opening) flyByCard = cards.containsKey(NAME)
-            for (x in finger.path) { pulled = x; withFrameNanos {} }
-            if (!finger.release) return@LaunchedEffect
-            pulled = 0f
-            open = if (finger.opening) NAME else null
+            for (finger in fingers) {
+                repeat(finger.wait) { withFrameNanos {} }
+                opening = finger.opening
+                if (finger.opening) flyByCard = cards.containsKey(NAME)
+                for (x in finger.path) { pulled = x; withFrameNanos {} }
+                if (!finger.release) return@LaunchedEffect
+                pulled = 0f
+                open = if (finger.opening) NAME else null
+            }
         }
     } }
 }
@@ -116,9 +124,12 @@ class FlySwipeTest {
      * Per ogni fotogramma, dopo i dieci fermi, la parte dello schermo con la tinta della pagina (la pagina che si scopre nella
      * scheda che vola: una tinta che la home non ha) e quella col fondo delle card della home (quanto della home si vede).
      */
-    private fun shares(finger: Swipe.Finger): Pair<List<Float>, List<Float>> {
+    private fun shares(finger: Swipe.Finger): Pair<List<Float>, List<Float>> = shares(listOf(finger)).let { (p, c, _) -> p to c }
+
+    /** Come sopra per più gesti di fila, con in più la parte trasparente: la pagina sopra la home, né l'una né l'altra. */
+    private fun shares(fingers: List<Swipe.Finger>): Triple<List<Float>, List<Float>, List<Float>> {
         frames.clear()
-        val view = ComposeView(paparazzi.context).apply { setContent { Swipe.Stage(finger, pageBg) } }
+        val view = ComposeView(paparazzi.context).apply { setContent { Swipe.Stage(fingers, pageBg) } }
         paparazzi.gif(view, end = 1400, fps = 60)
         val page = pageBg.toArgb()
         val card = V3.S2.toArgb()
@@ -126,14 +137,23 @@ class FlySwipeTest {
             val rgb = img.javaClass.getMethod("getRGB", Int::class.java, Int::class.java)
             val w = img.javaClass.getMethod("getWidth").invoke(img) as Int
             val h = img.javaClass.getMethod("getHeight").invoke(img) as Int
-            var p = 0; var c = 0; var all = 0
+            var p = 0; var c = 0; var t = 0; var all = 0
             for (y in 0 until h step 4) for (x in 0 until w step 4) {
                 all++
-                when (rgb.invoke(img, x, y) as Int) { page -> p++; card -> c++ }
+                val px = rgb.invoke(img, x, y) as Int
+                when (px) { page -> p++; card -> c++ }
+                if (between(px)) t++
             }
-            p.toFloat() / all to c.toFloat() / all
+            Triple(p.toFloat() / all, c.toFloat() / all, t.toFloat() / all)
         }
-        return out.map { it.first } to out.map { it.second }
+        return Triple(out.map { it.first }, out.map { it.second }, out.map { it.third })
+    }
+
+    /** Un colore fra il fondo scuro della home e la tinta della pagina, verde e blu a metà strada: la pagina in dissolvenza. */
+    private fun between(px: Int): Boolean {
+        val r = (px shr 16) and 0xFF; val g = (px shr 8) and 0xFF; val b = px and 0xFF
+        val p = pageBg.toArgb()
+        return r <= ((p shr 16) and 0xFF) && g in 0x10 until ((p shr 8) and 0xFF) - 2 && b in 0x14 until (p and 0xFF) - 3 && b - r > 6
     }
 
     private fun steps(s: List<Float>) = s.zipWithNext { a, b -> b - a }
@@ -156,6 +176,18 @@ class FlySwipeTest {
         assertTrue("chiusura: la pagina resta (${s.last()})", s.last() < 0.05f)
         val behind = cards.drop(1)
         assertTrue("chiusura: la home coperta o in dissolvenza durante il volo (card ${cards})", behind.min() > cards.last() * 0.7f)
+    }
+
+    // Il primo gesto dopo un ritorno (secondo video di Franz, 09/11 18:18, 4,65-5,01 s): richiusa la sessione col dito, la riapre
+    // un terzo di secondo dopo, col volo del ritorno ancora in corso. La card non sparisce dal suo posto e la pagina non entra
+    // trasparente sopra la home: si scopre piena nella scheda che cresce, come al primo gesto.
+    @Test fun reopeningRightAfterAReturnUncoversAFullPage() {
+        val path = listOf(0.03f, 0.06f, 0.1f, 0.15f, 0.2f, 0.25f)
+        val (s, cards, faded) = shares(listOf(Swipe.Finger(path, opening = false), Swipe.Finger(path, opening = true, wait = 17)))
+        assertTrue("riapertura: la pagina entra trasparente sopra la home (al massimo ${faded.max()}, quote $faded)", faded.max() < 0.05f)
+        assertTrue("riapertura: la pagina non arriva intera (${s.last()})", s.last() > 0.6f)
+        val again = cards.drop(path.size + 1 + 17)
+        assertTrue("riapertura: la card sparisce dal suo posto prima del volo (card $again)", steps(again).min() > -again.first() / 2)
     }
 
     // L'immagine dell'ultimo fotogramma di ogni passo: `BufferedImage` il classpath dei test Android non lo vede, si legge per riflessione.
