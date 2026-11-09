@@ -13,14 +13,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import it.pixelbox.cmwatch.R
+import it.pixelbox.cmwatch.wear.ui.theme.rememberRoundSpec
+import it.pixelbox.cmwatch.wear.ui.theme.roundListPadding
 import it.pixelbox.cmwatch.contract.Project
 import it.pixelbox.cmwatch.rules.LaunchRules
 import it.pixelbox.cmwatch.wear.ui.components.WideButton
@@ -32,11 +34,10 @@ import it.pixelbox.cmwatch.wear.ui.theme.morph
  * su un progetto apre sotto di lui le due strade: scrivere il primo messaggio (tastiera o dettatura) o avviare senza.
  */
 @Composable
-fun LaunchScreen(projects: List<Project>, enabled: Boolean, onLaunch: (String) -> Unit, onWrite: (Project) -> Unit = {}) {
-    val listState = rememberTransformingLazyColumnState()
-    val spec = rememberTransformationSpec()
+fun LaunchScreen(projects: List<Project>, enabled: Boolean, onLaunch: (String) -> Unit, onWrite: (Project) -> Unit = {}, listState: TransformingLazyColumnState = rememberTransformingLazyColumnState()) {
+    val spec = rememberRoundSpec()
     var chosen by rememberSaveable { mutableStateOf<String?>(null) }
-    ScreenScaffold(scrollState = listState) { padding ->
+    ScreenScaffold(scrollState = listState, contentPadding = roundListPadding()) { padding ->
         TransformingLazyColumn(state = listState, contentPadding = padding, modifier = Modifier.fillMaxSize()) {
             item { ListHeader(transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec)) { Text(stringResource(R.string.launch_new)) } }
             if (projects.isEmpty()) item { Text(stringResource(R.string.launch_empty), color = CmColors.text2, modifier = Modifier.morph(this, spec)) }

@@ -17,15 +17,17 @@ import it.pixelbox.cmwatch.contract.SessionState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import it.pixelbox.cmwatch.R
+import it.pixelbox.cmwatch.wear.ui.theme.rememberRoundSpec
+import it.pixelbox.cmwatch.wear.ui.theme.roundListPadding
 import it.pixelbox.cmwatch.rules.ToolText
 import it.pixelbox.cmwatch.contract.Freshness
 import it.pixelbox.cmwatch.data.Snapshot
@@ -41,10 +43,9 @@ import it.pixelbox.cmwatch.wear.ui.theme.morph
 
 /** Lista Sessioni: le aperte in ordine ❓ ▶ ✓ (già nel Repo), le chiuse dietro un tasto; in fondo Panoramica, Impostazioni e Nuova sessione. */
 @Composable
-fun SessionsScreen(snapshot: Snapshot, now: Long, onOpen: (String) -> Unit, onSettings: () -> Unit, onMenu: (Screen) -> Unit = {}, ambient: Boolean = false, onReopen: (String) -> Unit = {}, onFollow: (String, Boolean) -> Unit = { _, _ -> }, reopenStatus: (String) -> it.pixelbox.cmwatch.rules.ReopenText.Status? = { null }) {
-    val listState = rememberTransformingLazyColumnState()
+fun SessionsScreen(snapshot: Snapshot, now: Long, onOpen: (String) -> Unit, onSettings: () -> Unit, onMenu: (Screen) -> Unit = {}, ambient: Boolean = false, onReopen: (String) -> Unit = {}, onFollow: (String, Boolean) -> Unit = { _, _ -> }, reopenStatus: (String) -> it.pixelbox.cmwatch.rules.ReopenText.Status? = { null }, listState: TransformingLazyColumnState = rememberTransformingLazyColumnState()) {
     it.pixelbox.cmwatch.wear.ui.components.DemoScroll(listState)   // solo per i video promozionali, via adb
-    val spec = rememberTransformationSpec()
+    val spec = rememberRoundSpec()
     val sessions = snapshot.state?.sessions.orEmpty()
     val fresh = snapshot.freshness !is Freshness.Stale
     // Scorre solo la riga al centro, e solo se il sistema permette le animazioni.
@@ -71,7 +72,7 @@ fun SessionsScreen(snapshot: Snapshot, now: Long, onOpen: (String) -> Unit, onSe
             onLongClick = if (s.state != SessionState.GONE) ({ onFollow(s.name, !s.followed) }) else null,
         )
     }
-    ScreenScaffold(scrollState = listState) { padding ->
+    ScreenScaffold(scrollState = listState, contentPadding = roundListPadding()) { padding ->
         TransformingLazyColumn(state = listState, contentPadding = padding, modifier = Modifier.fillMaxSize()) {
             item {
                 ListHeader(transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec)) {

@@ -18,14 +18,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import it.pixelbox.cmwatch.R
+import it.pixelbox.cmwatch.wear.ui.theme.rememberRoundSpec
+import it.pixelbox.cmwatch.wear.ui.theme.roundListPadding
 import it.pixelbox.cmwatch.contract.Freshness
 import it.pixelbox.cmwatch.contract.Session
 import it.pixelbox.cmwatch.contract.Tier
@@ -59,9 +61,9 @@ fun QuestionScreen(
     speaking: Boolean = false,
     onSpeak: () -> Unit = {},
     onChat: () -> Unit = {},
+    listState: TransformingLazyColumnState = rememberTransformingLazyColumnState(),
 ) {
-    val listState = rememberTransformingLazyColumnState()
-    val spec = rememberTransformationSpec()
+    val spec = rememberRoundSpec()
     val s: Session? = snapshot.state?.sessions?.firstOrNull { it.name == name }
     val q = s?.question
     val enabled = snapshot.freshness !is Freshness.Stale
@@ -89,7 +91,7 @@ fun QuestionScreen(
     }
 
     ScreenScaffold(
-        scrollState = listState,
+        scrollState = listState, contentPadding = roundListPadding(),
     ) { padding ->
         // La corona muove la Domanda un'opzione per volta, con lo scatto aptico del sistema (proposta 17, fase 1):
         // si sceglie senza coprire il testo con il dito.

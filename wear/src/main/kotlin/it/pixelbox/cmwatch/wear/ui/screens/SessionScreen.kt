@@ -18,15 +18,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import it.pixelbox.cmwatch.wear.ui.theme.bottomGlow
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import it.pixelbox.cmwatch.R
+import it.pixelbox.cmwatch.wear.ui.theme.rememberRoundSpec
+import it.pixelbox.cmwatch.wear.ui.theme.roundListPadding
 import it.pixelbox.cmwatch.contract.Freshness
 import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.data.Snapshot
@@ -75,6 +77,7 @@ fun SessionScreen(
     live: String? = null,
     speaking: Boolean = false,
     onListen: (() -> Unit)? = null,
+    listState: TransformingLazyColumnState = rememberTransformingLazyColumnState(),
 ) {
     val running = stringResource(R.string.tile_turn_running)
     val idleLabel = stringResource(R.string.state_idle)
@@ -85,9 +88,8 @@ fun SessionScreen(
         message = stringResource(R.string.tool_message), delegate = stringResource(R.string.tool_delegate),
         plan = stringResource(R.string.tool_plan), other = stringResource(R.string.tool_other),
     )
-    val listState = rememberTransformingLazyColumnState()
     it.pixelbox.cmwatch.wear.ui.components.DemoScroll(listState)   // solo per i video promozionali, via adb
-    val spec = rememberTransformationSpec()
+    val spec = rememberRoundSpec()
     val s = snapshot.state?.sessions?.firstOrNull { it.name == name }
     val enabled = snapshot.freshness !is Freshness.Stale
     // Azione contestuale: «Rispondi» se c'è una domanda, «Riavvia» se la sessione è chiusa, altrimenti «Scrivi». È l'ultima
@@ -108,7 +110,7 @@ fun SessionScreen(
         }
     }
     ScreenScaffold(
-        scrollState = listState,
+        scrollState = listState, contentPadding = roundListPadding(),
     ) { padding ->
         // Bagliore in fondo mentre la sessione lavora (proposta 44, fase 1): respira piano e si spegne da solo quando
         // la sessione si ferma. In ambient e con «riduci animazioni» resta una luce ferma e fioca.

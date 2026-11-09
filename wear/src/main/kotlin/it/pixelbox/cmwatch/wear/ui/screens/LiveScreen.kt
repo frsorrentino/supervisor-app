@@ -31,9 +31,10 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import it.pixelbox.cmwatch.R
+import it.pixelbox.cmwatch.wear.ui.theme.rememberRoundSpec
+import it.pixelbox.cmwatch.wear.ui.theme.roundListPadding
 import it.pixelbox.cmwatch.rules.DoubleConfirm
 import it.pixelbox.cmwatch.rules.LiveCard
 import it.pixelbox.cmwatch.rules.LiveCard.Kind
@@ -53,7 +54,7 @@ import it.pixelbox.cmwatch.wear.ui.theme.morph
 @Composable
 fun LiveScreen(card: LiveCard?, now: Long, onTap: (LiveTap) -> Unit, onTalk: () -> Unit) {
     val listState = rememberTransformingLazyColumnState()
-    val spec = rememberTransformationSpec()
+    val spec = rememberRoundSpec()
     val kind = card?.kind ?: Kind.OFF
     val cancel = stringResource(R.string.live_cancel)
     val repeat = stringResource(R.string.live_repeat)
@@ -65,7 +66,7 @@ fun LiveScreen(card: LiveCard?, now: Long, onTap: (LiveTap) -> Unit, onTalk: () 
     val stop = stringResource(R.string.live_stop)
     val approve = stringResource(R.string.live_approve)
     val talk = stringResource(R.string.live_talk)
-    ScreenScaffold(scrollState = listState) { padding ->
+    ScreenScaffold(scrollState = listState, contentPadding = roundListPadding()) { padding ->
         TransformingLazyColumn(state = listState, contentPadding = padding, modifier = Modifier.fillMaxSize()) {
             fun button(text: String, a: Action, index: Int = 0, blocking: Boolean = false) = item {
                 WideButton(

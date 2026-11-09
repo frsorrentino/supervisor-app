@@ -55,15 +55,7 @@ class SpeakService : Service() {
         stopSelf()
     }
 
-    private fun notification(): Notification = NotificationCompat.Builder(this, Notifier.CHANNEL_FOLLOW)
-        .setSmallIcon(R.drawable.ic_app_mono)
-        .setContentTitle(getString(R.string.tts_reading))
-        .setOngoing(true).setSilent(true).setLocalOnly(true)
-        .addAction(
-            R.drawable.ic_play, getString(R.string.tts_stop),
-            PendingIntent.getService(this, 1, Intent(this, SpeakService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE),
-        )
-        .build()
+    private fun notification(): Notification = notification(this)
 
     companion object {
         const val TEXT = "text"
@@ -72,6 +64,31 @@ class SpeakService : Service() {
         const val ACTION_TEXT = "it.pixelbox.cmwatch.speak.TEXT"
         const val ACTION_STOP = "it.pixelbox.cmwatch.speak.STOP"
         private const val NOTIF_ID = 7301
+
+        /**
+         * La notifica fissa della lettura, con la sua `OngoingActivity` (app-wear-play-rifiuto-09-11: per le regole di Wear ogni
+         * notifica continua ne ha una, con l'icona sul quadrante e il chip nelle app recenti; il tocco apre l'app).
+         */
+        fun notification(
+            ctx: Context,
+            open: PendingIntent = PendingIntent.getActivity(ctx, NOTIF_ID, Intent(ctx, it.pixelbox.cmwatch.wear.MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT),
+        ): Notification {
+            val builder = NotificationCompat.Builder(ctx, Notifier.CHANNEL_FOLLOW)
+                .setSmallIcon(R.drawable.ic_app_mono)
+                .setContentTitle(ctx.getString(R.string.tts_reading))
+                .setOngoing(true).setSilent(true).setLocalOnly(true).setContentIntent(open)
+                .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+                .addAction(
+                    R.drawable.ic_play, ctx.getString(R.string.tts_stop),
+                    PendingIntent.getService(ctx, 1, Intent(ctx, SpeakService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE),
+                )
+            androidx.wear.ongoing.OngoingActivity.Builder(ctx, NOTIF_ID, builder)
+                .setStaticIcon(R.drawable.ic_app_mono)
+                .setStatus(androidx.wear.ongoing.Status.Builder().addTemplate(ctx.getString(R.string.tts_reading)).build())
+                .setTouchIntent(open)
+                .build().apply(ctx)
+            return builder.build()
+        }
 
         /** Sessione della notifica da cui parte la lettura; null se parte dall'app. */
         const val FROM = "from"

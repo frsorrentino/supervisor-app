@@ -6,15 +6,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import it.pixelbox.cmwatch.R
+import it.pixelbox.cmwatch.wear.ui.theme.rememberRoundSpec
+import it.pixelbox.cmwatch.wear.ui.theme.roundListPadding
 import it.pixelbox.cmwatch.wear.ui.components.WideButton
 import it.pixelbox.cmwatch.ui.tokens.CmColors
 import it.pixelbox.cmwatch.wear.ui.theme.morph
@@ -24,10 +26,9 @@ import it.pixelbox.cmwatch.wear.ui.theme.morph
  * configurazione dentro. In fondo la Demo, per chi non ha un PC (Franz, 26/09 18:09).
  */
 @Composable
-fun PairingScreen(status: PairingStatus, withCode: Boolean, onOpenPhone: () -> Unit, onEnterCode: () -> Unit, onRetry: () -> Unit, onDemo: () -> Unit = {}) {
-    val listState = rememberTransformingLazyColumnState()
-    val spec = rememberTransformationSpec()
-    ScreenScaffold(scrollState = listState) { padding ->
+fun PairingScreen(status: PairingStatus, withCode: Boolean, onOpenPhone: () -> Unit, onEnterCode: () -> Unit, onRetry: () -> Unit, onDemo: () -> Unit = {}, listState: TransformingLazyColumnState = rememberTransformingLazyColumnState()) {
+    val spec = rememberRoundSpec()
+    ScreenScaffold(scrollState = listState, contentPadding = roundListPadding()) { padding ->
         TransformingLazyColumn(state = listState, contentPadding = padding, modifier = Modifier.fillMaxSize()) {
             item { ListHeader(transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec)) { Text(stringResource(R.string.pairing_title)) } }
             item {
@@ -40,18 +41,20 @@ fun PairingScreen(status: PairingStatus, withCode: Boolean, onOpenPhone: () -> U
                 val color = if (status is PairingStatus.Failed) CmColors.gone else CmColors.text2
                 Text(text, style = MaterialTheme.typography.bodyMedium, color = color, modifier = Modifier.fillMaxWidth().morph(this, spec))
             }
+            if (withCode && status !is PairingStatus.Failed) item {
+                WideButton(stringResource(R.string.pairing_enter_code), onClick = onEnterCode, primary = false, enabled = status !is PairingStatus.Working, transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec))
+            }
+            if (status is PairingStatus.Idle) item {
+                WideButton(stringResource(R.string.pairing_demo), onClick = onDemo, primary = false, transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec))
+            }
+            // Il tasto pieno in fondo, dove Material 3 per Wear mette l'azione principale (app-wear-play-rifiuto-09-11): in cima alla
+            // lista ferma in fondo, largo e chiaro, il cerchio ne tagliava gli angoli; i tonali e il testo che salgono lassù sfumano.
             item {
                 if (status is PairingStatus.Failed) {
                     WideButton(stringResource(R.string.question_retry), onClick = onRetry, primary = true, transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec))
                 } else {
                     WideButton(stringResource(R.string.pairing_open_phone), onClick = onOpenPhone, primary = true, enabled = status !is PairingStatus.Working, transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec))
                 }
-            }
-            if (withCode && status !is PairingStatus.Failed) item {
-                WideButton(stringResource(R.string.pairing_enter_code), onClick = onEnterCode, primary = false, enabled = status !is PairingStatus.Working, transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec))
-            }
-            if (status is PairingStatus.Idle) item {
-                WideButton(stringResource(R.string.pairing_demo), onClick = onDemo, primary = false, transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec))
             }
         }
     }

@@ -10,15 +10,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import it.pixelbox.cmwatch.R
+import it.pixelbox.cmwatch.wear.ui.theme.rememberRoundSpec
+import it.pixelbox.cmwatch.wear.ui.theme.roundListPadding
 import it.pixelbox.cmwatch.contract.Event
 import it.pixelbox.cmwatch.contract.Freshness
 import it.pixelbox.cmwatch.contract.State
@@ -64,10 +66,10 @@ fun QuotaScreen(
      * sono ancora a zero (visto il 16/09 03:44). In app resta `null`: niente in ambient, niente con le animazioni spente.
      */
     animateOverride: Boolean? = null,
+    listState: TransformingLazyColumnState = rememberTransformingLazyColumnState(),
 ) {
-    val listState = rememberTransformingLazyColumnState()
     it.pixelbox.cmwatch.wear.ui.components.DemoScroll(listState)   // solo per i video promozionali, via adb
-    val spec = rememberTransformationSpec()
+    val spec = rememberRoundSpec()
     val labels = BriefCards.Labels(
         quota = stringResource(R.string.quota_label), week = stringResource(R.string.quota_week_pill),
         resetAt = stringResource(R.string.quota_reset_at), stale = stringResource(R.string.quota_stale),
@@ -89,7 +91,7 @@ fun QuotaScreen(
         Triple(q, QuotaHistory.pace(samples[account].orEmpty(), q.resetH5!!, now), account)
     }
     val oraReset = DateTimeFormatter.ofPattern("HH:mm", locale)
-    ScreenScaffold(scrollState = listState) { padding ->
+    ScreenScaffold(scrollState = listState, contentPadding = roundListPadding(bottom = 0.15f)) { padding ->
         TransformingLazyColumn(state = listState, contentPadding = padding, modifier = Modifier.fillMaxSize()) {
             // «Panoramica» (Franz, 16/09 14:33): la pagina è quota, ritmo e lavoro insieme; «Quota» diventa la sua prima sezione.
             item {

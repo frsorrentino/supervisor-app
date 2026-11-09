@@ -48,12 +48,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import it.pixelbox.cmwatch.R
+import it.pixelbox.cmwatch.wear.ui.theme.rememberRoundSpec
+import it.pixelbox.cmwatch.wear.ui.theme.roundListPadding
 import it.pixelbox.cmwatch.rules.AnswerText
 import it.pixelbox.cmwatch.rules.TerminalText
 import it.pixelbox.cmwatch.wear.ui.components.CmEdgeButton
@@ -92,10 +94,10 @@ fun TerminalScreen(
     railColor: androidx.compose.ui.graphics.Color = CmColors.accent,
     /** Per il badge accanto al nome in testata, come nella Scheda. */
     session: it.pixelbox.cmwatch.contract.Session? = null,
+    listState: TransformingLazyColumnState = rememberTransformingLazyColumnState(),
 ) {
-    val listState = rememberTransformingLazyColumnState()
     it.pixelbox.cmwatch.wear.ui.components.DemoScroll(listState)   // solo per i video promozionali, via adb
-    val spec = rememberTransformationSpec()
+    val spec = rememberRoundSpec()
     val blocks = remember(text) { text?.let { TerminalText.blocks(it) }.orEmpty() }
     // La lista segue la voce: il paragrafo letto sale in vista (l'elemento 0 è la testata).
     LaunchedEffect(current) { current?.let { listState.animateScrollToItem(it + 1) } }
@@ -116,7 +118,7 @@ fun TerminalScreen(
         if (text != null) seen = text
     }
     ScreenScaffold(
-        scrollState = listState,
+        scrollState = listState, contentPadding = roundListPadding(),
     ) { padding ->
         TransformingLazyColumn(state = listState, contentPadding = padding, modifier = Modifier.fillMaxSize()) {
             item {

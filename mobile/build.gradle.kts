@@ -20,7 +20,7 @@ android {
         targetSdk = 36
         // Stesso pacchetto su Play per telefono e orologio: versionCode = release × 10 + fattore di forma
         // (1 telefono, 2 orologio), unici nella scheda e con l'orologio sempre sopra il telefono.
-        versionCode = 21
+        versionCode = 31
         // Solo numeri in alto (Franz 31/10 21:38): cresce a ogni commit, uguale sul web; il commit resta in Informazioni.
         // Serve la storia intera: in CI il checkout ha fetch-depth 0. versionCode resta per Play.
         versionName = "0.2." + providers.exec { commandLine("git", "rev-list", "--count", "HEAD") }.standardOutput.asText.get().trim()

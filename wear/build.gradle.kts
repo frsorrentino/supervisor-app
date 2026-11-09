@@ -20,7 +20,7 @@ android {
         targetSdk = 36
         // Stesso pacchetto su Play per telefono e orologio: versionCode = release × 10 + fattore di forma
         // (1 telefono, 2 orologio), unici nella scheda e con l'orologio sempre sopra il telefono.
-        versionCode = 22
+        versionCode = 32
         versionName = "0.2"
     }
     buildFeatures { compose = true; buildConfig = true }
