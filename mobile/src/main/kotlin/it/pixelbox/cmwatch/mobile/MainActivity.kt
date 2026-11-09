@@ -480,7 +480,7 @@ class MainActivity : ComponentActivity() {
                 progress.collect { seek.seekTo(it.progress, targetState = null) }
                 open = null
             } catch (e: CancellationException) {
-                withContext(NonCancellable) { seek.animateTo(flyTarget) }
+                withContext(NonCancellable) { seek.land(flyTarget) }
             } finally {
                 systemBack.value = false
             }
@@ -495,7 +495,7 @@ class MainActivity : ComponentActivity() {
                 if (f <= 0f || f >= 1f || finger || back) return@collectLatest
                 kotlinx.coroutines.delay(400)
                 flyStale.intValue++
-                scope.launch { seek.animateTo(flyGuardTarget) }
+                scope.launch { seek.land(flyGuardTarget) }
             }
         }
         val flight = rememberTransition(seek, label = "fly")
@@ -2628,10 +2628,17 @@ class MainActivity : ComponentActivity() {
                                         }
                                     } finally {
                                         // Gesto cancellato (pointerInput che riparte): il rilascio non arriverà, si torna indietro.
-                                        if (!done && pulled > 0f) { pulled = 0f; pullFirst = null; scope.launch { seek.animateTo(null) } }
+                                        if (!done && pulled > 0f) { pulled = 0f; pullFirst = null; scope.launch { seek.land(null) } }
                                     }
-                                    if (done && pulled > 0f && (pulled / widthPx > 0.33f || speed.calculateVelocity().x < -1200f)) { pulled = 0f; open = f; pullFirst = null }
-                                    else if (pulled > 0f) { pulled = 0f; pullFirst = null; scope.launch { seek.animateTo(null) } }
+                                    if (done && pulled > 0f && (pulled / widthPx > 0.33f || speed.calculateVelocity().x < -1200f)) {
+                                        // Il volo riparte subito verso la sessione, da qui: attraverso `open` e i suoi effetti partiva dopo
+                                        // 0,6-1 s (Main è troppo grande per il compilatore e ogni ricomposizione è lenta), e intanto la guardia
+                                        // qui sopra trovava la frazione ferma e il bersaglio ancora la home, e la riportava lì (registrazione
+                                        // nell'emulatore del 09/11 21:07: la pagina piena e poi la home in un lampo).
+                                        pulled = 0f; open = f; flyTarget = f; pullFirst = null
+                                        scope.launch { seek.land(f) }
+                                    }
+                                    else if (pulled > 0f) { pulled = 0f; pullFirst = null; scope.launch { seek.land(null) } }
                                     else pullFirst = null
                                 }
                             }) { summaryPage() }
@@ -2708,7 +2715,7 @@ class MainActivity : ComponentActivity() {
                                     if (dragged <= 0f) return androidx.compose.ui.unit.Velocity.Zero
                                     val home = dragged / widthPx > 0.33f || available.x > 1200f
                                     dragged = 0f
-                                    if (home) open = null else scope.launch { seek.animateTo(flyNow) }
+                                    if (home) { open = null; flyTarget = null; scope.launch { seek.land(null) } } else scope.launch { seek.land(flyNow) }
                                     return available
                                 }
                             }

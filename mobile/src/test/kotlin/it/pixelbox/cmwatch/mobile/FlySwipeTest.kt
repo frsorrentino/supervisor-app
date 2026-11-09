@@ -45,6 +45,7 @@ import it.pixelbox.cmwatch.mobile.ui.follow
 import it.pixelbox.cmwatch.mobile.ui.land
 import it.pixelbox.cmwatch.rules.Summary
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -64,7 +65,7 @@ internal object Swipe {
     const val NAME = "field-notes"
 
     /** Il dito: dopo [wait] fotogrammi, le frazioni dello schermo che percorre, una per fotogramma, poi il rilascio. */
-    class Finger(val path: List<Float>, val opening: Boolean, val release: Boolean = true, val wait: Int = 0)
+    class Finger(val path: List<Float>, val opening: Boolean, val release: Boolean = true, val wait: Int = 0, val letGo: Boolean = false)
 
     /**
      * La home e la pagina della sessione, col fondo della pagina [pageBg] (nei test che misurano, una tinta che la home non ha);
@@ -110,7 +111,9 @@ internal object Swipe {
                 for (x in finger.path) { pulled = x; withFrameNanos {} }
                 if (!finger.release) return@LaunchedEffect
                 pulled = 0f
-                open = if (finger.opening) NAME else null
+                // Lasciato prima del terzo il volo torna da dove era partito; se no va a destinazione da qui, come in MainActivity.
+                if (finger.letGo) launch { seek.land(seek.currentState) }
+                else { open = if (finger.opening) NAME else null; flyTarget = open; launch { seek.land(open) } }
             }
         }
     } }
@@ -170,13 +173,15 @@ class FlySwipeTest {
         assertTrue("apertura: la home sparisce d'un colpo dietro la scheda (card ${cards})", steps(cards).min() > -cards.first() / 2)
     }
 
-    // Il ritorno col dito verso destra, lo specchio: la card torna al suo posto sopra la home, che c'è tutta dal primo fotogramma
-    // del gesto, senza un fondo che la copre o che svanisce sopra di lei (la home «in dissolvenza» del video, 2,20-2,60 s).
+    // Il ritorno col dito verso destra, a specchio dell'apertura (Franz, 09/11 21:37): la pagina si richiude nel riquadro che torna
+    // card, con la home dietro. Prima la pagina spariva al primo passo e la card volava da sola dalla cima della home, un lampo.
+    // Scoperta, la home non sbiadisce sotto un fondo che svanisce (la home «in dissolvenza» del primo video, 2,20-2,60 s).
     @Test fun closingFlickKeepsTheHomeBehind() {
         val (s, cards) = shares(Swipe.Finger(listOf(0.02f, 0.35f), opening = false))
+        assertTrue("chiusura: al primo passo la pagina sparisce invece di richiudersi (quote $s)", s[1] > 0.3f)
         assertTrue("chiusura: la pagina resta (${s.last()})", s.last() < 0.05f)
-        val behind = cards.drop(1)
-        assertTrue("chiusura: la home coperta o in dissolvenza durante il volo (card ${cards})", behind.min() > cards.last() * 0.7f)
+        val top = cards.indexOf(cards.max())
+        assertTrue("chiusura: la home in dissolvenza dopo il volo (card ${cards})", cards.drop(top).min() > cards.max() * 0.7f)
     }
 
     // Il primo gesto dopo un ritorno (secondo video di Franz, 09/11 18:18, 4,65-5,01 s): richiusa la sessione col dito, la riapre
@@ -184,11 +189,17 @@ class FlySwipeTest {
     // trasparente sopra la home: si scopre piena nella scheda che cresce, come al primo gesto.
     @Test fun reopeningRightAfterAReturnUncoversAFullPage() {
         val path = listOf(0.03f, 0.06f, 0.1f, 0.15f, 0.2f, 0.25f)
-        val (s, cards, faded) = shares(listOf(Swipe.Finger(path, opening = false), Swipe.Finger(path, opening = true, wait = 17)))
+        val (s, _, faded) = shares(listOf(Swipe.Finger(path, opening = false), Swipe.Finger(path, opening = true, wait = 17)))
         assertTrue("riapertura: la pagina entra trasparente sopra la home (al massimo ${faded.max()}, quote $faded)", faded.max() < 0.05f)
         assertTrue("riapertura: la pagina non arriva intera (${s.last()})", s.last() > 0.6f)
-        val again = cards.drop(path.size + 1 + 17)
-        assertTrue("riapertura: la card sparisce dal suo posto prima del volo (card $again)", steps(again).min() > -again.first() / 2)
+    }
+
+    // Il dito che apre la sessione e la lascia prima del terzo (registrazione nell'emulatore del 09/11 21:07): il volo torna alla
+    // card abbassando la frazione. `animateTo` verso la home scambiava i due stati e la pagina compariva piena per un fotogramma.
+    @Test fun openingLetGoEarlyGoesBackWithoutAFlash() {
+        val (s, _, _) = shares(listOf(Swipe.Finger(listOf(0.03f, 0.06f, 0.1f), opening = true, letGo = true)))
+        assertTrue("dito lasciato: la pagina compare piena (quote $s)", s.max() < 0.5f)
+        assertTrue("dito lasciato: la pagina resta (${s.last()})", s.last() < 0.02f)
     }
 
     // L'immagine dell'ultimo fotogramma di ogni passo: `BufferedImage` il classpath dei test Android non lo vede, si legge per riflessione.

@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.unit.dp
 
@@ -57,15 +58,36 @@ suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.fol
 
 /**
  * Il volo fino a [target] col passo del tocco: da fermo tutto [FLY_MS], dopo il dito il tempo che manca dalla frazione raggiunta
- * (app-scorrimento-prima-sessione-09-11). Tornando al punto di partenza, il volo resta quello della transizione.
+ * (app-scorrimento-prima-sessione-09-11). Se [target] è il punto da cui il volo era partito (il dito lasciato prima del terzo,
+ * Indietro annullato, la guardia) il volo torna indietro con [retreat].
  */
 suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.land(target: String?) {
-    val left = when {
-        fraction == 0f -> 1f
-        target == targetState -> 1f - fraction
-        else -> null
+    when {
+        targetState == target -> animateTo(target, tween(((1f - fraction) * FLY_MS).toInt().coerceAtLeast(1), easing = androidx.compose.animation.core.LinearEasing))
+        currentState == target -> retreat()
+        else -> animateTo(target, tween(FLY_MS, easing = androidx.compose.animation.core.LinearEasing))
     }
-    animateTo(target, left?.let { l -> tween((l * FLY_MS).toInt().coerceAtLeast(1), easing = androidx.compose.animation.core.LinearEasing) })
+}
+
+/**
+ * Il volo torna al punto di partenza abbassando la frazione, col passo del tocco. `animateTo` verso lo stato di partenza scambiava
+ * i due stati e ripartiva da zero verso quello di prima: per un fotogramma la meta compariva intera (la pagina piena sopra la
+ * home, o la home al posto della pagina) e poi volava indietro (registrazione nell'emulatore del 09/11 21:07).
+ */
+suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.retreat() {
+    val back = currentState
+    val toward = targetState
+    val from = fraction
+    val ms = (from * FLY_MS).coerceAtLeast(1f)
+    var start = -1L
+    while (true) {
+        val now = androidx.compose.runtime.withFrameNanos { it }
+        if (start < 0) start = now
+        val f = (from * (1f - (now - start) / 1_000_000f / ms)).coerceAtLeast(0f)
+        seekTo(f, toward)
+        if (f == 0f) break
+    }
+    snapTo(back)
 }
 
 /** Il passo più lungo del dito in un fotogramma: quello del tocco a 60 Hz. */
@@ -122,28 +144,33 @@ private fun Modifier.fullUnder(f: Fly, key: String, bounds: BoundsTransform): Mo
 @OptIn(ExperimentalSharedTransitionApi::class)
 private val UNCOVER = SharedTransitionScope.ResizeMode.scaleToBounds(androidx.compose.ui.layout.ContentScale.None, androidx.compose.ui.Alignment.TopStart)
 
-/** La card si allarga fino a diventare la scheda, e i due contenuti si danno il cambio (morphEnter, morphExit); con le animazioni spente, subito. */
+/**
+ * La card si allarga fino a diventare la pagina [page] e torna card a specchio (app-scorrimento-prima-sessione-09-11, Franz 09/11
+ * 21:37): durante il volo, nei due versi, si vede solo la pagina, che si scopre dall'angolo nel riquadro che cresce o si richiude
+ * nel riquadro che torna card; la card è nascosta e ricompare al suo posto all'arrivo. Prima, tornando, la pagina spariva al
+ * primo passo e la card volava da sola dalla cima della home (scelta A del 06/11): un lampo al rilascio. Con le animazioni
+ * spente, subito.
+ */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun Modifier.fly(key: String): Modifier {
+fun Modifier.fly(key: String, page: Boolean = false): Modifier {
     val f = LocalFly.current?.takeIf { it.enabled } ?: return this
     val off = animationsOff()
     // La scheda si allarga nella pagina con la molla breve senza rimbalzo (app-telefono-volo-pagina-06-11, come --spring-land).
     val bounds = BoundsTransform { _, _ -> if (off) snap() else Fx.land() }
     return with(f.shared) {
-        // Il fondo vola dentro la scheda (app-scorrimento-prima-sessione-09-11, video di Franz del 09/11 15:42), non sotto di lei
-        // come per il tablet (fullUnder): quello aveva la misura ferma del suo contenuto e non volava, copriva di nero la home
-        // dietro la scheda che cresceva, svaniva sopra di lei al ritorno e lasciava vuoto il posto della card. Una card di «Le
-        // altre» ha il fondo del suo gruppo, non uno suo: tornando volava trasparente, col suo nome sopra quello delle altre.
-        val card = rememberSharedContentState(key)
-        val fill = Cm.surface
+        // Niente fondo pieno sotto (fullUnder, rimasto al tablet): aveva la misura ferma del suo contenuto e non volava, copriva di
+        // nero la home dietro la scheda che cresceva e lasciava vuoto il posto della card. La pagina ha il suo fondo.
+        val state = rememberSharedContentState(key)
         this@fly.sharedBounds(
-            card, f.anim,
-            enter = morphEnter(off), exit = morphExit(off),
+            state, f.anim,
+            enter = EnterTransition.None, exit = if (off || page) ExitTransition.None else morphExit(off),
             boundsTransform = bounds,
             resizeMode = UNCOVER, zIndexInOverlay = 1f,
             clipInOverlayDuringTransition = OverlayClip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),
-        ).drawBehind { if (f.shared.isTransitionActive && card.isMatchFound) drawRect(fill) }
+        // La card non si vede mentre vola: sul telefono il suo `fadeOut` non la nascondeva nell'overlay e restava, coi suoi titoli,
+        // sopra la testata della pagina fino alla fine del volo (emulatore e telefono di Franz, 09/11 21:13).
+        ).graphicsLayer { if (!off && !page && f.shared.isTransitionActive && state.isMatchFound) alpha = 0f }
     }
 }
 

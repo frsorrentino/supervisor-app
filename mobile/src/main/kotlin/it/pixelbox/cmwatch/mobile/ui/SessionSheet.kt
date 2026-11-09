@@ -428,7 +428,7 @@ fun SessionSheet(
     androidx.compose.runtime.CompositionLocalProvider(LocalQuoteDraft provides quoteDraft) {
     // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
     Box(Modifier.fillMaxSize()) {
-    Column(Modifier.fly("card-${s.id}").fillMaxSize().background(LocalPageBg.current ?: Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
+    Column(Modifier.fly("card-${s.id}", page = true).fillMaxSize().background(LocalPageBg.current ?: Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
         // Sul telefono la frazione guida tutta l'apertura: 0 la home, 1 la conversazione. La tiene la pagina e non la barra, perché
         // col dito si muove tutto il pannello e la barra non è che la sua cima (Franz, 01/11).
         val masterAt = remember { androidx.compose.animation.core.Animatable(homePull ?: if (homeOpen) 0f else 1f) }
