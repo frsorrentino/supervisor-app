@@ -55,6 +55,19 @@ suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.fol
     }
 }
 
+/**
+ * Il volo fino a [target] col passo del tocco: da fermo tutto [FLY_MS], dopo il dito il tempo che manca dalla frazione raggiunta
+ * (app-scorrimento-prima-sessione-09-11). Tornando al punto di partenza, il volo resta quello della transizione.
+ */
+suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.land(target: String?) {
+    val left = when {
+        fraction == 0f -> 1f
+        target == targetState -> 1f - fraction
+        else -> null
+    }
+    animateTo(target, left?.let { l -> tween((l * FLY_MS).toInt().coerceAtLeast(1), easing = androidx.compose.animation.core.LinearEasing) })
+}
+
 /** Il passo più lungo del dito in un fotogramma: quello del tocco a 60 Hz. */
 const val FLY_STEP = 1000f / 60f / FLY_MS
 

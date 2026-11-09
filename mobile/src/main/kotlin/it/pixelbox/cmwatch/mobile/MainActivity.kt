@@ -469,10 +469,11 @@ class MainActivity : ComponentActivity() {
         // Sempre fino in fondo: dopo un gesto completato seekTo ha già messo il bersaglio a null (revisione 29/09).
         // Senza spec la durata è quella della transizione quando parte, ancora 0 perché il volo registra i bordi al layout:
         // il tocco su una card apriva la sessione in un fotogramma (registrazione dal vivo del 03/10 20:57). Con lo spec la
-        // frazione avanza da sola; dopo un gesto indietro (frazione già avanzata) resta il tempo che manca, come prima.
-        LaunchedEffect(flyTarget) {
-            seek.animateTo(flyTarget, if (seek.fraction == 0f) androidx.compose.animation.core.tween(FLY_MS, easing = androidx.compose.animation.core.LinearEasing) else null)
-        }
+        // frazione avanza da sola. Anche al rilascio del dito, che verso la sessione o verso la home ha portato il volo a metà, lo
+        // spec è quello del tocco sul tempo che manca (app-scorrimento-prima-sessione-09-11, Franz 09/11 18:34: «il lampo è sia in
+        // apertura che in chiusura nell'esatto momento del rilascio»): senza spec il volo prendeva la durata della transizione
+        // in quell'istante, con tutto quello che `open` ricompone, e poteva finire in un fotogramma.
+        LaunchedEffect(flyTarget) { seek.land(flyTarget) }
         PredictiveBackHandler(enabled = open != null && flyTarget != null && !settingsOpen && terminal == null) { progress ->
             systemBack.value = true
             try {

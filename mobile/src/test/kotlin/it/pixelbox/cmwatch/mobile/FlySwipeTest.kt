@@ -42,6 +42,7 @@ import it.pixelbox.cmwatch.mobile.ui.SheetActions
 import it.pixelbox.cmwatch.mobile.ui.SummaryList
 import it.pixelbox.cmwatch.mobile.ui.V3
 import it.pixelbox.cmwatch.mobile.ui.follow
+import it.pixelbox.cmwatch.mobile.ui.land
 import it.pixelbox.cmwatch.rules.Summary
 import kotlinx.coroutines.flow.collectLatest
 import org.junit.Assert.assertTrue
@@ -84,7 +85,7 @@ internal object Swipe {
             if (open != null && flyTarget == null) flyByCard = cards.containsKey(open)
             flyTarget = open
         }
-        LaunchedEffect(flyTarget) { seek.animateTo(flyTarget, if (seek.fraction == 0f) tween(it.pixelbox.cmwatch.mobile.ui.FLY_MS, easing = LinearEasing) else null) }
+        LaunchedEffect(flyTarget) { seek.land(flyTarget) }
         LaunchedEffect(seek) {
             snapshotFlow { pulled }.collectLatest { d -> if (d > 0f) seek.follow(d, if (opening) NAME else null) { pulled > 0f } }
         }
