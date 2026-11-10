@@ -32,16 +32,19 @@ class MonitorsScreenTest {
 
     @After fun night() { V3.day = false }
 
-    private fun home(s: State, open: Set<String>, day: Boolean = false) = paparazzi.snapshot {
+    private fun home(s: State, open: Set<String>, day: Boolean = false, list: List<it.pixelbox.cmwatch.contract.MonitorCard>? = items) = paparazzi.snapshot {
         CmPhoneTheme(still = true, day = day) {
             SummaryList(
                 Summary.build(s, emptyList(), emptyList(), s.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = s.ts,
-                usage = { Text("") }, kpiState = s, startOpen = open, monitors = items,
+                usage = { Text("") }, kpiState = s, startOpen = open, monitors = list,
             )
         }
     }
 
     // La sezione aperta in fondo a Dalla master: due righe in ambra, le altre verdi, «Nuovo monitoraggio» in fondo.
+    // Le schede non ancora arrivate (app-monitoraggi-attesa-10-11): la sezione c'è col numero del riassunto e una riga «in arrivo»; prima
+    // spariva finché la lettura non riusciva.
+    @Test fun homeSectionLoading() { paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, h = 5000)); home(st.copy(monitors = it.pixelbox.cmwatch.contract.MonitorsSummary(7, 2, st.ts)), setOf("monitors"), list = null) }
     @Test fun homeSection() { paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, h = 5000)); home(st, setOf("monitors")) }
     @Test fun homeSectionDay() { paparazzi.unsafeUpdateConfig(deviceConfig = phone(360, h = 5000)); home(st, setOf("monitors"), day = true) }
     @Test fun homeSection320Font13() { paparazzi.unsafeUpdateConfig(deviceConfig = phone(320, 1.3f, 6000)); home(st, setOf("monitors")) }

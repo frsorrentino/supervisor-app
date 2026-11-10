@@ -320,20 +320,18 @@ class MainActivity : ComponentActivity() {
         }
         val monitorsSum = snap.state?.monitors
         val monitorsOp = snap.state?.ops?.contains("monitors") == true
+        // La lettura delle schede riprova finché arrivano e usa anche una risposta arrivata tardi (PatientRead, app-monitoraggi-attesa-10-11).
+        suspend fun readMonitors(arg: String?): String? = it.pixelbox.cmwatch.rules.PatientRead.read(
+            send = { app.repo.command(CmdOp.MONITORS, null, arg) }, results = app.repo.resultsById, forget = { x -> app.repo.forget(x) }, giveUpOnRefusal = arg != null,
+        )
         LaunchedEffect(monitorsSum?.at, monitorsSum?.n, monitorsOp) {
             if (!monitorsOp || (monitorsSum?.n ?: 0) == 0) { monitorsNow = null; return@LaunchedEffect }
-            val id = runCatching { app.repo.command(CmdOp.MONITORS, null, null) }.getOrNull() ?: return@LaunchedEffect
-            val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
-            app.repo.forget(id)
-            r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeMonitors(x.text) }.onSuccess { p -> monitorsNow = p.items } }
+            readMonitors(null)?.let { x -> runCatching { ContractJson.decodeMonitors(x) }.onSuccess { p -> monitorsNow = p.items } }
         }
         LaunchedEffect(monitorOpen) {
             val m = monitorOpen ?: return@LaunchedEffect
             if (monitorsNow?.any { x -> x.id == m } == true || !monitorsOp) return@LaunchedEffect
-            val id = runCatching { app.repo.command(CmdOp.MONITORS, null, m) }.getOrNull() ?: return@LaunchedEffect
-            val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { x -> x.containsKey(id) }[id] }
-            app.repo.forget(id)
-            r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeMonitor(x.text) }.onSuccess { c -> monitorOne = c } }
+            readMonitors(m)?.let { x -> runCatching { ContractJson.decodeMonitor(x) }.onSuccess { c -> monitorOne = c } }
         }
         // «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11, contratto 1.133): il comando con l'id; la risposta è la scheda che gira e prende
         // il posto della vecchia, poi la si rilegge ogni POLL_S secondi finché gira, al più fino a `timeout_s`. Un rifiuto resta in una riga.

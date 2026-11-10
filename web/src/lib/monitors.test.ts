@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { FORMS, formOf, isLook, lastIndex, line, looking, maxIndex, meter, minIndex, monitorOf, nearest, outcomeOf, refreshOf, scale, span, times, up, values, xOf, yOf } from './monitors'
+import { FORMS, formOf, isLook, lastIndex, line, looking, maxIndex, meter, minIndex, monitorOf, nearest, outcomeOf, refreshOf, retryAfter, scale, sectionOf, span, times, up, values, xOf, yOf } from './monitors'
 import { decodeMonitor, decodeMonitors } from './decideDecode'
 import type { MonitorCard, MonitorRefresh, MonitorsPage } from './contract'
 
@@ -91,5 +91,13 @@ describe('monitors', () => {
     expect(outcomeOf(card('error', { message: 'curl: (6) host non trovato\nseconda riga', rc: 6 }))).toEqual({ kind: 'failed', message: 'curl: (6) host non trovato', timeout: false })
     expect(outcomeOf(card('error', { rc: 124 }))).toEqual({ kind: 'failed', message: null, timeout: true })
     expect(outcomeOf(card('ok', { ended: 990 }), 'too early: retry in 12 s')).toEqual({ kind: 'failed', message: 'too early: retry in 12 s', timeout: false })
+  })
+  // app-monitoraggi-attesa-10-11: gli stessi casi di MonitorsTest.kt.
+  it("la sezione c'è dal riassunto prima delle schede", () => {
+    expect(sectionOf(null, null)).toBe(null)
+    expect(sectionOf({ n: 0, watch: 0, at: null }, null)).toBe(null)
+    expect(sectionOf({ n: 3, watch: 1, at: 100 }, null)).toEqual({ count: 3, loading: true })
+    expect(sectionOf({ n: 3, watch: 1, at: 100 }, [])).toEqual({ count: 3, loading: true })
+    expect([0, 1, 2, 3, 4, 5].map(retryAfter)).toEqual([5, 10, 20, 40, 60, 60])
   })
 })

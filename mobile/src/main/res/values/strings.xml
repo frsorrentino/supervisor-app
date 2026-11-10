@@ -1907,6 +1907,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="monitor_last">ultimo controllo %s</string>
     <!-- Aggiorna adesso (app-monitoraggi-aggiorna-10-11, contratto 1.133) -->
     <string name="monitor_refresh">Aggiorna adesso</string>
+    <string name="monitors_loading">Le schede stanno arrivando dal PC</string>
     <string name="monitor_refreshed">aggiornato alle %s</string>
     <string name="monitor_refresh_failed">aggiornamento non riuscito</string>
     <string name="monitor_refresh_timeout">aggiornamento non riuscito: tempo scaduto</string>

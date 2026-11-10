@@ -338,13 +338,16 @@ fun SummaryList(
     class NewRow(val title: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val count: String, val tag: String, val open: androidx.compose.runtime.MutableState<Boolean>, val hot: Boolean = false)
     val newOpen = remember { (it.pixelbox.cmwatch.rules.HomeOrder.TOP + "da_guardare" + "monitors").associateWith { k -> section(k) } }
     // I corpi delle voci per chiave; i Monitoraggi il loro (app-monitoraggi-09-11).
-    val bodies: Map<String, @Composable () -> Unit> = monitors?.takeIf { it.isNotEmpty() }?.let { ms -> sectionBodies + ("monitors" to @Composable { MonitorsCard(ms, onMonitor, onNewMonitor) }) } ?: sectionBodies
+    // La sezione c'è appena il riassunto dice che ci sono Monitoraggi, anche prima delle schede (app-monitoraggi-attesa-10-11): allora le
+    // righe sono «in arrivo».
+    val monitorsSection = it.pixelbox.cmwatch.rules.Monitors.section(kpiState?.monitors, monitors)
+    val bodies: Map<String, @Composable () -> Unit> = monitorsSection?.let { sec -> sectionBodies + ("monitors" to @Composable { val ms = monitors; if (sec.loading || ms == null) MonitorsLoading() else MonitorsCard(ms, onMonitor, onNewMonitor) }) } ?: sectionBodies
     fun newRow(key: String): NewRow? {
         if (key !in bodies) return null
         val icons = androidx.compose.material.icons.Icons.Outlined
         // Grigia finché nessuno è da guardare: allora il numero si accende (app-monitoraggi-09-11).
-        if (key == "monitors") return monitors?.let { ms ->
-            NewRow(R.string.monitors_title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ShowChart, ms.size.toString(), "home-sez-monitoraggi", newOpen.getValue(key), it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, ms) > 0)
+        if (key == "monitors") return monitorsSection?.let { sec ->
+            NewRow(R.string.monitors_title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ShowChart, sec.count.toString(), "home-sez-monitoraggi", newOpen.getValue(key), it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, monitors) > 0)
         }
         val st = kpiState ?: return null
         val open = newOpen[key] ?: return null
@@ -368,7 +371,7 @@ fun SummaryList(
     fun toggleNew(r: NewRow, key: String) { r.open.value = !r.open.value; save(key, r.open.value) }
     // Il riassunto a destra di una voce chiusa: per i Monitoraggi quanti sono da guardare, altrimenti niente.
     @Composable fun rightOf(key: String): String? =
-        if (key == "monitors") monitors?.let { ms -> it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, ms) }?.takeIf { n -> n > 0 }?.let { n -> stringResource(R.string.monitors_look, n) }
+        if (key == "monitors") monitorsSection?.let { _ -> it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, monitors) }?.takeIf { n -> n > 0 }?.let { n -> stringResource(R.string.monitors_look, n) }
         else newRight(key, kpiState)
     // Rilasciata sul tabellone, la voce resta aperta col suo contenuto in vista (Franz 02/11 20:45).
     // Presa una voce di In cima, le voci di In cima restano con la sola testata, così sotto si vede il bersaglio (Franz 03/11 12:05,

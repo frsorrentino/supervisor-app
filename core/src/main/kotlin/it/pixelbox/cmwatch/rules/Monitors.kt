@@ -141,4 +141,19 @@ object Monitors {
     /** Ogni quanti secondi rileggere la scheda mentre gira, e fino a quando al più (`timeout_s`, o due minuti). */
     const val POLL_S = 3L
     fun pollUntil(c: MonitorCard, now: Long): Long = (c.refresh?.started ?: now) + (c.refresh?.timeoutS ?: 120) + POLL_S
+
+    /**
+     * La sezione Monitoraggi nella home (app-monitoraggi-attesa-10-11, Franz 10/11 15:12: «Perché da app non vedo la scheda monitoraggi?»):
+     * c'è appena `/state.monitors` dice n > 0, col numero del riassunto e le righe «in arrivo» finché le schede non arrivano. Prima
+     * spariva quando la prima lettura tardava più di 30 s (il comando era rimasto in fila 23-51 s sul relay).
+     */
+    data class Section(val count: Int, val loading: Boolean)
+    fun section(summary: MonitorsSummary?, items: List<MonitorCard>?): Section? = when {
+        !items.isNullOrEmpty() -> Section(items.size, false)
+        (summary?.n ?: 0) > 0 -> Section(summary!!.n, true)
+        else -> null
+    }
+
+    /** Dopo quanti secondi riprovare la lettura delle schede al tentativo [attempt] (0 il primo): 5, 10, 20, 40, poi ogni 60. */
+    fun retryAfter(attempt: Int): Long = minOf(60L, 5L shl attempt.coerceIn(0, 4))
 }

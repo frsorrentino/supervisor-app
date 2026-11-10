@@ -140,4 +140,14 @@ class MonitorsTest {
         assertEquals("ok", done.refresh?.state); assertTrue((done.refresh?.retryAt ?: 0) > t)
         assertFalse("troppo presto", run(it.pixelbox.cmwatch.contract.CmdOp.MONITOR_REFRESH, first.id).ok)
     }
+
+    // app-monitoraggi-attesa-10-11: la sezione c'è appena il riassunto dice n > 0, col suo numero e le righe in arrivo; poi le schede.
+    @Test fun theSectionShowsFromTheSummaryBeforeTheCards() {
+        assertNull(Monitors.section(null, null))
+        assertNull(Monitors.section(MonitorsSummary(0, 0, null), null))
+        assertEquals(Monitors.Section(3, loading = true), Monitors.section(MonitorsSummary(3, 1, 100), null))
+        assertEquals(Monitors.Section(3, loading = true), Monitors.section(MonitorsSummary(3, 1, 100), emptyList()))
+        assertEquals(Monitors.Section(mock.size, loading = false), Monitors.section(MonitorsSummary(3, 1, 100), mock))
+        assertEquals(listOf(5L, 10L, 20L, 40L, 60L, 60L), (0..5).map(Monitors::retryAfter))
+    }
 }

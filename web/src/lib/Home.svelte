@@ -77,7 +77,7 @@
   import { closedToday, toccaCounts } from './toccaRules'
   import ToccaClosed from './ToccaClosed.svelte'
   import MonitorsList from './MonitorsList.svelte'
-  import { looking as monitorsLooking } from './monitors'
+  import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
   import type { MonitorCard, MonitorsSummary } from './contract'
   let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
     suggestionNames?: string[]
@@ -783,9 +783,10 @@
 {/snippet}
 <!-- I Monitoraggi (app-monitoraggi-09-11): l'ultima sezione di Dalla master; il numero si accende quando uno è da guardare. -->
 {#snippet secMonitors()}
-{#if shows('you') && monitors?.length}{@const n = monitorsLooking(monitorsSum, monitors)}
-  {@render sec('monitors', t.monitorsTitle, 'svg:chart', String(monitors.length), 'home-sez-monitoraggi', !open.monitors && n ? t.monitorsLook(n) : null, { hot: n > 0 })}
-  {#if open.monitors}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><MonitorsList items={monitors} onOpen={onMonitor} onNew={onNewMonitor} /></div></div>{/if}
+<!-- C'è appena il riassunto dice n > 0, con le righe in arrivo finché le schede non ci sono (app-monitoraggi-attesa-10-11). -->
+{#if shows('you') && monitorsSection(monitorsSum, monitors)}{@const ms = monitorsSection(monitorsSum, monitors)!}{@const n = monitorsLooking(monitorsSum, monitors)}
+  {@render sec('monitors', t.monitorsTitle, 'svg:chart', String(ms.count), 'home-sez-monitoraggi', !open.monitors && n ? t.monitorsLook(n) : null, { hot: n > 0 })}
+  {#if open.monitors}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">{#if ms.loading || !monitors}<div class="monload" data-testid="monitor-in-arrivo"><span class="spin" aria-hidden="true"></span>{t.monitorsLoading}</div>{:else}<MonitorsList items={monitors} onOpen={onMonitor} onNew={onNewMonitor} />{/if}</div></div>{/if}
 {/if}
 {/snippet}
 {#snippet secSessions()}
@@ -1813,4 +1814,10 @@
   /* Effetto D: la home dà il suo scorrimento alla testata, che si compatta (AppBar). Il tabellone resta sempre pieno: sbiadiva
      scorrendo e diventava illeggibile (Franz 04/11 17:30, app-home-niente-dissolvenza-04-11). */
   .home { scroll-timeline: --home-scroll block; }
+  /* Le righe dei Monitoraggi in arrivo dal PC (app-monitoraggi-attesa-10-11), come MonitorsLoading in Kotlin. */
+  .monload { display: flex; align-items: center; gap: 8px; min-height: 60px; padding: 10px 12px 10px 0; border-radius: 14px; background: var(--s1); color: var(--tx2); font-size: 14px; white-space: nowrap; overflow: hidden; }
+  .monload .spin { width: 52px; flex: none; display: grid; place-items: center; }
+  .monload .spin::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--tx3); border-top-color: var(--tx2); animation: monspin .9s linear infinite; }
+  @keyframes monspin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .monload .spin::before { animation: none; } }
 </style>

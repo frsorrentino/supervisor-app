@@ -530,3 +530,21 @@ internal fun MonitorRefreshOutcome(m: MonitorCard) {
         null -> Unit
     }
 }
+
+/**
+ * Le righe dei Monitoraggi mentre le schede arrivano (app-monitoraggi-attesa-10-11): la sezione c'è già col numero del riassunto, e qui una
+ * riga dice che le schede stanno arrivando dal PC, con la rotella; l'app intanto riprova la lettura.
+ */
+@Composable
+internal fun MonitorsLoading() {
+    V3List {
+        Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(top = 10.dp, bottom = 10.dp, end = 12.dp).testTag("monitor-in-arrivo"), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(V3.Rail), contentAlignment = Alignment.Center) {
+                if (animationsOff()) Box(Modifier.size(9.dp).clip(CircleShape).background(V3.Tx3))
+                else androidx.compose.material3.CircularProgressIndicator(Modifier.size(16.dp), color = V3.Tx2, strokeWidth = 2.dp)
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.monitors_loading), style = V3.Small, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
+        }
+    }
+}

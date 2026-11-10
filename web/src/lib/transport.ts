@@ -32,7 +32,8 @@ const SLASH_RESULT_TIMEOUT_MS = 60_000
 const FILE_RESULT_TIMEOUT_MS = 180_000
 /** Le pagine lette dal PC (app-pwa-decisioni-03-11): il 03/11 alle 12:46 `decisioni` è arrivato al relay 29,5 s dopo la partenza
  * ed eseguito in 0,1 s; a 20 s la PWA aveva già lasciato perdere e restava «In arrivo dal PC». */
-const PAGE_OPS: CmdOp[] = ['decisioni', 'prove', 'seguiti', 'prima_raccolta', 'results', 'agenda']
+// Anche i Monitoraggi (app-monitoraggi-attesa-10-11): il 10/11 `monitors` è rimasto in fila sul relay 23-51 s, e a 20 s la sezione spariva.
+const PAGE_OPS: CmdOp[] = ['decisioni', 'prove', 'seguiti', 'prima_raccolta', 'results', 'agenda', 'monitors', 'monitor_refresh']
 export const resultTimeoutMs = (op: CmdOp) =>
   op === 'slash' || op === 'done' || PAGE_OPS.includes(op) ? SLASH_RESULT_TIMEOUT_MS : op === 'file' || op === 'report' || op === 'quota_route' ? FILE_RESULT_TIMEOUT_MS : RESULT_TIMEOUT_MS
 

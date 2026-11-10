@@ -19,7 +19,7 @@
   import DaProvare from './lib/DaProvare.svelte'
   import TiAspettaView from './lib/TiAspettaView.svelte'
   import { decodeDecisions, decodeMonitor, decodeMonitors, decodeProve, readPage } from './lib/decideDecode'
-  import { monitorOf, pollUntil, POLL_S, type RefreshCtx } from './lib/monitors'
+  import { monitorOf, pollUntil, POLL_S, retryAfter, type RefreshCtx } from './lib/monitors'
   import type { MonitorCard } from './lib/contract'
   import type { DecisionGroup, ProvePage } from './lib/contract'
   import PrimaRaccolta from './lib/PrimaRaccolta.svelte'
@@ -529,17 +529,37 @@
   let monitorFrom = $state<PageName | null>(null)
   const openMonitor = (id: string) => { if (page !== 'monitor') monitorFrom = page; monitorId = id; openPage('monitor') }
   const closeMonitor = () => { const to = monitorFrom; monitorId = null; monitorFrom = null; if (location.hash.startsWith('#/monitor/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
+  // La lettura delle schede riprova finché arrivano (app-monitoraggi-attesa-10-11, Franz 10/11 15:12: «Perché da app non vedo la scheda
+  // monitoraggi?»): il comando restava in fila sul relay 23-51 s e la lettura si arrendeva; intanto la sezione c'è già dal riassunto.
+  // Ogni tentativo aspetta quanto una pagina (resultTimeoutMs); il successivo parte dopo retryAfter. In silenzio: niente «✗» a ogni giro.
+  // Un rifiuto: per una scheda sola (non c'è più) si smette, per l'elenco si riprova. Una lettura più nuova ferma quella di prima.
+  const quiet = async (c: Cmd): Promise<CmdResult | null> => { try { return tr ? await tr.send(c) : null } catch { return null } }
+  const nap = (ms: number) => new Promise(r => setTimeout(r, ms))
+  let monitorsRead = 0
+  async function readMonitorsPatiently<T>(arg: string | null, decode: (raw: string) => T, mine: () => boolean): Promise<T | null> {
+    for (let a = 0; mine() && tr; a++) {
+      const r = await quiet(newCmd('monitors', null, arg))
+      if (!mine()) return null
+      if (r?.ok) { const { page } = readPage(r, decode, null); if (page) return page }
+      else if (r && arg) return null
+      await nap(retryAfter(a) * 1000)
+    }
+    return null
+  }
   $effect(() => {
     const sum = st.monitors, can = st.ops?.includes('monitors')
     if (demo || !can) return
     void sum?.at
     if (!sum?.n) { untrack(() => { monitors = null }); return }
-    void run(newCmd('monitors', null)).then(r => { const { page } = readPage(r, decodeMonitors, null); if (page) monitors = page.items })
+    const mine = ++monitorsRead
+    void readMonitorsPatiently(null, decodeMonitors, () => mine === monitorsRead).then(page => { if (page) monitors = page.items })
   })
+  let monitorOneRead = 0
   $effect(() => {
     const id = monitorId
     if (!id || demo || untrack(() => monitors)?.some(x => x.id === id)) return
-    void run(newCmd('monitors', null, id)).then(r => { const { page } = readPage(r, decodeMonitor, null); if (page && monitorId === id) monitorOne = page })
+    const mine = ++monitorOneRead
+    void readMonitorsPatiently(id, decodeMonitor, () => mine === monitorOneRead && monitorId === id).then(page => { if (page && monitorId === id) monitorOne = page })
   })
   const monitorShown = $derived(monitors?.find(x => x.id === monitorId) ?? (monitorOne?.id === monitorId ? monitorOne : null))
   // «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11, contratto 1.133): il tocco manda `monitor_refresh` con l'id; la risposta è la scheda

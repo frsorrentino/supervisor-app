@@ -9,6 +9,10 @@ describe('pagine lette dal PC', () => {
     for (const op of ['decisioni', 'prove', 'seguiti', 'prima_raccolta'] as const) expect(resultTimeoutMs(op)).toBeGreaterThan(29_500)
     expect(resultTimeoutMs('transcript')).toBe(20_000)
   })
+  // app-monitoraggi-attesa-10-11: dal log del relay del 10/11 `monitors` è rimasto in fila fino a 51,1 s; a 20 s la sezione Monitoraggi spariva.
+  it('i Monitoraggi aspettano più della fila vista dal vivo', () => {
+    for (const op of ['monitors', 'monitor_refresh'] as const) expect(resultTimeoutMs(op)).toBeGreaterThan(51_100)
+  })
   it('senza risposta dicono che il PC non ha risposto, invece di restare in arrivo', () => {
     expect(readPage(null, decodeDecisions, null)).toEqual({ page: null, failed: true })
     expect(readPage({ id: 'x', ok: false, text: 'timeout' } as never, decodeDecisions, null).failed).toBe(true)

@@ -102,3 +102,13 @@ export const POLL_S = 3
 export const pollUntil = (c: MonitorCard, now: number) => (c.refresh?.started ?? now) + (c.refresh?.timeout_s ?? 120) + POLL_S
 /** Cosa serve al tasto, dato da App col contesto `monitor-refresh`: l'op del relay, l'ora, i tocchi in corso e i rifiuti per id. */
 export type RefreshCtx = { ops: string[] | null; now: number; asked: string[]; failed: Record<string, string>; onRefresh: (id: string) => void }
+/**
+ * La sezione Monitoraggi nella home (app-monitoraggi-attesa-10-11): c'è appena `/state.monitors` dice n > 0, col numero del riassunto e le
+ * righe in arrivo finché le schede non ci sono. Come Monitors.section in Kotlin.
+ */
+export function sectionOf(summary: MonitorsSummary | null | undefined, items: MonitorCard[] | null | undefined): { count: number; loading: boolean } | null {
+  if (items?.length) return { count: items.length, loading: false }
+  return (summary?.n ?? 0) > 0 ? { count: summary!.n, loading: true } : null
+}
+/** Dopo quanti secondi riprovare la lettura delle schede al tentativo `attempt` (0 il primo): 5, 10, 20, 40, poi ogni 60. */
+export const retryAfter = (attempt: number) => Math.min(60, 5 * 2 ** Math.min(4, Math.max(0, attempt)))
