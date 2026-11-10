@@ -462,6 +462,15 @@ enum class CmdOp {
 @Serializable data class ProveGroup(val build: String, val n: Int = 0, val at: Long = 0, val tasks: List<String> = emptyList(), val prove: List<ProveItem> = emptyList())
 @Serializable data class ProveKo(val id: Long, val task: String, val short: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val text: String = "", val at: Long = 0)
 @Serializable data class ProveRed(val task: String, val short: String? = null, val reason: String? = null, val at: Long = 0)
+/**
+ * Contratto 1.134: una prova sola, dall'op `prove` con `arg` = il suo numero (app-prova-link-10-11). `state` `todo | ok | ko | red`;
+ * `text` le parole della persona per `ko`, il motivo del controllo rosso per `red`; `at` l'ora dell'esito, o di quando è stata scritta.
+ * `short`, `title`, `session`, `project` null se il compito non è più nel registro.
+ */
+@Serializable data class ProvaOne(
+    val id: Long, val task: String = "", val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null,
+    val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val state: String = "todo", val text: String? = null, val at: Long = 0,
+)
 @Serializable data class ProvePage(val at: Long = 0, val n: Int = 0, val builds: Int = 0, val groups: List<ProveGroup> = emptyList(), val ko: List<ProveKo> = emptyList(), val red: List<ProveRed> = emptyList())
 
 /** Contratto 1.99, op `decisioni`. `kind`: pause, ok, needs_you; `where`: here o pc. */

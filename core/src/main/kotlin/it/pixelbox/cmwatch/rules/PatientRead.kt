@@ -17,7 +17,13 @@ object PatientRead {
     suspend fun read(
         send: suspend () -> String?, results: Flow<Map<String, CmdResult>>, forget: (String) -> Unit,
         giveUpOnRefusal: Boolean, wait: Long = 30_000L, after: (Int) -> Long = { a -> Monitors.retryAfter(a) * 1000 },
-    ): String? {
+    ): String? = result(send, results, forget, giveUpOnRefusal, wait, after)?.takeIf { it.ok }?.text
+
+    /** Come [read], ma col risultato: con [giveUpOnRefusal] anche il rifiuto, per dirne il motivo (una prova che non esiste). */
+    suspend fun result(
+        send: suspend () -> String?, results: Flow<Map<String, CmdResult>>, forget: (String) -> Unit,
+        giveUpOnRefusal: Boolean, wait: Long = 30_000L, after: (Int) -> Long = { a -> Monitors.retryAfter(a) * 1000 },
+    ): CmdResult? {
         val ids = mutableListOf<String>()
         var attempt = 0
         try {
@@ -29,8 +35,7 @@ object PatientRead {
                 if (got != null) {
                     val (id, r) = got
                     ids.remove(id); forget(id)
-                    if (r.ok) return r.text
-                    if (giveUpOnRefusal) return null
+                    if (r.ok || giveUpOnRefusal) return r
                     delay(after(attempt))
                 }
                 attempt++

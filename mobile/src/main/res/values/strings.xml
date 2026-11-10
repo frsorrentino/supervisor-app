@@ -1908,6 +1908,19 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <!-- Aggiorna adesso (app-monitoraggi-aggiorna-10-11, contratto 1.133) -->
     <string name="monitor_refresh">Aggiorna adesso</string>
     <string name="monitors_loading">Le schede stanno arrivando dal PC</string>
+    <!-- La scheda di una prova (app-prova-link-10-11, contratto 1.134) -->
+    <string name="prova_title">Prova #%1$s</string>
+    <string name="prova_state_todo">Da provare</string>
+    <string name="prova_state_ok">Va</string>
+    <string name="prova_state_ko">Non va</string>
+    <string name="prova_state_red">Confermata, controllo rosso</string>
+    <string name="prova_where">Dove</string>
+    <string name="prova_do">Cosa fare</string>
+    <string name="prova_expected">Cosa vedere</string>
+    <string name="prova_at">alle %1$s</string>
+    <string name="prova_loading">La prova sta arrivando dal PC</string>
+    <string name="prova_unsupported">Il PC non sa ancora aprire una prova per numero: serve un supervisor più nuovo.</string>
+    <string name="prova_open_verify">Apri in Verifica</string>
     <string name="monitor_refreshed">aggiornato alle %s</string>
     <string name="monitor_refresh_failed">aggiornamento non riuscito</string>
     <string name="monitor_refresh_timeout">aggiornamento non riuscito: tempo scaduto</string>

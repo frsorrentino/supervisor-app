@@ -235,7 +235,18 @@ export class DemoTransport implements Transport {
           this.set({ ...s, seguiti: { rimasto: q.rimasto.filter(i => i.stale === true).length, altrove: q.altrove.filter(r => r.positive.length > 0 && !r.task).length, promemoria: q.promemoria.length } })
           return ok(text)
         }
-        case 'prove': return ok(JSON.stringify(this.prove ??= proveDemo(this.now())))
+        case 'prove': {
+          const page = (this.prove ??= proveDemo(this.now()))
+          if (!cmd.arg) return ok(JSON.stringify(page))
+          // Contratto 1.134 (app-prova-link-10-11): con l'arg una prova sola, dall'elenco della demo; un numero che non c'è è un errore in una riga.
+          const n = Number(cmd.arg)
+          if (!Number.isInteger(n)) return ko(`prova: «${cmd.arg}» non è il numero di una prova`)
+          const p = page.groups.flatMap(g => g.prove).find(x => x.id === n)
+          if (p) return ok(JSON.stringify({ id: p.id, task: p.task, short: p.short ?? null, title: p.title ?? null, session: p.session ?? null, project: p.project ?? null, build: p.build, dove: p.dove ?? null, fai: p.fai, atteso: p.atteso, state: 'todo', text: null, at: page.at }))
+          const k = page.ko.find(x => x.id === n)
+          if (k) return ok(JSON.stringify({ id: k.id, task: k.task, short: k.short ?? null, title: null, session: null, project: null, build: k.build, dove: k.dove ?? null, fai: k.fai, atteso: k.atteso, state: 'ko', text: k.text, at: page.at }))
+          return ko(`prova ${n}: non esiste`)
+        }
         case 'decisioni': return ok(JSON.stringify(this.decisions ??= decisionsDemo(this.now())))
         // Contratto 1.130: le domande che aspettano; `attesa` dà la voce col pezzo di trascrizione, una chiusa è un rifiuto come nel relay.
         case 'attese': return ok(JSON.stringify({ at: this.now(), items: waitsDemo(this.now()).map(({ msg: _m, ...w }) => w) }))

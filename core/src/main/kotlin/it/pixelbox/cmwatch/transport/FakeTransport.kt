@@ -54,6 +54,14 @@ class FakeTransport(
     }
     private fun demoMonitors(): MonitorsPage = ContractJson.decodeMonitors(sampleText("monitors")).let { p -> p.copy(items = p.items.map(::demoMonitor)) }
     private fun cardJson(c: MonitorCard): String = ContractJson.json.encodeToString(MonitorCard.serializer(), c)
+    private fun demoProva(arg: String): ProvaOne? {
+        val n = arg.trim().toLongOrNull() ?: return null
+        val page = runCatching { ContractJson.decodeProve(sampleText("prove")) }.getOrNull() ?: return null
+        page.groups.flatMap { it.prove }.firstOrNull { it.id == n }?.let { p ->
+            return ProvaOne(p.id, p.task, p.short, p.title, p.session, p.project, p.build, p.dove, p.fai, p.atteso, "todo", null, page.at)
+        }
+        return page.ko.firstOrNull { it.id == n }?.let { k -> ProvaOne(k.id, k.task, k.short, null, null, null, k.build, k.dove, k.fai, k.atteso, "ko", k.text, page.at) }
+    }
 
     /**
      * Contratto 1.68 nella demo (Franz, 15/10 dalla web app): atlas-shop ferma per te con un login, field-notes con un ok
@@ -395,7 +403,11 @@ class FakeTransport(
             CmdOp.PAIR_ADD -> ko("pair --add: no saved key, nothing to add to — use `relay pair`")
             // Contratto 1.37: i testi del relay; la demo toglie il compito approvato dalla lista.
             // Contratto 1.99: le pagine e i risultati della fixture del contratto.
-            CmdOp.PROVE, CmdOp.DECISIONI, CmdOp.PRIMA_RACCOLTA, CmdOp.SEGUITI -> ok(sampleText(cmd.op.name.lowercase()))
+            // Contratto 1.134: con l'arg una prova sola, presa dall'elenco della fixture (da fare, o «Non va» con le parole); un numero che non c'è
+            // è un errore in una riga, come il relay.
+            CmdOp.PROVE -> if (cmd.arg.isNullOrBlank()) ok(sampleText("prove")) else demoProva(cmd.arg)?.let { p -> ok(ContractJson.json.encodeToString(ProvaOne.serializer(), p)) }
+                ?: ko(if (cmd.arg.toLongOrNull() == null) "prova: «${cmd.arg}» non è il numero di una prova" else "prova ${cmd.arg}: non esiste")
+            CmdOp.DECISIONI, CmdOp.PRIMA_RACCOLTA, CmdOp.SEGUITI -> ok(sampleText(cmd.op.name.lowercase()))
             CmdOp.PRIMA_RACCOLTA_AZIONE -> ok("ok")
             // Contratto 1.106: la pagina dei risultati della fixture; «Visto» toglie il lavoro da Da guardare, la nota risponde come il relay.
             CmdOp.RESULTS -> ok(sampleText("results"))

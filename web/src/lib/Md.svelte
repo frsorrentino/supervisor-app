@@ -1,6 +1,7 @@
 <script lang="ts">
   import { parse } from './markdown'
   import { findLinks } from './links'
+  import { provaLink, provaRefs } from './provaLinks'
   import { TASK_URL } from './chatLabels'
   // Il testo con il markdown dell'app (`linked` di SessionSheet.kt): grassetto, corsivo, codice, link con testo, poi i link
   // nudi che non stanno già dentro un link. Pezzi di testo semplice, niente HTML iniettato.
@@ -14,6 +15,9 @@
     }))
     const linked = md.spans.filter(sp => sp.kind === 'link')
     for (const [a, b] of findLinks(plain)) if (!linked.some(l => a < l.end && l.start < b)) marks.push({ start: a, end: b, set: { url: plain.slice(a, b) } })
+    // Le prove citate (app-prova-link-10-11): «prova #518» apre la scheda di quella prova, col link `#/prova/<n>` che App porta lì.
+    const taken = marks.filter(m => m.set.url)
+    for (const r of provaRefs(plain)) if (!taken.some(l => r.start < l.end && l.start < r.end)) marks.push({ start: r.start, end: r.end, set: { url: provaLink(r.n) } })
     const cuts = [...new Set([0, plain.length, ...marks.flatMap(m => [m.start, m.end])])].sort((x, y) => x - y)
     const out: Piece[] = []
     for (let i = 0; i < cuts.length - 1; i++) {

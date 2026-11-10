@@ -105,6 +105,11 @@ export type PrimaRaccoltaSection = { key: string; dove?: string | null; n: numbe
 /** Contratto 1.100, op `prima_raccolta`. */
 export type PrimaRaccoltaPage = { at: number; status: string; done: number; total: number; consent?: boolean | null; ask_text?: string | null; cost: number; sections: PrimaRaccoltaSection[]; first_round?: { at?: number | null; cost?: string | null } | null }
 export type ProveGroup = { build: string; n: number; at: number; tasks: string[]; prove: ProveItem[] }
+/**
+ * Contratto 1.134: una prova sola, dall'op `prove` con `arg` = il suo numero (app-prova-link-10-11). `state` todo | ok | ko | red;
+ * `text` le parole della persona per ko, il motivo per red; `at` l'ora dell'esito o di quando è stata scritta.
+ */
+export type ProvaOne = { id: number; task: string; short: string | null; title: string | null; session: string | null; project: string | null; build: string; dove: string | null; fai: string; atteso: string; state: 'todo' | 'ok' | 'ko' | 'red'; text: string | null; at: number }
 export type ProvePage = { at: number; n: number; builds: number; groups: ProveGroup[]; ko: (Omit<ProveItem, 'title' | 'session' | 'project'> & { text: string })[]; red: { task: string; short?: string | null; reason?: string | null; at: number }[] }
 export type DecisionItem = { kind: string; task?: string | null; short?: string | null; title?: string | null; session?: string | null; project?: string | null; reason?: string | null; since: number; where?: string | null; undo?: string | null; undo_how?: string | null; what?: string | null; where_to?: string | null; options?: string[] | null; untested?: string | null
   /** Contratto 1.104: l'inizio del piano e cosa si aspetta (ok, choice, pc, other); `title` è il titolo intero. */

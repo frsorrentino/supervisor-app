@@ -297,10 +297,14 @@ class MainActivity : ComponentActivity() {
         // che c'è un valore nuovo; senza monitoraggi la sezione non c'è. La scheda aperta, per id: dalla home, da un link
         // `#/monitor/<id>` o da un suggerimento; una scheda che l'elenco non ha ancora si legge da sola.
         var monitorOpen by remember { mutableStateOf<String?>(null) }
+        // La scheda di una prova (app-prova-link-10-11, contratto 1.134): aperta da «prova #N» nel testo o da `#/prova/<n>`; la lettura
+        // riprova finché il PC risponde (PatientRead), un rifiuto o un relay di prima si dicono nella scheda.
+        var provaOpen by remember { mutableStateOf<Long?>(null) }
+        var provaRead by remember { mutableStateOf<it.pixelbox.cmwatch.rules.ProvaLinks.Read?>(null) }
         var monitorsNow by remember { mutableStateOf<List<it.pixelbox.cmwatch.contract.MonitorCard>?>(null) }
         var monitorOne by remember { mutableStateOf<it.pixelbox.cmwatch.contract.MonitorCard?>(null) }
         val linkHandler = androidx.compose.ui.platform.LocalUriHandler.current
-        androidx.compose.runtime.SideEffect { (linkHandler as? DownloadLinks)?.let { d -> d.onWait = { w -> waitOpen = w }; d.onMonitor = { m -> monitorOpen = m } } }
+        androidx.compose.runtime.SideEffect { (linkHandler as? DownloadLinks)?.let { d -> d.onWait = { w -> waitOpen = w }; d.onMonitor = { m -> monitorOpen = m }; d.onProva = { n -> provaOpen = n } } }
         LaunchedEffect(waitOpen) {
             val w = waitOpen ?: return@LaunchedEffect
             waitItem = null; waitGone = false; waitFailed = false
@@ -332,6 +336,14 @@ class MainActivity : ComponentActivity() {
             val m = monitorOpen ?: return@LaunchedEffect
             if (monitorsNow?.any { x -> x.id == m } == true || !monitorsOp) return@LaunchedEffect
             readMonitors(m)?.let { x -> runCatching { ContractJson.decodeMonitor(x) }.onSuccess { c -> monitorOne = c } }
+        }
+        LaunchedEffect(provaOpen) {
+            provaRead = null
+            val n = provaOpen ?: return@LaunchedEffect
+            val r = it.pixelbox.cmwatch.rules.PatientRead.result(
+                send = { app.repo.command(CmdOp.PROVE, null, n.toString()) }, results = app.repo.resultsById, forget = { x -> app.repo.forget(x) }, giveUpOnRefusal = true,
+            )
+            if (r != null && provaOpen == n) provaRead = it.pixelbox.cmwatch.rules.ProvaLinks.read(r.ok, r.text)
         }
         // «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11, contratto 1.133): il comando con l'id; la risposta è la scheda che gira e prende
         // il posto della vecchia, poi la si rilegge ogni POLL_S secondi finché gira, al più fino a `timeout_s`. Un rifiuto resta in una riga.
@@ -1547,6 +1559,13 @@ class MainActivity : ComponentActivity() {
         if (!wide) monitorShown?.let { m ->
             it.pixelbox.cmwatch.mobile.ui.PageIn { monitorPage(m, false) }
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { monitorOpen = null }
+            return
+        }
+        // La scheda di una prova (app-prova-link-10-11): a tutto schermo anche sul tablet, da un link nel testo; ancora da provare, il
+        // tasto apre Verifica, dove si risponde.
+        provaOpen?.let { n ->
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.ProvaPage(n, provaRead, false, onBack = { provaOpen = null }, onVerify = { provaOpen = null; proveOpen = true }) }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { provaOpen = null }
             return
         }
         if (decisionsOpen) {

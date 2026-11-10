@@ -2673,6 +2673,12 @@ internal fun linked(text: String, tasks: TaskLinks? = null): AnnotatedString = a
     }
     it.pixelbox.cmwatch.rules.Links.find(plain).filter { r -> linked.none { l -> r.first <= l.last && l.first <= r.last } }.forEach { r ->
         addLink(androidx.compose.ui.text.LinkAnnotation.Url(plain.substring(r), link), r.first, r.last + 1)
+        linked += r
+    }
+    // Le prove citate (app-prova-link-10-11, Franz 10/11 20:59): «prova #518», «prove #518 e #527» aprono la scheda di quella prova
+    // dentro l'app, col link `#/prova/<n>` che DownloadLinks porta lì come `#/attesa` e `#/monitor`.
+    it.pixelbox.cmwatch.rules.ProvaLinks.find(plain).filter { r -> linked.none { l -> r.range.first <= l.last && l.first <= r.range.last } }.forEach { r ->
+        addLink(androidx.compose.ui.text.LinkAnnotation.Url(it.pixelbox.cmwatch.rules.ProvaLinks.link(r.n), link), r.range.first, r.range.last + 1)
     }
 }
 

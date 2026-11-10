@@ -29,8 +29,11 @@ class DownloadLinks(private val activity: Activity, private val fallback: UriHan
     var onWait: ((String) -> Unit)? = null
     /** Contratto 1.132: un link `#/monitor/<id>` apre la scheda di quel monitoraggio (app-monitoraggi-09-11). */
     var onMonitor: ((String) -> Unit)? = null
+    /** Contratto 1.134: un link `#/prova/<n>` (anche quello di «prova #N» nel testo) apre la scheda di quella prova (app-prova-link-10-11). */
+    var onProva: ((Long) -> Unit)? = null
 
     override fun openUri(uri: String) {
+        it.pixelbox.cmwatch.rules.ProvaLinks.idOf(uri)?.let { n -> onProva?.let { f -> f(n); return } }
         it.pixelbox.cmwatch.rules.TiAspetta.waitOf(uri)?.let { w -> onWait?.let { f -> f(w); return } }
         it.pixelbox.cmwatch.rules.Monitors.idOf(uri)?.let { m -> onMonitor?.let { f -> f(m); return } }
         val d = Links.download(uri) ?: return fallback.openUri(uri)

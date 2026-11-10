@@ -196,7 +196,7 @@ fun MonitorPage(m: MonitorCard, wide: Boolean, onBack: () -> Unit, onStop: () ->
  * il bordo ambra delle azioni principali). Col testo grande l'etichetta va a capo invece di uscire dallo schermo.
  */
 @Composable
-private fun androidx.compose.foundation.layout.RowScope.WideButton(text: String, filled: Boolean, tag: String, onClick: () -> Unit) {
+internal fun androidx.compose.foundation.layout.RowScope.WideButton(text: String, filled: Boolean, tag: String, onClick: () -> Unit) {
     val shape = CircleShape
     Box(
         Modifier.weight(1f).heightIn(min = 48.dp).clip(shape)

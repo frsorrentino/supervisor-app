@@ -114,6 +114,8 @@
   import { askedSession, askedWait } from './lib/sessionLinks'
   import { backTo } from './lib/tiAspetta'
   import MonitorView from './lib/MonitorView.svelte'
+  import ProvaView from './lib/ProvaView.svelte'
+  import { provaOf, readProva, type ProvaRead } from './lib/provaLinks'
   import { monitorsDemo } from './lib/demo'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
@@ -605,17 +607,39 @@
       refreshCtx.asked = refreshCtx.asked.filter(x => x !== id)
     }
   }
+  // La scheda di una prova (app-prova-link-10-11, contratto 1.134): da «prova #N» in un messaggio o da `#/prova/<n>`. La lettura riprova
+  // finché il PC risponde, in silenzio; un rifiuto o un relay di prima si dicono nella scheda. Nella demo, dall'elenco delle prove.
+  let provaId = $state<number | null>(provaOf(location.hash))
+  let provaRead = $state<ProvaRead | null>(null)
+  let provaFrom = $state<PageName | null>(null)
+  const openProva = (n: number) => { if (page !== 'prova') provaFrom = page; provaId = n; openPage('prova') }
+  const closeProva = () => { const to = provaFrom; provaId = null; provaFrom = null; if (location.hash.startsWith('#/prova/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
+  let provaReading = 0
+  $effect(() => {
+    const n = provaId
+    provaRead = null
+    if (n == null) return
+    const mine = ++provaReading
+    void (async () => {
+      for (let a = 0; mine === provaReading && tr; a++) {
+        const r = await quiet(newCmd('prove', null, String(n)))
+        if (mine !== provaReading) return
+        if (r) { provaRead = readProva(r.ok, r.text); return }
+        await nap(retryAfter(a) * 1000)
+      }
+    })()
+  })
   const openWait = (w: string) => { waitFrom = backTo(waitFrom, page); waitId = w; openPage('attesa') }
   const closeWait = () => { const to = waitFrom; waitId = null; waitFrom = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
   $effect(() => {
-    const onHash = () => { const w = askedWait(location.hash); if (w) openWait(w); const m = monitorOf(location.hash); if (m) openMonitor(m) }
+    const onHash = () => { const w = askedWait(location.hash); if (w) openWait(w); const m = monitorOf(location.hash); if (m) openMonitor(m); const pn = provaOf(location.hash); if (pn != null) openProva(pn) }
     // Un link nel testo apre la scheda dentro l'app, senza ricaricare la pagina.
     const onClick = (e: MouseEvent) => {
       const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
       const hash = a ? new URL(a.href, location.href).hash : ''
-      const w = askedWait(hash), m = monitorOf(hash)
-      if (!w && !m) return
-      e.preventDefault(); if (w) openWait(w); else if (m) openMonitor(m)
+      const w = askedWait(hash), m = monitorOf(hash), pn = provaOf(hash)
+      if (!w && !m && pn == null) return
+      e.preventDefault(); if (w) openWait(w); else if (m) openMonitor(m); else if (pn != null) openProva(pn)
     }
     window.addEventListener('hashchange', onHash); document.addEventListener('click', onClick, true)
     return () => { window.removeEventListener('hashchange', onHash); document.removeEventListener('click', onClick, true) }
@@ -1274,7 +1298,7 @@
   const askedPage = asked === 'diary' || asked === 'recap' ? 'lavori' : asked
   // Da guardare (contratto 1.106): la pagina di tutti i risultati o di una sessione, e il risultato da aprire.
   let watchSession = $state<string | null>(null), watchOpenId = $state<string | null>(null)
-  let page = $state<PageName | null>(askedWait(location.hash) ? 'attesa' : monitorOf(location.hash) ? 'monitor' : askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'homeorder', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
+  let page = $state<PageName | null>(askedWait(location.hash) ? 'attesa' : monitorOf(location.hash) ? 'monitor' : provaOf(location.hash) != null ? 'prova' :askedPage && ['launch', 'lavori', 'night', 'search', 'settings', 'homeorder', 'queue', 'box-aspetta', 'box-lavoro', 'box-esiti'].includes(askedPage) ? (askedPage as PageName) : null)
   // La pagina Notte (specifica del 07/10, approvata alle 21:50): il rapporto si chiede al PC con l'op `night` (contratto 1.44)
   // quando la pagina si apre e col tasto aggiorna; nella demo è la fixture inventata.
   let night = $state<{ report: NightReport | null; error: string | null; loading: boolean }>({ report: null, error: null, loading: false })
@@ -1434,7 +1458,7 @@
     try { seen = localStorage.getItem('cm.primaSeen') === '1' } catch { /* senza memoria non si riapre a ogni giro */ }
     if (primaAutoOpen(s, seen)) { try { localStorage.setItem('cm.primaSeen', '1') } catch { /* come sopra */ } ; untrack(() => openPage('prima-raccolta')) }
   })
-  const pageTitle: Record<PageName, string> = $derived({ attesa: t.tiAspettaTitle, seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.search, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.watchPageTitle, monitor: t.monitorsTitle })
+  const pageTitle: Record<PageName, string> = $derived({ attesa: t.tiAspettaTitle, seguiti: t.seguitiTitle, 'prima-raccolta': t.primaTitle, prove: t.proveTitle, decisions: t.decisionsTitle, features: t.featuresTitle, usage: t.menuQuadro, homeorder: t.reorderTitle, lavori: t.lavoriTitle, launch: t.menuLaunch, night: nightTitle, overview: t.menuQuadro, search: t.search, settings: t.settingsTitle, queue: t.queueTitle, 'box-aspetta': t.boxWaitingTitle, 'box-lavoro': t.boxBusyTitle, 'box-esiti': t.boxOutcomesTitle, guardare: watchSession ? `${t.watchResults} · ${watchSession}` : t.watchPageTitle, monitor: t.monitorsTitle, prova: t.provaTitle(provaId ?? 0) })
   // «Utilizzo e limiti» (Utilizzo unito, approvato da Franz il 09/10 alle 16:17): niente più pagina. Il menu, la riga della
   // quota e il Registro portano alla sezione Utilizzo della home, che si apre e si illumina; sulla plancia senza colonne è
   // già a destra, nel cruscotto.
@@ -1583,12 +1607,13 @@
   addEventListener('popstate', () => {
     // Chiusa la scheda aperta da un link, il passo indietro torna sull'indirizzo `#/attesa/…`: lo si toglie prima che hashchange
     // la riapra (app-ti-aspetta-lista-chiusa-08-11).
-    if (skipPop) { skipPop = false; if ((!waitId && askedWait(location.hash)) || (!monitorId && monitorOf(location.hash))) history.replaceState(history.state, '', location.pathname + location.search); return }
+    if (skipPop) { skipPop = false; if ((!waitId && askedWait(location.hash)) || (!monitorId && monitorOf(location.hash)) || (provaId == null && provaOf(location.hash) != null)) history.replaceState(history.state, '', location.pathname + location.search); return }
     // Un indirizzo nuovo `#/attesa/…` o `#/monitor/…` (scritto o aperto da fuori) è un passo avanti, non Indietro: lo apre hashchange.
-    if (history.state?.cm == null && (askedWait(location.hash) || monitorOf(location.hash))) return
+    if (history.state?.cm == null && (askedWait(location.hash) || monitorOf(location.hash) || provaOf(location.hash) != null)) return
     pushed = Math.max(0, pushed - 1)
     if (page === 'attesa') closeWait()
     else if (page === 'monitor') closeMonitor()
+    else if (page === 'prova') closeProva()
     else if (page) openPage(null)
     else if (!wide && open) smooth(() => { open = null })
     else if (masterOpen) smooth(() => { masterOpen = false })
@@ -1980,6 +2005,9 @@
     onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
     onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}
     onScreen={(s) => { waitId = null; waitFrom = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)} />
+  {:else if p === 'prova' && provaId != null}
+  <!-- La scheda di una prova (app-prova-link-10-11): ancora da provare, il tasto apre Verifica, dove si risponde. -->
+  <ProvaView n={provaId} read={provaRead} {wide} onBack={closeProva} onVerify={() => { closeProva(); openPage('prove') }} />
   {:else if p === 'monitor' && monitorShown}{@const m = monitorShown}
   <!-- Ferma, Chiedi alla master e Modifica degli avvisi passano dalla chat della master col testo già scritto, finché il contratto
        non porta i comandi (app-monitoraggi-09-11). -->
