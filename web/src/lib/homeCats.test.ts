@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CATS, EDGE, REV, catFor, catKeys, catOf, catOrder, dragCats, flat, fromTop, reorder, decode, encode, moveCat, moveSection, settle, toTop, toggle, top, type Cat, type HomeKey } from './homeCats'
+import { DEFAULT_CATS, EDGE, FOLDING, REV, catFor, catKeys, catOf, catOrder, dragCats, flat, fromTop, reorder, decode, encode, moveCat, moveSection, settle, toTop, toggle, top, type Cat, type HomeKey } from './homeCats'
 import { pinned } from './homeOrder'
 
 // La home per categorie (compito app-home-categorie-02-11); gli stessi casi in HomeCatsTest.kt.
 const ids = (c: Cat[]) => c.map(x => x.id)
 describe('homeCats', () => {
+  it('nelle colonne della plancia ogni voce di Dalla master si apre e si chiude col titolo, Monitoraggi compresi (app-monitoraggi-testata-10-11)', () => {
+    const you = DEFAULT_CATS.find(c => c.id === 'you')!.sections
+    expect(you.filter(k => !FOLDING.has(k))).toEqual([])
+    expect(FOLDING.has('monitors')).toBe(true)
+  })
   it('il predefinito: tre categorie, aperta solo Dalla master (app-home-sessioni-a-se-08-11)', () => {
     const d = decode(null)
     expect(ids(d)).toEqual(['you', 'work', 'tools'])

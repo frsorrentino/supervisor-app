@@ -60,7 +60,7 @@
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
   import CatIcon from './CatIcon.svelte'
-  import { BOARD_MAX, DEFAULT_CATS, EDGE, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
+  import { BOARD_MAX, DEFAULT_CATS, EDGE, FOLDING, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { elapsedPct, H5_S, paceText, usageAlarm, W7_S, weekSlot } from './utilizzo'
   import { resetLabel } from './header'
@@ -416,10 +416,10 @@
   // Nella PWA larga le voci In cima si aprono una volta nella loro colonna (app-in-cima-largo-03-11).
   $effect(() => { if (part && part !== 'top') for (const k of up) if (catFor(k) === part && !untrack(() => open[k])) open[k] = true })
   let open = $state<Record<string, boolean>>((() => { try { return { ...SEC_START, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { ...SEC_START } } })())
-  // I gruppi di Tocca a te: anche nelle colonne del cruscotto il titolo è un tasto che li apre e li chiude sul posto, come
+  // Le voci di Dalla master: anche nelle colonne del cruscotto il titolo è un tasto che le apre e le chiude sul posto, come
   // «Compiti in corso» (web-tocca-apribile-06-11, Franz 06/11 01:24: «non sono più chiudibili e apribili», il titolo si
-  // selezionava come testo).
-  const GROUPS = new Set(['seguiti', 'prove', 'da_guardare', 'decisioni', 'prima_raccolta', 'suggestions'])
+  // selezionava come testo). L'elenco sta in homeCats (FOLDING), coi Monitoraggi (app-monitoraggi-testata-10-11).
+  const GROUPS = FOLDING
   function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
   // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe con un tasto
   // (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».

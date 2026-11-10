@@ -24,6 +24,13 @@ export const DEFAULT_CATS: Cat[] = [
  * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
  * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
  */
+/**
+ * Le voci che anche nelle colonne della plancia hanno la testata della home, che le apre e le chiude col titolo (web-tocca-apribile-06-11):
+ * tutte quelle di Dalla master e le due che ci stanno dentro, Da guardare e Prima raccolta. I Monitoraggi mancavano e nella colonna
+ * avevano una testata ferma, senza freccia e col numero semplice (app-monitoraggi-testata-10-11, segnalazione di Franz del 10/11 09:43).
+ */
+export const FOLDING = new Set<string>(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors', 'da_guardare', 'prima_raccolta'])
+
 export const REV = 'rev:6'
 /**
  * Un ordine `rev:2` (prima delle voci accorpate) o `rev:3` (prima delle quattro sezioni) tiene categorie, chiuse e cima; dentro
