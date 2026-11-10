@@ -94,7 +94,7 @@ internal object Swipe {
         CompositionLocalProvider(LocalCardsOnScreen provides cards) {
             SharedTransitionLayout(Modifier.fillMaxSize().background(V3.Bg)) {
                 flight.AnimatedContent(transitionSpec = { it.pixelbox.cmwatch.mobile.ui.flySpec(targetState != null, flyByCard, false) }, contentKey = { it != null }) { name ->
-                    CompositionLocalProvider(LocalFly provides Fly(this@SharedTransitionLayout, this@AnimatedContent, enabled = flyByCard)) {
+                    CompositionLocalProvider(LocalFly provides Fly(this@SharedTransitionLayout, this@AnimatedContent, enabled = flyByCard, flight = seek)) {
                         val list: @Composable () -> Unit = { SummaryList(Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts) }
                         // Con la master la home del telefono è la sua scheda, con la lista dentro (MainActivity, `sessionPage(master)`), col fondo suo e non con la tinta della pagina.
                         if (name == null && masterHome != null) CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalPageBg provides null) { SessionSheet(st.sessions.first { it.name == masterHome }, st.ts, emptyList(), 120, none, home = { _, _ -> list() }, header = false) }
@@ -192,6 +192,18 @@ class FlySwipeTest {
         assertTrue("chiusura: la home in dissolvenza dopo il volo (card ${cards})", cards.drop(top).min() > cards.max() * 0.7f)
     }
 
+    // L'ultimo tratto della chiusura (video di Franz del 10/11 12:35, 0.2.2078): il riquadro arrivava alla misura della card con dentro
+    // ancora la pagina, restava fermo un quinto di secondo e diventava la card in un fotogramma. Ora le due si danno il cambio legate
+    // al volo: prima che la pagina sparisca c'è un tratto in cui pagina e home si vedono insieme, in dissolvenza, e la pagina non
+    // passa da presente a sparita fra due fotogrammi.
+    @Test fun closingTurnsIntoTheCardThroughABlend() {
+        val (s, _, faded) = shares(listOf(Swipe.Finger(listOf(0.02f, 0.35f), opening = false)))
+        val last = s.indexOfLast { it > 0.01f }
+        assertTrue("chiusura: la pagina resta (${s.last()})", s.last() < 0.01f)
+        assertTrue("chiusura: nessuna miscela fra pagina e card prima della fine (in dissolvenza $faded, pagina $s)", faded.drop(1).max() > 0.004f)
+        assertTrue("chiusura: la pagina sparisce d'un colpo da ${s.getOrNull(last)} (pagina $s, in dissolvenza $faded)", last < 0 || faded[last + 1] > 0.001f || s[last] < 0.03f)
+    }
+
     // La chiusura con la master che aspetta Franz (video di Franz del 10/11 09:37, 0.2.2074): la home del telefono è la scheda della
     // master, con la chiave di volo della card della master che sta nella sua lista. Col dito che richiude, la home volava intera
     // verso quella card: dietro la pagina restava solo la sua cima nel riquadro della card, il resto nero, e al rilascio la home
@@ -211,7 +223,10 @@ class FlySwipeTest {
     @Test fun reopeningRightAfterAReturnUncoversAFullPage() {
         val path = listOf(0.03f, 0.06f, 0.1f, 0.15f, 0.2f, 0.25f)
         val (s, _, faded) = shares(listOf(Swipe.Finger(path, opening = false), Swipe.Finger(path, opening = true, wait = 17)))
-        assertTrue("riapertura: la pagina entra trasparente sopra la home (al massimo ${faded.max()}, quote $faded)", faded.max() < 0.05f)
+        // Solo dalla riapertura: la chiusura finisce in dissolvenza nella card (closingTurnsIntoTheCardThroughABlend). Dieci fotogrammi fermi,
+        // sei del primo gesto e diciassette di attesa, tolti i nove che `shares` non conta.
+        val reopening = faded.drop(24)
+        assertTrue("riapertura: la pagina entra trasparente sopra la home (al massimo ${reopening.max()}, quote $reopening)", reopening.max() < 0.05f)
         assertTrue("riapertura: la pagina non arriva intera (${s.last()})", s.last() > 0.6f)
     }
 
@@ -281,6 +296,10 @@ class FlySwipeShotsTest {
 
     @Test fun openingHalfway() = at("openingHalfway", opening = true)
     @Test fun closingHalfway() = at("closingHalfway", opening = false)
+
+    // L'ultimo tratto della chiusura (video di Franz del 10/11 12:35): il dito fermo all'85 %, il riquadro alla misura della card con la
+    // pagina che sfuma e la card che arriva, una miscela; prima la testata della pagina piena fino al cambio d'un colpo.
+    @Test fun closingNearTheCard() = at("closingNearTheCard", end = 1000, frame = 50) { Swipe.Stage(Swipe.Finger(listOf(0.85f), opening = false, release = false)) }
 
     // La chiusura a metà con la home della master (video di Franz del 10/11 09:37): aperta col dito e richiusa fino a quattro decimi,
     // la home intera dietro la pagina che torna card, non la sua cima nel riquadro della card della master.

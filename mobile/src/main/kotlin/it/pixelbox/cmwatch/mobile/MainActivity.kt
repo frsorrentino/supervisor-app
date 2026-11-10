@@ -2585,7 +2585,7 @@ class MainActivity : ComponentActivity() {
                     transitionSpec = { it.pixelbox.cmwatch.mobile.ui.flySpec(targetState != null, flyByCard, sideOff) },
                     contentKey = { it != null },
                 ) { name ->
-                    CompositionLocalProvider(LocalFly provides Fly(this@SharedTransitionLayout, this@AnimatedContent, enabled = flyByCard)) {
+                    CompositionLocalProvider(LocalFly provides Fly(this@SharedTransitionLayout, this@AnimatedContent, enabled = flyByCard, flight = seek)) {
                         // Scorrimento laterale fra riepilogo e sessioni (Franz, 03/10 15:59): il riepilogo è sempre la prima
                         // pagina (`null`), poi le sessioni nell'ordine della regia (Franz, 30/09: «lo scroll laterale tra
                         // sessioni»). La pagina ferma decide la sessione aperta, e il menu in alto la segue.

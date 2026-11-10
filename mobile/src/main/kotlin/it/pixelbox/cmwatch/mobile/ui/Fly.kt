@@ -17,7 +17,28 @@ class Fly(
     val shared: SharedTransitionScope, val anim: AnimatedVisibilityScope,
     /** Il volo c'è solo se la card toccata era sullo schermo (transizione C, 09/10); altrimenti la pagina entra di lato. */
     val enabled: Boolean = true,
+    /** Il volo, per la dissolvenza fra la card e la pagina ([cardShare]); null = la card resta nascosta per tutto il volo. */
+    val flight: androidx.compose.animation.core.SeekableTransitionState<String?>? = null,
 )
+
+/**
+ * L'ultimo tratto del volo verso la card, e il primo verso la pagina, in cui la card sfuma dentro e la pagina fuori (app-scorrimento-prima-sessione-09-11,
+ * Franz 10/11 12:37: «alla chiusura la sessione passa da un aspetto ad un altro di scatto, senza trasformazione o animazione»).
+ */
+const val CROSS = .4f
+
+/**
+ * Aprendo la card sparisce subito, come prima: col dito il riquadro cresce in fretta, e riaprendo appena chiuso riparte dalla misura di
+ * prima; una pagina in dissolvenza si vedeva trasparente sopra la home (secondo video di Franz, 09/11 18:18, FlySwipeTest). Lo
+ * scatto che Franz vede è in chiusura; in apertura parte subito il movimento.
+ */
+const val CROSS_OPEN = 0f
+
+/**
+ * Quanto si vede la card in questo istante del volo: piena sulla card, sparita da [CROSS] (chiudendo) o da [CROSS_OPEN] (aprendo) in
+ * su. [opening]: il volo va verso la sessione; [pageness]: quanto è già pagina, da 0 a 1.
+ */
+fun cardShare(opening: Boolean, pageness: Float): Float { val w = if (opening) CROSS_OPEN else CROSS; return if (w <= 0f) 0f else ((w - pageness) / w).coerceIn(0f, 1f) }
 
 /**
  * Le card delle sessioni sullo schermo della home, per nome (transizione C, Franz 09/10 20:15): una sessione aperta da qui vola
@@ -177,8 +198,15 @@ fun Modifier.fly(key: String, page: Boolean = false): Modifier {
             resizeMode = UNCOVER, zIndexInOverlay = 1f,
             clipInOverlayDuringTransition = OverlayClip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),
         // La card non si vede mentre vola: sul telefono il suo `fadeOut` non la nascondeva nell'overlay e restava, coi suoi titoli,
-        // sopra la testata della pagina fino alla fine del volo (emulatore e telefono di Franz, 09/11 21:13).
-        ).graphicsLayer { if (!off && !page && f.shared.isTransitionActive && state.isMatchFound) alpha = 0f }
+        // sopra la testata della pagina fino alla fine del volo (emulatore e telefono di Franz, 09/11 21:13). Solo vicino alla card
+        // ([CROSS]) le due si danno il cambio legate al volo: prima la card ricompariva d'un colpo a volo finito, dopo che il riquadro
+        // era rimasto un quinto di secondo alla misura della card con la testata della pagina dentro (video di Franz, 0.2.2078).
+        ).graphicsLayer {
+            if (!off && f.shared.isTransitionActive && state.isMatchFound) {
+                val card = f.flight?.let { s -> val opening = s.targetState != null; cardShare(opening, if (opening) s.fraction else 1f - s.fraction) } ?: 0f
+                alpha = if (page) 1f - card else card
+            }
+        }
     }
 }
 
