@@ -27,6 +27,12 @@ val LocalCardsOnScreen = compositionLocalOf<androidx.compose.runtime.snapshots.S
 
 val LocalFly = compositionLocalOf<Fly?> { null }
 
+/**
+ * Una riga di traccia del volo in logcat, col tag «Volo» (app-scorrimento-prima-sessione-09-11): la master la legge dal telefono
+ * via adb quando prova i gesti. Poche righe per gesto: inizio, rilascio, volo, passi del pager.
+ */
+internal fun flyLog(msg: String) { android.util.Log.d("Volo", msg) }
+
 /** La durata del volo card ↔ scheda. */
 const val FLY_MS = 320
 
@@ -44,6 +50,7 @@ const val FLY_MS = 320
  */
 suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.follow(to: Float, target: String?, go: () -> Boolean = { true }) {
     if (currentState != targetState && targetState != target) {
+        flyLog("follow $target: chiude il volo $currentState->$targetState@$fraction")
         snapTo(targetState)
         repeat(2) { androidx.compose.runtime.withFrameNanos { } }
     }
@@ -62,6 +69,7 @@ suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.fol
  * Indietro annullato, la guardia) il volo torna indietro con [retreat].
  */
 suspend fun androidx.compose.animation.core.SeekableTransitionState<String?>.land(target: String?) {
+    flyLog("land $target da $currentState->$targetState@$fraction")
     when {
         targetState == target -> animateTo(target, tween(((1f - fraction) * FLY_MS).toInt().coerceAtLeast(1), easing = androidx.compose.animation.core.LinearEasing))
         currentState == target -> retreat()

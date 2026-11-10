@@ -502,7 +502,11 @@ fun SessionSheet(
             if (waiting) Box(Modifier.fillMaxSize().padding(vertical = 32.dp), contentAlignment = Alignment.TopCenter) {
                 CircularWavyProgressIndicator(color = Cm.actionIcon)
             } else ZoomedText { LazyColumn(
-                Modifier.fillMaxSize().nestedScroll(reading), state = list,
+                // Finché la chat non è ancorata in fondo non si disegna (app-scorrimento-prima-sessione-09-11, telefono di Franz
+                // 09/11 23:02): la conversazione vera arriva col dito ancora sulla pagina, l'ancora riparte e il primo fotogramma
+                // mostrava l'inizio («Carica i messaggi precedenti») prima dell'ultimo messaggio.
+                // Negli snapshot fermi gli effetti non girano e la chat non si ancora: lì si disegna com'è.
+                Modifier.fillMaxSize().then(if (still) Modifier else Modifier.graphicsLayer { if (!anchored && (chat.isNotEmpty() || !feed.isNullOrEmpty())) alpha = 0f }).nestedScroll(reading), state = list,
                 // Con il controller in vista, in fondo lo spazio per leggere l'ultimo messaggio sopra di lui; con un box sopra il
                 // campo il controller ha la sua nicchia sotto il box, e qui basta il margine.
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp + if (niche) 0.dp else readingRoom()), verticalArrangement = Arrangement.spacedBy(12.dp),

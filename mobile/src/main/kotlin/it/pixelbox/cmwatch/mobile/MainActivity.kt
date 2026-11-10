@@ -455,6 +455,7 @@ class MainActivity : ComponentActivity() {
         val cardsOnScreen = remember { androidx.compose.runtime.mutableStateMapOf<String, Int>() }
         var flyByCard by remember { mutableStateOf(true) }
         LaunchedEffect(open) {
+            it.pixelbox.cmwatch.mobile.ui.flyLog("open $open volo $flyTarget swipeSet $swipeSet card $flyByCard")
             if (!swipeSet) {
                 if (open != null && flyTarget == null) flyByCard = cardsOnScreen.containsKey(open)
                 flyTarget = open; return@LaunchedEffect
@@ -2615,6 +2616,7 @@ class MainActivity : ComponentActivity() {
                                         ?: return@awaitEachGesture
                                     val f = it.pixelbox.cmwatch.rules.SwipePages.of(stateNow, null).firstOrNull { p -> p != null } ?: return@awaitEachGesture
                                     flyByCard = cardsOnScreen.containsKey(f)
+                                    it.pixelbox.cmwatch.mobile.ui.flyLog("dito apre $f card $flyByCard")
                                     pullFirst = f
                                     speed.resetTracking()
                                     speed.addPointerInputChange(drag)
@@ -2630,6 +2632,7 @@ class MainActivity : ComponentActivity() {
                                         // Gesto cancellato (pointerInput che riparte): il rilascio non arriverà, si torna indietro.
                                         if (!done && pulled > 0f) { pulled = 0f; pullFirst = null; scope.launch { seek.land(null) } }
                                     }
+                                    it.pixelbox.cmwatch.mobile.ui.flyLog("dito lascia ${pulled / widthPx} v ${speed.calculateVelocity().x} fatto $done")
                                     if (done && pulled > 0f && (pulled / widthPx > 0.33f || speed.calculateVelocity().x < -1200f)) {
                                         // Il volo riparte subito verso la sessione, da qui: attraverso `open` e i suoi effetti partiva dopo
                                         // 0,6-1 s (Main è troppo grande per il compilatore e ogni ricomposizione è lenta), e intanto la guardia
@@ -2650,7 +2653,7 @@ class MainActivity : ComponentActivity() {
                         val lastPages = remember { arrayOf<List<String?>>(emptyList()) }
                         val pages = remember(state?.sessions, target) {
                             val fresh = it.pixelbox.cmwatch.rules.SwipePages.of(state, target).filter { p -> p != null }
-                            (if (target == null) fresh else it.pixelbox.cmwatch.rules.SwipePages.stable(lastPages[0], fresh)).also { p -> lastPages[0] = p }
+                            (if (target == null) fresh else it.pixelbox.cmwatch.rules.SwipePages.stable(lastPages[0], fresh)).also { p -> if (p != lastPages[0]) it.pixelbox.cmwatch.mobile.ui.flyLog("pagine $p bersaglio $target"); lastPages[0] = p }
                         }
                         val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = pages.indexOf(target).coerceAtLeast(0)) { pages.size }
                         val currentPages by rememberUpdatedState(pages)
@@ -2666,7 +2669,9 @@ class MainActivity : ComponentActivity() {
                                     val (p, scrolling) = pos
                                     val (pp, o) = sel
                                     val settledMoved = prev != p
-                                    when (val step = it.pixelbox.cmwatch.rules.SwipePages.step(prev, p, scrolling, pp, o)) {
+                                    val step = it.pixelbox.cmwatch.rules.SwipePages.step(prev, p, scrolling, pp, o)
+                                    if (step != it.pixelbox.cmwatch.rules.SwipePages.Step.None) it.pixelbox.cmwatch.mobile.ui.flyLog("pager $step ferma $p prima $prev aperta $o pagine $pp")
+                                    when (step) {
                                         is it.pixelbox.cmwatch.rules.SwipePages.Step.Open -> {
                                             swipeSet = true
                                             open = step.name
@@ -2714,6 +2719,7 @@ class MainActivity : ComponentActivity() {
                                 override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
                                     if (dragged <= 0f) return androidx.compose.ui.unit.Velocity.Zero
                                     val home = dragged / widthPx > 0.33f || available.x > 1200f
+                                    it.pixelbox.cmwatch.mobile.ui.flyLog("dito chiude ${dragged / widthPx} v ${available.x} home $home")
                                     dragged = 0f
                                     if (home) { open = null; flyTarget = null; scope.launch { seek.land(null) } } else scope.launch { seek.land(flyNow) }
                                     return available
