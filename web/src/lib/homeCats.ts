@@ -12,7 +12,9 @@ export const DEFAULT_CATS: Cat[] = [
   // Tocca a te in quattro sezioni (app-tocca-sezioni-06-11): Decidi, Verifica (le prove e i lavori da guardare: `prove` porta
   // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
   // Monitoraggi in fondo (app-monitoraggi-09-11): un ordine salvato prima la prende da sé in fondo a Dalla master.
-  { id: 'you', open: true, sections: ['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'] },
+  // Chiusa di partenza come le altre (app-home-voci-chiuse-10-11, Franz 10/11 21:28: «Di base, le voci della home devono apparire chiuse,
+  // sia da app che da PWA»): si apre col tocco e resta aperta.
+  { id: 'you', open: false, sections: ['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'] },
   // Lavori (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la Notte, In corso, Esiti e Rendiconti, una categoria che
   // si chiude e si sposta come le altre, chiusa di partenza col riassunto «N in corso · N esiti». Le sessioni non sono più qui:
   // stanno a sé, sempre aperte, sotto il tabellone, così tenerle in vista non porta più In corso ed Esiti sopra Dalla master. Prima
@@ -31,7 +33,12 @@ export const DEFAULT_CATS: Cat[] = [
  */
 export const FOLDING = new Set<string>(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors', 'da_guardare', 'prima_raccolta'])
 
-export const REV = 'rev:6'
+export const REV = 'rev:7'
+/**
+ * Un ordine fino a `rev:6` (Dalla master aperta di partenza): le categorie tornano chiuse una volta (app-home-voci-chiuse-10-11), perché
+ * quella aperta non l'aveva scelta Franz; ordine, sezioni e tabellone restano. Dopo, aperte e chiuse si ricordano.
+ */
+const REV6 = 'rev:6'
 /**
  * Un ordine `rev:2` (prima delle voci accorpate) o `rev:3` (prima delle quattro sezioni) tiene categorie, chiuse e cima; dentro
  * Tocca a te riprende una volta l'ordine di partenza.
@@ -56,10 +63,13 @@ export const catOf = (key: string): CatId | null => DEFAULT_CATS.find(c => (c.se
 export function decode(saved: string[] | null | undefined): Cat[] {
   const list = saved ?? []
   const up = top(saved) as string[]
-  const fresh = list.length > 0 && !list.includes(REV) && !list.includes(REV2) && !list.includes(REV3) && !list.includes(REV4) && !list.includes(REV5)
-  const youOld = !list.includes(REV) && !list.includes(REV5) && (list.includes(REV2) || list.includes(REV3))
-  const workOld = list.length > 0 && !list.includes(REV) && !list.includes(REV5)
-  const workAfterYou = list.length > 0 && !list.includes(REV)
+  // Le riprese dell'ordine guardano i marcatori fino a `rev:6`; quella delle chiuse, `rev:7`.
+  const cur = list.includes(REV) || list.includes(REV6)
+  const fresh = list.length > 0 && !cur && !list.includes(REV2) && !list.includes(REV3) && !list.includes(REV4) && !list.includes(REV5)
+  const youOld = !cur && !list.includes(REV5) && (list.includes(REV2) || list.includes(REV3))
+  const workOld = list.length > 0 && !cur && !list.includes(REV5)
+  const workAfterYou = list.length > 0 && !cur
+  const closeOnce = list.length > 0 && !list.includes(REV)
   const all = [...new Set(list.filter(k => catOf(k) && !up.includes(k)))] as HomeKey[]
   const keys = all.filter(k => (!fresh || (catOf(k) !== 'you' && catOf(k) !== 'tools')) && !(youOld && catOf(k) === 'you') && !(workOld && catOf(k) === 'work'))
   const kept = fresh ? DEFAULT_CATS.map(c => c.id) : [...new Set([...all.map(k => catOf(k)!), ...DEFAULT_CATS.map(c => c.id)])]
@@ -70,7 +80,7 @@ export function decode(saved: string[] | null | undefined): Cat[] {
   return order.map(id => {
     const d = DEFAULT_CATS.find(c => c.id === id)!
     const mine = keys.filter(k => catOf(k) === id)
-    const open = workAfterYou && id === 'work' ? false : closed ? !closed.includes(id) : d.open
+    const open = closeOnce || (workAfterYou && id === 'work') ? false : closed ? !closed.includes(id) : d.open
     return { id, open, sections: [...mine, ...d.sections.filter(k => !mine.includes(k) && !up.includes(k))] }
   })
 }

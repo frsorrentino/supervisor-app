@@ -17,7 +17,7 @@ describe('homeCats', () => {
     expect(d.map(c => c.sections)).toEqual([['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'], ['notte', 'lavori', 'esiti', 'rendiconti'], ['usage', 'system', 'pagella']])
     // Le sessioni stanno a sé, fuori dalle categorie; Lavori parte chiusa (tavola A).
     expect(catOf('sessions')).toBeNull()
-    expect(d.map(c => c.open)).toEqual([true, false, false])
+    expect(d.map(c => c.open)).toEqual([false, false, false])
     expect(decode([])).toEqual(DEFAULT_CATS)
   })
   it('il predefinito si salva come null', () => expect(encode(DEFAULT_CATS, null)).toBeNull())
@@ -28,7 +28,7 @@ describe('homeCats', () => {
     // Lo slot di prima sale sul tabellone (app-tabellone-quattro-02-11): Utilizzo esce da Numeri e strumenti.
     expect(top(saved)).toEqual(['usage'])
     expect(decode(saved)).toEqual(cats.map(c => ({ ...c, sections: c.sections.filter(k => k !== 'usage') })))
-    expect(saved.filter(k => k.startsWith('shut:'))).toEqual(['shut:work,you,tools'])
+    expect(saved.filter(k => k.startsWith('shut:'))).toEqual(['shut:work,tools'])
   })
   it('anche nessuna chiusa si salva', () => {
     const all = DEFAULT_CATS.map(c => ({ ...c, open: true }))
@@ -43,7 +43,7 @@ describe('homeCats', () => {
     expect(d.flatMap(c => c.sections)).not.toContain('closed')
     expect(d.flatMap(c => c.sections)).not.toContain('plugins')
     expect(d.flatMap(c => c.sections)).not.toContain('sessions')
-    expect(d.map(c => [c.id, c.open])).toEqual([['you', true], ['work', false], ['tools', false]])
+    expect(d.map(c => [c.id, c.open])).toEqual([['you', false], ['work', false], ['tools', false]])
   })
   it('la lista salvata sta nei limiti del relay', () => {
     const worst = [...DEFAULT_CATS].reverse().map(c => ({ ...c, open: false, sections: [...c.sections].reverse() }))
@@ -63,7 +63,7 @@ describe('homeCats', () => {
     expect(ids(r)).toEqual(['you', 'work', 'tools'])
     // Le chiavi che la lista trascinata non ha (non disegnate) tengono il loro posto.
     expect(r[0].sections).toEqual(['prove', 'decisioni', 'seguiti', 'suggestions', 'monitors'])
-    expect(r.map(c => c.open)).toEqual([true, true, false])
+    expect(r.map(c => c.open)).toEqual([false, true, false])
   })
   it('le chiavi non disegnate tengono il posto dopo un trascinamento', () => {
     expect(reorder(DEFAULT_CATS, ['system', 'usage']).find(c => c.id === 'tools')!.sections).toEqual(['system', 'usage', 'pagella'])
@@ -174,7 +174,7 @@ describe("app-home-nomi-02-11: l'ordine nuovo una volta", () => {
     expect(d[0].sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(d[1].sections).toEqual(['notte', 'lavori', 'rendiconti'])
     expect(d[2].sections).toEqual(['usage', 'system', 'pagella'])
-    expect(d.map(c => c.open)).toEqual([true, false, false])
+    expect(d.map(c => c.open)).toEqual([false, false, false])
     expect(top(old)).toEqual(['esiti'])
     const saved = JSON.parse(encode(moveCat(d, 2, 0), null, ['esiti'])!) as string[]
     expect(saved).toContain(REV)
@@ -190,8 +190,10 @@ describe('app-home-tre-categorie-06-11: Sessioni porta Notte, In corso ed Esiti'
     expect(d.map(c => c.id)).toEqual(['you', 'work', 'tools'])
     expect(d.find(c => c.id === 'work')!.sections).toEqual(['notte', 'lavori', 'esiti', 'rendiconti'])
     expect(d.map(c => c.open)).toEqual([false, false, false])
-    const saved = JSON.parse(encode(d, null, top(old))!) as string[]
-    expect(saved).toContain('rev:6')
+    // Chiuso del tutto (app-home-voci-chiuse-10-11) è il predefinito, che si salva come null; altrimenti col marcatore di oggi.
+    const enc = encode(d, null, top(old))
+    const saved = enc ? (JSON.parse(enc) as string[]) : []
+    if (enc) expect(saved).toContain(REV)
     expect(decode(saved)).toEqual(d)
   })
 })
@@ -204,11 +206,11 @@ describe('app-sezioni-accorpate-03-11: Tocca a te riprende una volta il suo ordi
     expect(d.map(c => c.id)).toEqual(['tools', 'you', 'work'])
     expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(d.find(c => c.id === 'work')!.sections).toEqual(['notte', 'lavori', 'rendiconti'])
-    expect(d.map(c => c.open)).toEqual([true, true, false])
+    expect(d.map(c => c.open)).toEqual([false, false, false])
     expect(top(old)).toEqual(['esiti'])
     const saved = JSON.parse(encode(moveSection(d, 'you', 3, 0), null, top(old))!) as string[]
     expect(saved).toContain(REV)
-    expect(REV).toBe('rev:6')
+    expect(REV).toBe('rev:7')
     expect(decode(saved).find(c => c.id === 'you')!.sections).toEqual(['suggestions', 'decisioni', 'prove', 'seguiti', 'monitors'])
   })
   // app-tocca-sezioni-06-11: Da guardare non è più una voce (sta in Verifica) e Tocca a te riparte una volta da Decidi.
@@ -218,7 +220,7 @@ describe('app-sezioni-accorpate-03-11: Tocca a te riprende una volta il suo ordi
     expect(d.map(c => c.id)).toEqual(['tools', 'you', 'work'])
     expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(d.flatMap(c => c.sections)).not.toContain('da_guardare')
-    expect(d.map(c => c.open)).toEqual([true, true, false])
+    expect(d.map(c => c.open)).toEqual([false, false, false])
     // Le sessioni non stanno più sul tabellone: sono a sé, sotto (app-home-sessioni-a-se-08-11).
     expect(top(old)).toEqual([])
     expect(top(['top:da_guardare', 'rev:3'])).toEqual([])
@@ -232,12 +234,12 @@ describe('app-home-sessioni-a-se-08-11: le sessioni a sé, Lavori dopo Dalla mas
     const d = decode(old)
     expect(ids(d)).toEqual(['you', 'work', 'tools'])
     expect(d.find(c => c.id === 'work')!.sections).toEqual(['notte', 'esiti', 'lavori', 'rendiconti'])
-    expect(d.map(c => c.open)).toEqual([true, false, false])
+    expect(d.map(c => c.open)).toEqual([false, false, false])
     expect(top(['top:sessions', 'rev:5'])).toEqual([])
     // Il tabellone e le chiuse di Franz restano.
     const withTop = ['top:esiti', 'sessions', 'lavori', 'shut:you', 'rev:5']
     expect(top(withTop)).toEqual(['esiti'])
-    expect(decode(withTop).map(c => c.open)).toEqual([false, false, true])
+    expect(decode(withTop).map(c => c.open)).toEqual([false, false, false])
     // Da rev:6 in poi Lavori resta dove Franz lo mette, anche prima di Dalla master.
     expect(ids(decode(JSON.parse(encode(moveCat(d, 1, 0), null)!)))).toEqual(['work', 'you', 'tools'])
     expect(ids(decode(['usage', 'lavori', 'decisioni', 'rev:5']))).toEqual(['tools', 'you', 'work'])
@@ -251,9 +253,24 @@ describe('app-monitoraggi-09-11: Monitoraggi in fondo a Dalla master', () => {
     const d = decode(old)
     expect(ids(d)).toEqual(['work', 'you', 'tools'])
     expect(d.find(c => c.id === 'you')!.sections).toEqual(['suggestions', 'decisioni', 'seguiti', 'prove', 'monitors'])
-    expect(d.map(c => c.open)).toEqual([true, false, false])
+    expect(d.map(c => c.open)).toEqual([false, false, false])
     expect(top(old)).toEqual(['esiti'])
     const moved = JSON.parse(encode(moveSection(d, 'you', 4, 0), null, top(old))!) as string[]
     expect(decode(moved).find(c => c.id === 'you')!.sections).toEqual(['monitors', 'suggestions', 'decisioni', 'seguiti', 'prove'])
+  })
+})
+
+// app-home-voci-chiuse-10-11 (Franz 10/11 21:28: «Di base, le voci della home devono apparire chiuse»): le categorie partono chiuse; un
+// ordine salvato fino a rev:6 le chiude una volta (Dalla master aperta non l'aveva scelta Franz); da rev:7 aperte e chiuse si ricordano.
+describe('app-home-voci-chiuse-10-11: la home parte chiusa', () => {
+  it('le categorie partono chiuse e un ordine di prima si chiude una volta', () => {
+    expect(DEFAULT_CATS.every(c => !c.open)).toBe(true)
+    expect(decode(['decisioni', 'shut:work,tools', 'rev:6']).map(c => c.open)).toEqual([false, false, false])
+  })
+  it('da rev:7 quello che Franz apre resta aperto', () => {
+    const opened = toggle(DEFAULT_CATS, 'you')
+    const saved = JSON.parse(encode(opened, null)!) as string[]
+    expect(saved).toContain('rev:7')
+    expect(decode(saved).map(c => [c.id, c.open])).toEqual([['you', true], ['work', false], ['tools', false]])
   })
 })

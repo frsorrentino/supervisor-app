@@ -410,9 +410,11 @@
   // Sezioni richiudibili (Franz, 08/10 12:30): restano come le hai lasciate, anche alla prossima apertura.
   // Chiave nuova col riordino (app-home-riordino-29-10): Notte e Utilizzo partono chiuse col numero in vista, anche per chi
   // le aveva aperte; sessioni, lavori ed esiti aperti.
-  const SEC = 'home-sections-2'
-  // Esiti sta dentro Sessioni e parte chiusa (app-home-tre-categorie-06-11).
-  const SEC_START = { suggestions: true, sessions: true, lavori: true, esiti: false, usage: false, night: false, monitors: true }
+  // Di partenza le voci sono chiuse col loro riassunto (app-home-voci-chiuse-10-11, Franz 10/11 21:28: «Di base, le voci della home
+  // devono apparire chiuse, sia da app che da PWA»); restano aperte le sessioni, che stanno a sé. Lo stato salvato fino a ieri
+  // (home-sections-2) teneva anche le aperture di partenza, non distinguibili da quelle scelte: si riparte una volta da chiuse.
+  const SEC = 'home-sections-3'
+  const SEC_START = { suggestions: false, sessions: true, lavori: false, esiti: false, usage: false, night: false, monitors: false }
   // Nella PWA larga le voci In cima si aprono una volta nella loro colonna (app-in-cima-largo-03-11).
   $effect(() => { if (part && part !== 'top') for (const k of up) if (catFor(k) === part && !untrack(() => open[k])) open[k] = true })
   let open = $state<Record<string, boolean>>((() => { try { return { ...SEC_START, ...JSON.parse(localStorage.getItem(SEC) ?? '{}') } } catch { return { ...SEC_START } } })())

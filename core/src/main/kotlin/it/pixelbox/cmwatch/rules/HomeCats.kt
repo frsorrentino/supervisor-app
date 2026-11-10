@@ -14,7 +14,9 @@ object HomeCats {
         // anche Da guardare, che non è più una voce sua), Riprendi (la vecchia Segui), Suggerimenti. Prima raccolta sta dentro Decidi.
         // Monitoraggi in fondo (app-monitoraggi-09-11, Franz 09/11 09:08: cose esterne, non lo stato della macchina): un ordine salvato
         // prima la prende da sé in fondo a Dalla master, come ogni chiave mancante.
-        Cat("you", true, listOf("decisioni", "prove", "seguiti", "suggestions", "monitors")),
+        // Chiusa di partenza come le altre (app-home-voci-chiuse-10-11, Franz 10/11 21:28: «Di base, le voci della home devono apparire
+        // chiuse, sia da app che da PWA»): si apre col tocco e resta aperta.
+        Cat("you", false, listOf("decisioni", "prove", "seguiti", "suggestions", "monitors")),
         // Lavori (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la Notte, In corso, Esiti e Rendiconti, una categoria
         // che si chiude e si sposta come le altre. Le sessioni non sono più qui: stanno a sé, sempre aperte, sotto il tabellone, così
         // tenerle in vista non porta più In corso ed Esiti sopra Dalla master. Prima (app-home-tre-categorie-06-11) Sessioni
@@ -26,7 +28,12 @@ object HomeCats {
      * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
      * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
      */
-    const val REV = "rev:6"
+    const val REV = "rev:7"
+    /**
+     * Un ordine fino a `rev:6` (Dalla master aperta di partenza): le categorie tornano chiuse una volta (app-home-voci-chiuse-10-11),
+     * perché quella aperta non l'aveva scelta Franz; ordine, sezioni e tabellone restano. Dopo, aperte e chiuse si ricordano.
+     */
+    private const val REV6 = "rev:6"
     /**
      * Un ordine `rev:2` (prima delle voci accorpate) o `rev:3` (prima delle quattro sezioni) tiene categorie, chiuse e cima; dentro
      * Tocca a te riprende una volta l'ordine di partenza.
@@ -51,10 +58,13 @@ object HomeCats {
     fun decode(saved: List<String>?): List<Cat> {
         val list = saved.orEmpty()
         val up = top(saved)
-        val fresh = list.isNotEmpty() && REV !in list && REV2 !in list && REV3 !in list && REV4 !in list && REV5 !in list
-        val youOld = REV !in list && REV5 !in list && (REV2 in list || REV3 in list)
-        val workOld = list.isNotEmpty() && REV !in list && REV5 !in list
-        val workAfterYou = list.isNotEmpty() && REV !in list
+        // Le riprese dell'ordine guardano i marcatori fino a `rev:6`; quella delle chiuse, `rev:7`.
+        val cur = REV in list || REV6 in list
+        val fresh = list.isNotEmpty() && !cur && REV2 !in list && REV3 !in list && REV4 !in list && REV5 !in list
+        val youOld = !cur && REV5 !in list && (REV2 in list || REV3 in list)
+        val workOld = list.isNotEmpty() && !cur && REV5 !in list
+        val workAfterYou = list.isNotEmpty() && !cur
+        val closeOnce = list.isNotEmpty() && REV !in list
         val all = list.filter { catOf(it) != null && it !in up }.distinct()
         val keys = all.filter { (!fresh || (catOf(it) != "you" && catOf(it) != "tools")) && !(youOld && catOf(it) == "you") && !(workOld && catOf(it) == "work") }
         val saved = if (fresh) DEFAULT.map { it.id } else (all.map { catOf(it)!! } + DEFAULT.map { it.id }).distinct()
@@ -63,7 +73,7 @@ object HomeCats {
         return order.map { id ->
             val d = DEFAULT.single { it.id == id }
             val mine = keys.filter { catOf(it) == id }
-            val open = if (workAfterYou && id == "work") false else closed?.let { id !in it } ?: d.open
+            val open = if (closeOnce || (workAfterYou && id == "work")) false else closed?.let { id !in it } ?: d.open
             Cat(id, open, mine + d.sections.filter { it !in mine && it !in up })
         }
     }

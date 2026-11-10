@@ -155,8 +155,9 @@ fun SummaryList(
     usage: (@Composable () -> Unit)? = null,
     /** Le sezioni aperte la prima volta, prima che tu le apra o chiuda. */
     // Esiti sta dentro Sessioni e parte chiusa (app-home-tre-categorie-06-11).
-    // I Monitoraggi aperti la prima volta, come nella web (app-monitoraggi-09-11).
-    startOpen: Set<String> = setOf("sessions", "suggestions", "lavori", "monitors"),
+    // Di partenza le voci sono chiuse col loro riassunto (app-home-voci-chiuse-10-11, Franz 10/11 21:28: «Di base, le voci della home
+    // devono apparire chiuse, sia da app che da PWA»); restano aperte le sessioni, che stanno a sé. Una voce toccata si ricorda.
+    startOpen: Set<String> = setOf("sessions"),
     /**
      * La sessione appena chiusa dal pannello di chiusura, con la riga «chiusa alle …» (Franz, 08/10 18:59, volo al contrario):
      * la sua card in cima alle sessioni è dove la pagina atterra tornando alla home; poi si richiude da sola.
@@ -313,7 +314,7 @@ fun SummaryList(
     // riordino (app-home-riordino-29-10): Utilizzo parte chiusa anche per chi l'aveva aperta, come nella web.
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { runCatching { ctx.getSharedPreferences("home_sections_2", android.content.Context.MODE_PRIVATE) }.getOrNull() }
-    fun section(key: String): androidx.compose.runtime.MutableState<Boolean> = if (parts != null) f.state("plancia.$key", true) else mutableStateOf(runCatching { prefs?.getBoolean(key, key in startOpen) }.getOrNull() ?: (key in startOpen))
+    fun section(key: String): androidx.compose.runtime.MutableState<Boolean> = if (parts != null) f.state("plancia.$key", key in startOpen) else mutableStateOf(runCatching { prefs?.getBoolean(key, key in startOpen) }.getOrNull() ?: (key in startOpen))
     var sessionsOpen by remember { section("sessions") }
     var usageOpen by remember { section("usage") }
     var esitiOpen by remember { section("esiti") }

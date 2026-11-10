@@ -18,7 +18,7 @@ class HomeCatsTest {
         assertEquals(listOf("notte", "lavori", "esiti", "rendiconti"), d[1].sections)
         assertNull(HomeCats.catOf("sessions"))
         assertEquals(listOf("usage", "system", "pagella"), d[2].sections)
-        assertEquals(listOf(true, false, false), d.map { it.open })
+        assertEquals(listOf(false, false, false), d.map { it.open })
         assertEquals(HomeCats.DEFAULT, HomeCats.decode(emptyList()))
     }
 
@@ -33,7 +33,7 @@ class HomeCatsTest {
         // Lo slot di prima sale sul tabellone (app-tabellone-quattro-02-11): Utilizzo esce da Numeri e strumenti.
         assertEquals(listOf("usage"), HomeCats.top(saved))
         assertEquals(cats.map { c -> c.copy(sections = c.sections - "usage") }, HomeCats.decode(saved))
-        assertEquals("shut:work,you,tools", saved.single { it.startsWith("shut:") })
+        assertEquals("shut:work,tools", saved.single { it.startsWith("shut:") })
     }
 
     @Test fun nothingClosedIsSavedToo() {
@@ -48,7 +48,7 @@ class HomeCatsTest {
         assertEquals(listOf("you", "work", "tools"), ids(d))
         assertEquals(listOf("decisioni", "prove", "seguiti", "suggestions", "monitors"), d.single { it.id == "you" }.sections)
         assertTrue(d.flatMap { it.sections }.none { it == "closed" || it == "plugins" || it == "sessions" })
-        assertEquals(listOf(true, false, false), d.map { it.open })
+        assertEquals(listOf(false, false, false), d.map { it.open })
     }
 
     @Test fun theSavedListFitsTheRelay() {
@@ -70,7 +70,7 @@ class HomeCatsTest {
         assertEquals(listOf("you", "work", "tools"), ids(r))
         // Le chiavi che la lista trascinata non ha (non disegnate) tengono il loro posto.
         assertEquals(listOf("prove", "decisioni", "seguiti", "suggestions", "monitors"), r[0].sections)
-        assertEquals(listOf(true, true, false), r.map { it.open })
+        assertEquals(listOf(false, true, false), r.map { it.open })
     }
 
     @Test fun keysNotDrawnKeepTheirPlaceAfterADrag() {
@@ -201,7 +201,7 @@ class HomeCatsTest {
         assertEquals(listOf("decisioni", "prove", "seguiti", "suggestions", "monitors"), d[0].sections)
         assertEquals(listOf("notte", "lavori", "rendiconti"), d[1].sections)
         assertEquals(listOf("usage", "system", "pagella"), d[2].sections)
-        assertEquals(listOf(true, false, false), d.map { it.open })
+        assertEquals(listOf(false, false, false), d.map { it.open })
         assertEquals(listOf("esiti"), HomeCats.top(old))
         // Salvato, porta il marcatore: da lì in poi l'ordine di Franz resta com'è, anche fuori da quello dei riquadri.
         val moved = HomeCats.moveCat(d, 2, 0)
@@ -219,10 +219,10 @@ class HomeCatsTest {
         assertEquals(listOf("tools", "you", "work"), ids(d))
         assertEquals(listOf("decisioni", "prove", "seguiti", "suggestions", "monitors"), d.single { it.id == "you" }.sections)
         assertEquals(listOf("notte", "lavori", "rendiconti"), d.single { it.id == "work" }.sections)
-        assertEquals(listOf(true, true, false), d.map { it.open })
+        assertEquals(listOf(false, false, false), d.map { it.open })
         assertEquals(listOf("esiti"), HomeCats.top(old))
         val saved = HomeCats.encode(HomeCats.moveSection(d, "you", 3, 0), null, HomeCats.top(old))!!
-        assertEquals("rev:6", HomeCats.REV); assertTrue(HomeCats.REV in saved)
+        assertEquals("rev:7", HomeCats.REV); assertTrue(HomeCats.REV in saved)
         assertEquals(listOf("suggestions", "decisioni", "prove", "seguiti", "monitors"), HomeCats.decode(saved).single { it.id == "you" }.sections)
     }
 
@@ -233,7 +233,7 @@ class HomeCatsTest {
         assertEquals(listOf("tools", "you", "work"), ids(d))
         assertEquals(listOf("decisioni", "prove", "seguiti", "suggestions", "monitors"), d.single { it.id == "you" }.sections)
         assertTrue(d.none { "da_guardare" in it.sections })
-        assertEquals(listOf(true, true, false), d.map { it.open })
+        assertEquals(listOf(false, false, false), d.map { it.open })
         // Le sessioni non stanno più sul tabellone: sono a sé, sotto (app-home-sessioni-a-se-08-11).
         assertEquals(emptyList<String>(), HomeCats.top(old))
         assertEquals(emptyList<String>(), HomeCats.top(listOf("top:da_guardare", "rev:3")))
@@ -246,8 +246,9 @@ class HomeCatsTest {
         assertEquals(listOf("you", "work", "tools"), ids(d))
         assertEquals(listOf("notte", "lavori", "esiti", "rendiconti"), d.single { it.id == "work" }.sections)
         assertEquals(listOf(false, false, false), d.map { it.open })
-        val saved = HomeCats.encode(d, null, HomeCats.top(old))!!
-        assertTrue("rev:6" in saved)
+        // Chiuso del tutto (app-home-voci-chiuse-10-11) è il predefinito, che si salva come null; altrimenti col marcatore di oggi.
+        val saved = HomeCats.encode(d, null, HomeCats.top(old)) ?: emptyList()
+        if (saved.isNotEmpty()) assertTrue(HomeCats.REV in saved)
         assertEquals(d, HomeCats.decode(saved))
     }
 
@@ -261,10 +262,10 @@ class HomeCatsTest {
         assertEquals(listOf("you", "work", "tools"), ids(d))
         // Dentro Lavori resta l'ordine di Franz; Lavori parte chiusa, le altre chiuse e aperte restano.
         assertEquals(listOf("notte", "esiti", "lavori", "rendiconti"), d.single { it.id == "work" }.sections)
-        assertEquals(listOf(true, false, false), d.map { it.open })
+        assertEquals(listOf(false, false, false), d.map { it.open })
         // Il tabellone di Franz resta.
         assertEquals(listOf("esiti"), HomeCats.top(listOf("top:esiti", "sessions", "lavori", "shut:you", "rev:5")))
-        assertEquals(listOf(false, false, true), HomeCats.decode(listOf("top:esiti", "sessions", "lavori", "shut:you", "rev:5")).map { it.open })
+        assertEquals(listOf(false, false, false), HomeCats.decode(listOf("top:esiti", "sessions", "lavori", "shut:you", "rev:5")).map { it.open })
         assertEquals(emptyList<String>(), HomeCats.top(listOf("top:sessions", "rev:5")))
         // Da `rev:6` in poi Lavori resta dove Franz lo mette, anche prima di Dalla master.
         val moved = HomeCats.encode(HomeCats.moveCat(d, 1, 0), null)!!
@@ -283,10 +284,22 @@ class HomeCatsTest {
         val d = HomeCats.decode(old)
         assertEquals(listOf("work", "you", "tools"), ids(d))
         assertEquals(listOf("suggestions", "decisioni", "seguiti", "prove", "monitors"), d.single { it.id == "you" }.sections)
-        assertEquals(listOf(true, false, false), d.map { it.open })
+        assertEquals(listOf(false, false, false), d.map { it.open })
         assertEquals(listOf("esiti"), HomeCats.top(old))
         // Spostata da Franz, resta dove l'ha messa.
         val moved = HomeCats.encode(HomeCats.moveSection(d, "you", 4, 0), null, HomeCats.top(old))!!
         assertEquals(listOf("monitors", "suggestions", "decisioni", "seguiti", "prove"), HomeCats.decode(moved).single { it.id == "you" }.sections)
+    }
+
+    // app-home-voci-chiuse-10-11 (Franz 10/11 21:28: «Di base, le voci della home devono apparire chiuse»): le categorie partono chiuse;
+    // un ordine salvato fino a rev:6 le chiude una volta (Dalla master aperta non l'aveva scelta Franz); da rev:7 si ricordano.
+    @Test fun theHomeStartsClosedAndAnOldOrderClosesOnce() {
+        assertTrue(HomeCats.DEFAULT.none { it.open })
+        assertEquals(listOf(false, false, false), HomeCats.decode(listOf("decisioni", "shut:work,tools", "rev:6")).map { it.open })
+    }
+    @Test fun fromRev7WhatFranzOpensStaysOpen() {
+        val saved = HomeCats.encode(HomeCats.toggle(HomeCats.DEFAULT, "you"), null)!!
+        assertTrue("rev:7" in saved)
+        assertEquals(listOf("you" to true, "work" to false, "tools" to false), HomeCats.decode(saved).map { it.id to it.open })
     }
 }
