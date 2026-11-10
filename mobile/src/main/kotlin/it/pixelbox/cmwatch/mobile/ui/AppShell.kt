@@ -148,17 +148,29 @@ private fun SessionMenu(
 ) {
     var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(startOpen) }
     val cur = sessions.firstOrNull { it.name == current }
-    Box(modifier) {
+    // Il nome prima di tutto (app-ti-aspetta-titolo-320-10-11): la testata è alta una riga, così se il nome intero non entra col
+    // pallino della sessione e la ▾ accanto, sono loro a cadere; il tocco sul nome apre il menu lo stesso. A 320 dp col testo a 1,3
+    // «win:supervisor-app» si leggeva «win:superviso».
+    val title = cur?.name ?: stringResource(R.string.all_sessions)
+    val titleStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val titleW = androidx.compose.runtime.remember(title, titleStyle, density) { measurer.measure(title, titleStyle, softWrap = false, maxLines = 1).size.width }
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
+        // Margini 24, pallino 18 e ▾ 24 con i loro 8 di distanza.
+        val marks = with(density) { titleW + (24 + 26 + 32).dp.roundToPx() } <= constraints.maxWidth
         Row(
             Modifier.clip(CircleShape).handCursor().clickable { open = true }.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            cur?.let { SessionBadge(it, size = 18.dp) }
+            if (marks) cur?.let { SessionBadge(it, size = 18.dp) }
+            val whole = LocalNameWhole.current
             Text(
-                cur?.name ?: stringResource(R.string.all_sessions), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                title, style = titleStyle,
                 color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
+                onTextLayout = { l -> whole?.invoke(title, !l.hasVisualOverflow) },
             )
-            Icon(Icons.Rounded.ArrowDropDown, null, tint = Cm.text2)
+            if (marks) Icon(Icons.Rounded.ArrowDropDown, null, tint = Cm.text2)
         }
     }
     if (open) {

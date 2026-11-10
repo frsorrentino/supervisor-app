@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -64,14 +65,19 @@ fun TiAspettaPage(
 ) {
     // Non si salva: ogni scheda, anche un'altra aperta da questa lista, parte con la lista chiusa.
     var open by remember(page.key) { mutableStateOf(othersOpen) }
-    Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).testTag("ti-aspetta-${page.key}")) {
+    // Sul telefono la scheda prende lo schermo intero e lascia il posto alla barra di stato come le altre pagine (systemBarsPadding,
+    // app-ti-aspetta-titolo-320-10-11: il titolo finiva sotto l'ora, screenshot di Franz dell'08/11 21:38); nella colonna del
+    // tablet il posto lo lascia già la plancia.
+    Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).then(if (wide) Modifier else Modifier.systemBarsPadding()).testTag("ti-aspetta-${page.key}")) {
         Row(Modifier.fillMaxWidth().padding(start = if (wide) 18.dp else 6.dp, end = 6.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.ti_aspetta_title), style = V3.Section.copy(fontSize = 22.sp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    page.session?.let { Text("$it ·", style = V3.Meter) }
-                    Text(stringResource(R.string.ti_aspetta_since, TiAspetta.age(now - page.since)), style = V3.Meter.copy(color = V3.Wait))
+                // Il nome prima di tutto (app-ti-aspetta-titolo-320-10-11): «da 49 min» va intero sotto il nome se non c'è posto, mai
+                // spezzato in «da 49» e «min».
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    page.session?.let { n -> val whole = LocalNameWhole.current; Text("$n ·", style = V3.Meter, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, onTextLayout = { l -> whole?.invoke(n, !l.hasVisualOverflow) }) }
+                    Text(stringResource(R.string.ti_aspetta_since, TiAspetta.age(now - page.since)), style = V3.Meter.copy(color = V3.Wait), maxLines = 1, softWrap = false)
                 }
             }
             if (wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = V3.Tx2) }
@@ -278,8 +284,8 @@ internal class WaitAnswer(private val close: () -> Unit) {
 
 /** La scheda mentre si legge, o quando la domanda non aspetta più: la freccia indietro e una riga. */
 @Composable
-fun TiAspettaEmpty(text: String, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).padding(6.dp)) {
+fun TiAspettaEmpty(text: String, wide: Boolean = false, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).then(if (wide) Modifier else Modifier.systemBarsPadding()).padding(6.dp)) {
         IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
         Text(text, style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }

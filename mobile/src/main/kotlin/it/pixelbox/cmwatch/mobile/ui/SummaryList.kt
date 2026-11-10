@@ -115,6 +115,9 @@ import it.pixelbox.cmwatch.mobile.update.AppUpdater
 /** Le righe del nome di ogni scheda di sessione disegnata, per i test della plancia (app-home-sessioni-a-se-08-11). */
 internal val LocalNameLines = androidx.compose.runtime.staticCompositionLocalOf<((String, Int) -> Unit)?> { null }
 
+/** Per i test (app-ti-aspetta-titolo-320-10-11): il nome di una sessione e se si legge intero, senza il taglio in fondo; card, testata e scheda. */
+internal val LocalNameWhole = androidx.compose.runtime.staticCompositionLocalOf<((String, Boolean) -> Unit)?> { null }
+
 /**
  * Il riepilogo unico (design 03/10, tavola 4): ogni sessione una volta, nei gruppi del bisogno, una riga aperta alla
  * volta; aperta mostra anche i dettagli delle vecchie card di Sessioni. Sotto, «Chiuse · N» e le righe di servizio.
@@ -1234,6 +1237,17 @@ private fun SummaryCard(
     }
     val density = androidx.compose.ui.platform.LocalDensity.current
     // La misura fissa: la riga del nome, una riga di testo e i margini, dalla tipografia (regge il testo grande).
+    // Il nome prima di tutto (app-ti-aspetta-titolo-320-10-11, Franz: «su un telefono largo 320 dp col testo grande il nome della
+    // sessione resta leggibile»): se il nome intero e quello che gli sta accanto (contesto, tasto, freccia) non entrano in una riga,
+    // il nome prende la riga sua e il resto va intero sotto, a destra; chiusa, la scheda cresce di quella riga. Prima il nome si
+    // stringeva fino a sparire: a 320 dp col testo a 1,3 «Scegli» e «ctx» lasciavano la riga senza nome.
+    // Si decide mentre si misura, non con uno stato: la scheda ha `smoothSize`, e una seconda misura la faceva crescere animata appena
+    // compariva. `nameExtra`: quanto la riga del nome su due righe è più alta di una, scritto dal blocco del nome e letto dall'altezza
+    // fissa della scheda chiusa nello stesso passaggio. Lo scrive a ogni sua misura e resta finché non si rimisura: la scheda si rimisura
+    // anche senza di lui.
+    var rowW by remember { mutableStateOf(Int.MAX_VALUE) }
+    val nameGlyph = it.pixelbox.cmwatch.rules.PermissionModes.homeGlyph(s)
+    val nameExtra = remember { intArrayOf(0) }
     val compactH = with(density) { maxOf(32.dp, V3.Name.lineHeight.toDp()) + 4.dp + V3.Body.lineHeight.toDp() + 18.dp }
     val cardTap = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // Il collo (app-effetti-movimenti-04-11, punto 1): sul tablet la scheda si stacca dalla lista prima di diventare la colonna.
@@ -1250,7 +1264,11 @@ private fun SummaryCard(
             // Al tocco la scheda si contrae al 98 % prima di diventare la pagina o la colonna (app-effetti-movimenti-04-11, punto 1).
             .neck(neck, V3.S2).cardPress(cardTap).handCursor().combinedClickable(interactionSource = cardTap, indication = androidx.compose.material3.ripple(), onClick = openNeck, onLongClick = { menu = true }).contextClick { menu = true }
             .padding(end = 10.dp, top = 8.dp, bottom = 10.dp)
-            .then(if (compact) Modifier.height(compactH).clipToBounds() else Modifier),
+            .then(if (compact) Modifier.layout { m, c ->
+                val p = m.measure(c.copy(minHeight = 0, maxHeight = (compactH + 400.dp).roundToPx()))
+                val h = (compactH.roundToPx() + nameExtra[0]).coerceIn(c.minHeight, c.maxHeight)
+                layout(p.width, h) { p.place(0, 0) }
+            }.clipToBounds() else Modifier),
     ) {
     // Il binario: il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora.
     // Il glifo sul centro delle maiuscole del nome (app-suggerimenti-icone-03-11): la riga del nome è alta quanto il tasto ▼ (32 dp)
@@ -1263,22 +1281,24 @@ private fun SummaryCard(
     Spacer(Modifier.width(8.dp))
     // Con «Apri» in una colonna stretta il nome viene prima del contesto: sotto 300 dp «ctx» lascia il posto, e il nome non va più
     // a capo a metà (app-sessioni-evidenti-06-11, golden planciaMasterOpen: «ledger / -api»).
-    var rowW by remember { mutableStateOf(Int.MAX_VALUE) }
     val ctxRoom = !openKey || rowW >= with(androidx.compose.ui.platform.LocalDensity.current) { 300.dp.roundToPx() }
-    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.onSizeChanged { rowW = it.width }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2).
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.weight(1f).onSizeChanged { rowW = it.width }, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Il segno della modalità dei permessi dopo il nome, solo se diverso dal solito (mockup del 14/10, schermata 2).
+        val namePart: @Composable (Modifier) -> Unit = { m ->
+            Row(m, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 // Su una riga sola, tagliato se non ci sta, come il nome nella web (`.name`, nowrap) e nelle altre righe di sessione:
                 // nella colonna Sessioni a quattro colonne andava a capo a metà, «ledger- / api» (app-home-sessioni-a-se-08-11).
                 val nameLines = LocalNameLines.current
+                val nameWhole = LocalNameWhole.current
                 Text(
                     s.name, style = V3.Name, modifier = Modifier.weight(1f, fill = false),
                     maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
-                    onTextLayout = { l -> nameLines?.invoke(s.name, l.lineCount) },
+                    onTextLayout = { l -> nameLines?.invoke(s.name, l.lineCount); nameWhole?.invoke(s.name, !l.hasVisualOverflow) },
                 )
-                PermissionGlyph(it.pixelbox.cmwatch.rules.PermissionModes.homeGlyph(s), 14.dp)
+                PermissionGlyph(nameGlyph, 14.dp)
             }
+        }
+        val trailing: @Composable () -> Unit = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (s.duplicateOf != null) Tag(stringResource(R.string.cleanup_dup_tag), Cm.briefWarn)
             // «ctx 17%»: il contesto occupato, non un avanzamento del lavoro (osservazioni del 03/10).
             // La quota delle 5 ore dell'account al posto dell'età della sessione (Franz, 03/10 20:31: «non è un'informazione
@@ -1298,6 +1318,26 @@ private fun SummaryCard(
                     if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                     stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = Cm.text2,
                 )
+            }
+        } }
+        val nameRowH = with(androidx.compose.ui.platform.LocalDensity.current) { maxOf(32.dp, V3.Name.lineHeight.toDp()) }
+        androidx.compose.ui.layout.Layout(content = { namePart(Modifier); trailing() }) { ms, c ->
+            val trail = ms[1].measure(c.copy(minWidth = 0, minHeight = 0))
+            val gap = 8.dp.roundToPx()
+            val rowPx = nameRowH.roundToPx()
+            val w = c.maxWidth
+            if (ms[0].maxIntrinsicWidth(rowPx) + gap + trail.width <= w) {
+                val name = ms[0].measure(androidx.compose.ui.unit.Constraints(maxWidth = (w - gap - trail.width).coerceAtLeast(0)))
+                nameExtra[0] = 0
+                val h = maxOf(name.height, trail.height)
+                layout(w, h) { name.placeRelative(0, (h - name.height) / 2); trail.placeRelative(w - trail.width, (h - trail.height) / 2) }
+            } else {
+                // Il nome sulla riga sua, intero o tagliato in fondo solo se non entra nemmeno da solo; il resto sotto, a destra.
+                val name = ms[0].measure(androidx.compose.ui.unit.Constraints(maxWidth = w))
+                val top = maxOf(name.height, rowPx)
+                val h = top + 4.dp.roundToPx() + trail.height
+                nameExtra[0] = h - rowPx
+                layout(w, h) { name.placeRelative(0, (top - name.height) / 2); trail.placeRelative(w - trail.width, top + 4.dp.roundToPx()) }
             }
         }
         // L'obiettivo della sessione, stabile, sopra l'attività del momento (osservazioni del 03/10): si legge anche dopo ore.

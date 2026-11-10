@@ -1458,6 +1458,7 @@ class MainActivity : ComponentActivity() {
             run {
                 if (item == null) it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(
                     getString(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
+                    wide = wideNow,
                 ) { waitOpen = null }
                 else it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(
                     it.pixelbox.cmwatch.rules.TiAspetta.pageOf(item, waitOthers), now, wide = wideNow, onBack = { waitOpen = null },
