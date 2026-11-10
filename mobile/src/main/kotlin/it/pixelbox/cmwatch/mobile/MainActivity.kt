@@ -1457,7 +1457,7 @@ class MainActivity : ComponentActivity() {
             val send = answer.two<it.pixelbox.cmwatch.contract.WaitAction, String?> { a, written -> scope.launch { runCatching { app.repo.commandOf(a, written) } } }
             run {
                 if (item == null) it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(
-                    androidx.compose.ui.res.stringResource(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
+                    getString(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
                 ) { waitOpen = null }
                 else it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(
                     it.pixelbox.cmwatch.rules.TiAspetta.pageOf(item, waitOthers), now, wide = wideNow, onBack = { waitOpen = null },
@@ -2012,7 +2012,10 @@ class MainActivity : ComponentActivity() {
             snap.freshness is Freshness.Stale, onLaunch = { launching = true }, onLavori = { tab = StartRoute.Tab.LAVORI; open = null },
             onQuadro = goUsage, onSearch = { searchOpen = true }, onSettings = { settingsOpen = true },
             onNight = { nightOpen = true },
-            screen = open?.let { o -> androidx.compose.ui.res.stringResource(R.string.feedback_session, o) } ?: if (tab == StartRoute.Tab.LAVORI) androidx.compose.ui.res.stringResource(R.string.menu_lavori) else null,
+            // `getString`, non `stringResource` (app-scorrimento-prima-sessione-09-11, telefono di Franz 10/11 08:04): un composable
+            // chiamato solo con una sessione aperta aggiungeva un gruppo nel corpo di Main, quelli dopo slittavano e Compose rifaceva
+            // da capo tutta la home e la pagina appena aperta. Al rilascio del dito la chat ripartiva vuota per un fotogramma.
+            screen = open?.let { o -> getString(R.string.feedback_session, o) } ?: if (tab == StartRoute.Tab.LAVORI) getString(R.string.menu_lavori) else null,
             feedbackSend = if (!demo && state?.ops?.contains("feedback_app") == true) feedbackLink else null,
         )
         val pageHeader: @Composable (String?) -> Unit = { page ->
