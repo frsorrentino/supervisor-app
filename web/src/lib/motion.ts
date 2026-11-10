@@ -175,3 +175,38 @@ export const gather = (_: Element) => ({
     return `transform: scaleX(${sx.toFixed(3)}); transform-origin: 50% 50%; background: var(--good); opacity: ${o.toFixed(3)}; --edge-sweep: none`
   },
 })
+
+/**
+ * Il Genie dei menu (app-genie-menu-09-11, approvato da Franz il 09/11 22:14; Genie.kt nell'app): dal tasto premuto cade una goccia che
+ * si gonfia fino al pannello in 0,32 s e le voci passano da sfocate a nitide; chiudendo, lo stesso all'indietro e più svelto. Il
+ * pannello resta alla sua misura: la goccia è un ritaglio (`clip-path`), non una scala, così il testo non si deforma. Le voci leggono
+ * `--genie-k` (0 nascoste e sfocate, 1 nitide). Senza un tocco recente la goccia parte dal lato `fallback` del pannello.
+ */
+export const GENIE_OPEN_MS = 320, GENIE_CLOSE_MS = 220, GENIE_DROP = 0.3, GENIE_CONTENT = 0.55
+export type GenieRect = { left: number; top: number; right: number; bottom: number; radius: number }
+const easeOut3 = (t: number) => { const u = Math.min(1, Math.max(0, t)); return 1 - (1 - u) ** 3 }
+/** Il riquadro della goccia nel pannello `w`×`h` all'avanzamento `p`, sotto il tasto (`cx`); come Genie.rect in Kotlin. */
+export function genieRect(p: number, w: number, h: number, cx: number, drop: number, r: number): GenieRect {
+  const q = Math.min(1, Math.max(0, p))
+  const clampX = (dw: number) => Math.min(Math.max(0, w - dw), Math.max(0, cx - dw / 2))
+  if (q <= GENIE_DROP) {
+    const t = q / GENIE_DROP, dw = drop * (0.55 + 0.45 * t), dh = drop * (0.55 + 0.75 * t), x = clampX(dw)
+    return { left: x, top: 0, right: x + dw, bottom: dh, radius: dw / 2 }
+  }
+  const t = easeOut3((q - GENIE_DROP) / (1 - GENIE_DROP)), dw = drop, dh = drop * 1.3, x0 = clampX(dw)
+  return { left: x0 * (1 - t), top: 0, right: x0 + dw + (w - x0 - dw) * t, bottom: dh + (h - dh) * t, radius: dw / 2 + (r - dw / 2) * t }
+}
+/** Quanto si vedono le voci all'avanzamento `p`: niente fino a GENIE_CONTENT, poi a salire. */
+export const genieContent = (p: number) => Math.min(1, Math.max(0, (p - GENIE_CONTENT) / (1 - GENIE_CONTENT)))
+/** Per i menu in `{#if}`: `transition:genie`. */
+export const genie = (node: Element, { fallback = 1 }: { fallback?: number } = {}) => {
+  const r = node.getBoundingClientRect(), press = recentPress()
+  const cx = press ? press.x - r.left : r.width * fallback
+  return ({ direction }: { direction?: 'in' | 'out' | 'both' } = {}) => ({
+    duration: reducedMotion() ? 0 : direction === 'out' ? GENIE_CLOSE_MS : GENIE_OPEN_MS, easing: (t: number) => t,
+    css: (t: number) => {
+      const g = genieRect(t, r.width, r.height, cx, 44, 14)
+      return `clip-path: inset(${g.top.toFixed(1)}px ${(r.width - g.right).toFixed(1)}px ${(r.height - g.bottom).toFixed(1)}px ${g.left.toFixed(1)}px round ${g.radius.toFixed(1)}px); --genie-k: ${genieContent(t).toFixed(3)}`
+    },
+  })
+}

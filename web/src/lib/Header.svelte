@@ -1,6 +1,6 @@
 <script lang="ts">
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
-  import { growFromPress } from './motion'
+  import { genie } from './motion'
   import CloseDialog from './CloseDialog.svelte'
   import type { CmdOp, Model, Session, State } from './contract'
   import { modelKind, nextTurn, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
@@ -231,13 +231,15 @@
       </button>
     {/if}
     <span class="anchor">
-      <button class="ib" aria-label={t.more} aria-expanded={menu} onclick={() => (menu = !menu)}>
-        <svg viewBox="0 0 24 24" width="22" height="22"><g fill="var(--text2)"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></g></svg>
+      <!-- Aperto il menu, «⋮» diventa «×» e lo richiude (Genie, app-genie-menu-09-11); sta sopra lo sfondo che chiude. -->
+      <button class="ib trig" class:open={menu} aria-label={menu ? t.closeWord : t.more} aria-expanded={menu} onclick={() => (menu = !menu)}>
+        {#if menu}<svg viewBox="0 0 24 24" width="22" height="22"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
+        {:else}<svg viewBox="0 0 24 24" width="22" height="22"><g fill="var(--text2)"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></g></svg>{/if}
         {#if changesMenu}<span class="mdot" aria-hidden="true"></span>{/if}
       </button>
       {#if menu}
         <button class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
-        <div class="panel v3" transition:growFromPress role="menu">
+        <div class="panel v3" transition:genie role="menu">
           <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
           {#if has('changes') && changes}
             <button class="mi" role="menuitem" disabled={!onChanges} onclick={() => { menu = false; onChanges?.() }}>
@@ -495,6 +497,11 @@
      overflow: hidden tagliava le gambe di p, g, q e y («Opus»). */
   .pill .lbl { min-width: 0; overflow-x: clip; overflow-y: visible; }
   .scrim { position: fixed; inset: 0; z-index: 9; cursor: default; }
+  .trig.open { position: relative; z-index: 11; animation: trig .22s ease-out; }
+  @keyframes trig { from { rotate: -90deg; opacity: .3; } }
+  /* Le voci del Genie: trasparenti e sfocate mentre la goccia si gonfia (--genie-k dalla transizione, motion.ts). */
+  .panel.v3 > * { opacity: var(--genie-k, 1); filter: blur(calc((1 - var(--genie-k, 1)) * 10px)); }
+  @media (prefers-reduced-motion: reduce) { .trig.open { animation: none; } }
   /* Il menu a pannello dell'app (AppMenuPanel): 380 px su desktop, voci con la spiegazione sotto. */
   .panel { position: absolute; right: 4px; top: 46px; z-index: 10; width: min(380px, calc(100vw - 24px)); background: var(--surface); border-radius: 20px; padding: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); }
   .ph { display: flex; align-items: center; gap: 12px; padding: 10px 12px 12px; font-size: 15.5px; }

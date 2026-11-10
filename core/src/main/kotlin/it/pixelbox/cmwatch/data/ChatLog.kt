@@ -25,7 +25,10 @@ class ChatLog(private val file: File, private val now: () -> Long) {
         _messages.value = list
         val tmp = File(file.parentFile, file.name + ".tmp")
         tmp.writeText(ContractJson.json.encodeToString(serializer, list))
-        tmp.renameTo(file)
+        // Una rinomina che sostituisce il file anche dove `renameTo` non lo fa (Windows: falliva in silenzio dalla seconda scrittura).
+        val (from, to) = tmp.toPath() to file.toPath()
+        try { java.nio.file.Files.move(from, to, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE) }
+        catch (_: java.nio.file.AtomicMoveNotSupportedException) { java.nio.file.Files.move(from, to, java.nio.file.StandardCopyOption.REPLACE_EXISTING) }
     }
 
     @Synchronized fun add(m: Sent) = save(_messages.value.filter { it.id != m.id } + m)

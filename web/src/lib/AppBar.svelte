@@ -8,7 +8,7 @@
   import { freshness } from './durations'
   import { t } from './t'
   import { tapVersion } from './meterSwitch.svelte'
-  import { growFromPress } from './motion'
+  import { genie } from './motion'
   import { resetLabel } from './header'
   import { shown } from './quotaLine'
   import { quotaBar } from './utilizzo'
@@ -43,8 +43,8 @@
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (menu = false)} />
 
 {#if menuOnly}
-  <button class="ib only" aria-label={t.menu} title={t.menu} aria-expanded={menu} onclick={(e) => { e.stopPropagation(); openMenu(e) }}>
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+  <button class="ib only trig" class:open={menu} aria-label={menu ? t.closeWord : t.menu} title={menu ? t.closeWord : t.menu} aria-expanded={menu} onclick={(e) => { e.stopPropagation(); if (menu) menu = false; else openMenu(e) }}>
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d={menu ? 'M18 6 6 18M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} /></svg>
   </button>
 {:else}
 <header>
@@ -59,8 +59,9 @@
     <button class="ib" aria-label={t.search} title={t.search} onclick={() => onPage('search')}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
     </button>
-    <button class="ib" aria-label={t.menu} title={t.menu} aria-expanded={menu} onclick={openMenu}>
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+    <!-- Aperto il menu, ≡ diventa × e lo richiude (Genie, app-genie-menu-09-11); sta sopra lo sfondo oscurato. -->
+    <button class="ib trig" class:open={menu} aria-label={menu ? t.closeWord : t.menu} title={menu ? t.closeWord : t.menu} aria-expanded={menu} onclick={(e) => { if (menu) menu = false; else openMenu(e) }}>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><path d={menu ? 'M18 6 6 18M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} /></svg>
     </button>
   </div>
   {#if quota && rings.length}
@@ -88,11 +89,11 @@
 {#if menu}
   <div class="scrim" role="presentation" onclick={(e) => { e.stopPropagation(); menu = false }}></div>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="panel v3" transition:growFromPress data-testid="menu-v3" role="menu" tabindex="-1" style:right="{panelRight}px" onclick={(e) => e.stopPropagation()}>
+  <div class="panel v3" transition:genie data-testid="menu-v3" role="menu" tabindex="-1" style:right="{panelRight}px" onclick={(e) => e.stopPropagation()}>
     <div class="ph">
       <i class="led" class:stale={fresh.stale}></i>
       <span>{t.menuConnected(st.host || t.menuPc, updated)}</span>
-      <button class="ib" aria-label={t.closeWord} onclick={() => (menu = false)}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg></button>
+      <!-- La × è il tasto ≡ che l'ha aperto (Genie, app-genie-menu-09-11): qui non si ripete. -->
     </div>
     {#each entries as e}
       <button class="mi" role="menuitem" onclick={() => go(e.page)}>
@@ -143,6 +144,11 @@
   .track { flex: 1; height: 3px; border-radius: 2px; background: var(--b-track); overflow: hidden; }
   .track i { display: block; height: 100%; }
   .scrim { position: fixed; inset: 0; z-index: 20; background: rgb(0 0 0 / .55); animation: fade .15s; }
+  /* Le voci del Genie: trasparenti e sfocate mentre la goccia si gonfia (--genie-k dalla transizione, motion.ts). */
+  .panel.v3 > * { opacity: var(--genie-k, 1); filter: blur(calc((1 - var(--genie-k, 1)) * 10px)); }
+  .trig.open { position: relative; z-index: 22; animation: trig .22s ease-out; }
+  @keyframes trig { from { rotate: -90deg; opacity: .3; } }
+  @media (prefers-reduced-motion: reduce) { .trig.open { animation: none; } }
   .panel { position: fixed; z-index: 21; top: 56px; left: 12px; right: 12px; max-height: calc(100% - 80px); overflow-y: auto; background: var(--surface); border-radius: 28px; padding: 8px 0; box-shadow: 0 12px 40px rgb(0 0 0 / .5); transform-origin: top right; }
   /* Su tablet e desktop largo 380 dalla parte del tasto che lo apre. */
   @media (min-width: 600px) { .panel { left: auto; width: 380px; } }

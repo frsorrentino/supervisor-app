@@ -99,6 +99,9 @@ fun PanelShell(
     val shown = remember { androidx.compose.animation.core.MutableTransitionState(off).apply { targetState = true } }
     var closing by remember { androidx.compose.runtime.mutableStateOf(false) }
     val close: () -> Unit = { if (off) onDismiss() else { closing = true; shown.targetState = false } }
+    // Il tasto che ha aperto il menu diventa × (app-genie-menu-09-11): dove si è toccato; senza un tocco recente chiude la × della testata.
+    val press = remember { LastPress.at }
+    val pressX = press != null && !off
     androidx.compose.runtime.LaunchedEffect(shown.isIdle, shown.currentState, closing) { if (closing && shown.isIdle && !shown.currentState) onDismiss() }
     // Compose misura il popup una volta sola, sulla parte visibile della finestra: aperto con la tastiera su (scrivendo alla
     // master) prendeva l'altezza sopra la tastiera, che il popup stesso chiude, e il menu si fermava a metà e scorreva con
@@ -121,33 +124,38 @@ fun PanelShell(
                         .clickable(remember { MutableInteractionSource() }, indication = null, onClick = close),
                 )
             }
+            // Il Genie (app-genie-menu-09-11): la goccia dal tasto che si gonfia nel pannello, le voci da sfocate a nitide; chiudendo
+            // all'indietro. Prima il pannello cresceva in scala dal punto toccato (growFromPress) con una dissolvenza.
+            val frozen = LocalGenieAt.current
             androidx.compose.animation.AnimatedVisibility(
                 shown,
-                enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(60)),
-                exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(90, delayMillis = 90)),
+                enter = androidx.compose.animation.EnterTransition.None,
+                exit = androidx.compose.animation.ExitTransition.None,
                 // Su tablet e desktop un menu largo 380 dp dalla parte del tasto che lo apre, non a tutta larghezza (Franz, 05/10 13:10).
                 modifier = if (wide) Modifier.align(if (origin.pivotFractionX > 0.5f) Alignment.TopEnd else Alignment.TopStart)
                     .statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 56.dp, bottom = 24.dp).width(380.dp)
                 else Modifier.statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 56.dp, bottom = 24.dp).fillMaxWidth(),
             ) {
-                val grow by transition.animateFloat(
-                    transitionSpec = { if (targetState == androidx.compose.animation.EnterExitState.Visible) CmMotion.bounceFloat else CmMotion.fast },
-                    label = "menu",
+                val genie by transition.animateFloat(
+                    transitionSpec = { if (targetState == androidx.compose.animation.EnterExitState.Visible) androidx.compose.animation.core.tween(Genie.OPEN_MS, easing = androidx.compose.animation.core.LinearEasing) else androidx.compose.animation.core.tween(Genie.CLOSE_MS, easing = androidx.compose.animation.core.LinearEasing) },
+                    label = "genie",
                 ) { if (it == androidx.compose.animation.EnterExitState.Visible) 1f else 0f }
+                val p = { frozen ?: genie }
                 Surface(
-                    shape = V3.Shape, color = V3.S1, shadowElevation = 8.dp, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line),
+                    shape = V3.Shape, color = V3.S1, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line),
                     // Il tocco dentro il pannello non lo chiude.
-                    modifier = Modifier.growFromPress(origin) { grow }.fillMaxWidth().then(if (tag != null) Modifier.testTag(tag) else Modifier).clickable(remember { MutableInteractionSource() }, indication = null) {},
+                    modifier = Modifier.genieBlob(origin, p).fillMaxWidth().then(if (tag != null) Modifier.testTag(tag) else Modifier).clickable(remember { MutableInteractionSource() }, indication = null) {},
                 ) {
-                    V3Theme { Column {
-                        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    V3Theme { Column(Modifier.genieContent(p)) {
+                        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             header()
-                            IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2) }
+                            if (!pressX) IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2) }
                         }
                         Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
                         Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) { content(close) }
                     } }
                 }
+                if (pressX) GenieClose(press!!, p, close)
             }
         }
     }
