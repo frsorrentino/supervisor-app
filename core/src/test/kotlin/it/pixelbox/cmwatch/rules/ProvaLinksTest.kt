@@ -59,4 +59,14 @@ class ProvaLinksTest {
         assertTrue("$r", r is ProvaLinks.Read.Found && r.prova.id == id && r.prova.state == "todo")
         assertEquals(ProvaLinks.Read.Refused("prova 999999: non esiste"), read("999999").let { ProvaLinks.read(it.ok, it.text) })
     }
+
+    // Gli esempi del relay (contratto 1.134, …1330-1334): da fare, ok (compito chiuso), ko con le parole, rossa col motivo, e uno che non c'è.
+    @Test fun theRelaySamplesReadAsProve() {
+        val fake = FakeTransport(load = { File("../contract/$it.json").readText() })
+        val reads = listOf("41", "35", "38", "36", "999").map { a -> fake.sampleResult("prove", a).let { (ok, text) -> ProvaLinks.read(ok, text) } }
+        assertEquals(listOf("todo", "ok", "ko", "red"), reads.take(4).map { r -> (r as ProvaLinks.Read.Found).prova.state })
+        assertTrue("le parole del ko e il motivo del rosso", reads.drop(2).take(2).all { r -> !(r as ProvaLinks.Read.Found).prova.text.isNullOrBlank() })
+        assertTrue(reads.last() is ProvaLinks.Read.Refused)
+        assertEquals("l'elenco senza arg, come da un relay vecchio", ProvaLinks.Read.Unsupported, ProvaLinks.read(true, fake.sampleText("prove")))
+    }
 }
