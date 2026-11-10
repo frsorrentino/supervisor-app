@@ -107,6 +107,8 @@ enum class CmdOp {
     @SerialName("attesa") ATTESA,
     /** Contratto 1.132: le schede dei Monitoraggi; senza arg l'elenco, con arg un id quella sola. */
     @SerialName("monitors") MONITORS,
+    /** Contratto 1.133: aggiorna subito un monitoraggio, `arg` = id; la risposta ok è la sua scheda con `refresh.state` running. */
+    @SerialName("monitor_refresh") MONITOR_REFRESH,
     /** Contratto 1.37: una decisione da salvare nella memoria della master; `text` obbligatorio, `arg` = progetto o null. */
     @SerialName("decision") DECISION,
     /** Contratto 1.39: togliere un dispositivo accoppiato; `arg` = uid. Solo «Scollega questo browser», col proprio uid. */
@@ -1171,6 +1173,18 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val example: Boolean = false, val alerts: List<MonitorAlert> = emptyList(), val hits: List<MonitorAlert> = emptyList(),
     val series: List<MonitorSeries> = emptyList(), val link: String? = null,
     val max: Double? = null, val limit: String? = null, val pct: Double? = null, val rows: List<MonitorRow> = emptyList(),
+    /** Contratto 1.133: si può aggiornare subito con `monitor_refresh`; solo allora c'è il tasto. */
+    val refreshable: Boolean = false,
+    /** Contratto 1.133: l'ultimo aggiornamento chiesto; null se [refreshable] è falso. */
+    val refresh: MonitorRefresh? = null,
+)
+/**
+ * Contratto 1.133: lo stato dell'aggiornamento immediato. `state` `idle | running | ok | error`; `started`, `ended`, `retry_at` epoche in
+ * secondi; `rc` 124 = tempo scaduto; `message` l'ultima riga utile (al massimo 200 caratteri); prima di `retry_at` il tasto è spento.
+ */
+@Serializable data class MonitorRefresh(
+    val state: String = "idle", val started: Long? = null, val ended: Long? = null, val rc: Int? = null, val message: String? = null,
+    @SerialName("retry_at") val retryAt: Long? = null, @SerialName("timeout_s") val timeoutS: Int? = null,
 )
 @Serializable data class MonitorAlert(val kind: String = "", val value: Double? = null, val series: String? = null, val text: String = "")
 /** `points` al massimo 60, `[ts, valore]`; `n`, `min` e `max` contano tutta la storia. */

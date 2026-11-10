@@ -335,6 +335,42 @@ class MainActivity : ComponentActivity() {
             app.repo.forget(id)
             r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeMonitor(x.text) }.onSuccess { c -> monitorOne = c } }
         }
+        // «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11, contratto 1.133): il comando con l'id; la risposta è la scheda che gira e prende
+        // il posto della vecchia, poi la si rilegge ogni POLL_S secondi finché gira, al più fino a `timeout_s`. Un rifiuto resta in una riga.
+        val monitorAsked = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+        val monitorFailed = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
+        fun putMonitor(c: it.pixelbox.cmwatch.contract.MonitorCard) {
+            monitorsNow = monitorsNow?.map { x -> if (x.id == c.id) c else x }
+            if (monitorOne?.id == c.id) monitorOne = c
+        }
+        suspend fun askMonitor(op: CmdOp, mid: String): it.pixelbox.cmwatch.contract.CmdResult? {
+            val id = runCatching { app.repo.command(op, null, mid) }.getOrNull() ?: return null
+            val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { x -> x.containsKey(id) }[id] }
+            app.repo.forget(id)
+            return r
+        }
+        val refreshMonitor: (String) -> Unit = { mid ->
+            if (mid !in monitorAsked) {
+                monitorAsked += mid; monitorFailed.remove(mid)
+                scope.launch {
+                    try {
+                        val r = askMonitor(CmdOp.MONITOR_REFRESH, mid)
+                        if (r == null || !r.ok) monitorFailed[mid] = r?.text?.takeIf { t -> t.isNotBlank() } ?: getString(R.string.monitor_refresh_failed)
+                        else {
+                            var card = runCatching { ContractJson.decodeMonitor(r.text) }.getOrNull()
+                            card?.let(::putMonitor)
+                            monitorAsked.remove(mid)
+                            val until = card?.let { c -> it.pixelbox.cmwatch.rules.Monitors.pollUntil(c, System.currentTimeMillis() / 1000) } ?: 0L
+                            while (card?.refresh?.state == "running" && System.currentTimeMillis() / 1000 < until) {
+                                delay(it.pixelbox.cmwatch.rules.Monitors.POLL_S * 1000)
+                                card = askMonitor(CmdOp.MONITORS, mid)?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeMonitor(x.text) }.getOrNull() } ?: card
+                                card?.let(::putMonitor)
+                            }
+                        }
+                    } finally { monitorAsked.remove(mid) }
+                }
+            }
+        }
         fun transcriptSid(name: String): String? = sidOf[name]?.takeIf { app.repo.snapshot.value.state?.sessions?.none { s -> s.name == name && s.state != SessionState.GONE } != false }
         // «Parlane con la master» (piano del 09/10): il testo da mettere nel campo della master, poi la sua chat aperta.
         var talkDraft by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1498,13 +1534,16 @@ class MainActivity : ComponentActivity() {
         }
         // La scheda di un monitoraggio: Ferma, Chiedi alla master e Modifica degli avvisi passano dalla chat della master, col testo
         // già scritto nel campo, finché il contratto non porta i comandi (app-monitoraggi-09-11).
+        val monitorRefreshUi = it.pixelbox.cmwatch.mobile.ui.MonitorRefreshUi(snap.state?.ops, now, monitorAsked.toSet(), monitorFailed.toMap(), refreshMonitor)
         val monitorPage: @Composable (it.pixelbox.cmwatch.contract.MonitorCard, Boolean) -> Unit = { m, wideNow ->
+            androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalMonitorRefresh provides monitorRefreshUi) {
             it.pixelbox.cmwatch.mobile.ui.MonitorPage(
                 m, wideNow, onBack = { monitorOpen = null },
                 onStop = { monitorOpen = null; talkDraft = getString(R.string.monitor_stop_draft, m.title) },
                 onAsk = { monitorOpen = null; talkDraft = getString(R.string.monitor_ask_draft, m.title) },
                 onEditAlerts = { monitorOpen = null; talkDraft = getString(R.string.monitor_alerts_draft, m.title) },
             )
+            }
         }
         val monitorShown = monitorOpen?.let { id -> monitorsNow?.firstOrNull { m -> m.id == id } ?: monitorOne?.takeIf { m -> m.id == id } }
         if (!wide) monitorShown?.let { m ->
@@ -2508,6 +2547,7 @@ class MainActivity : ComponentActivity() {
             LocalChatZoom provides chatZoom, LocalSetChatZoom provides { z: Float -> chatZoom = z },
             it.pixelbox.cmwatch.mobile.ui.LocalCardsOnScreen provides cardsOnScreen,
             it.pixelbox.cmwatch.mobile.ui.LocalAgendaNight provides agendaNight,
+            it.pixelbox.cmwatch.mobile.ui.LocalMonitorRefresh provides monitorRefreshUi,
         ) {
         it.pixelbox.cmwatch.mobile.ui.PageIn(fromStart = true, animate = cameBack) {
         // Prima del primo stato lo scheletro con la forma che arriva, mai la pagina del telefono; arrivato lo stato, la pagina

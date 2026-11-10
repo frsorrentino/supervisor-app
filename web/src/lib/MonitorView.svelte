@@ -3,6 +3,7 @@
   import type { MonitorCard } from './contract'
   import { isLook } from './monitors'
   import { t } from './t'
+  import MonitorRefresh from './MonitorRefresh.svelte'
   // La scheda di un monitoraggio (app-monitoraggi-09-11, mockup B e C), come MonitorPage in Kotlin: il titolo, la fonte e l'ora
   // dell'ultimo valore; il riquadro con lo stato e la frase; i grafici; gli avvisi; la nota «Esempio»; Ferma e Chiedi alla master,
   // un solo bottone pieno. `wide`: nella colonna della plancia, con la × al posto della freccia.
@@ -18,7 +19,8 @@
 <section class="mv" class:wide data-testid="monitor-scheda-{m.id}">
   <header>
     {#if !wide}<button class="ic" aria-label={t.back} onclick={onBack}><svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="var(--tx)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
-    <span class="tt"><b>{m.title}</b><small>{[m.source, m.every ? t.monitorEvery(m.every) : null, m.at ? t.monitorLast(dm(m.at)) : null].filter(Boolean).join(' · ')}</small></span>
+    <span class="tt"><b>{m.title}</b><small>{[m.source, m.every ? t.monitorEvery(m.every) : null, m.at ? t.monitorLast(dm(m.at)) : null].filter(Boolean).join(' · ')}</small><MonitorRefresh {m} part="outcome" /></span>
+    <MonitorRefresh {m} />
     {#if wide}<button class="ic" aria-label={t.closeWord} onclick={onBack}><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-linecap="round" /></svg></button>{/if}
   </header>
   <div class="body">

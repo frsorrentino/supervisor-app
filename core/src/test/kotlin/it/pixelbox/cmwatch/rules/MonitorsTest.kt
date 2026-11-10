@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.MonitorCard
+import it.pixelbox.cmwatch.contract.MonitorRefresh
 import it.pixelbox.cmwatch.contract.MonitorsSummary
 import it.pixelbox.cmwatch.transport.FakeTransport
 import org.junit.Assert.assertEquals
@@ -92,5 +93,51 @@ class MonitorsTest {
         assertEquals("adozione", Monitors.idOf("https://supervisor.example.com/?demo#/monitor/adozione"))
         assertNull(Monitors.idOf("https://supervisor.example.com/#/attesa/w123"))
         assertNull(Monitors.idOf("https://supervisor.example.com/#/monitor/"))
+    }
+
+    // Contratto 1.133 (app-monitoraggi-aggiorna-10-11): il tasto «Aggiorna adesso». Gli stessi casi in web/src/lib/monitors.test.ts.
+    private val ops = listOf("monitors", "monitor_refresh")
+    private fun card(state: String? = "idle", refreshable: Boolean = true, retry: Long? = null, message: String? = null, rc: Int? = null, ended: Long? = null) =
+        MonitorCard("m", refreshable = refreshable, at = 500, refresh = state?.let { MonitorRefresh(it, started = 900, ended = ended, rc = rc, message = message, retryAt = retry, timeoutS = 60) })
+
+    @Test fun theRefreshButtonOnlyWhenRefreshableAndTheRelayHasTheOp() {
+        assertNull(Monitors.refresh(card(refreshable = false, state = null), ops, 1000))
+        assertNull("relay senza monitor_refresh", Monitors.refresh(card(), listOf("monitors"), 1000))
+        assertNull(Monitors.refresh(card(), null, 1000))
+        assertEquals(Monitors.Refresh.Ready, Monitors.refresh(card(), ops, 1000))
+    }
+
+    @Test fun theRefreshButtonSpinsWhileRunningAndWaitsBeforeRetryAt() {
+        assertEquals(Monitors.Refresh.Running, Monitors.refresh(card("running"), ops, 1000))
+        assertEquals("il tocco partito, la risposta non ancora", Monitors.Refresh.Running, Monitors.refresh(card(), ops, 1000, asked = true))
+        assertEquals(Monitors.Refresh.Wait(1030), Monitors.refresh(card("ok", retry = 1030, ended = 990), ops, 1000))
+        assertEquals(Monitors.Refresh.Ready, Monitors.refresh(card("ok", retry = 1000, ended = 990), ops, 1000))
+    }
+
+    @Test fun theOutcomeIsTheNewTimeOrOneLineOfError() {
+        assertNull(Monitors.outcome(card()))
+        assertNull(Monitors.outcome(card("running")))
+        assertEquals(Monitors.Outcome.Done(990), Monitors.outcome(card("ok", ended = 990)))
+        assertEquals(Monitors.Outcome.Failed("curl: (6) host non trovato"), Monitors.outcome(card("error", message = "curl: (6) host non trovato\nseconda riga", rc = 6)))
+        assertEquals(Monitors.Outcome.Failed(null, timeout = true), Monitors.outcome(card("error", rc = 124)))
+        assertEquals("il rifiuto del relay vince", Monitors.Outcome.Failed("too early: retry in 12 s"), Monitors.outcome(card("ok", ended = 990), failed = "too early: retry in 12 s"))
+    }
+
+    // La demo: il primo monitoraggio si aggiorna, gli altri no; il giro parte, gira e finisce con l'ora nuova, poi è troppo presto.
+    @Test fun theDemoRefreshesTheFirstMonitorOnly() {
+        var t = 2_000_000_000L
+        var n = 0
+        val demo = FakeTransport(load = { File("../contract/$it.json").readText() }, now = { t })
+        fun run(op: it.pixelbox.cmwatch.contract.CmdOp, arg: String?) = kotlinx.coroutines.runBlocking { demo.send(it.pixelbox.cmwatch.contract.Cmd(id = "c${n++}", op = op, session = null, arg = arg, issued = t, by = "test")) {} }
+        val page = ContractJson.decodeMonitors(run(it.pixelbox.cmwatch.contract.CmdOp.MONITORS, null).text)
+        val first = page.items.first(); val other = page.items[1]
+        assertTrue(first.refreshable); assertFalse(other.refreshable); assertNull(other.refresh)
+        assertFalse(run(it.pixelbox.cmwatch.contract.CmdOp.MONITOR_REFRESH, other.id).ok)
+        val started = run(it.pixelbox.cmwatch.contract.CmdOp.MONITOR_REFRESH, first.id)
+        assertTrue(started.ok); assertEquals("running", ContractJson.decodeMonitor(started.text).refresh?.state)
+        t += 5
+        val done = ContractJson.decodeMonitor(run(it.pixelbox.cmwatch.contract.CmdOp.MONITORS, first.id).text)
+        assertEquals("ok", done.refresh?.state); assertTrue((done.refresh?.retryAt ?: 0) > t)
+        assertFalse("troppo presto", run(it.pixelbox.cmwatch.contract.CmdOp.MONITOR_REFRESH, first.id).ok)
     }
 }

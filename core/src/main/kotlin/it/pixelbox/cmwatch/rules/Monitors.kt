@@ -93,4 +93,52 @@ object Monitors {
     private val LINK = Regex("#/monitor/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$")
     /** Contratto 1.132: l'id di un monitoraggio da un link `<web_app_url>/#/monitor/<id>`; null per ogni altro indirizzo. */
     fun idOf(link: String): String? = LINK.find(link.trim())?.groupValues?.get(1)
+
+    /**
+     * Il tasto «Aggiorna adesso» di un monitoraggio (contratto 1.133, app-monitoraggi-aggiorna-10-11, Franz 10/11 13:03: «un tasto per ogni
+     * monitoraggio che effettui l'aggiornamento immediato»). Lo stesso su telefono, tablet e web.
+     */
+    sealed interface Refresh {
+        /** Si può toccare. */
+        data object Ready : Refresh
+        /** Gira: l'icona ruota e il tasto non si ritocca. */
+        data object Running : Refresh
+        /** Troppo presto: spento fino a [until] (epoca in secondi). */
+        data class Wait(val until: Long) : Refresh
+    }
+
+    /**
+     * Il tasto adesso ([now] in secondi), o null se non c'è: monitoraggio non aggiornabile, o relay senza l'op `monitor_refresh` in
+     * [ops]. [asked]: il tocco è partito e la risposta non è ancora arrivata, gira già.
+     */
+    fun refresh(c: MonitorCard, ops: List<String>?, now: Long, asked: Boolean = false): Refresh? {
+        if (!c.refreshable || ops?.contains("monitor_refresh") != true) return null
+        val r = c.refresh
+        if (asked || r?.state == "running") return Refresh.Running
+        val until = r?.retryAt
+        return if (until != null && until > now) Refresh.Wait(until) else Refresh.Ready
+    }
+
+    /** Com'è andato l'ultimo aggiornamento, da dire in una riga sotto il tasto. */
+    sealed interface Outcome {
+        /** Riuscito alle [at]. */
+        data class Done(val at: Long) : Outcome
+        /** Non riuscito: [message] la riga del relay o di supervisor, null se non ne ha (la frase la mette l'app; [timeout] tempo scaduto); il valore di prima resta. */
+        data class Failed(val message: String?, val timeout: Boolean = false) : Outcome
+    }
+
+    /** L'esito dell'ultimo aggiornamento, o null se non è mai girato o sta girando. [failed]: il rifiuto del relay al tocco, che vince. */
+    fun outcome(c: MonitorCard, failed: String? = null): Outcome? {
+        failed?.takeIf { it.isNotBlank() }?.let { return Outcome.Failed(it.lines().first().take(200)) }
+        val r = c.refresh ?: return null
+        return when (r.state) {
+            "ok" -> Outcome.Done(r.ended ?: c.at ?: return null)
+            "error" -> Outcome.Failed(r.message?.takeIf { it.isNotBlank() }?.lines()?.first()?.take(200), timeout = r.rc == 124)
+            else -> null
+        }
+    }
+
+    /** Ogni quanti secondi rileggere la scheda mentre gira, e fino a quando al più (`timeout_s`, o due minuti). */
+    const val POLL_S = 3L
+    fun pollUntil(c: MonitorCard, now: Long): Long = (c.refresh?.started ?: now) + (c.refresh?.timeoutS ?: 120) + POLL_S
 }

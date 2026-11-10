@@ -2,6 +2,7 @@
   import type { MonitorCard } from './contract'
   import { isLook, line, scale, spark as sparkOf, yOf } from './monitors'
   import { t } from './t'
+  import MonitorRefresh from './MonitorRefresh.svelte'
   // La sezione Monitoraggi nella home (app-monitoraggi-09-11, mockup A): una riga per monitoraggio come le righe delle sessioni,
   // pallino (verde, ambra se da guardare), nome e frase sotto, a destra il valore con la sparkline; in fondo «Nuovo monitoraggio».
   // Come MonitorsCard in Kotlin.
@@ -14,9 +15,11 @@
 
 <div class="mlist">
   {#each items as m (m.id)}
-    <button class="row" data-testid="monitor-{m.id}" onclick={() => onOpen(m.id)}>
+    <!-- La riga e, accanto, «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11): due tasti, il secondo non apre la scheda. -->
+    <div class="row">
+    <button class="main" data-testid="monitor-{m.id}" onclick={() => onOpen(m.id)}>
       <span class="rail"><i class:look={isLook(m)}></i></span>
-      <span class="tx"><b>{m.title}</b>{#if line(m)}<small class:look={isLook(m)}>{line(m)}</small>{/if}</span>
+      <span class="tx"><b>{m.title}</b>{#if line(m)}<small class:look={isLook(m)}>{line(m)}</small>{/if}<MonitorRefresh {m} part="outcome" /></span>
       <span class="val">
         {#if m.value}<b>{m.value}</b>{/if}
         {#if sparkOf(m).length >= 2}{@const vs = sparkOf(m)}{@const s = scale(vs)}
@@ -24,6 +27,8 @@
         {/if}
       </span>
     </button>
+    <MonitorRefresh {m} />
+    </div>
   {/each}
   <button class="row new" data-testid="monitor-nuovo" onclick={onNew}>
     <span class="rail"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></span>
@@ -35,6 +40,8 @@
   .mlist { border-radius: 14px; background: var(--s1); overflow: hidden; }
   .row { display: flex; align-items: center; width: 100%; min-height: 60px; padding: 10px 12px 10px 0; text-align: left; border-top: 1px solid var(--line); }
   .row:first-child { border-top: 0; }
+  div.row { padding: 0 4px 0 0; }
+  .main { flex: 1; min-width: 0; display: flex; align-items: center; min-height: 60px; padding: 10px 8px 10px 0; text-align: left; }
   .rail { width: 52px; flex: none; display: grid; place-items: center; }
   .rail i { width: 9px; height: 9px; border-radius: 50%; background: var(--good); }
   .rail i.look { background: var(--wait); }

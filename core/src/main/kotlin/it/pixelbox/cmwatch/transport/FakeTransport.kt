@@ -34,7 +34,26 @@ class FakeTransport(
     }
 
     // Contratto 1.106: Da guardare con il risultato della fixture state-3, così la demo e gli screenshot lo mostrano.
-    private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))).copy(prove = ProveSummary(2, 1), decisions = DecisionsSummary(2, 1, 3), results = ContractJson.decodeState(load("state-3-stale")).results))
+    private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))).copy(prove = ProveSummary(2, 1), decisions = DecisionsSummary(2, 1, 3), results = ContractJson.decodeState(load("state-3-stale")).results, monitors = demoSummary(), ops = demoOps()))
+
+    // Contratto 1.133 nella demo (app-monitoraggi-aggiorna-10-11): i Monitoraggi della fixture nella home, il primo aggiornabile e gli altri
+    // no; «Aggiorna adesso» gira [DEMO_REFRESH_S] secondi e finisce con l'ora nuova, poi il tasto resta spento per [DEMO_RETRY_S].
+    private val refreshing = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val refreshed = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private fun demoSummary(): MonitorsSummary? = runCatching { ContractJson.decodeMonitors(sampleText("monitors")).items }.getOrNull()?.let { l -> MonitorsSummary(l.size, l.count { it.status == "watch" }, l.mapNotNull { it.at }.maxOrNull()) }
+    private fun demoOps(): List<String>? = ContractJson.decodeState(load("state-1-question")).ops?.let { o -> if ("monitor_refresh" in o) o else o + "monitor_refresh" }
+    private fun demoMonitor(c: MonitorCard, first: Boolean): MonitorCard {
+        if (!c.refreshable && !first) return c.copy(refresh = null)
+        val t = now()
+        refreshing[c.id]?.let { s ->
+            if (t - s < DEMO_REFRESH_S) return c.copy(refreshable = true, refresh = MonitorRefresh("running", s, timeoutS = 60))
+            refreshing.remove(c.id); refreshed[c.id] = s + DEMO_REFRESH_S
+        }
+        refreshed[c.id]?.let { e -> return c.copy(refreshable = true, at = e, refresh = MonitorRefresh("ok", e - DEMO_REFRESH_S, e, 0, null, e + DEMO_RETRY_S, 60)) }
+        return c.copy(refreshable = true, refresh = c.refresh ?: MonitorRefresh("idle", timeoutS = 60))
+    }
+    private fun demoMonitors(): MonitorsPage = ContractJson.decodeMonitors(sampleText("monitors")).let { p -> p.copy(items = p.items.mapIndexed { i, c -> demoMonitor(c, i == 0) }) }
+    private fun cardJson(c: MonitorCard): String = ContractJson.json.encodeToString(MonitorCard.serializer(), c)
 
     /**
      * Contratto 1.68 nella demo (Franz, 15/10 dalla web app): atlas-shop ferma per te con un login, field-notes con un ok
@@ -419,7 +438,19 @@ class FakeTransport(
             CmdOp.ATTESE -> ok(sampleText("attese"))
             CmdOp.ATTESA -> sampleResult("attesa", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
             // Contratto 1.132: l'elenco dei Monitoraggi della fixture; con un id la sua scheda, un id che non c'è più è un errore.
-            CmdOp.MONITORS -> if (cmd.arg == null) ok(sampleText("monitors")) else sampleResult("monitors", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
+            CmdOp.MONITORS -> if (cmd.arg == null) ok(ContractJson.json.encodeToString(MonitorsPage.serializer(), demoMonitors())) else demoMonitors().items.firstOrNull { it.id == cmd.arg }?.let { c -> ok(cardJson(c)) }
+                ?: sampleResult("monitors", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
+            // Contratto 1.133: gira se il monitoraggio si aggiorna e non è troppo presto; uno già in corso risponde ok con la stessa scheda.
+            CmdOp.MONITOR_REFRESH -> demoMonitors().items.firstOrNull { it.id == cmd.arg }.let { c ->
+                val r = c?.refresh
+                when {
+                    c == null -> ko("monitor not found")
+                    !c.refreshable -> ko("this monitor has no refresh command")
+                    r?.state == "running" -> ok(cardJson(c))
+                    r?.retryAt != null && r.retryAt!! > now() -> ko("too early: retry in ${r.retryAt!! - now()} s")
+                    else -> { refreshed.remove(c.id); refreshing[c.id] = now(); ok(cardJson(demoMonitor(c, true))) }
+                }
+            }
             CmdOp.DECISION -> if (cmd.text.isNullOrBlank()) ko("empty decision") else ok("decision sent to the master")
             // Contratto 1.44: la demo legge la fixture inventata del rapporto della notte.
             CmdOp.NIGHT -> runCatching { load("night-report-sample") }.map { ok(it) }.getOrElse { ko("no night report yet") }
@@ -570,3 +601,6 @@ class FakeTransport(
 }
 
 private const val DEMO_WINDOW_LEFT_S = 2L * 3600
+/** Contratto 1.133 nella demo: quanto gira «Aggiorna adesso» e quanto resta spento dopo. */
+private const val DEMO_REFRESH_S = 4L
+private const val DEMO_RETRY_S = 20L

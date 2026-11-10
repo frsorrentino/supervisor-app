@@ -26,6 +26,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -91,12 +94,14 @@ fun MonitorsCard(items: List<MonitorCard>, onOpen: (String) -> Unit, onNew: () -
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(m.title, style = V3.Name, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
                     Monitors.line(m).takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small.copy(color = if (Monitors.look(m)) V3.Wait else V3.Tx2)) }
+                    MonitorRefreshOutcome(m)
                 }
                 Column(Modifier.padding(start = 10.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     m.value?.let { v -> Text(v, style = V3.Name.copy(fontWeight = FontWeight.Bold), maxLines = 1, softWrap = false) }
                     val sp = Monitors.spark(m)
                     if (sp.size >= 2) Sparkline(sp, Modifier.width(64.dp).height(20.dp))
                 }
+                MonitorRefreshButton(m)
             }
         }
         if (items.isNotEmpty()) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
@@ -143,7 +148,9 @@ fun MonitorPage(m: MonitorCard, wide: Boolean, onBack: () -> Unit, onStop: () ->
                 val at = m.at?.let { t -> stringResource(R.string.monitor_last, DM.format(Instant.ofEpochSecond(t).atZone(ZoneId.systemDefault()))) }
                 val every = m.every?.let { e -> stringResource(R.string.monitor_every, e) }
                 listOfNotNull(m.source, every, at).joinToString(" · ").takeIf { it.isNotEmpty() }?.let { Text(it, style = V3.Small) }
+                MonitorRefreshOutcome(m)
             }
+            MonitorRefreshButton(m)
             if (wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = V3.Tx2) }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -471,5 +478,55 @@ private fun StatusForm(c: MonitorCard) {
     if (ts.size >= 2) Row(Modifier.fillMaxWidth()) {
         Text(day(ts.first()), style = V3.Meter.copy(color = V3.Tx3, fontSize = 11.5.sp), modifier = Modifier.weight(1f))
         Text(day(ts.last()), style = V3.Meter.copy(color = V3.Tx3, fontSize = 11.5.sp))
+    }
+}
+
+/**
+ * «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11, contratto 1.133, Franz 10/11 13:03: «un tasto per ogni monitoraggio che effettui
+ * l'aggiornamento immediato»): cosa serve al tasto, dato dalla schermata che ha i comandi. [asked]: i tocchi partiti senza risposta;
+ * [failed]: il rifiuto del relay al tocco, per id. Senza (null) il tasto non c'è.
+ */
+data class MonitorRefreshUi(
+    val ops: List<String>?, val now: Long, val asked: Set<String> = emptySet(), val failed: Map<String, String> = emptyMap(),
+    val onRefresh: (String) -> Unit = {},
+)
+
+internal val LocalMonitorRefresh = androidx.compose.runtime.staticCompositionLocalOf<MonitorRefreshUi?> { null }
+
+private val HM = DateTimeFormatter.ofPattern("HH:mm")
+
+/**
+ * Il tasto, lo stesso nella riga e nella scheda: fermo; gira mentre si aggiorna e non si ritocca; spento prima di `retry_at`. Il
+ * tocco non apre la scheda e non chiude la sezione. Manca se il monitoraggio non si aggiorna o il relay non ha `monitor_refresh`.
+ */
+@Composable
+internal fun MonitorRefreshButton(m: MonitorCard) {
+    val ui = LocalMonitorRefresh.current ?: return
+    val st = Monitors.refresh(m, ui.ops, ui.now, m.id in ui.asked) ?: return
+    val running = st == Monitors.Refresh.Running
+    val ready = st == Monitors.Refresh.Ready
+    val turn = if (running && !animationsOff()) androidx.compose.animation.core.rememberInfiniteTransition(label = "aggiorna").animateFloat(
+        0f, 360f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900, easing = androidx.compose.animation.core.LinearEasing)), label = "giro",
+    ) else null
+    IconButton(onClick = { ui.onRefresh(m.id) }, enabled = ready, modifier = Modifier.size(40.dp).handCursor().testTag("monitor-aggiorna-${m.id}")) {
+        Icon(
+            Icons.Rounded.Refresh, stringResource(R.string.monitor_refresh), tint = if (ready) V3.Tx else V3.Tx3,
+            modifier = Modifier.size(22.dp).graphicsLayer { rotationZ = turn?.value ?: 0f },
+        )
+    }
+}
+
+/** La riga dell'ultimo aggiornamento sotto il tasto: «aggiornato alle HH:MM», o l'errore in una riga col valore di prima che resta. */
+@Composable
+internal fun MonitorRefreshOutcome(m: MonitorCard) {
+    val ui = LocalMonitorRefresh.current ?: return
+    if (Monitors.refresh(m, ui.ops, ui.now) == null) return
+    when (val o = Monitors.outcome(m, ui.failed[m.id])) {
+        is Monitors.Outcome.Done -> Text(stringResource(R.string.monitor_refreshed, HM.format(Instant.ofEpochSecond(o.at).atZone(ZoneId.systemDefault()))), style = V3.Small, maxLines = 1, modifier = Modifier.testTag("monitor-aggiornato-${m.id}"))
+        is Monitors.Outcome.Failed -> Text(
+            o.message ?: stringResource(if (o.timeout) R.string.monitor_refresh_timeout else R.string.monitor_refresh_failed),
+            style = V3.Small.copy(color = V3.Red), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.testTag("monitor-errore-${m.id}"),
+        )
+        null -> Unit
     }
 }

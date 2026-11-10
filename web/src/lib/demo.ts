@@ -494,7 +494,11 @@ function nightEn(v: unknown): unknown {
  * I Monitoraggi della demo (app-monitoraggi-09-11): i dati dei mockup approvati nella forma del contratto 1.132, una scheda per forma,
  * gli stessi dei test di Kotlin e della web.
  */
-export const monitorsDemo = (): MonitorCard[] => structuredClone((monitorsMockup as MonitorsPage).items)
+export const monitorsDemo = (): MonitorCard[] =>
+  // «Aggiorna adesso» nella demo (app-monitoraggi-aggiorna-10-11): il primo si aggiorna, gli altri no.
+  structuredClone((monitorsMockup as MonitorsPage).items).map((m, i) => (i === 0
+    ? { ...m, refreshable: true, refresh: { state: 'idle' as const, started: null, ended: null, rc: null, message: null, retry_at: null, timeout_s: 60 } }
+    : { ...m, refreshable: false, refresh: null }))
 
 export const waitsDemo = (now: number): WaitItem[] => [
   { id: 'w00000000a1', type: 'carta', kind: 'pausa', label: 'decide', label_text: en ? 'Decide' : 'Decidi', session: 'blog', task: 'demo-cover',

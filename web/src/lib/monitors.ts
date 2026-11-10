@@ -75,3 +75,30 @@ export const up = (v: number | null | undefined) => (v ?? 0) > 0
 
 /** Contratto 1.132: l'id di un monitoraggio da un link `<web_app_url>/#/monitor/<id>`; null per ogni altro indirizzo. */
 export const monitorOf = (link: string): string | null => /#\/monitor\/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$/.exec(link.trim())?.[1] ?? null
+
+/**
+ * «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11, contratto 1.133): il tasto adesso (`now` in secondi), o null se non c'è (monitoraggio
+ * non aggiornabile o relay senza `monitor_refresh`). `asked`: il tocco è partito e la risposta non è arrivata. Come Monitors.refresh in Kotlin.
+ */
+export type Refresh = { kind: 'ready' } | { kind: 'running' } | { kind: 'wait'; until: number }
+export function refreshOf(c: MonitorCard, ops: string[] | null | undefined, now: number, asked = false): Refresh | null {
+  if (!c.refreshable || !ops?.includes('monitor_refresh')) return null
+  const r = c.refresh
+  if (asked || r?.state === 'running') return { kind: 'running' }
+  return r?.retry_at != null && r.retry_at > now ? { kind: 'wait', until: r.retry_at } : { kind: 'ready' }
+}
+/** L'esito dell'ultimo aggiornamento, o null; `failed` è il rifiuto del relay al tocco, che vince. Come Monitors.outcome. */
+export type Outcome = { kind: 'done'; at: number } | { kind: 'failed'; message: string | null; timeout: boolean }
+export function outcomeOf(c: MonitorCard, failed?: string | null): Outcome | null {
+  if (failed?.trim()) return { kind: 'failed', message: failed.split('\n')[0].slice(0, 200), timeout: false }
+  const r = c.refresh
+  if (!r) return null
+  if (r.state === 'ok') { const at = r.ended ?? c.at; return at == null ? null : { kind: 'done', at } }
+  if (r.state === 'error') return { kind: 'failed', message: r.message?.trim() ? r.message.split('\n')[0].slice(0, 200) : null, timeout: r.rc === 124 }
+  return null
+}
+/** Ogni quanti secondi rileggere la scheda mentre gira, e fino a quando al più. */
+export const POLL_S = 3
+export const pollUntil = (c: MonitorCard, now: number) => (c.refresh?.started ?? now) + (c.refresh?.timeout_s ?? 120) + POLL_S
+/** Cosa serve al tasto, dato da App col contesto `monitor-refresh`: l'op del relay, l'ora, i tocchi in corso e i rifiuti per id. */
+export type RefreshCtx = { ops: string[] | null; now: number; asked: string[]; failed: Record<string, string>; onRefresh: (id: string) => void }

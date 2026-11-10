@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { FORMS, formOf, isLook, lastIndex, line, looking, maxIndex, meter, minIndex, monitorOf, nearest, scale, span, times, up, values, xOf, yOf } from './monitors'
+import { FORMS, formOf, isLook, lastIndex, line, looking, maxIndex, meter, minIndex, monitorOf, nearest, outcomeOf, refreshOf, scale, span, times, up, values, xOf, yOf } from './monitors'
 import { decodeMonitor, decodeMonitors } from './decideDecode'
-import type { MonitorsPage } from './contract'
+import type { MonitorCard, MonitorRefresh, MonitorsPage } from './contract'
 
 // Gli stessi casi di MonitorsTest in Kotlin (app-monitoraggi-09-11, contratto 1.132): la fixture del relay e quella dei mockup.
 const mock = (JSON.parse(readFileSync(new URL('../../../core/src/test/resources/monitors-mockup.json', import.meta.url), 'utf8')) as MonitorsPage).items
@@ -63,5 +63,33 @@ describe('monitors', () => {
     expect(monitorOf('https://supervisor.example.com/?demo#/monitor/adozione')).toBe('adozione')
     expect(monitorOf('https://supervisor.example.com/#/attesa/w123')).toBe(null)
     expect(monitorOf('https://supervisor.example.com/#/monitor/')).toBe(null)
+  })
+
+  // Contratto 1.133 (app-monitoraggi-aggiorna-10-11): gli stessi casi di MonitorsTest.kt.
+  const ops = ['monitors', 'monitor_refresh']
+  const card = (state: MonitorRefresh['state'] | null = 'idle', o: Partial<MonitorRefresh> & { refreshable?: boolean } = {}): MonitorCard => ({
+    ...(decodeMonitor('{"id": "m", "title": "", "form": "tile", "status": "ok", "at": 500, "alerts": [], "hits": [], "series": []}')),
+    refreshable: o.refreshable ?? true,
+    refresh: state ? { state, started: 900, ended: o.ended ?? null, rc: o.rc ?? null, message: o.message ?? null, retry_at: o.retry_at ?? null, timeout_s: 60 } : null,
+  })
+  it("il tasto solo se aggiornabile e se il relay ha l'op", () => {
+    expect(refreshOf(card(null, { refreshable: false }), ops, 1000)).toBe(null)
+    expect(refreshOf(card(), ['monitors'], 1000)).toBe(null)
+    expect(refreshOf(card(), null, 1000)).toBe(null)
+    expect(refreshOf(card(), ops, 1000)).toEqual({ kind: 'ready' })
+  })
+  it('il tasto gira mentre si aggiorna e resta spento prima di retry_at', () => {
+    expect(refreshOf(card('running'), ops, 1000)).toEqual({ kind: 'running' })
+    expect(refreshOf(card(), ops, 1000, true)).toEqual({ kind: 'running' })
+    expect(refreshOf(card('ok', { retry_at: 1030, ended: 990 }), ops, 1000)).toEqual({ kind: 'wait', until: 1030 })
+    expect(refreshOf(card('ok', { retry_at: 1000, ended: 990 }), ops, 1000)).toEqual({ kind: 'ready' })
+  })
+  it("l'esito è l'ora nuova o una riga di errore", () => {
+    expect(outcomeOf(card())).toBe(null)
+    expect(outcomeOf(card('running'))).toBe(null)
+    expect(outcomeOf(card('ok', { ended: 990 }))).toEqual({ kind: 'done', at: 990 })
+    expect(outcomeOf(card('error', { message: 'curl: (6) host non trovato\nseconda riga', rc: 6 }))).toEqual({ kind: 'failed', message: 'curl: (6) host non trovato', timeout: false })
+    expect(outcomeOf(card('error', { rc: 124 }))).toEqual({ kind: 'failed', message: null, timeout: true })
+    expect(outcomeOf(card('ok', { ended: 990 }), 'too early: retry in 12 s')).toEqual({ kind: 'failed', message: 'too early: retry in 12 s', timeout: false })
   })
 })

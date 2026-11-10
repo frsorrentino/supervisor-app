@@ -19,7 +19,7 @@
   import DaProvare from './lib/DaProvare.svelte'
   import TiAspettaView from './lib/TiAspettaView.svelte'
   import { decodeDecisions, decodeMonitor, decodeMonitors, decodeProve, readPage } from './lib/decideDecode'
-  import { monitorOf } from './lib/monitors'
+  import { monitorOf, pollUntil, POLL_S, type RefreshCtx } from './lib/monitors'
   import type { MonitorCard } from './lib/contract'
   import type { DecisionGroup, ProvePage } from './lib/contract'
   import PrimaRaccolta from './lib/PrimaRaccolta.svelte'
@@ -542,6 +542,49 @@
     void run(newCmd('monitors', null, id)).then(r => { const { page } = readPage(r, decodeMonitor, null); if (page && monitorId === id) monitorOne = page })
   })
   const monitorShown = $derived(monitors?.find(x => x.id === monitorId) ?? (monitorOne?.id === monitorId ? monitorOne : null))
+  // «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11, contratto 1.133): il tocco manda `monitor_refresh` con l'id; la risposta è la scheda
+  // che gira e prende il posto della vecchia, poi la si rilegge ogni POLL_S secondi finché gira, al più fino a `timeout_s`; un rifiuto resta
+  // in una riga. Nella demo il primo monitoraggio si aggiorna e gli altri no: il giro dura qualche secondo e poi il tasto resta spento.
+  // I componenti leggono tutto dal contesto `monitor-refresh` (MonitorRefresh.svelte), come MonitorRefreshUi in Kotlin.
+  const refreshCtx = $state<RefreshCtx>({ ops: null, now: Math.floor(Date.now() / 1000), asked: [], failed: {}, onRefresh: (id: string) => void refreshMonitor(id) })
+  setContext('monitor-refresh', refreshCtx)
+  $effect(() => { refreshCtx.ops = demo ? ['monitors', 'monitor_refresh'] : (st.ops ?? null) })
+  $effect(() => { const h = setInterval(() => { refreshCtx.now = Math.floor(Date.now() / 1000) }, 1000); return () => clearInterval(h) })
+  const putMonitor = (c: MonitorCard) => { if (monitors) monitors = monitors.map(x => (x.id === c.id ? c : x)); if (monitorOne?.id === c.id) monitorOne = c }
+  const pause = (ms: number) => new Promise(r => setTimeout(r, ms))
+  async function refreshMonitor(id: string) {
+    if (refreshCtx.asked.includes(id)) return
+    refreshCtx.asked = [...refreshCtx.asked, id]
+    refreshCtx.failed = Object.fromEntries(Object.entries(refreshCtx.failed).filter(([k]) => k !== id))
+    try {
+      if (demo) {
+        const c = monitors?.find(x => x.id === id)
+        if (!c?.refreshable) return
+        const s = Math.floor(Date.now() / 1000)
+        putMonitor({ ...c, refresh: { state: 'running', started: s, ended: null, rc: null, message: null, retry_at: null, timeout_s: 60 } })
+        refreshCtx.asked = refreshCtx.asked.filter(x => x !== id)
+        await pause(4000)
+        const e = Math.floor(Date.now() / 1000)
+        putMonitor({ ...c, at: e, refresh: { state: 'ok', started: s, ended: e, rc: 0, message: null, retry_at: e + 20, timeout_s: 60 } })
+        return
+      }
+      const r = await run(newCmd('monitor_refresh', null, id))
+      if (!r?.ok) { refreshCtx.failed = { ...refreshCtx.failed, [id]: r?.text?.trim() || t.monitorRefreshFailed }; return }
+      let card = decodeMonitor(r.text)
+      putMonitor(card)
+      refreshCtx.asked = refreshCtx.asked.filter(x => x !== id)
+      const until = pollUntil(card, Math.floor(Date.now() / 1000))
+      while (card.refresh?.state === 'running' && Math.floor(Date.now() / 1000) < until) {
+        await pause(POLL_S * 1000)
+        const x = await run(newCmd('monitors', null, id))
+        if (x?.ok) { card = decodeMonitor(x.text); putMonitor(card) }
+      }
+    } catch {
+      refreshCtx.failed = { ...refreshCtx.failed, [id]: t.monitorRefreshFailed }
+    } finally {
+      refreshCtx.asked = refreshCtx.asked.filter(x => x !== id)
+    }
+  }
   const openWait = (w: string) => { waitFrom = backTo(waitFrom, page); waitId = w; openPage('attesa') }
   const closeWait = () => { const to = waitFrom; waitId = null; waitFrom = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
   $effect(() => {

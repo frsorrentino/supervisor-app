@@ -305,7 +305,9 @@ class ContractTest {
         val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
         // Manca «unfollow»; dal contratto 1.72 anche «changes» e «diff», il cui risultato ha la sua fixture (changes-sample.json).
         // Dal 1.97 anche «home_order», senza esempio in questa fixture: il risultato è quello solito, e lo stato lo prova homeOrderInTheState.
-        assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.HOME_ORDER), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
+        // MONITOR_REFRESH (contratto 1.133, app-monitoraggi-aggiorna-10-11): la fixture del relay con l'esempio arriva con la release di
+        // supervisor; allora esce da qui.
+        assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.HOME_ORDER, CmdOp.MONITOR_REFRESH), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
         // Contratto 1.129 (app-scelte-chiudibili-06-11): «approval_close» è ok anche se il compito non aspettava più (closed false),
         // errore solo per un compito sconosciuto.
         val close = cmds.filter { it.op == CmdOp.APPROVAL_CLOSE }.map { c -> results.single { it.id == c.id } }

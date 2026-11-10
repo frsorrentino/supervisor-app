@@ -362,7 +362,7 @@ export type SystemStatus = {
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
-  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'attese' | 'attesa' | 'monitors' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
+  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'attese' | 'attesa' | 'monitors' | 'monitor_refresh' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
   | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text' | 'feedback_app' | 'results' | 'result_seen' | 'result_note'
@@ -482,5 +482,12 @@ export type MonitorCard = {
   value: string | null; delta: string | null; delta_pct: number | null; delta_since: number | null; at: number | null; source: string | null; every: string | null
   example: boolean; alerts: MonitorAlert[]; hits: MonitorAlert[]; series: MonitorSeries[]; link: string | null
   max?: number | null; limit?: string | null; pct?: number | null; rows?: { name: string; value: string; text: string | null }[]
+  /** Contratto 1.133: si può aggiornare subito con `monitor_refresh`; solo allora c'è il tasto. */
+  refreshable?: boolean; refresh?: MonitorRefresh | null
 }
+/**
+ * Contratto 1.133: lo stato dell'aggiornamento immediato. `state` idle | running | ok | error; epoche in secondi; `rc` 124 = tempo
+ * scaduto; `message` l'ultima riga utile; prima di `retry_at` il tasto è spento.
+ */
+export type MonitorRefresh = { state: 'idle' | 'running' | 'ok' | 'error'; started: number | null; ended: number | null; rc: number | null; message: string | null; retry_at: number | null; timeout_s: number | null }
 export type MonitorsPage = { at: number; items: MonitorCard[] }

@@ -1877,6 +1877,10 @@ It starts at your last message to the master.</string>
     <string name="monitors_new_hint">write «monitor» to the master</string>
     <string name="monitors_new_draft">"monitor "</string>
     <string name="monitor_last">last check %s</string>
+    <string name="monitor_refresh">Refresh now</string>
+    <string name="monitor_refreshed">refreshed at %s</string>
+    <string name="monitor_refresh_failed">refresh failed</string>
+    <string name="monitor_refresh_timeout">refresh failed: timed out</string>
     <string name="monitor_state_look">To look at</string>
     <string name="monitor_state_ok">Steady</string>
     <string name="monitor_alerts">Alerts</string>
