@@ -339,8 +339,8 @@ export function world(now: number): World {
         : 'demo-cover è pronto per te, gli altri lavori vanno avanti.\n\n**Da te**\n1. Manda l\'immagine di copertina alla sessione del blog.\n2. Fai il login nella sandbox dei pagamenti.\n\n**Non provato:** il checkout su un telefono vero.\n\nEsito: due cose aspettano te.', now - 900, { outcome_type: 'waiting' }),
       said('u1', en ? 'Launch payments-api on phase 2.2' : 'Lancia payments-api sulla fase 2.2', now - 660, 'phone'),
       claude('a1', en
-        ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'
-        : 'Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n• **Link:** https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst\n\nEsito: Fase 2.2 avviata su payments-api\nProssimi: rivedi il flusso dei rimborsi · prova il checkout dal vivo', now - 600, { outcome_type: 'running' }),
+        ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n• **Link:** https://claude.ai/code/session_01ledger\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'
+        : 'Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.\n• **Link:** https://claude.ai/code/session_01ledger\n\nEsito: Fase 2.2 avviata su payments-api\nProssimi: rivedi il flusso dei rimborsi · prova il checkout dal vivo', now - 600, { outcome_type: 'running' }),
     ],
     'payments-api': [
       said('u1', 'Prepare the 2.8.0 deploy of the refund endpoint and wait for my ok', t0 - 300),

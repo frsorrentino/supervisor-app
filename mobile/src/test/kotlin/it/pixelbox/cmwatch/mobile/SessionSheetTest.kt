@@ -151,7 +151,7 @@ class SessionSheetTest {
         val t = st.ts - 600
         val entries = listOf(
             TranscriptEntry("u1.0", "user", text = "Lancia atlas-shop sulla fase 2", at = t, origin = "phone"),
-            TranscriptEntry("a1.0", "assistant", text = "Lanciata atlas-shop sulla fase 2. Solo commit locali: push e release con il tuo ok.\n• **Link:** https://claude.ai/code/session_018CKZ1Pum1Qs7DX5hbRLQ6X\n• Vecchia: https://claude.ai/code/session_sconosciuta\n\nEsito: sessione atlas-shop aperta.", at = t + 40, turn = TranscriptTurn(t, t + 45, 4020, 130)),
+            TranscriptEntry("a1.0", "assistant", text = "Lanciata atlas-shop sulla fase 2. Solo commit locali: push e release con il tuo ok.\n• **Link:** https://claude.ai/code/session_02atlas\n• Vecchia: https://claude.ai/code/session_sconosciuta\n\nEsito: sessione atlas-shop aperta.", at = t + 40, turn = TranscriptTurn(t, t + 45, 4020, 130)),
         )
         val feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList())
         val s = st.sessions.first { it.state == SessionState.IDLE }

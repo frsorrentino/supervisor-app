@@ -6,8 +6,8 @@ import { askedSession, sessionOf, stripSessionLinks } from './sessionLinks'
 // Gli stessi casi di SessionLinksTest in Kotlin: i link delle sessioni diventano il tasto «Apri in supervisor».
 const st = decodeState(readFileSync(new URL('../../../contract/state-1-question.json', import.meta.url), 'utf8'))
 const sessions = st.sessions
-const atlas = 'https://claude.ai/code/session_018CKZ1Pum1Qs7DX5hbRLQ6X'
-const ledger = 'https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst'
+const atlas = 'https://claude.ai/code/session_02atlas'
+const ledger = 'https://claude.ai/code/session_01ledger'
 
 describe('link di sessione', () => {
   it('riconosce il link della sessione', () => {
@@ -18,7 +18,7 @@ describe('link di sessione', () => {
     expect(sessionOf('', sessions)).toBeNull()
   })
   it('il messaggio della master nella segnalazione', () => {
-    const text = '• **Prossimo passo:** rivedere il flusso dei rimborsi.\n• **Link:**\nhttps://claude.ai/code/session_018CKZ1Pum1Qs7DX5hbRLQ6X\n\nEsito: sessione atlas-shop aperta.'
+    const text = '• **Prossimo passo:** rivedere il flusso dei rimborsi.\n• **Link:**\nhttps://claude.ai/code/session_02atlas\n\nEsito: sessione atlas-shop aperta.'
     const r = stripSessionLinks(text, sessions)
     expect(r.text).toBe('• **Prossimo passo:** rivedere il flusso dei rimborsi.\n\nEsito: sessione atlas-shop aperta.')
     expect(r.buttons).toEqual([{ session: 'atlas-shop', url: atlas }])

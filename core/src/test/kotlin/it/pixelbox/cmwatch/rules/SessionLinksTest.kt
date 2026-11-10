@@ -10,8 +10,8 @@ import java.io.File
 class SessionLinksTest {
     private val st = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
     private val sessions = st.sessions
-    private val atlas = "https://claude.ai/code/session_018CKZ1Pum1Qs7DX5hbRLQ6X"
-    private val ledger = "https://claude.ai/code/session_01CnGG8im7UG4KtjbPDx9fst"
+    private val atlas = "https://claude.ai/code/session_02atlas"
+    private val ledger = "https://claude.ai/code/session_01ledger"
 
     @Test fun matchesTheSessionLink() {
         assertEquals("atlas-shop", SessionLinks.sessionOf(atlas, sessions)?.name)
@@ -23,7 +23,7 @@ class SessionLinksTest {
     }
 
     @Test fun theMasterMessageOfTheReport() {
-        val text = "• **Prossimo passo:** rivedere il flusso dei rimborsi.\n• **Link:**\nhttps://claude.ai/code/session_018CKZ1Pum1Qs7DX5hbRLQ6X\n\nEsito: sessione atlas-shop aperta."
+        val text = "• **Prossimo passo:** rivedere il flusso dei rimborsi.\n• **Link:**\nhttps://claude.ai/code/session_02atlas\n\nEsito: sessione atlas-shop aperta."
         val r = SessionLinks.strip(text, sessions)
         assertEquals("• **Prossimo passo:** rivedere il flusso dei rimborsi.\n\nEsito: sessione atlas-shop aperta.", r.text)
         assertEquals(listOf(SessionLinks.Button("atlas-shop", atlas)), r.buttons)

@@ -123,14 +123,15 @@ class MonitorsTest {
         assertEquals("il rifiuto del relay vince", Monitors.Outcome.Failed("too early: retry in 12 s"), Monitors.outcome(card("ok", ended = 990), failed = "too early: retry in 12 s"))
     }
 
-    // La demo: il primo monitoraggio si aggiorna, gli altri no; il giro parte, gira e finisce con l'ora nuova, poi è troppo presto.
+    // La demo: si aggiorna quello che la fixture dice aggiornabile, gli altri no; il giro parte, gira e finisce con l'ora nuova, poi è troppo presto.
     @Test fun theDemoRefreshesTheFirstMonitorOnly() {
         var t = 2_000_000_000L
         var n = 0
         val demo = FakeTransport(load = { File("../contract/$it.json").readText() }, now = { t })
         fun run(op: it.pixelbox.cmwatch.contract.CmdOp, arg: String?) = kotlinx.coroutines.runBlocking { demo.send(it.pixelbox.cmwatch.contract.Cmd(id = "c${n++}", op = op, session = null, arg = arg, issued = t, by = "test")) {} }
         val page = ContractJson.decodeMonitors(run(it.pixelbox.cmwatch.contract.CmdOp.MONITORS, null).text)
-        val first = page.items.first(); val other = page.items[1]
+        // La fixture del relay (1.133): prezzi-portatili si aggiorna, adozione no.
+        val first = page.items.first { it.refreshable }; val other = page.items.first { !it.refreshable }
         assertTrue(first.refreshable); assertFalse(other.refreshable); assertNull(other.refresh)
         assertFalse(run(it.pixelbox.cmwatch.contract.CmdOp.MONITOR_REFRESH, other.id).ok)
         val started = run(it.pixelbox.cmwatch.contract.CmdOp.MONITOR_REFRESH, first.id)
