@@ -32,7 +32,9 @@ class MonitorsScreenTest {
 
     @After fun night() { V3.day = false }
 
-    private fun home(s: State, open: Set<String>, day: Boolean = false, list: List<it.pixelbox.cmwatch.contract.MonitorCard>? = items) = paparazzi.snapshot {
+    // Con una sezione da mostrare la sua categoria è aperta: la home ora parte chiusa (app-home-voci-chiuse-10-11).
+    private fun home(s0: State, open: Set<String>, day: Boolean = false, list: List<it.pixelbox.cmwatch.contract.MonitorCard>? = items) = paparazzi.snapshot {
+        val s = if (s0.homeOrder == null && open.isNotEmpty()) s0.copy(homeOrder = homeAllOpen) else s0
         CmPhoneTheme(still = true, day = day) {
             SummaryList(
                 Summary.build(s, emptyList(), emptyList(), s.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = s.ts,

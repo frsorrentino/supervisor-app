@@ -17,6 +17,12 @@ import java.time.ZoneId
  * da PWA»): senza scelte salvate le categorie e le sezioni sono chiuse col loro riassunto, aperte restano le sessioni. Golden da CI, a
  * 360 dp.
  */
+/**
+ * Un ordine salvato con tutte le categorie aperte: per i test che devono mostrare il contenuto di una categoria, ora che la home parte
+ * chiusa (app-home-voci-chiuse-10-11).
+ */
+internal val homeAllOpen: List<String> = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.decode(null).map { it.copy(open = true) }, null) ?: emptyList()
+
 class HomeStartsClosedTest {
     @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), screenHeight = 3200), theme = "android:Theme.Material.NoActionBar")
     private val st = ContractJson.decodeState(File("../contract/state-3-stale.json").readText())

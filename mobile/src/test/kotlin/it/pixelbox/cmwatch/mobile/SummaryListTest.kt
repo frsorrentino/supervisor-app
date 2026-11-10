@@ -101,7 +101,7 @@ class SummaryListTest {
         val idle = ContractJson.decodeState(File("../contract/state-3-stale.json").readText()).copy(
             prove = ProveSummary(2, 1, 0, 0), decisions = DecisionsSummary(2, 1, 3, 0), seguiti = SeguitiSummary(2, 1, 1),
             primaRaccolta = PrimaRaccoltaSummary("ask", 7, 8, true, null),
-            homeOrder = listOf("seguiti", "prima_raccolta", "esiti", "decisioni", "prove", "sessions", "suggestions", "lavori", "usage", "system", "plugins", "closed"),
+            homeOrder = listOf("seguiti", "prima_raccolta", "esiti", "decisioni", "prove", "sessions", "suggestions", "lavori", "usage", "system", "plugins", "closed", "shut:", it.pixelbox.cmwatch.rules.HomeCats.REV),
         )
         CmPhoneTheme(still = true) {
             Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
@@ -119,19 +119,19 @@ class SummaryListTest {
             it.pixelbox.cmwatch.contract.Suggestion("sg-3", "deadline", "d", "Il cron notturno di orbit-docs non è mai partito: lo attivo stasera?", "p", st.ts - 900),
             it.pixelbox.cmwatch.contract.Suggestion("sg-4", "quota", "q", "Settimana al 62 %: sposto i lavori pesanti alla notte?", "p", st.ts - 960),
         )
-        val withSg = st.copy(suggestions = sg)
+        val withSg = st.copy(suggestions = sg, homeOrder = homeAllOpen)
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, kpiState = withSg, startOpen = setOf("sessions", "suggestions"), suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
         }
     }
 
     // L'ordine della home (Franz 30/10 16:44): Ti aspettano, Sessioni, suggerimenti, poi il resto; alta per vederlo intero.
     @Test fun homeOrderSessionsBeforeSuggestions() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 5000))
-        val withSg = st.copy(suggestions = listOf(it.pixelbox.cmwatch.contract.Suggestion("sg-1", "recurring", "r", "Chiedi spesso «com'è andata la CI di atlas-shop»: la aggiungo ai Ricorrenti?", "p", st.ts - 900)))
+        val withSg = st.copy(suggestions = listOf(it.pixelbox.cmwatch.contract.Suggestion("sg-1", "recurring", "r", "Chiedi spesso «com'è andata la CI di atlas-shop»: la aggiungo ai Ricorrenti?", "p", st.ts - 900)), homeOrder = homeAllOpen)
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
-                Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+                Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, kpiState = withSg, startOpen = setOf("sessions", "suggestions"), suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
             }
         }
     }
@@ -143,9 +143,9 @@ class SummaryListTest {
             it.pixelbox.cmwatch.contract.Suggestion("sq-2", "unsaved", "unsaved:atlas-shop:1", "atlas-shop si è chiusa con 2 file non committati: la riapro per salvarli?", at = st.ts - 600, rank = 4, source = "script"),
             it.pixelbox.cmwatch.contract.Suggestion("sq-3", "zzz", "zzz:1", "Un tipo che quest'app non conosce ancora.", at = st.ts - 300, rank = 6, source = "master"),
         )
-        val withSg = st.copy(suggestions = sg)
+        val withSg = st.copy(suggestions = sg, homeOrder = homeAllOpen)
         CmPhoneTheme(still = true) {
-            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
+            Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { SummaryList(model(withSg), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, kpiState = withSg, startOpen = setOf("sessions", "suggestions"), suggestions = it.pixelbox.cmwatch.rules.Suggestions.visible(withSg, emptySet(), st.ts)) }
         }
     }
 
@@ -282,7 +282,7 @@ class SummaryListTest {
     private fun inCima(dp: Int, font: Float) {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (dp * 2.75).toInt(), screenHeight = 4000, fontScale = font))
         val top = listOf("sessions", "suggestions", "decisioni", "prove", "seguiti", "prima_raccolta")
-        val order = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.decode(null), null, top)
+        val order = it.pixelbox.cmwatch.rules.HomeCats.encode(it.pixelbox.cmwatch.rules.HomeCats.decode(null).map { it.copy(open = true) }, null, top)
         val sg = (1..3).map { i -> it.pixelbox.cmwatch.contract.Suggestion("sg-$i", "cleanup", "c$i", "Suggerimento $i", "p", st.ts - 900) }
         val x = st.copy(decisions = DecisionsSummary(12, 8, 32, 0), prove = ProveSummary(50, 9, 0, 0), seguiti = SeguitiSummary(2, 1, 1),
             primaRaccolta = PrimaRaccoltaSummary("ask", 7, 8, true, null), suggestions = sg, homeOrder = order)
