@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -140,7 +141,11 @@ private fun day(t: Long): String = D.format(Instant.ofEpochSecond(t).atZone(Zone
  */
 @Composable
 fun MonitorPage(m: MonitorCard, wide: Boolean, onBack: () -> Unit, onStop: () -> Unit, onAsk: () -> Unit, onEditAlerts: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).testTag("monitor-scheda-${m.id}")) {
+    // Sul telefono la scheda prende lo schermo intero e lascia lo spazio delle barre di sistema, sopra e sotto, come le altre pagine a tutto
+    // schermo (app-monitor-scheda-barre-10-11, Franz 10/11 20:08: «non tiene conto delle barre in basso e in alto del dispositivo e le
+    // scritte si sovrappongono»: il titolo sotto l'ora, «Ferma» e «Chiedi alla master» sotto la linea dei gesti). Nella colonna del tablet
+    // il posto lo lascia la plancia.
+    Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).then(if (wide) Modifier else Modifier.systemBarsPadding()).testTag("monitor-scheda-${m.id}")) {
         Row(Modifier.fillMaxWidth().padding(start = if (wide) 18.dp else 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
             Column(Modifier.weight(1f)) {
