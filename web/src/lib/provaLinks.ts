@@ -40,3 +40,10 @@ export function readProva(ok: boolean, text: string): ProvaRead {
     return { kind: 'found', prova: o as ProvaOne }
   } catch { return { kind: 'unsupported' } }
 }
+
+/**
+ * Dove porta il link di una prova (app-prova-link-diretta-10-11, Franz 10/11 22:57: «sarebbe preferibile che si apra direttamente la
+ * scheda in verifica»): una prova da fare che Verifica elenca si apre lì, sulla sua scheda; una chiusa o fuori elenco nella pagina di
+ * dettaglio. Come ProvaLinks.inVerify.
+ */
+export const inVerify = (n: number, todo: readonly { id: number }[]): boolean => todo.some(p => p.id === n)

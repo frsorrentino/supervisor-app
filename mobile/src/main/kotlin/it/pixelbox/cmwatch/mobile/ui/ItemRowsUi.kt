@@ -23,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -116,12 +118,19 @@ internal fun ItemList(
     more: (List<ItemRows.Row>) -> Int = { it.size },
     /** Contratto 1.130 (app-scheda-ti-aspetta-07-11): true se il tocco ha aperto la scheda «Ti aspetta» della riga, che allora non si apre sul posto. */
     onOpen: ((ItemRows.Row) -> Boolean)? = null,
+    /**
+     * La riga da mostrare subito (app-prova-link-diretta-10-11): il link «prova #N» apre Verifica con la scheda di quella prova aperta,
+     * portata in vista ed evidenziata per un momento; se stava fra le «altre N», la lista si apre tutta.
+     */
+    focus: String? = null,
     card: @Composable (ItemRows.Row) -> Unit,
 ) {
     if (rows.none { it.key !in gone }) return
     val off = animationsOff()
-    var openKey by rememberSaveable(tag) { mutableStateOf<String?>(null) }
-    var all by rememberSaveable(tag) { mutableStateOf(false) }
+    val focused = focus?.takeIf { f -> rows.any { it.key == f && it.key !in gone } }
+    // Con una riga cercata la lista nasce con quella aperta e, se stava fra le «altre N», tutta aperta.
+    var openKey by rememberSaveable(tag, focused) { mutableStateOf(focused) }
+    var all by rememberSaveable(tag, focused) { mutableStateOf(rows.filter { it.key !in gone }.let { l -> focused != null && l.indexOfFirst { it.key == focused } >= ItemRows.shown(l.size, false) }) }
     val live = rows.count { it.key !in gone }
     val n = ItemRows.shown(live, all)
     // Nella sottoscheda ogni riga è un riquadro suo, uno sotto l'altro (B «Bordo leggero», app-superfici-plancia-07-11).
@@ -133,7 +142,7 @@ internal fun ItemList(
                 // Divisore e riga in una colonna: dentro AnimatedVisibility, che li sovrapporrebbe come un Box, la riga perdeva il divisore
                 // (1 px più in alto da lì in giù nei golden di 9622c048).
                 androidx.compose.animation.AnimatedVisibility(r.key !in gone, enter = androidx.compose.animation.EnterTransition.None, exit = confirmedExit(off)) {
-                    val row: @Composable () -> Unit = { Column(Modifier.fillMaxWidth()) {
+                    val row: @Composable () -> Unit = { Column(if (r.key == focused) Modifier.fillMaxWidth().focusFlash(off) else Modifier.fillMaxWidth()) {
                         ItemRowView(r, right(r), i == 0 || sub, openKey == r.key, name(r), "$tag-${r.key}", onClick = { if (onOpen?.invoke(r) != true) openKey = if (openKey == r.key) null else r.key }) { card(r) }
                     } }
                     if (sub) V3List(row) else row()
@@ -147,4 +156,22 @@ internal fun ItemList(
             }
         }
     }
+}
+
+/**
+ * La riga cercata da un link (app-prova-link-diretta-10-11): appena aperta la pagina va in vista, centrata se c'è posto, e si accende
+ * del colore d'attesa che si spegne in poco più di un secondo. Senza animazioni resta solo lo scorrimento.
+ */
+@Composable
+private fun Modifier.focusFlash(off: Boolean): Modifier {
+    val req = androidx.compose.runtime.remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+    val glow = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (off) 0f else 1f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        // La scheda si apre con FoldIn: si aspetta che abbia la sua altezza, poi la si porta in vista.
+        kotlinx.coroutines.delay(if (off) 0 else 260)
+        req.bringIntoView()
+        if (!off) glow.animateTo(0f, androidx.compose.animation.core.tween(1400, delayMillis = 500))
+    }
+    val tone = Cm.waiting
+    return this.bringIntoViewRequester(req).drawBehind { if (glow.value > 0f) drawRect(tone.copy(alpha = 0.16f * glow.value)) }
 }

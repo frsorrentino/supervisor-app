@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.ProvaOne
+import it.pixelbox.cmwatch.contract.ProvePage
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 
@@ -50,4 +51,11 @@ object ProvaLinks {
         if ("id" !in o || "groups" in o) return Read.Unsupported
         return runCatching { Read.Found(ContractJson.json.decodeFromJsonElement(ProvaOne.serializer(), o as JsonObject)) }.getOrElse { Read.Unsupported }
     }
+
+    /**
+     * Dove porta il link di una prova (app-prova-link-diretta-10-11, Franz 10/11 22:57: «sarebbe preferibile che si apra direttamente
+     * la scheda in verifica, ora sembra ci sia un passaggio in più»): una prova da fare che Verifica elenca si apre lì, sulla sua
+     * scheda; una chiusa (ok, ko, rossa) o non ancora nell'elenco, nella pagina di dettaglio.
+     */
+    fun inVerify(n: Long, page: ProvePage?): Boolean = page?.groups?.any { g -> g.prove.any { it.id == n } } == true
 }

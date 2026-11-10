@@ -15,8 +15,9 @@
   import ItemList from './ItemList.svelte'
   import { prove, proveKo, proveRed } from './itemRows'
   // «Da provare» (contratto 1.99, banco_prova), porta di DaProvareScreen. Sul web vale l'ultima versione online: nessuna prova aspetta un'installazione.
+  // `focus` (app-prova-link-diretta-10-11): la prova di un link «prova #N», aperta, in vista ed evidenziata.
   // `only` (app-sessioni-compatte-06-11): solo le verifiche di una sessione, dentro la sua scheda; o solo quelle senza.
-  let { run, onScreen, onShot, only = null, onWait = null }: { onWait?: ((wid: string) => void) | null; only?: ((p: ProvePage['groups'][number]['prove'][number]) => boolean) | null; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onScreen: (s: string) => void; onShot: (f: File, note: string) => void } = $props()
+  let { run, onScreen, onShot, only = null, onWait = null, focus = null }: { focus?: string | null; onWait?: ((wid: string) => void) | null; only?: ((p: ProvePage['groups'][number]['prove'][number]) => boolean) | null; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onScreen: (s: string) => void; onShot: (f: File, note: string) => void } = $props()
   let page = $state<ProvePage | null>(null)
   let ko = $state<ProvePage['groups'][number]['prove'][number] | null>(null)
   let text = $state(''), shot = $state<File | null>(null)
@@ -91,7 +92,7 @@
   {#each (page?.groups ?? []).filter(g => shown(g).length) as g (g.build)}
     <div class="h" out:slide={{ duration: outMs() }}><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal ck" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}><span class="lbl">{t.proveAllOk}</span>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}<Check />{/if}</button>{/if}</div>
     <!-- Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok. Sul web la versione c'è sempre. -->
-    <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`} onOpen={onWait ? (r) => { const w = g.prove.find(x => String(x.id) === r.key)?.wid; if (w) onWait(w); return !!w } : null}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
+    <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`} {focus} onOpen={onWait ? (r) => { const w = g.prove.find(x => String(x.id) === r.key)?.wid; if (w) onWait(w); return !!w } : null}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
       <div class="in"><LongText text={p.fai} /><p class="m">{t.proveExpected(p.atteso)}</p>
         <div class="ac">
           {#if screen(p.dove)}<button class="text" onclick={() => onScreen(screen(p.dove)!)}>{t.featuresGo}</button>{/if}

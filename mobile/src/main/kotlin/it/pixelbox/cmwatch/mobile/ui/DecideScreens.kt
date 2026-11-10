@@ -149,13 +149,13 @@ private fun primaSection(key: String): String = when (key) {
  * hanno i tasti. «Non va» chiede cosa non va, a voce dalla tastiera, e uno screenshot facoltativo: arrivano alla master.
  */
 @Composable
-fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit) = DecidePage(stringResource(R.string.prove_title), "da-provare", onBack) { DaProvareBody(page, buildOf, onOk, onKo, onScreen) }
+fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit, focus: String? = null) = DecidePage(stringResource(R.string.prove_title), "da-provare", onBack) { DaProvareBody(page, buildOf, onOk, onKo, onScreen, focus = focus) }
 
 /** Le prove con l'Ok mandato, per tutta l'app: la sezione della home e la pagina le tolgono insieme (app-prova-ok-sparisce-04-11). */
 internal object ProveSent { val ids = androidx.compose.runtime.mutableStateListOf<String>() }
 
 @Composable
-fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit, onWait: ((String) -> Unit)? = null) {
+fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit, onWait: ((String) -> Unit)? = null, focus: String? = null) {
     var ko by remember { mutableStateOf<ProveItem?>(null) }
     // Franz 02/11 15:38: Ok non blocca più e la scheda non sparisce di colpo (Leave): conferma sul tasto, uscita in altezza,
     // le altre salgono; se il PC dice no, la scheda torna.
@@ -192,7 +192,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
             if (b == BancoProva.Build.TO_INSTALL) Text(stringResource(R.string.prove_install_first), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, modifier = Modifier.padding(horizontal = 4.dp))
             if (b == BancoProva.Build.UNKNOWN) Text(stringResource(R.string.prove_build_unknown), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
             // Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok.
-            ItemList(g.prove.map { p -> ItemRows.prove(p, b != BancoProva.Build.TO_INSTALL) }, "prova-${g.build}", gone = gone.toSet(), onOpen = onWait?.let { f -> { r -> g.prove.firstOrNull { p -> p.id.toString() == r.key }?.wid?.let { w -> f(w); true } ?: false } }) { r ->
+            ItemList(g.prove.map { p -> ItemRows.prove(p, b != BancoProva.Build.TO_INSTALL) }, "prova-${g.build}", gone = gone.toSet(), focus = focus, onOpen = onWait?.let { f -> { r -> g.prove.firstOrNull { p -> p.id.toString() == r.key }?.wid?.let { w -> f(w); true } ?: false } }) { r ->
                 val p = g.prove.first { it.id.toString() == r.key }
                 val id = r.key
                 val pk = picked[id]

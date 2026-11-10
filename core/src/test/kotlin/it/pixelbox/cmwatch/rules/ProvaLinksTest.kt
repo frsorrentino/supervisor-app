@@ -5,6 +5,7 @@ import it.pixelbox.cmwatch.contract.CmdOp
 import it.pixelbox.cmwatch.transport.FakeTransport
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,5 +69,18 @@ class ProvaLinksTest {
         assertTrue("le parole del ko e il motivo del rosso", reads.drop(2).take(2).all { r -> !(r as ProvaLinks.Read.Found).prova.text.isNullOrBlank() })
         assertTrue(reads.last() is ProvaLinks.Read.Refused)
         assertEquals("l'elenco senza arg, come da un relay vecchio", ProvaLinks.Read.Unsupported, ProvaLinks.read(true, fake.sampleText("prove")))
+    }
+
+    // Il link di una prova da fare apre Verifica sulla sua scheda; una chiusa o fuori elenco la pagina di dettaglio (app-prova-link-diretta-10-11).
+    @Test fun aProvaToDoOpensInVerify() {
+        val page = it.pixelbox.cmwatch.contract.ProvePage(n = 2, groups = listOf(
+            it.pixelbox.cmwatch.contract.ProveGroup("0.2.2091", prove = listOf(it.pixelbox.cmwatch.contract.ProveItem(550, "app-prova-link-10-11"))),
+            it.pixelbox.cmwatch.contract.ProveGroup("0.2.2092", prove = listOf(it.pixelbox.cmwatch.contract.ProveItem(551, "app-home-voci-chiuse-10-11"))),
+        ), ko = listOf(it.pixelbox.cmwatch.contract.ProveKo(518, "app-scorrimento-prima-sessione-09-11")))
+        assertTrue(ProvaLinks.inVerify(550, page))
+        assertTrue(ProvaLinks.inVerify(551, page))
+        assertFalse(ProvaLinks.inVerify(518, page))
+        assertFalse(ProvaLinks.inVerify(999, page))
+        assertFalse(ProvaLinks.inVerify(550, null))
     }
 }

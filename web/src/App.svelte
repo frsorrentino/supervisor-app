@@ -115,7 +115,7 @@
   import { backTo } from './lib/tiAspetta'
   import MonitorView from './lib/MonitorView.svelte'
   import ProvaView from './lib/ProvaView.svelte'
-  import { provaOf, readProva, type ProvaRead } from './lib/provaLinks'
+  import { inVerify, provaOf, readProva, type ProvaRead } from './lib/provaLinks'
   import { monitorsDemo } from './lib/demo'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
@@ -612,7 +612,16 @@
   let provaId = $state<number | null>(provaOf(location.hash))
   let provaRead = $state<ProvaRead | null>(null)
   let provaFrom = $state<PageName | null>(null)
-  const openProva = (n: number) => { if (page !== 'prova') provaFrom = page; provaId = n; openPage('prova') }
+  // Una prova da fare che Verifica elenca si apre lì, sulla sua scheda e senza la pagina di mezzo (app-prova-link-diretta-10-11, Franz
+  // 10/11 22:57); le chiuse restano sulla pagina di dettaglio. `proveFocus` si scorda lasciando Verifica.
+  let proveFocus = $state<string | null>(null)
+  const openProva = (n: number) => {
+    if (inVerify(n, todoProve)) { if (location.hash.startsWith('#/prova/')) history.replaceState(history.state, '', location.pathname + location.search); provaId = null; provaFrom = null; proveFocus = String(n); openPage('prove'); return }
+    if (page !== 'prova') provaFrom = page; provaId = n; openPage('prova')
+  }
+  // L'elenco può arrivare dopo il link (l'app aperta da `#/prova/<n>`): allora si passa a Verifica appena c'è.
+  $effect(() => { const n = provaId; if (page === 'prova' && n != null && inVerify(n, todoProve)) untrack(() => openProva(n)) })
+  $effect(() => { if (page !== 'prove') untrack(() => { proveFocus = null }) })
   const closeProva = () => { const to = provaFrom; provaId = null; provaFrom = null; if (location.hash.startsWith('#/prova/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
   let provaReading = 0
   $effect(() => {
@@ -2038,7 +2047,7 @@
     {:else if p === 'prima-raccolta'}
       <PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
     {:else if p === 'prove'}
-      <DaProvare {run} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />
+      <DaProvare {run} focus={proveFocus} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />
     {:else if p === 'decisions'}
       {@render decisionsBody()}
     {:else if p === 'features'}

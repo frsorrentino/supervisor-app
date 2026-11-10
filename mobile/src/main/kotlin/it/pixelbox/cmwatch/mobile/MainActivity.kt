@@ -250,6 +250,8 @@ class MainActivity : ComponentActivity() {
         var boxOpen by rememberSaveable { mutableStateOf<it.pixelbox.cmwatch.mobile.ui.HomeBox?>(null) }
         // Contratto 1.99: Da provare e Da decidere; gli elenchi si chiedono all'apertura e dopo ogni tocco.
         var proveOpen by rememberSaveable { mutableStateOf(false) }
+        // La prova da mostrare in Verifica, da un link «prova #N» (app-prova-link-diretta-10-11); si scorda chiudendo la pagina.
+        var proveFocus by rememberSaveable { mutableStateOf<String?>(null) }
         // Contratto 1.100: la prima raccolta; si apre da sola una volta, all'abbinamento.
         var primaOpen by rememberSaveable { mutableStateOf(false) }
         var primaPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.PrimaRaccoltaPage?>(null) }
@@ -344,6 +346,13 @@ class MainActivity : ComponentActivity() {
                 send = { app.repo.command(CmdOp.PROVE, null, n.toString()) }, results = app.repo.resultsById, forget = { x -> app.repo.forget(x) }, giveUpOnRefusal = true,
             )
             if (r != null && provaOpen == n) provaRead = it.pixelbox.cmwatch.rules.ProvaLinks.read(r.ok, r.text)
+        }
+        // Una prova da fare che Verifica elenca si apre lì, sulla sua scheda, senza la pagina di mezzo (app-prova-link-diretta-10-11, Franz
+        // 10/11 22:57); vale anche quando l'elenco arriva dopo il link. Le prove chiuse restano sulla pagina di dettaglio.
+        LaunchedEffect(provaOpen, provePage) {
+            val n = provaOpen ?: return@LaunchedEffect
+            if (!it.pixelbox.cmwatch.rules.ProvaLinks.inVerify(n, provePage)) return@LaunchedEffect
+            proveFocus = n.toString(); proveOpen = true; provaOpen = null
         }
         // «Aggiorna adesso» (app-monitoraggi-aggiorna-10-11, contratto 1.133): il comando con l'id; la risposta è la scheda che gira e prende
         // il posto della vecchia, poi la si rilegge ogni POLL_S secondi finché gira, al più fino a `timeout_s`. Un rifiuto resta in una riga.
@@ -1475,11 +1484,11 @@ class MainActivity : ComponentActivity() {
             return
         }
         if (proveOpen) {
-            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false },
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false; proveFocus = null },
                 onOk = { ids -> proveOkRun(ids) },
                 onKo = proveKo,
-                onScreen = { s -> proveOpen = false; goScreen(s) }) }
-            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { proveOpen = false }
+                onScreen = { s -> proveOpen = false; proveFocus = null; goScreen(s) }, focus = proveFocus) }
+            it.pixelbox.cmwatch.mobile.ui.PageBackHandler { proveOpen = false; proveFocus = null }
             return
         }
         if (primaOpen) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { provaLink, provaOf, provaRefs, readProva } from './provaLinks'
+import { inVerify, provaLink, provaOf, provaRefs, readProva } from './provaLinks'
 
 // Gli stessi casi di ProvaLinksTest.kt (app-prova-link-10-11, contratto 1.134).
 const refs = (t: string) => provaRefs(t).map(r => [t.slice(r.start, r.end), r.n])
@@ -30,5 +30,16 @@ describe('prove citate', () => {
     expect(f.kind === 'found' && f.prova.state).toBe('ko')
     expect(readProva(true, '{"at": 1, "n": 2, "builds": 1, "groups": [], "ko": [], "red": []}')).toEqual({ kind: 'unsupported' })
     expect(readProva(false, 'prova 999: non esiste')).toEqual({ kind: 'refused', message: 'prova 999: non esiste' })
+  })
+})
+
+// Il link di una prova da fare apre Verifica sulla sua scheda; una chiusa o fuori elenco la pagina di dettaglio (app-prova-link-diretta-10-11).
+describe('link diretto in Verifica', () => {
+  it('apre Verifica solo per una prova che Verifica elenca', () => {
+    const todo = [{ id: 550 }, { id: 551 }]
+    expect(inVerify(550, todo)).toBe(true)
+    expect(inVerify(551, todo)).toBe(true)
+    expect(inVerify(518, todo)).toBe(false)
+    expect(inVerify(550, [])).toBe(false)
   })
 })
