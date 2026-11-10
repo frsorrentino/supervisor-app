@@ -71,10 +71,10 @@ internal object Swipe {
      * La home e la pagina della sessione, col fondo della pagina [pageBg] (nei test che misurano, una tinta che la home non ha);
      * il dito parte dopo dieci fotogrammi fermi.
      */
-    @Composable fun Stage(finger: Finger, pageBg: Color? = null) = Stage(listOf(finger), pageBg)
+    @Composable fun Stage(finger: Finger, pageBg: Color? = null, masterHome: String? = null) = Stage(listOf(finger), pageBg, masterHome)
 
     /** I gesti uno dopo l'altro, come Franz nel video: aprire, richiudere, riaprire. */
-    @Composable fun Stage(fingers: List<Finger>, pageBg: Color? = null) = CmPhoneTheme(day = false) { CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalPageBg provides pageBg) {
+    @Composable fun Stage(fingers: List<Finger>, pageBg: Color? = null, masterHome: String? = null) = CmPhoneTheme(day = false) { CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalPageBg provides pageBg) {
         val cards = remember { mutableStateMapOf<String, Int>() }
         var open by remember { mutableStateOf(if (fingers.first().opening) null else NAME) }
         var opening by remember { mutableStateOf(true) }
@@ -95,9 +95,10 @@ internal object Swipe {
             SharedTransitionLayout(Modifier.fillMaxSize().background(V3.Bg)) {
                 flight.AnimatedContent(transitionSpec = { it.pixelbox.cmwatch.mobile.ui.flySpec(targetState != null, flyByCard, false) }, contentKey = { it != null }) { name ->
                     CompositionLocalProvider(LocalFly provides Fly(this@SharedTransitionLayout, this@AnimatedContent, enabled = flyByCard)) {
-                        if (name == null) Column(Modifier.fillMaxSize()) {
-                            SummaryList(Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts)
-                        } else SessionSheet(st.sessions.first { it.name == name }, st.ts, emptyList(), 120, none)
+                        val list: @Composable () -> Unit = { SummaryList(Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts) }
+                        // Con la master la home del telefono è la sua scheda, con la lista dentro (MainActivity, `sessionPage(master)`), col fondo suo e non con la tinta della pagina.
+                        if (name == null && masterHome != null) CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalPageBg provides null) { SessionSheet(st.sessions.first { it.name == masterHome }, st.ts, emptyList(), 120, none, home = { _, _ -> list() }, header = false) }
+                        else if (name == null) Column(Modifier.fillMaxSize()) { list() } else SessionSheet(st.sessions.first { it.name == name }, st.ts, emptyList(), 120, none)
                     }
                 }
             }
@@ -131,9 +132,10 @@ class FlySwipeTest {
     private fun shares(finger: Swipe.Finger): Pair<List<Float>, List<Float>> = shares(listOf(finger)).let { (p, c, _) -> p to c }
 
     /** Come sopra per più gesti di fila, con in più la parte trasparente: la pagina sopra la home, né l'una né l'altra. */
-    private fun shares(fingers: List<Swipe.Finger>): Triple<List<Float>, List<Float>, List<Float>> {
+    private fun shares(fingers: List<Swipe.Finger>, masterHome: String? = null): Triple<List<Float>, List<Float>, List<Float>> {
+        lit.clear()
         frames.clear()
-        val view = ComposeView(paparazzi.context).apply { setContent { Swipe.Stage(fingers, pageBg) } }
+        val view = ComposeView(paparazzi.context).apply { setContent { Swipe.Stage(fingers, pageBg, masterHome) } }
         paparazzi.gif(view, end = 1400, fps = 60)
         val page = pageBg.toArgb()
         val card = V3.S2.toArgb()
@@ -141,17 +143,23 @@ class FlySwipeTest {
             val rgb = img.javaClass.getMethod("getRGB", Int::class.java, Int::class.java)
             val w = img.javaClass.getMethod("getWidth").invoke(img) as Int
             val h = img.javaClass.getMethod("getHeight").invoke(img) as Int
-            var p = 0; var c = 0; var t = 0; var all = 0
+            var p = 0; var c = 0; var t = 0; var l = 0; var all = 0
             for (y in 0 until h step 4) for (x in 0 until w step 4) {
                 all++
                 val px = rgb.invoke(img, x, y) as Int
                 when (px) { page -> p++; card -> c++ }
                 if (between(px)) t++
+                if (px != page && luma(px) > 60) l++
             }
+            lit += l.toFloat() / all
             Triple(p.toFloat() / all, c.toFloat() / all, t.toFloat() / all)
         }
         return Triple(out.map { it.first }, out.map { it.second }, out.map { it.third })
     }
+
+    /** Per ogni fotogramma dell'ultima misura, la parte accesa fuori dalla pagina: testi, bordi e tasti della home che si vede. */
+    private val lit = mutableListOf<Float>()
+    private fun luma(px: Int) = (((px shr 16) and 0xFF) * 3 + ((px shr 8) and 0xFF) * 6 + (px and 0xFF)) / 10
 
     /** Un colore fra il fondo scuro della home e la tinta della pagina, verde e blu a metà strada: la pagina in dissolvenza. */
     private fun between(px: Int): Boolean {
@@ -182,6 +190,19 @@ class FlySwipeTest {
         assertTrue("chiusura: la pagina resta (${s.last()})", s.last() < 0.05f)
         val top = cards.indexOf(cards.max())
         assertTrue("chiusura: la home in dissolvenza dopo il volo (card ${cards})", cards.drop(top).min() > cards.max() * 0.7f)
+    }
+
+    // La chiusura con la master che aspetta Franz (video di Franz del 10/11 09:37, 0.2.2074): la home del telefono è la scheda della
+    // master, con la chiave di volo della card della master che sta nella sua lista. Col dito che richiude, la home volava intera
+    // verso quella card: dietro la pagina restava solo la sua cima nel riquadro della card, il resto nero, e al rilascio la home
+    // compariva d'un colpo. Succede dopo un'apertura, come nel video: aperta col dito e richiusa a metà, la home dietro si vede intera.
+    // Un gesto per test: un secondo `gif` nello stesso test non dà un filmato nuovo.
+    @Test fun closingWithTheMasterHomeKeepsTheHomeBehind() {
+        val path = listOf(0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.35f, 0.4f)
+        val gestures = listOf(Swipe.Finger(path, opening = true), Swipe.Finger(path + List(10) { 0.4f }, opening = false, release = false, wait = 40))
+        shares(gestures, masterHome = "ledger-api"); val master = lit.takeLast(8)
+        // Accesa: 0,025 con la home intera dietro, 0,006 con la sola cima nel riquadro della card; la home senza master fa 0,024.
+        assertTrue("con la master la home dietro la pagina sparisce (accesa $master)", master.min() > 0.015f)
     }
 
     // Il primo gesto dopo un ritorno (secondo video di Franz, 09/11 18:18, 4,65-5,01 s): richiusa la sessione col dito, la riapre
@@ -223,10 +244,12 @@ class FlySwipeTest {
 class FlySwipeShotsTest {
     @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar", snapshotHandler = keep())
 
-    private fun at(name: String, opening: Boolean) {
-        val view = ComposeView(paparazzi.context).apply { setContent { Swipe.Stage(Swipe.Finger(listOf(0.12f), opening, release = false)) } }
-        paparazzi.gif(view, end = 400, fps = 60)
-        val shot = frames[18]
+    private fun at(name: String, opening: Boolean) = at(name, end = 400, frame = 18) { Swipe.Stage(Swipe.Finger(listOf(0.12f), opening, release = false)) }
+
+    private fun at(name: String, end: Long, frame: Int, stage: @Composable () -> Unit) {
+        val view = ComposeView(paparazzi.context).apply { setContent { stage() } }
+        paparazzi.gif(view, end = end, fps = 60)
+        val shot = frames[frame]
         val io = Class.forName("javax.imageio.ImageIO")
         val ri = Class.forName("java.awt.image.RenderedImage")
         val golden = File(System.getProperty("paparazzi.snapshot.dir") ?: return, "images/it.pixelbox.cmwatch.mobile_FlySwipeShotsTest_$name.png")
@@ -258,6 +281,13 @@ class FlySwipeShotsTest {
 
     @Test fun openingHalfway() = at("openingHalfway", opening = true)
     @Test fun closingHalfway() = at("closingHalfway", opening = false)
+
+    // La chiusura a metà con la home della master (video di Franz del 10/11 09:37): aperta col dito e richiusa fino a quattro decimi,
+    // la home intera dietro la pagina che torna card, non la sua cima nel riquadro della card della master.
+    @Test fun closingHalfwayMasterHome() = at("closingHalfwayMasterHome", end = 1400, frame = 72) {
+        val path = listOf(0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.35f, 0.4f)
+        Swipe.Stage(listOf(Swipe.Finger(path, opening = true), Swipe.Finger(path + List(10) { 0.4f }, opening = false, release = false, wait = 40)), null, "ledger-api")
+    }
 
     private val frames = mutableListOf<Any>()
     private fun keep(): SnapshotHandler = proxy(SnapshotHandler::class.java) { name, _ ->
