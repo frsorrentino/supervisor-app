@@ -211,18 +211,18 @@
 
 /* giorno-b «Attese in ambra» (Franz 30/10 21:56): col sistema in chiaro fondo grigio-azzurro, scatole bianche col filetto, la zona
    che ti aspetta in ambra chiaro, le righe rosse degli esiti in rosa. La doppia :root vince sui fogli dei componenti. */
-@media (prefers-color-scheme: light) {
-  html.v3:not(.night-only), html:not(.night-only) .v3, html:not(.night-only) dialog {
-    /* Di giorno la stessa scala neutra (app-audit-superfici-luci-04-11): prima #F1F4F8, #EAEEF4, #DFE4EB, #121418, #565C66, #60666F. */
-    --bg: #F4F4F4; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EDEDED; --line: #E4E4E4;
-    --tx: #141414; --tx2: #5B5B5B; --tx3: #656565; --act: #141414; --on-act: #FFFFFF;
-    --wait: #9A5700; --busy: #4A6A9C; --good: #2A7E3B; --red: #C9302F;
-    --banner: #FFF6E5; --banner-ink: var(--wait);
-  }
-  :root:root:not(.night-only) .card { border: 1px solid var(--line); }
-  :root:root:not(.night-only) .card.r.waiting, :root:root:not(.night-only) [data-testid='home-box-aspetta'] { background: #FFF6E5; border-color: #F2D7A2; }
-  :root:root:not(.night-only) .row-red { background: #FFF3F2; }
+/* Di giorno quando il sistema è chiaro o quando è scelto Giorno (app-tema-giorno-notte-11-11): la classe `theme-day` la mette
+   lib/theme.ts (e public/theme-boot.js all'avvio), mai su `/embed`. */
+html.theme-day.v3, html.theme-day .v3, html.theme-day dialog {
+  /* Di giorno la stessa scala neutra (app-audit-superfici-luci-04-11): prima #F1F4F8, #EAEEF4, #DFE4EB, #121418, #565C66, #60666F. */
+  --bg: #F4F4F4; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EDEDED; --line: #E4E4E4;
+  --tx: #141414; --tx2: #5B5B5B; --tx3: #656565; --act: #141414; --on-act: #FFFFFF;
+  --wait: #9A5700; --busy: #4A6A9C; --good: #2A7E3B; --red: #C9302F;
+  --banner: #FFF6E5; --banner-ink: var(--wait);
 }
+:root:root.theme-day .card { border: 1px solid var(--line); }
+:root:root.theme-day .card.r.waiting, :root:root.theme-day [data-testid='home-box-aspetta'] { background: #FFF6E5; border-color: #F2D7A2; }
+:root:root.theme-day .row-red { background: #FFF3F2; }
 
 /* Le luci, seconda prova (app-luci-02-11; mockup luci2 della master, ok di Franz il 02/11 alle 22:24): niente fondi sfumati né
    aloni larghi, niente sfocature. La doppia :root vince sui fogli dei componenti. */
@@ -263,13 +263,12 @@
 /* Le liste delle colonne tutte nello stesso modo (app-superfici-neutre-04-11, Franz 04/11 19:09): righe libere con divisori, senza
    riquadri dentro le colonne, anche le sessioni; la testata della colonna sta un gradino sopra (DeskHead, --s2). */
 :root:root .plancia .col .card.r { background: none; border: 0; border-radius: 0; box-shadow: none; border-bottom: 1px solid var(--line); }
-@media (prefers-color-scheme: light) {
-  :root:root:not(.night-only) .lit, :root:root:not(.night-only) .onboard > .usageslot { background: var(--lit-bg, var(--s1)); border: 1px solid var(--line); }
-  :root:root:not(.night-only) .col.lit { background: var(--s1); }
-  :root:root:not(.night-only) .plancia.v3 { background: var(--bg); }
-  :root:root:not(.night-only) .nowdot { fill: var(--q-now); filter: none; }
-  :root:root:not(.night-only) .sec.hot::before { box-shadow: none; background: var(--wait); }
-}
+/* Di giorno (theme-day, app-tema-giorno-notte-11-11). */
+:root:root.theme-day .lit, :root:root.theme-day .onboard > .usageslot { background: var(--lit-bg, var(--s1)); border: 1px solid var(--line); }
+:root:root.theme-day .col.lit { background: var(--s1); }
+:root:root.theme-day .plancia.v3 { background: var(--bg); }
+:root:root.theme-day .nowdot { fill: var(--q-now); filter: none; }
+:root:root.theme-day .sec.hot::before { box-shadow: none; background: var(--wait); }
 /* Il morphing delle pagine (morphStart in lib/motion.ts): il gruppo va dalla voce premuta alla pagina con la molla lenta, senza
    rimbalzo; la pagina si scopre dall'angolo in alto a sinistra invece di deformarsi, la voce sfuma nel primo terzo. */
 /* La master che cambia posto al rilascio, mentre la sagoma dell'anteprima resta sopra finché arriva (landingMorph.ts, app-trascina-rifinitura-04-11). */

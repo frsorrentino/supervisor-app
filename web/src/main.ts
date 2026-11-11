@@ -6,6 +6,7 @@ import { canonicalUrl, loadRemote } from './lib/remoteAccess'
 import { lang } from './lib/lang'
 import { dockWanted } from './lib/dockEmbed'
 import { installDialogGrow } from './lib/motion'
+import { initTheme } from './lib/theme'
 
 installDialogGrow()
 
@@ -22,6 +23,8 @@ document.documentElement.lang = lang
 // Tutta l'app nello stile v3 (Franz 30/10 21:43); `/embed` resta di notte come Studio che lo ospita.
 document.documentElement.classList.add('v3')
 if (/^\/embed(\.html)?$/.test(location.pathname)) document.documentElement.classList.add('night-only')
+// Il tema scelto, e Automatico che segue il sistema (app-tema-giorno-notte-11-11).
+initTheme()
 
 // Dai nomi di Firebase del sito al dominio, prima di disegnare la pagina (un browser già collegato lì resta lì).
 const store = { get: (k: string) => { try { return localStorage.getItem(k) } catch { return null } }, set() {}, remove() {} }

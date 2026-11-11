@@ -5,6 +5,10 @@
   let chosenLang = $state((() => { try { return localStorage.getItem(LANG_KEY) ?? '' } catch { return '' } })())
   // La lingua vale da subito: la pagina si ricarica, come l'app che ricrea l'attività.
   function setLang(v: string) { chosenLang = v; try { if (v) localStorage.setItem(LANG_KEY, v); else localStorage.removeItem(LANG_KEY) } catch { /* resta questa */ } location.reload() }
+  // Il tema (app-tema-giorno-notte-11-11): vale subito, senza ricaricare, e resta nel browser.
+  import { loadTheme, setTheme, type ThemeChoice } from './theme'
+  let theme = $state<ThemeChoice>(loadTheme())
+  const themeName = (c: ThemeChoice) => (c === 'day' ? t.themeDay : c === 'night' ? t.themeNight : t.themeAuto)
   import { DAY } from './durations'
   import { locale } from './lang'
   import type { DevicesModel, Linked, Tone } from './devices'
@@ -198,6 +202,13 @@
       <span class="st"><b>{t.language}</b><small>{chosenLang === 'it' ? t.languageIt : chosenLang === 'en' ? t.languageEn : t.languageSystem}</small></span>
       <select class="pick" value={chosenLang} onchange={(e) => setLang((e.currentTarget as HTMLSelectElement).value)}>
         <option value="">{t.languageSystem}</option><option value="it">{t.languageIt}</option><option value="en">{t.languageEn}</option>
+      </select>
+    </label>
+    <label class="srow">
+      <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 2a10 10 0 0 1 0 20z" fill="var(--icon)" /></svg></span>
+      <span class="st"><b>{t.theme}</b><small>{themeName(theme)}</small></span>
+      <select class="pick" data-testid="impostazioni-tema" value={theme} onchange={(e) => { theme = (e.currentTarget as HTMLSelectElement).value as ThemeChoice; setTheme(theme) }}>
+        <option value="auto">{t.themeAuto}</option><option value="day">{t.themeDay}</option><option value="night">{t.themeNight}</option>
       </select>
     </label>
     <label class="srow">

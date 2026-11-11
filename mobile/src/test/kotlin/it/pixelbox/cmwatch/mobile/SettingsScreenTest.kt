@@ -29,6 +29,13 @@ class SettingsScreenTest {
         }
     }
 
+    // Il tema (app-tema-giorno-notte-11-11): la riga nella sezione App, col tema scelto, e la scelta a tre; di giorno e di notte.
+    private fun themeRow(day: Boolean, choice: it.pixelbox.cmwatch.rules.AppTheme.Choice) = paparazzi.snapshot {
+        CmPhoneTheme(still = true, day = day) { SettingsScreen("penguin", "Pixel 9", "Pixel Watch 5", false, false, "0.2", {}, {}, {}, {}, initialOpen = setOf("app"), devices = devices(), theme = choice) }
+    }
+    @Test fun themeDay() = themeRow(true, it.pixelbox.cmwatch.rules.AppTheme.Choice.DAY)
+    @Test fun themeNight() = themeRow(false, it.pixelbox.cmwatch.rules.AppTheme.Choice.NIGHT)
+
     @Test fun settingsPaired() = paparazzi.snapshot {
         CmPhoneTheme(still = true) { SettingsScreen("penguin", "Pixel 9", "Pixel Watch 5", false, false, "0.2", {}, {}, {}, {}, initialOpen = ALL_SECTIONS, devices = devices()) }
     }

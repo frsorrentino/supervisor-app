@@ -109,8 +109,24 @@ class MainActivity : ComponentActivity() {
     /** L'invito a zero tocchi dal relay (`cmwatch://pair?q=`): la riga del QR, in attesa della conferma. */
     private var pairInvite by mutableStateOf<String?>(null)
 
+    /**
+     * Il tema scelto nelle impostazioni (app-tema-giorno-notte-11-11): lo tiene il sistema per quest'app (UiModeManager, API 31+), così
+     * Compose, le risorse `values-night`, il fondo della finestra e le icone delle barre lo seguono; Automatico torna al telefono.
+     */
+    private val themePrefs by lazy { getSharedPreferences("theme", MODE_PRIVATE) }
+    private var themeChoice by mutableStateOf(it.pixelbox.cmwatch.rules.AppTheme.Choice.AUTO)
+    private fun applyTheme(c: it.pixelbox.cmwatch.rules.AppTheme.Choice) {
+        themePrefs.edit().putString("choice", c.key).apply()
+        getSystemService(android.app.UiModeManager::class.java)?.setApplicationNightMode(when (c) {
+            it.pixelbox.cmwatch.rules.AppTheme.Choice.AUTO -> android.app.UiModeManager.MODE_NIGHT_AUTO
+            it.pixelbox.cmwatch.rules.AppTheme.Choice.DAY -> android.app.UiModeManager.MODE_NIGHT_NO
+            it.pixelbox.cmwatch.rules.AppTheme.Choice.NIGHT -> android.app.UiModeManager.MODE_NIGHT_YES
+        })
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        themeChoice = it.pixelbox.cmwatch.rules.AppTheme.fromKey(themePrefs.getString("choice", null))
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) intent?.let(::route)
         val rotating = savedInstanceState?.getBoolean(KEY_ROTATING) == true
@@ -670,6 +686,8 @@ class MainActivity : ComponentActivity() {
                 language = AppLanguage.fromTags(localeManager.applicationLocales.toLanguageTags()),
                 // Il sistema ricrea l'activity nella lingua nuova; con «come il telefono» la lista vuota torna a seguirlo.
                 onLanguage = { localeManager.applicationLocales = android.os.LocaleList.forLanguageTags(it.tag) },
+                // Il tema (app-tema-giorno-notte-11-11): lo applica il sistema all'app, che si ridisegna; la scelta resta anche qui per la riga.
+                theme = themeChoice, onTheme = { c -> themeChoice = c; applyTheme(c) },
                 voices = speech.voices.collectAsStateWithLifecycle().value, voice = speech.voice.collectAsStateWithLifecycle().value,
                 onVoice = speech::setVoice, onTryVoice = { speech.toggle(getString(R.string.voice_sample)) },
                 rate = speech.rate.collectAsStateWithLifecycle().value, onRate = speech::setRate,

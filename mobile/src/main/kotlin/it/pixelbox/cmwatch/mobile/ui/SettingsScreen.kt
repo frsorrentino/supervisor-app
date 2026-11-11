@@ -55,6 +55,8 @@ fun SettingsScreen(
     host: String?, phoneName: String, watchName: String?, watchPending: Boolean, demo: Boolean, version: String,
     onRepair: () -> Unit, onDemo: (Boolean) -> Unit, onNotifications: () -> Unit, onPrivacy: () -> Unit,
     language: AppLanguage.Choice = AppLanguage.Choice.SYSTEM, onLanguage: (AppLanguage.Choice) -> Unit = {},
+    /** Il tema (app-tema-giorno-notte-11-11): Automatico come il telefono, Giorno o Notte, ricordato sul dispositivo. */
+    theme: it.pixelbox.cmwatch.rules.AppTheme.Choice = it.pixelbox.cmwatch.rules.AppTheme.Choice.AUTO, onTheme: (it.pixelbox.cmwatch.rules.AppTheme.Choice) -> Unit = {},
     /** La voce che legge (Franz, 02/10 00:01): le voci italiane del motore, quella scelta (null = predefinita), la prova. */
     voices: List<String> = emptyList(), voice: String? = null, onVoice: (String?) -> Unit = {}, onTryVoice: () -> Unit = {},
     /** La velocità della voce (Franz, 02/10 15:49: «un po' troppo rapida»), da 0,5× a 2× (slider del 07/10). */
@@ -92,6 +94,7 @@ fun SettingsScreen(
         return
     }
     var choosing by remember { mutableStateOf(false) }
+    var choosingTheme by remember { mutableStateOf(false) }
     var choosingVoice by remember { mutableStateOf(false) }
     var device by rememberSaveable { mutableStateOf(initialDevice) }
     var opened by rememberSaveable { mutableStateOf(initialOpen.toList()) }
@@ -163,6 +166,7 @@ fun SettingsScreen(
             section("app", stringResource(R.string.sec_app), Icons.Outlined.Tune, languageName(language)) {
             SectionCard {
                 SettingsRow(Icons.Outlined.Language, stringResource(R.string.language), languageName(language), onClick = { choosing = true })
+                SettingsRow(Icons.Outlined.Contrast, stringResource(R.string.theme), themeName(theme), onClick = { choosingTheme = true })
                 SettingsRow(Icons.Outlined.Notifications, stringResource(R.string.notifications), stringResource(R.string.notifications_sub), onNotifications)
                 SettingsRow(Icons.Outlined.Science, stringResource(R.string.demo_mode), stringResource(R.string.demo_mode_sub), onClick = { onDemo(!demo) }) {
                     Switch(checked = demo, onCheckedChange = onDemo, colors = cmSwitchColors())
@@ -206,6 +210,26 @@ fun SettingsScreen(
                     }
                 }
             },
+        )
+    }
+    if (choosingTheme) {
+        AlertDialog(
+            onDismissRequest = { choosingTheme = false }, confirmButton = {},
+            title = { Text(stringResource(R.string.theme)) },
+            text = {
+                Column {
+                    it.pixelbox.cmwatch.rules.AppTheme.Choice.entries.forEach { c ->
+                        Row(
+                            Modifier.fillMaxWidth().handCursor().clickable { choosingTheme = false; onTheme(c) }.padding(vertical = 12.dp).testTag("tema-${c.key}"),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RadioButton(selected = c == theme, onClick = null)
+                            Text(themeName(c), style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            containerColor = Cm.surface,
         )
     }
     if (choosing) {
@@ -257,6 +281,13 @@ private fun SettingsRow(
         Text(sub, style = V3.Small)
     }
 }
+
+@Composable
+private fun themeName(c: it.pixelbox.cmwatch.rules.AppTheme.Choice): String = stringResource(when (c) {
+    it.pixelbox.cmwatch.rules.AppTheme.Choice.AUTO -> R.string.theme_auto
+    it.pixelbox.cmwatch.rules.AppTheme.Choice.DAY -> R.string.theme_day
+    it.pixelbox.cmwatch.rules.AppTheme.Choice.NIGHT -> R.string.theme_night
+})
 
 @Composable
 private fun languageName(c: AppLanguage.Choice): String = stringResource(when (c) {

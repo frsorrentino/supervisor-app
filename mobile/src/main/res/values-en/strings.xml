@@ -159,6 +159,10 @@
     <string name="share_failed">Sending failed: retry</string>
     <string name="chat_about_this">Chat about this</string>
     <string name="language">Language</string>
+    <string name="theme">Theme</string>
+    <string name="theme_auto">Automatic, same as the phone</string>
+    <string name="theme_day">Day</string>
+    <string name="theme_night">Night</string>
     <string name="language_system">Same as the phone</string>
     <string name="language_it">Italiano</string>
     <string name="language_en">English</string>
