@@ -80,6 +80,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 
 class MainActivity : ComponentActivity() {
     /** Un dito è sullo schermo: lo guarda la guardia del volo (Franz 31/10 22:15). Qui, prima di ogni gesto che può cancellarsi. */
@@ -1449,7 +1450,29 @@ class MainActivity : ComponentActivity() {
         }
         // Il risultato con quello che sa la pagina (didascalia, file, note): lo stato porta solo l'essenziale.
         val fullResult = { r: it.pixelbox.cmwatch.contract.ResultItem -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { x -> x.id == r.id } ?: r }
+        // Le anteprime dei documenti (contratto 1.136, app-anteprime-verifica-11-11): una lettura per versione, anche se più caselle la
+        // chiedono insieme; poi la cache. Con un relay senza l'op `thumb` non si chiede niente e resta l'icona.
+        val thumbCache = remember { mutableMapOf<String, it.pixelbox.cmwatch.contract.ThumbPreview?>() }
+        val thumbFlying = remember { mutableMapOf<String, kotlinx.coroutines.Deferred<it.pixelbox.cmwatch.contract.ThumbPreview?>>() }
+        val thumbOp = state?.ops?.contains("thumb") == true
         val guardare = it.pixelbox.cmwatch.mobile.ui.GuardareActions(
+            preview = { r, ready ->
+                val k = it.pixelbox.cmwatch.rules.Thumbs.key(r)
+                when {
+                    k in thumbCache -> ready(thumbCache[k])
+                    thumbOp -> scope.launch {
+                        val job = thumbFlying.getOrPut(k) { scope.async {
+                            val x = it.pixelbox.cmwatch.rules.PatientRead.result(
+                                send = { app.repo.command(CmdOp.THUMB, null, r.id) }, results = app.repo.resultsById, forget = { i -> app.repo.forget(i) }, giveUpOnRefusal = true,
+                            )
+                            x?.let { y -> it.pixelbox.cmwatch.rules.Thumbs.read(y.ok, y.text).also { p -> thumbCache[k] = p } }
+                        } }
+                        val p = job.await()
+                        thumbFlying.remove(k)
+                        ready(p)
+                    }
+                }
+            },
             file = { r, f, quiet, ready ->
                 val key = "result:${r.id}:${f.path}"
                 withFile(r.session.orEmpty(), key, f, quiet) { file, _ -> ready(file.path) }

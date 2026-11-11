@@ -2017,7 +2017,7 @@
   {:else if k === 'da_guardare'}{@render guardare('body')}{/if}
 {/snippet}
 <!-- Contratto 1.106 (app-da-guardare-02-11): i file consegnati dalle sessioni; i file arrivano con l'op `file`, a nome della sessione. -->
-{#snippet guardare(mode: 'body' | 'page')}<Guardare {run} summary={st.results} {mode} session={mode === 'page' ? watchSession : null} openId={mode === 'page' ? watchOpenId : null}
+{#snippet guardare(mode: 'body' | 'page')}<Guardare {run} thumbs={!!st.ops?.includes('thumb')} summary={st.results} {mode} session={mode === 'page' ? watchSession : null} openId={mode === 'page' ? watchOpenId : null}
   getFile={(r, f, quiet) => getFile(r.session ?? '', f.path, `result:${r.id}:${f.path}`, quiet).then(x => x?.blob ?? null)}
   onExternal={(r) => fileAction(r.session ?? '', r.path, 'open', `result:${r.id}:${r.path}`)} onSession={(n) => { openPage(null); pick(n) }}
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}

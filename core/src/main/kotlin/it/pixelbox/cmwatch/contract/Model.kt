@@ -109,6 +109,8 @@ enum class CmdOp {
     @SerialName("monitors") MONITORS,
     /** Contratto 1.133: aggiorna subito un monitoraggio, `arg` = id; la risposta ok è la sua scheda con `refresh.state` running. */
     @SerialName("monitor_refresh") MONITOR_REFRESH,
+    /** Contratto 1.136: l'anteprima di una consegna (arg = id dei risultati); lettura, corsia lenta. */
+    @SerialName("thumb") THUMB,
     /** Contratto 1.37: una decisione da salvare nella memoria della master; `text` obbligatorio, `arg` = progetto o null. */
     @SerialName("decision") DECISION,
     /** Contratto 1.39: togliere un dispositivo accoppiato; `arg` = uid. Solo «Scollega questo browser», col proprio uid. */
@@ -424,6 +426,14 @@ enum class CmdOp {
 @Serializable data class ResultGroup(
     val title: String = "", val project: String? = null, val session: String? = null, val kind: String = "other", val at: Long = 0,
     val versions: Int = 1, val unseen: Boolean = false, val items: List<ResultItem> = emptyList(),
+)
+/**
+ * Contratto 1.136, op `thumb`: l'anteprima di una consegna, fatta una volta dal relay. `kind` image (`mime` image/jpeg, `data` base64,
+ * `width` ≤ 240, `height`), text (`text`, ≤ 20 righe e 1200 caratteri) o none (`why` no_tool, missing, remote, type).
+ */
+@Serializable data class ThumbPreview(
+    val id: String, val path: String = "", val at: Long = 0, val kind: String = "none", val mime: String? = null, val data: String? = null,
+    val width: Int? = null, val height: Int? = null, val text: String? = null, val why: String? = null,
 )
 @Serializable data class ResultsPage(val groups: List<ResultGroup> = emptyList(), @SerialName("n_unseen") val nUnseen: Int = 0, val more: Boolean = false)
 

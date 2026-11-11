@@ -17,7 +17,7 @@ export type Stats = { since: number; total: number; byOp: Record<string, number>
 
 /** Le op di sola lettura: solo queste si uniscono e aspettano la scheda visibile. */
 export const READ_OPS = new Set<string>(['screen', 'last', 'transcript', 'projects', 'timeline', 'agenda', 'changes', 'diff', 'night', 'nights', 'done',
-  'plugins', 'kpi', 'results', 'decisioni', 'prove', 'monitors', 'attese', 'attesa', 'seguiti', 'prima_raccolta', 'conti'])
+  'plugins', 'kpi', 'results', 'decisioni', 'prove', 'monitors', 'thumb', 'attese', 'attesa', 'seguiti', 'prima_raccolta', 'conti'])
 
 type Page = { hidden: () => boolean; onVisible: (f: () => void) => void }
 const browserPage: Page = {

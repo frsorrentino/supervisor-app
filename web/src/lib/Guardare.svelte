@@ -6,14 +6,17 @@
   import LongText from './LongText.svelte'
   import CatIcon from './CatIcon.svelte'
   import ImageViewer from './ImageViewer.svelte'
+  import { loadPreview, previewKey, shownOf, wantsPreview, type Shown } from './thumbs'
   // «Da guardare» (app-da-guardare-02-11, mockup della master delle 08:16; contratto 1.106), porta di GuardareUi.kt: in home le
   // ultime versioni non viste con Visto e Nota; la pagina coi lavori e le versioni precedenti (anche di una sessione sola); il
   // risultato aperto col lettore della chat e la nota che va alla sessione col secondo in cui si è.
-  let { run, summary, mode, session = null, openId = null, getFile, onExternal, onSession, onAll = () => {}, onOpen = () => {} }: {
+  let { run, summary, mode, session = null, openId = null, getFile, onExternal, onSession, onAll = () => {}, onOpen = () => {}, thumbs = false }: {
     run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; summary: ResultsSummary | null | undefined; mode: 'body' | 'page'
     session?: string | null; openId?: string | null
     getFile: (r: ResultItem, f: TranscriptFile, quiet: boolean) => Promise<Blob | null>; onExternal: (r: ResultItem) => void; onSession: (name: string) => void
     onAll?: () => void; onOpen?: (r: ResultItem) => void
+    /** Contratto 1.136: il relay sa fare le anteprime dei documenti (op `thumb`); senza, resta l'icona. */
+    thumbs?: boolean
   } = $props()
   let page = $state<ResultsPage | null>(null)
   let failed = $state(false)
@@ -24,7 +27,9 @@
   let fromList = $state(false)
   $effect(() => { opened = openId; fromList = false })
   async function load() { const r = await run(newCmd('results', null)); failed = !r?.ok; if (r?.ok) try { page = JSON.parse(r.text) as ResultsPage } catch { failed = true } }
-  $effect(() => { void summary?.n_unseen; void summary?.items?.[0]?.id; void load() })
+  // Si rilegge quando cambiano i non visti o l'ultimo risultato, non a ogni stato (app-letture-leggere-11-11).
+  const sumSig = $derived(`${summary?.n_unseen ?? ''}|${summary?.items?.[0]?.id ?? ''}`)
+  $effect(() => { void sumSig; void load() })
   const full = (r: ResultItem) => page?.groups.flatMap(g => g.items).find(x => x.id === r.id) ?? r
   const groups = $derived((page?.groups ?? []).filter(g => !session || g.session === session))
   const current = $derived(opened ? page?.groups.flatMap(g => g.items).find(x => x.id === opened) ?? summary?.items.find(x => x.id === opened) ?? null : null)
@@ -52,6 +57,15 @@
     }
     return urls[k] ?? null
   }
+  // Le anteprime dei documenti (app-anteprime-verifica-11-11): chieste una volta per versione (thumbs.ts), come i file delle miniature.
+  let previews = $state<Record<string, Shown>>({})
+  const previewAsked = new Set<string>()
+  function previewOf(r: ResultItem): Shown {
+    if (!thumbs || !wantsPreview(r)) return null
+    const k = previewKey(r)
+    if (!previewAsked.has(k)) { previewAsked.add(k); queueMicrotask(() => void loadPreview(r, run).then(p => { previews = { ...previews, [k]: shownOf(p) } })) }
+    return previews[k] ?? null
+  }
   // Il tocco richiede il file subito: il riquadro dipende solo da `urls`, e con `asked` svuotato e basta non ripartirebbe.
   function retry(r: ResultItem, f: TranscriptFile) { const k = `${r.id}:${f.path}`; asked.delete(k); const { [k]: _, ...rest } = failedFiles; failedFiles = rest; urlOf(r, f, false) }
   const sub = (l: Line, withSession = true) => [withSession ? l.session : null, l.seconds != null ? `${t.watchKind[l.kind]}, ${t.watchSeconds(l.seconds)}` : t.watchKind[l.kind], hm(l.at)].filter(Boolean).join(' · ')
@@ -73,7 +87,9 @@
 {#snippet thumbOf(r: ResultItem, big = false)}
   {@const f = thumb(r)}
   {@const u = f ? urlOf(r, f, true) : null}
-  <span class="th" class:big>{#if u}<img src={u} alt="" />{/if}{#if line(r).kind === 'video'}<span class="ms play" aria-hidden="true">play_circle</span>{:else if !u}<span class="doc"><CatIcon name="doc" size={28} /></span>{/if}</span>
+  {@const pv = f ? null : previewOf(r)}
+  <!-- Un documento: la sua anteprima dal relay nella stessa casella (app-anteprime-verifica-11-11), le prime righe come una pagina. -->
+  <span class="th" class:big class:page={pv?.kind === 'lines'} data-testid={pv ? 'anteprima' : undefined}>{#if u}<img src={u} alt="" />{:else if pv?.kind === 'image'}<img src={pv.src} alt="" />{:else if pv?.kind === 'lines'}<span class="lines">{pv.text}</span>{/if}{#if line(r).kind === 'video'}<span class="ms play" aria-hidden="true">play_circle</span>{:else if !u && !pv}<span class="doc"><CatIcon name="doc" size={28} /></span>{/if}</span>
 {/snippet}
 {#snippet seenNote(r: ResultItem)}
   <span class="acts">
@@ -112,7 +128,8 @@
     {#if u && l.kind === 'video'}<!-- svelte-ignore a11y_media_has_caption --><video src={u} controls playsinline ontimeupdate={(e) => (at = (e.currentTarget as HTMLVideoElement).currentTime)}></video>
     {:else if u}<button class="zoom" aria-label={t.imageOpenFull} data-testid="risultato-immagine" onclick={() => (zoomed = { src: u, name: l.title })}><img class="full" src={u} alt={l.title} /></button>
     {:else if show && failedFiles[`${r.id}:${show.path}`]}<div class="ph fail" data-testid="risultato-non-arrivato"><p>{t.watchFileFailed}</p><button class="pill" onclick={() => retry(r, show)}>{t.watchRetry}</button></div>
-    {:else if show}<div class="ph"></div>{/if}
+    {:else if show}<div class="ph"></div>
+    {:else}{@const pv = previewOf(r)}{#if pv?.kind === 'image'}<img class="full pv" src={pv.src} alt={l.title} data-testid="anteprima-aperta" />{:else if pv?.kind === 'lines'}<div class="pvlines" data-testid="anteprima-aperta">{pv.text}</div>{/if}{/if}
     {#if l.kind !== 'video' && l.kind !== 'image'}<button class="pill" onclick={() => onExternal(r)}>{t.watchOpenFile}</button>{/if}
     <p class="vline"><b>{t.watchVersionOf(r.version, r.versions)}</b><span class="mono">{[hm(r.at), l.seconds != null ? t.watchSeconds(l.seconds) : null].filter(Boolean).join(' · ')}</span></p>
     {#if r.changed?.trim()}<p class="changed"><b>{t.watchChanged}</b> {r.changed}</p>{/if}
@@ -170,6 +187,11 @@
   .th img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
   .th .play { position: relative; font-size: 34px; color: var(--tx); }
   .th .doc { color: var(--tx2); display: grid; }
+  /* Le prime righe di un documento su un foglio, come la prima pagina (app-anteprime-verifica-11-11). */
+  .th.page { background: var(--s1); place-items: start; }
+  .th .lines { position: absolute; inset: 0; padding: 6px; font-size: 7px; line-height: 9px; color: var(--tx2); white-space: pre-wrap; overflow: hidden; text-align: left; }
+  .pv { max-width: 100%; border-radius: 12px; }
+  .pvlines { padding: 14px; border-radius: 12px; background: var(--s1); color: var(--tx2); font-size: 13px; line-height: 18px; white-space: pre-wrap; min-height: 160px; }
   .acts { display: flex; gap: 8px; flex-wrap: wrap; }
   /* La pillola resta alta 36 px, ma l'area di tocco arriva a 48 (app-bug-notte-03-11). */
   .pill { position: relative; }

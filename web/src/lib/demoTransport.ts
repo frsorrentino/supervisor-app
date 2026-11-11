@@ -200,6 +200,19 @@ export class DemoTransport implements Transport {
         case 'seguiti': return ok(JSON.stringify(this.seguiti ??= seguitiDemo(this.now())))
         // Contratto 1.106: Visto segna la versione e quelle prima; il lavoro esce da Da guardare; la nota si salva come fa il relay.
         case 'results': return ok(JSON.stringify(this.resultsPage ??= resultsDemo(this.now())))
+        // Contratto 1.136: l'anteprima di una consegna della demo; le prime righe per i testi, una prima pagina disegnata per gli altri.
+        case 'thumb': {
+          const it = (this.resultsPage ??= resultsDemo(this.now())).groups.flatMap(g => g.items).find(i => i.id === cmd.arg)
+          if (!it) return ko(`result ${cmd.arg} not found`)
+          const ext = it.path.split('.').pop()?.toLowerCase() ?? ''
+          if (['md', 'txt', 'csv', 'json', 'log', 'yaml'].includes(ext)) return ok(JSON.stringify({ id: it.id, path: it.path, at: it.at, kind: 'text', text: `# ${it.title}
+
+${it.caption ?? ''}`.trim() }))
+          if (it.kind !== 'document') return ok(JSON.stringify({ id: it.id, path: it.path, at: it.at, kind: 'none', why: 'type' }))
+          const lines = Array.from({ length: 9 }, (_, k) => `<rect x="18" y="${58 + k * 14}" width="${k % 3 === 2 ? 120 : 204}" height="6" rx="3" fill="#d6d6d6"/>`).join('')
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#fff"/><rect x="18" y="22" width="140" height="14" rx="4" fill="#9a9a9a"/>${lines}</svg>`
+          return ok(JSON.stringify({ id: it.id, path: it.path, at: it.at, kind: 'image', mime: 'image/svg+xml', data: btoa(svg), width: 240, height: 320 }))
+        }
         case 'result_seen': case 'result_note': {
           const p = (this.resultsPage ??= resultsDemo(this.now()))
           const g = p.groups.find(x => x.items.some(i => i.id === cmd.arg))

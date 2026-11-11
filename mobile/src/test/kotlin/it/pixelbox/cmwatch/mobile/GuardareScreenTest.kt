@@ -36,6 +36,20 @@ class GuardareScreenTest {
     @Test fun guardare_sessione412() = shot { GuardareScreen(two, false, "orbit-docs", GuardareActions()) {} }
     @Test fun guardare_vuota() = shot { GuardareScreen(ResultsPage(), false, null, GuardareActions()) {} }
     @Test fun guardare_aperto412() = shot { ResultViewer(doc.copy(version = 2, versions = 2, changed = "aggiunto l'effetto zoom", notes = listOf(ResultNote(doc.at + 60, "Manca la fonte", null))), GuardareActions()) {} }
+    // Le anteprime dei documenti (app-anteprime-verifica-11-11, contratto 1.136), dagli esempi del relay: la prima pagina di un PDF, le prime
+    // righe di un testo, un documento senza anteprima con l'icona di oggi; e la scheda aperta del PDF.
+    private val samples = run {
+        val fake = FakeTransport({ java.io.File("../contract/$it.json").readText() })
+        listOf("9f2c1a7b3e4d5c60", "9f2c1a7b3e4d5c61", "9f2c1a7b3e4d5c62").mapNotNull { id -> fake.sampleResult("thumb", id).let { (ok, text) -> it.pixelbox.cmwatch.rules.Thumbs.read(ok, text) } }
+    }
+    private val pdf = ResultItem("p", "preventivi", "Preventivo PREV-2026-034", "document", "application/pdf", "/home/demo/ws/preventivi/PREV-2026-034.pdf", 90000, v3.at - 600)
+    private val md = ResultItem("t", "sito", "Verbale della riunione", "document", "text/markdown", "/home/demo/ws/francescosorrentino-com/verbale.md", 2000, v3.at - 900)
+    private val pages = ResultItem("n", "energy-manager", "Determina", "document", "application/vnd.apple.pages", "/home/demo/ws/energy-manager/Determina.pages", 40000, v3.at - 1200)
+    private val withPreviews = GuardareActions(preview = { r, ready -> ready(samples.firstOrNull { p -> p.path == r.path }) })
+    @Test fun anteprime_documenti412() = shot { Column(Modifier.background(Cm.bg).padding(12.dp)) { GuardareBody(listOf(pdf, md, pages), withPreviews) {} } }
+    @Test fun anteprime_documenti320_grande() = shot(320, 1.3f) { Column(Modifier.background(Cm.bg).padding(12.dp)) { GuardareBody(listOf(pdf, md, pages), withPreviews) {} } }
+    @Test fun anteprima_aperta412() = shot { ResultViewer(pdf, withPreviews) {} }
+    @Test fun anteprima_testo_aperta412() = shot { ResultViewer(md, withPreviews) {} }
     // Secondo giro della notte (app-bug-notte-03-11): larghezze strette col testo grande, inglese, titolo lungo.
     private val long = doc.copy(id = "l", title = "Rendiconto trimestrale del cliente con le pagine dei costi e la pagella")
     @Test fun guardare_pagina320_grande() = shot(320, 1.3f) { GuardareScreen(two, false, null, GuardareActions()) {} }

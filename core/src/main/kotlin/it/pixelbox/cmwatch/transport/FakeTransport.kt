@@ -26,6 +26,18 @@ class FakeTransport(
         return (str(r, "ok") == "true") to str(r, "text").orEmpty()
     }
 
+    /** L'anteprima della demo (contratto 1.136): dagli esempi del relay, col percorso della consegna; null per un id che la demo non ha. */
+    private fun demoThumb(id: String?): String? {
+        val item = runCatching { ContractJson.json.decodeFromString(it.pixelbox.cmwatch.contract.ResultsPage.serializer(), sampleText("results")) }.getOrNull()
+            ?.groups?.flatMap { g -> g.items }?.firstOrNull { x -> x.id == id } ?: return null
+        val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")) as kotlinx.serialization.json.JsonObject
+        val texts = (root["result"] as kotlinx.serialization.json.JsonArray).mapNotNull { r -> ((r as kotlinx.serialization.json.JsonObject)["text"] as? kotlinx.serialization.json.JsonPrimitive)?.content }
+            .mapNotNull { t -> runCatching { ContractJson.json.decodeFromString(it.pixelbox.cmwatch.contract.ThumbPreview.serializer(), t) }.getOrNull()?.takeIf { p -> p.kind in setOf("image", "text") } }
+        val text = item.path.substringAfterLast('.').lowercase() in setOf("md", "txt", "csv", "tsv", "json", "log", "yaml", "yml")
+        val p = texts.firstOrNull { it.kind == (if (text) "text" else "image") } ?: return null
+        return ContractJson.json.encodeToString(it.pixelbox.cmwatch.contract.ThumbPreview.serializer(), p.copy(id = item.id, path = item.path))
+    }
+
     fun sampleText(op: String): String {
         val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }
         fun str(o: kotlinx.serialization.json.JsonElement, k: String) = ((o as kotlinx.serialization.json.JsonObject)[k] as? kotlinx.serialization.json.JsonPrimitive)?.content
@@ -411,6 +423,8 @@ class FakeTransport(
             CmdOp.PRIMA_RACCOLTA_AZIONE -> ok("ok")
             // Contratto 1.106: la pagina dei risultati della fixture; «Visto» toglie il lavoro da Da guardare, la nota risponde come il relay.
             CmdOp.RESULTS -> ok(sampleText("results"))
+            // Contratto 1.136: l'anteprima di una consegna della demo; un testo per i file di testo, la prima pagina degli esempi per gli altri.
+            CmdOp.THUMB -> demoThumb(cmd.arg)?.let { ok(it) } ?: ko("result ${cmd.arg} not found")
             CmdOp.RESULT_SEEN -> {
                 current.value = current.value.let { st -> st.copy(results = st.results?.items?.filterNot { it.id == cmd.arg }?.takeIf { it.isNotEmpty() }?.let { ResultsSummary(it.size, it) }) }
                 ok("seen")

@@ -237,7 +237,7 @@ export function world(now: number): World {
       { kind: 'turn_blocking', session: 'blog', ref: 'blog', title: stopOk.text, since: stopOk.at },
     ].sort((a, b) => a.since - b.since),
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
-    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'results', 'result_seen', 'result_note', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
+    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'results', 'result_seen', 'result_note', 'thumb', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
     // Contratto 1.99: le righe di Da provare e Da decidere, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 3, here: 2, tasks: 4, snoozed: 0 },

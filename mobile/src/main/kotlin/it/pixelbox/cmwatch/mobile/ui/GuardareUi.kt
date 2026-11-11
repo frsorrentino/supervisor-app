@@ -31,6 +31,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.asImageBitmap
 import it.pixelbox.cmwatch.contract.ResultGroup
 import it.pixelbox.cmwatch.contract.ResultItem
 import it.pixelbox.cmwatch.contract.ResultsPage
@@ -55,7 +57,36 @@ class GuardareActions(
     val session: (String) -> Unit = {},
     /** Un documento o una pagina html: all'app di sistema. */
     val external: (ResultItem) -> Unit = {},
+    /**
+     * Contratto 1.136 (app-anteprime-verifica-11-11): l'anteprima di un documento, chiesta una volta per versione e poi in cache; null senza
+     * anteprima o con un relay senza l'op `thumb`, e resta l'icona.
+     */
+    val preview: (ResultItem, (it.pixelbox.cmwatch.contract.ThumbPreview?) -> Unit) -> Unit = { _, _ -> },
 )
+
+/** L'anteprima di un documento (contratto 1.136): la prima pagina, le prime righe come una pagina, o null (resta l'icona). */
+@Composable
+private fun rememberPreview(i: ResultItem, a: GuardareActions): it.pixelbox.cmwatch.rules.Thumbs.Shown {
+    val key = it.pixelbox.cmwatch.rules.Thumbs.key(i)
+    var prev by remember(key) { mutableStateOf<it.pixelbox.cmwatch.contract.ThumbPreview?>(null) }
+    LaunchedEffect(key) { if (it.pixelbox.cmwatch.rules.Thumbs.wants(i)) a.preview(i) { p -> prev = p } }
+    return remember(prev) { it.pixelbox.cmwatch.rules.Thumbs.shown(prev) }
+}
+
+/** La casella con l'anteprima di un documento; `big` nella scheda aperta. Senza anteprima l'icona di oggi. */
+@Composable
+private fun PreviewBox(shown: it.pixelbox.cmwatch.rules.Thumbs.Shown, modifier: Modifier, big: Boolean = false) {
+    val bmp = remember(shown) { (shown as? it.pixelbox.cmwatch.rules.Thumbs.Shown.Image)?.bytes?.let { b -> runCatching { android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)?.asImageBitmap() }.getOrNull() } }
+    val lines = (shown as? it.pixelbox.cmwatch.rules.Thumbs.Shown.Lines)?.text
+    // Le prime righe su un foglio chiaro, come la prima pagina di un documento.
+    Box(modifier.clip(RoundedCornerShape(if (big) 12.dp else 10.dp)).background(if (lines != null) V3.S1 else V3.S3).testTag("anteprima"), contentAlignment = if (lines != null) Alignment.TopStart else Alignment.Center) {
+        when {
+            bmp != null -> Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = Alignment.TopCenter)
+            lines != null -> Text(lines, style = V3.Small.copy(fontSize = if (big) 13.sp else 7.sp, lineHeight = if (big) 18.sp else 9.sp, color = V3.Tx2), modifier = Modifier.padding(if (big) 14.dp else 6.dp), overflow = TextOverflow.Clip)
+            else -> Icon(Icons.Outlined.Description, null, tint = V3.Tx2, modifier = Modifier.size(28.dp))
+        }
+    }
+}
 
 /** Un file aperto altrove nell'app (la chat): chi lo apre lo dice, e i risultati con quel file diventano visti (app-risultati-visti-03-11). */
 internal val LocalSeenPath = androidx.compose.runtime.compositionLocalOf<(String) -> Unit> { {} }
@@ -78,6 +109,8 @@ private fun titleOf(l: Guardare.Line) = l.version?.let { stringResource(R.string
 @Composable
 private fun Thumb(i: ResultItem, a: GuardareActions, modifier: Modifier) {
     val t = Guardare.thumb(i)
+    // Un documento senza immagine sua: la sua anteprima dal relay (app-anteprime-verifica-11-11), la stessa casella di immagini e mockup.
+    if (t == null && it.pixelbox.cmwatch.rules.Thumbs.wants(i)) { PreviewBox(rememberPreview(i, a), modifier); return }
     var path by remember(i.id) { mutableStateOf<String?>(null) }
     LaunchedEffect(i.id, t?.path) { if (t != null) a.file(i, t, true) { p -> if (p != null) path = p } }
     val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, path) {
@@ -279,6 +312,11 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
                 V3Pill(stringResource(R.string.watch_retry)) { attempt++ }
             }
             show != null -> Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp)).background(V3.S2), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = V3.Tx2) }
+            // Un documento: la sua anteprima grande, se il relay ne ha una (app-anteprime-verifica-11-11).
+            it.pixelbox.cmwatch.rules.Thumbs.wants(i) -> {
+                val shown = rememberPreview(i, a)
+                if (shown !is it.pixelbox.cmwatch.rules.Thumbs.Shown.Icon) PreviewBox(shown, Modifier.fillMaxWidth().aspectRatio(if (shown is it.pixelbox.cmwatch.rules.Thumbs.Shown.Image) 3f / 4f else 4f / 3f), big = true)
+            }
         }
         if (kind != Guardare.Kind.VIDEO && kind != Guardare.Kind.IMAGE) V3Pill(stringResource(R.string.watch_open_file)) { a.external(i) }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
