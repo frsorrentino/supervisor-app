@@ -30,6 +30,8 @@ const KEEP = 80
 
 export class LightTransport implements Transport {
   readonly stats: Stats = { since: Date.now(), total: 0, byOp: {}, unchanged: 0 }
+  /** Le azioni in volo (non le letture): una ricarica per la versione nuova aspetta che finiscano (app-web-versione-nuova-11-11). */
+  writing = 0
   private last = new Map<string, CmdResult & { etag: string }>()
   private flying = new Map<string, Promise<CmdResult>>()
   constructor(private inner: Transport, private page: Page = browserPage) {
@@ -43,7 +45,7 @@ export class LightTransport implements Transport {
   fetchTail?: Transport['fetchTail']
 
   async send(cmd: Cmd): Promise<CmdResult> {
-    if (!READ_OPS.has(cmd.op)) return this.fetch(cmd)
+    if (!READ_OPS.has(cmd.op)) { this.writing++; try { return await this.fetch(cmd) } finally { this.writing-- } }
     const key = readKey(cmd)
     const same = this.flying.get(key)
     if (same) return same.then(r => ({ ...r, id: cmd.id }))

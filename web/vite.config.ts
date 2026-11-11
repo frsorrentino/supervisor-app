@@ -10,7 +10,8 @@ const commit = process.env.APP_COMMIT || git('rev-parse --short HEAD')
 
 // Le fixture del contratto stanno fuori dalla cartella della web app (../contract): i dati di prova le leggono da lì.
 export default defineConfig({
-  plugins: [svelte()],
+  // /version.json accanto alla pagina (app-web-versione-nuova-11-11): la web aperta lo legge per sapere se è uscita una versione nuova.
+  plugins: [svelte(), { name: 'version-json', apply: 'build', generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version, commit }) }) } }],
   define: { __APP_VERSION__: JSON.stringify(version), __APP_COMMIT__: JSON.stringify(commit) },
   server: { fs: { allow: ['..'] } },
   // Il service worker si costruisce accanto alla pagina, come /sw.js alla radice (lo scope è la cartella del file).

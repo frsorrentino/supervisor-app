@@ -46,6 +46,7 @@
   import type { Sample } from './lib/quotaHistory'
   import { LocalTransport, localAccess, newCmd, type Transport } from './lib/transport'
   import { LightTransport } from './lib/lightReads'
+  import { draftOpen, fetchPublished, reloadFresh, watchVersion } from './lib/newVersion'
   import { CANONICAL, demoFallback, demoLink, demoReason, forget, loadRemote, needsHomeScreen, NO_DATA_MS, realLink, remoteFor, remoteTransport, wantsPairing } from './lib/remoteAccess'
   import { currentSubscription, pushStatus, subscribe, subscriptionDoc } from './lib/push'
   import PairPage from './lib/PairPage.svelte'
@@ -148,6 +149,10 @@
   const tr: Transport | null = ((raw) => raw ? new LightTransport(raw) : null)(access ? new LocalTransport(access.base, access.token) : rt ?? demo)
   if (tr && (demo || import.meta.env.DEV)) (globalThis as { __cmStats?: unknown }).__cmStats = (tr as LightTransport).stats
   if (tr) setInterval(() => slowTick++, 300_000)
+  // La versione nuova (app-web-versione-nuova-11-11): al ritorno in primo piano e ogni 30 minuti, anche nascosta; si ricarica da sola
+  // senza niente in corso, altrimenti la riga da toccare. Solo nella build pubblicata, dove /version.json c'è.
+  let newVersion = $state(false)
+  if (import.meta.env.PROD) watchVersion({ mine: __APP_COMMIT__, fetchPublished, busy: () => draftOpen() || ((tr as LightTransport | null)?.writing ?? 0) > 0, reload: () => void reloadFresh(), offer: () => { newVersion = true } })
   let st = $state<State>(demo ? demo.state : blankState(nowS()))
   let ready = $state(!!demo)
   // Il contenuto delle colonne entra con un'assolvenza breve al primo stato (app-avvio-senza-salto-04-11).
@@ -2233,6 +2238,7 @@
     {@render chatOf(reading, true)}
   </div>
 {/if}
+{#if newVersion}<button class="newver" data-testid="versione-nuova" onclick={() => void reloadFresh()}>{t.newVersion}</button>{/if}
 {#if demo}<div class="demobar" data-testid="demo-avviso"><span>{t.demoBanner}</span>{#if demoWhy === 'offline'}<button onclick={demoRetry}>{t.demoRetry}</button>{:else if demoWhy === 'denied'}<button onclick={demoPair}>{t.demoPair}</button>{/if}</div>{/if}
 {#if !demo && (!ready || down)}<span class="demo mono">{ready ? t.relayDown : t.relayConnecting}</span>{/if}
 {#if notice}<div class="notice" role="status">{notice}</div>{/if}
@@ -2259,6 +2265,7 @@
   .strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
   .strip::-webkit-scrollbar { display: none; }
   .demobar button { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--wait); color: var(--bg); font-weight: 600; font-size: 12.5px; }
+  .newver { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 70; padding: 10px 16px; border-radius: 999px; background: var(--act); color: var(--on-act); font-size: 14px; font-weight: 600; box-shadow: 0 4px 16px rgb(0 0 0 / .25); max-width: calc(100% - 32px); }
   .demobar { position: fixed; top: env(safe-area-inset-top); left: 0; right: 0; z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; box-sizing: border-box; padding: 4px 12px; background: color-mix(in srgb, var(--wait) 22%, var(--bg)); color: var(--wait); font-size: 12.5px; font-weight: 500; }
   .pg { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; }
   .reading:empty { display: none; }

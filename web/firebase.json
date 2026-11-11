@@ -43,6 +43,15 @@
         ]
       },
       {
+        "source": "/version.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
         "headers": [
           {
             "key": "Content-Security-Policy",
