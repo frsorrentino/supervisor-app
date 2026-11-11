@@ -113,6 +113,27 @@ class MainActivity : ComponentActivity() {
      * Il tema scelto nelle impostazioni (app-tema-giorno-notte-11-11): lo tiene il sistema per quest'app (UiModeManager, API 31+), così
      * Compose, le risorse `values-night`, il fondo della finestra e le icone delle barre lo seguono; Automatico torna al telefono.
      */
+    /**
+     * Le prove citate nelle chat come schede (app-prova-scheda-in-chat-11-11): una lettura per prova (op `prove` col numero, con l'etag),
+     * poi la cache; si rilegge solo dopo un Ok o un Non va dalla scheda. Le azioni le aggancia Main, dove stanno Verifica e la pagina.
+     */
+    private val provaCache = androidx.compose.runtime.mutableStateMapOf<Long, it.pixelbox.cmwatch.rules.ProvaLinks.Read?>()
+    private var provaOpenFn: (Long) -> Unit = {}
+    private var provaOkFn: suspend (Long) -> Boolean = { false }
+    private var provaKoFn: suspend (it.pixelbox.cmwatch.contract.ProvaOne, String) -> Boolean = { _, _ -> false }
+    private fun provaRead(n: Long) = app.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+        val r = it.pixelbox.cmwatch.rules.PatientRead.result(
+            send = { app.repo.command(CmdOp.PROVE, null, n.toString()) }, results = app.repo.resultsById, forget = { x -> app.repo.forget(x) }, giveUpOnRefusal = true,
+        )
+        if (r != null) provaCache[n] = it.pixelbox.cmwatch.rules.ProvaLinks.read(r.ok, r.text)
+    }
+    private val provaCards = it.pixelbox.cmwatch.mobile.ui.ProvaCardsHost(
+        read = { n -> provaCache[n] },
+        ask = { n -> if (n !in provaCache) { provaCache[n] = null; provaRead(n) } },
+        open = { n -> provaOpenFn(n) },
+        ok = { n -> provaOkFn(n).also { provaRead(n) } },
+        ko = { p, why -> provaKoFn(p, why).also { provaRead(p.id) } },
+    )
     private val themePrefs by lazy { getSharedPreferences("theme", MODE_PRIVATE) }
     private var themeChoice by mutableStateOf(it.pixelbox.cmwatch.rules.AppTheme.Choice.AUTO)
     private fun applyTheme(c: it.pixelbox.cmwatch.rules.AppTheme.Choice) {
@@ -180,7 +201,9 @@ class MainActivity : ComponentActivity() {
                     s.paired || s.demoMode -> key(launchId) {
                         Box(androidx.compose.ui.Modifier.fillMaxSize()) {
                             androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalReadingOverlay provides readingOverlay) {
-                                Main(s.demoMode, s.ttsMinChars, s.host, s.pairingJson, ::scan)
+                                androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalProvaCards provides provaCards) {
+                                    Main(s.demoMode, s.ttsMinChars, s.host, s.pairingJson, ::scan)
+                                }
                             }
                             it.pixelbox.cmwatch.mobile.ui.ReadingOverlayHost(readingOverlay)
                             // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
@@ -1309,6 +1332,11 @@ class MainActivity : ComponentActivity() {
             if (!done) toast(r?.text)
             scope.launch { readDecide() }
             return done
+        }
+        androidx.compose.runtime.SideEffect {
+            provaOpenFn = { n -> provaOpen = n }
+            provaOkFn = { n -> proveOkRun(n.toString()) }
+            provaKoFn = { p, why -> decideRun(CmdOp.PROVA, p.id.toString(), "ko", null, null, why) }
         }
         val decideCmd: (CmdOp, String, String?, Int?, String?, String?) -> Unit = { op, arg, result, hours, reason, text -> scope.launch { decideRun(op, arg, result, hours, reason, text) } }
         val goScreen: (String) -> Unit = { s ->

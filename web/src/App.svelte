@@ -27,7 +27,7 @@
   import { autoOpen as primaAutoOpen } from './lib/primaRaccolta'
   import CinqueMinuti from './lib/CinqueMinuti.svelte'
   import { suggestionNames as suggestionNamesOf } from './lib/slotInfo'
-  import { nightTitleParts, okAlso } from './lib/decide'
+  import { nightTitleParts, okAlso, proveDone } from './lib/decide'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack, tick } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
@@ -637,6 +637,22 @@
   $effect(() => { const n = provaId; if (page === 'prova' && n != null && inVerify(n, todoProve)) untrack(() => openProva(n)) })
   $effect(() => { if (page !== 'prove') untrack(() => { proveFocus = null }) })
   const closeProva = () => { const to = provaFrom; provaId = null; provaFrom = null; if (location.hash.startsWith('#/prova/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
+  // Le prove citate nelle chat come schede compatte (app-prova-scheda-in-chat-11-11): una lettura per prova con l'etag, poi la cache;
+  // riletta solo dopo Ok o Non va dalla scheda. Una lettura senza risposta riprova al più tre volte, poi la scheda resta «in arrivo».
+  let provaCards = $state<Record<number, ProvaRead | null>>({})
+  async function provaCardRead(n: number) {
+    for (let a = 0; a < 3 && tr; a++) {
+      const r = await quiet(newCmd('prove', null, String(n)))
+      if (r) { provaCards[n] = readProva(r.ok, r.text); return }
+    }
+  }
+  setContext('prova-cards', {
+    read: (n: number) => provaCards[n],
+    ask: (n: number) => { if (n in provaCards) return; provaCards[n] = null; void provaCardRead(n) },
+    open: (n: number) => openProva(n),
+    ok: async (n: number) => { const r = await run(newCmd('prova', null, String(n), undefined, undefined, { result: 'ok' })); void provaCardRead(n); return proveDone(r?.ok ?? null, r?.text) },
+    ko: async (n: number, why: string) => { const r = await run(newCmd('prova', null, String(n), why, undefined, { result: 'ko' })); void provaCardRead(n); return !!r?.ok },
+  })
   let provaReading = 0
   $effect(() => {
     const n = provaId

@@ -1905,6 +1905,8 @@ private fun ClaudeBubble(
                 } }
                 // Un tasto per sessione linkata, nell'ordine in cui compare; la pressione lunga apre il link com'era.
                 stripped.buttons.forEach { b -> SessionButton(b, onOpen = { onOpenSession(b.session) }) }
+                // Le prove citate come schede compatte coi loro tasti (app-prova-scheda-in-chat-11-11).
+                ProvaCards(stripped.text)
                 // Variante C: «Prossimi» e i consigli in colonna; tocco = nel campo, pressione lunga = invio.
                 if (withSteps && parsed.steps.isNotEmpty()) Column(Modifier.padding(top = 2.dp)) {
                     Text(stringResource(R.string.next_steps), style = MaterialTheme.typography.labelMedium, color = Cm.text2)

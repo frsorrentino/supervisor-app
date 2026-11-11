@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProvaCards from './ProvaCards.svelte'
   import { DAY } from './durations'
   import { popOnChange } from './motion'
   import { locale } from './lang'
@@ -171,6 +172,8 @@
       {#each sl.buttons as b}
         <a class="sbtn" href={b.url} target="_blank" rel="noopener" title={t.openInSupervisorHint} onclick={(ev) => { ev.preventDefault(); onSession(b.session) }}><span class="sn">{b.session}</span><span class="sl">{t.openInSupervisor}</span></a>
       {/each}
+      <!-- Le prove citate come schede compatte coi loro tasti (app-prova-scheda-in-chat-11-11). -->
+      <ProvaCards text={sl.text} />
       {#if e.cut}<span class="meta">{t.textCut}</span>{/if}
       {#if c}<span class="cost">{c}</span>{/if}
     </div>

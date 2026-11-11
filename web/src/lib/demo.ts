@@ -336,7 +336,7 @@ export function world(now: number): World {
       ...morning.flatMap(([q, a, qe, ae], i) => [said(`m${i}u`, en ? qe : q, now - 5400 + i * 600), claude(`m${i}a`, en ? ae : a, now - 5400 + i * 600 + 40)]),
       claude('a0', en
         ? 'demo-cover is ready for you, the other jobs are running.\n\n**For you**\n1. Send the cover image to the blog session.\n2. Log in to the payment sandbox.\n\n**Not tested:** the checkout on a real phone.\n\nEsito: two things wait for you.'
-        : 'demo-cover è pronto per te, gli altri lavori vanno avanti.\n\n**Da te**\n1. Manda l\'immagine di copertina alla sessione del blog.\n2. Fai il login nella sandbox dei pagamenti.\n\n**Non provato:** il checkout su un telefono vero.\n\nEsito: due cose aspettano te.', now - 900, { outcome_type: 'waiting' }),
+        : 'demo-cover è pronto per te, gli altri lavori vanno avanti.\n\n**Da te**\n1. Manda l\'immagine di copertina alla sessione del blog.\n2. Fai il login nella sandbox dei pagamenti.\n\n**Non provato:** il checkout su un telefono vero.\n\nLe prove #1 e #2 aspettano te in Verifica.\n\nEsito: due cose aspettano te.', now - 900, { outcome_type: 'waiting' }),
       said('u1', en ? 'Launch payments-api on phase 2.2' : 'Lancia payments-api sulla fase 2.2', now - 660, 'phone'),
       claude('a1', en
         ? 'payments-api launched on phase 2.2. Local commits only: push and release with your ok.\n• **Link:** https://claude.ai/code/session_01ledger\n\nEsito: Phase 2.2 started on payments-api\nProssimi: review the refund flow · try the checkout live'
