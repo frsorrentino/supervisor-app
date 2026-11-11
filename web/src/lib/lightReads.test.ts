@@ -78,3 +78,23 @@ describe('letture leggere', () => {
     expect(tr.sent.map(c => c.op)).toEqual(['prompt', 'monitors'])
   })
 })
+
+// Gli esempi del relay (contratto 1.135): …1350 monitors con l'etag, …1351 la stessa lettura con quell'etag, unchanged.
+describe('letture leggere: esempi del relay', () => {
+  it('la seconda lettura dei monitoraggi porta l\'etag di 1350 e 1351 rende la pagina di prima', async () => {
+    const { readFileSync } = await import('node:fs')
+    const root = JSON.parse(readFileSync(new URL('../../../contract/cmd-result-sample.json', import.meta.url), 'utf8')) as { cmd: Cmd[]; result: CmdResult[] }
+    const first = root.result.find(r => r.id.endsWith('1350'))!, second = root.result.find(r => r.id.endsWith('1351'))!
+    expect(first.etag).toHaveLength(16)
+    expect(root.cmd.find(c => c.id.endsWith('1351'))!.etag).toBe(first.etag)
+    expect(second).toMatchObject({ ok: true, text: '', unchanged: true, etag: first.etag })
+    const tr = inner(c => c.etag === first.etag ? { ...second, id: c.id } : { ...first, id: c.id })
+    const lt = new LightTransport(tr, visible)
+    const c = root.cmd.find(x => x.id.endsWith('1350'))!
+    await lt.send(c)
+    const again = await lt.send({ ...c, id: 'again' })
+    expect(tr.sent[1].etag).toBe(first.etag)
+    expect(again.text).toBe(first.text)
+    expect(JSON.parse(again.text).items).toHaveLength(2)
+  })
+})

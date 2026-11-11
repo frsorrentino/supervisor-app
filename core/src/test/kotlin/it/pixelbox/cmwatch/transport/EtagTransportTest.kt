@@ -55,4 +55,23 @@ class EtagTransportTest {
         assertFalse("etag" in ContractJson.encode(read()))
         assertEquals("\"etag\":\"ab\"", Regex("\"etag\":\"ab\"").find(ContractJson.encode(read().copy(etag = "ab")))?.value)
     }
+
+    // Gli esempi del relay (contratto 1.135): …1350 monitors con l'etag, …1351 la stessa lettura con quell'etag, unchanged.
+    @Test fun theRelaySamplesReadThroughTheEtag() = runBlocking {
+        val root = ContractJson.json.parseToJsonElement(File("../contract/cmd-result-sample.json").readText()) as kotlinx.serialization.json.JsonObject
+        val cmds = (root["cmd"] as kotlinx.serialization.json.JsonArray).map { ContractJson.json.decodeFromJsonElement(Cmd.serializer(), it) }
+        val results = (root["result"] as kotlinx.serialization.json.JsonArray).map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
+        val first = results.single { it.id.endsWith("1350") }
+        val second = results.single { it.id.endsWith("1351") }
+        assertEquals(16, first.etag!!.length)
+        assertEquals(first.etag, cmds.single { it.id.endsWith("1351") }.etag)
+        assertEquals(true, second.unchanged); assertEquals("", second.text)
+        val i = inner { c -> if (c.etag == first.etag) second.copy(id = c.id) else first.copy(id = c.id) }
+        val t = EtagTransport(i)
+        t.send(cmds.single { it.id.endsWith("1350") })
+        val again = t.send(cmds.single { it.id.endsWith("1350") }.copy(id = "again"))
+        assertEquals(first.etag, i.sent[1].etag)
+        assertEquals(first.text, again.text)
+        assertEquals(2, ContractJson.decodeMonitors(again.text).items.size)
+    }
 }
