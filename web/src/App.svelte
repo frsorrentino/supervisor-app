@@ -554,10 +554,13 @@
     }
     return null
   }
+  // Si rileggono quando cambia il loro riassunto nello stato, non a ogni stato (app-letture-leggere-11-11: ogni 30 s circa dal relay.log),
+  // e al giro di sicurezza dei 5 minuti, con l'etag.
+  const monitorsSig = $derived(JSON.stringify([st.monitors ?? null, !!st.ops?.includes('monitors')]))
   $effect(() => {
-    const sum = st.monitors, can = st.ops?.includes('monitors')
+    void monitorsSig; void slowTick
+    const sum = untrack(() => st.monitors), can = untrack(() => st.ops?.includes('monitors'))
     if (demo || !can) return
-    void sum?.at
     if (!sum?.n) { untrack(() => { monitors = null }); return }
     const mine = ++monitorsRead
     void readMonitorsPatiently(null, decodeMonitors, () => mine === monitorsRead).then(page => { if (page) monitors = page.items })
