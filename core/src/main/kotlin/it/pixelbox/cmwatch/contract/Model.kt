@@ -875,6 +875,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val hash: String? = null,
+    /** Contratto 1.135: l'etag dell'ultima risposta a questa stessa lettura (EtagTransport). Assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val etag: String? = null,
 )
 
 /**
@@ -891,6 +895,9 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val job: String? = null,
     /** Contratto 1.112: lettura rimpiazzata da una più recente della stessa sessione; si chiude senza avviso. */
     val superseded: Boolean = false,
+    /** Contratto 1.135: l'impronta di una lettura riuscita; `unchanged` = uguale all'etag mandato, `text` vuoto (app-letture-leggere-11-11). */
+    val etag: String? = null,
+    val unchanged: Boolean = false,
 )
 
 /**

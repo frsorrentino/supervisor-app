@@ -45,6 +45,7 @@
   import { advance, prune, status, type PendingStatus, type Sent, type Status, type Upload } from './lib/chatRules'
   import type { Sample } from './lib/quotaHistory'
   import { LocalTransport, localAccess, newCmd, type Transport } from './lib/transport'
+  import { LightTransport } from './lib/lightReads'
   import { CANONICAL, demoFallback, demoLink, demoReason, forget, loadRemote, needsHomeScreen, NO_DATA_MS, realLink, remoteFor, remoteTransport, wantsPairing } from './lib/remoteAccess'
   import { currentSubscription, pushStatus, subscribe, subscriptionDoc } from './lib/push'
   import PairPage from './lib/PairPage.svelte'
@@ -141,7 +142,12 @@
   const rt = !access && remote ? remoteTransport(remote, store) : null
   // Senza relay e senza collegamento la demo: un PC finto che risponde come quello vero (FakeTransport dell'app).
   const demo = !access && !rt && !pairing ? new DemoTransport() : null
-  const tr: Transport | null = access ? new LocalTransport(access.base, access.token) : rt ?? demo
+  // Il giro di sicurezza delle letture a riassunto (app-letture-leggere-11-11): ogni 5 minuti, oltre che a ogni cambio.
+  let slowTick = $state(0)
+  // Letture leggere (app-letture-leggere-11-11): etag su ogni lettura e il conto dei comandi.
+  const tr: Transport | null = ((raw) => raw ? new LightTransport(raw) : null)(access ? new LocalTransport(access.base, access.token) : rt ?? demo)
+  if (tr && (demo || import.meta.env.DEV)) (globalThis as { __cmStats?: unknown }).__cmStats = (tr as LightTransport).stats
+  if (tr) setInterval(() => slowTick++, 300_000)
   let st = $state<State>(demo ? demo.state : blankState(nowS()))
   let ready = $state(!!demo)
   // Il contenuto delle colonne entra con un'assolvenza breve al primo stato (app-avvio-senza-salto-04-11).
@@ -1094,8 +1100,11 @@
   const decOfSession = (g: DecisionGroup) => g.items.some(i => !!i.session && liveSet.has(i.session))
   // La testata di «Dalla master»: quello che Franz ha da fare fuori dalle sessioni aperte; i suggerimenti sono contesto.
   const fromMaster = $derived({ todo: todoDec.filter(g => !decOfSession(g)).length + todoProve.filter(p => { const s = provaSession(p); return !(s && liveSet.has(s)) }).length + (st.prima_raccolta ? 1 : 0), sug: sug.shown.length })
+  // Si rileggono quando cambia il loro riassunto nello stato, non a ogni stato (app-letture-leggere-11-11: 137 letture l'ora a testa con
+  // uno stato ogni 30 s); `slowTick` le rilegge comunque ogni 5 minuti, con l'etag la risposta è corta se non è cambiato niente.
+  const todoSig = $derived(JSON.stringify([st.decisions ?? null, st.prove ?? null]))
   $effect(() => {
-    void st.decisions?.n; void st.prove?.n
+    void todoSig; void slowTick
     if (!tr) return
     untrack(() => {
       void run(newCmd('decisioni', null)).then(r => { const { page } = readPage(r, decodeDecisions, null); if (page) todoDec = page.groups })
@@ -1352,7 +1361,8 @@
       else agenda = { page: agenda.page, error: r.text.startsWith('no agenda file') ? t.recapAgendaNone : r.text, loading: false }
     } catch { agenda = { ...agenda, error: t.noAnswer, loading: false } }
   }
-  $effect(() => { void st.recap.date; if (canAgenda) untrack(() => loadAgenda()) })
+  const recapDate = $derived(st.recap.date)
+  $effect(() => { void recapDate; void slowTick; if (canAgenda) untrack(() => loadAgenda()) })
   $effect(() => { if (page === 'lavori' && canAgenda) untrack(() => loadAgenda()) })
   // Contratto 1.77: il blocco Fatto dall'op `done`, una pagina per giorno. Oggi appena il relay offre l'op (la riga di home conta
   // «fatto oggi» da lì, come il blocco) e di nuovo a ogni cambio di pagina; un giorno prima al tocco.

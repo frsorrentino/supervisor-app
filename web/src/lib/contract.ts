@@ -396,6 +396,8 @@ export type FeedbackDraft = { hash: string; kind: string; label: string; title: 
 export type FeedbackChoice = { choice: 'github' | 'anonymous' | 'later'; url: string | null; text: string; screenshot_url: string | null }
 export type Cmd = {
   id: string; op: CmdOp; session?: string | null; arg?: string | null; issued: number; by: string; text?: string; device?: string; parts?: boolean
+  /** Contratto 1.135: l'etag dell'ultima risposta a questa stessa lettura (LightTransport). */
+  etag?: string
   /** Contratto 1.99: `prova`, `decisione`, gli id mostrati su un ok. */
   result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]
   /** Contratto 1.100: `prima_raccolta_azione` con `action` consent, si o no. */
@@ -441,7 +443,9 @@ export type ElicitField = {
   min_length?: number; max_length?: number; format?: string; min?: number; max?: number
 }
 /** `superseded` (1.112): lettura rimpiazzata da una più recente della stessa sessione, si chiude senza avviso. */
-export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null; superseded?: boolean }
+export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null; superseded?: boolean
+  /** Contratto 1.135: l'impronta di una lettura riuscita; `unchanged` = uguale all'etag mandato, `text` vuoto (app-letture-leggere-11-11). */
+  etag?: string; unchanged?: boolean }
 
 /** Lo stato come arriva: i campi che mancano prendono i valori di default del contratto. */
 export function decodeState(raw: string): State {

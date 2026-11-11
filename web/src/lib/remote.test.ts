@@ -67,6 +67,38 @@ describe('strada remota: eventi', () => {
   })
 })
 
+// Solo gli eventi nuovi (app-letture-leggere-11-11): dopo la prima lettura si chiede dal bus dall'ultima chiave vista, e quella si scarta.
+describe('strada remota: eventi solo nuovi', () => {
+  it("la seconda lettura parte dall'ultima chiave e non ripete la voce già vista", async () => {
+    const sample = (fixture('events-sample.json') as { key: string; ts: number }[]).slice().sort((a, b) => a.key.localeCompare(b.key))
+    const nodes: Record<string, unknown> = {}
+    for (const e of sample) nodes[e.key] = await env(JSON.stringify(e))
+    const asked: (Record<string, string> | undefined)[] = []
+    class QueryBus extends MemoryBus {
+      async get(path: string, query?: Record<string, string>) {
+        asked.push(query)
+        const all = this.data[path] as Record<string, unknown>
+        if (!query?.startAt) return all
+        const from = JSON.parse(query.startAt) as string
+        return Object.fromEntries(Object.entries(all).filter(([k]) => k >= from))
+      }
+    }
+    const bus = new QueryBus({ events: nodes })
+    const tr = transport(bus)
+    const first = await tr.fetchEvents(0)
+    expect(first.length).toBe(sample.length)
+    expect(asked[0]?.startAt).toBeUndefined()
+    const lastKey = sample.at(-1)!.key
+    expect(await tr.fetchEvents(first[0].ts)).toEqual([])
+    expect(asked[1]?.startAt).toBe(JSON.stringify(lastKey))
+    const next = { ...sample.at(-1)!, key: '9999999999_001', ts: 9_999_999_999 }
+    nodes[next.key] = await env(JSON.stringify(next))
+    const got = await tr.fetchEvents(first[0].ts)
+    expect(got.map(e => e.key)).toEqual([next.key])
+    expect(asked[2]?.startAt).toBe(JSON.stringify(lastKey))
+  })
+})
+
 describe('strada remota: comandi', () => {
   const cmd: Cmd = { id: 'c1', op: 'prompt', session: 'ledger-api', arg: 'ciao', issued: 1, by: 'web', device: 'web' }
 

@@ -134,11 +134,12 @@ class CmApp : Application() {
         val kind = TransportChoice.pick(settings.paired, key != null, fb != null, demo = settings.demoMode)
         return when (kind) {
             TransportChoice.Kind.FAKE -> fake
-            TransportChoice.Kind.FIREBASE -> FirebaseTransport(
+            // Contratto 1.135 (app-letture-leggere-11-11): ogni lettura con l'etag dell'ultima risposta.
+            TransportChoice.Kind.FIREBASE -> it.pixelbox.cmwatch.transport.EtagTransport(FirebaseTransport(
                 rtdb = Rtdb(fb!!.databaseUrl.removeSuffix("/"), token = { FirebaseAuthToken.token() }),
                 key = { key }, uid = { FirebaseAuthToken.uid() }, deviceKeyPair = { Pairing.newKeyPair() },
                 now = { System.currentTimeMillis() / 1000 },
-            )
+            ))
         }
     }
 

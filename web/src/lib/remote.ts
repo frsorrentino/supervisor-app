@@ -6,6 +6,9 @@ import { decodeState, tailKey, type Cmd, type CmdResult, type Event, type State,
 import { fromB64, openBlob, openBlobBytes, sealBlob, sealBytes, toB64, toHex } from './crypto'
 import { resultTimeoutMs, TransportError, type FileBlob, type Transport } from './transport'
 
+/** Quanto la scheda resta nascosta prima che lo stream dello stato si fermi: un cambio di scheda veloce non lo tocca. */
+export const HIDDEN_PAUSE_MS = 60_000
+
 type Bytes = Uint8Array<ArrayBuffer>
 type Limits = NonNullable<State['share']>
 type Opts = {
@@ -94,7 +97,22 @@ export class RemoteTransport implements Transport {
     }
     const start = () => { if (!stopped) close = this.bus.stream('state', {}, on, reopen) }
     start()
-    return () => { stopped = true; clearTimeout(timer); close() }
+    // Con la scheda nascosta da più di HIDDEN_PAUSE_MS lo stream si chiude, senza dirlo come una caduta; al ritorno riparte e Firebase
+    // manda subito lo stato di adesso (app-letture-leggere-11-11: 26 KB a ogni stato anche con la scheda dietro). Le notifiche
+    // arrivano dal service worker, non da qui.
+    let paused = false, pauseT: ReturnType<typeof setTimeout> | undefined
+    const vis = () => {
+      if (stopped) return
+      if (document.hidden) {
+        clearTimeout(pauseT)
+        pauseT = setTimeout(() => { if (document.hidden && !stopped && !paused) { paused = true; clearTimeout(timer); close(); close = () => {} } }, HIDDEN_PAUSE_MS)
+      } else {
+        clearTimeout(pauseT)
+        if (paused) { paused = false; attempt = 0; start() }
+      }
+    }
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', vis)
+    return () => { stopped = true; clearTimeout(timer); clearTimeout(pauseT); if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', vis); close() }
   }
 
   /** Gli ultimi 200 del bus, come il telefono; qui solo quelli dopo `since`, dal più recente. */
@@ -105,11 +123,18 @@ export class RemoteTransport implements Transport {
     try { return JSON.parse(await this.open(doc)) as Tail } catch { return null }
   }
 
+  /**
+   * L'ultima chiave del bus già letta (app-letture-leggere-11-11): dopo la prima volta si chiedono solo le voci da lì in poi
+   * (`startAt` sulla chiave, che col bus cresce nel tempo) e quella già vista si scarta. Prima, a ogni stato, i 200 ultimi (82 KB).
+   */
+  private eventsKey: string | null = null
   async fetchEvents(since = 0): Promise<Event[]> {
-    const all = await this.bus.get('events', { orderBy: '"$key"', limitToLast: '200' }) as Record<string, unknown> | null
+    const from = since > 0 ? this.eventsKey : null
+    const all = await this.bus.get('events', from ? { orderBy: '"$key"', startAt: JSON.stringify(from), limitToLast: '200' } : { orderBy: '"$key"', limitToLast: '200' }) as Record<string, unknown> | null
     const out: Event[] = []
-    for (const doc of Object.values(all ?? {})) {
-      if (!isBlob(doc)) continue
+    for (const [key, doc] of Object.entries(all ?? {})) {
+      if (this.eventsKey == null || key > this.eventsKey) this.eventsKey = key
+      if (key === from || !isBlob(doc)) continue
       try {
         const e = JSON.parse(await this.open(doc)) as Event
         if (e.ts > since) out.push(e)

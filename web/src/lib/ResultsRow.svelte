@@ -8,7 +8,10 @@
   // ha consegnato, l'ultimo a destra; il tocco apre la pagina dei risultati di questa sessione. Senza consegne non c'è.
   let { run, session, summary, onOpen }: { run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; session: string; summary: ResultsSummary | null | undefined; onOpen: () => void } = $props()
   let page = $state<ResultsPage | null>(null)
-  $effect(() => { void session; void summary?.n_unseen; void run(newCmd('results', null)).then(r => { if (r?.ok) try { page = JSON.parse(r.text) as ResultsPage } catch { /* resta com'era */ } }) })
+  // Si rilegge quando cambia il riassunto dei risultati, non a ogni stato (app-letture-leggere-11-11); le righe di più colonne
+  // partono insieme e diventano una lettura sola (LightTransport).
+  const sig = $derived(JSON.stringify(summary ?? null))
+  $effect(() => { void session; void sig; void run(newCmd('results', null)).then(r => { if (r?.ok) try { page = JSON.parse(r.text) as ResultsPage } catch { /* resta com'era */ } }) })
   const mine = $derived(ofSession(page, session))
   // La X la chiude fino al risultato successivo (Guardare.lastKey, app-risultati-x-05-11), ricordata in questo browser.
   const CLOSED = 'cm.results_closed'
