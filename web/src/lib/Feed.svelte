@@ -25,6 +25,15 @@
   let full = $state<{ key: string; name: string } | null>(null)
   // L'immagine aperta nel visore con lo zoom (app-chat-zoom-02-11); prima si apriva in una scheda nuova.
   let zoomed = $state<{ src: string; name: string } | null>(null)
+  // Da quanto un'anteprima è in arrivo, in secondi, dopo i primi COMING_SHOW_S: il relay può tenerla in fila oltre un minuto (12/11).
+  const COMING_SHOW_S = 10
+  let comingNow = $state(Date.now())
+  $effect(() => {
+    if (!Object.keys(coming).length) return
+    comingNow = Date.now()
+    const i = setInterval(() => (comingNow = Date.now()), 1000)
+    return () => clearInterval(i)
+  })
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
   import { coming, failed, media, missed, pages, texts } from './mediaCache.svelte'
@@ -206,11 +215,14 @@
           <iframe class="fpage" style="height:{pageHeight(vh)}px" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>
         {:else if texts[key]}<button class="ftext" class:cut={texts[key].more} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><pre>{texts[key].lines}</pre></button>{/if}
         {#if pages[key]}<span class="fbtns"><button class="fshow" aria-pressed={!!code[key]} onclick={() => (code[key] = !code[key])}>{code[key] ? t.filePage : t.fileCode}</button><button class="fshow" onclick={() => (full = { key, name: f.path.split('/').pop() ?? '' })}>{t.filePageFull}</button></span>{/if}
-        {#if !url && !texts[key] && !failed[key] && canPreview(f.mime, f.path) && (missed[key] || !autoPreview(f.mime, f.size, !((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true), f.path))}
-          <!-- Oltre i limiti, col risparmio dati o se non è arrivata da sola, l'anteprima aspetta il tocco. -->
+        {#if !url && !texts[key] && !failed[key] && !coming[key] && missed[key]}
+          <!-- Non arrivata dal PC entro il limite, o rifiutata (Franz, 12/11: «se va in time out può segnalarlo con tasto che la richiede nuovamente?»). -->
+          <span class="fmiss"><span>{t.previewMissed}</span><button class="fshow" onclick={() => onFile(f.path, 'preview', key)}>{t.previewRetry}</button></span>
+        {:else if !url && !texts[key] && !failed[key] && !coming[key] && canPreview(f.mime, f.path) && !autoPreview(f.mime, f.size, !((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true), f.path)}
+          <!-- Oltre i limiti o col risparmio dati l'anteprima aspetta il tocco. -->
           <button class="fshow" onclick={() => onFile(f.path, 'preview', key)}>{t.showPreview}</button>
         {/if}
-        {#if coming[key] && !url && !texts[key]}<span class="fcoming">{t.previewComing}</span>{/if}
+        {#if coming[key] && !url && !texts[key]}{@const waited = Math.floor((comingNow - coming[key]) / 1000)}<span class="fcoming">{waited >= COMING_SHOW_S ? t.previewComingFor(waited) : t.previewComing}</span>{/if}
         {#if url && isVideo(f.mime)}<!-- svelte-ignore a11y_media_has_caption --><video class="fvideo" src={url} controls preload="metadata" playsinline></video>{/if}
         <div class="acts">{#each fileActs.filter(([a]) => a !== 'copy' || canCopy(f.mime ?? '')) as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a, key)}><Icon name={icon} /></button>{/each}</div>
       </div>
@@ -409,7 +421,8 @@
   /* Un testo più lungo delle righe mostrate sfuma in fondo, senza puntini. */
   .ftext.cut pre { mask-image: linear-gradient(#000 70%, transparent); -webkit-mask-image: linear-gradient(#000 70%, transparent); }
   .fpage { display: block; width: 100%; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
-  .fcoming { align-self: flex-start; padding: 2px 2px 4px; font-size: 13.5px; color: var(--text2); }
+  .fcoming { align-self: flex-start; padding: 2px 2px 4px; font-size: 13.5px; color: var(--text2); font-variant-numeric: tabular-nums; }
+  .fmiss { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13.5px; color: var(--text2); }
   .fshow { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--icon); font-size: 14px; font-weight: 500; }
   .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; }
   /* Con l'anteprima la scheda prende tutta la larghezza della chat, come nell'app (Franz, 12/10 12:27: «anteprime con width

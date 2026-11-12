@@ -1772,9 +1772,11 @@
   const fileStore = new FileStore()
   $effect(() => { fileStore.keep([MASTER, ...(open ? [open] : [])]) })
   // app-web-anteprime-in-fila-12-11: i file di una sessione uno alla volta (`FileQueue`), se no il relay tiene solo l'ultimo.
-  // Un'anteprima tiene la fila al massimo PREVIEW_LIMIT_MS; un tocco aspetta il PC quanto serve (180 s del trasporto).
+  // Un'anteprima tiene la fila al massimo PREVIEW_LIMIT_MS; un tocco aspetta il PC quanto serve (180 s del trasporto). Il 12/11
+  // (relay.log 12:30-13:00, 15 file di win:supervisor-app, tutti ok) la fila del relay dietro le letture lente è arrivata a 103 s e
+  // l'esecuzione a 16 s: un limite più corto toglierebbe anteprime che stanno per arrivare.
   const fileQueue = new FileQueue()
-  const PREVIEW_LIMIT_MS = 60_000
+  const PREVIEW_LIMIT_MS = 150_000
   const loadFile = (name: string, path: string, quiet: boolean) => (): Promise<Fetched | null> => fileQueue.run(name, async () => {
     if (!tr) return null
     let c = newCmd('file', name, path), r: CmdResult | null = null
@@ -1845,7 +1847,7 @@
     // con la prima pagina, i testi con le prime righe.
     if (media[key] || texts[key] || failed[key]) return
     delete missed[key]
-    coming[key] = true
+    coming[key] = Date.now()
     const f = await getFile(name, path, key, true).finally(() => { delete coming[key] })
     // Non arrivata: resta «Mostra anteprima» per riprovare (app-web-anteprime-in-fila-12-11).
     if (!f) { if (!media[key] && !texts[key]) missed[key] = true; return }
