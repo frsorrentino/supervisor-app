@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formato unico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0&display=block" rel="stylesheet">
+<style>
+  /* app-mockup-formato-unico-11-11 (Franz 11/11 21:28): tutto ciò che aspetta la persona in una sessione in un solo formato, e i
+     blocchi della chat ridotti a una riga. Tavolozze di HomeV3.kt: notte, e il giorno di v3.css (theme-day). Telefono 360 × 800,
+     tablet 1280 × 800, a grandezza vera (PNG a 2x). `?p=<id>` mostra una tavola sola, `?day` il giorno; senza, tutte. */
+  :root { --bg:#0B0B0B; --s1:#111111; --s2:#181818; --s3:#222222; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#9B9B9B; --tx3:#6E6E6E;
+          --wait:#FFB23F; --good:#71D083; --busy:#8AA9DB; --red:#FF6B5E; --waitbg:#1d1609; --waitline:#4a3412; --act:#EEEEEE; --onact:#0B0B0B; }
+  body.day { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#EDEDED; --line:#E4E4E4; --tx:#141414; --tx2:#5B5B5B; --tx3:#656565;
+          --wait:#9A5700; --good:#2A7E3B; --busy:#4A6A9C; --red:#C9302F; --waitbg:#FFF6E5; --waitline:#F2D7A2; --act:#141414; --onact:#FFFFFF; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, "DejaVu Sans", sans-serif; }
+  .mono { font-family: "Geist Mono", "DejaVu Sans Mono", monospace; }
+  .cd { font-family: "Barlow Semi Condensed", Barlow, sans-serif; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal;
+        text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+  .panel { display: none; position: relative; width: 360px; height: 800px; overflow: hidden; background: var(--bg); }
+  .panel.tab { width: 1280px; }
+  .panel.on { display: block; }
+  body.all { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; }
+  body.all .panel { display: block; }
+  .tag { position: absolute; top: 6px; right: 8px; z-index: 9; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700;
+         font-size: 13px; padding: 3px 10px; border-radius: 999px; background: #3a2a17; color: #f5c27a; }
+  body.day .tag { background: #FFE7BF; color: #7a4600; }
+
+  /* La testata della sessione, come SessionSheet: indietro, nome e stato, i tasti a destra. */
+  .head { display: flex; align-items: center; gap: 8px; padding: 34px 8px 8px; }
+  .head .back { width: 40px; height: 40px; display: grid; place-items: center; color: var(--tx); }
+  .head .nm { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 20px; line-height: 22px; }
+  .head .st { font-size: 13px; color: var(--wait); }
+  .head .sp { flex: 1; }
+  .head .ib { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--tx2); }
+  .head .ib.on { background: var(--s3); color: var(--tx); }
+  .head .pill { display: flex; align-items: center; gap: 4px; padding: 7px 12px 7px 9px; border-radius: 999px; background: var(--s3); color: var(--tx); font-size: 14px; font-weight: 500; }
+  .meter { display: flex; gap: 8px; padding: 0 12px 8px; }
+  .meter span { font-size: 12.5px; color: var(--tx2); padding: 4px 10px; border-radius: 999px; background: var(--s2); border: 1px solid var(--line); }
+
+  /* 1. Oggi: la scheda Ti aspetta grande, Decidi e Verifica come pillole, la scheda della prova, la barra delle Azioni. */
+  .bigwait { margin: 4px 10px 8px; padding: 12px 14px; border-radius: 16px; background: var(--waitbg); border: 1px solid var(--waitline); }
+  .bigwait .t { display: flex; gap: 8px; align-items: center; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16px; }
+  .bigwait .t .ms { color: var(--wait); }
+  .bigwait p { font-size: 15px; line-height: 20px; margin: 6px 0 10px 30px; }
+  .opt { margin: 0 0 8px 30px; padding: 9px 14px; border-radius: 22px; background: var(--s2); border: 1px solid var(--line); }
+  .opt.rec { border-color: var(--wait); }
+  .opt b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 15px; } .opt.rec b { color: var(--wait); }
+  .opt small { display: block; font-size: 12.5px; color: var(--tx2); }
+  .chips { display: flex; gap: 6px; margin: 0 10px 8px; }
+  .chip { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--tx2); }
+  .chip.amb { color: var(--wait); border-color: var(--waitline); background: var(--waitbg); }
+  .pcard { margin: 6px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); }
+  .pcard .t { display: flex; gap: 8px; align-items: center; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16.5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--wait); flex: none; }
+  .pcard .m { font-size: 13px; color: var(--tx2); margin-top: 2px; }
+  .pcard .f { font-size: 15px; margin-top: 2px; white-space: nowrap; overflow: hidden; }
+  .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+  .bt { font-size: 14px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); color: var(--tx); }
+  .bt.f { background: var(--s3); border-color: transparent; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; }
+  .bt.p { background: var(--act); color: var(--onact); border-color: transparent; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; }
+
+  /* La chat. */
+  .chat { padding: 4px 14px; }
+  .msg { font-size: 15.5px; line-height: 21px; margin-bottom: 10px; }
+  .msg .lk { color: var(--wait); text-decoration: underline; text-underline-offset: 2px; }
+  .you { margin: 0 0 10px 44px; padding: 10px 14px; border-radius: 18px 18px 6px 18px; background: var(--s3); font-size: 15px; line-height: 20px; }
+  .time { font-size: 12px; color: var(--tx3); margin: -4px 0 10px; }
+  .acts { margin: 6px 10px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; }
+  .acts .h { display: flex; align-items: center; padding: 10px 12px; font-size: 12px; letter-spacing: .1em; color: var(--tx2); }
+  .acts .h .ms { margin-left: auto; font-size: 20px; }
+  .acts .r { display: flex; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 15px; }
+  .acts .r .ms { margin-left: auto; font-size: 18px; color: var(--tx2); }
+  .field { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 10px 18px; background: var(--bg); display: flex; gap: 8px; align-items: center; }
+  .field .in { flex: 1; padding: 12px 16px; border-radius: 24px; background: var(--s2); border: 1px solid var(--line); color: var(--tx3); font-size: 15px; }
+  .field .ms { color: var(--tx2); }
+
+  /* 2-3. Il formato unico: una lista «Per te» in cima alla chat, una voce per cosa, nell'ordine Ti aspetta, Decidi, Prova, Verifica. */
+  .forme { margin: 2px 10px 8px; border-radius: 16px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; }
+  .forme .h { display: flex; align-items: baseline; gap: 8px; padding: 10px 12px 6px; }
+  .forme .h b { font-size: 12px; letter-spacing: .1em; color: var(--wait); font-weight: 500; }
+  .forme .h small { font-size: 12.5px; color: var(--tx3); }
+  .item { display: grid; grid-template-columns: 30px 1fr auto; column-gap: 8px; align-items: center; padding: 9px 12px; border-top: 1px solid var(--line); }
+  .item .ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--s3); color: var(--tx2); }
+  .item .ic.w { background: var(--waitbg); color: var(--wait); border: 1px solid var(--waitline); }
+  .item .ic .ms { font-size: 19px; }
+  .item .tx { min-width: 0; }
+  .item .ti { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16px; line-height: 19px; white-space: nowrap; overflow: hidden; }
+  .item .cx { font-size: 13px; line-height: 17px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .item .cx .ago { color: var(--wait); }
+  .item .rt { display: flex; align-items: center; gap: 6px; }
+  .item .rt .ms { color: var(--tx3); font-size: 20px; }
+  .item .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 999px; background: var(--s3); color: var(--tx); white-space: nowrap; }
+  .item .mini.w { background: var(--waitbg); color: var(--wait); border: 1px solid var(--waitline); }
+  .item.hot { background: color-mix(in srgb, var(--wait) 7%, transparent); }
+  .note { position: absolute; left: 10px; right: 10px; bottom: 86px; padding: 8px 10px; border-radius: 10px; background: var(--s2); border: 1px dashed var(--line); color: var(--tx2); font-size: 12.5px; line-height: 16px; }
+  .note b { color: var(--tx); font-weight: 500; }
+
+  /* 4. La scheda: come «Ti aspetta» di oggi. */
+  .sheet .h2 { display: flex; gap: 10px; align-items: flex-start; padding: 34px 10px 10px; }
+  .sheet .h2 .nm { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 22px; line-height: 26px; }
+  .sheet .h2 .sb { font-family: "Geist Mono", monospace; font-size: 12.5px; color: var(--tx2); }
+  .sheet .h2 .sb .a { color: var(--wait); }
+  .box { margin: 4px 10px 12px; padding: 12px 14px; border-radius: 16px; background: var(--s1); border: 1px solid var(--line); }
+  .box .k { font-size: 11.5px; letter-spacing: .1em; color: var(--tx3); margin-top: 8px; }
+  .box .k:first-child { margin-top: 0; }
+  .box .v { font-size: 15px; line-height: 20px; margin-top: 2px; }
+  .box hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
+  .box .row { display: flex; gap: 8px; align-items: center; }
+  .box .row .sp { flex: 1; }
+  .src { margin: 0 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); }
+  .src .m { font-family: "Geist Mono", monospace; font-size: 12px; color: var(--tx2); }
+  .src p { border-left: 3px solid var(--line); padding-left: 12px; margin-top: 6px; font-size: 14.5px; line-height: 20px; color: var(--tx2); }
+  .src p mark { background: var(--waitbg); color: var(--wait); }
+  .lab { font-size: 12px; letter-spacing: .1em; color: var(--tx3); padding: 0 12px; margin: 14px 0 6px; }
+
+  /* 5-6. I blocchi ridotti a una riga. */
+  .strip { display: flex; align-items: center; gap: 8px; margin: 0 10px 6px; padding: 8px 10px 8px 12px; border-radius: 12px; background: var(--s1); border: 1px solid var(--line); }
+  .strip .ms { font-size: 19px; color: var(--tx2); }
+  .strip .ms.w { color: var(--wait); }
+  .strip b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .strip .n { font-size: 13px; color: var(--wait); }
+  .strip .n.g { color: var(--tx2); }
+  .strip .first { flex: 1; min-width: 0; font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .strip .chev { color: var(--tx3); font-size: 20px; }
+  .strip.amb { background: var(--waitbg); border-color: var(--waitline); }
+  .reduced-all { display: flex; gap: 6px; margin: 0 10px 8px; }
+  .rchip { display: flex; align-items: center; gap: 5px; padding: 6px 10px 6px 8px; border-radius: 999px; background: var(--s1); border: 1px solid var(--line); font-size: 13.5px; white-space: nowrap; }
+  .rchip .ms { font-size: 17px; color: var(--tx2); }
+  .rchip.amb { background: var(--waitbg); border-color: var(--waitline); color: var(--wait); }
+  .rchip.amb .ms { color: var(--wait); }
+  .hint { font-size: 12px; color: var(--tx3); padding: 0 12px 8px; }
+
+  /* Tablet: la colonna delle sessioni, la chat al centro, la master a destra. */
+  .tabw { display: grid; grid-template-columns: 300px 1fr 360px; height: 800px; }
+  .tabw .side { border-right: 1px solid var(--line); padding: 28px 10px 10px; }
+  .tabw .side .s { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 10px; border-radius: 12px; }
+  .tabw .side .s.on { background: var(--s2); }
+  .tabw .side .s .ms { font-size: 19px; color: var(--wait); }
+  .tabw .side .s .ms.b { color: var(--busy); }
+  .tabw .side .s b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16px; }
+  .tabw .side .s small { display: block; font-size: 12.5px; color: var(--tx2); }
+  .tabw .side .s .c { font-family: "Geist Mono", monospace; font-size: 12px; color: var(--tx3); }
+  .tabw .main { position: relative; border-right: 1px solid var(--line); }
+  .tabw .main .field { position: absolute; }
+  .tabw .mast { padding: 28px 12px; }
+  .tabw .mast .mh { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 8px; }
+  .tabw .mast p { font-size: 14.5px; line-height: 20px; color: var(--tx2); margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<!-- Le voci della sessione storefront, le stesse in tutte le tavole. -->
+<template id="items-a">
+  <div class="item hot"><span class="ic w"><span class="ms">front_hand</span></span><span class="tx"><div class="ti">Pubblico la 2.4 in produzione?</div><div class="cx">Ti aspetta · domanda · <span class="ago">da 7 min</span></div></span><span class="rt"><span class="mini w">1 · sì</span></span></div>
+  <div class="item"><span class="ic"><span class="ms">gavel</span></span><span class="tx"><div class="ti">Logo ambra sulla scheda Play</div><div class="cx">Decidi · procedo quando Google approva · 2 h</div></span><span class="rt"><span class="mini">Procedi</span></span></div>
+  <div class="item"><span class="ic"><span class="ms">science</span></span><span class="tx"><div class="ti">Prova #569 · link diretto in Verifica</div><div class="cx">Prova · tocca «prova #550» in un messaggio · 20 min</div></span><span class="rt"><span class="mini">Ok</span></span></div>
+  <div class="item"><span class="ic"><span class="ms">checklist</span></span><span class="tx"><div class="ti">Rapporto dei test dei pagamenti</div><div class="cx">Verifica · documento, versione 2 · 1 h</div></span><span class="rt"><span class="mini">Visto</span></span></div>
+</template>
+<template id="items-b">
+  <div class="item hot"><span class="ic w"><span class="ms">front_hand</span></span><span class="tx"><div class="ti">Pubblico la 2.4 in produzione?</div><div class="cx">Ti aspetta · domanda · <span class="ago">da 7 min</span></div></span><span class="rt"><span class="ms">chevron_right</span></span></div>
+  <div class="item"><span class="ic"><span class="ms">gavel</span></span><span class="tx"><div class="ti">Logo ambra sulla scheda Play</div><div class="cx">Decidi · procedo quando Google approva · 2 h</div></span><span class="rt"><span class="ms">chevron_right</span></span></div>
+  <div class="item"><span class="ic"><span class="ms">science</span></span><span class="tx"><div class="ti">Prova #569 · link diretto in Verifica</div><div class="cx">Prova · tocca «prova #550» in un messaggio · 20 min</div></span><span class="rt"><span class="ms">chevron_right</span></span></div>
+  <div class="item"><span class="ic"><span class="ms">checklist</span></span><span class="tx"><div class="ti">Rapporto dei test dei pagamenti</div><div class="cx">Verifica · documento, versione 2 · 1 h</div></span><span class="rt"><span class="ms">chevron_right</span></span></div>
+</template>
+<template id="head">
+  <div class="head"><span class="back ms">arrow_back</span><div><div class="nm">storefront</div><div class="st">ti aspetta · da 7 min</div></div><span class="sp"></span>__BTN__<span class="ib ms">more_vert</span></div>
+</template>
+<template id="chat">
+  <div class="chat">
+    <div class="msg">Staging è verde: rimborsi, webhook e checkout passano. Il carrello tiene anche con dieci articoli. Pubblico la 2.4 in produzione solo con il tuo ok.</div>
+    <div class="time">07:34</div>
+    <div class="you">Prima fammi provare il link diretto</div>
+    <div class="msg">Fatto: la <span class="lk">prova #569</span> è in Verifica sulla pre-release 0.2.2101.</div>
+  </div>
+</template>
+<template id="field"><div class="field"><span class="ms">add</span><span class="in">Scrivi a storefront</span><span class="ms">send</span></div></template>
+
+<!-- 1. Oggi -->
+<section class="panel" id="p1"><span class="tag">1 · Oggi</span>
+  <div data-head="none"></div>
+  <div class="bigwait"><div class="t"><span class="ms">front_hand</span>storefront · <span style="color:var(--wait)">7 m</span></div><p>Pubblico la 2.4 in produzione?</p>
+    <div class="opt rec"><b>1 · sì</b><small>consigliata · pubblico adesso</small></div><div class="opt"><b>2 · no</b><small>aspetto l'ok del cliente</small></div></div>
+  <div class="chips"><span class="chip amb">Decidi 1</span><span class="chip">Verifica 1</span></div>
+  <div class="chat" style="padding-top:0">
+    <div class="msg">Fatto: la <span class="lk">prova #569</span> è in Verifica sulla pre-release 0.2.2101.</div>
+    <div class="pcard"><div class="t"><span class="dot"></span>Il link apre la prova in Verifica</div><div class="m">Prova #569 · Link diretto in Verifica</div><div class="f">Tocca «prova #550» in un messaggio della master e guarda dove arrivi</div><div class="btns"><span class="bt">Non va</span><span class="bt f">Ok</span></div></div>
+  </div>
+  <div class="acts"><div class="h">AZIONI · 2<span class="ms">expand_more</span></div><div class="r">prova il checkout dal vivo<span class="ms">north_east</span></div><div class="r">apri la PR del README<span class="ms">north_east</span></div></div>
+  <div data-field=""></div>
+</section>
+
+<!-- 2. Formato unico, variante A: sulla voce il tasto principale -->
+<section class="panel" id="p2"><span class="tag">2 · Formato unico A</span>
+  <div data-head=""></div>
+  <div class="forme"><div class="h"><b>PER TE · 4</b><small>tocca una voce per i dettagli</small></div><div data-items="a"></div></div>
+  <div data-chat=""></div>
+  <div class="note"><b>Variante A:</b> sulla voce resta il tasto principale (la risposta 1, Procedi, Ok, Visto); gli altri tasti e i dettagli nella scheda.</div>
+  <div data-field=""></div>
+</section>
+
+<!-- 3. Formato unico, variante B: solo il tocco -->
+<section class="panel" id="p3"><span class="tag">3 · Formato unico B</span>
+  <div data-head=""></div>
+  <div class="forme"><div class="h"><b>PER TE · 4</b><small>tocca una voce per i dettagli</small></div><div data-items="b"></div></div>
+  <div data-chat=""></div>
+  <div class="note"><b>Variante B:</b> nessun tasto sulla voce: il tocco apre la scheda, dove sono tutti. La prova citata in chat è una di queste voci.</div>
+  <div data-field=""></div>
+</section>
+
+<!-- 4. La scheda di una voce -->
+<section class="panel sheet" id="p4"><span class="tag">4 · La scheda</span>
+  <div class="h2"><span class="ms" style="padding-top:2px">arrow_back</span><div><div class="nm">Prova #569</div><div class="sb">storefront · <span class="a">da 20 min</span></div></div></div>
+  <div class="box">
+    <div class="k">COSA</div><div class="v">Il link apre la prova in Verifica</div>
+    <div class="k">DOVE</div><div class="v">telefono, chat della master</div>
+    <div class="k">COSA FARE</div><div class="v">Tocca «prova #550» in un messaggio della master e guarda dove arrivi</div>
+    <div class="k">COSA VEDERE</div><div class="v">Verifica con la scheda della prova aperta, Ok e Non va</div>
+    <hr><div class="row"><span class="bt">Portami lì</span><span class="sp"></span><span class="bt">Non va</span><span class="bt p">Ok</span></div>
+  </div>
+  <div class="lab">DA DOVE VIENE</div>
+  <div class="src"><div class="m">storefront · risposta delle 07:41</div><p>Fatto: la <mark>prova #569</mark> è in Verifica sulla pre-release 0.2.2101.</p></div>
+  <div class="lab">PER TE ANCHE · 3</div>
+  <div class="forme" style="margin-top:0"><div data-items="b" data-skip="2"></div></div>
+</section>
+
+<!-- 5. Blocchi ridotti, variante A: un tasto in testata li riduce tutti -->
+<section class="panel" id="p5"><span class="tag">5 · Blocchi ridotti A</span>
+  <div data-head="riduci"></div>
+  <div class="hint">«Riduci» acceso: ogni blocco è una pillola; il tocco su una la apre sul posto.</div>
+  <div class="reduced-all"><span class="rchip amb"><span class="ms">front_hand</span>Per te 4</span><span class="rchip"><span class="ms">bolt</span>Azioni 2</span><span class="rchip"><span class="ms">perm_media</span>Risultati 1</span></div>
+  <div data-chat=""></div>
+  <div class="chat"><div class="msg">Ho aggiornato il changelog e preparato la PR del README: la apro quando dici.</div><div class="time">07:52</div></div>
+  <div data-field=""></div>
+</section>
+
+<!-- 6. Blocchi ridotti, variante B: ognuno si riduce a una riga da sé -->
+<section class="panel" id="p6"><span class="tag">6 · Blocchi ridotti B</span>
+  <div data-head=""></div>
+  <div class="strip amb"><span class="ms w">front_hand</span><b>Per te</b><span class="n">4</span><span class="first">Pubblico la 2.4 in produzione?</span><span class="ms chev">expand_more</span></div>
+  <div class="strip"><span class="ms">bolt</span><b>Azioni</b><span class="n g">2</span><span class="first">prova il checkout dal vivo</span><span class="ms chev">expand_more</span></div>
+  <div class="strip"><span class="ms">perm_media</span><b>Risultati</b><span class="n g">1</span><span class="first">Rapporto dei test dei pagamenti</span><span class="ms chev">expand_more</span></div>
+  <div data-chat=""></div>
+  <div class="note"><b>Variante B:</b> ogni blocco è una riga col primo elemento; ▾ lo apre sul posto, e resta come l'hai lasciato.</div>
+  <div data-field=""></div>
+</section>
+
+<!-- Tablet A: formato unico A e «Riduci» in testata -->
+<section class="panel tab" id="ta"><span class="tag">Tablet · A</span>
+  <div class="tabw">
+    <div class="side"><div class="s on"><span class="ms">front_hand</span><span><b>storefront</b><small>ti aspetta · 7 min</small></span><span class="c">ctx 18%</span></div><div class="s"><span class="ms">front_hand</span><span><b>payments-api</b><small>domanda · 5 min</small></span><span class="c">ctx 62%</span></div><div class="s"><span class="ms b">play_circle</span><span><b>admin-panel</b><small>al lavoro · 25 min</small></span><span class="c">ctx 41%</span></div></div>
+    <div class="main"><div data-head=""></div><div class="forme"><div class="h"><b>PER TE · 4</b><small>tocca una voce per i dettagli</small></div><div data-items="a"></div></div><div data-chat=""></div><div data-field=""></div></div>
+    <div class="mast"><div class="mh">Master</div><p>Fase 2.2 avviata su payments-api. Solo commit locali: push e release con il tuo ok.</p><p>Due cose aspettano te: la scelta di storefront e la prova #569.</p></div>
+  </div>
+</section>
+
+<!-- Tablet B: formato unico B e i blocchi ridotti uno per uno -->
+<section class="panel tab" id="tb"><span class="tag">Tablet · B</span>
+  <div class="tabw">
+    <div class="side"><div class="s on"><span class="ms">front_hand</span><span><b>storefront</b><small>ti aspetta · 7 min</small></span><span class="c">ctx 18%</span></div><div class="s"><span class="ms">front_hand</span><span><b>payments-api</b><small>domanda · 5 min</small></span><span class="c">ctx 62%</span></div><div class="s"><span class="ms b">play_circle</span><span><b>admin-panel</b><small>al lavoro · 25 min</small></span><span class="c">ctx 41%</span></div></div>
+    <div class="main"><div data-head=""></div><div class="forme"><div class="h"><b>PER TE · 4</b><small>tocca una voce per i dettagli</small></div><div data-items="b"></div></div>
+      <div class="strip"><span class="ms">bolt</span><b>Azioni</b><span class="n g">2</span><span class="first">prova il checkout dal vivo</span><span class="ms chev">expand_more</span></div>
+      <div class="strip"><span class="ms">perm_media</span><b>Risultati</b><span class="n g">1</span><span class="first">Rapporto dei test dei pagamenti</span><span class="ms chev">expand_more</span></div>
+      <div data-chat=""></div><div data-field=""></div></div>
+    <div class="mast"><div class="mh">Master</div><p>Fase 2.2 avviata su payments-api. Solo commit locali: push e release con il tuo ok.</p><p>Due cose aspettano te: la scelta di storefront e la prova #569.</p></div>
+  </div>
+</section>
+
+<script>
+  const tpl = id => document.getElementById(id).innerHTML
+  const riduci = '<span class="pill"><span class="ms" style="font-size:19px">unfold_less</span>Riduci</span>'
+  document.querySelectorAll('[data-head]').forEach(e => { e.outerHTML = tpl('head').replace('__BTN__', e.dataset.head === 'riduci' ? riduci : e.dataset.head === 'none' ? '' : '<span class="ib ms">unfold_less</span>') })
+  document.querySelectorAll('[data-items]').forEach(e => { const box = document.createElement('div'); box.innerHTML = tpl('items-' + e.dataset.items); const skip = +(e.dataset.skip ?? -1); if (skip >= 0) box.children[skip].remove(); e.outerHTML = box.innerHTML })
+  document.querySelectorAll('[data-chat]').forEach(e => { e.outerHTML = tpl('chat') })
+  document.querySelectorAll('[data-field]').forEach(e => { e.outerHTML = tpl('field') })
+  const q = new URLSearchParams(location.search)
+  if (q.has('day')) document.body.classList.add('day')
+  const p = q.get('p')
+  if (p) document.getElementById(p).classList.add('on'); else document.body.classList.add('all')
+</script>
+</body>
+</html>
