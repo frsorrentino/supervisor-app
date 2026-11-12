@@ -147,4 +147,6 @@ export const sizeText = (b: number): string => (b >= 1_000_000 ? `${(b / 1_000_0
 export type WaitCardsHost = {
   read: (id: string) => WaitItem | 'gone' | null | undefined; ask: (id: string) => void; open: (id: string) => void
   file: (f: WaitFile) => void
+  /** L'apertura di un file della richiesta (un documento di una prova in Verifica). */
+  openFile: (f: WaitFile) => void
 }

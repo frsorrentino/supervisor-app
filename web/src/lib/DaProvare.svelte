@@ -13,6 +13,7 @@
   import { confirmMs, leave } from './leave'
   import { reducedMotion } from './motion'
   import ItemList from './ItemList.svelte'
+  import ProvaFiles from './ProvaFiles.svelte'
   import { prove, proveKo, proveRed } from './itemRows'
   // «Da provare» (contratto 1.99, banco_prova), porta di DaProvareScreen. Sul web vale l'ultima versione online: nessuna prova aspetta un'installazione.
   // `focus` (app-prova-link-diretta-10-11): la prova di un link «prova #N», aperta, in vista ed evidenziata.
@@ -95,6 +96,8 @@
     <!-- Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok. Sul web la versione c'è sempre. -->
     <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`} {focus} onOpen={onWait ? (r) => { const w = g.prove.find(x => String(x.id) === r.key)?.wid; if (w) onWait(w); return !!w } : null}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
       <div class="in"><LongText text={p.fai} /><p class="m">{t.proveExpected(p.atteso)}</p>
+        <!-- Le immagini di cosa guardare, dalla richiesta della prova (app-scheda-scelta-12-11). -->
+        {#if p.wid}<ProvaFiles wid={p.wid} />{/if}
         <div class="ac">
           {#if screen(p.dove)}<button class="text" onclick={() => onScreen(screen(p.dove)!)}>{t.featuresGo}</button>{/if}
           <span class="sp"></span>

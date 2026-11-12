@@ -642,3 +642,16 @@ private fun decodePlain(path: String, max: Int): ImageBitmap? = runCatching {
     while (bounds.outWidth > 0 && maxOf(bounds.outWidth, bounds.outHeight) / sample > max) sample *= 2
     f.inputStream().use { s -> android.graphics.BitmapFactory.decodeStream(s, null, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }) }?.asImageBitmap()
 }.getOrNull()
+
+/**
+ * Le immagini di cosa guardare di una prova, nella sua scheda di Verifica (app-scheda-scelta-12-11, punto 5: «la stessa scheda per le
+ * verifiche, con le immagini di cosa guardare»): i file della sua richiesta (`wid`), letti con `attesa` come le schede compatte e con la
+ * stessa cache. Senza file, o senza la richiesta, niente.
+ */
+@Composable
+fun ProvaFiles(wid: String) {
+    val host = LocalWaitCards.current ?: return
+    LaunchedEffect(wid) { host.ask(wid) }
+    val files = (host.read(wid) as? WaitCardRead.Got)?.item?.files.orEmpty()
+    if (files.isNotEmpty()) WaitFilesBlock(files)
+}

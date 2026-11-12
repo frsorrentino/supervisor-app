@@ -688,6 +688,7 @@
     ask: (id: string) => { if (id in waitCards) return; waitCards[id] = null; void waitCardRead(id) },
     open: (id: string) => openWait(id),
     file: (f: WaitFile) => fileAction(f.session ?? null, f.path, 'preview', waitFileKey(f)),
+    openFile: (f: WaitFile) => fileAction(f.session ?? null, f.path, 'open', waitFileKey(f)),
   })
   const openWids = $derived([...st.approvals.map(a => a.wid), ...(st.attention ?? []).map(a => a.wid)].filter(Boolean).sort().join(','))
   let seenWids: string | null = null

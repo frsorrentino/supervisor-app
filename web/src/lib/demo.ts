@@ -73,7 +73,7 @@ export const pluginsDemo = (now: number): PluginsPage => ({ checked_at: now - 24
 
 /** Contratto 1.99: gli elenchi dietro le due righe della home, solo nomi della demo. */
 export const proveDemo = (now: number): ProvePage => ({ at: now, n: 2, builds: 1, ko: [], red: [], groups: [{ build: 'demo-rc-2', n: 2, at: now - 3600, tasks: ['demo-cart', 'demo-users'], prove: [
-  { id: 1, task: 'demo-cart', short: en ? 'Cart totals' : 'Totali del carrello', build: 'demo-rc-2', dove: 'box-esiti', fai: en ? 'Open today\'s outcomes' : 'Apri gli esiti di oggi', atteso: en ? 'The cart outcome is under Done' : 'L\'esito del carrello sta sotto Fatto', at: now - 3600 },
+  { id: 1, task: 'demo-cart', short: en ? 'Cart totals' : 'Totali del carrello', build: 'demo-rc-2', dove: 'box-esiti', fai: en ? 'Open today\'s outcomes' : 'Apri gli esiti di oggi', atteso: en ? 'The cart outcome is under Done' : 'L\'esito del carrello sta sotto Fatto', at: now - 3600, wid: 'w00000000d4' },
   { id: 2, task: 'demo-users', short: en ? 'Users table' : 'Tabella utenti', build: 'demo-rc-2', dove: 'lavori', fai: en ? 'Open Work' : 'Apri Lavori', atteso: en ? 'The users table is in progress' : 'La tabella utenti è in corso', at: now - 3600 },
 ] }] })
 /** Contratto 1.100: la prima raccolta a un passo dalla fine, dati del mondo della demo; manca il sì sulle sessioni passate. */
@@ -552,8 +552,22 @@ const cartApproval = (now: number): Approval => {
     untested: en ? 'a real phone' : 'un telefono vero', undo: 'si', undo_how: en ? 'the cart of before comes back' : 'torna il carrello di prima' }
 }
 
+/** La prova 1 della demo come richiesta, coi file di cosa guardare (app-scheda-scelta-12-11, punto 5): l'immagine e il resoconto. */
+const cartProva = (now: number): WaitItem => ({
+  id: 'w00000000d4', type: 'carta', kind: 'prova', label: 'verify', label_text: en ? 'Verify' : 'Verifica', session: 'storefront', task: 'demo-cart',
+  title: en ? 'Cart totals' : 'Totali del carrello', text: en ? "Open today's outcomes: the cart outcome is under Done" : "Apri gli esiti di oggi: l'esito del carrello sta sotto Fatto",
+  options: null, at: now - 3600, card: null, link: '#/attesa/w00000000d4', answer: { op: 'prova', arg: '1' },
+  actions: [
+    { label: en ? 'Works' : 'Va', style: 'primary', cmd: { op: 'prova', session: null, arg: '1', result: 'ok' } },
+    { label: en ? 'Does not work' : 'Non va', style: 'secondary', cmd: { op: 'prova', session: null, arg: '1', result: 'ko' }, text_field: 'text' },
+  ],
+  files: [demoShot('checkout-before.png', 35449), { ...demoShot('checkout-tests.pdf', 1872), mime: 'application/pdf', kind: 'document' }],
+  description: null, card_id: 'w00000000d4', state: 'open', answered: null,
+})
+
 export const waitsDemo = (now: number): WaitItem[] => [
   cartChoice(now),
+  cartProva(now),
   { id: 'w00000000a1', type: 'carta', kind: 'pausa', label: 'decide', label_text: en ? 'Decide' : 'Decidi', session: 'blog', task: 'demo-cover',
     text: en ? 'Send me the cover image' : "Mandami l'immagine di copertina", options: null, at: now - 1200, card: null, link: '#/attesa/w00000000a1',
     answer: { op: 'decisione', arg: 'demo-a' },

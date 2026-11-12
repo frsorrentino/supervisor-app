@@ -199,6 +199,8 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     LongText(p.fai, style = V3.Body)
                     Text(stringResource(R.string.prove_expected, p.atteso), style = V3.Small)
+                    // Le immagini di cosa guardare, dalla richiesta della prova (app-scheda-scelta-12-11, punto 5).
+                    p.wid?.let { w -> ProvaFiles(w) }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         BancoProva.screen(p.dove)?.let { s -> TextButton(onClick = { onScreen(s) }) { Text(stringResource(R.string.features_go)) } }
                         Spacer(Modifier.weight(1f))
