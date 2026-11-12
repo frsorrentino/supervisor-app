@@ -5,5 +5,7 @@ export const media: Record<string, string> = $state({})
 export const texts: Record<string, { lines: string; more: boolean }> = $state({})
 /** Le anteprime che non si possono fare (PDF rotto, testo illeggibile): resta la scheda. */
 export const failed: Record<string, boolean> = $state({})
+/** Le anteprime partite da sole e non arrivate: la scheda mostra «Mostra anteprima» per riprovare (app-web-anteprime-in-fila-12-11). */
+export const missed: Record<string, boolean> = $state({})
 /** Franz, 16/10 11:18: il sorgente intero di HTML e SVG, da mostrare come pagina nel riquadro sandbox; con la stessa chiave. */
 export const pages: Record<string, { mime: string; text: string }> = $state({})

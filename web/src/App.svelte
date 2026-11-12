@@ -8,7 +8,8 @@
   import { ghostPreview, MOVE_MS, PLACES } from './lib/landingMorph'
   import { DRAG_PX, isDrag, masterTaps, springFrames, step, velocity } from './lib/gesture'
   import { morphBlob } from './lib/morphBlob'
-  import { failed, media, pages as pageSources, texts } from './lib/mediaCache.svelte'
+  import { failed, media, missed, pages as pageSources, texts } from './lib/mediaCache.svelte'
+  import { FileQueue } from './lib/fileQueue'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
   import { groups, together } from './lib/shareMulti'
@@ -1770,18 +1771,25 @@
   // chiave del file della chat (`fileKey`): lo stesso percorso mandato di nuovo con un'altra misura non riprende quello vecchio.
   const fileStore = new FileStore()
   $effect(() => { fileStore.keep([MASTER, ...(open ? [open] : [])]) })
-  const loadFile = (name: string, path: string, quiet: boolean) => async (): Promise<Fetched | null> => {
+  // app-web-anteprime-in-fila-12-11: i file di una sessione uno alla volta (`FileQueue`), se no il relay tiene solo l'ultimo.
+  const fileQueue = new FileQueue()
+  const loadFile = (name: string, path: string, quiet: boolean) => (): Promise<Fetched | null> => fileQueue.run(name, async () => {
     if (!tr) return null
-    const c = newCmd('file', name, path)
-    // L'anteprima che nasce da sola non avvisa se il file non arriva.
-    const r = quiet ? await tr.send(c).catch(() => null) : await run(c)
+    let c = newCmd('file', name, path), r: CmdResult | null = null
+    // L'anteprima che nasce da sola non avvisa se il file non arriva. Una lettura rimpiazzata da quella di un altro
+    // dispositivo si richiede, al massimo due volte.
+    for (let i = 0; ; i++) {
+      r = quiet ? await tr.send(c).catch(() => null) : await run(c)
+      if (!superseded(r) || i >= 2) break
+      c = newCmd('file', name, path)
+    }
     if (!r?.ok) return null
     const f = await tr.fetchFile(c.id).catch(() => null)
     if (!f) { if (!quiet) say(`✗ ${t.noAnswer}`); return null }
     const blob = new Blob([f.data as Uint8Array<ArrayBuffer>], { type: f.mime })
     // Il testo letto subito: «Copia» lo scrive negli appunti senza await (Safari).
     return { blob, name: f.name ?? path.split('/').pop() ?? 'file', mime: f.mime, text: files.copyKind(f.mime) === 'text' ? await blob.text() : undefined }
-  }
+  }, !quiet)
   const getFile = (name: string, path: string, key: string, quiet = false) => fileStore.get(key, loadFile(name, path, quiet))
   // Un file aperto in chat è visto anche in Risultati (app-risultati-visti-03-11, Franz: «rimangono presenti anche se li vedo altrove»).
   // Il menu unico della sessione (app-menu-sessione-03-11): una voce di Tocca a te apre la sua pagina; Guarda solo i lavori di quella sessione.
@@ -1834,8 +1842,11 @@
     // Ogni allegato in anteprima sotto il suo nome (Franz, 10/10 15:24 per immagini e video, 15/10 22:20 per tutti): i PDF
     // con la prima pagina, i testi con le prime righe.
     if (media[key] || texts[key] || failed[key]) return
+    delete missed[key]
     const f = await getFile(name, path, key, true)
-    if (!f || media[key] || texts[key]) return
+    // Non arrivata: resta «Mostra anteprima» per riprovare (app-web-anteprime-in-fila-12-11).
+    if (!f) { if (!media[key] && !texts[key]) missed[key] = true; return }
+    if (media[key] || texts[key]) return
     const kind = previewKind(f.mime, path)
     if (kind === 'pdf') { const png = await firstPage(f.blob); if (png) media[key] = URL.createObjectURL(png); else failed[key] = true }
     else if (kind === 'text') texts[key] = firstLines(await f.blob.text())

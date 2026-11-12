@@ -27,7 +27,7 @@
   let zoomed = $state<{ src: string; name: string } | null>(null)
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
-  import { failed, media, pages, texts } from './mediaCache.svelte'
+  import { failed, media, missed, pages, texts } from './mediaCache.svelte'
   // Le pagine mostrate come sorgente col tasto «Codice», per chiave.
   let code = $state<Record<string, boolean>>({})
   import Md from './Md.svelte'
@@ -206,8 +206,8 @@
           <iframe class="fpage" style="height:{pageHeight(vh)}px" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>
         {:else if texts[key]}<button class="ftext" class:cut={texts[key].more} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><pre>{texts[key].lines}</pre></button>{/if}
         {#if pages[key]}<span class="fbtns"><button class="fshow" aria-pressed={!!code[key]} onclick={() => (code[key] = !code[key])}>{code[key] ? t.filePage : t.fileCode}</button><button class="fshow" onclick={() => (full = { key, name: f.path.split('/').pop() ?? '' })}>{t.filePageFull}</button></span>{/if}
-        {#if !url && !texts[key] && !failed[key] && canPreview(f.mime, f.path) && !autoPreview(f.mime, f.size, !((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true), f.path)}
-          <!-- Oltre i limiti, o col risparmio dati, l'anteprima aspetta il tocco. -->
+        {#if !url && !texts[key] && !failed[key] && canPreview(f.mime, f.path) && (missed[key] || !autoPreview(f.mime, f.size, !((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true), f.path))}
+          <!-- Oltre i limiti, col risparmio dati o se non è arrivata da sola, l'anteprima aspetta il tocco. -->
           <button class="fshow" onclick={() => onFile(f.path, 'preview', key)}>{t.showPreview}</button>
         {/if}
         {#if url && isVideo(f.mime)}<!-- svelte-ignore a11y_media_has_caption --><video class="fvideo" src={url} controls preload="metadata" playsinline></video>{/if}
