@@ -8,7 +8,8 @@ import org.junit.Test
  * continua: uno slider da 0,5× a 2× a passi di 0,05, con uno scatto su 1×.
  */
 class SpeechRateTest {
-    @Test fun withoutAChoiceTheEngineSpeed() = assertEquals(1.0f, SpeechRate.of(null))
+    // Franz, 12/11 16:34: chi non ha mai scelto parte dalla sua velocità, 1,25×.
+    @Test fun withoutAChoiceItStartsAtOneAndAQuarter() = assertEquals(1.25f, SpeechRate.of(null))
 
     @Test fun aSavedChoiceStays() {
         assertEquals(0.9f, SpeechRate.of(0.9f))
@@ -31,8 +32,8 @@ class SpeechRateTest {
     @Test fun outsideTheRangeOrBrokenValues() {
         assertEquals(SpeechRate.MAX, SpeechRate.of(5f))
         assertEquals(SpeechRate.MIN, SpeechRate.of(0.1f))
-        assertEquals(1.0f, SpeechRate.of(Float.NaN))
-        assertEquals(1.0f, SpeechRate.of(-1f))
+        assertEquals(SpeechRate.DEFAULT, SpeechRate.of(Float.NaN))
+        assertEquals(SpeechRate.DEFAULT, SpeechRate.of(-1f))
     }
 
     @Test fun theSliderSpansHalfToDouble() {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState } from './contract'
-import { chunks, clean, excerpt, rankVoices, nextVoice, nextRate, question, RATE_MAX, RATE_MIN, rateFraction, rateOf, snapRate, voicePosition } from './speechRules'
+import { chunks, clean, excerpt, rankVoices, nextVoice, nextRate, preferredVoice, question, RATE_DEFAULT, RATE_MAX, RATE_MIN, rateFraction, rateOf, snapRate, startVoice, voicePosition } from './speechRules'
 
 // Gli stessi casi di SpeechTextTest, SpeechRateTest, VoiceRulesTest e ReadingBarTest in Kotlin.
 const code = 'segue un blocco di codice'
@@ -32,15 +32,16 @@ describe('testo per la voce', () => {
 })
 describe('velocità', () => {
   // Dal 07/10 (approvata alle 22:06) è continua, come SpeechRate.kt: slider da 0,5× a 2× a passi di 0,05, scatto su 1×.
-  it('senza scelta quella del motore, una scelta salvata resta', () => {
-    expect(rateOf(null)).toBe(1); expect(rateOf(0.9)).toBe(0.9); expect(rateOf(1.35)).toBe(1.35); expect(rateOf(1.25)).toBe(1.25)
+  // Franz, 12/11 16:34: chi non ha mai scelto parte dalla sua velocità, 1,25×.
+  it('senza scelta quella di partenza, una scelta salvata resta', () => {
+    expect(RATE_DEFAULT).toBe(1.25); expect(rateOf(null)).toBe(1.25); expect(rateOf(1)).toBe(1); expect(rateOf(0.9)).toBe(0.9); expect(rateOf(1.35)).toBe(1.35); expect(rateOf(1.25)).toBe(1.25)
   })
   it('un tocco passa alla velocità dopo, e dopo 2× torna a 0,75×', () => {
     expect(nextRate(1)).toBe(1.25); expect(nextRate(1.3)).toBe(1.5); expect(nextRate(2)).toBe(0.75); expect(nextRate(0.5)).toBe(0.75); expect(nextRate(0.75)).toBe(1)
   })
   it('a passi di 0,05', () => { expect(snapRate(0.86)).toBe(0.85); expect(snapRate(1.41)).toBe(1.4); expect(rateOf(1.2)).toBe(1.2) })
   it('vicino a 1 si ferma su 1, 1,05 resta raggiungibile', () => { expect(snapRate(1.03)).toBe(1); expect(snapRate(0.97)).toBe(1); expect(snapRate(1.05)).toBe(1.05) })
-  it('fuori dalla corsa o rovinato', () => { expect(rateOf(5)).toBe(RATE_MAX); expect(rateOf(0.1)).toBe(RATE_MIN); expect(rateOf(NaN)).toBe(1); expect(rateOf(-1)).toBe(1) })
+  it('fuori dalla corsa o rovinato', () => { expect(rateOf(5)).toBe(RATE_MAX); expect(rateOf(0.1)).toBe(RATE_MIN); expect(rateOf(NaN)).toBe(RATE_DEFAULT); expect(rateOf(-1)).toBe(RATE_DEFAULT) })
   it('la corsa va da metà al doppio', () => { expect(RATE_MIN).toBe(0.5); expect(RATE_MAX).toBe(2); expect(rateFraction(1)).toBeCloseTo(1 / 3) })
 })
 describe('voce', () => {
@@ -50,6 +51,17 @@ describe('voce', () => {
     expect(nextVoice(v, 'it-it-x-itd-local')).toBeNull(); expect(nextVoice(v, 'vecchia')).toBe('it-it-x-itb-local'); expect(nextVoice([], 'x')).toBeNull()
   })
   it('la posizione', () => { expect(voicePosition(v, null)).toBe(0); expect(voicePosition(v, 'it-it-x-itc-local')).toBe(2) })
+  // Franz, 12/11 16:34 (schermata delle impostazioni: it-it-x-itc-local, 1,25×): chi non ha mai scelto parte dalla sua voce, dove c'è.
+  it('mai scelta parte dalla preferita, dove il browser la offre', () => {
+    expect(startVoice(null, ['it-IT-language', ...v])).toBe('it-it-x-itc-local')
+    expect(startVoice(null, ['Google it-it-x-itb-local', 'Google it-it-x-itc-local'])).toBe('Google it-it-x-itc-local')
+    expect(preferredVoice(['it-it-x-itb-local', 'it-it-x-itc-network'])).toBe('it-it-x-itc-network')
+    expect(startVoice(null, ['Google italiano', 'Alice', 'Luca'])).toBeNull()
+    expect(startVoice(null, [])).toBeNull()
+  })
+  it('la predefinita scelta e una voce scelta restano', () => {
+    expect(startVoice('', ['it-IT-language', ...v])).toBeNull(); expect(startVoice('Alice', ['it-IT-language', ...v])).toBe('Alice')
+  })
 })
 describe('prima riga del controller', () => {
   it('senza markdown e senza Esito', () => {

@@ -60,11 +60,31 @@ export function snapRate(v: number): number {
   if (Math.abs(c - 1) < 0.035) return 1
   return (Math.round(c / RATE_STEP) * 5) / 100
 }
-/** Il valore salvato portato sul passo; senza scelta o rovinato, 1. */
+/**
+ * Da dove parte chi non ha mai scelto una velocità (Franz, 12/11 16:34, con la schermata delle sue impostazioni: «voce di lettura e
+ * velocità di lettura fossero di default le stesse che ho impostato io»): la sua, 1,25×. Come SpeechRate.DEFAULT.
+ */
+export const RATE_DEFAULT = 1.25
+/** Il valore salvato portato sul passo; senza scelta o rovinato, quello di partenza. */
 export function rateOf(saved: number | null | undefined): number {
-  if (saved == null || !Number.isFinite(saved) || saved <= 0) return 1
+  if (saved == null || !Number.isFinite(saved) || saved <= 0) return RATE_DEFAULT
   return snapRate(saved)
 }
+/**
+ * La voce da cui parte chi non ne ha mai scelta una: quella di Franz sul telefono, `it-it-x-itc-local` dei servizi vocali Google, o
+ * la stessa di rete, dove il browser la offre (i nomi possono avere un prefisso); altrove null, cioè la migliore italiana di
+ * `rankVoices`. Come VoiceRules.preferred.
+ */
+export const VOICE_PREFERRED = 'it-it-x-itc'
+export function preferredVoice(names: string[]): string | null {
+  const has = (tail: string) => names.find(n => n.toLowerCase().includes(`${VOICE_PREFERRED}-${tail}`))
+  return has('local') ?? has('network') ?? null
+}
+/**
+ * La voce con cui si parte da quella salvata: mai scelta (null) la preferita; vuota = è stata scelta la predefinita; altrimenti
+ * quella salvata. Come VoiceRules.start.
+ */
+export const startVoice = (saved: string | null, names: string[]): string | null => (saved == null ? preferredVoice(names) : saved === '' ? null : saved)
 // Il giro del tocco sulla pillola (SpeechRate.kt; Franz, 08/10 19:50): un tocco passa alla velocità dopo, dopo 2× torna
 // a 0,75×; tenuta premuta apre lo slider.
 export const RATE_CYCLE = [0.75, 1, 1.25, 1.5, 1.75, 2]

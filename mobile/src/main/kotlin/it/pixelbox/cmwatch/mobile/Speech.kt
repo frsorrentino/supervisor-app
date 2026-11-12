@@ -9,6 +9,7 @@ import it.pixelbox.cmwatch.rules.AppLanguage
 import it.pixelbox.cmwatch.rules.NextSteps
 import it.pixelbox.cmwatch.rules.OutcomeLine
 import it.pixelbox.cmwatch.rules.SpeechRate
+import it.pixelbox.cmwatch.rules.VoiceRules
 import it.pixelbox.cmwatch.rules.SpeechText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,8 +36,11 @@ class Speech(ctx: Context) {
     private val _voices = MutableStateFlow<List<String>>(emptyList())
     /** Le voci italiane del motore, prima quelle installate e poi quelle di rete (come l'orologio). */
     val voices: StateFlow<List<String>> = _voices
-    private val _voice = MutableStateFlow(prefs.getString("voice", null))
-    /** La voce scelta; null = la predefinita del telefono. */
+    private val _voice = MutableStateFlow(prefs.getString("voice", null)?.takeIf { it.isNotEmpty() })
+    /**
+     * La voce scelta; null = la predefinita del telefono. Chi non ne ha mai scelta una parte da quella preferita
+     * (`VoiceRules.start`, Franz 12/11 16:34), appena il motore dice le sue voci.
+     */
     val voice: StateFlow<String?> = _voice
     private val _rate = MutableStateFlow(SpeechRate.of(if (prefs.contains("rate")) prefs.getFloat("rate", SpeechRate.NORMAL) else null))
     /** La velocità scelta nelle impostazioni (Franz, 02/10 15:49), in multipli di quella del motore. */
@@ -56,7 +60,7 @@ class Speech(ctx: Context) {
     init {
         tts = TextToSpeech(app) { status ->
             ready = status == TextToSpeech.SUCCESS
-            if (ready) _voices.value = italian()
+            if (ready) { _voices.value = italian(); startVoice(voiceLocale()) }
         }
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
@@ -151,7 +155,8 @@ class Speech(ctx: Context) {
     /** La voce scelta nelle impostazioni, ricordata; null = la predefinita. */
     fun setVoice(name: String?) {
         _voice.value = name
-        prefs.edit().putString("voice", name).apply()
+        // La predefinita del telefono si salva vuota: è una scelta, e la voce di partenza non la rimpiazza.
+        prefs.edit().putString("voice", VoiceRules.stored(name)).apply()
         if (ready) applyVoice()
     }
 
@@ -193,8 +198,17 @@ class Speech(ctx: Context) {
 
     /** La lingua dell'app e poi la voce scelta: la lingua rimette la predefinita, così anche il ritorno a quella vale subito. */
     private fun useLanguageAndVoice() {
-        tts.language = AppLanguage.voiceLocale(AppLanguage.fromTags(locales.applicationLocales.toLanguageTags()), Locale.getDefault())
+        val loc = voiceLocale()
+        tts.language = loc
+        startVoice(loc)
         applyVoice()
+    }
+
+    private fun voiceLocale(): Locale = AppLanguage.voiceLocale(AppLanguage.fromTags(locales.applicationLocales.toLanguageTags()), Locale.getDefault())
+
+    /** Senza una scelta salvata la voce di partenza è quella preferita, se si legge in italiano e il motore ce l'ha. */
+    private fun startVoice(loc: Locale) {
+        if (!prefs.contains("voice")) _voice.value = VoiceRules.start(null, italian(), loc.language == "it")
     }
 
     private fun finished() { _speaking.value = null; _block.value = null; _source.value = null; _paused.value = false }

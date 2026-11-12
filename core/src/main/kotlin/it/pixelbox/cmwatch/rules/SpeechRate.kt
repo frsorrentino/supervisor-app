@@ -10,6 +10,11 @@ import kotlin.math.roundToInt
  */
 object SpeechRate {
     const val NORMAL = 1.0f
+    /**
+     * Da dove parte chi non ha mai scelto una velocità (Franz, 12/11 16:34, con la schermata delle sue impostazioni: «voce di
+     * lettura e velocità di lettura fossero di default le stesse che ho impostato io»): la sua, 1,25×.
+     */
+    const val DEFAULT = 1.25f
     const val MIN = 0.5f
     const val MAX = 2.0f
     private const val STEP = 0.05f
@@ -21,8 +26,8 @@ object SpeechRate {
         return ((c / STEP).roundToInt() * 5) / 100f
     }
 
-    /** Il valore salvato, portato sul passo; senza scelta o con un valore rovinato, la velocità del motore. */
-    fun of(saved: Float?): Float = saved?.takeIf { it.isFinite() && it > 0f }?.let { snap(it) } ?: NORMAL
+    /** Il valore salvato, portato sul passo; senza scelta o con un valore rovinato, quella di partenza (`DEFAULT`). */
+    fun of(saved: Float?): Float = saved?.takeIf { it.isFinite() && it > 0f }?.let { snap(it) } ?: DEFAULT
 
     /**
      * Le velocità del tocco sulla pillola (Franz, 08/10 19:50): un tocco passa alla prossima, dopo 2× torna a 0,75×; tenuta

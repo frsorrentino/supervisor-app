@@ -75,10 +75,15 @@ class LiveVoice(ctx: Context, private val onIdle: () -> Unit, private val onFocu
         tts.setAudioAttributes(attrs)
         // La lingua dell'app, come il tasto ▶ (`Speech`).
         val tags = app.getSystemService(android.app.LocaleManager::class.java).applicationLocales.toLanguageTags()
-        tts.language = AppLanguage.voiceLocale(AppLanguage.fromTags(tags), Locale.getDefault())
+        val loc = AppLanguage.voiceLocale(AppLanguage.fromTags(tags), Locale.getDefault())
+        tts.language = loc
         val prefs = app.getSharedPreferences("speech", Context.MODE_PRIVATE)
         // La voce e la velocità scelte nelle impostazioni del tasto ▶ valgono anche qui.
-        prefs.getString("voice", null)?.let { n -> runCatching { tts.voices }.getOrNull()?.firstOrNull { it.name == n }?.let { tts.voice = it } }
+        // Chi non ne ha mai scelta una parte da quella preferita, come il tasto ▶ (`VoiceRules.start`, Franz 12/11 16:34).
+        val all = runCatching { tts.voices }.getOrNull().orEmpty()
+        val italian = all.filter { it.locale.language == "it" && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }.map { it.name }
+        it.pixelbox.cmwatch.rules.VoiceRules.start(prefs.getString("voice", null), italian, loc.language == "it")
+            ?.let { n -> all.firstOrNull { it.name == n }?.let { tts.voice = it } }
         tts.setSpeechRate(SpeechRate.of(if (prefs.contains("rate")) prefs.getFloat("rate", SpeechRate.NORMAL) else null))
     }
 

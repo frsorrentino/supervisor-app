@@ -1,4 +1,4 @@
-import { chunks, forPhone, nextVoice, rankVoices, rateOf } from './speechRules'
+import { chunks, forPhone, nextVoice, rankVoices, rateOf, startVoice } from './speechRules'
 import { t } from './t'
 import { lang, locale } from './lang'
 
@@ -8,7 +8,7 @@ const load = (k: string) => { try { return localStorage.getItem(k) } catch { ret
 const store = (k: string, v: string | null) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v) } catch { /* resta per la sessione */ } }
 
 export const speech = $state<{ text: string | null; source: string | null; paused: boolean; rate: number; voice: string | null; voices: string[] }>({
-  text: null, source: null, paused: false, rate: rateOf(Number(load('cm.rate') ?? NaN)), voice: load('cm.voice'), voices: [],
+  text: null, source: null, paused: false, rate: rateOf(Number(load('cm.rate') ?? NaN)), voice: load('cm.voice') || null, voices: [],
 })
 let parts: string[] = []
 let at = 0
@@ -17,6 +17,10 @@ let run = 0
 function italian() {
   if (typeof speechSynthesis === 'undefined') return
   speech.voices = rankVoices(speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith(lang)).map(v => v.name))
+  // Chi non ha mai scelto una voce parte da quella preferita, dove il browser la offre (Franz, 12/11 16:34); la predefinita scelta
+  // si salva vuota e resta.
+  const saved = load('cm.voice')
+  if (saved == null) speech.voice = startVoice(saved, speech.voices)
 }
 if (typeof speechSynthesis !== 'undefined') { italian(); speechSynthesis.addEventListener('voiceschanged', italian) }
 
@@ -60,11 +64,11 @@ export function pause() { if (!speech.text || speech.paused) return; run++; spee
 export function resume() { if (!speech.paused) return; speech.paused = false; if (speech.text) play(at) }
 export function cycleVoice() {
   speech.voice = nextVoice(speech.voices, speech.voice)
-  store('cm.voice', speech.voice)
+  store('cm.voice', speech.voice ?? '')
   if (speech.text && !speech.paused) play(at)
 }
 
 /** Dalle Impostazioni: una velocità e una voce scelte (null = la migliore italiana). */
 // In pausa velocità e voce nuove valgono alla ripresa.
 export function setRate(r: number) { speech.rate = rateOf(r); store('cm.rate', String(speech.rate)); if (speech.text && !speech.paused) play(at) }
-export function setVoice(v: string | null) { speech.voice = v; store('cm.voice', v); if (speech.text && !speech.paused) play(at) }
+export function setVoice(v: string | null) { speech.voice = v; store('cm.voice', v ?? ''); if (speech.text && !speech.paused) play(at) }
