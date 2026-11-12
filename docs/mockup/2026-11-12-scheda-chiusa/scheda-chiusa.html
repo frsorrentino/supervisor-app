@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scheda di scelta chiusa: come usa lo spazio</title>
+<!-- Mockup per app-scheda-scelta-12-11 (Franz, 12/11 17:36 dal telefono: «la scheda da chiusa gestisce male lo spazio, accanto alle
+     miniature c'è molto spazio vuoto. Cosa suggerisci?»). La scheda compatta di oggi e tre proposte, coi token e i caratteri dell'app
+     (web/src/v3.css) e le immagini della demo. A è quella che suggerisco: le immagini si dividono tutta la larghezza, di una schermata
+     alta si vede la parte in cima e una tavola larga resta intera, e nella fascia sopra sta il nome. `?v=oggi|a|a2|b|c` mostra
+     una tavola sola; `&day` il tema di giorno. -->
+<style>
+  @font-face { font-family: 'Barlow'; font-weight: 400; src: url('../../../web/src/fonts/barlow-400-latin.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow'; font-weight: 500; src: url('../../../web/src/fonts/barlow-500-latin.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow Semi Condensed'; font-weight: 600; src: url('../../../web/src/fonts/barlow-semi-condensed-600-latin.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow Semi Condensed'; font-weight: 700; src: url('../../../web/src/fonts/barlow-semi-condensed-700-latin.woff2') format('woff2'); }
+  @font-face { font-family: 'Geist Mono'; font-weight: 400; src: url('../../../web/src/fonts/geist-mono-400-latin.woff2') format('woff2'); }
+  :root {
+    --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+    --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --wait: #FFB23F; --good: #71D083;
+    --sans: Barlow, system-ui, sans-serif; --display: 'Barlow Semi Condensed', Barlow, system-ui, sans-serif; --mono: 'Geist Mono', ui-monospace, monospace;
+    --mat: color-mix(in srgb, var(--tx) 7%, var(--s1));
+  }
+  :root.day { --bg: #F4F4F4; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EDEDED; --line: #E4E4E4; --tx: #141414; --tx2: #5B5B5B; --tx3: #656565; --wait: #9A5700; --good: #2A7E3B; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 412px; background: var(--bg); color: var(--tx); font: 15.5px/1.45 var(--sans); -webkit-font-smoothing: antialiased; }
+  .panel { padding: 14px 20px 18px; border-top: 1px solid var(--line); }
+  .panel:first-child { border-top: 0; }
+  .tag { font: 12px var(--mono); color: var(--tx3); margin-bottom: 8px; }
+  .tag b { font: 700 15px var(--display); color: var(--tx); margin-right: 8px; }
+  .msg { font-size: 16px; line-height: 23px; letter-spacing: .01em; }
+
+  /* La scheda compatta, com'è nell'app. */
+  .wc { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); }
+  .top { display: flex; align-items: baseline; gap: 10px; }
+  .top b { flex: 1; min-width: 0; font: 600 17px/21px var(--display); white-space: nowrap; overflow: hidden; }
+  .st { flex: none; display: inline-flex; align-items: center; gap: 4px; font: 600 14px/21px var(--display); letter-spacing: .01em; color: var(--wait); }
+  .st.good { color: var(--good); }
+  .m { font-size: 14.5px; line-height: 20px; color: var(--tx2); }
+  .one { white-space: nowrap; overflow: hidden; }
+  .fr { display: flex; flex-direction: column; border-radius: 8px; overflow: hidden; background: var(--mat); }
+  .cap { height: 18px; padding: 0 6px; display: flex; align-items: center; gap: 6px; font: 700 12px/1 var(--display); color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .cap i { font: 600 13.5px/1 var(--display); font-style: normal; color: var(--tx); }
+  .fr img { display: block; width: 100%; }
+
+  /* Oggi: miniature alte 60 px, in fila a sinistra. */
+  .oggi .th { display: flex; gap: 6px; margin-top: 4px; }
+  .oggi .fr { width: 34px; }
+  .oggi .fr img { height: 60px; object-fit: contain; }
+
+  /* A: le immagini si dividono tutta la larghezza; di ognuna si vede la parte alta, grande, col nome nella fascia. */
+  .va .th { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+  .va .cap { height: 26px; padding: 0 8px; font-size: 14px; }
+  .va .fr img { height: 132px; object-fit: cover; object-position: top center; }
+  .va .fr.dim { opacity: .5; }
+  .va .fr.got { box-shadow: inset 0 0 0 2px var(--good); }
+  .va .fr.got .cap { color: var(--good); }
+
+  /* B: il testo a sinistra, le miniature a destra; la scheda è bassa. */
+  .vb { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: start; }
+  .vb .tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .vb .tx b { font: 600 17px/21px var(--display); }
+  .vb .m { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .vb .st { align-self: flex-start; }
+  .vb .th { display: flex; gap: 6px; }
+  .vb .fr { width: 40px; }
+  .vb .fr img { height: 71px; object-fit: contain; }
+
+  /* C: ogni opzione ha la sua cella, immagine e nome; le celle si dividono la larghezza. */
+  .vc .cells { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+  .cell { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 9px; align-items: start; }
+  .cell .pic { width: 50px; border-radius: 6px; overflow: hidden; background: var(--mat); }
+  .cell .pic img { display: block; width: 100%; height: 89px; object-fit: contain; }
+  .cell .nm { display: flex; flex-direction: column; gap: 1px; padding-top: 1px; }
+  .cell .lt { font: 700 17px/20px var(--display); color: var(--tx2); }
+  .cell .nm b { font: 600 15.5px/19px var(--display); }
+  .cell .rec { font: 500 13px/18px var(--sans); color: var(--wait); }
+  .cell.dim .nm b, .cell.dim .lt { color: var(--tx2); }
+  .cell.dim .pic { opacity: .55; }
+  .cell.got .lt { color: var(--good); }
+  .cell.got .pic { box-shadow: 0 0 0 2px var(--good); }
+  .cell .ok { display: inline-flex; align-items: center; gap: 4px; font: 600 13px/18px var(--display); color: var(--good); }
+</style>
+</head>
+<body>
+<script>
+  const q = new URLSearchParams(location.search)
+  if (q.has('day')) document.documentElement.classList.add('day')
+  const A = '../../../web/public/demo-files/cart-a.png', B = '../../../web/public/demo-files/cart-b.png'
+  const msg = '<p class="msg">Quale delle due costruisco? La A tiene il riepilogo in alto, la B mette totale e Paga in una barra in fondo.</p>'
+  const head = (state = 'Da scegliere', good = false) => `<div class="top"><b>Carrello sul telefono</b><span class="st${good ? ' good' : ''}">${good ? '<svg viewBox="0 0 20 20" width="15" height="15"><path d="M4.5 10.5 8.5 14.5 15.5 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}${state}</span></div>`
+  const what = '<span class="m one">Dove stanno il totale e il tasto Paga nel carrello</span>'
+  const fr = (l, src, name = '', cls = '') => `<div class="fr ${cls}"><span class="cap">${l}${name ? `<i>${name}</i>` : ''}</span><img src="${src}" alt=""></div>`
+  const cell = (l, src, name, rec, cls = '', ok = false) => `<div class="cell ${cls}"><div class="pic"><img src="${src}" alt=""></div><div class="nm"><span class="lt">${l}</span><b>${name}</b>${rec ? '<span class="rec">consigliata</span>' : ''}${ok ? '<span class="ok"><svg viewBox="0 0 20 20" width="14" height="14"><path d="M4.5 10.5 8.5 14.5 15.5 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>scelta</span>' : ''}</div></div>`
+  const panels = {
+    oggi: ['Oggi', 'le miniature in fila a sinistra, il resto vuoto', `<div class="wc oggi">${head()}${what}<div class="th">${fr('A', A)}${fr('B', B)}</div></div>`],
+    a: ['A', 'immagini larghe col nome sopra (la suggerita)', `<div class="wc va">${head()}${what}<div class="th">${fr('A', A, 'riepilogo in alto')}${fr('B', B, 'barra in fondo')}</div></div>`],
+    a2: ['A', 'dopo la scelta', `<div class="wc va">${head('Scelto B', true)}${what}<div class="th">${fr('A', A, 'riepilogo in alto', 'dim')}${fr('B', B, 'barra in fondo', 'got')}</div></div>`],
+    b: ['B', 'immagini a destra: la scheda resta bassa', `<div class="wc vb"><div class="tx"><b>Carrello sul telefono</b><span class="m">Dove stanno il totale e il tasto Paga nel carrello</span><span class="st">Da scegliere</span></div><div class="th">${fr('A', A)}${fr('B', B)}</div></div>`],
+    c: ['C', 'immagini piccole, col nome accanto', `<div class="wc vc">${head()}${what}<div class="cells">${cell('A', A, 'riepilogo in alto', false)}${cell('B', B, 'barra in fondo', true)}</div></div>`],
+  }
+  const only = q.get('v')
+  document.body.innerHTML = Object.entries(panels).filter(([k]) => !only || k === only)
+    .map(([, [l, note, card]]) => `<section class="panel"><p class="tag"><b>${l}</b>${note}</p>${msg}${card}</section>`).join('')
+</script>
+</body>
+</html>
