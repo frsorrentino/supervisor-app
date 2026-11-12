@@ -96,7 +96,11 @@ fun TiAspettaPage(
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) { page.source?.let { SourceBlock(it, onJump) } }
             } else {
                 card()
-                page.source?.let { src -> Column(Modifier.widthIn(max = if (wide) 720.dp else androidx.compose.ui.unit.Dp.Infinity), verticalArrangement = Arrangement.spacedBy(8.dp)) { SourceBlock(src, onJump) } }
+                // Nella scheda di scelta «Da dove viene» sta sotto, raggruppato e non più largo di 720 dp; altrove come prima.
+                page.source?.let { src ->
+                    if (stack) Column(Modifier.widthIn(max = if (wide) 720.dp else androidx.compose.ui.unit.Dp.Infinity), verticalArrangement = Arrangement.spacedBy(8.dp)) { SourceBlock(src, onJump) }
+                    else SourceBlock(src, onJump)
+                }
             }
             if (page.others.isNotEmpty()) Others(page.others, now, open, { open = !open }, onOther)
         }
