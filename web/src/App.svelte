@@ -20,9 +20,10 @@
   import Features from './lib/Features.svelte'
   import DaProvare from './lib/DaProvare.svelte'
   import TiAspettaView from './lib/TiAspettaView.svelte'
-  import { decodeDecisions, decodeMonitor, decodeMonitors, decodeProve, readPage } from './lib/decideDecode'
+  import { WAIT_LANE, waitFileKey } from './lib/scelta'
+  import { decodeDecisions, decodeMonitor, decodeMonitors, decodeProve, decodeWait, readPage } from './lib/decideDecode'
   import { monitorOf, pollUntil, POLL_S, retryAfter, type RefreshCtx } from './lib/monitors'
-  import type { MonitorCard } from './lib/contract'
+  import type { MonitorCard, WaitFile, WaitItem } from './lib/contract'
   import type { DecisionGroup, ProvePage } from './lib/contract'
   import PrimaRaccolta from './lib/PrimaRaccolta.svelte'
   import Seguiti from './lib/Seguiti.svelte'
@@ -666,6 +667,31 @@
     ok: async (n: number) => { const r = await run(newCmd('prova', null, String(n), undefined, undefined, { result: 'ok' })); void provaCardRead(n); return proveDone(r?.ok ?? null, r?.text) },
     ko: async (n: number, why: string) => { const r = await run(newCmd('prova', null, String(n), why, undefined, { result: 'ko' })); void provaCardRead(n); return !!r?.ok },
   })
+  // Le richieste citate nelle chat come schede compatte (app-scheda-scelta-12-11, contratto 1.137): una lettura `attesa` con `archive`
+  // per id, poi la cache; una lettura senza risposta riprova al più tre volte, poi la scheda resta «in arrivo»; un rifiuto (un relay
+  // di prima, per una richiesta già chiusa) lascia il link. Si rileggono quando una risposta parte da qui e quando cambiano le
+  // richieste aperte nello stato (una risposta da un altro dispositivo): solo quelle che la cache dice ancora aperte.
+  let waitCards = $state<Record<string, WaitItem | 'gone' | null>>({})
+  async function waitCardRead(id: string) {
+    for (let a = 0; a < 3 && tr; a++) {
+      const r = await quiet({ ...newCmd('attesa', null, id), archive: true })
+      if (!r) continue
+      if (superseded(r)) continue
+      try { waitCards[id] = r.ok ? decodeWait(r.text) : 'gone' } catch { waitCards[id] = 'gone' }
+      return
+    }
+  }
+  const sameCard = (a: WaitItem, b: WaitItem) => a.id === b.id || (!!a.card_id && a.card_id === b.card_id)
+  const waitCardsRefresh = (only?: WaitItem) => { for (const [id, w] of Object.entries(waitCards)) if (w && w !== 'gone' && (only ? sameCard(w, only) : (w.state ?? 'open') === 'open')) void waitCardRead(id) }
+  setContext('wait-cards', {
+    read: (id: string) => waitCards[id],
+    ask: (id: string) => { if (id in waitCards) return; waitCards[id] = null; void waitCardRead(id) },
+    open: (id: string) => openWait(id),
+    file: (f: WaitFile) => fileAction(f.session ?? null, f.path, 'preview', waitFileKey(f)),
+  })
+  const openWids = $derived([...st.approvals.map(a => a.wid), ...(st.attention ?? []).map(a => a.wid)].filter(Boolean).sort().join(','))
+  let seenWids: string | null = null
+  $effect(() => { const now = openWids; if (seenWids != null && seenWids !== now) untrack(() => waitCardsRefresh()); seenWids = now })
   let provaReading = 0
   $effect(() => {
     const n = provaId
@@ -1770,14 +1796,15 @@
   // («prepare») e l'anteprima appena la card è a schermo. Restano pronti finché la chat è a schermo (`FileStore`), con la
   // chiave del file della chat (`fileKey`): lo stesso percorso mandato di nuovo con un'altra misura non riprende quello vecchio.
   const fileStore = new FileStore()
-  $effect(() => { fileStore.keep([MASTER, ...(open ? [open] : [])]) })
+  // I file dichiarati in una richiesta (contratto 1.137, `session` null) stanno nella loro corsia, `WAIT_LANE`, e restano pronti.
+  $effect(() => { fileStore.keep([MASTER, WAIT_LANE, ...(open ? [open] : [])]) })
   // app-web-anteprime-in-fila-12-11: i file di una sessione uno alla volta (`FileQueue`), se no il relay tiene solo l'ultimo.
   // Un'anteprima tiene la fila al massimo PREVIEW_LIMIT_MS; un tocco aspetta il PC quanto serve (180 s del trasporto). Il 12/11
   // (relay.log 12:30-13:00, 15 file di win:supervisor-app, tutti ok) la fila del relay dietro le letture lente è arrivata a 103 s e
   // l'esecuzione a 16 s: un limite più corto toglierebbe anteprime che stanno per arrivare.
   const fileQueue = new FileQueue()
   const PREVIEW_LIMIT_MS = 150_000
-  const loadFile = (name: string, path: string, quiet: boolean) => (): Promise<Fetched | null> => fileQueue.run(name, async () => {
+  const loadFile = (name: string | null, path: string, quiet: boolean) => (): Promise<Fetched | null> => fileQueue.run(name ?? WAIT_LANE, async () => {
     if (!tr) return null
     let c = newCmd('file', name, path), r: CmdResult | null = null
     // L'anteprima che nasce da sola non avvisa se il file non arriva. Una lettura rimpiazzata da quella di un altro
@@ -1794,7 +1821,7 @@
     // Il testo letto subito: «Copia» lo scrive negli appunti senza await (Safari).
     return { blob, name: f.name ?? path.split('/').pop() ?? 'file', mime: f.mime, text: files.copyKind(f.mime) === 'text' ? await blob.text() : undefined }
   }, !quiet, quiet ? PREVIEW_LIMIT_MS : 0)
-  const getFile = (name: string, path: string, key: string, quiet = false) => fileStore.get(key, loadFile(name, path, quiet))
+  const getFile = (name: string | null, path: string, key: string, quiet = false) => fileStore.get(key, loadFile(name, path, quiet))
   // Un file aperto in chat è visto anche in Risultati (app-risultati-visti-03-11, Franz: «rimangono presenti anche se li vedo altrove»).
   // Il menu unico della sessione (app-menu-sessione-03-11): una voce di Tocca a te apre la sua pagina; Guarda solo i lavori di quella sessione.
   function mineGo(name: string, kind: MenuKind) {
@@ -1804,7 +1831,7 @@
     else if (kind === 'seguiti') openPage('seguiti')
   }
   function seenPath(path: string) { for (const id of seenByPath(st.results?.items ?? [], path)) void run(newCmd('result_seen', null, id)) }
-  function fileAction(name: string, path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) {
+  function fileAction(name: string | null, path: string, act: FileAct | 'prepare' | 'preview' | 'seen', key: string) {
     if (!tr) return
     if (act !== 'prepare') seenPath(path)
     if (act === 'seen') return
@@ -1842,7 +1869,7 @@
       else if (n !== 'AbortError') say(`✗ ${t.fileShareFailed}`)
     })
   }
-  async function preview(name: string, path: string, key: string) {
+  async function preview(name: string | null, path: string, key: string) {
     // Ogni allegato in anteprima sotto il suo nome (Franz, 10/10 15:24 per immagini e video, 15/10 22:20 per tutti): i PDF
     // con la prima pagina, i testi con le prime righe.
     if (media[key] || texts[key] || failed[key]) return
@@ -2081,7 +2108,8 @@
     onOpenWait={(w) => (waitId = w)} onJump={(n, entry, sid) => { const live = st.sessions.some(x => x.name === n && x.state !== 'gone'); waitId = null; waitFrom = null; openPage(null); if (!live && sid) { sidOf = { ...sidOf, [n]: sid }; reading = n } else pick(n); void jumpTo(n, entry) }}
     onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
     onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}
-    onScreen={(s) => { waitId = null; waitFrom = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)} />
+    onScreen={(s) => { waitId = null; waitFrom = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)}
+    onFile={(f, act) => fileAction(f.session ?? null, f.path, act, waitFileKey(f))} onAnswered={(w) => waitCardsRefresh(w)} />
   {:else if p === 'prova' && provaId != null}
   <!-- La scheda di una prova (app-prova-link-10-11): ancora da provare, il tasto apre Verifica, dove si risponde. -->
   <ProvaView n={provaId} read={provaRead} {wide} onBack={closeProva} onVerify={() => { closeProva(); openPage('prove') }} />

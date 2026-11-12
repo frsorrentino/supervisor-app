@@ -450,6 +450,21 @@ const it = {
     home: 'Su iPhone e iPad arrivano solo all\'app aggiunta alla schermata Home', denied: 'Bloccate nelle impostazioni del browser',
   } as Record<string, string>)[s] ?? '',
   pushFail: 'Notifiche non attivate',
+  // La scheda di scelta (app-scheda-scelta-12-11, contratto 1.137).
+  sceltaPick: (l: string) => `Scegli ${l}`, sceltaPickAria: (l: string, name: string) => (name ? `Scegli ${l}, ${name}` : `Scegli ${l}`),
+  sceltaZoom: (what: string) => `Ingrandisci ${what}`, sceltaMoreImages: (n: number) => (n === 1 ? "Un'altra immagine" : `Altre ${n} immagini`),
+  sceltaOpen: { decide: 'Da decidere', choose: 'Da scegliere', verify: 'Da verificare', answer: 'Aspetta la tua risposta' } as Record<string, string>,
+  sceltaChosen: (l: string | null, name: string | null) => (l ? (name ? `Scelto ${l}, ${name}` : `Scelto ${l}`) : `Scelto: ${name ?? ''}`),
+  sceltaChosenShort: (l: string | null, name: string | null) => (l ? `Scelto ${l}` : `Scelto: ${name ?? ''}`),
+  sceltaApproved: 'Approvata', sceltaRedo: 'Da rifare', sceltaClosed: 'Chiusa senza ok', sceltaPicked: 'Scelta',
+  sceltaProduction: 'tocca la produzione', sceltaRoundNow: (n: number) => `Giro ${n}`, sceltaRound: (n: number) => `Giro ${n}`, sceltaRounds: 'Giri precedenti',
+  sceltaRoundRedo: 'Scartato', sceltaRoundClosed: 'Chiuso senza ok', sceltaRoundReplaced: 'Richiesto di nuovo senza risposta',
+  sceltaToday: (hm: string) => `oggi alle ${hm}`, sceltaOn: (day: string, hm: string) => `il ${day} alle ${hm}`,
+  sceltaReasonLabel: 'Cosa non va nelle proposte?', sceltaReasonHint: 'La sessione le rifà partendo da quello che scrivi.',
+  sceltaLeft: (n: number) => (n === 1 ? 'resta 1 carattere' : `restano ${n} caratteri`),
+  sceltaDone: { chosen: 'Scelta fatta', approved: 'Approvata', redo: 'Da rifare', closed: 'Chiusa senza ok' } as Record<string, string>,
+  sceltaAnswered: (when: string) => `risposta ${when}`, attesaLook: 'Cosa guardare', sceltaOpenCard: 'Apri la scheda', sceltaCardLoading: 'La scheda sta arrivando dal PC',
+  viewerAt: (i: number, n: number) => `${i} di ${n}`, viewerPrev: 'Immagine precedente', viewerNext: 'Immagine successiva',
 }
 
 // Le durate della pagina Notte in inglese: «2 hours and 3 minutes», «1 h 4 min».
@@ -878,6 +893,21 @@ const en: typeof it = {
     home: 'On iPhone and iPad they only reach the app added to the Home Screen', denied: 'Blocked in the browser settings',
   } as Record<string, string>)[s] ?? '',
   pushFail: 'Notifications not turned on',
+  // The choice card (app-scheda-scelta-12-11, contract 1.137).
+  sceltaPick: (l: string) => `Choose ${l}`, sceltaPickAria: (l: string, name: string) => (name ? `Choose ${l}, ${name}` : `Choose ${l}`),
+  sceltaZoom: (what: string) => `Enlarge ${what}`, sceltaMoreImages: (n: number) => (n === 1 ? 'One more image' : `${n} more images`),
+  sceltaOpen: { decide: 'To decide', choose: 'To choose', verify: 'To check', answer: 'Waiting for your reply' } as Record<string, string>,
+  sceltaChosen: (l: string | null, name: string | null) => (l ? (name ? `Chose ${l}, ${name}` : `Chose ${l}`) : `Chose: ${name ?? ''}`),
+  sceltaChosenShort: (l: string | null, name: string | null) => (l ? `Chose ${l}` : `Chose: ${name ?? ''}`),
+  sceltaApproved: 'Approved', sceltaRedo: 'To redo', sceltaClosed: 'Closed without ok', sceltaPicked: 'Chosen',
+  sceltaProduction: 'touches production', sceltaRoundNow: (n: number) => `Round ${n}`, sceltaRound: (n: number) => `Round ${n}`, sceltaRounds: 'Earlier rounds',
+  sceltaRoundRedo: 'Discarded', sceltaRoundClosed: 'Closed without ok', sceltaRoundReplaced: 'Asked again with no answer',
+  sceltaToday: (hm: string) => `today at ${hm}`, sceltaOn: (day: string, hm: string) => `on ${day} at ${hm}`,
+  sceltaReasonLabel: 'What is wrong with the proposals?', sceltaReasonHint: 'The session redoes them starting from what you write.',
+  sceltaLeft: (n: number) => (n === 1 ? '1 character left' : `${n} characters left`),
+  sceltaDone: { chosen: 'Choice made', approved: 'Approved', redo: 'To redo', closed: 'Closed without ok' } as Record<string, string>,
+  sceltaAnswered: (when: string) => `answered ${when}`, attesaLook: 'What to look at', sceltaOpenCard: 'Open the card', sceltaCardLoading: 'The card is on its way from the PC',
+  viewerAt: (i: number, n: number) => `${i} of ${n}`, viewerPrev: 'Previous image', viewerNext: 'Next image',
 }
 
 export const t = lang === 'en' ? en : it

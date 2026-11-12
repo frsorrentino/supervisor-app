@@ -17,7 +17,7 @@ object DemoText {
         "Esito: seeds and admin page reviewed, 42 tests green." to
             "Reviewed the seed data and the orders admin page; 214 tests green and the gift card flow checked on staging.",
         "Migrations 008-011 applied, tests green" to "Applied migrations 008-011 for saved carts and gift cards; all 214 tests green",
-        "Review the seeds and the admin page" to "Review the seed data and the new orders admin page",
+        "Review the seeds" to "Review the seed data and the new orders admin page",
         "README rewritten" to "Rewrote the post on edge caching, added the benchmark table and fixed three broken links",
         "Run the test suite" to "Run the checkout test suite after the Stripe webhook refactor",
         "Wait for the go" to "Wait for the client's go, then deploy 2.8.0",

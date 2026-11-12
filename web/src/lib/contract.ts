@@ -389,6 +389,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'permission_mode'
   /** Contratto 1.72: la vista «Modifiche» (arg null o file=<percorso>) e il passaggio intero (arg = id della voce). */
   | 'changes' | 'diff'
+  /** Contratto 1.137: «Nessuna, rifare»; arg = il compito, `text` = il motivo, obbligatorio, fino a 300 caratteri. */
+  | 'approval_redo'
 /** Contratto 1.121: la bozza del primo passo di `feedback_app` e l'esito del secondo. */
 /** Contratto 1.123: `screenshot_notice` con la schermata (null senza); `github_ok` true solo se il gh del PC legge il repo privato dei feedback (assente = no). */
 export type FeedbackDraft = { hash: string; kind: string; label: string; title: string; body: string; screenshot: boolean; screenshot_notice?: string | null; github_ok?: boolean; options: { id: string; label: string; description: string }[] }
@@ -428,6 +430,8 @@ export type Cmd = {
   content?: Record<string, string | number | boolean>
   /** Contratto 1.89: l'uid Firebase dell'abbinamento; lo mette il trasporto remoto. */
   uid?: string
+  /** Contratto 1.137, `attesa`: la scheda di qualsiasi giro, anche dopo la risposta. */
+  archive?: boolean
 }
 /**
  * Contratto 1.83: una domanda di un server MCP a metà di uno strumento (elicitation). `mode` form = un modulo di `fields`;
@@ -463,15 +467,36 @@ export const blankState = (ts: number): State => decodeState(JSON.stringify({ v:
  * ok, choice, pausa, prova, login, prossimi, needs_you, question; `answer` l'op che risponde, la stessa dei tasti della carta;
  * `msg` solo da `attesa`, dove la domanda è stata spiegata.
  */
-export type WaitOption = { n: number; label: string; value: string; recommended?: boolean; description?: string | null }
+/**
+ * Contratto 1.137 (app-scheda-scelta-12-11): un file di una richiesta. `kind` image, document (pdf, testo, markdown, html, office,
+ * svg) o other; `session` null = dichiarato nella richiesta, servito dall'op `file` solo finché la richiesta è aperta; con la
+ * sessione è un file di quella trascrizione. Si chiede con `file`, `arg` = `path` esatto e `session` = `session`.
+ */
+export type WaitFile = { path: string; name: string; mime?: string | null; size?: number | null; kind: 'image' | 'document' | 'other' | string; session?: string | null }
+/** Contratto 1.137: `description` è la riga di pro e contro, `files` i file dell'opzione. */
+export type WaitOption = { n: number; label: string; value: string; recommended?: boolean; description?: string | null; files?: WaitFile[] | null }
 export type WaitAnswer = { op: string; arg?: string | null; session?: string | null; kind?: string | null; done?: WaitAnswer | null }
 export type WaitMsg = { session?: string | null; session_id?: string | null; id?: string | null; uuid?: string | null; text: string; key?: string | null; at?: number | null }
+/** Contratto 1.137: com'è finita una scheda (`attesa` con `archive`): chi, quando, l'opzione scelta (il suo `value`) o il motivo. */
+export type WaitAnswered = { by?: string | null; at?: number | null; choice?: string | null; reason?: string | null }
+/** Contratto 1.137: un giro precedente della stessa scheda. `state` redo (col motivo), closed o replaced (richiesto di nuovo senza risposta). */
+export type WaitRound = {
+  id: string; at: number; text: string; description?: string | null; options?: WaitOption[] | null; files?: WaitFile[] | null
+  state: 'redo' | 'closed' | 'replaced' | string; reason?: string | null; by?: string | null; answered_at?: number | null; choice?: string | null
+}
 export type WaitItem = {
   id: string; type: string; kind: string; label: string; label_text: string; session?: string | null; task?: string | null; text: string
   options?: WaitOption[] | null; at: number; card?: { what?: string; where?: string; untested?: string; undo?: string; undo_how?: string; deploy?: boolean } | null
   link?: string | null; answer?: WaitAnswer | null; msg?: WaitMsg | null
   /** Contratto 1.131: una riga per gli elenchi e i tasti della carta, ognuno col comando del relay già pronto. */
   title?: string | null; actions?: WaitAction[] | null
+  /**
+   * Contratto 1.137: la descrizione vera, i file (di una scelta: quelli delle opzioni più `--files`; di una verifica: quelli delle
+   * sue prove), l'id stabile della scheda (quello del primo giro), lo stato (`open`; dall'archivio anche chosen, approved, redo,
+   * closed) con `answered`, e da `attesa` i giri precedenti dal più vecchio.
+   */
+  description?: string | null; files?: WaitFile[] | null; card_id?: string | null
+  state?: 'open' | 'chosen' | 'approved' | 'redo' | 'closed' | string | null; answered?: WaitAnswered | null; rounds?: WaitRound[] | null
 }
 export type WaitAction = { label: string; style: 'primary' | 'option' | 'secondary'; cmd: Record<string, unknown> & { op: string; session?: string | null; arg?: string | null }; text_field?: string | null; recommended?: boolean }
 export type WaitsPage = { at: number; items: WaitItem[] }

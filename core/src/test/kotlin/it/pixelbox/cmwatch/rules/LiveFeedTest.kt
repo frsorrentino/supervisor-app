@@ -279,7 +279,7 @@ class LiveFeedTest {
         // Senza nota dello strumento, senza obiettivo: il prossimo passo detto, e «pensa».
         val bare = atlas.copy(toolNote = null, tool = null, goal = null, turnStarted = 1_789_210_700L)
         assertEquals(
-            listOf("atlas shop lavora da 1 minuto, ora: sta pensando. Obiettivo: Review the seeds and the admin page."),
+            listOf("atlas shop lavora da 1 minuto, ora: sta pensando. Obiettivo: Review the seeds."),
             LiveFeed.round(state.copy(sessions = listOf(bare)), IT, now = 1_789_210_700L + 70),
         )
     }

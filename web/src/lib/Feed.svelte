@@ -12,7 +12,8 @@
   import { blocks, cards, compact, type Table } from './markdown'
   import { kind, row } from './toolText'
   import { outcomeForPhone } from './links'
-  import { stripSessionLinks } from './sessionLinks'
+  import { stripSessionLinks, stripWaitLinks } from './sessionLinks'
+  import SceltaCards from './SceltaCards.svelte'
   import { parseSteps } from './nextSteps'
   import { speech, toggle } from './speech.svelte'
   import type { IconName } from './icons'
@@ -159,9 +160,10 @@
 {#snippet claude(e: TranscriptEntry)}
   {@const text = parseSteps(e.text ?? '').text}
   {@const sl = stripSessionLinks(outcomeForPhone(text, t.outcomeLabel), sessions)}
+  {@const wl = stripWaitLinks(sl.text)}
   {@const c = cost(e)}
   {@const typed = outcomeType(e.outcome_type)}
-  {@const es = typed === 'none' ? { body: sl.text, outcome: null } : splitOutcome(sl.text, t.outcomeLabel)}
+  {@const es = typed === 'none' ? { body: wl.text, outcome: null } : splitOutcome(wl.text, t.outcomeLabel)}
   <div class="claude" data-quote={text} data-quote-at={e.at ?? ''}>
     <div class="ctext">
       {#each splitLabels(replaceNames(es.body, taskNames(commitments))) as part}
@@ -182,7 +184,9 @@
         <a class="sbtn" href={b.url} target="_blank" rel="noopener" title={t.openInSupervisorHint} onclick={(ev) => { ev.preventDefault(); onSession(b.session) }}><span class="sn">{b.session}</span><span class="sl">{t.openInSupervisor}</span></a>
       {/each}
       <!-- Le prove citate come schede compatte coi loro tasti (app-prova-scheda-in-chat-11-11). -->
-      <ProvaCards text={sl.text} />
+      <ProvaCards text={wl.text} />
+      <!-- Le richieste citate come schede compatte, al posto del loro link (app-scheda-scelta-12-11). -->
+      <SceltaCards ids={wl.ids} />
       {#if e.cut}<span class="meta">{t.textCut}</span>{/if}
       {#if c}<span class="cost">{c}</span>{/if}
     </div>

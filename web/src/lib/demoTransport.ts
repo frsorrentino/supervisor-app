@@ -3,14 +3,14 @@ import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, 
 import type { FileBlob, Transport } from './transport'
 import { lang } from './lang'
 import { decisionsDemo, waitsDemo, kpiDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, resultsDemo, seguitiDemo, world, type World } from './demo'
-import type { DecisionsPage, PrimaRaccoltaPage, ProvePage, ResultsPage, SeguitiPage } from './contract'
+import type { DecisionsPage, PrimaRaccoltaPage, ProvePage, ResultsPage, SeguitiPage, WaitAnswered, WaitItem } from './contract'
 import { NIGHT_TARGET } from './recapAgenda'
 
 // La demo che risponde, porta di FakeTransport.kt (Franz, 15/10 20:36: «la demo deve rispecchiare al 100% l'app»): i
 // comandi cambiano lo stato come li cambierebbe il PC, con i testi del relay, di successo e di rifiuto. Niente rete.
 const MODES = new Set(['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'])
 const VALID_NAME = /^[A-Za-z0-9._-]{1,64}$/
-const DEMO_FILES: Record<string, string> = { 'checkout-before.png': 'image/png', 'checkout-tests.pdf': 'application/pdf', 'edge-caching.md': 'text/markdown', 'bench-data.zip': 'application/zip', 'edge-caching-preview.html': 'text/html' }
+const DEMO_FILES: Record<string, string> = { 'cart-a.png': 'image/png', 'cart-b.png': 'image/png', 'cart-round1.png': 'image/png', 'checkout-before.png': 'image/png', 'checkout-tests.pdf': 'application/pdf', 'edge-caching.md': 'text/markdown', 'bench-data.zip': 'application/zip', 'edge-caching-preview.html': 'text/html' }
 
 export class DemoTransport implements Transport {
   readonly world: World
@@ -24,6 +24,9 @@ export class DemoTransport implements Transport {
   private seguiti: SeguitiPage | null = null
   private resultsPage: ResultsPage | null = null
   private decisions: DecisionsPage | null = null
+  /** Contratto 1.137: le schede della demo a cui si è risposto, per compito: restano leggibili dall'archivio con com'è finita. */
+  private waitDone = new Map<string, { state: 'chosen' | 'approved' | 'redo' | 'closed'; answered: WaitAnswered }>()
+  private waitOf(task: string | null | undefined): WaitItem | undefined { return task ? waitsDemo(this.now()).find(w => w.task === task && w.type === 'carta' && w.kind === 'choice') : undefined }
 
   constructor(private readonly clock: () => number = () => Math.floor(Date.now() / 1000)) {
     this.world = world(clock())
@@ -159,7 +162,9 @@ export class DemoTransport implements Transport {
         case 'transcript': { const x = ses ? this.transcript(ses.name, cmd.arg) : null; return x == null ? ko(`${cmd.session}: no transcript`) : ok(x) }
         case 'file': {
           const name = (cmd.arg ?? '').split('/').pop() ?? ''
-          if (!ses || !DEMO_FILES[name]) return ko('missing or unreadable')
+          // Contratto 1.137: un file dichiarato in una richiesta si chiede senza sessione.
+          const declared = cmd.session == null && waitsDemo(this.now()).some(w => [...(w.files ?? []), ...(w.options ?? []).flatMap(o => o.files ?? []), ...(w.rounds ?? []).flatMap(r => r.files ?? [])].some(f => f.path === cmd.arg))
+          if ((!ses && !declared) || !DEMO_FILES[name]) return ko('missing or unreadable')
           this.files.set(cmd.id, name)
           return ok(`ready: ${name}`)
         }
@@ -262,8 +267,23 @@ ${it.caption ?? ''}`.trim() }))
         }
         case 'decisioni': return ok(JSON.stringify(this.decisions ??= decisionsDemo(this.now())))
         // Contratto 1.130: le domande che aspettano; `attesa` dà la voce col pezzo di trascrizione, una chiusa è un rifiuto come nel relay.
-        case 'attese': return ok(JSON.stringify({ at: this.now(), items: waitsDemo(this.now()).map(({ msg: _m, ...w }) => w) }))
-        case 'attesa': { const w = waitsDemo(this.now()).find(x => x.id === cmd.arg); return w ? ok(JSON.stringify(w)) : ko(`${cmd.arg}: nessuna attesa aperta con questo id`) }
+        case 'attese': return ok(JSON.stringify({ at: this.now(), items: waitsDemo(this.now()).filter(w => !(w.task && this.waitDone.has(w.task))).map(({ msg: _m, rounds: _r, ...w }) => w) }))
+        // Contratto 1.137: con `archive` l'id di qualsiasi giro dà la scheda, anche dopo la risposta: lo stato, `answered`, nessun tasto.
+        case 'attesa': {
+          const w = waitsDemo(this.now()).find(x => x.id === cmd.arg || (cmd.archive && (x.card_id === cmd.arg || !!x.rounds?.some(r => r.id === cmd.arg))))
+          const done = w?.task ? this.waitDone.get(w.task) : undefined
+          if (!w || (done && !cmd.archive)) return ko(`${cmd.arg}: nessuna attesa aperta con questo id`)
+          return ok(JSON.stringify(done ? { ...w, state: done.state, answered: done.answered, actions: [], answer: null } : w))
+        }
+        // Contratto 1.137: «Nessuna, rifare» vuole il motivo; un compito che non aspetta più risponde ok con closed false.
+        case 'approval_redo': {
+          const w = this.waitOf(cmd.arg)
+          if (!w) return ko(`${cmd.arg}: unknown task`)
+          if (!cmd.text?.trim()) return ko(`${cmd.arg}: «none, redo» needs the reason`)
+          if (this.waitDone.has(w.task!)) return ok(JSON.stringify({ task: cmd.arg, closed: false, state: 'approved', text: `${cmd.arg}: it no longer waited for an ok, the card closes` }))
+          this.waitDone.set(w.task!, { state: 'redo', answered: { by: 'web', at: t, choice: null, reason: cmd.text.trim().slice(0, 300) } })
+          return ok(JSON.stringify({ task: cmd.arg, closed: true, state: 'running', text: `${cmd.arg}: proposals discarded, the task is back to running` }))
+        }
         case 'kpi': return ok(JSON.stringify(kpiDemo(this.now())))
         // Contratto 1.83: la risposta a una domanda MCP la toglie da Tocca a te.
         case 'elicit': { this.set({ ...s, elicitations: (s.elicitations ?? []).filter(e => e.id !== cmd.session && e.id !== (cmd.arg ?? '').split(' ')[0]) }); return ok('answered') }
@@ -326,11 +346,15 @@ ${it.caption ?? ''}`.trim() }))
         // Contratto 1.129: chiusa come superata; ok anche se il compito non aspettava più.
         case 'approval_close': {
           if (!cmd.arg) return ko('no task')
+          const cw = this.waitOf(cmd.arg)
+          if (cw && !this.waitDone.has(cmd.arg)) { this.waitDone.set(cmd.arg, { state: 'closed', answered: { by: 'web', at: t, choice: null, reason: cmd.text?.trim() || null } }); return ok(JSON.stringify({ task: cmd.arg, closed: true, state: 'superseded' })) }
           const was = s.approvals.some(a => a.task === cmd.arg)
           this.set({ ...s, approvals: s.approvals.filter(a => a.task !== cmd.arg) })
           return ok(JSON.stringify({ task: cmd.arg, closed: was, state: was ? 'superseded' : 'unknown' }))
         }
         case 'approve':
+          // La scheda di scelta della demo (contratto 1.137): la risposta la porta in archivio con l'opzione scelta.
+          if (this.waitOf(cmd.arg) && !this.waitDone.has(cmd.arg!)) { this.waitDone.set(cmd.arg!, { state: cmd.choice ? 'chosen' : 'approved', answered: { by: 'web', at: t, choice: cmd.choice ?? null, reason: null } }); return ok(`approved ${cmd.arg}`) }
           if (!s.approvals.some(a => a.task === cmd.arg)) return ko(`${cmd.arg}: no task waiting for an ok`)
           this.set({ ...s, approvals: s.approvals.filter(a => a.task !== cmd.arg) })
           return ok(`approved ${cmd.arg}`)

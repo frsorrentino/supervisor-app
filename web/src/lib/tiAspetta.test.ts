@@ -25,8 +25,11 @@ describe('tiAspetta', () => {
     const all = decodeWaits(s.result.find(r => r.id === id)!.text).items
     const choice = all.find(w => w.kind === 'choice')!
     expect(choice.title).toBe('Release 2.4'); expect(choice.card?.deploy).toBe(true)
-    expect(choice.actions!.map(lookOf)).toEqual(['option', 'option', 'tonal'])
-    expect(cmdOf(choice.actions![2], ' superseded by the hotfix ').text).toBe('superseded by the hotfix')
+    // Contratto 1.137: dopo le opzioni «None, redo» (`approval_redo`, col motivo in `text`), poi «Close without ok».
+    expect(choice.actions!.map(lookOf)).toEqual(['option', 'option', 'tonal', 'tonal'])
+    expect(choice.actions!.map(a => a.cmd.op)).toEqual(['approve', 'approve', 'approval_redo', 'approval_close'])
+    expect(cmdOf(choice.actions![2], ' too big on the phone ').text).toBe('too big on the phone')
+    expect(cmdOf(choice.actions![3], ' superseded by the hotfix ').text).toBe('superseded by the hotfix')
     const next = all.find(w => w.kind === 'prossimi')!.actions!
     expect(cmdOf(next.find(a => a.text_field === 'arg')!, 'Commit now').arg).toBe('Commit now')
   })

@@ -85,3 +85,32 @@ export function askedSession(search: string, hash: string): string | null {
   // aveva due pagine con la stessa chiave.
   return h.trim() || null
 }
+
+/**
+ * I link delle richieste nei testi della chat (app-scheda-scelta-12-11, Franz 12/11 15:10: «in chat, al posto del link, una scheda
+ * compatta»): `…/#/attesa/<id>`, col sito o senza, e i link con testo che ci portano escono dal testo; gli id restano in `ids`,
+ * nell'ordine e una volta sola, e al loro posto la chat mostra la scheda. Un id nudo citato in una frase resta dov'è e ha la sua
+ * scheda lo stesso. La riga rimasta vuota o con la sola etichetta sparisce, come per i link delle sessioni. Come SessionLinks.kt,
+ * coi casi di core/src/test/resources/scelta-cases.json.
+ */
+const WAIT_ID = 'w[0-9a-f]{10}'
+const WAIT_MD = new RegExp(String.raw`\[[^\]\n]+]\((?:https?://[^)\s]*)?#/attesa/(${WAIT_ID})\)`, 'g')
+const WAIT_URL = new RegExp(String.raw`(?:https?://[^\s<>()\[\]«»]*)?#/attesa/(${WAIT_ID})(?![0-9A-Za-z])`, 'g')
+const WAIT_BARE = new RegExp(String.raw`(?<![\p{L}\p{N}_/#-])(${WAIT_ID})(?![\p{L}\p{N}_-])`, 'gu')
+const TAKEN = '\u0000'
+const TAKEN_AND_DOTS = /\u0000[.,;:!?]*(?=\s|$)|\u0000/g
+export function stripWaitLinks(text: string): { text: string; ids: string[] } {
+  if (!/w[0-9a-f]{10}/.test(text)) return { text, ids: [] }
+  const ids: string[] = []
+  const note = (id: string) => { if (!ids.includes(id)) ids.push(id); return TAKEN }
+  const t = text.replace(WAIT_MD, (_m: string, id: string) => note(id)).replace(WAIT_URL, (_m: string, id: string) => note(id))
+  let out = text
+  if (ids.length) {
+    const before = text.split('\n')
+    const lines: (string | null)[] = t.split('\n').map((l, i) => (l.includes(TAKEN) ? tidy(l.replace(TAKEN_AND_DOTS, ''), before[i].match(/^[ \t]*/)![0]) : l))
+    for (let i = 1; i < lines.length; i++) { const p = lines[i - 1]; if (lines[i] == null && p != null && isLabel(p)) lines[i - 1] = null }
+    out = lines.filter((l): l is string => l != null).join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '')
+  }
+  for (const m of out.matchAll(WAIT_BARE)) if (!ids.includes(m[1])) ids.push(m[1])
+  return ids.length ? { text: out, ids } : { text, ids }
+}

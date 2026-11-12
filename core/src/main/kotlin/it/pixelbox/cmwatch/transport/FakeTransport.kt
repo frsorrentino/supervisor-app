@@ -460,6 +460,20 @@ class FakeTransport(
                 current.value = current.value.let { st -> st.copy(approvals = st.approvals.filter { it.task != cmd.arg }) }
                 ok("""{"task": "${cmd.arg}", "closed": $was, "state": "${if (was) "superseded" else "unknown"}"}""")
             }
+            // Contratto 1.137: «Nessuna, rifare» vuole il motivo; le proposte sono scartate e il compito torna al lavoro; ok anche se
+            // non aspettava più (closed false).
+            CmdOp.APPROVAL_REDO -> when {
+                cmd.arg.isNullOrBlank() -> ko("no task")
+                cmd.text.isNullOrBlank() -> ko("${cmd.arg}: «none, redo» needs the reason")
+                else -> {
+                    val was = s.approvals.any { it.task == cmd.arg }
+                    current.value = current.value.let { st -> st.copy(approvals = st.approvals.filter { it.task != cmd.arg }) }
+                    ok(
+                        if (was) """{"task": "${cmd.arg}", "closed": true, "state": "running", "text": "${cmd.arg}: proposals discarded, the task is back to running"}"""
+                        else """{"task": "${cmd.arg}", "closed": false, "state": "unknown", "text": "${cmd.arg}: it no longer waited for an ok, the card closes"}""",
+                    )
+                }
+            }
             // Contratto 1.130: le attese della fixture; `attesa` con l'id della fixture ha il pezzo di trascrizione, le altre sono chiuse.
             CmdOp.ATTESE -> ok(sampleText("attese"))
             CmdOp.ATTESA -> sampleResult("attesa", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }

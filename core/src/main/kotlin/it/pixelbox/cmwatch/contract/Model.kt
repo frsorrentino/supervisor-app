@@ -102,6 +102,11 @@ enum class CmdOp {
      * facoltativo. Ok anche se il compito non aspettava più (`closed: false`): l'app chiude sempre la carta.
      */
     @SerialName("approval_close") APPROVAL_CLOSE,
+    /**
+     * Contratto 1.137 (app-scheda-scelta-12-11): «Nessuna, rifare» su una scelta; `arg` = id del compito, `text` = il motivo,
+     * obbligatorio, fino a 300 caratteri. Il giro resta scartato col motivo e il compito torna al lavoro.
+     */
+    @SerialName("approval_redo") APPROVAL_REDO,
     /** Contratto 1.130: le domande che aspettano la persona e una sola, con il pezzo di trascrizione (letture passive). */
     @SerialName("attese") ATTESE,
     @SerialName("attesa") ATTESA,

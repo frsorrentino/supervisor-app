@@ -43,9 +43,12 @@ class TiAspettaTest {
         val choice = all.first { w -> w.kind == "choice" }
         assertEquals("Release 2.4", choice.title); assertEquals(true, choice.card?.deploy)
         val acts = choice.actions!!
-        assertEquals(listOf(TiAspetta.Look.OPTION, TiAspetta.Look.OPTION, TiAspetta.Look.TONAL), acts.map(TiAspetta::lookOf))
+        // Contratto 1.137: dopo le opzioni «None, redo» (`approval_redo`, col motivo in `text`), poi «Close without ok».
+        assertEquals(listOf(TiAspetta.Look.OPTION, TiAspetta.Look.OPTION, TiAspetta.Look.TONAL, TiAspetta.Look.TONAL), acts.map(TiAspetta::lookOf))
+        assertEquals(listOf("approve", "approve", "approval_redo", "approval_close"), acts.map { (it.cmd["op"] as kotlinx.serialization.json.JsonPrimitive).content })
         assertEquals("Release now (recommended)", (TiAspetta.cmdOf(acts[0], null)["choice"] as kotlinx.serialization.json.JsonPrimitive).content)
-        assertEquals("superseded by the hotfix", (TiAspetta.cmdOf(acts[2], " superseded by the hotfix ")["text"] as kotlinx.serialization.json.JsonPrimitive).content)
+        assertEquals("too big on the phone", (TiAspetta.cmdOf(acts[2], " too big on the phone ")["text"] as kotlinx.serialization.json.JsonPrimitive).content)
+        assertEquals("superseded by the hotfix", (TiAspetta.cmdOf(acts[3], " superseded by the hotfix ")["text"] as kotlinx.serialization.json.JsonPrimitive).content)
         val next = all.first { w -> w.kind == "prossimi" }.actions!!
         val reply = next.first { x -> x.textField == "arg" }
         assertEquals("Commit now", (TiAspetta.cmdOf(reply, "Commit now")["arg"] as kotlinx.serialization.json.JsonPrimitive).content)

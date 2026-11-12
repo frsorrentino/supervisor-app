@@ -10,7 +10,7 @@ import { decodeChanges, decodeState } from './contract'
 import type { AgendaPage, ChangedFile, Event, SearchPage, Session, State, StepDiff, TimelinePage, TranscriptEntry, PrimaRaccoltaPage, SeguitiPage, ResultItem, ResultsPage } from './contract'
 import type { Sent, Status } from './chatRules'
 import type { Sample } from './quotaHistory'
-import type { Commitment, DecisionsPage, WaitItem, KpiData, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
+import type { Commitment, DecisionsPage, WaitFile, WaitItem, KpiData, PluginsPage, ProvePage, SystemStatus, TimelineEvent } from './contract'
 import { midnight } from './kpi'
 import type { NightReport } from './night'
 import { lang } from './lang'
@@ -40,7 +40,7 @@ const DRESS: [string, string][] = [
     'Rewrote the post on edge caching with the three sections you asked for, added the benchmark table and fixed three broken links.'],
   ['Esito: seeds and admin page reviewed, 42 tests green.', 'Reviewed the seed data and the orders admin page; 214 tests green and the gift card flow checked on staging.'],
   ['Migrations 008-011 applied, tests green', 'Applied migrations 008-011 for saved carts and gift cards; all 214 tests green'],
-  ['Review the seeds and the admin page', 'Review the seed data and the new orders admin page'],
+  ['Review the seeds', 'Review the seed data and the new orders admin page'],
   ['README rewritten', 'Rewrote the post on edge caching, added the benchmark table and fixed three broken links'],
   ['Run the test suite', 'Run the checkout test suite after the Stripe webhook refactor'],
   ['Wait for the go', "Wait for the client's go, then deploy 2.8.0"],
@@ -359,6 +359,10 @@ export function world(now: number): World {
       said('p1.0', 'Also run the gift card flow on staging', t0 + 158, 'phone'),
       tool('a8.0', 'Edit', '/home/dev/storefront/src/checkout/totals.ts', t0 + 160, { diff: stepOf(sample.files[0], 'edit') }),
       tool('a8.1', 'Write', '/home/dev/storefront/tests/checkout/totals.test.ts', t0 + 170, { diff: stepOf(sample.files[1], 'create') }),
+      // La scelta del carrello chiesta in chat (app-scheda-scelta-12-11): il link della richiesta diventa la sua scheda compatta.
+      claude('demo-store-cart', `${cartChoice(now).msg!.text}
+
+https://supervisor.example.com/#/attesa/w00000000c3`, t0 + 175),
     ],
     blog: [
       tool('a0', 'Write', 'posts/edge-caching.md', t0 - 120, { files: [{ path: '/w/blog/posts/edge-caching.md', mime: 'text/markdown', size: 547 }, { path: '/w/blog/bench/bench-data.zip', mime: 'application/zip', size: 166 }, { path: '/w/blog/posts/edge-caching-preview.html', mime: 'text/html', size: 868 }] }),
@@ -500,7 +504,48 @@ export const monitorsDemo = (): MonitorCard[] =>
     ? { ...m, refreshable: true, refresh: { state: 'idle' as const, started: null, ended: null, rc: null, message: null, retry_at: null, timeout_s: 60 } }
     : { ...m, refreshable: false, refresh: null }))
 
+/** Un file dichiarato in una richiesta della demo (contratto 1.137): servito da /demo-files come gli altri. */
+const demoShot = (name: string, size: number): WaitFile => ({ path: `/home/demo/workspaces/work/storefront/docs/mockups/${name}`, name, mime: 'image/png', size, kind: 'image', session: null })
+/**
+ * La scheda di scelta della demo (app-scheda-scelta-12-11): due proposte del carrello di storefront con le loro immagini, la B
+ * consigliata, «Nessuna, rifare», e un primo giro scartato col suo motivo.
+ */
+const cartChoice = (now: number): WaitItem => {
+  const a = demoShot('cart-a.png', 37719), b = demoShot('cart-b.png', 37043), r1 = demoShot('cart-round1.png', 33952)
+  const A = en ? 'A summary on top' : 'A riepilogo in alto', B = en ? 'B bar at the bottom' : 'B barra in fondo', Bv = `${B} (${en ? 'recommended' : 'consigliata'})`
+  const R = en ? 'A dense list' : 'A lista fitta'
+  return {
+    id: 'w00000000c3', type: 'carta', kind: 'choice', label: 'choose', label_text: en ? 'Choose' : 'Scegli', session: 'storefront', task: 'demo-cart-layout',
+    title: en ? 'Cart on the phone' : 'Carrello sul telefono',
+    text: en ? 'Where the total and the Pay button go in the cart' : 'Dove stanno il totale e il tasto Paga nel carrello',
+    description: en ? 'Two proposals for the cart on the phone: only the place of the total and of the Pay button changes. B keeps the button under the thumb, A shows it before the items.'
+      : 'Due proposte per il carrello sul telefono: cambia solo dove stanno il totale e il tasto Paga. La B tiene il tasto sotto il pollice, la A lo mostra prima degli articoli.',
+    options: [
+      { n: 1, label: A, value: A, description: en ? 'The total shows at once; with many items the button stays at the top.' : 'Il totale si vede subito; con molti articoli il tasto resta in cima.', files: [a] },
+      { n: 2, label: B, value: Bv, recommended: true, description: en ? 'Pay is always under the thumb; it covers one row of the list.' : 'Paga è sempre sotto il pollice; copre una riga della lista.', files: [b] },
+    ],
+    at: now - 540, card: null, link: '#/attesa/w00000000c3', answer: { op: 'approve', arg: 'demo-cart-layout' },
+    actions: [
+      { label: A, style: 'option', cmd: { op: 'approve', session: null, arg: 'demo-cart-layout', text: 'ok', choice: A } },
+      { label: B, style: 'primary', recommended: true, cmd: { op: 'approve', session: null, arg: 'demo-cart-layout', text: 'ok', choice: Bv } },
+      { label: en ? 'None, redo' : 'Nessuna, rifare', style: 'secondary', cmd: { op: 'approval_redo', session: null, arg: 'demo-cart-layout' }, text_field: 'text' },
+      { label: en ? 'Close without ok' : 'Chiudi senza ok', style: 'secondary', cmd: { op: 'approval_close', session: null, arg: 'demo-cart-layout' }, text_field: 'text' },
+    ],
+    files: [a, b], card_id: 'w00000000c1', state: 'open', answered: null,
+    rounds: [{
+      id: 'w00000000c1', at: now - 5400, text: en ? 'Cart on the phone' : 'Carrello sul telefono', description: en ? 'A dense list with the button at the end of the page.' : 'Una lista fitta, col tasto in fondo alla pagina.',
+      options: [{ n: 1, label: R, value: R, description: en ? 'five items on screen' : 'cinque articoli a schermo', files: [r1] }], files: [r1],
+      state: 'redo', reason: en ? 'Too dense: the prices are hard to read and the button ends below the fold.' : 'Troppo fitta: i prezzi si leggono male e il tasto finisce sotto la piega.', by: 'phone', answered_at: now - 4800, choice: null,
+    }],
+    msg: { session: 'storefront', id: 'demo-store-cart', at: now - 560,
+      text: en ? 'The cart on the phone is redone after your note on the first round.\n\nWhich of the two do I build? A keeps the summary on top, B puts total and Pay in a bar at the bottom.'
+        : 'Il carrello sul telefono è rifatto dopo la tua nota sul primo giro.\n\nQuale delle due costruisco? La A tiene il riepilogo in alto, la B mette totale e Paga in una barra in fondo.',
+      key: en ? 'Which of the two do I build?' : 'Quale delle due costruisco?' },
+  }
+}
+
 export const waitsDemo = (now: number): WaitItem[] => [
+  cartChoice(now),
   { id: 'w00000000a1', type: 'carta', kind: 'pausa', label: 'decide', label_text: en ? 'Decide' : 'Decidi', session: 'blog', task: 'demo-cover',
     text: en ? 'Send me the cover image' : "Mandami l'immagine di copertina", options: null, at: now - 1200, card: null, link: '#/attesa/w00000000a1',
     answer: { op: 'decisione', arg: 'demo-a' },

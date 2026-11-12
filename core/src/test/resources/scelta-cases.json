@@ -1,0 +1,572 @@
+{
+  "_": "La scheda di scelta (app-scheda-scelta-12-11, contratto 1.137): gli stessi casi per scelta.ts della web e Scelta.kt. letters: le etichette delle opzioni in ordine -> [lettera, nome]. outcome: lo stato della scheda e la risposta -> stato, lettera e nome dell'opzione scelta, motivo. files: i file di un'opzione -> quante immagini e quanti documenti. key: la chiave di un file nelle anteprime. strip: un testo della chat -> il testo senza i link delle richieste (#/attesa/<id>) e gli id citati, nell'ordine.",
+  "letters": [
+    {
+      "name": "letters by position",
+      "labels": [
+        "Release now",
+        "Tomorrow morning"
+      ],
+      "out": [
+        [
+          "A",
+          "Release now"
+        ],
+        [
+          "B",
+          "Tomorrow morning"
+        ]
+      ]
+    },
+    {
+      "name": "the labels carry their own letters",
+      "labels": [
+        "A frecce",
+        "B pannello"
+      ],
+      "out": [
+        [
+          "A",
+          "frecce"
+        ],
+        [
+          "B",
+          "pannello"
+        ]
+      ]
+    },
+    {
+      "name": "the labels' letters win over the position",
+      "labels": [
+        "B pannello",
+        "A frecce"
+      ],
+      "out": [
+        [
+          "B",
+          "pannello"
+        ],
+        [
+          "A",
+          "frecce"
+        ]
+      ]
+    },
+    {
+      "name": "separators after the letter",
+      "labels": [
+        "A: frecce",
+        "B) pannello",
+        "C - a scomparsa",
+        "D. niente"
+      ],
+      "out": [
+        [
+          "A",
+          "frecce"
+        ],
+        [
+          "B",
+          "pannello"
+        ],
+        [
+          "C",
+          "a scomparsa"
+        ],
+        [
+          "D",
+          "niente"
+        ]
+      ]
+    },
+    {
+      "name": "a bare letter has no name",
+      "labels": [
+        "A",
+        "B"
+      ],
+      "out": [
+        [
+          "A",
+          ""
+        ],
+        [
+          "B",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "a word that starts with a capital is a name",
+      "labels": [
+        "Adesso",
+        "Domani"
+      ],
+      "out": [
+        [
+          "A",
+          "Adesso"
+        ],
+        [
+          "B",
+          "Domani"
+        ]
+      ]
+    },
+    {
+      "name": "one label without a letter: position, names whole",
+      "labels": [
+        "A frecce",
+        "pannello"
+      ],
+      "out": [
+        [
+          "A",
+          "A frecce"
+        ],
+        [
+          "B",
+          "pannello"
+        ]
+      ]
+    },
+    {
+      "name": "the same letter twice: position, names whole",
+      "labels": [
+        "A destra",
+        "A sinistra"
+      ],
+      "out": [
+        [
+          "A",
+          "A destra"
+        ],
+        [
+          "B",
+          "A sinistra"
+        ]
+      ]
+    },
+    {
+      "name": "a lowercase letter is a word",
+      "labels": [
+        "a destra",
+        "b sinistra"
+      ],
+      "out": [
+        [
+          "A",
+          "a destra"
+        ],
+        [
+          "B",
+          "b sinistra"
+        ]
+      ]
+    },
+    {
+      "name": "four options",
+      "labels": [
+        "uno",
+        "due",
+        "tre",
+        "quattro"
+      ],
+      "out": [
+        [
+          "A",
+          "uno"
+        ],
+        [
+          "B",
+          "due"
+        ],
+        [
+          "C",
+          "tre"
+        ],
+        [
+          "D",
+          "quattro"
+        ]
+      ]
+    }
+  ],
+  "outcome": [
+    {
+      "name": "open",
+      "state": "open",
+      "answered": null,
+      "options": [
+        [
+          "Release now",
+          "Release now (recommended)"
+        ],
+        [
+          "Tomorrow morning",
+          "Tomorrow morning"
+        ]
+      ],
+      "out": {
+        "state": "open",
+        "letter": null,
+        "name": null,
+        "reason": null
+      }
+    },
+    {
+      "name": "no state from an older relay is open",
+      "state": null,
+      "answered": null,
+      "options": [
+        [
+          "Release now",
+          "Release now"
+        ]
+      ],
+      "out": {
+        "state": "open",
+        "letter": null,
+        "name": null,
+        "reason": null
+      }
+    },
+    {
+      "name": "chosen: the option with that value",
+      "state": "chosen",
+      "answered": {
+        "choice": "Tomorrow morning",
+        "reason": null
+      },
+      "options": [
+        [
+          "Release now",
+          "Release now (recommended)"
+        ],
+        [
+          "Tomorrow morning",
+          "Tomorrow morning"
+        ]
+      ],
+      "out": {
+        "state": "chosen",
+        "letter": "B",
+        "name": "Tomorrow morning",
+        "reason": null
+      }
+    },
+    {
+      "name": "chosen: the value keeps the word recommended",
+      "state": "chosen",
+      "answered": {
+        "choice": "Release now (recommended)",
+        "reason": null
+      },
+      "options": [
+        [
+          "Release now",
+          "Release now (recommended)"
+        ],
+        [
+          "Tomorrow morning",
+          "Tomorrow morning"
+        ]
+      ],
+      "out": {
+        "state": "chosen",
+        "letter": "A",
+        "name": "Release now",
+        "reason": null
+      }
+    },
+    {
+      "name": "chosen: the labels' own letters",
+      "state": "chosen",
+      "answered": {
+        "choice": "A frecce",
+        "reason": null
+      },
+      "options": [
+        [
+          "B pannello",
+          "B pannello"
+        ],
+        [
+          "A frecce",
+          "A frecce"
+        ]
+      ],
+      "out": {
+        "state": "chosen",
+        "letter": "A",
+        "name": "frecce",
+        "reason": null
+      }
+    },
+    {
+      "name": "chosen with words that are not an option",
+      "state": "chosen",
+      "answered": {
+        "choice": "una via di mezzo",
+        "reason": null
+      },
+      "options": [
+        [
+          "Release now",
+          "Release now"
+        ],
+        [
+          "Tomorrow morning",
+          "Tomorrow morning"
+        ]
+      ],
+      "out": {
+        "state": "chosen",
+        "letter": null,
+        "name": "una via di mezzo",
+        "reason": null
+      }
+    },
+    {
+      "name": "approved",
+      "state": "approved",
+      "answered": {
+        "choice": null,
+        "reason": null
+      },
+      "options": [],
+      "out": {
+        "state": "approved",
+        "letter": null,
+        "name": null,
+        "reason": null
+      }
+    },
+    {
+      "name": "redo with its reason",
+      "state": "redo",
+      "answered": {
+        "choice": null,
+        "reason": "troppo grande sul telefono"
+      },
+      "options": [
+        [
+          "Release now",
+          "Release now"
+        ],
+        [
+          "Tomorrow morning",
+          "Tomorrow morning"
+        ]
+      ],
+      "out": {
+        "state": "redo",
+        "letter": null,
+        "name": null,
+        "reason": "troppo grande sul telefono"
+      }
+    },
+    {
+      "name": "closed without ok",
+      "state": "closed",
+      "answered": {
+        "choice": null,
+        "reason": "superata"
+      },
+      "options": [],
+      "out": {
+        "state": "closed",
+        "letter": null,
+        "name": null,
+        "reason": "superata"
+      }
+    },
+    {
+      "name": "an unknown state with an answer is closed",
+      "state": "boh",
+      "answered": {
+        "choice": null,
+        "reason": null
+      },
+      "options": [],
+      "out": {
+        "state": "closed",
+        "letter": null,
+        "name": null,
+        "reason": null
+      }
+    }
+  ],
+  "files": [
+    {
+      "name": "an image and a document",
+      "files": [
+        [
+          "home-b.png",
+          "image/png",
+          "image"
+        ],
+        [
+          "home-b.pdf",
+          "application/pdf",
+          "document"
+        ]
+      ],
+      "images": [
+        "home-b.png"
+      ],
+      "docs": [
+        "home-b.pdf"
+      ]
+    },
+    {
+      "name": "the mime decides when the kind is missing",
+      "files": [
+        [
+          "a.jpg",
+          "image/jpeg",
+          ""
+        ],
+        [
+          "note.md",
+          "text/markdown",
+          ""
+        ]
+      ],
+      "images": [
+        "a.jpg"
+      ],
+      "docs": [
+        "note.md"
+      ]
+    },
+    {
+      "name": "an svg is a document, as the relay says",
+      "files": [
+        [
+          "logo.svg",
+          "image/svg+xml",
+          "document"
+        ]
+      ],
+      "images": [],
+      "docs": [
+        "logo.svg"
+      ]
+    },
+    {
+      "name": "no files",
+      "files": [],
+      "images": [],
+      "docs": []
+    }
+  ],
+  "key": [
+    {
+      "name": "a declared file: the lane of the requests",
+      "path": "/home/user/work/atlas-shop/docs/mockups/home-a.png",
+      "size": 48213,
+      "session": null,
+      "out": "\u0001attesa\n/home/user/work/atlas-shop/docs/mockups/home-a.png\u0000size=48213"
+    },
+    {
+      "name": "a file of a transcript: the same key as its chat card",
+      "path": "/tmp/shot.png",
+      "size": 9,
+      "session": "atlas-shop",
+      "out": "atlas-shop\n/tmp/shot.png\u0000size=9"
+    },
+    {
+      "name": "no size",
+      "path": "/tmp/shot.png",
+      "size": null,
+      "session": null,
+      "out": "\u0001attesa\n/tmp/shot.png\u0000entry=attesa"
+    }
+  ],
+  "strip": [
+    {
+      "name": "a link at the end of a sentence leaves the sentence, without its colon",
+      "text": "La scelta del carrello ti aspetta: https://supervisor.example.com/#/attesa/w00000000c3",
+      "out": "La scelta del carrello ti aspetta",
+      "ids": [
+        "w00000000c3"
+      ]
+    },
+    {
+      "name": "a link on its own line goes away with its line",
+      "text": "Ho preparato due proposte.\n\nhttps://supervisor.example.com/#/attesa/wd2f87e85e2\n\nEsito: aspetto la tua scelta",
+      "out": "Ho preparato due proposte.\n\nEsito: aspetto la tua scelta",
+      "ids": [
+        "wd2f87e85e2"
+      ]
+    },
+    {
+      "name": "a line that is only a label and the link disappears",
+      "text": "Due proposte pronte.\n• **Scheda:** https://supervisor.example.com/#/attesa/wd2f87e85e2",
+      "out": "Due proposte pronte.",
+      "ids": [
+        "wd2f87e85e2"
+      ]
+    },
+    {
+      "name": "the label on the line above a link that stood alone goes with it",
+      "text": "Due proposte pronte.\n**Scheda:**\nhttps://supervisor.example.com/#/attesa/wd2f87e85e2",
+      "out": "Due proposte pronte.",
+      "ids": [
+        "wd2f87e85e2"
+      ]
+    },
+    {
+      "name": "a markdown link goes away with its words",
+      "text": "Guarda [la scheda](https://supervisor.example.com/#/attesa/wd2f87e85e2) e scegli.",
+      "out": "Guarda e scegli.",
+      "ids": [
+        "wd2f87e85e2"
+      ]
+    },
+    {
+      "name": "the address without the site, and the full stop after it",
+      "text": "Apri #/attesa/wd2f87e85e2.",
+      "out": "Apri",
+      "ids": [
+        "wd2f87e85e2"
+      ]
+    },
+    {
+      "name": "a bare id stays in the sentence and still gets its card",
+      "text": "La scheda wd2f87e85e2 aspetta la tua scelta.",
+      "out": "La scheda wd2f87e85e2 aspetta la tua scelta.",
+      "ids": [
+        "wd2f87e85e2"
+      ]
+    },
+    {
+      "name": "the same card twice is one card, two cards keep their order",
+      "text": "Prima https://x.example/#/attesa/wb973ef3ed0 poi https://x.example/#/attesa/wd2f87e85e2 e ancora wb973ef3ed0",
+      "out": "Prima poi e ancora wb973ef3ed0",
+      "ids": [
+        "wb973ef3ed0",
+        "wd2f87e85e2"
+      ]
+    },
+    {
+      "name": "other links stay",
+      "text": "Vedi https://example.com/#/monitor/abc e https://claude.ai/code/session_01",
+      "out": "Vedi https://example.com/#/monitor/abc e https://claude.ai/code/session_01",
+      "ids": []
+    },
+    {
+      "name": "not an id: too short, not hexadecimal, inside a word",
+      "text": "w123 wzzzzzzzzzz xwd2f87e85e2 wd2f87e85e2f",
+      "out": "w123 wzzzzzzzzzz xwd2f87e85e2 wd2f87e85e2f",
+      "ids": []
+    },
+    {
+      "name": "a text with nothing to take out is untouched",
+      "text": "Esito: fatto.\n\n  rientro tenuto",
+      "out": "Esito: fatto.\n\n  rientro tenuto",
+      "ids": []
+    }
+  ]
+}
