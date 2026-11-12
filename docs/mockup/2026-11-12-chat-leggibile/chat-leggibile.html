@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat leggibile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0&display=block" rel="stylesheet">
+<style>
+  /* app-mockup-chat-home-12-11, parte 1 (Franz 12/11 10:37): le chat più leggibili, con le sezioni più marcate. Oggi (schermate vere
+     della web app, demo con una risposta lunga di payments-api) accanto a tre varianti con gli stessi dati: A sezioni marcate, B una
+     scheda per risposta, C come il terminale. Coerenti con formato A e blocchi B del 12/11 07:29 (docs/mockup/2026-11-12-formato-unico/).
+     Web 1440 × 900, telefono 412 × 915, tablet 1280 × 800. `?p=<id>` una tavola sola, `&day` il giorno; senza, tutte. */
+  :root { --bg:#0B0B0B; --s1:#121212; --s2:#181818; --s3:#232323; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#A3A3A3; --tx3:#6E6E6E;
+          --wait:#FFB23F; --good:#71D083; --busy:#8AA9DB; --red:#FF6B5E; --waitbg:#1d1609; --waitline:#4a3412; --goodbg:#0f1d12; --goodline:#24452b;
+          --act:#EEEEEE; --onact:#0B0B0B; --code:#161a20; --codeline:#26303c; --you:#262626; }
+  body.day { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#ECECEC; --line:#E1E1E1; --tx:#141414; --tx2:#555555; --tx3:#6A6A6A;
+          --wait:#9A5700; --good:#2A7E3B; --busy:#3D5F94; --red:#C9302F; --waitbg:#FFF6E5; --waitline:#F2D7A2; --goodbg:#EAF6EC; --goodline:#BFE0C6;
+          --act:#141414; --onact:#FFFFFF; --code:#F1F4F8; --codeline:#DCE3EC; --you:#E6E6E6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, "DejaVu Sans", sans-serif; }
+  .mono { font-family: "Geist Mono", "DejaVu Sans Mono", monospace; }
+  .cd { font-family: "Barlow Semi Condensed", Barlow, sans-serif; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal;
+        text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+  .panel { display: none; position: relative; overflow: hidden; background: var(--bg); }
+  .panel.web { width: 1440px; height: 900px; } .panel.tel { width: 412px; height: 915px; } .panel.tab { width: 1280px; height: 800px; }
+  .panel.on { display: block; }
+  .panel > img { width: 100%; height: 100%; display: block; }
+  body.all { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; align-items: flex-start; }
+  body.all .panel { display: block; }
+  .tag { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 9; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700;
+         font-size: 13px; padding: 3px 10px; border-radius: 999px; background: #3a2a17; color: #f5c27a; }
+  body.day .tag { background: #FFE7BF; color: #7a4600; }
+  .note { position: absolute; z-index: 8; padding: 8px 12px; border-radius: 10px; background: var(--s2); border: 1px dashed var(--tx3); color: var(--tx2); font-size: 13px; line-height: 17px; }
+  .note b { color: var(--tx); font-weight: 600; }
+
+  /* La cornice: la colonna della sessione, la home a destra, la master in riga in basso (web e tablet); il telefono a tutto schermo. */
+  .frame { position: absolute; inset: 0; display: grid; grid-template-rows: 1fr 64px; }
+  .frame .top { display: grid; grid-template-columns: 1fr 412px; min-height: 0; }
+  .panel.tab .frame .top { grid-template-columns: 1fr 360px; }
+  .scol { position: relative; margin: 10px 12px 10px 14px; border-radius: 22px; background: var(--bg); border: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .shead { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); }
+  .shead .ic { width: 26px; height: 26px; border-radius: 7px; background: #2f6fdc; color: #fff; display: grid; place-items: center; }
+  .shead .ic .ms { font-size: 18px; }
+  .shead b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 18px; font-weight: 700; }
+  .shead .st { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--wait); }
+  .shead .sp { flex: 1; }
+  .shead .pill { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: var(--s2); color: var(--tx); }
+  .shead .x { color: var(--tx2); }
+  /* I blocchi ridotti B (12/11 07:29): ognuno una riga col suo primo elemento. */
+  .strip { display: flex; align-items: center; gap: 8px; margin: 8px 12px 0; padding: 8px 10px 8px 12px; border-radius: 12px; background: var(--s1); border: 1px solid var(--line); }
+  .strip .ms { font-size: 19px; color: var(--tx2); } .strip .ms.w { color: var(--wait); }
+  .strip b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .strip .n { font-size: 13px; color: var(--wait); } .strip .n.g { color: var(--tx2); }
+  .strip .first { flex: 1; min-width: 0; font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .strip .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 13.5px; padding: 4px 11px; border-radius: 999px; background: var(--waitbg); color: var(--wait); border: 1px solid var(--waitline); white-space: nowrap; }
+  .strip .chev { color: var(--tx3); font-size: 20px; }
+  .strip.amb { background: var(--waitbg); border-color: var(--waitline); }
+  .chat { flex: 1; min-height: 0; overflow: hidden; padding: 14px 22px 0; }
+  .chat > div { margin-left: auto; margin-right: auto; }
+  /* La fine della risposta: la chat scorsa fino in fondo. */
+  .chat.end { display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 6px; }
+  .chat.end > div { flex: none; width: 100%; }
+  .B .ch b, .B .ch .t { white-space: nowrap; }
+  .field { margin: 8px 12px 12px; display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 26px; border: 1px solid var(--line); background: var(--s1); color: var(--tx3); font-size: 15.5px; }
+  .field .in { flex: 1; } .field .ms { color: var(--tx2); }
+  .home { padding: 18px 16px 0 6px; border-left: 1px solid var(--line); overflow: hidden; }
+  .home .hh { display: flex; align-items: baseline; gap: 10px; padding: 0 0 14px 8px; }
+  .home .hh b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 24px; font-weight: 700; }
+  .home .hh small { font-family: "Geist Mono", monospace; font-size: 12.5px; color: var(--tx2); }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: 16px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; margin-bottom: 14px; }
+  .kpis div { padding: 12px; border-right: 1px solid var(--line); } .kpis div:last-child { border: 0; }
+  .kpis b { display: block; font-family: "Barlow Semi Condensed", sans-serif; font-size: 34px; line-height: 38px; } .kpis b.w { color: var(--wait); }
+  .kpis small { font-size: 12.5px; color: var(--tx2); }
+  .hl { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--wait); padding: 4px 8px 8px; }
+  .hrow { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 11px 12px; margin-bottom: 8px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); }
+  .hrow .ms { font-size: 20px; color: var(--wait); } .hrow > span:nth-child(2) { min-width: 0; }
+  .hrow b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 16px; } .hrow small { display: block; font-size: 13px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .hrow .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--waitline); background: var(--waitbg); color: var(--wait); }
+  .mbar { display: flex; align-items: center; gap: 12px; padding: 0 16px; border-top: 1px solid var(--line); background: var(--bg); }
+  .mbar .in { width: 330px; padding: 10px 16px; border-radius: 24px; background: var(--s2); color: var(--tx3); font-size: 15px; }
+  .mbar b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 15px; } .mbar span.t { flex: 1; font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .mbar .up { width: 40px; height: 40px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; }
+  .tel .scol { margin: 0; border: 0; border-radius: 0; position: absolute; inset: 0; }
+  .tel .shead { padding: 40px 10px 10px; }
+  .tel .chat { padding: 12px 16px 0; }
+
+  /* Comune: il messaggio della persona. */
+  .you { margin: 0 0 14px auto; max-width: 78%; padding: 10px 14px; border-radius: 18px 18px 6px 18px; background: var(--you); font-size: 15.5px; line-height: 21px; width: fit-content; }
+  .youm { text-align: right; font-size: 12px; color: var(--tx3); margin: -8px 0 14px; }
+  .code { font-family: "Geist Mono", monospace; font-size: .86em; padding: 1px 5px; border-radius: 5px; background: var(--s3); }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bt { font-size: 14.5px; padding: 8px 15px; border-radius: 999px; border: 1px solid var(--line); color: var(--tx); white-space: nowrap; }
+  .bt.p { background: var(--act); color: var(--onact); border-color: transparent; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15.5px; }
+
+  /* A. Sezioni marcate. */
+  .A { max-width: 74ch; font-size: 16px; line-height: 25px; }
+  .A .turn { display: flex; align-items: center; gap: 10px; margin: 6px 0 12px; font-size: 12.5px; color: var(--tx3); }
+  .A .turn::before, .A .turn::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .A .act { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); font-size: 13.5px; color: var(--tx2); }
+  .A .act .ms { font-size: 18px; } .A .act .ok { color: var(--good); }
+  .A .act { white-space: nowrap; overflow: hidden; } .tel .A .act .code { display: none; }
+  .A .ans { border-radius: 18px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; }
+  .A .who { display: flex; align-items: center; gap: 8px; padding: 10px 18px 0; font-size: 12.5px; color: var(--tx3); }
+  .A .who b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 14.5px; color: var(--tx); }
+  .A .esito { margin: 10px 14px 4px; padding: 12px 14px; border-radius: 14px; background: var(--goodbg); border: 1px solid var(--goodline); display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: start; }
+  .A .esito .ms { color: var(--good); font-size: 22px; }
+  .A .esito small { display: block; font-size: 11.5px; letter-spacing: .12em; color: var(--good); line-height: 16px; }
+  .A .esito div { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 18px; line-height: 23px; }
+  .A .esito .tipo { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; background: var(--good); color: var(--onact); font-weight: 600; }
+  .A .body { padding: 6px 18px 16px; }
+  .A p { margin: 10px 0; }
+  .A h3 { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 19px; line-height: 24px; margin: 22px 0 6px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+  .A h3::before { content: ''; width: 4px; height: 18px; border-radius: 2px; background: var(--busy); }
+  .A ul, .A ol { margin: 6px 0 6px 26px; } .A li { margin: 5px 0; padding-left: 4px; } .A li::marker { color: var(--tx3); }
+  .A pre { margin: 12px 0; border-radius: 12px; background: var(--code); border: 1px solid var(--codeline); font-family: "Geist Mono", monospace; font-size: 13.5px; line-height: 20px; overflow: hidden; }
+  .A pre .ph { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid var(--codeline); font-size: 11.5px; color: var(--tx3); }
+  .A pre .ph .ms { font-size: 16px; } .A pre code { display: block; padding: 10px 12px; white-space: pre; }
+  .A .warn { margin: 10px 0; padding: 8px 12px; border-left: 3px solid var(--wait); background: var(--waitbg); border-radius: 0 10px 10px 0; }
+  .A .warn b { color: var(--wait); }
+  .A .foot { padding: 12px 18px 16px; border-top: 1px solid var(--line); }
+  .A .foot small { display: block; font-size: 11.5px; letter-spacing: .12em; color: var(--tx3); margin-bottom: 8px; }
+
+  /* B. Una scheda per risposta. */
+  .B { max-width: 80ch; font-size: 15.5px; line-height: 23px; }
+  .B .you { margin-bottom: 14px; }
+  .B .card { border-radius: 20px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; }
+  .B .ch { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .B .ch .ic { width: 24px; height: 24px; border-radius: 7px; background: #2f6fdc; color: #fff; display: grid; place-items: center; } .B .ch .ic .ms { font-size: 16px; }
+  .B .ch b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 16px; } .B .ch .t { font-family: "Geist Mono", monospace; font-size: 12.5px; color: var(--tx3); }
+  .B .ch .sp { flex: 1; }
+  .B .ch .tipo { display: flex; align-items: center; gap: 4px; font-size: 13px; padding: 4px 10px 4px 7px; border-radius: 999px; background: var(--goodbg); border: 1px solid var(--goodline); color: var(--good); font-weight: 600; }
+  .B .ch .tipo .ms { font-size: 16px; }
+  .B .es { padding: 14px 16px 4px; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 21px; line-height: 26px; }
+  .B .intro { padding: 4px 16px 12px; color: var(--tx2); }
+  .B .sec { border-top: 1px solid var(--line); }
+  .B .sh { display: flex; align-items: center; gap: 10px; padding: 11px 16px; }
+  .B .sh .ms { font-size: 20px; color: var(--tx2); } .B .sh .ms.chev { margin-left: auto; color: var(--tx3); }
+  .B .sh b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16.5px; white-space: nowrap; }
+  .B .sh .sum { font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; min-width: 0; }
+  .B .sh .sum.w { color: var(--wait); } .B .sh .sum.mono { font-size: 12.5px; }
+  .B .sb { padding: 0 16px 12px 46px; } .B .sb ul { margin-left: 18px; } .B .sb li { margin: 4px 0; } .B .sb li::marker { color: var(--tx3); }
+  .B .act { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--tx2); background: var(--s2); }
+  .B .act .ms { font-size: 18px; } .B .act .ok { color: var(--good); }
+  .B .foot { padding: 12px 16px 14px; border-top: 1px solid var(--line); }
+
+  /* C. Come il terminale: pallini dei passi, rientri, ritmo, colore solo dove serve. */
+  .C { max-width: 82ch; font-size: 15.5px; line-height: 24px; }
+  .C .ln { display: grid; grid-template-columns: 22px 1fr; column-gap: 6px; }
+  .C .dot { font-size: 13px; line-height: 24px; color: var(--tx); text-align: center; }
+  .C .dot.g { color: var(--good); } .C .dot.w { color: var(--wait); } .C .dot.d { color: var(--tx3); }
+  .C .prompt { display: grid; grid-template-columns: 22px 1fr auto; column-gap: 6px; padding: 8px 10px 8px 0; border-radius: 10px; background: var(--s2); border-left: 3px solid var(--tx3); margin-bottom: 18px; }
+  .C .prompt .dot { color: var(--tx2); font-family: "Geist Mono", monospace; }
+  .C .prompt .m { font-family: "Geist Mono", monospace; font-size: 12px; color: var(--tx3); align-self: center; }
+  .C .tool { font-family: "Geist Mono", monospace; font-size: 13.5px; }
+  .C .tool b { font-weight: 500; } .C .tool .arg { color: var(--tx2); }
+  .C .out { font-family: "Geist Mono", monospace; font-size: 13px; color: var(--tx2); }
+  .C .out .k { color: var(--tx3); }
+  .C .gap { height: 12px; }
+  .C .meta { font-family: "Geist Mono", monospace; font-size: 12px; color: var(--tx3); margin-left: 8px; }
+  .C h4 { font-weight: 600; font-size: 15.5px; margin-top: 2px; }
+  .C .li { display: grid; grid-template-columns: 20px 1fr; padding-left: 4px; }
+  .C .li .b { color: var(--tx3); font-family: "Geist Mono", monospace; }
+  .C .path { font-family: "Geist Mono", monospace; font-size: .86em; color: var(--busy); }
+  .C .cmd { font-family: "Geist Mono", monospace; font-size: 13.5px; padding: 6px 12px; margin: 4px 0; border-left: 2px solid var(--tx3); color: var(--tx); }
+  .C .esito { font-weight: 600; } .C .esito .k { color: var(--good); font-family: "Geist Mono", monospace; font-size: 13px; letter-spacing: .06em; margin-right: 8px; }
+  .C .nx { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 15px; }
+  .C .nx span { white-space: nowrap; } .C .nx .n { font-family: "Geist Mono", monospace; font-size: 12.5px; color: var(--tx3); margin-right: 6px; }
+  .C .nx .p { color: var(--wait); font-weight: 600; } .C .nx .p .n { color: var(--wait); }
+</style>
+</head>
+<body>
+
+<!-- La cornice di una sessione: testata, blocchi ridotti B, la chat (riempita per variante), il campo. -->
+<template id="sess">
+  <div class="scol">
+    <div class="shead"><span class="__BACK__"></span><span class="ic"><span class="ms">front_hand</span></span><div><b>payments-api</b><div class="st">TI ASPETTA · 5 M</div></div><span class="sp"></span><span class="pill __PILLS__">Opus 5 · high</span><span class="pill __PILLS__">ctx 62%</span><span class="ms x">close</span></div>
+    <div class="strip amb"><span class="ms w">front_hand</span><b>Per te</b><span class="n">2</span><span class="first">Pubblico il deploy 2.8.0 in produzione?</span><span class="mini">1 · sì</span><span class="ms chev">expand_more</span></div>
+    <div class="strip"><span class="ms">perm_media</span><b>Risultati</b><span class="n g">1</span><span class="first">Rapporto dei test dei pagamenti</span><span class="ms chev">expand_more</span></div>
+    <div class="chat"><div data-v></div></div>
+    <div class="field"><span class="ms">add</span><span class="in">Rispondi con parole tue</span><span class="ms">mic</span><span class="ms">send</span></div>
+  </div>
+</template>
+<template id="home">
+  <div class="home">
+    <div class="hh"><b>Supervisor</b><small>0.2.2108 · 4 aperte</small></div>
+    <div class="kpis"><div><b class="w">3</b><small>sessioni ferme, la prima da 7 min</small></div><div><b>1</b><small>al lavoro adesso</small></div><div><b>6</b><small>esiti oggi</small></div></div>
+    <div class="hl">TI ASPETTANO 3</div>
+    <div class="hrow"><span class="ms">help</span><span><b>storefront</b><small>Fai il login nella sandbox dei pagamenti</small></span><span class="mini">Approva</span></div>
+    <div class="hrow"><span class="ms">help</span><span><b>payments-api</b><small>Pubblica il deploy 2.8.0: ./deploy.sh</small></span><span class="mini">Scegli</span></div>
+    <div class="hrow"><span class="ms">help</span><span><b>blog</b><small>ok alla pubblicazione del post</small></span><span class="mini">Ok</span></div>
+  </div>
+</template>
+<template id="mbar"><div class="mbar"><span class="in">Scrivi alla master</span><b>Master</b><span class="t">Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</span><span class="mono" style="font-size:13px;color:var(--tx2)">10:35</span><span class="up ms">expand_less</span></div></template>
+
+<!-- A. Sezioni marcate -->
+<template id="vA">
+  <div class="A">
+    <div class="turn">Tu · dal telefono · 10:31</div>
+    <div class="you">Il rimborso parziale perde un centesimo: sistemalo e prova su staging</div>
+    <div class="act"><span class="ms">bolt</span>2 passaggi · Edit <span class="code">partial.ts</span> · Bash <span class="code">npm run test:staging</span><span class="ms ok">check</span><span style="margin-left:auto" class="ms">expand_more</span></div>
+    <div class="ans">
+      <div class="who"><b>payments-api</b>· 10:33 · 1 min 22 s</div>
+      <div class="esito"><span class="ms">check_circle</span><div><small>ESITO</small>Rimborso parziale corretto, 232 test verdi, la 2.8.1 è pronta</div><span class="tipo">Pronto</span></div>
+      <div class="body">
+        <p>Il rimborso parziale ora passa su staging: ho corretto l'arrotondamento dei centesimi e aggiunto i test che mancavano. Il deploy della 2.8.1 parte solo con il tuo ok.</p>
+        <h3>Cosa è cambiato</h3>
+        <ul><li><span class="code">src/refunds/partial.ts</span>: l'importo si calcola in centesimi interi, così un rimborso in tre rate non perde più 0,01 €.</li>
+          <li><span class="code">src/webhooks/stripe.ts</span>: l'evento <span class="code">charge.refunded</span> aggiorna l'ordine una volta sola, anche quando Stripe lo manda due volte.</li>
+          <li>18 test nuovi in <span class="code">tests/refunds.test.ts</span>, tutti verdi.</li></ul>
+        <h3>Come l'ho provato</h3>
+        <ol><li><span class="code">npm run test</span> in locale: 232 test verdi.</li><li><span class="code">npm run test:staging</span>: rimborsi, webhook e checkout passano.</li>
+          <li>Un rimborso vero di 12,34 € sulla carta di prova: arriva in 4 secondi e l'ordine passa a «rimborsato».</li></ol>
+        <p>Per il deploy, quando dici:</p>
+        <pre><div class="ph"><span>terminale</span><span class="ms">content_copy</span></div><code>npm run deploy -- --env production --tag 2.8.1</code></pre>
+        <h3>Cosa resta</h3>
+        <div class="warn"><b>Non provato:</b> il rimborso su una carta americana, serve la sandbox US.</div>
+      </div>
+      <div class="foot"><small>PROSSIMI</small><div class="btnrow"><span class="bt p">Ok al deploy della 2.8.1</span><span class="bt">Prova il rimborso dal vivo</span><span class="bt">Apri la PR</span></div></div>
+    </div>
+  </div>
+</template>
+
+<!-- B. Una scheda per risposta -->
+<template id="vB">
+  <div class="B">
+    <div class="you">Il rimborso parziale perde un centesimo: sistemalo e prova su staging</div>
+    <div class="youm">dal telefono · 10:31</div>
+    <div class="card">
+      <div class="ch"><span class="ic"><span class="ms">front_hand</span></span><b>payments-api</b><span class="t">10:33 · 1 min 22 s</span><span class="sp"></span><span class="tipo"><span class="ms">check</span>Pronto</span></div>
+      <div class="es">Rimborso parziale corretto, 232 test verdi, la 2.8.1 è pronta</div>
+      <div class="intro">Il rimborso parziale ora passa su staging: ho corretto l'arrotondamento dei centesimi e aggiunto i test che mancavano. Il deploy parte solo con il tuo ok.</div>
+      <div class="sec"><div class="sh"><span class="ms">edit_note</span><b>Cosa è cambiato</b><span class="sum">3 punti</span><span class="ms chev">expand_less</span></div>
+        <div class="sb"><ul><li><span class="code">src/refunds/partial.ts</span>: l'importo si calcola in centesimi interi, così un rimborso in tre rate non perde più 0,01 €.</li>
+          <li><span class="code">src/webhooks/stripe.ts</span>: <span class="code">charge.refunded</span> aggiorna l'ordine una volta sola.</li><li>18 test nuovi in <span class="code">tests/refunds.test.ts</span>, tutti verdi.</li></ul></div></div>
+      <div class="sec"><div class="sh"><span class="ms">science</span><b>Come l'ho provato</b><span class="sum">3 passi · 232 test verdi · rimborso vero in 4 s</span><span class="ms chev">expand_more</span></div></div>
+      <div class="sec"><div class="sh"><span class="ms">terminal</span><b>Comando</b><span class="sum mono">npm run deploy -- --env production --tag 2.8.1</span><span class="ms chev">expand_more</span></div></div>
+      <div class="sec"><div class="sh"><span class="ms" style="color:var(--wait)">warning</span><b>Cosa resta</b><span class="sum w">non provato: carta americana</span><span class="ms chev">expand_more</span></div></div>
+      <div class="act"><span class="ms">bolt</span>Attività · 2 passaggi · Edit partial.ts · Bash npm run test:staging<span class="ms ok">check</span><span class="ms" style="margin-left:auto">expand_more</span></div>
+      <div class="foot"><div class="btnrow"><span class="bt p">Ok al deploy della 2.8.1</span><span class="bt">Prova il rimborso dal vivo</span><span class="bt">Apri la PR</span></div></div>
+    </div>
+  </div>
+</template>
+
+<!-- C. Come il terminale -->
+<template id="vC">
+  <div class="C">
+    <div class="prompt"><span class="dot">›</span><span>Il rimborso parziale perde un centesimo: sistemalo e prova su staging</span><span class="m">telefono · 10:31</span></div>
+    <div class="ln"><span class="dot g">●</span><span class="tool"><b>Edit</b><span class="arg">(src/refunds/partial.ts)</span></span></div>
+    <div class="ln"><span class="dot d">⎿</span><span class="out">+14 −3 righe</span></div>
+    <div class="ln"><span class="dot g">●</span><span class="tool"><b>Bash</b><span class="arg">(npm run test:staging)</span></span></div>
+    <div class="ln"><span class="dot d">⎿</span><span class="out">232 passati · 0 falliti <span class="k">· 41 s</span></span></div>
+    <div class="gap"></div>
+    <div class="ln"><span class="dot">●</span><span>Il rimborso parziale ora passa su staging: ho corretto l'arrotondamento dei centesimi e aggiunto i test che mancavano. Il deploy della 2.8.1 parte solo con il tuo ok.<span class="meta">10:33</span></span></div>
+    <div class="gap"></div>
+    <div class="ln"><span></span><span><h4>Cosa è cambiato</h4>
+      <div class="li"><span class="b">-</span><span><span class="path">src/refunds/partial.ts</span>: l'importo si calcola in centesimi interi, così un rimborso in tre rate non perde più 0,01 €.</span></div>
+      <div class="li"><span class="b">-</span><span><span class="path">src/webhooks/stripe.ts</span>: l'evento <span class="path">charge.refunded</span> aggiorna l'ordine una volta sola, anche quando Stripe lo manda due volte.</span></div>
+      <div class="li"><span class="b">-</span><span>18 test nuovi in <span class="path">tests/refunds.test.ts</span>, tutti verdi.</span></div></span></div>
+    <div class="gap"></div>
+    <div class="ln"><span></span><span><h4>Come l'ho provato</h4>
+      <div class="li"><span class="b">1.</span><span><span class="path">npm run test</span> in locale: 232 test verdi.</span></div>
+      <div class="li"><span class="b">2.</span><span><span class="path">npm run test:staging</span>: rimborsi, webhook e checkout passano.</span></div>
+      <div class="li"><span class="b">3.</span><span>Un rimborso vero di 12,34 € sulla carta di prova: arriva in 4 secondi.</span></div></span></div>
+    <div class="gap"></div>
+    <div class="ln"><span></span><span>Per il deploy, quando dici:<div class="cmd">npm run deploy -- --env production --tag 2.8.1</div></span></div>
+    <div class="gap"></div>
+    <div class="ln"><span class="dot w">▲</span><span><b style="color:var(--wait)">Non provato:</b> il rimborso su una carta americana, serve la sandbox US.</span></div>
+    <div class="gap"></div>
+    <div class="ln"><span class="dot g">✓</span><span class="esito"><span class="k">ESITO</span>rimborso parziale corretto, 232 test verdi, la 2.8.1 è pronta</span></div>
+    <div class="ln" style="margin-top:6px"><span></span><span class="nx"><span class="p"><span class="n">1</span>ok al deploy della 2.8.1</span><span><span class="n">2</span>prova il rimborso dal vivo</span><span><span class="n">3</span>apri la PR</span></span></div>
+    <div class="ln"><span></span><span class="out" style="margin-top:4px"><span class="k">1 min 22 s · 900 token scritti</span></span></div>
+  </div>
+</template>
+
+<!-- Oggi: le schermate vere -->
+<section class="panel web" id="w0"><span class="tag">Web · oggi</span><img data-img="oggi-web" alt=""></section>
+<section class="panel web" id="wa"><span class="tag">Web · A sezioni marcate</span><div data-frame="web" data-v="A"></div>
+  <div class="note" style="left:1040px;right:20px;bottom:84px"><b>A · Sezioni marcate.</b> L'esito in cima alla risposta, i titoli con la barra e la linea, spazio fra i paragrafi, elenchi rientrati, il comando in riquadro, «Non provato» in evidenza; chi parla e l'ora fra un turno e l'altro; la risposta su una superficie staccata dal fondo; riga di lettura al massimo 74 caratteri.</div></section>
+<section class="panel web" id="wb"><span class="tag">Web · B una scheda per risposta</span><div data-frame="web" data-v="B"></div>
+  <div class="note" style="left:1040px;right:20px;bottom:84px"><b>B · Una scheda per risposta.</b> Testata con sessione, ora e tipo d'esito; l'esito grande in alto; ogni sezione si apre e si chiude e chiusa dice in una riga cosa c'è; il comando su una riga; le attività ridotte a una riga; i Prossimi in fondo alla scheda.</div></section>
+<section class="panel web" id="wc"><span class="tag">Web · C come il terminale</span><div data-frame="web" data-v="C"></div>
+  <div class="note" style="left:1040px;right:20px;bottom:84px"><b>C · Come il terminale.</b> Un pallino per ogni passo (verde: strumento riuscito, bianco: testo), l'uscita rientrata sotto ⎿, una riga vuota fra i blocchi, il messaggio della persona come il prompt ›. Colore solo su percorsi e comandi, «Non provato», l'esito e il passo che ti ferma.</div></section>
+
+<section class="panel tel" id="t0"><span class="tag">Telefono · oggi</span><img data-img="oggi-telefono" alt=""></section>
+<section class="panel tel" id="ta"><span class="tag">Telefono · A</span><div data-frame="tel" data-v="A"></div></section>
+<section class="panel tel" id="tb"><span class="tag">Telefono · B</span><div data-frame="tel" data-v="B"></div></section>
+<section class="panel tel" id="tc"><span class="tag">Telefono · C</span><div data-frame="tel" data-v="C"></div></section>
+
+<section class="panel web" id="wa2"><span class="tag">Web · A, la fine della risposta</span><div data-frame="web" data-v="A" data-end></div></section>
+<section class="panel web" id="wb2"><span class="tag">Web · B, la fine della risposta</span><div data-frame="web" data-v="B" data-end></div></section>
+<section class="panel web" id="wc2"><span class="tag">Web · C, la fine della risposta</span><div data-frame="web" data-v="C" data-end></div></section>
+<section class="panel tel" id="ta2"><span class="tag">Telefono · A, la fine</span><div data-frame="tel" data-v="A" data-end></div></section>
+<section class="panel tel" id="tb2"><span class="tag">Telefono · B, la fine</span><div data-frame="tel" data-v="B" data-end></div></section>
+<section class="panel tel" id="tc2"><span class="tag">Telefono · C, la fine</span><div data-frame="tel" data-v="C" data-end></div></section>
+
+<section class="panel tab" id="b0"><span class="tag">Tablet · oggi</span><img data-img="oggi-tablet" alt=""></section>
+<section class="panel tab" id="ba"><span class="tag">Tablet · A</span><div data-frame="tab" data-v="A"></div></section>
+<section class="panel tab" id="bb"><span class="tag">Tablet · B</span><div data-frame="tab" data-v="B"></div></section>
+<section class="panel tab" id="bc"><span class="tag">Tablet · C</span><div data-frame="tab" data-v="C"></div></section>
+
+<script>
+  const q = new URLSearchParams(location.search), day = q.has('day')
+  if (day) document.body.classList.add('day')
+  const tpl = id => document.getElementById(id).innerHTML
+  document.querySelectorAll('[data-img]').forEach(i => { i.src = `${i.dataset.img}-${day ? 'giorno' : 'notte'}.png` })
+  document.querySelectorAll('[data-frame]').forEach(e => {
+    const tel = e.dataset.frame === 'tel'
+    let s = tpl('sess').replace('__BACK__', tel ? 'ms" style="color:var(--tx)">arrow_back</span><span class="' : '').replaceAll('__PILLS__', '')
+    s = s.replace(/<div data-v[^>]*><\/div>/, tpl('v' + e.dataset.v))
+    if (e.hasAttribute('data-end')) s = s.replace('<div class="chat">', '<div class="chat end">')
+    if (tel) s = s.replace('<span class="ms x">close</span>', '<span class="ms x">menu</span>').replace(/<span class="pill ">[^<]*<\/span>/g, '')
+    const box = document.createElement('div')
+    box.innerHTML = tel ? s : `<div class="frame"><div class="top">${s}${tpl('home')}</div>${tpl('mbar')}</div>`
+    e.replaceWith(...box.childNodes)
+  })
+  const p = q.get('p')
+  if (p) document.getElementById(p).classList.add('on'); else document.body.classList.add('all')
+</script>
+</body>
+</html>
