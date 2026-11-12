@@ -26,7 +26,9 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Density
@@ -34,6 +36,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.mobile.R
+import kotlin.math.roundToInt
 
 /**
  * Il Genie dei menu (app-genie-menu-09-11, approvato da Franz il 09/11 22:14; riferimento in D:\tmp\menu-x): dal tasto premuto
@@ -87,18 +90,18 @@ private class GenieShape(private val rr: RoundRect) : Shape {
 }
 
 /**
- * La forma del pannello mentre il Genie corre: ritagliata nella goccia, con l'ombra della goccia. [origin] dice da che parte sta il
- * tasto quando non si sa dove si è toccato (≡ a destra, il nome della sessione a sinistra).
+ * La forma del pannello mentre il Genie corre: ritagliata nella goccia, con l'ombra della goccia. La goccia cade da [from], il punto
+ * dello schermo dove sta la × (il segno del tasto, o dove si è toccato); senza, [origin] dice da che parte sta il tasto (≡ a destra,
+ * il nome della sessione a sinistra).
  */
-fun Modifier.genieBlob(origin: TransformOrigin, progress: () -> Float): Modifier = composed {
-    val press = remember { LastPress.at }
+fun Modifier.genieBlob(origin: TransformOrigin, from: Offset?, progress: () -> Float): Modifier = composed {
     val at = remember { floatArrayOf(Float.NaN, Float.NaN) }
     this
         .onGloballyPositioned { c -> val o = c.positionOnScreen(); at[0] = o.x; at[1] = o.y }
         .graphicsLayer {
             val p = progress()
             val w = size.width; val h = size.height
-            val cx = if (press != null && !at[0].isNaN()) press.x - at[0] else origin.pivotFractionX * w
+            val cx = if (from != null && !at[0].isNaN()) from.x - at[0] else origin.pivotFractionX * w
             val rr = Genie.rect(p, w, h, cx, 44.dp.toPx(), 14.dp.toPx())
             clip = true
             shape = GenieShape(rr)
@@ -116,32 +119,45 @@ fun Modifier.genieContent(progress: () -> Float): Modifier = graphicsLayer {
 }
 
 /**
- * Il tasto che ha aperto il menu diventa ×: sopra lo sfondo oscurato, dove si è toccato, un tondo con la × che gira al suo posto
- * e chiude. Senza un tocco recente (un menu aperto da un test o da un altro gesto) non c'è, e chiude la × della testata.
+ * Il tasto che ha aperto il menu diventa ×: sopra lo sfondo oscurato, sul punto [at] dello schermo (il segno del tasto, o dove si è
+ * toccato), un tondo con la × che gira al suo posto e chiude. Senza un tocco recente (un menu aperto da un test o da un altro gesto)
+ * non c'è, e chiude la × della testata.
  */
 @Composable
-fun GenieClose(press: Offset, progress: () -> Float, onClose: () -> Unit) {
-    val origin = remember { floatArrayOf(Float.NaN, Float.NaN) }
-    Box(Modifier.onGloballyPositioned { c -> val o = c.positionOnScreen(); origin[0] = o.x; origin[1] = o.y }) {
-        Box(
-            Modifier
-                .offsetFrom(press, origin)
-                .size(40.dp)
-                .graphicsLayer { val k = (progress() / Genie.DROP).coerceIn(0f, 1f); alpha = k; rotationZ = 90f * (1f - k) }
-                .clip(CircleShape).background(V3.S2)
-                .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClose)
-                .testTag("genie-chiudi"),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = V3.Tx, modifier = Modifier.size(22.dp)) }
-    }
+fun GenieClose(at: Offset, progress: () -> Float, onClose: () -> Unit) {
+    Box(
+        Modifier
+            .centredOnScreen(at)
+            .size(40.dp)
+            .graphicsLayer { val k = (progress() / Genie.DROP).coerceIn(0f, 1f); alpha = k; rotationZ = 90f * (1f - k) }
+            .clip(CircleShape).background(V3.S2)
+            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClose)
+            .testTag("genie-chiudi"),
+        contentAlignment = Alignment.Center,
+    ) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = V3.Tx, modifier = Modifier.size(22.dp)) }
 }
 
-/** Il tondo centrato sul punto toccato, nelle coordinate della finestra del pannello. */
-private fun Modifier.offsetFrom(press: Offset, origin: FloatArray): Modifier = this.layout { m, c ->
-    val p = m.measure(c)
-    layout(p.width, p.height) {
-        val ox = if (origin[0].isNaN()) 0f else origin[0]
-        val oy = if (origin[1].isNaN()) 0f else origin[1]
-        p.place(IntOffset((press.x - ox - p.width / 2f).toInt(), (press.y - oy - p.height / 2f).toInt()))
+/**
+ * Il tondo centrato sul punto [at] dello schermo. Il posto si calcola mentre lo si posa, dalle coordinate di quel momento: lette
+ * lì, Compose lo riposa da solo quando il pannello o la sua finestra si spostano. Prima usava una posizione presa dopo la prima
+ * posa, che alla prima posa non c'era ancora e che nessuno rileggeva: la × restava più in basso e più a destra di quanto il
+ * pannello dista dall'angolo dello schermo, dentro il pannello (Franz, 12/11 15:11, su «Vai a»).
+ *
+ * Dove sta la finestra sullo schermo lo dice la vista: `localToScreen` di Compose nei provini risponde infinito (Paparazzi tiene
+ * l'orologio a 0 e la posizione della finestra non viene mai ricalcolata), e così la stessa strada vale nell'app e nei test.
+ */
+private fun Modifier.centredOnScreen(at: Offset): Modifier = composed {
+    val view = LocalView.current
+    val corner = remember { IntArray(2) }
+    this.layout { m, c ->
+        val p = m.measure(c)
+        layout(p.width, p.height) {
+            // Senza coordinate è la posa di prova per le linee di allineamento: ne segue sempre una vera.
+            val here = coordinates?.positionInRoot()
+            if (here != null) {
+                view.getLocationOnScreen(corner)
+                p.place(IntOffset((at.x - corner[0] - here.x - p.width / 2f).roundToInt(), (at.y - corner[1] - here.y - p.height / 2f).roundToInt()))
+            }
+        }
     }
 }

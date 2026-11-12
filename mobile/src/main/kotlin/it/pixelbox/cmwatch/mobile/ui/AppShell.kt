@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -156,9 +158,13 @@ private fun SessionMenu(
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     val density = androidx.compose.ui.platform.LocalDensity.current
     val titleW = androidx.compose.runtime.remember(title, titleStyle, density) { measurer.measure(title, titleStyle, softWrap = false, maxLines = 1).size.width }
+    // Dove sta la ▾ sullo schermo: aperto il menu la × del Genie si posa lì (Franz, 12/11: «la X va nel posto sbagliato»), non sotto
+    // il dito, che sul nome può essere ovunque. Senza ▾ (nome lungo) resta il punto toccato.
+    val arrowAt = androidx.compose.runtime.remember { arrayOfNulls<androidx.compose.ui.geometry.Offset>(1) }
     androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
         // Margini 24, pallino 18 e ▾ 24 con i loro 8 di distanza.
         val marks = with(density) { titleW + (24 + 26 + 32).dp.roundToPx() } <= constraints.maxWidth
+        if (!marks) arrowAt[0] = null
         Row(
             Modifier.clip(CircleShape).handCursor().clickable { open = true }.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -170,7 +176,10 @@ private fun SessionMenu(
                 color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
                 onTextLayout = { l -> whole?.invoke(title, !l.hasVisualOverflow) },
             )
-            if (marks) Icon(Icons.Rounded.ArrowDropDown, null, tint = Cm.text2)
+            if (marks) Icon(
+                Icons.Rounded.ArrowDropDown, null, tint = Cm.text2,
+                modifier = Modifier.onGloballyPositioned { c -> arrowAt[0] = c.positionOnScreen() + androidx.compose.ui.geometry.Offset(c.size.width / 2f, c.size.height / 2f) },
+            )
         }
     }
     if (open) {
@@ -179,7 +188,7 @@ private fun SessionMenu(
         // contorno come in home, icone grigie nel binario, nessun cerchio pieno.
         PanelShell(onDismiss = { open = false }, header = {
             Text(stringResource(R.string.menu_goto), style = V3.Small, modifier = Modifier.weight(1f))
-        }, origin = androidx.compose.ui.graphics.TransformOrigin(0.2f, 0f), tag = "vai-a-v3") { close ->
+        }, origin = androidx.compose.ui.graphics.TransformOrigin(0.2f, 0f), tag = "vai-a-v3", mark = arrowAt[0]) { close ->
             val pick: (String?) -> Unit = { n -> close(); onPick(n) }
             // La home in testa: il riepilogo con la master.
             V3Row(true, { pick(null) }, { Icon(androidx.compose.material.icons.Icons.Outlined.Home, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }) {

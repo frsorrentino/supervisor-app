@@ -85,11 +85,15 @@ fun MenuPanel(
  * (osservazioni del 03/10, transizione 1): sfondo in dissolvenza in 150 ms; il pannello cambia forma dal tasto premuto fino
  * al suo posto ([growFromPress], Franz 01/11) e torna per la stessa strada, più in fretta; [onDismiss] arriva a uscita finita. Con le animazioni
  * spente compare e sparisce subito. Il contenuto riceve `close`, che chiude con l'uscita animata.
+ *
+ * [mark]: dove sta sullo schermo il segno del tasto che apre il pannello (la ▾ accanto al nome della sessione). La × e la goccia del
+ * Genie partono da lì; senza, dal punto toccato, che su un tasto piccolo come ≡ è il tasto stesso.
  */
 @Composable
 fun PanelShell(
     onDismiss: () -> Unit, header: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
     origin: androidx.compose.ui.graphics.TransformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0f), tag: String? = null,
+    mark: androidx.compose.ui.geometry.Offset? = null,
     content: @Composable androidx.compose.foundation.layout.ColumnScope.(close: () -> Unit) -> Unit,
 ) {
     val off = animationsOff()
@@ -99,9 +103,11 @@ fun PanelShell(
     val shown = remember { androidx.compose.animation.core.MutableTransitionState(off).apply { targetState = true } }
     var closing by remember { androidx.compose.runtime.mutableStateOf(false) }
     val close: () -> Unit = { if (off) onDismiss() else { closing = true; shown.targetState = false } }
-    // Il tasto che ha aperto il menu diventa × (app-genie-menu-09-11): dove si è toccato; senza un tocco recente chiude la × della testata.
+    // Il tasto che ha aperto il menu diventa × (app-genie-menu-09-11): sul suo segno se chi apre dice dov'è ([mark]), altrimenti dove
+    // si è toccato; senza un tocco recente chiude la × della testata.
     val press = remember { LastPress.at }
     val pressX = press != null && !off
+    val from = remember { if (press != null) mark ?: press else null }
     androidx.compose.runtime.LaunchedEffect(shown.isIdle, shown.currentState, closing) { if (closing && shown.isIdle && !shown.currentState) onDismiss() }
     // Compose misura il popup una volta sola, sulla parte visibile della finestra: aperto con la tastiera su (scrivendo alla
     // master) prendeva l'altezza sopra la tastiera, che il popup stesso chiude, e il menu si fermava a metà e scorreva con
@@ -144,7 +150,7 @@ fun PanelShell(
                 Surface(
                     shape = V3.Shape, color = V3.S1, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line),
                     // Il tocco dentro il pannello non lo chiude.
-                    modifier = Modifier.genieBlob(origin, p).fillMaxWidth().then(if (tag != null) Modifier.testTag(tag) else Modifier).clickable(remember { MutableInteractionSource() }, indication = null) {},
+                    modifier = Modifier.genieBlob(origin, from, p).fillMaxWidth().then(if (tag != null) Modifier.testTag(tag) else Modifier).clickable(remember { MutableInteractionSource() }, indication = null) {},
                 ) {
                     V3Theme { Column(Modifier.genieContent(p)) {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -155,7 +161,7 @@ fun PanelShell(
                         Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) { content(close) }
                     } }
                 }
-                if (pressX) GenieClose(press!!, p, close)
+                if (pressX && from != null) GenieClose(from, p, close)
             }
         }
     }
