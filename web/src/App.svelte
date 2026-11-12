@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { applyAnswered, live as liveMarks, markAnswer, settle as settleMark, type Answered } from './lib/answered'
   import { locale } from './lib/lang'
   import * as files from './lib/fileActions'
   import { seenByPath } from './lib/guardare'
@@ -154,6 +155,17 @@
   let newVersion = $state(false)
   if (import.meta.env.PROD) watchVersion({ mine: __APP_COMMIT__, fetchPublished, busy: () => draftOpen() || ((tr as LightTransport | null)?.writing ?? 0) > 0, reload: () => void reloadFresh(), offer: () => { newVersion = true } })
   let st = $state<State>(demo ? demo.state : blankState(nowS()))
+  // app-web-risposta-toglie-attesa-12-11: lo stato del PC com'è arrivato e le risposte partite; `st` è quello che si vede.
+  let rawSt: State = untrack(() => st)
+  let marks: Record<string, Answered> = {}
+  const seen = (s: State): State => { rawSt = s; marks = liveMarks(marks, s); return applyAnswered(s, marks) }
+  /** Una risposta a `name` parte: la voce che aspettava sparisce subito; l'esito del PC dice fino a quando. */
+  function answering(name: string): (r: CmdResult | null) => void {
+    const m = markAnswer(rawSt, name)
+    if (!m) return () => {}
+    marks = { ...marks, [name]: m }; st = applyAnswered(rawSt, marks)
+    return (r) => { marks = liveMarks(settleMark(marks, name, r), rawSt); st = applyAnswered(rawSt, marks) }
+  }
   let ready = $state(!!demo)
   // Il contenuto delle colonne entra con un'assolvenza breve al primo stato (app-avvio-senza-salto-04-11).
   let bootFade = $state(false)
@@ -219,11 +231,11 @@
         if (wide) {
           const gone = cols.filter(n => !s.sessions.some(x => x.name === n))
           bootFade = true; setTimeout(() => (bootFade = false), 1000)
-          smooth(() => { st = s; ready = true }, null, gone.length === 1 ? gone[0] : null)
+          smooth(() => { st = seen(s); ready = true }, null, gone.length === 1 ? gone[0] : null)
           entered = true
         }
       } catch { /* sotto */ }
-      if (!entered) { st = s; ready = true }
+      if (!entered) { st = seen(s); ready = true }
       down = false; clock = nowS()
       msgs = msgs.map(m => advance(m, s.sessions.find(x => x.name === m.session) ?? null, nowS()))
       record(s)
@@ -1669,14 +1681,16 @@
     msgs = [...msgs, m]
     if (!tr) return true
     pend = { ...pend, [m.id]: 'sending' }
+    const done = answering(name)
     // Contratto 1.65: a una sessione chiusa il relay la riapre e poi consegna.
     const closed = st.sessions.find(x => x.name === name)?.state === 'gone'
     if (closed) say(t.reopening(name))
     try {
       const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}) })
       res = { ...res, [m.id]: r }
+      done(r)
       return r.ok
-    } catch { pend = { ...pend, [m.id]: 'failed' }; return false }
+    } catch { pend = { ...pend, [m.id]: 'failed' }; done(null); return false }
   }
   // Contratto 1.64: un tocco = un comando; riuscito, si apre la sessione nata.
   async function newProject(parent: string, name: string, first: string, confirm: boolean): Promise<CmdResult | null> {
@@ -1843,7 +1857,11 @@
           leaving = r.ok ? { ...l, delivered: true } : { ...l, refused: rf?.why ?? r.text, armable: rf?.armable ?? false }
         }
       })
-    } else run(newCmd(op, name || null, arg, text, st.sessions.find(x => x.name === name)?.question?.id))
+    } else {
+      const c = newCmd(op, name || null, arg, text, rawSt.sessions.find(x => x.name === name)?.question?.id)
+      const done = name && (op === 'answer' || op === 'allow_all') ? answering(name) : null
+      run(c).then(r => done?.(r))
+    }
   }
   // La conversazione di quello che è a schermo, la master sempre (vive nella home), alla cadenza del telefono e una lettura
   // alla volta per la pagina (piano prestazioni, Task 5: 888 letture all'ora il 07/10). Il passo dei 5 s fa partire le
