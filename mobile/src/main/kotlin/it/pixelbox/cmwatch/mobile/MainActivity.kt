@@ -1597,10 +1597,11 @@ class MainActivity : ComponentActivity() {
             return
         }
         if (proveOpen) {
-            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false; proveFocus = null },
+            // app-verifica-file-prova-12-11: le immagini e i documenti delle prove si chiedono al PC solo col fornitore dei file.
+            it.pixelbox.cmwatch.mobile.ui.PageIn { androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles()) { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false; proveFocus = null },
                 onOk = { ids -> proveOkRun(ids) },
                 onKo = proveKo,
-                onScreen = { s -> proveOpen = false; proveFocus = null; goScreen(s) }, focus = proveFocus) }
+                onScreen = { s -> proveOpen = false; proveFocus = null; goScreen(s) }, focus = proveFocus) } }
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { proveOpen = false; proveFocus = null }
             return
         }
