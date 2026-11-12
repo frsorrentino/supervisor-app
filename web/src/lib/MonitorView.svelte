@@ -1,7 +1,7 @@
 <script lang="ts">
   import MonitorChart from './MonitorChart.svelte'
   import type { MonitorCard } from './contract'
-  import { isLook } from './monitors'
+  import { isLook, pageUrl } from './monitors'
   import { t } from './t'
   import MonitorRefresh from './MonitorRefresh.svelte'
   // La scheda di un monitoraggio (app-monitoraggi-09-11, mockup B e C), come MonitorPage in Kotlin: il titolo, la fonte e l'ora
@@ -24,7 +24,12 @@
     {#if wide}<button class="ic" aria-label={t.closeWord} onclick={onBack}><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-linecap="round" /></svg></button>{/if}
   </header>
   <div class="body">
-    <div class="state" class:look={isLook(m)}><p class="lb"><i></i>{isLook(m) ? t.monitorStateLook : t.monitorStateOk}</p><p>{m.verdict ?? [m.value, m.delta].filter(Boolean).join(' · ')}</p></div>
+    <!-- Contratto 1.138 (app-monitor-link-12-11): con la pagina della cosa guardata il riquadro si tocca e la apre nel browser. -->
+    {#if pageUrl(m.url)}
+      <a class="state link" class:look={isLook(m)} href={pageUrl(m.url)} target="_blank" rel="noopener" data-testid="monitor-pagina"><p class="lb"><i></i>{isLook(m) ? t.monitorStateLook : t.monitorStateOk}</p><p>{m.verdict ?? [m.value, m.delta].filter(Boolean).join(' · ')}</p><span class="go">{t.monitorOpenPage}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 16L16 8M9 8h7v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span></a>
+    {:else}
+      <div class="state" class:look={isLook(m)}><p class="lb"><i></i>{isLook(m) ? t.monitorStateLook : t.monitorStateOk}</p><p>{m.verdict ?? [m.value, m.delta].filter(Boolean).join(' · ')}</p></div>
+    {/if}
     <MonitorChart c={m} />
     {#if m.alerts.length}<p class="alerts"><span>{t.monitorAlerts} · {#each m.alerts as a, i}{#if i}{' · '}{/if}<span class:hit={m.hits.some(h => h.text === a.text)}>{a.text}</span>{/each}</span><button data-testid="monitor-avvisi" onclick={onEditAlerts}>{t.monitorEdit}</button></p>{/if}
     {#if m.example}<p class="ex"><em>{t.monitorExample}</em> {t.monitorExampleText}</p>{/if}
@@ -49,6 +54,10 @@
   .lb { display: flex; align-items: center; gap: 8px; font: 600 15px var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--good); }
   .lb i { width: 9px; height: 9px; border-radius: 50%; background: var(--good); }
   .look .lb { color: var(--wait); }
+  a.state { color: var(--tx); text-decoration: none; transition: border-color 160ms ease-out; touch-action: manipulation; }
+  a.state:focus-visible { outline: 2px solid var(--tx); outline-offset: 2px; }
+  .go { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; margin-top: 2px; font: 600 15px var(--display); color: var(--tx); text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; }
+  @media (hover: hover) and (pointer: fine) { a.state:hover { border-color: var(--tx3); } a.state:hover .go { text-decoration-color: var(--tx); } }
   .look .lb i { background: var(--wait); }
   .alerts { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--s3); color: var(--tx2); font-size: 15.5px; line-height: 21px; }
   .alerts > span { flex: 1; }

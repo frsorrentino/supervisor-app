@@ -36,12 +36,14 @@
      "kind": "below",
      "value": 1800.0,
      "series": "Yoga 9i",
-     "text": "sotto 1.800 € · Yoga 9i"
+     "text": "sotto 1.800 € · Yoga 9i",
+     "url": "https://shop.example/offer/yoga-9i"
     }
    ],
    "series": [
     {
      "name": "Yoga 9i",
+     "url": "https://shop.example/offer/yoga-9i",
      "points": [
       [
        1794139200,
@@ -136,6 +138,7 @@
     },
     {
      "name": "MSI Flip",
+     "url": "https://shop.example/offer/msi-flip",
      "points": [
       [
        1794139200,
@@ -230,6 +233,7 @@
     },
     {
      "name": "G14",
+     "url": "https://shop.example/offer/g14",
      "points": [
       [
        1794139200,
@@ -324,6 +328,7 @@
     },
     {
      "name": "XPS 14",
+     "url": "https://shop.example/offer/xps-14",
      "points": [
       [
        1794139200,
@@ -417,7 +422,8 @@
      "max": 2605.0
     }
    ],
-   "link": "https://supervisor.example.com/#/monitor/prezzi-portatili"
+   "link": "https://supervisor.example.com/#/monitor/prezzi-portatili",
+   "url": "https://shop.example/offer/yoga-9i"
   },
   {
    "id": "utenti-store",
@@ -869,17 +875,20 @@
     {
      "name": "chrome-bridge",
      "value": "★ 7",
-     "text": "+0 in 7 g"
+     "text": "+0 in 7 g",
+     "url": "https://github.com/frsorrentino/chrome-bridge"
     },
     {
      "name": "fable-director",
      "value": "★ 4",
-     "text": "+0 in 7 g"
+     "text": "+0 in 7 g",
+     "url": "https://github.com/frsorrentino/fable-director"
     },
     {
      "name": "supervisor",
      "value": "★ 2",
-     "text": "+0 in 7 g"
+     "text": "+0 in 7 g",
+     "url": "https://github.com/frsorrentino/supervisor"
     }
    ],
    "link": "https://supervisor.example.com/#/monitor/stelle-github"

@@ -463,7 +463,7 @@ const it = {
   sceltaReasonLabel: 'Cosa non va nelle proposte?', sceltaReasonHint: 'La sessione le rifà partendo da quello che scrivi.',
   sceltaLeft: (n: number) => (n === 1 ? 'resta 1 carattere' : `restano ${n} caratteri`),
   sceltaDone: { chosen: 'Scelta fatta', approved: 'Approvata', redo: 'Da rifare', closed: 'Chiusa senza ok' } as Record<string, string>,
-  sceltaAnswered: (when: string) => `risposta ${when}`, attesaLook: 'Cosa guardare', sceltaOpenCard: 'Apri la scheda', sceltaCardLoading: 'La scheda sta arrivando dal PC',
+  sceltaAnswered: (when: string) => `risposta ${when}`, attesaLook: 'Cosa guardare', monitorOpenPage: 'Apri la pagina', monitorOpenPageOf: (x: string) => `Apri la pagina di ${x}`, sceltaOpenCard: 'Apri la scheda', sceltaCardLoading: 'La scheda sta arrivando dal PC',
   viewerAt: (i: number, n: number) => `${i} di ${n}`, viewerPrev: 'Immagine precedente', viewerNext: 'Immagine successiva',
 }
 
@@ -906,7 +906,7 @@ const en: typeof it = {
   sceltaReasonLabel: 'What is wrong with the proposals?', sceltaReasonHint: 'The session redoes them starting from what you write.',
   sceltaLeft: (n: number) => (n === 1 ? '1 character left' : `${n} characters left`),
   sceltaDone: { chosen: 'Choice made', approved: 'Approved', redo: 'To redo', closed: 'Closed without ok' } as Record<string, string>,
-  sceltaAnswered: (when: string) => `answered ${when}`, attesaLook: 'What to look at', sceltaOpenCard: 'Open the card', sceltaCardLoading: 'The card is on its way from the PC',
+  sceltaAnswered: (when: string) => `answered ${when}`, attesaLook: 'What to look at', monitorOpenPage: 'Open the page', monitorOpenPageOf: (x: string) => `Open the page of ${x}`, sceltaOpenCard: 'Open the card', sceltaCardLoading: 'The card is on its way from the PC',
   viewerAt: (i: number, n: number) => `${i} of ${n}`, viewerPrev: 'Previous image', viewerNext: 'Next image',
 }
 

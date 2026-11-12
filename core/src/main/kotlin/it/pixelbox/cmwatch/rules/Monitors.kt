@@ -11,6 +11,18 @@ import it.pixelbox.cmwatch.contract.MonitorsSummary
  */
 object Monitors {
     /**
+     * Contratto 1.138 (app-monitor-link-12-11, Franz 12/11 15:19: «Sarebbe sufficiente che fosse cliccabile e che mi portasse alla pagina
+     * con il nuovo prezzo»): il link della cosa guardata, solo http e https, su una riga, fino a 2000 caratteri; altrimenti null e niente
+     * si apre. Come pageUrl di web/src/lib/monitors.ts.
+     */
+    fun pageUrl(u: String?): String? {
+        val v = u?.trim().orEmpty()
+        if (v.isEmpty() || v.any { it.isWhitespace() } || v.length > 2000) return null
+        val uri = runCatching { java.net.URI(v) }.getOrNull() ?: return null
+        return v.takeIf { (uri.scheme == "https" || uri.scheme == "http") && !uri.host.isNullOrEmpty() }
+    }
+
+    /**
      * Il catalogo chiuso delle forme (references/choosing-a-form.md della skill dataviz): un valore con variazione e sparkline, una
      * serie nel tempo, più serie con gli stessi giorni (un grafico piccolo per serie), conteggi per giorno, un valore contro un
      * limite, righe, sì/no coi giorni. Una forma che l'app non conosce non si disegna.

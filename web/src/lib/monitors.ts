@@ -112,3 +112,14 @@ export function sectionOf(summary: MonitorsSummary | null | undefined, items: Mo
 }
 /** Dopo quanti secondi riprovare la lettura delle schede al tentativo `attempt` (0 il primo): 5, 10, 20, 40, poi ogni 60. */
 export const retryAfter = (attempt: number) => Math.min(60, 5 * 2 ** Math.min(4, Math.max(0, attempt)))
+
+/**
+ * Contratto 1.138 (app-monitor-link-12-11, Franz 12/11 15:19: «Sarebbe sufficiente che fosse cliccabile e che mi portasse alla pagina
+ * con il nuovo prezzo»): il link della cosa guardata, solo http e https, su una riga; altrimenti null e niente si apre. Come
+ * Monitors.pageUrl.
+ */
+export function pageUrl(u: string | null | undefined): string | null {
+  const v = (u ?? '').trim()
+  if (!v || /\s/.test(v) || v.length > 2000) return null
+  try { const x = new URL(v); return x.protocol === 'https:' || x.protocol === 'http:' ? v : null } catch { return null }
+}

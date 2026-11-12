@@ -67,7 +67,9 @@ export type Advice = { model: string; effort: string; reason: string; switch_cos
 /** Contratto 1.81: `options` = le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
 export type SuggestionKind = 'recurring' | 'cleanup' | 'deadline' | 'quota' | 'choice' | 'followup' | 'unsaved' | 'waiting' | 'idea' | 'proposal' | 'reminder'
 // Contratto 1.88: rank (0-9, 0 in cima; assente = 5), source, options sulle choice; prompt non più nello stato.
-export type Suggestion = { id: string; kind: SuggestionKind | string; key: string; text: string; prompt?: string; at: number; expires_at?: number | null; rank?: number | null; source?: 'script' | 'master' | string | null; options?: string[] | null; link?: string | null }
+export type Suggestion = { id: string; kind: SuggestionKind | string; key: string; text: string; prompt?: string; at: number; expires_at?: number | null; rank?: number | null; source?: 'script' | 'master' | string | null; options?: string[] | null; link?: string | null
+  /** Contratto 1.138: per una voce di kind monitor, la pagina della soglia scattata (`link` resta la scheda nell'app). */
+  url?: string | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
 /** Contratto 1.99: `untested`, `undo`, `undo_how`, `precedent`, `also`, ognuno solo se dichiarato: assente vuol dire «non dichiarato». */
 export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null; wid?: string | null }
@@ -504,9 +506,11 @@ export type WaitsPage = { at: number; items: WaitItem[] }
 /** Contratto 1.132: `/state.monitors`. */
 export type MonitorsSummary = { n: number; watch: number; at: number | null }
 /** Contratto 1.132: una soglia (`below`, `above`, `new_min`, `new_max`) e quelle scattate adesso (`hits`). */
-export type MonitorAlert = { kind: string; value: number | null; series: string | null; text: string }
+/** Contratto 1.138: `url` la pagina del punto che ha fatto scattare la soglia (solo negli `hits`), o null. */
+export type MonitorAlert = { kind: string; value: number | null; series: string | null; text: string; url?: string | null }
 /** `points` al massimo 60, `[ts, valore]`; `n`, `min` e `max` contano tutta la storia. */
-export type MonitorSeries = { name: string | null; points: [number, number][]; n: number; last: number | null; last_text: string | null; min: number | null; max: number | null }
+/** Contratto 1.138: `url` la pagina dell'ultimo punto che ne ha una, se no il link fisso della serie, se no null. */
+export type MonitorSeries = { name: string | null; points: [number, number][]; n: number; last: number | null; last_text: string | null; min: number | null; max: number | null; url?: string | null }
 /**
  * Contratto 1.132: la scheda di un monitoraggio, dall'op `monitors`. `status` `ok | watch`; `example` = dati non veri; meter con
  * `max`, `limit`, `pct`; table con `rows`.
@@ -515,7 +519,9 @@ export type MonitorCard = {
   id: string; title: string; form: string; unit: string | null; status: string; verdict: string | null; verdict_at: number | null
   value: string | null; delta: string | null; delta_pct: number | null; delta_since: number | null; at: number | null; source: string | null; every: string | null
   example: boolean; alerts: MonitorAlert[]; hits: MonitorAlert[]; series: MonitorSeries[]; link: string | null
-  max?: number | null; limit?: string | null; pct?: number | null; rows?: { name: string; value: string; text: string | null }[]
+  max?: number | null; limit?: string | null; pct?: number | null; rows?: { name: string; value: string; text: string | null; url?: string | null }[]
+  /** Contratto 1.138: la pagina della cosa guardata, quella del primo avviso scattato, se no della serie principale; null senza link. */
+  url?: string | null
   /** Contratto 1.133: si può aggiornare subito con `monitor_refresh`; solo allora c'è il tasto. */
   refreshable?: boolean; refresh?: MonitorRefresh | null
 }

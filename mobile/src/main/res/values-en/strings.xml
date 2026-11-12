@@ -1966,4 +1966,7 @@ It starts at your last message to the master.</string>
         <item quantity="one">One more image</item>
         <item quantity="other">%d more images</item>
     </plurals>
+    <!-- I link dei monitoraggi (app-monitor-link-12-11, contratto 1.138). -->
+    <string name="monitor_open_page">Open the page</string>
+    <string name="monitor_open_page_of">Open the page of %1$s</string>
 </resources>

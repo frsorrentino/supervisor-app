@@ -85,6 +85,8 @@ internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, Stri
             FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 // Contratto 1.132: la voce di un monitoraggio porta il link della sua scheda, che l'app apre dentro (app-monitoraggi-09-11).
                 s.link?.let { l -> val uri = androidx.compose.ui.platform.LocalUriHandler.current; SugText(stringResource(R.string.sug_open_chart)) { uri.openUri(l) } }
+                // Contratto 1.138: la pagina della soglia scattata, nel browser.
+                it.pixelbox.cmwatch.rules.Monitors.pageUrl(s.url)?.let { u -> val uri = androidx.compose.ui.platform.LocalUriHandler.current; SugText(stringResource(R.string.monitor_open_page)) { uri.openUri(u) } }
                 if (s.id in more) {
                     SugText(stringResource(R.string.sug_discuss)) { answer(s, "discuss", null) }
                     SugText(stringResource(R.string.sug_later)) { answer(s, "later", null) }

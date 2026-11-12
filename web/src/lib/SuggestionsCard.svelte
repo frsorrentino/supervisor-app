@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageUrl } from './monitors'
   import type { Suggestion } from './contract'
   import { t } from './t'
   import { options } from './suggestions'
@@ -33,6 +34,8 @@
     <span class="btns">
       <!-- Contratto 1.132: la voce di un monitoraggio porta il link della sua scheda, che la web apre dentro l'app (app-monitoraggi-09-11). -->
       {#if s.link}<a class="text" href={s.link} data-testid="suggerimento-grafico">{t.sugOpenChart}</a>{/if}
+      <!-- Contratto 1.138: la pagina della soglia scattata, nel browser. -->
+      {#if pageUrl(s.url)}<a class="text" href={pageUrl(s.url)} target="_blank" rel="noopener" data-testid="suggerimento-pagina">{t.monitorOpenPage}</a>{/if}
       {#if more.has(s.id)}
         <button class="text" onclick={() => answer(s, 'discuss')}>{t.sugDiscuss}</button>
         <button class="text" onclick={() => answer(s, 'later')}>{t.sugLater}</button>

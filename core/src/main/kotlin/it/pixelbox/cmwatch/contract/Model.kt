@@ -378,6 +378,8 @@ enum class CmdOp {
     val rank: Int? = null, val source: String? = null, val options: List<String>? = null,
     /** Contratto 1.132: il link della scheda di un monitoraggio (`kind: monitor`); assente sulle altre voci. */
     val link: String? = null,
+    /** Contratto 1.138: per una voce di kind monitor, la pagina della soglia scattata (`link` resta la scheda nell'app). */
+    val url: String? = null,
 )
 
 /** Contratto 1.84: una sessione nei token di oggi; `share` = la parte sul totale dell'account (0..1). */
@@ -1231,6 +1233,8 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val example: Boolean = false, val alerts: List<MonitorAlert> = emptyList(), val hits: List<MonitorAlert> = emptyList(),
     val series: List<MonitorSeries> = emptyList(), val link: String? = null,
     val max: Double? = null, val limit: String? = null, val pct: Double? = null, val rows: List<MonitorRow> = emptyList(),
+    /** Contratto 1.138: la pagina della cosa guardata, quella del primo avviso scattato, se no della serie principale; null senza link. */
+    val url: String? = null,
     /** Contratto 1.133: si può aggiornare subito con `monitor_refresh`; solo allora c'è il tasto. */
     val refreshable: Boolean = false,
     /** Contratto 1.133: l'ultimo aggiornamento chiesto; null se [refreshable] è falso. */
@@ -1244,11 +1248,14 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val state: String = "idle", val started: Long? = null, val ended: Long? = null, val rc: Int? = null, val message: String? = null,
     @SerialName("retry_at") val retryAt: Long? = null, @SerialName("timeout_s") val timeoutS: Int? = null,
 )
-@Serializable data class MonitorAlert(val kind: String = "", val value: Double? = null, val series: String? = null, val text: String = "")
+/** Contratto 1.138: `url` la pagina del punto che ha fatto scattare la soglia (solo negli `hits`), o null. */
+@Serializable data class MonitorAlert(val kind: String = "", val value: Double? = null, val series: String? = null, val text: String = "", val url: String? = null)
 /** `points` al massimo 60, `[ts, valore]`; `n`, `min` e `max` contano tutta la storia. */
 @Serializable data class MonitorSeries(
     val name: String? = null, val points: List<List<Double>> = emptyList(), val n: Int = 0, val last: Double? = null,
     @SerialName("last_text") val lastText: String? = null, val min: Double? = null, val max: Double? = null,
+    /** Contratto 1.138: la pagina dell'ultimo punto che ne ha una, se no il link fisso della serie, se no null. */
+    val url: String? = null,
 )
-@Serializable data class MonitorRow(val name: String = "", val value: String = "", val text: String? = null)
+@Serializable data class MonitorRow(val name: String = "", val value: String = "", val text: String? = null, val url: String? = null)
 @Serializable data class MonitorsPage(val at: Long = 0, val items: List<MonitorCard> = emptyList())

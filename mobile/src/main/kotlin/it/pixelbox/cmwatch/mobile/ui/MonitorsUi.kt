@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Refresh
@@ -210,12 +211,23 @@ internal fun androidx.compose.foundation.layout.RowScope.WideButton(text: String
 /** Il riquadro dello stato: pallino ed etichetta (ambra se da guardare, verde se stabile) e la frase della master, o valore e variazione. */
 @Composable
 private fun StateBox(m: MonitorCard) {
-    Column(Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    // Contratto 1.138 (app-monitor-link-12-11): con la pagina della cosa guardata il riquadro si tocca e la apre nel browser.
+    val page = Monitors.pageUrl(m.url)
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    Column(
+        Modifier.fillMaxWidth().clip(V3.Shape).background(V3.S1).v3Edge()
+            .then(if (page != null) Modifier.handCursor().clickable { uri.openUri(page) }.testTag("monitor-pagina") else Modifier).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.size(9.dp).clip(CircleShape).background(dotOf(m)))
             Text(stringResource(if (Monitors.look(m)) R.string.monitor_state_look else R.string.monitor_state_ok).uppercase(), style = V3.Name.copy(fontSize = 15.sp, letterSpacing = 0.6.sp, color = dotOf(m)))
         }
         Text(m.verdict ?: listOfNotNull(m.value, m.delta).joinToString(" · "), style = V3.Body)
+        if (page != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.monitor_open_page), style = V3.Name.copy(fontSize = 15.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+            Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, tint = V3.Tx2, modifier = Modifier.size(16.dp))
+        }
     }
 }
 
@@ -354,7 +366,18 @@ private fun MultiplesForm(c: MonitorCard) {
         if (k > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(s.name.orEmpty(), style = V3.Name, maxLines = 1)
+                // Contratto 1.138: la serie con la sua pagina (il negozio dell'offerta) ha il nome che la apre.
+                val sPage = Monitors.pageUrl(s.url)
+                if (sPage != null) {
+                    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+                    Row(
+                        Modifier.clip(SubShape).handCursor().clickable(onClickLabel = stringResource(R.string.monitor_open_page_of, s.name.orEmpty())) { uri.openUri(sPage) }.testTag("monitor-serie-pagina"),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(s.name.orEmpty(), style = V3.Name.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline), maxLines = 1)
+                        Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, tint = V3.Tx2, modifier = Modifier.size(15.dp))
+                    }
+                } else Text(s.name.orEmpty(), style = V3.Name, maxLines = 1)
                 val sc = Monitors.scale(vs)
                 val mn = Monitors.minIndex(vs); val last = Monitors.lastIndex(vs)
                 Canvas(Modifier.fillMaxWidth().height(52.dp).padding(top = 4.dp).pointerInput(c) {
@@ -452,8 +475,11 @@ private fun MeterForm(c: MonitorCard) {
 private fun TableForm(c: MonitorCard) {
     c.rows.forEachIndexed { i, r ->
         if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-        Row(Modifier.fillMaxWidth().heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(r.name, style = V3.Body, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // Contratto 1.138: una riga con la sua pagina si tocca e la apre.
+        val rPage = Monitors.pageUrl(r.url)
+        val uri = androidx.compose.ui.platform.LocalUriHandler.current
+        Row(Modifier.fillMaxWidth().heightIn(min = 40.dp).then(if (rPage != null) Modifier.handCursor().clickable { uri.openUri(rPage) } else Modifier), verticalAlignment = Alignment.CenterVertically) {
+            Text(r.name, style = V3.Body.copy(textDecoration = if (rPage != null) androidx.compose.ui.text.style.TextDecoration.Underline else null), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(r.value, style = V3.Name.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 12.dp), maxLines = 1, softWrap = false)
             r.text?.let { Text(it, style = V3.Small, modifier = Modifier.padding(start = 14.dp).widthIn(min = 72.dp), textAlign = TextAlign.End, maxLines = 1, softWrap = false) }
         }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { FORMS, formOf, isLook, lastIndex, line, looking, maxIndex, meter, minIndex, monitorOf, nearest, outcomeOf, refreshOf, retryAfter, scale, sectionOf, span, times, up, values, xOf, yOf } from './monitors'
+import { FORMS, formOf, isLook, pageUrl, lastIndex, line, looking, maxIndex, meter, minIndex, monitorOf, nearest, outcomeOf, refreshOf, retryAfter, scale, sectionOf, span, times, up, values, xOf, yOf } from './monitors'
 import { decodeMonitor, decodeMonitors } from './decideDecode'
 import type { MonitorCard, MonitorRefresh, MonitorsPage } from './contract'
 
@@ -99,5 +99,26 @@ describe('monitors', () => {
     expect(sectionOf({ n: 3, watch: 1, at: 100 }, null)).toEqual({ count: 3, loading: true })
     expect(sectionOf({ n: 3, watch: 1, at: 100 }, [])).toEqual({ count: 3, loading: true })
     expect([0, 1, 2, 3, 4, 5].map(retryAfter)).toEqual([5, 10, 20, 40, 60, 60])
+  })
+})
+
+// Contratto 1.138 (app-monitor-link-12-11): la pagina della cosa guardata, sulla scheda, sulle serie, sugli avvisi scattati e sulle righe.
+describe('monitor links', () => {
+  it('the fixture: the prices card with a page per series, on its hit and on the card; the adoption card without', () => {
+    const page = decodeMonitors(res(null).text)
+    const [ad, p] = page.items
+    expect(ad.url ?? null).toBeNull(); expect(ad.series.map(x => x.url ?? null)).toEqual([null])
+    expect(p.url).toBe('https://shop.example/offer/yoga-9i')
+    expect(p.series.map(x => x.url)).toEqual(['https://shop.example/offer/yoga-9i', 'https://shop.example/offer/zenbook-14'])
+    expect(p.hits[0].url).toBe('https://shop.example/offer/yoga-9i')
+  })
+  it('only http and https, on one line', () => {
+    expect(pageUrl('https://shop.example/offer/yoga-9i')).toBe('https://shop.example/offer/yoga-9i')
+    expect(pageUrl('http://shop.example/a?b=1')).toBe('http://shop.example/a?b=1')
+    expect(pageUrl(' https://shop.example/x ')).toBe('https://shop.example/x')
+    expect(pageUrl('javascript:alert(1)')).toBeNull(); expect(pageUrl('file:///etc/passwd')).toBeNull(); expect(pageUrl('ftp://x.example/a')).toBeNull()
+    expect(pageUrl('https://a.example/one two')).toBeNull(); expect(pageUrl('https://a.example/' + String.fromCharCode(10) + 'b')).toBeNull()
+    expect(pageUrl('https://a.example/' + 'x'.repeat(2000))).toBeNull()
+    expect(pageUrl(null)).toBeNull(); expect(pageUrl('')).toBeNull(); expect(pageUrl('shop.example/x')).toBeNull()
   })
 })

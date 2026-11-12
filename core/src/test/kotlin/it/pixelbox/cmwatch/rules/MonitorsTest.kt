@@ -37,6 +37,25 @@ class MonitorsTest {
         assertNull(st.monitors); assertTrue("monitors" in st.ops.orEmpty())
     }
 
+    // Contratto 1.138 (app-monitor-link-12-11): la pagina della cosa guardata, sulla scheda, sulle serie e sull'avviso scattato.
+    @Test fun theLinksOfTheMonitoredThing() {
+        val (ad, p) = ContractJson.decodeMonitors(fake.sampleText("monitors")).items
+        assertNull(ad.url); assertEquals(listOf<String?>(null), ad.series.map { it.url })
+        assertEquals("https://shop.example/offer/yoga-9i", p.url)
+        assertEquals(listOf("https://shop.example/offer/yoga-9i", "https://shop.example/offer/zenbook-14"), p.series.map { it.url })
+        assertEquals("https://shop.example/offer/yoga-9i", p.hits.single().url)
+    }
+
+    // Gli stessi casi di pageUrl in web/src/lib/monitors.test.ts: solo http e https, su una riga, fino a 2000 caratteri.
+    @Test fun onlyHttpAndHttpsOnOneLine() {
+        assertEquals("https://shop.example/offer/yoga-9i", Monitors.pageUrl("https://shop.example/offer/yoga-9i"))
+        assertEquals("http://shop.example/a?b=1", Monitors.pageUrl("http://shop.example/a?b=1"))
+        assertEquals("https://shop.example/x", Monitors.pageUrl(" https://shop.example/x "))
+        listOf("javascript:alert(1)", "file:///etc/passwd", "ftp://x.example/a", "https://a.example/one two", "https://a.example/" + Char(10) + "b",
+            "https://a.example/" + "x".repeat(2000), "", "shop.example/x").forEach { u -> assertNull(u, Monitors.pageUrl(u)) }
+        assertNull(Monitors.pageUrl(null))
+    }
+
     @Test fun theMockupsCoverTheWholeCatalog() {
         assertEquals(Monitors.Form.entries.toSet(), mock.mapNotNull(Monitors::formOf).toSet())
         assertNull(Monitors.formOf(MonitorCard("x", form = "pie")))

@@ -1996,4 +1996,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
         <item quantity="one">Un\'altra immagine</item>
         <item quantity="other">Altre %d immagini</item>
     </plurals>
+    <!-- I link dei monitoraggi (app-monitor-link-12-11, contratto 1.138). -->
+    <string name="monitor_open_page">Apri la pagina</string>
+    <string name="monitor_open_page_of">Apri la pagina di %1$s</string>
 </resources>

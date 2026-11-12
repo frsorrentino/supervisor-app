@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { MonitorCard } from './contract'
-  import { formOf, isLook, lastIndex, maxIndex, meter, minIndex, nearest, scale, span, times, up, values, xOf, yOf } from './monitors'
+  import { pageUrl, formOf, isLook, lastIndex, maxIndex, meter, minIndex, nearest, scale, span, times, up, values, xOf, yOf } from './monitors'
   import { t } from './t'
   import { lang } from './lang'
   // Il grafico di un monitoraggio nella forma della sua scheda (app-monitoraggi-09-11, contratto 1.132), come ChartOf in Kotlin: una
@@ -59,7 +59,9 @@
       {@const hit = c.hits.find(h => h.series === x.name)}
       <div class="mult" class:first={k === 0}>
         <div class="mg">
-          <p class="mn"><b>{x.name ?? ''}</b></p>
+          <!-- Contratto 1.138: la serie con la sua pagina (il negozio dell'offerta) ha il nome che la apre. -->
+          {#if pageUrl(x.url)}<p class="mn"><a class="out" href={pageUrl(x.url)} target="_blank" rel="noopener" aria-label={t.monitorOpenPageOf(x.name ?? '')} data-testid="monitor-serie-pagina"><b>{x.name ?? ''}</b><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M8 16L16 8M9 8h7v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></a></p>
+          {:else}<p class="mn"><b>{x.name ?? ''}</b></p>{/if}
           <svg width={cw + 8} height="52" role="img" aria-label={x.name ?? ''} onclick={(e) => { const tt = sp[0] + tapX(e) * (cw + 8) / cw * (sp[1] - sp[0]); sel = sel != null && Math.abs(sel - tt) < (sp[1] - sp[0]) / 60 ? null : tt }}>
             <line class="grid" x1="0" x2={cw + 8} y1="51" y2="51" />
             {#if sel != null}<line class="sel" x1={xOf(sel, sp) * cw} x2={xOf(sel, sp) * cw} y1="0" y2="52" />{/if}
@@ -71,7 +73,7 @@
             {/if}
           </svg>
         </div>
-        <p class="mv"><b>{x.last_text ?? (x.last != null ? num(x.last, c.unit) : '')}</b>{#if hit}<small class="look">{hit.text}</small>{:else if x.min != null}<small>{t.monitorMin(num(x.min, c.unit))}</small>{/if}</p>
+        <p class="mv"><b>{x.last_text ?? (x.last != null ? num(x.last, c.unit) : '')}</b>{#if hit && pageUrl(hit.url)}<a class="look hitlink" href={pageUrl(hit.url)} target="_blank" rel="noopener">{hit.text}</a>{:else if hit}<small class="look">{hit.text}</small>{:else if x.min != null}<small>{t.monitorMin(num(x.min, c.unit))}</small>{/if}</p>
       </div>
     {/each}
     {#if firstT.length >= 2}<p class="days" style:padding-right="120px"><span>{day(sp[0])}</span><span>{day(Math.round((sp[0] + sp[1]) / 2))}</span><span>{day(sp[1])}</span></p>{/if}
@@ -94,7 +96,7 @@
     <div class="meter" class:over={isLook(c)}><i style:width="{fill * 100}%"></i>{#if mark != null}<b style:left="{mark * 100}%"></b>{/if}</div>
 
   {:else if form === 'table'}
-    {#each c.rows ?? [] as r, i (i)}<p class="trow"><span>{r.name}</span><b>{r.value}</b>{#if r.text}<small>{r.text}</small>{/if}</p>{/each}
+    {#each c.rows ?? [] as r, i (i)}{#if pageUrl(r.url)}<a class="trow tlink" href={pageUrl(r.url)} target="_blank" rel="noopener"><span>{r.name}</span><b>{r.value}</b>{#if r.text}<small>{r.text}</small>{/if}</a>{:else}<p class="trow"><span>{r.name}</span><b>{r.value}</b>{#if r.text}<small>{r.text}</small>{/if}</p>{/if}{/each}
 
   {:else if form === 'status' && first.length}
     {@const ok = first.filter(up).length}
@@ -127,6 +129,13 @@
   .mg { flex: 1; min-width: 0; }
   .mn { margin-bottom: 4px; white-space: nowrap; }
   .mn b { font: 600 17px/20px var(--display); }
+  .out { display: inline-flex; align-items: center; gap: 4px; color: var(--tx); text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; touch-action: manipulation; }
+  .out svg { color: var(--tx2); flex: none; }
+  .hitlink { font-size: 14px; line-height: 19px; white-space: normal; text-align: right; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--wait) 50%, transparent); text-underline-offset: 3px; }
+  .tlink { color: inherit; text-decoration: none; }
+  .tlink span { text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; }
+  .out:focus-visible, .hitlink:focus-visible, .tlink:focus-visible { outline: 2px solid var(--tx); outline-offset: 2px; border-radius: 4px; }
+  @media (hover: hover) and (pointer: fine) { .out:hover, .tlink:hover span { text-decoration-color: var(--tx); } }
   .mv { width: 108px; flex: none; display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
   .mv b { font: 700 17px/20px var(--display); }
   .mv small { font-size: 14px; line-height: 19px; color: var(--tx2); white-space: normal; text-align: right; }
