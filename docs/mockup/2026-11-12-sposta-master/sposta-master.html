@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sposta la master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0&display=block" rel="stylesheet">
+<style>
+  /* app-mockup-sposta-master-12-11 (Franz 12/11 10:44: «per gli spostamenti della master, togliamo le frecce accanto alla maniglia,
+     rimettiamo icona su tasto rotondo con frecce delle posizioni disponibili»). Oggi (schermate vere) accanto alla proposta: la maniglia
+     senza ‹ ›, che resta per trascinare; il tasto rotondo con l'icona ⇄ (quella di 137d630f, prima delle frecce), che aperto mostra solo
+     le posizioni disponibili da dove sta la master. Tre forme del tasto aperto: A raggiera, B miniatura dello schermo, C i posti
+     tratteggiati sullo schermo. La «Home in riga» è quella di app-mockup-chat-home-12-11 (2026-11-12-chat-leggibile/home-in-riga.html).
+     Web 1440 × 900, tablet 1280 × 800 e 800 × 1280. `?p=<id>` una tavola sola, `&day` il giorno. */
+  :root { --bg:#0B0B0B; --s1:#121212; --s2:#181818; --s3:#232323; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#A3A3A3; --tx3:#6E6E6E;
+          --wait:#FFB23F; --good:#71D083; --busy:#8AA9DB; --red:#FF6B5E; --waitbg:#1d1609; --waitline:#4a3412; --act:#EEEEEE; --onact:#0B0B0B;
+          --you:#262626; --ghost:rgba(255,178,63,.10); --master:#141820; --scrim:rgba(0,0,0,.45); }
+  body.day { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#ECECEC; --line:#E1E1E1; --tx:#141414; --tx2:#555555; --tx3:#6A6A6A;
+          --wait:#9A5700; --good:#2A7E3B; --busy:#3D5F94; --red:#C9302F; --waitbg:#FFF6E5; --waitline:#F2D7A2; --act:#141414; --onact:#FFFFFF;
+          --you:#E6E6E6; --ghost:rgba(154,87,0,.08); --master:#EEF2F8; --scrim:rgba(244,244,244,.55); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, "DejaVu Sans", sans-serif; }
+  .mono { font-family: "Geist Mono", "DejaVu Sans Mono", monospace; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal;
+        text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+  .panel { display: none; position: relative; overflow: hidden; background: var(--bg); }
+  .panel.web { width: 1440px; height: 900px; } .panel.tab { width: 1280px; height: 800px; } .panel.port { width: 800px; height: 1280px; }
+  .panel.on { display: block; }
+  .panel > img { width: 100%; height: 100%; display: block; }
+  body.all { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; align-items: flex-start; }
+  body.all .panel { display: block; }
+  .tag { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 40; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700;
+         font-size: 13px; padding: 3px 10px; border-radius: 999px; background: #3a2a17; color: #f5c27a; white-space: nowrap; }
+  body.day .tag { background: #FFE7BF; color: #7a4600; }
+  .note { position: absolute; z-index: 35; padding: 9px 12px; border-radius: 10px; background: var(--s2); border: 1px dashed var(--tx3); color: var(--tx2); font-size: 13.5px; line-height: 18px; }
+  .note b { color: var(--tx); font-weight: 600; }
+  .call { position: absolute; z-index: 36; padding: 4px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--waitline); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14px; color: var(--wait); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+  .cols { position: absolute; left: 0; right: 0; top: 0; display: flex; }
+  .col { position: relative; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+  .card { margin: 10px 8px 10px 12px; border-radius: 22px; border: 1px solid var(--line); background: var(--bg); flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .shead { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); }
+  .shead .ic { width: 26px; height: 26px; border-radius: 7px; background: #2f6fdc; color: #fff; display: grid; place-items: center; } .shead .ic .ms { font-size: 18px; }
+  .shead b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 18px; font-weight: 700; }
+  .shead .st { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--wait); }
+  .shead .sp { flex: 1; } .shead .x { color: var(--tx2); }
+  .chat { flex: 1; padding: 14px 18px 0; font-size: 15.5px; line-height: 23px; overflow: hidden; } .chat p { margin-bottom: 12px; }
+  .you { margin: 0 0 12px auto; width: fit-content; max-width: 80%; padding: 9px 14px; border-radius: 18px 18px 6px 18px; background: var(--you); }
+  .field { margin: 8px 12px 12px; display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 26px; border: 1px solid var(--line); background: var(--s1); color: var(--tx3); font-size: 15px; }
+  .field .in { flex: 1; } .field .ms { color: var(--tx2); }
+  .home { padding: 18px 12px 0; }
+  .home .hh { display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; }
+  .home .hh b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 24px; font-weight: 700; } .home .hh small { font-family: "Geist Mono", monospace; font-size: 12.5px; color: var(--tx2); }
+  .home .hh .sp { flex: 1; } .home .hh .ms { color: var(--tx2); }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: 16px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; margin-bottom: 14px; }
+  .kpis div { padding: 12px; border-right: 1px solid var(--line); } .kpis div:last-child { border: 0; }
+  .kpis b { display: block; font-family: "Barlow Semi Condensed", sans-serif; font-size: 34px; line-height: 38px; } .kpis b.w { color: var(--wait); }
+  .kpis small { font-size: 12.5px; color: var(--tx2); }
+  .hl { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--wait); padding: 4px 6px 8px; }
+  .hrow { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 11px 12px; margin-bottom: 8px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); }
+  .hrow > span:nth-child(2) { min-width: 0; }
+  .hrow .ms { font-size: 20px; color: var(--wait); } .hrow .ms.b { color: var(--busy); }
+  .hrow b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 16px; } .hrow small { display: block; font-size: 13px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .hrow .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--waitline); background: var(--waitbg); color: var(--wait); }
+
+  /* La master: la maniglia sola (niente ‹ ›) e il tasto rotondo con ⇄. */
+  .mcol { background: var(--master); }
+  .grip { height: 18px; display: grid; place-items: center; } .grip i { width: 44px; height: 4px; border-radius: 2px; background: var(--tx3); }
+  .mhead { display: flex; align-items: center; gap: 10px; padding: 2px 12px 10px 14px; border-bottom: 1px solid var(--line); }
+  .mhead .g { width: 22px; height: 22px; border-radius: 50%; border: 2px dashed var(--tx3); }
+  .mhead b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 16px; } .mhead small { display: block; font-size: 13px; color: var(--tx2); }
+  .mhead .sp { flex: 1; }
+  .rb { width: 44px; height: 44px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; color: var(--tx); flex: none; position: relative; z-index: 31; }
+  .rb.on { background: var(--act); color: var(--onact); box-shadow: 0 0 0 4px color-mix(in srgb, var(--wait) 35%, transparent); }
+  .rb svg { width: 22px; height: 22px; }
+  .mbar:has(.rb.on) { z-index: 31; }
+  .play { width: 44px; height: 44px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; }
+  .mchat { flex: 1; padding: 14px 16px 0; font-size: 15px; line-height: 22px; overflow: hidden; } .mchat p { margin-bottom: 12px; }
+  .mchat .lk { display: inline-block; padding: 8px 12px; border-radius: 12px; background: var(--s3); font-size: 14px; margin-bottom: 12px; }
+  .mbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; border-top: 1px solid var(--line); background: var(--bg); display: flex; align-items: center; gap: 12px; padding: 0 14px; z-index: 5; }
+  .mbar .hand { position: absolute; top: 5px; width: 44px; height: 4px; border-radius: 2px; background: var(--tx3); }
+  .mbar .in { width: 320px; padding: 10px 16px; border-radius: 24px; background: var(--s2); color: var(--tx3); font-size: 15px; }
+  .mbar b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 15px; } .mbar .t { flex: 1; font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+
+  /* Aperto: il velo, poi la forma del tasto. */
+  .scrim { position: absolute; inset: 0; z-index: 30; background: var(--scrim); }
+  /* A. Raggiera: una freccia per posizione disponibile, attorno al tasto, ognuna verso il suo posto. */
+  .ray { position: absolute; z-index: 32; display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 10px; border-radius: 999px; background: var(--s1); border: 1px solid var(--line);
+         box-shadow: 0 6px 18px rgb(0 0 0 / .3); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; white-space: nowrap; transform: translate(-100%, -50%); }
+  .ray.r { transform: translate(0, -50%); }
+  .ray .ms { font-size: 20px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--s3); }
+  .ray.new { background: var(--waitbg); border-color: var(--waitline); color: var(--wait); } .ray.new .ms { background: transparent; color: var(--wait); }
+  .spoke { position: absolute; z-index: 31; height: 2px; background: var(--tx3); transform-origin: 0 50%; opacity: .7; }
+  /* B. La miniatura dello schermo: i posti da toccare. */
+  .mini-p { position: absolute; z-index: 32; width: 330px; padding: 14px; border-radius: 20px; background: var(--s1); border: 1px solid var(--line); box-shadow: 0 12px 34px rgb(0 0 0 / .4); }
+  .mini-p h4 { font-family: "Barlow Semi Condensed", sans-serif; font-size: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .mini-p h4 small { font-family: Barlow, sans-serif; font-weight: 400; font-size: 12.5px; color: var(--tx3); }
+  .scr { position: relative; width: 300px; height: 188px; border-radius: 12px; border: 2px solid var(--tx3); background: var(--bg); overflow: hidden; }
+  .scr .z { position: absolute; border-radius: 6px; border: 1.5px dashed var(--tx3); display: grid; place-items: center; font-size: 12px; line-height: 14px; text-align: center; color: var(--tx2); padding: 2px; }
+  .scr .z.cur { border: 2px solid var(--busy); background: color-mix(in srgb, var(--busy) 22%, transparent); color: var(--tx); font-weight: 600; }
+  .scr .z.go { border-color: var(--wait); color: var(--wait); background: var(--ghost); }
+  .scr .z.new { border-color: var(--wait); color: var(--wait); background: var(--waitbg); font-weight: 600; }
+  .scr .fix { position: absolute; background: var(--s3); border-radius: 4px; }
+  .mini-p .leg { margin-top: 10px; font-size: 12.5px; color: var(--tx3); line-height: 16px; }
+  /* C. I posti tratteggiati sullo schermo, come il fantasma del trascinamento di oggi: si tocca il posto. */
+  .gz { position: absolute; z-index: 32; border-radius: 18px; border: 2px dashed var(--wait); background: var(--ghost); display: grid; place-items: center; }
+  .gz > span { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 17px; color: var(--wait); padding: 6px 14px; border-radius: 999px; background: var(--bg); display: flex; gap: 6px; align-items: center; }
+  .gz.cur { border: 2px solid var(--busy); background: transparent; } .gz.cur span { color: var(--busy); }
+</style>
+</head>
+<body>
+
+<template id="sess">
+  <div class="card">
+    <div class="shead"><span class="ic"><span class="ms">front_hand</span></span><div><b>payments-api</b><div class="st">TI ASPETTA · 5 M</div></div><span class="sp"></span><span class="ms x">close</span></div>
+    <div class="chat"><div class="you">Il rimborso parziale perde un centesimo: sistemalo e prova su staging</div>
+      <p>Il rimborso parziale ora passa su staging: ho corretto l'arrotondamento dei centesimi e aggiunto i test che mancavano. Il deploy della 2.8.1 parte solo con il tuo ok.</p></div>
+    <div class="field"><span class="ms">add</span><span class="in">Rispondi con parole tue</span><span class="ms">send</span></div>
+  </div>
+</template>
+<template id="home">
+  <div class="home">
+    <div class="hh"><b>Supervisor</b><small>0.2.2108 · 4 aperte</small><span class="sp"></span><span class="ms">search</span><span class="ms">menu</span></div>
+    <div class="kpis"><div><b class="w">3</b><small>sessioni ferme, la prima da 7 min</small></div><div><b>1</b><small>al lavoro adesso</small></div><div><b>6</b><small>esiti oggi</small></div></div>
+    <div class="hl">TI ASPETTANO 3</div>
+    <div class="hrow"><span class="ms">help</span><span><b>storefront</b><small>Fai il login nella sandbox dei pagamenti</small></span><span class="mini">Approva</span></div>
+    <div class="hrow"><span class="ms">help</span><span><b>payments-api</b><small>Pubblica il deploy 2.8.0: ./deploy.sh</small></span><span class="mini">Scegli</span></div>
+    <div class="hrow"><span class="ms">help</span><span><b>blog</b><small>ok alla pubblicazione del post</small></span><span class="mini">Ok</span></div>
+    <div class="hl" style="color:var(--tx3)">LE ALTRE</div>
+    <div class="hrow"><span class="ms b">play_circle</span><span><b>admin-panel</b><small>Bash npm test · 25 min</small></span><span></span></div>
+  </div>
+</template>
+<template id="rbsvg"><svg viewBox="0 0 24 24"><path d="M8 7l-4 4 4 4M4 11h11M16 9l4 4-4 4M20 13H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
+<template id="master">
+  <div class="grip"><i></i></div>
+  <div class="mhead"><span class="g"></span><div><b>Master <span class="mono" style="font-size:12.5px;color:var(--tx2);font-weight:400">10:48</span></b><small>Fase 2.2 avviata su payments-api</small></div><span class="sp"></span>
+    <span class="play ms">play_arrow</span><span class="rb __RB__" id="__ID__">__SVG__</span></div>
+  <div class="mchat">
+    <p>demo-cover è pronto per te, gli altri lavori vanno avanti.</p>
+    <p><b>Da te</b><br>1. Manda l'immagine di copertina alla sessione del blog.<br>2. Fai il login nella sandbox dei pagamenti.</p>
+    <div class="you">Lancia payments-api sulla fase 2.2</div>
+    <p>Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</p>
+    <span class="lk"><b>payments-api</b> · Apri in supervisor</span>
+  </div>
+  <div class="field" style="margin-top:0"><span class="ms">add</span><span class="in">Scrivi alla master</span><span class="ms">send</span></div>
+</template>
+
+<!-- Oggi -->
+<section class="panel web" id="o1"><span class="tag">Web · oggi: le frecce ‹ › accanto alla maniglia</span><img data-img="oggi-web" alt=""></section>
+<section class="panel web" id="o2"><span class="tag">Web · oggi: il menu Posizione</span><img data-img="oggi-web-menu" alt=""></section>
+<section class="panel web" id="o3"><span class="tag">Web · oggi: master in colonna con una sessione aperta</span><img data-img="oggi-web-colonna" alt=""></section>
+
+<!-- Proposta, a riposo -->
+<section class="panel web" id="r1"><span class="tag">Web · proposta a riposo</span><div data-l="h:fill,m:440"></div>
+  <div class="call" style="left:1100px;top:76px"><span class="ms">arrow_upward</span>maniglia sola, per trascinare</div>
+  <div class="call" style="right:12px;top:124px">tasto rotondo con ⇄<span class="ms">arrow_upward</span></div>
+  <div class="note" style="left:20px;width:560px;bottom:20px"><b>Proposta.</b> Via le frecce ‹ › accanto alla maniglia: la maniglia resta e si trascina come oggi (lato, larghezza, altezza). Il tasto rotondo torna con l'icona ⇄ e al tocco mostra solo i posti dove la master può andare da qui. Al posto del menu Posizione di oggi.</div></section>
+<section class="panel web" id="r2"><span class="tag">Web · proposta a riposo, master in riga</span><div data-l="h:fill,bar:1"></div>
+  <div class="call" style="right:70px;bottom:76px">il tasto rotondo anche nella riga, al posto di ⌃<span class="ms">arrow_downward</span></div></section>
+
+<!-- A. Raggiera -->
+<section class="panel web" id="a1"><span class="tag">A · raggiera, master a destra</span><div data-l="h:fill,m:440,rb:on"></div><div data-ray="r1"></div></section>
+<section class="panel web" id="a2"><span class="tag">A · raggiera, master a sinistra</span><div data-l="m:440,h:fill,rb:on"></div><div data-ray="l1"></div></section>
+<section class="panel web" id="a3"><span class="tag">A · raggiera, master in riga in basso</span><div data-l="h:fill,bar:1,rb:on"></div><div data-ray="b1"></div></section>
+<section class="panel web" id="a4"><span class="tag">A · raggiera, master a colonna intera (con una sessione aperta)</span><div data-l="s:540,h:440,m:fill,rb:on"></div><div data-ray="c1"></div></section>
+<!-- B. Miniatura -->
+<section class="panel web" id="b1"><span class="tag">B · miniatura, master a destra</span><div data-l="h:fill,m:440,rb:on"></div><div data-mini="r1"></div></section>
+<section class="panel web" id="b3"><span class="tag">B · miniatura, master in riga in basso</span><div data-l="h:fill,bar:1,rb:on"></div><div data-mini="b1"></div></section>
+<section class="panel web" id="b4"><span class="tag">B · miniatura, master a colonna intera</span><div data-l="s:540,h:440,m:fill,rb:on"></div><div data-mini="c1"></div></section>
+<!-- C. Posti sullo schermo -->
+<section class="panel web" id="c1"><span class="tag">C · i posti sullo schermo, master a destra</span><div data-l="h:fill,m:440,rb:on"></div><div data-gz="r1"></div></section>
+<section class="panel web" id="c4"><span class="tag">C · i posti sullo schermo, master a colonna intera</span><div data-l="s:540,h:440,m:fill,rb:on"></div><div data-gz="c1"></div></section>
+
+<!-- Tablet orizzontale -->
+<section class="panel tab" id="ta"><span class="tag">Tablet orizzontale · A raggiera, colonna intera</span><div data-l="s:470,h:400,m:fill,rb:on"></div><div data-ray="tc"></div></section>
+<section class="panel tab" id="tb"><span class="tag">Tablet orizzontale · B miniatura, colonna intera</span><div data-l="s:470,h:400,m:fill,rb:on"></div><div data-mini="tc"></div></section>
+<section class="panel tab" id="tcc"><span class="tag">Tablet orizzontale · C posti, colonna intera</span><div data-l="s:470,h:400,m:fill,rb:on"></div><div data-gz="tc"></div></section>
+<!-- Tablet verticale: una colonna, l'elenco cambia -->
+<section class="panel port" id="pa"><span class="tag">Tablet verticale · A raggiera, master in riga</span><div data-l="h:fill,bar:1,rb:on"></div><div data-ray="pb"></div></section>
+<section class="panel port" id="pb"><span class="tag">Tablet verticale · B miniatura, master in riga</span><div data-l="h:fill,bar:1,rb:on"></div><div data-mini="pb"></div></section>
+<section class="panel port" id="pc"><span class="tag">Tablet verticale · A raggiera, master a tutto schermo</span><div data-l="m:fill,rb:on"></div><div data-ray="pf"></div></section>
+
+<script>
+  const q = new URLSearchParams(location.search), day = q.has('day')
+  if (day) document.body.classList.add('day')
+  const tpl = id => document.getElementById(id).innerHTML
+  document.querySelectorAll('[data-img]').forEach(i => { i.src = `${i.dataset.img}-${day ? 'giorno' : 'notte'}.png` })
+  const dims = p => ({ web: [1440, 900], tab: [1280, 800], port: [800, 1280] })[p.classList[1]]
+
+  // Le colonne in ordine: s sessione, h Home, m master (fill = il resto); bar = la master in riga in basso.
+  document.querySelectorAll('[data-l]').forEach(e => {
+    const panel = e.closest('.panel'), [W, H] = dims(panel)
+    const parts = e.dataset.l.split(',').map(x => x.split(':')), o = Object.fromEntries(parts)
+    const rb = o.rb === 'on' ? 'on' : ''
+    let html = `<div class="cols" style="height:${H - (o.bar ? 64 : 0)}px">`
+    for (const [k, v] of parts) {
+      const w = v === 'fill' ? 'flex:1' : `width:${v}px;flex:none`
+      if (k === 's') html += `<div class="col" style="${w}">${tpl('sess')}</div>`
+      if (k === 'h') html += `<div class="col" style="${w};border-left:1px solid var(--line)">${tpl('home')}</div>`
+      if (k === 'm') html += `<div class="col mcol" style="${w};border-left:1px solid var(--line)">${tpl('master').replace('__RB__', rb).replace('__SVG__', tpl('rbsvg')).replace('__ID__', 'rb')}</div>`
+    }
+    html += '</div>'
+    if (o.bar) html += `<div class="mbar"><span class="hand" style="left:${W - 240}px"></span><span class="in">Scrivi alla master</span><b>Master</b><span class="t">Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</span><span class="mono" style="font-size:13px;color:var(--tx2)">10:48</span><span class="rb ${rb}" id="rb">${tpl('rbsvg')}</span></div>`
+    if (rb) html += '<div class="scrim"></div>'
+    const box = document.createElement('div'); box.innerHTML = html; e.replaceWith(...box.childNodes)
+  })
+
+  // Le posizioni disponibili da ogni partenza: [etichetta, icona della freccia, angolo in gradi (0 = destra, 90 = giù), raggio, nuova?]
+  const RAYS = {
+    r1: [['A sinistra', 'arrow_back', 180, 190], ['Metà schermo', 'open_in_full', 160, 230], ['Sotto la dashboard', 'south_west', 138, 250], ['Una riga in basso', 'arrow_downward', 112, 300]],
+    l1: [['A destra', 'arrow_forward', 0, 190], ['Metà schermo', 'open_in_full', 20, 230], ['Sotto la dashboard', 'south_east', 42, 250], ['Una riga in basso', 'arrow_downward', 68, 300]],
+    b1: [['A destra', 'north_east', -95, 190], ['Sotto la dashboard', 'arrow_upward', -120, 300], ['A sinistra', 'north_west', -160, 250]],
+    c1: [['A sinistra', 'arrow_back', 180, 190], ['Home in riga in basso', 'vertical_align_bottom', 158, 250, true], ['Sotto la home, a metà', 'south_west', 138, 260], ['Sotto la home, compatta', 'south_west', 120, 300], ['Una riga in basso', 'arrow_downward', 104, 380]],
+    tc: [['A sinistra', 'arrow_back', 180, 190], ['Home in riga in basso', 'vertical_align_bottom', 158, 250, true], ['Sotto la home, a metà', 'south_west', 138, 260], ['Sotto la home, compatta', 'south_west', 120, 300], ['Una riga in basso', 'arrow_downward', 104, 380]],
+    pb: [['A tutto schermo', 'arrow_upward', -100, 200], ['A metà, sotto la home', 'north_west', -150, 260]],
+    pf: [['Home in riga in basso', 'vertical_align_bottom', 165, 200, true], ['A metà, sotto la home', 'south_west', 140, 230], ['Una riga in basso', 'arrow_downward', 115, 300]],
+  }
+  const center = panel => { const b = panel.querySelector('#rb').getBoundingClientRect(), p = panel.getBoundingClientRect(); return [b.left - p.left + 22, b.top - p.top + 22] }
+  const show = panel => { const was = panel.classList.contains('on'); panel.classList.add('on'); return () => { if (!was) panel.classList.remove('on') } }
+  const all = !q.get('p'); if (all) document.body.classList.add('all')
+  document.querySelectorAll('[data-ray]').forEach(e => {
+    const panel = e.closest('.panel'), back = show(panel), [cx, cy] = center(panel)
+    let html = ''
+    for (const [label, ic, a, r, nw] of RAYS[e.dataset.ray]) {
+      const x = cx + r * Math.cos(a * Math.PI / 180), y = cy + r * Math.sin(a * Math.PI / 180)
+      html += `<div class="spoke" style="left:${cx}px;top:${cy}px;width:${r - 26}px;transform:rotate(${a}deg)"></div>`
+      html += `<div class="ray${nw ? ' new' : ''}${cx < dims(panel)[0] / 2 ? ' r' : ''}" style="left:${x}px;top:${y}px"><span class="ms">${ic}</span>${label}</div>`
+    }
+    back()
+    const box = document.createElement('div'); box.innerHTML = html; e.replaceWith(...box.childNodes)
+  })
+
+  // B: la miniatura. Rettangoli in percentuale dello schermo: [x, y, w, h, testo, classe]. `fix` = parti che non si spostano.
+  const MINI = {
+    r1: { t: 'A destra', z: [[0, 0, 68, 100, 'Home', 'fix'], [70, 2, 29, 96, 'qui', 'cur'], [1, 2, 28, 96, 'A sinistra', 'go'], [36, 2, 33, 96, 'Metà schermo', 'go'], [1, 58, 66, 40, 'Sotto la dashboard', 'go'], [1, 86, 98, 12, 'Una riga in basso', 'go']] },
+    b1: { t: 'Una riga in basso', z: [[0, 0, 100, 86, 'Home', 'fix'], [1, 88, 98, 10, 'qui', 'cur'], [70, 2, 29, 82, 'A destra', 'go'], [1, 2, 29, 82, 'A sinistra', 'go'], [33, 50, 35, 34, 'Sotto la dashboard', 'go']] },
+    c1: { t: 'Colonna intera', z: [[0, 0, 37, 100, 'sessione', 'fix'], [38, 0, 30, 100, 'Home', 'fix'], [69, 2, 30, 96, 'qui', 'cur'], [1, 2, 22, 96, 'A sinistra', 'go'], [38, 48, 30, 30, 'Sotto la home, a metà', 'go'], [38, 70, 30, 14, 'compatta', 'go'], [1, 88, 66, 10, 'Una riga in basso', 'go'], [69, 88, 30, 10, 'Home in riga', 'new']] },
+    tc: { t: 'Colonna intera', z: [[0, 0, 37, 100, 'sessione', 'fix'], [38, 0, 30, 100, 'Home', 'fix'], [69, 2, 30, 96, 'qui', 'cur'], [1, 2, 22, 96, 'A sinistra', 'go'], [38, 48, 30, 30, 'Sotto la home, a metà', 'go'], [38, 70, 30, 14, 'compatta', 'go'], [1, 88, 66, 10, 'Una riga in basso', 'go'], [69, 88, 30, 10, 'Home in riga', 'new']] },
+    pb: { t: 'Una riga in basso', port: true, z: [[0, 0, 100, 90, 'Home', 'fix'], [2, 91, 96, 8, 'qui', 'cur'], [4, 4, 92, 84, 'A tutto schermo', 'go'], [4, 50, 92, 38, 'A metà, sotto la home', 'go']] },
+  }
+  document.querySelectorAll('[data-mini]').forEach(e => {
+    const panel = e.closest('.panel'), back = show(panel), [cx, cy] = center(panel), m = MINI[e.dataset.mini]
+    const [W, H] = dims(panel), port = !!m.port, sw = port ? 150 : 300, sh = port ? 240 : 188
+    const below = cy < H / 2
+    let z = ''
+    for (const [x, y, w, h, t, c] of m.z) z += c === 'fix' ? `<div class="fix" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;opacity:.5"></div>` : `<div class="z ${c}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%">${t}</div>`
+    const left = Math.min(W - 350, Math.max(16, cx - 300))
+    const top = below ? cy + 34 : cy - 34 - (sh + 96)
+    const html = `<div class="mini-p" style="left:${left}px;top:${top}px;${port ? 'width:180px' : ''}"><h4>Sposta la master <small>ora: ${m.t}</small></h4><div class="scr" style="width:${sw}px;height:${sh}px">${z}</div><div class="leg">Tocca un posto tratteggiato. In celeste dov'è adesso.</div></div>`
+    back()
+    const box = document.createElement('div'); box.innerHTML = html; e.replaceWith(...box.childNodes)
+  })
+
+  // C: i posti a grandezza vera, tratteggiati come il fantasma del trascinamento; il tocco su uno sposta la master lì.
+  const GZ = {
+    r1: [[1006, 70, 424, 820, 'qui', 'cur'], [10, 70, 424, 436, 'A sinistra', 'arrow_back'], [724, 70, 270, 436, 'Metà schermo', 'open_in_full'], [10, 520, 980, 300, 'Sotto la dashboard', 'south_west'], [10, 836, 1420, 56, 'Una riga in basso', 'arrow_downward']],
+    c1: [[1000, 70, 430, 820, 'qui', 'cur'], [10, 70, 300, 740, 'A sinistra', 'arrow_back'], [552, 420, 436, 230, 'Sotto la home, a metà', 'south_west'], [552, 664, 436, 150, 'Sotto la home, compatta', 'south_west'], [10, 830, 530, 60, 'Una riga in basso', 'arrow_downward'], [552, 830, 436, 60, 'Home in riga', 'vertical_align_bottom']],
+    tc: [[880, 70, 390, 720, 'qui', 'cur'], [10, 70, 280, 640, 'A sinistra', 'arrow_back'], [480, 360, 390, 210, 'Sotto la home, a metà', 'south_west'], [480, 584, 390, 130, 'Sotto la home, compatta', 'south_west'], [10, 728, 460, 62, 'Una riga in basso', 'arrow_downward'], [480, 728, 390, 62, 'Home in riga', 'vertical_align_bottom']],
+  }
+  document.querySelectorAll('[data-gz]').forEach(e => {
+    let html = ''
+    for (const [x, y, w, h, t, ic] of GZ[e.dataset.gz]) html += `<div class="gz ${ic === 'cur' ? 'cur' : ''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"><span>${ic === 'cur' ? '' : `<span class="ms" style="font-size:19px">${ic}</span>`}${t}</span></div>`
+    const box = document.createElement('div'); box.innerHTML = html; e.replaceWith(...box.childNodes)
+  })
+
+  const p = q.get('p')
+  if (p) document.getElementById(p).classList.add('on')
+</script>
+</body>
+</html>
