@@ -31,6 +31,7 @@
   import { ctxNudge, handoffPrompt } from './masterService'
   import { reducedMotion } from './motion'
   import { cut, type Quote } from './quotes'
+  import { dragHold } from './dragHold'
   let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
     /** Contratto 1.106: la riga «Risultati» in cima alla chat. */
     resultsRow?: import('svelte').Snippet | null
@@ -163,10 +164,19 @@
   // File trascinati sulla colonna: vanno nel campo come quelli scelti con il +.
   let dragging = $state(false)
   const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files')
+  // Il riquadro resta solo mentre il file è sopra questa colonna; un rilascio in qualunque punto lo spegne (app-web-trascina-riquadro-12-11).
+  const hold = dragHold(v => (dragging = v))
+  $effect(() => {
+    const off = () => hold.off()
+    window.addEventListener('drop', off, true); window.addEventListener('dragend', off, true)
+    return () => { window.removeEventListener('drop', off, true); window.removeEventListener('dragend', off, true); hold.off() }
+  })
+  // Uscito davvero: il puntatore va fuori dalla colonna; Safari non dice dove va, e allora vale solo l'uscita dalla colonna stessa.
+  const leftColumn = (e: DragEvent) => { const to = e.relatedTarget as Node | null; return to ? !(e.currentTarget as HTMLElement).contains(to) : e.target === e.currentTarget }
   function onDrop(e: DragEvent) {
     if (!hasFiles(e)) return
     e.preventDefault()
-    dragging = false
+    hold.off()
     if (composer?.addFiles([...(e.dataTransfer?.files ?? [])])) composer.focus()
   }
   // In fondo alla conversazione: subito all'apertura (e dopo che la colonna ha preso la sua misura), con l'animazione
@@ -236,7 +246,7 @@
 </script>
 
 <section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name}
-  ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); dragging = true } }} ondragleave={(e) => { if (e.currentTarget === e.target) dragging = false }} ondrop={onDrop}>
+  ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); hold.over() } }} ondragleave={(e) => hold.leave(leftColumn(e))} ondrop={onDrop}>
   {#if dragging}<div class="dropzone">{t.dropHere}</div>{/if}
   <Header {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {menuMove} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} />
   {#if elsewhere}<ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} away={elsewhereAway} now={st.ts} />{/if}
