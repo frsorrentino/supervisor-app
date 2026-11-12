@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat fedele al terminale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=JetBrains+Mono:wght@400;700&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0&display=block" rel="stylesheet">
+<style>
+  /* app-mockup-chat-fedele-12-11 (Franz 12/11: A, B e C «non sono abbastanza chiari e fedeli al testo del terminale allo stesso
+     tempo»; «serve mockup»). Variante D: lo stesso turno del terminale, parola per parola e nello stesso ordine, con un pallino per
+     ogni passo come in Claude Code; cambia solo la tipografia. D1 prosa proporzionale, D2 tutta in monospazio. Il testo del turno
+     sta una volta sola in TURN (in fondo) e le tre forme lo disegnano da lì: terminale, D1 e D2 non possono dire cose diverse.
+     Web 1440 × 900, telefono 412 × 915, tablet 1280 × 800. `?p=<id>` una tavola, `&day` il giorno; senza, tutte. */
+  :root { --bg:#0B0B0B; --s1:#121212; --s2:#181818; --s3:#232323; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#A3A3A3; --tx3:#6E6E6E;
+          --wait:#FFB23F; --good:#71D083; --busy:#8AA9DB; --red:#FF6B5E; --waitbg:#1d1609; --waitline:#4a3412;
+          --you:#232323; --icode:#B1B9F9; --addbg:#173d21; --delbg:#4a1d26; --addtx:#9BE3A9; --deltx:#FFB0BB;
+          /* Il terminale: Windows Terminal col tema scuro di Claude Code. */
+          --tbg:#0C0C0C; --ttx:#CCCCCC; --tdim:#999999; --tok:#4EBA65; --terr:#FF6B80; --tcode:#B1B9F9; --tyou:#373737; --tadd:#225C2B; --tdel:#7A2936; --tclaude:#D77757; }
+  body.day { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#ECECEC; --line:#E1E1E1; --tx:#141414; --tx2:#555555; --tx3:#6A6A6A;
+          --wait:#9A5700; --good:#2A7E3B; --busy:#3D5F94; --red:#C9302F; --waitbg:#FFF6E5; --waitline:#F2D7A2;
+          --you:#E6E6E6; --icode:#4B5BD6; --addbg:#DDF4E1; --delbg:#FBE1E5; --addtx:#1F6B2E; --deltx:#9E2236;
+          --tbg:#FFFFFF; --ttx:#1E1E1E; --tdim:#666666; --tok:#2C7A39; --terr:#AB2B3F; --tcode:#5769F7; --tyou:#E8E8E8; --tadd:#C7F0CF; --tdel:#FFD0D7; --tclaude:#C2643F; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, "DejaVu Sans", sans-serif; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal;
+        text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+  .panel { display: none; position: relative; overflow: hidden; background: var(--bg); }
+  .panel.web { width: 1440px; height: 900px; } .panel.tel { width: 412px; height: 915px; } .panel.tab { width: 1280px; height: 800px; }
+  .panel.on { display: block; }
+  .panel > img { width: 100%; height: 100%; display: block; }
+  body.all { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; align-items: flex-start; }
+  body.all .panel { display: block; }
+  .tag { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 9; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700;
+         font-size: 13px; padding: 3px 10px; border-radius: 999px; background: #3a2a17; color: #f5c27a; white-space: nowrap; }
+  body.day .tag { background: #FFE7BF; color: #7a4600; }
+  .note { position: absolute; z-index: 8; padding: 10px 14px; border-radius: 12px; background: var(--s2); border: 1px dashed var(--tx3); color: var(--tx2); font-size: 14px; line-height: 19px; }
+  .note b { color: var(--tx); font-weight: 600; }
+  .note p + p { margin-top: 7px; }
+
+  /* La cornice: la colonna della sessione, la home a destra, la master in riga in basso; il telefono a tutto schermo. */
+  .frame { position: absolute; inset: 0; display: grid; grid-template-rows: 1fr 64px; }
+  .frame .top { display: grid; grid-template-columns: 1fr 412px; min-height: 0; }
+  .panel.tab .frame .top { grid-template-columns: 1fr 360px; }
+  .scol { position: relative; margin: 10px 12px 10px 14px; border-radius: 22px; background: var(--bg); border: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .shead { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); }
+  .shead .ic { width: 26px; height: 26px; border-radius: 7px; background: #2f6fdc; color: #fff; display: grid; place-items: center; }
+  .shead .ic .ms { font-size: 18px; }
+  .shead b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 18px; font-weight: 700; }
+  .shead .st { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--wait); }
+  .shead .sp { flex: 1; }
+  .shead .pill { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: var(--s2); color: var(--tx); white-space: nowrap; }
+  .shead .x { color: var(--tx2); }
+  .strip { display: flex; align-items: center; gap: 8px; margin: 8px 12px 0; padding: 8px 10px 8px 12px; border-radius: 12px; background: var(--s1); border: 1px solid var(--line); }
+  .strip .ms { font-size: 19px; color: var(--tx2); } .strip .ms.w { color: var(--wait); }
+  .strip b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .strip .n { font-size: 13px; color: var(--wait); } .strip .n.g { color: var(--tx2); }
+  .strip .first { flex: 1; min-width: 0; font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .strip .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 13.5px; padding: 4px 11px; border-radius: 999px; background: var(--waitbg); color: var(--wait); border: 1px solid var(--waitline); white-space: nowrap; }
+  .strip .chev { color: var(--tx3); font-size: 20px; }
+  .strip.amb { background: var(--waitbg); border-color: var(--waitline); }
+  .chat { flex: 1; min-height: 0; overflow: hidden; padding: 18px 26px 0; }
+  .chat.end { display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 8px; }
+  .chat.end > * { flex: none; }
+  .field { margin: 8px 12px 12px; display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 26px; border: 1px solid var(--line); background: var(--s1); color: var(--tx3); font-size: 15.5px; }
+  .field .in { flex: 1; } .field .ms { color: var(--tx2); }
+  .home { padding: 18px 16px 0 6px; border-left: 1px solid var(--line); overflow: hidden; position: relative; }
+  .home .hh { display: flex; align-items: baseline; gap: 10px; padding: 0 0 14px 8px; }
+  .home .hh b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 24px; font-weight: 700; }
+  .home .hh small { font-family: "Geist Mono", monospace; font-size: 12.5px; color: var(--tx2); }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: 16px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; margin-bottom: 14px; }
+  .kpis div { padding: 12px; border-right: 1px solid var(--line); } .kpis div:last-child { border: 0; }
+  .kpis b { display: block; font-family: "Barlow Semi Condensed", sans-serif; font-size: 34px; line-height: 38px; } .kpis b.w { color: var(--wait); }
+  .kpis small { font-size: 12.5px; color: var(--tx2); }
+  .hl { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--wait); padding: 4px 8px 8px; }
+  .hrow { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 11px 12px; margin-bottom: 8px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); }
+  .hrow .ms { font-size: 20px; color: var(--wait); } .hrow > span:nth-child(2) { min-width: 0; }
+  .hrow b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 16px; } .hrow small { display: block; font-size: 13px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .hrow .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--waitline); background: var(--waitbg); color: var(--wait); }
+  .home .note { left: 6px; right: 16px; }
+  .mbar { display: flex; align-items: center; gap: 12px; padding: 0 16px; border-top: 1px solid var(--line); background: var(--bg); }
+  .mbar .in { width: 330px; padding: 10px 16px; border-radius: 24px; background: var(--s2); color: var(--tx3); font-size: 15px; }
+  .mbar b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 15px; } .mbar span.t { flex: 1; font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .mbar .up { width: 40px; height: 40px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; }
+  .tel .scol { margin: 0; border: 0; border-radius: 0; position: absolute; inset: 0; }
+  .tel .shead { padding: 40px 10px 10px; }
+  .tel .chat { padding: 14px 14px 0; }
+
+  /* Il turno, comune alle tre forme: una riga per passo, il segno nella colonna a sinistra (il pallino di Claude Code, il › della
+     persona), il contenuto rientrato accanto; sotto un passo, il risultato col gomito ⎿. Pallino e gomito sono disegnati, non
+     glifi, così sono uguali su ogni sistema. */
+  .row { display: grid; grid-template-columns: var(--gut) minmax(0, 1fr); }
+  .row > .g { position: relative; font-style: normal; }
+  .dot::before { content: ''; position: absolute; left: 1px; top: calc((var(--lh) - var(--dot)) / 2); width: var(--dot); height: var(--dot); border-radius: 50%; background: var(--dotc, var(--tx)); }
+  .tool .dot { --dotc: var(--okc); } .tool.err .dot { --dotc: var(--errc); }
+  .out { display: grid; grid-template-columns: var(--elbw) minmax(0, 1fr); }
+  .elb { position: relative; }
+  .elb::before { content: ''; position: absolute; left: 3px; top: 0; width: calc(var(--elbw) - 9px); height: calc(var(--olh) / 2 + 1px); border-left: 1.5px solid var(--elbc); border-bottom: 1.5px solid var(--elbc); }
+  .diff { display: grid; grid-template-columns: 3.2em 1.4em minmax(0, 1fr); white-space: pre; }
+  .diff span { overflow: hidden; }
+  .md p, .md .list, .md pre, .md h4, .md .kvs { display: block; }
+  .chat > .D1, .chat > .D2 { width: 100%; margin-left: auto; margin-right: auto; }
+
+  /* T. Il terminale: come Claude Code mostra il turno (ricostruito con gli stessi caratteri e colori; non è una cattura). */
+  .term { position: absolute; inset: 0; background: var(--tbg); color: var(--ttx); display: flex; flex-direction: column; }
+  .term .bar { flex: none; height: 40px; display: flex; align-items: end; gap: 2px; padding: 0 8px; background: #202020; }
+  body.day .term .bar { background: #E6E6E6; }
+  .term .tabx { height: 32px; padding: 0 14px; border-radius: 8px 8px 0 0; background: var(--tbg); display: flex; align-items: center; gap: 10px; font: 13px "Segoe UI", sans-serif; color: var(--ttx); }
+  .term .tabx .ms { font-size: 16px; color: var(--tdim); }
+  .term .scr { flex: 1; min-height: 0; overflow: hidden; padding: 14px 18px 0; display: flex; flex-direction: column; justify-content: flex-start; }
+  .term.end .scr { justify-content: flex-end; }
+  .T { --gut: 2ch; --lh: 21px; --olh: 21px; --dot: 9px; --elbw: 3ch; --okc: var(--tok); --errc: var(--terr); --elbc: var(--tdim);
+       font-family: "JetBrains Mono", "Cascadia Mono", monospace; font-size: 14px; line-height: 21px; color: var(--ttx); }
+  .T .row { margin-bottom: 21px; }
+  .T .row.you { background: var(--tyou); margin-left: -6px; padding-left: 6px; margin-right: -18px; }
+  .T .row.you > .g::before { content: '>'; color: var(--tdim); }
+  .T .meta { display: none; }
+  .T .th b { font-weight: 700; } .T .th .arg { color: var(--ttx); }
+  .T .out { color: var(--tdim); } .T .out .lines { white-space: pre; }
+  .T .out .more { color: var(--tdim); }
+  .T .diff span:nth-child(3n+1) { color: var(--tdim); }
+  .T .diff .a { background: var(--tadd); } .T .diff .d { background: var(--tdel); }
+  .T .md h4 { font-weight: 700; } .T .md p, .T .md .list, .T .md pre, .T .md .kvs { margin-bottom: 21px; } .T .md h4 { margin-bottom: 0; }
+  .T .md > :last-child { margin-bottom: 0; }
+  .T .md code { color: var(--tcode); }
+  .T .md .li { display: grid; grid-template-columns: 2ch minmax(0, 1fr); } .T .md ol .li, .T .md .li.n { grid-template-columns: 3ch minmax(0, 1fr); }
+  .T .md pre { white-space: pre-wrap; color: var(--ttx); } .T .md pre .kw { color: var(--tcode); }
+  .T .md .k { font-weight: 400; }
+  .T .done { color: var(--tdim); margin-bottom: 18px; } .T .done::before { content: '✻ '; color: var(--tclaude); }
+  .term .box { flex: none; margin: 4px 18px 0; border: 1px solid var(--tdim); border-radius: 6px; padding: 6px 10px; font: 14px/21px "JetBrains Mono", monospace; color: var(--ttx); }
+  .term .box::before { content: '> '; color: var(--tdim); }
+  .term .hint { flex: none; padding: 4px 30px 12px; font: 13px/20px "JetBrains Mono", monospace; color: var(--tdim); }
+
+  /* D1. Stesso testo; prosa proporzionale a 16,5 px, righe di 64 caratteri al massimo, monospazio solo per codice e percorsi. */
+  .D1 { --gut: 22px; --lh: 26px; --olh: 21px; --dot: 9px; --elbw: 22px; --okc: var(--good); --errc: var(--red); --elbc: var(--tx3);
+        font-size: 16.5px; line-height: 26px; color: var(--tx); max-width: 760px; }
+  .D1 .row { margin-bottom: 16px; }
+  .D1 .row > .c { min-width: 0; }
+  .D1 .row.you { background: var(--you); border-radius: 14px; padding: 9px 14px 9px 10px; margin: 0 0 20px -10px; --gut: 22px; }
+  .D1 .row.you > .g::before { content: '›'; position: absolute; left: 1px; top: -1px; font-size: 20px; color: var(--tx3); }
+  .D1 .meta { display: block; font-size: 12.5px; line-height: 16px; color: var(--tx3); margin-top: 2px; }
+  .D1 .tool { font-size: 15px; --lh: 24px; line-height: 24px; margin-bottom: 14px; }
+  .D1 .th b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16px; }
+  .D1 .th .arg { font-family: "Geist Mono", monospace; font-size: 13.5px; color: var(--tx2); }
+  .D1 .out { font-size: 14.5px; line-height: 21px; color: var(--tx2); margin-top: 2px; }
+  .D1 .out .lines { font-family: "Geist Mono", monospace; font-size: 13px; line-height: 20px; white-space: pre; color: var(--tx2); }
+  .D1 .out .more { display: inline-flex; align-items: center; gap: 2px; margin-top: 3px; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14px; color: var(--busy); }
+  .D1 .out .more .ms { font-size: 18px; }
+  .D1 .diff { font-family: "Geist Mono", monospace; font-size: 12.5px; line-height: 19px; margin-top: 5px; border-radius: 8px; overflow: hidden; background: var(--s1); border: 1px solid var(--line); padding: 4px 0; max-width: 620px; }
+  .D1 .diff span:nth-child(3n+1) { color: var(--tx3); text-align: right; padding-right: .8em; }
+  .D1 .diff .a { background: var(--addbg); color: var(--addtx); } .D1 .diff .d { background: var(--delbg); color: var(--deltx); }
+  .D1 .md { max-width: 64ch; }
+  .D1 .md p { margin: 0 0 12px; }
+  .D1 .md h4 { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 18.5px; line-height: 24px; margin: 22px 0 6px; }
+  .D1 .md .list, .D1 .md .kvs { margin: 0 0 12px; }
+  .D1 .md .li { display: grid; grid-template-columns: 22px minmax(0, 1fr); margin-bottom: 6px; }
+  .D1 .md .li .mk { color: var(--tx3); }
+  .D1 .md .li.n .mk { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; color: var(--tx2); }
+  .D1 .md code { font-family: "Geist Mono", monospace; font-size: .84em; color: var(--icode); background: var(--s1); border: 1px solid var(--line); border-radius: 5px; padding: 0 4px; }
+  .D1 .md pre { position: relative; margin: 6px 0 14px; padding: 10px 44px 10px 14px; border-radius: 10px; background: var(--s1); border: 1px solid var(--line); font-family: "Geist Mono", monospace; font-size: 13.5px; line-height: 20px; white-space: pre-wrap; }
+  .D1 .md pre .kw { color: var(--icode); }
+  .D1 .md pre::after { content: 'content_copy'; font-family: "Material Symbols Rounded"; font-size: 18px; position: absolute; right: 12px; top: 10px; color: var(--tx3); }
+  .D1 .md .k { font-weight: 600; } .D1 .md .k.esito { color: var(--good); }
+  .D1 .md > :last-child { margin-bottom: 0; }
+  .D1 .done { font-size: 13.5px; color: var(--tx3); margin: 2px 0 18px 22px; }
+  .D1 .done::before { content: '✻ '; color: var(--wait); }
+
+  /* D2. Il terminale com'è, tutto in monospazio, con più aria fra i blocchi e al massimo 88 colonne. */
+  .D2 { --gut: 2.2ch; --lh: 23px; --olh: 22px; --dot: 9px; --elbw: 3ch; --okc: var(--good); --errc: var(--red); --elbc: var(--tx3);
+        font-family: "JetBrains Mono", monospace; font-size: 14.5px; line-height: 23px; color: var(--tx); max-width: 92ch; }
+  .D2 .row { margin-bottom: 18px; }
+  .D2 .row.you { background: var(--you); border-radius: 8px; padding: 7px 12px 7px 8px; margin: 0 0 22px -8px; }
+  .D2 .row.you > .g::before { content: '>'; color: var(--tx3); }
+  .D2 .meta { display: block; font-size: 12px; line-height: 16px; color: var(--tx3); margin-top: 2px; font-family: Barlow, sans-serif; }
+  .D2 .th b { font-weight: 700; } .D2 .th .arg { color: var(--tx2); }
+  .D2 .out { color: var(--tx2); font-size: 13.5px; line-height: 22px; }
+  .D2 .out .lines { white-space: pre; }
+  .D2 .out .more { color: var(--busy); }
+  .D2 .diff { font-size: 13px; line-height: 20px; margin-top: 3px; max-width: 80ch; }
+  .D2 .diff span:nth-child(3n+1) { color: var(--tx3); }
+  .D2 .diff .a { background: var(--addbg); color: var(--addtx); } .D2 .diff .d { background: var(--delbg); color: var(--deltx); }
+  .D2 .md { max-width: 88ch; }
+  .D2 .md p, .D2 .md .list, .D2 .md pre, .D2 .md .kvs { margin-bottom: 14px; }
+  .D2 .md h4 { font-weight: 700; margin: 22px 0 4px; }
+  .D2 .md .li { display: grid; grid-template-columns: 2ch minmax(0, 1fr); margin-bottom: 4px; } .D2 .md .li.n { grid-template-columns: 3ch minmax(0, 1fr); }
+  .D2 .md .li .mk { color: var(--tx3); }
+  .D2 .md code { color: var(--icode); }
+  .D2 .md pre { white-space: pre-wrap; padding: 8px 12px; border-left: 2px solid var(--line); background: var(--s1); } .D2 .md pre .kw { color: var(--icode); }
+  .D2 .md .k { font-weight: 700; } .D2 .md .k.esito { color: var(--good); }
+  .D2 .md > :last-child { margin-bottom: 0; }
+  .D2 .done { font-size: 13px; color: var(--tx3); margin: 0 0 18px 2.2ch; } .D2 .done::before { content: '✻ '; color: var(--wait); }
+
+  /* Telefono e tablet: lo stesso, con i margini stretti. */
+  .tel .D1 { font-size: 16px; line-height: 25px; --lh: 25px; --gut: 19px; } .tel .D1 .md { max-width: none; }
+  .tel .D1 .row.you { margin-left: -6px; padding-left: 8px; }
+  .tel .D1 .diff { font-size: 11.5px; } .tel .D1 .out .lines { font-size: 12px; }
+  .tel .D2 { font-size: 13px; line-height: 21px; --lh: 21px; --olh: 20px; } .tel .D2 .out { font-size: 12.5px; line-height: 20px; } .tel .D2 .diff { font-size: 11.5px; line-height: 18px; }
+
+  /* Confronto: il terminale a sinistra, la stessa parte del turno nella colonna D a destra. */
+  .split { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+  .split > div { position: relative; overflow: hidden; }
+  .split .hbody { position: absolute; inset: 40px 0 0 0; }
+  .split .hbody > .scol { position: absolute; inset: 0 12px 10px 12px; margin: 0; }
+  .split > div + div { border-left: 1px solid var(--line); }
+  .split .lab { position: absolute; z-index: 5; left: 50%; top: 8px; transform: translateX(-50%); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 14px; padding: 4px 12px; border-radius: 999px; background: var(--s3); color: var(--tx); white-space: nowrap; }
+  .split .term .scr { padding-top: 16px; }
+</style>
+</head>
+<body>
+
+<template id="sess">
+  <div class="scol">
+    <div class="shead">__BACK__<span class="ic"><span class="ms">front_hand</span></span><div><b>payments-api</b><div class="st">TI ASPETTA · 5 M</div></div><span class="sp"></span>__PILLS__<span class="ms x">__X__</span></div>
+    <div class="strip amb"><span class="ms w">front_hand</span><b>Per te</b><span class="n">2</span><span class="first">Pubblico il deploy 2.8.0 in produzione?</span><span class="mini">1 · sì</span><span class="ms chev">expand_more</span></div>
+    <div class="strip"><span class="ms">perm_media</span><b>Risultati</b><span class="n g">1</span><span class="first">Rapporto dei test dei pagamenti</span><span class="ms chev">expand_more</span></div>
+    <div class="chat __END__">__TURN__</div>
+    <div class="field"><span class="ms">add</span><span class="in">Rispondi con parole tue</span><span class="ms">mic</span><span class="ms">send</span></div>
+  </div>
+</template>
+<template id="home">
+  <div class="home">
+    <div class="hh"><b>Supervisor</b><small>0.2.2111 · 4 aperte</small></div>
+    <div class="kpis"><div><b class="w">3</b><small>sessioni ferme, la prima da 7 min</small></div><div><b>1</b><small>al lavoro adesso</small></div><div><b>6</b><small>esiti oggi</small></div></div>
+    <div class="hl">TI ASPETTANO 3</div>
+    <div class="hrow"><span class="ms">help</span><span><b>storefront</b><small>Fai il login nella sandbox dei pagamenti</small></span><span class="mini">Approva</span></div>
+    <div class="hrow"><span class="ms">help</span><span><b>payments-api</b><small>Pubblica il deploy 2.8.0: ./deploy.sh</small></span><span class="mini">Scegli</span></div>
+    <div class="hrow"><span class="ms">help</span><span><b>blog</b><small>ok alla pubblicazione del post</small></span><span class="mini">Ok</span></div>
+    __NOTE__
+  </div>
+</template>
+<template id="mbar"><div class="mbar"><span class="in">Scrivi alla master</span><b>Master</b><span class="t">Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</span><span style="font:13px 'Geist Mono',monospace;color:var(--tx2)">10:35</span><span class="up ms">expand_less</span></div></template>
+
+<!-- Il riferimento: il terminale. -->
+<section class="panel web" id="wt"><span class="tag">Il terminale · lo stesso turno in Claude Code</span><div data-term></div></section>
+<section class="panel web" id="wte"><span class="tag">Il terminale · la fine del turno</span><div data-term data-end></div></section>
+<!-- Oggi: le schermate vere della web app (le stesse di app-mockup-chat-home-12-11). -->
+<section class="panel web" id="w0"><span class="tag">Web · oggi</span><img data-img="../2026-11-12-chat-leggibile/oggi-web" alt=""></section>
+<!-- D1 e D2 sul web. -->
+<section class="panel web" id="wd1"><span class="tag">Web · D1 · testo del terminale, prosa proporzionale</span><div data-frame="web" data-v="D1" data-note="n1"></div></section>
+<section class="panel web" id="wd1e"><span class="tag">Web · D1 · la fine del turno</span><div data-frame="web" data-v="D1" data-end data-note="n1e"></div></section>
+<section class="panel web" id="wd1o"><span class="tag">Web · D1 · un passo aperto col tocco</span><div data-frame="web" data-v="D1" data-open data-note="n1o"></div></section>
+<section class="panel web" id="wd2"><span class="tag">Web · D2 · il terminale con più aria</span><div data-frame="web" data-v="D2" data-note="n2"></div></section>
+<section class="panel web" id="wd2e"><span class="tag">Web · D2 · la fine del turno</span><div data-frame="web" data-v="D2" data-end data-note="n2e"></div></section>
+<!-- A confronto, metà e metà. -->
+<section class="panel web" id="wx1"><span class="tag">Terminale e D1 a confronto</span><div data-split="D1"></div></section>
+<section class="panel web" id="wx2"><span class="tag">Terminale e D2 a confronto</span><div data-split="D2"></div></section>
+<!-- Telefono. -->
+<section class="panel tel" id="t0"><span class="tag">Telefono · oggi</span><img data-img="../2026-11-12-chat-leggibile/oggi-telefono" alt=""></section>
+<section class="panel tel" id="td1"><span class="tag">Telefono · D1</span><div data-frame="tel" data-v="D1"></div></section>
+<section class="panel tel" id="td1e"><span class="tag">Telefono · D1, la fine</span><div data-frame="tel" data-v="D1" data-end></div></section>
+<section class="panel tel" id="td2"><span class="tag">Telefono · D2</span><div data-frame="tel" data-v="D2"></div></section>
+<section class="panel tel" id="td2e"><span class="tag">Telefono · D2, la fine</span><div data-frame="tel" data-v="D2" data-end></div></section>
+<!-- Tablet. -->
+<section class="panel tab" id="b0"><span class="tag">Tablet · oggi</span><img data-img="../2026-11-12-chat-leggibile/oggi-tablet" alt=""></section>
+<section class="panel tab" id="bd1"><span class="tag">Tablet · D1</span><div data-frame="tab" data-v="D1"></div></section>
+<section class="panel tab" id="bd2"><span class="tag">Tablet · D2</span><div data-frame="tab" data-v="D2"></div></section>
+
+<script>
+  // Il turno di payments-api, una volta sola. `term` = la riga che il terminale scrive sotto un passo (Claude Code, in inglese);
+  // `sum` = la stessa in italiano nell'app. `head`/`tail` = le prime e le ultime righe dell'uscita, parola per parola.
+  const TURN = [
+    { k: 'you', text: 'Il rimborso parziale perde un centesimo: sistemalo e prova su staging', meta: 'dal telefono · 10:31' },
+    { k: 'say', md: "Guardo come si calcola l'importo del rimborso parziale." },
+    { k: 'tool', name: 'Read', arg: 'src/refunds/partial.ts', term: 'Read 86 lines (ctrl+o to expand)', sum: 'Lette 86 righe' },
+    { k: 'say', md: "L'importo si divide in euro con i decimali: 12,34 € in tre rate fa 4,1133 € a rata, e l'arrotondamento di ogni rata perde un centesimo. Passo ai centesimi interi e do il resto all'ultima rata." },
+    { k: 'tool', name: 'Update', arg: 'src/refunds/partial.ts', term: 'Updated src/refunds/partial.ts with 14 additions and 3 removals', sum: '14 righe aggiunte e 3 tolte',
+      diff: [['39', ' ', 'export function partialRefund(amount: number, parts: number) {'], ['40', '-', '  const share = amount / parts'], ['40', '+', '  const cents = Math.round(amount * 100)'],
+             ['41', '+', '  const share = Math.floor(cents / parts)'], ['42', '+', '  const rest = cents - share * parts']], more: 12 },
+    { k: 'tool', name: 'Bash', arg: 'npm run test:staging', term: null, sum: null,
+      head: ['> payments-api@2.8.1 test:staging', '> vitest run --config vitest.staging.ts'],
+      tail: [' Test Files  9 passed (9)', '      Tests  232 passed (232)', '   Duration  41.20s'], more: 38,
+      all: [' ✓ tests/refunds.test.ts (18 tests) 212ms', ' ✓ tests/webhooks/stripe.test.ts (31 tests) 340ms', ' ✓ tests/checkout.test.ts (64 tests) 1.92s', ' ✓ tests/orders.test.ts (47 tests) 806ms', ' ✓ tests/staging/refund-live.test.ts (6 tests) 4.11s'] },
+    { k: 'say', md: `Il rimborso parziale ora passa su staging: ho corretto l'arrotondamento dei centesimi e aggiunto i test che mancavano. Il deploy della 2.8.1 parte solo con il tuo ok.
+
+## Cosa è cambiato
+- \`src/refunds/partial.ts\`: l'importo si calcola in centesimi interi, così un rimborso in tre rate non perde più 0,01 €.
+- \`src/webhooks/stripe.ts\`: l'evento \`charge.refunded\` aggiorna l'ordine una volta sola, anche quando Stripe lo manda due volte.
+- 18 test nuovi in \`tests/refunds.test.ts\`, tutti verdi.
+
+## Come l'ho provato
+1. \`npm run test\` in locale: 232 test verdi.
+2. \`npm run test:staging\`: rimborsi, webhook e checkout passano.
+3. Un rimborso vero di 12,34 € sulla carta di prova: arriva in 4 secondi e l'ordine passa a «rimborsato».
+
+Per il deploy, quando dici:
+\`\`\`
+npm run deploy -- --env production --tag 2.8.1
+\`\`\`
+
+## Cosa resta
+**Non provato:** il rimborso su una carta americana, serve la sandbox US.
+
+Esito: rimborso parziale corretto, 232 test verdi, la 2.8.1 è pronta.
+Tipo: pronto
+Prossimi: ok al deploy della 2.8.1 · prova il rimborso dal vivo · apri la PR` },
+    { k: 'done', term: 'Cooked for 1m 22s', app: '1 min 22 s · 10:33' },
+  ]
+
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const inline = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+  // Il markdown come lo legge il terminale: paragrafi, titoli, elenchi, blocchi di codice; le righe Esito, Tipo e Prossimi restano
+  // righe di testo, con solo l'etichetta segnata.
+  function md(src, form) {
+    const out = [], lines = src.split('\n')
+    let i = 0, para = [], list = null, kvs = null
+    const flushP = () => { if (para.length) out.push(`<p>${inline(para.join(' '))}</p>`); para = [] }
+    const flushL = () => { if (list) out.push(`<div class="list">${list.join('')}</div>`); list = null; if (kvs) out.push(`<div class="kvs">${kvs.join('')}</div>`); kvs = null }
+    while (i < lines.length) {
+      const l = lines[i]
+      if (l.startsWith('```')) { flushP(); flushL(); const code = []; i++; while (i < lines.length && !lines[i].startsWith('```')) code.push(lines[i++]); i++
+        out.push(`<pre>${code.map(c => esc(c).replace(/^(npm)/, '<span class="kw">$1</span>')).join('\n')}</pre>`); continue }
+      const h = l.match(/^#+\s+(.*)/), b = l.match(/^-\s+(.*)/), n = l.match(/^(\d+)\.\s+(.*)/), kv = l.match(/^(Esito|Tipo|Prossimi):\s+(.*)/)
+      if (h) { flushP(); flushL(); out.push(`<h4>${inline(h[1])}</h4>`) }
+      else if (b) { flushP(); if (kvs) flushL(); (list ??= []).push(`<div class="li"><span class="mk">${form === 'D1' ? '•' : '-'}</span><span>${inline(b[1])}</span></div>`) }
+      else if (n) { flushP(); if (kvs) flushL(); (list ??= []).push(`<div class="li n"><span class="mk">${n[1]}.</span><span>${inline(n[2])}</span></div>`) }
+      else if (kv) { flushP(); if (list) { const k = kvs; kvs = null; flushL(); kvs = k } (kvs ??= []).push(`<div><span class="k ${kv[1] === 'Esito' ? 'esito' : ''}">${kv[1]}:</span> ${inline(kv[2])}</div>`) }
+      else if (!l.trim()) { flushP(); flushL() }
+      else { flushL(); para.push(l) }
+      i++
+    }
+    flushP(); flushL()
+    // Le righe Esito, Tipo e Prossimi stanno insieme, una sotto l'altra, come nel terminale.
+    return out.join('')
+  }
+  function diff(rows) {
+    return `<div class="diff">${rows.map(([n, s, t]) => { const c = s === '+' ? 'a' : s === '-' ? 'd' : ''; return `<span class="${c}">${n}</span><span class="${c}">${s === ' ' ? '' : s}</span><span class="${c}">${esc(t)}</span>` }).join('')}</div>`
+  }
+  // Una forma del turno: T il terminale, D1 o D2; `open` = l'uscita di Bash aperta col tocco.
+  function turn(form, { open = false } = {}) {
+    const T = form === 'T'
+    return `<div class="${form}">${TURN.map(e => {
+      if (e.k === 'you') return `<div class="row you"><i class="g"></i><div class="c">${esc(e.text)}<span class="meta">${e.meta}</span></div></div>`
+      if (e.k === 'say') return `<div class="row say"><i class="g dot"></i><div class="c md">${md(e.md, form)}</div></div>`
+      if (e.k === 'done') return `<div class="done">${T ? e.term : e.app}</div>`
+      let o = ''
+      if (e.diff) o = `<div>${T ? esc(e.term) : e.sum}${diff(e.diff)}<div class="more">${T ? `… +${e.more} lines (ctrl+o to expand)` : `+${e.more} righe <span class="ms">expand_more</span>`}</div></div>`
+      else if (e.head) {
+        if (T) o = `<div><div class="lines">${e.head.map(esc).join('\n')}</div><div class="more">… +${e.more} lines (ctrl+o to expand)</div></div>`
+        else if (open) o = `<div><div class="lines">${[...e.head, '', ...e.all, '', ...e.tail].map(esc).join('\n')}</div><div class="more">Chiudi <span class="ms">expand_less</span></div></div>`
+        else o = `<div><div class="lines">${e.tail.map(esc).join('\n')}</div><div class="more">+${e.more} righe <span class="ms">expand_more</span></div></div>`
+      } else o = `<div>${T ? esc(e.term) : e.sum}</div>`
+      return `<div class="row tool"><i class="g dot"></i><div class="c"><div class="th"><b>${e.name}</b><span class="arg">(${esc(e.arg)})</span></div><div class="out"><i class="elb"></i>${o}</div></div></div>`
+    }).join('')}</div>`
+  }
+  const termWin = end => `<div class="term${end ? ' end' : ''}"><div class="bar"><div class="tabx"><span class="ms">terminal</span>payments-api<span class="ms">close</span></div></div><div class="scr">${turn('T')}</div><div class="box">&nbsp;</div><div class="hint">? for shortcuts</div></div>`
+
+  const NOTES = {
+    n1: `<p><b>D1.</b> Il testo è quello del terminale, parola per parola e nello stesso ordine: ogni messaggio e ogni passo ha il suo pallino, verde quando il passo è riuscito, e sotto il passo il risultato col gomito ⎿.</p>
+         <p>Cambia solo la tipografia: la prosa in carattere proporzionale da 16,5 px, la riga al massimo 64 caratteri, il codice e i percorsi in monospazio, più spazio fra un blocco e l'altro.</p>
+         <p>Niente riquadri, schede o riassunti aggiunti: i passi non sono più raccolti in «2 passaggi».</p>`,
+    n1e: `<p><b>La fine del turno.</b> Esito, Tipo e Prossimi restano le righe di testo che la sessione scrive, con solo l'etichetta Esito in verde. Sotto, quanto è durato il turno, come il ✻ del terminale.</p>
+          <p>I tasti per rispondere restano nella riga Per te in alto (formato A).</p>`,
+    n1o: `<p><b>Un passo aperto.</b> Chiuso, sotto Bash ci sono le ultime righe dell'uscita, dove sta il risultato (il terminale mostra le prime). Un tocco apre l'uscita intera, come ctrl+o nel terminale; un altro la chiude.</p>
+          <p><b>Serve al relay:</b> oggi l'app riceve il nome e l'argomento del passo e il diff, non le righe del risultato. Per il gomito ⎿ servono le prime e le ultime righe dell'uscita di ogni passo e quante sono.</p>`,
+    n2: `<p><b>D2.</b> Il terminale com'è, tutto in monospazio come in Claude Code, con il testo uguale a D1.</p>
+         <p>Rispetto al terminale: carattere più grande, una riga vuota in più fra i blocchi, la riga lunga al massimo 88 colonne invece di tutta la finestra, la tua richiesta su una fascia e le uscite che si aprono col tocco.</p>`,
+    n2e: `<p><b>D2, la fine.</b> Le stesse righe di testo, in monospazio; l'etichetta Esito in verde, il resto come lo scrive la sessione.</p>`,
+  }
+
+  const q = new URLSearchParams(location.search), day = q.has('day')
+  if (day) document.body.classList.add('day')
+  const tpl = id => document.getElementById(id).innerHTML
+  document.querySelectorAll('[data-img]').forEach(i => { i.src = `${i.dataset.img}-${day ? 'giorno' : 'notte'}.png` })
+  document.querySelectorAll('[data-term]').forEach(e => { const b = document.createElement('div'); b.innerHTML = termWin(e.hasAttribute('data-end')); e.replaceWith(...b.childNodes) })
+  const sess = (kind, form, { end = false, open = false } = {}) => {
+    const tel = kind === 'tel'
+    return tpl('sess').replace('__BACK__', tel ? '<span class="ms" style="color:var(--tx)">arrow_back</span>' : '')
+      .replace('__PILLS__', tel ? '' : '<span class="pill">Opus 5 · high</span><span class="pill">ctx 62%</span>')
+      .replace('__X__', tel ? 'menu' : 'close').replace('__END__', end ? 'end' : '').replace('__TURN__', turn(form, { open }))
+  }
+  document.querySelectorAll('[data-frame]').forEach(e => {
+    const kind = e.dataset.frame, s = sess(kind, e.dataset.v, { end: e.hasAttribute('data-end'), open: e.hasAttribute('data-open') })
+    const note = e.dataset.note ? `<div class="note" style="top:${kind === 'tab' ? 300 : 330}px">${NOTES[e.dataset.note]}</div>` : ''
+    const box = document.createElement('div')
+    box.innerHTML = kind === 'tel' ? s : `<div class="frame"><div class="top">${s}${tpl('home').replace('__NOTE__', note)}</div>${tpl('mbar')}</div>`
+    e.replaceWith(...box.childNodes)
+  })
+  document.querySelectorAll('[data-split]').forEach(e => {
+    const f = e.dataset.split, b = document.createElement('div')
+    b.innerHTML = `<div class="split"><div><span class="lab">Il terminale</span><div class="hbody">${termWin(false)}</div></div><div><span class="lab">${f} nell'app</span><div class="hbody">${sess('web', f)}</div></div></div>`
+    e.replaceWith(...b.childNodes)
+  })
+  const p = q.get('p')
+  if (p) document.getElementById(p).classList.add('on'); else document.body.classList.add('all')
+</script>
+</body>
+</html>
