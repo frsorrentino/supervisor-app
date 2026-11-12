@@ -38,6 +38,21 @@ class FakeTransport(
         return ContractJson.json.encodeToString(it.pixelbox.cmwatch.contract.ThumbPreview.serializer(), p.copy(id = item.id, path = item.path))
     }
 
+    /**
+     * `attesa` della fixture come la darebbe il relay (contratto 1.137): l'esempio con lo stesso id e lo stesso `archive`, poi quello con
+     * lo stesso id; un id che non c'è è il rifiuto della fixture.
+     */
+    fun attesaSample(arg: String?, archive: Boolean): Pair<Boolean, String> {
+        val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }
+        fun str(o: kotlinx.serialization.json.JsonElement, k: String) = ((o as kotlinx.serialization.json.JsonObject)[k] as? kotlinx.serialization.json.JsonPrimitive)?.content
+        val cmds = (root["cmd"] as kotlinx.serialization.json.JsonArray).filter { str(it, "op") == "attesa" }
+        val results = (root["result"] as kotlinx.serialization.json.JsonArray)
+        fun resultOf(c: kotlinx.serialization.json.JsonElement) = results.first { str(it, "id") == str(c, "id") }.let { r -> (str(r, "ok") == "true") to str(r, "text").orEmpty() }
+        val same = cmds.filter { str(it, "arg") == arg }
+        val pick = same.firstOrNull { (str(it, "archive") == "true") == archive } ?: same.firstOrNull()
+        return pick?.let(::resultOf) ?: cmds.map(::resultOf).firstOrNull { !it.first } ?: (false to "$arg: no wait")
+    }
+
     fun sampleText(op: String): String {
         val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }
         fun str(o: kotlinx.serialization.json.JsonElement, k: String) = ((o as kotlinx.serialization.json.JsonObject)[k] as? kotlinx.serialization.json.JsonPrimitive)?.content
@@ -476,7 +491,8 @@ class FakeTransport(
             }
             // Contratto 1.130: le attese della fixture; `attesa` con l'id della fixture ha il pezzo di trascrizione, le altre sono chiuse.
             CmdOp.ATTESE -> ok(sampleText("attese"))
-            CmdOp.ATTESA -> sampleResult("attesa", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
+            // Contratto 1.137: con `archive` la voce dell'archivio (anche di un giro vecchio); un id che la fixture non ha è un rifiuto.
+            CmdOp.ATTESA -> attesaSample(cmd.arg, cmd.archive == true).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
             // Contratto 1.132: l'elenco dei Monitoraggi della fixture; con un id la sua scheda, un id che non c'è più è un errore.
             CmdOp.MONITORS -> if (cmd.arg == null) ok(ContractJson.json.encodeToString(MonitorsPage.serializer(), demoMonitors())) else demoMonitors().items.firstOrNull { it.id == cmd.arg }?.let { c -> ok(cardJson(c)) }
                 ?: sampleResult("monitors", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }

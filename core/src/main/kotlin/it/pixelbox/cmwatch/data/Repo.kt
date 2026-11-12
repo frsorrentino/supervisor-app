@@ -261,6 +261,8 @@ class Repo(
         closeWhen: String? = null,
         /** Contratto 1.121, `feedback_app`. */
         tech: Map<String, String>? = null, share: String? = null, hash: String? = null,
+        /** Contratto 1.137, `attesa`: la scheda anche dopo la risposta. */
+        archive: Boolean? = null,
     ): String {
         // Contratto 1.52: la risposta vale per la domanda aperta adesso, anche se parte dalla coda dopo minuti.
         val question = if (op == CmdOp.ANSWER || op == CmdOp.ALLOW_ALL)
@@ -269,7 +271,7 @@ class Repo(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt, reopen = reopen,
             kind = kind, since = since, choice = choice, sid = sid, content = content, result = result, hours = hours, reason = reason, also = also, value = value, product = product, key = key, posS = posS,
-            closeWhen = closeWhen, tech = tech, share = share, screenshotOk = share?.let { true }, hash = hash,
+            closeWhen = closeWhen, tech = tech, share = share, screenshotOk = share?.let { true }, hash = hash, archive = archive,
         )
         question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {
@@ -353,7 +355,8 @@ class Repo(
     }
 
     /** Chiede al PC un file della conversazione (`file`) e lo legge da /file/<id del comando>. */
-    suspend fun openFile(session: String, path: String): Opened {
+    /** `session` null: un file dichiarato in una richiesta (contratto 1.137), servito finché la richiesta è aperta. */
+    suspend fun openFile(session: String?, path: String): Opened {
         val id = UUID.randomUUID().toString()
         // Contratto 1.34: a pezzi, fino a 25 MB; un relay vecchio ignora `parts` e scrive il nodo unico, letto come prima.
         return when (val d = deliver(CmdOp.FILE, session, path, id, parts = true)) {

@@ -485,6 +485,8 @@ enum class CmdOp {
 @Serializable data class ProvaOne(
     val id: Long, val task: String = "", val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null,
     val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val state: String = "todo", val text: String? = null, val at: Long = 0,
+    /** Contratto 1.137: i file da guardare della prova. */
+    val files: List<WaitFile>? = null,
 )
 @Serializable data class ProvePage(val at: Long = 0, val n: Int = 0, val builds: Int = 0, val groups: List<ProveGroup> = emptyList(), val ko: List<ProveKo> = emptyList(), val red: List<ProveRed> = emptyList())
 
@@ -894,6 +896,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val etag: String? = null,
+    /** Contratto 1.137, `attesa`: la scheda di qualsiasi giro, anche dopo la risposta. Assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val archive: Boolean? = null,
 )
 
 /**
@@ -1165,6 +1171,26 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val card: WaitCard? = null, val link: String? = null, val answer: WaitAnswer? = null, val msg: WaitMsg? = null,
     /** Contratto 1.131: una riga per gli elenchi (il nome breve del compito per una carta, la domanda per la chat) e i tasti della carta. */
     val title: String? = null, val actions: List<WaitAction>? = null,
+    /**
+     * Contratto 1.137 (app-scheda-scelta-12-11): la descrizione vera; i file (di una scelta quelli delle opzioni più `--files`, di una
+     * verifica quelli delle sue prove); l'id stabile della scheda (quello del primo giro); lo stato (`open`; dall'archivio anche
+     * chosen, approved, redo, closed) con `answered`; da `attesa` i giri precedenti, dal più vecchio.
+     */
+    val description: String? = null, val files: List<WaitFile>? = null, @SerialName("card_id") val cardId: String? = null,
+    val state: String? = null, val answered: WaitAnswered? = null, val rounds: List<WaitRound>? = null,
+)
+/**
+ * Contratto 1.137: un file di una richiesta. `kind` image, document (pdf, testo, markdown, html, office, svg) o other; `session` null =
+ * dichiarato nella richiesta, servito dall'op `file` solo finché la richiesta è aperta; con la sessione è un file di quella trascrizione.
+ */
+@Serializable data class WaitFile(val path: String, val name: String = "", val mime: String? = null, val size: Long? = null, val kind: String = "", val session: String? = null)
+/** Contratto 1.137: com'è finita una scheda (`attesa` con `archive`): chi, quando, l'opzione scelta (il suo `value`) o il motivo. */
+@Serializable data class WaitAnswered(val by: String? = null, val at: Long? = null, val choice: String? = null, val reason: String? = null)
+/** Contratto 1.137: un giro precedente della stessa scheda; `state` redo (col motivo), closed o replaced. */
+@Serializable data class WaitRound(
+    val id: String, val at: Long = 0, val text: String = "", val description: String? = null, val options: List<WaitOption>? = null,
+    val files: List<WaitFile>? = null, val state: String = "", val reason: String? = null, val by: String? = null,
+    @SerialName("answered_at") val answeredAt: Long? = null, val choice: String? = null,
 )
 /**
  * Contratto 1.131: un tasto della carta. `style` primary, option o secondary; `cmd` il comando del relay già pronto (op, session, arg e i
@@ -1174,7 +1200,8 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val label: String, val style: String = "secondary", val cmd: kotlinx.serialization.json.JsonObject,
     @SerialName("text_field") val textField: String? = null, val recommended: Boolean = false,
 )
-@Serializable data class WaitOption(val n: Int, val label: String, val value: String = label, val recommended: Boolean = false, val description: String? = null)
+/** Contratto 1.137: `description` è la riga di pro e contro, `files` i file dell'opzione. */
+@Serializable data class WaitOption(val n: Int, val label: String, val value: String = label, val recommended: Boolean = false, val description: String? = null, val files: List<WaitFile>? = null)
 @Serializable data class WaitCard(
     val what: String? = null, val where: String? = null, val untested: String? = null, val undo: String? = null, @SerialName("undo_how") val undoHow: String? = null,
     /** Contratto 1.131: cosa o dove nominano la produzione; la carta porta il segno «produzione». */

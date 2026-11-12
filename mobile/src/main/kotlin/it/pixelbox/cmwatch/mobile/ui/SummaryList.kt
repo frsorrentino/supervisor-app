@@ -1848,6 +1848,8 @@ internal val LocalApprovalClose = androidx.compose.runtime.staticCompositionLoca
  */
 @Composable
 private fun ApprovalLine(a: it.pixelbox.cmwatch.contract.Approval, onApprove: (String, String, String?) -> Unit) {
+    // Una scelta con la sua richiesta è la sua scheda compatta, con le immagini delle opzioni (app-scheda-scelta-12-11).
+    choiceCardOf(a)?.let { w -> SceltaCompatte(listOf(w), flat = true); return }
     var ask by rememberSaveable(a.task) { mutableStateOf(false) }
     var choice by rememberSaveable(a.task) { mutableStateOf<String?>(null) }
     val close = LocalApprovalClose.current
@@ -1953,6 +1955,8 @@ private fun WorkCard(
     androidx.compose.runtime.LaunchedEffect(sent) { if (sent != null) { kotlinx.coroutines.delay(8_000); sent = null } }
     val off = animationsOff()
     Column(familyCard().then(if (off) Modifier else Modifier.animateContentSize(CmMotion.bounceSize)), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Una scelta con la sua richiesta è la sua scheda compatta, con le immagini delle opzioni (app-scheda-scelta-12-11).
+        choiceCardOf(a)?.let { w -> SceltaCompatte(listOf(w), flat = true); return@Column }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             WorkBadge(r.kind, ag?.let { RecapAgenda.mark(it.scope) } ?: RecapAgenda.Mark.NONE)
             Text(Lavori.shortTitle(r.title, ag?.short ?: cm?.short), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))

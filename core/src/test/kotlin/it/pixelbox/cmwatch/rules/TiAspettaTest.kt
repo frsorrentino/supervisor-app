@@ -32,7 +32,8 @@ class TiAspettaTest {
         val p = TiAspetta.pageOf(one, all)
         assertEquals(TiAspetta.Kind.CHOOSE, p.kind); assertEquals("atlas-shop", p.session)
         assertEquals("5d2e8f1a-3c47-4b9e-8a61-7e0d9c4b2f18.0", p.source?.entry)
-        assertEquals(listOf("wb973ef3ed0"), p.others.map { it.key })
+        // Dalla 0.8.155 la fixture ha anche una verifica coi suoi file (w5c2e8a1f90).
+        assertEquals(listOf("wb973ef3ed0", "w5c2e8a1f90"), p.others.map { it.key })
         assertEquals(true, TiAspetta.marks(p.source!!.text, p.source!!.ask).any { it.on })
     }
 

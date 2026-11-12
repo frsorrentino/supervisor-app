@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -56,12 +57,14 @@ import java.time.format.DateTimeFormatter
  * da quanto aspetta; la carta coi tasti (`card`, quella di Decidi, Scegli, Verifica o Rispondi); «Da dove viene» col pezzo di
  * trascrizione, la frase della domanda accesa e «Apri nella trascrizione»; in fondo le altre che aspettano. `wide` (tablet, nella
  * colonna): la carta e «Da dove viene» affiancate e la × al posto della freccia indietro. «Ti aspettano anche» parte chiusa e si
- * apre col tocco (app-ti-aspetta-lista-chiusa-08-11); `othersOpen` solo per i test.
+ * apre col tocco (app-ti-aspetta-lista-chiusa-08-11); `othersOpen` solo per i test. `stack` (app-scheda-scelta-12-11): una scelta con le
+ * immagini tiene tutta la larghezza anche nella colonna del tablet, e «Da dove viene» le sta sotto. `title` e `sub`: una scheda che non
+ * aspetta più (dall'archivio) dice com'è finita e quando, al posto di «Ti aspetta» e «da 12 min».
  */
 @Composable
 fun TiAspettaPage(
     page: TiAspetta.Page, now: Long, wide: Boolean, onBack: () -> Unit, onJump: (TiAspetta.Source) -> Unit, onOther: (String) -> Unit,
-    othersOpen: Boolean = false, card: @Composable () -> Unit,
+    othersOpen: Boolean = false, stack: Boolean = false, title: String? = null, sub: String? = null, card: @Composable () -> Unit,
 ) {
     // Non si salva: ogni scheda, anche un'altra aperta da questa lista, parte con la lista chiusa.
     var open by remember(page.key) { mutableStateOf(othersOpen) }
@@ -72,24 +75,28 @@ fun TiAspettaPage(
         Row(Modifier.fillMaxWidth().padding(start = if (wide) 18.dp else 6.dp, end = 6.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.ti_aspetta_title), style = V3.Section.copy(fontSize = 22.sp))
+                Text(title ?: stringResource(R.string.ti_aspetta_title), style = V3.Section.copy(fontSize = 22.sp))
                 // Il nome prima di tutto (app-ti-aspetta-titolo-320-10-11): «da 49 min» va intero sotto il nome se non c'è posto, mai
                 // spezzato in «da 49» e «min».
                 androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     page.session?.let { n -> val whole = LocalNameWhole.current; Text("$n ·", style = V3.Meter, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, onTextLayout = { l -> whole?.invoke(n, !l.hasVisualOverflow) }) }
-                    Text(stringResource(R.string.ti_aspetta_since, TiAspetta.age(now - page.since)), style = V3.Meter.copy(color = V3.Wait), maxLines = 1, softWrap = false)
+                    if (sub != null) Text(sub, style = V3.Meter, maxLines = 1, softWrap = false)
+                    else Text(stringResource(R.string.ti_aspetta_since, TiAspetta.age(now - page.since)), style = V3.Meter.copy(color = V3.Wait), maxLines = 1, softWrap = false)
                 }
             }
             if (wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = V3.Tx2) }
         }
         if (wide) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = if (wide && stack) 22.dp else 14.dp, vertical = if (wide && stack) 18.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (stack) 22.dp else 14.dp),
+        ) {
+            if (wide && !stack) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Box(Modifier.weight(1f)) { card() }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) { page.source?.let { SourceBlock(it, onJump) } }
             } else {
                 card()
-                page.source?.let { SourceBlock(it, onJump) }
+                page.source?.let { src -> Column(Modifier.widthIn(max = if (wide) 720.dp else androidx.compose.ui.unit.Dp.Infinity), verticalArrangement = Arrangement.spacedBy(8.dp)) { SourceBlock(src, onJump) } }
             }
             if (page.others.isNotEmpty()) Others(page.others, now, open, { open = !open }, onOther)
         }
@@ -219,6 +226,8 @@ fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onSend: (it.pixelb
                 }
             }
         }
+        // Contratto 1.137: i file della richiesta (le immagini di cosa guardare di una verifica, gli allegati di un ok).
+        item.files?.takeIf { fs -> fs.isNotEmpty() }?.let { fs -> WaitFilesBlock(fs) }
         var n = 0
         actions.forEachIndexed { i, a ->
             if (TiAspetta.lookOf(a) != TiAspetta.Look.OPTION) return@forEachIndexed
@@ -266,7 +275,18 @@ fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onSend: (it.pixelb
                 V3Pill(stringResource(R.string.cancel)) { writing = null }
             }
         }
-        if (actions.isEmpty()) Text(stringResource(R.string.ti_aspetta_by_master), style = V3.Small)
+        // Dall'archivio (contratto 1.137) una scheda che non aspetta più dice com'è finita; senza tasti e ancora aperta, la fa la master.
+        if (actions.isEmpty()) {
+            val o = it.pixelbox.cmwatch.rules.Scelta.outcomeOf(item)
+            val said = when (o.state) {
+                it.pixelbox.cmwatch.rules.Scelta.State.OPEN -> stringResource(R.string.ti_aspetta_by_master)
+                it.pixelbox.cmwatch.rules.Scelta.State.CHOSEN -> o.letter?.let { l -> stringResource(R.string.scelta_chosen_letter, l) } ?: stringResource(R.string.scelta_chosen_words, o.name.orEmpty())
+                it.pixelbox.cmwatch.rules.Scelta.State.APPROVED -> stringResource(R.string.scelta_approved)
+                it.pixelbox.cmwatch.rules.Scelta.State.REDO -> stringResource(R.string.scelta_redo)
+                it.pixelbox.cmwatch.rules.Scelta.State.CLOSED -> stringResource(R.string.scelta_closed)
+            }
+            Text(listOfNotNull(said, o.reason).joinToString(": "), style = V3.Small)
+        }
     }
 }
 

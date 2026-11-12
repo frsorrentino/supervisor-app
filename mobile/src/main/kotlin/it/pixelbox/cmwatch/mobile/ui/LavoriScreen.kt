@@ -277,6 +277,8 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
         Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+    // Una scelta con la sua richiesta è la sua scheda compatta, con le immagini delle opzioni (app-scheda-scelta-12-11).
+    choiceCardOf(a)?.let { w -> SceltaCompatte(listOf(w), flat = true); return@Column }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         when {
             ag != null -> AgendaMark(ag.scope)

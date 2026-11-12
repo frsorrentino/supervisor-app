@@ -1952,4 +1952,48 @@ Parte dal tuo ultimo messaggio alla master.</string>
         <item quantity="one">%d monitoraggio da guardare</item>
         <item quantity="other">%d monitoraggi da guardare</item>
     </plurals>
+    <!-- La scheda di scelta (app-scheda-scelta-12-11, contratto 1.137). -->
+    <string name="scelta_pick">Scegli %1$s</string>
+    <string name="scelta_pick_desc">Scegli %1$s, %2$s</string>
+    <string name="scelta_zoom">Ingrandisci %1$s</string>
+    <string name="scelta_open_choose">Da scegliere</string>
+    <string name="scelta_open_decide">Da decidere</string>
+    <string name="scelta_open_verify">Da verificare</string>
+    <string name="scelta_open_answer">Aspetta la tua risposta</string>
+    <string name="scelta_chosen">Scelto %1$s, %2$s</string>
+    <string name="scelta_chosen_letter">Scelto %1$s</string>
+    <string name="scelta_chosen_words">Scelto: %1$s</string>
+    <string name="scelta_approved">Approvata</string>
+    <string name="scelta_redo">Da rifare</string>
+    <string name="scelta_closed">Chiusa senza ok</string>
+    <string name="scelta_picked">Scelta</string>
+    <string name="scelta_production">tocca la produzione</string>
+    <string name="scelta_round">Giro %1$d</string>
+    <string name="scelta_rounds">Giri precedenti</string>
+    <string name="scelta_round_redo">Scartato</string>
+    <string name="scelta_round_closed">Chiuso senza ok</string>
+    <string name="scelta_round_replaced">Richiesto di nuovo senza risposta</string>
+    <string name="scelta_today">oggi alle %1$s</string>
+    <string name="scelta_on">il %1$s alle %2$s</string>
+    <string name="scelta_answered">risposta %1$s</string>
+    <string name="scelta_reason_label">Cosa non va nelle proposte?</string>
+    <string name="scelta_reason_hint">La sessione le rifà partendo da quello che scrivi.</string>
+    <string name="scelta_done_chosen">Scelta fatta</string>
+    <string name="scelta_card_loading">La scheda sta arrivando dal PC</string>
+    <string name="scelta_open_card">Apri la scheda</string>
+    <string name="attesa_preview_coming">Anteprima in arrivo dal PC</string>
+    <string name="attesa_preview_coming_for">Anteprima in arrivo dal PC · %1$d s</string>
+    <string name="attesa_preview_missed">L\'anteprima non è arrivata dal PC</string>
+    <string name="attesa_preview_retry">Richiedi di nuovo</string>
+    <string name="viewer_at">%1$d di %2$d</string>
+    <string name="viewer_prev">Immagine precedente</string>
+    <string name="viewer_next">Immagine successiva</string>
+    <plurals name="scelta_left">
+        <item quantity="one">resta %d carattere</item>
+        <item quantity="other">restano %d caratteri</item>
+    </plurals>
+    <plurals name="scelta_more_images">
+        <item quantity="one">Un\'altra immagine</item>
+        <item quantity="other">Altre %d immagini</item>
+    </plurals>
 </resources>

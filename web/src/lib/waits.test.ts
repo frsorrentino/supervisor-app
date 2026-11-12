@@ -14,7 +14,8 @@ const result = (op: string, arg: string | null = null) => {
 describe('waits', () => {
   it('attese', () => {
     const p = decodeWaits(result('attese').text)
-    expect(p.items.map(i => i.id)).toEqual(['wd2f87e85e2', 'wb973ef3ed0'])
+    // Dalla 0.8.155 anche una verifica coi suoi file (contratto 1.137).
+    expect(p.items.map(i => i.id)).toEqual(['wd2f87e85e2', 'wb973ef3ed0', 'w5c2e8a1f90'])
     expect(p.items[0].answer).toEqual({ op: 'approve', arg: 'atlas-release-2-4' })
     expect(p.items[0].options?.[0].recommended).toBe(true)
     expect(p.items[1].answer?.done?.op).toBe('attention_done')

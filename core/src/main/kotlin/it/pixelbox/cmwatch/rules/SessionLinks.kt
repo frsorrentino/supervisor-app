@@ -64,6 +64,41 @@ object SessionLinks {
         return Stripped(out.filterNotNull().joinToString("\n").replace(Regex("\n{3,}"), "\n\n").trim('\n'), buttons)
     }
 
+    data class Waits(val text: String, val ids: List<String>)
+
+    private const val WAIT_ID = "w[0-9a-f]{10}"
+    private val WAIT_ANY = Regex(WAIT_ID)
+    private val WAIT_MD = Regex("""\[[^\]\n]+]\((?:https?://[^)\s]*)?#/attesa/($WAIT_ID)\)""")
+    private val WAIT_URL = Regex("""(?:https?://[^\s<>()\[\]«»]*)?#/attesa/($WAIT_ID)(?![0-9A-Za-z])""")
+    private val WAIT_BARE = Regex("""(?<![\p{L}\p{N}_/#-])($WAIT_ID)(?![\p{L}\p{N}_-])""")
+    private const val TAKEN = "\u0000"
+    private val TAKEN_AND_DOTS = Regex("""\u0000[.,;:!?]*(?=\s|$)|\u0000""")
+
+    /**
+     * I link delle richieste nei testi della chat (app-scheda-scelta-12-11, Franz 12/11 15:10: «in chat, al posto del link, una scheda
+     * compatta»): `…/#/attesa/<id>`, col sito o senza, e i link con testo che ci portano escono dal testo; gli id restano in `ids`,
+     * nell'ordine e una volta sola, e al loro posto la chat mostra la scheda. Un id nudo citato in una frase resta dov'è e ha la sua
+     * scheda lo stesso. La riga rimasta vuota o con la sola etichetta sparisce, come per i link delle sessioni. Come stripWaitLinks
+     * di web/src/lib/sessionLinks.ts, coi casi di core/src/test/resources/scelta-cases.json.
+     */
+    fun stripWaits(text: String): Waits {
+        if (!WAIT_ANY.containsMatchIn(text)) return Waits(text, emptyList())
+        val ids = mutableListOf<String>()
+        fun note(id: String): String { if (id !in ids) ids += id; return TAKEN }
+        val t = WAIT_URL.replace(WAIT_MD.replace(text) { m -> note(m.groupValues[1]) }) { m -> note(m.groupValues[1]) }
+        var out = text
+        if (ids.isNotEmpty()) {
+            val before = text.split('\n')
+            val after = t.split('\n')
+            val lines = arrayOfNulls<String>(after.size)
+            for (i in after.indices) lines[i] = if (after[i].contains(TAKEN)) tidy(TAKEN_AND_DOTS.replace(after[i], ""), before[i].takeWhile { it == ' ' || it == '\t' }) else after[i]
+            for (i in after.indices) if (lines[i] == null && i > 0 && lines[i - 1]?.let(::isLabel) == true) lines[i - 1] = null
+            out = lines.filterNotNull().joinToString("\n").replace(Regex("\n{3,}"), "\n\n").trim('\n')
+        }
+        WAIT_BARE.findAll(out).forEach { m -> if (m.groupValues[1] !in ids) ids += m.groupValues[1] }
+        return if (ids.isNotEmpty()) Waits(out, ids) else Waits(text, emptyList())
+    }
+
     /** Una riga da cui è uscito un link, col rientro che aveva: null se non resta niente da leggere. */
     private fun tidy(line: String, indent: String): String? {
         var l = EMPTY_PARENS.replace(line, "")

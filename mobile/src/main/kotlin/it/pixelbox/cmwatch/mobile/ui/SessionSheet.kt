@@ -1871,6 +1871,8 @@ private fun ClaudeBubble(
     val text = parsed.text
     // A schermo il testo senza i link delle sessioni note, che diventano tasti; Copia e la voce tengono il testo intero.
     val stripped = remember(text, sessions) { it.pixelbox.cmwatch.rules.SessionLinks.strip(text, sessions) }
+    // I link delle richieste escono dal testo e al loro posto c'è la scheda compatta (app-scheda-scelta-12-11).
+    val waits = remember(stripped.text) { it.pixelbox.cmwatch.rules.SessionLinks.stripWaits(stripped.text) }
     val clip = LocalClipboardManager.current
     // Claude a tutta larghezza, senza fumetto, come nell'app nativa (Franz, 30/09 22:17: «non limitiamo nei balloon»).
     // Nella chat della master, con la «voce», una barra lilla a sinistra.
@@ -1899,14 +1901,16 @@ private fun ClaudeBubble(
                     }
                 // Fuori dalla lettura il testo si seleziona a pezzi con la pressione lunga (Franz, 02/10 20:31); durante la lettura
                 // il tocco sui paragrafi resta per ripartire da lì.
-                } else Quotable(stripped.text, at) { SelectionContainer {
-                    val shown = it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(stripped.text, stringResource(R.string.outcome_label))
+                } else Quotable(waits.text, at) { SelectionContainer {
+                    val shown = it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(waits.text, stringResource(R.string.outcome_label))
                     ChatBody(shown, outcomeType)
                 } }
                 // Un tasto per sessione linkata, nell'ordine in cui compare; la pressione lunga apre il link com'era.
                 stripped.buttons.forEach { b -> SessionButton(b, onOpen = { onOpenSession(b.session) }) }
                 // Le prove citate come schede compatte coi loro tasti (app-prova-scheda-in-chat-11-11).
-                ProvaCards(stripped.text)
+                ProvaCards(waits.text)
+                // Le richieste citate come schede compatte, al posto del loro link: titolo, stato e immagini delle opzioni.
+                SceltaCompatte(waits.ids)
                 // Variante C: «Prossimi» e i consigli in colonna; tocco = nel campo, pressione lunga = invio.
                 if (withSteps && parsed.steps.isNotEmpty()) Column(Modifier.padding(top = 2.dp)) {
                     Text(stringResource(R.string.next_steps), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
@@ -2107,7 +2111,7 @@ private data class ThumbPinch(val origin: androidx.compose.ui.geometry.Offset, v
 }
 
 /** Lo stato da cui il visore riparte dopo il pizzico: dove si vedeva l'immagine intera, in pixel dello schermo. */
-private data class ViewerStart(val image: it.pixelbox.cmwatch.rules.ZoomPan.Box)
+internal data class ViewerStart(val image: it.pixelbox.cmwatch.rules.ZoomPan.Box)
 
 /** La prima pagina di un PDF a tutta larghezza (PdfRenderer); un PDF che non si apre lascia solo la scheda. */
 @Composable
@@ -2191,6 +2195,28 @@ internal fun BitmapImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, on
 
 @Composable
 private fun ImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, start: ViewerStart?, onShown: () -> Unit, onClose: () -> Unit) {
+    // A tutto schermo sotto le barre e senza l'animazione d'apertura del dialog: l'immagine compare dove il pizzico l'ha lasciata.
+    androidx.compose.ui.window.Dialog(onDismissRequest = onClose, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        val dialogWindow = (androidx.compose.ui.platform.LocalView.current.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+        androidx.compose.runtime.SideEffect { dialogWindow?.setWindowAnimations(0); dialogWindow?.setDimAmount(0f) }
+        ZoomableImage(bmp, start, onShown) {
+            IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {
+                Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text)
+            }
+        }
+    }
+}
+
+/**
+ * L'immagine che si ingrandisce e si sposta col dito, a tutta la scatola: il visore di una sola immagine e le pagine del visore delle
+ * richieste (app-scheda-scelta-12-11). A 1x un dito solo non consuma niente, così la pagina scorre di lato; ingrandita, lo spostamento
+ * è suo. `onZoom`: ingrandita o intera; `overlay` sta sopra l'immagine.
+ */
+@Composable
+internal fun ZoomableImage(
+    bmp: androidx.compose.ui.graphics.ImageBitmap, start: ViewerStart?, onShown: () -> Unit, onZoom: (Boolean) -> Unit = {},
+    overlay: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {},
+) {
     var view by remember { mutableStateOf(it.pixelbox.cmwatch.rules.ZoomPan.View()) }
     var box by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     // Dal pizzico sull'anteprima: alla prima misura il visore si mette dove il pizzico ha lasciato l'immagine.
@@ -2213,69 +2239,64 @@ private fun ImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, start: Vi
             }
         }
     }
-    // A tutto schermo sotto le barre e senza l'animazione d'apertura del dialog: l'immagine compare dove il pizzico l'ha lasciata.
-    androidx.compose.ui.window.Dialog(onDismissRequest = onClose, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        val dialogWindow = (androidx.compose.ui.platform.LocalView.current.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
-        androidx.compose.runtime.SideEffect { dialogWindow?.setWindowAnimations(0); dialogWindow?.setDimAmount(0f) }
-        Box(
-            Modifier.fillMaxSize().background(Cm.bg).onSizeChanged { box = it }.onGloballyPositioned { c ->
-                if (!started && start != null && box.width > 0) {
-                    started = true
-                    val at = c.localToScreen(androidx.compose.ui.geometry.Offset.Zero)
-                    val (cw, ch) = fitted()
-                    view = it.pixelbox.cmwatch.rules.ZoomPan.handOff(start.image, at.x, at.y, cw, ch, box.width.toFloat(), box.height.toFloat())
-                    onShown()
-                }
+    val zoomed = view.scale > 1f
+    LaunchedEffect(zoomed) { onZoom(zoomed) }
+    Box(
+        Modifier.fillMaxSize().background(Cm.bg).onSizeChanged { box = it }.onGloballyPositioned { c ->
+            if (!started && start != null && box.width > 0) {
+                started = true
+                val at = c.localToScreen(androidx.compose.ui.geometry.Offset.Zero)
+                val (cw, ch) = fitted()
+                view = it.pixelbox.cmwatch.rules.ZoomPan.handOff(start.image, at.x, at.y, cw, ch, box.width.toFloat(), box.height.toFloat())
+                onShown()
             }
-                .pointerInput(bmp) {
-                    detectTapGestures(onDoubleTap = { p ->
-                        scope.launch { glide.stop() }
-                        val (cw, ch) = fitted()
-                        view = it.pixelbox.cmwatch.rules.ZoomPan.doubleTap(view, p.x, p.y, cw, ch, box.width.toFloat(), box.height.toFloat())
-                    })
-                }
-                .pointerInput(bmp) {
-                    awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false)
-                        scope.launch { glide.stop(); settling.stop() }
-                        val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
-                        do {
-                            val e = awaitPointerEvent()
-                            val zoom = e.calculateZoom()
-                            val pan = e.calculatePan()
-                            // A 1x un dito solo non sposta niente: lascia passare lo scorrimento e il tocco.
-                            if (zoom != 1f || (view.scale > 1f && pan != androidx.compose.ui.geometry.Offset.Zero)) {
-                                val c = e.calculateCentroid(useCurrent = false)
+        }
+            .pointerInput(bmp) {
+                detectTapGestures(onDoubleTap = { p ->
+                    scope.launch { glide.stop() }
+                    val (cw, ch) = fitted()
+                    view = it.pixelbox.cmwatch.rules.ZoomPan.doubleTap(view, p.x, p.y, cw, ch, box.width.toFloat(), box.height.toFloat())
+                })
+            }
+            .pointerInput(bmp) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    scope.launch { glide.stop(); settling.stop() }
+                    val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                    do {
+                        val e = awaitPointerEvent()
+                        val zoom = e.calculateZoom()
+                        val pan = e.calculatePan()
+                        // A 1x un dito solo non sposta niente: lascia passare lo scorrimento e il tocco.
+                        if (zoom != 1f || (view.scale > 1f && pan != androidx.compose.ui.geometry.Offset.Zero)) {
+                            val c = e.calculateCentroid(useCurrent = false)
+                            val (cw, ch) = fitted()
+                            view = it.pixelbox.cmwatch.rules.ZoomPan.step(view, zoom, pan.x, pan.y, c.x, c.y, cw, ch, box.width.toFloat(), box.height.toFloat(), it.pixelbox.cmwatch.rules.ZoomPan.maxScale(cw, box.width.toFloat()))
+                            e.changes.forEach { ch -> if (ch.positionChanged()) ch.consume() }
+                        }
+                        e.changes.firstOrNull()?.let { tracker.addPointerInputChange(it) }
+                    } while (e.changes.any { it.pressed })
+                    val (cw0, ch0) = fitted()
+                    if (it.pixelbox.cmwatch.rules.ZoomPan.settle(view, cw0, ch0, box.width.toFloat(), box.height.toFloat(), it.pixelbox.cmwatch.rules.ZoomPan.maxScale(cw0, box.width.toFloat())) != view) settleIfNeeded()
+                    else if (view.scale > 1f) {
+                        val v = tracker.calculateVelocity()
+                        val from = view
+                        scope.launch {
+                            glide.snapTo(androidx.compose.ui.geometry.Offset.Zero)
+                            glide.animateDecay(androidx.compose.ui.geometry.Offset(v.x, v.y), decay) {
                                 val (cw, ch) = fitted()
-                                view = it.pixelbox.cmwatch.rules.ZoomPan.step(view, zoom, pan.x, pan.y, c.x, c.y, cw, ch, box.width.toFloat(), box.height.toFloat(), it.pixelbox.cmwatch.rules.ZoomPan.maxScale(cw, box.width.toFloat()))
-                                e.changes.forEach { ch -> if (ch.positionChanged()) ch.consume() }
-                            }
-                            e.changes.firstOrNull()?.let { tracker.addPointerInputChange(it) }
-                        } while (e.changes.any { it.pressed })
-                        val (cw0, ch0) = fitted()
-                        if (it.pixelbox.cmwatch.rules.ZoomPan.settle(view, cw0, ch0, box.width.toFloat(), box.height.toFloat(), it.pixelbox.cmwatch.rules.ZoomPan.maxScale(cw0, box.width.toFloat())) != view) settleIfNeeded()
-                        else if (view.scale > 1f) {
-                            val v = tracker.calculateVelocity()
-                            val from = view
-                            scope.launch {
-                                glide.snapTo(androidx.compose.ui.geometry.Offset.Zero)
-                                glide.animateDecay(androidx.compose.ui.geometry.Offset(v.x, v.y), decay) {
-                                    val (cw, ch) = fitted()
-                                    view = it.pixelbox.cmwatch.rules.ZoomPan.clamp(from.copy(x = from.x + value.x, y = from.y + value.y), cw, ch, box.width.toFloat(), box.height.toFloat())
-                                }
+                                view = it.pixelbox.cmwatch.rules.ZoomPan.clamp(from.copy(x = from.x + value.x, y = from.y + value.y), cw, ch, box.width.toFloat(), box.height.toFloat())
                             }
                         }
                     }
-                },
-        ) {
-            androidx.compose.foundation.Image(
-                bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = view.scale; scaleY = view.scale; translationX = view.x; translationY = view.y },
-            )
-            IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {
-                Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text)
-            }
-        }
+                }
+            },
+    ) {
+        androidx.compose.foundation.Image(
+            bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = view.scale; scaleY = view.scale; translationX = view.x; translationY = view.y },
+        )
+        overlay()
     }
 }
 

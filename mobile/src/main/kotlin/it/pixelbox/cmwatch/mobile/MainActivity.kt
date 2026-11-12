@@ -135,6 +135,29 @@ class MainActivity : ComponentActivity() {
         ok = { n -> provaOkFn(n).also { provaRead(n) } },
         ko = { p, why -> provaKoFn(p, why).also { provaRead(p.id) } },
     )
+    /**
+     * Le richieste citate nelle chat e fisse in home come schede compatte (app-scheda-scelta-12-11, contratto 1.137): una lettura `attesa`
+     * con `archive` per id, poi la cache; un rifiuto (una richiesta che il PC non conosce più, o un relay di prima) lascia il link. Si
+     * rileggono dopo una risposta dalla scheda e quando cambiano le richieste aperte nello stato. L'apertura la aggancia Main.
+     */
+    private val waitCache = androidx.compose.runtime.mutableStateMapOf<String, it.pixelbox.cmwatch.mobile.ui.WaitCardRead?>()
+    private var waitOpenFn: (String) -> Unit = {}
+    private fun waitRead(id: String) = app.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+        val r = it.pixelbox.cmwatch.rules.PatientRead.result(
+            send = { app.repo.command(CmdOp.ATTESA, null, id, archive = true) }, results = app.repo.resultsById, forget = { x -> app.repo.forget(x) }, giveUpOnRefusal = true,
+        )
+        if (r != null) waitCache[id] = if (!r.ok) it.pixelbox.cmwatch.mobile.ui.WaitCardRead.Gone
+            else runCatching { it.pixelbox.cmwatch.contract.ContractJson.decodeWait(r.text) }.getOrNull()?.let { w -> it.pixelbox.cmwatch.mobile.ui.WaitCardRead.Got(w) } ?: it.pixelbox.cmwatch.mobile.ui.WaitCardRead.Gone
+    }
+    /** Rilegge le schede in cache che `match` sceglie: una risposta partita, le richieste aperte cambiate nello stato. */
+    private fun waitRefresh(match: (it.pixelbox.cmwatch.contract.WaitItem) -> Boolean) {
+        waitCache.entries.toList().forEach { (id, v) -> if ((v as? it.pixelbox.cmwatch.mobile.ui.WaitCardRead.Got)?.item?.let(match) == true) waitRead(id) }
+    }
+    private val waitCards = it.pixelbox.cmwatch.mobile.ui.WaitCardsHost(
+        read = { id -> waitCache[id] },
+        ask = { id -> if (id !in waitCache) { waitCache[id] = null; waitRead(id) } },
+        open = { id -> waitOpenFn(id) },
+    )
     private val themePrefs by lazy { getSharedPreferences("theme", MODE_PRIVATE) }
     private var themeChoice by mutableStateOf(it.pixelbox.cmwatch.rules.AppTheme.Choice.AUTO)
     private fun applyTheme(c: it.pixelbox.cmwatch.rules.AppTheme.Choice) {
@@ -202,7 +225,7 @@ class MainActivity : ComponentActivity() {
                     s.paired || s.demoMode -> key(launchId) {
                         Box(androidx.compose.ui.Modifier.fillMaxSize()) {
                             androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalReadingOverlay provides readingOverlay) {
-                                androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalProvaCards provides provaCards) {
+                                androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalProvaCards provides provaCards, it.pixelbox.cmwatch.mobile.ui.LocalWaitCards provides waitCards) {
                                     Main(s.demoMode, s.ttsMinChars, s.host, s.pairingJson, ::scan)
                                 }
                             }
@@ -351,7 +374,8 @@ class MainActivity : ComponentActivity() {
             val w = waitOpen ?: return@LaunchedEffect
             waitItem = null; waitGone = false; waitFailed = false
             suspend fun ask(op: CmdOp, arg: String?): it.pixelbox.cmwatch.contract.CmdResult? {
-                val id = runCatching { app.repo.command(op, null, arg) }.getOrNull() ?: return null
+                // Contratto 1.137: `attesa` con `archive` dà la scheda anche dopo la risposta, con com'è finita.
+                val id = runCatching { app.repo.command(op, null, arg, archive = if (op == CmdOp.ATTESA) true else null) }.getOrNull() ?: return null
                 val r = kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
                 app.repo.forget(id)
                 return r
@@ -364,6 +388,8 @@ class MainActivity : ComponentActivity() {
             }
             ask(CmdOp.ATTESE, null)?.takeIf { r -> r.ok }?.let { r -> runCatching { ContractJson.decodeWaits(r.text) }.onSuccess { p -> waitOthers = p.items } }
         }
+        val openWids = (snap.state?.approvals.orEmpty().mapNotNull { a -> a.wid } + snap.state?.attention.orEmpty().mapNotNull { a -> a.wid }).sorted().joinToString(",")
+        LaunchedEffect(openWids) { waitRefresh { w -> (w.state ?: "open") == "open" } }
         val monitorsSum = snap.state?.monitors
         val monitorsOp = snap.state?.ops?.contains("monitors") == true
         // La lettura delle schede riprova finché arrivano e usa anche una risposta arrivata tardi (PatientRead, app-monitoraggi-attesa-10-11).
@@ -1336,6 +1362,7 @@ class MainActivity : ComponentActivity() {
         }
         androidx.compose.runtime.SideEffect {
             provaOpenFn = { n -> provaOpen = n }
+            waitOpenFn = { w -> waitOpen = w }
             provaOkFn = { n -> proveOkRun(n.toString()) }
             provaKoFn = { p, why -> decideRun(CmdOp.PROVA, p.id.toString(), "ko", null, null, why) }
         }
@@ -1401,7 +1428,7 @@ class MainActivity : ComponentActivity() {
         // Il file in memoria o sul disco se c'è, se no chiesto al PC; poi `ready` con il file locale e il suo tipo. Il disco
         // conta dal 12/10: chiusa e riaperta la conversazione, un video di 12 MB si riscaricava ogni volta.
         // `quiet`: l'anteprima che nasce da sola (10/10 09:54) non avvisa se il file non arriva.
-        val withFile: (String, String, it.pixelbox.cmwatch.contract.TranscriptFile, Boolean, (java.io.File, String?) -> Unit) -> Unit = { name, key, f, quiet, ready ->
+        val withFile: (String?, String, it.pixelbox.cmwatch.contract.TranscriptFile, Boolean, (java.io.File, String?) -> Unit) -> Unit = { name, key, f, quiet, ready ->
             val known = fileLocal[key]
             if (known != null) ready(java.io.File(known), f.mime)
             else if (key !in fileLoading) {
@@ -1448,6 +1475,23 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // I file delle richieste (contratto 1.137, app-scheda-scelta-12-11): le stesse vie dei file della chat, la cache sul disco e la fila
+        // della sessione; uno dichiarato nella richiesta non ha sessione. Un'anteprima che il PC non dà resta segnata: la cornice lo dice e
+        // ha il tasto per richiederla.
+        val waitMissed = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+        val waitFileAsk: (it.pixelbox.cmwatch.contract.WaitFile) -> Unit = { f ->
+            val key = it.pixelbox.cmwatch.rules.Scelta.fileKey(f)
+            waitMissed.remove(key)
+            withFile(f.session, key, it.pixelbox.cmwatch.rules.Scelta.transcriptFile(f), true) { _, _ -> }
+            scope.launch {
+                androidx.compose.runtime.snapshotFlow { key !in fileLoading }.first { gone -> gone }
+                if (fileLocal[key] == null && key !in waitMissed) waitMissed.add(key)
+            }
+        }
+        val waitFileOpen: (it.pixelbox.cmwatch.contract.WaitFile) -> Unit = { f ->
+            withFile(f.session, it.pixelbox.cmwatch.rules.Scelta.fileKey(f), it.pixelbox.cmwatch.rules.Scelta.transcriptFile(f), false) { file, mime -> viewFile(file, mime) }
+        }
+        @Composable fun waitFiles() = it.pixelbox.cmwatch.mobile.ui.WaitFilesHost(fileLocal.toMap(), fileLoading.toSet(), waitMissed.toSet(), waitFileAsk, waitFileOpen)
         // Il risultato con quello che sa la pagina (didascalia, file, note): lo stato porta solo l'essenziale.
         val fullResult = { r: it.pixelbox.cmwatch.contract.ResultItem -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { x -> x.id == r.id } ?: r }
         // Le anteprime dei documenti (contratto 1.136, app-anteprime-verifica-11-11): una lettura per versione, anche se più caselle la
@@ -1578,14 +1622,34 @@ class MainActivity : ComponentActivity() {
             val item = waitItem?.takeIf { x -> x.id == wid }
             // Dopo una risposta la scheda si chiude e torna dove era Franz (app-ti-aspetta-lista-chiusa-08-11).
             val answer = it.pixelbox.cmwatch.mobile.ui.WaitAnswer { if (waitOpen == wid) waitOpen = null }
-            val send = answer.two<it.pixelbox.cmwatch.contract.WaitAction, String?> { a, written -> scope.launch { runCatching { app.repo.commandOf(a, written) } } }
-            run {
+            // Dopo l'esito del PC le schede compatte di questa richiesta (chat, home) si rileggono: «Scelto B» al posto di «Da scegliere».
+            val send = answer.two<it.pixelbox.cmwatch.contract.WaitAction, String?> { a, written ->
+                scope.launch {
+                    val sentId = runCatching { app.repo.commandOf(a, written) }.getOrNull()
+                    if (sentId != null && item != null) {
+                        kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(sentId) } }
+                        waitRefresh { w -> w.id == item.id || (item.cardId != null && w.cardId == item.cardId) }
+                    }
+                }
+            }
+            val choice = item != null && item.actions != null && it.pixelbox.cmwatch.rules.Scelta.isChoice(item)
+            val outcome = item?.let { x -> it.pixelbox.cmwatch.rules.Scelta.outcomeOf(x) }
+            val doneTitle = when (outcome?.state) {
+                null, it.pixelbox.cmwatch.rules.Scelta.State.OPEN -> null
+                it.pixelbox.cmwatch.rules.Scelta.State.CHOSEN -> getString(R.string.scelta_done_chosen)
+                it.pixelbox.cmwatch.rules.Scelta.State.APPROVED -> getString(R.string.scelta_approved)
+                it.pixelbox.cmwatch.rules.Scelta.State.REDO -> getString(R.string.scelta_redo)
+                it.pixelbox.cmwatch.rules.Scelta.State.CLOSED -> getString(R.string.scelta_closed)
+            }
+            val doneSub = if (doneTitle == null) null else outcome?.at?.let { at -> listOfNotNull(getString(R.string.scelta_answered, it.pixelbox.cmwatch.mobile.ui.sceltaWhen(at)), outcome.by).joinToString(" · ") } ?: ""
+            androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles()) { run {
                 if (item == null) it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(
                     getString(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
                     wide = wideNow,
                 ) { waitOpen = null }
                 else it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(
                     it.pixelbox.cmwatch.rules.TiAspetta.pageOf(item, waitOthers), now, wide = wideNow, onBack = { waitOpen = null },
+                    stack = choice, title = doneTitle, sub = doneSub,
                     // «Apri nella trascrizione»: la sessione e la voce, come un risultato della ricerca; una sessione chiusa col suo id.
                     onJump = { src ->
                         src.entry?.let { e ->
@@ -1606,6 +1670,8 @@ class MainActivity : ComponentActivity() {
                     }?.takeIf { p -> p.groups.isNotEmpty() }
                     // Contratto 1.131: i tasti del relay per ogni carta; senza `actions` (un relay di prima) la carta che l'app ha già.
                     when {
+                        // Contratto 1.137: una scelta ha la sua scheda, con le immagini delle opzioni, «Nessuna, rifare» e i giri.
+                        choice -> it.pixelbox.cmwatch.mobile.ui.SceltaAperta(item, it.pixelbox.cmwatch.mobile.ui.waitRows(item)) { i, written -> item.actions?.getOrNull(i)?.let { a -> send(a, written) } }
                         item.actions != null -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, send)
                         groups.isNotEmpty() -> it.pixelbox.cmwatch.mobile.ui.SessionDecisions(groups, answer.two(decApprove), answer.one(decDone), answer.one(decNotNow), answer.two(decDrop), decAsk)
                         prove != null -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove, { tag -> app.updater.buildOf(tag) }, answer.taken<String> { ids -> proveOkRun(ids) }, answer.taken(proveKo), goScreen)
@@ -1613,7 +1679,7 @@ class MainActivity : ComponentActivity() {
                         else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, send)
                     }
                 }
-            }
+            } }
         }
         if (!wide) waitOpen?.let { wid ->
             it.pixelbox.cmwatch.mobile.ui.PageIn { waitPage(wid, false) }
@@ -1894,7 +1960,7 @@ class MainActivity : ComponentActivity() {
                         }
                         // Un file aperto in chat è visto anche in Risultati (app-risultati-visti-03-11, Franz: «rimangono presenti anche se li vedo altrove»).
                         val seenPath: (String) -> Unit = { p -> it.pixelbox.cmwatch.rules.Guardare.seenByPath(state?.results?.items.orEmpty(), p).forEach { id -> guardare.seen(it.pixelbox.cmwatch.contract.ResultItem(id)) } }
-                        CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalSeenPath provides seenPath, LocalFileOpener provides FileOpener({ k, f -> seenPath(f.path); openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered, actAll = { all, a -> fileActAll(session.name, all, a) }), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
+                        CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalSeenPath provides seenPath, it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles(), LocalFileOpener provides FileOpener({ k, f -> seenPath(f.path); openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered, actAll = { all, a -> fileActAll(session.name, all, a) }), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
                         SessionSheet(session, now, snap.pending, ttsMinChars, SheetActions(
                             answer = { n -> scope.launch { app.repo.answer(session.name, n) } },
                             allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },
@@ -2643,6 +2709,7 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.LocalCardsOnScreen provides cardsOnScreen,
             it.pixelbox.cmwatch.mobile.ui.LocalAgendaNight provides agendaNight,
             it.pixelbox.cmwatch.mobile.ui.LocalMonitorRefresh provides monitorRefreshUi,
+            it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles(),
         ) {
         it.pixelbox.cmwatch.mobile.ui.PageIn(fromStart = true, animate = cameBack) {
         // Prima del primo stato lo scheletro con la forma che arriva, mai la pagina del telefono; arrivato lo stato, la pagina

@@ -1922,4 +1922,48 @@ It starts at your last message to the master.</string>
         <item quantity="one">%d monitor to look at</item>
         <item quantity="other">%d monitors to look at</item>
     </plurals>
+    <!-- The choice card (app-scheda-scelta-12-11, contract 1.137). -->
+    <string name="scelta_pick">Choose %1$s</string>
+    <string name="scelta_pick_desc">Choose %1$s, %2$s</string>
+    <string name="scelta_zoom">Enlarge %1$s</string>
+    <string name="scelta_open_choose">To choose</string>
+    <string name="scelta_open_decide">To decide</string>
+    <string name="scelta_open_verify">To check</string>
+    <string name="scelta_open_answer">Waiting for your reply</string>
+    <string name="scelta_chosen">Chose %1$s, %2$s</string>
+    <string name="scelta_chosen_letter">Chose %1$s</string>
+    <string name="scelta_chosen_words">Chose: %1$s</string>
+    <string name="scelta_approved">Approved</string>
+    <string name="scelta_redo">To redo</string>
+    <string name="scelta_closed">Closed without ok</string>
+    <string name="scelta_picked">Chosen</string>
+    <string name="scelta_production">touches production</string>
+    <string name="scelta_round">Round %1$d</string>
+    <string name="scelta_rounds">Earlier rounds</string>
+    <string name="scelta_round_redo">Discarded</string>
+    <string name="scelta_round_closed">Closed without ok</string>
+    <string name="scelta_round_replaced">Asked again with no answer</string>
+    <string name="scelta_today">today at %1$s</string>
+    <string name="scelta_on">on %1$s at %2$s</string>
+    <string name="scelta_answered">answered %1$s</string>
+    <string name="scelta_reason_label">What is wrong with the proposals?</string>
+    <string name="scelta_reason_hint">The session redoes them starting from what you write.</string>
+    <string name="scelta_done_chosen">Choice made</string>
+    <string name="scelta_card_loading">The card is on its way from the PC</string>
+    <string name="scelta_open_card">Open the card</string>
+    <string name="attesa_preview_coming">Preview on its way from the computer</string>
+    <string name="attesa_preview_coming_for">Preview on its way from the computer · %1$d s</string>
+    <string name="attesa_preview_missed">The preview did not arrive from the computer</string>
+    <string name="attesa_preview_retry">Ask again</string>
+    <string name="viewer_at">%1$d of %2$d</string>
+    <string name="viewer_prev">Previous image</string>
+    <string name="viewer_next">Next image</string>
+    <plurals name="scelta_left">
+        <item quantity="one">%d character left</item>
+        <item quantity="other">%d characters left</item>
+    </plurals>
+    <plurals name="scelta_more_images">
+        <item quantity="one">One more image</item>
+        <item quantity="other">%d more images</item>
+    </plurals>
 </resources>

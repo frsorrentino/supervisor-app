@@ -47,7 +47,7 @@ describe('scelta: i file', () => {
 describe('scelta: la scheda della fixture', () => {
   it('a choice with images is a choice card; a question in chat with bare options is not', () => {
     const all = decodeWaits(result(c => c.op === 'attese').text).items
-    expect(all.map(isChoice)).toEqual([true, false])
+    expect(all.map(isChoice)).toEqual([true, false, false])
   })
   it('each option has its letter, its line, its files and the action that picks it', () => {
     const c = choiceOf(open())
@@ -99,6 +99,9 @@ describe('scelta: la scheda compatta e il visore', () => {
     const files: WaitFile[] = [{ path: '/x/a.png', name: 'a.png', mime: 'image/png', kind: 'image' }, { path: '/x/b.pdf', name: 'b.pdf', mime: 'application/pdf', kind: 'document' }]
     expect(thumbsOf(item({ kind: 'prova', options: null, files })).map(x => [x.letter, x.file.name])).toEqual([[null, 'a.png']])
     expect(thumbsOf(item({ kind: 'prova', options: null, files: null }))).toEqual([])
+    // La verifica della fixture (0.8.155): le sue immagini, senza lettere; il pdf resta fuori dalle miniature.
+    const prova = decodeWaits(result(c => c.op === 'attese').text).items.find(w => w.kind === 'prova')!
+    expect(thumbsOf(prova).map(x => [x.letter, x.name, x.file.name])).toEqual([[null, '', 'checkout-before.png']])
   })
   it('the frame takes the shape of the first image that has arrived, between 9:16 and 16:9', () => {
     expect(frameRatio([undefined, undefined])).toBeCloseTo(4 / 3)
