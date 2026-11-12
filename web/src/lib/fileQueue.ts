@@ -2,19 +2,23 @@
 // stessa sessione in coda, tiene solo l'ultima e chiude le altre come «superseded» (cm-relay.py, `same()` = op e sessione):
 // venti anteprime chieste insieme diventavano una. Qui i file di una sessione si chiedono uno alla volta. Un tocco (apri,
 // salva, condividi) passa davanti alle anteprime; fra le anteprime va prima l'ultima chiesta, che è la più in basso nella
-// chat, cioè quella a schermo.
+// chat, cioè quella a schermo. Un'anteprima che il PC non dà entro il suo limite libera la fila (Franz, 12/11: con la fila
+// nessuna arrivava): la sua risposta tardiva si ignora e la scheda mostra «Mostra anteprima».
 
-type Job = { run: () => Promise<unknown>; urgent: boolean; resolve: (v: unknown) => void; reject: (e: unknown) => void }
+type Job = { run: () => Promise<unknown>; urgent: boolean; limitMs: number; resolve: (v: unknown) => void; reject: (e: unknown) => void }
+
+/** L'errore di un lavoro che ha passato il suo limite. */
+export class TooSlow extends Error { constructor() { super('file queue: too slow') } }
 
 export class FileQueue {
   private lanes = new Map<string, { busy: boolean; jobs: Job[] }>()
 
-  /** `job` parte quando la fila della sessione è libera; `urgent` = un tocco della persona. */
-  run<T>(session: string, job: () => Promise<T>, urgent = false): Promise<T> {
+  /** `job` parte quando la fila della sessione è libera; `urgent` = un tocco della persona; `limitMs` > 0 = dopo tanto la fila va avanti. */
+  run<T>(session: string, job: () => Promise<T>, urgent = false, limitMs = 0): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const lane = this.lanes.get(session) ?? { busy: false, jobs: [] }
       this.lanes.set(session, lane)
-      lane.jobs.push({ run: job, urgent, resolve: resolve as (v: unknown) => void, reject })
+      lane.jobs.push({ run: job, urgent, limitMs, resolve: resolve as (v: unknown) => void, reject })
       this.next(session)
     })
   }
@@ -32,8 +36,11 @@ export class FileQueue {
     const u = lane.jobs.findIndex(j => j.urgent)
     const [j] = lane.jobs.splice(u >= 0 ? u : lane.jobs.length - 1, 1)
     lane.busy = true
+    let freed = false
+    const free = () => { if (freed) return; freed = true; clearTimeout(timer); lane.busy = false; this.next(session) }
+    const timer = j.limitMs > 0 ? setTimeout(() => { j.reject(new TooSlow()); free() }, j.limitMs) : undefined
     let out: Promise<unknown>
     try { out = j.run() } catch (e) { out = Promise.reject(e) }
-    out.then(j.resolve, j.reject).finally(() => { lane.busy = false; this.next(session) })
+    out.then(j.resolve, j.reject).finally(free)
   }
 }

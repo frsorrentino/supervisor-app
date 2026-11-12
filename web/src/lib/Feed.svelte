@@ -27,7 +27,7 @@
   let zoomed = $state<{ src: string; name: string } | null>(null)
   import { onDestroy } from 'svelte'
   import { firstNew, latest, rank, readSeen, saveSeen } from './chatNews'
-  import { failed, media, missed, pages, texts } from './mediaCache.svelte'
+  import { coming, failed, media, missed, pages, texts } from './mediaCache.svelte'
   // Le pagine mostrate come sorgente col tasto «Codice», per chiave.
   let code = $state<Record<string, boolean>>({})
   import Md from './Md.svelte'
@@ -210,6 +210,7 @@
           <!-- Oltre i limiti, col risparmio dati o se non è arrivata da sola, l'anteprima aspetta il tocco. -->
           <button class="fshow" onclick={() => onFile(f.path, 'preview', key)}>{t.showPreview}</button>
         {/if}
+        {#if coming[key] && !url && !texts[key]}<span class="fcoming">{t.previewComing}</span>{/if}
         {#if url && isVideo(f.mime)}<!-- svelte-ignore a11y_media_has_caption --><video class="fvideo" src={url} controls preload="metadata" playsinline></video>{/if}
         <div class="acts">{#each fileActs.filter(([a]) => a !== 'copy' || canCopy(f.mime ?? '')) as [a, label, icon]}<button class="sm" aria-label={label} title={label} onclick={() => onFile(f.path, a, key)}><Icon name={icon} /></button>{/each}</div>
       </div>
@@ -408,6 +409,7 @@
   /* Un testo più lungo delle righe mostrate sfuma in fondo, senza puntini. */
   .ftext.cut pre { mask-image: linear-gradient(#000 70%, transparent); -webkit-mask-image: linear-gradient(#000 70%, transparent); }
   .fpage { display: block; width: 100%; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+  .fcoming { align-self: flex-start; padding: 2px 2px 4px; font-size: 13.5px; color: var(--text2); }
   .fshow { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--icon); font-size: 14px; font-weight: 500; }
   .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; }
   /* Con l'anteprima la scheda prende tutta la larghezza della chat, come nell'app (Franz, 12/10 12:27: «anteprime con width

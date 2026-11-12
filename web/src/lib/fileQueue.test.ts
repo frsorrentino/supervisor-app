@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FileQueue } from './fileQueue'
+import { FileQueue, TooSlow } from './fileQueue'
 
 // app-web-anteprime-in-fila-12-11: venti anteprime chieste insieme diventavano una, perché il relay tiene solo l'ultima
 // lettura uguale della stessa sessione. In fila arrivano tutte.
@@ -36,6 +36,27 @@ describe('FileQueue', () => {
     first.res('img0')
     await Promise.all([p0, ...ps])
     expect(order).toEqual(['img0', 'apri', 'img3', 'img2', 'img1'])
+  })
+
+  it('un\'anteprima che il PC non dà entro il limite libera la fila; la sua risposta tardiva non conta', async () => {
+    const q = new FileQueue()
+    const late = deferred()
+    const slow = q.run('s', () => late.p, false, 20)
+    const next = q.run('s', async () => 'dopo')
+    await expect(slow).rejects.toBeInstanceOf(TooSlow)
+    expect(await next).toBe('dopo')
+    late.res('tardi')
+    await tick()
+    expect(q.size('s')).toBe(0)
+  })
+
+  it('un tocco senza limite aspetta il PC quanto serve', async () => {
+    const q = new FileQueue()
+    const d = deferred()
+    const tap = q.run('s', () => d.p, true)
+    await new Promise(r => setTimeout(r, 30))
+    d.res('file')
+    expect(await tap).toBe('file')
   })
 
   it('un errore non ferma la fila', async () => {

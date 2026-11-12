@@ -8,7 +8,7 @@
   import { ghostPreview, MOVE_MS, PLACES } from './lib/landingMorph'
   import { DRAG_PX, isDrag, masterTaps, springFrames, step, velocity } from './lib/gesture'
   import { morphBlob } from './lib/morphBlob'
-  import { failed, media, missed, pages as pageSources, texts } from './lib/mediaCache.svelte'
+  import { coming, failed, media, missed, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { FileQueue } from './lib/fileQueue'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -1772,7 +1772,9 @@
   const fileStore = new FileStore()
   $effect(() => { fileStore.keep([MASTER, ...(open ? [open] : [])]) })
   // app-web-anteprime-in-fila-12-11: i file di una sessione uno alla volta (`FileQueue`), se no il relay tiene solo l'ultimo.
+  // Un'anteprima tiene la fila al massimo PREVIEW_LIMIT_MS; un tocco aspetta il PC quanto serve (180 s del trasporto).
   const fileQueue = new FileQueue()
+  const PREVIEW_LIMIT_MS = 60_000
   const loadFile = (name: string, path: string, quiet: boolean) => (): Promise<Fetched | null> => fileQueue.run(name, async () => {
     if (!tr) return null
     let c = newCmd('file', name, path), r: CmdResult | null = null
@@ -1789,7 +1791,7 @@
     const blob = new Blob([f.data as Uint8Array<ArrayBuffer>], { type: f.mime })
     // Il testo letto subito: «Copia» lo scrive negli appunti senza await (Safari).
     return { blob, name: f.name ?? path.split('/').pop() ?? 'file', mime: f.mime, text: files.copyKind(f.mime) === 'text' ? await blob.text() : undefined }
-  }, !quiet)
+  }, !quiet, quiet ? PREVIEW_LIMIT_MS : 0)
   const getFile = (name: string, path: string, key: string, quiet = false) => fileStore.get(key, loadFile(name, path, quiet))
   // Un file aperto in chat è visto anche in Risultati (app-risultati-visti-03-11, Franz: «rimangono presenti anche se li vedo altrove»).
   // Il menu unico della sessione (app-menu-sessione-03-11): una voce di Tocca a te apre la sua pagina; Guarda solo i lavori di quella sessione.
@@ -1843,7 +1845,8 @@
     // con la prima pagina, i testi con le prime righe.
     if (media[key] || texts[key] || failed[key]) return
     delete missed[key]
-    const f = await getFile(name, path, key, true)
+    coming[key] = true
+    const f = await getFile(name, path, key, true).finally(() => { delete coming[key] })
     // Non arrivata: resta «Mostra anteprima» per riprovare (app-web-anteprime-in-fila-12-11).
     if (!f) { if (!media[key] && !texts[key]) missed[key] = true; return }
     if (media[key] || texts[key]) return
