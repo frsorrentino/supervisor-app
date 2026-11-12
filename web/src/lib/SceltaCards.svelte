@@ -3,7 +3,7 @@
   import type { WaitItem } from './contract'
   import AttesaImmagine from './AttesaImmagine.svelte'
   import { imageRatios } from './mediaCache.svelte'
-  import { frameRatio, outcomeOf, thumbsOf, waitFileKey, type WaitCardsHost } from './scelta'
+  import { outcomeOf, thumbsOf, waitFileKey, type WaitCardsHost } from './scelta'
   import { t } from './t'
   // Le richieste citate nelle chat come schede compatte (app-scheda-scelta-12-11, descrizione approvata da Franz il 12/11 alle 15:10:
   // «in chat, al posto del link, una scheda compatta: titolo, una riga su cosa decidere, miniature delle opzioni, stato; un tocco la
@@ -24,6 +24,8 @@
     if (o.state === 'closed') return ['off', t.sceltaClosed]
     return ['wait', t.sceltaOpen[kindOf(w.label)]]
   }
+  // La forma di una miniatura: una tavola larga resta intera, di una schermata alta si vede la parte in cima.
+  const stripRatio = (r: number | undefined) => Math.min(16 / 9, Math.max(1.1, r && Number.isFinite(r) ? r : 1.1))
   const head = (w: WaitItem) => w.title || w.text
   const what = (w: WaitItem) => [w.text, w.description].find(x => !!x && x !== head(w)) ?? null
 </script>
@@ -42,7 +44,8 @@
         <div class="top"><b class="one">{head(w)}</b><span class="st {tone}">{#if tone === 'good'}<svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M4.5 10.5 8.5 14.5 15.5 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>{/if}{state}</span></div>
         {#if what(w)}<span class="m one">{what(w)}</span>{/if}
         {#if thumbs.length}
-          <div class="th">{#each thumbs as x (waitFileKey(x.file))}<div class="tf" style:--ar={frameRatio([imageRatios[waitFileKey(x.file)]])}><AttesaImmagine small file={x.file} letter={x.letter} label={[x.letter, x.file.name].filter(Boolean).join(', ')} onAsk={host.file} /></div>{/each}</div>
+          {@const o = outcomeOf(w)}
+          <div class="th" style:--n={thumbs.length}>{#each thumbs as x (waitFileKey(x.file))}<div class="tf" class:dim={o.state === 'chosen' && !!o.letter && x.letter !== o.letter} style:--ar={stripRatio(imageRatios[waitFileKey(x.file)])}><AttesaImmagine small strip file={x.file} letter={x.letter} name={x.name} picked={o.state === 'chosen' && !!o.letter && x.letter === o.letter} label={[x.letter, x.name || x.file.name].filter(Boolean).join(', ')} onAsk={host.file} /></div>{/each}</div>
         {/if}
       {/if}
     </div>
@@ -63,9 +66,10 @@
   .m { font-size: 14.5px; line-height: 20px; color: var(--tx2); }
   /* Una riga sola, tagliata senza «…» (regole di forma, Franz 12/09): il testo intero sta nella scheda aperta. */
   .one { white-space: nowrap; overflow: hidden; text-overflow: clip; }
-  /* Le miniature: tutte alte uguali, larghe quanto vuole la loro immagine. */
-  .th { display: flex; gap: 6px; margin-top: 4px; overflow: hidden; }
-  .tf { flex: none; width: calc(60px * var(--ar, 1.3333)); }
+  /* Le miniature si dividono la larghezza della scheda (scelta A di Franz, 12/11 17:46). */
+  .th { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 6px; margin-top: 6px; align-items: start; }
+  .tf { min-width: 0; }
+  .tf.dim { opacity: .5; }
   .lnk { display: inline-block; margin-top: 8px; color: var(--tx); text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; }
   @media (hover: hover) and (pointer: fine) { .wc:hover { border-color: var(--tx3); } .wc.flat:hover .top b { text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; } }
   @media (prefers-reduced-motion: reduce) { .wc { transition: none; } }

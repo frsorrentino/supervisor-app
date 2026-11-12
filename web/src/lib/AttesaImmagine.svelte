@@ -9,8 +9,10 @@
   // la ingrandisce. Si chiede al PC appena la cornice è in pagina, con la fila e la cache dei file della chat (mediaCache): finché
   // non arriva la cornice dice che è in arrivo e da quanto; non arrivata, lo dice e ha il tasto per richiederla.
   // `small`: la miniatura della scheda compatta e dei giri precedenti, senza parole, con la stessa fascia più bassa.
-  let { file, letter = null, label, small = false, picked = false, onAsk, onOpen = null }: {
-    file: WaitFile; letter?: string | null; label: string; small?: boolean; picked?: boolean
+  // `strip` (scelta A di Franz, 12/11 17:50): nella scheda chiusa l'immagine tiene tutta la sua colonna, col nome dell'opzione nella
+  // fascia; di una schermata alta si vede la parte in cima.
+  let { file, letter = null, name = '', label, small = false, strip = false, picked = false, onAsk, onOpen = null }: {
+    file: WaitFile; letter?: string | null; name?: string; label: string; small?: boolean; strip?: boolean; picked?: boolean
     onAsk: (f: WaitFile) => void; onOpen?: (() => void) | null
   } = $props()
   const key = $derived(waitFileKey(file))
@@ -30,8 +32,8 @@
   const waited = $derived(coming[key] ? Math.max(0, Math.floor((nowMs - coming[key]) / 1000)) : 0)
 </script>
 
-<div class="fr" class:small class:picked data-testid="attesa-immagine">
-  {#if letter}<span class="cap" aria-hidden="true">{letter}</span>{/if}
+<div class="fr" class:small class:strip class:picked data-testid="attesa-immagine">
+  {#if letter}<span class="cap" aria-hidden="true">{letter}{#if name}<i>{name}</i>{/if}</span>{/if}
   <div class="area">
     {#if url}
       {#if onOpen}
@@ -62,6 +64,10 @@
   .fr.picked { box-shadow: inset 0 0 0 2px var(--good); }
   .cap { flex: none; height: 30px; padding: 0 10px; display: flex; align-items: center; font: 700 17px/1 var(--display); color: var(--tx2); }
   .small .cap { height: 18px; padding: 0 6px; font-size: 12px; }
+  .cap { gap: 6px; white-space: nowrap; overflow: hidden; }
+  .cap i { font: 600 13.5px/1 var(--display); font-style: normal; color: var(--tx); }
+  .strip .cap { height: 26px; padding: 0 8px; font-size: 14px; }
+  .strip .pic img { object-fit: cover; object-position: top center; }
   .picked .cap { color: var(--good); }
   /* La forma è quella delle immagini della scheda (`--ar`), ma mai più alta di due quinti della finestra: su una colonna larga
      una schermata di telefono resta intera a schermo, coi tasti delle opzioni sotto senza scorrere. */

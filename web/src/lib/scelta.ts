@@ -109,10 +109,10 @@ export const REDO_MAX = 300
 export const redoReady = (text: string): boolean => { const n = text.trim().length; return n > 0 && n <= REDO_MAX }
 
 /** Le miniature della scheda compatta: la prima immagine di ogni opzione con la sua lettera; senza opzioni, le immagini della scheda. */
-export type Thumb = { letter: string | null; file: WaitFile }
+export type Thumb = { letter: string | null; name: string; file: WaitFile }
 export function thumbsOf(w: WaitItem, max = 4): Thumb[] {
-  if (isChoice(w)) return optsOf(w.options).filter(o => o.images.length).map(o => ({ letter: o.letter, file: o.images[0] })).slice(0, max)
-  return splitFiles(w.files).images.slice(0, max).map(file => ({ letter: null, file }))
+  if (isChoice(w)) return optsOf(w.options).filter(o => o.images.length).map(o => ({ letter: o.letter, name: o.name, file: o.images[0] })).slice(0, max)
+  return splitFiles(w.files).images.slice(0, max).map(file => ({ letter: null, name: '', file }))
 }
 
 /**

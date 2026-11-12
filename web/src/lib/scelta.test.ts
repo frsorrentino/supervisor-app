@@ -93,7 +93,7 @@ describe('scelta: la scheda della fixture', () => {
 
 describe('scelta: la scheda compatta e il visore', () => {
   it('thumbnails: the first image of each option with its letter', () => {
-    expect(thumbsOf(open()).map(x => [x.letter, x.file.name])).toEqual([['A', 'home-a.png'], ['B', 'home-b.png']])
+    expect(thumbsOf(open()).map(x => [x.letter, x.name, x.file.name])).toEqual([['A', 'Release now', 'home-a.png'], ['B', 'Tomorrow morning', 'home-b.png']])
   })
   it('thumbnails of a card with no options: its own images, no letters', () => {
     const files: WaitFile[] = [{ path: '/x/a.png', name: 'a.png', mime: 'image/png', kind: 'image' }, { path: '/x/b.pdf', name: 'b.pdf', mime: 'application/pdf', kind: 'document' }]
