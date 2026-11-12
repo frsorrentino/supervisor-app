@@ -74,7 +74,8 @@
   import type { NightPage } from './night'
   import { total as seguitiTotal } from './seguiti'
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
-  import { closedToday, toccaCounts } from './toccaRules'
+  import { closedToday, proveInSessions, toccaCounts } from './toccaRules'
+  import { homeOpen, openSessionCard } from './homeOpen.svelte'
   import ToccaClosed from './ToccaClosed.svelte'
   import MonitorsList from './MonitorsList.svelte'
   import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
@@ -532,6 +533,16 @@
   let prevWorking = new Set<string>()
   const seenOnScreen = new Map<string, boolean>()
   let fingerDown = false, lastTouch = 0, lastAuto = 0
+  // Dalla sezione Verifica: la scheda della sessione si apre con le sue prove e viene in vista.
+  // La richiesta arriva da qualunque parte della home: apre la scheda qui se la riga è qui, e la porta in vista.
+  const openTodo = (name: string) => openSessionCard(name)
+  $effect(() => {
+    if (!homeOpen.at) return
+    const name = untrack(() => homeOpen.name)
+    if (!name) return
+    untrack(() => { expanded = name })
+    void tick().then(() => rowEl(name)?.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' }))
+  })
   const rowEl = (name: string) => document.querySelector<HTMLElement>(`.cw[data-row="${CSS.escape(name)}"]`)
   const onScreen = (name: string) => { const b = rowEl(name)?.getBoundingClientRect(); return !!b && b.bottom > 0 && b.top < innerHeight }
   $effect(() => {
@@ -768,7 +779,7 @@
 {#snippet waitingBlock()}
 {#if waitRows.length}
   <div class="sgroup wait" data-testid="home-sessioni-aspettano">{t.homeWaiting}<small>{waitRows.length}</small></div>
-  {#each waitRows as r (r.session.name)}<div class="cw" in:slide={{ duration: reducedMotion() ? 0 : 220 }} out:slide={{ duration: reducedMotion() ? 0 : 160 }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
+  {#each waitRows as r (r.session.name)}<div class="cw" data-row={r.session.name} in:slide={{ duration: reducedMotion() ? 0 : 220 }} out:slide={{ duration: reducedMotion() ? 0 : 160 }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
   {#if restFlat.length}<div class="sgroup" data-testid="home-sessioni-altre">{t.homeSessionsOthers}</div>{/if}
 {/if}
 {/snippet}
@@ -983,7 +994,13 @@
     {/if}
   {/if}
 {/snippet}
-{#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="newbody" data-testid={`corpo-${k}`}>{@render newBody?.(k)}</div></div>{/if}{/snippet}
+{#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="newbody" data-testid={`corpo-${k}`}>{@render newBody?.(k)}{#if k === 'prove'}{@render proveElsewhere()}{/if}</div></div>{/if}{/snippet}
+<!-- Le prove delle sessioni aperte stanno nelle loro schede: qui una riga per sessione col numero, e il tocco apre la sua scheda (app-verifica-conto-elenco-12-11). -->
+{#snippet proveElsewhere()}
+  {#each proveInSessions(todo) as r (r.session)}
+    <button class="insess" data-testid="verifica-in-sessione" onclick={() => openTodo(r.session)}><span class="ms">checklist</span><b>{r.session}</b><span class="n">{t.proveInSession(r.n)}</span><span class="ms">chevron_right</span></button>
+  {/each}
+{/snippet}
 {#snippet secClosed()}
   <!-- «Chiuse · N» (ClosedSheet dell'app): il tocco apre l'elenco con «Riapri». -->
   {#if model.closed.length && showsSessions}
@@ -1616,6 +1633,9 @@
   .onboard > :global(.usageslot), .onboard > :global(.secwrap > .usageslot) { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; }
   .cathead { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
   .newbody { padding-top: 8px; }
+  .insess { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 8px; padding: 11px 12px 11px 14px; border-radius: 16px; background: var(--s1); border: 1px solid var(--line); color: var(--tx); text-align: left; }
+  .insess > .ms { font-size: 20px; color: var(--tx2); } .insess > .ms:last-child { margin-left: auto; color: var(--tx3); }
+  .insess b { font: 600 15px var(--display); min-width: 0; overflow: hidden; white-space: nowrap; } .insess .n { font-size: 14px; color: var(--tx2); white-space: nowrap; }
   .boardwrap { flex: none; position: relative; }
   .slotdrop { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--tx3); border-radius: 14px; font: 600 15px var(--display); color: var(--tx); background: color-mix(in srgb, var(--bg) 72%, transparent); pointer-events: none; }
   .slotdrop.hot { border: 2px solid var(--tx); background: color-mix(in srgb, var(--bg) 55%, transparent); }

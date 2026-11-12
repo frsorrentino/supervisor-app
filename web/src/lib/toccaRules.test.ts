@@ -2,9 +2,19 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState } from './contract'
-import { closedToday, toccaCounts } from './toccaRules'
+import { closedToday, proveInSessions, toccaCounts } from './toccaRules'
 
 const s = decodeState(readFileSync(new URL('../../../contract/state-2-idle.json', import.meta.url), 'utf8'))
+
+describe('Verifica: le prove nelle schede delle sessioni aperte', () => {
+  it('una riga per sessione con prove, la più piena prima; le sessioni con sole decisioni no', () => {
+    expect(proveInSessions({ 'win:supervisor-app': { d: 1, v: 29 }, blog: { d: 2, v: 0 }, storefront: { d: 0, v: 3 } }))
+      .toEqual([{ session: 'win:supervisor-app', n: 29 }, { session: 'storefront', n: 3 }])
+  })
+  it('senza prove nelle sessioni, nessuna riga', () => {
+    expect(proveInSessions({})).toEqual([])
+  })
+})
 
 describe('Tocca a te, un conto solo', () => {
   it('il conto viene dal relay', () => {

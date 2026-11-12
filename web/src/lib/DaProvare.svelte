@@ -65,6 +65,7 @@
   async function result(ids: string[], arg: string, res: 'ok' | 'ko', body?: string) { await leave(ids, res, () => send(arg, res, body), hooks); void load() }
   const shown = (g: ProvePage['groups'][number]) => g.prove.filter(p => !gone[String(p.id)] && (only?.(p) ?? true))
   const outMs = () => (reducedMotion() ? 0 : 160)
+  const koShown = $derived((page?.ko ?? []).filter(k => !gone[`ko-${k.id}`]))
   async function sendKo() { const p = ko!; const b = text.trim(), f = shot; ko = null; text = ''; shot = null; await result([String(p.id)], String(p.id), 'ko', b); if (f) onShot(f, t.proveKoShotNote(p.short ?? p.task)) }
 </script>
 
@@ -101,9 +102,12 @@
         </div>
       </div>{/if}{/snippet}</ItemList>
   {/each}
-  {#if page?.ko.length}<div class="h"><span>{t.proveReported}</span></div><ItemList rows={page.ko.map(proveKo)} testid="prova-ko">{#snippet card(r)}<div class="m in"><LongText text={page?.ko.find(k => `ko-${k.id}` === r.key)?.text ?? ''} /></div>{/snippet}</ItemList>{/if}
+  <!-- Una prova segnalata si chiude con «Ora va» quando, riprovata, va (app-verifica-conto-elenco-12-11): è l'Ok di una prova, che il relay
+       accetta anche dopo un «Non va». -->
+  {#if koShown.length}<div class="h"><span>{t.proveReported}</span></div><ItemList rows={koShown.map(proveKo)} testid="prova-ko">{#snippet card(r)}{@const k = koShown.find(x => `ko-${x.id}` === r.key)}{@const pk = picked[r.key]}<div class="in"><div class="m"><LongText text={k?.text ?? ''} /></div>
+      {#if k}<div class="ac"><span class="sp"></span><button class="tonal ck" class:done={pk === 'ok'} disabled={!!pk} data-testid="prova-ora-va" onclick={() => result([r.key], String(k.id), 'ok')}><span class="lbl">{t.proveNowOk}</span>{#if pk === 'ok'}<Check />{/if}</button></div>{/if}</div>{/snippet}</ItemList>{/if}
   {#if page?.red.length}<div class="h"><span>{t.proveRed}</span></div><ItemList rows={page.red.map(proveRed)} testid="prova-rossa">{#snippet card(r)}<div class="r in"><LongText text={page?.red.find(x => `red-${x.task}` === r.key)?.reason ?? t.proveRedRunning} /></div>{/snippet}</ItemList>{/if}
-  {#if page?.groups.length}<p class="m small">{t.proveWeb}</p>{/if}
+  {#if (page?.groups ?? []).some(g => shown(g).length)}<p class="m small">{t.proveWeb}</p>{/if}
   {#if ko}
     <div class="c ko">
       <b>{ko.short ?? ko.task}</b>
