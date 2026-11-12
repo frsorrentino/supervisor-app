@@ -139,3 +139,12 @@ export function swipeTo(dx: number, dy: number, ms: number): -1 | 0 | 1 {
 
 /** La misura di un file a parole, come nelle schede dei file della chat: «48 KB», «1,2 MB». */
 export const sizeText = (b: number): string => (b >= 1_000_000 ? `${(b / 1_000_000).toFixed(1).replace('.', ',')} MB` : b >= 1000 ? `${Math.floor(b / 1000)} KB` : `${b} B`)
+
+/**
+ * Chi dà le schede compatte (App, col contesto `wait-cards`): la scheda letta dal PC (`gone` = non la conosce più, null = in arrivo),
+ * la richiesta di leggerla, l'apertura, e l'anteprima di un suo file, che la miniatura chiede appena è in pagina.
+ */
+export type WaitCardsHost = {
+  read: (id: string) => WaitItem | 'gone' | null | undefined; ask: (id: string) => void; open: (id: string) => void
+  file: (f: WaitFile) => void
+}

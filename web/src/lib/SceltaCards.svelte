@@ -1,9 +1,9 @@
 <script lang="ts">
   import { getContext } from 'svelte'
-  import type { WaitFile, WaitItem } from './contract'
+  import type { WaitItem } from './contract'
   import AttesaImmagine from './AttesaImmagine.svelte'
   import { imageRatios } from './mediaCache.svelte'
-  import { frameRatio, outcomeOf, thumbsOf, waitFileKey } from './scelta'
+  import { frameRatio, outcomeOf, thumbsOf, waitFileKey, type WaitCardsHost } from './scelta'
   import { t } from './t'
   // Le richieste citate nelle chat come schede compatte (app-scheda-scelta-12-11, descrizione approvata da Franz il 12/11 alle 15:10:
   // «in chat, al posto del link, una scheda compatta: titolo, una riga su cosa decidere, miniature delle opzioni, stato; un tocco la
@@ -11,12 +11,8 @@
   // ambra, «Scelto B» in verde), sotto cosa c'è da decidere su una riga, poi le miniature con la lettera dell'opzione. I dati vengono
   // dall'op `attesa` con `archive` (contratto 1.137), una lettura per scheda e poi la cache di App: dopo la risposta la scheda resta,
   // con quello che è stato scelto. Una richiesta che il PC non conosce più resta un link; senza il contesto (provini), anche.
-  export type WaitCardsHost = {
-    read: (id: string) => WaitItem | 'gone' | null | undefined; ask: (id: string) => void; open: (id: string) => void
-    /** L'anteprima di un file della richiesta: la chiede la miniatura appena è in pagina. */
-    file: (f: WaitFile) => void
-  }
-  let { ids }: { ids: string[] } = $props()
+  // `flat` (app-scheda-scelta-12-11, punto 3): dentro una scheda della home o di una sessione sta senza bordo né fondo, come una riga.
+  let { ids, flat = false }: { ids: string[]; flat?: boolean } = $props()
   const host = getContext<WaitCardsHost | undefined>('wait-cards')
   $effect(() => { for (const id of ids) host?.ask(id) })
   const kindOf = (l: string) => (l === 'choose' ? 'choose' : l === 'verify' ? 'verify' : l === 'reply' ? 'answer' : 'decide')
@@ -38,7 +34,7 @@
     <a class="lnk" href="#/attesa/{id}" data-testid="scelta-link-{id}">{t.sceltaOpenCard}</a>
   {:else}
     {@const thumbs = w ? thumbsOf(w) : []}
-    <div class="wc" role="button" tabindex="0" data-testid="scelta-scheda-{id}" onclick={() => host.open(id)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); host.open(id) } }}>
+    <div class="wc" class:flat role="button" tabindex="0" data-testid="scelta-scheda-{id}" onclick={(e) => { e.stopPropagation(); host.open(id) }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); host.open(id) } }}>
       {#if !w}
         <span class="m">{t.sceltaCardLoading}</span>
       {:else}
@@ -55,6 +51,7 @@
 
 <style>
   .wc { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); cursor: pointer; text-align: left; touch-action: manipulation; -webkit-touch-callout: none; transition: transform 120ms ease-out; }
+  .wc.flat { margin: 6px 0 12px; padding: 0; border: 0; border-radius: 6px; background: none; }
   .wc:active { transform: scale(.99); }
   .wc:focus-visible { outline: 2px solid var(--tx); outline-offset: 2px; }
   .top { display: flex; align-items: baseline; gap: 10px; }
@@ -70,6 +67,6 @@
   .th { display: flex; gap: 6px; margin-top: 4px; overflow: hidden; }
   .tf { flex: none; width: calc(60px * var(--ar, 1.3333)); }
   .lnk { display: inline-block; margin-top: 8px; color: var(--tx); text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; }
-  @media (hover: hover) and (pointer: fine) { .wc:hover { border-color: var(--tx3); } }
+  @media (hover: hover) and (pointer: fine) { .wc:hover { border-color: var(--tx3); } .wc.flat:hover .top b { text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; } }
   @media (prefers-reduced-motion: reduce) { .wc { transition: none; } }
 </style>

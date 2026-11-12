@@ -26,6 +26,11 @@ export class DemoTransport implements Transport {
   private decisions: DecisionsPage | null = null
   /** Contratto 1.137: le schede della demo a cui si è risposto, per compito: restano leggibili dall'archivio con com'è finita. */
   private waitDone = new Map<string, { state: 'chosen' | 'approved' | 'redo' | 'closed'; answered: WaitAnswered }>()
+  /** La risposta a una scheda della demo: resta in archivio con com'è finita, e il suo ok esce dallo stato. */
+  private waitAnswer(task: string, state: 'chosen' | 'approved' | 'redo' | 'closed', answered: WaitAnswered) {
+    this.waitDone.set(task, { state, answered })
+    this.set({ ...this.st, ts: this.now(), approvals: (this.st.approvals ?? []).filter(a => a.task !== task) })
+  }
   private waitOf(task: string | null | undefined): WaitItem | undefined { return task ? waitsDemo(this.now()).find(w => w.task === task && w.type === 'carta' && w.kind === 'choice') : undefined }
 
   constructor(private readonly clock: () => number = () => Math.floor(Date.now() / 1000)) {
@@ -281,7 +286,7 @@ ${it.caption ?? ''}`.trim() }))
           if (!w) return ko(`${cmd.arg}: unknown task`)
           if (!cmd.text?.trim()) return ko(`${cmd.arg}: «none, redo» needs the reason`)
           if (this.waitDone.has(w.task!)) return ok(JSON.stringify({ task: cmd.arg, closed: false, state: 'approved', text: `${cmd.arg}: it no longer waited for an ok, the card closes` }))
-          this.waitDone.set(w.task!, { state: 'redo', answered: { by: 'web', at: t, choice: null, reason: cmd.text.trim().slice(0, 300) } })
+          this.waitAnswer(w.task!, 'redo', { by: 'web', at: t, choice: null, reason: cmd.text.trim().slice(0, 300) })
           return ok(JSON.stringify({ task: cmd.arg, closed: true, state: 'running', text: `${cmd.arg}: proposals discarded, the task is back to running` }))
         }
         case 'kpi': return ok(JSON.stringify(kpiDemo(this.now())))
@@ -347,14 +352,14 @@ ${it.caption ?? ''}`.trim() }))
         case 'approval_close': {
           if (!cmd.arg) return ko('no task')
           const cw = this.waitOf(cmd.arg)
-          if (cw && !this.waitDone.has(cmd.arg)) { this.waitDone.set(cmd.arg, { state: 'closed', answered: { by: 'web', at: t, choice: null, reason: cmd.text?.trim() || null } }); return ok(JSON.stringify({ task: cmd.arg, closed: true, state: 'superseded' })) }
+          if (cw && !this.waitDone.has(cmd.arg)) { this.waitAnswer(cmd.arg, 'closed', { by: 'web', at: t, choice: null, reason: cmd.text?.trim() || null }); return ok(JSON.stringify({ task: cmd.arg, closed: true, state: 'superseded' })) }
           const was = s.approvals.some(a => a.task === cmd.arg)
           this.set({ ...s, approvals: s.approvals.filter(a => a.task !== cmd.arg) })
           return ok(JSON.stringify({ task: cmd.arg, closed: was, state: was ? 'superseded' : 'unknown' }))
         }
         case 'approve':
           // La scheda di scelta della demo (contratto 1.137): la risposta la porta in archivio con l'opzione scelta.
-          if (this.waitOf(cmd.arg) && !this.waitDone.has(cmd.arg!)) { this.waitDone.set(cmd.arg!, { state: cmd.choice ? 'chosen' : 'approved', answered: { by: 'web', at: t, choice: cmd.choice ?? null, reason: null } }); return ok(`approved ${cmd.arg}`) }
+          if (this.waitOf(cmd.arg) && !this.waitDone.has(cmd.arg!)) { this.waitAnswer(cmd.arg!, cmd.choice ? 'chosen' : 'approved', { by: 'web', at: t, choice: cmd.choice ?? null, reason: null }); return ok(`approved ${cmd.arg}`) }
           if (!s.approvals.some(a => a.task === cmd.arg)) return ko(`${cmd.arg}: no task waiting for an ok`)
           this.set({ ...s, approvals: s.approvals.filter(a => a.task !== cmd.arg) })
           return ok(`approved ${cmd.arg}`)

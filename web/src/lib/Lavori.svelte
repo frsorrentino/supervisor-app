@@ -11,6 +11,9 @@
   import Kpi8 from './Kpi8.svelte'
   import Kpi9 from './Kpi9.svelte'
   import { done as doneOf, doneFromPages, forYou as forYouOf, inProgress as inProgressOf, ymd, type ForYou, type Line } from './lavori'
+  import { getContext } from 'svelte'
+  import SceltaCards from './SceltaCards.svelte'
+  import type { WaitCardsHost } from './scelta'
   import { doIt, mark, type Edit } from './recapAgenda'
   import type { RecapAction } from './recapActions'
   import { fold as foldIn, gather } from './motion'
@@ -40,6 +43,9 @@
   const zone = $derived(timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)
   const day = $derived(today ?? ymd(now, zone))
   const fy = $derived(forYouOf(st, agenda, now, day))
+  // Una scelta che aspetta sta qui con la sua scheda compatta (app-scheda-scelta-12-11, punto 3), come nella home.
+  const waitHost = getContext<WaitCardsHost | undefined>('wait-cards')
+  const choiceCard = (a: Approval | null | undefined): a is Approval & { wid: string } => !!a?.wid && choices(a).length > 0 && !!waitHost && waitHost.read(a.wid) !== 'gone'
   const ip = $derived(inProgressOf(st, agenda, now, zone, day))
   const dn = $derived(Object.keys(donePages).length ? doneFromPages(donePages, zone) : doneOf(events, zone, day))
   const left = $derived(part !== 'right')
@@ -97,6 +103,8 @@
 {/snippet}
 
 {#snippet row(r: ForYou, button: string | null, filled: boolean, onClick: () => void)}
+  <!-- Una scelta che aspetta è la sua scheda compatta, come nella home (app-scheda-scelta-12-11, punto 3). -->
+  {#if choiceCard(r.approval)}<div class="row pin"><SceltaCards ids={[r.approval.wid]} flat /></div>{:else}
   <!-- Franz 24/10 18:35: con le opzioni la domanda intera a tutta larghezza e i tasti interi sotto, come nella home (e8afbe1c). -->
   <div class="row" class:stack={!!r.approval && choices(r.approval).length > 0}>
     {#if r.agenda}<span class="mark {mark(r.agenda.scope)}"></span>
@@ -106,6 +114,7 @@
     {#if r.approval && choices(r.approval).length}<span class="opts">{#each choices(r.approval) as o (o)}<button class="tonal" onclick={() => ask(r.approval!, o)}>{o}</button>{/each}</span>
     {:else if button}<button class={filled ? 'filled' : 'tonal'} onclick={onClick}>{button}</button>{/if}
   </div>
+  {/if}
 {/snippet}
 
 {#snippet line(l: Line)}
@@ -244,6 +253,8 @@
 </dialog>
 
 <style>
+  .row.pin { display: block; }
+  .row.pin :global(.wc) { margin: 0; }
   .lavori { display: flex; flex-direction: column; gap: 6px; padding: 0 12px 28px; }
   .head { display: flex; align-items: center; gap: 8px; height: 56px; }
   .head h2 { font: 500 22px/1 var(--sans, inherit); margin: 0; } .head small { color: var(--text2); font-size: 14px; }

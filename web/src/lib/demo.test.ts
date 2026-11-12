@@ -85,7 +85,8 @@ describe('il PC finto della demo (FakeTransport)', () => {
     expect(d.state.sessions.find(s => s.name === 'pricing-page')!.state).toBe('idle')
     const task = d.state.approvals[0].task
     expect((await d.send(newCmd('approve', null, task))).text).toBe(`approved ${task}`)
-    expect(d.state.approvals).toEqual([])
+    // Resta la scelta del carrello (app-scheda-scelta-12-11): l'ok approvato è uscito, lei aspetta ancora.
+    expect(d.state.approvals.map(a => a.task)).toEqual(['demo-cart-layout'])
     await d.send(newCmd('follow', 'payments-api'))
     expect(d.state.sessions.find(s => s.name === 'payments-api')!.followed).toBe(true)
     const p = d.state.projects[0].path

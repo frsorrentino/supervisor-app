@@ -21,7 +21,7 @@
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import PermGlyph from './PermGlyph.svelte'
   import { homeGlyph } from './permissionModes'
-  import { tick, untrack } from 'svelte'
+  import { getContext, tick, untrack } from 'svelte'
   import { flip } from 'svelte/animate'
   import { fade, slide } from 'svelte/transition'
   import { bounceEase, bounceMs, finishScrollAllowed, fold, gather, pass, reducedMotion } from './motion'
@@ -39,6 +39,8 @@
   import { lavoriInfo, pluginsInfo, systemInfo } from './slotInfo'
   import SlotNames from './SlotNames.svelte'
   import OkInfo from './OkInfo.svelte'
+  import SceltaCards from './SceltaCards.svelte'
+  import type { WaitCardsHost } from './scelta'
   import HeadsUpNote from './HeadsUpNote.svelte'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
@@ -691,6 +693,11 @@
   let sentSteps = $state(new Set<string>())
   const stepKey = (s: { name: string; outcome?: { at: number } | null }, step: string) => `${s.name}@${s.outcome?.at ?? 0}:${step}`
   // Contratto 1.81: con le opzioni, un tasto per opzione; la finestra conferma quella scelta.
+  // Una scelta che aspetta sta qui con la sua scheda compatta, finché non rispondi (app-scheda-scelta-12-11, punto 3): titolo, cosa
+  // decidere, miniature e stato; un tocco apre la scheda con le immagini. Vale per gli ok con opzioni che hanno la loro richiesta
+  // (`wid`, contratto 1.130) e che il PC sa ancora leggere; gli altri restano la riga coi tasti di prima.
+  const waitHost = getContext<WaitCardsHost | undefined>('wait-cards')
+  const choiceCard = (a: Approval | null | undefined): a is Approval & { wid: string } => !!a?.wid && choices(a).length > 0 && !!waitHost && waitHost.read(a.wid) !== 'gone'
   function askApprove(a: Approval, choice: string | null = null) { pending = a; pendingChoice = choice; note = ''; approveDlg?.showModal() }
   const ctxTone = (p: number) => (p >= 90 ? 'var(--b-alert)' : p >= 75 ? 'var(--b-warn)' : 'var(--b-ring)')
   const expiryText = (x: number) => { const e = expiry(x, now); return e.day === 'today' ? t.expiresAt(e.hm) : e.day === 'tomorrow' ? t.expiresTomorrow(e.hm) : t.expiresOn(e.date ?? '', e.hm) }
@@ -1187,6 +1194,7 @@
         <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
         <div class="oks">
           {#each r.approvals as a (a.task)}
+            {#if choiceCard(a)}<SceltaCards ids={[a.wid]} flat />{:else}
             <div class="ok" class:wrap={choices(a).length > 0}>
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--advice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76M9 12l2 2 4-4" /></svg>
               <span class="okt">{a.title}</span>
@@ -1195,6 +1203,7 @@
             </div>
             <OkInfo {a} />
             {#if onApprovalClose}<button class="superata" data-testid="carta-superata" onclick={(e) => { e.stopPropagation(); onApprovalClose?.(a.task) }}>{t.approvalSuperseded}</button>{/if}
+            {/if}
           {/each}
         </div>
       {/if}
@@ -1310,6 +1319,7 @@
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={openW ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
       </div>
+      {#if choiceCard(r.approval)}<SceltaCards ids={[r.approval.wid]} flat />{:else}
       <!-- Franz 24/10 09:22: per una scelta la domanda intera, sempre. -->
       <p class="body" class:full={openW || (!!r.approval && choices(r.approval).length > 0)}>{r.title}</p>
       {#if r.approval}<OkInfo a={r.approval} />{/if}
@@ -1322,6 +1332,7 @@
         {#if r.kind === 'ok'}{#if r.approval}{@render okButtons(r.approval, filled)}{/if}
         {:else}<button class="tonal mini" class:done={!!fyPicked[workKey(r, i)]} disabled={!!fyPicked[workKey(r, i)]} onclick={() => fyTap(r, workKey(r, i))}>{#if fyPicked[workKey(r, i)]}✓ {/if}{r.kind === 'outside' ? t.agendaDone : t.lavoriStart}</button>{/if}
       </div></div>{/if}
+      {/if}
     </div>
 {/snippet}
 

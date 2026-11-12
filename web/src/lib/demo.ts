@@ -1,6 +1,6 @@
 import stateRaw from '../../../contract/state-1-question.json?raw'
 import monitorsMockup from '../../../core/src/test/resources/monitors-mockup.json'
-import type { MonitorCard, MonitorsPage } from './contract'
+import type { Approval, MonitorCard, MonitorsPage } from './contract'
 import { DEFAULT_CATS, encode as encodeCats, toTop } from './homeCats'
 import idleRaw from '../../../contract/state-2-idle.json?raw'
 import changesRaw from '../../../contract/changes-sample.json?raw'
@@ -212,6 +212,7 @@ export function world(now: number): World {
   })
   const commitments: Commitment[] = [
     ...base.approvals.map(a => task(a.task, a.title, 'storefront', 'person')),
+    task('demo-cart-layout', en ? 'Cart on the phone' : 'Carrello sul telefono', 'storefront', 'person'),
     task('demo-cover', en ? 'Cover image' : 'Immagine di copertina', 'blog', 'person', { paused: { reason: en ? 'Send me the cover image' : 'Mandami l\'immagine di copertina', at: now - 1200 } }),
     task('demo-docs', en ? 'API pages' : 'Pagine API', 'payments-api', 'session'),
     task('demo-users', en ? 'Users table' : 'Tabella utenti', 'admin-panel', 'session'),
@@ -227,7 +228,7 @@ export function world(now: number): World {
     quota: Object.fromEntries(Object.entries(base.quota).map(([k, q]) => [k, { ...q, reset_h5: q.h5 != null && q.reset_h5 != null ? now + WINDOW_LEFT_S : sh(q.reset_h5), reset_w7: sh(q.reset_w7),
       ...(k === 'personal' && q.reset_w7 != null ? { w7_points: { start: sh(q.reset_w7)! - 7 * 86400, steps: [[2, 1], [10, 6], [20, 12], [30, 18], [40, 25], [50, 31], [56, 35]] as [number, number][] } } : {}) }])),
     projects: base.projects.map(p => ({ ...p, last_used: sh(p.last_used) })),
-    approvals: base.approvals.map(a => ({ ...a, requested_at: a.requested_at + d, untested: en ? 'a real phone' : 'un telefono vero', undo: 'in-parte', undo_how: en ? 'pull the build' : 'si ritira la build' })),
+    approvals: [...base.approvals.map(a => ({ ...a, requested_at: a.requested_at + d, untested: en ? 'a real phone' : 'un telefono vero', undo: 'in-parte', undo_how: en ? 'pull the build' : 'si ritira la build' })), cartApproval(now)],
     devices: base.devices?.map(x => ({ ...x, seen: sh(x.seen) })) ?? null,
     night: { ...base.night, items: base.night.items?.map(i => ({ ...i, added: i.added + d, started: sh(i.started) })) ?? null },
     // Il recap di oggi, con un progetto senza sessione: così «Da riprendere» propone il suo prossimo passo.
@@ -542,6 +543,13 @@ const cartChoice = (now: number): WaitItem => {
         : 'Il carrello sul telefono è rifatto dopo la tua nota sul primo giro.\n\nQuale delle due costruisco? La A tiene il riepilogo in alto, la B mette totale e Paga in una barra in fondo.',
       key: en ? 'Which of the two do I build?' : 'Quale delle due costruisco?' },
   }
+}
+
+/** La stessa scelta come ok che aspetta nello stato (app-scheda-scelta-12-11, punto 3): la home e la scheda di storefront la tengono fissa. */
+const cartApproval = (now: number): Approval => {
+  const w = cartChoice(now)
+  return { task: w.task!, title: w.title!, what: w.text, where: en ? "storefront's cart, on the phone" : 'il carrello di storefront, sul telefono', deploy: false, requested_at: w.at, options: w.options!.map(o => o.value), wid: w.id,
+    untested: en ? 'a real phone' : 'un telefono vero', undo: 'si', undo_how: en ? 'the cart of before comes back' : 'torna il carrello di prima' }
 }
 
 export const waitsDemo = (now: number): WaitItem[] => [
