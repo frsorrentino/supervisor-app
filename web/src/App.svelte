@@ -448,7 +448,10 @@
     }
     if (r && superseded(r)) return
     // Franz 23/10 23:17: il tasto carica o sparisce (older): pagina vuota, già nota o rifiutata = niente tasto.
-    const o = older(transcripts[name] ?? [], r?.ok ? (JSON.parse(r.text) as TranscriptPage) : null)
+    // Senza risposta (rete, tempo scaduto) o con una risposta che non si legge il tasto resta, per riprovare; un rifiuto lo spegne.
+    let page: TranscriptPage | null | undefined
+    try { page = !r ? undefined : r.ok ? (JSON.parse(r.text) as TranscriptPage) : null } catch { page = undefined }
+    const o = older(transcripts[name] ?? [], page)
     transcripts = { ...transcripts, [name]: o.entries }
     olderOf = { ...olderOf, [name]: o.more }
   }

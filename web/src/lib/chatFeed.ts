@@ -66,8 +66,12 @@ export function append(old: TranscriptEntry[], page: TranscriptPage, mode: Page)
  * Franz 23/10 23:17: «il tasto carica messaggi precedenti non funziona» (chat della master dopo un /clear: la pagina «prima»
  * tornava vuota o con voci già note e il tasto restava). Il tasto carica o sparisce: la lista con la pagina in testa e `more`
  * vero solo se la pagina ha portato voci nuove; una pagina rifiutata (null: la voce non c'è più) lo spegne.
+ * Una lettura senza risposta (undefined: la rete, il PC lento su una pagina grossa) non è un rifiuto: la lista resta e il tasto
+ * pure, per riprovare. Prima lo spegneva, e i messaggi mandati più vecchi della pagina comparivano in cima senza le loro
+ * risposte (app-web-chat-prima-clear-12-11).
  */
-export function older(entries: TranscriptEntry[], page: TranscriptPage | null): { entries: TranscriptEntry[]; more: boolean } {
+export function older(entries: TranscriptEntry[], page: TranscriptPage | null | undefined): { entries: TranscriptEntry[]; more: boolean } {
+  if (page === undefined) return { entries, more: true }
   if (!page) return { entries, more: false }
   const list = append(entries, page, 'before')
   return { entries: list, more: page.more && list.length > entries.length }

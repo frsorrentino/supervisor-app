@@ -83,6 +83,10 @@ describe('ChatFeed', () => {
   })
   // Franz 23/10 23:17: «il tasto carica messaggi precedenti non funziona» (dopo un /clear la pagina «prima» torna vuota o
   // già nota e il tasto resta). Il tasto carica o sparisce: more resta vero solo con voci nuove; una pagina rifiutata lo spegne.
+  it('a read with no answer keeps the list and the button, a refusal turns it off', () => {
+    expect(older(first.entries, undefined)).toEqual({ entries: first.entries, more: true })
+    expect(older(first.entries, null)).toEqual({ entries: first.entries, more: false })
+  })
   it('the older button loads or goes away', () => {
     const olderPage: TranscriptPage = { entries: [entry('u0.0', 'user', { text: 'earlier', at: 1 })], more: true }
     const r = older(first.entries, olderPage)
