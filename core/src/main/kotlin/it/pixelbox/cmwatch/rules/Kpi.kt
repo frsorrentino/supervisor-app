@@ -244,6 +244,10 @@ object Kpi {
     }
 
     /** Gli stessi eventi contati da [head]; null senza cronologia. */
+    /** L'ultimo esito di oggi a parole, per la riga agganciata al tabellone (app-tabellone-utilizzo-b-13-11); quelli «in corso» no. */
+    fun lastOutcome(page: TimelinePage?, now: Long, zone: ZoneId): Done? =
+        outcomes(page, now, zone)?.settledRows?.filter { it.text.isNotBlank() }?.maxByOrNull { it.at }?.let { it.copy(text = it.text.trim().substringBefore('\n')) }
+
     fun outcomes(page: TimelinePage?, now: Long, zone: ZoneId): Outcomes? {
         page ?: return null
         val from = midnight(now, zone)

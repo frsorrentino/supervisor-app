@@ -1820,6 +1820,8 @@ It starts at your last message to the master.</string>
     <string name="master_pos_home_row">Home in a row</string>
     <string name="home_row_open">Reopen the Home</string>
     <string name="home_row_new">new</string>
+    <string name="usage_cell_week">of the week</string>
+    <string name="usage_cell_5h">of the 5 hours</string>
     <string name="master_pos_under">Under the dashboard</string>
     <string name="master_widen">Widen</string>
     <string name="master_narrow">Narrow</string>

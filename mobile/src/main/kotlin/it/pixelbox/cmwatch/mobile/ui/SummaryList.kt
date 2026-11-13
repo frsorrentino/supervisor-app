@@ -268,6 +268,9 @@ fun SummaryList(
     // entra da sola, in ambra, finché dura. Il nome resta quello di quando scattava solo la settimana.
     val usageAlarm = kpiState?.let { st -> it.pixelbox.cmwatch.rules.UtilizzoRules.usageAlarm(st.quota, now) }.takeIf { usage != null && showUsage && parts == null }
     val weekAlarm = usageAlarm != null
+    // Variante B del tabellone (app-tabellone-utilizzo-b-13-11): l'utilizzo è il terzo blocco, non più una riga; con una finestra
+    // vicina al limite il blocco dice quella (le 5 ore o la settimana) col suo colore.
+    val usageInBoard = weekSlot != null || usageAlarm != null
     val pin = it.pixelbox.cmwatch.rules.HomeOrder.slot(savedPin, weekAlarm)
     val savedPinNow by androidx.compose.runtime.rememberUpdatedState(savedPin)
     val savedOrderNow by androidx.compose.runtime.rememberUpdatedState(savedOrder)
@@ -685,10 +688,11 @@ fun SummaryList(
         val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
         // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, con sotto la quota (stile «Studio e Diretta», 30/10).
         var slotContent: @Composable () -> Unit = {}
+        var boardOutcomes: () -> Unit = {}
         if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
                 Box(moving().onGloballyPositioned { c -> boardBox = c }) {
-                    Kpi7(it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()), st, now, { b ->
+                    val boardClick: (HomeBox) -> Unit = { b ->
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
                         // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre.
                         // I primi due riquadri contano le sessioni, che stanno a sé sotto il tabellone (app-home-sessioni-a-se-08-11): ci
@@ -698,7 +702,20 @@ fun SummaryList(
                             if (catsNow.any { c -> c.id == "work" && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, "work"))
                             catFocus = "cat-work"
                         } else catFocus = "sec-sessions"
-                    }, onQuota, joined = up.any { k -> k != pin }, slot = { slotContent() })
+                    }
+                    boardOutcomes = { boardClick(HomeBox.OUTCOMES) }
+                    val kh = it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault())
+                    val cell = if (!usageInBoard) null else {
+                        val pct = usageAlarm?.pct ?: weekSlot?.pct ?: 0
+                        val stale = usageAlarm == null && weekSlot?.stale == true
+                        val window = if (usageAlarm == null || usageAlarm.week) it.pixelbox.cmwatch.rules.UtilizzoRules.W7_S else it.pixelbox.cmwatch.rules.UtilizzoRules.H5_S
+                        UsageCell(
+                            pct, it.pixelbox.cmwatch.rules.UtilizzoRules.elapsedPct(usageAlarm?.resetAt ?: weekSlot?.resetAt, window, now)?.toFloat(),
+                            if (usageAlarm != null) (if (pct >= 90) V3.Red else V3.Wait) else if (stale) V3.Tx3 else if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2,
+                            stringResource(if (usageAlarm != null && !usageAlarm.week) R.string.usage_cell_5h else R.string.usage_cell_week), usageOpen,
+                        ) { usageOpen = !usageOpen; save("usage", usageOpen) }
+                    }
+                    Kpi7(kh, st, now, boardClick, onQuota, joined = usageInBoard || up.any { k -> k != pin }, usage = cell, slot = { slotContent() })
                     val held = dragKey
                     // Sul tabellone si rilascia una sezione che non c'è ancora; con quattro voci lo dice, e il rilascio non cambia niente.
                     if (held != null && catFor(held) != null && held !in up && !(weekAlarm && held == "usage")) SlotDrop(overSlot(held, dragY) && boardTakes(held), full = !boardTakes(held))
@@ -937,7 +954,8 @@ fun SummaryList(
         val hasPlugins = plugins != null && onPluginsLoad != null && onPluginCmd != null
         val renderUsage: () -> Unit = {
             val moving = movingIn("usage")
-            if (hasUsage) {
+            // Nel tabellone come terzo blocco, l'utilizzo non è più una sezione dell'elenco.
+            if (hasUsage && !usageInBoard) {
                 dragPresent += "usage"
                 item(key = "sec-usage") {
                     val weeks = it.pixelbox.cmwatch.rules.UtilizzoRules.shownQuota(kpiState?.quota.orEmpty()).filter { it.value.w7 != null }
@@ -1023,7 +1041,19 @@ fun SummaryList(
                 "closed" -> closedGroup?.let { g -> SlotRow(slotDrag("closed"), stringResource(R.string.cat_closed), icons.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) }
             }
         }
-        slotContent = { pin?.let { k -> slotFor(k) } }
+        slotContent = {
+            // La riga agganciata porta gli esiti di oggi (variante B), e sotto si aprono i dettagli dell'utilizzo.
+            if (usageInBoard) kpiState?.let { st ->
+                val kh = it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, zone)
+                val last = remember(kpiPage, now / 60) { it.pixelbox.cmwatch.rules.Kpi.lastOutcome(kpiPage, now, zone)?.text }
+                OutcomesBoardRow(
+                    kh.outcomes?.toString() ?: "–", stringResource(if (kh.outcomes == null) R.string.kpi7_outcomes_unknown else R.string.kpi7_outcomes),
+                    (kh.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, last,
+                ) { boardOutcomes() }
+                if (usage != null) FoldIn(usageOpen) { androidx.compose.runtime.CompositionLocalProvider(LocalUsageInSlot provides true) { usage() } }
+            }
+            pin?.takeIf { k -> !(usageInBoard && k == "usage") }?.let { k -> slotFor(k) }
+        }
         // Il corpo di Lavori è fatto di più elementi della lista: agganciata, la testa sta nello slot e il corpo apre subito sotto.
         if (listSkip == "lavori") renderLavori()
         fun renderKey(k: String) {

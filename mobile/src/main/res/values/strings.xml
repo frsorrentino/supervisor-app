@@ -1848,6 +1848,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="master_pos_home_row">Home in riga</string>
     <string name="home_row_open">Riapri la Home</string>
     <string name="home_row_new">nuovo</string>
+    <string name="usage_cell_week">della settimana</string>
+    <string name="usage_cell_5h">delle 5 ore</string>
     <string name="master_pos_under">Sotto la dashboard</string>
     <string name="master_widen">Allarga</string>
     <string name="master_narrow">Stringi</string>
