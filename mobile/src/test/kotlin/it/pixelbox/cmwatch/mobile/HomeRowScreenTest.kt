@@ -44,7 +44,7 @@ class HomeRowScreenTest {
             HomeRowBar(emptyList(), now, tight, {}, {})
         }
     }
-    private fun wide(w: Int) = paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = w, screenHeight = 600, density = com.android.resources.Density.XHIGH))
+    private fun wide(w: Int) = paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = w, screenHeight = 600, density = com.android.resources.Density.XHIGH, orientation = com.android.resources.ScreenOrientation.LANDSCAPE))
 
     @Test fun phone() = paparazzi.snapshot { CmPhoneTheme(still = true) { rows(tight = true) } }
     @Test fun phoneDay() = paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { rows(tight = true) } }
