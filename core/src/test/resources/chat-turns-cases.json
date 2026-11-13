@@ -1,0 +1,153 @@
+{
+ "turns": [
+  {
+   "name": "richiesta, lavoro con le frasi al loro posto, risposta",
+   "entries": [
+    { "id": "u1", "role": "user", "text": "Sistema il rimborso" },
+    { "id": "a1", "role": "assistant", "text": "Guardo il calcolo." },
+    { "id": "t1", "role": "tool", "tool": "Read", "text": "src/refunds/partial.ts" },
+    { "id": "a2", "role": "assistant", "text": "Passo ai centesimi." },
+    { "id": "t2", "role": "tool", "tool": "Edit", "text": "src/refunds/partial.ts" },
+    { "id": "t3", "role": "tool", "tool": "Bash", "text": "npm run test" },
+    { "id": "a3", "role": "assistant", "text": "Fatto.\nEsito: rimborso corretto" }
+   ],
+   "out": [{ "key": "u-u1", "request": "u1", "work": ["say:a1", "tool:t1", "say:a2", "tool:t2", "tool:t3"], "answer": "a3" }]
+  },
+  {
+   "name": "un turno ancora al lavoro non ha la risposta: l'ultima frase seguita da un passo resta nel lavoro",
+   "entries": [
+    { "id": "u1", "role": "user", "text": "Vai" },
+    { "id": "a1", "role": "assistant", "text": "Comincio." },
+    { "id": "t1", "role": "tool", "tool": "Bash", "text": "ls" }
+   ],
+   "out": [{ "key": "u-u1", "request": "u1", "work": ["say:a1", "tool:t1"], "answer": null }]
+  },
+  {
+   "name": "due richieste di fila: la prima resta senza scheda",
+   "entries": [
+    { "id": "u1", "role": "user", "text": "Uno" },
+    { "id": "u2", "role": "user", "text": "Due" },
+    { "id": "a1", "role": "assistant", "text": "Ecco." }
+   ],
+   "out": [
+    { "key": "u-u1", "request": "u1", "work": [], "answer": null },
+    { "key": "u-u2", "request": "u2", "work": [], "answer": "a1" }
+   ]
+  },
+  {
+   "name": "la pagina comincia a metà turno: una scheda senza richiesta",
+   "entries": [
+    { "id": "t1", "role": "tool", "tool": "Bash", "text": "ls" },
+    { "id": "a1", "role": "assistant", "text": "Finito." },
+    { "id": "u1", "role": "user", "text": "Grazie" }
+   ],
+   "out": [
+    { "key": "h-t1", "request": null, "work": ["tool:t1"], "answer": "a1" },
+    { "key": "u-u1", "request": "u1", "work": [], "answer": null }
+   ]
+  },
+  {
+   "name": "un separatore chiude il turno e resta fra i due",
+   "entries": [
+    { "id": "u1", "role": "user", "text": "Uno" },
+    { "id": "a1", "role": "assistant", "text": "Ecco." },
+    { "id": "s1", "role": "separator", "text": "/clear" },
+    { "id": "a2", "role": "assistant", "text": "Riparto dal passaggio di consegne." },
+    { "id": "t1", "role": "tool", "tool": "Read", "text": "docs/handoff.md" }
+   ],
+   "out": [
+    { "key": "u-u1", "request": "u1", "work": [], "answer": "a1" },
+    { "sep": "s1" },
+    { "key": "h-a2", "request": null, "work": ["say:a2", "tool:t1"], "answer": null }
+   ]
+  }
+ ],
+ "sections": [
+  {
+   "name": "il primo paragrafo e una sezione per titolo",
+   "text": "Il rimborso ora passa.\n\n## Cosa è cambiato\n- `partial.ts`: centesimi interi.\n\n## Come l'ho provato\n1. `npm run test`: verdi.",
+   "lead": "Il rimborso ora passa.",
+   "secs": [
+    { "title": "Cosa è cambiato", "body": "- `partial.ts`: centesimi interi." },
+    { "title": "Come l'ho provato", "body": "1. `npm run test`: verdi." }
+   ]
+  },
+  {
+   "name": "senza titoli tutto è l'apertura",
+   "text": "Una riga.\n\nUn'altra.",
+   "lead": "Una riga.\n\nUn'altra.",
+   "secs": []
+  },
+  {
+   "name": "un cancelletto dentro un blocco di codice non è un titolo",
+   "text": "Così:\n```\n# commento\nnpm test\n```\n# Dopo\nfine",
+   "lead": "Così:\n```\n# commento\nnpm test\n```",
+   "secs": [{ "title": "Dopo", "body": "fine" }]
+  },
+  {
+   "name": "comincia con un titolo: niente apertura",
+   "text": "### Stato\ntutto verde",
+   "lead": "",
+   "secs": [{ "title": "Stato", "body": "tutto verde" }]
+  }
+ ],
+ "rich": [
+  {
+   "name": "paragrafi, elenco puntato, elenco numerato",
+   "text": "Primo paragrafo\nsu due righe.\n\n- uno\n- due\n\n1. primo\n2) secondo",
+   "out": [
+    { "type": "p", "text": "Primo paragrafo\nsu due righe." },
+    { "type": "li", "mark": "•", "text": "uno", "depth": 0 },
+    { "type": "li", "mark": "•", "text": "due", "depth": 0 },
+    { "type": "li", "mark": "1.", "text": "primo", "depth": 0 },
+    { "type": "li", "mark": "2.", "text": "secondo", "depth": 0 }
+   ]
+  },
+  {
+   "name": "un comando fra due paragrafi",
+   "text": "Per il deploy:\n```\nnpm run deploy -- --tag 2.8.1\n```\nPoi dimmelo.",
+   "out": [
+    { "type": "p", "text": "Per il deploy:" },
+    { "type": "code", "text": "npm run deploy -- --tag 2.8.1" },
+    { "type": "p", "text": "Poi dimmelo." }
+   ]
+  },
+  {
+   "name": "una voce rientrata e la riga che la continua",
+   "text": "- fuori\n  - dentro\n    che continua\n• col pallino",
+   "out": [
+    { "type": "li", "mark": "•", "text": "fuori", "depth": 0 },
+    { "type": "li", "mark": "•", "text": "dentro\nche continua", "depth": 1 },
+    { "type": "li", "mark": "•", "text": "col pallino", "depth": 0 }
+   ]
+  },
+  {
+   "name": "un blocco di codice mai chiuso resta testo",
+   "text": "```\nnpm test",
+   "out": [{ "type": "p", "text": "```\nnpm test" }]
+  }
+ ],
+ "tipo": [
+  {
+   "name": "la riga Tipo fra Esito e Prossimi esce dal testo",
+   "text": "Fatto.\n\nEsito: rimborso corretto\nTipo: pronto\nProssimi: ok al deploy · apri la PR",
+   "out": { "text": "Fatto.\n\nEsito: rimborso corretto\nProssimi: ok al deploy · apri la PR", "tipo": "pronto" }
+  },
+  {
+   "name": "senza la riga il testo resta com'è",
+   "text": "Fatto.\nEsito: rimborso corretto",
+   "out": { "text": "Fatto.\nEsito: rimborso corretto", "tipo": null }
+  },
+  {
+   "name": "una riga Tipo nel mezzo del testo non è una chiusura",
+   "text": "Tipo: bozza\nIl resto.\nEsito: scritto",
+   "out": { "text": "Tipo: bozza\nIl resto.\nEsito: scritto", "tipo": null }
+  }
+ ],
+ "steps": [
+  { "name": "un file: le ultime due parti del percorso", "tool": "Read", "text": "/home/dev/app/src/refunds/partial.ts", "note": null, "out": { "name": "Read", "arg": "refunds/partial.ts", "note": null, "text": "/home/dev/app/src/refunds/partial.ts" } },
+  { "name": "un comando con la sua nota: la nota si legge aprendo", "tool": "Bash", "text": "npm run test:staging", "note": "Prova su staging", "out": { "name": "Bash", "arg": "npm run test:staging", "note": "Prova su staging", "text": null } },
+  { "name": "un comando su più righe: la prima sulla riga, tutto aprendo", "tool": "Bash", "text": "cd web\nnpm test", "note": null, "out": { "name": "Bash", "arg": "cd web", "note": null, "text": "cd web\nnpm test" } },
+  { "name": "un MCP senza testo: il nome corto e la nota", "tool": "mcp__chrome-bridge__click", "text": null, "note": "Tocca Invia", "out": { "name": "click", "arg": "Tocca Invia", "note": null, "text": null } }
+ ]
+}

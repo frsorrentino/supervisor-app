@@ -265,7 +265,7 @@
         {onAnswer} onSession={onPick} onSpeak={(x) => toggle(x, s.name)} {events} {sent} {read} {onRead} onPrompt={onPromptTo} {onCmd} />
     {:else}
     {#if onOlder}<button class="older" onclick={() => { atEnd = false; onOlder() }}>{t.loadOlder}</button>{/if}
-    {#key s.name}<Feed {flash} {s} {items} now={st.ts} {onFile} {onFiles} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
+    {#key s.name}<Feed {flash} {focus} onStep={pick} {s} {items} now={st.ts} {onFile} {onFiles} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
     {#if onNewer}<button class="older" data-testid="chat-successivi" onclick={() => { atEnd = false; onNewer() }}>{t.loadNewer}</button>{/if}
     <!-- A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC. -->
     <!-- Senza messaggi, esito, domanda e lavoro in corso una riga, invece di una pagina che sembra rotta (SessionSheet). -->
@@ -354,8 +354,7 @@
   @media (prefers-reduced-motion: reduce) { .chat.master > :global(header) { transition: none; } }
   .chat.master :global(header .pill) { background: var(--master-highest); }
   .chat.master .lines { background: none; }
-  .chat.master :global(.me .bubble), .chat.master :global(.play), .chat.master :global(.box) { background: var(--master-highest); }
-  .chat.master :global(.steps) { background: var(--master-high); }
+  .chat.master :global(.play), .chat.master :global(.box) { background: var(--master-highest); }
   .chat.master :global(.box) { border: 0; }
   .chat.master :global(.box .row) { border-top-color: var(--line); }
   .chat.master > :global(.bar) { margin-top: 10px; padding-top: 10px; border-radius: 28px 28px 0 0; background: var(--master-high); }

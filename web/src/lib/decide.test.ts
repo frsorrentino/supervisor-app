@@ -87,8 +87,9 @@ describe('chat_esito_allineata', () => {
     expect(rule('.fesito p')).toContain('color: var(--text)')
     expect(rule('.fesito .gl')).toContain('height: 1lh')
     expect(rule('.fesito .gl')).toContain('align-items: center')
-    expect(rule('.fesito {')).toContain('border-top: 1px solid var(--line)')
-    expect(feed).toContain('class="sr"')
+    // Dalla scheda unica (app-chat-scheda-unica-13-11) l'esito sta nel piede: lo separa il fondo, non una linea, e l'etichetta si legge.
+    expect(rule('.fesito {')).not.toContain('border-top')
+    expect(feed).toContain('<span class="k">{t.outcomeLabel}</span>')
   })
   it('chat_esito_allineata: aspetta te ha la mano di Ti aspettano, in chat e negli esiti', () => {
     for (const f of ['./Feed.svelte', './HomeBox.svelte']) expect(readFileSync(new URL(f, import.meta.url), 'utf8'), f).toContain("waiting: 'hand'")
