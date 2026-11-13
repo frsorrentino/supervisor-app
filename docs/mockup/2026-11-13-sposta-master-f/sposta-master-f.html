@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sposta la master, giro F</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0&display=block" rel="stylesheet">
+<style>
+  /* Giro F di app-mockup-sposta-master-12-11 (Franz 13/11 10:27, dopo E1 ed E2: «via di mezzo A B»; nella scheda A era E1, si accende
+     solo la zona della freccia, e B era E2, tutti i posti possibili tratteggiati col nome e pieno quello della freccia). Due vie di
+     mezzo: in tutte e due la zona della freccia si accende in giallo col suo nome, come in E1, e gli altri posti possibili si vedono
+     ma con meno segni di E2, senza tratteggio e senza nomi.
+       A, posti accennati: gli altri posti sono un velo chiaro sulla loro area.
+       B, segni sul bordo: degli altri posti c'è solo una tacca sul bordo dove stanno.
+     Preferisco A e lo dico nelle tavole: l'area dice anche quanto è grande il posto (colonna, metà schermo, riga), la tacca solo da
+     che parte sta. Il resto è il giro E: tasto tondo del telefono col chevron, una freccia sola dal lato del puntatore, chevron al
+     centro per 8 px, dito e tastiera presi da D (non da Franz).
+     Per le tavole: `?v=a|b&s=riposo|freccia|chevron|dito|tastiera|chiusa&pos=R|L|B|H&dir=W…&day&only=web|tel`. */
+  :root { --bg:#0B0B0B; --s1:#121212; --s2:#181818; --s3:#232323; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#A3A3A3; --tx3:#6E6E6E;
+          --wait:#FFB23F; --busy:#8AA9DB; --master:#141820; --scrim:rgb(0 0 0 / .52); --zone:rgb(255 178 63 / .16); --ring:#1E1E1E; }
+  :root[data-theme="day"] { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#ECECEC; --line:#E1E1E1; --tx:#141414; --tx2:#555555; --tx3:#8A8A8A;
+          --wait:#9A5700; --busy:#3D5F94; --master:#EEF2F8; --scrim:rgb(20 20 20 / .34); --zone:rgb(255 178 63 / .30); --ring:#FFFFFF; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, sans-serif; min-height: 100dvh; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; display: inline-block; white-space: nowrap; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+
+  /* La pagina: in alto cosa provare, sotto il web e il telefono. */
+  .page { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; max-width: 1440px; }
+  .bar h1 { font: 700 22px/28px "Barlow Semi Condensed", sans-serif; }
+  .bar p { flex: 1 1 520px; color: var(--tx2); font-size: 14.5px; line-height: 21px; }
+  .bar kbd { font: 500 12px/18px "Geist Mono", monospace; padding: 0 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--s1); color: var(--tx); }
+  .chip { font: 600 14px/20px "Barlow Semi Condensed", sans-serif; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--s1); }
+  .chip:active { transform: scale(.97); }
+  .stages { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .wrap { position: relative; overflow: hidden; border-radius: 14px; box-shadow: 0 0 0 1px var(--line); }
+  .cap { font: 500 12px/16px "Geist Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); margin-bottom: 8px; }
+  body.only .page { padding: 0; gap: 0; } body.only .bar, body.only .cap { display: none; } body.only .wrap { border-radius: 0; box-shadow: none; }
+  body.only-web #telBox, body.only-tel #webBox { display: none; }
+
+  /* Lo schermo del web, 1440 × 900, scalato per stare nella finestra. */
+  .stage { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; transform-origin: 0 0; background: var(--bg); overflow: hidden; }
+  .app { position: absolute; inset: 0; padding: 24px 28px; display: grid; grid-template-columns: 1fr 1fr 380px; gap: 20px; align-content: start; }
+  .app .col { display: flex; flex-direction: column; gap: 12px; }
+  .app .h { font: 700 24px/30px "Barlow Semi Condensed", sans-serif; padding: 4px 4px 8px; } .app .h small { font: 400 13px "Geist Mono", monospace; color: var(--tx2); margin-left: 8px; }
+  .card { border-radius: 18px; background: var(--s1); border: 1px solid var(--line); padding: 14px 16px; }
+  .card b { font: 600 17px/22px "Barlow Semi Condensed", sans-serif; display: block; } .card span { color: var(--tx2); font-size: 14px; line-height: 20px; }
+  .card.tall { min-height: 300px; } .card .w { color: var(--wait); }
+  .lbl { font: 500 12px/16px "Geist Mono", monospace; letter-spacing: .12em; color: var(--wait); padding: 6px 4px 0; }
+
+  /* La master: il suo posto, il cerchio in testa. */
+  .master { position: absolute; z-index: 3; background: var(--master); border: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden;
+            transition: left 280ms cubic-bezier(.23,1,.32,1), top 280ms cubic-bezier(.23,1,.32,1), width 280ms cubic-bezier(.23,1,.32,1), height 280ms cubic-bezier(.23,1,.32,1); }
+  .master .mh { flex: none; height: 72px; display: flex; align-items: center; gap: 12px; padding: 0 20px 0 88px; }
+  .master .mh b { font: 700 18px/22px "Barlow Semi Condensed", sans-serif; } .master .mh span { color: var(--tx2); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .master .body { flex: 1; min-height: 0; padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 22px; color: var(--tx2); }
+  .master .body p:first-child { color: var(--tx); }
+  .master .in { margin-top: auto; padding: 11px 16px; border-radius: 24px; background: var(--s2); border: 1px solid var(--line); color: var(--tx3); }
+  .master.row .mh { height: 64px; } .master.row .body, .master.shut .body { display: none; }
+  .master.closed-col { }
+
+  /* Lo scuro sull'app e la zona d'arrivo in giallo. */
+  .scrim { position: absolute; inset: 0; z-index: 5; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 160ms ease-out; }
+  .stage.preview .scrim { opacity: 1; }
+  .zone { position: absolute; z-index: 6; border-radius: 6px; background: var(--zone); box-shadow: inset 0 0 0 2px var(--wait); opacity: 0; pointer-events: none;
+          display: grid; place-items: center; transition: opacity 140ms ease-out; }
+  .zone span { font: 700 20px/26px "Barlow Semi Condensed", sans-serif; color: var(--wait); padding: 6px 14px; border-radius: 999px; background: var(--bg); }
+  .stage.preview .zone { opacity: 1; }
+
+  /* Il tasto della master: tondo, 52 px, come sul telefono. Dentro, il chevron o la freccia della direzione possibile. */
+  .mbtn { position: absolute; z-index: 7; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: var(--s3); display: grid; place-items: center;
+          touch-action: none; transition: background 120ms, transform 120ms; }
+  .mbtn .ms { font-size: 26px; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+  .mbtn.arrow { background: var(--wait); } .mbtn.arrow .ms { color: var(--bg); }
+  .mbtn:active { transform: scale(.95); }
+  .mbtn:focus-visible { outline: 2px solid var(--busy); outline-offset: 3px; }
+  /* E2: i posti possibili tratteggiati; quello della freccia si riempie. */
+  .ghost { position: absolute; z-index: 6; border-radius: 6px; border: 2px dashed var(--tx3); opacity: 0; pointer-events: none; display: grid; place-items: center; transition: opacity 140ms ease-out, background 120ms; }
+  .ghost span { font: 600 17px/24px "Barlow Semi Condensed", sans-serif; color: var(--tx2); padding: 4px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); }
+  .stage.places .ghost { opacity: 1; }
+  .ghost.hot { border-color: var(--wait); background: var(--zone); } .ghost.hot span { color: var(--wait); border-color: transparent; font-size: 20px; }
+  /* Giro F: la zona della freccia la disegna `.zone`, come in E1; il suo posto fra gli accennati sparisce. */
+  .ghost span { display: none; }
+  .ghost.hot { opacity: 0 !important; background: none; }
+  /* A: un velo chiaro sull'area di ogni altro posto possibile. */
+  .stage.fa .ghost { border: 0; background: color-mix(in srgb, var(--tx) 8%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tx) 16%, transparent); }
+  /* B: una tacca sul bordo dove sta ogni altro posto possibile. */
+  .stage.fb .ghost { border: 0; background: none; }
+  .stage.fb .ghost::after { content: ''; position: absolute; border-radius: 4px; background: var(--tx2); }
+  .stage.fb .ghost.g-L::after { left: 2px; top: 50%; width: 7px; height: 96px; margin-top: -48px; }
+  .stage.fb .ghost.g-R::after { right: 2px; top: 50%; width: 7px; height: 96px; margin-top: -48px; }
+  .stage.fb .ghost.g-B::after { bottom: 2px; left: 50%; width: 96px; height: 7px; margin-left: -48px; }
+  .stage.fb .ghost.g-H::after { top: 0; left: 50%; width: 96px; height: 7px; margin-left: -48px; }
+  @media (prefers-reduced-motion: reduce) { .mbtn, .mbtn .ms, .ghost, .master { transition-duration: 1ms; } }
+  .hint { position: absolute; z-index: 8; left: 50%; bottom: 84px; transform: translateX(-50%); font: 500 14px/20px Barlow, sans-serif; padding: 8px 14px; border-radius: 12px;
+          background: var(--s2); border: 1px solid var(--line); color: var(--tx2); opacity: 0; transition: opacity 140ms; white-space: nowrap; pointer-events: none; }
+  .hint kbd { font: 500 12px/18px "Geist Mono", monospace; padding: 0 5px; border-radius: 5px; border: 1px solid var(--line); color: var(--tx); }
+  .stage.keys .hint { opacity: 1; }
+  .finger { position: absolute; z-index: 9; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgb(255 255 255 / .28); box-shadow: 0 0 0 2px rgb(255 255 255 / .55); display: none; pointer-events: none; }
+  :root[data-theme="day"] .finger { background: rgb(0 0 0 / .14); box-shadow: 0 0 0 2px rgb(0 0 0 / .35); }
+  .stage.dito .finger { display: block; }
+
+  /* Il telefono: due posizioni, il tasto di oggi con la sola freccia. */
+  .tel { position: absolute; left: 0; top: 0; width: 412px; height: 915px; transform-origin: 0 0; background: var(--bg); overflow: hidden; }
+  .tel .app { grid-template-columns: 1fr; padding: 48px 14px 14px; }
+  .tel .master { left: 0; right: 0; width: auto; }
+  .tel .master.row { top: 851px; height: 64px; } .tel .master.full { top: 0; height: 915px; }
+  .tel .master .mh { padding-left: 20px; padding-right: 72px; height: 64px; }
+  .tel .one { position: absolute; z-index: 7; right: 14px; width: 44px; height: 44px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; transition: top 280ms cubic-bezier(.23,1,.32,1); }
+  .tel .one:active { transform: scale(.95); }
+  .tel .one:focus-visible { outline: 2px solid var(--busy); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="bar">
+    <h1>Sposta la master, giro F</h1>
+    <p>Il tasto tondo della master è quello del telefono. Col mouse: passaci sopra e muoviti dentro il tasto; verso un lato dove la master può andare compare la freccia, e il clic la sposta; al centro e verso gli altri lati resta il chevron, che apre e chiude. <span id="how"></span> Dito e tastiera (non chiesti da Franz, presi da D): tieni premuto e trascina, poi lascia; <kbd>Tab</kbd> sul tasto, una freccia o due insieme, <kbd>Invio</kbd>, <kbd>Esc</kbd>.</p>
+    <button class="chip" id="var">Variante B</button><button class="chip" id="theme">Giorno</button><button class="chip" id="reset">Rimetti a destra</button>
+  </div>
+  <div class="stages">
+    <div id="webBox"><div class="cap">Web e tablet · quattro posti</div><div class="wrap" id="webWrap"><div class="stage" id="stage">
+      <div class="app">
+        <div class="col"><div class="h">Supervisor<small>0.2.2135 · 4 aperte</small></div>
+          <div class="card"><b class="w">3 sessioni ferme</b><span>la prima da 7 min</span></div>
+          <div class="lbl">TI ASPETTANO 3</div>
+          <div class="card"><b>storefront</b><span>Fai il login nella sandbox dei pagamenti</span></div>
+          <div class="card"><b>payments-api</b><span>Pubblica il deploy 2.8.0</span></div>
+          <div class="card"><b>blog</b><span>ok alla pubblicazione del post</span></div></div>
+        <div class="col"><div class="card tall"><b>payments-api</b><span>Il rimborso parziale ora passa su staging: ho corretto l'arrotondamento dei centesimi e aggiunto i test che mancavano.</span></div>
+          <div class="card"><b>Risultati</b><span>Rapporto dei test dei pagamenti</span></div></div>
+        <div class="col"><div class="card"><b>Lavori</b><span>2 in corso, 1 da provare</span></div><div class="card"><b>Utilizzo</b><span>Settimana 75%</span></div></div>
+      </div>
+      <div class="master" id="master"><div class="mh"><b>Master</b><span>Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</span></div>
+        <div class="body"><p>Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</p><p>storefront aspetta il login nella sandbox: l'ho segnato fra le cose che ti aspettano.</p><div class="in">Scrivi alla master</div></div></div>
+      <div class="scrim"></div>
+      <div class="zone" id="zone"><span id="zoneName"></span></div>
+      <button class="mbtn" id="mid" aria-label="Apri o chiudi la master; le frecce la spostano"><span class="ms" id="midIc">expand_more</span></button>
+      <div class="hint" id="hint"></div>
+      <div class="finger" id="finger"></div>
+    </div></div></div>
+    <div id="telBox"><div class="cap">Telefono · due posti</div><div class="wrap" id="telWrap"><div class="tel" id="tel">
+      <div class="app"><div class="col"><div class="h">Supervisor</div>
+        <div class="card"><b class="w">3 sessioni ferme</b><span>la prima da 7 min</span></div>
+        <div class="lbl">TI ASPETTANO 3</div>
+        <div class="card"><b>storefront</b><span>Fai il login nella sandbox dei pagamenti</span></div>
+        <div class="card"><b>payments-api</b><span>Pubblica il deploy 2.8.0</span></div></div></div>
+      <div class="master row" id="tmaster"><div class="mh"><b>Master</b><span>Lanciata payments-api sulla fase 2.2.</span></div>
+        <div class="body"><p>Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</p><div class="in">Scrivi alla master</div></div></div>
+      <button class="one" id="one" aria-label="Master a tutto schermo"><span class="ms" id="oneIc">arrow_upward</span></button>
+    </div></div></div>
+  </div>
+</div>
+<script>
+  let timer = null, touchSkip = false
+  // I quattro posti della master sul web (lo schermo è 1440 × 900) e, da ognuno, le direzioni possibili: direzione → posto d'arrivo.
+  const ZONES = { R: { x: 1028, y: 0, w: 412, h: 900, name: 'A destra' }, L: { x: 0, y: 0, w: 412, h: 900, name: 'A sinistra' },
+                  B: { x: 0, y: 836, w: 1440, h: 64, name: 'Una riga in basso' }, H: { x: 0, y: 450, w: 1440, h: 450, name: 'Metà schermo, in basso' } }
+  const MOVES = { R: { W: 'L', SW: 'H', S: 'B' }, L: { E: 'R', SE: 'H', S: 'B' }, B: { NW: 'L', N: 'H', NE: 'R' }, H: { NW: 'L', NE: 'R', S: 'B' } }
+  const DIRS = { E: 0, SE: 45, S: 90, SW: 135, W: 180, NW: 225, N: 270, NE: 315 }
+  const LABEL = { E: 'destra', SE: 'in basso a destra', S: 'giù', SW: 'in basso a sinistra', W: 'sinistra', NW: 'in alto a sinistra', N: 'su', NE: 'in alto a destra' }
+  const $ = id => document.getElementById(id)
+  const stage = $('stage'), master = $('master'), zone = $('zone'), mid = $('mid'), ic = $('midIc')
+  const q = new URLSearchParams(location.search)
+  let pos = q.get('pos') ?? 'R', open = true, dir = null, mode = null, variant = q.get('v') === 'b' ? 'b' : 'a'
+
+  const theme = t => { document.documentElement.dataset.theme = t; $('theme').textContent = t === 'day' ? 'Notte' : 'Giorno' }
+  theme(q.has('day') ? 'day' : 'night')
+  $('theme').onclick = () => theme(document.documentElement.dataset.theme === 'day' ? 'night' : 'day')
+  if (q.get('only')) document.body.classList.add('only', 'only-' + q.get('only'))
+  function setVariant(v) {
+    variant = v; stage.classList.toggle('fa', v === 'a'); stage.classList.toggle('fb', v === 'b'); $('var').textContent = v === 'b' ? 'Variante A' : 'Variante B'
+    $('how').textContent = v === 'b' ? "B: la zona della freccia si accende in giallo; degli altri posti possibili c'è una tacca sul bordo dove stanno." : "A: la zona della freccia si accende in giallo; gli altri posti possibili sono un velo chiaro sulla loro area."
+  }
+  $('var').onclick = () => { done(); setVariant(variant === 'b' ? 'a' : 'b') }
+
+  // Un segno per ogni posto, mostrati solo quelli raggiungibili da dove sta la master: il velo di A o la tacca di B.
+  const ghosts = {}
+  for (const [k, z] of Object.entries(ZONES)) {
+    const g = document.createElement('div'); g.className = 'ghost g-' + k; g.innerHTML = `<span>${z.name}</span>`
+    Object.assign(g.style, { left: z.x + 4 + 'px', top: z.y + 4 + 'px', width: z.w - 8 + 'px', height: z.h - 8 + 'px' })
+    // Le colonne portano il nome in alto, fuori dalla metà in basso che le attraversa.
+    if (z.h > 500) Object.assign(g.style, { placeItems: 'start center', paddingTop: '150px' })
+    stage.insertBefore(g, mid); ghosts[k] = g
+  }
+
+  function place() {
+    const z = ZONES[pos], row = pos === 'B'
+    Object.assign(master.style, { left: z.x + 'px', top: z.y + 'px', width: z.w + 'px', height: (row || open ? z.h : 72) + 'px', borderRadius: '0' })
+    master.classList.toggle('row', row); master.classList.toggle('shut', !open && !row)
+    mid.style.left = z.x + 44 + 'px'; mid.style.top = z.y + (row ? 32 : 36) + 'px'
+    const reach = new Set(Object.values(MOVES[pos]))
+    for (const [k, g] of Object.entries(ghosts)) g.style.display = reach.has(k) ? '' : 'none'
+    show()
+  }
+  // Dentro il tasto: la freccia della direzione scelta, o il chevron di oggi (giù = chiudi, su = apri).
+  function show() {
+    mid.classList.toggle('arrow', !!dir)
+    ic.textContent = dir ? 'arrow_upward' : open && pos !== 'B' ? 'expand_more' : 'expand_less'
+    ic.style.transform = dir ? `rotate(${DIRS[dir] + 90}deg)` : ''
+    mid.setAttribute('aria-label', dir ? `Sposta la master: ${ZONES[MOVES[pos][dir]].name.toLowerCase()}` : 'Apri o chiudi la master; le frecce la spostano')
+  }
+  function preview(d) {
+    dir = d && MOVES[pos][d] ? d : null
+    stage.classList.toggle('preview', !!dir)
+    for (const [k, g] of Object.entries(ghosts)) g.classList.toggle('hot', !!dir && MOVES[pos][dir] === k)
+    if (dir) { const z = ZONES[MOVES[pos][dir]]; Object.assign(zone.style, { left: z.x + 'px', top: z.y + 'px', width: z.w + 'px', height: z.h + 'px' }); $('zoneName').textContent = z.name }
+    show()
+  }
+  const places = on => stage.classList.toggle('places', on)
+  function move() { if (!dir) return; pos = MOVES[pos][dir]; done(); place() }
+  function done() { preview(null); places(false); mode = null; stage.classList.remove('keys', 'dito') }
+
+  // La direzione dalla posizione del puntatore rispetto al centro del tasto: al centro nessuna; fuori dal centro la più vicina fra
+  // quelle possibili, se sta entro 45° dal puntatore; altrimenti nessuna, e resta il chevron.
+  const scale = () => stage.getBoundingClientRect().width / 1440
+  function local(e) { const r = stage.getBoundingClientRect(), s = scale(); return [(e.clientX - r.left) / s, (e.clientY - r.top) / s] }
+  function dirAt(p, dead) {
+    const dx = p[0] - parseFloat(mid.style.left), dy = p[1] - parseFloat(mid.style.top)
+    if (Math.hypot(dx, dy) < dead) return null
+    const a = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360
+    const best = Object.keys(MOVES[pos]).map(k => [k, Math.min(Math.abs(a - DIRS[k]), 360 - Math.abs(a - DIRS[k]))]).sort((x, y) => x[1] - y[1])[0]
+    return best && best[1] <= 45 ? best[0] : null
+  }
+
+  // Mouse: il passaggio dentro il tasto sceglie, il clic sposta; col chevron il clic apre e chiude.
+  mid.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mode = 'mouse'; places(true); preview(dirAt(local(e), 8)) })
+  mid.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && mode === 'mouse') done() })
+  mid.addEventListener('click', () => {
+    if (touchSkip) { touchSkip = false; return }
+    if (mode === 'dito') return
+    if (dir) move(); else if (pos !== 'B') { open = !open; place() }
+  })
+
+  // Dito (non da Franz, da D): tocco corto apre e chiude; pressione lunga (450 ms), poi il trascinamento sceglie la direzione,
+  // la freccia compare nel tasto e il rilascio conferma; rilasciare sul tasto annulla.
+  mid.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse') return
+    mid.setPointerCapture(e.pointerId)
+    const p = local(e)
+    timer = setTimeout(() => { mode = 'dito'; stage.classList.add('dito'); places(true); finger(p); navigator.vibrate?.(12) }, 450)
+  })
+  mid.addEventListener('pointermove', e => { if (mode !== 'dito') return; const p = local(e); finger(p); preview(dirAt(p, 30)) })
+  mid.addEventListener('pointerup', e => { if (e.pointerType === 'mouse') return; clearTimeout(timer); if (mode === 'dito') { touchSkip = true; if (dir) move(); else done() } })
+  mid.addEventListener('pointercancel', () => { clearTimeout(timer); done() })
+  const finger = p => { Object.assign($('finger').style, { left: p[0] + 'px', top: p[1] + 'px' }) }
+
+  // Tastiera (non da Franz, da D): col tasto a fuoco una freccia, o due insieme, sceglie; Invio sposta, Esc annulla; Invio senza
+  // freccia apre e chiude.
+  const held = new Set()
+  const KEY = { ArrowUp: 'N', ArrowDown: 'S', ArrowLeft: 'W', ArrowRight: 'E' }
+  const combo = () => { const s = [...held]; if (s.length === 1) return s[0]; const v = s.includes('N') ? 'N' : s.includes('S') ? 'S' : ''; const h = s.includes('E') ? 'E' : s.includes('W') ? 'W' : ''; return v && h ? v + h : s.at(-1) }
+  mid.addEventListener('keydown', e => {
+    if (KEY[e.key]) { e.preventDefault(); held.add(KEY[e.key]); mode = 'keys'; stage.classList.add('keys'); places(true); preview(combo()); hint() }
+    else if (e.key === 'Enter' || e.key === ' ') { if (dir) { e.preventDefault(); move() } }
+    else if (e.key === 'Escape') { e.preventDefault(); done() }
+  })
+  mid.addEventListener('keyup', e => { if (KEY[e.key]) held.delete(KEY[e.key]) })
+  mid.addEventListener('blur', () => { held.clear(); if (mode === 'keys') done() })
+  function hint() { $('hint').innerHTML = dir ? `${ZONES[MOVES[pos][dir]].name}: <kbd>Invio</kbd> sposta, <kbd>Esc</kbd> annulla` : `Da qui: ${Object.keys(MOVES[pos]).map(d => LABEL[d]).join(', ')}. <kbd>Esc</kbd> annulla` }
+
+  $('reset').onclick = () => { pos = 'R'; open = true; done(); place(); telPos = 'row'; telPlace() }
+
+  // Il telefono resta com'è: due posti, il suo tasto tondo col chevron verso l'altro posto.
+  let telPos = q.get('tel') ?? 'row'
+  function telPlace() {
+    const m = $('tmaster'); m.classList.toggle('row', telPos === 'row'); m.classList.toggle('full', telPos === 'full')
+    $('one').style.top = (telPos === 'row' ? 851 + 10 : 10) + 'px'; $('oneIc').textContent = telPos === 'row' ? 'expand_less' : 'expand_more'
+    $('one').setAttribute('aria-label', telPos === 'row' ? 'Master a tutto schermo' : 'Master in una riga in basso')
+  }
+  $('one').onclick = () => { telPos = telPos === 'row' ? 'full' : 'row'; telPlace() }
+
+  function fit() {
+    const only = q.get('only'), W = innerWidth - (only ? 0 : 32)
+    const ws = only === 'web' ? innerWidth / 1440 : Math.min(1, W / 1440), ts = only === 'tel' ? innerWidth / 412 : Math.min(1, W / 412, (innerHeight - 40) / 915)
+    stage.style.transform = `scale(${ws})`; $('webWrap').style.width = 1440 * ws + 'px'; $('webWrap').style.height = 900 * ws + 'px'
+    $('tel').style.transform = `scale(${ts})`; $('telWrap').style.width = 412 * ts + 'px'; $('telWrap').style.height = 915 * ts + 'px'
+  }
+  addEventListener('resize', fit); fit(); setVariant(variant); place(); telPlace()
+
+  // Le tavole: lo stato chiesto dall'indirizzo. Il puntatore disegnato sta dalla parte del tasto che dà quella freccia (`at`).
+  const s = q.get('s'), d0 = q.get('dir'), at = q.get('at')
+  function cursor(d, r) {
+    const c = document.createElement('div'), a = (d ? DIRS[d] : 0) * Math.PI / 180
+    c.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-3 6z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>'
+    Object.assign(c.style, { position: 'absolute', zIndex: 10, pointerEvents: 'none', left: parseFloat(mid.style.left) + Math.cos(a) * r - 4 + 'px', top: parseFloat(mid.style.top) + Math.sin(a) * r - 2 + 'px' }); stage.appendChild(c)
+  }
+  if (s === 'freccia') { mode = 'mouse'; places(true); preview(d0); cursor(d0, 22) }
+  if (s === 'chevron') { mode = 'mouse'; places(true); preview(null); cursor(at, at ? 22 : 0) }
+  if (s === 'dito') { mode = 'dito'; stage.classList.add('dito'); places(true); preview(d0); const a = DIRS[d0] * Math.PI / 180; finger([parseFloat(mid.style.left) + Math.cos(a) * 70, parseFloat(mid.style.top) + Math.sin(a) * 70]) }
+  if (s === 'tastiera') { mode = 'keys'; stage.classList.add('keys'); places(true); preview(d0); hint(); mid.focus() }
+  if (s === 'chiusa') { open = false; place() }
+</script>
+</body>
+</html>
