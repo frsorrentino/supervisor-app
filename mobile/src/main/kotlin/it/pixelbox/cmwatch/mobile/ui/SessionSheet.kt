@@ -2785,6 +2785,11 @@ private fun TurnRow(
             is ChatFeed.Item.User -> Box(Modifier.fillMaxWidth().flashed(flash != null && q.entry.id == flash)) { UserBubble(q.entry, onResend = { x -> actions.send(PhonePrimary.Target.PROMPT, x) }) }
             else -> Unit
         }
+        // Un turno partito senza richiesta (un avviso automatico, una notifica): una testata piccola con l'ora al posto del fumetto.
+        if (t.auto) Text(
+            listOfNotNull(stringResource(R.string.chat_auto_turn), (t.work.firstOrNull()?.entry?.at ?: t.answer?.at)?.let(::hhmm)).joinToString(" · "),
+            style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 12.5.sp, lineHeight = 16.sp), color = V3.Tx3, modifier = Modifier.padding(horizontal = 6.dp).testTag("chat-avviso-automatico"),
+        )
         if (t.work.isNotEmpty() || t.answer != null) V3Theme {
             val shape = RoundedCornerShape(22.dp)
             Column(Modifier.fillMaxWidth().testTag("chat-scheda").clip(shape).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier)) {

@@ -13,7 +13,8 @@ object ChatTurns {
 
     sealed interface Row {
         /** `request` è un [ChatFeed.Item.Mine] o un [ChatFeed.Item.User]; null se la pagina comincia a metà turno. */
-        data class Turn(val key: String, val request: ChatFeed.Item?, val work: List<Step>, val answer: TranscriptEntry?) : Row {
+        /** `auto` (app-chat-fine-turno-13-11): un turno partito senza richiesta dopo un turno chiuso (un avviso automatico, una notifica). */
+        data class Turn(val key: String, val request: ChatFeed.Item?, val work: List<Step>, val answer: TranscriptEntry?, val auto: Boolean = false) : Row {
             /** Tutte le voci della trascrizione del turno, per trovare quella cercata. */
             val entryIds: List<String> get() = listOfNotNull(request?.let(ChatFeed::entryOf)) + work.map { it.entry.id } + listOfNotNull(answer?.id)
             val tools: Int get() = work.count { !it.say }
@@ -26,18 +27,23 @@ object ChatTurns {
 
     /** Le voci della chat (anche già raccolte in gruppi di passi) divise in turni; i separatori restano fra un turno e l'altro. */
     fun turns(items: List<ChatFeed.Item>): List<Row> {
-        class Open(val key: String, val request: ChatFeed.Item?) { val work = mutableListOf<Step>() }
+        class Open(val key: String, val request: ChatFeed.Item?, val auto: Boolean = false) { val work = mutableListOf<Step>() }
         val out = mutableListOf<Any>()
         var cur: Open? = null
+        // Un turno si è chiuso prima, in questa conversazione: una voce senza richiesta dopo di lui è un turno suo, partito da solo.
+        var closed = false
+        // La fine del turno la dice il relay (contratto 1.22: `turn.ended` sull'ultima voce di ogni turno): quella voce chiude la scheda,
+        // e se è testo è la risposta, mai un passo del turno dopo (app-chat-fine-turno-13-11, la chat della master del 13/11 alle 17:05).
         fun step(say: Boolean, e: TranscriptEntry) {
-            val c = cur ?: Open("h-" + e.id, null).also { out += it; cur = it }
+            val c = cur ?: Open("h-" + e.id, null, auto = closed).also { out += it; cur = it }
             c.work += Step(say, e)
+            if (e.turn?.ended != null) { cur = null; closed = true }
         }
         items.forEach { it ->
             when (it) {
                 is ChatFeed.Item.Mine -> cur = Open("m-" + it.sent.id, it).also { o -> out += o }
                 is ChatFeed.Item.User -> cur = Open("u-" + it.entry.id, it).also { o -> out += o }
-                is ChatFeed.Item.Separator -> { out += it; cur = null }
+                is ChatFeed.Item.Separator -> { out += it; cur = null; closed = false }
                 is ChatFeed.Item.Steps -> it.entries.forEach { e -> step(false, e) }
                 is ChatFeed.Item.Tool -> step(false, it.entry)
                 is ChatFeed.Item.Claude -> step(true, it.entry)
@@ -46,7 +52,7 @@ object ChatTurns {
         return out.map { o ->
             if (o is Open) {
                 val last = o.work.lastOrNull()
-                if (last?.say == true) Row.Turn(o.key, o.request, o.work.dropLast(1), last.entry) else Row.Turn(o.key, o.request, o.work.toList(), null)
+                if (last?.say == true) Row.Turn(o.key, o.request, o.work.dropLast(1), last.entry, o.auto) else Row.Turn(o.key, o.request, o.work.toList(), null, o.auto)
             } else Row.Sep(o as ChatFeed.Item.Separator)
         }
     }

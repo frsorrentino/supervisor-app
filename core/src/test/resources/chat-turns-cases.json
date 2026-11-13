@@ -210,6 +210,177 @@
      "answer": null
     }
    ]
+  },
+  {
+   "name": "13/11: la risposta chiude la sua scheda, e la risposta a un avviso automatico ne apre una sua",
+   "entries": [
+    {
+     "id": "u1",
+     "role": "user",
+     "text": "Com'è andata la campagna su Meta Ads?",
+     "at": 100
+    },
+    {
+     "id": "t1",
+     "role": "tool",
+     "tool": "Bash",
+     "text": "python report.py",
+     "at": 110
+    },
+    {
+     "id": "a1",
+     "role": "assistant",
+     "text": "La campagna ha speso 42 € e portato 3 contatti.\nEsito: rapporto Meta Ads pronto",
+     "at": 130,
+     "turn": {
+      "started": 100,
+      "ended": 130
+     }
+    },
+    {
+     "id": "a2",
+     "role": "assistant",
+     "text": "Ho visto l'avviso di joy: il backup è finito.\nEsito: backup verificato",
+     "at": 500,
+     "turn": {
+      "started": 495,
+      "ended": 500
+     }
+    }
+   ],
+   "out": [
+    {
+     "key": "u-u1",
+     "request": "u1",
+     "work": [
+      "tool:t1"
+     ],
+     "answer": "a1"
+    },
+    {
+     "key": "h-a2",
+     "request": null,
+     "work": [],
+     "answer": "a2",
+     "auto": true
+    }
+   ]
+  },
+  {
+   "name": "un turno senza richiesta coi suoi passi: una scheda sua, chiusa dalla sua risposta",
+   "entries": [
+    {
+     "id": "u1",
+     "role": "user",
+     "text": "Vai",
+     "at": 10
+    },
+    {
+     "id": "a1",
+     "role": "assistant",
+     "text": "Fatto.",
+     "at": 20,
+     "turn": {
+      "started": 10,
+      "ended": 20
+     }
+    },
+    {
+     "id": "t1",
+     "role": "tool",
+     "tool": "Read",
+     "text": "docs/avviso.md",
+     "at": 40
+    },
+    {
+     "id": "a2",
+     "role": "assistant",
+     "text": "Letto l'avviso.",
+     "at": 45,
+     "turn": {
+      "started": 38,
+      "ended": 45
+     }
+    },
+    {
+     "id": "t2",
+     "role": "tool",
+     "tool": "Bash",
+     "text": "ls",
+     "at": 60
+    }
+   ],
+   "out": [
+    {
+     "key": "u-u1",
+     "request": "u1",
+     "work": [],
+     "answer": "a1"
+    },
+    {
+     "key": "h-t1",
+     "request": null,
+     "work": [
+      "tool:t1"
+     ],
+     "answer": "a2",
+     "auto": true
+    },
+    {
+     "key": "h-t2",
+     "request": null,
+     "work": [
+      "tool:t2"
+     ],
+     "answer": null,
+     "auto": true
+    }
+   ]
+  },
+  {
+   "name": "la fine del turno su un passo chiude la scheda senza risposta; a inizio pagina non è un avviso",
+   "entries": [
+    {
+     "id": "a0",
+     "role": "assistant",
+     "text": "Riprendo.",
+     "at": 5
+    },
+    {
+     "id": "t0",
+     "role": "tool",
+     "tool": "Bash",
+     "text": "make",
+     "at": 8,
+     "turn": {
+      "started": 1,
+      "ended": 8
+     }
+    },
+    {
+     "id": "u1",
+     "role": "user",
+     "text": "Ok",
+     "at": 20
+    }
+   ],
+   "out": [
+    {
+     "key": "h-a0",
+     "request": null,
+     "work": [
+      "say:a0",
+      "tool:t0"
+     ],
+     "answer": null
+    },
+    {
+     "key": "u-u1",
+     "request": "u1",
+     "work": [],
+     "answer": null
+    }
+   ]
   }
  ],
  "sections": [

@@ -19,7 +19,11 @@ import org.junit.Test
 class ChatTurnsTest {
     private val cases = Json.parseToJsonElement(javaClass.getResource("/chat-turns-cases.json")!!.readText()).jsonObject
     private fun str(o: JsonObject, k: String): String? = (o[k] as? JsonPrimitive)?.takeIf { it.isString }?.content
-    private fun entry(o: JsonObject) = TranscriptEntry(id = str(o, "id") ?: "x", role = str(o, "role") ?: "tool", text = str(o, "text"), tool = str(o, "tool"), note = str(o, "note"))
+    private fun entry(o: JsonObject) = TranscriptEntry(
+        id = str(o, "id") ?: "x", role = str(o, "role") ?: "tool", text = str(o, "text"), tool = str(o, "tool"), note = str(o, "note"),
+        at = (o["at"] as? JsonPrimitive)?.content?.toLongOrNull(),
+        turn = (o["turn"] as? JsonObject)?.let { t -> it.pixelbox.cmwatch.contract.TranscriptTurn(started = (t["started"] as? JsonPrimitive)?.content?.toLongOrNull(), ended = (t["ended"] as? JsonPrimitive)?.content?.toLongOrNull()) },
+    )
     private fun orNull(e: JsonElement?): String? = if (e == null || e is JsonNull) null else e.jsonPrimitive.content
 
     private fun shape(entries: List<TranscriptEntry>, grouped: Boolean): List<String> {
@@ -27,7 +31,7 @@ class ChatTurnsTest {
         return ChatTurns.turns(if (grouped) ChatFeed.group(items) else items).map { r ->
             when (r) {
                 is ChatTurns.Row.Sep -> "sep ${r.item.entry.id}"
-                is ChatTurns.Row.Turn -> "${r.key} | ${r.request?.let(ChatFeed::entryOf)} | ${r.work.joinToString(",") { (if (it.say) "say:" else "tool:") + it.entry.id }} | ${r.answer?.id}"
+                is ChatTurns.Row.Turn -> "${r.key} | ${r.request?.let(ChatFeed::entryOf)} | ${r.work.joinToString(",") { (if (it.say) "say:" else "tool:") + it.entry.id }} | ${r.answer?.id}" + if (r.auto) " | auto" else ""
             }
         }
     }
@@ -38,7 +42,7 @@ class ChatTurnsTest {
         val want = o["out"]!!.jsonArray.map { x ->
             val w = x.jsonObject
             if ("sep" in w) "sep ${str(w, "sep")}"
-            else "${str(w, "key")} | ${orNull(w["request"])} | ${w["work"]!!.jsonArray.joinToString(",") { it.jsonPrimitive.content }} | ${orNull(w["answer"])}"
+            else "${str(w, "key")} | ${orNull(w["request"])} | ${w["work"]!!.jsonArray.joinToString(",") { it.jsonPrimitive.content }} | ${orNull(w["answer"])}" + if ((w["auto"] as? JsonPrimitive)?.content == "true") " | auto" else ""
         }
         assertEquals(str(o, "name"), want, shape(entries, false))
         // Le voci già raccolte in gruppi di passi danno gli stessi turni.

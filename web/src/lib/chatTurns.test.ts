@@ -17,7 +17,7 @@ const file = JSON.parse(readFileSync(new URL('../../../core/src/test/resources/c
 const shape = (entries: TranscriptEntry[], grouped: boolean) => {
   const items = merge(entries, [])
   return turns(grouped ? group(items) : items).map(r => r.type === 'separator' ? { sep: r.entry.id }
-    : { key: r.key, request: r.request?.entry?.id ?? null, work: r.work.map(w => `${w.kind}:${w.entry.id}`), answer: r.answer?.id ?? null })
+    : { key: r.key, request: r.request?.entry?.id ?? null, work: r.work.map(w => `${w.kind}:${w.entry.id}`), answer: r.answer?.id ?? null, ...(r.auto ? { auto: true } : {}) })
 }
 
 describe('scheda unica: i turni', () => {

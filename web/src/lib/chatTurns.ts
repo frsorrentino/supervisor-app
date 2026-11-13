@@ -7,21 +7,27 @@ import { kind, short } from './toolText'
 // intermedie e i passi, nell'ordine della trascrizione) e la risposta, l'ultimo messaggio se dopo non ci sono altri passi.
 export type Request = Extract<Item, { type: 'mine' | 'user' }>
 export type Step = { kind: 'say' | 'tool'; entry: TranscriptEntry }
-export type Turn = { type: 'turn'; key: string; request: Request | null; work: Step[]; answer: TranscriptEntry | null }
+/** `auto` (app-chat-fine-turno-13-11): un turno partito senza richiesta dopo un turno chiuso (un avviso automatico, una notifica). */
+export type Turn = { type: 'turn'; key: string; request: Request | null; work: Step[]; answer: TranscriptEntry | null; auto?: boolean }
 export type Row = Turn | Extract<Item, { type: 'separator' }>
 
 /** Le voci della chat (anche già raccolte in gruppi di passi) divise in turni; i separatori restano fra un turno e l'altro. */
 export function turns(items: Item[]): Row[] {
   const out: Row[] = []
   let cur: Turn | null = null
+  // Un turno si è chiuso prima, in questa conversazione: una voce senza richiesta dopo di lui è un turno suo, partito da solo.
+  let closed = false
+  // La fine del turno la dice il relay (contratto 1.22: `turn.ended` sull'ultima voce di ogni turno): quella voce chiude la scheda,
+  // e se è testo è la risposta, mai un passo del turno dopo (app-chat-fine-turno-13-11, la chat della master del 13/11 alle 17:05).
   const step = (kind: Step['kind'], entry: TranscriptEntry) => {
-    if (!cur) out.push(cur = { type: 'turn', key: `h-${entry.id}`, request: null, work: [], answer: null })
+    if (!cur) out.push(cur = { type: 'turn', key: `h-${entry.id}`, request: null, work: [], answer: null, ...(closed ? { auto: true } : {}) })
     cur.work.push({ kind, entry })
+    if (entry.turn?.ended != null) { cur = null; closed = true }
   }
   for (const it of items) {
     if (it.type === 'mine') out.push(cur = { type: 'turn', key: `m-${it.sent.id}`, request: it, work: [], answer: null })
     else if (it.type === 'user') out.push(cur = { type: 'turn', key: `u-${it.entry.id}`, request: it, work: [], answer: null })
-    else if (it.type === 'separator') { out.push(it); cur = null }
+    else if (it.type === 'separator') { out.push(it); cur = null; closed = false }
     else if (it.type === 'steps') for (const e of it.entries) step('tool', e)
     else step(it.type === 'tool' ? 'tool' : 'say', it.entry)
   }

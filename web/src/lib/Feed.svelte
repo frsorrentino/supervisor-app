@@ -366,6 +366,8 @@
     </div>
   {:else}
     {#if r.request}{@render request(r.request)}{/if}
+    <!-- Un turno partito senza richiesta (un avviso automatico, una notifica): una testata piccola con l'ora al posto del fumetto. -->
+    {#if r.auto}{@const at = r.work[0]?.entry.at ?? r.answer?.at}<div class="autoh" data-testid="chat-avviso-automatico">{[t.autoTurn, at ? hm(at) : null].filter(Boolean).join(' · ')}</div>{/if}
     {#if r.work.length || r.answer}
       {@const n = toolCount(r.work)}
       {@const bad = failedCount(r.work)}
@@ -520,6 +522,7 @@
   /* Una richiesta lunga si legge come testo, non come titolo. */
   .bubble .t.long { font-family: inherit; font-weight: 400; font-size: 16px; line-height: 25px; }
   .me + .scard { margin-top: 10px; }
+  .autoh { margin: 0 6px 8px; font-size: 12.5px; line-height: 16px; color: var(--tx3); }
   .scard { border-radius: 22px; overflow: hidden; }
   :global(html.theme-day) .scard { box-shadow: 0 0 0 1px var(--line); margin: 1px; }
   .z { background: var(--zbg); }
