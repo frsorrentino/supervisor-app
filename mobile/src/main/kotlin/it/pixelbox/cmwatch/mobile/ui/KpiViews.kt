@@ -433,9 +433,9 @@ internal fun OutcomesBoardRow(count: String, label: String, red: String?, last: 
 private fun Board(value: String, label: String, tone: Color, red: String?, modifier: Modifier, of: Int? = null) {
     Column(modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.Top) {
-            Text(value, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 38.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = tone, maxLines = 1, modifier = if (of == null) Modifier.weight(1f) else Modifier)
+            Text(value, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 38.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = tone, maxLines = 1, modifier = if (of == null) Modifier.weight(1f) else Modifier.alignByBaseline())
             // La frazione sulle sessioni aperte (Franz 13/11 13:56: «al lavoro 1/5 e ferme 3/5»): più piccola e neutra, accanto alla cifra.
-            of?.let { Text("/$it", style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = V3.Tx2, maxLines = 1, modifier = Modifier.padding(start = 2.dp).weight(1f).alignByBaseline()) }
+            of?.let { Text("/$it", style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 24.sp, fontFeatureSettings = CM_TNUM), color = V3.Tx2, maxLines = 1, modifier = Modifier.padding(start = 2.dp).weight(1f).alignByBaseline()) }
             androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
         }
         // Due righe per tutte, anche quando il testo ne occupa una: i tre numeri e le etichette stanno sulle stesse linee (Franz 03/11
