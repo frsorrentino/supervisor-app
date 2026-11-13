@@ -435,7 +435,16 @@
 
   // Contratto 1.22: «Carica i messaggi precedenti» in cima alla chat, finché il relay dice che ce ne sono.
   let olderOf = $state<Record<string, boolean>>({})
+  // Un clic alla volta per sessione: tre clic di fila (la master con chrome-bridge il 12/11 alle 21:24:40-43) diventavano una lettura
+  // sola, ma la sua pagina veniva applicata tre volte; alla seconda non portava più voci nuove, `more` andava a falso e il tasto
+  // spariva (app-web-chat-prima-clear-12-11).
+  const olderBusy = new Set<string>()
   async function loadOlder(name: string) {
+    if (olderBusy.has(name)) return
+    olderBusy.add(name)
+    try { await loadOlderOnce(name) } finally { olderBusy.delete(name) }
+  }
+  async function loadOlderOnce(name: string) {
     const first = transcripts[name]?.[0]?.id
     if (!tr || !first) return
     // Il relay tiene una lettura per sessione e la pagina «prima» veniva superata dalla lettura `after` che parte di continuo:
