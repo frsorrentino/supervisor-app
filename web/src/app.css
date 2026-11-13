@@ -53,6 +53,10 @@ button.tonal:active, button.filled:active, button.approve:active, button.mini:ac
 /* L'altezza vera dell'area visibile (15/10, Franz dal link su X): dentro il browser di un'app la barra in basso copre parte
    della finestra, e 100% o 100vh mettevano il campo sotto la barra. Prima dvh, poi l'altezza di visualViewport da main.ts. */
 html, body { height: 100%; }
+/* Su iPhone (app-ios-chat-scroll-13-11, video del collega del 13/11): con #app fisso, un trascinamento su una lista che non ha
+   niente da scorrere faceva rimbalzare tutta la pagina, testata compresa, lasciando del nero sopra. La pagina non scorre mai:
+   niente rimbalzo (Safari dalla 16). */
+html, body { overscroll-behavior: none; }
 #app { height: 100%; height: 100dvh; height: var(--vvh, 100dvh); }
 /* iPhone con la tastiera (app-ios-scatti-tastiera-12-11): #app sta fisso sull'area visibile, anche quando Safari fa scorrere la
    pagina per mostrare il campo (--vvt, da main.ts); sulle altre piattaforme --vvt è 0 e non cambia niente. */

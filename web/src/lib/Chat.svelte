@@ -376,6 +376,11 @@
   .qpick button { padding: 8px 12px; border-radius: 8px; font: 600 14px var(--display); color: var(--tx); white-space: nowrap; }
   .qpick button:hover { background: var(--s2); }
   .lines { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  /* Una chat corta sta in fondo, accanto al campo, come ogni chat (app-ios-chat-scroll-13-11): con un turno solo e il lavoro ridotto
+     alle ultime voci restava in cima, con lo spazio vuoto sotto. `margin-top: auto` sulla prima voce, non `justify-content`, che
+     toglierebbe lo scorrimento verso l'alto a una chat lunga. Lo scorrimento arrivato in cima o in fondo non passa alla pagina. */
+  .lines { overscroll-behavior: contain; }
+  .lines:not(.dots) > :global(:first-child) { margin-top: auto; }
   .qlimit { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; padding: 16px; border-radius: 24px; border: 2px solid var(--gone); background: var(--high); max-width: 760px; }
   .qlimit p { margin: 0 0 4px; }
   .qlimit.fail { border-color: var(--wait); }

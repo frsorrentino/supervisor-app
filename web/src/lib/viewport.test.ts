@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { anchorOk, viewportVars } from './viewport'
 
@@ -25,5 +26,20 @@ describe('viewport', () => {
   })
   it('senza visualViewport: la finestra', () => {
     expect(viewportVars(null, 700)).toEqual({ vvh: 700, vvt: 0, kb: false })
+  })
+})
+
+// app-ios-chat-scroll-13-11: su iPhone un trascinamento su una chat corta faceva rimbalzare tutta la pagina, e la chat stava in cima
+// con lo spazio vuoto sotto (misura in docs/verifiche/2026-11-13-ios-chat-scroll).
+describe('iPhone: la pagina non rimbalza e una chat corta sta in fondo', () => {
+  const read = (f: string) => readFileSync(new URL(f, import.meta.url), 'utf8')
+  it('html e body senza rimbalzo', () => {
+    expect(read('../app.css')).toMatch(/^html, body \{ overscroll-behavior: none; \}$/m)
+  })
+  it('la lista della chat tiene lo scorrimento per sé e mette in fondo una chat corta, senza justify-content', () => {
+    const chat = read('./Chat.svelte')
+    expect(chat).toMatch(/^  \.lines \{ overscroll-behavior: contain; \}$/m)
+    expect(chat).toMatch(/^  \.lines:not\(\.dots\) > :global\(:first-child\) \{ margin-top: auto; \}$/m)
+    expect(chat.split('\n').filter(l => l.trimStart().startsWith('.lines')).join(' ')).not.toContain('justify-content')
   })
 })
