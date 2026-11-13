@@ -802,6 +802,13 @@
   }
   const homeInRow = $derived(homeRow && wide && !!master && masterOpen && !masterUnder && cols.length > 0 && !cols.includes(MASTER))
   const homeVoices = $derived(homeInRow ? homeRowVoices(fromSummary(summary.rows), cols, homeRowSince, homeRowOpened) : [])
+  // Sul telefono la master a tutto schermo ha la Home in riga sotto il campo, senza sceglierla: lì nessuna sessione è a schermo, e le
+  // novità si contano da quando la master si è aperta.
+  let phoneRowSince = $state<number | null>(null)
+  let phoneRowOpened = $state(new Set<string>())
+  $effect(() => { if (!wide && masterOpen) untrack(() => { phoneRowSince = Math.floor(Date.now() / 1000); phoneRowOpened = new Set() }) })
+  const phoneVoices = $derived(!wide && masterOpen ? homeRowVoices(fromSummary(summary.rows), [], phoneRowSince, phoneRowOpened) : [])
+  function openPhoneVoice(v: Voice) { if (v.kind === 'news') phoneRowOpened = new Set([...phoneRowOpened, v.key]); pick(v.session) }
   // Una novità aperta va via; la voce apre la sua sessione in una colonna.
   function openVoice(v: Voice) { if (v.kind === 'news') homeRowOpened = new Set([...homeRowOpened, v.key]); card(v.session) }
   // Il tasto tondo Posizione accanto al ▶ della master (Franz 03/11 17:23, al posto del menu ⋮ della scelta C delle 17:05,
@@ -2112,6 +2119,8 @@
       <div class="reading"><ReadingPill {slots} here={null} onOpen={pick} /></div>
     {/snippet}
     {#snippet chat()}{@render chatOf(MASTER, true)}{/snippet}
+    <!-- Sul telefono, sotto la master a tutto schermo: la Home in riga (app-home-riga-c1-13-11). -->
+    {#snippet row()}{#if !wide}<HomeRow tight voices={phoneVoices} {now} onOpen={openPhoneVoice} onHome={() => smooth(() => { masterOpen = false })} />{/if}{/snippet}
   </HomePane>
 {/snippet}
 

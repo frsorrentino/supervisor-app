@@ -12,12 +12,14 @@
   // Le misure (Franz, 08/10 18:15): sul telefono barra e tutto schermo, con una testata sola che porta il menu ≡ (`menu`);
   // sulla plancia (`halfStops`) anche la metà, con la home sopra e la conversazione sotto (`half`, cambiata da `onHalf`).
   // A tutta altezza la testata della home non si vede: il menu ≡ va nella barra della master, come sul telefono (09/10 21:26).
-  let { master, entries, open, onToggle, onSpeak, quick, list, chat, menu, halfStops = false, half = false, onHalf = () => {} }: {
+  let { master, entries, open, onToggle, onSpeak, quick, list, chat, menu, row, halfStops = false, half = false, onHalf = () => {} }: {
     master: Session | null; entries: Entry[]; open: boolean; onToggle: (open: boolean) => void; onSpeak: (text: string) => void
     menu?: Snippet; halfStops?: boolean; half?: boolean; onHalf?: (half: boolean) => void
     /** Il campo completo della master (lo stesso Composer della conversazione, con il +). */
     quick: Snippet
     list: Snippet; chat: Snippet
+    /** Sotto la master a tutto schermo: la Home in riga (app-home-riga-c1-13-11). */
+    row?: Snippet
   } = $props()
   // Il trascinamento della barra sposta tutta la conversazione (Franz, 01/11: «si deve muovere il contenuto con la barra del
   // titolo»; SessionSheet.kt). Mentre si muove ci sono tutte e due le pagine: la home sotto, sopra il pannello rigido alto come
@@ -70,6 +72,7 @@
       <div class="slide" class:carried class:moving class:settling={target != null} style:height={moving ? `${paneH}px` : null} style:transform={moving ? `translateY(${panelY}px)` : null}>
         <MasterDock {master} {entries} expanded screen trailing={menu} onToggle={() => onToggle(false)} {onSpeak} onDrag={drag} onDrop={drop} />
         <div class="body">{@render chat()}</div>
+        {#if row && !moving}{@render row()}{/if}
       </div>
     {/if}
   {/if}
