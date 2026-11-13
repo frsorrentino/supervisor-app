@@ -688,7 +688,6 @@ fun SummaryList(
         val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
         // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, con sotto la quota (stile «Studio e Diretta», 30/10).
         var slotContent: @Composable () -> Unit = {}
-        var boardOutcomes: () -> Unit = {}
         if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
                 Box(moving().onGloballyPositioned { c -> boardBox = c }) {
@@ -703,7 +702,6 @@ fun SummaryList(
                             catFocus = "cat-work"
                         } else catFocus = "sec-sessions"
                     }
-                    boardOutcomes = { boardClick(HomeBox.OUTCOMES) }
                     val kh = it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault())
                     val cell = if (!usageInBoard) null else {
                         val pct = usageAlarm?.pct ?: weekSlot?.pct ?: 0
@@ -715,7 +713,7 @@ fun SummaryList(
                             stringResource(if (usageAlarm != null && !usageAlarm.week) R.string.usage_cell_5h else R.string.usage_cell_week), usageOpen,
                         ) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     }
-                    Kpi7(kh, st, now, boardClick, onQuota, joined = usageInBoard || up.any { k -> k != pin }, usage = cell, slot = { slotContent() })
+                    Kpi7(kh, st, now, boardClick, onQuota, joined = up.any { k -> k != pin }, usage = cell, slot = { slotContent() })
                     val held = dragKey
                     // Sul tabellone si rilascia una sezione che non c'è ancora; con quattro voci lo dice, e il rilascio non cambia niente.
                     if (held != null && catFor(held) != null && held !in up && !(weekAlarm && held == "usage")) SlotDrop(overSlot(held, dragY) && boardTakes(held), full = !boardTakes(held))
@@ -1042,16 +1040,9 @@ fun SummaryList(
             }
         }
         slotContent = {
-            // La riga agganciata porta gli esiti di oggi (variante B), e sotto si aprono i dettagli dell'utilizzo.
-            if (usageInBoard) kpiState?.let { st ->
-                val kh = it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, zone)
-                val last = remember(kpiPage, now / 60) { it.pixelbox.cmwatch.rules.Kpi.lastOutcome(kpiPage, now, zone)?.text }
-                OutcomesBoardRow(
-                    kh.outcomes?.toString() ?: "–", stringResource(if (kh.outcomes == null) R.string.kpi7_outcomes_unknown else R.string.kpi7_outcomes),
-                    (kh.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, last,
-                ) { boardOutcomes() }
-                if (usage != null) FoldIn(usageOpen) { androidx.compose.runtime.CompositionLocalProvider(LocalUsageInSlot provides true) { usage() } }
-            }
+            // app-tabellone-utilizzo-a-13-11 (Franz 13/11 15:41 e 15:46): sotto i tre blocchi niente riga degli esiti, che restano nelle voci
+            // della Home al loro posto; qui si aprono solo i dettagli dell'utilizzo.
+            if (usageInBoard && usage != null) FoldIn(usageOpen) { androidx.compose.runtime.CompositionLocalProvider(LocalUsageInSlot provides true) { usage() } }
             pin?.takeIf { k -> !(usageInBoard && k == "usage") }?.let { k -> slotFor(k) }
         }
         // Il corpo di Lavori è fatto di più elementi della lista: agganciata, la testa sta nello slot e il corpo apre subito sotto.

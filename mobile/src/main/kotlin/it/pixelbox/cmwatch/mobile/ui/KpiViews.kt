@@ -178,7 +178,7 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f), of = h.open.takeIf { it > 0 })
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
-            // Variante B (app-tabellone-utilizzo-b-13-11): col dato dell'utilizzo il terzo blocco è lui; gli esiti stanno nella riga sotto.
+            // Col dato dell'utilizzo il terzo blocco è lui (app-tabellone-utilizzo-a-13-11); gli esiti restano nelle voci della Home.
             if (usage != null) UsageBoard(usage, Modifier.weight(1.15f).fillMaxHeight().then(if (usage.open) Modifier.background(V3.S2) else Modifier).testTag("home-box-utilizzo").handCursor().clickable(onClick = usage.onToggle))
             else Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f))
         }
@@ -405,26 +405,6 @@ private fun UsageBoard(u: UsageCell, modifier: Modifier) {
             drawRoundRect(track, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width, h), cornerRadius = r)
             drawRoundRect(u.tone, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width * (u.pct.coerceIn(0, 100) / 100f), h), cornerRadius = r)
             u.tick?.let { t -> drawRect(tx, topLeft = androidx.compose.ui.geometry.Offset(size.width * (t.coerceIn(0f, 100f) / 100f) - 1.dp.toPx(), 0f), size = androidx.compose.ui.geometry.Size(2.dp.toPx(), size.height)) }
-        }
-    }
-}
-
-/**
- * La riga agganciata al tabellone con gli esiti di oggi (variante B): il conto, i rossi e l'ultimo esito a parole; apre la loro
- * pagina. Neutra: non è un avviso. In un tabellone stretto restano il conto e i rossi.
- */
-@Composable
-internal fun OutcomesBoardRow(count: String, label: String, red: String?, last: String?, onClick: () -> Unit) {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth().testTag("tabellone-esiti").handCursor().clickable(onClick = onClick)) {
-        val words = maxWidth >= 330.dp
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 14.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(count, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 20.sp, lineHeight = 22.sp, fontFeatureSettings = CM_TNUM), color = V3.Tx, maxLines = 1)
-            Text(label, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
-            red?.let { Text(it, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 18.sp, color = V3.Red, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium), maxLines = 1) }
-            if (words && last != null) Text(last, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 18.sp), maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f))
-            else Spacer(Modifier.weight(1f))
-            Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(24.dp))
         }
     }
 }

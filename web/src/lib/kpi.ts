@@ -157,18 +157,6 @@ export function head(st: State, page: TimelinePage | null, now: number, timeZone
   }
 }
 
-/** L'ultimo esito di oggi a parole, per la riga agganciata al tabellone (app-tabellone-utilizzo-b-13-11); quelli «in corso» no. */
-export function lastOutcome(page: TimelinePage | null, now: number, timeZone?: string): { session: string; text: string } | null {
-  if (!page) return null
-  const from = midnight(now, timeZone)
-  let best: { session: string; text: string; at: number } | null = null
-  for (const s of page.sessions) for (const e of s.events) {
-    if (e.kind !== 'outcome' || outcomeType(e.type) === 'running' || e.at < from || e.at > now || !e.text.trim()) continue
-    if (!best || e.at > best.at) best = { session: s.session, text: e.text.trim().split('\n')[0], at: e.at }
-  }
-  return best ? { session: best.session, text: best.text } : null
-}
-
 // ---- I box della home aperti (compito app-box-cliccabili-29-10, mockup approvato da Franz il 29/10 alle 18:57), porta di Kpi.kt ----
 
 export type WaitKind = 'question' | 'needs_you' | 'blocking'

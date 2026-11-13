@@ -183,28 +183,6 @@ describe('contratto 1.96, op kpi (proposte 8, 9, 10, 12, 13, 17)', () => {
   })
 })
 
-// app-tabellone-utilizzo-b-13-11: la riga degli esiti agganciata al tabellone; gli stessi casi di LastOutcomeTest.kt.
-describe("tabellone: l'ultimo esito di oggi a parole", () => {
-  const now = 1_789_214_700
-  const ev = (at: number, kind: string, text: string, type?: string): TimelineEvent => ({ at, kind, text, type })
-  const page = (sessions: [string, TimelineEvent[]][]): TimelinePage => ({ since: 0, sessions: sessions.map(([session, events]) => ({ session, live: true, events })) })
-  it("l'ultimo esito chiuso di oggi, la prima riga", async () => {
-    const { lastOutcome } = await import('./kpi')
-    const p = page([
-      ['storefront', [ev(now - 3600, 'outcome', 'checkout verde', 'done')]],
-      ['payments-api', [ev(now - 600, 'outcome', 'rimborso parziale corretto\nseconda riga', 'done')]],
-      ['blog', [ev(now - 60, 'outcome', 'sto scrivendo il post', 'running'), ev(now - 30, 'commit', 'bozza')]],
-      ['docs', [ev(now - 90_000, 'outcome', 'pagine di ieri', 'done')]],
-    ])
-    expect(lastOutcome(p, now, 'UTC')).toEqual({ session: 'payments-api', text: 'rimborso parziale corretto' })
-  })
-  it('niente senza pagina o senza esiti chiusi', async () => {
-    const { lastOutcome } = await import('./kpi')
-    expect(lastOutcome(null, now, 'UTC')).toBeNull()
-    expect(lastOutcome(page([['blog', [ev(now - 60, 'outcome', 'in corso', 'running')]]]), now, 'UTC')).toBeNull()
-  })
-})
-
 // app-tabellone-frazioni-13-11 (Franz 13/11 13:56): il denominatore delle frazioni del tabellone.
 describe('tabellone: le sessioni aperte, denominatore delle frazioni', () => {
   it('conta le sessioni vive senza la master, le stesse fra cui si contano ferme e al lavoro; le chiuse no', async () => {

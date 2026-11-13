@@ -17,7 +17,7 @@
   import Kpi4 from './Kpi4.svelte'
   import PluginsSection from './PluginsSection.svelte'
   import type { KpiData, PluginsPage } from './contract'
-  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, lastOutcome, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
+  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import PermGlyph from './PermGlyph.svelte'
@@ -210,7 +210,6 @@
     }
   })
   const kh = $derived(kpiHead(st, kpiPage, now))
-  const lastOut = $derived(lastOutcome(kpiPage, now))
   const pin = $derived(slotKey(savedPin, weekAlarm))
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
@@ -780,11 +779,9 @@
 {#snippet slotBox()}
  {@const live = dragOrder ?? order}
  <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->
- <!-- La riga agganciata porta gli esiti di oggi (variante B): il conto, i rossi e l'ultimo esito a parole; apre la loro pagina. -->
+ <!-- app-tabellone-utilizzo-a-13-11 (Franz 13/11 15:41 e 15:46): sotto i tre blocchi niente riga degli esiti, che restano nelle voci
+      della Home al loro posto; qui si aprono solo i dettagli dell'utilizzo. -->
  {#if usageCell}
-   <div class="hsec onboard inboard"><button class="sec outrow" data-testid="tabellone-esiti" onclick={() => openCat('esiti')}>
-     <b class="on">{kh.outcomes ?? '–'}</b><span class="st">{kh.outcomes == null ? t.kpi7OutcomesUnknown : t.kpi7Outcomes}</span>{#if kh.red}<em>{t.kpi7Red(kh.red)}</em>{/if}
-     {#if lastOut}<span class="ol">{lastOut.text}</span>{:else}<span class="sp"></span>{/if}<span class="ms tog">chevron_right</span></button></div>
    {#if open.usage && usage}<div class="hsec onboard inboard" bind:this={usageEl}><div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="card wrows">{@render (usageBlock ?? usage)()}</div></div></div></div>{/if}
  {/if}
  {#if pin && !(usageCell && pin === 'usage')}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
@@ -1876,11 +1873,4 @@
   .monload .spin::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--tx3); border-top-color: var(--tx2); animation: monspin .9s linear infinite; }
   @keyframes monspin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .monload .spin::before { animation: none; } }
-  /* La riga degli esiti agganciata al tabellone (app-tabellone-utilizzo-b-13-11): neutra, non è un avviso. In un tabellone stretto
-     restano il conto e i rossi. */
-  .outrow { gap: 8px; padding-left: 12px; }
-  .outrow .on { font: 700 20px/22px var(--display); color: var(--tx); }
-  .outrow em { font-style: normal; font-weight: 500; color: var(--red); white-space: nowrap; }
-  .outrow .ol { flex: 1; min-width: 0; font: 400 14px/20px var(--sans); color: var(--tx2); white-space: nowrap; overflow: hidden; text-align: left; }
-  @container (max-width: 330px) { .outrow .ol { visibility: hidden; } }
 </style>

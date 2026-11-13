@@ -11,8 +11,8 @@
   // quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana col giorno e il ritmo.
   // Variante B del mockup del 13/11 (app-tabellone-utilizzo-b-13-11, Franz 12:40): il terzo blocco è l'utilizzo, la percentuale
   // grande come le altre cifre, sotto la finestra che dice, e sul bordo in basso la barra con la tacca del tempo passato; il tocco
-  // apre e chiude i dettagli sotto. Gli esiti di oggi stanno nella riga agganciata (Home.svelte). Senza il dato dell'utilizzo il
-  // terzo blocco resta «esiti oggi».
+  // apre e chiude i dettagli sotto. Gli esiti di oggi restano nelle voci della Home, al loro posto (Franz 13/11 15:41 e 15:46).
+  // Senza il dato dell'utilizzo il terzo blocco resta «esiti oggi».
   let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {}, slot, usage = null, onUsage = () => {} }: { h: Head; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void; slot?: Snippet
     usage?: { pct: number; tick: number | null; tone: string; label: string; open: boolean } | null; onUsage?: () => void } = $props()
 </script>
