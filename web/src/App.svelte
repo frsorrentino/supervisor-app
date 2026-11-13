@@ -83,6 +83,7 @@
   import Composer from './lib/Composer.svelte'
   import Guardare from './lib/Guardare.svelte'
   import ResultsRow from './lib/ResultsRow.svelte'
+  import PerTe from './lib/PerTe.svelte'
   import AppBar, { type Page as PageName } from './lib/AppBar.svelte'
   import HomeBox from './lib/HomeBox.svelte'
   import Page from './lib/Page.svelte'
@@ -2027,8 +2028,11 @@
 
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
-  {#snippet resultsRow()}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} onOpen={() => { watchSession = name; watchOpenId = null; openPage('guardare') }} />{/if}{/snippet}
-  <Chat {resultsRow} focus={focusOf[name] ?? null} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
+  {#snippet resultsRow()}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} onOpen={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} />{/if}{/snippet}
+  <!-- «Per te» (app-formato-unico-12-11): le richieste e i risultati che aspettano la persona in questa sessione, riletti quando cambiano nello stato. -->
+  {#snippet perTe()}{#if st.ops?.includes('attese')}<PerTe {run} session={name} sig={`${openWids}|${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`} now={st.ts} results={!!st.ops?.includes('results')}
+    onOpenWait={openWait} onOpenResult={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} onAnswered={(w) => waitCardsRefresh(w)} />{/if}{/snippet}
+  <Chat {resultsRow} {perTe} focus={focusOf[name] ?? null} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}

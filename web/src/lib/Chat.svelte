@@ -32,9 +32,11 @@
   import { reducedMotion } from './motion'
   import { cut, type Quote } from './quotes'
   import { dragHold } from './dragHold'
-  let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
+  let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
     /** Contratto 1.106: la riga «Risultati» in cima alla chat. */
     resultsRow?: import('svelte').Snippet | null
+    /** «Per te» in cima alla chat: tutto ciò che aspetta la persona in questa sessione (app-formato-unico-12-11). */
+    perTe?: import('svelte').Snippet | null
     /** La voce da portare in vista, da Cerca (app-cerca-pagina-03-11). */
     focus?: string | null; onFocused?: () => void
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
@@ -147,7 +149,8 @@
   // I box sopra il campo, aperti o chiusi come li hai lasciati: Prossimi aperto, Ricorrenti chiuso.
   const saved = (k: string, d: boolean) => { try { const v = localStorage.getItem(k); return v == null ? d : v === '1' } catch { return d } }
   const save = (k: string, v: boolean) => { try { localStorage.setItem(k, v ? '1' : '0') } catch { /* senza memoria resta per la sessione */ } }
-  let stepsOpen = $state(saved('cm.steps_open', true))
+  // Dal formato unico (app-formato-unico-12-11, blocchi B) chi non ha mai scelto trova «Azioni» ridotto a una riga.
+  let stepsOpen = $state(saved('cm.steps_open', false))
   let recurringOpen = $state(saved('cm.recurring_open', false))
   const idle = $derived(s.state === 'idle' && !s.question)
   const stepsBox = $derived(idle ? boxOf(steps, s.suggestion, draft) : { field: null, rows: [] })
@@ -253,6 +256,8 @@
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
   {#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}
+  <!-- I blocchi in cima alla chat, ognuno ridotto a una riga (app-formato-unico-12-11): «Per te», poi «Risultati». -->
+  {#if perTe && !home}{@render perTe()}{/if}
   {#if resultsRow}{@render resultsRow()}{/if}
   <div class="lines" class:dots={home} bind:this={list}>
     {#if home}

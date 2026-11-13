@@ -1,0 +1,111 @@
+{
+ "main": [
+  {
+   "name": "la consigliata fra le scelte numerate prende il suo numero",
+   "actions": [
+    { "label": "no", "style": "option" },
+    { "label": "sì", "style": "option", "recommended": true },
+    { "label": "Rispondi", "style": "secondary", "text_field": "arg" }
+   ],
+   "out": { "index": 1, "label": "2 · sì", "direct": true }
+  },
+  {
+   "name": "un primary consigliato è la scelta 1",
+   "actions": [
+    { "label": "hotfix/2.8", "style": "primary", "recommended": true },
+    { "label": "release/2.9", "style": "option" }
+   ],
+   "out": { "index": 0, "label": "1 · hotfix/2.8", "direct": true }
+  },
+  {
+   "name": "senza consigliata il tasto pieno",
+   "actions": [
+    { "label": "Non va", "style": "secondary", "text_field": "text" },
+    { "label": "Va", "style": "primary" }
+   ],
+   "out": { "index": 1, "label": "Va", "direct": true }
+  },
+  {
+   "name": "senza pieno la prima scelta numerata",
+   "actions": [
+    { "label": "Fatto", "style": "secondary" },
+    { "label": "sì", "style": "option" },
+    { "label": "no", "style": "option" }
+   ],
+   "out": { "index": 1, "label": "1 · sì", "direct": true }
+  },
+  {
+   "name": "un tasto che chiede un testo apre la scheda",
+   "actions": [
+    { "label": "Rispondi", "style": "primary", "text_field": "arg" },
+    { "label": "Non ora", "style": "secondary" }
+   ],
+   "out": { "index": 0, "label": "Rispondi", "direct": false }
+  },
+  {
+   "name": "solo tasti secondari: nessun tasto sulla voce",
+   "actions": [ { "label": "Fatto", "style": "secondary" } ],
+   "out": null
+  },
+  {
+   "name": "un'etichetta lunga si ferma a una parola intera entro 16 caratteri",
+   "actions": [
+    { "label": "A riepilogo in alto", "style": "option" },
+    { "label": "B barra in fondo", "style": "option", "recommended": true }
+   ],
+   "out": { "index": 1, "label": "2 · B barra in", "direct": true }
+  },
+  {
+   "name": "una parola sola troppo lunga si taglia a 16 caratteri",
+   "actions": [ { "label": "hotfix/refunds-rounding-2.8.1", "style": "primary" } ],
+   "out": { "index": 0, "label": "hotfix/refunds-r", "direct": true }
+  },
+  { "name": "senza tasti", "actions": [], "out": null }
+ ],
+ "voci": [
+  {
+   "name": "l'ordine è Ti aspetta, Decidi, Prova, Verifica; dentro un gruppo la più vecchia prima",
+   "session": "storefront",
+   "waits": [
+    { "id": "w3", "label": "verify", "session": "storefront", "title": "Prova #569", "text": "Tocca «prova #550» in un messaggio", "at": 300 },
+    { "id": "w2", "label": "decide", "session": "storefront", "title": "Logo ambra", "text": "Procedo quando Google approva", "at": 200 },
+    { "id": "w5", "label": "choose", "session": "storefront", "title": "Nome del branch", "text": "Nome del branch", "at": 100 },
+    { "id": "w1", "label": "reply", "session": "storefront", "title": "Pubblico la 2.4?", "text": "Pubblico la 2.4?", "at": 400 },
+    { "id": "w9", "label": "reply", "session": "blog", "title": "Altra sessione", "text": "Altra sessione", "at": 50 }
+   ],
+   "results": [
+    { "session": "storefront", "unseen": true, "id": "r1", "title": "Rapporto dei test", "at": 350 },
+    { "session": "storefront", "unseen": false, "id": "r2", "title": "Già visto", "at": 360 },
+    { "session": "blog", "unseen": true, "id": "r3", "title": "Di un'altra", "at": 370 }
+   ],
+   "out": [
+    { "key": "w1", "group": "aspetta", "title": "Pubblico la 2.4?", "context": null },
+    { "key": "w5", "group": "decidi", "title": "Nome del branch", "context": null },
+    { "key": "w2", "group": "decidi", "title": "Logo ambra", "context": "Procedo quando Google approva" },
+    { "key": "w3", "group": "prova", "title": "Prova #569", "context": "Tocca «prova #550» in un messaggio" },
+    { "key": "r1", "group": "verifica", "title": "Rapporto dei test", "context": null }
+   ]
+  },
+  {
+   "name": "senza titolo vale il testo, su una riga; il contesto è la descrizione",
+   "session": "blog",
+   "waits": [
+    { "id": "w1", "label": "decide", "session": "blog", "title": null, "text": "Mandami l'immagine\n  di copertina", "description": "Serve per la newsletter.\nSeconda riga", "at": 10 }
+   ],
+   "results": [],
+   "out": [
+    { "key": "w1", "group": "decidi", "title": "Mandami l'immagine di copertina", "context": "Serve per la newsletter. Seconda riga" }
+   ]
+  },
+  {
+   "name": "le richieste non più aperte non sono voci",
+   "session": "blog",
+   "waits": [
+    { "id": "w1", "label": "choose", "session": "blog", "title": "Scelta fatta", "text": "Scelta fatta", "at": 10, "state": "chosen" },
+    { "id": "w2", "label": "choose", "session": "blog", "title": "Aperta", "text": "Aperta", "at": 20, "state": "open" }
+   ],
+   "results": [],
+   "out": [ { "key": "w2", "group": "decidi", "title": "Aperta", "context": null } ]
+  }
+ ]
+}
