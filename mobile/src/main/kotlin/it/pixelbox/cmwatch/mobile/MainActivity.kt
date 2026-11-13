@@ -390,6 +390,17 @@ class MainActivity : ComponentActivity() {
         }
         val openWids = (snap.state?.approvals.orEmpty().mapNotNull { a -> a.wid } + snap.state?.attention.orEmpty().mapNotNull { a -> a.wid }).sorted().joinToString(",")
         LaunchedEffect(openWids) { waitRefresh { w -> (w.state ?: "open") == "open" } }
+        // «Per te» in cima alla chat di una sessione (app-formato-unico-12-11): le richieste aperte si leggono con `attese` quando
+        // cambiano nello stato e dopo una risposta partita da una voce; `perTeSent` sono le voci a cui è già partita la risposta.
+        val perTeSent = remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
+        val readWaits: suspend () -> Unit = {
+            val id = runCatching { app.repo.command(CmdOp.ATTESE, null, null) }.getOrNull()
+            val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+            id?.let { x -> app.repo.forget(x) }
+            r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeWaits(x.text) }.onSuccess { p -> waitOthers = p.items } }
+        }
+        val attese = snap.state?.ops?.contains("attese") == true
+        LaunchedEffect(openWids, attese) { if (attese) readWaits() }
         val monitorsSum = snap.state?.monitors
         val monitorsOp = snap.state?.ops?.contains("monitors") == true
         // La lettura delle schede riprova finché arrivano e usa anche una risposta arrivata tardi (PatientRead, app-monitoraggi-attesa-10-11).
@@ -630,8 +641,15 @@ class MainActivity : ComponentActivity() {
         // I box sopra il campo aperti o chiusi (Franz, 04/10 20:21): Prossimi aperto e Ricorrenti chiuso finché non li tocca.
         val promptBoxes = remember {
             it.pixelbox.cmwatch.mobile.ui.PromptBoxes(
-                tabletPrefs.getBoolean(it.pixelbox.cmwatch.mobile.ui.PromptBoxes.STEPS, true),
+                tabletPrefs.getBoolean(it.pixelbox.cmwatch.mobile.ui.PromptBoxes.STEPS, false),
                 tabletPrefs.getBoolean(it.pixelbox.cmwatch.mobile.ui.PromptBoxes.RECURRING, false),
+            ) { k, v -> tabletPrefs.edit().putBoolean(k, v).apply() }
+        }
+        // I blocchi in cima alla chat (app-formato-unico-12-11, blocchi B): ridotti finché non li si apre, poi come lasciati.
+        val chatBlocks = remember {
+            it.pixelbox.cmwatch.mobile.ui.ChatBlocks(
+                tabletPrefs.getBoolean(it.pixelbox.cmwatch.mobile.ui.ChatBlocks.PER_TE, false),
+                tabletPrefs.getBoolean(it.pixelbox.cmwatch.mobile.ui.ChatBlocks.RESULTS, false),
             ) { k, v -> tabletPrefs.edit().putBoolean(k, v).apply() }
         }
         var pinned by remember { mutableStateOf(it.pixelbox.cmwatch.rules.Tablet.columnsFromPref(tabletPrefs.getString("tablet_columns", null))) }
@@ -1329,7 +1347,7 @@ class MainActivity : ComponentActivity() {
             resultsFailed = r?.ok != true
             r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeResults(x.text) }.onSuccess { p -> resultsPage = p } }
         }
-        val wantResults = watchOpen || resultOpen != null || open != null || "da_guardare" in inlineOpen
+        val wantResults = watchOpen || resultOpen != null || open != null || "da_guardare" in inlineOpen || (state?.results?.nUnseen ?: 0) > 0
         LaunchedEffect(wantResults, open, state?.results) { if (wantResults && state?.ops?.contains("results") == true) readResults() }
         // Il numero della voce è cambiato: anche il corpo aperto.
         LaunchedEffect(state?.prove, state?.decisions) { if ("prove" in inlineOpen || "decisioni" in inlineOpen) readDecide() }
@@ -2109,7 +2127,28 @@ class MainActivity : ComponentActivity() {
                             results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> it.pixelbox.cmwatch.rules.Guardare.shown(l, resultsClosed[session.name]) }?.let { l -> {
                                 it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l, onClose = {
                                     it.pixelbox.cmwatch.rules.Guardare.lastKey(l)?.let { k -> resultsClosed[session.name] = k; resultsPrefs.edit().putString(session.name, k).apply() }
-                                }) { watchSession = session.name; watchOpen = true }
+                                }) { id -> val r = id?.let { x -> l.groups.flatMap { g -> g.items }.firstOrNull { i -> i.id == x } }; if (r != null) resultOpen = r else { watchSession = session.name; watchOpen = true } }
+                            } },
+                            perTe = it.pixelbox.cmwatch.rules.PerTe.voci(waitOthers, resultsPage?.groups.orEmpty(), session.name).filterNot { v -> perTeSent[v.key] == true }.takeIf { l -> l.isNotEmpty() && attese }?.let { items -> {
+                                it.pixelbox.cmwatch.mobile.ui.PerTeBlock(
+                                    items, now, chatBlocks.perTe, { chatBlocks.perTe(!chatBlocks.perTe) },
+                                    onOpen = { v -> val r = v.result?.let { x -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { i -> i.id == x.id } }; if (r != null) resultOpen = r else if (v.wait != null) waitOpen = v.key },
+                                    onMain = { v ->
+                                        val r = v.result?.let { x -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { i -> i.id == x.id } }
+                                        val a = v.main?.takeIf { m -> m.direct }?.let { m -> v.wait?.actions?.getOrNull(m.index) }
+                                        when {
+                                            r != null -> { perTeSent[v.key] = true; guardare.seen(r); scope.launch { kotlinx.coroutines.delay(60_000); perTeSent.remove(v.key) } }
+                                            a != null -> { perTeSent[v.key] = true; scope.launch {
+                                                // Dopo l'esito del PC le attese si rileggono; un rifiuto, o nessuna risposta, rimette la voce.
+                                                val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
+                                                val x = sentId?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                                                if (x?.ok == true) { readWaits(); v.wait?.let { w -> waitRefresh { o -> o.id == w.id || (w.cardId != null && o.cardId == w.cardId) } } }
+                                                perTeSent.remove(v.key)
+                                            } }
+                                            v.wait != null -> waitOpen = v.key
+                                        }
+                                    },
+                                )
                             } },
                             // Con l'ispettore obiettivo e bassa priorità stanno lì: in testata non si ripetono (revisione della master, 04/10).
                             notesInHeader = lead == null || !inspectorOn,

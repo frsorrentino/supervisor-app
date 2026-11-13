@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.contract.ProvaOne
 import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.rules.PerTe
 import it.pixelbox.cmwatch.rules.ProvaLinks
 import kotlinx.coroutines.launch
 
@@ -72,48 +73,24 @@ fun ProvaCards(text: String) {
 
 /** La scheda compatta di una prova. Un numero che non esiste, o un relay che non sa leggerla, non dà scheda: resta il link. */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun ProvaCard(n: Long, read: ProvaLinks.Read?, onOpen: () -> Unit, onOk: suspend () -> Boolean, onKo: suspend (ProvaOne, String) -> Boolean) {
     if (read is ProvaLinks.Read.Refused || read is ProvaLinks.Read.Unsupported) return
     val p = (read as? ProvaLinks.Read.Found)?.prova
     val scope = rememberCoroutineScope()
-    var sent by remember(n) { mutableStateOf<String?>(null) }
-    var asking by remember(n) { mutableStateOf(false) }
-    val tone = when (p?.state) { "ok" -> V3.Good; "ko", "red" -> V3.Red; null -> V3.Tx3; else -> V3.Wait }
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(V3.S1).border(1.dp, V3.Line, RoundedCornerShape(14.dp))
-            .handCursor().clickable(onClick = onOpen).testTag("prova-scheda-$n").padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(tone))
-            Spacer(Modifier.width(8.dp))
-            Text(p?.let { it.title ?: it.short ?: it.task } ?: stringResource(R.string.prova_title, n.toString()), style = V3.Name, maxLines = 2, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
-        }
-        if (p == null) { Text(stringResource(R.string.prova_loading), style = V3.Small); return@Column }
-        val head = p.title ?: p.short ?: p.task
-        Text(listOfNotNull(stringResource(R.string.prova_title, n.toString()), listOf(p.short, p.task).firstOrNull { !it.isNullOrBlank() && it != head }).joinToString(" · "), style = V3.Small, maxLines = 1, overflow = TextOverflow.Clip)
-        if (p.fai.isNotBlank()) Text(p.fai, style = V3.Body, maxLines = 1, overflow = TextOverflow.Clip)
-        when (p.state) {
-            "todo" -> Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { asking = true }, enabled = sent == null) { Text(stringResource(R.string.prove_ko)) }
-                ConfirmButton(stringResource(R.string.prove_ok), confirmed = sent == "ok", enabled = sent == null, faded = sent == "ko") {
-                    sent = "ok"; scope.launch { if (!onOk()) sent = null }
-                }
-            }
-            else -> {
-                val (label, color) = when (p.state) { "ok" -> R.string.prova_state_ok to V3.Good; "red" -> R.string.prova_state_red to V3.Red; else -> R.string.prova_state_ko to V3.Red }
-                Text(listOfNotNull(stringResource(label), p.text?.takeIf { it.isNotBlank() }).joinToString(": "), style = V3.Small.copy(color = color), maxLines = 2, overflow = TextOverflow.Clip)
-            }
-        }
+    var sent by remember(n) { mutableStateOf(false) }
+    // Dal formato unico (app-formato-unico-12-11, variante A di Franz del 12/11 alle 07:29) la scheda è una voce: icona, «Prova #N» col
+    // titolo, cosa fare su una riga e il tasto principale, Ok; «Non va» e il resto stanno nella prova aperta, a un tocco.
+    val state = if (p == null) null else if (p.state == "todo" && sent) "ok" else p.state
+    val title = stringResource(R.string.prova_title, n.toString()).let { t -> p?.let { "$t · ${it.title ?: it.short ?: it.task}" } ?: t }
+    val sub = when (state) {
+        null -> stringResource(R.string.prova_loading)
+        "todo" -> listOfNotNull(stringResource(R.string.per_te_prova), p!!.fai.takeIf { it.isNotBlank() }).joinToString(" · ")
+        else -> listOfNotNull(stringResource(when (state) { "ok" -> R.string.prova_state_ok; "red" -> R.string.prova_state_red; else -> R.string.prova_state_ko }), p!!.text?.takeIf { it.isNotBlank() }).joinToString(": ")
     }
-    if (asking && p != null) {
-        var why by rememberSaveable(n) { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { asking = false }, containerColor = Cm.surface,
-            title = { Text(p.title ?: p.short ?: p.task, color = Cm.text) },
-            text = { OutlinedTextField(why, { why = it.take(2000) }, label = { Text(stringResource(R.string.prove_ko_hint)) }, modifier = Modifier.fillMaxWidth()) },
-            confirmButton = { TextButton(enabled = why.isNotBlank(), onClick = { val body = why.trim(); asking = false; sent = "ko"; scope.launch { if (!onKo(p, body)) sent = null } }) { Text(stringResource(R.string.prove_ko_send)) } },
-            dismissButton = { TextButton(onClick = { asking = false }) { Text(stringResource(R.string.cancel)) } },
-        )
-    }
+    VoceRow(
+        PerTe.Group.PROVA, title, sub, null, if (state == "todo") stringResource(R.string.prove_ok) else null, onOpen,
+        onMain = { sent = true; scope.launch { if (!onOk()) sent = false } },
+        tone = when (state) { "ok" -> V3.Good; "ko", "red" -> V3.Red; else -> null }, card = true, tag = "prova-scheda-$n",
+    )
 }

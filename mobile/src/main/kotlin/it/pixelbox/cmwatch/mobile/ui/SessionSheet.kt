@@ -248,6 +248,8 @@ fun SessionSheet(
     top: (@Composable () -> Unit)? = null,
     /** Contratto 1.106 (app-da-guardare-02-11): la riga «Risultati» fissa in cima alla chat, con quello che la sessione ha consegnato. */
     results: (@Composable () -> Unit)? = null,
+    /** «Per te» in cima alla chat: tutto ciò che aspetta la persona in questa sessione (app-formato-unico-12-11). */
+    perTe: (@Composable () -> Unit)? = null,
     /** La griglia di puntini dello stile tech dietro la chat (casa della master). */
     grid: Boolean = false,
     /**
@@ -479,6 +481,8 @@ fun SessionSheet(
             }
             elsewhere?.let { ElsewherePill(it, onElsewhere, onElsewhereDismiss) }
             Box(Modifier.padding(horizontal = 12.dp)) { HeadsUpNoteRow(s, now) }
+            // I blocchi in cima alla chat, ognuno ridotto a una riga (app-formato-unico-12-11): «Per te», poi «Risultati».
+            perTe?.let { r -> Box(Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp)) { r() } }
             results?.let { r -> Box(Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp)) { r() } }
             // Nascosto mentre si scrive (con la tastiera la chat e la barra non avrebbero spazio) e mentre si rilegge; mai più
             // alto di 300 dp, con lo scorrimento dentro (revisione finale 02/10).
@@ -1140,19 +1144,11 @@ private fun PromptBox(
     old: List<PromptRow> = emptyList(), onDismiss: ((PromptRow) -> Unit)? = null,
 ) {
     var showOld by remember(old) { mutableStateOf(false) }
-    Column(
-        modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow)
-            .border(1.dp, Cm.line, RoundedCornerShape(14.dp)),
+    // Dal formato unico (app-formato-unico-12-11, blocchi B): ridotto è una riga con la prima voce, come «Per te» e «Risultati».
+    ChatBlock(
+        BlockIcon.BOLT, title, rows.size + old.size, (rows.firstOrNull() ?: old.firstOrNull())?.label, open, { onOpen(!open) },
+        modifier.padding(horizontal = 12.dp), tag = "chat-box", bg = Cm.surfaceLow,
     ) {
-        val toggle = stringResource(if (open) R.string.box_close else R.string.box_open, title)
-        Row(
-            Modifier.fillMaxWidth().handCursor().clickable(onClickLabel = toggle) { onOpen(!open) }.handCursor().padding(start = 14.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.box_title, title.uppercase(), rows.size + old.size), style = MonoSmall, modifier = Modifier.weight(1f))
-            // Il box sta sopra il campo e si apre verso l'alto: chiuso la freccia sale, aperto scende.
-            Icon(if (open) Icons.Rounded.ExpandMore else Icons.Rounded.ExpandLess, null, tint = Cm.text2, modifier = Modifier.size(20.dp))
-        }
         // Con poco spazio (una colonna del tablet con la tastiera aperta) le righe scorrono dentro il box.
         if (open) Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
             (rows + if (showOld) old else emptyList()).forEach { r ->
@@ -1221,7 +1217,7 @@ class PromptBoxes(stepsOpen: Boolean, recurringOpen: Boolean, private val save: 
     fun recurring(open: Boolean) { recurringOpen = open; save(RECURRING, open) }
     companion object { const val STEPS = "steps_open"; const val RECURRING = "recurring_open" }
 }
-val LocalPromptBoxes = androidx.compose.runtime.staticCompositionLocalOf { PromptBoxes(true, false) { _, _ -> } }
+val LocalPromptBoxes = androidx.compose.runtime.staticCompositionLocalOf { PromptBoxes(false, false) { _, _ -> } }
 
 /**
  * Il fondo della chat della master (Franz, 04/10 23:36: «servirebbe la modifica del fondo della chat»; 23:48: i primi cinque

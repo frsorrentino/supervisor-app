@@ -247,29 +247,47 @@ fun GuardareScreen(page: ResultsPage?, failed: Boolean, session: String?, a: Gua
     }
 }
 
-/** Nella chat, in cima: «Risultati N» e l'ultimo consegnato; il tocco apre la pagina della sessione. */
+/**
+ * Nella chat, in cima: «Risultati N» e l'ultimo consegnato. Dal formato unico (app-formato-unico-12-11, blocchi B) è un blocco
+ * ridotto a una riga: il tocco lo apre sul posto, coi lavori della sessione uno per riga, e resta come lasciato. Il tocco su un
+ * lavoro apre quel risultato (`onOpen` col suo id), «Tutti i risultati» la pagina della sessione (null).
+ */
 @Composable
-fun ResultsChatRow(line: Guardare.SessionLine, onClose: (() -> Unit)? = null, onOpen: () -> Unit) {
+fun ResultsChatRow(line: Guardare.SessionLine, onClose: (() -> Unit)? = null, blocks: ChatBlocks = LocalChatBlocks.current, onOpen: (String?) -> Unit) {
     if (line.groups.isEmpty()) return
     val l = line.latest?.let { Guardare.line(it) }
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(V3.Shape).background(V3.S2).clickable(onClick = onOpen).padding(horizontal = 14.dp, vertical = 10.dp).testTag("chat-risultati"),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(Icons.Outlined.Visibility, null, tint = V3.Tx)
-        Text(stringResource(R.string.watch_results), style = V3.Name)
-        Text(line.groups.size.toString(), style = V3.Small)
-        // Il titolo prende tutto lo spazio a destra (con uno Spacer a metà andava a capo e restava «Docs tour,»).
-        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+    ChatBlock(
+        BlockIcon.EYE, stringResource(R.string.watch_results), line.groups.size, l?.let { titleOf(it) }, blocks.results, { blocks.results(!blocks.results) }, tag = "chat-risultati",
+        extra = {
             if (line.groups.any { it.unseen }) Box(Modifier.size(8.dp).clip(CircleShape).background(V3.Wait))
-            if (l != null) Text(titleOf(l), style = V3.Small, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false))
-        }
-        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx2)
-        // La X la chiude fino al risultato successivo (app-risultati-x-05-11).
-        onClose?.let { close ->
-            androidx.compose.material3.IconButton(onClick = close, modifier = Modifier.size(32.dp).testTag("chat-risultati-chiudi")) {
-                Icon(Icons.Rounded.Close, stringResource(R.string.watch_results_close), tint = V3.Tx2, modifier = Modifier.size(18.dp))
+            // La X la chiude fino al risultato successivo (app-risultati-x-05-11).
+            onClose?.let { close ->
+                androidx.compose.material3.IconButton(onClick = close, modifier = Modifier.size(32.dp).testTag("chat-risultati-chiudi")) {
+                    Icon(Icons.Rounded.Close, stringResource(R.string.watch_results_close), tint = V3.Tx2, modifier = Modifier.size(18.dp))
+                }
             }
+        },
+    ) {
+        line.groups.forEach { g ->
+            val top = g.items.firstOrNull() ?: return@forEach
+            val gl = Guardare.line(top)
+            androidx.compose.material3.HorizontalDivider(color = V3.Line)
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { onOpen(top.id) }.testTag("chat-risultato-${top.id}").padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(if (g.unseen) V3.Wait else androidx.compose.ui.graphics.Color.Transparent))
+                Text(titleOf(gl), style = V3.Body, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(20.dp))
+            }
+        }
+        androidx.compose.material3.HorizontalDivider(color = V3.Line)
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { onOpen(null) }.testTag("chat-risultati-tutti").padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.watch_all), style = V3.Small, modifier = Modifier.weight(1f))
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(20.dp))
         }
     }
 }
