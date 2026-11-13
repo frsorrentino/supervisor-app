@@ -7,16 +7,26 @@ import { lang } from './lib/lang'
 import { dockWanted } from './lib/dockEmbed'
 import { installDialogGrow } from './lib/motion'
 import { initTheme } from './lib/theme'
+import { anchorOk, viewportVars } from './lib/viewport'
 
 installDialogGrow()
 
 // L'altezza dell'area visibile davvero (visualViewport): la usa #app in app.css. Nei browser interni delle app (X,
 // Telegram, Instagram) la barra in basso non è tolta da 100vh né sempre da 100dvh.
+// Su iPhone (app-ios-scatti-tastiera-12-11) anche lo scostamento dall'alto: con la tastiera Safari fa scorrere la pagina, e #app
+// segue l'area visibile invece di restare a metà schermo; a tastiera aperta `html.kb` toglie il margine sicuro in basso.
 const vv = window.visualViewport
-const fit = () => document.documentElement.style.setProperty('--vvh', `${Math.round(vv ? vv.height * vv.scale : innerHeight)}px`)
+const root = document.documentElement
+const fit = () => {
+  const { vvh, vvt, kb } = viewportVars(vv, innerHeight)
+  root.style.setProperty('--vvh', `${vvh}px`); root.style.setProperty('--vvt', `${vvt}px`); root.classList.toggle('kb', kb)
+}
 fit()
 vv?.addEventListener('resize', fit)
+vv?.addEventListener('scroll', fit)
 addEventListener('resize', fit)
+// Le voci fuori schermo si saltano (content-visibility) solo dove il browser tiene fermo il punto di lettura: Safari prima della 27 no.
+if (anchorOk(globalThis.CSS?.supports?.bind(CSS))) root.classList.add('anchor')
 
 // La lingua scelta all'avvio (lang.ts) anche per il browser: lettori di schermo, traduzione, sillabazione.
 document.documentElement.lang = lang

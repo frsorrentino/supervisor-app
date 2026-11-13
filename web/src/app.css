@@ -54,8 +54,13 @@ button.tonal:active, button.filled:active, button.approve:active, button.mini:ac
    della finestra, e 100% o 100vh mettevano il campo sotto la barra. Prima dvh, poi l'altezza di visualViewport da main.ts. */
 html, body { height: 100%; }
 #app { height: 100%; height: 100dvh; height: var(--vvh, 100dvh); }
+/* iPhone con la tastiera (app-ios-scatti-tastiera-12-11): #app sta fisso sull'area visibile, anche quando Safari fa scorrere la
+   pagina per mostrare il campo (--vvt, da main.ts); sulle altre piattaforme --vvt è 0 e non cambia niente. */
+#app { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); }
 /* Installata su iPhone e iPad la pagina va fin sotto la tacca e la barra in basso: i bordi sicuri restano liberi. */
 #app { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+/* A tastiera aperta il bordo sicuro in basso sta sotto la tastiera: il campo si attacca a lei. */
+html.kb #app { padding-bottom: 0; }
 /* Con la barra del titolo nostra (Window Controls Overlay) sul telefono stretto il contenuto comincia sotto; sulla scrivania la
    home e le colonne salgono fin in cima e la scheda di ogni colonna sta nella barra, saldata alla colonna (Franz, 06/10 08:16).
    `?wco=1` la simula a 40 px. Si trascina la finestra dalla testata della home e dai vuoti sopra le colonne. */

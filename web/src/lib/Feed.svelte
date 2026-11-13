@@ -357,7 +357,8 @@
   @keyframes fresh { from { background: rgb(255 255 255 / .08); box-shadow: 0 0 0 6px rgb(255 255 255 / .08); } to { background: transparent; box-shadow: 0 0 0 6px transparent; } }
   /* Le voci fuori schermo non si impaginano né si disegnano (app-fluidita-06-11): il browser le salta finché non entrano in vista,
      ricordando la loro ultima altezza; nelle colonne con chat lunghe è la lista virtualizzata. */
-  .it { content-visibility: auto; contain-intrinsic-size: auto 120px; }
+  /* Solo col ancoraggio dello scorrimento (html.anchor, main.ts): senza, su iPhone fino a iOS 26 la trascrizione saltava salendo. */
+  :global(html.anchor) .it { content-visibility: auto; contain-intrinsic-size: auto 120px; }
   .news { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--icon); font-size: 12.5px; font-weight: 500; }
   .news::before, .news::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .45; }
   /* La barra fra due conversazioni della sessione; per la compattazione una riga sola, più leggera. */

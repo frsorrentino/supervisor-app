@@ -379,4 +379,5 @@ html.fx-corners::view-transition-group(master-morph) { overflow: clip; animation
 /* Le schede e le righe della home fuori schermo non si stilano né si impaginano (app-fluidita-06-11): nelle transizioni il
    browser rifà lo stile di tutto il documento più volte, e con questo salta quello che non si vede. Misurato a CPU 4x nella
    demo: chiudere una colonna da 1253 a 781 ms di fotogramma più lungo, da 1,3 a 0,8 s di stile. */
-.card.r, .vrow, .hsec { content-visibility: auto; contain-intrinsic-size: auto 90px; }
+/* Solo dove il browser tiene fermo il punto di lettura (html.anchor, main.ts; app-ios-scatti-tastiera-12-11). */
+html.anchor .card.r, html.anchor .vrow, html.anchor .hsec { content-visibility: auto; contain-intrinsic-size: auto 90px; }
