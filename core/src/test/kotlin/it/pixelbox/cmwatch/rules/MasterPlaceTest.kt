@@ -46,11 +46,24 @@ class MasterPlaceTest {
 
     @Test fun positionMenu() {
         assertEquals(listOf(Item.RIGHT, Item.LEFT), MasterPlace().menu(sessionsOpen = false).map { it.item })
-        assertEquals(listOf(Item.RIGHT, Item.LEFT, Item.UNDER, Item.SIZE, Item.CLOSE), MasterPlace(open = true).menu(sessionsOpen = true).map { it.item })
+        assertEquals(listOf(Item.RIGHT, Item.LEFT, Item.UNDER, Item.HOME_ROW, Item.SIZE, Item.CLOSE), MasterPlace(open = true).menu(sessionsOpen = true).map { it.item })
         assertEquals(listOf(false, true), MasterPlace(left = true).menu(false).map { it.on })
         assertTrue(MasterPlace().pick(Item.LEFT).left)
         assertTrue(MasterPlace().pick(Item.UNDER).under)
         assertFalse(MasterPlace(open = true).pick(Item.CLOSE).open)
+    }
+
+    // La Home in riga (app-home-riga-c1-13-11): vale con le sessioni aperte e la master aperta di lato; sceglierla apre la master e la
+    // toglie da sotto la home; scelta di nuovo riapre la Home; un valore salvato prima di lei si legge ancora.
+    @Test fun homeInARow() {
+        val on = MasterPlace(under = true).pick(Item.HOME_ROW)
+        assertEquals(MasterPlace(open = true, under = false, homeRow = true), on)
+        assertTrue(on.homeInRow(sessionsOpen = true)); assertFalse(on.homeInRow(sessionsOpen = false))
+        assertFalse(on.copy(open = false).homeInRow(true)); assertFalse(on.copy(under = true).homeInRow(true))
+        assertTrue(on.menu(true).first { it.item == Item.HOME_ROW }.on)
+        assertFalse(on.pick(Item.HOME_ROW).homeRow)
+        assertEquals(on.copy(open = false), MasterPlace.fromPref(on.pref()))
+        assertEquals(MasterPlace(left = true, under = true), MasterPlace.fromPref("L,N,-,U,COMPACT"))
     }
 
     // Lato, misura e posto si ricordano; aperta o chiusa no.

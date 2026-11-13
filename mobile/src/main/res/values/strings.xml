@@ -1845,6 +1845,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="master_place">Posizione della master</string>
     <string name="master_pos_right">A destra</string>
     <string name="master_pos_left">A sinistra</string>
+    <string name="master_pos_home_row">Home in riga</string>
+    <string name="home_row_open">Riapri la Home</string>
+    <string name="home_row_new">nuovo</string>
     <string name="master_pos_under">Sotto la dashboard</string>
     <string name="master_widen">Allarga</string>
     <string name="master_narrow">Stringi</string>

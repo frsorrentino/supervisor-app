@@ -17,11 +17,16 @@ data class MasterPlace(
     val width: Float? = null,
     val under: Boolean = false,
     val stack: Height = Height.COMPACT,
+    /** La Home in riga (app-home-riga-c1-13-11): la master tiene la colonna e la Home è una riga in fondo. */
+    val homeRow: Boolean = false,
 ) {
     fun panelWidth(): Float = width ?: if (narrow) MasterLanding.COLUMN else WIDE
 
     /** Home sopra e master sotto: solo con le sessioni aperte e la master aperta. */
     fun stacked(sessionsOpen: Boolean): Boolean = under && open && sessionsOpen
+
+    /** La Home in riga vale con le sessioni aperte e la master aperta di lato, non sotto la home. */
+    fun homeInRow(sessionsOpen: Boolean): Boolean = homeRow && open && !under && sessionsOpen
 
     fun height(sessionsOpen: Boolean): Height = when {
         !open -> Height.BAR
@@ -47,7 +52,7 @@ data class MasterPlace(
         return copy(width = w, narrow = MasterLanding.narrow(w, screen))
     }
 
-    enum class Item { RIGHT, LEFT, UNDER, SIZE, CLOSE }
+    enum class Item { RIGHT, LEFT, UNDER, HOME_ROW, SIZE, CLOSE }
     data class Entry(val item: Item, val on: Boolean = false)
 
     /**
@@ -57,6 +62,7 @@ data class MasterPlace(
     fun menu(sessionsOpen: Boolean): List<Entry> = buildList {
         add(Entry(Item.RIGHT, !left)); add(Entry(Item.LEFT, left))
         if (sessionsOpen) add(Entry(Item.UNDER, under))
+        if (sessionsOpen) add(Entry(Item.HOME_ROW, homeInRow(true)))
         if (open) { add(Entry(Item.SIZE)); add(Entry(Item.CLOSE)) }
     }
 
@@ -64,21 +70,25 @@ data class MasterPlace(
         Item.RIGHT -> copy(left = false)
         Item.LEFT -> copy(left = true)
         Item.UNDER -> copy(under = !under)
+        // Accesa apre la master di lato; spenta riapre la Home.
+        Item.HOME_ROW -> if (homeInRow(true)) copy(homeRow = false) else copy(homeRow = true, under = false, open = true)
         Item.SIZE -> toggleSize()
         Item.CLOSE -> copy(open = false)
     }
 
     /** Ricordata su questo dispositivo, come le chiavi `cm.master_*` della PWA; aperta o chiusa non si ricorda. */
-    fun pref(): String = listOf(if (left) "L" else "R", if (narrow) "N" else "W", width?.toInt()?.toString() ?: "-", if (under) "U" else "-", stack.name).joinToString(",")
+    fun pref(): String = listOf(if (left) "L" else "R", if (narrow) "N" else "W", width?.toInt()?.toString() ?: "-", if (under) "U" else "-", stack.name, if (homeRow) "H" else "-").joinToString(",")
 
     companion object {
         const val WIDE = 720f
         fun fromPref(raw: String?): MasterPlace {
             val p = raw?.split(',') ?: return MasterPlace()
-            if (p.size != 5) return MasterPlace()
+            // Cinque campi prima della Home in riga, sei da allora.
+            if (p.size != 5 && p.size != 6) return MasterPlace()
             return MasterPlace(
                 left = p[0] == "L", narrow = p[1] != "W", width = p[2].toFloatOrNull(), under = p[3] == "U",
                 stack = runCatching { Height.valueOf(p[4]) }.getOrNull()?.takeIf { it == Height.COMPACT || it == Height.HALF } ?: Height.COMPACT,
+                homeRow = p.getOrNull(5) == "H",
             )
         }
     }

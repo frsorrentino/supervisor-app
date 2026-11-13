@@ -1817,6 +1817,9 @@ It starts at your last message to the master.</string>
     <string name="master_place">Master position</string>
     <string name="master_pos_right">On the right</string>
     <string name="master_pos_left">On the left</string>
+    <string name="master_pos_home_row">Home in a row</string>
+    <string name="home_row_open">Reopen the Home</string>
+    <string name="home_row_new">new</string>
     <string name="master_pos_under">Under the dashboard</string>
     <string name="master_widen">Widen</string>
     <string name="master_narrow">Narrow</string>

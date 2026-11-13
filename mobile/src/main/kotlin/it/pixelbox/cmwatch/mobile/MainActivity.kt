@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile
 
+import androidx.compose.foundation.layout.ime
 import androidx.compose.material.icons.rounded.VerticalSplit
 import androidx.compose.material.icons.rounded.HorizontalSplit
 import androidx.compose.material.icons.rounded.OpenInFull
@@ -297,6 +298,13 @@ class MainActivity : ComponentActivity() {
         // Sul tablet lato, misura e posto della master come nella PWA larga (app-tablet-come-pwa-03-11), ricordati qui.
         var place by remember { mutableStateOf(it.pixelbox.cmwatch.rules.MasterPlace.fromPref(getSharedPreferences("ui", MODE_PRIVATE).getString("master_place", null))) }
         val keepPlace = { p: it.pixelbox.cmwatch.rules.MasterPlace -> place = p; getSharedPreferences("ui", MODE_PRIVATE).edit().putString("master_place", p.pref()).apply() }
+        // La Home in riga (app-home-riga-c1-13-11): da quando è in riga, per le novità, e le novità già aperte. Sul telefono la master
+        // a tutto schermo ha la riga sotto il campo senza sceglierla, e le novità si contano da quando si è aperta.
+        var homeRowSince by rememberSaveable { mutableStateOf<Long?>(getSharedPreferences("ui", MODE_PRIVATE).getLong("home_row_since", 0L).takeIf { it > 0 }) }
+        var homeRowOpened by remember { mutableStateOf(emptySet<String>()) }
+        val startHomeRow = { val t = System.currentTimeMillis() / 1000; homeRowSince = t; homeRowOpened = emptySet(); getSharedPreferences("ui", MODE_PRIVATE).edit().putLong("home_row_since", t).apply() }
+        var phoneRowSince by rememberSaveable { mutableStateOf<Long?>(null) }
+        var phoneRowOpened by remember { mutableStateOf(emptySet<String>()) }
         // Nome della sessione aperta; la master non è mai una pagina: aprirla, da qualunque strada, porta la home sulla sua chat.
         val openState = rememberSaveable { mutableStateOf<String?>(null) }
         val route = remember { OpenRoute(openState, tabState, masterChatState) }
@@ -2327,6 +2335,12 @@ class MainActivity : ComponentActivity() {
                     it.pixelbox.cmwatch.rules.MasterPlace.Item.RIGHT -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_pos_right), icons.VerticalSplit, e.on) { keepPlace(place.pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.RIGHT)) }
                     it.pixelbox.cmwatch.rules.MasterPlace.Item.LEFT -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_pos_left), icons.VerticalSplit, e.on) { keepPlace(place.pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.LEFT)) }
                     it.pixelbox.cmwatch.rules.MasterPlace.Item.UNDER -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_pos_under), icons.HorizontalSplit, e.on) { keepPlace(place.pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.UNDER)) }
+                    // La Home in riga: accesa apre la master di lato e comincia a contare le novità; scelta di nuovo riapre la Home.
+                    it.pixelbox.cmwatch.rules.MasterPlace.Item.HOME_ROW -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_pos_home_row), icons.HorizontalSplit, e.on) {
+                        val next = place.copy(open = masterChat).pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.HOME_ROW)
+                        keepPlace(next)
+                        if (next.homeRow) { masterChat = true; startHomeRow() }
+                    }
                     it.pixelbox.cmwatch.rules.MasterPlace.Item.SIZE -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(if (place.narrow) R.string.master_widen else R.string.master_narrow), if (place.narrow) icons.OpenInFull else icons.CloseFullscreen) { keepPlace(place.pick(it.pixelbox.cmwatch.rules.MasterPlace.Item.SIZE)) }
                     it.pixelbox.cmwatch.rules.MasterPlace.Item.CLOSE -> it.pixelbox.cmwatch.mobile.ui.PlaceKey(getString(R.string.master_close_key), icons.Close) { masterChat = false }
                 }
@@ -2492,6 +2506,11 @@ class MainActivity : ComponentActivity() {
                 // e torna ridotta toccando la sua barra, ora in cima. Ridotta: la lista con la barra sopra il campo. Il campo
                 // scrive alla master in tutte e due.
                 // Una pagina sola: si anima la parte sopra il campo, il campo resta fermo (`SessionSheet` con `homeOpen`).
+                // Sotto la master a tutto schermo la Home in riga (app-home-riga-c1-13-11); con la tastiera aperta non c'è.
+                LaunchedEffect(masterChat) { if (masterChat) { phoneRowSince = System.currentTimeMillis() / 1000; phoneRowOpened = emptySet() } }
+                val keyboard = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
+                Column(Modifier.fillMaxSize()) {
+                Box(Modifier.weight(1f).fillMaxWidth()) {
                 sessionPage(
                     master, masterEntries, homeList, true,
                     // Sul tablet il tocco sulla barra porta a metà, il trascinamento alla misura vicina; sul telefono barra e tutto schermo.
@@ -2514,6 +2533,16 @@ class MainActivity : ComponentActivity() {
                     },
                     !masterChat, { pageHeader(null) }, null,
                 )
+                }
+                if (masterChat && !keyboard) {
+                    val voices = remember(summary, phoneRowSince, phoneRowOpened) { it.pixelbox.cmwatch.rules.HomeRow.voices(it.pixelbox.cmwatch.rules.HomeRow.fromSummary(summary.rows), emptyList(), phoneRowSince, phoneRowOpened) }
+                    it.pixelbox.cmwatch.mobile.ui.HomeRowBar(
+                        voices, now, tight = true,
+                        onOpen = { v -> if (v.kind == it.pixelbox.cmwatch.rules.HomeRow.Kind.NEWS) phoneRowOpened = phoneRowOpened + v.key; open = v.session },
+                        onHome = { masterChat = false; masterHalf = false },
+                    )
+                }
+                }
             } else Column(Modifier.fillMaxSize()) {
                 pageHeader(null)
                 Box(Modifier.weight(1f)) { list() }
@@ -2720,6 +2749,8 @@ class MainActivity : ComponentActivity() {
         val deskFrame: @Composable (it.pixelbox.cmwatch.contract.State, it.pixelbox.cmwatch.rules.Summary.Model) -> Unit = { st, summary ->
             val m = summary.master
             val stacked = m != null && place.copy(open = masterChat).stacked(true)
+            // La Home in riga: la colonna della Home si chiude e in fondo alla plancia resta la riga.
+            val inRow = m != null && place.copy(open = masterChat).homeInRow(true)
             it.pixelbox.cmwatch.mobile.ui.MasterFrame(
                 place.left, place.panelWidth(),
                 panel = if (m != null && masterChat) ({
@@ -2731,7 +2762,20 @@ class MainActivity : ComponentActivity() {
                 bar = if (m != null && !masterChat) ({ masterBar(m) { masterChat = true } }) else null,
                 place = place, open = masterChat, sessionsOpen = true, stacked = stacked,
                 onPlace = if (m != null) ({ p, o, commit -> if (commit) keepPlace(p) else place = p; masterChat = o }) else null,
-            ) { tabletDesk(st, summary, stacked) }
+            ) {
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f).fillMaxWidth()) { tabletDesk(st, summary, stacked || inRow) }
+                    if (inRow) {
+                        val voices = remember(summary, tabletCols, homeRowSince, homeRowOpened) { it.pixelbox.cmwatch.rules.HomeRow.voices(it.pixelbox.cmwatch.rules.HomeRow.fromSummary(summary.rows), tabletCols, homeRowSince, homeRowOpened) }
+                        it.pixelbox.cmwatch.mobile.ui.HomeRowBar(
+                            voices, now, tight = false,
+                            // Una novità aperta va via; la voce apre la sua sessione in una colonna.
+                            onOpen = { v -> if (v.kind == it.pixelbox.cmwatch.rules.HomeRow.Kind.NEWS) homeRowOpened = homeRowOpened + v.key; if (v.session !in tabletCols) saveCols(it.pixelbox.cmwatch.rules.Tablet.add(tabletCols, v.session)) },
+                            onHome = { keepPlace(place.copy(homeRow = false)) },
+                        )
+                    }
+                }
+            }
         }
         val headsPrefs = remember { getSharedPreferences("heads_up", MODE_PRIVATE) }
         var headsSeen by remember { mutableStateOf(headsPrefs.getStringSet("seen", emptySet()).orEmpty().toSet()) }
