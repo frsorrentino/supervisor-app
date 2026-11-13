@@ -17,7 +17,7 @@
   import Kpi4 from './Kpi4.svelte'
   import PluginsSection from './PluginsSection.svelte'
   import type { KpiData, PluginsPage } from './contract'
-  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
+  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, lastOutcome, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import PermGlyph from './PermGlyph.svelte'
@@ -198,6 +198,19 @@
   // entra da sola, in ambra, finché dura. Il nome resta quello di quando scattava solo la settimana.
   const alarm = $derived(!part && usage && showUsage ? usageAlarm(st.quota, now) : null)
   const weekAlarm = $derived(!!alarm)
+  // Variante B del tabellone (app-tabellone-utilizzo-b-13-11): l'utilizzo è il terzo blocco, non più una riga. Con una finestra
+  // vicina al limite il blocco dice quella (le 5 ore o la settimana) col suo colore; il tocco apre i dettagli nel tabellone.
+  const usageCell = $derived.by(() => {
+    if (!week) return null
+    const a = alarm
+    const pct = a ? a.pct : week.pct
+    return {
+      pct, tick: a ? elapsedPct(a.resetAt, a.week ? W7_S : H5_S, now) : elapsedPct(week.resetAt, W7_S, now),
+      tone: a ? (pct >= 90 ? 'var(--red)' : 'var(--wait)') : slotTone(week), label: a && !a.week ? t.usageCell5h : t.usageCellWeek, open: !!open.usage,
+    }
+  })
+  const kh = $derived(kpiHead(st, kpiPage, now))
+  const lastOut = $derived(lastOutcome(kpiPage, now))
   const pin = $derived(slotKey(savedPin, weekAlarm))
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
@@ -767,8 +780,15 @@
 {#snippet slotBox()}
  {@const live = dragOrder ?? order}
  <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->
- {#if pin}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
- {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip) as k (k)}
+ <!-- La riga agganciata porta gli esiti di oggi (variante B): il conto, i rossi e l'ultimo esito a parole; apre la loro pagina. -->
+ {#if usageCell}
+   <div class="hsec onboard inboard"><button class="sec outrow" data-testid="tabellone-esiti" onclick={() => openCat('esiti')}>
+     <b class="on">{kh.outcomes ?? '–'}</b><span class="st">{kh.outcomes == null ? t.kpi7OutcomesUnknown : t.kpi7Outcomes}</span>{#if kh.red}<em>{t.kpi7Red(kh.red)}</em>{/if}
+     {#if lastOut}<span class="ol">{lastOut.text}</span>{:else}<span class="sp"></span>{/if}<span class="ms tog">chevron_right</span></button></div>
+   {#if open.usage && usage}<div class="hsec onboard inboard" bind:this={usageEl}><div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="card wrows">{@render (usageBlock ?? usage)()}</div></div></div></div>{/if}
+ {/if}
+ {#if pin && !(usageCell && pin === 'usage')}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
+ {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip && !(usageCell && k === 'usage')) as k (k)}
    <div class="hsec onboard inboard" class:held={k === dragKey}>{@render secOf(k)}</div>
  {/each}
 {/snippet}
@@ -777,7 +797,7 @@
   {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
-{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kpiHead(st, kpiPage, now)} {st} {now} onBox={openCat} {onQuota} slot={slotBox} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
+{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kh} {st} {now} onBox={openCat} {onQuota} slot={slotBox} usage={usageCell} onUsage={() => toggleSec('usage')} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 <!-- Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda e gli ok senza
@@ -926,6 +946,8 @@
     <!-- Nella plancia Utilizzo sta aperto in cima alla colonna col suo grafico (pwa2, 30/10). -->
     <div class="sec static"><span class="ic"><span class="ms">data_usage</span></span><span class="st">{t.homeUsage}</span></div>
     <div class="card wrows"><div class="footer exp" class:flash={usageFlash} bind:this={usageEl}>{@render usage()}</div></div>
+  {:else if usageCell}
+    <!-- L'utilizzo è il terzo blocco del tabellone: qui niente, i dettagli si aprono nella riga sotto (slotBox). -->
   {:else if usage && showUsage && !part}
     <div class="secwrap" bind:this={usageEl}>{#if week && (listSkip === 'usage' || (up as string[]).includes('usage'))}
       <!-- Nel tabellone Utilizzo è una riga con la sua barra (app-utilizzo-una-barra-03-11); con l'allarme la riga è ambra e dice la
@@ -1854,4 +1876,11 @@
   .monload .spin::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--tx3); border-top-color: var(--tx2); animation: monspin .9s linear infinite; }
   @keyframes monspin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .monload .spin::before { animation: none; } }
+  /* La riga degli esiti agganciata al tabellone (app-tabellone-utilizzo-b-13-11): neutra, non è un avviso. In un tabellone stretto
+     restano il conto e i rossi. */
+  .outrow { gap: 8px; padding-left: 12px; }
+  .outrow .on { font: 700 20px/22px var(--display); color: var(--tx); }
+  .outrow em { font-style: normal; font-weight: 500; color: var(--red); white-space: nowrap; }
+  .outrow .ol { flex: 1; min-width: 0; font: 400 14px/20px var(--sans); color: var(--tx2); white-space: nowrap; overflow: hidden; text-align: left; }
+  @container (max-width: 330px) { .outrow .ol { visibility: hidden; } }
 </style>
