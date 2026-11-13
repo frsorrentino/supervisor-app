@@ -1,4 +1,6 @@
 <script lang="ts">
+  import HomeRow from './lib/HomeRow.svelte'
+  import { fromSummary, rowHeight, voices as homeRowVoices, type Voice } from './lib/homeRow'
   import { gated, type By } from './lib/retryGate'
   import { applyAnswered, live as liveMarks, markAnswer, settle as settleMark, type Answered } from './lib/answered'
   import { locale } from './lib/lang'
@@ -781,12 +783,34 @@
   function stackMaster() {
     smooth(() => { masterUnder = !masterUnder; save('cm.master_under', masterUnder ? '1' : '0') })
   }
+  // La Home in riga (app-home-riga-c1-13-11, variante C1 dei mockup, scelta di Franz del 13/11 alle 09:32): il contrario di «Una
+  // riga in basso». La master tiene la sua colonna e la Home diventa una riga in fondo, con solo chi ti aspetta fuori schermo e le
+  // novità da quando è in riga (lib/homeRow.ts). Vale con le sessioni aperte, come «Sotto la dashboard»: sul cruscotto la Home è
+  // tutto lo schermo. Il tocco sulla riga, la maniglia o la riga tirata su riaprono la Home.
+  let homeRow = $state(load('cm.home_row') === '1')
+  let homeRowSince = $state<number | null>(Number(load('cm.home_row_since')) || null)
+  let homeRowOpened = $state(new Set<string>())
+  function setHomeRow(on: boolean) {
+    smooth(() => {
+      homeRow = on; save('cm.home_row', on ? '1' : '0')
+      homeRowOpened = new Set()
+      if (!on) return
+      homeRowSince = Math.floor(Date.now() / 1000); save('cm.home_row_since', String(homeRowSince))
+      if (masterUnder) { masterUnder = false; save('cm.master_under', '0') }
+      if (!masterOpen) { masterOpen = true; masterHalf = masterNarrow() }
+    })
+  }
+  const homeInRow = $derived(homeRow && wide && !!master && masterOpen && !masterUnder && cols.length > 0 && !cols.includes(MASTER))
+  const homeVoices = $derived(homeInRow ? homeRowVoices(fromSummary(summary.rows), cols, homeRowSince, homeRowOpened) : [])
+  // Una novità aperta va via; la voce apre la sua sessione in una colonna.
+  function openVoice(v: Voice) { if (v.kind === 'news') homeRowOpened = new Set([...homeRowOpened, v.key]); card(v.session) }
   // Il tasto tondo Posizione accanto al ▶ della master (Franz 03/11 17:23, al posto del menu ⋮ della scelta C delle 17:05,
   // app-master-tasti-compatti-03-11): le posizioni, la misura e Chiudi al posto dei tre tasti tondi. «Sotto la dashboard» solo con le sessioni aperte: sul cruscotto la master sta di lato.
   const masterMenu = $derived([
     { label: t.masterPosRight, on: !masterLeft, icon: 'M3 5h18v14H3zM15 5v14', onMove: () => placeMaster('right') },
     { label: t.masterPosLeft, on: masterLeft, icon: 'M3 5h18v14H3zM9 5v14', onMove: () => placeMaster('left') },
     ...(deskDashboard ? [] : [{ label: t.masterPosUnder, on: masterUnder, icon: 'M3 5h18v14H3zM3 12h18', onMove: stackMaster }]),
+    ...(deskDashboard ? [] : [{ label: t.masterPosHomeRow, on: homeInRow, icon: 'M3 5h18v14H3zM3 16h18', onMove: () => setHomeRow(!homeInRow) }]),
     ...(masterOpen ? [{ label: masterHalf ? t.masterWiden : t.masterNarrowKey, icon: masterHalf ? 'M8 7l-5 5 5 5M16 7l5 5-5 5' : 'M4 7l5 5-5 5M20 7l-5 5 5 5', onMove: () => smooth(masterSizeKey) }] : []),
     ...(masterOpen ? [{ label: t.masterCloseKey, icon: 'M7 7l10 10M17 7L7 17', onMove: () => smooth(() => { masterOpen = false }) }] : []),
   ])
@@ -2260,13 +2284,13 @@
   <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
   {#if keepBoth || !deskDashboard}<div class="wslot">
-  <div class="deskwrap" class:left={masterLeft} class:stacked {@attach park(!deskDashboard)}>
+  <div class="deskwrap" class:left={masterLeft} class:stacked class:homerow={homeInRow} style:--hr={homeInRow ? `${rowHeight(homeVoices)}px` : null} {@attach park(!deskDashboard)}>
   <div class="dstage">
   <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
        accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
   <Desk {cols} {shares} homeRight={master ? !masterLeft : homeRight} tab={wco ? columnTab : null} onCols={dropCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={master ? null : () => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
-    {#snippet home()}{#if !stacked}{@render homePane()}{/if}{/snippet}
+    {#snippet home()}{#if !stacked && !homeInRow}{@render homePane()}{/if}{/snippet}
     <!-- app-colonne-strette-05-11 (scelta A): la colonna senza posto leggibile è una striscia; la X la toglie come quella della testata. -->
     {#snippet strip(name, open)}
       {@const ses = st.sessions.find(x => x.name === name)}
@@ -2306,6 +2330,8 @@
   {#if cols.length && !page}<SwapPills shown={cols} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
   </div>
   {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('desk')}</aside>{/if}
+  <!-- La Home in riga, in fondo a tutta larghezza (app-home-riga-c1-13-11). -->
+  {#if homeInRow}<div class="hrowwrap"><HomeRow voices={homeVoices} {now} onOpen={openVoice} onHome={() => setHomeRow(false)} /></div>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
   {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top" use:fadeEnd>{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={topDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel('desk')}</div></div></aside>{/if}
   </div>
@@ -2472,6 +2498,12 @@
   .list :global(section.home.fade-end), .hs-top :global(section.home.fade-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
   /* Con home e master nella colonna della master, la griglia delle sessioni non tiene più il posto della home. */
   /* La maniglia della plancia resta: è la corsia fra le sessioni e la colonna della pila, col + e il filo delle schede. */
+  /* La Home in riga: la colonna della Home si chiude come sotto la master, e in fondo resta il posto della riga. */
+  .deskwrap.homerow { position: relative; padding-bottom: var(--hr, 64px); }
+  .hrowwrap { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; }
+  .deskwrap.homerow :global(.desk) { grid-template-columns: 0 28px minmax(0, 1fr); }
+  .deskwrap.homerow :global(.desk.right) { grid-template-columns: minmax(0, 1fr) 28px 0; }
+  .deskwrap.homerow :global(.desk.details) { grid-template-columns: 0 28px minmax(0, 1fr) 341px; }
   .deskwrap.stacked :global(.desk) { grid-template-columns: 0 28px minmax(0, 1fr); }
   .deskwrap.stacked :global(.desk.right) { grid-template-columns: minmax(0, 1fr) 28px 0; }
   .deskwrap.stacked :global(.desk.details) { grid-template-columns: 0 28px minmax(0, 1fr) 341px; }

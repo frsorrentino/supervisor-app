@@ -27,6 +27,7 @@ const it = {
   states: { waiting: 'domanda', busy: 'al lavoro', awaiting: 'in attesa', idle: 'ferma', gone: 'chiusa' } as Record<string, string>,
   // La «d» eufonica solo davanti alla stessa vocale (Preposition.kt): «Scrivi ad atlas-shop», «Scrivi a orbit-docs».
   writeTo: (name: string) => (name === 'master' ? 'Scrivi alla master' : `Scrivi ${/^[aàá]/i.test(name.trimStart()) ? 'ad' : 'a'} ${name}`),
+  homeRowOpen: 'Riapri la Home', homeRowNew: 'nuovo', masterPosHomeRow: 'Home in riga',
   youLabel: 'Tu', typeLabel: 'Tipo', nextLabel: 'Prossimi', stepFailed: 'fallito', workSteps: (n: number) => (n === 1 ? 'Lavoro · 1 passo' : `Lavoro · ${n} passi`),
   send: 'Invia', use: 'Usa', next: 'Azioni', pick: 'Scegli una sessione dalla home',
   quota5h: (p: number) => `5h ${p}%`, ctx: (p: number) => `ctx ${p}%`, week: (p: number) => `sett. ${p}%`,
@@ -490,6 +491,7 @@ const en: typeof it = {
   groups: { waiting: 'Waiting for you', working: 'Working', idle: 'Idle', closed: 'Closed' } as Record<string, string>,
   states: { waiting: 'question', busy: 'working', awaiting: 'waiting', idle: 'idle', gone: 'closed' } as Record<string, string>,
   writeTo: (name: string) => (name === 'master' ? 'Write to the master' : `Write to ${name}`),
+  homeRowOpen: 'Reopen the Home', homeRowNew: 'new', masterPosHomeRow: 'Home in a row',
   youLabel: 'You', typeLabel: 'Type', nextLabel: 'Next', stepFailed: 'failed', workSteps: (n: number) => (n === 1 ? 'Work · 1 step' : `Work · ${n} steps`),
   send: 'Send', use: 'Use', next: 'Actions', pick: 'Pick a session from the home',
   quota5h: (p: number) => `5h ${p}%`, ctx: (p: number) => `ctx ${p}%`, week: (p: number) => `wk ${p}%`,

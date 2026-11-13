@@ -1,0 +1,55 @@
+{
+ "voices": [
+  {
+   "name": "chi ti aspetta fuori schermo sì, chi è aperta accanto no",
+   "rows": [
+    { "session": "storefront", "group": "waiting", "text": "Fai il login nella sandbox dei pagamenti", "at": 100 },
+    { "session": "payments-api", "group": "waiting", "text": "Pubblico il deploy 2.8.0 in produzione?", "at": 200 },
+    { "session": "blog", "group": "waiting", "text": "ok alla pubblicazione del post\nseconda riga", "at": 300 }
+   ],
+   "shown": ["payments-api"], "since": 50, "opened": [],
+   "out": [
+    { "kind": "wait", "session": "storefront", "text": "Fai il login nella sandbox dei pagamenti", "at": 100, "key": "wait:storefront" },
+    { "kind": "wait", "session": "blog", "text": "ok alla pubblicazione del post", "at": 300, "key": "wait:blog" }
+   ]
+  },
+  {
+   "name": "una novità è un esito arrivato da quando la Home è in riga; quelli di prima no",
+   "rows": [
+    { "session": "admin-panel", "group": "finished", "text": "232 test verdi", "at": 500, "key": "finished:admin-panel@500" },
+    { "session": "docs", "group": "finished", "text": "pagine pubblicate", "at": 90, "key": "finished:docs@90" },
+    { "session": "search", "group": "working", "text": "indicizza", "at": 510 },
+    { "session": "old", "group": "still", "text": null, "at": 10 }
+   ],
+   "shown": [], "since": 100, "opened": [],
+   "out": [{ "kind": "news", "session": "admin-panel", "text": "232 test verdi", "at": 500, "key": "finished:admin-panel@500" }]
+  },
+  {
+   "name": "una novità aperta va via; chi ti aspetta resta",
+   "rows": [
+    { "session": "storefront", "group": "waiting", "text": "Fai il login", "at": 100 },
+    { "session": "admin-panel", "group": "finished", "text": "232 test verdi", "at": 500, "key": "finished:admin-panel@500" }
+   ],
+   "shown": [], "since": 100, "opened": ["finished:admin-panel@500"],
+   "out": [{ "kind": "wait", "session": "storefront", "text": "Fai il login", "at": 100, "key": "wait:storefront" }]
+  },
+  {
+   "name": "la master non entra mai nella riga, e senza un inizio non ci sono novità",
+   "rows": [
+    { "session": "master", "group": "waiting", "text": null, "at": 100 },
+    { "session": "admin-panel", "group": "finished", "text": "232 test verdi", "at": 500 }
+   ],
+   "shown": [], "since": null, "opened": [],
+   "out": []
+  },
+  {
+   "name": "un esito senza chiave prende la sua; una novità a schermo non c'è",
+   "rows": [
+    { "session": "admin-panel", "group": "finished", "text": "  232 test verdi  ", "at": 500 },
+    { "session": "blog", "group": "finished", "text": "post pronto", "at": 600 }
+   ],
+   "shown": ["blog"], "since": 100, "opened": [],
+   "out": [{ "kind": "news", "session": "admin-panel", "text": "232 test verdi", "at": 500, "key": "news:admin-panel@500" }]
+  }
+ ]
+}
