@@ -250,7 +250,8 @@ class TabletShellTest {
         val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
         CmPhoneTheme(still = true) {
             MasterFrame(left = true, panelWidthDp = 420f, panel = {
-                MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true, places = listOf(PlaceKey("A destra", androidx.compose.material.icons.Icons.Rounded.Close) {}))
+                // Il tasto tondo della master in testa al pannello, a riposo col chevron (app-sposta-master-a-13-11).
+                MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true, moveKey = { MasterMoveKey(it.pixelbox.cmwatch.rules.MasterMove.Spot(true, it.pixelbox.cmwatch.rules.MasterLanding.Height.COLUMN), sessionsOpen = true, up = false, onToggle = {}, onMove = {}) })
             }, bar = null) { desk(listOf("atlas-shop"), listOf(12)) }
         }
     }
