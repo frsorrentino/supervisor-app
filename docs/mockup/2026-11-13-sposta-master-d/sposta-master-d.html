@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sposta la master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0&display=block" rel="stylesheet">
+<style>
+  /* Variante D di app-mockup-sposta-master-12-11 (Franz 12/11 15:50-15:51, handoff-2026-11-12-sera §6). Il cerchio è quello che oggi apre
+     e chiude la master: il centro apre e chiude, il bordo sposta. Le otto frecce stanno dentro il cerchio, rivolte in fuori: accese
+     quelle possibili da dove sta la master, spente ma al loro posto le altre. Mouse: il cerchio si allarga al passaggio, la freccia
+     sotto il puntatore si accende di più, l'app si scurisce e la zona d'arrivo si accende in giallo; il clic sposta. Dito: il tocco
+     corto apre e chiude; la pressione lunga allarga il cerchio, si trascina verso una freccia, si rilascia per confermare. Tastiera:
+     le frecce (due insieme per le diagonali) scelgono, Invio conferma, Esc annulla. Dove le posizioni sono due (Home del telefono)
+     resta il tasto di oggi, con la sola freccia su o giù.
+     Per le tavole: `?s=riposo|aperto|freccia|dito|tastiera&pos=R|L|B|H&dir=W…&day&only=web|tel`. */
+  :root { --bg:#0B0B0B; --s1:#121212; --s2:#181818; --s3:#232323; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#A3A3A3; --tx3:#6E6E6E;
+          --wait:#FFB23F; --busy:#8AA9DB; --master:#141820; --scrim:rgb(0 0 0 / .52); --zone:rgb(255 178 63 / .16); --ring:#1E1E1E; }
+  :root[data-theme="day"] { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#ECECEC; --line:#E1E1E1; --tx:#141414; --tx2:#555555; --tx3:#8A8A8A;
+          --wait:#9A5700; --busy:#3D5F94; --master:#EEF2F8; --scrim:rgb(20 20 20 / .34); --zone:rgb(255 178 63 / .30); --ring:#FFFFFF; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, sans-serif; min-height: 100dvh; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; display: inline-block; white-space: nowrap; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+
+  /* La pagina: in alto cosa provare, sotto il web e il telefono. */
+  .page { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; max-width: 1440px; }
+  .bar h1 { font: 700 22px/28px "Barlow Semi Condensed", sans-serif; }
+  .bar p { flex: 1 1 520px; color: var(--tx2); font-size: 14.5px; line-height: 21px; }
+  .bar kbd { font: 500 12px/18px "Geist Mono", monospace; padding: 0 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--s1); color: var(--tx); }
+  .chip { font: 600 14px/20px "Barlow Semi Condensed", sans-serif; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--s1); }
+  .chip:active { transform: scale(.97); }
+  .stages { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .wrap { position: relative; overflow: hidden; border-radius: 14px; box-shadow: 0 0 0 1px var(--line); }
+  .cap { font: 500 12px/16px "Geist Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); margin-bottom: 8px; }
+  body.only .page { padding: 0; gap: 0; } body.only .bar, body.only .cap { display: none; } body.only .wrap { border-radius: 0; box-shadow: none; }
+  body.only-web #telBox, body.only-tel #webBox { display: none; }
+
+  /* Lo schermo del web, 1440 × 900, scalato per stare nella finestra. */
+  .stage { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; transform-origin: 0 0; background: var(--bg); overflow: hidden; }
+  .app { position: absolute; inset: 0; padding: 24px 28px; display: grid; grid-template-columns: 1fr 1fr 380px; gap: 20px; align-content: start; }
+  .app .col { display: flex; flex-direction: column; gap: 12px; }
+  .app .h { font: 700 24px/30px "Barlow Semi Condensed", sans-serif; padding: 4px 4px 8px; } .app .h small { font: 400 13px "Geist Mono", monospace; color: var(--tx2); margin-left: 8px; }
+  .card { border-radius: 18px; background: var(--s1); border: 1px solid var(--line); padding: 14px 16px; }
+  .card b { font: 600 17px/22px "Barlow Semi Condensed", sans-serif; display: block; } .card span { color: var(--tx2); font-size: 14px; line-height: 20px; }
+  .card.tall { min-height: 300px; } .card .w { color: var(--wait); }
+  .lbl { font: 500 12px/16px "Geist Mono", monospace; letter-spacing: .12em; color: var(--wait); padding: 6px 4px 0; }
+
+  /* La master: il suo posto, il cerchio in testa. */
+  .master { position: absolute; z-index: 3; background: var(--master); border: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden;
+            transition: left 280ms cubic-bezier(.23,1,.32,1), top 280ms cubic-bezier(.23,1,.32,1), width 280ms cubic-bezier(.23,1,.32,1), height 280ms cubic-bezier(.23,1,.32,1); }
+  .master .mh { flex: none; height: 72px; display: flex; align-items: center; gap: 12px; padding: 0 20px 0 84px; }
+  .master .mh b { font: 700 18px/22px "Barlow Semi Condensed", sans-serif; } .master .mh span { color: var(--tx2); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .master .body { flex: 1; min-height: 0; padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 22px; color: var(--tx2); }
+  .master .body p:first-child { color: var(--tx); }
+  .master .in { margin-top: auto; padding: 11px 16px; border-radius: 24px; background: var(--s2); border: 1px solid var(--line); color: var(--tx3); }
+  .master.row .mh { height: 64px; } .master.row .body, .master.shut .body { display: none; }
+  .master.closed-col { }
+
+  /* Lo scuro sull'app e la zona d'arrivo in giallo. */
+  .scrim { position: absolute; inset: 0; z-index: 5; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 160ms ease-out; }
+  .stage.preview .scrim { opacity: 1; }
+  .zone { position: absolute; z-index: 6; border-radius: 6px; background: var(--zone); box-shadow: inset 0 0 0 2px var(--wait); opacity: 0; pointer-events: none;
+          display: grid; place-items: center; transition: opacity 140ms ease-out; }
+  .zone span { font: 700 20px/26px "Barlow Semi Condensed", sans-serif; color: var(--wait); padding: 6px 14px; border-radius: 999px; background: var(--bg); }
+  .stage.preview .zone { opacity: 1; }
+
+  /* Il cerchio: a riposo è il tasto di oggi (44 px); al passaggio o alla pressione si allarga a 144 px e mostra le otto frecce. */
+  .ring { position: absolute; z-index: 7; width: 144px; height: 144px; margin: -72px 0 0 -72px; touch-action: none; transition: translate 200ms cubic-bezier(.23,1,.32,1); }
+  /* Allargato, il cerchio rientra nello schermo quando la master sta su un bordo. */
+  .ring.wide { translate: var(--dx, 0) var(--dy, 0); }
+  .ring .disc { position: absolute; inset: 0; border-radius: 50%; background: var(--ring); box-shadow: 0 0 0 1px var(--line), 0 6px 24px rgb(0 0 0 / .18);
+                transform: scale(.3056); transition: transform 200ms cubic-bezier(.23,1,.32,1); }
+  .ring .mid { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; display: grid; place-items: center; background: var(--s3); z-index: 2; }
+  .ring .mid .ms { font-size: 22px; }
+  .ring .ar { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; display: grid; place-items: center;
+              opacity: 0; transform: rotate(var(--a)) translate(0) rotate(calc(-1 * var(--a))); transition: transform 200ms cubic-bezier(.23,1,.32,1), opacity 160ms ease-out, background 120ms; pointer-events: none; }
+  .ring .ar .ms { font-size: 21px; transform: rotate(calc(var(--a) + 90deg)); color: var(--tx3); }
+  .ring.wide .disc { transform: scale(1); }
+  .ring.wide .ar { opacity: 1; transform: rotate(var(--a)) translate(50px) rotate(calc(-1 * var(--a))); pointer-events: auto; }
+  .ring .ar.off { cursor: default; } .ring .ar.off .ms { opacity: .35; }
+  .ring .ar.on .ms { color: var(--tx); }
+  .ring .ar.hot { background: var(--wait); } .ring .ar.hot .ms { color: var(--bg); }
+  .ring .mid:focus-visible, .ring .ar:focus-visible { outline: 2px solid var(--busy); outline-offset: 2px; }
+  .hint { position: absolute; z-index: 8; left: 50%; bottom: 84px; transform: translateX(-50%); font: 500 14px/20px Barlow, sans-serif; padding: 8px 14px; border-radius: 12px;
+          background: var(--s2); border: 1px solid var(--line); color: var(--tx2); opacity: 0; transition: opacity 140ms; white-space: nowrap; pointer-events: none; }
+  .hint kbd { font: 500 12px/18px "Geist Mono", monospace; padding: 0 5px; border-radius: 5px; border: 1px solid var(--line); color: var(--tx); }
+  .stage.keys .hint { opacity: 1; }
+  .finger { position: absolute; z-index: 9; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgb(255 255 255 / .28); box-shadow: 0 0 0 2px rgb(255 255 255 / .55); display: none; pointer-events: none; }
+  :root[data-theme="day"] .finger { background: rgb(0 0 0 / .14); box-shadow: 0 0 0 2px rgb(0 0 0 / .35); }
+  .stage.dito .finger { display: block; }
+  @media (prefers-reduced-motion: reduce) { .ring .disc, .ring .ar, .master { transition-duration: 1ms; } }
+
+  /* Il telefono: due posizioni, il tasto di oggi con la sola freccia. */
+  .tel { position: absolute; left: 0; top: 0; width: 412px; height: 915px; transform-origin: 0 0; background: var(--bg); overflow: hidden; }
+  .tel .app { grid-template-columns: 1fr; padding: 48px 14px 14px; }
+  .tel .master { left: 0; right: 0; width: auto; }
+  .tel .master.row { top: 851px; height: 64px; } .tel .master.full { top: 0; height: 915px; }
+  .tel .master .mh { padding-left: 20px; padding-right: 72px; height: 64px; }
+  .tel .one { position: absolute; z-index: 7; right: 14px; width: 44px; height: 44px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; transition: top 280ms cubic-bezier(.23,1,.32,1); }
+  .tel .one:active { transform: scale(.95); }
+  .tel .one:focus-visible { outline: 2px solid var(--busy); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="bar">
+    <h1>Sposta la master, variante D</h1>
+    <p>Col mouse: passa sul cerchio, poi su una freccia accesa, e clicca. Col dito: tocco corto apre e chiude; tieni premuto, trascina verso una freccia, lascia. Da tastiera: il cerchio col <kbd>Tab</kbd>, una freccia (due insieme per le diagonali), <kbd>Invio</kbd> conferma, <kbd>Esc</kbd> annulla.</p>
+    <button class="chip" id="theme">Giorno</button><button class="chip" id="reset">Rimetti a destra</button>
+  </div>
+  <div class="stages">
+    <div id="webBox"><div class="cap">Web e tablet · quattro posti</div><div class="wrap" id="webWrap"><div class="stage" id="stage">
+      <div class="app">
+        <div class="col"><div class="h">Supervisor<small>0.2.2135 · 4 aperte</small></div>
+          <div class="card"><b class="w">3 sessioni ferme</b><span>la prima da 7 min</span></div>
+          <div class="lbl">TI ASPETTANO 3</div>
+          <div class="card"><b>storefront</b><span>Fai il login nella sandbox dei pagamenti</span></div>
+          <div class="card"><b>payments-api</b><span>Pubblica il deploy 2.8.0</span></div>
+          <div class="card"><b>blog</b><span>ok alla pubblicazione del post</span></div></div>
+        <div class="col"><div class="card tall"><b>payments-api</b><span>Il rimborso parziale ora passa su staging: ho corretto l'arrotondamento dei centesimi e aggiunto i test che mancavano.</span></div>
+          <div class="card"><b>Risultati</b><span>Rapporto dei test dei pagamenti</span></div></div>
+        <div class="col"><div class="card"><b>Lavori</b><span>2 in corso, 1 da provare</span></div><div class="card"><b>Utilizzo</b><span>Settimana 75%</span></div></div>
+      </div>
+      <div class="master" id="master"><div class="mh"><b>Master</b><span>Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</span></div>
+        <div class="body"><p>Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</p><p>storefront aspetta il login nella sandbox: l'ho segnato fra le cose che ti aspettano.</p><div class="in">Scrivi alla master</div></div></div>
+      <div class="scrim"></div>
+      <div class="zone" id="zone"><span id="zoneName"></span></div>
+      <div class="ring" id="ring"><div class="disc"></div><button class="mid" id="mid" aria-label="Apri o chiudi la master; frecce per spostarla"><span class="ms" id="midIc">close_fullscreen</span></button></div>
+      <div class="hint" id="hint"></div>
+      <div class="finger" id="finger"></div>
+    </div></div></div>
+    <div id="telBox"><div class="cap">Telefono · due posti</div><div class="wrap" id="telWrap"><div class="tel" id="tel">
+      <div class="app"><div class="col"><div class="h">Supervisor</div>
+        <div class="card"><b class="w">3 sessioni ferme</b><span>la prima da 7 min</span></div>
+        <div class="lbl">TI ASPETTANO 3</div>
+        <div class="card"><b>storefront</b><span>Fai il login nella sandbox dei pagamenti</span></div>
+        <div class="card"><b>payments-api</b><span>Pubblica il deploy 2.8.0</span></div></div></div>
+      <div class="master row" id="tmaster"><div class="mh"><b>Master</b><span>Lanciata payments-api sulla fase 2.2.</span></div>
+        <div class="body"><p>Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</p><div class="in">Scrivi alla master</div></div></div>
+      <button class="one" id="one" aria-label="Master a tutto schermo"><span class="ms" id="oneIc">arrow_upward</span></button>
+    </div></div></div>
+  </div>
+</div>
+<script>
+  let timer = null, start = null, touchSkip = false
+  // I quattro posti della master sul web (lo schermo è 1440 × 900) e, da ognuno, le frecce accese: direzione → posto d'arrivo.
+  const ZONES = { R: { x: 1028, y: 0, w: 412, h: 900, name: 'A destra' }, L: { x: 0, y: 0, w: 412, h: 900, name: 'A sinistra' },
+                  B: { x: 0, y: 836, w: 1440, h: 64, name: 'Una riga in basso' }, H: { x: 0, y: 450, w: 1440, h: 450, name: 'Metà schermo, in basso' } }
+  const MOVES = { R: { W: 'L', SW: 'H', S: 'B' }, L: { E: 'R', SE: 'H', S: 'B' }, B: { NW: 'L', N: 'H', NE: 'R' }, H: { NW: 'L', NE: 'R', S: 'B' } }
+  const DIRS = { E: 0, SE: 45, S: 90, SW: 135, W: 180, NW: 225, N: 270, NE: 315 }
+  const LABEL = { E: 'destra', SE: 'in basso a destra', S: 'giù', SW: 'in basso a sinistra', W: 'sinistra', NW: 'in alto a sinistra', N: 'su', NE: 'in alto a destra' }
+  const $ = id => document.getElementById(id)
+  const stage = $('stage'), master = $('master'), ring = $('ring'), zone = $('zone'), mid = $('mid')
+  const q = new URLSearchParams(location.search)
+  let pos = q.get('pos') ?? 'R', open = true, dir = null, mode = null
+
+  const theme = t => { document.documentElement.dataset.theme = t; $('theme').textContent = t === 'day' ? 'Notte' : 'Giorno' }
+  theme(q.has('day') ? 'day' : 'night')
+  $('theme').onclick = () => theme(document.documentElement.dataset.theme === 'day' ? 'night' : 'day')
+  if (q.get('only')) document.body.classList.add('only', 'only-' + q.get('only'))
+
+  // Le frecce, una volta: otto bottoni al loro angolo; accese o spente le decide il posto.
+  for (const [d, a] of Object.entries(DIRS)) {
+    const b = document.createElement('button'); b.className = 'ar'; b.dataset.d = d; b.style.setProperty('--a', a + 'deg')
+    b.innerHTML = '<span class="ms">arrow_upward</span>'; b.tabIndex = -1; ring.appendChild(b)
+  }
+  const arrows = [...ring.querySelectorAll('.ar')]
+
+  function place() {
+    const z = ZONES[pos], row = pos === 'B'
+    const h = row ? z.h : open ? z.h : 72
+    Object.assign(master.style, { left: z.x + 'px', top: (pos === 'H' || row || open ? z.y : z.y) + 'px', width: z.w + 'px', height: h + 'px' })
+    master.classList.toggle('row', row); master.classList.toggle('shut', !open && !row)
+    master.style.borderRadius = row || pos === 'H' ? '0' : '0'
+    ring.style.left = z.x + 40 + 'px'; ring.style.top = z.y + (row ? 32 : 36) + 'px'
+    { const [cx, cy] = wideCenter(); ring.style.setProperty('--dx', cx - (z.x + 40) + 'px'); ring.style.setProperty('--dy', cy - (z.y + (row ? 32 : 36)) + 'px') }
+    $('midIc').textContent = open && !row ? 'close_fullscreen' : 'open_in_full'
+    arrows.forEach(b => { const to = MOVES[pos][b.dataset.d]; b.classList.toggle('on', !!to); b.classList.toggle('off', !to)
+      b.setAttribute('aria-label', to ? `Sposta ${ZONES[to].name.toLowerCase()}` : `${LABEL[b.dataset.d]}: non da qui`); b.disabled = !to })
+  }
+  function preview(d) {
+    dir = d && MOVES[pos][d] ? d : null
+    arrows.forEach(b => b.classList.toggle('hot', b.dataset.d === dir))
+    stage.classList.toggle('preview', !!dir)
+    if (dir) { const z = ZONES[MOVES[pos][dir]]; Object.assign(zone.style, { left: z.x + 'px', top: z.y + 'px', width: z.w + 'px', height: z.h + 'px' }); $('zoneName').textContent = z.name }
+  }
+  const widen = on => ring.classList.toggle('wide', on)
+  // Il centro del cerchio allargato: quello del tasto, spinto dentro lo schermo di quanto serve.
+  const R = 80, wideCenter = () => { const x = parseFloat(ring.style.left), y = parseFloat(ring.style.top); return [Math.min(Math.max(x, R), 1440 - R), Math.min(Math.max(y, R), 900 - R)] }
+  function move() { if (!dir) return; pos = MOVES[pos][dir]; done(); place() }
+  function done() { preview(null); widen(false); mode = null; stage.classList.remove('keys', 'dito') }
+
+  // Mouse: il passaggio allarga, la freccia sotto il puntatore prepara, il clic sposta; il centro apre e chiude.
+  ring.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') widen(true) })
+  ring.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && mode !== 'keys') done() })
+  arrows.forEach(b => {
+    b.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') preview(b.dataset.d) })
+    b.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') preview(null) })
+    b.addEventListener('click', e => { if (touchSkip) { touchSkip = false; return } if (mode === 'dito') return; preview(b.dataset.d); move() })
+  })
+  mid.addEventListener('click', e => { if (mode === 'dito' || touchSkip) { touchSkip = false; return } open = !open; place() })
+
+  // Dito: tocco corto apre e chiude; pressione lunga (450 ms) allarga, il trascinamento sceglie la freccia più vicina, il rilascio conferma.
+  const scale = () => stage.getBoundingClientRect().width / 1440
+  function local(e) { const r = stage.getBoundingClientRect(), s = scale(); return [(e.clientX - r.left) / s, (e.clientY - r.top) / s] }
+  ring.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse') return
+    start = local(e); ring.setPointerCapture(e.pointerId)
+    timer = setTimeout(() => { mode = 'dito'; widen(true); stage.classList.add('dito'); finger(start); navigator.vibrate?.(12) }, 450)
+  })
+  ring.addEventListener('pointermove', e => {
+    if (mode !== 'dito') return
+    const p = local(e), c = wideCenter(), dx = p[0] - c[0], dy = p[1] - c[1]
+    finger(p)
+    if (Math.hypot(dx, dy) < 30) return preview(null)
+    const a = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360
+    const d = Object.entries(DIRS).reduce((best, [k, v]) => { const diff = Math.min(Math.abs(a - v), 360 - Math.abs(a - v)); return diff < best[1] ? [k, diff] : best }, [null, 999])[0]
+    preview(d)
+  })
+  ring.addEventListener('pointerup', e => {
+    if (e.pointerType === 'mouse') return
+    clearTimeout(timer)
+    if (mode === 'dito') { touchSkip = true; if (dir) move(); else done() }
+  })
+  ring.addEventListener('pointercancel', () => { clearTimeout(timer); done() })
+  const finger = p => { Object.assign($('finger').style, { left: p[0] + 'px', top: p[1] + 'px' }) }
+
+  // Tastiera: col cerchio a fuoco, una freccia (o due insieme) prepara; Invio conferma, Esc annulla, Invio senza freccia apre e chiude.
+  const held = new Set(); let keyTimer = null
+  const KEY = { ArrowUp: 'N', ArrowDown: 'S', ArrowLeft: 'W', ArrowRight: 'E' }
+  const combo = () => { const s = [...held]; if (s.length === 1) return s[0]; const v = s.includes('N') ? 'N' : s.includes('S') ? 'S' : ''; const h = s.includes('E') ? 'E' : s.includes('W') ? 'W' : ''; return v && h ? v + h : s.at(-1) }
+  mid.addEventListener('keydown', e => {
+    if (KEY[e.key]) { e.preventDefault(); held.add(KEY[e.key]); mode = 'keys'; widen(true); stage.classList.add('keys'); preview(combo()); hint() }
+    else if (e.key === 'Enter' || e.key === ' ') { if (dir) { e.preventDefault(); move() } }
+    else if (e.key === 'Escape') { e.preventDefault(); done() }
+  })
+  mid.addEventListener('keyup', e => { if (KEY[e.key]) held.delete(KEY[e.key]) })
+  mid.addEventListener('blur', () => { held.clear(); if (mode === 'keys') done() })
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && mode) done() })
+  function hint() { $('hint').innerHTML = dir ? `${ZONES[MOVES[pos][dir]].name}: <kbd>Invio</kbd> sposta, <kbd>Esc</kbd> annulla` : `Da qui: ${Object.keys(MOVES[pos]).map(d => LABEL[d]).join(', ')}. <kbd>Esc</kbd> annulla` }
+
+  $('reset').onclick = () => { pos = 'R'; open = true; done(); place(); telPos = 'row'; telPlace() }
+
+  // Il telefono: due posti, il tasto di oggi con la sola freccia verso l'altro posto.
+  let telPos = q.get('tel') ?? 'row'
+  function telPlace() { const m = $('tmaster'); m.classList.toggle('row', telPos === 'row'); m.classList.toggle('full', telPos === 'full')
+    $('one').style.top = (telPos === 'row' ? 851 + 10 : 10) + 'px'; $('oneIc').textContent = telPos === 'row' ? 'arrow_upward' : 'arrow_downward'
+    $('one').setAttribute('aria-label', telPos === 'row' ? 'Master a tutto schermo' : 'Master in una riga in basso') }
+  $('one').onclick = () => { telPos = telPos === 'row' ? 'full' : 'row'; telPlace() }
+
+  // Scala: ogni schermo sta nella finestra senza scorrere di lato.
+  function fit() {
+    const only = q.get('only'), W = innerWidth - (only ? 0 : 32)
+    const ws = only === 'web' ? innerWidth / 1440 : Math.min(1, W / 1440), ts = only === 'tel' ? innerWidth / 412 : Math.min(1, W / 412, (innerHeight - 40) / 915)
+    stage.style.transform = `scale(${ws})`; $('webWrap').style.width = 1440 * ws + 'px'; $('webWrap').style.height = 900 * ws + 'px'
+    $('tel').style.transform = `scale(${ts})`; $('telWrap').style.width = 412 * ts + 'px'; $('telWrap').style.height = 915 * ts + 'px'
+  }
+  addEventListener('resize', fit); fit(); place(); telPlace()
+
+  // Le tavole: lo stato chiesto dall'indirizzo.
+  const s = q.get('s'), d0 = q.get('dir')
+  if (s === 'aperto') widen(true)
+  if (s === 'freccia') { widen(true); preview(d0) }
+  if (s === 'dito') { mode = 'dito'; widen(true); stage.classList.add('dito'); preview(d0); const c = wideCenter(), a = DIRS[d0] * Math.PI / 180; finger([c[0] + Math.cos(a) * 64, c[1] + Math.sin(a) * 64]) }
+  if (s === 'tastiera') { mode = 'keys'; widen(true); stage.classList.add('keys'); preview(d0); hint(); mid.focus() }
+  if (s === 'chiusa') { open = false; place() }
+</script>
+</body>
+</html>
