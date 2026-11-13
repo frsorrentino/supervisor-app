@@ -310,8 +310,8 @@ class ContractTest {
         // confermato, fuori da 1-20 un rifiuto a parole.
         val max = cmds.filter { it.op == CmdOp.MAX_SESSIONS_SET }
         assertEquals(listOf("9", "40"), max.map { it.arg })
-        // Nella fixture l'id …1380 c'è due volte (anche su un comando di prima): vale l'ultimo risultato con quell'id.
-        val maxResults = max.map { c -> results.last { it.id == c.id } }
+        assertEquals(listOf("1400", "1401"), max.map { it.id.takeLast(4) })
+        val maxResults = max.map { c -> results.single { it.id == c.id } }
         assertEquals(listOf(true, false), maxResults.map { it.ok })
         assertEquals(9, it.pixelbox.cmwatch.rules.MaxSessions.answer(maxResults[0].text))
         assertEquals("max_sessions out of range 1-20", maxResults[1].text)
