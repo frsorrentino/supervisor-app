@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { gated, type By } from './lib/retryGate'
   import { applyAnswered, live as liveMarks, markAnswer, settle as settleMark, type Answered } from './lib/answered'
   import { locale } from './lib/lang'
   import * as files from './lib/fileActions'
@@ -1408,15 +1409,18 @@
     const p = nightTitleParts(nightModel.dayBefore, nightModel.day, d => new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(d))
     return p.monthA ? t.nightPageTitleTwo(p.dayA, p.monthA, p.dayB, p.monthB) : t.nightPageTitle(p.dayA, p.dayB, p.monthB)
   })
-  async function loadNight() {
-    if (!tr) return
-    night = { ...night, loading: true, error: null }
-    try {
-      const r = await tr.send(newCmd('night', null, null))
-      if (r.ok) night = { report: JSON.parse(r.text), error: null, loading: false }
-      else night = { report: night.report, error: /unknown|not allowed|unsupported/i.test(r.text) ? t.nightOld : r.text.startsWith('no night report') ? t.nightNone : r.text, loading: false }
-    } catch { night = { ...night, error: t.noAnswer, loading: false } }
-  }
+  // Dopo un errore la lettura non riparte subito (app-agenda-raffica-13-11, lib/retryGate.ts): prima l'effetto qui sotto la
+  // richiedeva appena tornava l'errore, senza sosta, finché la pagina restava aperta.
+  const nightReader = gated({
+    send: () => tr!.send(newCmd('night', null, null)),
+    start: () => (night = { ...night, loading: true, error: null }),
+    ok: text => (night = { report: JSON.parse(text), error: null, loading: false }),
+    fail: text => (night = { report: night.report, error: text == null ? t.noAnswer : /unknown|not allowed|unsupported/i.test(text) ? t.nightOld : text.startsWith('no night report') ? t.nightNone : text, loading: false }),
+  })
+  async function loadNight(by: By = 'auto') { if (tr) await nightReader.read(by) }
+  // Un rapporto nuovo annunciato dal relay riapre la lettura.
+  const nightDay = $derived(st.night?.report ?? null)
+  $effect(() => { void nightDay; nightReader.reset() })
   $effect(() => { if (page === 'night' && !night.report && !night.loading) untrack(() => loadNight()) })
   // Il riquadro Notte in home (mockup approvato l'08/10 alle 12:57): finché quella notte non si apre; il rapporto si chiede
   // una volta, per i conteggi. Il giorno aperto si ricorda nel browser.
@@ -1432,18 +1436,22 @@
   // Solo i «prossimo» del recap del giorno (Franz, 09/10 17:21): i «Prossimi:» delle sessioni stanno sulle loro schede.
   let agenda = $state<{ page: AgendaPage | null; error: string | null; loading: boolean }>({ page: null, error: null, loading: false })
   const canAgenda = $derived(!!st.ops?.includes('agenda'))
-  async function loadAgenda() {
-    if (!tr) return
-    agenda = { ...agenda, loading: true, error: null }
-    try {
-      const r = await tr.send(newCmd('agenda', null, null))
-      if (r.ok) agenda = { page: JSON.parse(r.text), error: null, loading: false }
-      else agenda = { page: agenda.page, error: r.text.startsWith('no agenda file') ? t.recapAgendaNone : r.text, loading: false }
-    } catch { agenda = { ...agenda, error: t.noAnswer, loading: false } }
-  }
+  // app-agenda-raffica-13-11: sul relay di un collega, con l'agenda non configurata, l'effetto «niente pagina e niente lettura in
+  // corso» (più sotto, per la notte) la richiedeva appena tornava «no agenda file», circa 175 volte al secondo. Ora ogni lettura
+  // passa dal cancello: dopo un errore attesa crescente e stop dopo tre uguali; «no agenda file» spegne l'agenda finché il relay
+  // non smette di offrirla e la offre di nuovo.
+  const agendaReader = gated({
+    send: () => tr!.send(newCmd('agenda', null, null)),
+    start: () => (agenda = { ...agenda, loading: true, error: null }),
+    ok: text => (agenda = { page: JSON.parse(text), error: null, loading: false }),
+    fail: text => (agenda = { page: agenda.page, error: text == null ? t.noAnswer : text.startsWith('no agenda file') ? t.recapAgendaNone : text, loading: false }),
+    off: text => text.startsWith('no agenda file'),
+  })
+  async function loadAgenda(by: By = 'auto') { if (tr) await agendaReader.read(by) }
+  $effect(() => { if (!canAgenda) agendaReader.reset() })
   const recapDate = $derived(st.recap.date)
   $effect(() => { void recapDate; void slowTick; if (canAgenda) untrack(() => loadAgenda()) })
-  $effect(() => { if (page === 'lavori' && canAgenda) untrack(() => loadAgenda()) })
+  $effect(() => { if (page === 'lavori' && canAgenda) untrack(() => loadAgenda('user')) })
   // Contratto 1.77: il blocco Fatto dall'op `done`, una pagina per giorno. Oggi appena il relay offre l'op (la riga di home conta
   // «fatto oggi» da lì, come il blocco) e di nuovo a ogni cambio di pagina; un giorno prima al tocco.
   let donePages = $state<Record<string, DonePage>>({})
@@ -1528,7 +1536,7 @@
       const cmd = { ...newCmd('agenda_set', null, c.key), action: c.action, ...(c.until ? { until: c.until } : {}), ...(c.blocks ? { blocks: c.blocks } : {}) }
       const r = await tr.send(cmd)
       if (!r.ok) say(r.text.startsWith('agenda row changed') ? t.agendaChanged : r.text.startsWith('agenda busy') ? t.agendaBusy : r.text)
-      if (r.ok || r.text.startsWith('agenda row changed')) await loadAgenda()
+      if (r.ok || r.text.startsWith('agenda row changed')) await loadAgenda('user')
     } catch { say(t.noAnswer) }
   }
   // Contratto 1.49 (Franz, 09/10 21:27, scelta A): le schede del Recap stanotte, alla master, un lavoro per scheda col testo
@@ -2148,7 +2156,7 @@
       <Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="none" kpi={kpiData} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} {donePages} onLoadDay={loadDone} />
     {:else if p === 'night'}
-      <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={loadNight}
+      <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={() => loadNight('user')}
         onChat={(n, sid) => { if (sid) { sidOf = { ...sidOf, [n]: sid }; reading = n; loadTranscript(n) } else { openPage(null); pick(n) } }} onAnswer={(n, x) => cmd(n)('answer', String(x))}
         onApprove={(task) => approve(task, '')} onSend={(n, text) => sendTo(n, text)} />
     {:else if p === 'search'}
