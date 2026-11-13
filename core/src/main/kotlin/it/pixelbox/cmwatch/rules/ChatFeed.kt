@@ -83,12 +83,14 @@ object ChatFeed {
     fun mode(page: TranscriptPage, asked: Page): Page = if (page.reset) Page.FRESH else asked
 
     fun append(old: List<TranscriptEntry>, page: TranscriptPage, mode: Page): List<TranscriptEntry> {
-        val byId = page.entries.associateBy { it.id }
+        // Anche dentro la pagina: una ripresa può ricopiare i messaggi di prima, e due voci uguali rompono l'elenco (app-web-chat-prima-clear-12-11).
+        val entries = page.entries.distinctBy { it.id }
+        val byId = entries.associateBy { it.id }
         val updated = old.map { byId[it.id] ?: it }
         val seen = old.map { it.id }.toSet()
-        val fresh = page.entries.filter { it.id !in seen }
+        val fresh = entries.filter { it.id !in seen }
         return when (mode) {
-            Page.FRESH -> page.entries
+            Page.FRESH -> entries
             Page.AFTER -> updated + fresh
             Page.BEFORE -> fresh + updated
         }

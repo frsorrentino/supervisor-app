@@ -74,6 +74,13 @@ describe('ChatFeed', () => {
     const older: TranscriptPage = { entries: [entry('u0.0', 'user', { text: 'earlier', at: 1 })], more: false }
     expect(append(first.entries, older, 'before')[0].id).toBe('u0.0')
   })
+  // app-web-chat-prima-clear-12-11: una pagina «prima» che ripete un id (una ripresa che ricopia i messaggi) non lo porta due volte.
+  it('before page with a repeated id keeps one', () => {
+    const page: TranscriptPage = { entries: [entry('u0.0', 'user', { text: 'earlier', at: 1 }), entry('u0.1', 'assistant', { at: 2 }), entry('u0.0', 'user', { text: 'earlier', at: 1 })], more: true }
+    const list = append(first.entries, page, 'before')
+    expect(list.slice(0, 2).map(e => e.id)).toEqual(['u0.0', 'u0.1'])
+    expect(new Set(list.map(e => e.id)).size).toBe(list.length)
+  })
   // Franz 23/10 23:17: «il tasto carica messaggi precedenti non funziona» (dopo un /clear la pagina «prima» torna vuota o
   // già nota e il tasto resta). Il tasto carica o sparisce: more resta vero solo con voci nuove; una pagina rifiutata lo spegne.
   it('the older button loads or goes away', () => {

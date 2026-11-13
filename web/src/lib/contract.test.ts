@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readPreview } from './closeFinished'
 import { readFileSync } from 'node:fs'
-import { blankState, decodeChanges, decodeDiff, decodeState, withAfterPage, withFirstPage, tailKey, transcriptArg, withTail, type Cmd, type CmdResult, type SearchPage, type TranscriptEntry, type TranscriptPage } from './contract'
+import { blankState, decodeChanges, decodeDiff, decodeState, afterOnto, uniqueById, withAfterPage, withFirstPage, tailKey, transcriptArg, withTail, type Cmd, type CmdResult, type SearchPage, type TranscriptEntry, type TranscriptPage } from './contract'
 import { newCmd } from './transport'
 
 const fixture = (n: string) => readFileSync(new URL(`../../../contract/${n}`, import.meta.url), 'utf8')
@@ -95,6 +95,20 @@ describe('chat da /tail (contratto 1.59)', () => {
     const fresh: TranscriptEntry[] = [{ id: 'n1.0', role: 'user', text: 'nuova' }]
     expect(withAfterPage(have, { entries: fresh, more: true, reset: true }).map(e => e.id)).toEqual(['n1.0'])
     expect(withAfterPage(have, { entries: fresh }).map(e => e.id)).toEqual(['a1.0', 'n1.0'])
+  })
+  // app-web-chat-prima-clear-12-11: mai due voci con lo stesso id, e la lettura continua non rimette la lista vecchia.
+  it('una pagina after con voci già a schermo le aggiorna dove sono', () => {
+    const e = (id: string, text = '') => ({ id, role: 'assistant' as const, text })
+    expect(withAfterPage([e('a'), e('b', 'old')], { entries: [e('b', 'new'), e('c'), e('c')] }).map(x => `${x.id}${x.text}`)).toEqual(['a', 'bnew', 'c'])
+    expect(uniqueById([e('a'), e('b'), e('a')]).map(x => x.id)).toEqual(['a', 'b'])
+  })
+  it('la pagina after va in coda alla lista di adesso: la pagina «prima» arrivata nel frattempo resta', () => {
+    const e = (id: string) => ({ id, role: 'assistant' as const, text: '' })
+    const had = [e('m1'), e('m2')], now = [e('old1'), e('old2'), ...had]
+    expect(afterOnto(had, now, { entries: [e('m3')] }).map(x => x.id)).toEqual(['old1', 'old2', 'm1', 'm2', 'm3'])
+    // La coda è cambiata nel frattempo: la pagina non vale più.
+    expect(afterOnto(had, [e('m1'), e('m2'), e('m3')], { entries: [e('m3'), e('m4')] }).map(x => x.id)).toEqual(['m1', 'm2', 'm3'])
+    expect(afterOnto(had, now, { entries: [e('n1')], reset: true }).map(x => x.id)).toEqual(['n1'])
   })
 
   it('transcript_after_restart: la prima lettura chiede la pagina intera anche con le voci del tail', () => {

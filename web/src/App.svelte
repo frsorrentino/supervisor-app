@@ -41,7 +41,7 @@
   import { fly, retractNeck } from './lib/director'
   import type { AgendaPage, Cmd, CmdOp, CmdResult, DonePage, Event, KpiData, PluginsPage, SearchPage, Session, State, TimelinePage, TranscriptEntry, TranscriptPage } from './lib/contract'
   import { older } from './lib/chatFeed'
-  import { blankState, decodeChanges, decodeDiff, transcriptArg, withAfterPage, withFirstPage, withTail } from './lib/contract'
+  import { blankState, decodeChanges, decodeDiff, transcriptArg, afterOnto, withAfterPage, withFirstPage, withTail } from './lib/contract'
   import { cleanEvent } from './lib/alertEvents'
   import { ask } from './lib/changes'
   import { fileArg } from './lib/diff'
@@ -533,7 +533,10 @@
       if (jumping.has(name) || untrack(() => newerOf[name])) return true
       if (!after || p.reset) { olderOf = { ...olderOf, [name]: !!p.more }; paged.add(name) }
       if (after && !p.entries.length && !p.reset) return true
-      transcripts = { ...transcripts, [name]: after ? withAfterPage(have, p) : withFirstPage(have, p) }
+      // Sulla lista di adesso, non su quella di quando la lettura è partita: una pagina «prima» arrivata nel frattempo resta in testa
+      // (app-web-chat-prima-clear-12-11).
+      const cur = untrack(() => transcripts[name]) ?? []
+      transcripts = { ...transcripts, [name]: after ? afterOnto(have, cur, p) : withFirstPage(cur, p) }
       return true
     } catch { return false /* al prossimo stato */ } finally { loadingT.delete(name) }
   }

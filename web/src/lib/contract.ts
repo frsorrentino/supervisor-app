@@ -264,8 +264,30 @@ export const transcriptArg = (have: TranscriptEntry[], paged: boolean): string =
   return paged && last ? `200:after=${last}` : '50'
 }
 /** La prima pagina con le voci già in copia (dal tail): le stesse si aggiornano, le più nuove restano in coda. */
-/** Una pagina `after` in coda; con `reset` (contratto 1.93) al posto della lista. */
-export const withAfterPage = (have: TranscriptEntry[], page: TranscriptPage): TranscriptEntry[] => (page.reset ? page.entries : [...have, ...page.entries])
+/** Mai due voci con lo stesso id: resta la prima, al suo posto (una ripresa può ricopiare i messaggi di prima; due chiavi uguali rompono l'elenco della chat). */
+export function uniqueById(list: TranscriptEntry[]): TranscriptEntry[] {
+  const seen = new Set<string>()
+  return list.filter(e => (seen.has(e.id) ? false : (seen.add(e.id), true)))
+}
+/**
+ * Una pagina `after` in coda; con `reset` (contratto 1.93) al posto della lista. Una voce che c'è già si aggiorna dov'è, senza
+ * ripetersi in coda (app-web-chat-prima-clear-12-11).
+ */
+export function withAfterPage(have: TranscriptEntry[], page: TranscriptPage): TranscriptEntry[] {
+  if (page.reset) return uniqueById(page.entries)
+  const byId = new Map(page.entries.map(e => [e.id, e]))
+  const seen = new Set(have.map(e => e.id))
+  return uniqueById([...have.map(e => byId.get(e.id) ?? e), ...page.entries.filter(e => !seen.has(e.id))])
+}
+/**
+ * La lettura continua (`after`) è partita con la lista `had` e torna quando a schermo c'è `now`: la pagina va in coda a quella di
+ * adesso, così una pagina «prima» caricata nel frattempo resta in testa; se nel frattempo la coda è cambiata (un'altra lettura, un
+ * ritorno in fondo) la pagina non vale più e la lista resta com'è, fino alla prossima lettura (app-web-chat-prima-clear-12-11).
+ */
+export function afterOnto(had: TranscriptEntry[], now: TranscriptEntry[], page: TranscriptPage): TranscriptEntry[] {
+  if (page.reset) return withAfterPage(now, page)
+  return had.at(-1)?.id === now.at(-1)?.id ? withAfterPage(now, page) : now
+}
 export const withFirstPage = (have: TranscriptEntry[], page: TranscriptPage): TranscriptEntry[] =>
   have.length ? withTail(page.entries, { session: '', id: '', at: 0, entries: have }) : page.entries
 

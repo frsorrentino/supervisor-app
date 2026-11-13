@@ -98,6 +98,14 @@ class ChatFeedTest {
         assertEquals("u0.0", ChatFeed.append(first.entries, older, ChatFeed.Page.BEFORE).first().id)
     }
 
+    /** app-web-chat-prima-clear-12-11: una pagina «prima» che ripete un id (una ripresa che ricopia i messaggi) non lo porta due volte. */
+    @Test fun beforePageWithARepeatedIdKeepsOne() {
+        val e = TranscriptEntry("u0.0", "user", text = "earlier", at = 1)
+        val list = ChatFeed.append(first.entries, TranscriptPage(listOf(e, TranscriptEntry("u0.1", "assistant", at = 2), e), more = true), ChatFeed.Page.BEFORE)
+        assertEquals(listOf("u0.0", "u0.1"), list.take(2).map { it.id })
+        assertEquals(list.size, list.map { it.id }.toSet().size)
+    }
+
     /**
      * Franz 23/10 23:17: «il tasto carica messaggi precedenti non funziona» (chat della master dopo un /clear: la pagina
      * «prima» torna vuota, o con voci già note, e il tasto resta). Il tasto carica o sparisce: `more` resta vero solo se

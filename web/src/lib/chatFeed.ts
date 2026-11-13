@@ -1,4 +1,4 @@
-import type { TranscriptEntry, TranscriptPage } from './contract'
+import { uniqueById, type TranscriptEntry, type TranscriptPage } from './contract'
 import { SKEW_S, waiting, type Sent, type Status } from './chatRules'
 import { short } from './toolText'
 
@@ -53,11 +53,13 @@ export const olderArg = (firstId: string): string => `${PAGE}:before=${firstId}`
  * sostituisce con la sua versione nuova: mai due voci con lo stesso id.
  */
 export function append(old: TranscriptEntry[], page: TranscriptPage, mode: Page): TranscriptEntry[] {
-  const byId = new Map(page.entries.map(e => [e.id, e]))
+  // Anche dentro la pagina: una ripresa può ricopiare i messaggi di prima, e due voci uguali rompono l'elenco (app-web-chat-prima-clear-12-11).
+  const entries = uniqueById(page.entries)
+  const byId = new Map(entries.map(e => [e.id, e]))
   const updated = old.map(e => byId.get(e.id) ?? e)
   const seen = new Set(old.map(e => e.id))
-  const fresh = page.entries.filter(e => !seen.has(e.id))
-  return mode === 'fresh' ? page.entries : mode === 'after' ? [...updated, ...fresh] : [...fresh, ...updated]
+  const fresh = entries.filter(e => !seen.has(e.id))
+  return mode === 'fresh' ? entries : mode === 'after' ? [...updated, ...fresh] : [...fresh, ...updated]
 }
 
 /**
