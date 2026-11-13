@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { answer as maxAnswer, canSet as canSetMax } from './lib/maxSessions'
   import MasterKey from './lib/MasterKey.svelte'
   import { nameOf as keyNameOf, type Move as KeyMove, type Spot as KeySpot } from './lib/masterKey'
   import HomeRow from './lib/HomeRow.svelte'
@@ -2097,6 +2098,14 @@
     kpiDataAsked = at
     untrack(() => run(newCmd('kpi', null))).then(r => { if (r?.ok) kpiData = JSON.parse(r.text) })
   })
+  // Contratto 1.145 (app-tabellone-frazioni-13-11): «Sessioni al massimo» nelle impostazioni; il numero confermato dal PC vale subito.
+  async function setMaxSessions(n: number): Promise<string | null> {
+    const r = await run(newCmd('max_sessions_set', null, String(n)))
+    if (!r?.ok) return r?.text ?? t.noAnswer
+    const v = maxAnswer(r.text) ?? n
+    if (kpiData?.kpi_health) kpiData = { ...kpiData, kpi_health: { ...kpiData.kpi_health, sessions_max: v } }
+    return null
+  }
   const answer = (n: string, x: number) => { pick(n); cmd(n)('answer', String(x)) }
 </script>
 
@@ -2247,7 +2256,8 @@
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
         onFeatures={() => openPage('features')} onHomeOrder={st.ops?.includes('home_order') ? () => openPage('homeorder') : null} onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
-        onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => run(newCmd('unpair', null, uid)) : null} />
+        onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => run(newCmd('unpair', null, uid)) : null}
+        maxSessions={kpiData?.kpi_health?.sessions_max ?? null} onMaxSessions={tr && canSetMax(st.ops) ? setMaxSessions : null} />
     {:else if p === 'box-aspetta' || p === 'box-lavoro' || p === 'box-esiti'}
       <HomeBox box={p === 'box-aspetta' ? 'aspetta' : p === 'box-lavoro' ? 'lavoro' : 'esiti'} st={stShown} page={kpiPage} {now} onSession={(n) => { openPage(null); pick(n) }} onProve={() => openPage('prove')} />
     {:else if p === 'queue'}

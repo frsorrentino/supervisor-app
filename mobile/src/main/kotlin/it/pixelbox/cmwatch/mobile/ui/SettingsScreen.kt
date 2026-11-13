@@ -86,6 +86,11 @@ fun SettingsScreen(
     homeOrder: List<String>? = null, onHomeOrder: ((List<String>) -> Unit)? = null,
     /** Il commit accanto alla versione in Informazioni; nei provini vuoto. */
     commit: String = "",
+    /**
+     * Contratto 1.145 (app-tabellone-frazioni-13-11): il massimo di sessioni (`kpi_health.sessions_max`), null se il relay non lo dice;
+     * `onMaxSessions` lo cambia, ed è null se il relay non ha `max_sessions_set`: allora la voce si legge e basta.
+     */
+    maxSessions: Int? = null, onMaxSessions: ((Int) -> Unit)? = null,
 ) {
     var reorder by rememberSaveable { mutableStateOf(false) }
     if (reorder && onHomeOrder != null) {
@@ -95,6 +100,7 @@ fun SettingsScreen(
     }
     var choosing by remember { mutableStateOf(false) }
     var choosingTheme by remember { mutableStateOf(false) }
+    var choosingMax by remember { mutableStateOf(false) }
     var choosingVoice by remember { mutableStateOf(false) }
     var device by rememberSaveable { mutableStateOf(initialDevice) }
     var opened by rememberSaveable { mutableStateOf(initialOpen.toList()) }
@@ -167,6 +173,12 @@ fun SettingsScreen(
             SectionCard {
                 SettingsRow(Icons.Outlined.Language, stringResource(R.string.language), languageName(language), onClick = { choosing = true })
                 SettingsRow(Icons.Outlined.Contrast, stringResource(R.string.theme), themeName(theme), onClick = { choosingTheme = true })
+                // «Sessioni al massimo»: si sceglie da 1 a 20 se il relay ha il comando; se no si legge e basta.
+                maxSessions?.let { n ->
+                    SettingsRow(Icons.Outlined.Layers, stringResource(R.string.max_sessions), stringResource(if (onMaxSessions != null) R.string.max_sessions_sub else R.string.max_sessions_old), onClick = onMaxSessions?.let { { choosingMax = true } }) {
+                        Text(n.toString(), style = V3.Name.copy(fontFeatureSettings = "tnum"), color = V3.Tx, modifier = Modifier.padding(end = 8.dp).testTag("impostazioni-max-sessioni"))
+                    }
+                }
                 SettingsRow(Icons.Outlined.Notifications, stringResource(R.string.notifications), stringResource(R.string.notifications_sub), onNotifications)
                 SettingsRow(Icons.Outlined.Science, stringResource(R.string.demo_mode), stringResource(R.string.demo_mode_sub), onClick = { onDemo(!demo) }) {
                     Switch(checked = demo, onCheckedChange = onDemo, colors = cmSwitchColors())
@@ -210,6 +222,26 @@ fun SettingsScreen(
                     }
                 }
             },
+        )
+    }
+    if (choosingMax && onMaxSessions != null) {
+        AlertDialog(
+            onDismissRequest = { choosingMax = false }, confirmButton = {},
+            title = { Text(stringResource(R.string.max_sessions)) },
+            text = {
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                    it.pixelbox.cmwatch.rules.MaxSessions.choices(maxSessions).forEach { n ->
+                        Row(
+                            Modifier.fillMaxWidth().handCursor().clickable { choosingMax = false; if (n != maxSessions) onMaxSessions(n) }.padding(vertical = 10.dp).testTag("max-sessioni-$n"),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RadioButton(selected = n == maxSessions, onClick = null)
+                            Text(n.toString(), style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            containerColor = Cm.surface,
         )
     }
     if (choosingTheme) {

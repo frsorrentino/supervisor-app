@@ -204,3 +204,16 @@ describe("tabellone: l'ultimo esito di oggi a parole", () => {
     expect(lastOutcome(page([['blog', [ev(now - 60, 'outcome', 'in corso', 'running')]]]), now, 'UTC')).toBeNull()
   })
 })
+
+// app-tabellone-frazioni-13-11 (Franz 13/11 13:56): il denominatore delle frazioni del tabellone.
+describe('tabellone: le sessioni aperte, denominatore delle frazioni', () => {
+  it('conta le sessioni vive senza la master, le stesse fra cui si contano ferme e al lavoro; le chiuse no', async () => {
+    const { head } = await import('./kpi')
+    const s = (name: string, state: string, extra: Partial<Session> = {}): Session => ({ id: name, name, account: 'p', state, since: 0, ...extra } as Session)
+    const st = { v: 1, ts: 100, sessions: [s('a', 'busy'), s('b', 'waiting', { question: { id: 'q', text: '?', asked_at: 50, options: [] } } as Partial<Session>), s('c', 'idle'), s('d', 'gone'), s('master', 'busy')], quota: {} } as unknown as State
+    const h = head(st, null, 100, 'UTC')
+    // La master al lavoro non conta né sopra né sotto la riga della frazione.
+    expect([h.open, h.busy, h.waiting]).toEqual([3, 1, 1])
+    expect(head({ ...st, sessions: [s('d', 'gone')] } as State, null, 100, 'UTC').open).toBe(0)
+  })
+})

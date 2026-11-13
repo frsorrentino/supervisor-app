@@ -396,6 +396,8 @@ export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 're
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
   | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'attese' | 'attesa' | 'monitors' | 'monitor_refresh' | 'thumb' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
+  /** Contratto 1.145: arg = il massimo di sessioni, intero in testo da 1 a 20; risposta `{"max_sessions": N}`. */
+  | 'max_sessions_set'
   /** Contratto 1.97: arg = array JSON delle chiavi, vuoto = predefinito. */
   | 'home_order' | 'prove' | 'prova' | 'decisioni' | 'decisione' | 'prima_raccolta' | 'prima_raccolta_azione' | 'seguiti' | 'seguiti_azione' | 'conti' | 'conti_azione' | 'feedback_consent' | 'feedback_send' | 'feedback_text' | 'feedback_app' | 'results' | 'result_seen' | 'result_note'
   /** Contratto 1.83: la risposta a una domanda di un server MCP; arg = id, `action` e `content`. */

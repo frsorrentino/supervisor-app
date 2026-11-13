@@ -142,16 +142,17 @@ export type OutcomeType = typeof OUTCOME_TYPES[number]
 export const outcomeType = (raw: string | null | undefined): OutcomeType => (raw !== 'none' && (OUTCOME_TYPES as readonly string[]).includes(raw ?? '') ? raw as OutcomeType : 'none')
 
 /** 7 · tre cifre in testa alla home: chi ti aspetta (e da quanto la prima), chi lavora, gli esiti di oggi e i rossi. */
-export type Head = { waiting: number; oldestWaitS: number | null; busy: number; outcomes: number | null; red: number | null }
+/** `open` (app-tabellone-frazioni-13-11, Franz 13/11 14:10: «sessioni aperte oltre alla master»): le sessioni aperte adesso senza la master, come «N aperte» in testata; è il denominatore delle frazioni, e ferme e al lavoro si contano fra le stesse, così x/N non supera mai N. */
+export type Head = { waiting: number; oldestWaitS: number | null; busy: number; outcomes: number | null; red: number | null; open?: number }
 
 export function head(st: State, page: TimelinePage | null, now: number, timeZone?: string): Head {
-  const live = st.sessions.filter(s => s.state !== 'gone')
+  const live = st.sessions.filter(s => s.state !== 'gone' && s.name !== 'master')
   const waits = live.map(waitingSince).filter((x): x is number => x != null)
   const from = midnight(now, timeZone)
   const today = page ? page.sessions.flatMap(s => s.events).filter(e => e.at >= from && e.at <= now) : null
   const counted = page?.since === from ? page.outcomes_settled_n : undefined
   return {
-    waiting: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, busy: live.filter(s => s.state === 'busy' && waitingSince(s) == null).length,
+    open: live.length, waiting: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, busy: live.filter(s => s.state === 'busy' && waitingSince(s) == null).length,
     outcomes: counted ?? (today ? today.filter(e => e.kind === 'outcome' && outcomeType(e.type) !== 'running').length : null), red: today ? today.filter(e => e.kind === 'task' && e.ok === false).length : null,
   }
 }

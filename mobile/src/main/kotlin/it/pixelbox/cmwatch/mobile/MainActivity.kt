@@ -756,6 +756,17 @@ class MainActivity : ComponentActivity() {
                 homeOrder = state?.homeOrder,
                 onHomeOrder = if (state?.ops?.contains("home_order") == true) ({ o -> scope.launch { runCatching { app.repo.command(CmdOp.HOME_ORDER, null, it.pixelbox.cmwatch.rules.HomeOrder.arg(o)) } } }) else null,
                 onBack = { settingsOpen = false },
+                // Contratto 1.145: «Sessioni al massimo»; il numero confermato dal PC vale subito, un rifiuto si legge in un avviso.
+                maxSessions = kpiData?.health?.sessionsMax,
+                onMaxSessions = if (!demo && it.pixelbox.cmwatch.rules.MaxSessions.canSet(state?.ops)) ({ n ->
+                    scope.launch {
+                        val id = runCatching { app.repo.command(CmdOp.MAX_SESSIONS_SET, null, n.toString()) }.getOrNull()
+                        val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(PhoneTerminal.LOST_MS) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+                        if (r?.ok == true) kpiData = kpiData?.let { d -> d.copy(health = d.health?.copy(sessionsMax = it.pixelbox.cmwatch.rules.MaxSessions.answer(r.text) ?: n)) }
+                        else android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.chat_no_answer), android.widget.Toast.LENGTH_LONG).show()
+                        id?.let { app.repo.forget(it) }
+                    }
+                }) else null,
                 onRepair = onRepair, onDemo = { app.setDemo(it) },
                 onNotifications = { startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)) },
                 onPrivacy = { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.privacy_url)))) },

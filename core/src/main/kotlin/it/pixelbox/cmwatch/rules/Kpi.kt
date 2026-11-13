@@ -155,10 +155,14 @@ object Kpi {
     fun todayShare(state: State, session: String): Int? = state.usageToday?.firstOrNull { it.session == session }?.let { Math.round(it.share * 100).toInt() }
 
     /** 7 · tre cifre in testa alla home: chi ti aspetta (e da quanto la prima), chi lavora, gli esiti di oggi e i rossi. */
-    data class Head(val waiting: Int, val oldestWaitS: Long?, val busy: Int, val outcomes: Int?, val red: Int?)
+    /**
+     * `open` (app-tabellone-frazioni-13-11, Franz 13/11 14:10: «sessioni aperte oltre alla master»): le sessioni aperte adesso senza la
+     * master, come «N aperte» in testata; è il denominatore delle frazioni, e ferme e al lavoro si contano fra le stesse.
+     */
+    data class Head(val waiting: Int, val oldestWaitS: Long?, val busy: Int, val outcomes: Int?, val red: Int?, val open: Int = 0)
 
     fun head(state: State, page: TimelinePage?, now: Long, zone: ZoneId): Head {
-        val live = state.sessions.filter { it.state != SessionState.GONE }
+        val live = state.sessions.filter { it.state != SessionState.GONE && it.name != ContextActions.MASTER }
         val waits = live.mapNotNull { waitingSince(it) }
         val from = midnight(now, zone)
         val today = page?.sessions?.flatMap { it.events }?.filter { it.at in from..now }
@@ -166,6 +170,7 @@ object Kpi {
         return Head(
             waiting = waits.size, oldestWaitS = waits.minOrNull()?.let { now - it }, busy = live.count { it.state == SessionState.BUSY && waitingSince(it) == null },
             outcomes = counted ?: today?.count { it.kind == "outcome" && OutcomeType.of(it.type) != OutcomeType.RUNNING }, red = today?.count { it.kind == "task" && it.ok == false },
+            open = live.size,
         )
     }
 

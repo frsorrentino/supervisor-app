@@ -159,6 +159,8 @@ enum class CmdOp {
     @SerialName("done") DONE,
     /** Contratto 1.80: il tasto «Fatto» su una voce di «Serve te»: `kind` della voce, `arg` = il suo ref, `since` per una ferma del turno. */
     @SerialName("attention_done") ATTENTION_DONE,
+    /** Contratto 1.145: arg = il massimo di sessioni, intero in testo da 1 a 20; risposta `{"max_sessions": N}`. */
+    @SerialName("max_sessions_set") MAX_SESSIONS_SET,
     /**
      * Contratto 1.83: la risposta a una domanda di un server MCP. `session`, `arg` = id della domanda, `action` = accept |
      * decline | cancel, `content` = {key: valore} (per choice il value, i numeri come numeri). Esito «answered <server> (<id>)».

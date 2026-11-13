@@ -18,8 +18,8 @@
 </script>
 
 <div class="board lit" data-kpi="kpi-7">
-  <button class="cell" data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><b class="n" class:wait={h.waiting > 0}>{h.waiting}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
-  <button class="cell" data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><b class="n">{h.busy}</b><span class="l">{t.kpi7Busy}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
+  <button class="cell" data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><b class="n" class:wait={h.waiting > 0}>{h.waiting}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
+  <button class="cell" data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
   {#if usage}
     <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l">{usage.label}</span><span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
       <span class="edge" style:color={usage.tone}><i style="width:{Math.min(100, usage.pct)}%"></i>{#if usage.tick != null}<u style="left:{usage.tick}%"></u>{/if}</span></button>
@@ -43,6 +43,8 @@
   .cell:focus-visible { outline: 2px solid var(--tx); outline-offset: -2px; }
   .n { display: block; font: 700 42px/1 var(--display); letter-spacing: -0.01em; }
   .n.wait { color: var(--wait); }
+  /* La frazione sulle sessioni aperte (Franz 13/11 13:56: «al lavoro 1/5 e ferme 3/5»): più piccola e neutra, accanto alla cifra. */
+  .n .of { font-size: 22px; font-weight: 600; letter-spacing: 0; color: var(--tx2); margin-left: 2px; }
   .l { display: block; min-height: 2.5em; font-size: 14px; line-height: 1.25; color: var(--tx2); margin-top: 6px; overflow-wrap: anywhere; }
   .l em { font-style: normal; font-weight: 500; color: var(--red); }
   .chev { position: absolute; top: 12px; right: 8px; color: var(--tx3); }

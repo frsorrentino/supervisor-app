@@ -1822,6 +1822,9 @@ It starts at your last message to the master.</string>
     <string name="home_row_new">new</string>
     <string name="usage_cell_week">of the week</string>
     <string name="usage_cell_5h">of the 5 hours</string>
+    <string name="max_sessions">Sessions at most</string>
+    <string name="max_sessions_sub">how many sessions the PC keeps open</string>
+    <string name="max_sessions_old">to change it, update supervisor on the PC</string>
     <string name="master_pos_under">Under the dashboard</string>
     <string name="master_widen">Widen</string>
     <string name="master_narrow">Narrow</string>

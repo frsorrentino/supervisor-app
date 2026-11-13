@@ -174,9 +174,9 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
         Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
             val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
             val box = { b: HomeBox, tag: String, w: Float -> Modifier.weight(w).fillMaxHeight().then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).testTag(tag).handCursor().clickable { onBox(b) } }
-            Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f))
+            Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f), of = h.open.takeIf { it > 0 })
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
-            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f))
+            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f), of = h.open.takeIf { it > 0 })
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             // Variante B (app-tabellone-utilizzo-b-13-11): col dato dell'utilizzo il terzo blocco è lui; gli esiti stanno nella riga sotto.
             if (usage != null) UsageBoard(usage, Modifier.weight(1.15f).fillMaxHeight().then(if (usage.open) Modifier.background(V3.S2) else Modifier).testTag("home-box-utilizzo").handCursor().clickable(onClick = usage.onToggle))
@@ -430,10 +430,12 @@ internal fun OutcomesBoardRow(count: String, label: String, red: String?, last: 
 }
 
 @Composable
-private fun Board(value: String, label: String, tone: Color, red: String?, modifier: Modifier) {
+private fun Board(value: String, label: String, tone: Color, red: String?, modifier: Modifier, of: Int? = null) {
     Column(modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.Top) {
-            Text(value, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 38.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = tone, maxLines = 1, modifier = Modifier.weight(1f))
+            Text(value, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 38.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = tone, maxLines = 1, modifier = if (of == null) Modifier.weight(1f) else Modifier)
+            // La frazione sulle sessioni aperte (Franz 13/11 13:56: «al lavoro 1/5 e ferme 3/5»): più piccola e neutra, accanto alla cifra.
+            of?.let { Text("/$it", style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = V3.Tx2, maxLines = 1, modifier = Modifier.padding(start = 2.dp).weight(1f).alignByBaseline()) }
             androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
         }
         // Due righe per tutte, anche quando il testo ne occupa una: i tre numeri e le etichette stanno sulle stesse linee (Franz 03/11

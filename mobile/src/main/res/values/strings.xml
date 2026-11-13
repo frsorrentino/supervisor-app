@@ -1850,6 +1850,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_row_new">nuovo</string>
     <string name="usage_cell_week">della settimana</string>
     <string name="usage_cell_5h">delle 5 ore</string>
+    <string name="max_sessions">Sessioni al massimo</string>
+    <string name="max_sessions_sub">quante sessioni tiene aperte il PC</string>
+    <string name="max_sessions_old">per cambiarlo aggiorna supervisor sul PC</string>
     <string name="master_pos_under">Sotto la dashboard</string>
     <string name="master_widen">Allarga</string>
     <string name="master_narrow">Stringi</string>

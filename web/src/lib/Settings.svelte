@@ -9,6 +9,9 @@
   import { loadTheme, setTheme, type ThemeChoice } from './theme'
   let theme = $state<ThemeChoice>(loadTheme())
   const themeName = (c: ThemeChoice) => (c === 'day' ? t.themeDay : c === 'night' ? t.themeNight : t.themeAuto)
+  // «Sessioni al massimo»: mentre il PC risponde il selettore aspetta; un rifiuto si legge sotto il titolo.
+  let maxBusy = $state(false), maxFail = $state<string | null>(null)
+  async function pickMax(n: number) { if (!onMaxSessions) return; maxBusy = true; maxFail = await onMaxSessions(n); maxBusy = false }
   import { DAY } from './durations'
   import { locale } from './lang'
   import type { DevicesModel, Linked, Tone } from './devices'
@@ -17,10 +20,14 @@
   import { speech, toggle } from './speech.svelte'
   import { fold } from './motion'
   import { t } from './t'
+  import { choices as maxChoices } from './maxSessions'
 
   // Impostazioni (SettingsScreen dell'app, mockup A): sezioni con l'etichetta e il filo. Collegamento: lo schema dei
   // dispositivi da toccare (schema B, contratto 1.32); Lettura ad alta voce: voce e velocità; Informazioni: la versione.
-  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, onRevoke = null, demo = false, onHomeOrder = null, onFeatures = null }: {
+  let { m, devices, now, channel, onRate, onVoice, timeZone, details = null, onDetails = () => {}, push = 'hidden', onPush = () => {}, onAdd = null, onRevoke = null, demo = false, onHomeOrder = null, onFeatures = null, maxSessions = null, onMaxSessions = null }: {
+    /** Contratto 1.145: il massimo di sessioni (`kpi_health.sessions_max`), null se il relay non lo dice; `onMaxSessions` lo cambia e
+     *  torna l'errore del relay o null, ed è null se il relay non ha `max_sessions_set`: allora la voce si legge e basta. */
+    maxSessions?: number | null; onMaxSessions?: ((n: number) => Promise<string | null>) | null
     onFeatures?: (() => void) | null
     /** «Riordina la home» (contratto 1.97); null se il relay non ha `home_order`. */
     onHomeOrder?: (() => void) | null
@@ -211,6 +218,18 @@
         <option value="auto">{t.themeAuto}</option><option value="day">{t.themeDay}</option><option value="night">{t.themeNight}</option>
       </select>
     </label>
+    {#if maxSessions != null}
+      <!-- Contratto 1.145 (app-tabellone-frazioni-13-11): si sceglie da 1 a 20 se il relay ha il comando; se no si legge e basta. -->
+      <label class="srow" data-testid="impostazioni-max-sessioni">
+        <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5zM3 13l9 5 9-5M3 18l9 5 9-5" /></svg></span>
+        <span class="st"><b>{t.maxSessions}</b><small class:bad={!!maxFail}>{maxFail ?? (onMaxSessions ? t.maxSessionsSub : t.maxSessionsOld)}</small></span>
+        {#if onMaxSessions}
+          <select class="pick" value={String(maxSessions)} disabled={maxBusy} onchange={(e) => pickMax(Number((e.currentTarget as HTMLSelectElement).value))}>
+            {#each maxChoices(maxSessions) as n}<option value={String(n)}>{n}</option>{/each}
+          </select>
+        {:else}<span class="pick ro">{maxSessions}</span>{/if}
+      </label>
+    {/if}
     <label class="srow">
       <span class="sic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z" /></svg></span>
       <span class="st"><b>{t.demoMode}</b><small>{t.demoModeSub}</small></span>
@@ -271,6 +290,8 @@
 <style>
   .pick { background: var(--high); color: var(--text); border: 0; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px; }
   a.srow { color: inherit; text-decoration: none; }
+  .pick.ro { background: none; font-variant-numeric: tabular-nums; }
+  .st small.bad { color: var(--gone-dim); }
   .settings { display: flex; flex-direction: column; gap: 14px; padding: 0 16px 24px; max-width: 760px; }
   .gh { display: flex; align-items: center; gap: 10px; margin: 6px 8px 0; font: 12.5px var(--mono); letter-spacing: .06em; color: var(--text2); }
   .gh i { flex: 1; height: 1px; background: color-mix(in srgb, var(--text2) 25%, transparent); }
