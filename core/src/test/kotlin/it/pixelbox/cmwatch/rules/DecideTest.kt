@@ -207,3 +207,23 @@ class DecideTest {
         assertEquals(listOf("m"), ProveFuse.withoutTests(page).groups.map { it.key })
     }
 }
+
+/** app-prove-segnalate-android-13-11: le segnalate si chiudono con «Ora va», e le note della versione stanno con le sue prove. */
+class ProveSegnalateTest {
+    @org.junit.Test fun aReportedTestClosesWithItsNumberAndLeavesItsRow() {
+        val k = it.pixelbox.cmwatch.contract.ProveKo(id = 389, task = "app-x", text = "non va")
+        org.junit.Assert.assertEquals(BancoProva.NowOk("389", "ko-389"), BancoProva.nowOk(k))
+        org.junit.Assert.assertEquals(ItemRows.proveKo(k).key, BancoProva.nowOk(k).row)
+    }
+
+    // Il caso del 13/11: tre versioni che l'app non riconosce, senza prove a schermo: nessuna nota da sola.
+    @org.junit.Test fun theNotesOfAVersionStayWithItsTests() {
+        org.junit.Assert.assertFalse(BancoProva.installFirstNote(BancoProva.Build.UNKNOWN, 0))
+        org.junit.Assert.assertFalse(BancoProva.installFirstNote(BancoProva.Build.TO_INSTALL, 0))
+        org.junit.Assert.assertTrue(BancoProva.installFirstNote(BancoProva.Build.TO_INSTALL, 2))
+        org.junit.Assert.assertFalse(BancoProva.installFirstNote(BancoProva.Build.INSTALLED, 2))
+        org.junit.Assert.assertTrue(BancoProva.unknownNoteInCard(BancoProva.Build.UNKNOWN))
+        org.junit.Assert.assertFalse(BancoProva.unknownNoteInCard(BancoProva.Build.INSTALLED))
+        org.junit.Assert.assertFalse(BancoProva.unknownNoteInCard(BancoProva.Build.TO_INSTALL))
+    }
+}

@@ -172,7 +172,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
     var picked by remember { mutableStateOf(mapOf<String, String>()) }
     // Le prove mandate restano via anche se la sezione si ridisegna (app-prova-ok-sparisce-04-11): lo stato sta in ProveSent.
     val gone = ProveSent.ids
-    androidx.compose.runtime.LaunchedEffect(page) { page?.let { pg -> val here = pg.groups.flatMap { g -> g.prove.map { it.id.toString() } }.toSet(); ProveSent.ids.retainAll(here) } }
+    androidx.compose.runtime.LaunchedEffect(page) { page?.let { pg -> val here = pg.groups.flatMap { g -> g.prove.map { it.id.toString() } }.toSet() + pg.ko.map { k -> BancoProva.nowOk(k).row }; ProveSent.ids.retainAll(here) } }
     val off = animationsOff()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val hooks = remember {
@@ -199,8 +199,9 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                 if (b != BancoProva.Build.TO_INSTALL && shown.size > 1) ConfirmButton(stringResource(R.string.prove_all_ok), confirmed = allPicked, enabled = ids.none { it in picked }) { act(ids, "ok") { onOk(BancoProva.allOk(g)) } }
             }
             }
-            if (b == BancoProva.Build.TO_INSTALL) Text(stringResource(R.string.prove_install_first), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, modifier = Modifier.padding(horizontal = 4.dp))
-            if (b == BancoProva.Build.UNKNOWN) Text(stringResource(R.string.prove_build_unknown), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp))
+            // Le note della versione stanno con le sue prove (app-prove-segnalate-android-13-11): «installa prima» solo se il gruppo ha
+            // prove a schermo; «non so se è installata» dentro la scheda di ogni prova, non sopra il gruppo, dove restava da sola.
+            if (BancoProva.installFirstNote(b, shown.size)) Text(stringResource(R.string.prove_install_first), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, modifier = Modifier.padding(horizontal = 4.dp))
             // Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok.
             ItemList(g.prove.map { p -> ItemRows.prove(p, b != BancoProva.Build.TO_INSTALL) }, "prova-${g.build}", gone = gone.toSet(), focus = focus, onOpen = onWait?.let { f -> { r -> g.prove.firstOrNull { p -> p.id.toString() == r.key }?.wid?.let { w -> f(w); true } ?: false } }) { r ->
                 val p = g.prove.first { it.id.toString() == r.key }
@@ -211,6 +212,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                     Text(stringResource(R.string.prove_expected, p.atteso), style = V3.Small)
                     // Le immagini di cosa guardare, dalla richiesta della prova (app-scheda-scelta-12-11, punto 5).
                     p.wid?.let { w -> ProvaFiles(w) }
+                    if (BancoProva.unknownNoteInCard(b)) Text(stringResource(R.string.prove_build_unknown), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.testTag("prova-versione-ignota"))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         BancoProva.screen(p.dove)?.let { s -> TextButton(onClick = { onScreen(s) }) { Text(stringResource(R.string.features_go)) } }
                         Spacer(Modifier.weight(1f))
@@ -222,9 +224,24 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                 }
             }
         }
-        if (!page?.ko.isNullOrEmpty()) {
+        // Il titolo resta finché c'è almeno una segnalata a schermo.
+        if (page?.ko.orEmpty().any { BancoProva.nowOk(it).row !in gone }) {
             Text(stringResource(R.string.prove_reported), style = MonoSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
-            ItemList(page!!.ko.map { k -> ItemRows.proveKo(k) }, "prova-ko") { r -> page.ko.firstOrNull { "ko-${it.id}" == r.key }?.let { k -> LongText(k.text, style = V3.Body) } }
+            // Una prova segnalata si chiude con «Ora va» quando, riprovata, va (come sulla web, app-verifica-conto-elenco-12-11): è l'Ok
+            // della prova, che il relay accetta anche dopo un «Non va». La riga esce come le altre, e torna se il PC dice no.
+            ItemList(page!!.ko.map { k -> ItemRows.proveKo(k) }, "prova-ko", gone = gone.toSet()) { r ->
+                page.ko.firstOrNull { "ko-${it.id}" == r.key }?.let { k ->
+                    val now = BancoProva.nowOk(k)
+                    val pk = picked[now.row]
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        LongText(k.text, style = V3.Body)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Spacer(Modifier.weight(1f))
+                            Box(Modifier.testTag("prova-ora-va")) { ConfirmButton(stringResource(R.string.prove_now_ok), confirmed = pk == "ok", enabled = pk == null) { act(listOf(now.row), "ok") { onOk(now.arg) } } }
+                        }
+                    }
+                }
+            }
         }
         if (!page?.red.isNullOrEmpty()) {
             Text(stringResource(R.string.prove_red), style = MonoSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp))

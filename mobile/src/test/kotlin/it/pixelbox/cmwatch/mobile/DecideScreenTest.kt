@@ -24,6 +24,15 @@ class DecideScreenTest {
     private val prove = ContractJson.decodeProve(textOf("prove"))
     private val dec = ContractJson.decodeDecisions(textOf("decisioni"))
 
+    // app-prove-segnalate-android-13-11 (Pixel di Franz, 13/11 18:02): tre versioni che l'app non riconosce, senza prove a schermo, e una
+    // prova segnalata. Nessuna nota «Non so se questa versione…» da sola sopra SEGNALATE; la segnalata aperta ha «Ora va».
+    @Test fun da_provare_segnalate() = paparazzi.snapshot {
+        val page = it.pixelbox.cmwatch.contract.ProvePage(
+            groups = listOf("auto-2026-11-13-1017-79bf068a", "auto-2026-11-13-1204-267872b0", "auto-2026-11-13-1243-7838fa0b").map { b -> it.pixelbox.cmwatch.contract.ProveGroup(build = b) },
+            ko = listOf(it.pixelbox.cmwatch.contract.ProveKo(id = 389, task = "app-verifica-conto-elenco-12-11", short = "Conto ed elenco in Verifica", text = "Il conto dice 3 ma l'elenco ne mostra 2.")),
+        )
+        CmPhoneTheme(still = true) { DaProvareScreen(page, { BancoProva.Build.UNKNOWN }, onBack = {}, onOk = { true }, onKo = { _, _, _ -> true }, onScreen = {}, focus = "ko-389") }
+    }
     private fun prova(b: BancoProva.Build) = paparazzi.snapshot { CmPhoneTheme(still = true) { DaProvareScreen(prove, { b }, onBack = {}, onOk = { true }, onKo = { _, _, _ -> true }, onScreen = {}) } }
     @Test fun banco_prova_installata() = prova(BancoProva.Build.INSTALLED)
     @Test fun banco_prova_daInstallare() = prova(BancoProva.Build.TO_INSTALL)

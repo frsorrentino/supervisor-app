@@ -10,6 +10,22 @@ object BancoProva {
     enum class Build { INSTALLED, TO_INSTALL, UNKNOWN }
 
     /**
+     * Le note di una versione stanno con le sue prove (app-prove-segnalate-android-13-11, Pixel di Franz 13/11 18:02: tre note «Non so
+     * se questa versione è già installata» da sole sopra SEGNALATE). «Installa prima» si dice sopra il gruppo, solo se ha prove a
+     * schermo; «non so se è installata» dentro la scheda di ogni sua prova, mai sopra il gruppo.
+     */
+    fun installFirstNote(b: Build, shown: Int): Boolean = b == Build.TO_INSTALL && shown > 0
+    fun unknownNoteInCard(b: Build): Boolean = b == Build.UNKNOWN
+
+    /**
+     * Una prova segnalata si chiude con «Ora va» quando, riprovata, va (come sulla web, app-verifica-conto-elenco-12-11): è l'Ok di
+     * una prova, che il relay accetta anche dopo un «Non va». L'arg dell'op `prova` è il numero della prova; la riga da togliere è
+     * quella della segnalata (`ko-<n>`, ItemRows.proveKo).
+     */
+    data class NowOk(val arg: String, val row: String)
+    fun nowOk(k: it.pixelbox.cmwatch.contract.ProveKo): NowOk = NowOk(k.id.toString(), "ko-${k.id}")
+
+    /**
      * L'app confronta da sé la build con quello che ha: il relay non sa cosa è installato. Una release pubblicata non dopo l'installazione è
      * dentro; una più nuova va installata prima. Un tag che non è fra le release si prova lo stesso, dicendo che non si sa.
      */

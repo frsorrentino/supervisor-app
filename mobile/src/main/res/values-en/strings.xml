@@ -1508,6 +1508,7 @@ It starts at your last message to the master.</string>
     <string name="prove_expected">Expected: %1$s</string>
     <string name="prove_ko">Doesn\'t work</string>
     <string name="prove_ok">Ok</string>
+    <string name="prove_now_ok">Works now</string>
     <string name="prove_reported">REPORTED</string>
     <string name="prove_red">RED CHECK</string>
     <string name="prove_red_running">The check is running</string>

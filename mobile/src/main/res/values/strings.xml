@@ -1542,6 +1542,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="prove_expected">Atteso: %1$s</string>
     <string name="prove_ko">Non va</string>
     <string name="prove_ok">Ok</string>
+    <string name="prove_now_ok">Ora va</string>
     <string name="prove_reported">SEGNALATE</string>
     <string name="prove_red">CONTROLLO ROSSO</string>
     <string name="prove_red_running">Il controllo sta girando</string>
