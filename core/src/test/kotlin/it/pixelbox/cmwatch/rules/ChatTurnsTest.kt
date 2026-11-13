@@ -94,10 +94,17 @@ class ChatTurnsTest {
             when (str(w, "type")) {
                 "p" -> Answer.Rich.P(str(w, "text")!!)
                 "li" -> Answer.Rich.Li(str(w, "mark")!!, str(w, "text")!!, w["depth"]!!.jsonPrimitive.int)
+                "quote" -> Answer.Rich.Quote(str(w, "text")!!)
                 else -> Answer.Rich.Code(str(w, "text")!!)
             }
         }
         assertEquals(str(o, "name"), want, Answer.rich(str(o, "text")!!))
+    }
+
+    /** app-chat-testo-da-inviare-13-11: il tasto «Copia» del box di una citazione. */
+    @Test fun copy() = cases["copy"]!!.jsonArray.forEach { c ->
+        val o = c.jsonObject
+        assertEquals(str(o, "name"), str(o, "out"), Answer.copyText(str(o, "text")!!))
     }
 
     @Test fun tipo() {

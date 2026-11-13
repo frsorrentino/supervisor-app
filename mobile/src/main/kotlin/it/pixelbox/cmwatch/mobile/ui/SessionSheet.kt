@@ -2685,8 +2685,31 @@ private fun RichText(text: String, tasks: TaskLinks, tone: androidx.compose.ui.g
                     Text(linked(p.text, tasks), style = body, color = tone, modifier = Modifier.weight(1f))
                 }
                 is it.pixelbox.cmwatch.rules.Answer.Rich.Code -> CommandCard(p.text)
+                is it.pixelbox.cmwatch.rules.Answer.Rich.Quote -> QuoteCard(p.text, tasks)
             }
         }
+    }
+}
+
+/**
+ * Un testo da mandare a qualcuno, che la sessione cita con «>» (app-chat-testo-da-inviare-13-11, Franz 13/11 10:35: «un suo box
+ * specifico, formattato correttamente, senza simbolo ">" e tasto apposito»): in un box suo, col markdown reso; «Copia» lo mette negli
+ * appunti pulito, pronto per una mail.
+ */
+@Composable
+private fun QuoteCard(text: String, tasks: TaskLinks) {
+    val clip = LocalClipboardManager.current
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier.fillMaxWidth().testTag("chat-citazione").clip(shape).background(V3.Bg).border(1.dp, V3.Line, shape).padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(Modifier.weight(1f)) { RichText(text, tasks, Cm.text) }
+        Text(
+            stringResource(R.string.copy), style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp), color = V3.Tx,
+            modifier = Modifier.clip(CircleShape).border(1.dp, V3.Line, CircleShape).handCursor()
+                .clickable { clip.setText(AnnotatedString(it.pixelbox.cmwatch.rules.Answer.copyText(text))) }.padding(horizontal = 12.dp, vertical = 4.dp),
+        )
     }
 }
 

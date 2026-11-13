@@ -9,7 +9,7 @@
   import ImageViewer from './ImageViewer.svelte'
   import { sepMemory, sepReason, type Item } from './chatFeed'
   import { entryIds, failedCount, foldable, rowOf, shownWork, stepDetail, stepLine, toolCount, turns, type Request, type Row } from './chatTurns'
-  import { rich, sections, stripTipo } from './answer'
+  import { copyText, rich, sections, stripTipo } from './answer'
   import { reducedMotion } from './motion'
   import type { Status } from './chatRules'
   import { blocks, cards, compact, type Table } from './markdown'
@@ -182,6 +182,9 @@
   {#each rich(text) as b}
     {#if b.type === 'p'}<p><Md text={b.text} {onTask} /></p>
     {:else if b.type === 'li'}<div class="li" style="--d:{b.depth}"><span class="mk" class:n={b.mark !== '•'}>{b.mark}</span><p><Md text={b.text} {onTask} /></p></div>
+    {:else if b.type === 'quote'}
+      <!-- Un testo da mandare a qualcuno (app-chat-testo-da-inviare-13-11): in un box suo, senza «>», e «Copia» lo copia pulito. -->
+      <div class="sq" data-testid="chat-citazione"><div class="md">{@render richText(b.text)}</div><button class="cp" onclick={() => copy(copyText(b.text))}>{t.copy}</button></div>
     {:else}<div class="cmd"><Icon name="run" size={18} color="var(--tx3)" /><code>{b.text}</code><button class="cp" onclick={() => copy(b.text)}>{t.copy}</button></div>{/if}
   {/each}
 {/snippet}
@@ -569,8 +572,11 @@
   .za .cmd { background: var(--bg); }
   .cmd :global(svg) { flex: none; }
   .cmd code { flex: 1; min-width: 0; font: 13.5px/21px var(--mono); color: var(--tx); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .cmd .cp { flex: none; align-self: flex-start; font-family: var(--display); font-weight: 600; font-size: 14px; line-height: 20px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--tx); }
-  .cmd .cp:hover { background: var(--s3); }
+  .sq { display: flex; gap: 10px; padding: 12px 8px 12px 14px; border-radius: 12px; background: var(--s2); border: 1px solid var(--line); color: var(--tx); }
+  .za .sq { background: var(--bg); }
+  .sq > .md { flex: 1; }
+  .cmd .cp, .sq .cp { flex: none; align-self: flex-start; font-family: var(--display); font-weight: 600; font-size: 14px; line-height: 20px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--tx); }
+  .cmd .cp:hover, .sq .cp:hover { background: var(--s3); }
   /* Il piede: Esito, Tipo e Prossimi, le parole della sessione. */
   .zf .k { font: 500 11.5px/18px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--tx3); }
   /* L'esito: il colore del tipo solo sull'icona, centrata sulla prima riga (mockup scelto il 02/11). */

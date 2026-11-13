@@ -12,11 +12,14 @@ object Answer {
         data class P(val text: String) : Rich
         data class Li(val mark: String, val text: String, val depth: Int) : Rich
         data class Code(val text: String) : Rich
+        /** Righe di fila che cominciano con «>» (un testo da mandare a qualcuno): `text` è il markdown di dentro, senza i «>». */
+        data class Quote(val text: String) : Rich
     }
 
     private val HEAD = Regex("^#{1,6}\\s+(.*)$")
     private val ITEM = Regex("^(\\s*)([-*•]|\\d+[.)])\\s+(.*)$")
     private val LEADING = Regex("^\\n+")
+    private val QUOTE = Regex("^\\s{0,3}> ?")
     private val INDENTED = Regex("^\\s+\\S")
     private fun fence(l: String) = l.trimStart().startsWith("```")
     private fun clean(lines: List<String>) = lines.joinToString("\n").replace(LEADING, "").trimEnd()
@@ -35,7 +38,7 @@ object Answer {
         return Doc(clean(lead), secs.map { (t, lines) -> Section(t, clean(lines)) })
     }
 
-    /** Un testo senza titoli a pezzi: paragrafi (una riga vuota li separa), voci d'elenco col loro segno, blocchi di codice chiusi. */
+    /** Un testo senza titoli a pezzi: paragrafi (una riga vuota li separa), voci d'elenco col loro segno, blocchi di codice chiusi, citazioni. */
     fun rich(text: String): List<Rich> {
         val out = mutableListOf<Rich>()
         val lines = text.split('\n')
@@ -53,6 +56,14 @@ object Answer {
                     i = end + 1
                     continue
                 }
+            }
+            // Una citazione (app-chat-testo-da-inviare-13-11): le righe con «>» di fila, senza il segno.
+            if (QUOTE.containsMatchIn(l)) {
+                flush()
+                val q = mutableListOf<String>()
+                while (i < lines.size && QUOTE.containsMatchIn(lines[i])) q += lines[i++].replaceFirst(QUOTE, "")
+                out += Rich.Quote(q.joinToString("\n"))
+                continue
             }
             val m = ITEM.find(l)
             val last = out.lastOrNull()
@@ -72,6 +83,44 @@ object Answer {
         }
         flush()
         return out
+    }
+
+    /** Una riga senza i segni del markdown: grassetto, corsivo e codice senza apici; un link col testo diverso dall'indirizzo lo porta fra parentesi. */
+    private fun plainInline(src: String): String {
+        val md = Markdown.parse(src)
+        val out = StringBuilder()
+        var at = 0
+        md.spans.filter { it.kind == Markdown.Kind.LINK }.sortedBy { it.range.first }.forEach { l ->
+            if (l.range.first < at) return@forEach
+            val end = l.range.last + 1
+            val label = md.text.substring(l.range.first, end)
+            out.append(md.text, at, end)
+            if (l.url != null && label != l.url) out.append(" (").append(l.url).append(")")
+            at = end
+        }
+        return out.append(md.text, at, md.text.length).toString()
+    }
+
+    /**
+     * Il testo di una citazione pronto da incollare in una mail (il tasto «Copia» del suo box): senza «>» né segni del markdown, i
+     * numeri dell'elenco e gli a capo al loro posto, una riga vuota fra un pezzo e l'altro (le voci di un elenco restano di fila).
+     */
+    fun copyText(text: String): String {
+        val parts = rich(text)
+        fun lines(x: String) = x.split('\n').joinToString("\n") { plainInline(it) }
+        val out = StringBuilder()
+        parts.forEachIndexed { i, p ->
+            if (i > 0) out.append(if (p is Rich.Li && parts[i - 1] is Rich.Li) "\n" else "\n\n")
+            out.append(
+                when (p) {
+                    is Rich.P -> lines(p.text)
+                    is Rich.Li -> "  ".repeat(p.depth) + (if (p.mark == "•") "-" else p.mark) + " " + lines(p.text)
+                    is Rich.Code -> p.text
+                    is Rich.Quote -> copyText(p.text)
+                },
+            )
+        }
+        return out.toString()
     }
 
     data class Tipo(val text: String, val tipo: String?)

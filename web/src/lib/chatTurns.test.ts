@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import type { TranscriptEntry } from './contract'
 import { group, merge } from './chatFeed'
 import { entryIds, failedCount, foldable, FOLD_TAIL, rowOf, shownWork, stepDetail, stepLine, toolCount, turns, type Step } from './chatTurns'
-import { rich, sections, stripTipo } from './answer'
+import { copyText, rich, sections, stripTipo } from './answer'
 
 // Gli stessi casi di ChatTurnsTest.kt.
 const file = JSON.parse(readFileSync(new URL('../../../core/src/test/resources/chat-turns-cases.json', import.meta.url), 'utf8')) as {
@@ -11,6 +11,7 @@ const file = JSON.parse(readFileSync(new URL('../../../core/src/test/resources/c
   sections: { name: string; text: string; lead: string; secs: { title: string; body: string }[] }[]
   rich: { name: string; text: string; out: unknown[] }[]
   tipo: { name: string; text: string; out: { text: string; tipo: string | null } }[]
+  copy: { name: string; text: string; out: string }[]
   steps: { name: string; tool: string; text: string | null; note: string | null; out: { name: string; arg: string; note: string | null; text: string | null } }[]
 }
 const shape = (entries: TranscriptEntry[], grouped: boolean) => {
@@ -57,6 +58,8 @@ describe('scheda unica: la risposta come documento', () => {
   for (const c of file.sections) it(c.name, () => expect(sections(c.text)).toEqual({ lead: c.lead, secs: c.secs }))
   for (const c of file.rich) it(c.name, () => expect(rich(c.text)).toEqual(c.out))
   for (const c of file.tipo) it(c.name, () => expect(stripTipo(c.text)).toEqual(c.out))
+  // app-chat-testo-da-inviare-13-11: il tasto «Copia» del box di una citazione.
+  for (const c of file.copy) it(c.name, () => expect(copyText(c.text)).toBe(c.out))
   it('in inglese la riga dell\'esito con la sua etichetta chiude come «Esito»', () => {
     expect(stripTipo('Done.\nOutcome: fixed\nTipo: pronto', 'Outcome')).toEqual({ text: 'Done.\nOutcome: fixed', tipo: 'pronto' })
   })

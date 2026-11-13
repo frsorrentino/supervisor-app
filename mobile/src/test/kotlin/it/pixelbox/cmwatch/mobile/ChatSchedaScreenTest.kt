@@ -60,6 +60,23 @@ Prossimi: ok al deploy della 2.8.1 · prova il rimborso dal vivo · apri la PR""
         TranscriptEntry("w9", "assistant", text = "La verifica della firma stava in due posti: la sposto nel gestore.", at = t + 160) +
         TranscriptEntry("w10", "tool", text = "/home/dev/payments-api/src/webhooks/stripe.ts", at = t + 170, tool = "Edit", diff = diff.copy(path = "/home/dev/payments-api/src/webhooks/stripe.ts", added = 6, removed = 9))
 
+    // app-chat-testo-da-inviare-13-11: il testo da mandare, citato con «>», in un box suo con «Copia» (la forma della segnalazione, coi nomi cambiati).
+    private val quoted = listOf(
+        TranscriptEntry("q0", "user", text = "Riscrivi il messaggio: sarà tutto settimana prossima", at = t, origin = "phone"),
+        TranscriptEntry("q1", "assistant", at = t + 15, turn = TranscriptTurn(started = t, ended = t + 15, out = 1158), text = """Ecco il messaggio riscritto: dice solo «la prossima settimana», senza data, ora o finestra di manutenzione.
+
+> Buongiorno, la prossima settimana pubblicheremo il nuovo sito atlas-shop.example, su PrestaShop 9. L'indirizzo dell'API resta lo stesso (`https://www.atlas-shop.example/api`), come la chiave e il formato delle risposte: da parte vostra non serve cambiare nulla.
+> Due cose da sapere:
+> 1. durante la pubblicazione il sito resterà fermo per poco tempo, e in quel momento le chiamate all'API potrebbero fallire. Se una chiamata va in errore, basta ripeterla;
+> 2. il connettore verrà reinstallato. Contiamo di riusare l'autorizzazione attuale.
+> Dopo la pubblicazione vi chiederemo di controllare che gli ordini arrivino.
+
+**Da te**
+1. Manda il messaggio a chi gestisce il gestionale.
+
+Esito: Messaggio generico pronto"""),
+    )
+
     @After fun night() { V3.day = false }
 
     @androidx.compose.runtime.Composable
@@ -71,6 +88,8 @@ Prossimi: ok al deploy della 2.8.1 · prova il rimborso dal vivo · apri la PR""
     @Test fun turn() = paparazzi.snapshot { shot() }
     @Test fun turnDay() = paparazzi.snapshot { shot(day = true) }
     @Test fun working() = paparazzi.snapshot { shot(turn + working) }
+    @Test fun quote() = paparazzi.snapshot { shot(quoted) }
+    @Test fun quoteDay() = paparazzi.snapshot { shot(quoted, day = true) }
     @Test fun turn320Font13() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (320 * 2.75).toInt(), fontScale = 1.3f, screenHeight = 7000))
         paparazzi.snapshot { shot() }
