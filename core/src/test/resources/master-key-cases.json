@@ -1,0 +1,38 @@
+{
+ "moves": [
+  { "name": "colonna a destra con le sessioni aperte", "now": { "side": "right", "height": "column", "homeRow": false }, "sessionsOpen": true,
+    "out": ["W>left/column/-:left", "S>right/half/-:half", "SE>right/column/H:homeRow", "SW>right/bar/-:bar"] },
+  { "name": "colonna a sinistra: dentro e fuori si scambiano", "now": { "side": "left", "height": "column", "homeRow": false }, "sessionsOpen": true,
+    "out": ["E>right/column/-:right", "S>left/half/-:half", "SW>left/column/H:homeRow", "SE>left/bar/-:bar"] },
+  { "name": "colonna sul cruscotto, senza sessioni: l'altro lato e la riga", "now": { "side": "right", "height": "column", "homeRow": false }, "sessionsOpen": false,
+    "out": ["W>left/column/-:left", "SW>right/bar/-:bar"] },
+  { "name": "colonna con la Home in riga: su la Home torna su", "now": { "side": "right", "height": "column", "homeRow": true }, "sessionsOpen": true,
+    "out": ["W>left/column/H:left", "N>right/column/-:home", "SW>right/bar/-:bar"] },
+  { "name": "sotto la home, a metà", "now": { "side": "right", "height": "half", "homeRow": false }, "sessionsOpen": true,
+    "out": ["N>right/column/-:column", "S>right/compact/-:compact", "W>left/half/-:half", "SW>right/bar/-:bar"] },
+  { "name": "sotto la home, compatta", "now": { "side": "left", "height": "compact", "homeRow": false }, "sessionsOpen": true,
+    "out": ["N>left/half/-:half", "S>left/bar/-:bar", "E>right/compact/-:compact"] },
+  { "name": "una riga in basso con le sessioni aperte", "now": { "side": "right", "height": "bar", "homeRow": false }, "sessionsOpen": true,
+    "out": ["NW>left/column/-:left", "NE>right/column/-:right", "N>right/half/-:half"] },
+  { "name": "una riga in basso sul cruscotto", "now": { "side": "left", "height": "bar", "homeRow": false }, "sessionsOpen": false,
+    "out": ["NW>left/column/-:left", "NE>right/column/-:right"] }
+ ],
+ "dirAt": [
+  { "name": "al centro del tasto resta il chevron", "dx": 3, "dy": -4, "dead": 8, "dirs": ["W", "S", "SW"], "out": null },
+  { "name": "a sinistra del centro: la freccia a sinistra", "dx": -15, "dy": 2, "dead": 8, "dirs": ["W", "S", "SW"], "out": "W" },
+  { "name": "in basso a sinistra: la diagonale", "dx": -12, "dy": 13, "dead": 8, "dirs": ["W", "S", "SW"], "out": "SW" },
+  { "name": "in basso: giù", "dx": 1, "dy": 18, "dead": 8, "dirs": ["W", "S", "SW"], "out": "S" },
+  { "name": "verso un lato dove non si può andare: nessuna, resta il chevron", "dx": 16, "dy": -3, "dead": 8, "dirs": ["W", "S", "SW"], "out": null },
+  { "name": "fra due direzioni vale la più vicina", "dx": -20, "dy": 6, "dead": 8, "dirs": ["W", "SW"], "out": "W" },
+  { "name": "entro 45 gradi dalla sola possibile", "dx": 10, "dy": -14, "dead": 8, "dirs": ["N"], "out": "N" },
+  { "name": "col dito il centro è più largo", "dx": -20, "dy": 0, "dead": 30, "dirs": ["W"], "out": null },
+  { "name": "senza direzioni possibili niente", "dx": -20, "dy": 0, "dead": 8, "dirs": [], "out": null }
+ ],
+ "combo": [
+  { "name": "una freccia", "held": ["W"], "out": "W" },
+  { "name": "giù e sinistra insieme", "held": ["S", "W"], "out": "SW" },
+  { "name": "l'ordine non conta", "held": ["E", "N"], "out": "NE" },
+  { "name": "due opposte: l'ultima", "held": ["E", "W"], "out": "W" },
+  { "name": "nessuna", "held": [], "out": null }
+ ]
+}

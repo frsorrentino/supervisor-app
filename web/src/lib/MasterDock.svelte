@@ -16,8 +16,10 @@
   // chiudere non chiede più il trascinamento, ogni gesto ha un tocco che fa lo stesso (WCAG 2.5.1).
   // `onDrag`: il gesto passo per passo (`/embed?dock=1`, dove Studio fa seguire al riquadro il dito), con lo spostamento in
   // px dall'inizio, e `null` alla fine; allora decide `onDrop` invece di `onToggle`.
-  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false, keys = true, places = null, onPlace, grip }: {
+  let { master, entries, onToggle, onSpeak, expanded = false, screen = false, side = false, trailing, toggleUp, onToggleKey, onClose, onMove, moveLabel = '', onDrag, onDrop, bar = false, mirror = false, keys = true, places = null, onPlace, grip, lead }: {
     master: Session; entries: Entry[]; onToggle: () => void; onSpeak: (text: string) => void; expanded?: boolean
+    /** Il tasto tondo della master, in testa alla barra (app-sposta-master-a-13-11). */
+    lead?: Snippet
     /** Il pannello a destra della plancia (pwa2, 30/10): il tasto tondo allarga o stringe (frecce di lato), Chiudi è una ×. */
     side?: boolean
     /** La barra in fondo alla plancia (pwa2, 30/10): solo stato, nome ed esito; il tasto che apre sta dopo il campo. */
@@ -86,6 +88,7 @@
 
 <div class="dock" class:expanded class:screen class:bar class:nokeys={!keys} role="button" tabindex="0" aria-expanded={expanded} onclick={() => { if (dragged) { dragged = false; return } onToggle() }} onkeydown={(e) => e.key === 'Enter' && onToggle()}
   onpointerdown={down} onpointermove={move} onpointerup={release} onpointercancel={(e) => { if (y0 != null && dragged) { onDrop?.(0); onPlace?.('cancel', e.clientX, e.clientY) } y0 = null }}>
+  {#if lead}{@render lead()}{/if}
   <!-- La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42). -->
   {#if !bar && keys}{@render toggleKey()}{/if}
   {#if onClose && keys}

@@ -66,7 +66,7 @@ export function ghostPreview(reduced: () => boolean) {
      * rilasciare»): un contorno tratteggiato giallo leggero con la sua etichetta, senza riempimento, per ogni posto che non è
      * quello della sagoma. Si ridisegnano a ogni cambio: il contorno torna sul posto lasciato.
      */
-    hint(places: { b: Box; text: string }[]) {
+    hint(places: { b: Box; text: string }[], veil = false) {
       if (typeof document === 'undefined') return
       while (marks.length > places.length) marks.pop()!.remove()
       places.forEach((p, i) => {
@@ -76,6 +76,8 @@ export function ghostPreview(reduced: () => boolean) {
           document.body.append(el); marks.push(el)
           if (!reduced()) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: DIM_MS, easing: 'ease-out' })
         }
+        // `veil` (app-sposta-master-a-13-11, variante A): un velo chiaro sull'area, senza tratteggio e senza nome.
+        el.classList.toggle('veil', veil)
         Object.assign(el.style, css(p.b))
         el.firstElementChild!.textContent = p.text
       })

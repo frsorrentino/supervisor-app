@@ -1,6 +1,8 @@
 <script lang="ts">
+  import MasterKey from './lib/MasterKey.svelte'
+  import { nameOf as keyNameOf, type Move as KeyMove, type Spot as KeySpot } from './lib/masterKey'
   import HomeRow from './lib/HomeRow.svelte'
-  import { fromSummary, rowHeight, voices as homeRowVoices, type Voice } from './lib/homeRow'
+  import { fromSummary, ROW_H, rowHeight, voices as homeRowVoices, type Voice } from './lib/homeRow'
   import { gated, type By } from './lib/retryGate'
   import { applyAnswered, live as liveMarks, markAnswer, settle as settleMark, type Answered } from './lib/answered'
   import { locale } from './lib/lang'
@@ -811,16 +813,45 @@
   function openPhoneVoice(v: Voice) { if (v.kind === 'news') phoneRowOpened = new Set([...phoneRowOpened, v.key]); pick(v.session) }
   // Una novità aperta va via; la voce apre la sua sessione in una colonna.
   function openVoice(v: Voice) { if (v.kind === 'news') homeRowOpened = new Set([...homeRowOpened, v.key]); card(v.session) }
-  // Il tasto tondo Posizione accanto al ▶ della master (Franz 03/11 17:23, al posto del menu ⋮ della scelta C delle 17:05,
-  // app-master-tasti-compatti-03-11): le posizioni, la misura e Chiudi al posto dei tre tasti tondi. «Sotto la dashboard» solo con le sessioni aperte: sul cruscotto la master sta di lato.
-  const masterMenu = $derived([
-    { label: t.masterPosRight, on: !masterLeft, icon: 'M3 5h18v14H3zM15 5v14', onMove: () => placeMaster('right') },
-    { label: t.masterPosLeft, on: masterLeft, icon: 'M3 5h18v14H3zM9 5v14', onMove: () => placeMaster('left') },
-    ...(deskDashboard ? [] : [{ label: t.masterPosUnder, on: masterUnder, icon: 'M3 5h18v14H3zM3 12h18', onMove: stackMaster }]),
-    ...(deskDashboard ? [] : [{ label: t.masterPosHomeRow, on: homeInRow, icon: 'M3 5h18v14H3zM3 16h18', onMove: () => setHomeRow(!homeInRow) }]),
-    ...(masterOpen ? [{ label: masterHalf ? t.masterWiden : t.masterNarrowKey, icon: masterHalf ? 'M8 7l-5 5 5 5M16 7l5 5-5 5' : 'M4 7l5 5-5 5M20 7l-5 5 5 5', onMove: () => smooth(masterSizeKey) }] : []),
-    ...(masterOpen ? [{ label: t.masterCloseKey, icon: 'M7 7l10 10M17 7L7 17', onMove: () => smooth(() => { masterOpen = false }) }] : []),
-  ])
+  // Il tasto tondo della master (app-sposta-master-a-13-11): al posto del menu Posizione del 03/11. Il chevron apre e chiude; col
+  // puntatore dentro il tasto una freccia sola porta la master dove può andare da lì (lib/masterKey.ts), e mentre si sceglie la
+  // zona d'arrivo si accende col suo nome e gli altri posti possibili sono un velo chiaro (variante A del giro F).
+  const masterSpot = $derived<KeySpot>({ side: masterLeft ? 'left' : 'right', height: !masterOpen ? 'bar' : !stacked ? 'column' : stackH, homeRow: homeInRow })
+  const keyText = (to: KeySpot): string => {
+    const n = keyNameOf(masterSpot, to)
+    return n === 'left' ? t.masterPosLeft : n === 'right' ? t.masterPosRight : n === 'homeRow' ? t.masterPosHomeRow : n === 'home' ? t.homeRowOpen : t.masterLand[n]
+  }
+  // Il posto d'arrivo sullo schermo: quello della master, o per la Home in riga (e per la Home che torna su) la riga in fondo.
+  function keyRect(to: KeySpot): Rect {
+    const area = areaRect(), n = keyNameOf(masterSpot, to)
+    if (n === 'homeRow' || n === 'home') return { x: area.x, y: area.y + area.h - ROW_H, w: area.w, h: ROW_H }
+    return placeRect(area, to.side, to.height, colWidth(), sizes)
+  }
+  function keyGo(to: KeySpot) {
+    const wasOpen = masterOpen
+    masterLeft = to.side === 'left'
+    setHeight(to.height)
+    if (!wasOpen && masterOpen) masterHalf = masterNarrow()
+    if (to.homeRow !== homeRow) {
+      homeRow = to.homeRow; save('cm.home_row', homeRow ? '1' : '0'); homeRowOpened = new Set()
+      if (homeRow) { homeRowSince = Math.floor(Date.now() / 1000); save('cm.home_row_since', String(homeRowSince)) }
+    }
+  }
+  // Senza `clearMarks`: quello segna la fine di un trascinamento e fa ignorare il clic subito dopo; qui non c'è stato trascinamento.
+  function keyPreview(m: KeyMove | null, all: KeyMove[]) {
+    if (!m) { aim = null; masterGhost.drop(); return }
+    measureSizes()
+    aimAt(keyRect(m.to), keyText(m.to), () => keyGo(m.to))
+    masterGhost.hint(all.filter(x => x !== m).map(x => ({ b: keyRect(x.to), text: '' })), true)
+  }
+  function keyMove(m: KeyMove) {
+    keyPreview(m, [])
+    const go = aim
+    aim = null
+    if (!go) { masterGhost.drop(); return }
+    const vt = smooth(() => { go(); save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH) })
+    masterGhost.land(vt ? vt.finished : tick().then(() => new Promise(r => setTimeout(r, MOVE_MS))))
+  }
   const moveLabelOf = () => (masterLeft ? t.masterMoveRight : t.masterMoveLeft)
   // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
   let masterHalf = $state(false)
@@ -2253,11 +2284,14 @@
 <!-- Lo scheletro di una colonna della plancia finché il relay non risponde (app-avvio-senza-salto-04-11, Franz 04/11: «compare
      prima semivuota e poi di colpo piena»). -->
 {#snippet pskel()}<div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i><i></i></div>{/snippet}
-{#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} /><button class="mup" aria-label={t.dockConversation} title={t.dockConversation} onclick={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })}><span class="ms" aria-hidden="true">expand_less</span></button></div>{/if}{/snippet}
+<!-- Il tasto tondo della master, lo stesso nella riga in basso e in testa al pannello (app-sposta-master-a-13-11). -->
+{#snippet masterKey()}<MasterKey now={masterSpot} sessionsOpen={!deskDashboard} up={!masterOpen} label={''}
+  onToggle={() => smooth(() => { if (masterOpen) masterOpen = false; else { masterOpen = true; masterHalf = masterNarrow() } })} onPreview={keyPreview} onMove={keyMove} />{/snippet}
+{#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} />{@render masterKey()}</div>{/if}{/snippet}
 <!-- Il pannello della master nel cruscotto con le prese di quello accanto alle colonne (web-maniglia-riga-colonna-06-11, Franz
      06/11 00:05): la presa in alto ‹ ━ › porta alla riga in basso o cambia lato, la corsia la larghezza; come MasterFrame sul tablet. -->
 {#snippet masterPanelGrips()}<button class="wgrip" class:onleft={masterLeft} aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('dash')}{/snippet}
-{#snippet masterPanel(where: 'dash' | 'desk')}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} places={masterMenu} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
+{#snippet masterPanel(where: 'dash' | 'desk')}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} lead={masterKey} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
   onToggleKey={() => corners(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat" {@attach chatHost(where)}></div>{/if}{/snippet}
 
 
@@ -2465,6 +2499,8 @@
   /* Le altre destinazioni (app-trascina-destinazioni-04-11): contorno tratteggiato giallo leggero, senza riempimento, con l'etichetta
      piccola; la linea sottile a metà schermo, accesa quando il dito l'ha passata. */
   :global(.master-ghost-hint) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border-radius: 14px; border: 2px dashed color-mix(in srgb, var(--wait) 30%, transparent); }
+  :global(.master-ghost-hint.veil) { border: 0; background: color-mix(in srgb, var(--tx) 8%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tx) 16%, transparent); }
+  :global(.master-ghost-hint.veil > span) { display: none; }
   :global(.master-ghost-hint > span) { position: absolute; left: 50%; top: 10px; translate: -50% 0; max-width: calc(100% - 16px); overflow: hidden; white-space: nowrap; padding: 3px 10px; border-radius: 10px; background: var(--s2); color: var(--tx2); font: 600 13px var(--display); }
   :global(.master-ghost-mid) { position: fixed; z-index: 72; top: 0; bottom: 0; width: 0; margin-left: -1.5px; pointer-events: none; border-left: 3px dashed color-mix(in srgb, var(--wait) 55%, transparent); transition: border-color .12s; }
   :global(.master-ghost-mid.crossed) { border-left-style: solid; border-color: var(--wait); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--wait) 60%, transparent)); }
@@ -2497,9 +2533,7 @@
   .hgrip:hover i, .hgrip:active i { opacity: 1; width: 72px; background: var(--tx2); }
   /* ‹ ━ ›: la presa in alto e la maniglia della pila cambiano anche lato, di traverso (come TopGripMark nell'app). */
   .hgrip.top, .hstack .grip { display: flex; align-items: center; justify-content: center; gap: 5px; cursor: move; }
-  .hgrip.top::before, .hgrip.top::after, .hstack .grip::before, .hstack .grip::after { content: ''; width: 5px; height: 5px; border-left: 1.5px solid var(--tx3); border-bottom: 1.5px solid var(--tx3); opacity: .8; }
-  .hgrip.top::before, .hstack .grip::before { transform: rotate(45deg); }
-  .hgrip.top::after, .hstack .grip::after { transform: rotate(-135deg); }
+  /* Le frecce accanto alla maniglia non ci sono più (app-sposta-master-a-13-11): per spostare c'è il tasto tondo; la maniglia resta per trascinare. */
   .dpanel.under .wgrip, .dpanel.under .hgrip { display: none; }
   .hstack { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .hs-top { flex: 1; min-height: 0; overflow: auto; }
@@ -2562,7 +2596,6 @@
   .mbar :global(.bar) { padding: 0; }
   .mbar :global(.keys), .mchat :global(.keys) { display: none; }
   .mbar :global(.field.master) { min-height: 52px; background: var(--s2); }
-  .mup { flex: none; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; background: var(--s3); color: var(--tx); }
   .mquick { flex: 1; min-width: 0; }
   .mchat { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .wslot { display: contents; }
