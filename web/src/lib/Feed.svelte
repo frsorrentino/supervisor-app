@@ -319,7 +319,7 @@
         {#if dt.note}<p>{dt.note}</p>{/if}
         {#if dt.text}<pre>{dt.text}</pre>{/if}
         <!-- Contratto 1.72: il diff del passo, con «Mostra tutto». -->
-        {#if e.diff}<StepDiffRow id={e.id} diff={e.diff} {onDiff} />{/if}
+        {#if e.diff}<StepDiffRow id={e.id} diff={e.diff} {onDiff} startOpen />{/if}
       </div>
     {/if}
     {#if e.files?.length}{@render files(e.files.map(f => ({ f, entry: e.id })))}{/if}

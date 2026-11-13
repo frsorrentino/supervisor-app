@@ -511,6 +511,14 @@
         <item quantity="one">1 step</item>
         <item quantity="other">%1$d steps</item>
     </plurals>
+    <string name="chat_you">You</string>
+    <string name="chat_type_label">Type</string>
+    <string name="chat_next_label">Next</string>
+    <string name="chat_step_failed">failed</string>
+    <plurals name="chat_work_steps">
+        <item quantity="one">Work · 1 step</item>
+        <item quantity="other">Work · %1$d steps</item>
+    </plurals>
     <plurals name="steps_failed">
         <item quantity="one">1 failed</item>
         <item quantity="other">%1$d failed</item>

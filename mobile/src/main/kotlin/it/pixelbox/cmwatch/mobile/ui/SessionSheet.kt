@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -309,6 +310,8 @@ fun SessionSheet(
     val idle = s.state == SessionState.IDLE && s.question == null
     // La conversazione raggruppata una volta per feed, non a ogni ricomposizione della lista.
     val groupedFeed = remember(feed) { feed?.let { f -> ChatFeed.group(f) } }
+    // La scheda unica (app-chat-scheda-unica-13-11): le voci divise in turni, una riga della lista per turno.
+    val turnRows = remember(groupedFeed) { groupedFeed?.let { g -> it.pixelbox.cmwatch.rules.ChatTurns.turns(g) } }
     val steps = remember(groupedFeed) {
         groupedFeed?.let { g -> g.lastOrNull { x -> x !is ChatFeed.Item.Tool && x !is ChatFeed.Item.Steps } as? ChatFeed.Item.Claude }
             ?.let { c -> NextSteps.parse(c.entry.text.orEmpty()).steps }.orEmpty()
@@ -405,7 +408,7 @@ fun SessionSheet(
     LaunchedEffect(focus, groupedFeed?.size, more) {
         val f = focus ?: return@LaunchedEffect
         follow = false
-        val at = groupedFeed?.indexOfFirst { ChatFeed.entryOf(it) == f } ?: -1
+        val at = turnRows?.let { r -> it.pixelbox.cmwatch.rules.ChatTurns.rowOfEntry(r, f) } ?: -1
         when {
             at >= 0 -> {
                 list.animateScrollToItem(at + if (more) 1 else 0, -list.layoutInfo.viewportSize.height / 4)
@@ -420,7 +423,7 @@ fun SessionSheet(
     LaunchedEffect(retried, retriedStatus) {
         val r = retried ?: return@LaunchedEffect
         if (retriedStatus !in listOf(ChatRules.Status.SENT, ChatRules.Status.DELIVERED, ChatRules.Status.QUEUED, ChatRules.Status.WORKING, ChatRules.Status.DONE)) return@LaunchedEffect
-        val at = groupedFeed?.indexOfFirst { i -> (i as? ChatFeed.Item.Mine)?.sent?.id == r } ?: -1
+        val at = turnRows?.indexOfFirst { t -> (((t as? it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn)?.request) as? ChatFeed.Item.Mine)?.sent?.id == r } ?: -1
         follow = false
         if (at >= 0) list.animateScrollToItem(at + if (more) 1 else 0) else list.scrollToEnd(animate = true)
         retried = null
@@ -522,33 +525,25 @@ fun SessionSheet(
                     if (more) item(key = "older") {
                         TextButton(onClick = { follow = false; onOlder() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.load_older), color = Cm.actionIcon) }
                     }
-                    // I passaggi di fila diventano un gruppo (Franz, 01/10 15:59: «Gruppi + righe ricche»).
+                    // Un turno per riga (app-chat-scheda-unica-13-11): la richiesta a fumetto e, sotto, la scheda della sessione.
                     val grouped = groupedFeed.orEmpty()
-                    val newsFrom = ChatNews.firstNew(grouped, seenAt)
-                    itemsIndexed(grouped, key = { _, i -> feedKey(i) }) { index, it ->
-                        val k = feedKey(it)
+                    val rows = turnRows.orEmpty()
+                    val newsFrom = ChatNews.firstNew(grouped, seenAt)?.let { i -> it.pixelbox.cmwatch.rules.ChatTurns.rowOf(rows, grouped[i]).takeIf { r -> r >= 0 } }
+                    itemsIndexed(rows, key = { _, r -> it.pixelbox.cmwatch.rules.ChatTurns.key(r) }) { index, row ->
+                        val k = it.pixelbox.cmwatch.rules.ChatTurns.key(row)
                         val opening = android.os.SystemClock.uptimeMillis() - openedAt < 1_000
                         Column(
-                            Modifier.fillMaxWidth().cascadeIn(ChatNews.rank(index, grouped.size), opening, cascaded, k)
-                                .then(if (flash != null && ChatFeed.entryOf(it) == flash) Modifier.background(androidx.compose.ui.graphics.Color(0x38FFB23F), MaterialTheme.shapes.medium) else Modifier)
-                                .newsTint(newsFrom != null && index >= newsFrom && it !is ChatFeed.Item.Mine, tinted, k),
+                            Modifier.fillMaxWidth().cascadeIn(ChatNews.rank(index, rows.size), opening, cascaded, k)
+                                .newsTint(newsFrom != null && index >= newsFrom, tinted, k),
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                         if (index == newsFrom) NewsDivider()
-                        when (it) {
-                            // Una voce ancora in coda nel turno (scritta mentre Claude lavora) si dice «in coda».
-                            is ChatFeed.Item.Mine -> Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                MineBubble(it.sent, if (it.entry?.queued == true && it.status != ChatRules.Status.FAILED) ChatRules.Status.QUEUED else it.status, reasons[it.sent.id], actions, onRetried = { r -> retried = r }, onEdit = { t -> draft = t }, onResend = { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
-                                // Il pannello che un comando slash ha aperto sul PC (/cost) risponde sotto il comando.
-                                it.sent.panel?.let { p -> ClaudeBubble(p, it.sent.sentAt, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
-                            }
-                            is ChatFeed.Item.User -> UserBubble(it.entry, onResend = { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
-                            is ChatFeed.Item.Claude -> ClaudeBubble(
-                                it.entry.text.orEmpty(), it.entry.at, ttsMinChars, actions.speak, cut = it.entry.cut, turn = it.entry.turn,
-                                onSpeakFrom = actions.speakFrom, sessions = actions.sessions, onOpenSession = actions.openSession, outcomeType = it.entry.outcomeType,
+                        when (row) {
+                            is it.pixelbox.cmwatch.rules.ChatTurns.Row.Sep -> Box(Modifier.flashed(flash != null && row.item.entry.id == flash)) { SeparatorBar(row.item, now) }
+                            is it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn -> TurnRow(
+                                row, flash, focus, ttsMinChars, actions, reasonOf = { id -> reasons[id] }, onRetried = { r -> retried = r }, onEdit = { t -> draft = t },
+                                onStep = { step -> draft = NextSteps.append(draft, step, then) },
                             )
-                            is ChatFeed.Item.Tool -> ToolLine(it.entry)
-                            is ChatFeed.Item.Steps -> StepsCard(it)
-                            is ChatFeed.Item.Separator -> SeparatorBar(it, now)
                         }
                         }
                     }
@@ -1459,25 +1454,24 @@ private fun ChatTurn(row: ChatRow, ttsMinChars: Int, actions: SheetActions, onRe
 private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actions: SheetActions, onRetried: (String) -> Unit, onEdit: (String) -> Unit, onResend: (String) -> Unit) {
     val clip = LocalClipboardManager.current
     // Tutta la larghezza meno un margine a sinistra, non una colonna stretta (Franz, 30/09 22:17).
-    Column(Modifier.fillMaxWidth().padding(start = 40.dp), horizontalAlignment = Alignment.End) {
+    Column(Modifier.fillMaxWidth().padding(start = 24.dp), horizontalAlignment = Alignment.End) {
         Surface(
-            color = LocalBubble.current ?: Cm.surfaceHigh, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
+            color = F3.you, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
             modifier = Modifier,
         ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                RequestMeta(null, m.sentAt.takeIf { status != ChatRules.Status.SCHEDULED })
                 m.attachment?.let { AttachmentThumb(it) }
                 // Contratto 1.50: le immagini mandate insieme, in fila sopra il testo; più di due scorrono.
                 if (m.attachments.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     m.attachments.forEach { AttachmentThumb(it, maxW = 150.dp, maxH = 150.dp) }
                 }
                 // Pressione lunga = selezione di una parte del testo, con la barra di sistema per copiarla (Franz, 02/10 20:31).
-                if (m.text.isNotBlank()) Quotable(m.text, m.sentAt) { SelectionContainer { Text(linked(m.text), style = MaterialTheme.typography.bodyLarge, color = Cm.text) } }
+                if (m.text.isNotBlank()) Quotable(m.text, m.sentAt) { SelectionContainer { Text(linked(m.text), style = requestStyle(m.text), color = Cm.text) } }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             StatusMark(status, m.scheduledFor ?: m.sentAt.takeIf { status == ChatRules.Status.SCHEDULED })
-            // Un programmato dice solo quando parte: l'ora in cui è stato scritto accanto confondeva (provini 01/10).
-            if (status != ChatRules.Status.SCHEDULED) Text(hhmm(m.sentAt), style = MaterialTheme.typography.labelMedium, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
             SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(m.text)) }
             // La matita solo su un messaggio non arrivato, per correggerlo e rimandarlo (Franz, 03/10 21:11): su uno già
             // elaborato non modificava niente, rimetteva solo il testo nel campo come Copia.
@@ -1501,21 +1495,22 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
 private fun UserBubble(e: TranscriptEntry, onResend: (String) -> Unit) {
     val clip = LocalClipboardManager.current
     val text = e.text.orEmpty()
-    Column(Modifier.fillMaxWidth().padding(start = 40.dp), horizontalAlignment = Alignment.End) {
-        Surface(color = LocalBubble.current ?: Cm.surface, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)) {
-            Quotable(text, e.at) { SelectionContainer { Text(linked(text), style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) } }
+    Column(Modifier.fillMaxWidth().padding(start = 24.dp), horizontalAlignment = Alignment.End) {
+        val from = when (e.origin) {
+            "pc" -> R.string.origin_pc
+            "watch" -> R.string.origin_watch
+            "phone" -> R.string.origin_phone
+            "web" -> R.string.origin_web
+            else -> null
+        }
+        Surface(color = F3.you, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)) {
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                RequestMeta(from?.let { stringResource(it) }, e.at)
+                Quotable(text, e.at) { SelectionContainer { Text(linked(text), style = requestStyle(text), color = Cm.text) } }
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            val from = when (e.origin) {
-                "pc" -> R.string.origin_pc
-                "watch" -> R.string.origin_watch
-                "phone" -> R.string.origin_phone
-                "web" -> R.string.origin_web
-                else -> null
-            }
-            from?.let { Text(stringResource(it), style = MaterialTheme.typography.labelMedium, color = Cm.text2) }
-            if (e.queued) Text(" · " + stringResource(R.string.chat_queued), style = MaterialTheme.typography.labelMedium, color = Cm.stale)
-            e.at?.let { Text(hhmm(it), style = MaterialTheme.typography.labelMedium, color = Cm.text2, modifier = Modifier.padding(horizontal = 4.dp)) }
+            if (e.queued) Text(stringResource(R.string.chat_queued), style = MaterialTheme.typography.labelMedium, color = Cm.stale)
             SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(text)) }
         }
     }
@@ -2625,22 +2620,22 @@ internal fun ChatBody(full: String, outcomeType: String? = null) {
 }
 
 @Composable
-private fun ChatParts(source: String) {
+private fun ChatParts(source: String, tone: androidx.compose.ui.graphics.Color = Cm.text, big: Boolean = false) {
     val tasks = LocalTaskLinks.current
     val text = remember(source, tasks.names) { it.pixelbox.cmwatch.rules.ChatNames.replace(source, tasks.names) }
     val parts = remember(text) { it.pixelbox.cmwatch.rules.ChatLabels.split(text) }
     val one = parts.singleOrNull() as? it.pixelbox.cmwatch.rules.ChatLabels.Plain
-    if (one != null) ChatPlain(one.text, tasks)
+    if (one != null) ChatPlain(one.text, tasks, tone, big)
     else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        parts.forEach { p ->
+        parts.forEachIndexed { i, p ->
             when (p) {
-                is it.pixelbox.cmwatch.rules.ChatLabels.Plain -> ChatPlain(p.text, tasks)
-                is it.pixelbox.cmwatch.rules.ChatLabels.ForYou -> Column(Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)).background(V3.S2).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                is it.pixelbox.cmwatch.rules.ChatLabels.Plain -> ChatPlain(p.text, tasks, tone, big && i == 0)
+                is it.pixelbox.cmwatch.rules.ChatLabels.ForYou -> Column(Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)).background(V3.S3).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(androidx.compose.material.icons.Icons.Outlined.PanTool, null, tint = V3.Wait, modifier = Modifier.size(20.dp))
                         Text(p.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = V3.Wait)
                     }
-                    Text(linked(p.body, tasks), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                    RichText(p.body, tasks, Cm.text)
                 }
                 is it.pixelbox.cmwatch.rules.ChatLabels.NotTested -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(androidx.compose.material.icons.Icons.Outlined.Info, null, tint = V3.Tx3, modifier = Modifier.padding(top = 3.dp).size(18.dp))
@@ -2652,17 +2647,394 @@ private fun ChatParts(source: String) {
 }
 
 @Composable
-private fun ChatPlain(text: String, tasks: TaskLinks) {
+private fun ChatPlain(text: String, tasks: TaskLinks, tone: androidx.compose.ui.graphics.Color = Cm.text, big: Boolean = false) {
     val blocks = remember(text) { it.pixelbox.cmwatch.rules.MarkdownTable.blocks(text) }
-    if (blocks.none { b -> b is it.pixelbox.cmwatch.rules.MarkdownTable.Table }) Text(linked(text, tasks), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+    if (blocks.none { b -> b is it.pixelbox.cmwatch.rules.MarkdownTable.Table }) RichText(text, tasks, tone, big)
     // Le tabelle (Franz, 02/10 21:11): griglia se stretta, una scheda per riga se larga.
     else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        blocks.forEach { b ->
+        blocks.forEachIndexed { i, b ->
             when (b) {
-                is it.pixelbox.cmwatch.rules.MarkdownTable.Text -> Text(linked(b.text, tasks), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                is it.pixelbox.cmwatch.rules.MarkdownTable.Text -> RichText(b.text, tasks, tone, big && i == 0)
                 is it.pixelbox.cmwatch.rules.MarkdownTable.Table -> TableBlock(b)
             }
         }
+    }
+}
+
+/**
+ * Il testo della sessione a pezzi (app-chat-scheda-unica-13-11, `Answer.rich`): paragrafi, voci d'elenco col loro segno e il rientro,
+ * comandi in una riga con «Copia». `big` = il primo paragrafo più grande, in apertura di una risposta coi titoli.
+ */
+@Composable
+private fun RichText(text: String, tasks: TaskLinks, tone: androidx.compose.ui.graphics.Color, big: Boolean = false) {
+    val parts = remember(text) { it.pixelbox.cmwatch.rules.Answer.rich(text) }
+    val body = MaterialTheme.typography.bodyLarge
+    val lead = if (big) body.copy(fontSize = 17.sp, lineHeight = 25.sp) else body
+    val one = parts.singleOrNull() as? it.pixelbox.cmwatch.rules.Answer.Rich.P
+    if (one != null) { Text(linked(one.text, tasks), style = lead, color = tone); return }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        parts.forEachIndexed { i, p ->
+            when (p) {
+                is it.pixelbox.cmwatch.rules.Answer.Rich.P -> Text(linked(p.text, tasks), style = if (i == 0) lead else body, color = tone)
+                is it.pixelbox.cmwatch.rules.Answer.Rich.Li -> Row(Modifier.padding(start = (p.depth * 18).dp)) {
+                    val number = p.mark != "•"
+                    Text(
+                        p.mark, style = if (number) body.copy(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold) else body,
+                        color = if (number) V3.Tx2 else V3.Tx3, modifier = Modifier.width(22.dp),
+                    )
+                    Text(linked(p.text, tasks), style = body, color = tone, modifier = Modifier.weight(1f))
+                }
+                is it.pixelbox.cmwatch.rules.Answer.Rich.Code -> CommandCard(p.text)
+            }
+        }
+    }
+}
+
+/** Un comando scritto dalla sessione in un blocco di codice: su una riga sua, con «Copia». */
+@Composable
+private fun CommandCard(code: String) {
+    val clip = LocalClipboardManager.current
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(V3.Bg).border(1.dp, V3.Line, shape).padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(Icons.Rounded.Terminal, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
+        Text(code, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Mono, fontSize = 13.5.sp, lineHeight = 21.sp), color = V3.Tx, modifier = Modifier.weight(1f))
+        Text(
+            stringResource(R.string.copy), style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp), color = V3.Tx,
+            modifier = Modifier.clip(CircleShape).border(1.dp, V3.Line, CircleShape).handCursor().clickable { clip.setText(AnnotatedString(code)) }.padding(horizontal = 12.dp, vertical = 4.dp),
+        )
+    }
+}
+
+// ---- La scheda unica (app-chat-scheda-unica-13-11, Franz 13/11 09:32: E1 a quattro zone, separate come in F3) ----
+
+/** I fondi degli strati: veli sotto il 12 %, il blu di «al lavoro» per la richiesta, il colore del tipo per il piede, il resto grigi v3. */
+private object F3 {
+    private val base get() = if (V3.day) androidx.compose.ui.graphics.Color.White else V3.Bg
+    val you get() = V3.Busy.copy(alpha = if (V3.day) .09f else .13f).compositeOver(base)
+    val seam get() = if (V3.day) androidx.compose.ui.graphics.Color(0xFFF7F7F7) else androidx.compose.ui.graphics.Color(0xFF131313)
+    val paper get() = if (V3.day) androidx.compose.ui.graphics.Color.White else V3.S2
+    val tile get() = if (V3.day) androidx.compose.ui.graphics.Color.White else V3.Bg
+    fun foot(t: it.pixelbox.cmwatch.rules.Kpi.OutcomeType) = when (t) {
+        it.pixelbox.cmwatch.rules.Kpi.OutcomeType.DONE, it.pixelbox.cmwatch.rules.Kpi.OutcomeType.SHIPPED -> V3.Good.copy(alpha = if (V3.day) .09f else .10f).compositeOver(base)
+        it.pixelbox.cmwatch.rules.Kpi.OutcomeType.PROBLEM -> V3.Red.copy(alpha = .10f).compositeOver(paper)
+        it.pixelbox.cmwatch.rules.Kpi.OutcomeType.WAITING -> V3.Wait.copy(alpha = .10f).compositeOver(paper)
+        it.pixelbox.cmwatch.rules.Kpi.OutcomeType.RUNNING -> V3.Busy.copy(alpha = .10f).compositeOver(paper)
+        else -> V3.Tx.copy(alpha = .04f).compositeOver(paper)
+    }
+    val label get() = androidx.compose.ui.text.TextStyle(fontFamily = V3.Mono, fontWeight = FontWeight.Medium, fontSize = 11.5.sp, lineHeight = 16.sp, letterSpacing = 1.4.sp, color = V3.Tx3)
+}
+
+/** Il lampo giallo della voce trovata da Cerca. */
+private fun Modifier.flashed(on: Boolean): Modifier = if (on) background(androidx.compose.ui.graphics.Color(0x38FFB23F), RoundedCornerShape(12.dp)) else this
+
+/** Sopra il testo della richiesta: «Tu», da dove, a che ora. */
+@Composable
+private fun RequestMeta(from: String?, at: Long?) {
+    Text(
+        listOfNotNull(stringResource(R.string.chat_you), from, at?.let(::hhmm)).joinToString(" · "),
+        style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 12.5.sp, lineHeight = 16.sp), color = V3.Tx2,
+    )
+}
+
+/** Una richiesta corta si legge come un titolo; una lunga come testo. */
+@Composable
+private fun requestStyle(text: String): androidx.compose.ui.text.TextStyle =
+    if (text.length > 140 || '\n' in text) MaterialTheme.typography.bodyLarge
+    else androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 19.sp, lineHeight = 25.sp)
+
+/** Un turno: la richiesta a fumetto a destra e, sotto, tutto quello che scrive la sessione in una scheda sola. */
+@Composable
+private fun TurnRow(
+    t: it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn, flash: String?, focus: String?, ttsMinChars: Int, actions: SheetActions, reasonOf: (String) -> String?,
+    onRetried: (String) -> Unit, onEdit: (String) -> Unit, onStep: (String) -> Unit,
+) {
+    Column(Modifier.widthIn(max = 780.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        when (val q = t.request) {
+            is ChatFeed.Item.Mine -> Column(Modifier.fillMaxWidth().flashed(flash != null && q.entry?.id == flash), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Una voce ancora in coda nel turno (scritta mentre Claude lavora) si dice «in coda».
+                MineBubble(q.sent, if (q.entry?.queued == true && q.status != ChatRules.Status.FAILED) ChatRules.Status.QUEUED else q.status, reasonOf(q.sent.id), actions, onRetried, onEdit, onResend = { x -> actions.send(PhonePrimary.Target.PROMPT, x) })
+                // Il pannello che un comando slash ha aperto sul PC (/cost) risponde sotto il comando.
+                q.sent.panel?.let { p -> ClaudeBubble(p, q.sent.sentAt, ttsMinChars, actions.speak, sessions = actions.sessions, onOpenSession = actions.openSession) }
+            }
+            is ChatFeed.Item.User -> Box(Modifier.fillMaxWidth().flashed(flash != null && q.entry.id == flash)) { UserBubble(q.entry, onResend = { x -> actions.send(PhonePrimary.Target.PROMPT, x) }) }
+            else -> Unit
+        }
+        if (t.work.isNotEmpty() || t.answer != null) V3Theme {
+            val shape = RoundedCornerShape(22.dp)
+            Column(Modifier.fillMaxWidth().testTag("chat-scheda").clip(shape).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier)) {
+                if (t.work.isNotEmpty()) WorkZone(t, flash, focus, actions)
+                t.answer?.let { AnswerZones(it, flash == it.id, actions, onStep) }
+            }
+            t.answer?.let { AnswerTail(it, actions) }
+        }
+    }
+}
+
+/** Il lavoro: una linea del tempo, un nodo per voce, le frasi della sessione al loro posto fra un passo e l'altro. */
+@Composable
+private fun WorkZone(t: it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn, flash: String?, focus: String?, actions: SheetActions) {
+    val fold = it.pixelbox.cmwatch.rules.ChatTurns.foldable(t.work)
+    var open by rememberSaveable(t.key) { mutableStateOf(false) }
+    val all = open || (focus != null && focus in t.entryIds)
+    Column(Modifier.fillMaxWidth().background(F3.seam).padding(start = 8.dp, end = 10.dp, top = 12.dp, bottom = 12.dp).smoothSize()) {
+        if (t.tools > 0) Row(
+            Modifier.fillMaxWidth().padding(bottom = 10.dp).then(if (fold) Modifier.clip(MaterialTheme.shapes.small).handCursor().clickable { open = !all } else Modifier).padding(start = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val steps = androidx.compose.ui.res.pluralStringResource(R.plurals.chat_work_steps, t.tools, t.tools).uppercase()
+            val failed = if (t.failed > 0) androidx.compose.ui.res.pluralStringResource(R.plurals.steps_failed, t.failed, t.failed).uppercase() else null
+            Text(
+                androidx.compose.ui.text.buildAnnotatedString {
+                    append(steps)
+                    if (failed != null) { append(" · "); pushStyle(androidx.compose.ui.text.SpanStyle(color = V3.Red, fontWeight = FontWeight.SemiBold)); append(failed); pop() }
+                },
+                style = F3.label, modifier = Modifier.weight(1f),
+            )
+            if (fold) Icon(if (all) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (all) R.string.steps_close else R.string.steps_open), tint = V3.Tx3, modifier = Modifier.size(20.dp))
+        }
+        val line = V3.Line
+        Column(
+            Modifier.fillMaxWidth().drawBehind {
+                val x = 14.dp.toPx()
+                if (size.height > 44.dp.toPx()) drawLine(line, androidx.compose.ui.geometry.Offset(x, 12.dp.toPx()), androidx.compose.ui.geometry.Offset(x, size.height - 16.dp.toPx()), 2.dp.toPx())
+            },
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            it.pixelbox.cmwatch.rules.ChatTurns.shownWork(t.work, all).forEach { w ->
+                key(w.entry.id) { if (w.say) SayNode(w.entry, flash == w.entry.id, actions) else ToolNode(w.entry, flash == w.entry.id) }
+            }
+        }
+    }
+}
+
+/** Un nodo della linea: il cerchio sulla linea e, accanto, il contenuto. */
+@Composable
+private fun WorkNode(ring: androidx.compose.ui.graphics.Color, flashed: Boolean, mark: @Composable () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    Row(Modifier.fillMaxWidth().flashed(flashed), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(Modifier.size(28.dp).clip(CircleShape).background(F3.seam).border(1.5.dp, ring, CircleShape), contentAlignment = Alignment.Center) { mark() }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    }
+}
+
+/** Il messaggio letto una volta: senza le righe Tipo e Prossimi, coi link delle sessioni e delle richieste tolti, l'esito a parte. */
+private class ReadEntry(
+    val text: String, val tipo: String?, val steps: List<String>, val buttons: List<it.pixelbox.cmwatch.rules.SessionLinks.Button>,
+    val waits: it.pixelbox.cmwatch.rules.SessionLinks.Waits, val body: String, val outcome: String?,
+)
+
+private fun readEntry(raw: String, label: String, sessions: List<Session>): ReadEntry {
+    val tp = it.pixelbox.cmwatch.rules.Answer.stripTipo(raw, label)
+    val ps = NextSteps.parse(tp.text)
+    val stripped = it.pixelbox.cmwatch.rules.SessionLinks.strip(ps.text, sessions)
+    val waits = it.pixelbox.cmwatch.rules.SessionLinks.stripWaits(stripped.text)
+    val cut = it.pixelbox.cmwatch.rules.ChatEsito.split(it.pixelbox.cmwatch.rules.OutcomeLine.forPhone(waits.text, label), label)
+    return ReadEntry(ps.text, tp.tipo, ps.steps, stripped.buttons, waits, cut.body, cut.outcome)
+}
+
+/** Quello che una voce porta oltre al testo: i tasti delle sessioni linkate, le prove e le richieste citate, il testo accorciato. */
+@Composable
+private fun EntryExtras(e: TranscriptEntry, r: ReadEntry, actions: SheetActions) {
+    r.buttons.forEach { b -> SessionButton(b, onOpen = { actions.openSession(b.session) }) }
+    ProvaCards(r.waits.text)
+    SceltaCompatte(r.waits.ids)
+    if (e.cut) Text(stringResource(R.string.text_cut), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
+}
+
+/** La riga dell'esito: l'icona del tipo col suo colore, centrata sulla prima riga, e le parole della sessione. */
+@Composable
+private fun EsitoRow(line: String, type: it.pixelbox.cmwatch.rules.Kpi.OutcomeType, strong: Boolean) {
+    val label = stringResource(R.string.outcome_label)
+    val style = if (strong) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 16.5.sp, lineHeight = 24.sp) else MaterialTheme.typography.bodyLarge
+    val lineDp = with(androidx.compose.ui.platform.LocalDensity.current) { (if (style.lineHeight.isSp) style.lineHeight else style.fontSize * 1.4f).toDp() }
+    val icon = if (strong) 20f else 18f
+    Row(Modifier.testTag("chat-esito"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(outcomeIcon(type), label, tint = outcomeTone(type), modifier = Modifier.padding(top = it.pixelbox.cmwatch.rules.ChatEsito.iconTop(lineDp.value, icon).dp).size(icon.dp))
+        Text(linked(it.pixelbox.cmwatch.rules.ChatEsito.text(line, label), LocalTaskLinks.current), style = style, color = Cm.text)
+    }
+}
+
+/** Una frase della sessione fra un passo e l'altro. */
+@Composable
+private fun SayNode(e: TranscriptEntry, flashed: Boolean, actions: SheetActions) {
+    val label = stringResource(R.string.outcome_label)
+    val r = remember(e.text, label, actions.sessions) { readEntry(e.text.orEmpty(), label, actions.sessions) }
+    WorkNode(V3.Line, flashed, mark = { Box(Modifier.size(8.dp).clip(CircleShape).background(V3.Tx3)) }) {
+        Box(Modifier.padding(top = 3.dp)) { Quotable(r.waits.text, e.at) { SelectionContainer { DocBody(r.body, index = false, tone = V3.Tx2) } } }
+        r.outcome?.let { line -> EsitoRow(line, it.pixelbox.cmwatch.rules.Kpi.OutcomeType.of(e.outcomeType), strong = false) }
+        EntryExtras(e, r, actions)
+    }
+}
+
+/** Un passo del lavoro a una riga: l'icona del tipo sulla linea, nome e argomento, la pillola del risultato; il tocco lo apre. */
+@Composable
+private fun ToolNode(e: TranscriptEntry, flashed: Boolean) {
+    val ln = remember(e) { it.pixelbox.cmwatch.rules.ChatTurns.stepLine(e) }
+    val dt = remember(e) { it.pixelbox.cmwatch.rules.ChatTurns.stepDetail(e) }
+    val can = dt.note != null || dt.text != null || e.diff != null
+    val error = e.error == true
+    var open by rememberSaveable(e.id) { mutableStateOf(false) }
+    val tone = if (error) V3.Red else V3.Good
+    WorkNode(tone.copy(alpha = .5f).compositeOver(V3.Line), flashed, mark = {
+        Icon(if (error) Icons.Rounded.ErrorOutline else toolIcon(ToolText.kind(e.tool)), e.tool, tint = tone, modifier = Modifier.size(16.dp))
+    }) {
+        val shape = RoundedCornerShape(12.dp)
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 32.dp).clip(shape).background(F3.tile).border(1.dp, V3.Line, shape)
+                .then(if (can) Modifier.handCursor().clickable { open = !open } else Modifier).padding(start = 10.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(ln.name, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.5.sp, lineHeight = 20.sp), color = V3.Tx, maxLines = 1)
+            // Su una riga, tagliato senza puntini.
+            Text(
+                ln.arg, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Mono, fontSize = 13.sp, lineHeight = 20.sp), color = V3.Tx2,
+                maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
+            )
+            val pill = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 13.sp, lineHeight = 19.sp, fontFeatureSettings = "tnum")
+            if (error) Text(stringResource(R.string.chat_step_failed), style = pill, color = V3.Red, modifier = Modifier.clip(CircleShape).background(V3.Red.copy(alpha = .16f)).padding(horizontal = 9.dp, vertical = 1.dp))
+            else e.diff?.let { d ->
+                Text(
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        pushStyle(androidx.compose.ui.text.SpanStyle(color = V3.Good)); append("+${d.added}"); pop()
+                        append(" ")
+                        pushStyle(androidx.compose.ui.text.SpanStyle(color = V3.Red)); append("−${d.removed}"); pop()
+                    },
+                    style = pill, modifier = Modifier.clip(CircleShape).background(V3.S3).padding(horizontal = 9.dp, vertical = 1.dp),
+                )
+            }
+            if (can) Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, stringResource(if (open) R.string.steps_close else R.string.steps_open), tint = V3.Tx3, modifier = Modifier.size(20.dp))
+        }
+        if (open && can) Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            dt.note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = V3.Tx2) }
+            dt.text?.let { Text(it, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Mono, fontSize = 12.5.sp, lineHeight = 19.sp), color = V3.Tx) }
+            // Contratto 1.72: il diff del passo, già aperto.
+            e.diff?.let { d -> StepDiffRow(e.id, d, startOpen = true) }
+        }
+        e.files?.takeIf { it.isNotEmpty() }?.let { fs ->
+            FilesGroup(fs.map { it to e.id })
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { fs.forEach { FileChip(it, e.id) } }
+        }
+    }
+}
+
+/** Il testo diviso ai titoli della sessione (`Answer.sections`); `index` = l'indice dei titoli in cima, nella risposta. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun DocBody(text: String, index: Boolean, tone: androidx.compose.ui.graphics.Color) {
+    val d = remember(text) { it.pixelbox.cmwatch.rules.Answer.sections(text) }
+    if (d.secs.isEmpty()) { if (d.lead.isNotEmpty()) ChatParts(d.lead, tone); return }
+    val tasks = LocalTaskLinks.current
+    val reqs = remember(d.secs.size) { List(d.secs.size) { androidx.compose.foundation.relocation.BringIntoViewRequester() } }
+    val scope = rememberCoroutineScope()
+    Column(verticalArrangement = Arrangement.spacedBy(if (index) 14.dp else 8.dp)) {
+        if (d.lead.isNotEmpty()) ChatParts(d.lead, tone, big = index)
+        if (index && d.secs.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            d.secs.forEachIndexed { i, sec ->
+                Row(
+                    Modifier.clip(CircleShape).background(V3.S3).handCursor().clickable { scope.launch { reqs[i].bringIntoView() } }.padding(start = 10.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(Icons.Rounded.ArrowDownward, null, tint = V3.Tx3, modifier = Modifier.size(16.dp))
+                    Text(linked(sec.title).text, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 14.sp, lineHeight = 20.sp), color = V3.Tx2)
+                }
+            }
+        }
+        d.secs.forEachIndexed { i, sec ->
+            Column(Modifier.fillMaxWidth().bringIntoViewRequester(reqs[i]), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (index && (i > 0 || d.lead.isNotEmpty())) { Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line)); Spacer(Modifier.height(2.dp)) }
+                Text(
+                    linked(sec.title, tasks), color = Cm.text,
+                    style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.Bold, fontSize = if (index) 19.sp else 16.5.sp, lineHeight = if (index) 24.sp else 22.sp),
+                )
+                if (sec.body.isNotEmpty()) ChatParts(sec.body, tone)
+            }
+        }
+    }
+}
+
+/** La risposta: il documento coi suoi titoli e, sotto, il piede con Esito, Tipo e Prossimi; fra i due cambia solo il fondo. */
+@Composable
+private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActions, onStep: (String) -> Unit) {
+    val label = stringResource(R.string.outcome_label)
+    val r = remember(e.text, label, actions.sessions) { readEntry(e.text.orEmpty(), label, actions.sessions) }
+    val type = it.pixelbox.cmwatch.rules.Kpi.OutcomeType.of(e.outcomeType)
+    if (r.body.isNotBlank() || r.buttons.isNotEmpty() || r.waits.ids.isNotEmpty() || e.cut) Column(
+        Modifier.fillMaxWidth().background(F3.paper).flashed(flashed).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        // Durante la lettura a voce il testo si mostra a paragrafi, quello letto in evidenza; il tocco su un paragrafo fa ripartire
+        // la lettura da lì (Franz, 02/10 00:01: «come in orologio»).
+        if (LocalSpeaking.current == r.text) {
+            val blocks = LocalBlocksOf.current(r.text)
+            val cur = LocalSpeakingBlock.current
+            blocks.forEachIndexed { i, b ->
+                Text(
+                    linked(b.text), style = MaterialTheme.typography.bodyLarge, color = if (i == cur) Cm.text else Cm.text2,
+                    modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(if (i == cur) V3.S3 else androidx.compose.ui.graphics.Color.Transparent)
+                        .handCursor().clickable { actions.speakFrom(r.text, i) }.padding(horizontal = 6.dp, vertical = 4.dp),
+                )
+            }
+        } else Quotable(r.waits.text, e.at) { SelectionContainer { DocBody(r.body, index = true, tone = Cm.text) } }
+        EntryExtras(e, r, actions)
+    }
+    if (r.outcome != null || r.tipo != null || r.steps.isNotEmpty()) Column(
+        Modifier.fillMaxWidth().background(F3.foot(type)).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        r.outcome?.let { FootHead(label, true); EsitoRow(it, type, strong = true) }
+        r.tipo?.let { tipo ->
+            FootHead(stringResource(R.string.chat_type_label), r.outcome == null)
+            val tone = outcomeTone(type)
+            Text(
+                tipo, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp), color = tone,
+                modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = .18f)).padding(horizontal = 11.dp, vertical = 1.dp),
+            )
+        }
+        if (r.steps.isNotEmpty()) {
+            FootHead(stringResource(R.string.chat_next_label), r.outcome == null && r.tipo == null)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                r.steps.forEach { step ->
+                    Text(
+                        step, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 14.5.sp, lineHeight = 20.sp), color = V3.Tx,
+                        modifier = Modifier.clip(CircleShape).background(F3.paper).border(1.dp, V3.Line, CircleShape).handCursor().clickable { onStep(step) }.padding(horizontal = 13.dp, vertical = 6.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** L'etichetta di una riga del piede. */
+@Composable
+private fun FootHead(text: String, first: Boolean) = Text(text.uppercase(), style = F3.label, modifier = Modifier.padding(top = if (first) 0.dp else 6.dp))
+
+/** Sotto la scheda: Copia e ▶ a sinistra, quanto è durato il turno e l'ora a destra. */
+@Composable
+private fun AnswerTail(e: TranscriptEntry, actions: SheetActions) {
+    val label = stringResource(R.string.outcome_label)
+    val text = remember(e.text, label) { NextSteps.parse(it.pixelbox.cmwatch.rules.Answer.stripTipo(e.text.orEmpty(), label).text).text }
+    val clip = LocalClipboardManager.current
+    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(text)) }
+        val reading = LocalSpeaking.current == text
+        if (reading) RatePill()
+        FilledTonalIconButton(onClick = { actions.speak(text) }, modifier = Modifier.size(36.dp)) {
+            Icon(
+                if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, stringResource(if (reading) R.string.stop_reading else R.string.read_aloud),
+                tint = Cm.actionIcon, modifier = Modifier.size(20.dp),
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        // Il costo del turno: durata e token scritti (quelli letti comprendono la cache); poi l'ora.
+        val cost = e.turn?.let { t ->
+            val secs = (t.ended ?: 0) - (t.started ?: 0)
+            listOfNotNull(
+                secs.takeIf { t.started != null && t.ended != null && it > 0 }?.let { d -> if (d < 60) "$d s" else Durations.since(0, d) },
+                t.out?.let { o -> stringResource(R.string.turn_tokens, o) },
+            )
+        }.orEmpty()
+        val tail = (cost + listOfNotNull(e.at?.let(::hhmm))).joinToString(" · ")
+        if (tail.isNotEmpty()) Text(tail, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 12.5.sp, lineHeight = 16.sp, fontFeatureSettings = "tnum"), color = V3.Tx3, modifier = Modifier.padding(end = 2.dp))
     }
 }
 

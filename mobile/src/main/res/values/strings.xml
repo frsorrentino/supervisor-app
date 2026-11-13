@@ -520,6 +520,14 @@
         <item quantity="one">1 passaggio</item>
         <item quantity="other">%1$d passaggi</item>
     </plurals>
+    <string name="chat_you">Tu</string>
+    <string name="chat_type_label">Tipo</string>
+    <string name="chat_next_label">Prossimi</string>
+    <string name="chat_step_failed">fallito</string>
+    <plurals name="chat_work_steps">
+        <item quantity="one">Lavoro · 1 passo</item>
+        <item quantity="other">Lavoro · %1$d passi</item>
+    </plurals>
     <plurals name="steps_failed">
         <item quantity="one">1 fallito</item>
         <item quantity="other">%1$d falliti</item>

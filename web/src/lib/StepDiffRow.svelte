@@ -6,8 +6,10 @@
   import { t } from './t'
   // Sotto un passaggio di modifica (contratto 1.72, StepDiffRow in DiffViews.kt): la riga chiusa; il tocco apre il diff; con
   // `cut` l'ultima riga è «Mostra tutto», che chiede il passaggio intero con l'op `diff` (fino a 5000 righe).
-  let { id, diff, onDiff = null }: { id: string; diff: StepDiff; onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null } = $props()
-  let open = $state(false)
+  // `startOpen`: dentro un passo già aperto della scheda unica il diff si vede subito (app-chat-scheda-unica-13-11).
+  let { id, diff, onDiff = null, startOpen = false }: { id: string; diff: StepDiff; onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null; startOpen?: boolean } = $props()
+  // svelte-ignore state_referenced_locally
+  let open = $state(startOpen)
   let wantAll = $state(false)
   let full = $state<Load<StepDiff> | null>(null)
   let busy = $state(false)
