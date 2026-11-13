@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home in riga, giro C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0&display=block" rel="stylesheet">
+<style>
+  /* app-mockup-chat-home-12-11, giro C della riga della Home in basso (13/11). Franz ha bocciato le righe A (contatori) e B (un
+     pallino per sessione) perché ridondanti: ripetevano quello che è già a schermo. Proposta della master, che Franz non ha ancora
+     visto: la riga mostra solo ciò che è FUORI SCHERMO e le NOVITÀ, ed è vuota quando non c'è niente.
+       - Fuori schermo: le sessioni che ti aspettano e non sono aperte in una colonna. Quelle a schermo non ci sono: le vedi già.
+       - Novità: quello che è successo da quando la Home è in riga (un esito, una sessione che si ferma, un rosso); va via quando lo apri.
+       - Vuota: resta solo la maniglia, alta 28 px invece di 64, e la chat prende lo spazio.
+     Due modi di disegnarla: C1, una voce per cosa (pallino o segno, nome, cosa in breve, da quanto), ognuna porta alla sua sessione;
+     C2, una frase sola che porta alla Home. Scelgo C1 e lo dico nelle tavole: ogni voce è un tocco verso il posto giusto, mentre la
+     frase va letta tutta e porta sempre alla Home. C2 resta in una tavola, per confronto.
+     Web 1440 × 900, tablet 1280 × 800, telefono 412 × 915. `?p=<id>` una tavola sola, `&day` il giorno. */
+  :root { --bg:#0B0B0B; --s1:#121212; --s2:#181818; --s3:#232323; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#A3A3A3; --tx3:#6E6E6E;
+          --wait:#FFB23F; --good:#71D083; --busy:#8AA9DB; --red:#FF6B5E; --waitbg:#1d1609; --waitline:#4a3412; --act:#EEEEEE; --onact:#0B0B0B;
+          --you:#262626; --ghost:rgba(255,178,63,.10); --master:#141820; }
+  body.day { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#ECECEC; --line:#E1E1E1; --tx:#141414; --tx2:#555555; --tx3:#6A6A6A;
+          --wait:#9A5700; --good:#2A7E3B; --busy:#3D5F94; --red:#C9302F; --waitbg:#FFF6E5; --waitline:#F2D7A2; --act:#141414; --onact:#FFFFFF;
+          --you:#E6E6E6; --ghost:rgba(154,87,0,.08); --master:#EEF2F8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, "DejaVu Sans", sans-serif; }
+  .mono { font-family: "Geist Mono", "DejaVu Sans Mono", monospace; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal;
+        text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+  .panel { display: none; position: relative; overflow: hidden; background: var(--bg); }
+  .panel.web { width: 1440px; height: 900px; } .panel.tab { width: 1280px; height: 800px; } .panel.one { width: 800px; height: 1280px; }
+  .panel.on { display: block; }
+  .panel > img { width: 100%; height: 100%; display: block; }
+  body.all { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; align-items: flex-start; }
+  body.all .panel { display: block; }
+  .tag { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 30; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700;
+         font-size: 13px; padding: 3px 10px; border-radius: 999px; background: #3a2a17; color: #f5c27a; white-space: nowrap; }
+  body.day .tag { background: #FFE7BF; color: #7a4600; }
+  .note { position: absolute; z-index: 25; padding: 9px 12px; border-radius: 10px; background: var(--s2); border: 1px dashed var(--tx3); color: var(--tx2); font-size: 13.5px; line-height: 18px; }
+  .note b { color: var(--tx); font-weight: 600; }
+
+  /* Le colonne. */
+  .cols { position: absolute; left: 0; right: 0; top: 0; display: flex; gap: 0; }
+  .col { position: relative; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+  .card { margin: 10px 8px 10px 12px; border-radius: 22px; border: 1px solid var(--line); background: var(--bg); flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .shead { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); }
+  .shead .ic { width: 26px; height: 26px; border-radius: 7px; background: #2f6fdc; color: #fff; display: grid; place-items: center; } .shead .ic .ms { font-size: 18px; }
+  .shead b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 18px; font-weight: 700; }
+  .shead .st { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--wait); }
+  .shead .sp { flex: 1; } .shead .x { color: var(--tx2); }
+  .strip { display: flex; align-items: center; gap: 8px; margin: 8px 12px 0; padding: 8px 10px 8px 12px; border-radius: 12px; background: var(--s1); border: 1px solid var(--line); }
+  .strip .ms { font-size: 19px; color: var(--tx2); } .strip .ms.w { color: var(--wait); }
+  .strip b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .strip .n { font-size: 13px; color: var(--wait); } .strip .first { flex: 1; min-width: 0; font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .strip .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 13.5px; padding: 4px 11px; border-radius: 999px; background: var(--waitbg); color: var(--wait); border: 1px solid var(--waitline); white-space: nowrap; }
+  .strip.amb { background: var(--waitbg); border-color: var(--waitline); }
+  .chat { flex: 1; padding: 14px 18px 0; font-size: 15.5px; line-height: 23px; overflow: hidden; }
+  .chat p { margin-bottom: 12px; }
+  .chat .es { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--s1); margin-bottom: 12px; }
+  .chat .es small { display: block; font-size: 11.5px; letter-spacing: .12em; color: var(--good); }
+  .you { margin: 0 0 12px auto; width: fit-content; max-width: 80%; padding: 9px 14px; border-radius: 18px 18px 6px 18px; background: var(--you); }
+  .field { margin: 8px 12px 12px; display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 26px; border: 1px solid var(--line); background: var(--s1); color: var(--tx3); font-size: 15px; }
+  .field .in { flex: 1; } .field .ms { color: var(--tx2); }
+
+  .home { padding: 18px 10px 0; }
+  .home .hh { display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; }
+  .home .hh b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 24px; font-weight: 700; } .home .hh small { font-family: "Geist Mono", monospace; font-size: 12.5px; color: var(--tx2); }
+  .home .hh .sp { flex: 1; } .home .hh .ms { color: var(--tx2); }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: 16px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; margin-bottom: 14px; }
+  .kpis div { padding: 12px; border-right: 1px solid var(--line); } .kpis div:last-child { border: 0; }
+  .kpis b { display: block; font-family: "Barlow Semi Condensed", sans-serif; font-size: 34px; line-height: 38px; } .kpis b.w { color: var(--wait); }
+  .kpis small { font-size: 12.5px; color: var(--tx2); }
+  .hl { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--wait); padding: 4px 6px 8px; }
+  .hrow { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 11px 12px; margin-bottom: 8px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); }
+  .hrow > span:nth-child(2) { min-width: 0; }
+  .hrow .ms { font-size: 20px; color: var(--wait); } .hrow .ms.b { color: var(--busy); }
+  .hrow b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 16px; } .hrow small { display: block; font-size: 13px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .hrow .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--waitline); background: var(--waitbg); color: var(--wait); }
+
+  /* La master: la maniglia senza frecce e il tasto rotondo con l'icona (coerente con 2026-11-12-sposta-master). */
+  .mcol { background: var(--master); }
+  .grip { height: 18px; display: grid; place-items: center; } .grip i { width: 44px; height: 4px; border-radius: 2px; background: var(--tx3); }
+  .mhead { display: flex; align-items: center; gap: 10px; padding: 2px 12px 10px 14px; border-bottom: 1px solid var(--line); }
+  .mhead .g { width: 22px; height: 22px; border-radius: 50%; border: 2px dashed var(--tx3); }
+  .mhead b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 16px; } .mhead small { display: block; font-size: 13px; color: var(--tx2); }
+  .mhead .sp { flex: 1; }
+  .rb { width: 44px; height: 44px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; color: var(--tx); flex: none; }
+  .rb.on { background: var(--act); color: var(--onact); }
+  .rb svg { width: 22px; height: 22px; }
+  .mchat { flex: 1; padding: 14px 16px 0; font-size: 15px; line-height: 22px; overflow: hidden; }
+  .mchat p { margin-bottom: 12px; }
+  .mchat .lk { display: inline-block; padding: 8px 12px; border-radius: 12px; background: var(--s3); font-size: 14px; margin-bottom: 12px; }
+
+  /* La riga della Home in basso: A coi contatori, B minima. */
+  .hbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; border-top: 1px solid var(--line); background: var(--bg); display: flex; align-items: center; gap: 14px; padding: 0 16px; z-index: 5; }
+  .hbar .hand { position: absolute; top: 5px; left: 50%; width: 44px; height: 4px; margin-left: -22px; border-radius: 2px; background: var(--tx3); }
+  .hbar .hn { display: flex; align-items: center; gap: 8px; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 17px; }
+  .hbar .hn .ms { font-size: 22px; color: var(--tx2); }
+  .cnt { display: flex; align-items: baseline; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--s1); font-size: 14px; color: var(--tx2); white-space: nowrap; }
+  .cnt b { font-family: "Barlow Semi Condensed", sans-serif; font-size: 18px; color: var(--tx); }
+  .cnt.w { border-color: var(--waitline); background: var(--waitbg); color: var(--wait); } .cnt.w b { color: var(--wait); }
+  .cnt.b b { color: var(--busy); } .cnt.r b { color: var(--red); }
+  .hbar .first { flex: 1; min-width: 0; font-size: 14px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .hbar .up { width: 40px; height: 40px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; flex: none; }
+  .dots { display: flex; gap: 12px; align-items: center; flex: 1; }
+  .dots span { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--tx2); white-space: nowrap; }
+  .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--tx3); } .dots i.w { background: var(--wait); } .dots i.b { background: var(--busy); }
+
+  /* Il tasto rotondo aperto con le posizioni (forma neutra: le varianti del tasto sono nell'altro mockup). */
+  .pmenu { position: absolute; z-index: 20; width: 300px; padding: 6px; border-radius: 18px; background: var(--s3); border: 1px solid var(--line); box-shadow: 0 10px 30px rgb(0 0 0 / .35); }
+  .pmenu .pi { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; font-size: 15px; }
+  .pmenu .pi .ms { font-size: 20px; color: var(--tx2); }
+  .pmenu .pi.new { background: var(--waitbg); color: var(--wait); outline: 1px solid var(--waitline); } .pmenu .pi.new .ms { color: var(--wait); }
+  .pmenu .pi .ok { margin-left: auto; color: var(--good); }
+  .pmenu .pi small { margin-left: auto; font-size: 11.5px; letter-spacing: .1em; }
+  .ghost { position: absolute; z-index: 15; border-radius: 16px; border: 2px dashed var(--wait); background: var(--ghost); display: grid; place-items: center; color: var(--wait); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 16px; }
+  .finger { position: absolute; z-index: 22; width: 44px; height: 44px; border-radius: 50%; background: rgba(140,140,140,.35); border: 2px solid rgba(255,255,255,.6); }
+  .trail { position: absolute; z-index: 21; width: 3px; background: linear-gradient(var(--wait), transparent); border-radius: 2px; }
+
+  /* Giro C: la riga con le sole voci fuori schermo e le novità. */
+  .panel.tel { width: 412px; height: 915px; }
+  .panel.web .tag, .panel.tab .tag { left: 290px; }
+  .cbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; border-top: 1px solid var(--line); background: var(--bg); display: flex; align-items: center; gap: 10px; padding: 6px 14px 0; z-index: 5; }
+  .cbar .hand { position: absolute; top: 5px; left: 50%; width: 44px; height: 4px; margin-left: -22px; border-radius: 2px; background: var(--tx3); }
+  .cbar .hn { display: flex; align-items: center; color: var(--tx2); flex: none; } .cbar .hn .ms { font-size: 22px; }
+  .cbar .sp { flex: 1; }
+  .cbar .up { width: 40px; height: 40px; border-radius: 50%; background: var(--s3); display: grid; place-items: center; flex: none; }
+  .voce { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 12px 7px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--s1); font-size: 14px; color: var(--tx2); white-space: nowrap; }
+  .voce i { width: 9px; height: 9px; border-radius: 50%; background: var(--wait); flex: none; }
+  .voce b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15.5px; color: var(--tx); }
+  .voce .w { min-width: 0; overflow: hidden; }
+  .voce .a { color: var(--wait); }
+  .voce.new { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); }
+  .voce.new .ms { font-size: 18px; color: var(--good); }
+  .voce.new .tagn { font-family: "Geist Mono", monospace; font-size: 10.5px; letter-spacing: .12em; color: var(--good); }
+  .voce.more { color: var(--tx2); padding: 7px 12px; }
+  /* Vuota: solo la maniglia. */
+  .cbar.empty { height: 28px; padding: 0; justify-content: center; }
+  .cbar.empty .hand { top: 12px; }
+  /* C2: una frase. */
+  .cbar .frase { flex: 1; min-width: 0; font-size: 14.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .cbar .frase b { color: var(--tx); font-weight: 600; } .cbar .frase .a { color: var(--wait); } .cbar .frase .g { color: var(--good); }
+  .note.pick { border-style: solid; border-color: var(--wait); }
+  /* Il telefono: la master a tutto schermo, la riga sotto il campo. */
+  .tel .mcol { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .tel .mhead { padding-top: 34px; }
+</style>
+</head>
+<body>
+
+<template id="sess">
+  <div class="card">
+    <div class="shead"><span class="ic"><span class="ms">front_hand</span></span><div><b>payments-api</b><div class="st">TI ASPETTA · 5 M</div></div><span class="sp"></span><span class="ms x">close</span></div>
+    <div class="strip amb"><span class="ms w">front_hand</span><b>Per te</b><span class="n">2</span><span class="first">Pubblico il deploy 2.8.0 in produzione?</span><span class="mini">1 · sì</span></div>
+    <div class="chat"><div class="you">Il rimborso parziale perde un centesimo: sistemalo e prova su staging</div>
+      <div class="es"><small>ESITO</small>Rimborso parziale corretto, 232 test verdi, la 2.8.1 è pronta</div>
+      <p>Il rimborso parziale ora passa su staging: ho corretto l'arrotondamento dei centesimi e aggiunto i test che mancavano. Il deploy della 2.8.1 parte solo con il tuo ok.</p></div>
+    <div class="field"><span class="ms">add</span><span class="in">Rispondi con parole tue</span><span class="ms">send</span></div>
+  </div>
+</template>
+<template id="home">
+  <div class="home">
+    <div class="hh"><b>Supervisor</b><small>0.2.2108 · 4 aperte</small><span class="sp"></span><span class="ms">search</span><span class="ms">menu</span></div>
+    <div class="kpis"><div><b class="w">3</b><small>sessioni ferme, la prima da 7 min</small></div><div><b>1</b><small>al lavoro adesso</small></div><div><b>6</b><small>esiti oggi</small></div></div>
+    <div class="hl">TI ASPETTANO 3</div>
+    <div class="hrow"><span class="ms">help</span><span><b>storefront</b><small>Fai il login nella sandbox dei pagamenti</small></span><span class="mini">Approva</span></div>
+    <div class="hrow"><span class="ms">help</span><span><b>payments-api</b><small>Pubblica il deploy 2.8.0: ./deploy.sh</small></span><span class="mini">Scegli</span></div>
+    <div class="hrow"><span class="ms">help</span><span><b>blog</b><small>ok alla pubblicazione del post</small></span><span class="mini">Ok</span></div>
+    <div class="hl" style="color:var(--tx3)">LE ALTRE</div>
+    <div class="hrow"><span class="ms b">play_circle</span><span><b>admin-panel</b><small>Bash npm test · 25 min</small></span><span></span></div>
+  </div>
+</template>
+<template id="master">
+  <div class="grip"><i></i></div>
+  <div class="mhead"><span class="g"></span><div><b>Master <span class="mono" style="font-size:12.5px;color:var(--tx2);font-weight:400">10:48</span></b><small>Fase 2.2 avviata su payments-api</small></div><span class="sp"></span>
+    <span class="rb __RB__"><svg viewBox="0 0 24 24"><path d="M8 7l-4 4 4 4M4 11h11M16 9l4 4-4 4M20 13H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+  <div class="mchat">
+    <p>demo-cover è pronto per te, gli altri lavori vanno avanti.</p>
+    <p><b>Da te</b><br>1. Manda l'immagine di copertina alla sessione del blog.<br>2. Fai il login nella sandbox dei pagamenti.</p>
+    <div class="you">Lancia payments-api sulla fase 2.2</div>
+    <p>Lanciata payments-api sulla fase 2.2. Solo commit locali: push e release con il tuo ok.</p>
+    <span class="lk"><b>payments-api</b> · Apri in supervisor</span>
+  </div>
+  <div class="field" style="margin-top:0"><span class="ms">add</span><span class="in">Scrivi alla master</span><span class="ms">send</span></div>
+</template>
+
+<template id="barC"><div class="cbar"><span class="hand"></span><span class="hn"><span class="ms">home</span></span><span class="voce"><i></i><b>storefront</b><span class="w">Fai il login nella sandbox dei pagamenti</span><span class="a">7 min</span></span><span class="voce"><i></i><b>blog</b><span class="w">ok alla pubblicazione del post</span><span class="a">4 min</span></span><span class="voce new"><span class="ms">check_circle</span><b>admin-panel</b><span class="w">ha finito: 232 test verdi</span><span class="tagn">NUOVO</span></span><span class="sp"></span><span class="up ms">expand_less</span></div></template>
+<template id="barCn"><div class="cbar"><span class="hand"></span><span class="hn"><span class="ms">home</span></span><span class="voce new"><span class="ms">check_circle</span><b>admin-panel</b><span class="w">ha finito: 232 test verdi</span><span class="tagn">NUOVO</span></span><span class="sp"></span><span class="up ms">expand_less</span></div></template>
+<template id="barCt"><div class="cbar"><span class="hand"></span><span class="hn"><span class="ms">home</span></span><span class="voce"><i></i><b>storefront</b><span class="w">Fai il login nella sandbox dei pagamenti</span><span class="a">7 min</span></span><span class="voce"><i></i><b>blog</b><span class="a">4 min</span></span><span class="voce new"><span class="ms">check_circle</span><b>admin-panel</b></span><span class="sp"></span><span class="up ms">expand_less</span></div></template>
+<template id="barCp"><div class="cbar" style="gap:8px;padding:6px 10px 0"><span class="hand"></span><span class="hn"><span class="ms">home</span></span><span class="voce"><i></i><b>storefront</b><span class="a">7 min</span></span><span class="voce"><i></i><b>blog</b><span class="a">4 min</span></span><span class="voce new"><span class="ms">check_circle</span><b>1</b><span class="tagn">NUOVO</span></span><span class="sp"></span></div></template>
+<template id="barE"><div class="cbar empty"><span class="hand"></span></div></template>
+<template id="barF"><div class="cbar"><span class="hand"></span><span class="hn"><span class="ms">home</span></span><span class="frase">Fuori schermo: <b>storefront</b> e <b>blog</b> ti aspettano, <span class="a">da 7 min</span> · Novità: <b>admin-panel</b> <span class="g">ha finito</span></span><span class="up ms">expand_less</span></div></template>
+
+<!-- Web 1440: la sessione payments-api in colonna, la master larga, la Home in riga. -->
+<section class="panel web" id="w1"><span class="tag">Web · riga C1: fuori schermo e novità, una voce per cosa</span><div data-l="s:560,m:880,bar:C"></div>
+  <div class="note pick" style="right:20px;width:430px;bottom:84px"><b>C1, la mia scelta.</b> Nella riga ci sono solo le sessioni che ti aspettano e non sono a schermo (storefront, blog) e le novità da quando la Home è in riga (admin-panel ha finito). payments-api ti aspetta ma è aperta qui accanto: non c'è. Ogni voce porta alla sua sessione; il resto della riga, o la riga tirata su, riapre la Home.</div></section>
+<section class="panel web" id="w2"><span class="tag">Web · riga C1 con una sola novità</span><div data-l="s:560,m:880,bar:Cn"></div>
+  <div class="note" style="right:20px;width:430px;bottom:84px"><b>Solo una novità.</b> Niente ti aspetta fuori schermo; admin-panel ha appena finito. La voce va via quando la apri o quando riapri la Home.</div></section>
+<section class="panel web" id="w3"><span class="tag">Web · riga vuota: niente fuori schermo, niente di nuovo</span><div data-l="s:560,m:880,bar:E"></div>
+  <div class="note" style="right:20px;width:430px;bottom:48px"><b>Vuota.</b> Quando non c'è niente da dire resta la maniglia, alta 28 px: si tocca o si tira su per riaprire la Home, e la chat prende lo spazio.</div></section>
+<section class="panel web" id="w4"><span class="tag">Web · riga C2, per confronto: una frase sola</span><div data-l="s:560,m:880,bar:F"></div>
+  <div class="note" style="right:20px;width:430px;bottom:84px"><b>C2, scartata da me.</b> Le stesse cose in una frase. Si legge tutta prima di capire, e un tocco porta sempre alla Home, non alla sessione. Per questo preferisco C1.</div></section>
+
+<!-- Tablet 1280. -->
+<section class="panel tab" id="t1"><span class="tag">Tablet · riga C1</span><div data-l="s:480,m:800,bar:Ct"></div></section>
+<section class="panel tab" id="t2"><span class="tag">Tablet · riga vuota</span><div data-l="s:480,m:800,bar:E"></div></section>
+
+<!-- Telefono 412: la master a tutto schermo, la Home in riga sotto il campo. -->
+<section class="panel tel" id="p1"><span class="tag">Telefono · riga C1</span><div data-l="m:412,bar:Cp"></div>
+  <div class="note" style="left:12px;right:12px;bottom:160px"><b>Sul telefono</b> le voci tengono il nome e da quanto; le novità si contano in una voce sola. Il tocco su una voce apre la sessione, sulla casa o sulla riga tirata su la Home.</div></section>
+<section class="panel tel" id="p2"><span class="tag">Telefono · riga vuota</span><div data-l="m:412,bar:E"></div></section>
+
+<script>
+  const q = new URLSearchParams(location.search), day = q.has('day')
+  if (day) document.body.classList.add('day')
+  const tpl = id => document.getElementById(id).innerHTML
+  // data-l: s = larghezza della sessione, m = della master; bar = la riga della Home in basso (E = vuota, alta 28 px).
+  document.querySelectorAll('[data-l]').forEach(e => {
+    const o = Object.fromEntries(e.dataset.l.split(',').map(x => x.split(':')))
+    const H = ({ web: 900, tab: 800, tel: 915 })[e.closest('.panel').classList[1]]
+    const bottom = o.bar === 'E' ? 28 : 64
+    let html = `<div class="cols" style="height:${H - bottom}px">`
+    if (o.s) html += `<div class="col" style="width:${o.s}px">${tpl('sess')}</div>`
+    html += `<div class="col mcol" style="flex:1;border-left:1px solid var(--line)">${tpl('master').replace('__RB__', '')}</div></div>`
+    html += tpl('bar' + o.bar)
+    const box = document.createElement('div'); box.innerHTML = html; e.replaceWith(...box.childNodes)
+  })
+  const p = q.get('p')
+  if (p) document.getElementById(p).classList.add('on'); else document.body.classList.add('all')
+</script>
+</body>
+</html>
