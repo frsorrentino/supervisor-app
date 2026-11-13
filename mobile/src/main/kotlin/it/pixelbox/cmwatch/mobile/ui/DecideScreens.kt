@@ -229,7 +229,7 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
             Text(stringResource(R.string.prove_reported), style = MonoSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
             // Una prova segnalata si chiude con «Ora va» quando, riprovata, va (come sulla web, app-verifica-conto-elenco-12-11): è l'Ok
             // della prova, che il relay accetta anche dopo un «Non va». La riga esce come le altre, e torna se il PC dice no.
-            ItemList(page!!.ko.map { k -> ItemRows.proveKo(k) }, "prova-ko", gone = gone.toSet()) { r ->
+            ItemList(page!!.ko.map { k -> ItemRows.proveKo(k) }, "prova-ko", gone = gone.toSet(), focus = focus) { r ->
                 page.ko.firstOrNull { "ko-${it.id}" == r.key }?.let { k ->
                     val now = BancoProva.nowOk(k)
                     val pk = picked[now.row]
