@@ -42,7 +42,9 @@ class PrimaRaccoltaTest {
 
     @Test fun prima_raccolta_startOnlyWhenNotRunning() {
         assertFalse(PrimaRaccolta.canStart(page))
-        assertTrue(PrimaRaccolta.canStart(page.copy(status = "none")))
+        // Contratto 1.139: con la domanda breve è «Scansiona» ad avviarla.
+        assertFalse(PrimaRaccolta.canStart(page.copy(status = "none")))
+        assertTrue(PrimaRaccolta.canStart(page.copy(status = "none", ask = null)))
         assertTrue(PrimaRaccolta.canStart(page.copy(status = "interrupted")))
         assertFalse(PrimaRaccolta.canStart(page.copy(status = "running")))
     }
@@ -53,6 +55,27 @@ class PrimaRaccoltaTest {
         assertTrue(PrimaRaccolta.firstRoundOffer(done)!!.contains("It starts only if you touch it"))
         assertNull(PrimaRaccolta.firstRoundOffer(done.copy(firstRound = done.firstRound!!.copy(at = 5))))
         assertTrue(PrimaRaccolta.finished(done)); assertFalse(PrimaRaccolta.finished(page))
+    }
+
+    @Test fun prima_raccolta_shortQuestion() {
+        val q = PrimaRaccolta.question(page)!!
+        assertEquals("To finish the setup, scan your sessions.", q.text)
+        assertEquals("Scan", q.yes); assertEquals("Not now", q.later); assertTrue(q.firstRound)
+        assertTrue(q.note!!.startsWith("The data stays on this computer"))
+        assertEquals(page.askText, q.text)
+        assertNull(PrimaRaccolta.question(page.copy(ask = null)))
+        assertNull(PrimaRaccolta.question(page.copy(ask = q.copy(text = " "))))
+        assertNull(PrimaRaccolta.question(page.copy(ask = q.copy(later = ""))))
+        // Con ask null resta la domanda di prima.
+        assertTrue(PrimaRaccolta.askConsent(page.copy(ask = null)))
+    }
+
+    @Test fun prima_raccolta_neverCollectedWaitsForYou() {
+        val never = PrimaRaccoltaSummary("none", 0, 8, true, null)
+        assertEquals("ask", PrimaRaccolta.homeStatus(never)); assertTrue(PrimaRaccolta.asking(never))
+        assertEquals("none", PrimaRaccolta.homeStatus(never.copy(ask = false))); assertFalse(PrimaRaccolta.asking(never.copy(ask = false)))
+        assertTrue(PrimaRaccolta.asking(summary)); assertFalse(PrimaRaccolta.asking(summary.copy(status = "running", ask = false))); assertFalse(PrimaRaccolta.asking(null))
+        assertEquals("running", PrimaRaccolta.homeStatus(summary.copy(status = "running")))
     }
 
     @Test fun prima_raccolta_touchCarriesActionAndValue() {

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { decodeState } from './contract'
 import { decodePrima } from './decideDecode'
 import { DemoTransport } from './demoTransport'
-import { askConsent, autoOpen, canStart, emptySection, finished, firstRoundOffer } from './primaRaccolta'
+import { askConsent, asking, autoOpen, canStart, emptySection, finished, firstRoundOffer, homeStatus, question } from './primaRaccolta'
 import { newCmd } from './transport'
 
 // Contratto 1.100, sulle fixture del relay: gli stessi casi di PrimaRaccoltaTest in Kotlin.
@@ -30,7 +30,7 @@ describe('prima_raccolta', () => {
     expect(askConsent(page)).toBe(true); expect(askConsent({ ...page, consent: true })).toBe(false); expect(askConsent({ ...page, consent: false })).toBe(false); expect(askConsent({ ...page, ask_text: null })).toBe(false)
   })
   it('si avvia solo se non sta girando', () => {
-    expect(canStart(page)).toBe(false); expect(canStart({ ...page, status: 'none' })).toBe(true); expect(canStart({ ...page, status: 'interrupted' })).toBe(true); expect(canStart({ ...page, status: 'running' })).toBe(false)
+    expect(canStart(page)).toBe(false); expect(canStart({ ...page, status: 'none' })).toBe(false); expect(canStart({ ...page, status: 'none', ask: null })).toBe(true); expect(canStart({ ...page, status: 'interrupted' })).toBe(true); expect(canStart({ ...page, status: 'running' })).toBe(false)
   })
   it('il primo giro dice il costo e parte una volta', () => {
     expect(firstRoundOffer(page)).toBeNull()
@@ -38,6 +38,29 @@ describe('prima_raccolta', () => {
     expect(firstRoundOffer(done)).toContain('It starts only if you touch it')
     expect(firstRoundOffer({ ...done, first_round: { ...done.first_round, at: 5 } })).toBeNull()
     expect(finished(done)).toBe(true); expect(finished(page)).toBe(false)
+  })
+  it('contratto 1.139: la domanda breve', () => {
+    const q = question(page)!
+    expect(q).toMatchObject({ text: 'To finish the setup, scan your sessions.', yes: 'Scan', later: 'Not now', first_round: true })
+    expect(q.note).toMatch(/^The data stays on this computer/); expect(page.ask_text).toBe(q.text)
+    expect(question({ ...page, ask: null })).toBeNull(); expect(question({ ...page, ask: { ...q, text: ' ' } })).toBeNull(); expect(question({ ...page, ask: { ...q, later: '' } })).toBeNull()
+    expect(askConsent({ ...page, ask: null })).toBe(true)
+  })
+  it('contratto 1.139: mai raccolta, aspetta te', () => {
+    const never = { status: 'none', done: 0, total: 8, ask: true, first_round_at: null }
+    expect(homeStatus(never)).toBe('ask'); expect(asking(never)).toBe(true)
+    expect(homeStatus({ ...never, ask: false })).toBe('none'); expect(asking({ ...never, ask: false })).toBe(false)
+    expect(asking(summary)).toBe(true); expect(asking({ ...summary, status: 'running', ask: false })).toBe(false); expect(asking(null)).toBe(false)
+    expect(homeStatus({ ...summary, status: 'running' })).toBe('running')
+  })
+  it('demo: «Non ora» nasconde la domanda senza scrivere il consenso', async () => {
+    const d = new DemoTransport(() => 1_800_000_000)
+    const read = async () => decodePrima((await d.send(newCmd('prima_raccolta', null)))!.text)
+    expect(question(await read())?.yes).toBeTruthy()
+    await d.send(newCmd('prima_raccolta_azione', null, null, undefined, undefined, { action: 'consent', value: 'later' }))
+    const p = await read()
+    expect(question(p)).toBeNull(); expect(askConsent(p)).toBe(false); expect(p.consent ?? null).toBeNull()
+    expect(d.state.prima_raccolta?.ask).toBe(false)
   })
   it('il tocco porta azione, valore e dispositivo', () => {
     expect(newCmd('prima_raccolta_azione', null, null, undefined, undefined, { action: 'consent', value: 'si' })).toMatchObject({ action: 'consent', value: 'si', device: 'web' })

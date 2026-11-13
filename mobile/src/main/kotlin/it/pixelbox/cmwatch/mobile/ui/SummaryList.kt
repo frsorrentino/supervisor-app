@@ -354,7 +354,7 @@ fun SummaryList(
         val open = newOpen[key] ?: return null
         return when (key) {
             // Con la domanda aperta chiede Franz: in ambra come le altre voci di Tocca a te (master 02/11 02:08, app-bug-notte-03-11).
-            "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open, p.status == "ask") }
+            "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open, it.pixelbox.cmwatch.rules.PrimaRaccolta.asking(p)) }
             "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.home_sec_follow, icons.Update, n.toString(), "home-seguiti", open) }
             // Verifica (app-tocca-sezioni-06-11): le prove e i lavori consegnati da guardare in una voce sola.
             "prove" -> {
@@ -450,7 +450,7 @@ fun SummaryList(
                 val p = if ("prove" in up) 0 else tc?.prove ?: 0
                 val s = if ("suggestions" in up) 0 else suggestions?.takeIf { x -> x.shown.isNotEmpty() }?.total ?: 0
                 // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
-                val pr = kpiState?.primaRaccolta?.takeIf { x -> x.status == "ask" && "decisioni" !in up }
+                val pr = kpiState?.primaRaccolta?.takeIf { x -> it.pixelbox.cmwatch.rules.PrimaRaccolta.asking(x) && "decisioni" !in up }
                 // I Monitoraggi solo quando uno è da guardare, in ambra; altrimenti non contano (app-monitoraggi-09-11).
                 val mo = if ("monitors" in up || (monitors == null && kpiState?.monitors == null)) 0 else it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, monitors)
                 // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e
@@ -2089,7 +2089,7 @@ private fun newRight(key: String, st: it.pixelbox.cmwatch.contract.State?): Stri
         "seguiti" -> st.seguiti?.let { x -> it.pixelbox.cmwatch.rules.HomeRight.seguiti(x) }
         // Da guardare, chiusa: l'ultimo consegnato, come la riga Risultati della chat.
         "da_guardare" -> return st.results?.items?.firstOrNull()?.let { r -> it.pixelbox.cmwatch.rules.Guardare.line(r).let { l -> l.version?.let { v -> stringResource(R.string.watch_title_version, l.title, v) } ?: l.title } }
-        "prima_raccolta" -> return st.primaRaccolta?.let { p -> when (p.status) {
+        "prima_raccolta" -> return st.primaRaccolta?.let { p -> when (it.pixelbox.cmwatch.rules.PrimaRaccolta.homeStatus(p)) {
             "ask" -> stringResource(R.string.home_prima_ask); "running" -> stringResource(R.string.home_prima_running)
             "interrupted" -> stringResource(R.string.home_prima_interrupted); "done" -> stringResource(R.string.home_prima_done); else -> null
         } }

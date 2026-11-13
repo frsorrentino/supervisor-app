@@ -5,7 +5,7 @@
   import type { CmdResult, PrimaRaccoltaPage, PrimaRaccoltaSummary } from './contract'
   import { decodePrima, readPage } from './decideDecode'
   import { screen } from './decide'
-  import { askConsent, canStart, emptySection, finished, firstRoundOffer } from './primaRaccolta'
+  import { askConsent, canStart, emptySection, finished, firstRoundOffer, question } from './primaRaccolta'
   import { newCmd } from './transport'
   import { t } from './t'
   import LongText from './LongText.svelte'
@@ -30,7 +30,11 @@
     <p>{head(page)}</p>
     {#if page.cost === 0}<p class="m">{t.primaFree}</p>{/if}
     {#if canStart(page)}<button class="tonal wide" class:done={busy === 'start'} disabled={!!busy} onclick={() => touch('start')}>{#if busy === 'start'}✓ {/if}{page.status === 'interrupted' ? t.primaResume : t.primaStart}</button>{/if}
-    {#if askConsent(page)}
+    {@const q = question(page)}
+    {#if q}
+      <!-- Contratto 1.139: una riga, sotto la riga piccola, poi «Non ora» e «Scansiona». -->
+      <div class="c" data-testid="prima-domanda"><p>{q.text}</p>{#if q.note?.trim()}<p class="m s">{q.note}</p>{/if}<div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentlater'} disabled={!!busy} onclick={() => touch('consent', 'later')}>{#if busy === 'consentlater'}✓ {/if}{q.later}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{q.yes}</button></div></div>
+    {:else if askConsent(page)}
       <div class="c"><LongText text={page.ask_text} /><div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentno'} disabled={!!busy} onclick={() => touch('consent', 'no')}>{#if busy === 'consentno'}✓ {/if}{t.primaNo}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{t.primaYes}</button></div></div>
     {/if}
     <!-- Le sezioni come righe (app-richiede-te-righe-02-11): il tocco apre il testo intero e «Vai». -->
@@ -56,6 +60,7 @@
   .c b { font-weight: 600; }
   p { font-size: 14px; overflow-wrap: anywhere; }
   .m { color: var(--text2); }
+  .s { font-size: 13px; }
   .ac { display: flex; align-items: center; gap: 8px; } .sp { flex: 1; }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   .wide { min-height: 44px; }

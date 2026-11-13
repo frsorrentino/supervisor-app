@@ -105,7 +105,10 @@ export type SeguitiPage = { at: number; rimasto: RimastoItem[]; altrove: Altrove
 export type PrimaRaccoltaSummary = { status: string; done: number; total: number; ask?: boolean; first_round_at?: number | null }
 export type PrimaRaccoltaSection = { key: string; dove?: string | null; n: number; text?: string | null; why?: string | null; when?: string | null }
 /** Contratto 1.100, op `prima_raccolta`. */
-export type PrimaRaccoltaPage = { at: number; status: string; done: number; total: number; consent?: boolean | null; ask_text?: string | null; cost: number; sections: PrimaRaccoltaSection[]; first_round?: { at?: number | null; cost?: string | null } | null }
+export type PrimaRaccoltaPage = { at: number; status: string; done: number; total: number; consent?: boolean | null; ask_text?: string | null; cost: number; sections: PrimaRaccoltaSection[]; first_round?: { at?: number | null; cost?: string | null } | null
+  /** Contratto 1.139: la domanda breve mentre è aperta (`text` una riga, `note` la riga piccola, `yes` e `later` i due tasti), se no null. */
+  ask?: PrimaRaccoltaAsk | null }
+export type PrimaRaccoltaAsk = { text: string; note?: string | null; yes: string; later: string; first_round?: boolean }
 export type ProveGroup = { build: string; n: number; at: number; tasks: string[]; prove: ProveItem[] }
 /**
  * Contratto 1.134: una prova sola, dall'op `prove` con `arg` = il suo numero (app-prova-link-10-11). `state` todo | ok | ko | red;

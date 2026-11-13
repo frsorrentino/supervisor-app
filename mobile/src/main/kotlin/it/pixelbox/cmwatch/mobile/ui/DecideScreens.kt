@@ -104,7 +104,17 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
         if (PrimaRaccolta.canStart(page)) FilledTonalButton(onClick = { onTouch("start", null) }, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(if (page.status == PrimaRaccolta.INTERRUPTED) R.string.prima_resume else R.string.prima_start))
         }
-        if (PrimaRaccolta.askConsent(page)) DecideCard {
+        val q = PrimaRaccolta.question(page)
+        // Contratto 1.139: una riga, sotto la riga piccola, poi «Non ora» e «Scansiona».
+        if (q != null) DecideCard {
+            Text(q.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text, modifier = Modifier.testTag("prima-domanda"))
+            q.note?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.End)) {
+                var tapped by remember(page.status, page.done) { mutableStateOf<String?>(null) }
+                ConfirmButton(q.later, confirmed = tapped == "later", enabled = tapped == null, faded = tapped == "si", outlined = true) { tapped = "later"; onTouch("consent", "later") }
+                ConfirmButton(q.yes, confirmed = tapped == "si", enabled = tapped == null, faded = tapped == "later") { tapped = "si"; onTouch("consent", "si") }
+            }
+        } else if (PrimaRaccolta.askConsent(page)) DecideCard {
             LongText(page.askText.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.End)) {
                 // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato diventa la conferma finché la scheda cambia.

@@ -91,7 +91,10 @@ export const primaDemo = (now: number): PrimaRaccoltaPage => ({ at: now, status:
     { key: 'night', dove: 'night', n: 1, text: en ? '1 job for tonight' : '1 lavoro per stanotte' },
     { key: 'recap', dove: 'box-esiti', n: 3, text: en ? '3 outcomes today' : '3 esiti di oggi' },
   ],
-  first_round: { at: null, cost: en ? "The master's first round uses your plan's quota: usually a small part of the 5 hours. It starts only if you touch it." : 'Il primo giro della master consuma la quota del tuo piano: di solito una piccola parte delle 5 ore. Parte solo se lo tocchi.' } })
+  first_round: { at: null, cost: en ? "The master's first round uses your plan's quota: usually a small part of the 5 hours. It starts only if you touch it." : 'Il primo giro della master consuma la quota del tuo piano: di solito una piccola parte delle 5 ore. Parte solo se lo tocchi.' },
+  // Contratto 1.139: la domanda breve, coi testi del relay.
+  ask: en ? { text: 'To finish the setup, scan your sessions.', note: "The data stays on this computer (it reaches the phone encrypted); the master's first round uses a small part of your quota.", yes: 'Scan', later: 'Not now', first_round: true }
+    : { text: 'Per completare la configurazione, effettua la scansione delle sessioni.', note: 'I dati restano su questo computer (al telefono arrivano cifrati); il primo giro della master usa una piccola parte della quota.', yes: 'Scansiona', later: 'Non ora', first_round: true } })
 /** Contratto 1.102: quello che resta fuori dal codice, dati del mondo della demo. */
 export const seguitiDemo = (now: number): SeguitiPage => ({ at: now,
   rimasto: [

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { dtf } from './dtf'
+  import { asking as primaAsking, homeStatus as primaHome } from './primaRaccolta'
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
   import Check from './Check.svelte'
   import OneLine from './OneLine.svelte'
@@ -371,7 +372,7 @@
       const tc = toccaCounts(st), d = up.includes('decisioni') ? 0 : tc.decidi, p = up.includes('prove') ? 0 : tc.prove
       const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
       // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
-      const pr = !up.includes('decisioni') && st.prima_raccolta?.status === 'ask'
+      const pr = !up.includes('decisioni') && primaAsking(st.prima_raccolta)
       // I Monitoraggi solo quando uno è da guardare, in ambra; altrimenti non contano (app-monitoraggi-09-11).
       const mo = up.includes('monitors') || (!monitors && !monitorsSum) ? 0 : monitorsLooking(monitorsSum, monitors)
       // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e per
@@ -720,12 +721,12 @@
   }
   const say = (b: Bit[]) => b.map(x => t.homeBit(x.part, x.n)).join(' · ') || null
   function rightOf(k: string): string | null {
-    if (k === 'prima_raccolta') return st.prima_raccolta ? t.homePrima[st.prima_raccolta.status] ?? null : null
+    if (k === 'prima_raccolta') return st.prima_raccolta ? t.homePrima[primaHome(st.prima_raccolta)] ?? null : null
     if (k === 'seguiti') return st.seguiti ? say(seguitiBits(st.seguiti)) : null
     // Verifica (app-tocca-sezioni-06-11): le prove, poi quanti lavori consegnati aspettano di essere guardati.
     if (k === 'prove') return [st.prove ? say(proveBits(st.prove)) : null, st.results?.n_unseen ? t.homeVerifyLook(st.results.n_unseen) : null].filter(Boolean).join(' · ') || null
     // Prima raccolta sta dentro Decidi (app-sezioni-accorpate-03-11): finché non è fatta, il suo stato apre il riassunto.
-    if (k === 'decisioni') { const p = st.prima_raccolta && st.prima_raccolta.status !== 'done' ? `${t.primaTitle} ${t.homePrima[st.prima_raccolta.status] ?? ''}`.trim() : null; return [p, st.decisions ? say(decBits(st.decisions)) : null].filter(Boolean).join(' · ') || null }
+    if (k === 'decisioni') { const p = st.prima_raccolta && st.prima_raccolta.status !== 'done' ? `${t.primaTitle} ${t.homePrima[primaHome(st.prima_raccolta)] ?? ''}`.trim() : null; return [p, st.decisions ? say(decBits(st.decisions)) : null].filter(Boolean).join(' · ') || null }
     // Da guardare, chiusa: l'ultimo consegnato.
     if (k === 'da_guardare') { const r = st.results?.items[0]; if (!r) return null; const l = watchLine(r); return l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title }
     return null

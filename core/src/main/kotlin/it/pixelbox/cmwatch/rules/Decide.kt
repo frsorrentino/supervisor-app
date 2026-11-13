@@ -33,7 +33,16 @@ object PrimaRaccolta {
     /** All'abbinamento la pagina si apre da sola, una volta: `seen` lo tiene il dispositivo. A raccolta finita resta la riga della home. */
     fun autoOpen(s: PrimaRaccoltaSummary?, seen: Boolean): Boolean = !seen && (s?.status == RUNNING || s?.status == ASK)
     fun askConsent(p: PrimaRaccoltaPage): Boolean = p.consent == null && !p.askText.isNullOrBlank()
-    fun canStart(p: PrimaRaccoltaPage): Boolean = p.status == NONE || p.status == INTERRUPTED
+    /**
+     * Contratto 1.139 (app-avvio-scansione-12-11, Franz 12/11 15:23: «serve molto più sintetico»): la domanda breve con la riga piccola e i tasti
+     * «Scansiona» e «Non ora»; senza testo o senza uno dei due tasti si torna alla domanda di prima. Come question di primaRaccolta.ts.
+     */
+    fun question(p: PrimaRaccoltaPage): PrimaRaccoltaAsk? = p.ask?.takeIf { it.text.isNotBlank() && it.yes.isNotBlank() && it.later.isNotBlank() }
+    /** Mai partita: con la domanda breve è «Scansiona» ad avviarla, il tasto «Avvia la raccolta» non si aggiunge. */
+    fun canStart(p: PrimaRaccoltaPage): Boolean = (p.status == NONE && question(p) == null) || p.status == INTERRUPTED
+    /** Contratto 1.139: un'installazione che non ha mai raccolto ha `status: none` con `ask: true`, e aspetta te come `ask`. */
+    fun homeStatus(s: PrimaRaccoltaSummary): String = if (s.status == NONE && s.ask) ASK else s.status
+    fun asking(s: PrimaRaccoltaSummary?): Boolean = s != null && homeStatus(s) == ASK
     /** Il primo giro consuma quota: prima dice quanto, parte con un tocco e una volta sola. */
     fun firstRoundOffer(p: PrimaRaccoltaPage): String? = p.firstRound?.takeIf { p.status == DONE && it.at == null }?.cost?.takeIf { it.isNotBlank() }
     fun finished(p: PrimaRaccoltaPage): Boolean = p.status == DONE

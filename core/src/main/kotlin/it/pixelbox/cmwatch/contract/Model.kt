@@ -461,6 +461,12 @@ enum class CmdOp {
     val at: Long = 0, val status: String = "none", val done: Int = 0, val total: Int = 0, val consent: Boolean? = null,
     @SerialName("ask_text") val askText: String? = null, val cost: Int = 0, val sections: List<PrimaRaccoltaSection> = emptyList(),
     @SerialName("first_round") val firstRound: PrimaRaccoltaFirstRound? = null,
+    /** Contratto 1.139: la domanda breve mentre è aperta, se no null. */
+    val ask: PrimaRaccoltaAsk? = null,
+)
+/** Contratto 1.139: `text` una riga, `note` la riga piccola sotto, `yes` e `later` i due tasti, nella lingua del relay. */
+@Serializable data class PrimaRaccoltaAsk(
+    val text: String = "", val note: String? = null, val yes: String = "", val later: String = "", @SerialName("first_round") val firstRound: Boolean = false,
 )
 @Serializable data class ProveSummary(val n: Int = 0, val builds: Int = 0, val red: Int = 0, val ko: Int = 0)
 @Serializable data class DecisionsSummary(val n: Int = 0, val here: Int = 0, val tasks: Int = 0, val snoozed: Int = 0)

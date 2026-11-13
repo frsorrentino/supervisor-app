@@ -197,9 +197,13 @@ export class DemoTransport implements Transport {
         case 'prima_raccolta': return ok(JSON.stringify(this.prima ??= primaDemo(this.now())))
         case 'prima_raccolta_azione': {
           const p = (this.prima ??= primaDemo(this.now()))
-          if (cmd.action === 'consent') {
+          if (cmd.action === 'consent' && cmd.value === 'later') {
+            // Contratto 1.139: «Non ora» non scrive il consenso e nasconde la domanda per un giorno.
+            this.prima = { ...p, ask: null, ask_text: null }
+            if (s.prima_raccolta) this.set({ ...s, prima_raccolta: { ...s.prima_raccolta, ask: false } })
+          } else if (cmd.action === 'consent') {
             const yes = cmd.value === 'si'
-            this.prima = { ...p, consent: yes, status: 'done', done: p.total, ask_text: null, sections: p.sections.map(x => x.key === 'sessions' && yes ? { key: x.key, dove: x.dove, n: 12, text: (lang === 'en' ? '12 recent sessions' : '12 sessioni recenti') } : x) }
+            this.prima = { ...p, consent: yes, status: 'done', done: p.total, ask_text: null, ask: null, sections: p.sections.map(x => x.key === 'sessions' && yes ? { key: x.key, dove: x.dove, n: 12, text: (lang === 'en' ? '12 recent sessions' : '12 sessioni recenti') } : x) }
             this.set({ ...s, prima_raccolta: { status: 'done', done: p.total, total: p.total, ask: false, first_round_at: null } })
           } else if (cmd.action === 'first_round') {
             this.prima = { ...p, first_round: { ...p.first_round, at: this.now() } }
