@@ -57,25 +57,29 @@ export const shownWork = (work: Step[], open: boolean): Step[] => (open || !fold
 
 /**
  * La riga di un passo: il nome dello strumento e il suo argomento su una riga. Per i file le ultime due parti del percorso;
- * per gli altri la prima riga del testo, e senza testo la nota.
+ * per un comando la sua descrizione (app-chat-bash-descrizione-13-11, Franz 13/11 10:47: «Bash: descrizione», il comando
+ * all'apertura), e senza descrizione il comando; per gli altri la prima riga del testo, e senza testo la nota. `prose` = l'argomento
+ * è una frase, non codice.
  */
-export function stepLine(e: TranscriptEntry): { name: string; arg: string } {
+export function stepLine(e: TranscriptEntry): { name: string; arg: string; prose: boolean } {
   const raw = (e.tool ?? '').trim()
   const name = short(raw.split(/[ (]/)[0]) || '?'
   const text = (e.text ?? '').trim()
   const k = kind(e.tool)
   if ((k === 'read' || k === 'edit' || k === 'write') && text.includes('/') && !text.includes('\n')) {
     const parts = text.split('/').filter(Boolean)
-    return { name, arg: parts.slice(-2).join('/') }
+    return { name, arg: parts.slice(-2).join('/'), prose: false }
   }
+  const said = e.note?.trim().split('\n')[0]
+  if (k === 'run' && said) return { name, arg: said, prose: true }
   const first = text.split('\n')[0]
-  return { name, arg: first || e.note?.trim() || '' }
+  return { name, arg: first || e.note?.trim() || '', prose: false }
 }
 
-/** Il dettaglio che il tocco apre: la nota e il testo intero, solo se dicono più della riga. */
+/** Il dettaglio che il tocco apre: la nota e il testo intero, solo se dicono più della riga; di un comando la descrizione intera e poi il comando. */
 export function stepDetail(e: TranscriptEntry): { note: string | null; text: string | null } {
   const line = stepLine(e)
   const text = (e.text ?? '').trim()
   const note = e.note?.trim() || null
-  return { note: note && note !== line.arg ? note : null, text: text && text !== line.arg ? text : null }
+  return { note: note && (line.prose || note !== line.arg) ? note : null, text: text && text !== line.arg ? text : null }
 }

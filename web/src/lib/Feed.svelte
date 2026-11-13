@@ -313,7 +313,7 @@
   <div class="nd tool" class:bad={e.error} class:found={flash === e.id} data-entry={e.id}>
     <span class="ic"><Icon name={toolIcon(e)} size={17} color={e.error ? 'var(--gone)' : 'var(--good)'} label={e.tool ?? undefined} /></span>
     <button class="tc" disabled={!can} aria-expanded={can ? !!open[e.id] : undefined} onclick={() => (open[e.id] = !open[e.id])}>
-      <span class="tn">{ln.name}</span><code>{ln.arg}</code>
+      <span class="tn">{ln.name}</span>{#if ln.prose}<span class="ta">{ln.arg}</span>{:else}<code>{ln.arg}</code>{/if}
       {#if e.error}<span class="pill bad">{t.stepFailed}</span>{:else if e.diff}<span class="pill"><span class="a">+{e.diff.added}</span> <span class="d">−{e.diff.removed}</span></span>{/if}
       {#if can}<svg class="chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d={open[e.id] ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>{/if}
     </button>
@@ -547,6 +547,8 @@
   .tc:not(:disabled):hover { border-color: var(--tx3); }
   .tc .tn { font-family: var(--display); font-weight: 600; font-size: 15.5px; }
   .tc code { font: 13px/20px var(--mono); color: var(--tx2); min-width: 0; white-space: nowrap; overflow: hidden; }
+  /* La descrizione di un comando è una frase: su una riga, coi puntini se è lunga (app-chat-bash-descrizione-13-11). */
+  .tc .ta { font-size: 15px; line-height: 20px; color: var(--tx2); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tc .chev { color: var(--tx3); }
   .pill { font-size: 13px; line-height: 19px; padding: 1px 9px; border-radius: 999px; background: var(--s3); color: var(--tx2); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .pill.bad { background: color-mix(in srgb, var(--gone) 16%, transparent); color: var(--gone); }

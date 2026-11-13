@@ -68,11 +68,13 @@ object ChatTurns {
     fun foldable(work: List<Step>): Boolean = work.size > FOLD_OVER
     fun shownWork(work: List<Step>, open: Boolean): List<Step> = if (open || !foldable(work)) work else work.takeLast(FOLD_TAIL)
 
-    data class Line(val name: String, val arg: String)
+    /** `prose` = l'argomento è una frase (la descrizione di un comando), non codice. */
+    data class Line(val name: String, val arg: String, val prose: Boolean = false)
 
     /**
      * La riga di un passo: il nome dello strumento e il suo argomento su una riga. Per i file le ultime due parti del percorso; per
-     * gli altri la prima riga del testo, e senza testo la nota.
+     * un comando la sua descrizione (app-chat-bash-descrizione-13-11, Franz 13/11 10:47: «Bash: descrizione», il comando all'apertura), e
+     * senza descrizione il comando; per gli altri la prima riga del testo, e senza testo la nota.
      */
     fun stepLine(e: TranscriptEntry): Line {
         val raw = e.tool?.trim().orEmpty()
@@ -82,6 +84,8 @@ object ChatTurns {
         if ((k == ToolText.Kind.READ || k == ToolText.Kind.EDIT || k == ToolText.Kind.WRITE) && '/' in text && '\n' !in text) {
             return Line(name, text.split('/').filter { it.isNotEmpty() }.takeLast(2).joinToString("/"))
         }
+        val said = e.note?.trim()?.substringBefore('\n')?.takeIf { it.isNotEmpty() }
+        if (k == ToolText.Kind.RUN && said != null) return Line(name, said, prose = true)
         return Line(name, text.substringBefore('\n').ifEmpty { e.note?.trim().orEmpty() })
     }
 
@@ -92,6 +96,6 @@ object ChatTurns {
         val line = stepLine(e)
         val text = e.text?.trim().orEmpty()
         val note = e.note?.trim()?.takeIf { it.isNotEmpty() }
-        return Detail(note?.takeIf { it != line.arg }, text.takeIf { it.isNotEmpty() && it != line.arg })
+        return Detail(note?.takeIf { line.prose || it != line.arg }, text.takeIf { it.isNotEmpty() && it != line.arg })
     }
 }

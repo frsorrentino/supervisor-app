@@ -77,7 +77,7 @@ class ChatTurnsTest {
         val o = c.jsonObject
         val e = TranscriptEntry(id = "x", role = "tool", tool = str(o, "tool"), text = str(o, "text"), note = str(o, "note"))
         val w = o["out"]!!.jsonObject
-        assertEquals(str(o, "name"), ChatTurns.Line(str(w, "name")!!, str(w, "arg")!!), ChatTurns.stepLine(e))
+        assertEquals(str(o, "name"), ChatTurns.Line(str(w, "name")!!, str(w, "arg")!!, (w["prose"] as JsonPrimitive).content == "true"), ChatTurns.stepLine(e))
         assertEquals(str(o, "name"), ChatTurns.Detail(str(w, "note"), str(w, "text")), ChatTurns.stepDetail(e))
     }
 

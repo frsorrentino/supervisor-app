@@ -445,19 +445,21 @@
     "name": "Read",
     "arg": "refunds/partial.ts",
     "note": null,
-    "text": "/home/dev/app/src/refunds/partial.ts"
+    "text": "/home/dev/app/src/refunds/partial.ts",
+    "prose": false
    }
   },
   {
-   "name": "un comando con la sua nota: la nota si legge aprendo",
+   "name": "un comando con la sua descrizione: la descrizione sulla riga, aperto la descrizione e poi il comando",
    "tool": "Bash",
    "text": "npm run test:staging",
    "note": "Prova su staging",
    "out": {
     "name": "Bash",
-    "arg": "npm run test:staging",
+    "arg": "Prova su staging",
+    "prose": true,
     "note": "Prova su staging",
-    "text": null
+    "text": "npm run test:staging"
    }
   },
   {
@@ -469,7 +471,8 @@
     "name": "Bash",
     "arg": "cd web",
     "note": null,
-    "text": "cd web\nnpm test"
+    "text": "cd web\nnpm test",
+    "prose": false
    }
   },
   {
@@ -481,7 +484,47 @@
     "name": "click",
     "arg": "Tocca Invia",
     "note": null,
+    "text": null,
+    "prose": false
+   }
+  },
+  {
+   "name": "un comando senza descrizione: resta il comando",
+   "tool": "Bash",
+   "text": "npm run build",
+   "note": null,
+   "out": {
+    "name": "Bash",
+    "arg": "npm run build",
+    "prose": false,
+    "note": null,
     "text": null
+   }
+  },
+  {
+   "name": "una descrizione su più righe: la prima sulla riga, tutta aprendo",
+   "tool": "Bash",
+   "text": "git push",
+   "note": "Pubblica il ramo\ne aspetta la CI",
+   "out": {
+    "name": "Bash",
+    "arg": "Pubblica il ramo",
+    "prose": true,
+    "note": "Pubblica il ramo\ne aspetta la CI",
+    "text": "git push"
+   }
+  },
+  {
+   "name": "un file con la nota non cambia: il percorso sulla riga",
+   "tool": "Edit",
+   "text": "/w/app/src/a.ts",
+   "note": "Corregge il totale",
+   "out": {
+    "name": "Edit",
+    "arg": "src/a.ts",
+    "prose": false,
+    "note": "Corregge il totale",
+    "text": "/w/app/src/a.ts"
    }
   }
  ],

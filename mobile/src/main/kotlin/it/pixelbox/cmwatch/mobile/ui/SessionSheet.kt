@@ -2910,10 +2910,12 @@ private fun ToolNode(e: TranscriptEntry, flashed: Boolean) {
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(ln.name, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.5.sp, lineHeight = 20.sp), color = V3.Tx, maxLines = 1)
-            // Su una riga, tagliato senza puntini.
+            // Su una riga: il codice tagliato senza puntini; la descrizione di un comando è una frase, coi puntini se è lunga
+            // (app-chat-bash-descrizione-13-11).
             Text(
-                ln.arg, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Mono, fontSize = 13.sp, lineHeight = 20.sp), color = V3.Tx2,
-                maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
+                ln.arg, color = V3.Tx2,
+                style = if (ln.prose) androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 15.sp, lineHeight = 20.sp) else androidx.compose.ui.text.TextStyle(fontFamily = V3.Mono, fontSize = 13.sp, lineHeight = 20.sp),
+                maxLines = 1, softWrap = ln.prose, overflow = if (ln.prose) androidx.compose.ui.text.style.TextOverflow.Ellipsis else androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
             )
             val pill = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 13.sp, lineHeight = 19.sp, fontFeatureSettings = "tnum")
             if (error) Text(stringResource(R.string.chat_step_failed), style = pill, color = V3.Red, modifier = Modifier.clip(CircleShape).background(V3.Red.copy(alpha = .16f)).padding(horizontal = 9.dp, vertical = 1.dp))
