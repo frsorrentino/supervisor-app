@@ -282,6 +282,9 @@ internal fun MasterFrame(
 ) {
     val edge = androidx.compose.runtime.remember { EdgeSpots() }
     var ghost by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Ghost?>(null) }
+    // L'anteprima del tasto tondo (app-sposta-master-a-13-11): la zona d'arrivo accesa col suo nome e gli altri posti velati.
+    var keyGhost by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Pair<Ghost, List<Ghost>>?>(null) }
+    val homeRowName = stringResource(R.string.master_pos_home_row); val homeBackName = stringResource(R.string.home_row_open)
     // Il blocco che cambia forma mentre se ne cambia l'altezza (app-master-morph-m3-06-11, come lib/morphBlob.ts nella web): al posto
     // della master che si spostava intera. La riga e il pannello si registrano mentre si disegnano, e il blocco ne mostra la copia
     // che sfuma.
@@ -528,6 +531,27 @@ internal fun MasterFrame(
         }),
     ) {
         val W = maxWidth.value
+        val H = maxHeight.value
+        val keyPreview: (it.pixelbox.cmwatch.rules.MasterMove.Move?, List<it.pixelbox.cmwatch.rules.MasterMove.Move>, it.pixelbox.cmwatch.rules.MasterMove.Spot) -> Unit = { m, all, from ->
+            val area = L.Rect(0f, 0f, W, H)
+            val w = placeNow?.panelWidth() ?: panelWidthDp
+            fun box(to: it.pixelbox.cmwatch.rules.MasterMove.Spot): L.Rect = when (it.pixelbox.cmwatch.rules.MasterMove.nameOf(from, to)) {
+                // La Home che va in riga, o che torna su: la riga in fondo.
+                it.pixelbox.cmwatch.rules.MasterMove.Name.HOME_ROW, it.pixelbox.cmwatch.rules.MasterMove.Name.HOME -> L.Rect(0f, H - it.pixelbox.cmwatch.rules.HomeRow.ROW_H, W, it.pixelbox.cmwatch.rules.HomeRow.ROW_H.toFloat())
+                else -> L.placeRect(area, to.left, to.height, w)
+            }
+            fun text(to: it.pixelbox.cmwatch.rules.MasterMove.Spot): String = when (it.pixelbox.cmwatch.rules.MasterMove.nameOf(from, to)) {
+                it.pixelbox.cmwatch.rules.MasterMove.Name.LEFT -> names.getValue(L.Side.LEFT)
+                it.pixelbox.cmwatch.rules.MasterMove.Name.RIGHT -> names.getValue(L.Side.RIGHT)
+                it.pixelbox.cmwatch.rules.MasterMove.Name.COLUMN -> names.getValue(L.Height.COLUMN)
+                it.pixelbox.cmwatch.rules.MasterMove.Name.HALF -> names.getValue(L.Height.HALF)
+                it.pixelbox.cmwatch.rules.MasterMove.Name.COMPACT -> names.getValue(L.Height.COMPACT)
+                it.pixelbox.cmwatch.rules.MasterMove.Name.BAR -> names.getValue(L.Height.BAR)
+                it.pixelbox.cmwatch.rules.MasterMove.Name.HOME_ROW -> homeRowName
+                it.pixelbox.cmwatch.rules.MasterMove.Name.HOME -> homeBackName
+            }
+            keyGhost = m?.let { Ghost(box(it.to), text(it.to)) to all.filter { x -> x != it }.map { x -> Ghost(box(x.to), "") } }
+        }
         // Il pannello resta lo stesso nodo quando cambia lato: la riga si rovescia, l'ordine dei figli no.
         val dir =if (left) androidx.compose.ui.unit.LayoutDirection.Ltr else androidx.compose.ui.unit.LayoutDirection.Rtl
         androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides dir) {
@@ -536,11 +560,11 @@ internal fun MasterFrame(
                     if (panel != null) {
                         val canGrip = onPlace != null && place != null
                         Box(Modifier.zIndex(if (panelOff != 0f || lift.y != 0f) 3f else 0f).graphicsLayer { translationX = panelOff; alpha = sideFade * (if (stacked) 1f else lift.alpha); if (!stacked) translationY = lift.y }.drawWithContent { panelLayer.record { this@drawWithContent.drawContent() }; drawLayer(panelLayer) }.reflow("r-master").width(panelWidthDp.dp).fillMaxHeight().background(V3.S1).testTag("master-pannello").seen("panel")) {
-                            androidx.compose.runtime.CompositionLocalProvider(LocalEdgeSpots provides edge, LocalMasterGrip provides gripOf.takeIf { canGrip }, LocalMasterLift provides lift) { panel() }
+                            androidx.compose.runtime.CompositionLocalProvider(LocalEdgeSpots provides edge, LocalMasterGrip provides gripOf.takeIf { canGrip }, LocalMasterLift provides lift, LocalMasterKeyPreview provides keyPreview) { panel() }
                             // La presa in alto: di lato cambia il lato (la sagoma passa alla metà dello schermo sotto il dito), in su o
                             // in giù l'altezza a scatti. Nella pila è la maniglia fra la home e la master.
                             if (canGrip && !stacked) Box(Modifier.align(Alignment.TopCenter).width(72.dp).height(16.dp).testTag("master-maniglia-lato").grip("top"), contentAlignment = Alignment.Center) {
-                                TopGripMark(sideways = true)
+                                TopGripMark(sideways = false)
                             }
                         }
                         // La corsia verso le sessioni, come nella plancia: col + e il filo delle schede della pila; trascinata, la
@@ -553,7 +577,7 @@ internal fun MasterFrame(
                         Box(Modifier.weight(1f).fillMaxWidth()) { content() }
                         bar?.let { b ->
                             Box(Modifier.zIndex(if (lift.y != 0f) 3f else 0f).graphicsLayer { translationY = lift.y; alpha = lift.alpha }.drawWithContent { barLayer.record { this@drawWithContent.drawContent() }; drawLayer(barLayer) }.reflow("r-master").fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
-                                b()
+                                androidx.compose.runtime.CompositionLocalProvider(LocalMasterKeyPreview provides keyPreview) { b() }
                                 // Due maniglie sull'asse della colonna dove la master atterra, una per lato (app-master-riga-maniglie-04-11,
                                 // Franz 04/11 17:40): tirata su apre la master da quel lato, alle altezze del bordo superiore; un tocco la
                                 // apre da quel lato all'ultima misura. Il resto della riga tirato su apre sul lato di adesso.
@@ -585,7 +609,7 @@ internal fun MasterFrame(
             }
         }
         // La sagoma, le altre destinazioni e la linea di mezzo, sopra tutto e senza prendere i tocchi.
-        GhostLayer(ghost, hints, mid)
+        GhostLayer(ghost ?: keyGhost?.first, keyGhost?.second ?: hints, mid, veil = keyGhost != null && ghost == null)
         blob?.let { b -> BlobLayer(b, if (b.fromBar) barLayer else panelLayer) }
     }
 }
@@ -668,7 +692,7 @@ internal data class Mid(val x: Float, val y: Float, val crossed: Boolean, val te
  * accesa quando il dito l'ha passata. Entra e sparisce in 160 ms; col movimento ridotto senza scivolate e senza sfumature.
  */
 @Composable
-private fun GhostLayer(ghost: Ghost?, hints: List<Ghost>, mid: Mid?) {
+private fun GhostLayer(ghost: Ghost?, hints: List<Ghost>, mid: Mid?, veil: Boolean = false) {
     val off = animationsOff()
     val shown by androidx.compose.animation.core.animateFloatAsState(if (ghost != null) 1f else 0f, if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(160), label = "ghost")
     // L'ultima sagoma resta mentre sparisce.
@@ -683,7 +707,9 @@ private fun GhostLayer(ghost: Ghost?, hints: List<Ghost>, mid: Mid?) {
     Box(Modifier.fillMaxSize().graphicsLayer { alpha = shown }.background(Color.Black.copy(alpha = 0.22f)))
     val shape = RoundedCornerShape(14.dp)
     hints.forEach { h ->
-        Box(
+        // Dal tasto tondo (variante A del giro F): un velo chiaro sull'area, senza tratteggio e senza nome.
+        if (veil) Box(Modifier.offset(h.rect.x.dp, h.rect.y.dp).size(h.rect.w.dp, h.rect.h.dp).graphicsLayer { alpha = shown }.background(V3.Tx.copy(alpha = 0.08f), shape).border(1.dp, V3.Tx.copy(alpha = 0.16f), shape).testTag("master-posto-velato"))
+        else Box(
             Modifier.offset(h.rect.x.dp, h.rect.y.dp).size(h.rect.w.dp, h.rect.h.dp).graphicsLayer { alpha = shown }
                 .drawWithContent {
                     drawContent()
@@ -754,7 +780,7 @@ internal fun MasterStack(half: Boolean, home: @Composable () -> Unit, master: @C
         val grip = LocalMasterGrip.current
         Box(Modifier.fillMaxWidth().height(14.dp).handCursor().clickable(onClickLabel = stringResource(R.string.master_stack_step), onClick = onStep), contentAlignment = Alignment.Center) {
             Box(Modifier.width(72.dp).fillMaxHeight().then(grip?.invoke("top") ?: Modifier).testTag("master-maniglia-pila"), contentAlignment = Alignment.Center) {
-                TopGripMark(sideways = grip != null)
+                TopGripMark(sideways = false)
             }
         }
         // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): cambiando misura gli angoli si piegano verso l'interno e tornano

@@ -134,6 +134,8 @@ fun MasterDock(
      * apre le posizioni, la misura e Chiudi al posto dei tasti ▲ ▼. Null = i tasti di sempre.
      */
     places: List<PlaceKey>? = null,
+    /** Il tasto tondo che sposta la master (app-sposta-master-a-13-11), al posto dei tasti ▲ ▼ e del menu Posizione. */
+    moveKey: (@Composable () -> Unit)? = null,
 ) {
     val time = hero?.at?.let { DOCK_HM.format(Instant.ofEpochSecond(it).atZone(ZoneId.systemDefault())) }
     val ctx = master.context?.let { stringResource(R.string.ctx_short, it) }
@@ -193,8 +195,9 @@ fun MasterDock(
                 }
             }
             // La freccia sempre a sinistra, aperta o chiusa (Franz, 08/10 20:42: cambiava lato e non la ritrovava).
-            if (places == null) toggleKey()
-            if (places == null) onClose?.let { close ->
+            moveKey?.invoke()
+            if (places == null && moveKey == null) toggleKey()
+            if (places == null && moveKey == null) onClose?.let { close ->
                 val closeSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 FilledTonalIconButton(onClick = close, modifier = Modifier.size(44.dp).pressScale(closeSrc), shape = rememberMorphShape(closeSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = closeSrc) {
                     Icon(Icons.Rounded.ExpandMore, stringResource(R.string.dock_close), tint = Cm.text)
