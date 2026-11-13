@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tabellone con l'utilizzo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0&display=block" rel="stylesheet">
+<style>
+  /* app-mockup-tabellone-utilizzo-13-11 (Franz 13/11 12:04, dall'app: «sostituiamo il terzo blocco del tabellone con utilizzo? così ci
+     risparmiamo l'aggancio alla riga sotto o potremmo utilizzarla per altro, cosa ne pensi»). Il tabellone di oggi (0.2.2154: tre
+     blocchi e, agganciata sotto, la riga «Settimana») accanto a due varianti con gli stessi dati.
+       A: il terzo blocco è l'utilizzo della settimana, con la barra sul bordo del blocco; la riga sotto sparisce. Gli esiti di oggi
+          escono dal tabellone e diventano la prima riga dell'elenco della Home, come le altre sezioni.
+       B: lo stesso blocco; la riga sotto resta, per gli esiti di oggi: il conto, i rossi e l'ultimo esito a parole, che oggi in
+          Home non ha posto. La scelgo io e lo dico nelle tavole: niente esce dal primo sguardo e l'aggancio serve a un contenuto.
+     In tutte e due il tocco sul blocco dell'utilizzo apre sotto il tabellone i dettagli che oggi apre la riga: 5 ore e settimana dei
+     due account, e quando si azzerano. Stile e misure del tabellone di oggi (Kpi7.svelte).
+     `?d=tel|tab|web` il dispositivo (larghezza della Home: 412, 290, 412 px), `&day` il giorno. */
+  :root { --bg:#0B0B0B; --s1:#111111; --s2:#181818; --s3:#222222; --line:#2A2A2A; --tx:#F2F2F2; --tx2:#A8A8A8; --tx3:#7A7A7A;
+          --wait:#FFB23F; --busy:#8FA8D2; --good:#71D083; --red:#FF5A5F; --waitfill:#33270F; --page:#050505; }
+  body.day { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#EDEDED; --line:#E4E4E4; --tx:#141414; --tx2:#555555; --tx3:#6A6A6A;
+          --wait:#9A5700; --busy:#4A6A9C; --good:#2A7E3B; --red:#C9302F; --waitfill:#FFF1D6; --page:#E6E6E6; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--page); color: var(--tx); font: 400 15.5px/21px Barlow, system-ui, sans-serif; padding: 28px; }
+  .ms { font-family: "Material Symbols Rounded"; font-size: 22px; line-height: 1; font-weight: 400; }
+  .sheet { display: flex; gap: 28px; align-items: flex-start; width: max-content; }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .cap { font: 600 17px/22px "Barlow Semi Condensed", sans-serif; color: var(--tx); }
+  .cap small { display: block; font: 400 14px/19px Barlow, sans-serif; color: var(--tx2); margin-top: 2px; max-width: var(--w); }
+  .cap.pick { color: var(--wait); }
+  /* Un pezzo della Home a grandezza vera: testata, tabellone, le prime righe sotto. */
+  .home { width: var(--w); background: var(--bg); border-radius: 18px; padding: 14px 12px 16px; overflow: hidden; }
+  .top { display: flex; align-items: center; gap: 10px; padding: 2px 4px 12px; }
+  .top b { font: 700 24px/28px "Barlow Semi Condensed", sans-serif; }
+  .top .v { font: 400 12.5px/17px "Geist Mono", monospace; color: var(--tx2); }
+  .top .sp { flex: 1; }
+  .top .ms { color: var(--tx2); }
+  .tab .top .ms, .tab .top .v + .v { display: none; }
+
+  /* Il tabellone di oggi, da Kpi7.svelte. */
+  .board { display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .cell { position: relative; padding: 12px 12px 13px; border-left: 1px solid var(--line); min-width: 0; }
+  .cell:first-child { border-left: 0; }
+  .n { display: block; font: 700 42px/1 "Barlow Semi Condensed", sans-serif; letter-spacing: -0.01em; }
+  .n sup { font-size: 22px; font-weight: 600; vertical-align: 14px; margin-left: 2px; color: var(--tx2); }
+  .l { display: block; min-height: 2.5em; font-size: 14px; line-height: 1.25; color: var(--tx2); margin-top: 6px; }
+  .l em { font-style: normal; font-weight: 500; color: var(--red); }
+  .chev { position: absolute; top: 12px; right: 8px; color: var(--tx3); }
+  .tab .n { font-size: 34px; } .tab .cell { padding: 10px 8px 11px 10px; } .tab .l { font-size: 12.5px; } .tab .chev { display: none; }
+  /* La riga agganciata di oggi: «Settimana», la barra con la tacca del tempo passato, la percentuale, la freccia dei dettagli. */
+  .slot { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 11px 12px 11px 14px; border-top: 1px solid var(--line); background: var(--waitfill); color: var(--wait); }
+  .slot b { font: 600 16px/20px "Barlow Semi Condensed", sans-serif; }
+  .bar { position: relative; flex: 1; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--tx) 14%, transparent); }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: currentColor; }
+  .bar u { position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 1px; background: var(--tx); }
+  .slot .pct { font: 400 14px/18px "Geist Mono", monospace; }
+  .slot .ms:last-child { color: var(--tx2); }
+  .ring { width: 20px; height: 20px; border-radius: 50%; background: conic-gradient(currentColor 60%, color-mix(in srgb, currentColor 25%, transparent) 0); -webkit-mask: radial-gradient(circle, transparent 6.5px, #000 7px); mask: radial-gradient(circle, transparent 6.5px, #000 7px); flex: none; }
+
+  /* A e B: il terzo blocco è l'utilizzo. La percentuale grande come le altre cifre; la barra della settimana corre sul bordo in
+     basso del blocco, con la tacca di quanto è passato della settimana. Ambra come la riga di oggi. */
+  .cell.use .n { color: var(--wait); }
+  .cell.use .edge { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--tx) 14%, transparent); color: var(--wait); }
+  .cell.use .edge i { position: absolute; left: 0; top: 0; bottom: 0; width: 60%; border-radius: 2px; background: currentColor; }
+  .cell.use .edge u { position: absolute; left: 64%; top: -3px; bottom: -3px; width: 2px; border-radius: 1px; background: var(--tx); }
+  .cell.use.open { background: var(--s2); }
+  .tab .cell.use .edge { left: 10px; right: 8px; }
+  /* B: la riga sotto, per gli esiti di oggi. Neutra: non è un avviso. */
+  .slot.out { background: none; color: var(--tx); gap: 10px; }
+  .slot.out .cnt { font: 700 20px/22px "Barlow Semi Condensed", sans-serif; }
+  .slot.out .w { flex: 1; min-width: 0; font-size: 14px; line-height: 19px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .slot.out .w b { font: 600 15px/19px "Barlow Semi Condensed", sans-serif; color: var(--tx); }
+  .slot.out .w em { font-style: normal; font-weight: 500; color: var(--red); }
+  .slot.out .ms { color: var(--tx3); }
+  .tab .slot.out .last { display: none; }
+  /* I dettagli che il tocco apre, sotto il tabellone: gli stessi di oggi. */
+  .det { margin-top: 8px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 14px; display: grid; gap: 12px; }
+  .det h4 { font: 600 15px/19px "Barlow Semi Condensed", sans-serif; display: flex; gap: 8px; align-items: baseline; }
+  .det h4 span { font: 400 12.5px/17px "Geist Mono", monospace; color: var(--tx2); }
+  .row { display: grid; grid-template-columns: 74px minmax(0, 1fr) 40px; align-items: center; gap: 10px; font-size: 14px; color: var(--tx2); }
+  .row .bar { color: var(--tx2); } .row.hot .bar { color: var(--wait); }
+  .row .p { font: 400 13px/17px "Geist Mono", monospace; text-align: right; color: var(--tx); }
+  .row + .when { font-size: 12.5px; line-height: 16px; color: var(--tx3); margin: -8px 0 0 84px; }
+  .tab .row { grid-template-columns: 60px minmax(0, 1fr) 34px; gap: 8px; font-size: 12.5px; } .tab .row + .when { margin-left: 68px; }
+  /* Le righe della Home sotto il tabellone. */
+  .sec { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 12px 10px 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--s1); }
+  .sec b { font: 600 16px/20px "Barlow Semi Condensed", sans-serif; }
+  .sec > span:not(.ms):not(.cnt) { color: var(--tx2); font-size: 14px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
+  .sec .cnt { flex: none; font: 600 16px/20px "Barlow Semi Condensed", sans-serif; color: var(--tx); }
+  .sec em { font-style: normal; font-weight: 500; color: var(--red); }
+  .sec .ms { color: var(--tx3); }
+  .sec.new { border-color: color-mix(in srgb, var(--wait) 55%, var(--line)); }
+  .tab .sec span.x { display: none; }
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet"></div>
+<script>
+  const q = new URLSearchParams(location.search), d = q.get('d') ?? 'tel'
+  if (q.has('day')) document.body.classList.add('day')
+  const W = { tel: 412, tab: 290, web: 412 }[d]
+  const head = `<div class="top"><b>Supervisor</b><span class="v">0.2.2154</span><span class="v">4 aperte</span><span class="sp"></span><span class="ms">refresh</span><span class="ms">search</span><span class="ms">menu</span></div>`
+  const c1 = `<div class="cell"><b class="n">0</b><span class="l">nessuna sessione ferma</span><span class="ms chev">chevron_right</span></div>`
+  const c2 = `<div class="cell"><b class="n">1</b><span class="l">al lavoro adesso</span><span class="ms chev">chevron_right</span></div>`
+  const c3 = `<div class="cell"><b class="n">40</b><span class="l">esiti oggi, <em>2 rossi</em></span><span class="ms chev">chevron_right</span></div>`
+  const use = open => `<div class="cell use${open ? ' open' : ''}"><b class="n">60<sup>%</sup></b><span class="l">della settimana</span><span class="ms chev">${open ? 'expand_less' : 'expand_more'}</span><span class="edge"><i></i><u></u></span></div>`
+  const week = `<div class="slot"><span class="ring"></span><b>Settimana</b><span class="bar"><i style="width:60%"></i><u style="left:64%"></u></span><span class="pct">60%</span><span class="ms">expand_more</span></div>`
+  const out = `<div class="slot out"><span class="cnt">40</span><span class="w"><b>esiti oggi</b>, <em>2 rossi</em><span class="last"> · ultimo: rimborso parziale corretto</span></span><span class="ms">chevron_right</span></div>`
+  const acc = (name, h5, wk, hot) => `<div><h4>${name}<span>${hot ? 'in uso adesso' : ''}</span></h4></div>
+    <div class="row${h5 >= 60 ? ' hot' : ''}"><span>5 ore</span><span class="bar"><i style="width:${h5}%"></i><u style="left:46%"></u></span><span class="p">${h5}%</span></div><div class="when">si azzera alle 13:40</div>
+    <div class="row${wk >= 60 ? ' hot' : ''}"><span>Settimana</span><span class="bar"><i style="width:${wk}%"></i><u style="left:64%"></u></span><span class="p">${wk}%</span></div><div class="when">si azzera ven 09:00</div>`
+  const det = `<div class="det">${acc('personale', 38, 60, true)}${acc('lavoro', 9, 22, false)}</div>`
+  const rows = extra => `${extra}<div class="sec"><b>Ti aspettano</b><span>nessuna</span><span class="ms">chevron_right</span></div><div class="sec"><b>Lavori</b><span class="x">1 in corso, 3 stanotte</span><span class="ms">chevron_right</span></div>`
+  const esitiRow = `<div class="sec new"><b>Esiti oggi</b><span><em>2 rossi</em><span class="x"> · ultimo: rimborso parziale corretto</span></span><span class="cnt">40</span><span class="ms">chevron_right</span></div>`
+  const home = (board, below) => `<div class="home ${d}">${head}<div class="board">${board}</div>${below}</div>`
+  const col = (cap, sub, html, pick) => `<div class="col" style="--w:${W}px"><div class="cap${pick ? ' pick' : ''}">${cap}<small>${sub}</small></div>${html}</div>`
+  document.getElementById('sheet').innerHTML = [
+    col('Oggi', 'Tre blocchi e, agganciata sotto, la riga della settimana: il tocco sulla riga apre i dettagli.', home(c1 + c2 + c3 + week, rows(''))),
+    col('A · senza la riga sotto', "Il terzo blocco è l'utilizzo: la percentuale e la barra con la tacca del tempo passato, alto come gli altri. Gli esiti di oggi diventano la prima riga dell'elenco (bordo ambra, solo per indicarla qui).", home(c1 + c2 + use(false), rows(esitiRow))),
+    col('B · la riga sotto per gli esiti', "Lo stesso blocco. La riga resta e porta gli esiti di oggi: il conto, i rossi e l'ultimo esito a parole, che oggi in Home non ha posto. La mia scelta: niente esce dal primo sguardo.", home(c1 + c2 + use(false) + out, rows('')), true),
+    col('A e B · il blocco toccato', "Il tocco sul blocco apre sotto il tabellone gli stessi dettagli di oggi: 5 ore e settimana dei due account, e quando si azzerano. Un altro tocco li chiude.", home(c1 + c2 + use(true), det + rows(''))),
+  ].join('')
+</script>
+</body>
+</html>
