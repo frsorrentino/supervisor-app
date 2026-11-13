@@ -78,6 +78,13 @@ export function splitOutcome(text: string, label: string): { body: string; outco
   return { body: lines.slice(0, -1).join('\n').trimEnd(), outcome: last }
 }
 
+/**
+ * Contratto 1.146 (app-sessione-bg-avviso-14-11): un `/logout` in una sessione `claude --bg` scollega tutte le sessioni del PC e cancella
+ * i login MCP e i segreti dei plugin, e il relay non lo può rifiutare: la scheda di una sessione viva con `bg: true` porta un avviso
+ * fisso; senza il campo, o sparita, niente. Lo stesso in Decide.kt (`BgSession.warns`).
+ */
+export const bgWarns = (s: Pick<Session, 'bg' | 'state'>) => s.bg === true && s.state !== 'gone'
+
 export const headsUpKey = (session: string, text: string) => `${session}|${text}`
 /** La nota da mostrare: quelle già viste su questo dispositivo restano nascoste finché il testo non cambia. */
 export const visibleHeadsUp = (s: Pick<Session, 'name' | 'heads_up'>, dismissed: Set<string>) => (s.heads_up?.text?.trim() && !dismissed.has(headsUpKey(s.name, s.heads_up.text)) ? s.heads_up : null)

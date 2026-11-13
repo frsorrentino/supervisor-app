@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove, chooseAt, testCards, withoutTests, cardKeys, proveDone } from './decide'
+import { bgWarns, nightTitleParts, act, allOk, canDrop, headsUpKey, nextDecisions, okAlso, okLines, screen, splitOutcome, outcomeText, visibleHeadsUp, buttons, card, viaApprove, chooseAt, testCards, withoutTests, cardKeys, proveDone } from './decide'
 import { decodeState, type Approval, type DecisionItem, type DecisionsPage, type ProvePage } from './contract'
 import { outcomeType } from './kpi'
 
@@ -64,6 +64,17 @@ describe('heads_up', () => {
     expect(visibleHeadsUp(s('Altra'), seen)?.text).toBe('Altra')
     expect(visibleHeadsUp(s(null), new Set())).toBeNull()
     expect(visibleHeadsUp(s('  '), new Set())).toBeNull()
+  })
+})
+// app-sessione-bg-avviso-14-11 (contratto 1.146): gli stessi casi di BgSessionTest.
+describe('sessione_bg_avviso', () => {
+  const one = (extra: object, state = 'idle') => decodeState(JSON.stringify({ v: 1, ts: 1, host: 'pc', sessions: [{ id: 's', name: 'n', account: 'a', project: 'p', state, since: 0, ...extra }], quota: {} })).sessions[0]
+  it('una sessione --bg viva avvisa; senza il campo, o sparita, no', () => {
+    expect(bgWarns(one({ bg: true }))).toBe(true)
+    expect(bgWarns(one({ bg: true }, 'busy'))).toBe(true)
+    expect(bgWarns(one({}))).toBe(false)
+    expect(bgWarns(one({ bg: false }))).toBe(false)
+    expect(bgWarns(one({ bg: true }, 'gone'))).toBe(false)
   })
 })
 describe('notte_due_mesi', () => {

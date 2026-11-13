@@ -205,7 +205,7 @@ export function world(now: number): World {
       return x
     }),
     // Al lavoro adesso: nella fixture l'unica in turno è ferma su un login, e il tabellone direbbe 0.
-    { id: 'a', name: 'admin-panel', account: 'personal', account_kind: 'personal', project: 'personal/admin-panel', state: 'busy', since: now - 1500, turn_started: now - 1500, context: 41,
+    { id: 'a', name: 'admin-panel', account: 'personal', account_kind: 'personal', project: 'personal/admin-panel', state: 'busy', since: now - 1500, turn_started: now - 1500, context: 41, bg: true,
       tool: 'Bash npm test', model: { id: 'claude-sonnet-5', label: 'Sonnet 5' }, goal: { text: en ? 'New users table with filters' : 'Nuova tabella utenti con i filtri', since: now - 1500 } },
   ]
   // Lavori: due aspettano te e tre lavorano. L'ok della fixture è della release di storefront e sta nella sua scheda; la pausa di blog

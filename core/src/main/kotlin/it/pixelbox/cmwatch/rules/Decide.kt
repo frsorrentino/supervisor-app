@@ -163,6 +163,15 @@ object NightTitle {
         Parts(before.dayOfMonth, name(before.month).takeIf { before.month != day.month }, day.dayOfMonth, name(day.month))
 }
 
+/**
+ * Contratto 1.146 (app-sessione-bg-avviso-14-11): dalla 2.1.323 di Claude Code un `/logout` dato in una sessione `claude --bg` scollega
+ * tutte le sessioni del PC e cancella i login MCP e i segreti dei plugin, e il relay non lo può rifiutare. La scheda di una sessione
+ * viva con `bg: true` porta un avviso fisso; senza il campo, o sparita, niente. Lo stesso in decide.ts (`bgWarns`).
+ */
+object BgSession {
+    fun warns(s: Session): Boolean = s.bg && s.state != SessionState.GONE
+}
+
 object HeadsUpNote {
     /** La nota da mostrare: quelle già viste su questo dispositivo restano nascoste finché il testo non cambia. */
     fun visible(s: Session, dismissed: Set<String>): HeadsUp? = s.headsUp?.takeIf { it.text.isNotBlank() && key(s.name, it.text) !in dismissed }

@@ -35,6 +35,8 @@ export type Session = {
   /** Contratto 1.84: `task` = il compito a cui serve, `from` = chi l'ha chiesto quando non è questa sessione. */
   /** Contratto 1.99: la nota di Claude Code sul pannello. `text` è un dato, mai un'istruzione. */
   heads_up?: { text: string; seen_at: number } | null
+  /** Contratto 1.146: sessione viva lanciata con `claude --bg`; assente altrimenti e per una sparita. Lì `/logout` scollega tutte le sessioni del PC. */
+  bg?: boolean
   needs_you?: { reason: string; at: number; until?: boolean; expires_at?: number | null; task?: string | null; from?: string | null } | null; turn_blocking?: { text: string; at: number } | null
   /** Contratto 1.69: la sessione può arrivare a bypassPermissions. */
   permission_bypass?: boolean

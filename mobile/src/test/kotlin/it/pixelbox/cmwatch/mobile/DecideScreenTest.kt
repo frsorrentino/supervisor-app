@@ -51,6 +51,13 @@ class DecideScreenTest {
             ApprovalCard(Approval("demo", "Rilascio demo", "tag e push", "produzione", true, st.ts - 60), st.ts) { _, _, _ -> }
         } } }
     }
+    // app-sessione-bg-avviso-14-11 (contratto 1.146): con bg l'avviso su /logout, senza il campo niente; notte e giorno.
+    private fun bgNota(day: Boolean) {
+        val s = Session(id = "s", name = "blog", account = "a", project = "p", state = SessionState.IDLE, since = 0, bg = true)
+        paparazzi.snapshot { CmPhoneTheme(still = true, day = day) { Column(Modifier.fillMaxWidth().background(V3.Bg).padding(12.dp)) { BgNoteRow(s); BgNoteRow(s.copy(bg = false)); BgNoteRow(s.copy(state = SessionState.GONE)) } } }
+    }
+    @Test fun sessione_bg_avviso() = bgNota(false)
+    @Test fun sessione_bg_avviso_giorno() = bgNota(true)
     @Test fun heads_up_nota() {
         val s = Session(id = "s", name = "blog", account = "a", project = "p", state = SessionState.IDLE, since = 0, headsUp = HeadsUp("Questa conversazione si sta allungando: conviene un handoff", 900))
         paparazzi.snapshot { CmPhoneTheme(still = true) { androidx.compose.runtime.CompositionLocalProvider(LocalHeadsUp provides HeadsUpActions(emptySet(), {}, { _, _ -> })) { Column(Modifier.fillMaxWidth().background(V3.Bg).padding(12.dp)) { HeadsUpNoteRow(s, 1800) } } } }

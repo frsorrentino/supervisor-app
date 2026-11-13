@@ -483,6 +483,8 @@ fun SessionSheet(
                 )
             }
             elsewhere?.let { ElsewherePill(it, onElsewhere, onElsewhereDismiss) }
+            // Contratto 1.146: l'avviso su /logout nelle sessioni lanciate con --bg, fisso sotto l'intestazione.
+            Box(Modifier.padding(horizontal = 12.dp, vertical = if (it.pixelbox.cmwatch.rules.BgSession.warns(s)) 6.dp else 0.dp)) { BgNoteRow(s) }
             Box(Modifier.padding(horizontal = 12.dp)) { HeadsUpNoteRow(s, now) }
             // I blocchi in cima alla chat, ognuno ridotto a una riga (app-formato-unico-12-11): «Per te», poi «Risultati».
             perTe?.let { r -> Box(Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp)) { r() } }

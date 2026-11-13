@@ -15,6 +15,7 @@
   import { toggle } from './speech.svelte'
   import Feed from './Feed.svelte'
   import HeadsUpNote from './HeadsUpNote.svelte'
+  import BgNote from './BgNote.svelte'
   import Changes from './Changes.svelte'
   import ReadingPill from './ReadingPill.svelte'
   import ElsewherePill from './ElsewherePill.svelte'
@@ -255,6 +256,8 @@
   {#if elsewhere}<ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} away={elsewhereAway} now={st.ts} />{/if}
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
+  <!-- Contratto 1.146: l'avviso su /logout nelle sessioni lanciate con --bg, fisso sotto l'intestazione. -->
+  <BgNote {s} />
   {#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}
   <!-- I blocchi in cima alla chat, ognuno ridotto a una riga (app-formato-unico-12-11): «Per te», poi «Risultati». -->
   {#if perTe && !home}{@render perTe()}{/if}

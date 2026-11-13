@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -501,6 +502,19 @@ internal fun OkInfo(a: Approval) {
 /** La nota di Claude Code (contratto 1.99, heads_up), nello stile di «Non provato»: nessun tasto mandato al terminale. */
 class HeadsUpActions(val dismissed: Set<String>, val dismiss: (String) -> Unit, val propose: (String, String) -> Unit)
 val LocalHeadsUp = androidx.compose.runtime.staticCompositionLocalOf<HeadsUpActions?> { null }
+
+/**
+ * L'avviso fisso nella scheda di una sessione lanciata con --bg (contratto 1.146, app-sessione-bg-avviso-14-11): lì /logout scollega
+ * tutte le sessioni del PC. Non si chiude e non ha tasti: resta finché la sessione è viva.
+ */
+@Composable
+internal fun BgNoteRow(s: Session) {
+    if (!it.pixelbox.cmwatch.rules.BgSession.warns(s)) return
+    Row(Modifier.fillMaxWidth().testTag("bg-avviso"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(Icons.Rounded.WarningAmber, null, tint = Cm.waiting, modifier = Modifier.padding(top = 3.dp).size(18.dp))
+        Text(stringResource(R.string.bg_logout_warning), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.weight(1f))
+    }
+}
 
 @Composable
 internal fun HeadsUpNoteRow(s: Session, now: Long) {

@@ -227,3 +227,17 @@ class ProveSegnalateTest {
         org.junit.Assert.assertFalse(BancoProva.unknownNoteInCard(BancoProva.Build.TO_INSTALL))
     }
 }
+
+/** app-sessione-bg-avviso-14-11 (contratto 1.146): l'avviso su /logout solo nella scheda di una sessione viva lanciata con --bg. */
+class BgSessionTest {
+    private fun state(extra: String, st: String = "idle") = it.pixelbox.cmwatch.contract.ContractJson.decodeState(
+        """{"v":1,"ts":1,"host":"pc","sessions":[{"id":"s","name":"n","account":"a","project":"p","state":"$st","since":0$extra}],"quota":{}}""").sessions[0]
+
+    @org.junit.Test fun aBgSessionWarnsAndOneWithoutTheFieldDoesNot() {
+        org.junit.Assert.assertTrue(BgSession.warns(state(""","bg":true""")))
+        org.junit.Assert.assertTrue(BgSession.warns(state(""","bg":true""", "busy")))
+        org.junit.Assert.assertFalse(BgSession.warns(state("")))
+        org.junit.Assert.assertFalse(BgSession.warns(state(""","bg":false""")))
+        org.junit.Assert.assertFalse(BgSession.warns(state(""","bg":true""", "gone")))
+    }
+}

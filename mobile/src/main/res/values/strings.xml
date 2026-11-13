@@ -1575,6 +1575,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="ok_precedent_fixes">corregge %1$s</string>
     <string name="ok_precedent_defect">difetto trovato in %1$s</string>
     <string name="ok_also">Con questo ok</string>
+    <string name="bg_logout_warning">Qui non usare /logout: scollega tutte le sessioni del PC e cancella i login MCP e i segreti dei plugin.</string>
     <string name="heads_up_propose">Cosa proponi?</string>
     <string name="heads_up_known">Già lo so</string>
     <string name="heads_up_prompt">Claude Code mostra questa nota: «%1$s». Cosa proponi? Rispondi coi tuoi Prossimi.</string>

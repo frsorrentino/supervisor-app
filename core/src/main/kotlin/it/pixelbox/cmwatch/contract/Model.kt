@@ -305,6 +305,8 @@ enum class CmdOp {
     /** Contratto 1.68: `supervisor needs-you "<motivo>"`, finché la sessione non riceve il prompt dopo. */
     @SerialName("needs_you") val needsYou: NeedsYou? = null,
     @SerialName("heads_up") val headsUp: HeadsUp? = null,
+    /** Contratto 1.146: sessione viva lanciata con `claude --bg`; assente altrimenti e per una sparita. Lì `/logout` scollega tutte le sessioni del PC. */
+    val bg: Boolean = false,
     /** Contratto 1.68: il turno è finito con una voce bloccante («!» nei Prossimi o un elenco «Da te»), finché è ferma. */
     @SerialName("turn_blocking") val turnBlocking: TurnBlocking? = null,
     /** Contratto 1.69: la sessione può arrivare a bypassPermissions (partita col permesso, o già lì); assente = no. */
