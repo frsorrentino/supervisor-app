@@ -157,6 +157,19 @@ export function head(st: State, page: TimelinePage | null, now: number, timeZone
   }
 }
 
+// ---- Le caselle del tabellone come filtri (app-tabellone-filtri-14-11, Franz 14/11 14:22), porta di Kpi.kt ----
+
+/**
+ * «Ferme» e «al lavoro» filtrano sul posto la lista delle sessioni della Home, con lo stesso criterio dei conteggi di `head`: la master
+ * e le sparite fuori, una al lavoro che aspetta Franz è ferma. Un tocco accende, il secondo spegne, le due si escludono; una casella
+ * a 0 non si tocca, e un filtro rimasto senza sessioni cade da solo. I casi: core/src/test/resources/board-filter-cases.json.
+ */
+export type BoardFilter = 'aspetta' | 'lavoro'
+export const boardCount = (h: Head, f: BoardFilter): number => (f === 'aspetta' ? h.waiting : h.busy)
+export const boardMatch = (s: Session, f: BoardFilter): boolean => s.state !== 'gone' && s.name !== 'master' && (f === 'aspetta' ? waitingSince(s) != null : s.state === 'busy' && waitingSince(s) == null)
+export const boardTap = (cur: BoardFilter | null, f: BoardFilter, h: Head): BoardFilter | null => (boardCount(h, f) === 0 ? cur : cur === f ? null : f)
+export const boardShown = (cur: BoardFilter | null, h: Head): BoardFilter | null => (cur && boardCount(h, cur) > 0 ? cur : null)
+
 // ---- I box della home aperti (compito app-box-cliccabili-29-10, mockup approvato da Franz il 29/10 alle 18:57), porta di Kpi.kt ----
 
 export type WaitKind = 'question' | 'needs_you' | 'blocking'

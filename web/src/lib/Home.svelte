@@ -17,7 +17,7 @@
   import Kpi4 from './Kpi4.svelte'
   import PluginsSection from './PluginsSection.svelte'
   import type { KpiData, PluginsPage } from './contract'
-  import { day as kpiDay, dayFigures, HANDOFF, head as kpiHead, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
+  import { day as kpiDay, dayFigures, HANDOFF, boardMatch, boardShown, boardTap, head as kpiHead, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import PermGlyph from './PermGlyph.svelte'
@@ -79,6 +79,7 @@
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
   import { closedToday, proveInSessions, toccaCounts } from './toccaRules'
   import { homeOpen, openSessionCard } from './homeOpen.svelte'
+  import { boardFilter } from './boardFilter.svelte'
   import ToccaClosed from './ToccaClosed.svelte'
   import MonitorsList from './MonitorsList.svelte'
   import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
@@ -405,6 +406,12 @@
     // I primi due riquadri contano le sessioni, che stanno a sé sotto il tabellone (app-home-sessioni-a-se-08-11): ci scorrono.
     // Esiti sta in Lavori: il suo riquadro apre Lavori e la sottosezione Esiti.
     const sessions = b === 'aspetta' || b === 'lavoro'
+    // app-tabellone-filtri-14-11: le due caselle filtrano la lista sul posto; il secondo tocco toglie il filtro e non scorre.
+    if (b === 'aspetta' || b === 'lavoro') {
+      boardFilter.on = boardTap(bf, b, kh)
+      if (!boardFilter.on) return
+      if (up.includes('sessions') && !open.sessions) toggleSec('sessions')
+    }
     const id: CatId = cats.some(c => c.id === 'out') ? 'out' : 'work'
     if (!sessions && !open.esiti) toggleSec('esiti')
     if (!sessions && cats.some(c => c.id === id && !c.open)) setCats(toggleCat(cats, id))
@@ -531,6 +538,11 @@
   const restGroups = $derived(groups.filter(([g]) => g !== 'waiting'))
   // Una sola chiave per voce: quando una riga cambia gruppo scivola al posto nuovo invece di sparire e ricomparire.
   const restFlat = $derived(restGroups.flatMap(([g, rows]) => rows.map(r => [r, g] as const)))
+  // Il filtro del tabellone (app-tabellone-filtri-14-11): le righe a schermo sono quelle che la casella accesa conta; i conti e le
+  // altre regole guardano ancora tutta la lista. Un filtro rimasto senza sessioni cade da solo.
+  const bf = $derived(boardShown(boardFilter.on, kh))
+  const waitShown = $derived(bf ? waitRows.filter(r => boardMatch(r.session, bf)) : waitRows)
+  const restShown = $derived(bf ? restFlat.filter(([r]) => boardMatch(r.session, bf)) : restFlat)
   // Voci 1 e 2: chi ha un compito approvato al lavoro ha la linea sul bordo; quando finisce la linea diventa verde e si spegne
   // (`gather`), una volta. Niente più contorno verde (app-fine-compito-verde-05-11, scelta B, come SummaryList.kt).
   const workingNow = $derived(new Set(st.commitments != null ? commitmentRowsOf(st, now).filter(r => !r.yourTurn).map(r => r.c.session) : []))
@@ -794,7 +806,7 @@
   {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
-{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kh} {st} {now} onBox={openCat} {onQuota} slot={slotBox} usage={usageCell} onUsage={() => toggleSec('usage')} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
+{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kh} {st} {now} filter={bf} onBox={openCat} {onQuota} slot={slotBox} usage={usageCell} onUsage={() => toggleSec('usage')} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 <!-- Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda e gli ok senza
@@ -802,10 +814,10 @@
 <!-- Franz 02/11 23:57: «aspettano te sia un sottoinsieme di sessioni»: un gruppo in cima a Sessioni con le sole sessioni che
      aspettano Franz, poi «Le altre». Gli ok senza sessione stanno in cima a Lavori: sono ok a dei compiti. -->
 {#snippet waitingBlock()}
-{#if waitRows.length}
-  <div class="sgroup wait" data-testid="home-sessioni-aspettano">{t.homeWaiting}<small>{waitRows.length}</small></div>
-  {#each waitRows as r (r.session.name)}<div class="cw" data-row={r.session.name} in:slide={{ duration: reducedMotion() ? 0 : 220 }} out:slide={{ duration: reducedMotion() ? 0 : 160 }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
-  {#if restFlat.length}<div class="sgroup" data-testid="home-sessioni-altre">{t.homeSessionsOthers}</div>{/if}
+{#if waitShown.length}
+  <div class="sgroup wait" data-testid="home-sessioni-aspettano">{t.homeWaiting}<small>{waitShown.length}</small></div>
+  {#each waitShown as r (r.session.name)}<div class="cw" data-row={r.session.name} in:slide={{ duration: reducedMotion() ? 0 : 220 }} out:slide={{ duration: reducedMotion() ? 0 : 160 }} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, 'waiting')}</div>{/each}
+  {#if restShown.length}<div class="sgroup" data-testid="home-sessioni-altre">{t.homeSessionsOthers}</div>{/if}
 {/if}
 {/snippet}
 <!-- Contratto 1.84 (scheda A): i suggerimenti della master dopo le sessioni, fuori da «Ti aspettano» e dal suo
@@ -841,13 +853,15 @@
     </div>
   {/if}
   {#if part || open.sessions || !up.includes('sessions')}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
+    <!-- La pillola del filtro acceso dal tabellone, con la × che lo toglie (app-tabellone-filtri-14-11). -->
+    {#if bf}<div class="fpill" data-testid="home-filtro"><span>{bf === 'aspetta' ? t.boardFilterWaiting : t.boardFilterBusy}</span><button aria-label={t.boardFilterOff} data-testid="home-filtro-togli" onclick={() => (boardFilter.on = null)}><span class="ms" aria-hidden="true">close</span></button></div>{/if}
     {@render waitingBlock()}
     <!-- Una lista sola, nell'ordine dei gruppi (hanno finito, al lavoro, ferme): il glifo dice lo stato al posto delle
          intestazioni dei gruppi (stile «Studio e Diretta», 30/10). -->
     <div class="list lit">
-      {#each restFlat as [r, group] (r.session.name)}<div class="cw" data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line" out:gather></span>{/if}</div>{/each}
+      {#each restShown as [r, group] (r.session.name)}<div class="cw" data-row={r.session.name} animate:flip={{ duration: bounceMs(), easing: bounceEase }}>{@render card(r, group)}{#if group === 'working' && workingNow.has(r.session.name)}<span class="edge-line" out:gather></span>{/if}</div>{/each}
     </div>
-    {#if finished.length}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
+    {#if finished.length && !bf}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   </div></div>{/if}
 {/if}
 {/snippet}
@@ -1807,6 +1821,11 @@
   .list .card:hover, .list .card:focus-visible { box-shadow: none; background: var(--s2); }
   .list .card.on { background: var(--s2); box-shadow: none; }
   .after { display: flex; justify-content: flex-end; }
+  /* La pillola del filtro del tabellone: il nome del filtro e la × che lo toglie, sopra la lista. */
+  .fpill { align-self: flex-start; display: inline-flex; align-items: center; gap: 2px; width: fit-content; margin: 2px 0 6px; padding: 0 2px 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--s2); color: var(--tx); font-size: 14px; font-weight: 500; }
+  .fpill button { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: var(--tx2); cursor: pointer; }
+  .fpill button:hover { color: var(--tx); }
+  .fpill .ms { font-size: 18px; }
   .top { gap: 8px; min-height: 22px; }
   .name { font: 600 17px/1.2 var(--display); }
   .idc { width: 8px; height: 8px; border-radius: 50%; flex: none; } .idc.sq { border-radius: 2px; }

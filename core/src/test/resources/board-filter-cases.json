@@ -1,0 +1,166 @@
+{
+ "_": "app-tabellone-filtri-14-11: le caselle «ferme» e «al lavoro» del tabellone filtrano la lista delle sessioni con lo stesso criterio dei conteggi. Gli stessi casi in kpi.test.ts e BoardFilterTest.kt.",
+ "state": {
+  "v": 1,
+  "ts": 1000,
+  "host": "pc",
+  "quota": {},
+  "sessions": [
+   {
+    "id": "ferma",
+    "name": "ferma",
+    "account": "a",
+    "project": "p",
+    "state": "idle",
+    "since": 0,
+    "needs_you": {
+     "reason": "serve il login",
+     "at": 100
+    }
+   },
+   {
+    "id": "lavora",
+    "name": "lavora",
+    "account": "a",
+    "project": "p",
+    "state": "busy",
+    "since": 0
+   },
+   {
+    "id": "lavora-ma-ferma",
+    "name": "lavora-ma-ferma",
+    "account": "a",
+    "project": "p",
+    "state": "busy",
+    "since": 0,
+    "needs_you": {
+     "reason": "serve il login",
+     "at": 100
+    }
+   },
+   {
+    "id": "quieta",
+    "name": "quieta",
+    "account": "a",
+    "project": "p",
+    "state": "idle",
+    "since": 0
+   },
+   {
+    "id": "sparita",
+    "name": "sparita",
+    "account": "a",
+    "project": "p",
+    "state": "gone",
+    "since": 0,
+    "needs_you": {
+     "reason": "serve il login",
+     "at": 100
+    }
+   },
+   {
+    "id": "master",
+    "name": "master",
+    "account": "a",
+    "project": "p",
+    "state": "busy",
+    "since": 0
+   }
+  ]
+ },
+ "aspetta": [
+  "ferma",
+  "lavora-ma-ferma"
+ ],
+ "lavoro": [
+  "lavora"
+ ],
+ "taps": [
+  {
+   "name": "un tocco accende",
+   "cur": null,
+   "tap": "aspetta",
+   "out": "aspetta"
+  },
+  {
+   "name": "il secondo tocco spegne",
+   "cur": "aspetta",
+   "tap": "aspetta",
+   "out": null
+  },
+  {
+   "name": "le due si escludono",
+   "cur": "aspetta",
+   "tap": "lavoro",
+   "out": "lavoro"
+  },
+  {
+   "name": "e al contrario",
+   "cur": "lavoro",
+   "tap": "aspetta",
+   "out": "aspetta"
+  }
+ ],
+ "quiet": {
+  "v": 1,
+  "ts": 1000,
+  "host": "pc",
+  "quota": {},
+  "sessions": [
+   {
+    "id": "ferma",
+    "name": "ferma",
+    "account": "a",
+    "project": "p",
+    "state": "idle",
+    "since": 0,
+    "needs_you": {
+     "reason": "serve il login",
+     "at": 100
+    }
+   },
+   {
+    "id": "quieta",
+    "name": "quieta",
+    "account": "a",
+    "project": "p",
+    "state": "idle",
+    "since": 0
+   },
+   {
+    "id": "master",
+    "name": "master",
+    "account": "a",
+    "project": "p",
+    "state": "busy",
+    "since": 0
+   }
+  ]
+ },
+ "quietTaps": [
+  {
+   "name": "con 0 la casella non si tocca",
+   "cur": null,
+   "tap": "lavoro",
+   "out": null
+  },
+  {
+   "name": "con 0 il tocco non spegne l'altra",
+   "cur": "aspetta",
+   "tap": "lavoro",
+   "out": "aspetta"
+  }
+ ],
+ "quietShown": [
+  {
+   "name": "un filtro rimasto a 0 cade da solo",
+   "cur": "lavoro",
+   "out": null
+  },
+  {
+   "name": "uno che ha ancora sessioni resta",
+   "cur": "aspetta",
+   "out": "aspetta"
+  }
+ ]
+}

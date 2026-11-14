@@ -195,3 +195,23 @@ describe('tabellone: le sessioni aperte, denominatore delle frazioni', () => {
     expect(head({ ...st, sessions: [s('d', 'gone')] } as State, null, 100, 'UTC').open).toBe(0)
   })
 })
+
+// app-tabellone-filtri-14-11: gli stessi casi di BoardFilterTest.kt.
+describe('tabellone_filtri', async () => {
+  const { boardMatch, boardShown, boardTap } = await import('./kpi')
+  type F = 'aspetta' | 'lavoro'
+  const c = JSON.parse(readFileSync(new URL('../../../core/src/test/resources/board-filter-cases.json', import.meta.url), 'utf8')) as {
+    state: unknown; quiet: unknown; aspetta: string[]; lavoro: string[]
+    taps: { name: string; cur: F | null; tap: F; out: F | null }[]; quietTaps: { name: string; cur: F | null; tap: F; out: F | null }[]; quietShown: { name: string; cur: F | null; out: F | null }[]
+  }
+  const st = decodeState(JSON.stringify(c.state)), quiet = decodeState(JSON.stringify(c.quiet))
+  const names = (f: F) => st.sessions.filter(s => boardMatch(s, f)).map(s => s.name)
+  it('la lista filtrata è quella contata dal tabellone', () => {
+    const h = head(st, null, 1000)
+    expect(names('aspetta')).toEqual(c.aspetta); expect(names('lavoro')).toEqual(c.lavoro)
+    expect([h.waiting, h.busy]).toEqual([c.aspetta.length, c.lavoro.length])
+  })
+  for (const x of c.taps) it(x.name, () => expect(boardTap(x.cur, x.tap, head(st, null, 1000))).toBe(x.out))
+  for (const x of c.quietTaps) it(x.name, () => expect(boardTap(x.cur, x.tap, head(quiet, null, 1000))).toBe(x.out))
+  for (const x of c.quietShown) it(x.name, () => expect(boardShown(x.cur, head(quiet, null, 1000))).toBe(x.out))
+})

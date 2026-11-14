@@ -13,13 +13,15 @@
   // grande come le altre cifre, sotto la finestra che dice, e sul bordo in basso la barra con la tacca del tempo passato; il tocco
   // apre e chiude i dettagli sotto. Gli esiti di oggi restano nelle voci della Home, al loro posto (Franz 13/11 15:41 e 15:46).
   // Senza il dato dell'utilizzo il terzo blocco resta «esiti oggi».
-  let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {}, slot, usage = null, onUsage = () => {} }: { h: Head; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void; slot?: Snippet
+  // app-tabellone-filtri-14-11 (Franz 14/11 14:22): «ferme» e «al lavoro» filtrano la lista delle sessioni sotto; la casella del
+  // filtro acceso resta accesa, e a 0 non si tocca e non ha la freccia.
+  let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {}, slot, usage = null, onUsage = () => {}, filter = null }: { h: Head; filter?: 'aspetta' | 'lavoro' | null; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void; slot?: Snippet
     usage?: { pct: number; tick: number | null; tone: string; label: string; open: boolean } | null; onUsage?: () => void } = $props()
 </script>
 
 <div class="board lit" data-kpi="kpi-7">
-  <button class="cell" data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><b class="n" class:wait={h.waiting > 0}>{h.waiting}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
-  <button class="cell" data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
+  <button class="cell" class:on={filter === 'aspetta'} aria-pressed={filter === 'aspetta'} disabled={!h.waiting} data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><b class="n" class:wait={h.waiting > 0}>{h.waiting}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span>{#if h.waiting}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
+  <button class="cell" class:on={filter === 'lavoro'} aria-pressed={filter === 'lavoro'} disabled={!h.busy} data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span>{#if h.busy}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   {#if usage}
     <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l">{usage.label}</span><span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
       <span class="edge" style:color={usage.tone}><i style="width:{Math.min(100, usage.pct)}%"></i>{#if usage.tick != null}<u style="left:{usage.tick}%"></u>{/if}</span></button>
@@ -40,6 +42,11 @@
   .cell { position: relative; display: flex; flex-direction: column; justify-content: flex-start; padding: 12px 12px 13px; border-left: 1px solid var(--line); text-align: left; color: var(--tx); cursor: pointer; min-width: 0; }
   .cell:first-child { border-left: 0; }
   .cell:hover { background: var(--s2); }
+  /* A 0 la casella non si tocca; accesa, il filtro si vede dal fondo e dal filo sul bordo. */
+  .cell:disabled { cursor: default; }
+  .cell:disabled:hover { background: none; }
+  .cell.on { background: var(--s2); box-shadow: inset 0 0 0 2px var(--tx2); }
+  .cell.on .chev { color: var(--tx); transform: rotate(90deg); }
   .cell:focus-visible { outline: 2px solid var(--tx); outline-offset: -2px; }
   .n { display: block; font: 700 42px/1 var(--display); letter-spacing: -0.01em; }
   .n.wait { color: var(--wait); }
