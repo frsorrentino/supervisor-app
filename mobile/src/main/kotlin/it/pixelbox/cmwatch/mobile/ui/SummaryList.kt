@@ -687,6 +687,9 @@ fun SummaryList(
         // Franz 24/10 00:46: un suggerimento che riguarda una sessione aperta (il contesto alto) sta nella sua scheda; in Altro restano gli altri.
         val outsidePlaced = OutsideSessions.place(OutsideSessions.groups(model.service, model.closed), model.rows.map { r -> r.session.name }.toSet())
         // Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, con sotto la quota (stile «Studio e Diretta», 30/10).
+        // Il filtro del tabellone (app-tabellone-filtri-14-11): quello acceso, se la sua casella conta ancora qualcosa.
+        val boardHead = if (parts == null) kpiState?.let { st -> it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()) } else null
+        val bf = boardHead?.let { h -> it.pixelbox.cmwatch.rules.Kpi.boardShown(f.boardFilter, h) }
         var slotContent: @Composable () -> Unit = {}
         if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
@@ -700,7 +703,15 @@ fun SummaryList(
                             if (!esitiOpen) { esitiOpen = true; save("esiti", true) }
                             if (catsNow.any { c -> c.id == "work" && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, "work"))
                             catFocus = "cat-work"
-                        } else catFocus = "sec-sessions"
+                        } else boardHead?.let { h ->
+                            // Le due caselle filtrano la lista sul posto (app-tabellone-filtri-14-11); il secondo tocco toglie il filtro e non scorre.
+                            val next = it.pixelbox.cmwatch.rules.Kpi.boardTap(bf, if (b == HomeBox.WAITING) it.pixelbox.cmwatch.rules.Kpi.BoardFilter.WAITING else it.pixelbox.cmwatch.rules.Kpi.BoardFilter.BUSY, h)
+                            f.boardFilter = next
+                            if (next != null) {
+                                if (!sessionsOpen && "sessions" in up) { sessionsOpen = true; save("sessions", true) }
+                                catFocus = "sec-sessions"
+                            }
+                        }
                     }
                     val kh = it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault())
                     val cell = if (!usageInBoard) null else {
@@ -713,7 +724,7 @@ fun SummaryList(
                             stringResource(if (usageAlarm != null && !usageAlarm.week) R.string.usage_cell_5h else R.string.usage_cell_week), usageOpen,
                         ) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     }
-                    Kpi7(kh, st, now, boardClick, onQuota, joined = up.any { k -> k != pin }, usage = cell, slot = { slotContent() })
+                    Kpi7(kh, st, now, boardClick, onQuota, joined = up.any { k -> k != pin }, usage = cell, filter = bf, slot = { slotContent() })
                     val held = dragKey
                     // Sul tabellone si rilascia una sezione che non c'è ancora; con quattro voci lo dice, e il rilascio non cambia niente.
                     if (held != null && catFor(held) != null && held !in up && !(weekAlarm && held == "usage")) SlotDrop(overSlot(held, dragY) && boardTakes(held), full = !boardTakes(held))
@@ -724,6 +735,9 @@ fun SummaryList(
         // L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi «Altro».
         val waitRows = model.rows.filter { it.group == Summary.Group.WAITING }
         val restRows = model.rows.filter { it.group != Summary.Group.WAITING }
+        // Le righe a schermo sono quelle che la casella accesa conta; i conti e le altre regole guardano ancora tutta la lista.
+        val waitShown = if (bf == null) waitRows else waitRows.filter { r -> it.pixelbox.cmwatch.rules.Kpi.boardMatch(r.session, bf) }
+        val restShown = if (bf == null) restRows else restRows.filter { r -> it.pixelbox.cmwatch.rules.Kpi.boardMatch(r.session, bf) }
         val looseOk = placed?.loose?.ok.orEmpty()
         val zone = java.time.ZoneId.systemDefault()
         // Un solo bottone pieno: «Fatto» della prima che ti aspetta, se la richiesta non si chiude da sola (correzione 2 del 30/10).
@@ -760,13 +774,13 @@ fun SummaryList(
         // cima alla lista di Sessioni, con la loro card ambra; la riga Sessioni si accende quando ce n'è una.
         // Franz 02/11 23:57: «aspettano te sia un sottoinsieme di sessioni»: un gruppo in cima a Sessioni con le sole sessioni che
         // aspettano Franz, poi le altre. Gli ok senza sessione stanno in cima a Lavori: sono ok a dei compiti.
-        val renderWaiting: () -> Unit = { if (waitRows.isNotEmpty()) {
+        val renderWaiting: () -> Unit = { if (waitShown.isNotEmpty()) {
             val moving = movingIn("sessions")
-            item(key = "wait-group") { Box(moving()) { WaitGroupLabel(stringResource(R.string.home_waiting), waitRows.size) } }
+            item(key = "wait-group") { Box(moving()) { WaitGroupLabel(stringResource(R.string.home_waiting), waitShown.size) } }
             // Chiave dall'id, mai dal nome: due sessioni con lo stesso nome chiudevano l'app (15/10 23:41).
-            val keys = uniqueKeys(waitRows) { "s-" + it.session.id }
-            items(waitRows.size, key = { keys[it] }) { i -> Box(moving().growIn(seenWait.isNotEmpty() && keys[i] !in seenWait)) { androidx.compose.runtime.SideEffect { seenWait += keys[i] }; card(waitRows[i], true) } }
-            if (restRows.isNotEmpty()) item(key = "rest-group") { Box(moving()) { WaitGroupLabel(stringResource(R.string.home_sessions_others), null) } }
+            val keys = uniqueKeys(waitShown) { "s-" + it.session.id }
+            items(waitShown.size, key = { keys[it] }) { i -> Box(moving().growIn(seenWait.isNotEmpty() && keys[i] !in seenWait)) { androidx.compose.runtime.SideEffect { seenWait += keys[i] }; card(waitShown[i], true) } }
+            if (restShown.isNotEmpty()) item(key = "rest-group") { Box(moving()) { WaitGroupLabel(stringResource(R.string.home_sessions_others), null) } }
         } }
         // La Notte è una voce sua sotto le sessioni, fuori da Lavori ed Esiti (app-home-tre-categorie-06-11, Franz 06/11: «Notte deve
         // essere visibile fuori da esito»).
@@ -810,19 +824,21 @@ fun SummaryList(
                 // colonna, senza la riga «Sessioni N».
             }
             val listOpen = parts != null || sessionsOpen || "sessions" !in liveTop
+            // La pillola del filtro acceso dal tabellone, con la × che lo toglie.
+            if (listOpen && bf != null) item(key = "board-filter") { Box(moving()) { BoardFilterPill(stringResource(if (bf == it.pixelbox.cmwatch.rules.Kpi.BoardFilter.WAITING) R.string.board_filter_waiting else R.string.board_filter_busy)) { f.boardFilter = null } } }
             if (listOpen) renderWaiting()
             justClosed?.let { (js, line) -> item(key = "just-closed") { Box(moving()) { JustClosedCard(js, line) } } }
             // Una lista sola nell'ordine dei gruppi: il glifo dice lo stato al posto delle intestazioni.
-            if (listOpen && restRows.isNotEmpty()) item(key = "sessions-list") {
+            if (listOpen && restShown.isNotEmpty()) item(key = "sessions-list") {
                 val fin = if (closePreview != null) it.pixelbox.cmwatch.rules.CloseFinished.candidates(model.rows, now) else emptyList()
                 Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    V3List { restRows.forEachIndexed { i, r -> androidx.compose.runtime.key(r.session.id) {
+                    V3List { restShown.forEachIndexed { i, r -> androidx.compose.runtime.key(r.session.id) {
                         val name = r.session.name
                         Box((if (V3.day && r.group == Summary.Group.WAITING) Modifier.background(V3.WaitFill) else Modifier).bounceOnMove(i).onGloballyPositioned { c -> rowAt[name] = c.boundsInRoot().let { it.top to it.bottom } }) {
                             card(r, i == 0)
                             WorkEdge(name in workingNow && r.group == Summary.Group.WORKING, Modifier.align(Alignment.BottomCenter))
                         } } } }
-                    if (fin.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { V3Pill(stringResource(R.string.close_finished_n, fin.size)) { closeAsk = fin.map { x -> x.name } } }
+                    if (fin.isNotEmpty() && bf == null) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { V3Pill(stringResource(R.string.close_finished_n, fin.size)) { closeAsk = fin.map { x -> x.name } } }
                 }
             }
         }

@@ -1541,6 +1541,9 @@ It starts at your last message to the master.</string>
     <string name="ok_precedent_fixes">fixes %1$s</string>
     <string name="ok_precedent_defect">defect found in %1$s</string>
     <string name="ok_also">With this ok</string>
+    <string name="board_filter_waiting">Stopped only</string>
+    <string name="board_filter_busy">Working only</string>
+    <string name="board_filter_off">Remove the filter</string>
     <string name="bg_logout_warning">Don\'t use /logout here: it signs out every session on this PC and deletes the MCP logins and the plugins\' secrets.</string>
     <string name="heads_up_propose">What do you propose?</string>
     <string name="heads_up_known">I know</string>

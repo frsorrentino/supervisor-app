@@ -161,6 +161,19 @@ object Kpi {
      */
     data class Head(val waiting: Int, val oldestWaitS: Long?, val busy: Int, val outcomes: Int?, val red: Int?, val open: Int = 0)
 
+    /**
+     * Le caselle del tabellone come filtri (app-tabellone-filtri-14-11, Franz 14/11 14:22): «ferme» e «al lavoro» filtrano sul posto la
+     * lista delle sessioni della Home, con lo stesso criterio dei conteggi di `head`: la master e le sparite fuori, una al lavoro che
+     * aspetta Franz è ferma. Un tocco accende, il secondo spegne, le due si escludono; una casella a 0 non si tocca, e un filtro
+     * rimasto senza sessioni cade da solo. Gli stessi casi in kpi.ts (board-filter-cases.json).
+     */
+    enum class BoardFilter { WAITING, BUSY }
+    fun boardCount(h: Head, f: BoardFilter): Int = if (f == BoardFilter.WAITING) h.waiting else h.busy
+    fun boardMatch(s: Session, f: BoardFilter): Boolean = s.state != SessionState.GONE && s.name != ContextActions.MASTER &&
+        (if (f == BoardFilter.WAITING) waitingSince(s) != null else s.state == SessionState.BUSY && waitingSince(s) == null)
+    fun boardTap(cur: BoardFilter?, f: BoardFilter, h: Head): BoardFilter? = if (boardCount(h, f) == 0) cur else if (cur == f) null else f
+    fun boardShown(cur: BoardFilter?, h: Head): BoardFilter? = cur?.takeIf { boardCount(h, it) > 0 }
+
     fun head(state: State, page: TimelinePage?, now: Long, zone: ZoneId): Head {
         val live = state.sessions.filter { it.state != SessionState.GONE && it.name != ContextActions.MASTER }
         val waits = live.mapNotNull { waitingSince(it) }

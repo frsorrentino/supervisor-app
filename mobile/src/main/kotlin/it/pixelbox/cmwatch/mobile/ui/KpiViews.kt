@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -167,20 +168,23 @@ internal fun Figure(value: String, label: String, tone: Color?, modifier: Modifi
  * quota-senza-cinque-ore: dove il dato manca, per quell'account, la settimana col giorno e il ritmo.
  */
 @Composable
-internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}, joined: Boolean = false, usage: UsageCell? = null, slot: @Composable () -> Unit = {}) {
+internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long, onBox: (HomeBox) -> Unit, onQuota: () -> Unit = {}, joined: Boolean = false, usage: UsageCell? = null, filter: Kpi.BoardFilter? = null, slot: @Composable () -> Unit = {}) {
     // `joined`: sotto stanno le righe In cima (app-utilizzo-una-barra-03-11), attaccate: gli angoli in basso sono loro.
     val shape = if (joined) RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp) else V3.Shape
     Column(Modifier.testTag("kpi-7").fillMaxWidth().clip(shape).background(V3.S1).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape))) {
         Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
             val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
-            val box = { b: HomeBox, tag: String, w: Float -> Modifier.weight(w).fillMaxHeight().then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).testTag(tag).handCursor().clickable { onBox(b) } }
-            Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f), of = h.open.takeIf { it > 0 })
+            // app-tabellone-filtri-14-11 (Franz 14/11 14:22): «ferme» e «al lavoro» filtrano la lista delle sessioni sotto; la casella del
+            // filtro acceso resta accesa (fondo e filo sul bordo), e a 0 non si tocca e non ha la freccia.
+            val lit = { on: Boolean -> if (on) Modifier.background(V3.S2).border(2.dp, V3.Tx2) else Modifier }
+            val box = { b: HomeBox, tag: String, w: Float, can: Boolean, on: Boolean -> Modifier.weight(w).fillMaxHeight().then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).then(lit(on)).testTag(tag).then(if (can) Modifier.handCursor().clickable { onBox(b) } else Modifier) }
+            Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f, h.waiting > 0, filter == Kpi.BoardFilter.WAITING), of = h.open.takeIf { it > 0 }, chevron = h.waiting > 0, on = filter == Kpi.BoardFilter.WAITING)
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
-            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f), of = h.open.takeIf { it > 0 })
+            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f, h.busy > 0, filter == Kpi.BoardFilter.BUSY), of = h.open.takeIf { it > 0 }, chevron = h.busy > 0, on = filter == Kpi.BoardFilter.BUSY)
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             // Col dato dell'utilizzo il terzo blocco è lui (app-tabellone-utilizzo-a-13-11); gli esiti restano nelle voci della Home.
             if (usage != null) UsageBoard(usage, Modifier.weight(1.15f).fillMaxHeight().then(if (usage.open) Modifier.background(V3.S2) else Modifier).testTag("home-box-utilizzo").handCursor().clickable(onClick = usage.onToggle))
-            else Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f))
+            else Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f, true, false))
         }
         // La barra fissa delle 5 ore non c'è più (app-utilizzo-una-barra-03-11): le finestre d'uso stanno nella riga Utilizzo, e una
         // vicina al limite entra da sola nel tabellone.
@@ -410,13 +414,15 @@ private fun UsageBoard(u: UsageCell, modifier: Modifier) {
 }
 
 @Composable
-private fun Board(value: String, label: String, tone: Color, red: String?, modifier: Modifier, of: Int? = null) {
+private fun Board(value: String, label: String, tone: Color, red: String?, modifier: Modifier, of: Int? = null, chevron: Boolean = true, on: Boolean = false) {
     Column(modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Text(value, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 38.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = tone, maxLines = 1, modifier = if (of == null) Modifier.weight(1f) else Modifier.alignByBaseline())
             // La frazione sulle sessioni aperte (Franz 13/11 13:56: «al lavoro 1/5 e ferme 3/5»): più piccola e neutra, accanto alla cifra.
             of?.let { Text("/$it", style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 24.sp, fontFeatureSettings = CM_TNUM), color = V3.Tx2, maxLines = 1, modifier = Modifier.padding(start = 2.dp).weight(1f).alignByBaseline()) }
-            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
+            // Accesa, la freccia guarda in giù, verso la lista che filtra; a 0 non c'è.
+            if (chevron) androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, tint = if (on) V3.Tx else V3.Tx3, modifier = Modifier.size(18.dp).then(if (on) Modifier.rotate(90f) else Modifier))
+            else Spacer(Modifier.size(18.dp))
         }
         // Due righe per tutte, anche quando il testo ne occupa una: i tre numeri e le etichette stanno sulle stesse linee (Franz 03/11
         // 09:38, app-tabellone-numeri-03-11). Il rosso degli esiti è la seconda riga.

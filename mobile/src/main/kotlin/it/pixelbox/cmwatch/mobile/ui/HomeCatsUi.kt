@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.PendingActions
 import androidx.compose.material.icons.outlined.PlayCircle
@@ -128,6 +131,21 @@ internal fun CatLabel(id: String, modifier: Modifier = Modifier, amber: Boolean 
  * I due gruppi dentro Sessioni (Franz 02/11 23:57: «aspettano te sia un sottoinsieme di sessioni»): «Ti aspettano N» in ambra sopra
  * le sessioni che aspettano Franz, «Le altre» in grigio sopra il resto. Piccolo, come l'etichetta di una categoria.
  */
+/** La pillola del filtro acceso dal tabellone, sopra la lista delle sessioni: il nome del filtro e la × che lo toglie (app-tabellone-filtri-14-11). */
+@Composable
+internal fun BoardFilterPill(text: String, onOff: () -> Unit) {
+    val off = stringResource(R.string.board_filter_off)
+    val round = androidx.compose.foundation.shape.CircleShape
+    Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.testTag("home-filtro").clip(round).background(V3.S2).border(1.dp, V3.Line, round).padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(text, style = V3.Body.copy(fontSize = 14.sp, lineHeight = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium))
+            Box(Modifier.size(36.dp).clip(round).testTag("home-filtro-togli").handCursor().clickable(onClickLabel = off, onClick = onOff), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Close, off, tint = V3.Tx2, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
 @Composable
 internal fun WaitGroupLabel(text: String, n: Int?) {
     Row(Modifier.fillMaxWidth().padding(start = 6.dp, top = 2.dp).testTag(if (n != null) "home-sessioni-aspettano" else "home-sessioni-altre"), verticalAlignment = Alignment.CenterVertically) {

@@ -31,6 +31,14 @@ class SummaryListTest {
     }
 
     @Test fun summaryClosed() = paparazzi.snapshot { page(st) }
+    // app-tabellone-filtri-14-11: la casella accesa, la pillola con la × e la lista filtrata; di notte «ferme», di giorno «al lavoro».
+    private fun filtro(f: it.pixelbox.cmwatch.rules.Kpi.BoardFilter, day: Boolean) = paparazzi.snapshot { CmPhoneTheme(still = true, day = day) {
+        Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
+            SummaryList(model(st), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, kpiState = st, startOpen = setOf("sessions"), folds = it.pixelbox.cmwatch.mobile.ui.HomeFolds().apply { boardFilter = f })
+        }
+    } }
+    @Test fun tabellone_filtro_ferme() = filtro(it.pixelbox.cmwatch.rules.Kpi.BoardFilter.WAITING, false)
+    @Test fun tabellone_filtro_lavoro_giorno() = filtro(it.pixelbox.cmwatch.rules.Kpi.BoardFilter.BUSY, true)
     // app-sessioni-compatte-06-11, passo 4: i chip «Decidi N» e «Verifica N» in testa alla riga; la scheda chiusa resta della sua misura.
     @Test fun summaryTodoChips() = paparazzi.snapshot { page(st, todo = mapOf("ledger-api" to (1 to 1), "field-notes" to (0 to 2))) }
     // app-superfici-plancia-07-11, variante B «Bordo leggero»: le verifiche nella scheda aperta partono dal bordo del contenuto,

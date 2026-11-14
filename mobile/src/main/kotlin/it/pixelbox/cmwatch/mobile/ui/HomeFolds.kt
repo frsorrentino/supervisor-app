@@ -15,6 +15,8 @@ import androidx.compose.runtime.setValue
 class HomeFolds(card: String? = null) {
     /** La scheda di sessione aperta, una alla volta. */
     var card by mutableStateOf(card)
+    /** Il filtro acceso dal tabellone (app-tabellone-filtri-14-11): resta finché l'app è aperta, non si ricorda fra un avvio e l'altro. */
+    var boardFilter by mutableStateOf<it.pixelbox.cmwatch.rules.Kpi.BoardFilter?>(null)
     private val states = HashMap<String, MutableState<Boolean>>()
 
     fun isOpen(session: String): Boolean = card == session
