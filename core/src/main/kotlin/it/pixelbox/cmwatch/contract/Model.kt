@@ -6,7 +6,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class SessionState {
     @SerialName("waiting") WAITING, @SerialName("busy") BUSY, @SerialName("idle") IDLE,
-    @SerialName("awaiting") AWAITING, @SerialName("gone") GONE
+    @SerialName("awaiting") AWAITING, @SerialName("gone") GONE;
+
+    /**
+     * La regola unica di «al lavoro» (app-awaiting-uniforme-15-11, seguito della segnalazione di Franz del 15/11 07:58 su joy): il relay dà
+     * AWAITING prima di BUSY quando Franz ha scritto alla sessione, e da lì il turno è suo. Chi lavora e intanto aspetta Franz (domanda,
+     * needs_you) è ferma: lo decide chi chiama, con `waitingSince`. Lo stesso in contract.ts (`atWork`).
+     */
+    val atWork: Boolean get() = this == BUSY || this == AWAITING
 }
 
 @Serializable

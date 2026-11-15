@@ -6,6 +6,7 @@ import { modelKind, nextTurn, notes, permissionLabel, quotaLabel, resetLabel, sa
 describe('modello', () => {
   it('contratto 1.125: dal prossimo turno finché dura il turno della scelta', () => {
     expect(nextTurn({ state: 'busy', since: 90 }, 100)).toBe(true)
+    expect(nextTurn({ state: 'awaiting', since: 90 }, 100)).toBe(true) // app-awaiting-uniforme-15-11
     expect(nextTurn({ state: 'idle', since: 0 }, 100)).toBe(false)
     expect(nextTurn({ state: 'busy', since: 150 }, 100)).toBe(false)
     expect(nextTurn({ state: 'busy', since: 90 }, null)).toBe(false)

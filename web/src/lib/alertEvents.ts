@@ -1,3 +1,4 @@
+import { atWork } from './contract'
 import type { Attention, Event, Session } from './contract'
 import { stripEmoji } from './emoji'
 
@@ -57,5 +58,5 @@ export function openLimit(events: Event[], s: Session, nowS: number, attention?:
 export function openFailure(events: Event[], s: Session, nowS: number, attention?: Attention[] | null): Event | null {
   const e = events.filter(x => x.kind === 'turn_failed' && x.ref === s.name).sort((a, b) => b.ts - a.ts)[0]
   if (!e?.continue_text?.trim()) return null
-  return nowS - e.ts < 6 * 3600 && !closed(e, s, attention) && s.state !== 'gone' && s.state !== 'busy' ? e : null
+  return nowS - e.ts < 6 * 3600 && !closed(e, s, attention) && s.state !== 'gone' && !atWork(s) ? e : null
 }

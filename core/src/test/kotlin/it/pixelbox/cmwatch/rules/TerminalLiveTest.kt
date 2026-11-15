@@ -15,5 +15,8 @@ class TerminalLiveTest {
     @Test fun nuovaNotaCattura() = assertEquals(TerminalLive.Ask.SCREEN, TerminalLive.next(s(), s().copy(toolNote = "Run the tests")))
     @Test fun fineTurnoAncheLaRisposta() = assertEquals(TerminalLive.Ask.SCREEN_AND_LAST, TerminalLive.next(s(), s(SessionState.IDLE, null)))
     @Test fun domandaAncheLaRisposta() = assertEquals(TerminalLive.Ask.SCREEN_AND_LAST, TerminalLive.next(s(), s(SessionState.WAITING)))
+    // app-awaiting-uniforme-15-11: da awaiting a busy il turno continua; da awaiting a ferma è finito.
+    @Test fun daAwaitingABusyNonELaFine() = assertEquals(TerminalLive.Ask.SCREEN, TerminalLive.next(s(SessionState.AWAITING), s()))
+    @Test fun fineTurnoDaAwaiting() = assertEquals(TerminalLive.Ask.SCREEN_AND_LAST, TerminalLive.next(s(SessionState.AWAITING), s(SessionState.IDLE, null)))
     @Test fun sessioneSparitaNiente() = assertNull(TerminalLive.next(s(), null))
 }

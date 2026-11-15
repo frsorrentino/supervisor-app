@@ -152,8 +152,8 @@ object LiveFeed {
         // Una sessione che lavora alla tua risposta non ti aspetta più, anche con i Prossimi «!» dell'esito di prima (Franz,
         // 10/10 08:38: il recap continuava a ripetere la domanda già risposta).
         val waiting = open.filter { it.question != null || (blocking(it) && !working(it)) }
-        val working = open.filter { it !in waiting && it.state == SessionState.BUSY && !low(it) }
-        val stopped = open.filter { it !in waiting && it.state != SessionState.BUSY && it.followed && !low(it) }
+        val working = open.filter { it !in waiting && working(it) && !low(it) }
+        val stopped = open.filter { it !in waiting && !working(it) && it.followed && !low(it) }
         return waiting.map { if (it.question != null) questionText(it, l) else outcomeText(it, l) } +
             state.approvals.map { approvalText(it, l) } +
             working.map { if (now == null) l.busy.format(SpeakableName.of(it.name)) else busyRecap(it, now, l) } +
@@ -184,7 +184,7 @@ object LiveFeed {
     fun status(s: Session, l: Labels, now: Long? = null): String = when {
         s.question != null -> questionText(s, l)
         s.state == SessionState.GONE -> l.gone.format(SpeakableName.of(s.name))
-        s.state == SessionState.BUSY -> if (now != null) busyRecap(s, now, l) else l.busy.format(SpeakableName.of(s.name))
+        working(s) -> if (now != null) busyRecap(s, now, l) else l.busy.format(SpeakableName.of(s.name))
         s.outcome != null -> outcomeText(s, l)
         else -> l.idle.format(SpeakableName.of(s.name))
     }
@@ -277,8 +277,8 @@ object LiveFeed {
     private fun hot(q: QuotaAccount) = maxOf(q.h5 ?: 0, q.w7 ?: 0) >= QUOTA_HOT
     private fun low(s: Session) = s.lowPriority == LOW_ACTIVE
     private fun blocking(s: Session) = s.outcome != null && s.nextSteps.orEmpty().any { it.blocking }
-    /** Al lavoro sulla tua risposta; ferma su una richiesta di ok (AWAITING) ti aspetta ancora. */
-    private fun working(s: Session) = s.state == SessionState.BUSY
+    /** Al lavoro sulla tua risposta: anche AWAITING, che è il prompt appena consegnato (app-awaiting-uniforme-15-11). */
+    private fun working(s: Session) = s.state.atWork
 
     /**
      * Le scelte scritte in una risposta (Franz, 10/10 08:35: «quando ci sono delle scelte deve leggerle in forma completa»):

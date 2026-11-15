@@ -11,12 +11,12 @@ object CardText {
         if (s.state != SessionState.GONE) {
             val from = when (s.state) {
                 SessionState.WAITING -> s.question?.askedAt ?: s.since
-                SessionState.BUSY -> s.turnStarted ?: s.since
+                SessionState.BUSY, SessionState.AWAITING -> s.turnStarted ?: s.since
                 else -> s.since
             }
             parts += Durations.since(from, now)
         }
-        s.tool?.takeIf { s.state == SessionState.BUSY }?.let { parts += it }
+        s.tool?.takeIf { s.state.atWork }?.let { parts += it }
         return parts.joinToString(" · ")
     }
 

@@ -13,7 +13,7 @@ object TerminalLive {
 
     fun next(prev: Session?, cur: Session?): Ask? {
         if (prev == null || cur == null) return null
-        if (prev.state == SessionState.BUSY && cur.state != SessionState.BUSY) return Ask.SCREEN_AND_LAST
+        if (prev.state.atWork && !cur.state.atWork) return Ask.SCREEN_AND_LAST
         val moved = prev.state != cur.state || prev.since != cur.since || prev.tool != cur.tool ||
             prev.toolNote != cur.toolNote || prev.turnStarted != cur.turnStarted
         return if (moved) Ask.SCREEN else null

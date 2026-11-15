@@ -60,7 +60,7 @@ object AlertEvents {
     fun openFailure(events: List<Event>, s: Session, nowS: Long, attention: List<Attention>? = null): Event? =
         events.filter { it.kind == EventKind.TURN_FAILED && it.ref == s.name }.maxByOrNull { it.ts }
             ?.takeIf { e -> !e.continueText.isNullOrBlank() && nowS - e.ts < 6 * 3600 && !closed(e, s, attention) &&
-                s.state != SessionState.GONE && s.state != SessionState.BUSY }
+                s.state != SessionState.GONE && !s.state.atWork }
 
     /** Contratto 1.62: senza suono né vibrazione, perché Franz è al PC su quella sessione. Senza il campo si suona (fail open). */
     fun quiet(e: Event?, s: Session?): Boolean = e?.quiet == true || s?.atPc == true

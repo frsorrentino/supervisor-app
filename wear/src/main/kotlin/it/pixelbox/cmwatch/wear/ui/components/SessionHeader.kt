@@ -63,7 +63,7 @@ fun SessionHeader(
         // Cosa sta facendo, detto per esteso: la description del comando (contratto 1.5) o la frase dallo strumento.
         val tool = ToolText.describe(s.toolNote, s.tool, toolLabels())
         // Due righe e un pensiero intero, mai «…» (Franz, 14/09 17:40): la stessa regola della card della tile.
-        if (showTool && s.state == SessionState.BUSY && tool != null) {
+        if (showTool && s.state.atWork && tool != null) {
             Text(TileTexts.fitTile(tool, max = 56), style = MaterialTheme.typography.bodySmall, color = CmColors.text2, maxLines = 2)
         }
     }

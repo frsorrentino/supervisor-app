@@ -1,3 +1,4 @@
+import { atWork } from './contract'
 import type { SessionState } from './contract'
 
 // Il badge della sessione, porta di Badge.kt (core): forma = account (tondo personale, quadrato lavoro), riempimento = colore
@@ -40,7 +41,7 @@ export function badge(account: string, color: string | null | undefined, state: 
 }
 
 /** Il badge respira mentre la sessione lavora (come il pallino dell'app Claude). */
-export const breathes = (s: SessionState) => s === 'busy' || s === 'awaiting'
+export const breathes = (s: SessionState) => atWork({ state: s })
 
 /** I tracciati dei glifi, gli stessi di Badge.paths (Lucide, ISC), in un riquadro 24×24. */
 export const PATHS: Record<Glyph, string[]> = {

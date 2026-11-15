@@ -38,7 +38,7 @@ object Tune {
      * Il selettore dice «dal prossimo turno» finché dura il turno in cui è stata fatta.
      */
     fun nextTurn(s: Session, pick: Pick?, result: CmdResult?, now: Long): Boolean =
-        pick != null && held(pick, result, now) && s.state == SessionState.BUSY && pick.at >= s.since
+        pick != null && held(pick, result, now) && s.state.atWork && pick.at >= s.since
 
     private fun held(p: Pick, result: CmdResult?, now: Long) = result?.ok != false && now - p.at < HOLD_S
 }

@@ -59,6 +59,7 @@ class TuneTest {
         assertTrue(Tune.nextTurn(busy, pick, null, now = 120))
         assertTrue(Tune.nextTurn(busy, pick, CmdResult("c4", ok = true, text = "atlas-shop is working: model Fable 5.1 is chosen and applies at the end of the turn, before the next prompt", at = 101), now = 120))
         assertEquals(sonnet, Tune.model(busy, pick, null, now = 120))
+        assertTrue(Tune.nextTurn(busy.copy(state = SessionState.AWAITING), pick, null, now = 120)) // app-awaiting-uniforme-15-11
         // Finito il turno, o in un turno nuovo, niente scritta.
         assertFalse(Tune.nextTurn(s(model = sonnet), pick, null, now = 200))
         assertFalse(Tune.nextTurn(s(model = sonnet, state = SessionState.BUSY, since = 150), pick, null, now = 200))

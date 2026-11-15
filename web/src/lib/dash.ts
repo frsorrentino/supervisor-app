@@ -1,3 +1,4 @@
+import { atWork } from './contract'
 import type { Attention, HostStatus, Project, Published, Session, State } from './contract'
 import { locale } from './lang'
 import { MASTER } from './summary'
@@ -24,8 +25,9 @@ export type ByState = { busy: number; waiting: number; idle: number; closed: Ses
 export function sessionsByState(sessions: Session[]): ByState {
   const live = sessions.filter(s => s.name !== MASTER)
   return {
-    busy: live.filter(s => s.state === 'busy').length,
-    waiting: live.filter(s => s.state === 'waiting' || s.state === 'awaiting').length,
+    // app-awaiting-uniforme-15-11: una awaiting lavora (contava fra le «waiting»).
+    busy: live.filter(atWork).length,
+    waiting: live.filter(s => s.state === 'waiting').length,
     idle: live.filter(s => s.state === 'idle').length,
     closed: live.filter(s => s.state === 'gone').sort((a, b) => b.since - a.since).slice(0, 5),
   }

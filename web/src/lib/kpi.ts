@@ -1,3 +1,4 @@
+import { atWork } from './contract'
 import type { KpiChecksDay, KpiData, KpiSuggestions, KpiTask, KpiTasks, KpiTurn, KpiWaits, Session, State, TimelineEvent, TimelinePage } from './contract'
 import { shareable } from './questionRules'
 import { stop } from './strongAlert'
@@ -144,12 +145,6 @@ export const outcomeType = (raw: string | null | undefined): OutcomeType => (raw
 /** 7 · tre cifre in testa alla home: chi ti aspetta (e da quanto la prima), chi lavora, gli esiti di oggi e i rossi. */
 /** `open` (app-tabellone-frazioni-13-11, Franz 13/11 14:10: «sessioni aperte oltre alla master»): le sessioni aperte adesso senza la master, come «N aperte» in testata; è il denominatore delle frazioni, e ferme e al lavoro si contano fra le stesse, così x/N non supera mai N. */
 export type Head = { waiting: number; oldestWaitS: number | null; busy: number; outcomes: number | null; red: number | null; open?: number }
-
-/**
- * Al lavoro per il tabellone (app-tabellone-awaiting-15-11, Franz 15/11 07:58: joy lavorava e la casella segnava 0/5): il relay dà
- * `awaiting` prima di `busy` quando Franz ha scritto alla sessione, ed è al lavoro come per il glifo (badge.ts) e il Feed.
- */
-const atWork = (s: Pick<Session, 'state'>) => s.state === 'busy' || s.state === 'awaiting'
 
 export function head(st: State, page: TimelinePage | null, now: number, timeZone?: string): Head {
   const live = st.sessions.filter(s => s.state !== 'gone' && s.name !== 'master')

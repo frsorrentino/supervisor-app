@@ -2,6 +2,12 @@
 // I test leggono le fixture di ../contract, come quelli Kotlin.
 
 export type SessionState = 'waiting' | 'busy' | 'idle' | 'awaiting' | 'gone'
+/**
+ * La regola unica di «al lavoro» (app-awaiting-uniforme-15-11, seguito della segnalazione di Franz del 15/11 07:58 su joy): il relay dà
+ * `awaiting` prima di `busy` quando Franz ha scritto alla sessione, e da lì il turno è suo. Chi lavora e intanto aspetta Franz (domanda,
+ * needs_you) è ferma: lo decide chi chiama, con `waitingSince`. Lo stesso in Model.kt (`SessionState.atWork`).
+ */
+export const atWork = (s: { state: SessionState }): boolean => s.state === 'busy' || s.state === 'awaiting'
 /** Contratto 1.53: la riga che spiega l'opzione e l'opzione consigliata. */
 export type Option = { n: number; label: string; description?: string | null; recommended?: boolean }
 export type Question = { id: string; kind: 'permission' | 'ask' | 'plan'; text: string; options: Option[]; tier: 'low' | 'medium' | 'high'; asked_at: number

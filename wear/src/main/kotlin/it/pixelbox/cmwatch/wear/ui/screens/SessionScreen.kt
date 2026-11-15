@@ -116,7 +116,7 @@ fun SessionScreen(
         // la sessione si ferma. In ambient e con «riduci animazioni» resta una luce ferma e fioca.
         TransformingLazyColumn(
             state = listState, contentPadding = padding,
-            modifier = Modifier.fillMaxSize().bottomGlow(CmColors.busy, visible = s?.state == SessionState.BUSY),
+            modifier = Modifier.fillMaxSize().bottomGlow(CmColors.busy, visible = s?.state?.atWork == true),
         ) {
             if (s == null) {
                 // Stato vuoto centrato, con il solo tasto di bordo «Sessioni»: prima c'erano due bottoni pieni uguali e

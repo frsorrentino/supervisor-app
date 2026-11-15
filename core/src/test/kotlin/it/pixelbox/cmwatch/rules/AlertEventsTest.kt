@@ -73,6 +73,12 @@ class AlertEventsTest {
         assertNull(AlertEvents.openFailure(listOf(failed), done(1100), 1160))
     }
 
+    // app-awaiting-uniforme-15-11: ripartita vuol dire BUSY o AWAITING.
+    @Test fun `turno fallito, niente Continua a sessione ripartita`() {
+        assertNull(AlertEvents.openFailure(listOf(failed), done(900).copy(state = SessionState.BUSY), 1060))
+        assertNull(AlertEvents.openFailure(listOf(failed), done(900).copy(state = SessionState.AWAITING), 1060))
+    }
+
     @Test fun `turno fallito chiuso quando attention non ha piu la voce`() {
         assertEquals(failed, AlertEvents.openFailure(listOf(failed), rested, 1060, voice))
         assertNull(AlertEvents.openFailure(listOf(failed), rested, 1060, emptyList()))

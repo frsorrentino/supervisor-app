@@ -171,9 +171,9 @@ object Kpi {
 
     /**
      * Al lavoro per il tabellone (app-tabellone-awaiting-15-11, Franz 15/11 07:58: joy lavorava e la casella segnava 0/5): il relay dà
-     * AWAITING prima di BUSY quando Franz ha scritto alla sessione, ed è al lavoro come per il glifo (Badge) e il Feed. Lo stesso in kpi.ts.
+     * AWAITING prima di BUSY quando Franz ha scritto alla sessione, ed è al lavoro come per il glifo (Badge) e il Feed: la regola è `SessionState.atWork`.
      */
-    private fun atWork(s: Session): Boolean = s.state == SessionState.BUSY || s.state == SessionState.AWAITING
+    private fun atWork(s: Session): Boolean = s.state.atWork
     fun boardCount(h: Head, f: BoardFilter): Int = if (f == BoardFilter.WAITING) h.waiting else h.busy
     fun boardMatch(s: Session, f: BoardFilter): Boolean = s.state != SessionState.GONE && s.name != ContextActions.MASTER &&
         (if (f == BoardFilter.WAITING) waitingSince(s) != null else atWork(s) && waitingSince(s) == null)

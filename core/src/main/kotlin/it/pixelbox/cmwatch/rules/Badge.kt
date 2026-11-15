@@ -82,7 +82,7 @@ object Badge {
      * Il badge respira mentre la sessione lavora, come il pallino dell'app Claude (Franz, 14/09 16:24): ogni sessione
      * al lavoro, non più solo la seguita, che nella lista ha il suo bordo e la campanella.
      */
-    fun breathes(state: SessionState): Boolean = state == SessionState.BUSY || state == SessionState.AWAITING
+    fun breathes(state: SessionState): Boolean = state.atWork
 
     fun parse(color: String?): Int? {
         val h = color?.trim()?.removePrefix("#") ?: return null

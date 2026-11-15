@@ -54,6 +54,9 @@ describe('turno fallito (contratto 1.61)', () => {
     expect(openFailure([f], s('atlas-shop', 'idle', 900), 1060)).toBe(f)
     expect(openFailure([f], s('atlas-shop', 'idle', 1100), 1160)).toBeNull()
     expect(openFailure([f], s('atlas-shop', 'idle', 900), 1000 + 7 * 3600)).toBeNull()
+    // app-awaiting-uniforme-15-11: ripartita vuol dire busy o awaiting.
+    expect(openFailure([f], s('atlas-shop', 'busy', 900), 1060)).toBeNull()
+    expect(openFailure([f], s('atlas-shop', 'awaiting', 900), 1060)).toBeNull()
   })
 })
 

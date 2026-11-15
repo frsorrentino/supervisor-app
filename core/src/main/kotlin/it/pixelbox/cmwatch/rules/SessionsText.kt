@@ -11,7 +11,7 @@ object SessionsText {
     fun row(s: Session, now: Long): String {
         val from = when (s.state) {
             SessionState.WAITING -> s.question?.askedAt ?: s.since
-            SessionState.BUSY -> s.turnStarted ?: s.since
+            SessionState.BUSY, SessionState.AWAITING -> s.turnStarted ?: s.since
             SessionState.GONE -> return s.name
             else -> s.since
         }

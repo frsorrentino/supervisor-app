@@ -20,6 +20,9 @@ describe('il cruscotto a tre colonne (Franz, 21/10 13:02)', () => {
     const b = sessionsByState([...st.sessions, { ...st.sessions[1], name: 'master' }])
     expect([b.busy, b.waiting, b.idle]).toEqual([1, 1, 1])
     expect(b.closed.map(s => s.name)).toEqual(['orbit-docs'])
+    // app-awaiting-uniforme-15-11: una awaiting è al lavoro, non fra le domande.
+    const a = sessionsByState([...st.sessions, { ...st.sessions[1], name: 'scritta', state: 'awaiting' }])
+    expect([a.busy, a.waiting, a.idle]).toEqual([2, 1, 1])
   })
   it('il lancio rapido: progetti recenti senza una sessione viva', () => {
     // atlas-shop e ledger-api hanno una sessione viva; orbit-docs è chiusa.
