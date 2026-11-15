@@ -12,25 +12,6 @@ class MasterGesturesTest {
         assertTrue(MasterGestures.isDrag(5f, 4f))
     }
 
-    @Test fun aStillTapActs() = assertTrue(MasterGestures.Taps().tap("bar-left", 0))
-
-    @Test fun aDoubleTapIsOneGesture() {
-        val t = MasterGestures.Taps()
-        assertTrue(t.tap("bar-left", 0))
-        assertFalse(t.tap("bar-left", 250))
-        // Dopo il doppio, un tocco nuovo agisce; anche oltre i 300 ms, o su un altro posto.
-        assertTrue(t.tap("bar-left", 400))
-        assertTrue(t.tap("bar-right", 500))
-        assertTrue(t.tap("bar-right", 900))
-    }
-
-    @Test fun aDragCancelsThePendingTap() {
-        val t = MasterGestures.Taps()
-        assertTrue(t.tap("bar-left", 0))
-        t.dragged()
-        assertTrue(t.tap("bar-left", 100))
-    }
-
     // La corsa breve (app-master-corsa-breve-05-11): conta la direzione, non la metà della corsa.
     @Test fun shortRunGoesToTheNextStopThatWay() {
         val stops = listOf(0f, 300f, 700f, 1000f)

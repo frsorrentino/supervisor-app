@@ -1046,8 +1046,7 @@
     commit()
   }
   // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto. Il lato non lo decide il dito
-  // (app-master-riga-maniglie-04-11): `pick` è il lato della maniglia presa nella riga in basso, null = il lato di adesso; il
-  // gesto è solo verticale.
+  // e il gesto è solo verticale, sul lato di adesso: la riga in basso non ha più maniglie per lato (app-riga-senza-maniglie-15-11).
   // La master di adesso (riga, pannello, master nella pila) e la molla in verticale: come springX del cambio di lato.
   const liftEl = () => PLACES.map(q => document.querySelector<HTMLElement>(q)).find(Boolean) ?? null
   function springY(el: HTMLElement, from: number, v: number) {
@@ -1073,13 +1072,13 @@
       if (Math.abs(from) > 0.5) springY(el, from, vy)
     })
   }
-  function heightGesture(y0: number, pick: Side | null) {
+  function heightGesture(y0: number) {
     let moved = false
     // Le zone si calcolano una volta, all'inizio del gesto (app-trascina-rifinitura-04-11): rifarle a ogni movimento faceva
     // sfarfallare il bersaglio dalla riga in basso. Anche le misure della sagoma.
     const W0 = window.innerWidth, H0 = window.innerHeight, under = !deskDashboard
     const w0 = barColW()
-    const side0: Side = masterLeft ? 'left' : 'right', side = pick ?? side0
+    const side0: Side = masterLeft ? 'left' : 'right', side = side0
     const col: Rect = side === 'left' ? { x: 0, y: 0, w: w0, h: H0 } : { x: W0 - w0, y: 0, w: w0, h: H0 }
     const zs = heightZones(col, under)
     const h0: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
@@ -1116,10 +1115,9 @@
       clearTimeout(dwellTimer)
       if (!e) { revert(); blob?.back(0); return }
       if (!moved) {
-        // Un tocco senza trascinare: la maniglia della riga apre la master da quel lato, all'ultima altezza; quella sotto la home
-        // passa all'altezza dopo, come prima.
-        if (pick) taps.tap(`bar-${pick}`, performance.now(), () => smooth(() => { masterLeft = pick === 'left'; masterOpen = true; masterHalf = masterNarrow(); save('cm.master_left', masterLeft ? '1' : '0') }))
-        else if (stacked) taps.tap('stack', performance.now(), () => stepStack(1))
+        // Un tocco senza trascinare: la maniglia sotto la home passa all'altezza dopo. La riga in basso non ha più maniglie
+        // (app-riga-senza-maniglie-15-11): si apre col tocco, col tiro in su o col tasto tondo.
+        if (stacked) taps.tap('stack', performance.now(), () => stepStack(1))
         return
       }
       aimH(keys[step(mids, from, e.clientY - y0, speed.speed())])
@@ -1127,19 +1125,19 @@
       heightEnd(el0, speed.speed(), blob, speed.speed() / span)
     })
   }
-  function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientY, null) }
+  function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientY) }
   // La presa in alto e la maniglia della pila, come nell'app (app-cambio-lato-come-app-05-11, Franz 05/11 23:53): trascinate di
   // lato cambiano lato, in su o in giù l'altezza; il primo movimento oltre i 6 px decide. Un tocco resta quello di sempre.
   function topDown(e: PointerEvent) {
     e.preventDefault()
     const x0 = e.clientX, y0 = e.clientY
     const stop = () => { window.removeEventListener('pointermove', first); window.removeEventListener('pointerup', tap); window.removeEventListener('pointercancel', stop) }
-    const tap = () => { stop(); heightGesture(y0, null); window.dispatchEvent(new PointerEvent('pointerup', { clientX: x0, clientY: y0 })) }
+    const tap = () => { stop(); heightGesture(y0); window.dispatchEvent(new PointerEvent('pointerup', { clientX: x0, clientY: y0 })) }
     const first = (m: PointerEvent) => {
       if (!isDrag(m.clientX - x0, m.clientY - y0)) return
       stop()
       if (Math.abs(m.clientX - x0) > Math.abs(m.clientY - y0)) sideGrip(e)
-      else heightGesture(y0, null)
+      else heightGesture(y0)
       // Il gesto scelto riparte da qui: il movimento che l'ha deciso conta già.
       window.dispatchEvent(new PointerEvent('pointermove', { clientX: m.clientX, clientY: m.clientY }))
     }
@@ -1153,7 +1151,7 @@
   function barDrag(phase: 'move' | 'end' | 'cancel', _x: number, y: number) {
     if (phase !== 'move' || barGesture) return
     barGesture = true
-    heightGesture(y, null)
+    heightGesture(y)
     window.addEventListener('pointerup', () => { barGesture = false }, { once: true })
   }
   // Con la master sotto la home (app-home-sfuma-sopra-master-04-11, Franz 04/11 18:57): gli ultimi 32 px della home che scorre
@@ -2297,7 +2295,7 @@
 <!-- Il tasto tondo della master, lo stesso nella riga in basso e in testa al pannello (app-sposta-master-a-13-11). -->
 {#snippet masterKey()}<MasterKey now={masterSpot} sessionsOpen={!deskDashboard} up={!masterOpen} label={''}
   onToggle={() => smooth(() => { if (masterOpen) masterOpen = false; else { masterOpen = true; masterHalf = masterNarrow() } })} onPreview={keyPreview} onMove={keyMove} />{/snippet}
-{#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}>{#if wide}{#each ['left', 'right'] as const as sd (sd)}<button class="hgrip bargrip" class:r={sd === 'right'} style={sd === 'left' ? `left:${barColW() / 2}px` : `right:${barColW() / 2}px`} aria-label={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} title={sd === 'left' ? t.masterBarGripLeft : t.masterBarGripRight} onpointerdown={(e) => { e.preventDefault(); heightGesture(e.clientY, sd) }}><i></i></button>{/each}{/if}<div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} />{@render masterKey()}</div>{/if}{/snippet}
+{#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} />{@render masterKey()}</div>{/if}{/snippet}
 <!-- Il pannello della master nel cruscotto con le prese di quello accanto alle colonne (web-maniglia-riga-colonna-06-11, Franz
      06/11 00:05): la presa in alto ‹ ━ › porta alla riga in basso o cambia lato, la corsia la larghezza; come MasterFrame sul tablet. -->
 {#snippet masterPanelGrips()}<button class="wgrip" class:onleft={masterLeft} aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('dash')}{/snippet}
@@ -2570,7 +2568,6 @@
   /* Col dito le prese sottili si toccano su 28 px, il segno resta quello (app-tablet-barre-bordi-05-11). */
   @media (pointer: coarse) {
     .hgrip { height: 28px; }
-    .mbar .bargrip { top: -14px; }
     .hstack .grip { height: 28px; margin: -15px 0 -13px; }
   }
   .dpanel.under.compact .mchat :global(section.chat > :not(.bar)) { display: none; }
@@ -2586,12 +2583,6 @@
   .dpanel.under { flex: 1; width: auto; border: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgb(0 0 0 / .4); }
   .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 5px 12px; border-top: 1px solid var(--line); background: var(--s1); }
   .mbar { position: relative; }
-  /* Due maniglie sul bordo superiore della riga, ognuna sull'asse della colonna dove la master atterra da quel lato
-     (app-master-riga-maniglie-04-11): a metà colonna a sinistra, a W meno metà colonna a destra. */
-  .mbar .bargrip { top: -12px; height: 20px; left: auto; right: auto; width: 96px; translate: -50% 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
-  /* ⌃ sopra la barretta: tirata su, la master sale in colonna da quel lato (web-maniglia-riga-colonna-06-11, come le ‹ › della presa in alto). */
-  .mbar .bargrip::before { content: ''; width: 6px; height: 6px; margin-top: 3px; border-left: 1.5px solid var(--tx3); border-top: 1.5px solid var(--tx3); transform: rotate(45deg); opacity: .8; }
-  .mbar .bargrip.r { translate: 50% 0; }
   /* Il campo centrato in altezza con il testo della master e la freccia (Franz 03/11 18:01): niente margine in basso qui. */
   .mbar .mquick { padding: 0; align-self: center; }
   .mbar .mquick :global(.bar) { margin-top: 0; margin-bottom: 0; }

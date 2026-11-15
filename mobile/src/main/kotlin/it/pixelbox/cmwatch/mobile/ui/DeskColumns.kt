@@ -300,11 +300,9 @@ internal fun MasterFrame(
         L.Height.COMPACT to stringResource(R.string.master_land_compact), L.Height.BAR to stringResource(R.string.master_land_bar),
     )
     val midLeft = stringResource(R.string.master_mid_left); val midRight = stringResource(R.string.master_mid_right)
-    val gripLeft = stringResource(R.string.master_bar_grip_left); val gripRight = stringResource(R.string.master_bar_grip_right)
     val ctx = androidx.compose.ui.platform.LocalContext.current
     // Il gesto lo legge il telaio, che resta fermo: le maniglie dicono solo dove stanno (come `follow` della PWA).
     // Un solo riconoscitore: il doppio tocco su una maniglia è un gesto solo.
-    val taps = androidx.compose.runtime.remember { it.pixelbox.cmwatch.rules.MasterGestures.Taps() }
     val grips = androidx.compose.runtime.remember { mutableMapOf<String, androidx.compose.ui.layout.LayoutCoordinates>() }
     var frame by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
     // Le misure vere della riga e del pannello, per la sagoma del posto di adesso.
@@ -416,8 +414,8 @@ internal fun MasterFrame(
                         aim = p0.widthDropped(widthNow, W) to open0
                         return
                     }
-                    // Solo verticale: il lato è quello della maniglia presa nella riga, se no quello di adesso.
-                    val l = when (key) { "bar-left" -> true; "bar-right" -> false; else -> p0.left }
+                    // Solo verticale, sul lato di adesso: la riga in basso non ha più maniglie per lato (app-riga-senza-maniglie-15-11).
+                    val l = p0.left
                     val w = p0.panelWidth()
                     val zs = L.heightZones(L.Rect(if (l) 0f else W - w, 0f, w, H), underOk)
                     val mids = zs.map { z -> z.rect.y + z.rect.h / 2f }
@@ -441,14 +439,11 @@ internal fun MasterFrame(
                             ended = true
                             // Al rilascio conta anche il colpo: la velocità decide la direzione e si proietta.
                             if (moved && key != "side") { val v = speed.calculateVelocity(); aimAt(key, last.x / density, last.y / density, v.x / density, v.y / density) }
-                            // Un tocco su una maniglia della riga: la master si apre da quel lato, e la riga sotto non lo prende.
-                            if (!moved && key.startsWith("bar-")) { c.consume(); if (taps.tap(key, c.uptimeMillis)) change?.invoke(p0.copy(left = key == "bar-left"), true, true) }
                             break
                         }
                         // Oltre 6 dp è un trascinamento, e vince sui tocchi (app-master-gesti-senza-conflitti-04-11).
                         if (!moved && !it.pixelbox.cmwatch.rules.MasterGestures.isDrag((c.position.x - down.position.x) / density, (c.position.y - down.position.y) / density)) continue
                         if (!moved) {
-                            taps.dragged()
                             // La presa in alto: di lato cambia il lato, in su o in giù l'altezza.
                             if (key == "top") key = if (kotlin.math.abs(c.position.x - down.position.x) > kotlin.math.abs(c.position.y - down.position.y)) "side" else "height"
                         }
@@ -578,30 +573,8 @@ internal fun MasterFrame(
                         bar?.let { b ->
                             Box(Modifier.zIndex(if (lift.y != 0f) 3f else 0f).graphicsLayer { translationY = lift.y; alpha = lift.alpha }.drawWithContent { barLayer.record { this@drawWithContent.drawContent() }; drawLayer(barLayer) }.reflow("r-master").fillMaxWidth().seen("bar").then(if (onPlace != null && place != null) Modifier.grip("bar") else Modifier)) {
                                 androidx.compose.runtime.CompositionLocalProvider(LocalMasterKeyPreview provides keyPreview) { b() }
-                                // Due maniglie sull'asse della colonna dove la master atterra, una per lato (app-master-riga-maniglie-04-11,
-                                // Franz 04/11 17:40): tirata su apre la master da quel lato, alle altezze del bordo superiore; un tocco la
-                                // apre da quel lato all'ultima misura. Il resto della riga tirato su apre sul lato di adesso.
-                                if (onPlace != null && place != null) {
-                                    val axis = place.panelWidth() / 2
-                                    listOf(true to axis, false to W - axis).forEach { (l, cx) ->
-                                        Box(
-                                            Modifier.offset(x = (cx - 36f).dp).width(72.dp).height(16.dp)
-                                                .semantics { contentDescription = if (l) gripLeft else gripRight }
-                                                .testTag(if (l) "master-maniglia-riga-sx" else "master-maniglia-riga-dx").grip(if (l) "bar-left" else "bar-right"),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            // ⌃ sopra la barretta: tirata su, la master sale in colonna da quel lato (web-maniglia-riga-colonna-06-11).
-                                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                androidx.compose.foundation.Canvas(Modifier.width(10.dp).height(5.dp)) {
-                                                    val st = 1.5.dp.toPx()
-                                                    drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(0f, size.height), androidx.compose.ui.geometry.Offset(size.width / 2, 0f), st, androidx.compose.ui.graphics.StrokeCap.Round)
-                                                    drawLine(V3.Tx3, androidx.compose.ui.geometry.Offset(size.width / 2, 0f), androidx.compose.ui.geometry.Offset(size.width, size.height), st, androidx.compose.ui.graphics.StrokeCap.Round)
-                                                }
-                                                Box(Modifier.width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
-                                            }
-                                        }
-                                    }
-                                }
+                                // Sul bordo della riga non c'è niente (app-riga-senza-maniglie-15-11, Franz 15/11 15:19): si apre col tocco,
+                                // col tiro in su sul lato di adesso o col tasto tondo.
                             }
                         }
                     }

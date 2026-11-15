@@ -244,6 +244,16 @@ class TabletShellTest {
         }
     }
 
+    // app-riga-senza-maniglie-15-11 (Franz 15/11 15:19): la master chiusa in riga e trascinabile; sul bordo superiore niente maniglie né frecce.
+    @Test fun riga_senza_maniglie() = paparazzi.snapshot {
+        val m = st.sessions.first { it.name == "master" }
+        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
+        CmPhoneTheme(still = true) {
+            MasterFrame(left = true, panelWidthDp = 420f, panel = null, bar = { MasterDock(m, hero, onSpeak = {}, onToggle = {}) },
+                place = it.pixelbox.cmwatch.rules.MasterPlace(), onPlace = { _, _, _ -> }) { desk(listOf("atlas-shop"), listOf(12)) }
+        }
+    }
+
     // Con le sessioni aperte la master come nella PWA larga: aperta di lato a sinistra col tasto Posizione, la home dal suo lato.
     @Test fun deskMasterLeft() = paparazzi.snapshot {
         val m = st.sessions.first { it.name == "master" }
