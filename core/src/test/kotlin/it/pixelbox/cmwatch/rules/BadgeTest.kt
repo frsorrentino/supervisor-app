@@ -67,11 +67,11 @@ class BadgeTest {
     @Test fun descrizionePerTalkBackStatoEAccount() {
         val l = Badge.Labels(
             waiting = "In attesa di risposta", busy = "Lavora", idle = "Ferma", gone = "Sparita",
-            awaiting = "prompt dal polso in corso", personal = "account personale", work = "account di lavoro",
+            awaiting = "al lavoro", personal = "account personale", work = "account di lavoro",
         )
         assertEquals("In attesa di risposta, account personale", Badge.description("personale", null, SessionState.WAITING, l))
         assertEquals("Lavora, account di lavoro", Badge.description("agenzia", null, SessionState.BUSY, l))
-        assertEquals("prompt dal polso in corso, account personale", Badge.description("home", "personal", SessionState.AWAITING, l))
+        assertEquals("al lavoro, account personale", Badge.description("home", "personal", SessionState.AWAITING, l))
         assertEquals("Sparita, account di lavoro", Badge.description("personale", "work", SessionState.GONE, l))
         assertEquals("Ferma, account personale", Badge.description("personale", null, SessionState.IDLE, l))
     }

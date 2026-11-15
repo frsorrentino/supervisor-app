@@ -385,7 +385,7 @@
     <string name="question_high_risk">High risk: press and hold an option to answer</string>
     <string name="question_hold">Press and hold to confirm</string>
     <string name="ov_week_reset">week %1$d%% · %2$s</string>
-    <string name="state_awaiting">prompt from the phone in progress</string>
+    <string name="state_awaiting">working</string>
     <string name="badge_personal">personal account</string>
     <string name="badge_work">work account</string>
     <string name="attach_image">Attach an image</string>

@@ -394,7 +394,7 @@
     <string name="question_high_risk">Rischio alto: tieni premuta l\'opzione per rispondere</string>
     <string name="question_hold">Tieni premuto per confermare</string>
     <string name="ov_week_reset">settimana %1$d%% · %2$s</string>
-    <string name="state_awaiting">prompt dal telefono in corso</string>
+    <string name="state_awaiting">al lavoro</string>
     <string name="badge_personal">account personale</string>
     <string name="badge_work">account di lavoro</string>
     <string name="attach_image">Allega un\'immagine</string>

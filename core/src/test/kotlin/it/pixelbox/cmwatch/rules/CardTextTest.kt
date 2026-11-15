@@ -14,8 +14,8 @@ class CardTextTest {
     @Test fun header() = assertEquals("ledger-api · work · In attesa di risposta · 5 m", CardText.header(s.sessions[0], 1789210800, labels))
     @Test fun busyShowsTool() = assertEquals("atlas-shop · personal · Lavora · 1 m · Bash pytest -q tests", CardText.header(s.sessions[1], 1789210800, labels))
     // app-awaiting-uniforme-15-11: una awaiting dice il turno e lo strumento come una busy.
-    @Test fun awaitingShowsToolToo() = assertEquals("atlas-shop · personal · In attesa · 1 m · Bash pytest -q tests",
-        CardText.header(s.sessions[1].copy(state = SessionState.AWAITING), 1789210800, labels + (SessionState.AWAITING to "In attesa")))
+    @Test fun awaitingShowsToolToo() = assertEquals("atlas-shop · personal · Al lavoro · 1 m · Bash pytest -q tests",
+        CardText.header(s.sessions[1].copy(state = SessionState.AWAITING), 1789210800, labels + (SessionState.AWAITING to "Al lavoro")))
     @Test fun goneHasNoDuration() = assertEquals("orbit-docs · work · Sparita", CardText.header(s.sessions[3], 1789210800, labels))
     @Test fun next() = assertEquals("→ Wait for the go", CardText.next(s.sessions[0]))
     @Test fun noNext() = assertNull(CardText.next(s.sessions[2]))

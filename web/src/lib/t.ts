@@ -24,7 +24,7 @@ const it = {
   detailSaid: (hm: string) => `Ultimo messaggio · ${hm}`, detailDoing: 'Sta facendo', detailStats: 'Statistiche',
   goal: 'Obiettivo', open: 'Apri i passaggi', close: 'Chiudi i passaggi',
   groups: { waiting: 'Ti aspetta', working: 'Al lavoro', idle: 'Ferma', closed: 'Chiuse' } as Record<string, string>,
-  states: { waiting: 'domanda', busy: 'al lavoro', awaiting: 'in attesa', idle: 'ferma', gone: 'chiusa' } as Record<string, string>,
+  states: { waiting: 'domanda', busy: 'al lavoro', awaiting: 'al lavoro', idle: 'ferma', gone: 'chiusa' } as Record<string, string>,
   // La «d» eufonica solo davanti alla stessa vocale (Preposition.kt): «Scrivi ad atlas-shop», «Scrivi a orbit-docs».
   writeTo: (name: string) => (name === 'master' ? 'Scrivi alla master' : `Scrivi ${/^[aàá]/i.test(name.trimStart()) ? 'ad' : 'a'} ${name}`),
   masterKeyMove: (x: string) => `Sposta la master: ${x}`,
@@ -495,7 +495,7 @@ const en: typeof it = {
   detailSaid: (hm: string) => `Last message · ${hm}`, detailDoing: 'Doing now', detailStats: 'Statistics',
   goal: 'Goal', open: 'Show the steps', close: 'Hide the steps',
   groups: { waiting: 'Waiting for you', working: 'Working', idle: 'Idle', closed: 'Closed' } as Record<string, string>,
-  states: { waiting: 'question', busy: 'working', awaiting: 'waiting', idle: 'idle', gone: 'closed' } as Record<string, string>,
+  states: { waiting: 'question', busy: 'working', awaiting: 'working', idle: 'idle', gone: 'closed' } as Record<string, string>,
   writeTo: (name: string) => (name === 'master' ? 'Write to the master' : `Write to ${name}`),
   masterKeyMove: (x: string) => `Move the master: ${x}`,
   homeRowOpen: 'Reopen the Home', homeRowNew: 'new', masterPosHomeRow: 'Home in a row',

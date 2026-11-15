@@ -157,7 +157,7 @@
     <string name="tool_delegate">delega a un agente</string>
     <string name="tool_plan">aggiorna il piano</string>
     <string name="tool_other">usa %1$s</string>
-    <string name="state_awaiting_prompt">prompt dal polso in corso</string>
+    <string name="state_awaiting_prompt">al lavoro</string>
     <string name="badge_personal">account personale</string>
     <string name="badge_work">account di lavoro</string>
     <string name="tile_title">Supervisor</string>

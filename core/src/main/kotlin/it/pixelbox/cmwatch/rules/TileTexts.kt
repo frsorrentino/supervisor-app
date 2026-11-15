@@ -83,8 +83,8 @@ object TileTexts {
         val scelto = when {
             busy && tool != null -> tool
             busy && esito != null && esitoPiuFresco -> esito
-            // `awaiting` = sta lavorando a un prompt partito dal polso: dirlo, perché un blocco su quel canale
-            // altrimenti è indistinguibile da un turno normale (suggerito dal relay, 14/09 08:31).
+            // `awaiting` = sta lavorando al prompt appena consegnato. La parola è «al lavoro» come in ogni vista (scelta di Franz,
+            // 15/11 19:45, app-awaiting-etichetta-15-11); prima diceva «prompt dal polso in corso» (14/09).
             s.state == SessionState.AWAITING -> prossimo ?: awaiting
             busy -> prossimo ?: running
             else -> esito ?: prossimo ?: idle
