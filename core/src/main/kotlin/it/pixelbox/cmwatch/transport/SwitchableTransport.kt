@@ -20,6 +20,7 @@ class SwitchableTransport(initial: Transport) : Transport {
     override val state: Flow<State> = current.flatMapLatest { it.state }
     override val events: Flow<List<Event>> = current.flatMapLatest { it.events }
     override suspend fun fetchState(): State = current.value.fetchState()
+    override val stateEtag: String? get() = current.value.stateEtag
     override suspend fun fetchEvent(key: String): Event? = current.value.fetchEvent(key)
     override suspend fun fetchTail(sessionId: String): it.pixelbox.cmwatch.contract.Tail? = current.value.fetchTail(sessionId)
     override suspend fun send(cmd: Cmd, onWritten: () -> Unit): CmdResult = current.value.send(cmd, onWritten)

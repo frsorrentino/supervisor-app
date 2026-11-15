@@ -61,6 +61,10 @@ class FirebaseTransport(
 
     private fun isBlob(e: JsonElement) = e is JsonObject && e.containsKey("enc")
 
+    /** Contratto 1.148: l'etag dell'ultimo documento di /state passato di qui, dallo stream o da una GET. */
+    @Volatile private var lastStateEtag: String? = null
+    override val stateEtag: String? get() = lastStateEtag
+
     /**
      * Riconnessione con backoff 1-2-5-15-30 s (design, sezione 4). Il conto riparte dal primo dato ricevuto, non solo da
      * una chiusura pulita: prima, dopo quattro cadute nella vita del processo ogni ripresa aspettava 30 s (piano
@@ -91,6 +95,7 @@ class FirebaseTransport(
             val (path, d) = putEvent(ev.data) ?: return@collect
             if (path == "/" && isBlob(d)) {
                 val st = ContractJson.decodeState(open(d))
+                lastStateEtag = it.pixelbox.cmwatch.rules.PushState.etagOfDoc(d)
                 // Lanciata prima di emit e fuori dal flusso: chi prende solo il primo stato lo chiude, e la ricevuta non deve
                 // nemmeno ritardarlo (piano prestazioni, Task 2: una PUT lenta di /seen teneva fermo il primo stato).
                 if (!marked) { marked = true; markSeenLater() }
@@ -133,7 +138,8 @@ class FirebaseTransport(
     override suspend fun fetchState(): State {
         k()   // non accoppiato: errore subito, senza rete
         val body = rtdb.get("state") ?: throw TransportException.Network("no state on the bus")
-        return ContractJson.decodeState(open(Json.parseToJsonElement(body))).also { markSeenLater() }
+        val doc = Json.parseToJsonElement(body)
+        return ContractJson.decodeState(open(doc)).also { _ -> lastStateEtag = it.pixelbox.cmwatch.rules.PushState.etagOfDoc(doc); markSeenLater() }
     }
 
     override suspend fun fetchTail(sessionId: String): it.pixelbox.cmwatch.contract.Tail? {

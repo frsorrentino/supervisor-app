@@ -8,7 +8,7 @@ import it.pixelbox.cmwatch.wear.CmApp
 class CmMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         android.util.Log.i("cmwatch", "fcm message: ${message.data}")
-        WakeWorker.enqueue(this)
+        WakeWorker.enqueue(this, message.data)
         // Contratti 1.58, 1.61 e 1.68: quota finita, turno fallito e promemoria arrivano solo come eventi, da leggere qui.
         val key = message.data["key"]
         if (key != null && message.data["kind"] in setOf("quota_limit", "turn_failed", "attention_reminder")) {

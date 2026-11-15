@@ -29,6 +29,8 @@ interface Transport {
     val events: Flow<List<Event>>
     /** Un GET (sveglia FCM). */
     suspend fun fetchState(): State
+    /** Contratto 1.148: l'etag dell'ultimo /state scaricato, dallo stream o con una GET (PushState.etagOf); null se non si sa. */
+    val stateEtag: String? get() = null
     /** Contratti 1.57 e 1.58: un evento per chiave, quando la push porta solo `kind` e `key`; null se non c'è. */
     suspend fun fetchEvent(key: String): Event? = null
     /** Contratto 1.59: le ultime voci di una sessione viva; null se il nodo non c'è (relay precedente o sessione finita). */

@@ -440,6 +440,23 @@ class RepoTest {
     }
     private fun idleState() = ContractJson.decodeState(Fixtures.stateIdle)
 
+    // Contratto 1.148 (app-push-etag-15-11): la push con l'etag o il published_at dello stato che c'è già non fa partire il GET.
+    private class Gets(val next: State, base: FakeTransport, override val stateEtag: String?) : Transport by base {
+        var n = 0
+        override suspend fun fetchState(): State { n++; return next }
+    }
+
+    @Test fun aPushForTheStateWeHaveDoesNotGetItAgain() = runTest {
+        val tr = Gets(idleState().copy(publishedAt = 5000.5), fake(), stateEtag = "3f9a1c0b7d2e4a68")
+        val repo = Repo(MemoryStore(), tr, bg(), { clock }, { online }, "test", freshnessTickMs = 0)
+        clock = 6000; assertTrue(repo.refreshOnPush(emptyMap())); assertEquals(1, tr.n)   // senza i campi: come prima
+        clock = 6010; assertTrue(repo.refreshOnPush(mapOf("etag" to "3f9a1c0b7d2e4a68", "published_at" to "9999.0"))); assertEquals(1, tr.n)
+        assertEquals(6010L, repo.snapshot.value.receivedAt)   // il PC ha parlato
+        assertTrue(repo.refreshOnPush(mapOf("etag" to "altro", "published_at" to "5000.5"))); assertEquals(1, tr.n)
+        assertTrue(repo.refreshOnPush(mapOf("etag" to "altro", "published_at" to "5000.6"))); assertEquals(2, tr.n)
+        assertTrue(repo.refreshOnPush(mapOf("kind" to "recap"))); assertEquals(3, tr.n)
+    }
+
     @Test fun aSlowGetWithAnOlderStateDoesNotUndoTheNewerOne() = runTest {
         val tr = Fetch(idleState().copy(ts = 1000), fake())
         val repo = Repo(MemoryStore(), tr, bg(), { clock }, { online }, "test", freshnessTickMs = 0)

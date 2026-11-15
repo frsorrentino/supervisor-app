@@ -197,7 +197,7 @@ class CmApp : Application() {
 
     /** Sveglia (FCM): un GET; le notifiche partono dal diff sullo stream (react). */
     /** Il GET della sveglia FCM; false se non è riuscito, così il worker riprova (piano prestazioni, Task 11). */
-    suspend fun onWake(notify: Boolean): Boolean = repo.refresh()
+    suspend fun onWake(notify: Boolean, push: Map<String, String> = emptyMap()): Boolean = repo.refreshOnPush(push)
 
     /** Ciò che è cambiato fra due /state → notifiche (solo con l'app non in primo piano), tile, complication. */
     suspend fun react(prev: State?, cur: State) {

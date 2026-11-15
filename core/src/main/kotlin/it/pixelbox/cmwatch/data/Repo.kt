@@ -201,6 +201,17 @@ class Repo(
     /** Un GET (sveglia FCM). Vero se lo stato è arrivato. */
     suspend fun refresh(): Boolean = runCatching { accept(transport.fetchState()) }.isSuccess
 
+    /**
+     * La sveglia di una push (contratto 1.148, app-push-etag-15-11): se il messaggio dice che lo /state sul bus è quello che c'è già
+     * qui (PushState.known), niente GET: si segna solo che il PC ha parlato. Senza `etag` e `published_at`, o diversi, come [refresh].
+     */
+    suspend fun refreshOnPush(data: Map<String, String>): Boolean {
+        if (!it.pixelbox.cmwatch.rules.PushState.known(data, transport.stateEtag, _snapshot.value.state?.publishedAt)) return refresh()
+        android.util.Log.i("cmwatch", "push: state already here, no GET")
+        _snapshot.update { it.copy(receivedAt = now()) }
+        return true
+    }
+
     suspend fun answer(session: String, n: Int) = command(CmdOp.ANSWER, session, n.toString())
 
     /**
