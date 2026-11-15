@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { MonitorCard } from './contract'
-  import { pageUrl, formOf, isLook, lastIndex, maxIndex, meter, minIndex, nearest, scale, span, times, up, values, xOf, yOf } from './monitors'
+  import { valueSeries, pageUrl, formOf, isLook, lastIndex, maxIndex, meter, minIndex, nearest, scale, span, times, up, values, xOf, yOf } from './monitors'
   import { t } from './t'
   import { lang } from './lang'
   // Il grafico di un monitoraggio nella forma della sua scheda (app-monitoraggi-09-11, contratto 1.132), come ChartOf in Kotlin: una
@@ -32,7 +32,7 @@
 {#if form}
 <div class="chart" data-testid="monitor-grafico-{form}" bind:clientWidth={w}>
   {#if form === 'tile'}
-    <p class="big">{c.value ?? ''}{#if c.delta}<small>{c.delta}</small>{/if}</p>
+    <p class="big">{#if valueSeries(c)}<small>{valueSeries(c)}</small>{/if}{c.value ?? ''}{#if c.delta}<small>{c.delta}</small>{/if}</p>
     {#if first.filter(v => v != null).length >= 2}
       {@const cw = w - 8}{@const li = lastIndex(first)}
       <svg width={w} height="64" aria-hidden="true"><path class="ln" d={path(first, firstT, cw, 58, 3)} />{#if li != null}{@const p = at(first, firstT, li, cw, 58, 3)}<circle class="dot" cx={p.x} cy={p.y} r="3.5" />{/if}</svg>
@@ -92,7 +92,7 @@
 
   {:else if form === 'meter'}
     {@const [fill, mark] = meter(c)}
-    <p class="big" class:look={isLook(c)}>{c.value ?? ''}{#if c.limit}<small>{t.monitorLimit(c.limit)}</small>{/if}</p>
+    <p class="big" class:look={isLook(c)}>{#if valueSeries(c)}<small>{valueSeries(c)}</small>{/if}{c.value ?? ''}{#if c.limit}<small>{t.monitorLimit(c.limit)}</small>{/if}</p>
     <div class="meter" class:over={isLook(c)}><i style:width="{fill * 100}%"></i>{#if mark != null}<b style:left="{mark * 100}%"></b>{/if}</div>
 
   {:else if form === 'table'}

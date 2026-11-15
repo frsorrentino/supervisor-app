@@ -20,6 +20,25 @@ export const spark = (c: MonitorCard): number[] => (c.series[0] ? values(c.serie
 /** La frase sotto il titolo: quella della master se c'è, altrimenti la variazione. */
 export const line = (c: MonitorCard): string => (c.verdict?.trim() ? c.verdict : c.delta ?? '')
 
+/**
+ * Contratto 1.147 (app-monitor-serie-15-11): in un monitoraggio a più serie il valore in testa è di una serie sola, e senza il suo nome
+ * si legge come l'unico numero («Scaricati nel mese 134%»). `valueSeries` è il nome da mettere accanto al valore, null con una serie sola
+ * o senza valore; `valueText` il valore col nome davanti, per le righe di testo. Come Monitors.valueSeries in Kotlin.
+ */
+export const valueSeries = (c: Pick<MonitorCard, 'value' | 'value_series'>): string | null => (c.value != null && c.value_series?.trim() ? c.value_series.trim() : null)
+export const valueText = (c: Pick<MonitorCard, 'value' | 'value_series'>): string | null => (c.value == null ? null : valueSeries(c) ? `${valueSeries(c)} ${c.value}` : c.value)
+
+/**
+ * La riga degli avvisi (contratto 1.147): prima quelli scattati, nell'ordine del relay (il peggiore per primo) e col loro testo, che nomina
+ * la serie anche quando la soglia non è legata a nessuna; poi gli altri. Uno scattato è lo stesso avviso se ha tipo e soglia uguali e la
+ * serie dell'avviso, quando c'è; prima si confrontavano i testi, che con più serie non coincidono più.
+ */
+export type AlertChip = { text: string; hit: boolean }
+type A = MonitorCard['alerts'][number]
+const sameAlert = (h: A, a: A) => h.text === a.text || (h.kind === a.kind && h.value === a.value && (a.series == null || a.series === h.series))
+export const alertLine = (c: Pick<MonitorCard, 'alerts' | 'hits'>): AlertChip[] =>
+  [...c.hits.map(h => ({ text: h.text, hit: true })), ...c.alerts.filter(a => !c.hits.some(h => sameAlert(h, a))).map(a => ({ text: a.text, hit: false }))]
+
 /** Una scala per grafico, mai due assi: circa tre tacche, passo 1, 2, 2,5 o 5 per una potenza di dieci; le barre da zero. */
 export type Scale = { lo: number; hi: number; ticks: number[] }
 export function scale(vals: (number | null)[], fromZero = false): Scale {

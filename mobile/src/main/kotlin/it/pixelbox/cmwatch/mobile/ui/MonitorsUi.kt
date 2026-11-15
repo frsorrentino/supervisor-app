@@ -99,6 +99,8 @@ fun MonitorsCard(items: List<MonitorCard>, onOpen: (String) -> Unit, onNew: () -
                     MonitorRefreshOutcome(m)
                 }
                 Column(Modifier.padding(start = 10.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // Contratto 1.147: il nome della serie del valore, sopra, quando le serie sono più d'una.
+                    Monitors.valueSeries(m)?.let { n -> Text(n, style = V3.Small, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.widthIn(max = 140.dp).testTag("monitor-serie")) }
                     m.value?.let { v -> Text(v, style = V3.Name.copy(fontWeight = FontWeight.Bold), maxLines = 1, softWrap = false) }
                     val sp = Monitors.spark(m)
                     if (sp.size >= 2) Sparkline(sp, Modifier.width(64.dp).height(20.dp))
@@ -166,9 +168,10 @@ fun MonitorPage(m: MonitorCard, wide: Boolean, onBack: () -> Unit, onStop: () ->
                 val hit = V3.Wait
                 val text = androidx.compose.ui.text.buildAnnotatedString {
                     append(stringResource(R.string.monitor_alerts) + " · ")
-                    m.alerts.forEachIndexed { i, a ->
+                    // Contratto 1.147: gli scattati per primi, nell'ordine del relay, col testo che nomina la serie.
+                    Monitors.alertLine(m).forEachIndexed { i, a ->
                         if (i > 0) append(" · ")
-                        if (m.hits.any { h -> h.text == a.text }) withStyle(androidx.compose.ui.text.SpanStyle(color = hit)) { append(a.text) } else append(a.text)
+                        if (a.hit) withStyle(androidx.compose.ui.text.SpanStyle(color = hit)) { append(a.text) } else append(a.text)
                     }
                 }
                 Text(text, style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.weight(1f))
@@ -223,7 +226,7 @@ private fun StateBox(m: MonitorCard) {
             Box(Modifier.size(9.dp).clip(CircleShape).background(dotOf(m)))
             Text(stringResource(if (Monitors.look(m)) R.string.monitor_state_look else R.string.monitor_state_ok).uppercase(), style = V3.Name.copy(fontSize = 15.sp, letterSpacing = 0.6.sp, color = dotOf(m)))
         }
-        Text(m.verdict ?: listOfNotNull(m.value, m.delta).joinToString(" · "), style = V3.Body)
+        Text(m.verdict ?: listOfNotNull(Monitors.valueText(m), m.delta).joinToString(" · "), style = V3.Body)
         if (page != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.monitor_open_page), style = V3.Name.copy(fontSize = 15.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
             Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, tint = V3.Tx2, modifier = Modifier.size(16.dp))
@@ -280,6 +283,7 @@ private fun seriesPath(values: List<Double?>, ts: List<Long>, span: Pair<Long, L
 @Composable
 private fun TileForm(c: MonitorCard) {
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Monitors.valueSeries(c)?.let { Text(it, style = V3.Small, modifier = Modifier.padding(bottom = 4.dp)) }
         Text(c.value ?: "", style = V3.Section.copy(fontSize = 34.sp, lineHeight = 38.sp))
         c.delta?.let { Text(it, style = V3.Small, modifier = Modifier.padding(bottom = 4.dp)) }
     }
@@ -458,6 +462,7 @@ private fun MeterForm(c: MonitorCard) {
     val (fill, mark) = Monitors.meter(c)
     val over = Monitors.look(c)
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Monitors.valueSeries(c)?.let { Text(it, style = V3.Small, modifier = Modifier.padding(bottom = 4.dp)) }
         Text(c.value ?: "", style = V3.Section.copy(fontSize = 34.sp, lineHeight = 38.sp, color = if (over) V3.Wait else V3.Tx))
         c.limit?.let { Text(stringResource(R.string.monitor_limit, it), style = V3.Small, modifier = Modifier.padding(bottom = 4.dp)) }
     }

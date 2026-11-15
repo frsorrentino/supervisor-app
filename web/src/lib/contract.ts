@@ -557,6 +557,8 @@ export type MonitorCard = {
   max?: number | null; limit?: string | null; pct?: number | null; rows?: { name: string; value: string; text: string | null; url?: string | null }[]
   /** Contratto 1.138: la pagina della cosa guardata, quella del primo avviso scattato, se no della serie principale; null senza link. */
   url?: string | null
+  /** Contratto 1.147: il nome della serie di `value` e `delta` quando le serie con valori sono più d'una, null altrimenti: va accanto al valore. */
+  value_series?: string | null
   /** Contratto 1.133: si può aggiornare subito con `monitor_refresh`; solo allora c'è il tasto. */
   refreshable?: boolean; refresh?: MonitorRefresh | null
 }
@@ -564,5 +566,7 @@ export type MonitorCard = {
  * Contratto 1.133: lo stato dell'aggiornamento immediato. `state` idle | running | ok | error; epoche in secondi; `rc` 124 = tempo
  * scaduto; `message` l'ultima riga utile; prima di `retry_at` il tasto è spento.
  */
-export type MonitorRefresh = { state: 'idle' | 'running' | 'ok' | 'error'; started: number | null; ended: number | null; rc: number | null; message: string | null; retry_at: number | null; timeout_s: number | null }
+export type MonitorRefresh = { state: 'idle' | 'running' | 'ok' | 'error'; started: number | null; ended: number | null; rc: number | null; message: string | null; retry_at: number | null; timeout_s: number | null
+  /** Contratto 1.147: i punti li ha scritti un cron dopo l'ultimo giro chiesto: `state` ok, `ended` l'ora di quella scrittura, `started` e `rc` null. */
+  external?: boolean }
 export type MonitorsPage = { at: number; items: MonitorCard[] }

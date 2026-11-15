@@ -1252,6 +1252,8 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val max: Double? = null, val limit: String? = null, val pct: Double? = null, val rows: List<MonitorRow> = emptyList(),
     /** Contratto 1.138: la pagina della cosa guardata, quella del primo avviso scattato, se no della serie principale; null senza link. */
     val url: String? = null,
+    /** Contratto 1.147: il nome della serie di [value] e [delta] quando le serie con valori sono più d'una, null altrimenti: va accanto al valore. */
+    @SerialName("value_series") val valueSeries: String? = null,
     /** Contratto 1.133: si può aggiornare subito con `monitor_refresh`; solo allora c'è il tasto. */
     val refreshable: Boolean = false,
     /** Contratto 1.133: l'ultimo aggiornamento chiesto; null se [refreshable] è falso. */
@@ -1264,6 +1266,8 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
 @Serializable data class MonitorRefresh(
     val state: String = "idle", val started: Long? = null, val ended: Long? = null, val rc: Int? = null, val message: String? = null,
     @SerialName("retry_at") val retryAt: Long? = null, @SerialName("timeout_s") val timeoutS: Int? = null,
+    /** Contratto 1.147: i punti li ha scritti un cron dopo l'ultimo giro chiesto: `state` ok, [ended] l'ora di quella scrittura, [started] e [rc] null. */
+    val external: Boolean = false,
 )
 /** Contratto 1.138: `url` la pagina del punto che ha fatto scattare la soglia (solo negli `hits`), o null. */
 @Serializable data class MonitorAlert(val kind: String = "", val value: Double? = null, val series: String? = null, val text: String = "", val url: String? = null)

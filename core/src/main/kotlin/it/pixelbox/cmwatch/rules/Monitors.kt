@@ -48,6 +48,25 @@ object Monitors {
     fun line(c: MonitorCard): String = c.verdict?.takeIf { it.isNotBlank() } ?: c.delta.orEmpty()
 
     /**
+     * Contratto 1.147 (app-monitor-serie-15-11): in un monitoraggio a più serie il valore in testa è di una serie sola, e senza il suo
+     * nome si legge come l'unico numero («Scaricati nel mese 134%»). [valueSeries] è il nome da mettere accanto al valore, null con una
+     * serie sola o senza valore; [valueText] il valore col nome davanti, per le righe di testo. Lo stesso in monitors.ts.
+     */
+    fun valueSeries(c: MonitorCard): String? = c.valueSeries?.trim()?.takeIf { it.isNotEmpty() && c.value != null }
+    fun valueText(c: MonitorCard): String? = c.value?.let { v -> valueSeries(c)?.let { n -> "$n $v" } ?: v }
+
+    /**
+     * La riga degli avvisi (contratto 1.147): prima quelli scattati, nell'ordine del relay (il peggiore per primo) e col loro testo, che
+     * nomina la serie anche quando la soglia non è legata a nessuna; poi gli altri. Uno scattato è lo stesso avviso se ha tipo e soglia
+     * uguali e la serie dell'avviso, quando c'è; prima si confrontavano i testi, che con più serie non coincidono più.
+     */
+    data class AlertChip(val text: String, val hit: Boolean)
+    fun alertLine(c: MonitorCard): List<AlertChip> =
+        c.hits.map { AlertChip(it.text, true) } + c.alerts.filter { a -> c.hits.none { h -> sameAlert(h, a) } }.map { AlertChip(it.text, false) }
+    private fun sameAlert(h: it.pixelbox.cmwatch.contract.MonitorAlert, a: it.pixelbox.cmwatch.contract.MonitorAlert) =
+        h.text == a.text || (h.kind == a.kind && h.value == a.value && (a.series == null || a.series == h.series))
+
+    /**
      * Una scala per grafico, mai due assi: da un multiplo del passo sotto il minimo a uno sopra il massimo, con circa tre tacche; le
      * barre partono da zero. Il passo è 1, 2, 2,5 o 5 per una potenza di dieci.
      */

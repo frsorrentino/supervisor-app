@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { FORMS, formOf, isLook, pageUrl, lastIndex, line, looking, maxIndex, meter, minIndex, monitorOf, nearest, outcomeOf, refreshOf, retryAfter, scale, sectionOf, span, times, up, values, xOf, yOf } from './monitors'
+import { alertLine, valueSeries, valueText, FORMS, formOf, isLook, pageUrl, lastIndex, line, looking, maxIndex, meter, minIndex, monitorOf, nearest, outcomeOf, refreshOf, retryAfter, scale, sectionOf, span, times, up, values, xOf, yOf } from './monitors'
 import { decodeMonitor, decodeMonitors } from './decideDecode'
 import type { MonitorCard, MonitorRefresh, MonitorsPage } from './contract'
 
@@ -21,6 +21,23 @@ describe('monitors', () => {
     expect(monitorOf(p.link!)).toBe('prezzi-portatili')
     expect(decodeMonitor(res('prezzi-portatili').text)).toEqual(p)
     expect(res('vecchio').ok).toBe(false)
+  })
+// Contratto 1.147 (app-monitor-serie-15-11): gli stessi casi di MonitorsTest.kt.
+  it('più serie: il nome accanto al valore, gli scattati per primi, il cron come aggiornato', () => {
+    const [tile, p] = decodeMonitors(res(null).text).items
+    expect([valueSeries(tile), valueText(tile)]).toEqual([null, '130 utenti'])
+    expect([valueSeries(p), valueText(p)]).toEqual(['Yoga 9i', 'Yoga 9i 1.749 €'])
+    expect(valueSeries({ value: null, value_series: 'Yoga 9i' })).toBe(null)
+    expect(valueSeries({ value: '1', value_series: ' ' })).toBe(null)
+    expect(alertLine(p)).toEqual([{ text: 'sotto 1.800 € · Yoga 9i', hit: true }])
+    // La soglia non legata a una serie: gli scattati nominano la serie, il peggiore per primo, e l'avviso non si ripete.
+    const a = (kind: string, value: number, series: string | null, text: string) => ({ kind, value, series, text })
+    const usage = { alerts: [a('above', 80, null, 'sopra 80%'), a('below', 5, 'Letture', 'sotto 5% · Letture')], hits: [a('above', 80, 'Scaricati nel mese', 'sopra 80% · Scaricati nel mese'), a('above', 80, 'Scritti', 'sopra 80% · Scritti')] }
+    expect(alertLine(usage)).toEqual([{ text: 'sopra 80% · Scaricati nel mese', hit: true }, { text: 'sopra 80% · Scritti', hit: true }, { text: 'sotto 5% · Letture', hit: false }])
+    // Un cron ha scritto i punti: aggiornato all'ora della scrittura, senza un giro chiesto.
+    const ext: MonitorRefresh = { state: 'ok', started: null, ended: 5000, rc: null, message: null, retry_at: null, timeout_s: 180, external: true }
+    expect(outcomeOf({ ...p, refresh: ext })).toEqual({ kind: 'done', at: 5000 })
+    expect(refreshOf({ ...p, refresh: ext }, ['monitor_refresh'], 6000)).toEqual({ kind: 'ready' })
   })
   it('i mockup coprono tutto il catalogo', () => {
     expect(new Set(mock.map(formOf))).toEqual(new Set(FORMS))

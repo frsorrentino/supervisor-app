@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { MonitorCard } from './contract'
-  import { isLook, line, scale, spark as sparkOf, yOf } from './monitors'
+  import { isLook, line, scale, spark as sparkOf, valueSeries, yOf } from './monitors'
   import { t } from './t'
   import MonitorRefresh from './MonitorRefresh.svelte'
   // La sezione Monitoraggi nella home (app-monitoraggi-09-11, mockup A): una riga per monitoraggio come le righe delle sessioni,
@@ -21,6 +21,8 @@
       <span class="rail"><i class:look={isLook(m)}></i></span>
       <span class="tx"><b>{m.title}</b>{#if line(m)}<small class:look={isLook(m)}>{line(m)}</small>{/if}<MonitorRefresh {m} part="outcome" /></span>
       <span class="val">
+        <!-- Contratto 1.147: il nome della serie del valore, sopra, quando le serie sono più d'una. -->
+        {#if valueSeries(m)}<small data-testid="monitor-serie">{valueSeries(m)}</small>{/if}
         {#if m.value}<b>{m.value}</b>{/if}
         {#if sparkOf(m).length >= 2}{@const vs = sparkOf(m)}{@const s = scale(vs)}
           <svg viewBox="0 0 64 20" width="64" height="20" aria-hidden="true"><path d={spark(vs)} /><circle cx="62" cy={(1 - yOf(s, vs[vs.length - 1])) * 16 + 2} r="2.4" /></svg>
@@ -52,6 +54,7 @@
   .tx small.look { color: var(--wait); }
   .val { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: 10px; }
   .val b { font: 700 17px/20px var(--display); color: var(--tx); white-space: nowrap; }
+  .val small { max-width: 140px; text-align: right; font-size: 13px; line-height: 16px; color: var(--tx2); }
   .val svg path { fill: none; stroke: var(--tx2); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .val svg circle { fill: var(--tx); }
   .new { min-height: 48px; }

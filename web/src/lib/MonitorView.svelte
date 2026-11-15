@@ -1,7 +1,7 @@
 <script lang="ts">
   import MonitorChart from './MonitorChart.svelte'
   import type { MonitorCard } from './contract'
-  import { isLook, pageUrl } from './monitors'
+  import { alertLine, isLook, pageUrl, valueText } from './monitors'
   import { t } from './t'
   import MonitorRefresh from './MonitorRefresh.svelte'
   // La scheda di un monitoraggio (app-monitoraggi-09-11, mockup B e C), come MonitorPage in Kotlin: il titolo, la fonte e l'ora
@@ -26,12 +26,12 @@
   <div class="body">
     <!-- Contratto 1.138 (app-monitor-link-12-11): con la pagina della cosa guardata il riquadro si tocca e la apre nel browser. -->
     {#if pageUrl(m.url)}
-      <a class="state link" class:look={isLook(m)} href={pageUrl(m.url)} target="_blank" rel="noopener" data-testid="monitor-pagina"><p class="lb"><i></i>{isLook(m) ? t.monitorStateLook : t.monitorStateOk}</p><p>{m.verdict ?? [m.value, m.delta].filter(Boolean).join(' · ')}</p><span class="go">{t.monitorOpenPage}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 16L16 8M9 8h7v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span></a>
+      <a class="state link" class:look={isLook(m)} href={pageUrl(m.url)} target="_blank" rel="noopener" data-testid="monitor-pagina"><p class="lb"><i></i>{isLook(m) ? t.monitorStateLook : t.monitorStateOk}</p><p>{m.verdict ?? [valueText(m), m.delta].filter(Boolean).join(' · ')}</p><span class="go">{t.monitorOpenPage}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 16L16 8M9 8h7v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span></a>
     {:else}
-      <div class="state" class:look={isLook(m)}><p class="lb"><i></i>{isLook(m) ? t.monitorStateLook : t.monitorStateOk}</p><p>{m.verdict ?? [m.value, m.delta].filter(Boolean).join(' · ')}</p></div>
+      <div class="state" class:look={isLook(m)}><p class="lb"><i></i>{isLook(m) ? t.monitorStateLook : t.monitorStateOk}</p><p>{m.verdict ?? [valueText(m), m.delta].filter(Boolean).join(' · ')}</p></div>
     {/if}
     <MonitorChart c={m} />
-    {#if m.alerts.length}<p class="alerts"><span>{t.monitorAlerts} · {#each m.alerts as a, i}{#if i}{' · '}{/if}<span class:hit={m.hits.some(h => h.text === a.text)}>{a.text}</span>{/each}</span><button data-testid="monitor-avvisi" onclick={onEditAlerts}>{t.monitorEdit}</button></p>{/if}
+    {#if m.alerts.length}<p class="alerts"><span>{t.monitorAlerts} · {#each alertLine(m) as a, i}{#if i}{' · '}{/if}<span class:hit={a.hit}>{a.text}</span>{/each}</span><button data-testid="monitor-avvisi" onclick={onEditAlerts}>{t.monitorEdit}</button></p>{/if}
     {#if m.example}<p class="ex"><em>{t.monitorExample}</em> {t.monitorExampleText}</p>{/if}
   </div>
   <footer>

@@ -37,6 +37,30 @@ class MonitorsTest {
         assertNull(st.monitors); assertTrue("monitors" in st.ops.orEmpty())
     }
 
+    // Contratto 1.147 (app-monitor-serie-15-11): gli stessi casi di monitors.test.ts.
+    @Test fun severalSeriesNameTheValueAndPutTheHitsFirst() {
+        val (tile, p) = ContractJson.decodeMonitors(fake.sampleText("monitors")).items
+        assertNull(Monitors.valueSeries(tile)); assertEquals("130 utenti", Monitors.valueText(tile))
+        assertEquals("Yoga 9i", Monitors.valueSeries(p)); assertEquals("Yoga 9i 1.749 €", Monitors.valueText(p))
+        assertNull(Monitors.valueSeries(p.copy(value = null))); assertNull(Monitors.valueSeries(p.copy(valueSeries = " ")))
+        assertEquals(listOf(Monitors.AlertChip("sotto 1.800 € · Yoga 9i", true)), Monitors.alertLine(p))
+        // La soglia non legata a una serie: gli scattati nominano la serie, il peggiore per primo, e l'avviso non si ripete.
+        fun a(kind: String, value: Double, series: String?, text: String) = it.pixelbox.cmwatch.contract.MonitorAlert(kind, value, series, text)
+        val usage = p.copy(
+            alerts = listOf(a("above", 80.0, null, "sopra 80%"), a("below", 5.0, "Letture", "sotto 5% · Letture")),
+            hits = listOf(a("above", 80.0, "Scaricati nel mese", "sopra 80% · Scaricati nel mese"), a("above", 80.0, "Scritti", "sopra 80% · Scritti")),
+        )
+        assertEquals(
+            listOf(Monitors.AlertChip("sopra 80% · Scaricati nel mese", true), Monitors.AlertChip("sopra 80% · Scritti", true), Monitors.AlertChip("sotto 5% · Letture", false)),
+            Monitors.alertLine(usage),
+        )
+        // Un cron ha scritto i punti: aggiornato all'ora della scrittura, senza un giro chiesto.
+        val ext = p.copy(refresh = ContractJson.decodeMonitor("""{"id":"x","refreshable":true,"refresh":{"state":"ok","started":null,"ended":5000,"rc":null,"message":null,"retry_at":null,"timeout_s":180,"external":true}}""").refresh)
+        assertTrue(ext.refresh!!.external)
+        assertEquals(Monitors.Outcome.Done(5000), Monitors.outcome(ext))
+        assertEquals(Monitors.Refresh.Ready, Monitors.refresh(ext, listOf("monitor_refresh"), 6000))
+    }
+
     // Contratto 1.138 (app-monitor-link-12-11): la pagina della cosa guardata, sulla scheda, sulle serie e sull'avviso scattato.
     @Test fun theLinksOfTheMonitoredThing() {
         val (ad, p) = ContractJson.decodeMonitors(fake.sampleText("monitors")).items
